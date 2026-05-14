@@ -1,0 +1,58 @@
+package com.ban.vehicle_management.infrastructure.persistence.operations.approvalrequest;
+
+import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.shared.enumeration.ApprovalRequestStatus;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import java.time.Instant;
+import java.util.UUID;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "approval_requests", schema = "operations")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class ApprovalRequestEntity extends AuditableEntity {
+
+    @Id
+    @Column(name = "approval_request_id", nullable = false)
+    private UUID approvalRequestId;
+
+    @Column(name = "request_type", nullable = false)
+    private String requestType;
+
+    @Column(name = "target_schema", nullable = false)
+    private String targetSchema;
+
+    @Column(name = "target_table", nullable = false)
+    private String targetTable;
+
+    @Column(name = "target_id", nullable = false)
+    private UUID targetId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private ApprovalRequestStatus status;
+
+    @Column(name = "requested_by")
+    private UUID requestedBy;
+
+    @Column(name = "approved_by")
+    private UUID approvedBy;
+
+    @Column(name = "approved_at")
+    private Instant approvedAt;
+
+    @Column(name = "note")
+    private String note;
+
+}

@@ -1,0 +1,13 @@
+package com.ban.vehicle_management.infrastructure.mapper.catalog.cardtype;
+
+import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
+import com.ban.vehicle_management.infrastructure.persistence.catalog.cardtype.CardTypeEntity;
+import org.mapstruct.Mapper;
+
+@Mapper(componentModel = "spring")
+public interface CardTypePersistenceMapper {
+
+    CardTypeEntity toEntity(CardType domain);
+
+    CardType toDomain(CardTypeEntity entity);
+}

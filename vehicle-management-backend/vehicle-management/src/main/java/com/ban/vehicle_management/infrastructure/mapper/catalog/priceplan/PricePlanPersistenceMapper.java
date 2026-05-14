@@ -1,0 +1,13 @@
+package com.ban.vehicle_management.infrastructure.mapper.catalog.priceplan;
+
+import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
+import com.ban.vehicle_management.infrastructure.persistence.catalog.priceplan.PricePlanEntity;
+import org.mapstruct.Mapper;
+
+@Mapper(componentModel = "spring")
+public interface PricePlanPersistenceMapper {
+
+    PricePlanEntity toEntity(PricePlan domain);
+
+    PricePlan toDomain(PricePlanEntity entity);
+}
