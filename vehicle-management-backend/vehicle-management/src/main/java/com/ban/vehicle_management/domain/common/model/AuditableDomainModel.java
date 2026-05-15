@@ -19,3 +19,4 @@ public abstract class AuditableDomainModel {
     private Instant updatedAt;
     private UUID updatedBy;
 }
+

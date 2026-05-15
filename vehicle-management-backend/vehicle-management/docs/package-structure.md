@@ -14,14 +14,16 @@ This repository now uses a schema-first package layout aligned with `src/main/re
 src/main/java/com/ban/vehicle_management
 +-- entrypoint
 |   +-- controller/<schema>
-|   `-- dto/<schema>/{request,response}
+|   `-- dto/<schema>/<table>/{request,response}
 +-- application
-|   `-- <schema>/<feature>/{port/in,port/out,service,service/impl}
+|   `-- <schema>/<feature>/{mapper,port/in,port/out,usecase}
 +-- domain
 |   `-- <schema>/<feature>/{model,policy,service}
 +-- infrastructure
 |   +-- mapper/<schema>/<feature>
-|   +-- persistence/<schema>/<feature>
+|   +-- persistence/database/entity/<schema>
+|   +-- persistence/database/repository/<schema>
+|   +-- persistence/adapter/<schema>
 |   `-- security
 `-- shared
 ```
@@ -42,7 +44,7 @@ src/main/java/com/ban/vehicle_management
 ## Notes
 
 - Keep controllers under `entrypoint/controller/<schema>`.
-- Keep request and response DTOs under `entrypoint/dto/<schema>/{request,response}`.
+- Keep request and response DTOs under `entrypoint/dto/<schema>/<table>/{request,response}`.
 - Do not place DTO folders under `entrypoint/controller`.
 - Legacy skeleton folders such as `authorization`, `cardswipe`, `parkingfee`, `report`, `ticket`, and `user` were removed because they do not match the current PostgreSQL schema vocabulary.
 - Supporting tables such as `iam.refresh_tokens`, `iam.login_attempts`, `iam.account_status_history`, `iam.role_permissions`, and `operations.shift_assignments` should live inside the nearest owning feature instead of becoming separate top-level modules.

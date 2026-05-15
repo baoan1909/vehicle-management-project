@@ -25,3 +25,4 @@ public class AuditLog extends AuditableDomainModel {
     private String ipAddress;
     private String userAgent;
 }
+

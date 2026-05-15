@@ -20,3 +20,4 @@ public class TicketType extends AuditableDomainModel {
     private Integer durationDays;
     private Boolean isActive;
 }
+

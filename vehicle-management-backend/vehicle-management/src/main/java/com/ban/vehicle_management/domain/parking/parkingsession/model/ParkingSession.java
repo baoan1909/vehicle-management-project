@@ -30,3 +30,4 @@ public class ParkingSession extends AuditableDomainModel {
     private BigDecimal totalPrice;
     private UUID priceRuleId;
 }
+

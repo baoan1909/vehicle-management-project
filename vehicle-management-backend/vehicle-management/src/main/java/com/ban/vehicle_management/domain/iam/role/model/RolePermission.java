@@ -17,3 +17,4 @@ public class RolePermission extends AuditableDomainModel {
     private UUID roleId;
     private UUID permissionId;
 }
+

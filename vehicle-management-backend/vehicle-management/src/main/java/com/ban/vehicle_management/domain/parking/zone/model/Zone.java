@@ -20,3 +20,4 @@ public class Zone extends AuditableDomainModel {
     private UUID vehicleTypeId;
     private Integer capacity;
 }
+

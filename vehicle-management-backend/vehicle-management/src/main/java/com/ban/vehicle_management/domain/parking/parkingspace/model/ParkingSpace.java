@@ -19,3 +19,4 @@ public class ParkingSpace extends AuditableDomainModel {
     private String code;
     private ParkingSpaceStatus status;
 }
+

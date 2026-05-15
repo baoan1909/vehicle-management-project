@@ -28,3 +28,4 @@ public class PriceRule extends AuditableDomainModel {
     private BigDecimal lostCardFee;
     private Integer priority;
 }
+

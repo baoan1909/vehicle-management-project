@@ -24,3 +24,4 @@ public class PricePlan extends AuditableDomainModel {
     private LocalDate effectiveTo;
     private Boolean isActive;
 }
+

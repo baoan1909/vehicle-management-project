@@ -33,3 +33,4 @@ public class LostCardReport extends AuditableDomainModel {
     private UUID resolvedBy;
     private Instant resolvedAt;
 }
+

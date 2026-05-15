@@ -22,3 +22,4 @@ public class AccountStatusHistory {
     private Instant changedAt;
     private UUID changedBy;
 }
+

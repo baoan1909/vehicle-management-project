@@ -22,3 +22,4 @@ public class LoginAttempt {
     private String userAgent;
     private Instant attemptedAt;
 }
+

@@ -19,3 +19,4 @@ public class VehicleType extends AuditableDomainModel {
     private String description;
     private Boolean isActive;
 }
+

@@ -20,3 +20,4 @@ public class HolidayCalendar extends AuditableDomainModel {
     private String name;
     private BigDecimal priceMultiplier;
 }
+

@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.mapper.iam.account;
 
 import com.ban.vehicle_management.domain.iam.account.model.RefreshToken;
-import com.ban.vehicle_management.infrastructure.persistence.iam.account.RefreshTokenEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RefreshTokenEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -11,3 +11,4 @@ public interface RefreshTokenPersistenceMapper {
 
     RefreshToken toDomain(RefreshTokenEntity entity);
 }
+

@@ -29,3 +29,4 @@ public class Invoice extends AuditableDomainModel {
     private Instant issuedAt;
     private Instant paidAt;
 }
+

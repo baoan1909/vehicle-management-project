@@ -22,3 +22,4 @@ public class Lane extends AuditableDomainModel {
     private LaneDirection direction;
     private LaneStatus status;
 }
+

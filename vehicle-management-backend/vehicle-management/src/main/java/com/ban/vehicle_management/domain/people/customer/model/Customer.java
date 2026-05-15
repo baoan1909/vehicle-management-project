@@ -24,3 +24,4 @@ public class Customer extends AuditableDomainModel {
     private UUID approvedBy;
     private Instant approvedAt;
 }
+

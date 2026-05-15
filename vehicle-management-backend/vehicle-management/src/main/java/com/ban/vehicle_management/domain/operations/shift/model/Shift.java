@@ -25,3 +25,4 @@ public class Shift extends AuditableDomainModel {
     private BigDecimal openingCash;
     private BigDecimal closingCash;
 }
+

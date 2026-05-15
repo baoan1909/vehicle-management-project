@@ -19,3 +19,4 @@ public class CardType extends AuditableDomainModel {
     private String description;
     private Boolean isReturnRequired;
 }
+

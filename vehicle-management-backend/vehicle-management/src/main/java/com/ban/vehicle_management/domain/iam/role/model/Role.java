@@ -20,3 +20,4 @@ public class Role extends AuditableDomainModel {
     private Boolean isSystem;
     private Boolean isActive;
 }
+

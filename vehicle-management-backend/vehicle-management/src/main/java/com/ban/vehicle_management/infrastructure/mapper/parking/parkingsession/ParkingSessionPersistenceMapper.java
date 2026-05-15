@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.mapper.parking.parkingsession;
 
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
-import com.ban.vehicle_management.infrastructure.persistence.parking.parkingsession.ParkingSessionEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -11,3 +11,4 @@ public interface ParkingSessionPersistenceMapper {
 
     ParkingSession toDomain(ParkingSessionEntity entity);
 }
+

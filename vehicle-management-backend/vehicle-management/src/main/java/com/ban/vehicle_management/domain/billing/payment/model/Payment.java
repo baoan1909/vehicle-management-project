@@ -26,3 +26,4 @@ public class Payment {
     private UUID receivedBy;
     private String note;
 }
+
