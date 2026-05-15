@@ -1,10 +1,14 @@
 package com.ban.vehicle_management.infrastructure.persistence.catalog.cardtype;
 
+import com.ban.vehicle_management.infrastructure.persistence.accesscontrol.card.CardEntity;
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -34,5 +38,8 @@ public class CardTypeEntity extends AuditableEntity {
 
     @Column(name = "is_return_required", nullable = false)
     private Boolean isReturnRequired;
+
+    @OneToMany(mappedBy = "cardType")
+    private Set<CardEntity> cards = new HashSet<>();
 
 }

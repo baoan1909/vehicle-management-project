@@ -4,7 +4,10 @@ import com.ban.vehicle_management.infrastructure.persistence.common.entity.Audit
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -37,5 +40,8 @@ public class PermissionEntity extends AuditableEntity {
 
     @Column(name = "description")
     private String description;
+
+    @OneToMany(mappedBy = "permission")
+    private Set<com.ban.vehicle_management.infrastructure.persistence.iam.role.RolePermissionEntity> rolePermissions = new HashSet<>();
 
 }

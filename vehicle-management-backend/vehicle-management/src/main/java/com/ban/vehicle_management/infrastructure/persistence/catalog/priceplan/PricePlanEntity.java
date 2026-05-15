@@ -1,14 +1,18 @@
 package com.ban.vehicle_management.infrastructure.persistence.catalog.priceplan;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.catalog.pricerule.PriceRuleEntity;
 import com.ban.vehicle_management.shared.enumeration.PricePlanAppliesTo;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -48,5 +52,8 @@ public class PricePlanEntity extends AuditableEntity {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
+
+    @OneToMany(mappedBy = "pricePlan")
+    private Set<PriceRuleEntity> priceRules = new HashSet<>();
 
 }

@@ -1,13 +1,20 @@
 package com.ban.vehicle_management.infrastructure.persistence.parking.parkinglot;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.hardware.device.DeviceEntity;
+import com.ban.vehicle_management.infrastructure.persistence.operations.shift.ShiftEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.lane.LaneEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.zone.ZoneEntity;
 import com.ban.vehicle_management.shared.enumeration.ParkingLotStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -41,5 +48,17 @@ public class ParkingLotEntity extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private ParkingLotStatus status;
+
+    @OneToMany(mappedBy = "parkingLot")
+    private Set<ZoneEntity> zones = new HashSet<>();
+
+    @OneToMany(mappedBy = "parkingLot")
+    private Set<LaneEntity> lanes = new HashSet<>();
+
+    @OneToMany(mappedBy = "parkingLot")
+    private Set<DeviceEntity> devices = new HashSet<>();
+
+    @OneToMany(mappedBy = "parkingLot")
+    private Set<ShiftEntity> shifts = new HashSet<>();
 
 }

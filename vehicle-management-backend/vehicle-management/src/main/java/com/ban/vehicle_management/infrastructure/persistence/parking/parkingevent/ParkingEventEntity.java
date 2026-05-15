@@ -1,12 +1,18 @@
 package com.ban.vehicle_management.infrastructure.persistence.parking.parkingevent;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.iam.account.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.lane.LaneEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.parkingsession.ParkingSessionEntity;
 import com.ban.vehicle_management.shared.enumeration.ParkingEventType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -30,8 +36,16 @@ public class ParkingEventEntity extends AuditableEntity {
     @Column(name = "parking_session_id", nullable = false)
     private UUID parkingSessionId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "parking_session_id", referencedColumnName = "parking_session_id", insertable = false, updatable = false)
+    private ParkingSessionEntity parkingSession;
+
     @Column(name = "lane_id", nullable = false)
     private UUID laneId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "lane_id", referencedColumnName = "lane_id", insertable = false, updatable = false)
+    private LaneEntity lane;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "event_type", nullable = false)
@@ -48,6 +62,10 @@ public class ParkingEventEntity extends AuditableEntity {
 
     @Column(name = "actor_account_id")
     private UUID actorAccountId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "actor_account_id", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity actorAccount;
 
     @Column(name = "note")
     private String note;

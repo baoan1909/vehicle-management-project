@@ -12,9 +12,9 @@ This repository now uses a schema-first package layout aligned with `src/main/re
 
 ```text
 src/main/java/com/ban/vehicle_management
-+-- controller
-|   +-- <schema>/<feature>
-|   `-- dto/<schema>/<feature>/{request,response}
++-- entrypoint
+|   +-- controller/<schema>
+|   `-- dto/<schema>/{request,response}
 +-- application
 |   `-- <schema>/<feature>/{port/in,port/out,service,service/impl}
 +-- domain
@@ -41,6 +41,9 @@ src/main/java/com/ban/vehicle_management
 
 ## Notes
 
+- Keep controllers under `entrypoint/controller/<schema>`.
+- Keep request and response DTOs under `entrypoint/dto/<schema>/{request,response}`.
+- Do not place DTO folders under `entrypoint/controller`.
 - Legacy skeleton folders such as `authorization`, `cardswipe`, `parkingfee`, `report`, `ticket`, and `user` were removed because they do not match the current PostgreSQL schema vocabulary.
 - Supporting tables such as `iam.refresh_tokens`, `iam.login_attempts`, `iam.account_status_history`, `iam.role_permissions`, and `operations.shift_assignments` should live inside the nearest owning feature instead of becoming separate top-level modules.
 - Test directories under `src/test/java/com/ban/vehicle_management` follow the same schema-first grouping.

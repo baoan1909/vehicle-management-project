@@ -1,12 +1,16 @@
 package com.ban.vehicle_management.infrastructure.persistence.operations.approvalrequest;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.iam.account.AccountEntity;
 import com.ban.vehicle_management.shared.enumeration.ApprovalRequestStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -46,8 +50,16 @@ public class ApprovalRequestEntity extends AuditableEntity {
     @Column(name = "requested_by")
     private UUID requestedBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "requested_by", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity requestedByAccount;
+
     @Column(name = "approved_by")
     private UUID approvedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approved_by", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity approvedByAccount;
 
     @Column(name = "approved_at")
     private Instant approvedAt;

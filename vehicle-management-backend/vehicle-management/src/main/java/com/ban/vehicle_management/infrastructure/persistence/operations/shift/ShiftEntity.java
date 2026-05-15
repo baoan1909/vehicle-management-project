@@ -1,15 +1,22 @@
 package com.ban.vehicle_management.infrastructure.persistence.operations.shift;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.parkinglot.ParkingLotEntity;
 import com.ban.vehicle_management.shared.enumeration.ShiftStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -34,6 +41,10 @@ public class ShiftEntity extends AuditableEntity {
     @Column(name = "parking_lot_id", nullable = false)
     private UUID parkingLotId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "parking_lot_id", referencedColumnName = "parking_lot_id", insertable = false, updatable = false)
+    private ParkingLotEntity parkingLot;
+
     @Column(name = "start_time", nullable = false)
     private Instant startTime;
 
@@ -49,5 +60,8 @@ public class ShiftEntity extends AuditableEntity {
 
     @Column(name = "closing_cash", precision = 12, scale = 2)
     private BigDecimal closingCash;
+
+    @OneToMany(mappedBy = "shift")
+    private Set<ShiftAssignmentEntity> shiftAssignments = new HashSet<>();
 
 }

@@ -3,7 +3,10 @@ package com.ban.vehicle_management.infrastructure.persistence.iam.account;
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -26,6 +29,10 @@ public class RefreshTokenEntity extends AuditableEntity {
 
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "account_id", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity account;
 
     @Column(name = "token_hash", nullable = false, unique = true)
     private String tokenHash;

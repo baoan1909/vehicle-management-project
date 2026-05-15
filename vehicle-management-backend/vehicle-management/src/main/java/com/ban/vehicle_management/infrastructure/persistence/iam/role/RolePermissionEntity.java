@@ -1,9 +1,13 @@
 package com.ban.vehicle_management.infrastructure.persistence.iam.role;
 
+import com.ban.vehicle_management.infrastructure.persistence.iam.permission.PermissionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -26,7 +30,15 @@ public class RolePermissionEntity extends AuditableEntity {
     @Column(name = "role_id", nullable = false)
     private UUID roleId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "role_id", referencedColumnName = "role_id", insertable = false, updatable = false)
+    private RoleEntity role;
+
     @Column(name = "permission_id", nullable = false)
     private UUID permissionId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "permission_id", referencedColumnName = "permission_id", insertable = false, updatable = false)
+    private PermissionEntity permission;
 
 }

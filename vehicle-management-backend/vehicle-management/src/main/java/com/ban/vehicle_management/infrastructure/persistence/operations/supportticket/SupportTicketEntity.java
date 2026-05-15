@@ -1,13 +1,18 @@
 package com.ban.vehicle_management.infrastructure.persistence.operations.supportticket;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.iam.account.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.people.customer.CustomerEntity;
 import com.ban.vehicle_management.shared.enumeration.SupportTicketPriority;
 import com.ban.vehicle_management.shared.enumeration.SupportTicketStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -31,6 +36,10 @@ public class SupportTicketEntity extends AuditableEntity {
     @Column(name = "customer_id")
     private UUID customerId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", referencedColumnName = "customer_id", insertable = false, updatable = false)
+    private CustomerEntity customer;
+
     @Column(name = "title", nullable = false)
     private String title;
 
@@ -47,6 +56,10 @@ public class SupportTicketEntity extends AuditableEntity {
 
     @Column(name = "assigned_to")
     private UUID assignedTo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assigned_to", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity assignedToAccount;
 
     @Column(name = "resolved_at")
     private Instant resolvedAt;

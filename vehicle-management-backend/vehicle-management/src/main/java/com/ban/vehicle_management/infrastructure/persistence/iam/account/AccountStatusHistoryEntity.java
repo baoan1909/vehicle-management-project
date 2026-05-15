@@ -5,7 +5,10 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -29,6 +32,10 @@ public class AccountStatusHistoryEntity {
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "account_id", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity account;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "old_status")
     private AccountStatus oldStatus;
@@ -45,5 +52,9 @@ public class AccountStatusHistoryEntity {
 
     @Column(name = "changed_by")
     private UUID changedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "changed_by", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity changedByAccount;
 
 }

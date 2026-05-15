@@ -65,28 +65,31 @@ Do not create service names based on old MySQL table names or deprecated concept
 
 ## 4. Package conventions
 
-Preferred package structure by feature:
+Preferred package structure:
 
-- `controller.<feature>`
-- `application.<feature>.port.in`
-- `application.<feature>.port.out`
-- `application.<feature>.service`
-- `application.<feature>.service.impl`
-- `domain.<feature>.model`
-- `domain.<feature>.service`
-- `domain.<feature>.policy`
-- `infrastructure.persistence.<feature>`
+- `entrypoint.controller.<schema>`
+- `entrypoint.dto.<schema>.request`
+- `entrypoint.dto.<schema>.response`
+- `application.<schema>.<feature>.port.in`
+- `application.<schema>.<feature>.port.out`
+- `application.<schema>.<feature>.service`
+- `application.<schema>.<feature>.service.impl`
+- `domain.<schema>.<feature>.model`
+- `domain.<schema>.<feature>.service`
+- `domain.<schema>.<feature>.policy`
+- `infrastructure.persistence.<schema>.<feature>`
 - `infrastructure.security`
-- `infrastructure.mapper`
+- `infrastructure.mapper.<schema>.<feature>`
 
 Examples for this project:
 
-- `controller.account`
-- `application.account.port.in`
-- `domain.parkingsession.model`
-- `infrastructure.persistence.subscription`
+- `entrypoint.controller.iam`
+- `entrypoint.dto.people.request`
+- `application.iam.account.port.in`
+- `domain.parking.parkingsession.model`
+- `infrastructure.persistence.accesscontrol.subscription`
 
-If the team groups by schema first, keep it consistent inside that schema boundary.
+Keep package names schema-first and consistent with the current codebase naming, for example `accesscontrol` as the package form of the `access_control` database schema.
 
 ## 4.1. `package-info.java` rule
 
@@ -178,6 +181,7 @@ Controllers must:
 - trigger request validation
 - call application service or use case
 - return response DTOs
+- stay under `entrypoint.controller.<schema>` and use DTOs from `entrypoint.dto.<schema>.request` and `entrypoint.dto.<schema>.response`
 
 Controllers must not:
 

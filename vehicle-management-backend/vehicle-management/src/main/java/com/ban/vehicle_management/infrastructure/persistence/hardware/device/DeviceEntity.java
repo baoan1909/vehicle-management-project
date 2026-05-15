@@ -1,13 +1,18 @@
 package com.ban.vehicle_management.infrastructure.persistence.hardware.device;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.lane.LaneEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.parkinglot.ParkingLotEntity;
 import com.ban.vehicle_management.shared.enumeration.DeviceStatus;
 import com.ban.vehicle_management.shared.enumeration.DeviceType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.Map;
@@ -34,8 +39,16 @@ public class DeviceEntity extends AuditableEntity {
     @Column(name = "parking_lot_id", nullable = false)
     private UUID parkingLotId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "parking_lot_id", referencedColumnName = "parking_lot_id", insertable = false, updatable = false)
+    private ParkingLotEntity parkingLot;
+
     @Column(name = "lane_id")
     private UUID laneId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lane_id", referencedColumnName = "lane_id", insertable = false, updatable = false)
+    private LaneEntity lane;
 
     @Column(name = "device_code", nullable = false, unique = true)
     private String deviceCode;

@@ -1,9 +1,13 @@
 package com.ban.vehicle_management.infrastructure.persistence.audit.auditlog;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.iam.account.AccountEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Map;
 import java.util.UUID;
@@ -28,6 +32,10 @@ public class AuditLogEntity extends AuditableEntity {
 
     @Column(name = "actor_account_id")
     private UUID actorAccountId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "actor_account_id", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity actorAccount;
 
     @Column(name = "action", nullable = false)
     private String action;

@@ -1,13 +1,21 @@
 package com.ban.vehicle_management.infrastructure.persistence.parking.parkingspace;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.parkingsession.ParkingSessionEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.zone.ZoneEntity;
 import com.ban.vehicle_management.shared.enumeration.ParkingSpaceStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -29,11 +37,18 @@ public class ParkingSpaceEntity extends AuditableEntity {
     @Column(name = "zone_id", nullable = false)
     private UUID zoneId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "zone_id", referencedColumnName = "zone_id", insertable = false, updatable = false)
+    private ZoneEntity zone;
+
     @Column(name = "code", nullable = false)
     private String code;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private ParkingSpaceStatus status;
+
+    @OneToMany(mappedBy = "parkingSpace")
+    private Set<ParkingSessionEntity> parkingSessions = new HashSet<>();
 
 }

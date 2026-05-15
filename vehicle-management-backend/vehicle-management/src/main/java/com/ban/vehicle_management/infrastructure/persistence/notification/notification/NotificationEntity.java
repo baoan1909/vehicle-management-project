@@ -1,13 +1,17 @@
 package com.ban.vehicle_management.infrastructure.persistence.notification.notification;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.iam.account.AccountEntity;
 import com.ban.vehicle_management.shared.enumeration.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.NotificationStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -30,6 +34,10 @@ public class NotificationEntity extends AuditableEntity {
 
     @Column(name = "account_id")
     private UUID accountId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "account_id", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity account;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "channel", nullable = false)

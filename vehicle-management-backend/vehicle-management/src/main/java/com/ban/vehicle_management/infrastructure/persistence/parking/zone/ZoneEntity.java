@@ -1,10 +1,19 @@
 package com.ban.vehicle_management.infrastructure.persistence.parking.zone;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.catalog.vehicletype.VehicleTypeEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.parkinglot.ParkingLotEntity;
+import com.ban.vehicle_management.infrastructure.persistence.parking.parkingspace.ParkingSpaceEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -26,6 +35,10 @@ public class ZoneEntity extends AuditableEntity {
     @Column(name = "parking_lot_id", nullable = false)
     private UUID parkingLotId;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "parking_lot_id", referencedColumnName = "parking_lot_id", insertable = false, updatable = false)
+    private ParkingLotEntity parkingLot;
+
     @Column(name = "code", nullable = false)
     private String code;
 
@@ -35,7 +48,14 @@ public class ZoneEntity extends AuditableEntity {
     @Column(name = "vehicle_type_id")
     private UUID vehicleTypeId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicle_type_id", referencedColumnName = "vehicle_type_id", insertable = false, updatable = false)
+    private VehicleTypeEntity vehicleType;
+
     @Column(name = "capacity", nullable = false)
     private Integer capacity;
+
+    @OneToMany(mappedBy = "zone")
+    private Set<ParkingSpaceEntity> parkingSpaces = new HashSet<>();
 
 }

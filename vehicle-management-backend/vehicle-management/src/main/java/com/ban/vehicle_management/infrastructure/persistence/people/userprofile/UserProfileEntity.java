@@ -1,12 +1,17 @@
 package com.ban.vehicle_management.infrastructure.persistence.people.userprofile;
 
 import com.ban.vehicle_management.infrastructure.persistence.common.entity.AuditableEntity;
+import com.ban.vehicle_management.infrastructure.persistence.iam.account.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.people.customer.CustomerEntity;
+import com.ban.vehicle_management.infrastructure.persistence.people.employee.EmployeeEntity;
 import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -51,5 +56,14 @@ public class UserProfileEntity extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private UserProfileStatus status;
+
+    @OneToOne(mappedBy = "userProfile", fetch = FetchType.LAZY)
+    private AccountEntity account;
+
+    @OneToOne(mappedBy = "userProfile", fetch = FetchType.LAZY)
+    private CustomerEntity customer;
+
+    @OneToOne(mappedBy = "userProfile", fetch = FetchType.LAZY)
+    private EmployeeEntity employee;
 
 }

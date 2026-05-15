@@ -182,12 +182,20 @@ Responsible for:
 - HTTP request and response
 - request validation trigger
 - calling application use case
+- schema-first delivery package organization in `entrypoint.controller.<schema>`
+- using request and response DTOs from `entrypoint.dto.<schema>.request` and `entrypoint.dto.<schema>.response`
 
 Must not contain:
 
 - business rules
 - repository logic
 - persistence details
+
+Package note:
+
+- keep controllers grouped by schema under `entrypoint.controller`
+- keep API DTOs grouped by schema under `entrypoint.dto`
+- do not nest DTO packages inside controller packages
 
 ### Application
 
@@ -231,6 +239,12 @@ Controller
 -> Output port
 -> Infrastructure adapter
 -> Persistence
+
+In this repository, the delivery layer package layout should normally look like:
+
+- `entrypoint.controller.<schema>`
+- `entrypoint.dto.<schema>.request`
+- `entrypoint.dto.<schema>.response`
 
 ## 6. Which modules can stay lightweight
 
@@ -481,4 +495,3 @@ If there is conflict:
 
 - architecture decisions follow `docs/clean-architecture-guide.md`
 - code-level conventions follow `docs/backend-coding-standard.md`
-
