@@ -346,6 +346,15 @@ Avoid:
 - duplicate permission or status resolution logic
 - using old table vocabulary when the new schema already defines the replacement
 
+## 18.1. Reuse-first implementation rule
+
+Before implementing a new function, endpoint, use case, or business flow:
+
+- read the nearest related module and check whether there are existing methods, services, mappers, adapters, validators, helpers, or policies that can be reused
+- prefer enhancing an existing implementation when it can support the new requirement safely without breaking completed behavior
+- avoid deleting code unless it is truly unnecessary, clearly inefficient, duplicated beyond safe maintenance, or logically incorrect
+- create new code only when reuse is not suitable, and keep the new implementation aligned with the current Clean Architecture rules and schema-first package structure
+
 ## 19. How to use this file with the architecture guide
 
 When starting a new module:

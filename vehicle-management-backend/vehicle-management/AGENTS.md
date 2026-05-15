@@ -109,6 +109,10 @@ Do not invent new core modules or persistence concepts when the current schema a
 - Shared concerns such as current user access, audit handling, paging response, time handling, file handling, and exception translation must be reused from common components.
 - If a new class only proxies an existing method with identical logic, prefer a shared adapter instead of a feature-specific copy.
 - Before creating a new class, check if a mapper, adapter, helper, validator, or policy already exists.
+- Before implementing any new feature or flow, read the nearest related code and check whether existing methods, services, mappers, adapters, validators, helpers, or policies can be reused.
+- Prefer extending or generalizing an existing implementation when it can support the new requirement without breaking completed behavior or violating current architecture rules.
+- Avoid deleting code by default. Only remove code when it is truly unnecessary, clearly inefficient, duplicated beyond safe maintenance, or logically incorrect.
+- If no reusable implementation is suitable, create a new one only after confirming reuse is not reasonable, and keep the new code aligned with the current Clean Architecture boundaries.
 
 ## PostgreSQL rules
 
