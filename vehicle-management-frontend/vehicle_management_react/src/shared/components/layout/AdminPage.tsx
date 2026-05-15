@@ -11,7 +11,7 @@ export function AdminPage({ title, breadcrumbs, children }: AdminPageProps) {
   return (
     <div className="content-header">
       <PageHeader title={title} breadcrumbs={breadcrumbs} />
-      <section className="content">
+      <section className="content vm-admin-content">
         <div className="container-fluid">{children}</div>
       </section>
     </div>

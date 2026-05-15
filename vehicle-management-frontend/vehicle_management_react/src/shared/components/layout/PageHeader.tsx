@@ -7,10 +7,10 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, breadcrumbs = [] }: PageHeaderProps) {
   return (
-    <div className="container-fluid">
-      <div className="row mb-2">
+    <div className="container-fluid vm-page-header">
+      <div className="row mb-2 align-items-center">
         <div className="col-sm-6">
-          <h1 className="m-0">{title}</h1>
+          <h1 className="m-0 vm-page-title">{title}</h1>
         </div>
         {breadcrumbs.length > 0 && (
           <div className="col-sm-6">

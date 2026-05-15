@@ -7,24 +7,24 @@ export function AdminNavbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
 
   return (
-    <nav className="main-header navbar navbar-expand navbar-white navbar-light">
+    <nav className="main-header navbar navbar-expand navbar-white navbar-light vm-topbar tw-border-b tw-border-slate-200 tw-bg-white/95 tw-shadow-sm">
       <ul className="navbar-nav">
         <li className="nav-item">
-          <a className="nav-link" href="#/admin/dashboard" role="button">
+          <a className="nav-link vm-topbar-icon" href="#/admin/dashboard" role="button">
             <i className="fas fa-bars" />
           </a>
         </li>
         <li className="nav-item d-none d-sm-inline-block">
-          <a href="#/pricing" className="nav-link">Giới thiệu</a>
+          <a href="#/pricing" className="nav-link vm-topbar-link">Giới thiệu</a>
         </li>
       </ul>
 
       <ul className="navbar-nav ml-auto align-items-center">
         <li className="nav-item mr-2">
           <div className="input-group vm-navbar-search">
-            <input className="form-control form-control-sidebar" type="search" placeholder="Tìm kiếm" aria-label="Search" />
+            <input className="form-control form-control-sidebar vm-search-input" type="search" placeholder="Tìm kiếm" aria-label="Search" />
             <div className="input-group-append">
-              <button className="btn btn-sidebar bg-cyan" type="button" aria-label="Tìm kiếm">
+              <button className="btn btn-sidebar vm-search-button" type="button" aria-label="Tìm kiếm">
                 <i className="fas fa-search fa-fw" />
               </button>
             </div>
@@ -32,7 +32,7 @@ export function AdminNavbar() {
         </li>
 
         <li className={`nav-item dropdown mr-2 ${showNotifications ? "show" : ""}`}>
-          <button className="nav-link btn btn-link" type="button" onClick={() => setShowNotifications((value) => !value)}>
+          <button className="nav-link btn btn-link vm-topbar-icon" type="button" onClick={() => setShowNotifications((value) => !value)}>
             <i className="far fa-bell" />
             <span className="badge badge-warning navbar-badge">15</span>
           </button>
@@ -50,7 +50,7 @@ export function AdminNavbar() {
         </li>
 
         <li className={`nav-item dropdown ${showUserMenu ? "show" : ""}`}>
-          <button className="user-panel d-flex h-100 btn btn-link p-0" type="button" onClick={() => setShowUserMenu((value) => !value)}>
+          <button className="user-panel d-flex h-100 btn btn-link p-0 vm-user-trigger" type="button" onClick={() => setShowUserMenu((value) => !value)}>
             <div className="image">
               <img src={user?.avatarUrl} className="img-circle elevation-2" alt="User" />
             </div>
