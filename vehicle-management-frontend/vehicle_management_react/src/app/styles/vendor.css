@@ -1,0 +1,9 @@
+@import url("/assets/admin/dist/css/adminlte.min.css");
+@import url("/assets/admin/vendor/fontawesome-free/css/all.min.css");
+@import url("/assets/admin/vendor/icheck-bootstrap/icheck-bootstrap.min.css");
+@import url("/assets/admin/vendor/select2/css/select2.min.css");
+@import url("/assets/admin/vendor/select2-bootstrap4-theme/select2-bootstrap4.min.css");
+@import url("/assets/admin/vendor/datatables-bs4/css/dataTables.bootstrap4.min.css");
+@import url("/assets/admin/vendor/datatables-responsive/css/responsive.bootstrap4.min.css");
+@import url("/assets/admin/vendor/datatables-buttons/css/buttons.bootstrap4.min.css");
+@import url("/assets/admin/style.css");
