@@ -37,11 +37,15 @@ Do not invent new core modules or persistence concepts when the current schema a
 
 - Always prefer clean, maintainable, production-ready code.
 - Avoid duplicate code. Reuse existing abstractions before creating new classes.
-- Always check whether an existing mapper, adapter, validator, helper, policy, or shared component already exists.
+- Always check whether an existing mapper, adapter, validator, helper, policy, persistence specification, or shared component already exists.
 - Keep controllers thin.
 - Put business logic in application and domain layers, not controllers.
-- Prefer cohesive services and use cases over giant service classes.
+- Prefer cohesive use cases over giant application classes.
 - Always use `Instant` for timestamp fields in backend code unless a very specific reason is documented.
+- Keep internal timestamp data as `Instant`.
+- Reuse `shared.utils.DateTimeUtils` for shared date/time parsing, formatting, and day-range calculations.
+- API-visible date/time values must go through `DateTimeUtils` before being returned for display.
+- For Vietnam day-based queries, use `DateTimeUtils.startOfDayInVietnamInstant(...)`, `DateTimeUtils.startOfNextDayInVietnamInstant(...)`, and `DateTimeUtils.toVietnamLocalDate(...)`.
 - For PostgreSQL identifiers, prefer `UUID`.
 - If an entity mirrors auditable tables with `created_at`, `created_by`, `updated_at`, `updated_by`, it should follow the shared audit abstraction used by the project.
 - Current user access must respect the existing security abstraction.
@@ -51,7 +55,7 @@ Do not invent new core modules or persistence concepts when the current schema a
 - Follow Clean Architecture strictly: controller -> application -> domain -> infrastructure.
 - Do not mix layers or put business logic in controllers.
 - Controller layer uses Request DTO and Response DTO only.
-- Application layer uses interface-first use cases or services, then implementations.
+- Application layer uses interface-first use cases, then implementations.
 - Domain layer contains business rules and domain models when the use case is not trivial.
 - Infrastructure layer contains persistence adapters, security adapters, and external integrations.
 - Do not expose JPA entities directly from controllers.
@@ -60,7 +64,7 @@ Do not invent new core modules or persistence concepts when the current schema a
 ## Entrypoint package structure
 
 - Keep REST controllers under `entrypoint.controller.<schema>`.
-- Keep API DTOs under `entrypoint.dto.<schema>.request` and `entrypoint.dto.<schema>.response`.
+- Keep API DTOs under `entrypoint.dto.<schema>.<table>.request` and `entrypoint.dto.<schema>.<table>.response`.
 - Do not place DTO packages under `entrypoint.controller`.
 - Keep package naming aligned with existing code conventions such as `accesscontrol` for the `access_control` schema.
 
@@ -84,8 +88,8 @@ Do not invent new core modules or persistence concepts when the current schema a
 - `XxxAdminResponse` for admin-facing output
 - `XxxUserResponse` for user-facing output
 - `XxxController` for REST controllers
-- `XxxService` or `XxxUseCase` for interfaces
-- `XxxServiceImpl` or `XxxUseCaseImpl` for implementations
+- `XxxUseCase` for interfaces
+- `XxxUseCaseImpl` for implementations
 - `XxxMapper` for MapStruct mappers
 - `XxxPersistenceAdapter` for persistence adapters
 - `XxxSecurityAdapter` for security adapters
@@ -97,7 +101,7 @@ Do not invent new core modules or persistence concepts when the current schema a
   - Request DTO -> Domain
   - Domain -> Response DTO
   - Domain <-> Entity via persistence mapper
-- Do not write large manual mapping blocks in services.
+- Do not write large manual mapping blocks in application use cases.
 - Manual mapping is allowed only when:
   - validation or business rule requires it
   - mapping depends on repository or external service
@@ -170,3 +174,6 @@ When reviewing code, check:
 - Always add tests when code behavior changes.
 - Prefer unit tests for domain and application logic.
 - Add integration tests when persistence or infrastructure behavior changes.
+- Use JUnit 5 for all test classes.
+- For tests with mocked collaborators such as use cases, adapters, or services that depend on ports or repositories, use `@ExtendWith(MockitoExtension.class)` together with `@Mock` and `@InjectMocks`.
+- For pure domain policy, utility, or value-object tests with no collaborators, instantiate the subject directly and do not add mocks only for style consistency.

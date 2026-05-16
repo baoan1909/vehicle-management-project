@@ -25,3 +25,4 @@ public class SupportTicket extends AuditableDomainModel {
     private UUID assignedTo;
     private Instant resolvedAt;
 }
+

@@ -183,7 +183,7 @@ Responsible for:
 - request validation trigger
 - calling application use case
 - schema-first delivery package organization in `entrypoint.controller.<schema>`
-- using request and response DTOs from `entrypoint.dto.<schema>.request` and `entrypoint.dto.<schema>.response`
+- using request and response DTOs from `entrypoint.dto.<schema>.<table>.request` and `entrypoint.dto.<schema>.<table>.response`
 
 Must not contain:
 
@@ -243,8 +243,8 @@ Controller
 In this repository, the delivery layer package layout should normally look like:
 
 - `entrypoint.controller.<schema>`
-- `entrypoint.dto.<schema>.request`
-- `entrypoint.dto.<schema>.response`
+- `entrypoint.dto.<schema>.<table>.request`
+- `entrypoint.dto.<schema>.<table>.response`
 
 ## 6. Which modules can stay lightweight
 
@@ -260,7 +260,7 @@ The following parts are mostly configuration-oriented and can usually stay light
 Typical structure for these:
 
 - controller
-- application service
+- application use case
 - persistence adapter
 
 Rich domain modeling is not mandatory unless new complex rules appear.
@@ -334,6 +334,54 @@ Architecture implication:
 
 should live in domain logic, not in controllers.
 
+Current state machine for `access_control.cards`:
+
+```mermaid
+stateDiagram-v2
+    [*] --> AVAILABLE : create
+    AVAILABLE --> ASSIGNED : assign
+    ASSIGNED --> IN_USE : markInUse
+
+    ASSIGNED --> AVAILABLE : release
+    IN_USE --> AVAILABLE : release
+    BLOCKED --> AVAILABLE : unblock
+
+    AVAILABLE --> BLOCKED : block
+    ASSIGNED --> BLOCKED : block
+    IN_USE --> BLOCKED : block
+
+    AVAILABLE --> LOST : markLost
+    ASSIGNED --> LOST : markLost
+    IN_USE --> LOST : markLost
+    BLOCKED --> LOST : markLost
+
+    AVAILABLE --> DAMAGED : markDamaged
+    ASSIGNED --> DAMAGED : markDamaged
+    IN_USE --> DAMAGED : markDamaged
+    BLOCKED --> DAMAGED : markDamaged
+
+    AVAILABLE --> RETIRED : retire
+    ASSIGNED --> RETIRED : retire
+    BLOCKED --> RETIRED : retire
+    LOST --> RETIRED : retire
+    DAMAGED --> RETIRED : retire
+```
+
+Practical interpretation:
+
+- `AVAILABLE` means the card is ready to be assigned or reused.
+- `ASSIGNED` means the card has been issued but is not yet actively used in an operational parking flow.
+- `IN_USE` means the card is currently participating in an active operational flow and must not be retired directly.
+- `BLOCKED` is a temporary control state and can return to `AVAILABLE`.
+- `LOST` and `DAMAGED` describe problem states, while `RETIRED` is the terminal lifecycle state that permanently removes the card from normal operation.
+- `DAMAGED` and `RETIRED` must stay separate because `DAMAGED` explains the condition of the card, while `RETIRED` records the lifecycle decision to stop using it permanently.
+
+Implementation notes for the current codebase:
+
+- `delete` on cards should map to `RETIRED`, not hard delete by default.
+- `retire` must be blocked when the card is still in active business flow such as open parking session, active subscription, or open lost-card report.
+- `ASSIGNED` and `IN_USE` are lifecycle transitions and should not be mixed into a generic metadata update request.
+
 ### 8.3. Subscription lifecycle
 
 `access_control.subscriptions` connects:
@@ -376,7 +424,7 @@ Architecture implication:
 
 - do not implement this as plain insert/update endpoints
 - use dedicated check-in and check-out use cases
-- keep pricing and session state rules in domain or domain-supporting application services
+- keep pricing and session state rules in domain or domain-supporting application use cases
 
 ### 8.5. Billing flow
 
@@ -445,6 +493,14 @@ Examples:
 - `AuditLogPersistenceAdapter`
 
 Do not create one identical adapter per feature if the behavior is shared.
+
+Persistence package note for this repository:
+
+- JPA entities live under `infrastructure.persistence.database.entity.<schema>`
+- Spring Data repositories live under `infrastructure.persistence.database.repository.<schema>`
+- JPA specification builders live under `infrastructure.persistence.database.specification.<schema>`
+- persistence adapters live under `infrastructure.persistence.adapter.<schema>`
+- Specification folders should contain real specification classes only. Do not add placeholder files purely to keep empty schema folders in version control.
 
 ## 11. Domain model versus entity boundary
 

@@ -19,3 +19,4 @@ public class ShiftAssignment {
     private String roleInShift;
     private Instant assignedAt;
 }
+

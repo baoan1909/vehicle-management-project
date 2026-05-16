@@ -28,3 +28,4 @@ public class Notification extends AuditableDomainModel {
     private String relatedTable;
     private UUID relatedId;
 }
+

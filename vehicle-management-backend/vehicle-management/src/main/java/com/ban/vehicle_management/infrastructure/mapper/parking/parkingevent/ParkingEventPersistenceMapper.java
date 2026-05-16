@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.mapper.parking.parkingevent;
 
 import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent;
-import com.ban.vehicle_management.infrastructure.persistence.parking.parkingevent.ParkingEventEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingEventEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -11,3 +11,4 @@ public interface ParkingEventPersistenceMapper {
 
     ParkingEvent toDomain(ParkingEventEntity entity);
 }
+

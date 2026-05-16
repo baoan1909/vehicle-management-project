@@ -68,26 +68,32 @@ Do not create service names based on old MySQL table names or deprecated concept
 Preferred package structure:
 
 - `entrypoint.controller.<schema>`
-- `entrypoint.dto.<schema>.request`
-- `entrypoint.dto.<schema>.response`
+- `entrypoint.dto.<schema>.<table>.request`
+- `entrypoint.dto.<schema>.<table>.response`
 - `application.<schema>.<feature>.port.in`
 - `application.<schema>.<feature>.port.out`
-- `application.<schema>.<feature>.service`
-- `application.<schema>.<feature>.service.impl`
+- `application.<schema>.<feature>.mapper`
+- `application.<schema>.<feature>.usecase`
 - `domain.<schema>.<feature>.model`
 - `domain.<schema>.<feature>.service`
 - `domain.<schema>.<feature>.policy`
-- `infrastructure.persistence.<schema>.<feature>`
+- `infrastructure.persistence.database.entity.<schema>`
+- `infrastructure.persistence.database.repository.<schema>`
+- `infrastructure.persistence.database.specification.<schema>`
+- `infrastructure.persistence.adapter.<schema>`
 - `infrastructure.security`
 - `infrastructure.mapper.<schema>.<feature>`
 
 Examples for this project:
 
 - `entrypoint.controller.iam`
-- `entrypoint.dto.people.request`
+- `entrypoint.dto.people.userprofile.request`
 - `application.iam.account.port.in`
 - `domain.parking.parkingsession.model`
-- `infrastructure.persistence.accesscontrol.subscription`
+- `infrastructure.persistence.database.entity.accesscontrol`
+- `infrastructure.persistence.database.repository.accesscontrol`
+- `infrastructure.persistence.database.specification.accesscontrol`
+- `infrastructure.persistence.adapter.catalog`
 
 Keep package names schema-first and consistent with the current codebase naming, for example `accesscontrol` as the package form of the `access_control` database schema.
 
@@ -149,27 +155,23 @@ Examples aligned with current schema:
 
 Do not use vague names such as `XxxDto` when the actual intent is already known.
 
-## 6. Service and use case naming
+## 6. Use case naming
 
 Preferred:
-
-- `XxxService` + `XxxServiceImpl`
-
-or
 
 - `XxxUseCase` + `XxxUseCaseImpl`
 
 If separating reads and writes:
 
-- `XxxCommandService`
-- `XxxQueryService`
+- `XxxCommandUseCase`
+- `XxxQueryUseCase`
 
 Examples:
 
 - `CreateAccountUseCase`
 - `CheckInVehicleUseCase`
 - `CloseShiftUseCase`
-- `SubscriptionQueryService`
+- `SubscriptionQueryUseCase`
 
 Always define interface first, then implementation.
 
@@ -179,9 +181,9 @@ Controllers must:
 
 - receive request
 - trigger request validation
-- call application service or use case
+- call application use case
 - return response DTOs
-- stay under `entrypoint.controller.<schema>` and use DTOs from `entrypoint.dto.<schema>.request` and `entrypoint.dto.<schema>.response`
+- stay under `entrypoint.controller.<schema>` and use DTOs from `entrypoint.dto.<schema>.<table>.request` and `entrypoint.dto.<schema>.<table>.response`
 
 Controllers must not:
 
@@ -207,6 +209,11 @@ Create separate mappers when useful:
 - `XxxApiMapper`
 - `XxxPersistenceMapper`
 
+Place them by responsibility:
+
+- API/request-response mappers under `application.<schema>.<feature>.mapper`
+- persistence mappers under `infrastructure.mapper.<schema>.<feature>`
+
 Use:
 
 - `@Mapper(componentModel = "spring")`
@@ -218,7 +225,7 @@ Do not map audit fields from request DTOs.
 
 ## 9. Manual mapping rule
 
-Manual mapping inside services is allowed only when:
+Manual mapping inside application use cases is allowed only when:
 
 - business validation requires it
 - mapping depends on repository or external service
@@ -254,6 +261,10 @@ Follow these rules:
 
 - use `UUID` for identifiers
 - use `Instant` for timestamp fields
+- keep internal date/time data as `Instant`
+- reuse `shared.utils.DateTimeUtils` for shared date/time parsing, formatting, and date-range conversion
+- when API responses need to display date/time values, map them through `DateTimeUtils`
+- for Vietnam date-based filtering and query boundaries, use `DateTimeUtils.startOfDayInVietnamInstant(...)`, `DateTimeUtils.startOfNextDayInVietnamInstant(...)`, and `DateTimeUtils.toVietnamLocalDate(...)`
 - model case-insensitive emails consistently with the database `CITEXT` intent
 - handle `JSONB`-backed fields with clear typed models or controlled mapping
 - respect database defaults such as `gen_random_uuid()` and `now()`
@@ -278,13 +289,22 @@ Important current status sets include:
 
 Do not invent new values in code unless the schema is being changed intentionally.
 
+For `access_control.cards.status`, keep the following transition intent consistent with domain policy:
+
+- `AVAILABLE -> ASSIGNED -> IN_USE` is the normal operational path.
+- `ASSIGNED`, `IN_USE`, and `BLOCKED` may return to `AVAILABLE` only through explicit lifecycle operations such as release or unblock.
+- `BLOCKED` is temporary and must stay distinct from `LOST`, `DAMAGED`, and `RETIRED`.
+- `DAMAGED` describes card condition, while `RETIRED` is the terminal lifecycle decision.
+- `delete` in API/use case should normally map to `RETIRED`, not physical delete.
+- `IN_USE -> RETIRED` must be rejected directly.
+
 ## 13. Security and current user rule
 
 Use the shared security abstraction for current user access.
 
 Rules:
 
-- application services should depend on a current-user abstraction, not framework-specific classes
+- application use cases should depend on a current-user abstraction, not framework-specific classes
 - security context access must stay in infrastructure
 - permission evaluation should be centralized
 - do not create duplicate security adapters per feature
@@ -306,6 +326,11 @@ Repositories belong to persistence concerns.
 Rules:
 
 - Spring Data repositories stay in infrastructure persistence packages
+- JPA entities stay under `infrastructure.persistence.database.entity.<schema>`
+- Spring Data repositories stay under `infrastructure.persistence.database.repository.<schema>`
+- JPA `Specification` builders stay under `infrastructure.persistence.database.specification.<schema>`
+- Do not add placeholder files under `infrastructure.persistence.database.specification.<schema>` just to preserve empty folders. Create files there only when a real specification class is needed.
+- persistence adapters stay under `infrastructure.persistence.adapter.<schema>`
 - application layer depends on repository ports, not repository implementations
 - domain layer must not know JPA repository details
 
@@ -330,6 +355,9 @@ Preferred:
 - unit tests for use cases with mocked output ports
 - persistence integration tests
 - controller contract tests when needed
+- use JUnit 5 for all test classes
+- use `@ExtendWith(MockitoExtension.class)`, `@Mock`, and `@InjectMocks` for tests that mock collaborators such as repositories, ports, adapters, or external services
+- keep pure domain rule and utility tests free of mocks when they have no collaborators
 
 For core flows such as parking check-in/check-out, subscription approval, lost card resolution, invoicing, and payment, tests are mandatory.
 
@@ -338,7 +366,7 @@ For core flows such as parking check-in/check-out, subscription approval, lost c
 Avoid:
 
 - fat controllers
-- one generic service containing many unrelated use cases
+- one generic use case class containing many unrelated flows
 - direct entity exposure in APIs
 - large manual mapping blocks in services
 - business rules hidden inside repository queries

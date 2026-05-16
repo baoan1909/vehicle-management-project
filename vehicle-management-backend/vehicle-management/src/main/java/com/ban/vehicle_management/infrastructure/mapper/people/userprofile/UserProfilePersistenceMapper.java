@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.mapper.people.userprofile;
 
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
-import com.ban.vehicle_management.infrastructure.persistence.people.userprofile.UserProfileEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -11,3 +11,4 @@ public interface UserProfilePersistenceMapper {
 
     UserProfile toDomain(UserProfileEntity entity);
 }
+

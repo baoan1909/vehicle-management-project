@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.mapper.catalog.pricerule;
 
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
-import com.ban.vehicle_management.infrastructure.persistence.catalog.pricerule.PriceRuleEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.PriceRuleEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -11,3 +11,4 @@ public interface PriceRulePersistenceMapper {
 
     PriceRule toDomain(PriceRuleEntity entity);
 }
+

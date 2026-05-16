@@ -28,3 +28,4 @@ public class Device extends AuditableDomainModel {
     private Instant lastHeartbeatAt;
     private Map<String, Object> config;
 }
+

@@ -284,6 +284,7 @@ CREATE TABLE catalog.card_types (
     name VARCHAR(100) NOT NULL,
     description TEXT,
     is_return_required BOOLEAN NOT NULL DEFAULT TRUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by UUID,
     updated_at TIMESTAMPTZ,

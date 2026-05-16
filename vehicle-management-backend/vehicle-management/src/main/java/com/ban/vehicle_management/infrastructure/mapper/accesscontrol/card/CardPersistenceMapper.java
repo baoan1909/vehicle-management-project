@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.mapper.accesscontrol.card;
 
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
-import com.ban.vehicle_management.infrastructure.persistence.accesscontrol.card.CardEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.CardEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -11,3 +11,4 @@ public interface CardPersistenceMapper {
 
     Card toDomain(CardEntity entity);
 }
+

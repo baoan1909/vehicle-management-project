@@ -23,3 +23,4 @@ public class CustomerVehicle extends AuditableDomainModel {
     private Boolean isDefault;
     private CustomerVehicleStatus status;
 }
+

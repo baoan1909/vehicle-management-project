@@ -27,3 +27,4 @@ public class Account extends AuditableDomainModel {
     private Instant lockedUntil;
     private Instant passwordChangedAt;
 }
+

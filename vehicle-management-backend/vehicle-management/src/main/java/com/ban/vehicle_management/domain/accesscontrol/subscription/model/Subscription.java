@@ -31,3 +31,4 @@ public class Subscription extends AuditableDomainModel {
     private Instant approvedAt;
     private LocalDate cardReceiptDate;
 }
+

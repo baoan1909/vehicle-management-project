@@ -22,3 +22,4 @@ public class Employee extends AuditableDomainModel {
     private LocalDate hiredAt;
     private EmployeeStatus status;
 }
+

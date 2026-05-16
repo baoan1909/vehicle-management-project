@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.mapper.operations.supportticket;
 
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
-import com.ban.vehicle_management.infrastructure.persistence.operations.supportticket.SupportTicketEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.SupportTicketEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -11,3 +11,4 @@ public interface SupportTicketPersistenceMapper {
 
     SupportTicket toDomain(SupportTicketEntity entity);
 }
+

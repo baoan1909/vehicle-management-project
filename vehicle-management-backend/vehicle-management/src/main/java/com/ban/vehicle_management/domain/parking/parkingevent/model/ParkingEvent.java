@@ -25,3 +25,4 @@ public class ParkingEvent extends AuditableDomainModel {
     private UUID actorAccountId;
     private String note;
 }
+

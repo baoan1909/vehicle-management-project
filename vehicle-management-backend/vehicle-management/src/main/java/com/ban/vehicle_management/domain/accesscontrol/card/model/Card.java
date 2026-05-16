@@ -25,3 +25,4 @@ public class Card extends AuditableDomainModel {
     private Instant blockedAt;
     private String blockedReason;
 }
+

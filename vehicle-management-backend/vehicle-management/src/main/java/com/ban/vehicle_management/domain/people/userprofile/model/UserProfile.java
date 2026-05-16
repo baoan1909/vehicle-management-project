@@ -25,3 +25,4 @@ public class UserProfile extends AuditableDomainModel {
     private String avatarUrl;
     private UserProfileStatus status;
 }
+

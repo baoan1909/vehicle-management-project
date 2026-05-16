@@ -21,3 +21,4 @@ public class ParkingLot extends AuditableDomainModel {
     private Integer totalCapacity;
     private ParkingLotStatus status;
 }
+

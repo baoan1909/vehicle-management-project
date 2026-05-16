@@ -26,3 +26,4 @@ public class ApprovalRequest extends AuditableDomainModel {
     private Instant approvedAt;
     private String note;
 }
+

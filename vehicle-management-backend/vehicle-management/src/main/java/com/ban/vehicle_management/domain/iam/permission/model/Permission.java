@@ -20,3 +20,4 @@ public class Permission extends AuditableDomainModel {
     private String name;
     private String description;
 }
+

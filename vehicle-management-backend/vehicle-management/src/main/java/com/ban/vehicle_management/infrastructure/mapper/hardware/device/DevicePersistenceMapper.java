@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.mapper.hardware.device;
 
 import com.ban.vehicle_management.domain.hardware.device.model.Device;
-import com.ban.vehicle_management.infrastructure.persistence.hardware.device.DeviceEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.hardware.DeviceEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -11,3 +11,4 @@ public interface DevicePersistenceMapper {
 
     Device toDomain(DeviceEntity entity);
 }
+

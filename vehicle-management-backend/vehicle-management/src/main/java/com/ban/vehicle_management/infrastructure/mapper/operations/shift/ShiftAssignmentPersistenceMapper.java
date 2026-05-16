@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.mapper.operations.shift;
 
 import com.ban.vehicle_management.domain.operations.shift.model.ShiftAssignment;
-import com.ban.vehicle_management.infrastructure.persistence.operations.shift.ShiftAssignmentEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ShiftAssignmentEntity;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
@@ -11,3 +11,4 @@ public interface ShiftAssignmentPersistenceMapper {
 
     ShiftAssignment toDomain(ShiftAssignmentEntity entity);
 }
+

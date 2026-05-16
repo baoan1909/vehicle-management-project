@@ -22,3 +22,4 @@ public class RefreshToken extends AuditableDomainModel {
     private String createdByIp;
     private String userAgent;
 }
+
