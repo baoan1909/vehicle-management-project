@@ -9,6 +9,7 @@ public class CardPolicy {
 
     public void initializeNewCard(Card card) {
         requireCard(card);
+        normalizeCoreFields(card);
         requireText(card.getCardNumber(), "cardNumber");
         requireText(card.getUid(), "uid");
         requireField(card.getCardTypeId(), "cardTypeId");
@@ -17,6 +18,12 @@ public class CardPolicy {
             card.setStatus(CardStatus.AVAILABLE);
         }
 
+        validateState(card);
+    }
+
+    public void validateMaintenance(Card card) {
+        requireCard(card);
+        normalizeCoreFields(card);
         validateState(card);
     }
 
@@ -104,6 +111,7 @@ public class CardPolicy {
 
     public void validateState(Card card) {
         requireCard(card);
+        normalizeCoreFields(card);
         requireText(card.getCardNumber(), "cardNumber");
         requireText(card.getUid(), "uid");
         requireField(card.getCardTypeId(), "cardTypeId");
@@ -127,6 +135,18 @@ public class CardPolicy {
     private void clearBlockMetadata(Card card) {
         card.setBlockedAt(null);
         card.setBlockedReason(null);
+    }
+
+    private void normalizeCoreFields(Card card) {
+        if (card.getCardNumber() != null) {
+            card.setCardNumber(card.getCardNumber().trim());
+        }
+        if (card.getUid() != null) {
+            card.setUid(card.getUid().trim());
+        }
+        if (card.getBlockedReason() != null) {
+            card.setBlockedReason(card.getBlockedReason().trim());
+        }
     }
 
     private void requireStatus(Card card, CardStatus expectedStatus) {

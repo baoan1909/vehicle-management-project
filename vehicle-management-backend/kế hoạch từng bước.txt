@@ -1,0 +1,73 @@
+* vehicle_types
+	Vì đây là lookup nền có isActive, dễ làm hơn và còn phục vụ card, customer_vehicle, price_rule, zone, parking_session
+	CRUD nên gồm:	
+		create
+		get detail
+		list
+		update
+		deactivate/activate
+	Với delete:
+		không hard delete mặc định
+		nếu user gọi delete thì chuyển sang isActive = false
+		
+	Rule nghiệp vụ nên chốt:
+
+	code unique
+	name required
+	isActive default true
+	update không cho làm hỏng uniqueness của code
+	delete mặc định là deactivate
+	list nên có filter isActive
+	
+* card_types
+
+	CRUD nên gồm:
+		create
+		get detail
+		list
+		update
+		delete with usage check
+	Vì không có isActive, delete phải guarded:
+		nếu đã có cards dùng card_type_id này thì chặn xóa
+		trả lỗi business rõ ràng
+
+		
+* crud cho cards
+
+Create
+
+	bắt buộc cardNumber, uid, cardTypeId
+	vehicleTypeId optional
+	mặc định status = AVAILABLE nếu không có yêu cầu đặc biệt
+	validate cardNumber unique, uid unique
+	validate cardTypeId và vehicleTypeId tồn tại
+	
+Read
+
+	có GET /cards/{id}
+	có GET /cards với filter status, cardTypeId, vehicleTypeId, keyword
+	response admin nên trả thêm audit fields nếu cần
+	
+Update
+
+	chỉ sửa các field bảo trì: cardNumber, uid, cardTypeId, vehicleTypeId
+	không nên cho sửa tự do khi card đang IN_USE
+	nếu card đã đi vào flow vận hành, việc đổi uid hoặc cardNumber cần chặn hoặc kiểm soát chặt
+	
+Delete
+
+	không nên coi là hard delete mặc định
+	phương án an toàn: DELETE logic là chuyển status -> RETIRED
+	hard delete chỉ cho phép khi card chưa từng được dùng, không có session, không có lost-card-report, không còn gắn trong flow nghiệp vụ
+	nếu vẫn muốn giữ REST DELETE, service nên:
+	check usage
+	nếu không an toàn thì throw BadRequestException
+	không âm thầm xóa
+	
+Status transition
+
+	nên tách riêng ChangeCardStatusUseCase
+	không nhét logic đổi trạng thái vào UpdateCardRequest
+	vì BLOCKED, LOST, DAMAGED, RETIRED là nghiệp vụ, không phải cập nhật metadata đơn thuần
+
+-----------------------------------------------------------------------------------------------------------------------------------------------------

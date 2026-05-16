@@ -79,6 +79,7 @@ Preferred package structure:
 - `domain.<schema>.<feature>.policy`
 - `infrastructure.persistence.database.entity.<schema>`
 - `infrastructure.persistence.database.repository.<schema>`
+- `infrastructure.persistence.database.specification.<schema>`
 - `infrastructure.persistence.adapter.<schema>`
 - `infrastructure.security`
 - `infrastructure.mapper.<schema>.<feature>`
@@ -91,6 +92,7 @@ Examples for this project:
 - `domain.parking.parkingsession.model`
 - `infrastructure.persistence.database.entity.accesscontrol`
 - `infrastructure.persistence.database.repository.accesscontrol`
+- `infrastructure.persistence.database.specification.accesscontrol`
 - `infrastructure.persistence.adapter.catalog`
 
 Keep package names schema-first and consistent with the current codebase naming, for example `accesscontrol` as the package form of the `access_control` database schema.
@@ -287,6 +289,15 @@ Important current status sets include:
 
 Do not invent new values in code unless the schema is being changed intentionally.
 
+For `access_control.cards.status`, keep the following transition intent consistent with domain policy:
+
+- `AVAILABLE -> ASSIGNED -> IN_USE` is the normal operational path.
+- `ASSIGNED`, `IN_USE`, and `BLOCKED` may return to `AVAILABLE` only through explicit lifecycle operations such as release or unblock.
+- `BLOCKED` is temporary and must stay distinct from `LOST`, `DAMAGED`, and `RETIRED`.
+- `DAMAGED` describes card condition, while `RETIRED` is the terminal lifecycle decision.
+- `delete` in API/use case should normally map to `RETIRED`, not physical delete.
+- `IN_USE -> RETIRED` must be rejected directly.
+
 ## 13. Security and current user rule
 
 Use the shared security abstraction for current user access.
@@ -317,6 +328,8 @@ Rules:
 - Spring Data repositories stay in infrastructure persistence packages
 - JPA entities stay under `infrastructure.persistence.database.entity.<schema>`
 - Spring Data repositories stay under `infrastructure.persistence.database.repository.<schema>`
+- JPA `Specification` builders stay under `infrastructure.persistence.database.specification.<schema>`
+- Do not add placeholder files under `infrastructure.persistence.database.specification.<schema>` just to preserve empty folders. Create files there only when a real specification class is needed.
 - persistence adapters stay under `infrastructure.persistence.adapter.<schema>`
 - application layer depends on repository ports, not repository implementations
 - domain layer must not know JPA repository details

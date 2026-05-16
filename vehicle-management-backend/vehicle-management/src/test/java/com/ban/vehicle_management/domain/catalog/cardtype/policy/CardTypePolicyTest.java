@@ -22,6 +22,7 @@ class CardTypePolicyTest {
         assertEquals("VISITOR", cardType.getCode());
         assertEquals("The vang lai", cardType.getName());
         assertEquals(Boolean.TRUE, cardType.getIsReturnRequired());
+        assertEquals(Boolean.TRUE, cardType.getIsActive());
     }
 
     @Test
@@ -31,6 +32,16 @@ class CardTypePolicyTest {
         cardType.setName(" ");
 
         assertThrows(BadRequestException.class, () -> cardTypePolicy.initialize(cardType));
+    }
+
+    @Test
+    void shouldDeactivateCardType() {
+        CardType cardType = new CardType();
+        cardType.setIsActive(Boolean.TRUE);
+
+        cardTypePolicy.deactivate(cardType);
+
+        assertEquals(Boolean.FALSE, cardType.getIsActive());
     }
 }
 

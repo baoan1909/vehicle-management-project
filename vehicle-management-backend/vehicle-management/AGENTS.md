@@ -37,7 +37,7 @@ Do not invent new core modules or persistence concepts when the current schema a
 
 - Always prefer clean, maintainable, production-ready code.
 - Avoid duplicate code. Reuse existing abstractions before creating new classes.
-- Always check whether an existing mapper, adapter, validator, helper, policy, or shared component already exists.
+- Always check whether an existing mapper, adapter, validator, helper, policy, persistence specification, or shared component already exists.
 - Keep controllers thin.
 - Put business logic in application and domain layers, not controllers.
 - Prefer cohesive use cases over giant application classes.

@@ -16,9 +16,5 @@ public interface CardTypePort {
     boolean existsByCode(String code);
 
     boolean existsByCodeAndCardTypeIdNot(String code, UUID cardTypeId);
-
-    boolean existsInUse(UUID cardTypeId);
-
-    void deleteById(UUID cardTypeId);
 }
 

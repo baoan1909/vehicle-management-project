@@ -39,6 +39,9 @@ public class CardTypeEntity extends AuditableEntity {
     @Column(name = "is_return_required", nullable = false)
     private Boolean isReturnRequired;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
+
     @OneToMany(mappedBy = "cardType")
     private Set<CardEntity> cards = new HashSet<>();
 

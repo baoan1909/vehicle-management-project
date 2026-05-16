@@ -4,7 +4,6 @@ import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardType
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.infrastructure.mapper.catalog.cardtype.CardTypePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.CardTypeEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.CardTypeRepository;
 import java.util.List;
 import java.util.Optional;
@@ -15,16 +14,13 @@ import org.springframework.stereotype.Component;
 public class CardTypePersistenceAdapter implements CardTypePort {
 
     private final CardTypeRepository cardTypeRepository;
-    private final CardRepository cardRepository;
     private final CardTypePersistenceMapper cardTypePersistenceMapper;
 
     public CardTypePersistenceAdapter(
             CardTypeRepository cardTypeRepository,
-            CardRepository cardRepository,
             CardTypePersistenceMapper cardTypePersistenceMapper
     ) {
         this.cardTypeRepository = cardTypeRepository;
-        this.cardRepository = cardRepository;
         this.cardTypePersistenceMapper = cardTypePersistenceMapper;
     }
 
@@ -56,16 +52,6 @@ public class CardTypePersistenceAdapter implements CardTypePort {
     @Override
     public boolean existsByCodeAndCardTypeIdNot(String code, UUID cardTypeId) {
         return cardTypeRepository.existsByCodeAndCardTypeIdNot(code, cardTypeId);
-    }
-
-    @Override
-    public boolean existsInUse(UUID cardTypeId) {
-        return cardRepository.existsByCardTypeId(cardTypeId);
-    }
-
-    @Override
-    public void deleteById(UUID cardTypeId) {
-        cardTypeRepository.deleteById(cardTypeId);
     }
 }
 

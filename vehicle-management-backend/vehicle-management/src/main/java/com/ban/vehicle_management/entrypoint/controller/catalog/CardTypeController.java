@@ -65,7 +65,7 @@ public class CardTypeController {
     @DeleteMapping("/{cardTypeId}")
     public ResponseEntity<ApiResponse<Void>> deleteCardType(@PathVariable UUID cardTypeId) {
         cardTypeUseCase.deleteCardType(cardTypeId);
-        return ResponseEntity.ok(ApiResponse.ok("Card type deleted successfully"));
+        return ResponseEntity.ok(ApiResponse.ok("Card type deactivated successfully"));
     }
 }
 

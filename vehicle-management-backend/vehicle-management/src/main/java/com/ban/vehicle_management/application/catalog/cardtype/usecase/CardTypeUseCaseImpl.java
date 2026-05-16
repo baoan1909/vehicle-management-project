@@ -45,6 +45,9 @@ public class CardTypeUseCaseImpl implements CardTypeUseCase {
         if (cardType.getIsReturnRequired() != null) {
             existingCardType.setIsReturnRequired(cardType.getIsReturnRequired());
         }
+        if (cardType.getIsActive() != null) {
+            existingCardType.setIsActive(cardType.getIsActive());
+        }
 
         cardTypePolicy.initialize(existingCardType);
 
@@ -71,13 +74,13 @@ public class CardTypeUseCaseImpl implements CardTypeUseCase {
     @Override
     @Transactional
     public void deleteCardType(UUID cardTypeId) {
-        getCardTypeById(cardTypeId);
-
-        if (cardTypePort.existsInUse(cardTypeId)) {
-            throw new BadRequestException("Card type is in use and cannot be deleted");
+        CardType existingCardType = getCardTypeById(cardTypeId);
+        if (Boolean.FALSE.equals(existingCardType.getIsActive())) {
+            return;
         }
 
-        cardTypePort.deleteById(cardTypeId);
+        cardTypePolicy.deactivate(existingCardType);
+        cardTypePort.save(existingCardType);
     }
 }
 

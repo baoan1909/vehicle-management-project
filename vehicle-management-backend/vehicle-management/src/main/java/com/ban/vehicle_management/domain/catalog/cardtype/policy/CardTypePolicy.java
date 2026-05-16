@@ -13,6 +13,14 @@ public class CardTypePolicy {
         if (cardType.getIsReturnRequired() == null) {
             cardType.setIsReturnRequired(Boolean.TRUE);
         }
+        if (cardType.getIsActive() == null) {
+            cardType.setIsActive(Boolean.TRUE);
+        }
+    }
+
+    public void deactivate(CardType cardType) {
+        requireCardType(cardType);
+        cardType.setIsActive(Boolean.FALSE);
     }
 
     private void requireCardType(CardType cardType) {

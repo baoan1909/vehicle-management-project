@@ -46,6 +46,7 @@ class CardTypeUseCaseImplTest {
         assertEquals("RFID Card", createdCardType.getName());
         assertEquals("Reusable access card", createdCardType.getDescription());
         assertTrue(createdCardType.getIsReturnRequired());
+        assertTrue(createdCardType.getIsActive());
     }
 
     @Test
@@ -75,6 +76,7 @@ class CardTypeUseCaseImplTest {
         requestCardType.setName("Temporary Card");
         requestCardType.setDescription("Updated");
         requestCardType.setIsReturnRequired(false);
+        requestCardType.setIsActive(false);
 
         when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(existingCardType));
         when(cardTypePort.existsByCodeAndCardTypeIdNot("TEMP", cardTypeId)).thenReturn(false);
@@ -86,6 +88,7 @@ class CardTypeUseCaseImplTest {
         assertEquals("Temporary Card", updatedCardType.getName());
         assertEquals("Updated", updatedCardType.getDescription());
         assertEquals(Boolean.FALSE, updatedCardType.getIsReturnRequired());
+        assertEquals(Boolean.FALSE, updatedCardType.getIsActive());
     }
 
     @Test
@@ -99,36 +102,39 @@ class CardTypeUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectDeleteWhenCardTypeIsInUse() {
+    void shouldDeactivateCardTypeWhenDeleting() {
         UUID cardTypeId = UUID.randomUUID();
         CardType existingCardType = new CardType();
         existingCardType.setCardTypeId(cardTypeId);
         existingCardType.setCode("RFID");
         existingCardType.setName("RFID Card");
         existingCardType.setIsReturnRequired(true);
+        existingCardType.setIsActive(true);
 
         when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(existingCardType));
-        when(cardTypePort.existsInUse(cardTypeId)).thenReturn(true);
-
-        assertThrows(BadRequestException.class, () -> cardTypeUseCase.deleteCardType(cardTypeId));
-        verify(cardTypePort, never()).deleteById(cardTypeId);
-    }
-
-    @Test
-    void shouldDeleteCardTypeWhenNotInUse() {
-        UUID cardTypeId = UUID.randomUUID();
-        CardType existingCardType = new CardType();
-        existingCardType.setCardTypeId(cardTypeId);
-        existingCardType.setCode("RFID");
-        existingCardType.setName("RFID Card");
-        existingCardType.setIsReturnRequired(true);
-
-        when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(existingCardType));
-        when(cardTypePort.existsInUse(cardTypeId)).thenReturn(false);
+        when(cardTypePort.save(any(CardType.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         cardTypeUseCase.deleteCardType(cardTypeId);
 
-        verify(cardTypePort).deleteById(cardTypeId);
+        assertEquals(Boolean.FALSE, existingCardType.getIsActive());
+        verify(cardTypePort).save(existingCardType);
+    }
+
+    @Test
+    void shouldReturnWhenDeletingInactiveCardType() {
+        UUID cardTypeId = UUID.randomUUID();
+        CardType existingCardType = new CardType();
+        existingCardType.setCardTypeId(cardTypeId);
+        existingCardType.setCode("RFID");
+        existingCardType.setName("RFID Card");
+        existingCardType.setIsReturnRequired(true);
+        existingCardType.setIsActive(false);
+
+        when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(existingCardType));
+
+        cardTypeUseCase.deleteCardType(cardTypeId);
+
+        verify(cardTypePort, never()).save(any(CardType.class));
     }
 
     @Test

@@ -13,5 +13,6 @@ public class UpdateCardTypeRequest {
     private String name;
     private String description;
     private Boolean isReturnRequired;
+    private Boolean isActive;
 }
 
