@@ -1,119 +1,177 @@
-* Vehicle Type
+VehicleType
 
-POST /api/catalog/vehicle-types
-Tạo mới vehicle type
+	POST /api/catalog/vehicle-types
 
-PUT /api/catalog/vehicle-types/{vehicleTypeId}
-Cập nhật vehicle type
+{
+  "code": "CAR",
+  "name": "O to",
+  "description": "Loai xe bon banh",
+  "isActive": true
+}
 
-GET /api/catalog/vehicle-types
-Lấy danh sách, có thể truyền ?isActive=true hoặc ?isActive=false
+	PUT /api/catalog/vehicle-types/{vehicleTypeId}
 
-GET /api/catalog/vehicle-types/{vehicleTypeId}
-Lấy chi tiết theo id
+{
+  "code": "CAR",
+  "name": "O to cap nhat",
+  "description": "Mo ta da cap nhat",
+  "isActive": true
+}
+	GET /api/catalog/vehicle-types/{vehicleTypeId}
 
-DELETE /api/catalog/vehicle-types/{vehicleTypeId}
-Xóa mềm, thực tế là set isActive = false
+	GET /api/catalog/vehicle-types
 
-* Card Type
+	GET /api/catalog/vehicle-types?isActive=true
 
-POST /api/catalog/card-types
+	DELETE /api/catalog/vehicle-types/{vehicleTypeId}
 
-	{
-	  "code": "RFID",
-	  "name": "The RFID",
-	  "description": "The su dung cho the tu",
-	  "isReturnRequired": true
-	}
-PUT /api/catalog/card-types/{cardTypeId}
+soft delete: isActive = false
+------------------------------------------------------------
+CardType
 
-	{
-	  "code": "RFID",
-	  "name": "The RFID cap nhat",
-	  "description": "Mo ta da cap nhat",
-	  "isReturnRequired": false
-	}
-GET /api/catalog/card-types
+	POST /api/catalog/card-types
 
-GET /api/catalog/card-types/{cardTypeId}
+{
+  "code": "RFID",
+  "name": "The RFID",
+  "description": "The dung cho bai xe",
+  "isReturnRequired": true,
+  "isActive": true
+}
 
-DELETE /api/catalog/card-types/{cardTypeId}
+	PUT /api/catalog/card-types/{cardTypeId}
 
+{
+  "code": "RFID",
+  "name": "The RFID cap nhat",
+  "description": "Mo ta da cap nhat",
+  "isReturnRequired": false,
+  "isActive": true
+}
+	GET /api/catalog/card-types/{cardTypeId}
 
-* Card
+	GET /api/catalog/card-types
 
-POST /api/access-control/cards
+	GET /api/catalog/card-types?isActive=true
 
-	{
-	  "cardNumber": "C002",
-	  "uid": "RFID-REGISTERED-002",
-	  "cardTypeId": "42000000-0000-0000-0000-000000000001",
-	  "vehicleTypeId": "40000000-0000-0000-0000-000000000002"
-	}
-	
-Ví dụ không truyền vehicleTypeId:
+	DELETE /api/catalog/card-types/{cardTypeId}
 
-	{
-	  "cardNumber": "V002",
-	  "uid": "RFID-VISITOR-002",
-	  "cardTypeId": "42000000-0000-0000-0000-000000000002"
-	}
-PUT /api/access-control/cards/{cardId}
+soft delete: isActive = false
 
-	{
-	  "cardNumber": "C002",
-	  "uid": "RFID-REGISTERED-002",
-	  "cardTypeId": "42000000-0000-0000-0000-000000000001",
-	  "vehicleTypeId": "40000000-0000-0000-0000-000000000003"
-	}
-	
-PATCH /api/access-control/cards/{cardId}/status
+------------------------------------------------------------------
+UserProfile
 
-Block card:
+	POST /api/people/user-profiles
 
-	{
-	  "status": "BLOCKED",
-	  "blockedReason": "Tam khoa de kiem tra"
-	}
-	
-Mở block về AVAILABLE:
+{
+  "fullName": "Nguyen Van A",
+  "dateOfBirth": "1995-01-10",
+  "gender": "male",
+  "phoneNumber": "0901234567",
+  "address": "123 Le Loi, Quan 1, Ho Chi Minh City",
+  "identifyCard": "079123456789",
+  "avatarUrl": "https://example.com/avatar-a.jpg",
+  "status": "ACTIVE"
+}
 
-	{
-	  "status": "AVAILABLE"
-	}
-	
-Đánh dấu mất thẻ:
+	PUT /api/people/user-profiles/{userProfileId}
 
-	{
-	  "status": "LOST"
-	}
-	
-Đánh dấu hỏng:
+{
+  "fullName": "Nguyen Van A Updated",
+  "dateOfBirth": "1995-01-10",
+  "gender": "male",
+  "phoneNumber": "0901234567",
+  "address": "456 Nguyen Hue, Quan 1, Ho Chi Minh City",
+  "identifyCard": "079123456789",
+  "avatarUrl": "https://example.com/avatar-a-updated.jpg",
+  "status": "SUSPENDED"
+}
+	GET /api/people/user-profiles/{userProfileId}
 
-	{
-	  "status": "DAMAGED"
-	}
-	
-Cho nghỉ hưu thẻ:
+	GET /api/people/user-profiles
 
-	{
-	  "status": "RETIRED"
-	}
-	
-GET /api/access-control/cards
+	GET /api/people/user-profiles?status=ACTIVE
 
-Các kiểu filter:
+	GET /api/people/user-profiles?keyword=nguyen
 
-	/api/access-control/cards
-	/api/access-control/cards?status=AVAILABLE
-	/api/access-control/cards?cardTypeId=42000000-0000-0000-0000-000000000001
-	/api/access-control/cards?vehicleTypeId=40000000-0000-0000-0000-000000000002
-	/api/access-control/cards?keyword=C00
-	/api/access-control/cards?status=AVAILABLE&keyword=RFID
+	GET /api/people/user-profiles?status=ACTIVE&keyword=0901
+
+	DELETE /api/people/user-profiles/{userProfileId}
+
+soft delete: status = INACTIVE
+
+Status hợp lệ:
+
+	ACTIVE
+	INACTIVE
+	SUSPENDED
+
+Card
+
+	POST /api/access-control/cards
+
+{
+  "cardNumber": "C001",
+  "uid": "RFID-REGISTERED-001",
+  "cardTypeId": "42000000-0000-0000-0000-000000000001",
+  "vehicleTypeId": "40000000-0000-0000-0000-000000000003"
+}
+
+	PUT /api/access-control/cards/{cardId}
+
+{
+  "cardNumber": "C001",
+  "uid": "RFID-REGISTERED-001",
+  "cardTypeId": "42000000-0000-0000-0000-000000000001",
+  "vehicleTypeId": "40000000-0000-0000-0000-000000000002"
+}
+
+	PATCH /api/access-control/cards/{cardId}/status
+
+{
+  "status": "BLOCKED",
+  "blockedReason": "Tam khoa de kiem tra"
+}
+
+Ví dụ khác:
+
+{
+  "status": "AVAILABLE"
+}
+{
+  "status": "LOST"
+}
+{
+  "status": "DAMAGED"
+}
+{
+  "status": "RETIRED"
+}
+
 	GET /api/access-control/cards/{cardId}
+
+	GET /api/access-control/cards
+
+	GET /api/access-control/cards?status=AVAILABLE
+
+	GET /api/access-control/cards?cardTypeId=42000000-0000-0000-0000-000000000001
+
+	GET /api/access-control/cards?vehicleTypeId=40000000-0000-0000-0000-000000000003
+
+	GET /api/access-control/cards?keyword=C001
+
+	GET /api/access-control/cards?status=AVAILABLE&keyword=RFID
 
 	DELETE /api/access-control/cards/{cardId}
 
-Lưu ý:
-DELETE là retire, không xóa cứng
-nếu card đang còn trong flow sống thì sẽ báo lỗi business
+không xóa cứng
+logic hiện tại: chuyển status = RETIRED
+Status card đang dùng:
+
+	AVAILABLE
+	ASSIGNED
+	IN_USE
+	LOST
+	BLOCKED
+	DAMAGED
+	RETIRED

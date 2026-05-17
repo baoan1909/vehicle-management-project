@@ -5,9 +5,11 @@ import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.infrastructure.mapper.catalog.VehicleTypePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.specification.catalog.VehicleTypeSpecifications;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -39,9 +41,8 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
 
     @Override
     public List<VehicleType> findAll(Boolean isActive) {
-        List<VehicleTypeEntity> vehicleTypeEntities = isActive == null
-                ? vehicleTypeRepository.findAllByOrderByCodeAsc()
-                : vehicleTypeRepository.findAllByIsActiveOrderByCodeAsc(isActive);
+        Specification<VehicleTypeEntity> specification = VehicleTypeSpecifications.withFilters(isActive);
+        List<VehicleTypeEntity> vehicleTypeEntities = vehicleTypeRepository.findAll(specification);
 
         return vehicleTypeEntities.stream()
                 .map(vehicleTypePersistenceMapper::toDomain)

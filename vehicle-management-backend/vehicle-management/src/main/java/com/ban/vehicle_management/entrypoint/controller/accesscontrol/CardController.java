@@ -28,23 +28,23 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/access-control/cards")
 public class CardController {
 
-    private final CardPortIn cardUseCase;
-    private final ChangeCardStatusPortIn changeCardStatusUseCase;
+    private final CardPortIn cardPortIn;
+    private final ChangeCardStatusPortIn changeCardStatusPortIn;
     private final CardApiMapper cardApiMapper;
 
     public CardController(
-            CardPortIn cardUseCase,
-            ChangeCardStatusPortIn changeCardStatusUseCase,
+            CardPortIn cardPortIn,
+            ChangeCardStatusPortIn changeCardStatusPortIn,
             CardApiMapper cardApiMapper
     ) {
-        this.cardUseCase = cardUseCase;
-        this.changeCardStatusUseCase = changeCardStatusUseCase;
+        this.cardPortIn = cardPortIn;
+        this.changeCardStatusPortIn = changeCardStatusPortIn;
         this.cardApiMapper = cardApiMapper;
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<CardAdminResponse>> createCard(@RequestBody CreateCardRequest request) {
-        Card createdCard = cardUseCase.createCard(cardApiMapper.toDomain(request));
+        Card createdCard = cardPortIn.createCard(cardApiMapper.toDomain(request));
         return ResponseEntity.ok(ApiResponse.ok(
                 "Card created successfully",
                 cardApiMapper.toAdminResponse(createdCard)
@@ -53,7 +53,7 @@ public class CardController {
 
     @GetMapping("/{cardId}")
     public ResponseEntity<ApiResponse<CardAdminResponse>> getCardById(@PathVariable UUID cardId) {
-        Card card = cardUseCase.getCardById(cardId);
+        Card card = cardPortIn.getCardById(cardId);
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched card successfully",
                 cardApiMapper.toAdminResponse(card)
@@ -67,7 +67,7 @@ public class CardController {
             @RequestParam(required = false) UUID vehicleTypeId,
             @RequestParam(required = false) String keyword
     ) {
-        List<Card> cards = cardUseCase.getCards(status, cardTypeId, vehicleTypeId, keyword);
+        List<Card> cards = cardPortIn.getCards(status, cardTypeId, vehicleTypeId, keyword);
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched cards successfully",
                 cardApiMapper.toAdminResponses(cards)
@@ -79,7 +79,7 @@ public class CardController {
             @PathVariable UUID cardId,
             @RequestBody UpdateCardRequest request
     ) {
-        Card updatedCard = cardUseCase.updateCard(cardId, cardApiMapper.toDomain(request));
+        Card updatedCard = cardPortIn.updateCard(cardId, cardApiMapper.toDomain(request));
         return ResponseEntity.ok(ApiResponse.ok(
                 "Card updated successfully",
                 cardApiMapper.toAdminResponse(updatedCard)
@@ -91,7 +91,7 @@ public class CardController {
             @PathVariable UUID cardId,
             @RequestBody ChangeCardStatusRequest request
     ) {
-        Card updatedCard = changeCardStatusUseCase.changeCardStatus(
+        Card updatedCard = changeCardStatusPortIn.changeCardStatus(
                 cardId,
                 request.getStatus(),
                 request.getBlockedReason()
@@ -104,7 +104,7 @@ public class CardController {
 
     @DeleteMapping("/{cardId}")
     public ResponseEntity<ApiResponse<Void>> deleteCard(@PathVariable UUID cardId) {
-        cardUseCase.deleteCard(cardId);
+        cardPortIn.deleteCard(cardId);
         return ResponseEntity.ok(ApiResponse.ok("Card retired successfully"));
     }
 }

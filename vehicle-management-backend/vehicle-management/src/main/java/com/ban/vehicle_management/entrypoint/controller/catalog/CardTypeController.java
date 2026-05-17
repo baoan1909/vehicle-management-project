@@ -17,37 +17,40 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/catalog/card-types")
 public class CardTypeController {
 
-    private final CardTypePortIn cardTypeUseCase;
+    private final CardTypePortIn cardTypePortIn;
     private final CardTypeApiMapper cardTypeApiMapper;
 
-    public CardTypeController(CardTypePortIn cardTypeUseCase, CardTypeApiMapper cardTypeApiMapper) {
-        this.cardTypeUseCase = cardTypeUseCase;
+    public CardTypeController(CardTypePortIn cardTypePortIn, CardTypeApiMapper cardTypeApiMapper) {
+        this.cardTypePortIn = cardTypePortIn;
         this.cardTypeApiMapper = cardTypeApiMapper;
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<CardTypeAdminResponse>> createCardType(@RequestBody CreateCardTypeRequest request) {
-        CardType createdCardType = cardTypeUseCase.createCardType(cardTypeApiMapper.toDomain(request));
+        CardType createdCardType = cardTypePortIn.createCardType(cardTypeApiMapper.toDomain(request));
         CardTypeAdminResponse response = cardTypeApiMapper.toAdminResponse(createdCardType);
         return ResponseEntity.ok(ApiResponse.ok("Card type created successfully", response));
     }
 
     @GetMapping("/{cardTypeId}")
     public ResponseEntity<ApiResponse<CardTypeAdminResponse>> getCardTypeById(@PathVariable UUID cardTypeId) {
-        CardType cardType = cardTypeUseCase.getCardTypeById(cardTypeId);
+        CardType cardType = cardTypePortIn.getCardTypeById(cardTypeId);
         CardTypeAdminResponse response = cardTypeApiMapper.toAdminResponse(cardType);
         return ResponseEntity.ok(ApiResponse.ok("Fetched card type successfully", response));
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CardTypeAdminResponse>>> getCardTypes() {
-        List<CardType> cardTypes = cardTypeUseCase.getCardTypes();
+    public ResponseEntity<ApiResponse<List<CardTypeAdminResponse>>> getCardTypes(
+            @RequestParam(required = false) Boolean isActive
+    ) {
+        List<CardType> cardTypes = cardTypePortIn.getCardTypes(isActive);
         List<CardTypeAdminResponse> response = cardTypeApiMapper.toAdminResponses(cardTypes);
         return ResponseEntity.ok(ApiResponse.ok("Fetched card types successfully", response));
     }
@@ -57,14 +60,14 @@ public class CardTypeController {
             @PathVariable UUID cardTypeId,
             @RequestBody UpdateCardTypeRequest request
     ) {
-        CardType updatedCardType = cardTypeUseCase.updateCardType(cardTypeId, cardTypeApiMapper.toDomain(request));
+        CardType updatedCardType = cardTypePortIn.updateCardType(cardTypeId, cardTypeApiMapper.toDomain(request));
         CardTypeAdminResponse response = cardTypeApiMapper.toAdminResponse(updatedCardType);
         return ResponseEntity.ok(ApiResponse.ok("Card type updated successfully", response));
     }
 
     @DeleteMapping("/{cardTypeId}")
     public ResponseEntity<ApiResponse<Void>> deleteCardType(@PathVariable UUID cardTypeId) {
-        cardTypeUseCase.deleteCardType(cardTypeId);
+        cardTypePortIn.deleteCardType(cardTypeId);
         return ResponseEntity.ok(ApiResponse.ok("Card type deactivated successfully"));
     }
 }

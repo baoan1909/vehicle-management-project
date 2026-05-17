@@ -11,7 +11,7 @@ public interface CardTypePortOut {
 
     Optional<CardType> findById(UUID cardTypeId);
 
-    List<CardType> findAll();
+    List<CardType> findAll(Boolean isActive);
 
     boolean existsByCode(String code);
 

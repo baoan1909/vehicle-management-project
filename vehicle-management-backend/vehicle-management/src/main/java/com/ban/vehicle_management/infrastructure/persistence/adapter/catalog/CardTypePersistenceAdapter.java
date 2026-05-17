@@ -5,9 +5,11 @@ import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.infrastructure.mapper.catalog.CardTypePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.CardTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.CardTypeRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.specification.catalog.CardTypeSpecifications;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -38,8 +40,9 @@ public class CardTypePersistenceAdapter implements CardTypePortOut {
     }
 
     @Override
-    public List<CardType> findAll() {
-        return cardTypeRepository.findAllByOrderByCodeAsc().stream()
+    public List<CardType> findAll(Boolean isActive) {
+        Specification<CardTypeEntity> specification = CardTypeSpecifications.withFilters(isActive);
+        return cardTypeRepository.findAll(specification).stream()
                 .map(cardTypePersistenceMapper::toDomain)
                 .toList();
     }
