@@ -27,8 +27,8 @@ body {
 
 .content-wrapper {
   background:
-    radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 30%),
-    linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+          radial-gradient(circle at top right, rgba(37, 99, 235, 0.08), transparent 30%),
+          linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
   min-height: 100vh;
 }
 
@@ -635,8 +635,8 @@ body {
   overflow: hidden;
   border-radius: 16px;
   background:
-    linear-gradient(to top, rgba(23, 162, 184, 0.08), rgba(23, 162, 184, 0)),
-    repeating-linear-gradient(to top, #edf2f7 0, #edf2f7 1px, transparent 1px, transparent 64px);
+          linear-gradient(to top, rgba(23, 162, 184, 0.08), rgba(23, 162, 184, 0)),
+          repeating-linear-gradient(to top, #edf2f7 0, #edf2f7 1px, transparent 1px, transparent 64px);
 }
 
 .vm-chart-area svg {
@@ -831,6 +831,390 @@ body {
   padding: 60px 40px;
 }
 
+.login-page {
+  align-items: stretch;
+  background: var(--vm-slate-50);
+}
+
+.vm-auth-shell {
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  flex-direction: column;
+  color: var(--vm-slate-700);
+  background:
+          radial-gradient(circle at 18% 12%, rgba(37, 99, 235, 0.13), transparent 30%),
+          radial-gradient(circle at 82% 18%, rgba(22, 163, 74, 0.08), transparent 26%),
+          linear-gradient(135deg, #f8fafc 0%, #eef4ff 100%);
+}
+
+.vm-auth-topbar,
+.vm-auth-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin: 0;
+  padding: 1rem 1.5rem;
+}
+
+.vm-auth-brand,
+.vm-auth-help,
+.vm-auth-footer a,
+.vm-auth-back a,
+.vm-auth-switch a,
+.vm-auth-terms a,
+.vm-auth-link-button {
+  color: var(--vm-blue);
+  font-weight: 800;
+}
+
+.vm-auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--vm-slate-900);
+  font-size: 1.1rem;
+}
+
+.vm-auth-brand:hover,
+.vm-auth-help:hover,
+.vm-auth-footer a:hover,
+.vm-auth-back a:hover,
+.vm-auth-switch a:hover,
+.vm-auth-terms a:hover,
+.vm-auth-link-button:hover {
+  color: var(--vm-blue-dark);
+}
+
+.vm-auth-brand-mark,
+.vm-auth-help,
+.vm-auth-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vm-auth-brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #f8fafc;
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.22);
+  overflow: hidden;
+}
+
+.vm-auth-brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.vm-auth-help {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  background: white;
+  box-shadow: inset 0 0 0 1px var(--vm-slate-100);
+}
+
+.vm-auth-main {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0.75rem 1.5rem 1.25rem;
+}
+
+.vm-auth-card {
+  width: min(100%, 440px);
+  padding: 1.5rem;
+  border: 1px solid rgba(203, 213, 225, 0.55);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--vm-shadow);
+}
+
+.vm-auth-card-wide {
+  width: min(100%, 840px);
+}
+
+.vm-auth-card-reset {
+  min-height: 500px;
+  display: flex;
+  flex-direction: column;
+}
+
+.vm-auth-card-reset .vm-auth-back {
+  margin-top: auto;
+}
+
+.vm-auth-header {
+  margin-bottom: 1.25rem;
+  text-align: center;
+}
+
+.vm-auth-header-compact {
+  margin-bottom: 1rem;
+}
+
+.vm-auth-logo {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 0.9rem;
+  background: transparent;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.vm-auth-header-compact .vm-auth-logo {
+  width: 120px;
+  height: 120px;
+}
+
+.vm-auth-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.vm-auth-header h1 {
+  margin-bottom: 0.2rem;
+  color: var(--vm-slate-900);
+  font-size: 1.45rem;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.vm-auth-header p {
+  max-width: 560px;
+  margin: 0 auto;
+  color: var(--vm-slate-500);
+  font-size: 0.96rem;
+}
+
+.vm-auth-form {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.vm-auth-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+}
+
+.vm-auth-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding-top: 0.25rem;
+  color: var(--vm-slate-900);
+  font-weight: 850;
+}
+
+.vm-auth-section-title i {
+  color: var(--vm-blue);
+}
+
+.vm-auth-field label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--vm-slate-700);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.vm-auth-input-shell {
+  position: relative;
+}
+
+.vm-auth-input-shell > i {
+  position: absolute;
+  top: 50%;
+  left: 1rem;
+  color: var(--vm-slate-500);
+  transform: translateY(-50%);
+}
+
+.vm-auth-input-shell input,
+.vm-auth-input-shell select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.62rem 1rem 0.62rem 2.8rem;
+  border: 1px solid var(--vm-slate-200);
+  border-radius: 10px;
+  background: white;
+  color: var(--vm-slate-900);
+  outline: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vm-auth-input-shell input:focus,
+.vm-auth-input-shell select:focus {
+  border-color: rgba(37, 99, 235, 0.65);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.vm-auth-input-shell input::placeholder {
+  color: #94a3b8;
+}
+
+.vm-auth-field-note {
+  margin: -0.2rem 0 0.1rem;
+  color: var(--vm-slate-500);
+  font-size: 0.9rem;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
+.vm-auth-input-shell select {
+  appearance: auto;
+}
+
+.vm-auth-input-shell input[readonly] {
+  color: var(--vm-blue-dark);
+  background: #eff6ff;
+  font-weight: 800;
+}
+
+.vm-auth-eye {
+  position: absolute;
+  top: 50%;
+  right: 0.85rem;
+  border: 0;
+  color: var(--vm-slate-500);
+  background: transparent;
+  transform: translateY(-50%);
+}
+
+.vm-auth-eye:hover {
+  color: var(--vm-blue);
+}
+
+.vm-auth-otp-input {
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 850;
+  letter-spacing: 0.55em;
+}
+
+.vm-auth-options,
+.vm-auth-footer,
+.vm-auth-footer nav,
+.vm-auth-checkbox,
+.vm-auth-terms,
+.vm-auth-back a,
+.vm-auth-submit {
+  display: flex;
+  align-items: center;
+}
+
+.vm-auth-options {
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0;
+}
+
+.vm-auth-checkbox,
+.vm-auth-terms {
+  gap: 0.55rem;
+  color: var(--vm-slate-700);
+  font-weight: 700;
+}
+
+.vm-auth-checkbox input,
+.vm-auth-terms input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--vm-blue);
+}
+
+.vm-auth-submit,
+a.vm-auth-submit {
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  color: white;
+  background: linear-gradient(135deg, var(--vm-blue), var(--vm-blue-dark));
+  font-weight: 850;
+  box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.vm-auth-submit:hover,
+a.vm-auth-submit:hover {
+  color: white;
+  filter: brightness(0.98);
+  transform: translateY(-1px);
+}
+
+.vm-auth-switch,
+.vm-auth-back {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--vm-slate-100);
+  text-align: center;
+}
+
+.vm-auth-switch {
+  color: var(--vm-slate-500);
+}
+
+.vm-auth-switch a {
+  margin-left: 0.35rem;
+}
+
+.vm-auth-back a {
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.vm-auth-note {
+  display: flex;
+  gap: 0.65rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  color: var(--vm-blue-dark);
+  background: #eff6ff;
+  font-weight: 700;
+}
+
+.vm-auth-note i {
+  margin-top: 0.15rem;
+  color: var(--vm-blue);
+}
+
+.vm-auth-note-success {
+  border-color: #bbf7d0;
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.vm-auth-note-success i {
+  color: var(--vm-success);
+}
+
+.vm-auth-link-button {
+  border: 0;
+  background: transparent;
+}
+
+.vm-auth-footer {
+  gap: 1rem;
+  color: var(--vm-slate-500);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.vm-auth-footer nav {
+  gap: 1.25rem;
+}
+
 @media (max-width: 768px) {
   .vm-navbar-search {
     width: 180px;
@@ -880,5 +1264,36 @@ body {
 
   .vm-navbar-search {
     display: none;
+  }
+
+  .vm-auth-topbar,
+  .vm-auth-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vm-auth-main {
+    padding: 1rem;
+  }
+
+  .vm-auth-card {
+    padding: 1.25rem;
+  }
+
+  .vm-auth-card-reset {
+    min-height: auto;
+  }
+
+  .vm-auth-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vm-auth-options {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vm-auth-footer nav {
+    flex-wrap: wrap;
   }
 }

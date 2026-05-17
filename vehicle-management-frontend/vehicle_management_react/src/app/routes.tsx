@@ -46,6 +46,7 @@ export const routes: RouteDefinition[] = [
   { path: "/login", title: "Login", layout: "auth", element: <LoginPage mode="login" /> },
   { path: "/register", title: "Register", layout: "auth", element: <LoginPage mode="register" /> },
   { path: "/forgot-password", title: "Forgot password", layout: "auth", element: <LoginPage mode="forgot" /> },
+  { path: "/forgot-password/otp", title: "Confirm OTP", layout: "auth", element: <LoginPage mode="otp" /> },
   { path: "/recover-password", title: "Recover password", layout: "auth", element: <LoginPage mode="recover" /> },
 ];
 
