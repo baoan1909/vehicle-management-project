@@ -4,9 +4,9 @@ export function CardFormPage() {
   return (
     <FormCard
       title="Thông tin chi tiết thẻ"
-      breadcrumbs={[{ label: "Quản lý thẻ", href: "#/admin/card" }, { label: "Thông tin thẻ" }]}
+      breadcrumbs={[{ label: "Quản lý thẻ", href: "/admin/card" }, { label: "Thông tin thẻ" }]}
       cardTitle="Chỉnh sửa thông tin thẻ"
-      backHref="#/admin/card"
+      backHref="/admin/card"
       fields={[
         { label: "Số thẻ:", name: "cardNumber", placeholder: "C002", value: "C001" },
         { label: "Loại thẻ:", name: "type", type: "select", options: ["Vãng lai", "Đăng ký"], value: "Đăng ký" },
@@ -22,9 +22,9 @@ export function LostCardFormPage() {
   return (
     <FormCard
       title="Thông tin thẻ bị mất"
-      breadcrumbs={[{ label: "Quản lý thẻ", href: "#/admin/lost" }, { label: "Thông tin thẻ bị mất" }]}
+      breadcrumbs={[{ label: "Quản lý thẻ", href: "/admin/lost" }, { label: "Thông tin thẻ bị mất" }]}
       cardTitle="Xử lý báo mất thẻ"
-      backHref="#/admin/lost"
+      backHref="/admin/lost"
       fields={[
         { label: "Số thẻ:", name: "cardNumber", value: "V001" },
         { label: "Người báo mất:", name: "reporter", value: "Nguyễn Văn Khách" },

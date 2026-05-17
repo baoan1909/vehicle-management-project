@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { FilterControls } from "../../../shared/components/form/FilterControls";
 import { ActionButtons } from "../../../shared/components/table/ActionButtons";
 import { AdminTablePage } from "../../../shared/components/table/AdminTablePage";
@@ -14,19 +15,25 @@ const columns: TableColumn<CardRow>[] = [
   { key: "vehicleType", label: "Loại xe" },
   { key: "isCreated", label: "Thẻ vật lý" },
   { key: "isUsed", label: "Trạng thái" },
-  { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="#/admin/card/form" /> },
+  { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="/admin/card/form" /> },
 ];
 
 export function CardListPage() {
   return (
     <AdminTablePage
       title="Quản lý thẻ"
-      breadcrumbs={[{ label: "Quản lý thẻ", href: "#/admin/card" }, { label: "Thẻ" }]}
+      breadcrumbs={[{ label: "Quản lý thẻ", href: "/admin/card" }, { label: "Thẻ" }]}
       tableTitle="Bảng quản lý thông tin thẻ"
       columns={columns}
       rows={cards}
       filters={<FilterControls selects={[{ name: "vehicleTypeId", placeholder: "Tất cả loại xe", options: vehicleTypes }]} />}
-      actions={<div className="form-group col-2 ml-auto mr-3"><a href="#/admin/card/form" className="btn btn-info btn-block"><i className="fas fa-plus-circle" /> Thêm mới</a></div>}
+      actions={
+        <div className="form-group col-2 ml-auto mr-3">
+          <Link to="/admin/card/form" className="btn btn-info btn-block">
+            <i className="fas fa-plus-circle" /> Thêm mới
+          </Link>
+        </div>
+      }
     />
   );
 }

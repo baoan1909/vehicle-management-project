@@ -4,9 +4,9 @@ export function CustomerFormPage() {
   return (
     <FormCard
       title="Thông tin khách hàng"
-      breadcrumbs={[{ label: "Quản lý khách hàng", href: "#/admin/customer" }, { label: "Thông tin khách hàng" }]}
+      breadcrumbs={[{ label: "Quản lý khách hàng", href: "/admin/customer" }, { label: "Thông tin khách hàng" }]}
       cardTitle="Chỉnh sửa thông tin khách hàng"
-      backHref="#/admin/customer"
+      backHref="/admin/customer"
       fields={[
         { label: "Tên khách hàng:", name: "fullName", value: "Võ Văn Tú" },
         { label: "Số điện thoại:", name: "phone", value: "0901000003" },
@@ -19,3 +19,4 @@ export function CustomerFormPage() {
     />
   );
 }
+

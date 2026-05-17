@@ -7,14 +7,6 @@ export interface BreadcrumbItem {
   href?: string;
 }
 
-export interface NavItem {
-  label: string;
-  icon: string;
-  href?: string;
-  match: string[];
-  children?: NavItem[];
-}
-
 export interface TableColumn<T> {
   key: string;
   label: string;
@@ -35,3 +27,30 @@ export interface CurrentUser {
   role: "ADMIN" | "EMPLOYEE" | "CUSTOMER";
   avatarUrl: string;
 }
+
+export type AdminSidebarIcon = "dashboard" | "swipe" | "card" | "catalog" | "pricing" | "members" | "role";
+
+export interface AdminSidebarLeaf {
+  label: string;
+  to: string;
+  matches: string[];
+}
+
+export type AdminSidebarEntry =
+  | {
+      kind: "link";
+      label: string;
+      to: string;
+      matches: string[];
+      icon: AdminSidebarIcon;
+    }
+  | {
+      kind: "group";
+      label: string;
+      icon: AdminSidebarIcon;
+      items: AdminSidebarLeaf[];
+      defaultExpanded?: boolean;
+    }
+  | {
+      kind: "divider";
+    };

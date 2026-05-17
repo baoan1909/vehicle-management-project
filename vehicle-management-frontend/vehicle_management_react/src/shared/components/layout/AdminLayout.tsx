@@ -1,16 +1,15 @@
 import type { PropsWithChildren } from "react";
-import { AdminNavbar } from "./AdminNavbar";
+import { AdminHeader } from "./AdminHeader";
 import { AdminSidebar } from "./AdminSidebar";
 
 interface AdminLayoutProps extends PropsWithChildren {
-  currentPath: string;
 }
 
-export function AdminLayout({ children, currentPath }: AdminLayoutProps) {
+export function AdminLayout({ children }: AdminLayoutProps) {
   return (
-    <div className="wrapper">
-      <AdminNavbar />
-      <AdminSidebar currentPath={currentPath} />
+    <div className="wrapper vm-admin-shell">
+      <AdminHeader />
+      <AdminSidebar />
       <div className="content-wrapper">{children}</div>
     </div>
   );

@@ -1,10 +1,5 @@
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("vi-VN").format(value) + "đ";
-}
-
-export function normalizeHashPath(hash: string): string {
-  const path = hash.replace(/^#/, "") || "/admin/dashboard";
-  return path.startsWith("/") ? path : `/${path}`;
+  return `${new Intl.NumberFormat("vi-VN").format(value)}đ`;
 }
 
 export function isActivePath(currentPath: string, matches: string[]): boolean {

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import type { BreadcrumbItem } from "../../types/common";
 
 interface PageHeaderProps {
@@ -17,7 +18,7 @@ export function PageHeader({ title, breadcrumbs = [] }: PageHeaderProps) {
             <ol className="breadcrumb float-sm-right">
               {breadcrumbs.map((item, index) => (
                 <li className={`breadcrumb-item ${index === breadcrumbs.length - 1 ? "active" : ""}`} key={item.label}>
-                  {item.href && index !== breadcrumbs.length - 1 ? <a href={item.href}>{item.label}</a> : item.label}
+                  {item.href && index !== breadcrumbs.length - 1 ? <Link to={item.href}>{item.label}</Link> : item.label}
                 </li>
               ))}
             </ol>

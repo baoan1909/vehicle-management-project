@@ -6,7 +6,7 @@ export function DashboardPage() {
   const points = dashboardStats.revenueByMonth.map((value, index) => `${(index / 11) * 100},${100 - value * 2.8}`).join(" ");
 
   return (
-    <AdminPage title="Trang chủ" breadcrumbs={[{ label: "Quản lý", href: "#/admin/dashboard" }, { label: "Trang chủ" }]}>
+    <AdminPage title="Trang chủ" breadcrumbs={[{ label: "Quản lý", href: "/admin/dashboard" }, { label: "Trang chủ" }]}>
       <div className="container mt-4">
         <div className="col-12">
           <div className="card card-cyan card-outline">
@@ -36,7 +36,11 @@ export function DashboardPage() {
             <div className="card card-cyan card-outline shadow mb-4">
               <div className="card-header">
                 <h3 className="card-title">Tổng doanh thu</h3>
-                <div className="card-tools"><button type="button" className="btn btn-tool"><i className="fas fa-minus" /></button></div>
+                <div className="card-tools">
+                  <button type="button" className="btn btn-tool">
+                    <i className="fas fa-minus" />
+                  </button>
+                </div>
               </div>
               <div className="card-body">
                 <div className="vm-chart-area">
@@ -53,13 +57,21 @@ export function DashboardPage() {
             <div className="card card-cyan card-outline shadow mb-4">
               <div className="card-header">
                 <h3 className="card-title">Tổng loại xe</h3>
-                <div className="card-tools"><button type="button" className="btn btn-tool"><i className="fas fa-minus" /></button></div>
+                <div className="card-tools">
+                  <button type="button" className="btn btn-tool">
+                    <i className="fas fa-minus" />
+                  </button>
+                </div>
               </div>
               <div className="card-body">
-                <div className="chart-pie pt-4 pb-2"><div className="vm-pie-chart" aria-label="Biểu đồ loại xe" /></div>
+                <div className="chart-pie pt-4 pb-2">
+                  <div className="vm-pie-chart" aria-label="Biểu đồ loại xe" />
+                </div>
                 <div className="mt-4 text-center small">
                   {dashboardStats.vehicleTypeData.map((vehicle) => (
-                    <span className="mr-2" key={vehicle.type}><i className={`fas fa-circle ${vehicle.className}`} /> {vehicle.type}</span>
+                    <span className="mr-2" key={vehicle.type}>
+                      <i className={`fas fa-circle ${vehicle.className}`} /> {vehicle.type}
+                    </span>
                   ))}
                 </div>
               </div>
@@ -78,8 +90,13 @@ export function DashboardPage() {
                   { label: "Vãng lai", percent: dashboardStats.cardStats.visitorCardsPercent, className: "bg-success" },
                 ].map(({ label, percent, className }) => (
                   <div key={label}>
-                    <h4 className="small font-weight-bold">{label}<span className="float-right">{percent}%</span></h4>
-                    <div className="progress mb-4"><div className={`progress-bar ${className}`} role="progressbar" style={{ width: `${percent}%` }} /></div>
+                    <h4 className="small font-weight-bold">
+                      {label}
+                      <span className="float-right">{percent}%</span>
+                    </h4>
+                    <div className="progress mb-4">
+                      <div className={`progress-bar ${className}`} role="progressbar" style={{ width: `${percent}%` }} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -100,8 +117,13 @@ export function DashboardPage() {
                       <div className={`card card-${color} card-outline shadow h-100 py-2`}>
                         <div className="card-body">
                           <div className="row no-gutters align-items-center">
-                            <div className="col mr-2"><div className={`text-xs font-weight-bold text-${color} text-uppercase mb-1`}>{label}</div><div className="h5 mb-0 mr-3 font-weight-bold text-gray-dark">{count}</div></div>
-                            <div className="col-auto"><i className={`${icon} fa-2x text-gray`} /></div>
+                            <div className="col mr-2">
+                              <div className={`text-xs font-weight-bold text-${color} text-uppercase mb-1`}>{label}</div>
+                              <div className="h5 mb-0 mr-3 font-weight-bold text-gray-dark">{count}</div>
+                            </div>
+                            <div className="col-auto">
+                              <i className={`${icon} fa-2x text-gray`} />
+                            </div>
                           </div>
                         </div>
                       </div>

@@ -1,58 +1,141 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { adminNavigation } from "../../../config/navigation";
-import { isActivePath } from "../../utils/format";
+import type { AdminSidebarEntry, AdminSidebarIcon, AdminSidebarLeaf } from "../../types/common";
 
-interface AdminSidebarProps {
-  currentPath: string;
+function isPathMatch(pathname: string, matches: string[]) {
+  return matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
 }
 
-export function AdminSidebar({ currentPath }: AdminSidebarProps) {
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+function SidebarIcon({ icon }: { icon: AdminSidebarIcon }) {
+  const iconClassName = {
+    dashboard: "fas fa-tachometer-alt",
+    swipe: "fas fa-car-side",
+    card: "fas fa-credit-card",
+    catalog: "fas fa-ticket-alt",
+    pricing: "fas fa-file-invoice-dollar",
+    members: "fas fa-users",
+    role: "fas fa-user-shield",
+  } satisfies Record<AdminSidebarIcon, string>;
+
+  return <i className={`vm-sidebar-icon ${iconClassName[icon]}`} aria-hidden="true" />;
+}
+
+function Chevron({ expanded }: { expanded: boolean }) {
+  return <i className={`fas fa-angle-left vm-sidebar-chevron ${expanded ? "is-open" : ""}`} aria-hidden="true" />;
+}
+
+function isLeafActive(item: AdminSidebarLeaf, pathname: string) {
+  return isPathMatch(pathname, item.matches);
+}
+
+function isEntryActive(entry: Extract<AdminSidebarEntry, { kind: "group" }>, pathname: string) {
+  return entry.items.some((item) => isLeafActive(item, pathname));
+}
+
+function getActiveGroupLabel(pathname: string) {
+  const activeGroup = adminNavigation.find((entry) => entry.kind === "group" && isEntryActive(entry, pathname));
+  return activeGroup?.kind === "group" ? activeGroup.label : null;
+}
+
+function SidebarLeaf({ item }: { item: AdminSidebarLeaf }) {
+  const location = useLocation();
+  const active = isLeafActive(item, location.pathname);
 
   return (
-    <aside className="main-sidebar sidebar-light-cyan elevation-4 vm-sidebar tw-border-r tw-border-slate-200 tw-bg-white">
-      <a href="#/admin/dashboard" className="brand-link vm-brand">
-        <img src="/assets/admin/dist/img/AdminLTELogo.png" alt="Logo" className="brand-image img-circle elevation-3" style={{ opacity: 0.8 }} />
-        <span className="brand-text font-weight-light">Admin</span>
-      </a>
-      <div className="sidebar">
-        <nav className="mt-2">
-          <ul className="nav nav-pills nav-sidebar flex-column" role="menu">
-            {adminNavigation.map((item, index) => {
-              const active = isActivePath(currentPath, item.match);
-              const hasChildren = Boolean(item.children?.length);
-              const isOpen = hasChildren && (active || openGroups[item.label]);
+    <NavLink to={item.to} className={`vm-sidebar-link vm-sidebar-sublink ${active ? "active" : ""}`}>
+      <span className="vm-sidebar-link-main">
+        <span className="vm-sidebar-dot" aria-hidden="true" />
+        <span className="vm-sidebar-link-label">{item.label}</span>
+      </span>
+    </NavLink>
+  );
+}
+
+function SidebarGroup({
+  entry,
+  active,
+  expanded,
+  onToggle,
+}: {
+  entry: Extract<AdminSidebarEntry, { kind: "group" }>;
+  active: boolean;
+  expanded: boolean;
+  onToggle: (label: string) => void;
+}) {
+  return (
+    <div className="vm-sidebar-group">
+      <button
+        type="button"
+        onClick={() => onToggle(entry.label)}
+        className={`vm-sidebar-link vm-sidebar-group-trigger ${active ? "active" : ""}`}
+      >
+        <span className="vm-sidebar-link-main">
+          <span className="vm-sidebar-icon-wrap">
+            <SidebarIcon icon={entry.icon} />
+          </span>
+          <span className="vm-sidebar-link-label">{entry.label}</span>
+        </span>
+        <Chevron expanded={expanded} />
+      </button>
+      {expanded ? (
+        <div className="vm-sidebar-group-panel">
+          {entry.items.map((item) => (
+            <SidebarLeaf key={`${entry.label}-${item.label}`} item={item} />
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function AdminSidebar() {
+  const location = useLocation();
+  const [expandedGroupLabel, setExpandedGroupLabel] = useState<string | null>(() => getActiveGroupLabel(location.pathname));
+
+  useEffect(() => {
+    const activeGroupLabel = getActiveGroupLabel(location.pathname);
+    setExpandedGroupLabel(activeGroupLabel);
+  }, [location.pathname]);
+
+  const handleToggleGroup = (label: string) => {
+    setExpandedGroupLabel((current) => (current === label ? null : label));
+  };
+
+  return (
+    <aside className="vm-sidebar" aria-label="CoParking admin sidebar">
+      <div className="vm-sidebar-scroll subtle-scrollbar">
+        <nav className="vm-sidebar-menu" role="menu" aria-label="CoParking admin navigation">
+          {adminNavigation.map((entry, index) => {
+            if (entry.kind === "divider") {
+              return <div key={`divider-${index}`} className="vm-sidebar-divider" />;
+            }
+
+            if (entry.kind === "group") {
               return (
-                <li key={item.label} className={`nav-item ${index === 0 ? "mt-5" : ""} ${isOpen ? "menu-open" : ""}`}>
-                  {index === 1 && <div className="nav-item sidebar-divider mb-2" />}
-                  <a
-                    href={item.href ?? "#"}
-                    className={`nav-link vm-sidebar-link ${active ? "active" : ""}`}
-                    onClick={(event) => {
-                      if (!hasChildren) return;
-                      event.preventDefault();
-                      setOpenGroups((current) => ({ ...current, [item.label]: !current[item.label] }));
-                    }}
-                  >
-                    <i className={`nav-icon ${item.icon}`} />
-                    <p>{item.label}{hasChildren && <i className="fas fa-angle-left right" />}</p>
-                  </a>
-                  {hasChildren && (
-                    <ul className="nav nav-treeview">
-                      {item.children?.map((child) => (
-                        <li className="nav-item" key={child.label}>
-                          <a href={child.href} className={`nav-link vm-sidebar-link vm-sidebar-sublink ${isActivePath(currentPath, child.match) ? "active" : ""}`}>
-                            <i className={`${child.icon} nav-icon`} />
-                            <p>{child.label}</p>
-                          </a>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
+                <SidebarGroup
+                  key={entry.label}
+                  entry={entry}
+                  active={isEntryActive(entry, location.pathname)}
+                  expanded={expandedGroupLabel === entry.label}
+                  onToggle={handleToggleGroup}
+                />
               );
-            })}
-          </ul>
+            }
+
+            const active = isPathMatch(location.pathname, entry.matches);
+
+            return (
+              <NavLink key={entry.label} to={entry.to} className={`vm-sidebar-link ${active ? "active" : ""}`}>
+                <span className="vm-sidebar-link-main">
+                  <span className="vm-sidebar-icon-wrap">
+                    <SidebarIcon icon={entry.icon} />
+                  </span>
+                  <span className="vm-sidebar-link-label">{entry.label}</span>
+                </span>
+              </NavLink>
+            );
+          })}
         </nav>
       </div>
     </aside>

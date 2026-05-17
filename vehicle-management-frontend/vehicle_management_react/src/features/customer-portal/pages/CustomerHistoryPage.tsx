@@ -20,15 +20,36 @@ export function CustomerHistoryPage() {
     <ClientPage title="Thông tin khách hàng">
       <div className="row mt-4">
         <div className="col-md-3">
-          <div className="info-box" style={{ background: "linear-gradient(135deg, var(--vm-indigo), #3a0ca3)", color: "white", boxShadow: "0 4px 15px rgba(67, 97, 238, 0.3)" }}>
+          <div
+            className="info-box"
+            style={{ background: "linear-gradient(135deg, var(--vm-indigo), #3a0ca3)", color: "white", boxShadow: "0 4px 15px rgba(67, 97, 238, 0.3)" }}
+          >
             <div className="info-box-content">
               <label htmlFor="filter">Xem theo:</label>
-              <select name="filter" id="filter" className="form-control select2"><option value="">Tất cả loại xe</option><option value="month">1 tháng gần nhất</option><option value="all">Tất cả lịch sử</option></select>
+              <select name="filter" id="filter" className="form-control select2">
+                <option value="">Tất cả loại xe</option>
+                <option value="month">1 tháng gần nhất</option>
+                <option value="all">Tất cả lịch sử</option>
+              </select>
             </div>
           </div>
         </div>
       </div>
-      <div className="row"><div className="col-12"><div className="card"><div className="card-header" style={{ background: "linear-gradient(135deg, var(--vm-indigo), #3a0ca3)", color: "white", boxShadow: "0 4px 15px rgba(67, 97, 238, 0.3)" }}><h3 className="card-title">Bảng quản lý thông tin thẻ</h3></div><div className="card-body"><DataTable columns={columns} rows={customerHistory} /></div></div></div></div>
+      <div className="row">
+        <div className="col-12">
+          <div className="card">
+            <div
+              className="card-header"
+              style={{ background: "linear-gradient(135deg, var(--vm-indigo), #3a0ca3)", color: "white", boxShadow: "0 4px 15px rgba(67, 97, 238, 0.3)" }}
+            >
+              <h3 className="card-title">Bảng quản lý thông tin thẻ</h3>
+            </div>
+            <div className="card-body">
+              <DataTable columns={columns} rows={customerHistory} />
+            </div>
+          </div>
+        </div>
+      </div>
     </ClientPage>
   );
 }

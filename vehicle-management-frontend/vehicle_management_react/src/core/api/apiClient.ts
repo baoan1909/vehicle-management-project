@@ -1,4 +1,4 @@
-import { appConfig } from "../../config/env";
+import { appConfig } from "@/config/env";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;

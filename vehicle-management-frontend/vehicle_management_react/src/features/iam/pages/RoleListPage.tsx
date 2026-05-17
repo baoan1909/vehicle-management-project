@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { ActionButtons } from "../../../shared/components/table/ActionButtons";
 import { AdminTablePage } from "../../../shared/components/table/AdminTablePage";
 import { FilterControls } from "../../../shared/components/form/FilterControls";
@@ -13,19 +14,39 @@ const columns: TableColumn<RoleRow>[] = [
   { key: "name", label: "Tên vai trò" },
   { key: "description", label: "Mô tả" },
   { key: "status", label: "Trạng thái", render: (row) => <span className="badge bg-cyan">{row.status}</span> },
-  { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="#/admin/role/form" /> },
+  { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="/admin/role/form" /> },
 ];
 
 export function RoleListPage() {
   return (
     <AdminTablePage
       title="Quản lý vai trò"
-      breadcrumbs={[{ label: "Quản lý", href: "#/admin/dashboard" }, { label: "Vai trò" }]}
+      breadcrumbs={[{ label: "Quản lý", href: "/admin/dashboard" }, { label: "Vai trò" }]}
       tableTitle="Bảng quản lý thông tin vai trò"
       columns={columns}
       rows={roles}
-      filters={<FilterControls selects={[{ name: "role", placeholder: "Tất cả vai trò", options: roles.map((role) => ({ label: role.name, value: role.code })) }, { name: "status", placeholder: "Tất cả trạng thái", options: [{ label: "Hệ thống", value: "system" }, { label: "Tùy chỉnh", value: "custom" }] }]} />}
-      actions={<div className="form-group col-2 ml-auto mr-3 mt-3"><a href="#/admin/role/form" className="btn btn-info btn-block"><i className="fas fa-plus-circle" /> Thêm mới</a></div>}
+      filters={
+        <FilterControls
+          selects={[
+            { name: "role", placeholder: "Tất cả vai trò", options: roles.map((role) => ({ label: role.name, value: role.code })) },
+            {
+              name: "status",
+              placeholder: "Tất cả trạng thái",
+              options: [
+                { label: "Hệ thống", value: "system" },
+                { label: "Tùy chỉnh", value: "custom" },
+              ],
+            },
+          ]}
+        />
+      }
+      actions={
+        <div className="form-group col-2 ml-auto mr-3 mt-3">
+          <Link to="/admin/role/form" className="btn btn-info btn-block">
+            <i className="fas fa-plus-circle" /> Thêm mới
+          </Link>
+        </div>
+      }
     />
   );
 }

@@ -1,13 +1,22 @@
 import type { ReactNode } from "react";
-import type { AppLayout } from "../shared/types/common";
-import { DashboardPage } from "../features/dashboard";
-import { SwipeEntryPage, SwipeListPage } from "../features/parking";
-import { CardFormPage, CardListPage, LostCardFormPage, LostCardListPage } from "../features/cards";
-import { CustomerFormPage, CustomerListPage } from "../features/customers";
-import { AccountFormPage, AccountListPage, RoleFormPage, RoleListPage } from "../features/iam";
-import { RegistrationFeeFormPage, RegistrationFeePage, TicketFormPage, TicketListPage, VehicleFormPage, VehicleListPage, VisitorFeeFormPage, VisitorParkingFeePage } from "../features/catalog";
-import { ContactPage, CustomerHistoryPage, PricingPage, ProfilePage } from "../features/customer-portal";
-import { LoginPage } from "../features/auth";
+import type { AppLayout } from "@/shared/types/common";
+import { LoginPage } from "@/features/auth";
+import { CardFormPage, CardListPage, LostCardFormPage, LostCardListPage } from "@/features/cards";
+import {
+  RegistrationFeeFormPage,
+  RegistrationFeePage,
+  TicketFormPage,
+  TicketListPage,
+  VehicleFormPage,
+  VehicleListPage,
+  VisitorFeeFormPage,
+  VisitorParkingFeePage,
+} from "@/features/catalog";
+import { ContactPage, CustomerHistoryPage, PricingPage, ProfilePage } from "@/features/customer-portal";
+import { CustomerFormPage, CustomerListPage } from "@/features/customers";
+import { DashboardPage } from "@/features/dashboard";
+import { AccountFormPage, AccountListPage, RoleFormPage, RoleListPage } from "@/features/iam";
+import { SwipeEntryPage, SwipeListPage } from "@/features/parking";
 
 export interface RouteDefinition {
   path: string;
@@ -17,7 +26,7 @@ export interface RouteDefinition {
 }
 
 export const routes: RouteDefinition[] = [
-  { path: "/admin/dashboard", title: "Dashboard", layout: "admin", element: <DashboardPage /> },
+  { path: "/admin/dashboard", title: "Trang chủ", layout: "admin", element: <DashboardPage /> },
   { path: "/admin/swipe", title: "Quản lý vào ra", layout: "admin", element: <SwipeListPage /> },
   { path: "/admin/swipe/swipein", title: "Xe vào", layout: "admin", element: <SwipeEntryPage mode="in" /> },
   { path: "/admin/swipe/swipeout", title: "Xe ra", layout: "admin", element: <SwipeEntryPage mode="out" /> },
@@ -43,11 +52,9 @@ export const routes: RouteDefinition[] = [
   { path: "/customerTicket/customer-infor", title: "Thông tin khách hàng", layout: "client", element: <CustomerHistoryPage /> },
   { path: "/customerTicket/customer-infor-detail", title: "Thông tin tài khoản", layout: "client", element: <ProfilePage /> },
   { path: "/contact", title: "Liên hệ", layout: "client", element: <ContactPage /> },
-  { path: "/login", title: "Login", layout: "auth", element: <LoginPage mode="login" /> },
-  { path: "/register", title: "Register", layout: "auth", element: <LoginPage mode="register" /> },
-  { path: "/forgot-password", title: "Forgot password", layout: "auth", element: <LoginPage mode="forgot" /> },
-  { path: "/forgot-password/otp", title: "Confirm OTP", layout: "auth", element: <LoginPage mode="otp" /> },
-  { path: "/recover-password", title: "Recover password", layout: "auth", element: <LoginPage mode="recover" /> },
+  { path: "/login", title: "Đăng nhập", layout: "auth", element: <LoginPage mode="login" /> },
+  { path: "/register", title: "Đăng ký", layout: "auth", element: <LoginPage mode="register" /> },
+  { path: "/forgot-password", title: "Quên mật khẩu", layout: "auth", element: <LoginPage mode="forgot" /> },
+  { path: "/forgot-password/otp", title: "Xác nhận OTP", layout: "auth", element: <LoginPage mode="otp" /> },
+  { path: "/recover-password", title: "Đặt lại mật khẩu", layout: "auth", element: <LoginPage mode="recover" /> },
 ];
-
-export const fallbackRoute = routes[0];

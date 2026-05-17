@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { AdminTablePage } from "../../../shared/components/table/AdminTablePage";
 import { FilterControls } from "../../../shared/components/form/FilterControls";
 import { swipes, ticketTypes, vehicleTypes } from "../../../shared/data/mockData";
@@ -21,12 +22,34 @@ export function SwipeListPage() {
   return (
     <AdminTablePage
       title="Quản lý vào ra"
-      breadcrumbs={[{ label: "Quản lý", href: "#/admin/dashboard" }, { label: "Vào ra" }]}
+      breadcrumbs={[{ label: "Quản lý", href: "/admin/dashboard" }, { label: "Vào ra" }]}
       tableTitle="Bảng quản lý thông tin vào ra"
       columns={columns}
       rows={swipes}
-      filters={<FilterControls selects={[{ name: "vehicleTypeId", placeholder: "Tất cả xe", options: vehicleTypes }, { name: "ticketTypeId", placeholder: "Tất cả vé", options: ticketTypes }]} />}
-      actions={<div className="form-group col-md-3 ml-auto mr-3"><div className="row"><div className="col-md-6"><a href="#/admin/swipe/swipein" className="btn btn-info btn-block"><i className="fas fa-plus-circle" /> Xe vào</a></div><div className="col-md-6"><a href="#/admin/swipe/swipeout" className="btn btn-outline-warning btn-block"><i className="fas fa-plus-circle" /> Xe ra</a></div></div></div>}
+      filters={
+        <FilterControls
+          selects={[
+            { name: "vehicleTypeId", placeholder: "Tất cả xe", options: vehicleTypes },
+            { name: "ticketTypeId", placeholder: "Tất cả vé", options: ticketTypes },
+          ]}
+        />
+      }
+      actions={
+        <div className="form-group col-md-3 ml-auto mr-3">
+          <div className="row">
+            <div className="col-md-6">
+              <Link to="/admin/swipe/swipein" className="btn btn-info btn-block">
+                <i className="fas fa-plus-circle" /> Xe vào
+              </Link>
+            </div>
+            <div className="col-md-6">
+              <Link to="/admin/swipe/swipeout" className="btn btn-outline-warning btn-block">
+                <i className="fas fa-plus-circle" /> Xe ra
+              </Link>
+            </div>
+          </div>
+        </div>
+      }
     />
   );
 }

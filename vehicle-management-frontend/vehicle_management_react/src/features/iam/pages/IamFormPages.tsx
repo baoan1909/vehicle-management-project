@@ -4,9 +4,9 @@ export function AccountFormPage() {
   return (
     <FormCard
       title="Thông tin tài khoản"
-      breadcrumbs={[{ label: "Quản lý tài khoản", href: "#/admin/account" }, { label: "Thông tin tài khoản" }]}
+      breadcrumbs={[{ label: "Quản lý tài khoản", href: "/admin/account" }, { label: "Thông tin tài khoản" }]}
       cardTitle="Chỉnh sửa thông tin tài khoản"
-      backHref="#/admin/account"
+      backHref="/admin/account"
       fields={[
         { label: "Tên tài khoản:", name: "username", value: "vovantu" },
         { label: "Tên khách hàng:", name: "fullName", value: "Võ Văn Tú" },
@@ -22,9 +22,9 @@ export function RoleFormPage() {
   return (
     <FormCard
       title="Thông tin vai trò"
-      breadcrumbs={[{ label: "Quản lý vai trò", href: "#/admin/role" }, { label: "Thông tin vai trò" }]}
+      breadcrumbs={[{ label: "Quản lý vai trò", href: "/admin/role" }, { label: "Thông tin vai trò" }]}
       cardTitle="Chỉnh sửa thông tin vai trò"
-      backHref="#/admin/role"
+      backHref="/admin/role"
       fields={[
         { label: "Mã vai trò:", name: "code", value: "CUSTOMER" },
         { label: "Tên vai trò:", name: "name", value: "Khách hàng" },

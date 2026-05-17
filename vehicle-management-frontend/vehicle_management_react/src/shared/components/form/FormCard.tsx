@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Link } from "react-router-dom";
 import { AdminPage } from "../layout/AdminPage";
 
 export interface FormField {
@@ -51,7 +52,7 @@ export function FormCard({ title, breadcrumbs, cardTitle, fields, backHref, extr
                 {extra}
               </div>
               <div className="card-footer vm-form-footer">
-                <a className="btn vm-btn-secondary" href={backHref}>Thoát</a>
+                <Link className="btn vm-btn-secondary" to={backHref}>Thoát</Link>
                 <button type="button" className="btn vm-btn-primary float-right"><i className="fas fa-save" /> Lưu</button>
               </div>
             </form>

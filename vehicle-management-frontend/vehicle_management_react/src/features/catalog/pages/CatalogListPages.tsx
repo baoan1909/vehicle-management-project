@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { FilterControls } from "../../../shared/components/form/FilterControls";
 import { ActionButtons } from "../../../shared/components/table/ActionButtons";
 import { AdminTablePage } from "../../../shared/components/table/AdminTablePage";
@@ -10,7 +11,14 @@ type VisitorFeeRow = (typeof visitorParkingFees)[number];
 type CustomerFeeRow = (typeof customerParkingFees)[number];
 
 const badge = (status: string) => <span className="badge bg-cyan">{status}</span>;
-const addButton = (href: string) => <div className="form-group col-2 ml-auto mr-3 mt-3"><a href={href} className="btn btn-info btn-block"><i className="fas fa-plus-circle" /> Thêm mới</a></div>;
+
+const addButton = (href: string) => (
+  <div className="form-group col-2 ml-auto mr-3 mt-3">
+    <Link to={href} className="btn btn-info btn-block">
+      <i className="fas fa-plus-circle" /> Thêm mới
+    </Link>
+  </div>
+);
 
 export function TicketListPage() {
   const columns: TableColumn<TicketRow>[] = [
@@ -20,17 +28,32 @@ export function TicketListPage() {
     { key: "duration", label: "Thời hạn" },
     { key: "description", label: "Mô tả" },
     { key: "status", label: "Trạng thái", render: (row) => badge(row.status) },
-    { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="#/admin/ticket/form" /> },
+    { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="/admin/ticket/form" /> },
   ];
+
   return (
     <AdminTablePage
       title="Quản lý vé"
-      breadcrumbs={[{ label: "Vé & Phương tiện", href: "#/admin/ticket" }, { label: "Vé" }]}
+      breadcrumbs={[{ label: "Vé & Phương tiện", href: "/admin/ticket" }, { label: "Vé" }]}
       tableTitle="Bảng quản lý thông tin vé"
       columns={columns}
       rows={tickets}
-      filters={<FilterControls selects={[{ name: "ticketType", placeholder: "Tất cả loại vé", options: ticketTypes }, { name: "status", placeholder: "Tất cả trạng thái", options: [{ label: "Hoạt động", value: "active" }, { label: "Tạm ngưng", value: "inactive" }] }]} />}
-      actions={addButton("#/admin/ticket/form")}
+      filters={
+        <FilterControls
+          selects={[
+            { name: "ticketType", placeholder: "Tất cả loại vé", options: ticketTypes },
+            {
+              name: "status",
+              placeholder: "Tất cả trạng thái",
+              options: [
+                { label: "Hoạt động", value: "active" },
+                { label: "Tạm ngưng", value: "inactive" },
+              ],
+            },
+          ]}
+        />
+      }
+      actions={addButton("/admin/ticket/form")}
     />
   );
 }
@@ -43,17 +66,32 @@ export function VehicleListPage() {
     { key: "name", label: "Tên loại xe" },
     { key: "description", label: "Mô tả" },
     { key: "status", label: "Trạng thái", render: (row) => badge(row.status) },
-    { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="#/admin/vehicle/form" /> },
+    { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="/admin/vehicle/form" /> },
   ];
+
   return (
     <AdminTablePage
       title="Quản lý phương tiện"
-      breadcrumbs={[{ label: "Vé & Phương tiện", href: "#/admin/vehicle" }, { label: "Phương tiện" }]}
+      breadcrumbs={[{ label: "Vé & Phương tiện", href: "/admin/vehicle" }, { label: "Phương tiện" }]}
       tableTitle="Bảng quản lý thông tin phương tiện"
       columns={columns}
       rows={vehicles}
-      filters={<FilterControls selects={[{ name: "vehicleTypeId", placeholder: "Tất cả loại xe", options: vehicleTypes }, { name: "status", placeholder: "Tất cả trạng thái", options: [{ label: "Hoạt động", value: "active" }, { label: "Tạm ngưng", value: "inactive" }] }]} />}
-      actions={addButton("#/admin/vehicle/form")}
+      filters={
+        <FilterControls
+          selects={[
+            { name: "vehicleTypeId", placeholder: "Tất cả loại xe", options: vehicleTypes },
+            {
+              name: "status",
+              placeholder: "Tất cả trạng thái",
+              options: [
+                { label: "Hoạt động", value: "active" },
+                { label: "Tạm ngưng", value: "inactive" },
+              ],
+            },
+          ]}
+        />
+      }
+      actions={addButton("/admin/vehicle/form")}
     />
   );
 }
@@ -67,9 +105,20 @@ export function VisitorParkingFeePage() {
     { key: "price", label: "Phí dịch vụ" },
     { key: "lostCardFee", label: "Phí mất thẻ" },
     { key: "status", label: "Trạng thái", render: (row) => badge(row.status) },
-    { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="#/admin/visitorParkingFee/form" /> },
+    { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="/admin/visitorParkingFee/form" /> },
   ];
-  return <AdminTablePage title="Quản lý phí vãng lai" breadcrumbs={[{ label: "Bảng giá", href: "#/admin/visitorParkingFee" }, { label: "Phí vãng lai" }]} tableTitle="Bảng quản lý phí vãng lai" columns={columns} rows={visitorParkingFees} filters={<FilterControls selects={[{ name: "vehicleTypeId", placeholder: "Tất cả loại xe", options: vehicleTypes }]} />} actions={addButton("#/admin/visitorParkingFee/form")} />;
+
+  return (
+    <AdminTablePage
+      title="Quản lý phí vãng lai"
+      breadcrumbs={[{ label: "Bảng giá", href: "/admin/visitorParkingFee" }, { label: "Phí vãng lai" }]}
+      tableTitle="Bảng quản lý phí vãng lai"
+      columns={columns}
+      rows={visitorParkingFees}
+      filters={<FilterControls selects={[{ name: "vehicleTypeId", placeholder: "Tất cả loại xe", options: vehicleTypes }]} />}
+      actions={addButton("/admin/visitorParkingFee/form")}
+    />
+  );
 }
 
 export function RegistrationFeePage() {
@@ -81,7 +130,18 @@ export function RegistrationFeePage() {
     { key: "price", label: "Phí đăng ký" },
     { key: "duration", label: "Thời hạn" },
     { key: "status", label: "Trạng thái", render: (row) => badge(row.status) },
-    { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="#/admin/parkingFeeOfCustomer/form" /> },
+    { key: "actions", label: "Chức năng", width: "100px", render: () => <ActionButtons editHref="/admin/parkingFeeOfCustomer/form" /> },
   ];
-  return <AdminTablePage title="Quản lý phí đăng ký" breadcrumbs={[{ label: "Bảng giá", href: "#/admin/parkingFeeOfCustomer" }, { label: "Phí đăng ký" }]} tableTitle="Bảng quản lý phí đăng ký" columns={columns} rows={customerParkingFees} filters={<FilterControls selects={[{ name: "vehicleTypeId", placeholder: "Tất cả loại xe", options: vehicleTypes }]} />} actions={addButton("#/admin/parkingFeeOfCustomer/form")} />;
+
+  return (
+    <AdminTablePage
+      title="Quản lý phí đăng ký"
+      breadcrumbs={[{ label: "Bảng giá", href: "/admin/parkingFeeOfCustomer" }, { label: "Phí đăng ký" }]}
+      tableTitle="Bảng quản lý phí đăng ký"
+      columns={columns}
+      rows={customerParkingFees}
+      filters={<FilterControls selects={[{ name: "vehicleTypeId", placeholder: "Tất cả loại xe", options: vehicleTypes }]} />}
+      actions={addButton("/admin/parkingFeeOfCustomer/form")}
+    />
+  );
 }
