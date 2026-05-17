@@ -67,8 +67,8 @@ public class CardTypeUseCaseImpl implements CardTypePortIn {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CardType> getCardTypes() {
-        return cardTypePort.findAll();
+    public List<CardType> getCardTypes(Boolean isActive) {
+        return cardTypePort.findAll(isActive);
     }
 
     @Override

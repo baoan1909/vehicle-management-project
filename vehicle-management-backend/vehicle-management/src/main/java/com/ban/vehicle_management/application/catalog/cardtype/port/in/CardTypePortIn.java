@@ -12,7 +12,7 @@ public interface CardTypePortIn {
 
     CardType getCardTypeById(UUID cardTypeId);
 
-    List<CardType> getCardTypes();
+    List<CardType> getCardTypes(Boolean isActive);
 
     void deleteCardType(UUID cardTypeId);
 }

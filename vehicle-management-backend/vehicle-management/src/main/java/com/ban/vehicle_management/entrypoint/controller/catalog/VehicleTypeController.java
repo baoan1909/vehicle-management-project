@@ -24,20 +24,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/catalog/vehicle-types")
 public class VehicleTypeController {
 
-    private final VehicleTypePortIn vehicleTypeUseCase;
+    private final VehicleTypePortIn vehicleTypePortIn;
     private final VehicleTypeApiMapper vehicleTypeApiMapper;
 
     public VehicleTypeController(
-            VehicleTypePortIn vehicleTypeUseCase,
+            VehicleTypePortIn vehicleTypePortIn,
             VehicleTypeApiMapper vehicleTypeApiMapper
     ) {
-        this.vehicleTypeUseCase = vehicleTypeUseCase;
+        this.vehicleTypePortIn = vehicleTypePortIn;
         this.vehicleTypeApiMapper = vehicleTypeApiMapper;
     }
 
     @PostMapping
     public ResponseEntity<ApiResponse<VehicleTypeAdminResponse>> createVehicleType(@RequestBody CreateVehicleTypeRequest request) {
-        VehicleType createdVehicleType = vehicleTypeUseCase.createVehicleType(vehicleTypeApiMapper.toDomain(request));
+        VehicleType createdVehicleType = vehicleTypePortIn.createVehicleType(vehicleTypeApiMapper.toDomain(request));
         VehicleTypeAdminResponse response = vehicleTypeApiMapper.toAdminResponse(createdVehicleType);
 
         return ResponseEntity.ok(ApiResponse.ok("Vehicle type created successfully", response));
@@ -45,7 +45,7 @@ public class VehicleTypeController {
 
     @GetMapping("/{vehicleTypeId}")
     public ResponseEntity<ApiResponse<VehicleTypeAdminResponse>> getVehicleTypeById(@PathVariable UUID vehicleTypeId) {
-        VehicleType vehicleType = vehicleTypeUseCase.getVehicleTypeById(vehicleTypeId);
+        VehicleType vehicleType = vehicleTypePortIn.getVehicleTypeById(vehicleTypeId);
         VehicleTypeAdminResponse response = vehicleTypeApiMapper.toAdminResponse(vehicleType);
         return ResponseEntity.ok(ApiResponse.ok("Fetched vehicle type successfully", response));
     }
@@ -54,7 +54,7 @@ public class VehicleTypeController {
     public ResponseEntity<ApiResponse<List<VehicleTypeAdminResponse>>> getVehicleTypes(
             @RequestParam(required = false) Boolean isActive
     ) {
-        List<VehicleType> vehicleTypes = vehicleTypeUseCase.getVehicleTypes(isActive);
+        List<VehicleType> vehicleTypes = vehicleTypePortIn.getVehicleTypes(isActive);
         List<VehicleTypeAdminResponse> response = vehicleTypeApiMapper.toAdminResponses(vehicleTypes);
         return ResponseEntity.ok(ApiResponse.ok("Fetched vehicle types successfully", response));
     }
@@ -64,7 +64,7 @@ public class VehicleTypeController {
             @PathVariable UUID vehicleTypeId,
             @RequestBody UpdateVehicleTypeRequest request
     ) {
-        VehicleType updatedVehicleType = vehicleTypeUseCase.updateVehicleType(
+        VehicleType updatedVehicleType = vehicleTypePortIn.updateVehicleType(
                 vehicleTypeId,
                 vehicleTypeApiMapper.toDomain(request)
         );
@@ -74,7 +74,7 @@ public class VehicleTypeController {
 
     @DeleteMapping("/{vehicleTypeId}")
     public ResponseEntity<ApiResponse<Void>> deleteVehicleType(@PathVariable UUID vehicleTypeId) {
-        vehicleTypeUseCase.deleteVehicleType(vehicleTypeId);
+        vehicleTypePortIn.deleteVehicleType(vehicleTypeId);
         return ResponseEntity.ok(ApiResponse.ok("Vehicle type deactivated successfully"));
     }
 }

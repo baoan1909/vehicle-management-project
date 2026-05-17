@@ -1,0 +1,102 @@
+package com.ban.vehicle_management.application.people.userprofile.usecase;
+
+import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfilePortIn;
+import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
+import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.NotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class UserProfileUseCaseImpl implements UserProfilePortIn {
+
+    private final UserProfilePortOut userProfilePort;
+    private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
+
+    public UserProfileUseCaseImpl(UserProfilePortOut userProfilePort) {
+        this.userProfilePort = userProfilePort;
+    }
+
+    @Override
+    @Transactional
+    public UserProfile createUserProfile(UserProfile userProfile) {
+        userProfilePolicy.initialize(userProfile);
+        validateUniqueFields(userProfile);
+
+        userProfile.setUserProfileId(UUID.randomUUID());
+        return userProfilePort.save(userProfile);
+    }
+
+    @Override
+    @Transactional
+    public UserProfile updateUserProfile(UUID userProfileId, UserProfile userProfile) {
+        UserProfile existingUserProfile = getUserProfileById(userProfileId);
+
+        existingUserProfile.setFullName(userProfile.getFullName());
+        existingUserProfile.setDateOfBirth(userProfile.getDateOfBirth());
+        existingUserProfile.setGender(userProfile.getGender());
+        existingUserProfile.setPhoneNumber(userProfile.getPhoneNumber());
+        existingUserProfile.setAddress(userProfile.getAddress());
+        existingUserProfile.setIdentifyCard(userProfile.getIdentifyCard());
+        existingUserProfile.setAvatarUrl(userProfile.getAvatarUrl());
+        if (userProfile.getStatus() != null) {
+            existingUserProfile.setStatus(userProfile.getStatus());
+        }
+
+        userProfilePolicy.validateState(existingUserProfile);
+        validateUniqueFields(existingUserProfile, userProfileId);
+
+        return userProfilePort.save(existingUserProfile);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserProfile getUserProfileById(UUID userProfileId) {
+        return userProfilePort.findById(userProfileId)
+                .orElseThrow(() -> new NotFoundException("User profile not found"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserProfile> getUserProfiles(UserProfileStatus status, String keyword) {
+        return userProfilePort.findAll(status, keyword);
+    }
+
+    @Override
+    @Transactional
+    public void deleteUserProfile(UUID userProfileId) {
+        UserProfile existingUserProfile = getUserProfileById(userProfileId);
+        if (existingUserProfile.getStatus() == UserProfileStatus.INACTIVE) {
+            return;
+        }
+
+        userProfilePolicy.inactivate(existingUserProfile);
+        userProfilePort.save(existingUserProfile);
+    }
+
+    private void validateUniqueFields(UserProfile userProfile) {
+        if (userProfile.getPhoneNumber() != null && userProfilePort.existsByPhoneNumber(userProfile.getPhoneNumber())) {
+            throw new BadRequestException("User profile phone number already exists");
+        }
+        if (userProfile.getIdentifyCard() != null && userProfilePort.existsByIdentifyCard(userProfile.getIdentifyCard())) {
+            throw new BadRequestException("User profile identify card already exists");
+        }
+    }
+
+    private void validateUniqueFields(UserProfile userProfile, UUID userProfileId) {
+        if (userProfile.getPhoneNumber() != null
+                && userProfilePort.existsByPhoneNumberAndUserProfileIdNot(userProfile.getPhoneNumber(), userProfileId)) {
+            throw new BadRequestException("User profile phone number already exists");
+        }
+        if (userProfile.getIdentifyCard() != null
+                && userProfilePort.existsByIdentifyCardAndUserProfileIdNot(userProfile.getIdentifyCard(), userProfileId)) {
+            throw new BadRequestException("User profile identify card already exists");
+        }
+    }
+}

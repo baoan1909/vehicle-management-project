@@ -93,12 +93,12 @@ class CardTypeUseCaseImplTest {
 
     @Test
     void shouldReturnOrderedCardTypes() {
-        when(cardTypePort.findAll()).thenReturn(List.of(new CardType(), new CardType()));
+        when(cardTypePort.findAll(Boolean.TRUE)).thenReturn(List.of(new CardType(), new CardType()));
 
-        List<CardType> cardTypes = cardTypeUseCase.getCardTypes();
+        List<CardType> cardTypes = cardTypeUseCase.getCardTypes(Boolean.TRUE);
 
         assertEquals(2, cardTypes.size());
-        verify(cardTypePort).findAll();
+        verify(cardTypePort).findAll(Boolean.TRUE);
     }
 
     @Test
