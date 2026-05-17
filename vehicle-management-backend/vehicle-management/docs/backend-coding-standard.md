@@ -82,7 +82,7 @@ Preferred package structure:
 - `infrastructure.persistence.database.specification.<schema>`
 - `infrastructure.persistence.adapter.<schema>`
 - `infrastructure.security`
-- `infrastructure.mapper.<schema>.<feature>`
+- `infrastructure.mapper.<schema>`
 
 Examples for this project:
 
@@ -159,7 +159,7 @@ Do not use vague names such as `XxxDto` when the actual intent is already known.
 
 Preferred:
 
-- `XxxUseCase` + `XxxUseCaseImpl`
+- `XxxPortIn` + `XxxUseCaseImpl`
 
 If separating reads and writes:
 
@@ -168,10 +168,10 @@ If separating reads and writes:
 
 Examples:
 
-- `CreateAccountUseCase`
-- `CheckInVehicleUseCase`
-- `CloseShiftUseCase`
-- `SubscriptionQueryUseCase`
+- `CreateAccountPortIn`
+- `CheckInVehiclePortIn`
+- `CloseShiftPortIn`
+- `SubscriptionQueryPortIn`
 
 Always define interface first, then implementation.
 
@@ -212,7 +212,7 @@ Create separate mappers when useful:
 Place them by responsibility:
 
 - API/request-response mappers under `application.<schema>.<feature>.mapper`
-- persistence mappers under `infrastructure.mapper.<schema>.<feature>`
+- persistence mappers under `infrastructure.mapper.<schema>`
 
 Use:
 

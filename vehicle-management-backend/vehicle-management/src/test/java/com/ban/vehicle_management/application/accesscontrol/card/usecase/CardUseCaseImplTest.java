@@ -9,9 +9,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPort;
-import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePort;
-import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePort;
+import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
+import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
+import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
@@ -31,13 +31,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CardUseCaseImplTest {
 
     @Mock
-    private CardPort cardPort;
+    private CardPortOut cardPort;
 
     @Mock
-    private CardTypePort cardTypePort;
+    private CardTypePortOut cardTypePort;
 
     @Mock
-    private VehicleTypePort vehicleTypePort;
+    private VehicleTypePortOut vehicleTypePort;
 
     @InjectMocks
     private CardUseCaseImpl cardUseCase;

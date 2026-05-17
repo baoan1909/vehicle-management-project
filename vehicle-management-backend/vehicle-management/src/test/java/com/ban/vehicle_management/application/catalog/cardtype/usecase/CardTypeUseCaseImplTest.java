@@ -8,7 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePort;
+import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -25,7 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CardTypeUseCaseImplTest {
 
     @Mock
-    private CardTypePort cardTypePort;
+    private CardTypePortOut cardTypePort;
 
     @InjectMocks
     private CardTypeUseCaseImpl cardTypeUseCase;

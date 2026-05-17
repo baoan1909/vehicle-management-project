@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.accesscontrol;
 
-import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPort;
+import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
-import com.ban.vehicle_management.infrastructure.mapper.accesscontrol.card.CardPersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.accesscontrol.CardPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.CardEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.LostCardReportRepository;
@@ -19,7 +19,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CardPersistenceAdapter implements CardPort {
+public class CardPersistenceAdapter implements CardPortOut {
 
     private final CardRepository cardRepository;
     private final SubscriptionRepository subscriptionRepository;
@@ -100,3 +100,4 @@ public class CardPersistenceAdapter implements CardPort {
                 );
     }
 }
+

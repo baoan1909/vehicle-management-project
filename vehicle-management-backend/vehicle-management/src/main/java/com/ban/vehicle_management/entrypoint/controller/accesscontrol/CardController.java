@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.entrypoint.controller.accesscontrol;
 
 import com.ban.vehicle_management.application.accesscontrol.card.mapper.CardApiMapper;
-import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardUseCase;
-import com.ban.vehicle_management.application.accesscontrol.card.port.in.ChangeCardStatusUseCase;
+import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardPortIn;
+import com.ban.vehicle_management.application.accesscontrol.card.port.in.ChangeCardStatusPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.ChangeCardStatusRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.CreateCardRequest;
@@ -28,13 +28,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/access-control/cards")
 public class CardController {
 
-    private final CardUseCase cardUseCase;
-    private final ChangeCardStatusUseCase changeCardStatusUseCase;
+    private final CardPortIn cardUseCase;
+    private final ChangeCardStatusPortIn changeCardStatusUseCase;
     private final CardApiMapper cardApiMapper;
 
     public CardController(
-            CardUseCase cardUseCase,
-            ChangeCardStatusUseCase changeCardStatusUseCase,
+            CardPortIn cardUseCase,
+            ChangeCardStatusPortIn changeCardStatusUseCase,
             CardApiMapper cardApiMapper
     ) {
         this.cardUseCase = cardUseCase;

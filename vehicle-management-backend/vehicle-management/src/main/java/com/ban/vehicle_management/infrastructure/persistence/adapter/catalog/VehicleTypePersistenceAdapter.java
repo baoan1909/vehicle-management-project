@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.catalog;
 
-import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePort;
+import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
-import com.ban.vehicle_management.infrastructure.mapper.catalog.vehicletype.VehicleTypePersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.catalog.VehicleTypePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
 import java.util.List;
@@ -11,7 +11,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
-public class VehicleTypePersistenceAdapter implements VehicleTypePort {
+public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
 
     private final VehicleTypeRepository vehicleTypeRepository;
     private final VehicleTypePersistenceMapper vehicleTypePersistenceMapper;
@@ -58,5 +58,6 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePort {
         return vehicleTypeRepository.existsByCodeAndVehicleTypeIdNot(code, vehicleTypeId);
     }
 }
+
 
 

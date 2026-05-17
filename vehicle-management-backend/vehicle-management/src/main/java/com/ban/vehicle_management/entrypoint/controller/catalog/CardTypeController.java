@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.entrypoint.controller.catalog;
 
 import com.ban.vehicle_management.application.catalog.cardtype.mapper.CardTypeApiMapper;
-import com.ban.vehicle_management.application.catalog.cardtype.port.in.CardTypeUseCase;
+import com.ban.vehicle_management.application.catalog.cardtype.port.in.CardTypePortIn;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.entrypoint.dto.catalog.cardtype.request.CreateCardTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.cardtype.request.UpdateCardTypeRequest;
@@ -23,10 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/catalog/card-types")
 public class CardTypeController {
 
-    private final CardTypeUseCase cardTypeUseCase;
+    private final CardTypePortIn cardTypeUseCase;
     private final CardTypeApiMapper cardTypeApiMapper;
 
-    public CardTypeController(CardTypeUseCase cardTypeUseCase, CardTypeApiMapper cardTypeApiMapper) {
+    public CardTypeController(CardTypePortIn cardTypeUseCase, CardTypeApiMapper cardTypeApiMapper) {
         this.cardTypeUseCase = cardTypeUseCase;
         this.cardTypeApiMapper = cardTypeApiMapper;
     }

@@ -20,7 +20,7 @@ src/main/java/com/ban/vehicle_management
 +-- domain
 |   `-- <schema>/<feature>/{model,policy,service}
 +-- infrastructure
-|   +-- mapper/<schema>/<feature>
+|   +-- mapper/<schema>
 |   +-- persistence/database/entity/<schema>
 |   +-- persistence/database/repository/<schema>
 |   +-- persistence/database/specification/<schema>

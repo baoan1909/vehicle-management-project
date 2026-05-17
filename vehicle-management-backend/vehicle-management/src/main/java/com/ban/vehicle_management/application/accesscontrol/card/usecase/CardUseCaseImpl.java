@@ -1,10 +1,10 @@
 package com.ban.vehicle_management.application.accesscontrol.card.usecase;
 
-import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardUseCase;
-import com.ban.vehicle_management.application.accesscontrol.card.port.in.ChangeCardStatusUseCase;
-import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPort;
-import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePort;
-import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePort;
+import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardPortIn;
+import com.ban.vehicle_management.application.accesscontrol.card.port.in.ChangeCardStatusPortIn;
+import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
+import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
+import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.shared.enumeration.CardStatus;
@@ -18,17 +18,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class CardUseCaseImpl implements CardUseCase, ChangeCardStatusUseCase {
+public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
 
-    private final CardPort cardPort;
-    private final CardTypePort cardTypePort;
-    private final VehicleTypePort vehicleTypePort;
+    private final CardPortOut cardPort;
+    private final CardTypePortOut cardTypePort;
+    private final VehicleTypePortOut vehicleTypePort;
     private final CardPolicy cardPolicy = new CardPolicy();
 
     public CardUseCaseImpl(
-            CardPort cardPort,
-            CardTypePort cardTypePort,
-            VehicleTypePort vehicleTypePort
+            CardPortOut cardPort,
+            CardTypePortOut cardTypePort,
+            VehicleTypePortOut vehicleTypePort
     ) {
         this.cardPort = cardPort;
         this.cardTypePort = cardTypePort;

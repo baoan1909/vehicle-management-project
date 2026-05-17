@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.entrypoint.controller.catalog;
 
 import com.ban.vehicle_management.application.catalog.vehicletype.mapper.VehicleTypeApiMapper;
-import com.ban.vehicle_management.application.catalog.vehicletype.port.in.VehicleTypeUseCase;
+import com.ban.vehicle_management.application.catalog.vehicletype.port.in.VehicleTypePortIn;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.CreateVehicleTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.UpdateVehicleTypeRequest;
@@ -24,11 +24,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/catalog/vehicle-types")
 public class VehicleTypeController {
 
-    private final VehicleTypeUseCase vehicleTypeUseCase;
+    private final VehicleTypePortIn vehicleTypeUseCase;
     private final VehicleTypeApiMapper vehicleTypeApiMapper;
 
     public VehicleTypeController(
-            VehicleTypeUseCase vehicleTypeUseCase,
+            VehicleTypePortIn vehicleTypeUseCase,
             VehicleTypeApiMapper vehicleTypeApiMapper
     ) {
         this.vehicleTypeUseCase = vehicleTypeUseCase;

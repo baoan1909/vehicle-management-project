@@ -88,7 +88,8 @@ Do not invent new core modules or persistence concepts when the current schema a
 - `XxxAdminResponse` for admin-facing output
 - `XxxUserResponse` for user-facing output
 - `XxxController` for REST controllers
-- `XxxUseCase` for interfaces
+- `XxxPortIn` for interfaces under `port/in`
+- `XxxPortOut` for interfaces under `port/out`
 - `XxxUseCaseImpl` for implementations
 - `XxxMapper` for MapStruct mappers
 - `XxxPersistenceAdapter` for persistence adapters

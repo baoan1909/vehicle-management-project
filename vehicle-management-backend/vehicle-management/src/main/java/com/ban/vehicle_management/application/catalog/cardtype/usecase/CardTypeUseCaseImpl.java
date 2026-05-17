@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.application.catalog.cardtype.usecase;
 
-import com.ban.vehicle_management.application.catalog.cardtype.port.in.CardTypeUseCase;
-import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePort;
+import com.ban.vehicle_management.application.catalog.cardtype.port.in.CardTypePortIn;
+import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.domain.catalog.cardtype.policy.CardTypePolicy;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -12,12 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class CardTypeUseCaseImpl implements CardTypeUseCase {
+public class CardTypeUseCaseImpl implements CardTypePortIn {
 
-    private final CardTypePort cardTypePort;
+    private final CardTypePortOut cardTypePort;
     private final CardTypePolicy cardTypePolicy = new CardTypePolicy();
 
-    public CardTypeUseCaseImpl(CardTypePort cardTypePort) {
+    public CardTypeUseCaseImpl(CardTypePortOut cardTypePort) {
         this.cardTypePort = cardTypePort;
     }
 

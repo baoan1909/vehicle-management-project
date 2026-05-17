@@ -9,7 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePort;
+import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -27,7 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class VehicleTypeUseCaseImplTest {
 
     @Mock
-    private VehicleTypePort vehicleTypePort;
+    private VehicleTypePortOut vehicleTypePort;
 
     @InjectMocks
     private VehicleTypeUseCaseImpl vehicleTypeUseCase;

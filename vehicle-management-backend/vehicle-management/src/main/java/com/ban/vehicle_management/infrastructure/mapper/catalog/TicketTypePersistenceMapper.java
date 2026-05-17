@@ -1,0 +1,15 @@
+package com.ban.vehicle_management.infrastructure.mapper.catalog;
+
+import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.TicketTypeEntity;
+import org.mapstruct.Mapper;
+
+@Mapper(componentModel = "spring")
+public interface TicketTypePersistenceMapper {
+
+    TicketTypeEntity toEntity(TicketType domain);
+
+    TicketType toDomain(TicketTypeEntity entity);
+}
+
+

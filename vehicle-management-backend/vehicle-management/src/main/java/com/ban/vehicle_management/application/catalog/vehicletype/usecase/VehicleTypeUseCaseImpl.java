@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.application.catalog.vehicletype.usecase;
 
-import com.ban.vehicle_management.application.catalog.vehicletype.port.in.VehicleTypeUseCase;
-import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePort;
+import com.ban.vehicle_management.application.catalog.vehicletype.port.in.VehicleTypePortIn;
+import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.domain.catalog.vehicletype.policy.VehicleTypePolicy;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -12,12 +12,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class VehicleTypeUseCaseImpl implements VehicleTypeUseCase {
+public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
 
-    private final VehicleTypePort vehicleTypePort;
+    private final VehicleTypePortOut vehicleTypePort;
     private final VehicleTypePolicy vehicleTypePolicy = new VehicleTypePolicy();
 
-    public VehicleTypeUseCaseImpl(VehicleTypePort vehicleTypePort) {
+    public VehicleTypeUseCaseImpl(VehicleTypePortOut vehicleTypePort) {
         this.vehicleTypePort = vehicleTypePort;
     }
 

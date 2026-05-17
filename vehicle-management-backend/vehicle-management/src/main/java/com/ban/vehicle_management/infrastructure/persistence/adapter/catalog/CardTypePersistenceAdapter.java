@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.catalog;
 
-import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePort;
+import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
-import com.ban.vehicle_management.infrastructure.mapper.catalog.cardtype.CardTypePersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.catalog.CardTypePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.CardTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.CardTypeRepository;
 import java.util.List;
@@ -11,7 +11,7 @@ import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
-public class CardTypePersistenceAdapter implements CardTypePort {
+public class CardTypePersistenceAdapter implements CardTypePortOut {
 
     private final CardTypeRepository cardTypeRepository;
     private final CardTypePersistenceMapper cardTypePersistenceMapper;
@@ -54,5 +54,6 @@ public class CardTypePersistenceAdapter implements CardTypePort {
         return cardTypeRepository.existsByCodeAndCardTypeIdNot(code, cardTypeId);
     }
 }
+
 
 
