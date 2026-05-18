@@ -43,7 +43,7 @@ public class CardPersistenceAdapter implements CardPortOut {
 
     @Override
     public Card save(Card card) {
-        CardEntity savedCardEntity = cardRepository.save(cardPersistenceMapper.toEntity(card));
+        CardEntity savedCardEntity = cardRepository.saveAndFlush(cardPersistenceMapper.toEntity(card));
         return cardPersistenceMapper.toDomain(savedCardEntity);
     }
 

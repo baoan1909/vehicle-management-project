@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
-import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.Optional;
@@ -59,7 +59,7 @@ class VehicleTypeUseCaseImplTest {
 
         when(vehicleTypePort.existsByCode("CAR")).thenReturn(true);
 
-        assertThrows(BadRequestException.class, () -> vehicleTypeUseCase.createVehicleType(requestVehicleType));
+        assertThrows(ConflictException.class, () -> vehicleTypeUseCase.createVehicleType(requestVehicleType));
         verify(vehicleTypePort, never()).save(any(VehicleType.class));
     }
 

@@ -38,9 +38,15 @@ Do not invent new core modules or persistence concepts when the current schema a
 - Always prefer clean, maintainable, production-ready code.
 - Avoid duplicate code. Reuse existing abstractions before creating new classes.
 - Always check whether an existing mapper, adapter, validator, helper, policy, persistence specification, or shared component already exists.
+- Prefer `shared.utils.TextValidationUtils` for shared string normalization, length validation, and character-format validation instead of duplicating trim/regex logic in each module.
 - Keep controllers thin.
 - Put business logic in application and domain layers, not controllers.
 - Prefer cohesive use cases over giant application classes.
+- Enforce request/domain text validation before persistence. Prefer schema-aligned maximum lengths for `VARCHAR(n)` fields and explicit feature rules for text format.
+- Reuse `TextValidationUtils` whenever a field needs common text validation such as required text, code format, phone format, identifier format, max length, or forbidden-character checks.
+- Reject unsupported text input such as ISO control characters and raw angle brackets unless a feature explicitly allows them.
+- For code-like fields, prefer uppercase letters, digits, underscore, and hyphen only unless the schema defines a different format.
+- For phone-like and identifier-like fields, validate format explicitly instead of accepting arbitrary text.
 - Always use `Instant` for timestamp fields in backend code unless a very specific reason is documented.
 - Keep internal timestamp data as `Instant`.
 - Reuse `shared.utils.DateTimeUtils` for shared date/time parsing, formatting, and day-range calculations.
@@ -139,6 +145,16 @@ Do not invent new core modules or persistence concepts when the current schema a
 ## Response design rule
 
 - Every API must return proper Response DTOs.
+- Use HTTP status codes that match the operation result instead of returning `200` for every case.
+- `POST` successful create should normally return `201 Created` when a new resource is created.
+- `GET`, `PUT`, `PATCH`, and successful soft-delete actions that still return a response body should normally return `200 OK`.
+- Use `204 No Content` only when the operation succeeds and the API intentionally returns no response body.
+- Use `400 Bad Request` for malformed input, invalid format, or invalid business input that is not a resource conflict.
+- Use `401 Unauthorized` when authentication is missing or invalid.
+- Use `403 Forbidden` when the caller is authenticated but does not have permission.
+- Use `404 Not Found` when the requested resource does not exist.
+- Use `409 Conflict` for duplicate unique values or business-state conflicts caused by an existing resource.
+- Use `500 Internal Server Error` for unexpected server-side failures.
 - Always design separate response models for:
   - Admin: full data, includes audit fields if needed
   - User: only necessary fields, hide internal or audit data

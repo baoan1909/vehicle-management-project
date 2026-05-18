@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -12,7 +13,7 @@ public class CustomerPolicy {
     public void initialize(Customer customer) {
         requireCustomer(customer);
         requireField(customer.getUserProfileId(), "userProfileId");
-        customer.setCustomerCode(normalizeRequired(customer.getCustomerCode(), "customerCode"));
+        customer.setCustomerCode(TextValidationUtils.normalizeCode(customer.getCustomerCode(), "customerCode", 50));
         if (customer.getCustomerType() == null) {
             customer.setCustomerType(CustomerType.REGISTERED);
         }
@@ -62,7 +63,7 @@ public class CustomerPolicy {
     public void validateState(Customer customer) {
         requireCustomer(customer);
         requireField(customer.getUserProfileId(), "userProfileId");
-        customer.setCustomerCode(normalizeRequired(customer.getCustomerCode(), "customerCode"));
+        customer.setCustomerCode(TextValidationUtils.normalizeCode(customer.getCustomerCode(), "customerCode", 50));
         requireField(customer.getCustomerType(), "customerType");
         requireField(customer.getApprovalStatus(), "approvalStatus");
 
@@ -105,21 +106,5 @@ public class CustomerPolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        String normalizedValue = normalizeNullable(value);
-        if (normalizedValue == null) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return normalizedValue;
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalizedValue = value.trim();
-        return normalizedValue.isEmpty() ? null : normalizedValue;
-    }
 }
 
