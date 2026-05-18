@@ -9,6 +9,7 @@ import com.ban.vehicle_management.entrypoint.dto.catalog.cardtype.response.CardT
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -36,7 +37,7 @@ public class CardTypeController {
     public ResponseEntity<ApiResponse<CardTypeAdminResponse>> createCardType(@RequestBody CreateCardTypeRequest request) {
         CardType createdCardType = cardTypePortIn.createCardType(cardTypeApiMapper.toDomain(request));
         CardTypeAdminResponse response = cardTypeApiMapper.toAdminResponse(createdCardType);
-        return ResponseEntity.ok(ApiResponse.ok("Card type created successfully", response));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Card type created successfully", response));
     }
 
     @GetMapping("/{cardTypeId}")

@@ -30,6 +30,22 @@ Priorities:
 4. Clear boundaries
 5. Performance-aware design
 
+## 2.1. Text validation rule
+
+Validate request/domain text before persistence, not only at the database boundary.
+
+Rules:
+
+- for columns backed by `VARCHAR(n)`, enforce the same maximum length in domain or application validation
+- reject ISO control characters in normal business text unless the feature explicitly needs them
+- reject raw `<` and `>` in ordinary text fields unless the feature explicitly allows rich content
+- code-like fields should prefer uppercase letters, digits, underscore, and hyphen only
+- phone-like fields should accept only digits with an optional leading `+`
+- identifier-like fields such as citizen/identity card numbers should accept only letters and digits unless the schema defines a different format
+
+Prefer shared reusable validation utilities instead of duplicating regex and length checks across policies.
+When a validation rule matches the shared utility behavior, use `shared.utils.TextValidationUtils` instead of handwritten trim, regex, and max-length code in feature policies.
+
 ## 3. Module vocabulary must follow the schema
 
 The codebase should use the same business language as `vehicle_management.sql`.
@@ -333,10 +349,23 @@ Rules:
 - persistence adapters stay under `infrastructure.persistence.adapter.<schema>`
 - application layer depends on repository ports, not repository implementations
 - domain layer must not know JPA repository details
+- when API responses depend on freshly generated audit values such as `updatedAt` or `updatedBy`, flush persistence changes before mapping the saved entity back to domain/response
 
 ## 16. Response rule
 
 Every API must return proper response DTOs.
+
+Use HTTP status codes intentionally:
+
+- `201 Created` for successful `POST` create operations
+- `200 OK` for successful `GET`, `PUT`, `PATCH`, and body-returning soft delete operations
+- `204 No Content` only when the API intentionally returns no response body
+- `400 Bad Request` for malformed requests and invalid business input that is not a uniqueness/resource conflict
+- `401 Unauthorized` for missing or invalid authentication
+- `403 Forbidden` for denied permissions
+- `404 Not Found` for missing resources
+- `409 Conflict` for duplicate unique data or state conflicts with existing resources
+- `500 Internal Server Error` for unexpected failures
 
 When needed, define separate response models for:
 

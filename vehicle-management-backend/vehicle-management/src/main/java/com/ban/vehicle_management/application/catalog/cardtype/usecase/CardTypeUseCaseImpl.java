@@ -4,7 +4,7 @@ import com.ban.vehicle_management.application.catalog.cardtype.port.in.CardTypeP
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.domain.catalog.cardtype.policy.CardTypePolicy;
-import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.UUID;
@@ -27,7 +27,7 @@ public class CardTypeUseCaseImpl implements CardTypePortIn {
         cardTypePolicy.initialize(cardType);
 
         if (cardTypePort.existsByCode(cardType.getCode())) {
-            throw new BadRequestException("Card type code already exists");
+            throw new ConflictException("Card type code already exists");
         }
 
         cardType.setCardTypeId(UUID.randomUUID());
@@ -52,7 +52,7 @@ public class CardTypeUseCaseImpl implements CardTypePortIn {
         cardTypePolicy.initialize(existingCardType);
 
         if (cardTypePort.existsByCodeAndCardTypeIdNot(existingCardType.getCode(), cardTypeId)) {
-            throw new BadRequestException("Card type code already exists");
+            throw new ConflictException("Card type code already exists");
         }
 
         return cardTypePort.save(existingCardType);

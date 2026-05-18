@@ -10,7 +10,7 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
-import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.Optional;
@@ -57,7 +57,7 @@ class CardTypeUseCaseImplTest {
 
         when(cardTypePort.existsByCode("RFID")).thenReturn(true);
 
-        assertThrows(BadRequestException.class, () -> cardTypeUseCase.createCardType(requestCardType));
+        assertThrows(ConflictException.class, () -> cardTypeUseCase.createCardType(requestCardType));
         verify(cardTypePort, never()).save(any(CardType.class));
     }
 

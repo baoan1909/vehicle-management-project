@@ -4,7 +4,7 @@ import com.ban.vehicle_management.application.catalog.vehicletype.port.in.Vehicl
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.domain.catalog.vehicletype.policy.VehicleTypePolicy;
-import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.UUID;
@@ -27,7 +27,7 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
         vehicleTypePolicy.initialize(vehicleType);
 
         if (vehicleTypePort.existsByCode(vehicleType.getCode())) {
-            throw new BadRequestException("Vehicle type code already exists");
+            throw new ConflictException("Vehicle type code already exists");
         }
 
         vehicleType.setVehicleTypeId(UUID.randomUUID());
@@ -49,7 +49,7 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
         vehicleTypePolicy.initialize(existingVehicleType);
 
         if (vehicleTypePort.existsByCodeAndVehicleTypeIdNot(existingVehicleType.getCode(), vehicleTypeId)) {
-            throw new BadRequestException("Vehicle type code already exists");
+            throw new ConflictException("Vehicle type code already exists");
         }
 
         return vehicleTypePort.save(existingVehicleType);

@@ -31,7 +31,7 @@ public class UserProfilePersistenceAdapter implements UserProfilePortOut {
     @Override
     public UserProfile save(UserProfile userProfile) {
         UserProfileEntity userProfileEntity = userProfilePersistenceMapper.toEntity(userProfile);
-        UserProfileEntity savedUserProfileEntity = userProfileRepository.save(userProfileEntity);
+        UserProfileEntity savedUserProfileEntity = userProfileRepository.saveAndFlush(userProfileEntity);
         return userProfilePersistenceMapper.toDomain(savedUserProfileEntity);
     }
 

@@ -2,14 +2,15 @@ package com.ban.vehicle_management.domain.catalog.vehicletype.policy;
 
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class VehicleTypePolicy {
 
     public void initialize(VehicleType vehicleType) {
         requireVehicleType(vehicleType);
-        vehicleType.setCode(normalizeRequired(vehicleType.getCode(), "code"));
-        vehicleType.setName(normalizeRequired(vehicleType.getName(), "name"));
-        vehicleType.setDescription(normalizeNullable(vehicleType.getDescription()));
+        vehicleType.setCode(TextValidationUtils.normalizeCode(vehicleType.getCode(), "code", 50));
+        vehicleType.setName(TextValidationUtils.normalizeRequiredText(vehicleType.getName(), "name", 100));
+        vehicleType.setDescription(TextValidationUtils.normalizeNullableText(vehicleType.getDescription(), "description", 0));
         if (vehicleType.getIsActive() == null) {
             vehicleType.setIsActive(Boolean.TRUE);
         }
@@ -24,23 +25,6 @@ public class VehicleTypePolicy {
         if (vehicleType == null) {
             throw new BadRequestException("vehicleType must not be null");
         }
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        String normalizedValue = normalizeNullable(value);
-        if (normalizedValue == null) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return normalizedValue;
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalizedValue = value.trim();
-        return normalizedValue.isEmpty() ? null : normalizedValue;
     }
 }
 

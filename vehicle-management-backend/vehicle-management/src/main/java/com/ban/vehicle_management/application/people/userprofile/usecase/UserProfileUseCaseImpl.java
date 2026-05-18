@@ -5,7 +5,7 @@ import com.ban.vehicle_management.application.people.userprofile.port.out.UserPr
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
 import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
-import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,21 +82,21 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
 
     private void validateUniqueFields(UserProfile userProfile) {
         if (userProfile.getPhoneNumber() != null && userProfilePort.existsByPhoneNumber(userProfile.getPhoneNumber())) {
-            throw new BadRequestException("User profile phone number already exists");
+            throw new ConflictException("User profile phone number already exists");
         }
         if (userProfile.getIdentifyCard() != null && userProfilePort.existsByIdentifyCard(userProfile.getIdentifyCard())) {
-            throw new BadRequestException("User profile identify card already exists");
+            throw new ConflictException("User profile identify card already exists");
         }
     }
 
     private void validateUniqueFields(UserProfile userProfile, UUID userProfileId) {
         if (userProfile.getPhoneNumber() != null
                 && userProfilePort.existsByPhoneNumberAndUserProfileIdNot(userProfile.getPhoneNumber(), userProfileId)) {
-            throw new BadRequestException("User profile phone number already exists");
+            throw new ConflictException("User profile phone number already exists");
         }
         if (userProfile.getIdentifyCard() != null
                 && userProfilePort.existsByIdentifyCardAndUserProfileIdNot(userProfile.getIdentifyCard(), userProfileId)) {
-            throw new BadRequestException("User profile identify card already exists");
+            throw new ConflictException("User profile identify card already exists");
         }
     }
 }

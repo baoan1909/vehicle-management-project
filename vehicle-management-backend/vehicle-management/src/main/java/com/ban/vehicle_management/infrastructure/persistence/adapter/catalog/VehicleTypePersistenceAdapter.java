@@ -29,7 +29,7 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
     @Override
     public VehicleType save(VehicleType vehicleType) {
         VehicleTypeEntity vehicleTypeEntity = vehicleTypePersistenceMapper.toEntity(vehicleType);
-        VehicleTypeEntity savedVehicleTypeEntity = vehicleTypeRepository.save(vehicleTypeEntity);
+        VehicleTypeEntity savedVehicleTypeEntity = vehicleTypeRepository.saveAndFlush(vehicleTypeEntity);
         return vehicleTypePersistenceMapper.toDomain(savedVehicleTypeEntity);
     }
 

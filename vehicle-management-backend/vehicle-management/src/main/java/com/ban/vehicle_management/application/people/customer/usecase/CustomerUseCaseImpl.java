@@ -1,0 +1,113 @@
+package com.ban.vehicle_management.application.people.customer.usecase;
+
+import com.ban.vehicle_management.application.people.customer.port.in.CustomerPortIn;
+import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
+import com.ban.vehicle_management.domain.people.customer.model.Customer;
+import com.ban.vehicle_management.domain.people.customer.policy.CustomerPolicy;
+import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerType;
+import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.NotFoundException;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class CustomerUseCaseImpl implements CustomerPortIn {
+
+    private final CustomerPortOut customerPortOut;
+    private final CustomerPolicy customerPolicy = new CustomerPolicy();
+
+    public CustomerUseCaseImpl(CustomerPortOut customerPortOut) {
+        this.customerPortOut = customerPortOut;
+    }
+
+    @Override
+    @Transactional
+    public Customer createCustomer(Customer customer) {
+        customerPolicy.initialize(customer);
+        validateUserProfileExists(customer.getUserProfileId());
+
+        if (customerPortOut.existsByCustomerCode(customer.getCustomerCode())) {
+            throw new ConflictException("Customer code already exists");
+        }
+        if (customerPortOut.existsByUserProfileId(customer.getUserProfileId())) {
+            throw new ConflictException("User profile is already linked to another customer");
+        }
+
+        customer.setCustomerId(UUID.randomUUID());
+        return customerPortOut.save(customer);
+    }
+
+    @Override
+    @Transactional
+    public Customer updateCustomer(UUID customerId, Customer customer) {
+        Customer existingCustomer = getCustomerById(customerId);
+
+        existingCustomer.setCustomerCode(customer.getCustomerCode());
+        if (customer.getCustomerType() != null) {
+            existingCustomer.setCustomerType(customer.getCustomerType());
+        }
+
+        customerPolicy.validateState(existingCustomer);
+
+        if (customerPortOut.existsByCustomerCodeAndCustomerIdNot(existingCustomer.getCustomerCode(), customerId)) {
+            throw new ConflictException("Customer code already exists");
+        }
+
+        return customerPortOut.save(existingCustomer);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Customer getCustomerById(UUID customerId) {
+        return customerPortOut.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("Customer not found"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Customer> getCustomers(CustomerApprovalStatus approvalStatus, CustomerType customerType, String keyword) {
+        return customerPortOut.findAll(approvalStatus, customerType, keyword);
+    }
+
+    @Override
+    @Transactional
+    public Customer approveCustomer(UUID customerId, UUID approvedBy, Instant approvedAt) {
+        Customer customer = getCustomerById(customerId);
+        customerPolicy.approve(customer, approvedBy, approvedAt == null ? Instant.now() : approvedAt);
+        return customerPortOut.save(customer);
+    }
+
+    @Override
+    @Transactional
+    public Customer rejectCustomer(UUID customerId) {
+        Customer customer = getCustomerById(customerId);
+        customerPolicy.reject(customer);
+        return customerPortOut.save(customer);
+    }
+
+    @Override
+    @Transactional
+    public Customer suspendCustomer(UUID customerId) {
+        Customer customer = getCustomerById(customerId);
+        customerPolicy.suspend(customer);
+        return customerPortOut.save(customer);
+    }
+
+    @Override
+    @Transactional
+    public Customer moveCustomerToPending(UUID customerId) {
+        Customer customer = getCustomerById(customerId);
+        customerPolicy.moveToPending(customer);
+        return customerPortOut.save(customer);
+    }
+
+    private void validateUserProfileExists(UUID userProfileId) {
+        if (!customerPortOut.existsUserProfileById(userProfileId)) {
+            throw new NotFoundException("User profile not found");
+        }
+    }
+}

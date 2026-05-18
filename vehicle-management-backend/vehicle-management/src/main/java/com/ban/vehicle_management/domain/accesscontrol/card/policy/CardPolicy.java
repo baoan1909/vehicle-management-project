@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.accesscontrol.card.policy;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.shared.enumeration.CardStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
 
 public class CardPolicy {
@@ -62,11 +63,11 @@ public class CardPolicy {
         }
 
         requireField(blockedAt, "blockedAt");
-        requireText(blockedReason, "blockedReason");
+        blockedReason = TextValidationUtils.normalizeRequiredText(blockedReason, "blockedReason", 0);
 
         card.setStatus(CardStatus.BLOCKED);
         card.setBlockedAt(blockedAt);
-        card.setBlockedReason(blockedReason.trim());
+        card.setBlockedReason(blockedReason);
     }
 
     public void unblock(Card card) {
@@ -138,15 +139,9 @@ public class CardPolicy {
     }
 
     private void normalizeCoreFields(Card card) {
-        if (card.getCardNumber() != null) {
-            card.setCardNumber(card.getCardNumber().trim());
-        }
-        if (card.getUid() != null) {
-            card.setUid(card.getUid().trim());
-        }
-        if (card.getBlockedReason() != null) {
-            card.setBlockedReason(card.getBlockedReason().trim());
-        }
+        card.setCardNumber(TextValidationUtils.normalizeNullableText(card.getCardNumber(), "cardNumber", 50));
+        card.setUid(TextValidationUtils.normalizeNullableText(card.getUid(), "uid", 100));
+        card.setBlockedReason(TextValidationUtils.normalizeNullableText(card.getBlockedReason(), "blockedReason", 0));
     }
 
     private void requireStatus(Card card, CardStatus expectedStatus) {

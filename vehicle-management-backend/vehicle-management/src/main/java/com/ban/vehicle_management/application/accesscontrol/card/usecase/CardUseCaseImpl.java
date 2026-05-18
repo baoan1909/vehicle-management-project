@@ -9,6 +9,7 @@ import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.shared.enumeration.CardStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
 import java.util.List;
@@ -43,10 +44,10 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
         validateVehicleTypeExists(card.getVehicleTypeId());
 
         if (cardPort.existsByCardNumber(card.getCardNumber())) {
-            throw new BadRequestException("Card number already exists");
+            throw new ConflictException("Card number already exists");
         }
         if (cardPort.existsByUid(card.getUid())) {
-            throw new BadRequestException("Card uid already exists");
+            throw new ConflictException("Card uid already exists");
         }
 
         card.setCardId(UUID.randomUUID());
@@ -91,10 +92,10 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
         validateVehicleTypeExists(existingCard.getVehicleTypeId());
 
         if (cardPort.existsByCardNumberAndCardIdNot(existingCard.getCardNumber(), cardId)) {
-            throw new BadRequestException("Card number already exists");
+            throw new ConflictException("Card number already exists");
         }
         if (cardPort.existsByUidAndCardIdNot(existingCard.getUid(), cardId)) {
-            throw new BadRequestException("Card uid already exists");
+            throw new ConflictException("Card uid already exists");
         }
 
         return cardPort.save(existingCard);

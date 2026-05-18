@@ -29,7 +29,7 @@ public class CardTypePersistenceAdapter implements CardTypePortOut {
     @Override
     public CardType save(CardType cardType) {
         CardTypeEntity cardTypeEntity = cardTypePersistenceMapper.toEntity(cardType);
-        CardTypeEntity savedCardTypeEntity = cardTypeRepository.save(cardTypeEntity);
+        CardTypeEntity savedCardTypeEntity = cardTypeRepository.saveAndFlush(cardTypeEntity);
         return cardTypePersistenceMapper.toDomain(savedCardTypeEntity);
     }
 

@@ -3,7 +3,7 @@ package com.ban.vehicle_management.application.people.userprofile.usecase;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
-import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,7 +65,7 @@ class UserProfileUseCaseImplTest {
 
         when(userProfilePort.existsByPhoneNumber("0901234567")).thenReturn(true);
 
-        assertThrows(BadRequestException.class, () -> userProfileUseCase.createUserProfile(requestUserProfile));
+        assertThrows(ConflictException.class, () -> userProfileUseCase.createUserProfile(requestUserProfile));
         verify(userProfilePort, never()).save(any(UserProfile.class));
     }
 
@@ -77,7 +77,7 @@ class UserProfileUseCaseImplTest {
 
         when(userProfilePort.existsByIdentifyCard("079123456789")).thenReturn(true);
 
-        assertThrows(BadRequestException.class, () -> userProfileUseCase.createUserProfile(requestUserProfile));
+        assertThrows(ConflictException.class, () -> userProfileUseCase.createUserProfile(requestUserProfile));
         verify(userProfilePort, never()).save(any(UserProfile.class));
     }
 

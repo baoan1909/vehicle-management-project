@@ -8,6 +8,7 @@ import com.ban.vehicle_management.entrypoint.dto.people.userprofile.request.Upda
 import com.ban.vehicle_management.entrypoint.dto.people.userprofile.response.UserProfileAdminResponse;
 import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,7 +32,7 @@ public class UserProfileController {
             @RequestBody CreateUserProfileRequest request
     ) {
         UserProfile createdUserProfile = userProfilePortIn.createUserProfile(userProfileApiMapper.toDomain(request));
-        return ResponseEntity.ok(ApiResponse.ok(
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "User profile created successfully",
                 userProfileApiMapper.toAdminResponse(createdUserProfile)
         ));

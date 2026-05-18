@@ -17,6 +17,7 @@ import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.shared.enumeration.CardStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.Optional;
@@ -218,7 +219,7 @@ class CardUseCaseImplTest {
         when(cardPort.existsByCardNumber("C001")).thenReturn(false);
         when(cardPort.existsByUid("UID-001")).thenReturn(true);
 
-        BadRequestException exception = assertThrows(BadRequestException.class, () -> cardUseCase.createCard(requestCard));
+        ConflictException exception = assertThrows(ConflictException.class, () -> cardUseCase.createCard(requestCard));
 
         assertTrue(exception.getMessage().contains("uid"));
         verify(cardPort, never()).save(any(Card.class));
