@@ -8,6 +8,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.people.CustomerSpecifications;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import java.util.List;
 import java.util.Optional;
@@ -46,8 +47,14 @@ public class CustomerPersistenceAdapter implements CustomerPortOut {
     }
 
     @Override
-    public List<Customer> findAll(CustomerApprovalStatus approvalStatus, CustomerType customerType, String keyword) {
-        Specification<CustomerEntity> specification = CustomerSpecifications.withFilters(approvalStatus, customerType, keyword);
+    public List<Customer> findAll(
+            CustomerStatus status,
+            CustomerApprovalStatus approvalStatus,
+            CustomerType customerType,
+            String keyword
+    ) {
+        Specification<CustomerEntity> specification =
+                CustomerSpecifications.withFilters(status, approvalStatus, customerType, keyword);
         return customerRepository.findAll(specification).stream()
                 .map(customerPersistenceMapper::toDomain)
                 .toList();

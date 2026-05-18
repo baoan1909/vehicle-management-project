@@ -199,6 +199,7 @@ CREATE TABLE people.customers (
     user_profile_id UUID NOT NULL UNIQUE,
     customer_code VARCHAR(50) NOT NULL UNIQUE,
     customer_type VARCHAR(20) NOT NULL DEFAULT 'REGISTERED',
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     approval_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     approved_by UUID,
     approved_at TIMESTAMPTZ,
@@ -209,6 +210,7 @@ CREATE TABLE people.customers (
     CONSTRAINT fk_customers_user_profile FOREIGN KEY (user_profile_id) REFERENCES people.user_profiles(user_profile_id) ON DELETE RESTRICT,
     CONSTRAINT fk_customers_approved_by FOREIGN KEY (approved_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT ck_customers_type CHECK (customer_type IN ('REGISTERED', 'VIP')),
+    CONSTRAINT ck_customers_status CHECK (status IN ('ACTIVE', 'INACTIVE')),
     CONSTRAINT ck_customers_approval_status CHECK (approval_status IN ('PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED'))
 );
 

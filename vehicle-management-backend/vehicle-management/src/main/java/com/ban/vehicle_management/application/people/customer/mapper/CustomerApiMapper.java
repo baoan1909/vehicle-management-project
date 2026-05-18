@@ -14,6 +14,7 @@ import org.mapstruct.Mapping;
 public interface CustomerApiMapper {
 
     @Mapping(target = "customerId", ignore = true)
+    @Mapping(target = "status", ignore = true)
     @Mapping(target = "approvalStatus", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
     @Mapping(target = "approvedAt", ignore = true)
@@ -25,6 +26,7 @@ public interface CustomerApiMapper {
 
     @Mapping(target = "customerId", ignore = true)
     @Mapping(target = "userProfileId", ignore = true)
+    @Mapping(target = "status", ignore = true)
     @Mapping(target = "approvalStatus", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
     @Mapping(target = "approvedAt", ignore = true)

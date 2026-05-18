@@ -79,6 +79,7 @@ Do not invent new core modules or persistence concepts when the current schema a
 - `iam.accounts` is the authentication account. Do not merge its responsibility with `people.user_profiles`.
 - `people.user_profiles` is the shared personal profile for admin, employee, and customer-related people data.
 - `people.customers` and `people.employees` are role-specific business records built on top of `people.user_profiles`.
+- `people.customers.approval_status` is approval workflow state, while `people.customers.status` is operational active or inactive state. Do not use `approvalStatus` as a soft-delete substitute.
 - Authorization is currently role-based through `iam.roles`, `iam.permissions`, and `iam.role_permissions`.
 - Do not introduce `account_permissions` or other new authorization tables unless the task explicitly requires a schema change.
 - `access_control.subscriptions` is the registered ticket and subscription table. Do not create a parallel monthly-ticket concept.

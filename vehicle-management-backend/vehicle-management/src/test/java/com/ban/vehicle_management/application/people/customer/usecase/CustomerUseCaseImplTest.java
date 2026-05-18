@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -47,6 +48,7 @@ class CustomerUseCaseImplTest {
 
         assertEquals("CUS-001", createdCustomer.getCustomerCode());
         assertEquals(CustomerType.REGISTERED, createdCustomer.getCustomerType());
+        assertEquals(CustomerStatus.ACTIVE, createdCustomer.getStatus());
         assertEquals(CustomerApprovalStatus.PENDING, createdCustomer.getApprovalStatus());
     }
 
@@ -95,6 +97,7 @@ class CustomerUseCaseImplTest {
         existingCustomer.setUserProfileId(UUID.randomUUID());
         existingCustomer.setCustomerCode("CUS-001");
         existingCustomer.setCustomerType(CustomerType.REGISTERED);
+        existingCustomer.setStatus(CustomerStatus.ACTIVE);
         existingCustomer.setApprovalStatus(CustomerApprovalStatus.PENDING);
 
         Customer requestCustomer = new Customer();
@@ -114,13 +117,18 @@ class CustomerUseCaseImplTest {
 
     @Test
     void shouldReturnFilteredCustomers() {
-        when(customerPortOut.findAll(CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus"))
+        when(customerPortOut.findAll(CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus"))
                 .thenReturn(List.of(new Customer(), new Customer()));
 
-        List<Customer> customers = customerUseCase.getCustomers(CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus");
+        List<Customer> customers = customerUseCase.getCustomers(
+                CustomerStatus.ACTIVE,
+                CustomerApprovalStatus.PENDING,
+                CustomerType.REGISTERED,
+                "cus"
+        );
 
         assertEquals(2, customers.size());
-        verify(customerPortOut).findAll(CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus");
+        verify(customerPortOut).findAll(CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus");
     }
 
     @Test
@@ -180,6 +188,33 @@ class CustomerUseCaseImplTest {
     }
 
     @Test
+    void shouldActivateCustomer() {
+        UUID customerId = UUID.randomUUID();
+        Customer customer = validPendingCustomer(customerId);
+        customer.setStatus(CustomerStatus.INACTIVE);
+
+        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
+        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Customer activatedCustomer = customerUseCase.activateCustomer(customerId);
+
+        assertEquals(CustomerStatus.ACTIVE, activatedCustomer.getStatus());
+    }
+
+    @Test
+    void shouldInactivateCustomer() {
+        UUID customerId = UUID.randomUUID();
+        Customer customer = validPendingCustomer(customerId);
+
+        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
+        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Customer inactivatedCustomer = customerUseCase.inactivateCustomer(customerId);
+
+        assertEquals(CustomerStatus.INACTIVE, inactivatedCustomer.getStatus());
+    }
+
+    @Test
     void shouldThrowWhenCustomerDoesNotExist() {
         UUID customerId = UUID.randomUUID();
         when(customerPortOut.findById(customerId)).thenReturn(Optional.empty());
@@ -193,6 +228,7 @@ class CustomerUseCaseImplTest {
         customer.setUserProfileId(UUID.randomUUID());
         customer.setCustomerCode("CUS-001");
         customer.setCustomerType(CustomerType.REGISTERED);
+        customer.setStatus(CustomerStatus.ACTIVE);
         customer.setApprovalStatus(CustomerApprovalStatus.PENDING);
         return customer;
     }

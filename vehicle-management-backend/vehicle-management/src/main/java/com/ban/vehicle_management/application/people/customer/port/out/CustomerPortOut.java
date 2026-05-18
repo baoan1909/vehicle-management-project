@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.people.customer.port.out;
 
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import java.util.List;
 import java.util.Optional;
@@ -13,7 +14,12 @@ public interface CustomerPortOut {
 
     Optional<Customer> findById(UUID customerId);
 
-    List<Customer> findAll(CustomerApprovalStatus approvalStatus, CustomerType customerType, String keyword);
+    List<Customer> findAll(
+            CustomerStatus status,
+            CustomerApprovalStatus approvalStatus,
+            CustomerType customerType,
+            String keyword
+    );
 
     boolean existsByCustomerCode(String customerCode);
 

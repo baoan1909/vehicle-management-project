@@ -10,6 +10,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.par
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerVehicleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -56,6 +57,10 @@ public class CustomerEntity extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "customer_type", nullable = false)
     private CustomerType customerType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private CustomerStatus status;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "approval_status", nullable = false)

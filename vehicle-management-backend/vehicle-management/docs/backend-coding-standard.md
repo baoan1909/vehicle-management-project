@@ -295,6 +295,7 @@ Important current status sets include:
 
 - `people.user_profiles.status`: `ACTIVE`, `INACTIVE`, `SUSPENDED`
 - `iam.accounts.status`: `ACTIVE`, `LOCKED`, `DISABLED`, `PENDING`
+- `people.customers.status`: `ACTIVE`, `INACTIVE`
 - `people.customers.approval_status`: `PENDING`, `APPROVED`, `REJECTED`, `SUSPENDED`
 - `people.employees.status`: `ACTIVE`, `INACTIVE`, `SUSPENDED`
 - `access_control.cards.status`: `AVAILABLE`, `ASSIGNED`, `IN_USE`, `LOST`, `BLOCKED`, `DAMAGED`, `RETIRED`
@@ -304,6 +305,8 @@ Important current status sets include:
 - `billing.payments.status`: `PENDING`, `SUCCESS`, `FAILED`, `REFUNDED`
 
 Do not invent new values in code unless the schema is being changed intentionally.
+
+When a module has both operational status and approval status, keep them semantically separate. For `people.customers`, use `status` for active or inactive lifecycle and `approval_status` only for approval workflow.
 
 For `access_control.cards.status`, keep the following transition intent consistent with domain policy:
 

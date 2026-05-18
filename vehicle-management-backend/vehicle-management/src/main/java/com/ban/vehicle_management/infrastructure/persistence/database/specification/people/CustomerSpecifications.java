@@ -3,6 +3,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.specifica
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -17,6 +18,7 @@ public final class CustomerSpecifications {
     }
 
     public static Specification<CustomerEntity> withFilters(
+            CustomerStatus status,
             CustomerApprovalStatus approvalStatus,
             CustomerType customerType,
             String keyword
@@ -24,6 +26,9 @@ public final class CustomerSpecifications {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            if (status != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), status));
+            }
             if (approvalStatus != null) {
                 predicates.add(criteriaBuilder.equal(root.get("approvalStatus"), approvalStatus));
             }
