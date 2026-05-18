@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.catalog.pricerule.policy;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.shared.enumeration.PriceRuleUnit;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;
 
 public class PriceRulePolicy {
@@ -11,7 +12,7 @@ public class PriceRulePolicy {
         requirePriceRule(priceRule);
         requireField(priceRule.getPricePlanId(), "pricePlanId");
         requireField(priceRule.getVehicleTypeId(), "vehicleTypeId");
-        priceRule.setRuleName(normalizeRequired(priceRule.getRuleName(), "ruleName"));
+        priceRule.setRuleName(TextValidationUtils.normalizeRequiredText(priceRule.getRuleName(), "ruleName", 150));
         requireField(priceRule.getBasePrice(), "basePrice");
 
         if (priceRule.getUnit() == null) {
@@ -54,23 +55,6 @@ public class PriceRulePolicy {
         if (value == null) {
             throw new BadRequestException(fieldName + " must not be null");
         }
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        String normalizedValue = normalizeNullable(value);
-        if (normalizedValue == null) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return normalizedValue;
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalizedValue = value.trim();
-        return normalizedValue.isEmpty() ? null : normalizedValue;
     }
 }
 

@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.catalog.holidaycalendar.policy;
 
 import com.ban.vehicle_management.domain.catalog.holidaycalendar.model.HolidayCalendar;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;
 
 public class HolidayCalendarPolicy {
@@ -9,7 +10,7 @@ public class HolidayCalendarPolicy {
     public void initialize(HolidayCalendar holidayCalendar) {
         requireHolidayCalendar(holidayCalendar);
         requireField(holidayCalendar.getHolidayDate(), "holidayDate");
-        holidayCalendar.setName(normalizeRequired(holidayCalendar.getName(), "name"));
+        holidayCalendar.setName(TextValidationUtils.normalizeRequiredText(holidayCalendar.getName(), "name", 150));
         requireField(holidayCalendar.getPriceMultiplier(), "priceMultiplier");
 
         if (holidayCalendar.getPriceMultiplier().compareTo(BigDecimal.ZERO) <= 0) {
@@ -27,13 +28,6 @@ public class HolidayCalendarPolicy {
         if (value == null) {
             throw new BadRequestException(fieldName + " must not be null");
         }
-    }
-
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return value.trim();
     }
 }
 

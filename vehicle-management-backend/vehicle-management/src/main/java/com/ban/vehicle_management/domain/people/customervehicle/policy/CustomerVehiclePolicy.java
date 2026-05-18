@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.people.customervehicle.policy;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class CustomerVehiclePolicy {
 
@@ -10,9 +11,9 @@ public class CustomerVehiclePolicy {
         requireCustomerVehicle(customerVehicle);
         requireField(customerVehicle.getCustomerId(), "customerId");
         requireField(customerVehicle.getVehicleTypeId(), "vehicleTypeId");
-        customerVehicle.setLicensePlate(normalizeRequired(customerVehicle.getLicensePlate(), "licensePlate"));
-        customerVehicle.setBrand(normalizeNullable(customerVehicle.getBrand()));
-        customerVehicle.setColor(normalizeNullable(customerVehicle.getColor()));
+        customerVehicle.setLicensePlate(TextValidationUtils.normalizeRequiredText(customerVehicle.getLicensePlate(), "licensePlate", 20));
+        customerVehicle.setBrand(TextValidationUtils.normalizeNullableText(customerVehicle.getBrand(), "brand", 80));
+        customerVehicle.setColor(TextValidationUtils.normalizeNullableText(customerVehicle.getColor(), "color", 50));
         if (customerVehicle.getIsDefault() == null) {
             customerVehicle.setIsDefault(Boolean.FALSE);
         }
@@ -56,9 +57,9 @@ public class CustomerVehiclePolicy {
         requireCustomerVehicle(customerVehicle);
         requireField(customerVehicle.getCustomerId(), "customerId");
         requireField(customerVehicle.getVehicleTypeId(), "vehicleTypeId");
-        customerVehicle.setLicensePlate(normalizeRequired(customerVehicle.getLicensePlate(), "licensePlate"));
-        customerVehicle.setBrand(normalizeNullable(customerVehicle.getBrand()));
-        customerVehicle.setColor(normalizeNullable(customerVehicle.getColor()));
+        customerVehicle.setLicensePlate(TextValidationUtils.normalizeRequiredText(customerVehicle.getLicensePlate(), "licensePlate", 20));
+        customerVehicle.setBrand(TextValidationUtils.normalizeNullableText(customerVehicle.getBrand(), "brand", 80));
+        customerVehicle.setColor(TextValidationUtils.normalizeNullableText(customerVehicle.getColor(), "color", 50));
         requireField(customerVehicle.getStatus(), "status");
 
         if (customerVehicle.getIsDefault() == null) {
@@ -76,21 +77,5 @@ public class CustomerVehiclePolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        String normalizedValue = normalizeNullable(value);
-        if (normalizedValue == null) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return normalizedValue;
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalizedValue = value.trim();
-        return normalizedValue.isEmpty() ? null : normalizedValue;
-    }
 }
 

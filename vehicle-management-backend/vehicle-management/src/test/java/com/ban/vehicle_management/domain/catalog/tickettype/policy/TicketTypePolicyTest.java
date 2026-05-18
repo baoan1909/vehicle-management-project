@@ -35,5 +35,14 @@ class TicketTypePolicyTest {
 
         assertThrows(BadRequestException.class, () -> ticketTypePolicy.initialize(ticketType));
     }
+
+    @Test
+    void shouldRejectUnsupportedCharactersInTicketTypeName() {
+        TicketType ticketType = new TicketType();
+        ticketType.setCode("MONTHLY");
+        ticketType.setName("Ve <thang>");
+
+        assertThrows(BadRequestException.class, () -> ticketTypePolicy.initialize(ticketType));
+    }
 }
 

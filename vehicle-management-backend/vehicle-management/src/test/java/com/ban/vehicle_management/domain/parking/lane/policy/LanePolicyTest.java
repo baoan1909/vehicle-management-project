@@ -38,5 +38,16 @@ class LanePolicyTest {
 
         assertThrows(BadRequestException.class, () -> lanePolicy.initialize(lane));
     }
+
+    @Test
+    void shouldRejectLaneNameExceedingSchemaLength() {
+        Lane lane = new Lane();
+        lane.setParkingLotId(UUID.randomUUID());
+        lane.setCode("IN-01");
+        lane.setName("A".repeat(151));
+        lane.setDirection(LaneDirection.IN);
+
+        assertThrows(BadRequestException.class, () -> lanePolicy.initialize(lane));
+    }
 }
 

@@ -62,6 +62,17 @@ class ParkingSessionPolicyTest {
         assertEquals(checkOutTime, parkingSession.getCheckOutTime());
     }
 
+    @Test
+    void shouldRejectLicensePlateInExceedingSchemaLength() {
+        ParkingSession parkingSession = new ParkingSession();
+        parkingSession.setCardId(UUID.randomUUID());
+        parkingSession.setVehicleTypeId(UUID.randomUUID());
+        parkingSession.setLicensePlateIn("A".repeat(21));
+        parkingSession.setCheckInTime(Instant.parse("2026-05-15T01:00:00Z"));
+
+        assertThrows(BadRequestException.class, () -> parkingSessionPolicy.initialize(parkingSession));
+    }
+
     private ParkingSession validOpenSession() {
         ParkingSession parkingSession = new ParkingSession();
         parkingSession.setCardId(UUID.randomUUID());

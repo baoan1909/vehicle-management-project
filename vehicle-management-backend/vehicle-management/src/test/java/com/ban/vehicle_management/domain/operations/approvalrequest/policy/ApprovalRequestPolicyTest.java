@@ -62,6 +62,17 @@ class ApprovalRequestPolicyTest {
         assertThrows(BadRequestException.class, () -> approvalRequestPolicy.validateState(approvalRequest));
     }
 
+    @Test
+    void shouldRejectTargetTableExceedingSchemaLength() {
+        ApprovalRequest approvalRequest = new ApprovalRequest();
+        approvalRequest.setRequestType("SUBSCRIPTION_REGISTER");
+        approvalRequest.setTargetSchema("access_control");
+        approvalRequest.setTargetTable("A".repeat(81));
+        approvalRequest.setTargetId(UUID.randomUUID());
+
+        assertThrows(BadRequestException.class, () -> approvalRequestPolicy.initialize(approvalRequest));
+    }
+
     private ApprovalRequest validApprovalRequest() {
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setApprovalRequestId(UUID.randomUUID());

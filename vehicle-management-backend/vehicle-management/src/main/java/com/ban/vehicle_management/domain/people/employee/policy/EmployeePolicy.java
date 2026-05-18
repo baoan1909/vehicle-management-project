@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.people.employee.policy;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.shared.enumeration.EmployeeStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.LocalDate;
 
 public class EmployeePolicy {
@@ -10,8 +11,8 @@ public class EmployeePolicy {
     public void initialize(Employee employee) {
         requireEmployee(employee);
         requireField(employee.getUserProfileId(), "userProfileId");
-        employee.setEmployeeCode(normalizeRequired(employee.getEmployeeCode(), "employeeCode"));
-        employee.setJobTitle(normalizeNullable(employee.getJobTitle()));
+        employee.setEmployeeCode(TextValidationUtils.normalizeCode(employee.getEmployeeCode(), "employeeCode", 50));
+        employee.setJobTitle(TextValidationUtils.normalizeNullableText(employee.getJobTitle(), "jobTitle", 100));
         if (employee.getStatus() == null) {
             employee.setStatus(EmployeeStatus.ACTIVE);
         }
@@ -39,8 +40,8 @@ public class EmployeePolicy {
     public void validateState(Employee employee) {
         requireEmployee(employee);
         requireField(employee.getUserProfileId(), "userProfileId");
-        employee.setEmployeeCode(normalizeRequired(employee.getEmployeeCode(), "employeeCode"));
-        employee.setJobTitle(normalizeNullable(employee.getJobTitle()));
+        employee.setEmployeeCode(TextValidationUtils.normalizeCode(employee.getEmployeeCode(), "employeeCode", 50));
+        employee.setJobTitle(TextValidationUtils.normalizeNullableText(employee.getJobTitle(), "jobTitle", 100));
         requireField(employee.getStatus(), "status");
 
         if (employee.getHiredAt() != null && employee.getHiredAt().isAfter(LocalDate.now())) {
@@ -58,21 +59,5 @@ public class EmployeePolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        String normalizedValue = normalizeNullable(value);
-        if (normalizedValue == null) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return normalizedValue;
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalizedValue = value.trim();
-        return normalizedValue.isEmpty() ? null : normalizedValue;
-    }
 }
 

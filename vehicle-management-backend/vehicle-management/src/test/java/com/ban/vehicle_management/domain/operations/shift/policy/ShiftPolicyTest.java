@@ -61,6 +61,16 @@ class ShiftPolicyTest {
         assertNull(shift.getClosingCash());
     }
 
+    @Test
+    void shouldRejectShiftCodeExceedingSchemaLength() {
+        Shift shift = new Shift();
+        shift.setShiftCode("A".repeat(51));
+        shift.setParkingLotId(UUID.randomUUID());
+        shift.setStartTime(Instant.parse("2026-05-15T01:00:00Z"));
+
+        assertThrows(BadRequestException.class, () -> shiftPolicy.initialize(shift));
+    }
+
     private Shift validShift() {
         Shift shift = new Shift();
         shift.setShiftId(UUID.randomUUID());

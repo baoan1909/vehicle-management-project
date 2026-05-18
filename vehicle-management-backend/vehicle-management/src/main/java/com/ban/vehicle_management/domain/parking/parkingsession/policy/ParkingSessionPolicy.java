@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.parking.parkingsession.policy;
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
 import com.ban.vehicle_management.shared.enumeration.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -13,8 +14,8 @@ public class ParkingSessionPolicy {
         requireField(parkingSession.getCardId(), "cardId");
         requireField(parkingSession.getVehicleTypeId(), "vehicleTypeId");
         requireField(parkingSession.getCheckInTime(), "checkInTime");
-        parkingSession.setLicensePlateIn(normalizeRequired(parkingSession.getLicensePlateIn(), "licensePlateIn"));
-        parkingSession.setLicensePlateOut(normalizeNullable(parkingSession.getLicensePlateOut()));
+        parkingSession.setLicensePlateIn(TextValidationUtils.normalizeRequiredText(parkingSession.getLicensePlateIn(), "licensePlateIn", 20));
+        parkingSession.setLicensePlateOut(TextValidationUtils.normalizeNullableText(parkingSession.getLicensePlateOut(), "licensePlateOut", 20));
         if (parkingSession.getStatus() == null) {
             parkingSession.setStatus(ParkingSessionStatus.OPEN);
         }
@@ -28,7 +29,7 @@ public class ParkingSessionPolicy {
         requirePrice(totalPrice, "totalPrice");
 
         parkingSession.setCheckOutTime(checkOutTime);
-        parkingSession.setLicensePlateOut(normalizeRequired(licensePlateOut, "licensePlateOut"));
+        parkingSession.setLicensePlateOut(TextValidationUtils.normalizeRequiredText(licensePlateOut, "licensePlateOut", 20));
         parkingSession.setTotalPrice(totalPrice);
         parkingSession.setStatus(ParkingSessionStatus.CLOSED);
         validateState(parkingSession);
@@ -59,8 +60,8 @@ public class ParkingSessionPolicy {
         requireField(parkingSession.getVehicleTypeId(), "vehicleTypeId");
         requireField(parkingSession.getCheckInTime(), "checkInTime");
         requireField(parkingSession.getStatus(), "status");
-        parkingSession.setLicensePlateIn(normalizeRequired(parkingSession.getLicensePlateIn(), "licensePlateIn"));
-        parkingSession.setLicensePlateOut(normalizeNullable(parkingSession.getLicensePlateOut()));
+        parkingSession.setLicensePlateIn(TextValidationUtils.normalizeRequiredText(parkingSession.getLicensePlateIn(), "licensePlateIn", 20));
+        parkingSession.setLicensePlateOut(TextValidationUtils.normalizeNullableText(parkingSession.getLicensePlateOut(), "licensePlateOut", 20));
         parkingSession.setTotalPrice(normalizePrice(parkingSession.getTotalPrice()));
 
         if (parkingSession.getCheckOutTime() != null
@@ -80,7 +81,7 @@ public class ParkingSessionPolicy {
             case CLOSED -> {
                 requireField(parkingSession.getCheckOutTime(), "checkOutTime");
                 parkingSession.setLicensePlateOut(
-                        normalizeRequired(parkingSession.getLicensePlateOut(), "licensePlateOut"));
+                        TextValidationUtils.normalizeRequiredText(parkingSession.getLicensePlateOut(), "licensePlateOut", 20));
                 requirePrice(parkingSession.getTotalPrice(), "totalPrice");
             }
             case LOST_CARD -> requireField(parkingSession.getCheckOutTime(), "checkOutTime");
@@ -127,21 +128,5 @@ public class ParkingSessionPolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        String normalizedValue = normalizeNullable(value);
-        if (normalizedValue == null) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return normalizedValue;
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalizedValue = value.trim();
-        return normalizedValue.isEmpty() ? null : normalizedValue;
-    }
 }
 

@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.operations.supportticket.model.SupportT
 import com.ban.vehicle_management.shared.enumeration.SupportTicketPriority;
 import com.ban.vehicle_management.shared.enumeration.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -11,8 +12,8 @@ public class SupportTicketPolicy {
 
     public void initialize(SupportTicket supportTicket) {
         requireSupportTicket(supportTicket);
-        supportTicket.setTitle(normalizeRequired(supportTicket.getTitle(), "title"));
-        supportTicket.setContent(normalizeRequired(supportTicket.getContent(), "content"));
+        supportTicket.setTitle(TextValidationUtils.normalizeRequiredText(supportTicket.getTitle(), "title", 200));
+        supportTicket.setContent(TextValidationUtils.normalizeRequiredText(supportTicket.getContent(), "content", 0));
         if (supportTicket.getStatus() == null) {
             supportTicket.setStatus(SupportTicketStatus.OPEN);
         }
@@ -70,8 +71,8 @@ public class SupportTicketPolicy {
 
     public void validateState(SupportTicket supportTicket) {
         requireSupportTicket(supportTicket);
-        supportTicket.setTitle(normalizeRequired(supportTicket.getTitle(), "title"));
-        supportTicket.setContent(normalizeRequired(supportTicket.getContent(), "content"));
+        supportTicket.setTitle(TextValidationUtils.normalizeRequiredText(supportTicket.getTitle(), "title", 200));
+        supportTicket.setContent(TextValidationUtils.normalizeRequiredText(supportTicket.getContent(), "content", 0));
         requireField(supportTicket.getStatus(), "status");
         requireField(supportTicket.getPriority(), "priority");
 
@@ -99,21 +100,5 @@ public class SupportTicketPolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        String normalizedValue = normalizeNullable(value);
-        if (normalizedValue == null) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return normalizedValue;
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalizedValue = value.trim();
-        return normalizedValue.isEmpty() ? null : normalizedValue;
-    }
 }
 

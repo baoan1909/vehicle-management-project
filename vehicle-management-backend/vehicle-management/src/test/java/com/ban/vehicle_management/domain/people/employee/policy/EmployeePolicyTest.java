@@ -38,5 +38,14 @@ class EmployeePolicyTest {
 
         assertThrows(BadRequestException.class, () -> employeePolicy.validateState(employee));
     }
+
+    @Test
+    void shouldRejectEmployeeCodeWithUnsupportedCharacters() {
+        Employee employee = new Employee();
+        employee.setUserProfileId(UUID.randomUUID());
+        employee.setEmployeeCode("emp<001>");
+
+        assertThrows(BadRequestException.class, () -> employeePolicy.initialize(employee));
+    }
 }
 

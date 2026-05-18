@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.operations.approvalrequest.policy;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.shared.enumeration.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -10,11 +11,11 @@ public class ApprovalRequestPolicy {
 
     public void initialize(ApprovalRequest approvalRequest) {
         requireApprovalRequest(approvalRequest);
-        approvalRequest.setRequestType(normalizeRequired(approvalRequest.getRequestType(), "requestType"));
-        approvalRequest.setTargetSchema(normalizeRequired(approvalRequest.getTargetSchema(), "targetSchema"));
-        approvalRequest.setTargetTable(normalizeRequired(approvalRequest.getTargetTable(), "targetTable"));
+        approvalRequest.setRequestType(TextValidationUtils.normalizeRequiredText(approvalRequest.getRequestType(), "requestType", 50));
+        approvalRequest.setTargetSchema(TextValidationUtils.normalizeRequiredText(approvalRequest.getTargetSchema(), "targetSchema", 50));
+        approvalRequest.setTargetTable(TextValidationUtils.normalizeRequiredText(approvalRequest.getTargetTable(), "targetTable", 80));
         requireField(approvalRequest.getTargetId(), "targetId");
-        approvalRequest.setNote(normalizeNullable(approvalRequest.getNote()));
+        approvalRequest.setNote(TextValidationUtils.normalizeNullableText(approvalRequest.getNote(), "note", 0));
         if (approvalRequest.getStatus() == null) {
             approvalRequest.setStatus(ApprovalRequestStatus.PENDING);
         }
@@ -38,7 +39,7 @@ public class ApprovalRequestPolicy {
         approvalRequest.setStatus(ApprovalRequestStatus.REJECTED);
         approvalRequest.setApprovedBy(null);
         approvalRequest.setApprovedAt(null);
-        approvalRequest.setNote(normalizeNullable(note));
+        approvalRequest.setNote(TextValidationUtils.normalizeNullableText(note, "note", 0));
         validateState(approvalRequest);
     }
 
@@ -48,18 +49,18 @@ public class ApprovalRequestPolicy {
         approvalRequest.setStatus(ApprovalRequestStatus.CANCELLED);
         approvalRequest.setApprovedBy(null);
         approvalRequest.setApprovedAt(null);
-        approvalRequest.setNote(normalizeNullable(note));
+        approvalRequest.setNote(TextValidationUtils.normalizeNullableText(note, "note", 0));
         validateState(approvalRequest);
     }
 
     public void validateState(ApprovalRequest approvalRequest) {
         requireApprovalRequest(approvalRequest);
-        approvalRequest.setRequestType(normalizeRequired(approvalRequest.getRequestType(), "requestType"));
-        approvalRequest.setTargetSchema(normalizeRequired(approvalRequest.getTargetSchema(), "targetSchema"));
-        approvalRequest.setTargetTable(normalizeRequired(approvalRequest.getTargetTable(), "targetTable"));
+        approvalRequest.setRequestType(TextValidationUtils.normalizeRequiredText(approvalRequest.getRequestType(), "requestType", 50));
+        approvalRequest.setTargetSchema(TextValidationUtils.normalizeRequiredText(approvalRequest.getTargetSchema(), "targetSchema", 50));
+        approvalRequest.setTargetTable(TextValidationUtils.normalizeRequiredText(approvalRequest.getTargetTable(), "targetTable", 80));
         requireField(approvalRequest.getTargetId(), "targetId");
         requireField(approvalRequest.getStatus(), "status");
-        approvalRequest.setNote(normalizeNullable(approvalRequest.getNote()));
+        approvalRequest.setNote(TextValidationUtils.normalizeNullableText(approvalRequest.getNote(), "note", 0));
 
         boolean hasApprovalMetadata = approvalRequest.getApprovedBy() != null || approvalRequest.getApprovedAt() != null;
         boolean hasFullApprovalMetadata = approvalRequest.getApprovedBy() != null && approvalRequest.getApprovedAt() != null;
@@ -93,21 +94,5 @@ public class ApprovalRequestPolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        String normalizedValue = normalizeNullable(value);
-        if (normalizedValue == null) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return normalizedValue;
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalizedValue = value.trim();
-        return normalizedValue.isEmpty() ? null : normalizedValue;
-    }
 }
 

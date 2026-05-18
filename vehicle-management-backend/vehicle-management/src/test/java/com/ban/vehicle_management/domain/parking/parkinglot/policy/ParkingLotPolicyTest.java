@@ -36,5 +36,14 @@ class ParkingLotPolicyTest {
 
         assertThrows(BadRequestException.class, () -> parkingLotPolicy.validateState(parkingLot));
     }
+
+    @Test
+    void shouldRejectParkingLotNameExceedingSchemaLength() {
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setCode("LOT-01");
+        parkingLot.setName("A".repeat(151));
+
+        assertThrows(BadRequestException.class, () -> parkingLotPolicy.initialize(parkingLot));
+    }
 }
 

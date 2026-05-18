@@ -35,5 +35,15 @@ class ShiftAssignmentPolicyTest {
 
         assertThrows(BadRequestException.class, () -> shiftAssignmentPolicy.initialize(shiftAssignment));
     }
+
+    @Test
+    void shouldRejectRoleInShiftWithUnsupportedCharacters() {
+        ShiftAssignment shiftAssignment = new ShiftAssignment();
+        shiftAssignment.setShiftId(UUID.randomUUID());
+        shiftAssignment.setEmployeeId(UUID.randomUUID());
+        shiftAssignment.setRoleInShift("OPERATOR<1>");
+
+        assertThrows(BadRequestException.class, () -> shiftAssignmentPolicy.initialize(shiftAssignment));
+    }
 }
 

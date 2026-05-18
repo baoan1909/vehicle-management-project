@@ -35,5 +35,15 @@ class HolidayCalendarPolicyTest {
 
         assertThrows(BadRequestException.class, () -> holidayCalendarPolicy.initialize(holidayCalendar));
     }
+
+    @Test
+    void shouldRejectHolidayNameExceedingSchemaLength() {
+        HolidayCalendar holidayCalendar = new HolidayCalendar();
+        holidayCalendar.setHolidayDate(LocalDate.of(2026, 1, 1));
+        holidayCalendar.setName("A".repeat(151));
+        holidayCalendar.setPriceMultiplier(BigDecimal.ONE);
+
+        assertThrows(BadRequestException.class, () -> holidayCalendarPolicy.initialize(holidayCalendar));
+    }
 }
 

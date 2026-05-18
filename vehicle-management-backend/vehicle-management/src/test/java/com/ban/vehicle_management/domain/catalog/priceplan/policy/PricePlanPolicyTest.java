@@ -50,5 +50,16 @@ class PricePlanPolicyTest {
 
         assertFalse(pricePlan.getIsActive());
     }
+
+    @Test
+    void shouldRejectPricePlanNameExceedingSchemaLength() {
+        PricePlan pricePlan = new PricePlan();
+        pricePlan.setCode("MONTHLY-2026");
+        pricePlan.setName("A".repeat(151));
+        pricePlan.setAppliesTo(PricePlanAppliesTo.CUSTOMER);
+        pricePlan.setEffectiveFrom(LocalDate.of(2026, 1, 1));
+
+        assertThrows(BadRequestException.class, () -> pricePlanPolicy.initialize(pricePlan));
+    }
 }
 

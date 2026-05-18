@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.accesscontrol.lostcardreport.policy;
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
 import com.ban.vehicle_management.shared.enumeration.LostCardReportStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -55,6 +56,11 @@ public class LostCardReportPolicy {
         requireField(report.getNotificationTime(), "notificationTime");
         requireField(report.getTimeOfLost(), "timeOfLost");
         requireField(report.getStatus(), "status");
+        report.setReporterName(TextValidationUtils.normalizeNullableText(report.getReporterName(), "reporterName", 150));
+        report.setReporterPhone(TextValidationUtils.normalizePhoneNumber(report.getReporterPhone(), "reporterPhone", 20));
+        report.setIdentifyCard(TextValidationUtils.normalizeAlphaNumeric(report.getIdentifyCard(), "identifyCard", 20));
+        report.setRegistrationLicense(TextValidationUtils.normalizeNullableText(report.getRegistrationLicense(), "registrationLicense", 50));
+        report.setNote(TextValidationUtils.normalizeNullableText(report.getNote(), "note", 0));
 
         BigDecimal ticketPrice = report.getTicketPrice() == null ? BigDecimal.ZERO : report.getTicketPrice();
         BigDecimal lostCardFee = report.getLostCardFee() == null ? BigDecimal.ZERO : report.getLostCardFee();

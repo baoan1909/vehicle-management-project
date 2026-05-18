@@ -3,14 +3,15 @@ package com.ban.vehicle_management.domain.parking.parkinglot.policy;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.ParkingLotStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class ParkingLotPolicy {
 
     public void initialize(ParkingLot parkingLot) {
         requireParkingLot(parkingLot);
-        parkingLot.setCode(normalizeRequired(parkingLot.getCode(), "code"));
-        parkingLot.setName(normalizeRequired(parkingLot.getName(), "name"));
-        parkingLot.setAddress(normalizeNullable(parkingLot.getAddress()));
+        parkingLot.setCode(TextValidationUtils.normalizeCode(parkingLot.getCode(), "code", 50));
+        parkingLot.setName(TextValidationUtils.normalizeRequiredText(parkingLot.getName(), "name", 150));
+        parkingLot.setAddress(TextValidationUtils.normalizeNullableText(parkingLot.getAddress(), "address", 0));
         if (parkingLot.getTotalCapacity() == null) {
             parkingLot.setTotalCapacity(0);
         }
@@ -40,9 +41,9 @@ public class ParkingLotPolicy {
 
     public void validateState(ParkingLot parkingLot) {
         requireParkingLot(parkingLot);
-        parkingLot.setCode(normalizeRequired(parkingLot.getCode(), "code"));
-        parkingLot.setName(normalizeRequired(parkingLot.getName(), "name"));
-        parkingLot.setAddress(normalizeNullable(parkingLot.getAddress()));
+        parkingLot.setCode(TextValidationUtils.normalizeCode(parkingLot.getCode(), "code", 50));
+        parkingLot.setName(TextValidationUtils.normalizeRequiredText(parkingLot.getName(), "name", 150));
+        parkingLot.setAddress(TextValidationUtils.normalizeNullableText(parkingLot.getAddress(), "address", 0));
         requireField(parkingLot.getStatus(), "status");
 
         Integer totalCapacity = parkingLot.getTotalCapacity() == null ? 0 : parkingLot.getTotalCapacity();
@@ -62,21 +63,5 @@ public class ParkingLotPolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        String normalizedValue = normalizeNullable(value);
-        if (normalizedValue == null) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return normalizedValue;
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalizedValue = value.trim();
-        return normalizedValue.isEmpty() ? null : normalizedValue;
-    }
 }
 

@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.operations.shift.policy;
 import com.ban.vehicle_management.domain.operations.shift.model.Shift;
 import com.ban.vehicle_management.shared.enumeration.ShiftStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;
 import java.time.Instant;
 
@@ -10,7 +11,7 @@ public class ShiftPolicy {
 
     public void initialize(Shift shift) {
         requireShift(shift);
-        shift.setShiftCode(normalizeRequired(shift.getShiftCode(), "shiftCode"));
+        shift.setShiftCode(TextValidationUtils.normalizeCode(shift.getShiftCode(), "shiftCode", 50));
         requireField(shift.getParkingLotId(), "parkingLotId");
         requireField(shift.getStartTime(), "startTime");
         if (shift.getStatus() == null) {
@@ -43,7 +44,7 @@ public class ShiftPolicy {
 
     public void validateState(Shift shift) {
         requireShift(shift);
-        shift.setShiftCode(normalizeRequired(shift.getShiftCode(), "shiftCode"));
+        shift.setShiftCode(TextValidationUtils.normalizeCode(shift.getShiftCode(), "shiftCode", 50));
         requireField(shift.getParkingLotId(), "parkingLotId");
         requireField(shift.getStartTime(), "startTime");
         requireField(shift.getStatus(), "status");
@@ -96,11 +97,5 @@ public class ShiftPolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return value.trim();
-    }
 }
 

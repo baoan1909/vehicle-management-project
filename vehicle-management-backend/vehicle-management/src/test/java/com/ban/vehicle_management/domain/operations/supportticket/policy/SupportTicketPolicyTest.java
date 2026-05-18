@@ -55,6 +55,14 @@ class SupportTicketPolicyTest {
         assertThrows(BadRequestException.class, () -> supportTicketPolicy.validateState(supportTicket));
     }
 
+    @Test
+    void shouldRejectTitleExceedingSchemaLength() {
+        SupportTicket supportTicket = validSupportTicket();
+        supportTicket.setTitle("A".repeat(201));
+
+        assertThrows(BadRequestException.class, () -> supportTicketPolicy.validateState(supportTicket));
+    }
+
     private SupportTicket validSupportTicket() {
         SupportTicket supportTicket = new SupportTicket();
         supportTicket.setSupportTicketId(UUID.randomUUID());

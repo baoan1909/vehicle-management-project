@@ -54,6 +54,14 @@ class PriceRulePolicyTest {
         assertThrows(BadRequestException.class, () -> priceRulePolicy.initialize(priceRule));
     }
 
+    @Test
+    void shouldRejectRuleNameContainingUnsupportedCharacters() {
+        PriceRule priceRule = validPriceRule();
+        priceRule.setRuleName("Gia <ban ngay>");
+
+        assertThrows(BadRequestException.class, () -> priceRulePolicy.initialize(priceRule));
+    }
+
     private PriceRule validPriceRule() {
         PriceRule priceRule = new PriceRule();
         priceRule.setPricePlanId(UUID.randomUUID());

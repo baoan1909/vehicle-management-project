@@ -5,6 +5,8 @@ import com.ban.vehicle_management.application.iam.role.port.out.RolePortOut;
 import com.ban.vehicle_management.domain.iam.role.model.Role;
 import com.ban.vehicle_management.domain.iam.role.policy.RolePolicy;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 import java.util.List;
 import java.util.UUID;
@@ -29,7 +31,7 @@ public class RoleUseCaseImpl implements RolePortIn {
         rolePolicy.initializeNewRole(role);
 
         if (rolePortOut.existsByCode(role.getCode())) {
-            throw new BadRequestException("Role code already exists");
+            throw new ConflictException("Role code already exists");
         }
 
         role.setRoleId(UUID.randomUUID());
@@ -57,7 +59,7 @@ public class RoleUseCaseImpl implements RolePortIn {
         rolePolicy.validateMaintenance(existingRole);
 
         if (rolePortOut.existsByCodeAndRoleIdNot(existingRole.getCode(), roleId)) {
-            throw new BadRequestException("Role code already exists");
+            throw new ConflictException("Role code already exists");
         }
 
         return rolePortOut.save(existingRole);
@@ -94,10 +96,7 @@ public class RoleUseCaseImpl implements RolePortIn {
     }
 
     private String normalizeKeyword(String keyword) {
-        if (keyword == null || keyword.isBlank()) {
-            return null;
-        }
-        return keyword.trim();
+        return TextValidationUtils.normalizeNullableText(keyword, "keyword", 0);
     }
 
 }

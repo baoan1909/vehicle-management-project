@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.parking.parkingevent.policy;
 import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent;
 import com.ban.vehicle_management.shared.enumeration.ParkingEventType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class ParkingEventPolicy {
 
@@ -17,14 +18,14 @@ public class ParkingEventPolicy {
         requireField(parkingEvent.getEventType(), "eventType");
         requireField(parkingEvent.getEventTime(), "eventTime");
 
-        parkingEvent.setLicensePlateDetected(normalizeNullable(parkingEvent.getLicensePlateDetected()));
-        parkingEvent.setImagePath(normalizeNullable(parkingEvent.getImagePath()));
-        parkingEvent.setNote(normalizeNullable(parkingEvent.getNote()));
+        parkingEvent.setLicensePlateDetected(TextValidationUtils.normalizeNullableText(parkingEvent.getLicensePlateDetected(), "licensePlateDetected", 20));
+        parkingEvent.setImagePath(TextValidationUtils.normalizeNullableText(parkingEvent.getImagePath(), "imagePath", 255));
+        parkingEvent.setNote(TextValidationUtils.normalizeNullableText(parkingEvent.getNote(), "note", 0));
 
         if (parkingEvent.getEventType() == ParkingEventType.CHECK_IN
                 || parkingEvent.getEventType() == ParkingEventType.CHECK_OUT) {
             parkingEvent.setLicensePlateDetected(
-                    normalizeRequired(parkingEvent.getLicensePlateDetected(), "licensePlateDetected"));
+                    TextValidationUtils.normalizeRequiredText(parkingEvent.getLicensePlateDetected(), "licensePlateDetected", 20));
         }
     }
 
@@ -38,21 +39,5 @@ public class ParkingEventPolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        String normalizedValue = normalizeNullable(value);
-        if (normalizedValue == null) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return normalizedValue;
-    }
-
-    private String normalizeNullable(String value) {
-        if (value == null) {
-            return null;
-        }
-
-        String normalizedValue = value.trim();
-        return normalizedValue.isEmpty() ? null : normalizedValue;
-    }
 }
 

@@ -2,13 +2,14 @@ package com.ban.vehicle_management.domain.parking.zone.policy;
 
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class ZonePolicy {
 
     public void initialize(Zone zone) {
         requireZone(zone);
-        zone.setCode(normalizeRequired(zone.getCode(), "code"));
-        zone.setName(normalizeRequired(zone.getName(), "name"));
+        zone.setCode(TextValidationUtils.normalizeCode(zone.getCode(), "code", 50));
+        zone.setName(TextValidationUtils.normalizeRequiredText(zone.getName(), "name", 150));
         requireField(zone.getParkingLotId(), "parkingLotId");
         if (zone.getCapacity() == null) {
             zone.setCapacity(0);
@@ -18,8 +19,8 @@ public class ZonePolicy {
 
     public void validateState(Zone zone) {
         requireZone(zone);
-        zone.setCode(normalizeRequired(zone.getCode(), "code"));
-        zone.setName(normalizeRequired(zone.getName(), "name"));
+        zone.setCode(TextValidationUtils.normalizeCode(zone.getCode(), "code", 50));
+        zone.setName(TextValidationUtils.normalizeRequiredText(zone.getName(), "name", 150));
         requireField(zone.getParkingLotId(), "parkingLotId");
 
         Integer capacity = zone.getCapacity() == null ? 0 : zone.getCapacity();
@@ -39,11 +40,5 @@ public class ZonePolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return value.trim();
-    }
 }
 

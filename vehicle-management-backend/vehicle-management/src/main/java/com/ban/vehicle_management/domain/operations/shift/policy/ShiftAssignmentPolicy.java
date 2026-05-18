@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.operations.shift.policy;
 
 import com.ban.vehicle_management.domain.operations.shift.model.ShiftAssignment;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
 
 public class ShiftAssignmentPolicy {
@@ -10,7 +11,7 @@ public class ShiftAssignmentPolicy {
         requireShiftAssignment(shiftAssignment);
         requireField(shiftAssignment.getShiftId(), "shiftId");
         requireField(shiftAssignment.getEmployeeId(), "employeeId");
-        shiftAssignment.setRoleInShift(normalizeRequired(shiftAssignment.getRoleInShift(), "roleInShift"));
+        shiftAssignment.setRoleInShift(TextValidationUtils.normalizeCode(shiftAssignment.getRoleInShift(), "roleInShift", 50));
         if (shiftAssignment.getAssignedAt() == null) {
             shiftAssignment.setAssignedAt(Instant.now());
         }
@@ -26,11 +27,5 @@ public class ShiftAssignmentPolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return value.trim();
-    }
 }
 

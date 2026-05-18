@@ -72,6 +72,40 @@ class LostCardReportPolicyTest {
         assertNull(report.getResolvedAt());
     }
 
+    @Test
+    void shouldNormalizeLostCardReporterFields() {
+        LostCardReport report = validReport(LostCardReportStatus.OPEN);
+        report.setReporterName("  Nguyen Van A  ");
+        report.setReporterPhone(" 0901234567 ");
+        report.setIdentifyCard(" AB123456 ");
+        report.setRegistrationLicense(" 51A-12345 ");
+        report.setNote(" Mat the o cong vao ");
+
+        lostCardReportPolicy.validateState(report);
+
+        assertEquals("Nguyen Van A", report.getReporterName());
+        assertEquals("0901234567", report.getReporterPhone());
+        assertEquals("AB123456", report.getIdentifyCard());
+        assertEquals("51A-12345", report.getRegistrationLicense());
+        assertEquals("Mat the o cong vao", report.getNote());
+    }
+
+    @Test
+    void shouldRejectReporterNameExceedingSchemaLength() {
+        LostCardReport report = validReport(LostCardReportStatus.OPEN);
+        report.setReporterName("A".repeat(151));
+
+        assertThrows(BadRequestException.class, () -> lostCardReportPolicy.validateState(report));
+    }
+
+    @Test
+    void shouldRejectInvalidReporterPhoneFormat() {
+        LostCardReport report = validReport(LostCardReportStatus.OPEN);
+        report.setReporterPhone("0901-234-567");
+
+        assertThrows(BadRequestException.class, () -> lostCardReportPolicy.validateState(report));
+    }
+
     private LostCardReport validReport(LostCardReportStatus status) {
         LostCardReport report = new LostCardReport();
         report.setLostCardReportId(UUID.randomUUID());

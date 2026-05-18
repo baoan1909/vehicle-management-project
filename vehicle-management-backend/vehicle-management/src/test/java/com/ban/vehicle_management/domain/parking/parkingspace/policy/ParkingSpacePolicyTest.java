@@ -41,6 +41,15 @@ class ParkingSpacePolicyTest {
         assertThrows(BadRequestException.class, () -> parkingSpacePolicy.markMaintenance(parkingSpace));
     }
 
+    @Test
+    void shouldRejectParkingSpaceCodeWithUnsupportedCharacters() {
+        ParkingSpace parkingSpace = new ParkingSpace();
+        parkingSpace.setZoneId(UUID.randomUUID());
+        parkingSpace.setCode("P<01>");
+
+        assertThrows(BadRequestException.class, () -> parkingSpacePolicy.initialize(parkingSpace));
+    }
+
     private ParkingSpace validParkingSpace(ParkingSpaceStatus status) {
         ParkingSpace parkingSpace = new ParkingSpace();
         parkingSpace.setZoneId(UUID.randomUUID());

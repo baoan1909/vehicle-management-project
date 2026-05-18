@@ -3,13 +3,14 @@ package com.ban.vehicle_management.domain.parking.lane.policy;
 import com.ban.vehicle_management.domain.parking.lane.model.Lane;
 import com.ban.vehicle_management.shared.enumeration.LaneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class LanePolicy {
 
     public void initialize(Lane lane) {
         requireLane(lane);
-        lane.setCode(normalizeRequired(lane.getCode(), "code"));
-        lane.setName(normalizeRequired(lane.getName(), "name"));
+        lane.setCode(TextValidationUtils.normalizeCode(lane.getCode(), "code", 50));
+        lane.setName(TextValidationUtils.normalizeRequiredText(lane.getName(), "name", 150));
         requireField(lane.getParkingLotId(), "parkingLotId");
         requireField(lane.getDirection(), "direction");
         if (lane.getStatus() == null) {
@@ -38,8 +39,8 @@ public class LanePolicy {
 
     public void validateState(Lane lane) {
         requireLane(lane);
-        lane.setCode(normalizeRequired(lane.getCode(), "code"));
-        lane.setName(normalizeRequired(lane.getName(), "name"));
+        lane.setCode(TextValidationUtils.normalizeCode(lane.getCode(), "code", 50));
+        lane.setName(TextValidationUtils.normalizeRequiredText(lane.getName(), "name", 150));
         requireField(lane.getParkingLotId(), "parkingLotId");
         requireField(lane.getDirection(), "direction");
         requireField(lane.getStatus(), "status");
@@ -55,11 +56,5 @@ public class LanePolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return value.trim();
-    }
 }
 

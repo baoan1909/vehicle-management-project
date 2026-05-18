@@ -36,6 +36,14 @@ class ParkingEventPolicyTest {
         assertThrows(BadRequestException.class, () -> parkingEventPolicy.initialize(parkingEvent));
     }
 
+    @Test
+    void shouldRejectImagePathExceedingSchemaLength() {
+        ParkingEvent parkingEvent = validParkingEvent(ParkingEventType.MANUAL_REVIEW);
+        parkingEvent.setImagePath("A".repeat(256));
+
+        assertThrows(BadRequestException.class, () -> parkingEventPolicy.initialize(parkingEvent));
+    }
+
     private ParkingEvent validParkingEvent(ParkingEventType eventType) {
         ParkingEvent parkingEvent = new ParkingEvent();
         parkingEvent.setParkingSessionId(UUID.randomUUID());

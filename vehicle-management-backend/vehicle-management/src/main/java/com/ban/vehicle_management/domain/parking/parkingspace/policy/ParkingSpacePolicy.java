@@ -3,12 +3,13 @@ package com.ban.vehicle_management.domain.parking.parkingspace.policy;
 import com.ban.vehicle_management.domain.parking.parkingspace.model.ParkingSpace;
 import com.ban.vehicle_management.shared.enumeration.ParkingSpaceStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class ParkingSpacePolicy {
 
     public void initialize(ParkingSpace parkingSpace) {
         requireParkingSpace(parkingSpace);
-        parkingSpace.setCode(normalizeRequired(parkingSpace.getCode(), "code"));
+        parkingSpace.setCode(TextValidationUtils.normalizeCode(parkingSpace.getCode(), "code", 50));
         requireField(parkingSpace.getZoneId(), "zoneId");
         if (parkingSpace.getStatus() == null) {
             parkingSpace.setStatus(ParkingSpaceStatus.AVAILABLE);
@@ -45,7 +46,7 @@ public class ParkingSpacePolicy {
 
     public void validateState(ParkingSpace parkingSpace) {
         requireParkingSpace(parkingSpace);
-        parkingSpace.setCode(normalizeRequired(parkingSpace.getCode(), "code"));
+        parkingSpace.setCode(TextValidationUtils.normalizeCode(parkingSpace.getCode(), "code", 50));
         requireField(parkingSpace.getZoneId(), "zoneId");
         requireField(parkingSpace.getStatus(), "status");
     }
@@ -70,11 +71,5 @@ public class ParkingSpacePolicy {
         }
     }
 
-    private String normalizeRequired(String value, String fieldName) {
-        if (value == null || value.isBlank()) {
-            throw new BadRequestException(fieldName + " must not be blank");
-        }
-        return value.trim();
-    }
 }
 
