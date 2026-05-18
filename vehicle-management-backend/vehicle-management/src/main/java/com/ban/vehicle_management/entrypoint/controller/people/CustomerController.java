@@ -8,6 +8,7 @@ import com.ban.vehicle_management.entrypoint.dto.people.customer.request.CreateC
 import com.ban.vehicle_management.entrypoint.dto.people.customer.request.UpdateCustomerRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.response.CustomerAdminResponse;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
@@ -56,11 +57,12 @@ public class CustomerController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CustomerAdminResponse>>> getCustomers(
+            @RequestParam(required = false) CustomerStatus status,
             @RequestParam(required = false) CustomerApprovalStatus approvalStatus,
             @RequestParam(required = false) CustomerType customerType,
             @RequestParam(required = false) String keyword
     ) {
-        List<Customer> customers = customerPortIn.getCustomers(approvalStatus, customerType, keyword);
+        List<Customer> customers = customerPortIn.getCustomers(status, approvalStatus, customerType, keyword);
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched customers successfully",
                 customerApiMapper.toAdminResponses(customers)
@@ -115,6 +117,24 @@ public class CustomerController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Customer moved to pending successfully",
                 customerApiMapper.toAdminResponse(pendingCustomer)
+        ));
+    }
+
+    @PatchMapping("/{customerId}/activate")
+    public ResponseEntity<ApiResponse<CustomerAdminResponse>> activateCustomer(@PathVariable UUID customerId) {
+        Customer activatedCustomer = customerPortIn.activateCustomer(customerId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Customer activated successfully",
+                customerApiMapper.toAdminResponse(activatedCustomer)
+        ));
+    }
+
+    @PatchMapping("/{customerId}/inactivate")
+    public ResponseEntity<ApiResponse<CustomerAdminResponse>> inactivateCustomer(@PathVariable UUID customerId) {
+        Customer inactivatedCustomer = customerPortIn.inactivateCustomer(customerId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Customer inactivated successfully",
+                customerApiMapper.toAdminResponse(inactivatedCustomer)
         ));
     }
 }

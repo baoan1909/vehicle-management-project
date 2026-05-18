@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.time.Instant;
@@ -26,6 +27,7 @@ class CustomerPolicyTest {
 
         assertEquals("CUS-001", customer.getCustomerCode());
         assertEquals(CustomerType.REGISTERED, customer.getCustomerType());
+        assertEquals(CustomerStatus.ACTIVE, customer.getStatus());
         assertEquals(CustomerApprovalStatus.PENDING, customer.getApprovalStatus());
     }
 
@@ -61,11 +63,31 @@ class CustomerPolicyTest {
         assertNull(customer.getApprovedAt());
     }
 
+    @Test
+    void shouldInactivateCustomer() {
+        Customer customer = validPendingCustomer();
+
+        customerPolicy.inactivate(customer);
+
+        assertEquals(CustomerStatus.INACTIVE, customer.getStatus());
+    }
+
+    @Test
+    void shouldActivateCustomer() {
+        Customer customer = validPendingCustomer();
+        customer.setStatus(CustomerStatus.INACTIVE);
+
+        customerPolicy.activate(customer);
+
+        assertEquals(CustomerStatus.ACTIVE, customer.getStatus());
+    }
+
     private Customer validPendingCustomer() {
         Customer customer = new Customer();
         customer.setUserProfileId(UUID.randomUUID());
         customer.setCustomerCode("CUS-001");
         customer.setCustomerType(CustomerType.REGISTERED);
+        customer.setStatus(CustomerStatus.ACTIVE);
         customer.setApprovalStatus(CustomerApprovalStatus.PENDING);
         return customer;
     }

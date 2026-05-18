@@ -66,6 +66,7 @@ Main concern:
 - customer-specific business data
 - employee-specific business data
 - customer-owned vehicles
+- customer approval workflow and customer operational active or inactive lifecycle as separate concerns
 
 ### Catalog
 

@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.people.customer.policy;
 
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
@@ -16,6 +17,9 @@ public class CustomerPolicy {
         customer.setCustomerCode(TextValidationUtils.normalizeCode(customer.getCustomerCode(), "customerCode", 50));
         if (customer.getCustomerType() == null) {
             customer.setCustomerType(CustomerType.REGISTERED);
+        }
+        if (customer.getStatus() == null) {
+            customer.setStatus(CustomerStatus.ACTIVE);
         }
         if (customer.getApprovalStatus() == null) {
             customer.setApprovalStatus(CustomerApprovalStatus.PENDING);
@@ -60,11 +64,24 @@ public class CustomerPolicy {
         validateState(customer);
     }
 
+    public void activate(Customer customer) {
+        requireCustomer(customer);
+        customer.setStatus(CustomerStatus.ACTIVE);
+        validateState(customer);
+    }
+
+    public void inactivate(Customer customer) {
+        requireCustomer(customer);
+        customer.setStatus(CustomerStatus.INACTIVE);
+        validateState(customer);
+    }
+
     public void validateState(Customer customer) {
         requireCustomer(customer);
         requireField(customer.getUserProfileId(), "userProfileId");
         customer.setCustomerCode(TextValidationUtils.normalizeCode(customer.getCustomerCode(), "customerCode", 50));
         requireField(customer.getCustomerType(), "customerType");
+        requireField(customer.getStatus(), "status");
         requireField(customer.getApprovalStatus(), "approvalStatus");
 
         switch (customer.getApprovalStatus()) {

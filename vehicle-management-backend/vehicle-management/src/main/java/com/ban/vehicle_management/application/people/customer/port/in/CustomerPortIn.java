@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.people.customer.port.in;
 
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import java.time.Instant;
 import java.util.List;
@@ -15,7 +16,12 @@ public interface CustomerPortIn {
 
     Customer getCustomerById(UUID customerId);
 
-    List<Customer> getCustomers(CustomerApprovalStatus approvalStatus, CustomerType customerType, String keyword);
+    List<Customer> getCustomers(
+            CustomerStatus status,
+            CustomerApprovalStatus approvalStatus,
+            CustomerType customerType,
+            String keyword
+    );
 
     Customer approveCustomer(UUID customerId, UUID approvedBy, Instant approvedAt);
 
@@ -24,4 +30,8 @@ public interface CustomerPortIn {
     Customer suspendCustomer(UUID customerId);
 
     Customer moveCustomerToPending(UUID customerId);
+
+    Customer activateCustomer(UUID customerId);
+
+    Customer inactivateCustomer(UUID customerId);
 }

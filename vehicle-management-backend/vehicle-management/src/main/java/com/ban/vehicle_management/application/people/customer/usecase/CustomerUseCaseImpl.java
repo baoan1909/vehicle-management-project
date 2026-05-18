@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.people.customer.port.out.CustomerP
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customer.policy.CustomerPolicy;
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -69,8 +70,13 @@ public class CustomerUseCaseImpl implements CustomerPortIn {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Customer> getCustomers(CustomerApprovalStatus approvalStatus, CustomerType customerType, String keyword) {
-        return customerPortOut.findAll(approvalStatus, customerType, keyword);
+    public List<Customer> getCustomers(
+            CustomerStatus status,
+            CustomerApprovalStatus approvalStatus,
+            CustomerType customerType,
+            String keyword
+    ) {
+        return customerPortOut.findAll(status, approvalStatus, customerType, keyword);
     }
 
     @Override
@@ -102,6 +108,22 @@ public class CustomerUseCaseImpl implements CustomerPortIn {
     public Customer moveCustomerToPending(UUID customerId) {
         Customer customer = getCustomerById(customerId);
         customerPolicy.moveToPending(customer);
+        return customerPortOut.save(customer);
+    }
+
+    @Override
+    @Transactional
+    public Customer activateCustomer(UUID customerId) {
+        Customer customer = getCustomerById(customerId);
+        customerPolicy.activate(customer);
+        return customerPortOut.save(customer);
+    }
+
+    @Override
+    @Transactional
+    public Customer inactivateCustomer(UUID customerId) {
+        Customer customer = getCustomerById(customerId);
+        customerPolicy.inactivate(customer);
         return customerPortOut.save(customer);
     }
 

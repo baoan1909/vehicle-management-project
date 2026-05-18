@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.people.customer.response;
 
 import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import java.util.UUID;
 import lombok.Getter;
@@ -16,6 +17,7 @@ public class CustomerAdminResponse {
     private UUID userProfileId;
     private String customerCode;
     private CustomerType customerType;
+    private CustomerStatus status;
     private CustomerApprovalStatus approvalStatus;
     private UUID approvedBy;
     private String approvedAt;
