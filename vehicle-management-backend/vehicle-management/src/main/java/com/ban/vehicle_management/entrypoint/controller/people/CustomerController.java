@@ -4,25 +4,23 @@ import com.ban.vehicle_management.application.people.customer.mapper.CustomerApi
 import com.ban.vehicle_management.application.people.customer.port.in.CustomerPortIn;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.request.ApproveCustomerRequest;
+import com.ban.vehicle_management.entrypoint.dto.people.customer.request.CustomerFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.request.CreateCustomerRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.request.UpdateCustomerRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.response.CustomerAdminResponse;
-import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
-import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
-import com.ban.vehicle_management.shared.enumeration.CustomerType;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -57,12 +55,14 @@ public class CustomerController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CustomerAdminResponse>>> getCustomers(
-            @RequestParam(required = false) CustomerStatus status,
-            @RequestParam(required = false) CustomerApprovalStatus approvalStatus,
-            @RequestParam(required = false) CustomerType customerType,
-            @RequestParam(required = false) String keyword
+            @ModelAttribute CustomerFilterRequest request
     ) {
-        List<Customer> customers = customerPortIn.getCustomers(status, approvalStatus, customerType, keyword);
+        List<Customer> customers = customerPortIn.getCustomers(
+                request.status(),
+                request.approvalStatus(),
+                request.customerType(),
+                request.keyword()
+        );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched customers successfully",
                 customerApiMapper.toAdminResponses(customers)

@@ -4,9 +4,9 @@ import com.ban.vehicle_management.application.people.userprofile.mapper.UserProf
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfilePortIn;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.entrypoint.dto.people.userprofile.request.CreateUserProfileRequest;
+import com.ban.vehicle_management.entrypoint.dto.people.userprofile.request.UserProfileFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.userprofile.request.UpdateUserProfileRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.userprofile.response.UserProfileAdminResponse;
-import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,10 +49,9 @@ public class UserProfileController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserProfileAdminResponse>>> getUserProfiles(
-            @RequestParam(required = false) UserProfileStatus status,
-            @RequestParam(required = false) String keyword
+            @ModelAttribute UserProfileFilterRequest request
     ) {
-        List<UserProfile> userProfiles = userProfilePortIn.getUserProfiles(status, keyword);
+        List<UserProfile> userProfiles = userProfilePortIn.getUserProfiles(request.status(), request.keyword());
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched user profiles successfully",
                 userProfileApiMapper.toAdminResponses(userProfiles)

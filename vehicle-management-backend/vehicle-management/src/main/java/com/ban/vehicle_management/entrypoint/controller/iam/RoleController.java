@@ -4,6 +4,7 @@ import com.ban.vehicle_management.application.iam.role.mapper.RoleApiMapper;
 import com.ban.vehicle_management.application.iam.role.port.in.RolePortIn;
 import com.ban.vehicle_management.domain.iam.role.model.Role;
 import com.ban.vehicle_management.entrypoint.dto.iam.role.request.CreateRoleRequest;
+import com.ban.vehicle_management.entrypoint.dto.iam.role.request.RoleFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.role.request.UpdateRoleRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.role.response.RoleAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
@@ -53,12 +54,8 @@ public class RoleController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<RoleAdminResponse>>> getRoles(
-            @RequestParam(required = false) Boolean isActive,
-            @RequestParam(required = false) Boolean isSystem,
-            @RequestParam(required = false) String keyword
-    ) {
-        List<Role> roles = rolePortIn.getRoles(isActive, isSystem, keyword);
+    public ResponseEntity<ApiResponse<List<RoleAdminResponse>>> getRoles(@ModelAttribute RoleFilterRequest request) {
+        List<Role> roles = rolePortIn.getRoles(request.isActive(), request.isSystem(), request.keyword());
         List<RoleAdminResponse> response = roleApiMapper.toAdminResponses(roles);
 
         return ResponseEntity.ok(ApiResponse.ok("Fetched roles successfully", response));
