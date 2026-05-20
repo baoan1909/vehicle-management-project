@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.parking.parkingevent.policy;
 
 import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent;
-import com.ban.vehicle_management.shared.enumeration.ParkingEventType;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 

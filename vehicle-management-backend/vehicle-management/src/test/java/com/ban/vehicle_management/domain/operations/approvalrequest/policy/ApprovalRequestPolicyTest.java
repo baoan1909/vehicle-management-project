@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
-import com.ban.vehicle_management.shared.enumeration.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.time.Instant;
 import java.util.UUID;

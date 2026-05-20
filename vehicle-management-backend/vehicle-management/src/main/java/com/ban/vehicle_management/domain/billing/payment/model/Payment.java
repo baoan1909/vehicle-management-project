@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.billing.payment.model;
 
-import com.ban.vehicle_management.shared.enumeration.PaymentMethod;
-import com.ban.vehicle_management.shared.enumeration.PaymentStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;

@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.domain.iam.account.model;
 
-import com.ban.vehicle_management.shared.enumeration.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

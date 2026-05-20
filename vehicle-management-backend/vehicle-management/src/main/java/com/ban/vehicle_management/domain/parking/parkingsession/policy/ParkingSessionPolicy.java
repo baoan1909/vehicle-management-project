@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.parking.parkingsession.policy;
 
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
-import com.ban.vehicle_management.shared.enumeration.ParkingSessionStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;

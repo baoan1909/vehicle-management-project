@@ -3,6 +3,7 @@ package com.ban.vehicle_management.entrypoint.controller.catalog;
 import com.ban.vehicle_management.application.catalog.cardtype.mapper.CardTypeApiMapper;
 import com.ban.vehicle_management.application.catalog.cardtype.port.in.CardTypePortIn;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
+import com.ban.vehicle_management.entrypoint.dto.catalog.cardtype.request.CardTypeFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.cardtype.request.CreateCardTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.cardtype.request.UpdateCardTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.cardtype.response.CardTypeAdminResponse;
@@ -13,12 +14,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -48,10 +49,8 @@ public class CardTypeController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CardTypeAdminResponse>>> getCardTypes(
-            @RequestParam(required = false) Boolean isActive
-    ) {
-        List<CardType> cardTypes = cardTypePortIn.getCardTypes(isActive);
+    public ResponseEntity<ApiResponse<List<CardTypeAdminResponse>>> getCardTypes(@ModelAttribute CardTypeFilterRequest request) {
+        List<CardType> cardTypes = cardTypePortIn.getCardTypes(request.isActive());
         List<CardTypeAdminResponse> response = cardTypeApiMapper.toAdminResponses(cardTypes);
         return ResponseEntity.ok(ApiResponse.ok("Fetched card types successfully", response));
     }

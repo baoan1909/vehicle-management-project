@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.parking.parkingspace.model.ParkingSpace;
-import com.ban.vehicle_management.shared.enumeration.ParkingSpaceStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

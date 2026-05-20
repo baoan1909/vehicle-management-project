@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.parking.parkingevent.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.ParkingEventType;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

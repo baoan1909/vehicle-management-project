@@ -4,11 +4,11 @@ import com.ban.vehicle_management.application.accesscontrol.card.mapper.CardApiM
 import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardPortIn;
 import com.ban.vehicle_management.application.accesscontrol.card.port.in.ChangeCardStatusPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.CardFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.ChangeCardStatusRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.CreateCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.UpdateCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.response.CardAdminResponse;
-import com.ban.vehicle_management.shared.enumeration.CardStatus;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.ModelAttribute;
 
 @RestController
 @RequestMapping("/api/access-control/cards")
@@ -62,13 +62,13 @@ public class CardController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CardAdminResponse>>> getCards(
-            @RequestParam(required = false) CardStatus status,
-            @RequestParam(required = false) UUID cardTypeId,
-            @RequestParam(required = false) UUID vehicleTypeId,
-            @RequestParam(required = false) String keyword
-    ) {
-        List<Card> cards = cardPortIn.getCards(status, cardTypeId, vehicleTypeId, keyword);
+    public ResponseEntity<ApiResponse<List<CardAdminResponse>>> getCards(@ModelAttribute CardFilterRequest request) {
+        List<Card> cards = cardPortIn.getCards(
+                request.status(),
+                request.cardTypeId(),
+                request.vehicleTypeId(),
+                request.keyword()
+        );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched cards successfully",
                 cardApiMapper.toAdminResponses(cards)
@@ -94,8 +94,8 @@ public class CardController {
     ) {
         Card updatedCard = changeCardStatusPortIn.changeCardStatus(
                 cardId,
-                request.getStatus(),
-                request.getBlockedReason()
+                request.status(),
+                request.blockedReason()
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Card status updated successfully",

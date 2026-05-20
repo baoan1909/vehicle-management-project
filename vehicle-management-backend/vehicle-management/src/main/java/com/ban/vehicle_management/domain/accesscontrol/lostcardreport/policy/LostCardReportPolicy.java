@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.accesscontrol.lostcardreport.policy;
 
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
-import com.ban.vehicle_management.shared.enumeration.LostCardReportStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;

@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.domain.parking.lane.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.LaneDirection;
-import com.ban.vehicle_management.shared.enumeration.LaneStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
+import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

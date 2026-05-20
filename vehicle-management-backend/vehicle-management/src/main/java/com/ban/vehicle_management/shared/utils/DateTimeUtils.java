@@ -88,7 +88,7 @@ public final class DateTimeUtils {
             return null;
         }
 
-        return instant.atZone(VIETNAM_ZONE).toLocalDate();
+        return LocalDate.ofInstant(instant, ZoneOffset.UTC);
     }
 }
 

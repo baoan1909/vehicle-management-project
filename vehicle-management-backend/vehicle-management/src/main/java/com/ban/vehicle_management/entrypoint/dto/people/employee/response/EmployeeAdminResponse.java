@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.people.employee.response;
 
-import com.ban.vehicle_management.shared.enumeration.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.time.LocalDate;
 import java.util.UUID;
 import lombok.Getter;
@@ -23,3 +23,4 @@ public class EmployeeAdminResponse {
     private String updatedAt;
     private UUID updatedBy;
 }
+

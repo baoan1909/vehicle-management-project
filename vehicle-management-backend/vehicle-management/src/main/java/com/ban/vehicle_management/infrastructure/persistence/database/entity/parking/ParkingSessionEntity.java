@@ -10,7 +10,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.par
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSpaceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerVehicleEntity;
-import com.ban.vehicle_management.shared.enumeration.ParkingSessionStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;

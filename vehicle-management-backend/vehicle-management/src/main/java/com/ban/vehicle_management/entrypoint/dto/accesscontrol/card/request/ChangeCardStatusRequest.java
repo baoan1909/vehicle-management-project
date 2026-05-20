@@ -1,15 +1,10 @@
 package com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request;
 
-import com.ban.vehicle_management.shared.enumeration.CardStatus;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 
-@Getter
-@Setter
-@NoArgsConstructor
-public class ChangeCardStatusRequest {
-
-    private CardStatus status;
-    private String blockedReason;
+public record ChangeCardStatusRequest(
+        CardStatus status,
+        String blockedReason
+) {
 }
+

@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.accesscontrol.card.policy;
 
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
-import com.ban.vehicle_management.shared.enumeration.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;

@@ -7,7 +7,7 @@ import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardType
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
-import com.ban.vehicle_management.shared.enumeration.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -173,3 +173,4 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
         return !Objects.equals(normalizedCurrentValue, normalizedNewValue);
     }
 }
+

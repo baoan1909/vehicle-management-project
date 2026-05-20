@@ -5,7 +5,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.har
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ShiftEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.LaneEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ZoneEntity;
-import com.ban.vehicle_management.shared.enumeration.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;

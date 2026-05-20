@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.catalog.pricerule.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.PriceRuleUnit;
+import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.UUID;

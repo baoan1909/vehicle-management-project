@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.application.people.employee.port.out;
 
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
-import com.ban.vehicle_management.shared.enumeration.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,3 +22,4 @@ public interface EmployeePortOut {
 
     boolean existsUserProfileById(UUID userProfileId);
 }
+

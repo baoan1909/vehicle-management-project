@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.domain.hardware.device.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.DeviceStatus;
-import com.ban.vehicle_management.shared.enumeration.DeviceType;
+import com.ban.vehicle_management.shared.enumeration.hardware.DeviceStatus;
+import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;

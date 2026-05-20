@@ -9,10 +9,10 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.SubscriptionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.accesscontrol.CardSpecifications;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
-import com.ban.vehicle_management.shared.enumeration.CardStatus;
-import com.ban.vehicle_management.shared.enumeration.LostCardReportStatus;
-import com.ban.vehicle_management.shared.enumeration.ParkingSessionStatus;
-import com.ban.vehicle_management.shared.enumeration.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

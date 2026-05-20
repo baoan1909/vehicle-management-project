@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.domain.operations.supportticket.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.SupportTicketPriority;
-import com.ban.vehicle_management.shared.enumeration.SupportTicketStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketPriority;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

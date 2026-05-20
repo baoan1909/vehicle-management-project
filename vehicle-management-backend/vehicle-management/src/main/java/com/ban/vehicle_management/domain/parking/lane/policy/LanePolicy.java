@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.parking.lane.policy;
 
 import com.ban.vehicle_management.domain.parking.lane.model.Lane;
-import com.ban.vehicle_management.shared.enumeration.LaneStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 

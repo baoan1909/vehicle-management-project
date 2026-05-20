@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.application.people.userprofile.port.in;
 
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
-import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,3 +19,4 @@ public interface UserProfilePortIn {
 
     void deleteUserProfile(UUID userProfileId);
 }
+

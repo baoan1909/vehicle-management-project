@@ -4,6 +4,7 @@ import com.ban.vehicle_management.application.catalog.vehicletype.mapper.Vehicle
 import com.ban.vehicle_management.application.catalog.vehicletype.port.in.VehicleTypePortIn;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.CreateVehicleTypeRequest;
+import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.VehicleTypeFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.UpdateVehicleTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.response.VehicleTypeAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
@@ -13,12 +14,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -53,9 +54,9 @@ public class VehicleTypeController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<VehicleTypeAdminResponse>>> getVehicleTypes(
-            @RequestParam(required = false) Boolean isActive
+            @ModelAttribute VehicleTypeFilterRequest request
     ) {
-        List<VehicleType> vehicleTypes = vehicleTypePortIn.getVehicleTypes(isActive);
+        List<VehicleType> vehicleTypes = vehicleTypePortIn.getVehicleTypes(request.isActive());
         List<VehicleTypeAdminResponse> response = vehicleTypeApiMapper.toAdminResponses(vehicleTypes);
         return ResponseEntity.ok(ApiResponse.ok("Fetched vehicle types successfully", response));
     }

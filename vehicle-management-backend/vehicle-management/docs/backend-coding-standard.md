@@ -99,6 +99,7 @@ Preferred package structure:
 - `infrastructure.persistence.adapter.<schema>`
 - `infrastructure.security`
 - `infrastructure.mapper.<schema>`
+- `shared.enumeration.<schema>` for enums that belong to a specific database schema or bounded context
 
 Examples for this project:
 
@@ -151,6 +152,7 @@ Use explicit DTO names:
 
 - `CreateXxxRequest`
 - `UpdateXxxRequest`
+- `XxxFilterRequest`
 - `XxxResponse`
 - `XxxAdminResponse`
 - `XxxUserResponse`
@@ -165,11 +167,20 @@ Examples aligned with current schema:
 
 - `CreateAccountRequest`
 - `UpdateUserProfileRequest`
+- `CardFilterRequest`
 - `SubscriptionAdminResponse`
 - `ParkingSessionDetailResponse`
 - `LostCardReportAdminResponse`
 
 Do not use vague names such as `XxxDto` when the actual intent is already known.
+
+Use `XxxFilterRequest` when a `GET` list endpoint has several optional filter
+fields and `@ModelAttribute` binding keeps the controller method clearer than
+many separate `@RequestParam` arguments.
+
+Request DTOs under `entrypoint.dto.<schema>.<table>.request` should normally be
+implemented as Java `record` types. Prefer regular classes only when a concrete
+framework-binding or serialization limitation requires mutable DTOs.
 
 ## 6. Use case naming
 
@@ -290,6 +301,8 @@ Do not generate new entities with `Long` identifiers when the actual table uses 
 ## 12. Status and enum rule
 
 Application and domain enums must stay aligned with the actual schema constraints.
+
+Place schema-related enums under `shared.enumeration.<schema>` instead of a flat shared enum package so the enum vocabulary stays aligned with the PostgreSQL schema map.
 
 Important current status sets include:
 

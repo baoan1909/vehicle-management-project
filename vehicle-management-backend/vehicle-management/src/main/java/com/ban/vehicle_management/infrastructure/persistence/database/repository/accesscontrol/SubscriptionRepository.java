@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.SubscriptionEntity;
-import com.ban.vehicle_management.shared.enumeration.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import java.util.Collection;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;

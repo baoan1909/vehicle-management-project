@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
-import com.ban.vehicle_management.shared.enumeration.SupportTicketPriority;
-import com.ban.vehicle_management.shared.enumeration.SupportTicketStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketPriority;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.time.Instant;
 import java.util.UUID;

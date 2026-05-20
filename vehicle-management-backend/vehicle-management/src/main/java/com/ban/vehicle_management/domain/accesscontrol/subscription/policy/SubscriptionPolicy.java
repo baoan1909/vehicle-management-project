@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.accesscontrol.subscription.policy;
 
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
-import com.ban.vehicle_management.shared.enumeration.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
 import java.time.Instant;

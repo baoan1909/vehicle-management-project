@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.specification.accesscontrol;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.CardEntity;
-import com.ban.vehicle_management.shared.enumeration.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

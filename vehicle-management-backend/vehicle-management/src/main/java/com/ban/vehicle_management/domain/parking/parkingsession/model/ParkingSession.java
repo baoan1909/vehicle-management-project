@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.parking.parkingsession.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.ParkingSessionStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;

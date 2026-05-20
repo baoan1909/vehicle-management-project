@@ -4,8 +4,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.com
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.hardware.DeviceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingEventEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity;
-import com.ban.vehicle_management.shared.enumeration.LaneDirection;
-import com.ban.vehicle_management.shared.enumeration.LaneStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
+import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;

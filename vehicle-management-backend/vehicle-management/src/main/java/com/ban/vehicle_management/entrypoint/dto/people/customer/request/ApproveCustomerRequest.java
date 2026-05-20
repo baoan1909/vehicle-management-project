@@ -2,15 +2,9 @@ package com.ban.vehicle_management.entrypoint.dto.people.customer.request;
 
 import java.time.Instant;
 import java.util.UUID;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
-@NoArgsConstructor
-public class ApproveCustomerRequest {
-
-    private UUID approvedBy;
-    private Instant approvedAt;
+public record ApproveCustomerRequest(
+        UUID approvedBy,
+        Instant approvedAt
+) {
 }

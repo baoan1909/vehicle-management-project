@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.entity.iam;
 
-import com.ban.vehicle_management.shared.enumeration.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
