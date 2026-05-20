@@ -32,17 +32,22 @@ public class CustomerVehiclePolicy {
     public void inactivate(CustomerVehicle customerVehicle) {
         requireCustomerVehicle(customerVehicle);
         customerVehicle.setStatus(CustomerVehicleStatus.INACTIVE);
+        customerVehicle.setIsDefault(Boolean.FALSE);
         validateState(customerVehicle);
     }
 
     public void block(CustomerVehicle customerVehicle) {
         requireCustomerVehicle(customerVehicle);
         customerVehicle.setStatus(CustomerVehicleStatus.BLOCKED);
+        customerVehicle.setIsDefault(Boolean.FALSE);
         validateState(customerVehicle);
     }
 
     public void markDefault(CustomerVehicle customerVehicle) {
         requireCustomerVehicle(customerVehicle);
+        if (customerVehicle.getStatus() != CustomerVehicleStatus.ACTIVE) {
+            throw new BadRequestException("Only ACTIVE customer vehicle can be marked as default");
+        }
         customerVehicle.setIsDefault(Boolean.TRUE);
         validateState(customerVehicle);
     }
@@ -64,6 +69,10 @@ public class CustomerVehiclePolicy {
 
         if (customerVehicle.getIsDefault() == null) {
             customerVehicle.setIsDefault(Boolean.FALSE);
+        }
+        if (Boolean.TRUE.equals(customerVehicle.getIsDefault())
+                && customerVehicle.getStatus() != CustomerVehicleStatus.ACTIVE) {
+            throw new BadRequestException("Default customer vehicle must be ACTIVE");
         }
     }
 

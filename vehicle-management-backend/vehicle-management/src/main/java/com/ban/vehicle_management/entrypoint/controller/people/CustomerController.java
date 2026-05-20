@@ -86,7 +86,7 @@ public class CustomerController {
             @PathVariable UUID customerId,
             @RequestBody ApproveCustomerRequest request
     ) {
-        Customer approvedCustomer = customerPortIn.approveCustomer(customerId, request.getApprovedBy(), request.getApprovedAt());
+        Customer approvedCustomer = customerPortIn.approveCustomer(customerId, request.approvedBy(), request.approvedAt());
         return ResponseEntity.ok(ApiResponse.ok(
                 "Customer approved successfully",
                 customerApiMapper.toAdminResponse(approvedCustomer)

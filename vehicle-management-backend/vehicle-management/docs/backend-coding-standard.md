@@ -151,6 +151,7 @@ Use explicit DTO names:
 
 - `CreateXxxRequest`
 - `UpdateXxxRequest`
+- `XxxFilterRequest`
 - `XxxResponse`
 - `XxxAdminResponse`
 - `XxxUserResponse`
@@ -165,11 +166,20 @@ Examples aligned with current schema:
 
 - `CreateAccountRequest`
 - `UpdateUserProfileRequest`
+- `CardFilterRequest`
 - `SubscriptionAdminResponse`
 - `ParkingSessionDetailResponse`
 - `LostCardReportAdminResponse`
 
 Do not use vague names such as `XxxDto` when the actual intent is already known.
+
+Use `XxxFilterRequest` when a `GET` list endpoint has several optional filter
+fields and `@ModelAttribute` binding keeps the controller method clearer than
+many separate `@RequestParam` arguments.
+
+Request DTOs under `entrypoint.dto.<schema>.<table>.request` should normally be
+implemented as Java `record` types. Prefer regular classes only when a concrete
+framework-binding or serialization limitation requires mutable DTOs.
 
 ## 6. Use case naming
 

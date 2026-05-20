@@ -73,6 +73,7 @@ Do not invent new core modules or persistence concepts when the current schema a
 - Keep API DTOs under `entrypoint.dto.<schema>.<table>.request` and `entrypoint.dto.<schema>.<table>.response`.
 - Do not place DTO packages under `entrypoint.controller`.
 - Keep package naming aligned with existing code conventions such as `accesscontrol` for the `access_control` schema.
+- Prefer `record` for all request DTOs under `entrypoint.dto.<schema>.<table>.request`. Keep response DTOs as regular classes unless there is a clear reason to change them.
 
 ## Schema-aligned design rules
 
@@ -91,6 +92,7 @@ Do not invent new core modules or persistence concepts when the current schema a
 
 - `CreateXxxRequest` for create input
 - `UpdateXxxRequest` for update input
+- `XxxFilterRequest` for list and search filter input when a `GET` endpoint has multiple filter fields
 - `XxxResponse` for general output
 - `XxxAdminResponse` for admin-facing output
 - `XxxUserResponse` for user-facing output
@@ -101,6 +103,7 @@ Do not invent new core modules or persistence concepts when the current schema a
 - `XxxMapper` for MapStruct mappers
 - `XxxPersistenceAdapter` for persistence adapters
 - `XxxSecurityAdapter` for security adapters
+- Request DTOs should normally be immutable `record` types. Use a regular class only when a framework constraint or documented technical reason makes `record` unsuitable.
 
 ## Mapping rules
 

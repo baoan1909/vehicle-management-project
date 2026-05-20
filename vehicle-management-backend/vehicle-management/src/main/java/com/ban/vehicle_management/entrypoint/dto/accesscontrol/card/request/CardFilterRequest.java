@@ -1,9 +1,12 @@
 package com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request;
 
 import com.ban.vehicle_management.shared.enumeration.CardStatus;
+import java.util.UUID;
 
-public record ChangeCardStatusRequest(
+public record CardFilterRequest(
         CardStatus status,
-        String blockedReason
+        UUID cardTypeId,
+        UUID vehicleTypeId,
+        String keyword
 ) {
 }
