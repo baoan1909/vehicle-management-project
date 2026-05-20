@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.people.employee.request;
 
-import com.ban.vehicle_management.shared.enumeration.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.time.LocalDate;
 
 public record UpdateEmployeeRequest(
@@ -10,3 +10,4 @@ public record UpdateEmployeeRequest(
         EmployeeStatus status
 ) {
 }
+

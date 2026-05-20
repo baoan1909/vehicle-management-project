@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.catalog.priceplan.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.PricePlanAppliesTo;
+import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
 import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

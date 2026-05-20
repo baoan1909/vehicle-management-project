@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
-import com.ban.vehicle_management.shared.enumeration.ParkingSessionStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
 import java.time.Instant;

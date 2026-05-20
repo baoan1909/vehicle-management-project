@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
-import com.ban.vehicle_management.shared.enumeration.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.LocalDate;

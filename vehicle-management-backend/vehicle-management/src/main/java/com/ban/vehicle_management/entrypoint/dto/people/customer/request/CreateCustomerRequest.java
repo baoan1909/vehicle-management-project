@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.people.customer.request;
 
-import com.ban.vehicle_management.shared.enumeration.CustomerType;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
 import java.util.UUID;
 
 public record CreateCustomerRequest(
@@ -9,3 +9,4 @@ public record CreateCustomerRequest(
         CustomerType customerType
 ) {
 }
+

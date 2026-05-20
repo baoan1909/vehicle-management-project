@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.response;
 
-import com.ban.vehicle_management.shared.enumeration.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,3 +25,4 @@ public class CardAdminResponse {
     private String updatedAt;
     private UUID updatedBy;
 }
+

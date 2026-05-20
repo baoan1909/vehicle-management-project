@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.operations.shift.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.ShiftStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ShiftStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;

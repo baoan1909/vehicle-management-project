@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.application.people.customervehicle.port.out;
 
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
-import com.ban.vehicle_management.shared.enumeration.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,3 +30,4 @@ public interface CustomerVehiclePortOut {
 
     List<CustomerVehicle> findDefaultVehiclesByCustomerId(UUID customerId);
 }
+

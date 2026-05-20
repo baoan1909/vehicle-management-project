@@ -2,7 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.ca
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.PriceRuleEntity;
-import com.ban.vehicle_management.shared.enumeration.PricePlanAppliesTo;
+import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;

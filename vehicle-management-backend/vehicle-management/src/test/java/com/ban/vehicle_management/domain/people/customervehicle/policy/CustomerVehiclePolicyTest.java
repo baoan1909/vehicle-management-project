@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
-import com.ban.vehicle_management.shared.enumeration.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

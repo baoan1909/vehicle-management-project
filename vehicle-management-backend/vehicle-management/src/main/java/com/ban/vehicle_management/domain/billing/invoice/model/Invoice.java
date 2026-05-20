@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.billing.invoice.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;

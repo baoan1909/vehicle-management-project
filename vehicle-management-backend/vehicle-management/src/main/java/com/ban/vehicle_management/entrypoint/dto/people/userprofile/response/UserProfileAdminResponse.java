@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.people.userprofile.response;
 
-import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -27,3 +27,4 @@ public class UserProfileAdminResponse {
     private String updatedAt;
     private UUID updatedBy;
 }
+

@@ -8,7 +8,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerVehicleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.people.CustomerVehicleSpecifications;
-import com.ban.vehicle_management.shared.enumeration.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

@@ -3,7 +3,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.pa
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ZoneEntity;
-import com.ban.vehicle_management.shared.enumeration.ParkingSpaceStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;

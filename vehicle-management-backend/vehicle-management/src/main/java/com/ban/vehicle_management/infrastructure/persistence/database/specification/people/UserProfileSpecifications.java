@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.specification.people;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
-import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 

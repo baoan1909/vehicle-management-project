@@ -99,6 +99,7 @@ Preferred package structure:
 - `infrastructure.persistence.adapter.<schema>`
 - `infrastructure.security`
 - `infrastructure.mapper.<schema>`
+- `shared.enumeration.<schema>` for enums that belong to a specific database schema or bounded context
 
 Examples for this project:
 
@@ -300,6 +301,8 @@ Do not generate new entities with `Long` identifiers when the actual table uses 
 ## 12. Status and enum rule
 
 Application and domain enums must stay aligned with the actual schema constraints.
+
+Place schema-related enums under `shared.enumeration.<schema>` instead of a flat shared enum package so the enum vocabulary stays aligned with the PostgreSQL schema map.
 
 Important current status sets include:
 

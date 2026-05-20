@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.people.employee.policy;
 
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
-import com.ban.vehicle_management.shared.enumeration.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.LocalDate;

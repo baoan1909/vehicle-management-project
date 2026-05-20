@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.domain.notification.notification.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.NotificationChannel;
-import com.ban.vehicle_management.shared.enumeration.NotificationStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

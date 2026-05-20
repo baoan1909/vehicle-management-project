@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.application.people.employee.port.in;
 
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
-import com.ban.vehicle_management.shared.enumeration.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.util.List;
 import java.util.UUID;
 
@@ -23,3 +23,4 @@ public interface EmployeePortIn {
 
     Employee suspendEmployee(UUID employeeId);
 }
+

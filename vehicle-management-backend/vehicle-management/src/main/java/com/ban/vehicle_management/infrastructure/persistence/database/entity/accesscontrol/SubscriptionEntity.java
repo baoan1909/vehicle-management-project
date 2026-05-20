@@ -8,7 +8,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.com
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerVehicleEntity;
-import com.ban.vehicle_management.shared.enumeration.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;

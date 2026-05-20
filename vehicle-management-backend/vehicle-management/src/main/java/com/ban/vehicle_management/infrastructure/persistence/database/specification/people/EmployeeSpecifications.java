@@ -2,7 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.specifica
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
-import com.ban.vehicle_management.shared.enumeration.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;

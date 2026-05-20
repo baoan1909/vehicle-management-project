@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.people.userprofile.policy;
 
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
-import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.LocalDate;

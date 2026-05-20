@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.operations.approvalrequest.policy;
 
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
-import com.ban.vehicle_management.shared.enumeration.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;

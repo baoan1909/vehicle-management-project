@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.people.customervehicle.response;
 
-import com.ban.vehicle_management.shared.enumeration.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,3 +24,4 @@ public class CustomerVehicleAdminResponse {
     private String updatedAt;
     private UUID updatedBy;
 }
+

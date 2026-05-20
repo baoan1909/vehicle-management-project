@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.parking.lane.model.Lane;
-import com.ban.vehicle_management.shared.enumeration.LaneDirection;
-import com.ban.vehicle_management.shared.enumeration.LaneStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
+import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

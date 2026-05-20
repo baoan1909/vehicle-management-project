@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.application.accesscontrol.card.port.out;
 
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
-import com.ban.vehicle_management.shared.enumeration.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,3 +26,4 @@ public interface CardPortOut {
 
     boolean hasActiveUsage(UUID cardId);
 }
+

@@ -52,6 +52,7 @@ Do not invent new core modules or persistence concepts when the current schema a
 - Reuse `shared.utils.DateTimeUtils` for shared date/time parsing, formatting, and day-range calculations.
 - API-visible date/time values must go through `DateTimeUtils` before being returned for display.
 - For Vietnam day-based queries, use `DateTimeUtils.startOfDayInVietnamInstant(...)`, `DateTimeUtils.startOfNextDayInVietnamInstant(...)`, and `DateTimeUtils.toVietnamLocalDate(...)`.
+- Keep schema-related enums under `shared.enumeration.<schema>` instead of a single flat `shared.enumeration` package.
 - For PostgreSQL identifiers, prefer `UUID`.
 - If an entity mirrors auditable tables with `created_at`, `created_by`, `updated_at`, `updated_by`, it should follow the shared audit abstraction used by the project.
 - Current user access must respect the existing security abstraction.

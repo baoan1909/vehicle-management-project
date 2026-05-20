@@ -2,9 +2,9 @@ package com.ban.vehicle_management.infrastructure.persistence.database.specifica
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
-import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
-import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
-import com.ban.vehicle_management.shared.enumeration.CustomerType;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;

@@ -3,8 +3,8 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.ha
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.LaneEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity;
-import com.ban.vehicle_management.shared.enumeration.DeviceStatus;
-import com.ban.vehicle_management.shared.enumeration.DeviceType;
+import com.ban.vehicle_management.shared.enumeration.hardware.DeviceStatus;
+import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;

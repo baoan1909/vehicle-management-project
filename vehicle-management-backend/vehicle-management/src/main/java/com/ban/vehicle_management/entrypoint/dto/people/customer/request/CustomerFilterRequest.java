@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.entrypoint.dto.people.customer.request;
 
-import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
-import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
-import com.ban.vehicle_management.shared.enumeration.CustomerType;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
 
 public record CustomerFilterRequest(
         CustomerStatus status,
@@ -11,3 +11,4 @@ public record CustomerFilterRequest(
         String keyword
 ) {
 }
+

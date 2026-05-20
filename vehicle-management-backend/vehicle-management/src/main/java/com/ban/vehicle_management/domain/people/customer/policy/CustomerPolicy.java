@@ -1,9 +1,9 @@
 package com.ban.vehicle_management.domain.people.customer.policy;
 
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
-import com.ban.vehicle_management.shared.enumeration.CustomerApprovalStatus;
-import com.ban.vehicle_management.shared.enumeration.CustomerStatus;
-import com.ban.vehicle_management.shared.enumeration.CustomerType;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;

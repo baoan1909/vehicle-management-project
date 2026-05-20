@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.people.userprofile.request;
 
-import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import java.time.LocalDate;
 
 public record CreateUserProfileRequest(
@@ -14,3 +14,4 @@ public record CreateUserProfileRequest(
         UserProfileStatus status
 ) {
 }
+

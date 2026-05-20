@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.parking.parkinglot.policy;
 
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
-import com.ban.vehicle_management.shared.enumeration.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 

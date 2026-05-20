@@ -2,8 +2,8 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.no
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
-import com.ban.vehicle_management.shared.enumeration.NotificationChannel;
-import com.ban.vehicle_management.shared.enumeration.NotificationStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;

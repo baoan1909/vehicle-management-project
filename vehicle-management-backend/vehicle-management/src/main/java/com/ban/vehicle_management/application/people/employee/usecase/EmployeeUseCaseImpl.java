@@ -4,7 +4,7 @@ import com.ban.vehicle_management.application.people.employee.port.in.EmployeePo
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.employee.policy.EmployeePolicy;
-import com.ban.vehicle_management.shared.enumeration.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
@@ -115,3 +115,4 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         }
     }
 }
+

@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.parking.parkinglot.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

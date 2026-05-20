@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.accesscontrol.card.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

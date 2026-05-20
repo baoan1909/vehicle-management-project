@@ -27,6 +27,7 @@ src/main/java/com/ban/vehicle_management
 |   +-- persistence/adapter/<schema>
 |   `-- security
 `-- shared
+    `-- enumeration/<schema>
 ```
 
 ## Schema to feature map
@@ -53,3 +54,4 @@ src/main/java/com/ban/vehicle_management
 - Test directories under `src/test/java/com/ban/vehicle_management` follow the same schema-first grouping.
 - Dynamic JPA filter builders based on `JpaSpecificationExecutor` should live under `infrastructure/persistence/database/specification/<schema>`.
 - Only add files there when a real `Specification` is needed. Do not create placeholder files such as `package-info.java` only to keep an empty folder in Git.
+- Schema-related enums should live under `shared/enumeration/<schema>`.

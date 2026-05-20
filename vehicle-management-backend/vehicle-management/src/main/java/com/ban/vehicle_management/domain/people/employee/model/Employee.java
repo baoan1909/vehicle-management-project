@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.people.employee.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

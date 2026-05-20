@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.operations.approvalrequest.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

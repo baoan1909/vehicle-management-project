@@ -15,7 +15,7 @@ import com.ban.vehicle_management.application.catalog.vehicletype.port.out.Vehic
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
-import com.ban.vehicle_management.shared.enumeration.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;

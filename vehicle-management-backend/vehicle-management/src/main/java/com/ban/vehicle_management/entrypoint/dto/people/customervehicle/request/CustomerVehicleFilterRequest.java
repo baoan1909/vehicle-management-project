@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request;
 
-import com.ban.vehicle_management.shared.enumeration.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import java.util.UUID;
 
 public record CustomerVehicleFilterRequest(
@@ -11,3 +11,4 @@ public record CustomerVehicleFilterRequest(
         String keyword
 ) {
 }
+

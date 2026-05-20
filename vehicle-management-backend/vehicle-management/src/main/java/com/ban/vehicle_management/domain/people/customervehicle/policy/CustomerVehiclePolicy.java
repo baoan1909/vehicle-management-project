@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.people.customervehicle.policy;
 
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
-import com.ban.vehicle_management.shared.enumeration.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 

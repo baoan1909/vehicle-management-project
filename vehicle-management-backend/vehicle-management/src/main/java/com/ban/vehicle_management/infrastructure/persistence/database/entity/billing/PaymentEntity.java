@@ -2,8 +2,8 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.bi
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.InvoiceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
-import com.ban.vehicle_management.shared.enumeration.PaymentMethod;
-import com.ban.vehicle_management.shared.enumeration.PaymentStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;

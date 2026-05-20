@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.catalog.pricerule.policy;
 
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
-import com.ban.vehicle_management.shared.enumeration.PriceRuleUnit;
+import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;

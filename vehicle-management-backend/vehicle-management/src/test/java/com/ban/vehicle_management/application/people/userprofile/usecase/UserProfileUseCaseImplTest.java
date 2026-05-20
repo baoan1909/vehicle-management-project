@@ -2,7 +2,7 @@ package com.ban.vehicle_management.application.people.userprofile.usecase;
 
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
-import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import org.junit.jupiter.api.Test;

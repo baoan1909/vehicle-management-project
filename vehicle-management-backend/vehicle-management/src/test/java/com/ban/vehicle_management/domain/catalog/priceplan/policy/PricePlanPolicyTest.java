@@ -5,7 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
-import com.ban.vehicle_management.shared.enumeration.PricePlanAppliesTo;
+import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;

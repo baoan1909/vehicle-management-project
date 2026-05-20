@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.domain.operations.supportticket.policy;
 
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
-import com.ban.vehicle_management.shared.enumeration.SupportTicketPriority;
-import com.ban.vehicle_management.shared.enumeration.SupportTicketStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketPriority;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;

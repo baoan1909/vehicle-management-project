@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.people.userprofile.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import java.time.LocalDate;
 import java.util.UUID;
 import lombok.AllArgsConstructor;

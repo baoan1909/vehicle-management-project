@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.LostCardReportStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;

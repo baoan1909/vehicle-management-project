@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.accesscontrol.subscription.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
