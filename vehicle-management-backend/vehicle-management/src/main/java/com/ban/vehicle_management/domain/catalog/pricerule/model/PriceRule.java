@@ -27,5 +27,6 @@ public class PriceRule extends AuditableDomainModel {
     private PriceRuleUnit unit;
     private BigDecimal lostCardFee;
     private Integer priority;
+    private Boolean isActive;
 }
 

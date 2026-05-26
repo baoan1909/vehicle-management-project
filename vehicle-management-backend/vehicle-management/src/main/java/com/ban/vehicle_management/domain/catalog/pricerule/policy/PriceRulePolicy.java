@@ -43,6 +43,10 @@ public class PriceRulePolicy {
         if (hasTimeFrom && !priceRule.getTimeFrom().isBefore(priceRule.getTimeTo())) {
             throw new BadRequestException("timeFrom must be before timeTo");
         }
+
+        if (priceRule.getIsActive() == null) {
+            priceRule.setIsActive(Boolean.TRUE);
+        }
     }
 
     private void requirePriceRule(PriceRule priceRule) {
@@ -55,6 +59,17 @@ public class PriceRulePolicy {
         if (value == null) {
             throw new BadRequestException(fieldName + " must not be null");
         }
+    }
+
+    public void activate(PriceRule priceRule) {
+        requirePriceRule(priceRule);
+        priceRule.setIsActive(Boolean.TRUE);
+        initialize(priceRule);
+    }
+
+    public void deactivate(PriceRule priceRule) {
+        requirePriceRule(priceRule);
+        priceRule.setIsActive(Boolean.FALSE);
     }
 }
 

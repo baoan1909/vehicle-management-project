@@ -88,6 +88,9 @@ public class PriceRuleEntity extends AuditableEntity {
     @OneToMany(mappedBy = "priceRule")
     private Set<ParkingSessionEntity> parkingSessions = new HashSet<>();
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
+
 }
 
 

@@ -1,0 +1,2 @@
+ALTER TABLE catalog.price_rules
+    ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE;
