@@ -37,5 +37,11 @@ public class PricePlanPolicy {
             throw new BadRequestException(fieldName + " must not be null");
         }
     }
+
+    public void activate(PricePlan pricePlan) {
+        requirePricePlan(pricePlan);
+        pricePlan.setIsActive(Boolean.TRUE);
+        initialize(pricePlan);
+    }
 }
 

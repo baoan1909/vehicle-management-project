@@ -1,11 +1,9 @@
-package com.ban.vehicle_management.domain.catalog.pricerule.model;
+package com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.response;
 
-import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
 import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,9 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class PriceRule extends AuditableDomainModel {
-
+public class PriceRuleAdminResponse {
     private UUID priceRuleId;
     private UUID pricePlanId;
     private UUID vehicleTypeId;
@@ -28,5 +24,8 @@ public class PriceRule extends AuditableDomainModel {
     private BigDecimal lostCardFee;
     private Integer priority;
     private Boolean isActive;
+    private String createdAt;
+    private UUID createdBy;
+    private String updatedAt;
+    private UUID updatedBy;
 }
-
