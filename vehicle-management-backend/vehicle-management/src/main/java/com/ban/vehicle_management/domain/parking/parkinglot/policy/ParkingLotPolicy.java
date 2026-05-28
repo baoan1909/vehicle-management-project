@@ -12,12 +12,14 @@ public class ParkingLotPolicy {
         parkingLot.setCode(TextValidationUtils.normalizeCode(parkingLot.getCode(), "code", 50));
         parkingLot.setName(TextValidationUtils.normalizeRequiredText(parkingLot.getName(), "name", 150));
         parkingLot.setAddress(TextValidationUtils.normalizeNullableText(parkingLot.getAddress(), "address", 0));
+
         if (parkingLot.getTotalCapacity() == null) {
             parkingLot.setTotalCapacity(0);
         }
         if (parkingLot.getStatus() == null) {
             parkingLot.setStatus(ParkingLotStatus.ACTIVE);
         }
+
         validateState(parkingLot);
     }
 
@@ -62,6 +64,4 @@ public class ParkingLotPolicy {
             throw new BadRequestException(fieldName + " must not be null");
         }
     }
-
 }
-
