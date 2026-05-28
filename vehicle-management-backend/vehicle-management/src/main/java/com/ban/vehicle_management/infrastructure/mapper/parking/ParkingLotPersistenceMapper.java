@@ -11,5 +11,3 @@ public interface ParkingLotPersistenceMapper {
 
     ParkingLot toDomain(ParkingLotEntity entity);
 }
-
-
