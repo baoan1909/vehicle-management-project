@@ -36,8 +36,8 @@ public class LaneEntity extends AuditableEntity {
     @Column(name = "lane_id", nullable = false)
     private UUID laneId;
 
-    @Column(name = "parking_lot_id", nullable = false)
-    private UUID parkingLotId;
+    @Column(name = "gate_id", nullable = false)
+    private UUID gateId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "parking_lot_id", referencedColumnName = "parking_lot_id", insertable = false, updatable = false)
