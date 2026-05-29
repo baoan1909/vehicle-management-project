@@ -296,4 +296,30 @@ class ZoneUseCaseImplTest {
         zone.setStatus(ZoneStatus.ACTIVE);
         return zone;
     }
+
+    @Test
+    void shouldRejectDeleteWhenZoneHasActiveGates() {
+        UUID zoneId = UUID.randomUUID();
+        Zone existingZone = validZone(UUID.randomUUID(), UUID.randomUUID());
+        existingZone.setZoneId(zoneId);
+
+        when(zonePortOut.findById(zoneId)).thenReturn(Optional.of(existingZone));
+        when(zonePortOut.hasActiveGates(zoneId)).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> zoneUseCase.deleteZone(zoneId));
+        verify(zonePortOut, never()).save(any(Zone.class));
+    }
+
+    @Test
+    void shouldRejectCloseWhenZoneHasActiveGates() {
+        UUID zoneId = UUID.randomUUID();
+        Zone existingZone = validZone(UUID.randomUUID(), UUID.randomUUID());
+        existingZone.setZoneId(zoneId);
+
+        when(zonePortOut.findById(zoneId)).thenReturn(Optional.of(existingZone));
+        when(zonePortOut.hasActiveGates(zoneId)).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> zoneUseCase.closeZone(zoneId));
+        verify(zonePortOut, never()).save(any(Zone.class));
+    }
 }

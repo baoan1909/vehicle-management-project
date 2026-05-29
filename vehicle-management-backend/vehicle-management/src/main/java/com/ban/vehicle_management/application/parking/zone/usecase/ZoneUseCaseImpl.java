@@ -84,7 +84,7 @@ public class ZoneUseCaseImpl implements ZonePortIn {
         if (existingZone.getStatus() == ZoneStatus.CLOSED) {
             return;
         }
-
+        ensureNoActiveGates(zoneId);
         ensureNoOpenSessions(zoneId);
 
         zonePolicy.close(existingZone);
@@ -117,6 +117,7 @@ public class ZoneUseCaseImpl implements ZonePortIn {
     public Zone closeZone(UUID zoneId) {
         Zone existingZone = getZoneById(zoneId);
 
+        ensureNoActiveGates(zoneId);
         ensureNoOpenSessions(zoneId);
 
         zonePolicy.close(existingZone);
@@ -153,5 +154,11 @@ public class ZoneUseCaseImpl implements ZonePortIn {
             return null;
         }
         return keyword.trim();
+    }
+
+    private void ensureNoActiveGates(UUID zoneId) {
+        if (zonePortOut.hasActiveGates(zoneId)) {
+            throw new ConflictException("Zone has active gates");
+        }
     }
 }

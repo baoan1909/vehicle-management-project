@@ -5,10 +5,12 @@ import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.infrastructure.mapper.parking.ZonePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ZoneEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.GateRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingLotRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ZoneRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.parking.ZoneSpecifications;
+import com.ban.vehicle_management.shared.enumeration.parking.GateStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
@@ -25,18 +27,21 @@ public class ZonePersistenceAdapter implements ZonePortOut {
     private final VehicleTypeRepository vehicleTypeRepository;
     private final ParkingSessionRepository parkingSessionRepository;
     private final ZonePersistenceMapper zonePersistenceMapper;
+    private final GateRepository gateRepository;
 
     public ZonePersistenceAdapter(
             ZoneRepository zoneRepository,
             ParkingLotRepository parkingLotRepository,
             VehicleTypeRepository vehicleTypeRepository,
             ParkingSessionRepository parkingSessionRepository,
+            GateRepository gateRepository,
             ZonePersistenceMapper zonePersistenceMapper
     ) {
         this.zoneRepository = zoneRepository;
         this.parkingLotRepository = parkingLotRepository;
         this.vehicleTypeRepository = vehicleTypeRepository;
         this.parkingSessionRepository = parkingSessionRepository;
+        this.gateRepository = gateRepository;
         this.zonePersistenceMapper = zonePersistenceMapper;
     }
 
@@ -93,5 +98,10 @@ public class ZonePersistenceAdapter implements ZonePortOut {
     @Override
     public boolean hasOpenSessions(UUID zoneId) {
         return parkingSessionRepository.existsByZoneIdAndStatus(zoneId, ParkingSessionStatus.OPEN);
+    }
+
+    @Override
+    public boolean hasActiveGates(UUID zoneId) {
+        return gateRepository.existsByZoneIdAndStatus(zoneId, GateStatus.ACTIVE);
     }
 }

@@ -24,4 +24,6 @@ public interface ZonePortOut {
     long countOpenSessions(UUID zoneId);
 
     boolean hasOpenSessions(UUID zoneId);
+
+    boolean hasActiveGates(UUID zoneId);
 }
