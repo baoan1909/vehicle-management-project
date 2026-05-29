@@ -1,9 +1,7 @@
-package com.ban.vehicle_management.domain.parking.zone.model;
+package com.ban.vehicle_management.entrypoint.dto.parking.zone.response;
 
-import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -11,9 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class Zone extends AuditableDomainModel {
-
+public class ZoneAdminResponse {
     private UUID zoneId;
     private UUID parkingLotId;
     private String code;
@@ -21,4 +17,8 @@ public class Zone extends AuditableDomainModel {
     private UUID vehicleTypeId;
     private Integer capacity;
     private ZoneStatus status;
+    private String createdAt;
+    private UUID createdBy;
+    private String updatedAt;
+    private UUID updatedBy;
 }

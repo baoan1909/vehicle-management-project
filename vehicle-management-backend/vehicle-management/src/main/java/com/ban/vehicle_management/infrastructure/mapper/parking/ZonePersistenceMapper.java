@@ -11,5 +11,3 @@ public interface ZonePersistenceMapper {
 
     Zone toDomain(ZoneEntity entity);
 }
-
-

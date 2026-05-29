@@ -21,13 +21,12 @@ public class ParkingSession extends AuditableDomainModel {
     private UUID customerId;
     private UUID customerVehicleId;
     private UUID vehicleTypeId;
-    private UUID parkingSpaceId;
+    private UUID zoneId;
     private String licensePlateIn;
     private String licensePlateOut;
     private Instant checkInTime;
     private Instant checkOutTime;
     private ParkingSessionStatus status;
     private BigDecimal totalPrice;
-    private UUID priceRuleId;
 }
 

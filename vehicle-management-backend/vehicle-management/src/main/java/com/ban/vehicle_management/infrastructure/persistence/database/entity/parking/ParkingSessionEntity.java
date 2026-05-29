@@ -3,11 +3,8 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.pa
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.CardEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.LostCardReportEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.InvoiceEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.PriceRuleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingEventEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSpaceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerVehicleEntity;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
@@ -71,12 +68,12 @@ public class ParkingSessionEntity extends AuditableEntity {
     @JoinColumn(name = "vehicle_type_id", referencedColumnName = "vehicle_type_id", insertable = false, updatable = false)
     private VehicleTypeEntity vehicleType;
 
-    @Column(name = "parking_space_id")
-    private UUID parkingSpaceId;
+    @Column(name = "zone_id")
+    private UUID zoneId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parking_space_id", referencedColumnName = "parking_space_id", insertable = false, updatable = false)
-    private ParkingSpaceEntity parkingSpace;
+    @JoinColumn(name = "zone_id", referencedColumnName = "zone_id", insertable = false, updatable = false)
+    private ZoneEntity zone;
 
     @Column(name = "license_plate_in", nullable = false)
     private String licensePlateIn;
@@ -96,13 +93,6 @@ public class ParkingSessionEntity extends AuditableEntity {
 
     @Column(name = "total_price", precision = 12, scale = 2)
     private BigDecimal totalPrice;
-
-    @Column(name = "price_rule_id")
-    private UUID priceRuleId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "price_rule_id", referencedColumnName = "price_rule_id", insertable = false, updatable = false)
-    private PriceRuleEntity priceRule;
 
     @OneToMany(mappedBy = "parkingSession")
     private Set<ParkingEventEntity> parkingEvents = new HashSet<>();
