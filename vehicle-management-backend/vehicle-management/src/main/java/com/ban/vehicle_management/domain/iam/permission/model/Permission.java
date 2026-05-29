@@ -15,8 +15,9 @@ public class Permission extends AuditableDomainModel {
 
     private UUID permissionId;
     private String permissionCode;
-    private String module;
-    private String action;
+    private UUID moduleId;
+    private UUID actionId;
+    private UUID scopeId;
     private String name;
     private String description;
 }

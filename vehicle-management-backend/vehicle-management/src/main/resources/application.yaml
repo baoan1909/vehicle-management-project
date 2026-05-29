@@ -1,22 +1,37 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
   servlet:
     context-path: /vehicle-management
 
 spring:
-#  datasource:
-#    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:vehicle_management_db}"
-#    username: ${DB_USERNAME:postgres}
-#    password: ${DB_PASSWORD:An@19092003}
-#    driver-class-name: org.postgresql.Driver
+  config:
+    import: optional:file:.env[.properties]
 
   datasource:
-    url: "jdbc:postgresql://localhost:5432/vehicle_management_db"
-    username: postgres
-    password: An@19092003
-    driver-class-name: org.postgresql.Driver
+    url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:vehicle_management_db}"
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: ${DB_DRIVER_CLASS_NAME:org.postgresql.Driver}
 
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: true
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+    show-sql: ${JPA_SHOW_SQL:true}
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/vehicle-management}
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:}
+app:
+  security:
+    oauth2:
+      audience: ${KEYCLOAK_AUDIENCE:vehicle-management-api}
+  keycloak:
+    base-url: ${KEYCLOAK_BASE_URL:http://localhost:8081}
+    realm: ${KEYCLOAK_REALM:vehicle-management}
+    frontend-client-id: ${KEYCLOAK_FRONTEND_CLIENT_ID:vehicle-management-frontend}
+    post-action-redirect-uri: ${KEYCLOAK_ACTION_REDIRECT_URI:http://localhost:5173/login}
+    admin-client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:vehicle-management-admin-service}
+    admin-client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:DayLaMotChuKyBiMatCucKyDaiVaAnToanChoUngDungSpring2024}

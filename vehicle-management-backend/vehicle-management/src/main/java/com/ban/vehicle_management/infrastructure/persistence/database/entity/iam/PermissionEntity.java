@@ -29,11 +29,14 @@ public class PermissionEntity extends AuditableEntity {
     @Column(name = "permission_code", nullable = false, unique = true)
     private String permissionCode;
 
-    @Column(name = "module", nullable = false)
-    private String module;
+    @Column(name = "module_id", nullable = false)
+    private UUID moduleId;
 
-    @Column(name = "action", nullable = false)
-    private String action;
+    @Column(name = "action_id", nullable = false)
+    private UUID actionId;
+
+    @Column(name = "scope_id", nullable = false)
+    private UUID scopeId;
 
     @Column(name = "name", nullable = false)
     private String name;

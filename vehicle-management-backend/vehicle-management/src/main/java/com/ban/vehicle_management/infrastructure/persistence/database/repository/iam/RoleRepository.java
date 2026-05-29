@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public interface RoleRepository extends JpaRepository<RoleEntity, UUID>, JpaSpecificationExecutor<RoleEntity> {
@@ -11,6 +12,8 @@ public interface RoleRepository extends JpaRepository<RoleEntity, UUID>, JpaSpec
     boolean existsByCode(String code);
 
     boolean existsByCodeAndRoleIdNot(String code, UUID roleId);
+
+    Optional<RoleEntity> findByCode(String code);
 }
 
 
