@@ -5,11 +5,14 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.infrastructure.mapper.parking.ParkingLotPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingLotRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ZoneRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.parking.ParkingLotSpecifications;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,12 +20,15 @@ public class ParkingLotPersistenceAdapter implements ParkingLotPortOut {
 
     private final ParkingLotRepository parkingLotRepository;
     private final ParkingLotPersistenceMapper parkingLotPersistenceMapper;
+    private final ZoneRepository zoneRepository;
 
     public ParkingLotPersistenceAdapter(
             ParkingLotRepository parkingLotRepository,
+            ZoneRepository zoneRepository,
             ParkingLotPersistenceMapper parkingLotPersistenceMapper
     ) {
         this.parkingLotRepository = parkingLotRepository;
+        this.zoneRepository = zoneRepository;
         this.parkingLotPersistenceMapper = parkingLotPersistenceMapper;
     }
 
@@ -58,5 +64,10 @@ public class ParkingLotPersistenceAdapter implements ParkingLotPortOut {
     @Override
     public boolean existsByCodeAndParkingLotIdNot(String code, UUID parkingLotId) {
         return parkingLotRepository.existsByCodeAndParkingLotIdNot(code, parkingLotId);
+    }
+
+    @Override
+    public boolean hasActiveZones(UUID parkingLotId) {
+        return zoneRepository.existsByParkingLotIdAndStatus(parkingLotId, ZoneStatus.ACTIVE);
     }
 }

@@ -76,6 +76,8 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
             return;
         }
 
+        ensureNoActiveZones(parkingLotId);
+
         parkingLotPolicy.close(existingParkingLot);
         parkingLotPortOut.save(existingParkingLot);
     }
@@ -102,7 +104,7 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     @Transactional
     public ParkingLot closeParkingLot(UUID parkingLotId) {
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
-
+        ensureNoActiveZones(parkingLotId);
         parkingLotPolicy.close(existingParkingLot);
         return parkingLotPortOut.save(existingParkingLot);
     }
@@ -113,4 +115,10 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         }
         return keyword.trim();
     }
+    private void ensureNoActiveZones(UUID parkingLotId) {
+        if (parkingLotPortOut.hasActiveZones(parkingLotId)) {
+            throw new ConflictException("Parking lot has active zones");
+        }
+    }
+
 }

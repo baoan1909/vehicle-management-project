@@ -10,10 +10,13 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.infrastructure.mapper.parking.ParkingLotPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingLotRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ZoneRepository;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,6 +32,9 @@ class ParkingLotPersistenceAdapterTest {
 
     @Mock
     private ParkingLotPersistenceMapper parkingLotPersistenceMapper;
+
+    @Mock
+    private ZoneRepository zoneRepository;
 
     @InjectMocks
     private ParkingLotPersistenceAdapter parkingLotPersistenceAdapter;
@@ -104,5 +110,17 @@ class ParkingLotPersistenceAdapterTest {
 
         assertTrue(exists);
         verify(parkingLotRepository).existsByCodeAndParkingLotIdNot("HCMUTE", parkingLotId);
+    }
+
+    @Test
+    void shouldCheckActiveZones() {
+        UUID parkingLotId = UUID.randomUUID();
+
+        when(zoneRepository.existsByParkingLotIdAndStatus(parkingLotId, ZoneStatus.ACTIVE)).thenReturn(true);
+
+        boolean hasActiveZones = parkingLotPersistenceAdapter.hasActiveZones(parkingLotId);
+
+        assertTrue(hasActiveZones);
+        verify(zoneRepository).existsByParkingLotIdAndStatus(parkingLotId, ZoneStatus.ACTIVE);
     }
 }
