@@ -214,4 +214,31 @@ class ParkingLotUseCaseImplTest {
         parkingLot.setTotalCapacity(1000);
         return parkingLot;
     }
+
+    @Test
+    void shouldRejectDeleteWhenParkingLotHasActiveZones() {
+        UUID parkingLotId = UUID.randomUUID();
+        ParkingLot existingParkingLot = validParkingLot();
+        existingParkingLot.setParkingLotId(parkingLotId);
+        existingParkingLot.setStatus(ParkingLotStatus.ACTIVE);
+
+        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
+        when(parkingLotPortOut.hasActiveZones(parkingLotId)).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> parkingLotUseCase.deleteParkingLot(parkingLotId));
+        verify(parkingLotPortOut, never()).save(any(ParkingLot.class));
+    }
+
+    @Test
+    void shouldRejectCloseWhenParkingLotHasActiveZones() {
+        UUID parkingLotId = UUID.randomUUID();
+        ParkingLot existingParkingLot = validParkingLot();
+        existingParkingLot.setParkingLotId(parkingLotId);
+
+        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
+        when(parkingLotPortOut.hasActiveZones(parkingLotId)).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> parkingLotUseCase.closeParkingLot(parkingLotId));
+        verify(parkingLotPortOut, never()).save(any(ParkingLot.class));
+    }
 }

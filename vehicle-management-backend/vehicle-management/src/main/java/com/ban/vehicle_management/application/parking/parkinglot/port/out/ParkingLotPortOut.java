@@ -16,4 +16,6 @@ public interface ParkingLotPortOut {
     boolean existsByCode(String code);
 
     boolean existsByCodeAndParkingLotIdNot(String code, UUID parkingLotId);
+
+    boolean hasActiveZones(UUID parkingLotId);
 }
