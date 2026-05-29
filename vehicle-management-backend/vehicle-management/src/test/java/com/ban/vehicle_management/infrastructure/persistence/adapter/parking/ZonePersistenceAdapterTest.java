@@ -11,9 +11,11 @@ import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.infrastructure.mapper.parking.ZonePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ZoneEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.GateRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingLotRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ZoneRepository;
+import com.ban.vehicle_management.shared.enumeration.parking.GateStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
@@ -47,6 +49,9 @@ class ZonePersistenceAdapterTest {
 
     @InjectMocks
     private ZonePersistenceAdapter zonePersistenceAdapter;
+
+    @Mock
+    private GateRepository gateRepository;
 
     @Test
     void shouldUseSaveAndFlushWhenSavingZone() {
@@ -191,5 +196,17 @@ class ZonePersistenceAdapterTest {
 
         assertTrue(hasOpenSessions);
         verify(parkingSessionRepository).existsByZoneIdAndStatus(zoneId, ParkingSessionStatus.OPEN);
+    }
+
+    @Test
+    void shouldCheckActiveGates() {
+        UUID zoneId = UUID.randomUUID();
+
+        when(gateRepository.existsByZoneIdAndStatus(zoneId, GateStatus.ACTIVE)).thenReturn(true);
+
+        boolean hasActiveGates = zonePersistenceAdapter.hasActiveGates(zoneId);
+
+        assertTrue(hasActiveGates);
+        verify(gateRepository).existsByZoneIdAndStatus(zoneId, GateStatus.ACTIVE);
     }
 }
