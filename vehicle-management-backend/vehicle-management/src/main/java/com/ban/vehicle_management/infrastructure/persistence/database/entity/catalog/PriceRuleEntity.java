@@ -5,7 +5,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.cat
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.TicketTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -84,9 +83,6 @@ public class PriceRuleEntity extends AuditableEntity {
 
     @OneToMany(mappedBy = "priceRule")
     private Set<SubscriptionEntity> subscriptions = new HashSet<>();
-
-    @OneToMany(mappedBy = "priceRule")
-    private Set<ParkingSessionEntity> parkingSessions = new HashSet<>();
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;

@@ -10,7 +10,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.PriceRuleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.TicketTypeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.catalog.PriceRuleSpecifications;
 import java.time.LocalTime;
 import java.util.List;
@@ -24,7 +23,6 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
     private final PriceRuleRepository priceRuleRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final TicketTypeRepository ticketTypeRepository;
-    private final ParkingSessionRepository parkingSessionRepository;
     private final SubscriptionRepository subscriptionRepository;
     private final PriceRulePersistenceMapper priceRulePersistenceMapper;
     private final TicketTypePersistenceMapper ticketTypePersistenceMapper;
@@ -33,7 +31,6 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
             PriceRuleRepository priceRuleRepository,
             VehicleTypeRepository vehicleTypeRepository,
             TicketTypeRepository ticketTypeRepository,
-            ParkingSessionRepository parkingSessionRepository,
             SubscriptionRepository subscriptionRepository,
             PriceRulePersistenceMapper priceRulePersistenceMapper,
             TicketTypePersistenceMapper ticketTypePersistenceMapper
@@ -41,7 +38,6 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
         this.priceRuleRepository = priceRuleRepository;
         this.vehicleTypeRepository = vehicleTypeRepository;
         this.ticketTypeRepository = ticketTypeRepository;
-        this.parkingSessionRepository = parkingSessionRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.priceRulePersistenceMapper = priceRulePersistenceMapper;
         this.ticketTypePersistenceMapper = ticketTypePersistenceMapper;
@@ -129,7 +125,6 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
 
     @Override
     public boolean hasUsage(UUID priceRuleId) {
-        return parkingSessionRepository.existsByPriceRuleId(priceRuleId)
-                || subscriptionRepository.existsByPriceRuleId(priceRuleId);
+        return subscriptionRepository.existsByPriceRuleId(priceRuleId);
     }
 }

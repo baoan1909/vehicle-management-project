@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.entity.parking;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ZoneEntity;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import jakarta.persistence.Column;
@@ -12,10 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -47,9 +43,6 @@ public class ParkingSpaceEntity extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private ParkingSpaceStatus status;
-
-    @OneToMany(mappedBy = "parkingSpace")
-    private Set<ParkingSessionEntity> parkingSessions = new HashSet<>();
 
 }
 

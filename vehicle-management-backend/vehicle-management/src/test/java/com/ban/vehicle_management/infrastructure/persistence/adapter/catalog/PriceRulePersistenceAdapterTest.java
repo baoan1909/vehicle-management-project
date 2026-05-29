@@ -17,7 +17,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.PriceRuleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.TicketTypeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -40,9 +39,6 @@ class PriceRulePersistenceAdapterTest {
 
     @Mock
     private TicketTypeRepository ticketTypeRepository;
-
-    @Mock
-    private ParkingSessionRepository parkingSessionRepository;
 
     @Mock
     private SubscriptionRepository subscriptionRepository;
@@ -235,29 +231,26 @@ class PriceRulePersistenceAdapterTest {
     }
 
     @Test
-    void shouldReturnTrueWhenParkingSessionUsesPriceRule() {
-        UUID priceRuleId = UUID.randomUUID();
-
-        when(parkingSessionRepository.existsByPriceRuleId(priceRuleId)).thenReturn(true);
-
-        boolean hasUsage = priceRulePersistenceAdapter.hasUsage(priceRuleId);
-
-        assertTrue(hasUsage);
-        verify(parkingSessionRepository).existsByPriceRuleId(priceRuleId);
-        verify(subscriptionRepository, never()).existsByPriceRuleId(priceRuleId);
-    }
-
-    @Test
     void shouldReturnTrueWhenSubscriptionUsesPriceRule() {
         UUID priceRuleId = UUID.randomUUID();
 
-        when(parkingSessionRepository.existsByPriceRuleId(priceRuleId)).thenReturn(false);
         when(subscriptionRepository.existsByPriceRuleId(priceRuleId)).thenReturn(true);
 
         boolean hasUsage = priceRulePersistenceAdapter.hasUsage(priceRuleId);
 
         assertTrue(hasUsage);
-        verify(parkingSessionRepository).existsByPriceRuleId(priceRuleId);
+        verify(subscriptionRepository).existsByPriceRuleId(priceRuleId);
+    }
+
+    @Test
+    void shouldReturnFalseWhenPriceRuleHasNoUsage() {
+        UUID priceRuleId = UUID.randomUUID();
+
+        when(subscriptionRepository.existsByPriceRuleId(priceRuleId)).thenReturn(false);
+
+        boolean hasUsage = priceRulePersistenceAdapter.hasUsage(priceRuleId);
+
+        assertEquals(false, hasUsage);
         verify(subscriptionRepository).existsByPriceRuleId(priceRuleId);
     }
 }
