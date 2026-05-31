@@ -37,10 +37,10 @@ public class AccountEntity extends AuditableEntity {
     @Column(name = "account_id", nullable = false)
     private UUID accountId;
 
-    @Column(name = "user_profile_id", nullable = false, unique = true)
+    @Column(name = "user_profile_id", unique = true)
     private UUID userProfileId;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_profile_id", referencedColumnName = "user_profile_id", insertable = false, updatable = false)
     private UserProfileEntity userProfile;
 
@@ -50,8 +50,8 @@ public class AccountEntity extends AuditableEntity {
     @Column(name = "email", nullable = false, unique = true, columnDefinition = "citext")
     private String email;
 
-    @Column(name = "hash_password", nullable = false)
-    private String hashPassword;
+    @Column(name = "keycloak_user_id", unique = true)
+    private String keycloakUserId;
 
     @Column(name = "role_id", nullable = false)
     private UUID roleId;

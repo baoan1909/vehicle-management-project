@@ -1,7 +1,9 @@
 package com.ban.vehicle_management.domain.accesscontrol.card.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
@@ -71,6 +73,29 @@ class CardPolicyTest {
         Card card = validCard(CardStatus.IN_USE);
 
         assertThrows(BadRequestException.class, () -> cardPolicy.retire(card));
+    }
+
+    @Test
+    void shouldNormalizeKeywordForSearch() {
+        assertEquals("abc", cardPolicy.normalizeKeyword("  abc  "));
+        assertNull(cardPolicy.normalizeKeyword("   "));
+    }
+
+    @Test
+    void shouldDetectCoreIdentifierChangedAfterNormalization() {
+        Card existingCard = validCard(CardStatus.AVAILABLE);
+        existingCard.setCardNumber(" C-001 ");
+        existingCard.setUid(" UID-001 ");
+
+        Card sameCard = validCard(CardStatus.AVAILABLE);
+        sameCard.setCardNumber("C-001");
+        sameCard.setUid("UID-001");
+        assertFalse(cardPolicy.hasCoreIdentifierChanged(existingCard, sameCard));
+
+        Card changedCard = validCard(CardStatus.AVAILABLE);
+        changedCard.setCardNumber("C-999");
+        changedCard.setUid("UID-001");
+        assertTrue(cardPolicy.hasCoreIdentifierChanged(existingCard, changedCard));
     }
 
     private Card validCard(CardStatus status) {

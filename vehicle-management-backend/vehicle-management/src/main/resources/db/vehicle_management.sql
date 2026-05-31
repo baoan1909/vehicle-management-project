@@ -93,7 +93,7 @@ CREATE TABLE people.user_profiles (
 CREATE TABLE iam.accounts (
     account_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_profile_id UUID NOT NULL UNIQUE,
-    username VARCHAR(100) N OT NULL UNIQUE,
+    username VARCHAR(100) NOT NULL UNIQUE,
     email CITEXT NOT NULL UNIQUE,
     hash_password VARCHAR(255) NOT NULL,
     role_id UUID NOT NULL,

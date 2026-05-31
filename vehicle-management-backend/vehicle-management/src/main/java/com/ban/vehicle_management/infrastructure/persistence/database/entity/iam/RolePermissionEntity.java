@@ -41,6 +41,12 @@ public class RolePermissionEntity extends AuditableEntity {
     @JoinColumn(name = "permission_id", referencedColumnName = "permission_id", insertable = false, updatable = false)
     private PermissionEntity permission;
 
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive;
+
+    @Column(name = "is_system", nullable = false)
+    private Boolean isSystem;
+
 }
 
 

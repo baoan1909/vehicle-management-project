@@ -17,9 +17,9 @@ public class Account extends AuditableDomainModel {
 
     private UUID accountId;
     private UUID userProfileId;
+    private String keycloakUserId;
     private String username;
     private String email;
-    private String hashPassword;
     private UUID roleId;
     private AccountStatus status;
     private Instant lastLoginAt;

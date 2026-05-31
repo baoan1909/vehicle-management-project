@@ -4,6 +4,7 @@ target/
 !**/src/test/**/target/
 
 **/.tools/
+**/.m2-local/
 
 ### STS ###
 .apt_generated
@@ -38,6 +39,8 @@ build/
 node_modules/
 **/node_modules/
 dist/
+
+
 .env
 .env.local
 

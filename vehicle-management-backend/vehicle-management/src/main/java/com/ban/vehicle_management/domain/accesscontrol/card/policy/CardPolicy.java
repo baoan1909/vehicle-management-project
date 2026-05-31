@@ -5,6 +5,7 @@ import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
+import java.util.Objects;
 
 public class CardPolicy {
 
@@ -131,6 +132,31 @@ public class CardPolicy {
         if (hasBlockedAt || hasBlockedReason) {
             throw new BadRequestException("Only blocked card can keep blockedAt and blockedReason");
         }
+    }
+
+    public String normalizeKeyword(String keyword) {
+        return TextValidationUtils.normalizeNullableText(keyword, "keyword", 0);
+    }
+
+    public boolean hasCoreIdentifierChanged(Card existingCard, Card newCard) {
+        requireCard(existingCard);
+        requireCard(newCard);
+
+        String normalizedCurrentCardNumber = TextValidationUtils.normalizeNullableText(
+                existingCard.getCardNumber(),
+                "cardNumber",
+                50
+        );
+        String normalizedNewCardNumber = TextValidationUtils.normalizeNullableText(
+                newCard.getCardNumber(),
+                "cardNumber",
+                50
+        );
+        String normalizedCurrentUid = TextValidationUtils.normalizeNullableText(existingCard.getUid(), "uid", 100);
+        String normalizedNewUid = TextValidationUtils.normalizeNullableText(newCard.getUid(), "uid", 100);
+
+        return !Objects.equals(normalizedCurrentCardNumber, normalizedNewCardNumber)
+                || !Objects.equals(normalizedCurrentUid, normalizedNewUid);
     }
 
     private void clearBlockMetadata(Card card) {

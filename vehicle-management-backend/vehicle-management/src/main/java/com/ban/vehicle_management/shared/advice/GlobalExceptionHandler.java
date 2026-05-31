@@ -3,19 +3,27 @@ package com.ban.vehicle_management.shared.advice;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ApiResponse<Map<String, Object>>> handleNotFoundException(
@@ -39,6 +47,14 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleTooManyRequestsException(
+            TooManyRequestsException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -68,12 +84,49 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, "Malformed request body", request.getRequestURI());
     }
 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.METHOD_NOT_ALLOWED, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleAuthenticationCredentialsNotFoundException(
+            AuthenticationCredentialsNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleAuthenticationException(
+            AuthenticationException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.UNAUTHORIZED, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleAccessDeniedException(
+            AccessDeniedException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.FORBIDDEN, exception.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Map<String, Object>>> handleUnexpectedException(
             Exception exception,
             HttpServletRequest request
     ) {
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error", request.getRequestURI());
+        LOGGER.error("Unhandled exception at {}: {}", request.getRequestURI(), exception.getMessage(), exception);
+        String debugMessage = "Internal server error: " + exception.getClass().getSimpleName()
+                + (exception.getMessage() == null || exception.getMessage().isBlank()
+                ? ""
+                : " - " + exception.getMessage());
+        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, debugMessage, request.getRequestURI());
     }
 
     private ResponseEntity<ApiResponse<Map<String, Object>>> buildErrorResponse(
