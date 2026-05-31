@@ -4,6 +4,7 @@ target/
 !**/src/test/**/target/
 
 **/.tools/
+**/.m2-local/
 
 ### STS ###
 .apt_generated

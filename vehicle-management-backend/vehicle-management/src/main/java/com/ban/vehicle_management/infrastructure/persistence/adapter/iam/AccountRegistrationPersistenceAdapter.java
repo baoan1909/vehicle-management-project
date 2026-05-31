@@ -51,6 +51,12 @@ public class AccountRegistrationPersistenceAdapter implements AccountRegistratio
     }
 
     @Override
+    public Optional<Account> findByEmail(String email) {
+        return accountRepository.findByEmail(email)
+                .map(accountPersistenceMapper::toDomain);
+    }
+
+    @Override
     public Account registerAccount(RegisterAccountCommand command, String keycloakUserId) {
         RoleEntity customerRole = roleRepository.findByCode(CUSTOMER_ROLE_CODE)
                 .orElseThrow(() -> new NotFoundException("Customer role is not configured"));

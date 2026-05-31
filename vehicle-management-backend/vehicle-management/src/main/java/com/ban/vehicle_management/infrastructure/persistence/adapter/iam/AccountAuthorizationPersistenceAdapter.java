@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.iam;
 
-import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPort;
+import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Component
-public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizationPort {
+public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizationPortOut {
 
     private final AccountRepository accountRepository;
     private final RolePermissionRepository rolePermissionRepository;

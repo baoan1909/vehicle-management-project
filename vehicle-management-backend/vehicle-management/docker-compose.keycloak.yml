@@ -7,6 +7,8 @@ services:
       POSTGRES_DB: ${KEYCLOAK_DB_NAME:-keycloak}
     ports:
       - "${KEYCLOAK_DB_HOST_PORT:-5433}:5432"
+    volumes:
+      - keycloak_postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USERNAME:-postgres} -d ${KEYCLOAK_DB_NAME:-keycloak}"]
@@ -16,7 +18,7 @@ services:
 
   keycloak:
     image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.6.1}
-    command: ${KEYCLOAK_COMMAND:-start-dev}
+    command: ${KEYCLOAK_COMMAND:-start-dev --spi-theme-cache-themes=false --spi-theme-cache-templates=false}
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://db:5432/${KEYCLOAK_DB_NAME:-keycloak}
@@ -30,3 +32,10 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - ./themes:/opt/keycloak/themes
+
+volumes:
+  keycloak_postgres_data:
+    external: true
+    name: 312421ee7af682ddb4ec7f24d335c66d12dc9f1bd088b2ad0d700bc6f7c8dafe

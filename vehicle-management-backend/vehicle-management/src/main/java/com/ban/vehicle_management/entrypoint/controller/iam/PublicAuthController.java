@@ -2,10 +2,10 @@ package com.ban.vehicle_management.entrypoint.controller.iam;
 
 import com.ban.vehicle_management.application.iam.account.mapper.PublicAuthApiMapper;
 import com.ban.vehicle_management.application.iam.account.model.result.RegisterAccountResult;
-import com.ban.vehicle_management.application.iam.account.port.in.RegisterAccountPortIn;
-import com.ban.vehicle_management.application.iam.account.port.in.RequestPasswordResetPortIn;
+import com.ban.vehicle_management.application.iam.account.port.in.PublicAuthPortIn;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.request.ForgotPasswordRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.request.RegisterAccountRequest;
+import com.ban.vehicle_management.entrypoint.dto.iam.account.request.ResendVerificationEmailRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.response.RegisterAccountResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import org.springframework.http.HttpStatus;
@@ -19,17 +19,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/public/auth")
 public class PublicAuthController {
 
-    private final RegisterAccountPortIn registerAccountPortIn;
-    private final RequestPasswordResetPortIn requestPasswordResetPortIn;
+    private final PublicAuthPortIn publicAuthPortIn;
     private final PublicAuthApiMapper publicAuthApiMapper;
 
     public PublicAuthController(
-            RegisterAccountPortIn registerAccountPortIn,
-            RequestPasswordResetPortIn requestPasswordResetPortIn,
+            PublicAuthPortIn publicAuthPortIn,
             PublicAuthApiMapper publicAuthApiMapper
     ) {
-        this.registerAccountPortIn = registerAccountPortIn;
-        this.requestPasswordResetPortIn = requestPasswordResetPortIn;
+        this.publicAuthPortIn = publicAuthPortIn;
         this.publicAuthApiMapper = publicAuthApiMapper;
     }
 
@@ -37,19 +34,27 @@ public class PublicAuthController {
     public ResponseEntity<ApiResponse<RegisterAccountResponse>> register(
             @RequestBody RegisterAccountRequest request
     ) {
-        RegisterAccountResult result = registerAccountPortIn.register(publicAuthApiMapper.toCommand(request));
+        RegisterAccountResult result = publicAuthPortIn.register(publicAuthApiMapper.toCommand(request));
+        String message = "Please verify your email address.";
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(
-                        "Đăng ký đã hoàn tất. Vui lòng xác nhận email của bạn trước khi đăng nhập",
-                        publicAuthApiMapper.toResponse(result)
-                ));
+                .body(ApiResponse.ok(message, publicAuthApiMapper.toResponse(result)));
+    }
+
+    @PostMapping("/resend-verification-email")
+    public ResponseEntity<ApiResponse<Void>> resendVerificationEmail(
+            @RequestBody ResendVerificationEmailRequest request
+    ) {
+        publicAuthPortIn.resendVerificationEmail(publicAuthApiMapper.toCommand(request));
+        return ResponseEntity.ok(ApiResponse.ok(
+                "If the account exists and is not verified, a verification email will be sent."
+        ));
     }
 
     @PostMapping("/forgot-password")
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
-        requestPasswordResetPortIn.requestPasswordReset(publicAuthApiMapper.toCommand(request));
+        publicAuthPortIn.requestPasswordReset(publicAuthApiMapper.toCommand(request));
         return ResponseEntity.ok(ApiResponse.ok(
-                "Nếu địa chỉ email đó tồn tại trong hệ thống, một email đặt lại mật khẩu sẽ được gửi đến."
+                "If that email exists in the system, a password reset email will be sent."
         ));
     }
 }

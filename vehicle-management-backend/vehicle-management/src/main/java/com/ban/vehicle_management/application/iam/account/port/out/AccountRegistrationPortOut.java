@@ -13,5 +13,7 @@ public interface AccountRegistrationPortOut {
 
     Optional<String> findKeycloakUserIdByEmail(String email);
 
+    Optional<Account> findByEmail(String email);
+
     Account registerAccount(RegisterAccountCommand command, String keycloakUserId);
 }

@@ -15,6 +15,8 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID> {
 
     Optional<AccountEntity> findByKeycloakUserId(String keycloakUserId);
 
+    Optional<AccountEntity> findByUsername(String username);
+
     Optional<AccountEntity> findByEmail(String email);
 
 }

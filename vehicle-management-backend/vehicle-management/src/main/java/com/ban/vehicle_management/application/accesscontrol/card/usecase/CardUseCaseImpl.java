@@ -13,7 +13,6 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,7 +63,7 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
     @Override
     @Transactional(readOnly = true)
     public List<Card> getCards(CardStatus status, UUID cardTypeId, UUID vehicleTypeId, String keyword) {
-        return cardPort.findAll(status, cardTypeId, vehicleTypeId, normalizeKeyword(keyword));
+        return cardPort.findAll(status, cardTypeId, vehicleTypeId, cardPolicy.normalizeKeyword(keyword));
     }
 
     @Override
@@ -76,9 +75,7 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
             throw new BadRequestException("Card in use cannot be updated");
         }
 
-        boolean cardNumberChanged = hasChanged(existingCard.getCardNumber(), card.getCardNumber());
-        boolean uidChanged = hasChanged(existingCard.getUid(), card.getUid());
-        if ((cardNumberChanged || uidChanged) && cardPort.hasOperationalHistory(cardId)) {
+        if (cardPolicy.hasCoreIdentifierChanged(existingCard, card) && cardPort.hasOperationalHistory(cardId)) {
             throw new BadRequestException("Card number and uid cannot be changed after the card has been used in operational flow");
         }
 
@@ -126,7 +123,7 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
 
         switch (status) {
             case BLOCKED -> cardPolicy.block(existingCard, Instant.now(), blockedReason);
-            case AVAILABLE -> changeToAvailable(existingCard);
+            case AVAILABLE -> cardPolicy.unblock(existingCard);
             case LOST -> cardPolicy.markLost(existingCard);
             case DAMAGED -> cardPolicy.markDamaged(existingCard);
             case RETIRED -> {
@@ -141,13 +138,6 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
         return cardPort.save(existingCard);
     }
 
-    private void changeToAvailable(Card existingCard) {
-        if (existingCard.getStatus() != CardStatus.BLOCKED) {
-            throw new BadRequestException("Only blocked card can be moved back to AVAILABLE through status update");
-        }
-        cardPolicy.unblock(existingCard);
-    }
-
     private void validateCardTypeExists(UUID cardTypeId) {
         if (cardTypePort.findById(cardTypeId).isEmpty()) {
             throw new BadRequestException("Card type does not exist");
@@ -160,17 +150,5 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
         }
     }
 
-    private String normalizeKeyword(String keyword) {
-        if (keyword == null || keyword.isBlank()) {
-            return null;
-        }
-        return keyword.trim();
-    }
-
-    private boolean hasChanged(String currentValue, String newValue) {
-        String normalizedCurrentValue = currentValue == null ? null : currentValue.trim();
-        String normalizedNewValue = newValue == null ? null : newValue.trim();
-        return !Objects.equals(normalizedCurrentValue, normalizedNewValue);
-    }
 }
 

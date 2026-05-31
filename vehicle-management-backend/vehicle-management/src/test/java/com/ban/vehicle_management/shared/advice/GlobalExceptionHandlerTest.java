@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -61,5 +62,20 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Request validation failed", response.getBody().getMessage());
+    }
+
+    @Test
+    void shouldReturnTooManyRequestsForRateLimitException() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/public/auth/resend-verification-email");
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response =
+                globalExceptionHandler.handleTooManyRequestsException(
+                        new TooManyRequestsException("Too many requests"),
+                        request
+                );
+
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
+        assertEquals("Too many requests", response.getBody().getMessage());
     }
 }
