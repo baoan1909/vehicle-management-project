@@ -17,7 +17,7 @@ class LanePolicyTest {
     @Test
     void shouldInitializeLaneWithActiveStatus() {
         Lane lane = new Lane();
-        lane.setParkingLotId(UUID.randomUUID());
+        lane.setGateId(UUID.randomUUID());
         lane.setCode(" IN-01 ");
         lane.setName(" Entrance Lane ");
         lane.setDirection(LaneDirection.IN);
@@ -32,7 +32,7 @@ class LanePolicyTest {
     @Test
     void shouldRejectLaneWithoutDirection() {
         Lane lane = new Lane();
-        lane.setParkingLotId(UUID.randomUUID());
+        lane.setGateId(UUID.randomUUID());
         lane.setCode("IN-01");
         lane.setName("Entrance Lane");
 
@@ -42,7 +42,7 @@ class LanePolicyTest {
     @Test
     void shouldRejectLaneNameExceedingSchemaLength() {
         Lane lane = new Lane();
-        lane.setParkingLotId(UUID.randomUUID());
+        lane.setGateId(UUID.randomUUID());
         lane.setCode("IN-01");
         lane.setName("A".repeat(151));
         lane.setDirection(LaneDirection.IN);

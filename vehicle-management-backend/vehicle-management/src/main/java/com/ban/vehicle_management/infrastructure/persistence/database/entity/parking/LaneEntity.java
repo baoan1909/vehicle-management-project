@@ -2,8 +2,6 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.pa
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.hardware.DeviceEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingEventEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import jakarta.persistence.Column;
@@ -40,8 +38,8 @@ public class LaneEntity extends AuditableEntity {
     private UUID gateId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "parking_lot_id", referencedColumnName = "parking_lot_id", insertable = false, updatable = false)
-    private ParkingLotEntity parkingLot;
+    @JoinColumn(name = "gate_id", referencedColumnName = "gate_id", insertable = false, updatable = false)
+    private GateEntity gate;
 
     @Column(name = "code", nullable = false)
     private String code;
