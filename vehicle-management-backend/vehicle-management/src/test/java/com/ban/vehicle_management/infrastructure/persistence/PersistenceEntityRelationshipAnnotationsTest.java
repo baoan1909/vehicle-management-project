@@ -33,7 +33,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.par
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingEventEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSpaceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ZoneEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerVehicleEntity;
@@ -108,7 +107,6 @@ class PersistenceEntityRelationshipAnnotationsTest {
                 LostCardReportEntity.class,
                 ParkingLotEntity.class,
                 ZoneEntity.class,
-                ParkingSpaceEntity.class,
                 LaneEntity.class,
                 DeviceEntity.class,
                 ParkingSessionEntity.class,

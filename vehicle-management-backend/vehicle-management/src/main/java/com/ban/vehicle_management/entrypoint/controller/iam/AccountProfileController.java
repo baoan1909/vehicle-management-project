@@ -34,7 +34,7 @@ public class AccountProfileController {
         ));
     }
 
-    @PatchMapping("/onboarding")
+    @PostMapping("/onboarding")
     public ResponseEntity<ApiResponse<AccountProfileStatusResponse>> completeMyProfile(
             @RequestBody CompleteAccountProfileRequest request
     ) {

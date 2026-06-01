@@ -3,8 +3,10 @@ package com.ban.vehicle_management.infrastructure.security.config;
 import com.ban.vehicle_management.infrastructure.security.jwt.JwtAudienceValidator;
 import com.ban.vehicle_management.infrastructure.security.jwt.JwtAuthenticationConverter;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.concurrent.ConcurrentMapCache;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -14,6 +16,8 @@ import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.util.StringUtils;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -26,17 +30,23 @@ public class SecurityConfig {
     private final String issuerUri;
     private final String jwkSetUri;
     private final String audience;
+    private final int jwkConnectTimeoutMs;
+    private final int jwkReadTimeoutMs;
 
     public SecurityConfig(
             JwtAuthenticationConverter jwtAuthenticationConverter,
             @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}") String issuerUri,
             @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}") String jwkSetUri,
-            @Value("${app.security.oauth2.audience:}") String audience
+            @Value("${app.security.oauth2.audience:}") String audience,
+            @Value("${app.security.oauth2.jwk.connect-timeout-ms:3000}") int jwkConnectTimeoutMs,
+            @Value("${app.security.oauth2.jwk.read-timeout-ms:15000}") int jwkReadTimeoutMs
     ) {
         this.jwtAuthenticationConverter = jwtAuthenticationConverter;
         this.issuerUri = issuerUri;
         this.jwkSetUri = jwkSetUri;
         this.audience = audience;
+        this.jwkConnectTimeoutMs = jwkConnectTimeoutMs;
+        this.jwkReadTimeoutMs = jwkReadTimeoutMs;
     }
 
     @Bean
@@ -71,6 +81,8 @@ public class SecurityConfig {
         }
 
         NimbusJwtDecoder jwtDecoder = NimbusJwtDecoder.withJwkSetUri(resolvedJwkSetUri)
+                .restOperations(jwtRestOperations())
+                .cache(new ConcurrentMapCache("keycloak-jwk-set-cache"))
                 .jwsAlgorithm(SignatureAlgorithm.RS256)
                 .build();
         OAuth2TokenValidator<Jwt> validator;
@@ -89,6 +101,13 @@ public class SecurityConfig {
 
         jwtDecoder.setJwtValidator(validator);
         return jwtDecoder;
+    }
+
+    private RestOperations jwtRestOperations() {
+        SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
+        requestFactory.setConnectTimeout(jwkConnectTimeoutMs);
+        requestFactory.setReadTimeout(jwkReadTimeoutMs);
+        return new RestTemplate(requestFactory);
     }
 
     private String resolveJwkSetUri() {
