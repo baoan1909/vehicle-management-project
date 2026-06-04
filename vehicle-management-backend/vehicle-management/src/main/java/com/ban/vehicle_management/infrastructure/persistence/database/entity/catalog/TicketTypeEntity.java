@@ -3,11 +3,9 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.ca
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.SubscriptionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.PriceRuleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
+import jakarta.persistence.*;
+
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -28,7 +26,7 @@ public class TicketTypeEntity extends AuditableEntity {
     @Column(name = "ticket_type_id", nullable = false)
     private UUID ticketTypeId;
 
-    @Column(name = "code", nullable = false, unique = true)
+    @Column(name = "code", nullable = false)
     private String code;
 
     @Column(name = "name", nullable = false)
@@ -40,8 +38,9 @@ public class TicketTypeEntity extends AuditableEntity {
     @Column(name = "duration_days")
     private Integer durationDays;
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private TicketTypeStatus status;
 
     @OneToMany(mappedBy = "ticketType")
     private Set<PriceRuleEntity> priceRules = new HashSet<>();

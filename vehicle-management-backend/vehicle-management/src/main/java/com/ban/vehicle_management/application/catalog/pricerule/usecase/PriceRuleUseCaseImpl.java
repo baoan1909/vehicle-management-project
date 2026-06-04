@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class PriceRuleUseCaseImpl implements PriceRulePortIn {
 
     private static final String DAILY_TICKET_CODE = "DAILY";
-    private static final Set<String> CUSTOMER_TICKET_CODES = Set.of("MONTHLY", "QUARTERLY", "YEARLY");
+    private static final Set<String> CUSTOMER_TICKET_CODES = Set.of("MONTHLY", "QUARTERLY", "YEARLY", "FREE");
 
     private final PriceRulePortOut priceRulePortOut;
     private final PricePlanPortOut pricePlanPortOut;
@@ -227,7 +227,7 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
         }
 
         if (!CUSTOMER_TICKET_CODES.contains(ticketType.getCode())) {
-            throw new BadRequestException("Customer price rule only accepts MONTHLY, QUARTERLY or YEARLY ticket type");
+            throw new BadRequestException("Customer price rule only accepts MONTHLY, QUARTERLY, YEARLY or FREE ticket type");
         }
 
         if (priceRule.getTimeFrom() != null || priceRule.getTimeTo() != null) {

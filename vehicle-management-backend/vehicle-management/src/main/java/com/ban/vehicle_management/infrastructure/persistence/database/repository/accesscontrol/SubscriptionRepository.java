@@ -13,6 +13,8 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
     boolean existsByCardIdAndStatusIn(UUID cardId, Collection<SubscriptionStatus> statuses);
 
     boolean existsByPriceRuleId(UUID priceRuleId);
+
+    boolean existsByTicketTypeIdAndStatusIn(UUID ticketTypeId, Collection<SubscriptionStatus> statuses);
 }
 
 
