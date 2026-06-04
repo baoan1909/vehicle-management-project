@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record ApproveCustomerRequest(
-        UUID approvedBy,
         Instant approvedAt
 ) {
 }

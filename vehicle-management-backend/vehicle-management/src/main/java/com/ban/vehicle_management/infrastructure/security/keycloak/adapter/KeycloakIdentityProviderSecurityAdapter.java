@@ -5,9 +5,12 @@ import com.ban.vehicle_management.application.iam.account.model.command.Register
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -24,6 +27,8 @@ import java.util.UUID;
 
 @Component
 public class KeycloakIdentityProviderSecurityAdapter implements IdentityProviderAdminPortOut {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakIdentityProviderSecurityAdapter.class);
 
     private final RestClient restClient;
     private final String baseUrl;
@@ -83,10 +88,15 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
 
             String path = location.getPath();
             return path.substring(path.lastIndexOf('/') + 1);
+        } catch (HttpClientErrorException.Forbidden exception) {
+            LOGGER.warn("Keycloak create user forbidden for client {}: {}", adminClientId, exception.getResponseBodyAsString());
+            throw new AccessDeniedException(buildKeycloakAdminForbiddenMessage("create users"));
         } catch (HttpClientErrorException.Conflict exception) {
-            throw new ConflictException("Keycloak user already exists");
+            LOGGER.warn("Keycloak create user conflict: {}", exception.getResponseBodyAsString());
+            throw new ConflictException(buildKeycloakClientErrorMessage("Keycloak user already exists", exception));
         } catch (HttpClientErrorException exception) {
-            throw new BadRequestException("Failed to create Keycloak user");
+            LOGGER.warn("Keycloak create user failed with status {} and body {}", exception.getStatusCode().value(), exception.getResponseBodyAsString());
+            throw new BadRequestException(buildKeycloakClientErrorMessage("Failed to create Keycloak user", exception));
         }
     }
 
@@ -252,6 +262,20 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
         } catch (HttpClientErrorException exception) {
             throw new BadRequestException("Failed to read Keycloak user profile before update");
         }
+    }
+
+    static String buildKeycloakClientErrorMessage(String message, HttpClientErrorException exception) {
+        String responseBody = exception.getResponseBodyAsString();
+        if (responseBody == null || responseBody.isBlank()) {
+            return message + " (Keycloak status: " + exception.getStatusCode().value() + ")";
+        }
+        return message + ": " + responseBody;
+    }
+
+    String buildKeycloakAdminForbiddenMessage(String action) {
+        return "Keycloak admin client '" + adminClientId
+                + "' does not have permission to " + action
+                + ". Check Service account roles in realm-management, especially manage-users, view-users, and query-users.";
     }
 
     private record KeycloakTokenResponse(

@@ -1,41 +1,44 @@
 services:
   db:
-    image: ${KEYCLOAK_DB_IMAGE:-postgres:16-alpine}
+    image: ${KEYCLOAK_DB_IMAGE}
     environment:
-      POSTGRES_USER: ${KEYCLOAK_DB_USERNAME:-postgres}
-      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-pass}
-      POSTGRES_DB: ${KEYCLOAK_DB_NAME:-keycloak}
+      POSTGRES_USER: ${KEYCLOAK_DB_USERNAME}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      POSTGRES_DB: ${KEYCLOAK_DB_NAME}
     ports:
-      - "${KEYCLOAK_DB_HOST_PORT:-5433}:5432"
+      - "${KEYCLOAK_DB_HOST_PORT}:5432"
     volumes:
       - keycloak_postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USERNAME:-postgres} -d ${KEYCLOAK_DB_NAME:-keycloak}"]
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USERNAME} -d ${KEYCLOAK_DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
   keycloak:
-    image: ${KEYCLOAK_IMAGE:-quay.io/keycloak/keycloak:26.6.1}
-    command: ${KEYCLOAK_COMMAND:-start-dev --spi-theme-cache-themes=false --spi-theme-cache-templates=false}
+    image: ${KEYCLOAK_IMAGE}
+    command:
+      - start-dev
+      - --import-realm
+      - --spi-theme-cache-themes=false
+      - --spi-theme-cache-templates=false
     environment:
       KC_DB: postgres
-      KC_DB_URL: jdbc:postgresql://db:5432/${KEYCLOAK_DB_NAME:-keycloak}
-      KC_DB_USERNAME: ${KEYCLOAK_DB_USERNAME:-postgres}
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-pass}
-      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:-admin}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB_URL: jdbc:postgresql://db:5432/${KEYCLOAK_DB_NAME}
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USERNAME}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
     ports:
-      - "${KEYCLOAK_HOST_PORT:-8081}:8080"
+      - "${KEYCLOAK_HOST_PORT}:8080"
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
     volumes:
-      - ./themes:/opt/keycloak/themes
+      - ./keycloak/themes:/opt/keycloak/themes
+      - ./keycloak/import:/opt/keycloak/data/import
 
 volumes:
   keycloak_postgres_data:
-    external: true
-    name: 312421ee7af682ddb4ec7f24d335c66d12dc9f1bd088b2ad0d700bc6f7c8dafe

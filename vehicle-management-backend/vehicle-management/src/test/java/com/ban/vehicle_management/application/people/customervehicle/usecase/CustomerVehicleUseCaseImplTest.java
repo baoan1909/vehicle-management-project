@@ -8,6 +8,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ban.vehicle_management.application.people.customervehicle.authorization.CustomerVehicleAccessGuard;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
@@ -28,6 +29,9 @@ class CustomerVehicleUseCaseImplTest {
     @Mock
     private CustomerVehiclePortOut customerVehiclePortOut;
 
+    @Mock
+    private CustomerVehicleAccessGuard customerVehicleAccessGuard;
+
     @InjectMocks
     private CustomerVehicleUseCaseImpl customerVehicleUseCase;
 
@@ -38,6 +42,8 @@ class CustomerVehicleUseCaseImplTest {
         requestCustomerVehicle.setVehicleTypeId(UUID.randomUUID());
         requestCustomerVehicle.setLicensePlate(" 51a-12345 ");
 
+        when(customerVehicleAccessGuard.resolveCustomerIdForCreate(requestCustomerVehicle.getCustomerId()))
+                .thenReturn(requestCustomerVehicle.getCustomerId());
         when(customerVehiclePortOut.existsCustomerById(requestCustomerVehicle.getCustomerId())).thenReturn(true);
         when(customerVehiclePortOut.existsVehicleTypeById(requestCustomerVehicle.getVehicleTypeId())).thenReturn(true);
         when(customerVehiclePortOut.existsByLicensePlate("51a-12345")).thenReturn(false);
@@ -51,12 +57,36 @@ class CustomerVehicleUseCaseImplTest {
     }
 
     @Test
+    void shouldCreateCustomerVehicleForCurrentApprovedCustomerWhenOnlyOwnPermissionIsGranted() {
+        UUID currentCustomerId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+
+        CustomerVehicle requestCustomerVehicle = new CustomerVehicle();
+        requestCustomerVehicle.setCustomerId(UUID.randomUUID());
+        requestCustomerVehicle.setVehicleTypeId(vehicleTypeId);
+        requestCustomerVehicle.setLicensePlate("59A-12345");
+
+        when(customerVehicleAccessGuard.resolveCustomerIdForCreate(requestCustomerVehicle.getCustomerId()))
+                .thenReturn(currentCustomerId);
+        when(customerVehiclePortOut.existsCustomerById(currentCustomerId)).thenReturn(true);
+        when(customerVehiclePortOut.existsVehicleTypeById(vehicleTypeId)).thenReturn(true);
+        when(customerVehiclePortOut.existsByLicensePlate("59A-12345")).thenReturn(false);
+        when(customerVehiclePortOut.save(any(CustomerVehicle.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CustomerVehicle createdCustomerVehicle = customerVehicleUseCase.createCustomerVehicle(requestCustomerVehicle);
+
+        assertEquals(currentCustomerId, createdCustomerVehicle.getCustomerId());
+    }
+
+    @Test
     void shouldRejectCreateWhenCustomerDoesNotExist() {
         CustomerVehicle requestCustomerVehicle = new CustomerVehicle();
         requestCustomerVehicle.setCustomerId(UUID.randomUUID());
         requestCustomerVehicle.setVehicleTypeId(UUID.randomUUID());
         requestCustomerVehicle.setLicensePlate("51A-12345");
 
+        when(customerVehicleAccessGuard.resolveCustomerIdForCreate(requestCustomerVehicle.getCustomerId()))
+                .thenReturn(requestCustomerVehicle.getCustomerId());
         when(customerVehiclePortOut.existsCustomerById(requestCustomerVehicle.getCustomerId())).thenReturn(false);
 
         assertThrows(NotFoundException.class, () -> customerVehicleUseCase.createCustomerVehicle(requestCustomerVehicle));
@@ -70,6 +100,8 @@ class CustomerVehicleUseCaseImplTest {
         requestCustomerVehicle.setVehicleTypeId(UUID.randomUUID());
         requestCustomerVehicle.setLicensePlate("51A-12345");
 
+        when(customerVehicleAccessGuard.resolveCustomerIdForCreate(requestCustomerVehicle.getCustomerId()))
+                .thenReturn(requestCustomerVehicle.getCustomerId());
         when(customerVehiclePortOut.existsCustomerById(requestCustomerVehicle.getCustomerId())).thenReturn(true);
         when(customerVehiclePortOut.existsVehicleTypeById(requestCustomerVehicle.getVehicleTypeId())).thenReturn(false);
 
@@ -83,6 +115,8 @@ class CustomerVehicleUseCaseImplTest {
         requestCustomerVehicle.setVehicleTypeId(UUID.randomUUID());
         requestCustomerVehicle.setLicensePlate("51A-12345");
 
+        when(customerVehicleAccessGuard.resolveCustomerIdForCreate(requestCustomerVehicle.getCustomerId()))
+                .thenReturn(requestCustomerVehicle.getCustomerId());
         when(customerVehiclePortOut.existsCustomerById(requestCustomerVehicle.getCustomerId())).thenReturn(true);
         when(customerVehiclePortOut.existsVehicleTypeById(requestCustomerVehicle.getVehicleTypeId())).thenReturn(true);
         when(customerVehiclePortOut.existsByLicensePlate("51A-12345")).thenReturn(true);
@@ -130,8 +164,9 @@ class CustomerVehicleUseCaseImplTest {
                 Boolean.TRUE,
                 "nguyen"
         )).thenReturn(List.of(new CustomerVehicle(), new CustomerVehicle()));
+        when(customerVehicleAccessGuard.resolveCustomerIdForRead(customerId)).thenReturn(customerId);
 
-        List<CustomerVehicle> customerVehicles = customerVehicleUseCase.getCustomerVehicles(
+        List<CustomerVehicle> customerVehicles = customerVehicleUseCase.getAllCustomerVehicle(
                 customerId,
                 CustomerVehicleStatus.ACTIVE,
                 vehicleTypeId,
@@ -141,6 +176,38 @@ class CustomerVehicleUseCaseImplTest {
 
         assertEquals(2, customerVehicles.size());
         verify(customerVehiclePortOut).findAll(customerId, CustomerVehicleStatus.ACTIVE, vehicleTypeId, Boolean.TRUE, "nguyen");
+    }
+
+    @Test
+    void shouldForceListQueryToCurrentApprovedCustomerWhenOnlyOwnReadPermissionIsGranted() {
+        UUID currentCustomerId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+
+        when(customerVehicleAccessGuard.resolveCustomerIdForRead(any(UUID.class))).thenReturn(currentCustomerId);
+        when(customerVehiclePortOut.findAll(
+                currentCustomerId,
+                CustomerVehicleStatus.ACTIVE,
+                vehicleTypeId,
+                Boolean.FALSE,
+                "abc"
+        )).thenReturn(List.of(new CustomerVehicle()));
+
+        List<CustomerVehicle> customerVehicles = customerVehicleUseCase.getAllCustomerVehicle(
+                UUID.randomUUID(),
+                CustomerVehicleStatus.ACTIVE,
+                vehicleTypeId,
+                Boolean.FALSE,
+                "abc"
+        );
+
+        assertEquals(1, customerVehicles.size());
+        verify(customerVehiclePortOut).findAll(
+                currentCustomerId,
+                CustomerVehicleStatus.ACTIVE,
+                vehicleTypeId,
+                Boolean.FALSE,
+                "abc"
+        );
     }
 
     @Test
@@ -156,7 +223,22 @@ class CustomerVehicleUseCaseImplTest {
 
         assertEquals(CustomerVehicleStatus.INACTIVE, existingCustomerVehicle.getStatus());
         assertEquals(Boolean.FALSE, existingCustomerVehicle.getIsDefault());
+        verify(customerVehicleAccessGuard).ensureCanDelete(existingCustomerVehicle);
         verify(customerVehiclePortOut).save(existingCustomerVehicle);
+    }
+
+    @Test
+    void shouldAllowCustomerToInactivateOwnedVehicle() {
+        UUID customerVehicleId = UUID.randomUUID();
+        CustomerVehicle customerVehicle = validCustomerVehicle(customerVehicleId);
+
+        when(customerVehiclePortOut.findById(customerVehicleId)).thenReturn(Optional.of(customerVehicle));
+        when(customerVehiclePortOut.save(any(CustomerVehicle.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CustomerVehicle inactivatedCustomerVehicle = customerVehicleUseCase.inactivateCustomerVehicle(customerVehicleId);
+
+        assertEquals(CustomerVehicleStatus.INACTIVE, inactivatedCustomerVehicle.getStatus());
+        verify(customerVehicleAccessGuard).ensureCanActivateOrInactivate(customerVehicle);
     }
 
     @Test
@@ -172,6 +254,7 @@ class CustomerVehicleUseCaseImplTest {
 
         assertEquals(CustomerVehicleStatus.BLOCKED, blockedCustomerVehicle.getStatus());
         assertEquals(Boolean.FALSE, blockedCustomerVehicle.getIsDefault());
+        verify(customerVehicleAccessGuard).ensureCanBlock();
     }
 
     @Test
@@ -194,7 +277,20 @@ class CustomerVehicleUseCaseImplTest {
 
         assertEquals(Boolean.TRUE, defaultCustomerVehicle.getIsDefault());
         assertEquals(Boolean.FALSE, existingDefaultVehicle.getIsDefault());
+        verify(customerVehicleAccessGuard).ensureCanUpdate(targetCustomerVehicle);
         verify(customerVehiclePortOut, times(2)).save(any(CustomerVehicle.class));
+    }
+
+    @Test
+    void shouldDelegateReadAuthorizationToAccessGuard() {
+        UUID customerVehicleId = UUID.randomUUID();
+        CustomerVehicle customerVehicle = validCustomerVehicle(customerVehicleId);
+        when(customerVehiclePortOut.findById(customerVehicleId)).thenReturn(Optional.of(customerVehicle));
+
+        CustomerVehicle result = customerVehicleUseCase.getCustomerVehicleById(customerVehicleId);
+
+        assertEquals(customerVehicle, result);
+        verify(customerVehicleAccessGuard).ensureCanRead(customerVehicle);
     }
 
     @Test

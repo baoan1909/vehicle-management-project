@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.people.customervehicle.usecase;
 
+import com.ban.vehicle_management.application.people.customervehicle.authorization.CustomerVehicleAccessGuard;
 import com.ban.vehicle_management.application.people.customervehicle.port.in.CustomerVehiclePortIn;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
@@ -9,6 +10,7 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,14 +19,17 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
 
     private final CustomerVehiclePortOut customerVehiclePortOut;
     private final CustomerVehiclePolicy customerVehiclePolicy = new CustomerVehiclePolicy();
+    private final CustomerVehicleAccessGuard customerVehicleAccessGuard;
 
-    public CustomerVehicleUseCaseImpl(CustomerVehiclePortOut customerVehiclePortOut) {
+    public CustomerVehicleUseCaseImpl(CustomerVehiclePortOut customerVehiclePortOut, CustomerVehicleAccessGuard customerVehicleAccessGuard) {
         this.customerVehiclePortOut = customerVehiclePortOut;
+        this.customerVehicleAccessGuard = customerVehicleAccessGuard;
     }
 
     @Override
     @Transactional
     public CustomerVehicle createCustomerVehicle(CustomerVehicle customerVehicle) {
+        customerVehicle.setCustomerId(customerVehicleAccessGuard.resolveCustomerIdForCreate(customerVehicle.getCustomerId()));
         customerVehiclePolicy.initialize(customerVehicle);
         validateReferences(customerVehicle);
         validateUniqueLicensePlate(customerVehicle);
@@ -38,7 +43,8 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
     @Override
     @Transactional
     public CustomerVehicle updateCustomerVehicle(UUID customerVehicleId, CustomerVehicle customerVehicle) {
-        CustomerVehicle existingCustomerVehicle = getCustomerVehicleById(customerVehicleId);
+        CustomerVehicle existingCustomerVehicle = findCustomerVehicleOrThrow(customerVehicleId);
+        customerVehicleAccessGuard.ensureCanUpdate(existingCustomerVehicle);
 
         existingCustomerVehicle.setVehicleTypeId(customerVehicle.getVehicleTypeId());
         existingCustomerVehicle.setLicensePlate(customerVehicle.getLicensePlate());
@@ -60,26 +66,29 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
     @Override
     @Transactional(readOnly = true)
     public CustomerVehicle getCustomerVehicleById(UUID customerVehicleId) {
-        return customerVehiclePortOut.findById(customerVehicleId)
-                .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
+        CustomerVehicle customerVehicle = findCustomerVehicleOrThrow(customerVehicleId);
+        customerVehicleAccessGuard.ensureCanRead(customerVehicle);
+        return customerVehicle;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<CustomerVehicle> getCustomerVehicles(
+    public List<CustomerVehicle> getAllCustomerVehicle(
             UUID customerId,
             CustomerVehicleStatus status,
             UUID vehicleTypeId,
             Boolean isDefault,
             String keyword
     ) {
-        return customerVehiclePortOut.findAll(customerId, status, vehicleTypeId, isDefault, keyword);
+        UUID resolvedCustomerId = customerVehicleAccessGuard.resolveCustomerIdForRead(customerId);
+        return customerVehiclePortOut.findAll(resolvedCustomerId, status, vehicleTypeId, isDefault, keyword);
     }
 
     @Override
     @Transactional
     public void deleteCustomerVehicle(UUID customerVehicleId) {
-        CustomerVehicle existingCustomerVehicle = getCustomerVehicleById(customerVehicleId);
+        CustomerVehicle existingCustomerVehicle = findCustomerVehicleOrThrow(customerVehicleId);
+        customerVehicleAccessGuard.ensureCanDelete(existingCustomerVehicle);
         if (existingCustomerVehicle.getStatus() == CustomerVehicleStatus.INACTIVE) {
             return;
         }
@@ -91,7 +100,8 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
     @Override
     @Transactional
     public CustomerVehicle activateCustomerVehicle(UUID customerVehicleId) {
-        CustomerVehicle customerVehicle = getCustomerVehicleById(customerVehicleId);
+        CustomerVehicle customerVehicle = findCustomerVehicleOrThrow(customerVehicleId);
+        customerVehicleAccessGuard.ensureCanActivateOrInactivate(customerVehicle);
         customerVehiclePolicy.activate(customerVehicle);
         return customerVehiclePortOut.save(customerVehicle);
     }
@@ -99,7 +109,8 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
     @Override
     @Transactional
     public CustomerVehicle inactivateCustomerVehicle(UUID customerVehicleId) {
-        CustomerVehicle customerVehicle = getCustomerVehicleById(customerVehicleId);
+        CustomerVehicle customerVehicle = findCustomerVehicleOrThrow(customerVehicleId);
+        customerVehicleAccessGuard.ensureCanActivateOrInactivate(customerVehicle);
         customerVehiclePolicy.inactivate(customerVehicle);
         return customerVehiclePortOut.save(customerVehicle);
     }
@@ -107,7 +118,8 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
     @Override
     @Transactional
     public CustomerVehicle blockCustomerVehicle(UUID customerVehicleId) {
-        CustomerVehicle customerVehicle = getCustomerVehicleById(customerVehicleId);
+        CustomerVehicle customerVehicle = findCustomerVehicleOrThrow(customerVehicleId);
+        customerVehicleAccessGuard.ensureCanBlock();
         customerVehiclePolicy.block(customerVehicle);
         return customerVehiclePortOut.save(customerVehicle);
     }
@@ -115,19 +127,25 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
     @Override
     @Transactional
     public CustomerVehicle markCustomerVehicleAsDefault(UUID customerVehicleId) {
-        CustomerVehicle customerVehicle = getCustomerVehicleById(customerVehicleId);
+        CustomerVehicle customerVehicle = findCustomerVehicleOrThrow(customerVehicleId);
+        customerVehicleAccessGuard.ensureCanUpdate(customerVehicle);
         customerVehiclePolicy.markDefault(customerVehicle);
         CustomerVehicle savedCustomerVehicle = customerVehiclePortOut.save(customerVehicle);
         applySingleDefaultRule(savedCustomerVehicle);
         return savedCustomerVehicle;
     }
 
-    @Override
     @Transactional
     public CustomerVehicle unmarkCustomerVehicleAsDefault(UUID customerVehicleId) {
-        CustomerVehicle customerVehicle = getCustomerVehicleById(customerVehicleId);
+        CustomerVehicle customerVehicle = findCustomerVehicleOrThrow(customerVehicleId);
+        customerVehicleAccessGuard.ensureCanUpdate(customerVehicle);
         customerVehiclePolicy.unmarkDefault(customerVehicle);
         return customerVehiclePortOut.save(customerVehicle);
+    }
+
+    private CustomerVehicle findCustomerVehicleOrThrow(UUID customerVehicleId) {
+        return customerVehiclePortOut.findById(customerVehicleId)
+                .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
     }
 
     private void validateReferences(CustomerVehicle customerVehicle) {

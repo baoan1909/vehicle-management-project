@@ -68,5 +68,29 @@ class CustomerVehiclePolicyTest {
 
         assertThrows(BadRequestException.class, () -> customerVehiclePolicy.markDefault(customerVehicle));
     }
+
+    @Test
+    void shouldRejectActivatingBlockedCustomerVehicle() {
+        CustomerVehicle customerVehicle = new CustomerVehicle();
+        customerVehicle.setCustomerId(UUID.randomUUID());
+        customerVehicle.setVehicleTypeId(UUID.randomUUID());
+        customerVehicle.setLicensePlate("51A-12345");
+        customerVehicle.setStatus(CustomerVehicleStatus.BLOCKED);
+        customerVehicle.setIsDefault(Boolean.FALSE);
+
+        assertThrows(BadRequestException.class, () -> customerVehiclePolicy.activate(customerVehicle));
+    }
+
+    @Test
+    void shouldRejectInactivatingBlockedCustomerVehicle() {
+        CustomerVehicle customerVehicle = new CustomerVehicle();
+        customerVehicle.setCustomerId(UUID.randomUUID());
+        customerVehicle.setVehicleTypeId(UUID.randomUUID());
+        customerVehicle.setLicensePlate("51A-12345");
+        customerVehicle.setStatus(CustomerVehicleStatus.BLOCKED);
+        customerVehicle.setIsDefault(Boolean.FALSE);
+
+        assertThrows(BadRequestException.class, () -> customerVehiclePolicy.inactivate(customerVehicle));
+    }
 }
 

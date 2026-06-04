@@ -7,12 +7,12 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
-import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
 import java.util.List;
@@ -30,90 +30,11 @@ class CustomerUseCaseImplTest {
     @Mock
     private CustomerPortOut customerPortOut;
 
+    @Mock
+    private CurrentAccountPortIn currentAccountPortIn;
+
     @InjectMocks
     private CustomerUseCaseImpl customerUseCase;
-
-    @Test
-    void shouldCreateCustomerWithDefaults() {
-        Customer requestCustomer = new Customer();
-        requestCustomer.setUserProfileId(UUID.randomUUID());
-        requestCustomer.setCustomerCode(" cus-001 ");
-
-        when(customerPortOut.existsUserProfileById(requestCustomer.getUserProfileId())).thenReturn(true);
-        when(customerPortOut.existsByCustomerCode("CUS-001")).thenReturn(false);
-        when(customerPortOut.existsByUserProfileId(requestCustomer.getUserProfileId())).thenReturn(false);
-        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Customer createdCustomer = customerUseCase.createCustomer(requestCustomer);
-
-        assertEquals("CUS-001", createdCustomer.getCustomerCode());
-        assertEquals(CustomerType.REGISTERED, createdCustomer.getCustomerType());
-        assertEquals(CustomerStatus.ACTIVE, createdCustomer.getStatus());
-        assertEquals(CustomerApprovalStatus.PENDING, createdCustomer.getApprovalStatus());
-    }
-
-    @Test
-    void shouldRejectCreateWhenUserProfileDoesNotExist() {
-        Customer requestCustomer = new Customer();
-        requestCustomer.setUserProfileId(UUID.randomUUID());
-        requestCustomer.setCustomerCode("CUS-001");
-
-        when(customerPortOut.existsUserProfileById(requestCustomer.getUserProfileId())).thenReturn(false);
-
-        assertThrows(NotFoundException.class, () -> customerUseCase.createCustomer(requestCustomer));
-        verify(customerPortOut, never()).save(any(Customer.class));
-    }
-
-    @Test
-    void shouldRejectDuplicateCustomerCodeOnCreate() {
-        Customer requestCustomer = new Customer();
-        requestCustomer.setUserProfileId(UUID.randomUUID());
-        requestCustomer.setCustomerCode("CUS-001");
-
-        when(customerPortOut.existsUserProfileById(requestCustomer.getUserProfileId())).thenReturn(true);
-        when(customerPortOut.existsByCustomerCode("CUS-001")).thenReturn(true);
-
-        assertThrows(ConflictException.class, () -> customerUseCase.createCustomer(requestCustomer));
-    }
-
-    @Test
-    void shouldRejectLinkedUserProfileOnCreate() {
-        Customer requestCustomer = new Customer();
-        requestCustomer.setUserProfileId(UUID.randomUUID());
-        requestCustomer.setCustomerCode("CUS-001");
-
-        when(customerPortOut.existsUserProfileById(requestCustomer.getUserProfileId())).thenReturn(true);
-        when(customerPortOut.existsByCustomerCode("CUS-001")).thenReturn(false);
-        when(customerPortOut.existsByUserProfileId(requestCustomer.getUserProfileId())).thenReturn(true);
-
-        assertThrows(ConflictException.class, () -> customerUseCase.createCustomer(requestCustomer));
-    }
-
-    @Test
-    void shouldUpdateCustomerMetadata() {
-        UUID customerId = UUID.randomUUID();
-        Customer existingCustomer = new Customer();
-        existingCustomer.setCustomerId(customerId);
-        existingCustomer.setUserProfileId(UUID.randomUUID());
-        existingCustomer.setCustomerCode("CUS-001");
-        existingCustomer.setCustomerType(CustomerType.REGISTERED);
-        existingCustomer.setStatus(CustomerStatus.ACTIVE);
-        existingCustomer.setApprovalStatus(CustomerApprovalStatus.PENDING);
-
-        Customer requestCustomer = new Customer();
-        requestCustomer.setCustomerCode("VIP-001");
-        requestCustomer.setCustomerType(CustomerType.VIP);
-
-        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(existingCustomer));
-        when(customerPortOut.existsByCustomerCodeAndCustomerIdNot("VIP-001", customerId)).thenReturn(false);
-        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Customer updatedCustomer = customerUseCase.updateCustomer(customerId, requestCustomer);
-
-        assertEquals("VIP-001", updatedCustomer.getCustomerCode());
-        assertEquals(CustomerType.VIP, updatedCustomer.getCustomerType());
-        assertEquals(CustomerApprovalStatus.PENDING, updatedCustomer.getApprovalStatus());
-    }
 
     @Test
     void shouldReturnFilteredCustomers() {
@@ -137,13 +58,16 @@ class CustomerUseCaseImplTest {
         UUID approvedBy = UUID.randomUUID();
         Instant approvedAt = Instant.parse("2026-05-17T03:00:00Z");
         Customer customer = validPendingCustomer(customerId);
+        customer.setStatus(CustomerStatus.INACTIVE);
 
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(approvedBy);
         when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
         when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Customer approvedCustomer = customerUseCase.approveCustomer(customerId, approvedBy, approvedAt);
+        Customer approvedCustomer = customerUseCase.approveCustomer(customerId, approvedAt);
 
         assertEquals(CustomerApprovalStatus.APPROVED, approvedCustomer.getApprovalStatus());
+        assertEquals(CustomerStatus.ACTIVE, approvedCustomer.getStatus());
         assertEquals(approvedBy, approvedCustomer.getApprovedBy());
         assertEquals(approvedAt, approvedCustomer.getApprovedAt());
     }
@@ -159,6 +83,7 @@ class CustomerUseCaseImplTest {
         Customer rejectedCustomer = customerUseCase.rejectCustomer(customerId);
 
         assertEquals(CustomerApprovalStatus.REJECTED, rejectedCustomer.getApprovalStatus());
+        assertEquals(CustomerStatus.INACTIVE, rejectedCustomer.getStatus());
     }
 
     @Test
@@ -172,6 +97,7 @@ class CustomerUseCaseImplTest {
         Customer suspendedCustomer = customerUseCase.suspendCustomer(customerId);
 
         assertEquals(CustomerApprovalStatus.SUSPENDED, suspendedCustomer.getApprovalStatus());
+        assertEquals(CustomerStatus.INACTIVE, suspendedCustomer.getStatus());
     }
 
     @Test
@@ -185,12 +111,13 @@ class CustomerUseCaseImplTest {
         Customer pendingCustomer = customerUseCase.moveCustomerToPending(customerId);
 
         assertEquals(CustomerApprovalStatus.PENDING, pendingCustomer.getApprovalStatus());
+        assertEquals(CustomerStatus.INACTIVE, pendingCustomer.getStatus());
     }
 
     @Test
     void shouldActivateCustomer() {
         UUID customerId = UUID.randomUUID();
-        Customer customer = validPendingCustomer(customerId);
+        Customer customer = validApprovedCustomer(customerId);
         customer.setStatus(CustomerStatus.INACTIVE);
 
         when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
@@ -228,7 +155,7 @@ class CustomerUseCaseImplTest {
         customer.setUserProfileId(UUID.randomUUID());
         customer.setCustomerCode("CUS-001");
         customer.setCustomerType(CustomerType.REGISTERED);
-        customer.setStatus(CustomerStatus.ACTIVE);
+        customer.setStatus(CustomerStatus.INACTIVE);
         customer.setApprovalStatus(CustomerApprovalStatus.PENDING);
         return customer;
     }

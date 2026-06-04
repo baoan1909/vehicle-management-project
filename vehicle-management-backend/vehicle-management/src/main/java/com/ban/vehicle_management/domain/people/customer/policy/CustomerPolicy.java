@@ -18,11 +18,13 @@ public class CustomerPolicy {
         if (customer.getCustomerType() == null) {
             customer.setCustomerType(CustomerType.REGISTERED);
         }
-        if (customer.getStatus() == null) {
-            customer.setStatus(CustomerStatus.ACTIVE);
-        }
         if (customer.getApprovalStatus() == null) {
             customer.setApprovalStatus(CustomerApprovalStatus.PENDING);
+        }
+        if (customer.getStatus() == null) {
+            customer.setStatus(customer.getApprovalStatus() == CustomerApprovalStatus.APPROVED
+                    ? CustomerStatus.ACTIVE
+                    : CustomerStatus.INACTIVE);
         }
         validateState(customer);
     }
@@ -35,6 +37,7 @@ public class CustomerPolicy {
         customer.setApprovedBy(approvedBy);
         customer.setApprovedAt(approvedAt);
         customer.setApprovalStatus(CustomerApprovalStatus.APPROVED);
+        customer.setStatus(CustomerStatus.ACTIVE);
         validateState(customer);
     }
 
@@ -43,6 +46,7 @@ public class CustomerPolicy {
         customer.setApprovedBy(null);
         customer.setApprovedAt(null);
         customer.setApprovalStatus(CustomerApprovalStatus.REJECTED);
+        customer.setStatus(CustomerStatus.INACTIVE);
         validateState(customer);
     }
 
@@ -53,6 +57,7 @@ public class CustomerPolicy {
         customer.setApprovedBy(null);
         customer.setApprovedAt(null);
         customer.setApprovalStatus(CustomerApprovalStatus.SUSPENDED);
+        customer.setStatus(CustomerStatus.INACTIVE);
         validateState(customer);
     }
 
@@ -61,11 +66,15 @@ public class CustomerPolicy {
         customer.setApprovedBy(null);
         customer.setApprovedAt(null);
         customer.setApprovalStatus(CustomerApprovalStatus.PENDING);
+        customer.setStatus(CustomerStatus.INACTIVE);
         validateState(customer);
     }
 
     public void activate(Customer customer) {
         requireCustomer(customer);
+        if (customer.getApprovalStatus() != CustomerApprovalStatus.APPROVED) {
+            throw new BadRequestException("Only APPROVED customer can be activated");
+        }
         customer.setStatus(CustomerStatus.ACTIVE);
         validateState(customer);
     }
@@ -93,6 +102,10 @@ public class CustomerPolicy {
                 if (customer.getApprovedBy() != null || customer.getApprovedAt() != null) {
                     throw new BadRequestException(
                             "approvedBy and approvedAt must be null unless customer is APPROVED");
+                }
+                if (customer.getStatus() != CustomerStatus.INACTIVE) {
+                    throw new BadRequestException(
+                            "Customer with PENDING, REJECTED, or SUSPENDED approval status must be INACTIVE");
                 }
             }
         }
