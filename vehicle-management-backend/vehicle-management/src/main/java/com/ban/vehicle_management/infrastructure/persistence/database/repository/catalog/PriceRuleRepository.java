@@ -12,6 +12,8 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
 
     boolean existsByPricePlanId(UUID pricePlanId);
 
+    boolean existsByTicketTypeIdAndIsActiveTrue(UUID ticketTypeId);
+
     @Query("""
             select count(priceRule) > 0
             from PriceRuleEntity priceRule

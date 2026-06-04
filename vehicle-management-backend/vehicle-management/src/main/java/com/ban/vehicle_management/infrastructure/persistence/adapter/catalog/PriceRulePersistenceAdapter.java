@@ -15,6 +15,8 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -85,7 +87,7 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
         }
 
         return ticketTypeRepository.findById(ticketTypeId)
-                .filter(ticketType -> Boolean.TRUE.equals(ticketType.getIsActive()))
+                .filter(ticketType -> ticketType.getStatus() == TicketTypeStatus.ACTIVE)
                 .map(ticketTypePersistenceMapper::toDomain);
     }
 

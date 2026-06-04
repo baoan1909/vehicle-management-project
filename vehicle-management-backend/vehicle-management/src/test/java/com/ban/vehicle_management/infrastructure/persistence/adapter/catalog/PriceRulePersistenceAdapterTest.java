@@ -21,6 +21,8 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -134,7 +136,7 @@ class PriceRulePersistenceAdapterTest {
         UUID ticketTypeId = UUID.randomUUID();
         TicketTypeEntity ticketTypeEntity = new TicketTypeEntity();
         ticketTypeEntity.setTicketTypeId(ticketTypeId);
-        ticketTypeEntity.setIsActive(Boolean.TRUE);
+        ticketTypeEntity.setStatus(TicketTypeStatus.ACTIVE);
 
         TicketType ticketType = new TicketType();
         ticketType.setTicketTypeId(ticketTypeId);
@@ -152,7 +154,7 @@ class PriceRulePersistenceAdapterTest {
     void shouldReturnEmptyWhenTicketTypeIsInactive() {
         UUID ticketTypeId = UUID.randomUUID();
         TicketTypeEntity ticketTypeEntity = new TicketTypeEntity();
-        ticketTypeEntity.setIsActive(Boolean.FALSE);
+        ticketTypeEntity.setStatus(TicketTypeStatus.ACTIVE);
 
         when(ticketTypeRepository.findById(ticketTypeId)).thenReturn(Optional.of(ticketTypeEntity));
 

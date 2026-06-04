@@ -17,6 +17,7 @@ import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
 import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
 import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
+import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.math.BigDecimal;
@@ -240,7 +241,7 @@ class PriceRuleUseCaseImplTest {
         ticketType.setTicketTypeId(UUID.randomUUID());
         ticketType.setCode(code);
         ticketType.setName(code);
-        ticketType.setIsActive(Boolean.TRUE);
+        ticketType.setStatus(TicketTypeStatus.ACTIVE);
         return ticketType;
     }
 }
