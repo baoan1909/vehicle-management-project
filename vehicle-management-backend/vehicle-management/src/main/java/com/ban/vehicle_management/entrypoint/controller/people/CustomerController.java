@@ -1,18 +1,23 @@
 package com.ban.vehicle_management.entrypoint.controller.people;
 
+import com.ban.vehicle_management.application.people.customer.mapper.CustomerAdminProfileApiMapper;
 import com.ban.vehicle_management.application.people.customer.mapper.CustomerApiMapper;
+import com.ban.vehicle_management.application.people.customer.model.result.CustomerAdminProfileResult;
+import com.ban.vehicle_management.application.people.customer.port.in.CustomerAdminProfilePortIn;
 import com.ban.vehicle_management.application.people.customer.port.in.CustomerPortIn;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.request.ApproveCustomerRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.request.CustomerFilterRequest;
-import com.ban.vehicle_management.entrypoint.dto.people.customer.request.CreateCustomerRequest;
-import com.ban.vehicle_management.entrypoint.dto.people.customer.request.UpdateCustomerRequest;
+import com.ban.vehicle_management.entrypoint.dto.people.customer.request.CreateCustomerAdminProfileRequest;
+import com.ban.vehicle_management.entrypoint.dto.people.customer.request.UpdateCustomerAdminProfileRequest;
+import com.ban.vehicle_management.entrypoint.dto.people.customer.response.CustomerAdminProfileResponse;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.response.CustomerAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -28,23 +33,37 @@ import org.springframework.web.bind.annotation.RestController;
 public class CustomerController {
 
     private final CustomerPortIn customerPortIn;
+    private final CustomerAdminProfilePortIn customerAdminProfilePortIn;
     private final CustomerApiMapper customerApiMapper;
+    private final CustomerAdminProfileApiMapper customerAdminProfileApiMapper;
 
-    public CustomerController(CustomerPortIn customerPortIn, CustomerApiMapper customerApiMapper) {
+    public CustomerController(
+            CustomerPortIn customerPortIn,
+            CustomerAdminProfilePortIn customerAdminProfilePortIn,
+            CustomerApiMapper customerApiMapper,
+            CustomerAdminProfileApiMapper customerAdminProfileApiMapper
+    ) {
         this.customerPortIn = customerPortIn;
+        this.customerAdminProfilePortIn = customerAdminProfilePortIn;
         this.customerApiMapper = customerApiMapper;
+        this.customerAdminProfileApiMapper = customerAdminProfileApiMapper;
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<CustomerAdminResponse>> createCustomer(@RequestBody CreateCustomerRequest request) {
-        Customer createdCustomer = customerPortIn.createCustomer(customerApiMapper.toDomain(request));
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_CREATE_ALL')")
+    public ResponseEntity<ApiResponse<CustomerAdminProfileResponse>> createCustomer(
+            @RequestBody CreateCustomerAdminProfileRequest request
+    ) {
+        CustomerAdminProfileResult createdCustomerProfile =
+                customerAdminProfilePortIn.createCustomerAdminProfile(customerAdminProfileApiMapper.toCreateCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Customer created successfully",
-                customerApiMapper.toAdminResponse(createdCustomer)
+                customerAdminProfileApiMapper.toResponse(createdCustomerProfile)
         ));
     }
 
     @GetMapping("/{customerId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_READ_ALL')")
     public ResponseEntity<ApiResponse<CustomerAdminResponse>> getCustomerById(@PathVariable UUID customerId) {
         Customer customer = customerPortIn.getCustomerById(customerId);
         return ResponseEntity.ok(ApiResponse.ok(
@@ -54,6 +73,7 @@ public class CustomerController {
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_READ_ALL')")
     public ResponseEntity<ApiResponse<List<CustomerAdminResponse>>> getCustomers(
             @ModelAttribute CustomerFilterRequest request
     ) {
@@ -70,23 +90,31 @@ public class CustomerController {
     }
 
     @PutMapping("/{customerId}")
-    public ResponseEntity<ApiResponse<CustomerAdminResponse>> updateCustomer(
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<CustomerAdminProfileResponse>> updateCustomer(
             @PathVariable UUID customerId,
-            @RequestBody UpdateCustomerRequest request
+            @RequestBody UpdateCustomerAdminProfileRequest request
     ) {
-        Customer updatedCustomer = customerPortIn.updateCustomer(customerId, customerApiMapper.toDomain(request));
+        CustomerAdminProfileResult updatedCustomerProfile = customerAdminProfilePortIn.updateCustomerAdminProfile(
+                customerId,
+                customerAdminProfileApiMapper.toUpdateCommand(request)
+        );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Customer updated successfully",
-                customerApiMapper.toAdminResponse(updatedCustomer)
+                customerAdminProfileApiMapper.toResponse(updatedCustomerProfile)
         ));
     }
 
     @PatchMapping("/{customerId}/approve")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<CustomerAdminResponse>> approveCustomer(
             @PathVariable UUID customerId,
-            @RequestBody ApproveCustomerRequest request
+            @RequestBody(required = false) ApproveCustomerRequest request
     ) {
-        Customer approvedCustomer = customerPortIn.approveCustomer(customerId, request.approvedBy(), request.approvedAt());
+        Customer approvedCustomer = customerPortIn.approveCustomer(
+                customerId,
+                request == null ? null : request.approvedAt()
+        );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Customer approved successfully",
                 customerApiMapper.toAdminResponse(approvedCustomer)
@@ -94,6 +122,7 @@ public class CustomerController {
     }
 
     @PatchMapping("/{customerId}/reject")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<CustomerAdminResponse>> rejectCustomer(@PathVariable UUID customerId) {
         Customer rejectedCustomer = customerPortIn.rejectCustomer(customerId);
         return ResponseEntity.ok(ApiResponse.ok(
@@ -103,6 +132,7 @@ public class CustomerController {
     }
 
     @PatchMapping("/{customerId}/suspend")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<CustomerAdminResponse>> suspendCustomer(@PathVariable UUID customerId) {
         Customer suspendedCustomer = customerPortIn.suspendCustomer(customerId);
         return ResponseEntity.ok(ApiResponse.ok(
@@ -112,6 +142,7 @@ public class CustomerController {
     }
 
     @PatchMapping("/{customerId}/move-to-pending")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<CustomerAdminResponse>> moveCustomerToPending(@PathVariable UUID customerId) {
         Customer pendingCustomer = customerPortIn.moveCustomerToPending(customerId);
         return ResponseEntity.ok(ApiResponse.ok(
@@ -121,6 +152,7 @@ public class CustomerController {
     }
 
     @PatchMapping("/{customerId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<CustomerAdminResponse>> activateCustomer(@PathVariable UUID customerId) {
         Customer activatedCustomer = customerPortIn.activateCustomer(customerId);
         return ResponseEntity.ok(ApiResponse.ok(

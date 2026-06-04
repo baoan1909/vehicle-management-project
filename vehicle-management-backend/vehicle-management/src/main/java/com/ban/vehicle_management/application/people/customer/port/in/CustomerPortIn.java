@@ -10,10 +10,6 @@ import java.util.UUID;
 
 public interface CustomerPortIn {
 
-    Customer createCustomer(Customer customer);
-
-    Customer updateCustomer(UUID customerId, Customer customer);
-
     Customer getCustomerById(UUID customerId);
 
     List<Customer> getCustomers(
@@ -23,7 +19,7 @@ public interface CustomerPortIn {
             String keyword
     );
 
-    Customer approveCustomer(UUID customerId, UUID approvedBy, Instant approvedAt);
+    Customer approveCustomer(UUID customerId, Instant approvedAt);
 
     Customer rejectCustomer(UUID customerId);
 

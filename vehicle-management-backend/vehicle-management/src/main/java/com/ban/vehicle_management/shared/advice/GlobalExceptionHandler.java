@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -116,6 +117,19 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.FORBIDDEN, exception.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(RequestRejectedException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleRequestRejectedException(
+            RequestRejectedException exception,
+            HttpServletRequest request
+    ) {
+        LOGGER.warn("Rejected request at {}: {}", request.getRequestURI(), exception.getMessage());
+        return buildErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                buildRequestRejectedMessage(exception),
+                request.getRequestURI()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Map<String, Object>>> handleUnexpectedException(
             Exception exception,
@@ -143,6 +157,14 @@ public class GlobalExceptionHandler {
                 )
         );
         return ResponseEntity.status(httpStatus).body(response);
+    }
+
+    private String buildRequestRejectedMessage(RequestRejectedException exception) {
+        String message = exception.getMessage();
+        if (message != null && message.contains("parameter name")) {
+            return "Request was rejected before permission checking. Send JSON in the request body with Content-Type: application/json instead of query or form parameters.";
+        }
+        return "Request was rejected by security validation";
     }
 }
 

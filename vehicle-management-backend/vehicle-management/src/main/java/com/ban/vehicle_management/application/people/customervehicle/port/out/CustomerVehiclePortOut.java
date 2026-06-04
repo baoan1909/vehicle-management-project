@@ -12,6 +12,8 @@ public interface CustomerVehiclePortOut {
 
     Optional<CustomerVehicle> findById(UUID customerVehicleId);
 
+    Optional<CustomerVehicle> findByLicensePlate(String licensePlate);
+
     List<CustomerVehicle> findAll(
             UUID customerId,
             CustomerVehicleStatus status,

@@ -13,7 +13,7 @@ public interface CustomerVehiclePortIn {
 
     CustomerVehicle getCustomerVehicleById(UUID customerVehicleId);
 
-    List<CustomerVehicle> getCustomerVehicles(
+    List<CustomerVehicle> getAllCustomerVehicle(
             UUID customerId,
             CustomerVehicleStatus status,
             UUID vehicleTypeId,

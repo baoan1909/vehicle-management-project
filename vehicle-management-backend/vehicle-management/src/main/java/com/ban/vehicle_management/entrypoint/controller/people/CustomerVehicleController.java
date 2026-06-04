@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -39,6 +40,7 @@ public class CustomerVehicleController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_CREATE_ALL', 'CUSTOMER_VEHICLE_CREATE_OWN')")
     public ResponseEntity<ApiResponse<CustomerVehicleAdminResponse>> createCustomerVehicle(
             @RequestBody CreateCustomerVehicleRequest request
     ) {
@@ -50,7 +52,24 @@ public class CustomerVehicleController {
         ));
     }
 
+    @PutMapping("/{customerVehicleId}")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_UPDATE_ALL', 'CUSTOMER_VEHICLE_UPDATE_OWN')")
+    public ResponseEntity<ApiResponse<CustomerVehicleAdminResponse>> updateCustomerVehicle(
+            @PathVariable UUID customerVehicleId,
+            @RequestBody UpdateCustomerVehicleRequest request
+    ) {
+        CustomerVehicle updatedCustomerVehicle = customerVehiclePortIn.updateCustomerVehicle(
+                customerVehicleId,
+                customerVehicleApiMapper.toDomain(request)
+        );
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Customer vehicle updated successfully",
+                customerVehicleApiMapper.toAdminResponse(updatedCustomerVehicle)
+        ));
+    }
+
     @GetMapping("/{customerVehicleId}")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_READ_ALL', 'CUSTOMER_VEHICLE_READ_OWN')")
     public ResponseEntity<ApiResponse<CustomerVehicleAdminResponse>> getCustomerVehicleById(
             @PathVariable UUID customerVehicleId
     ) {
@@ -62,10 +81,11 @@ public class CustomerVehicleController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<CustomerVehicleAdminResponse>>> getCustomerVehicles(
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_READ_ALL', 'CUSTOMER_VEHICLE_READ_OWN')")
+    public ResponseEntity<ApiResponse<List<CustomerVehicleAdminResponse>>> getAllCustomerVehicle(
             @ModelAttribute CustomerVehicleFilterRequest request
     ) {
-        List<CustomerVehicle> customerVehicles = customerVehiclePortIn.getCustomerVehicles(
+        List<CustomerVehicle> customerVehicles = customerVehiclePortIn.getAllCustomerVehicle(
                 request.customerId(),
                 request.status(),
                 request.vehicleTypeId(),
@@ -78,26 +98,15 @@ public class CustomerVehicleController {
         ));
     }
 
-    @PutMapping("/{customerVehicleId}")
-    public ResponseEntity<ApiResponse<CustomerVehicleAdminResponse>> updateCustomerVehicle(
-            @PathVariable UUID customerVehicleId,
-            @RequestBody UpdateCustomerVehicleRequest request
-    ) {
-        CustomerVehicle updatedCustomerVehicle =
-                customerVehiclePortIn.updateCustomerVehicle(customerVehicleId, customerVehicleApiMapper.toDomain(request));
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Customer vehicle updated successfully",
-                customerVehicleApiMapper.toAdminResponse(updatedCustomerVehicle)
-        ));
-    }
-
     @DeleteMapping("/{customerVehicleId}")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_DELETE_ALL', 'CUSTOMER_VEHICLE_DELETE_OWN')")
     public ResponseEntity<ApiResponse<Void>> deleteCustomerVehicle(@PathVariable UUID customerVehicleId) {
         customerVehiclePortIn.deleteCustomerVehicle(customerVehicleId);
         return ResponseEntity.ok(ApiResponse.ok("Customer vehicle inactivated successfully"));
     }
 
     @PatchMapping("/{customerVehicleId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_UPDATE_ALL', 'CUSTOMER_VEHICLE_UPDATE_OWN')")
     public ResponseEntity<ApiResponse<CustomerVehicleAdminResponse>> activateCustomerVehicle(
             @PathVariable UUID customerVehicleId
     ) {
@@ -109,6 +118,7 @@ public class CustomerVehicleController {
     }
 
     @PatchMapping("/{customerVehicleId}/inactivate")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_UPDATE_ALL', 'CUSTOMER_VEHICLE_UPDATE_OWN')")
     public ResponseEntity<ApiResponse<CustomerVehicleAdminResponse>> inactivateCustomerVehicle(
             @PathVariable UUID customerVehicleId
     ) {
@@ -120,6 +130,7 @@ public class CustomerVehicleController {
     }
 
     @PatchMapping("/{customerVehicleId}/block")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_VEHICLE_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<CustomerVehicleAdminResponse>> blockCustomerVehicle(
             @PathVariable UUID customerVehicleId
     ) {
@@ -131,6 +142,7 @@ public class CustomerVehicleController {
     }
 
     @PatchMapping("/{customerVehicleId}/mark-default")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_UPDATE_ALL', 'CUSTOMER_VEHICLE_UPDATE_OWN')")
     public ResponseEntity<ApiResponse<CustomerVehicleAdminResponse>> markCustomerVehicleAsDefault(
             @PathVariable UUID customerVehicleId
     ) {
@@ -142,6 +154,7 @@ public class CustomerVehicleController {
     }
 
     @PatchMapping("/{customerVehicleId}/unmark-default")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_UPDATE_ALL', 'CUSTOMER_VEHICLE_UPDATE_OWN')")
     public ResponseEntity<ApiResponse<CustomerVehicleAdminResponse>> unmarkCustomerVehicleAsDefault(
             @PathVariable UUID customerVehicleId
     ) {

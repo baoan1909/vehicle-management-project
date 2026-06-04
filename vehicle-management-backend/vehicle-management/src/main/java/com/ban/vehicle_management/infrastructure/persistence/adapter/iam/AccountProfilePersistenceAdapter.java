@@ -16,14 +16,10 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
-import org.springframework.stereotype.Component;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.stereotype.Component;
 
 @Component
 public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
@@ -84,7 +80,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
 
         userProfileRepository.save(userProfilePersistenceMapper.toEntity(userProfile));
 
-        customer.setCustomerCode(generateCustomerCode(customer.getCustomerId()));
+        customer.setCustomerCode(IdentifierGenerationUtils.generateCustomerCode(customer.getCustomerId()));
         customerRepository.save(customerPersistenceMapper.toEntity(customer));
 
         accountEntity.setUserProfileId(userProfile.getUserProfileId());
@@ -159,20 +155,5 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
             return null;
         }
         return customerRepository.findByUserProfileId(userProfileId).orElse(null);
-    }
-
-    private String generateCustomerCode(UUID customerId) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(customerId.toString().getBytes(StandardCharsets.UTF_8));
-
-            String encodedDigest = Base64.getUrlEncoder()
-                    .withoutPadding()
-                    .encodeToString(digest);
-
-            return "CUS-" + encodedDigest;
-        } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 algorithm is not available", exception);
-        }
     }
 }

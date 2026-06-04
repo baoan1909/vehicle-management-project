@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 public interface CustomerVehicleRepository
         extends JpaRepository<CustomerVehicleEntity, UUID>, JpaSpecificationExecutor<CustomerVehicleEntity> {
 
+    java.util.Optional<CustomerVehicleEntity> findByLicensePlate(String licensePlate);
+
     boolean existsByLicensePlate(String licensePlate);
 
     boolean existsByLicensePlateAndCustomerVehicleIdNot(String licensePlate, UUID customerVehicleId);

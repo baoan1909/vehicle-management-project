@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.validation.BindException;
 
 class GlobalExceptionHandlerTest {
@@ -77,5 +78,23 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
         assertEquals("Too many requests", response.getBody().getMessage());
+    }
+
+    @Test
+    void shouldReturnBadRequestForRejectedRequestParameterPayload() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/people/customers");
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response =
+                globalExceptionHandler.handleRequestRejectedException(
+                        new RequestRejectedException("The request was rejected because the parameter name \"{...}\" is not allowed."),
+                        request
+                );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertEquals(
+                "Request was rejected before permission checking. Send JSON in the request body with Content-Type: application/json instead of query or form parameters.",
+                response.getBody().getMessage()
+        );
     }
 }

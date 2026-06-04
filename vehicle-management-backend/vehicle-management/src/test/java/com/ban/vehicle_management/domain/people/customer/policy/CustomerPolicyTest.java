@@ -27,19 +27,21 @@ class CustomerPolicyTest {
 
         assertEquals("CUS-001", customer.getCustomerCode());
         assertEquals(CustomerType.REGISTERED, customer.getCustomerType());
-        assertEquals(CustomerStatus.ACTIVE, customer.getStatus());
+        assertEquals(CustomerStatus.INACTIVE, customer.getStatus());
         assertEquals(CustomerApprovalStatus.PENDING, customer.getApprovalStatus());
     }
 
     @Test
     void shouldApprovePendingCustomer() {
         Customer customer = validPendingCustomer();
+        customer.setStatus(CustomerStatus.INACTIVE);
         UUID approvedBy = UUID.randomUUID();
         Instant approvedAt = Instant.parse("2026-05-15T02:00:00Z");
 
         customerPolicy.approve(customer, approvedBy, approvedAt);
 
         assertEquals(CustomerApprovalStatus.APPROVED, customer.getApprovalStatus());
+        assertEquals(CustomerStatus.ACTIVE, customer.getStatus());
         assertEquals(approvedBy, customer.getApprovedBy());
         assertEquals(approvedAt, customer.getApprovedAt());
     }
@@ -59,6 +61,7 @@ class CustomerPolicyTest {
         customerPolicy.reject(customer);
 
         assertEquals(CustomerApprovalStatus.REJECTED, customer.getApprovalStatus());
+        assertEquals(CustomerStatus.INACTIVE, customer.getStatus());
         assertNull(customer.getApprovedBy());
         assertNull(customer.getApprovedAt());
     }
@@ -74,7 +77,7 @@ class CustomerPolicyTest {
 
     @Test
     void shouldActivateCustomer() {
-        Customer customer = validPendingCustomer();
+        Customer customer = validApprovedCustomer();
         customer.setStatus(CustomerStatus.INACTIVE);
 
         customerPolicy.activate(customer);
@@ -82,12 +85,19 @@ class CustomerPolicyTest {
         assertEquals(CustomerStatus.ACTIVE, customer.getStatus());
     }
 
+    @Test
+    void shouldRejectActivatingPendingCustomer() {
+        Customer customer = validPendingCustomer();
+
+        assertThrows(BadRequestException.class, () -> customerPolicy.activate(customer));
+    }
+
     private Customer validPendingCustomer() {
         Customer customer = new Customer();
         customer.setUserProfileId(UUID.randomUUID());
         customer.setCustomerCode("CUS-001");
         customer.setCustomerType(CustomerType.REGISTERED);
-        customer.setStatus(CustomerStatus.ACTIVE);
+        customer.setStatus(CustomerStatus.INACTIVE);
         customer.setApprovalStatus(CustomerApprovalStatus.PENDING);
         return customer;
     }

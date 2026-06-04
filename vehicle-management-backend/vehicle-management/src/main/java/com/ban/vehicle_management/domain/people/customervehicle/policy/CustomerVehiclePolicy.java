@@ -25,12 +25,14 @@ public class CustomerVehiclePolicy {
 
     public void activate(CustomerVehicle customerVehicle) {
         requireCustomerVehicle(customerVehicle);
+        requireNotBlocked(customerVehicle, "activate");
         customerVehicle.setStatus(CustomerVehicleStatus.ACTIVE);
         validateState(customerVehicle);
     }
 
     public void inactivate(CustomerVehicle customerVehicle) {
         requireCustomerVehicle(customerVehicle);
+        requireNotBlocked(customerVehicle, "inactivate");
         customerVehicle.setStatus(CustomerVehicleStatus.INACTIVE);
         customerVehicle.setIsDefault(Boolean.FALSE);
         validateState(customerVehicle);
@@ -83,6 +85,12 @@ public class CustomerVehiclePolicy {
     private void requireField(Object value, String fieldName) {
         if (value == null) {
             throw new BadRequestException(fieldName + " must not be null");
+        }
+    }
+
+    private void requireNotBlocked(CustomerVehicle customerVehicle, String action) {
+        if (customerVehicle.getStatus() == CustomerVehicleStatus.BLOCKED) {
+            throw new BadRequestException("Blocked customer vehicle cannot be " + action);
         }
     }
 

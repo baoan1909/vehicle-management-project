@@ -49,6 +49,12 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
     }
 
     @Override
+    public Optional<CustomerVehicle> findByLicensePlate(String licensePlate) {
+        return customerVehicleRepository.findByLicensePlate(licensePlate)
+                .map(customerVehiclePersistenceMapper::toDomain);
+    }
+
+    @Override
     public List<CustomerVehicle> findAll(
             UUID customerId,
             CustomerVehicleStatus status,
