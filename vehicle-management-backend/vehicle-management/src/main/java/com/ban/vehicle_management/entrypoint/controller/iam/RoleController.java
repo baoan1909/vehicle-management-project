@@ -10,6 +10,7 @@ import com.ban.vehicle_management.entrypoint.dto.iam.role.response.RoleAdminResp
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class RoleController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('ROLE_CREATE_ALL')")
     public ResponseEntity<ApiResponse<RoleAdminResponse>> createRole(@RequestBody CreateRoleRequest request) {
         Role createdRole = rolePortIn.createRole(roleApiMapper.toDomain(request));
         RoleAdminResponse response = roleApiMapper.toAdminResponse(createdRole);
@@ -35,6 +37,7 @@ public class RoleController {
     }
 
     @PutMapping("/{roleId}")
+    @PreAuthorize("hasAuthority('ROLE_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<RoleAdminResponse>> updateRole(
             @PathVariable UUID roleId,
             @RequestBody UpdateRoleRequest request
@@ -46,6 +49,7 @@ public class RoleController {
     }
 
     @GetMapping("/{roleId}")
+    @PreAuthorize("hasAuthority('ROLE_READ_ALL')")
     public ResponseEntity<ApiResponse<RoleAdminResponse>> getRoleById(@PathVariable UUID roleId) {
         Role role = rolePortIn.getRoleById(roleId);
         RoleAdminResponse response = roleApiMapper.toAdminResponse(role);
@@ -54,6 +58,7 @@ public class RoleController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('ROLE_READ_ALL')")
     public ResponseEntity<ApiResponse<List<RoleAdminResponse>>> getRoles(@ModelAttribute RoleFilterRequest request) {
         List<Role> roles = rolePortIn.getRoles(request.isActive(), request.isSystem(), request.keyword());
         List<RoleAdminResponse> response = roleApiMapper.toAdminResponses(roles);
@@ -62,6 +67,7 @@ public class RoleController {
     }
 
     @DeleteMapping("/{roleId}")
+    @PreAuthorize("hasAuthority('ROLE_DELETE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteRole(@PathVariable UUID roleId) {
         rolePortIn.deleteRole(roleId);
         return ResponseEntity.ok(ApiResponse.ok("Role deactivated successfully"));
