@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.operations.supportticket.policy;
 
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
-import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketPriority;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
@@ -18,7 +18,7 @@ public class SupportTicketPolicy {
             supportTicket.setStatus(SupportTicketStatus.OPEN);
         }
         if (supportTicket.getPriority() == null) {
-            supportTicket.setPriority(SupportTicketPriority.NORMAL);
+            supportTicket.setPriority(SupportTicketCategoryPriority.NORMAL);
         }
         validateState(supportTicket);
     }

@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.domain.operations.supportticket.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
-import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketPriority;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import java.time.Instant;
 import java.util.UUID;
@@ -21,7 +21,7 @@ public class SupportTicket extends AuditableDomainModel {
     private String title;
     private String content;
     private SupportTicketStatus status;
-    private SupportTicketPriority priority;
+    private SupportTicketCategoryPriority priority;
     private UUID assignedTo;
     private Instant resolvedAt;
 }
