@@ -3,7 +3,6 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.op
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
-import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -50,10 +49,6 @@ public class SupportTicketEntity extends AuditableEntity {
     @Column(name = "status", nullable = false)
     private SupportTicketStatus status;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "priority", nullable = false)
-    private SupportTicketPriority priority;
-
     @Column(name = "assigned_to")
     private UUID assignedTo;
 
@@ -63,6 +58,13 @@ public class SupportTicketEntity extends AuditableEntity {
 
     @Column(name = "resolved_at")
     private Instant resolvedAt;
+
+    @Column(name = "category_id", nullable = false)
+    private UUID categoryId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "category_id", referencedColumnName = "category_id", insertable = false, updatable = false)
+    private SupportTicketCategoryEntity category;
 
 }
 
