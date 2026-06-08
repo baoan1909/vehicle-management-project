@@ -1,4 +1,4 @@
-package com.ban.vehicle_management.application.operations.supportticket.port.out;
+package com.ban.vehicle_management.application.operations.supportticketcategory.port.out;
 
 import com.ban.vehicle_management.domain.operations.supportticketcategory.model.SupportTicketCategory;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;

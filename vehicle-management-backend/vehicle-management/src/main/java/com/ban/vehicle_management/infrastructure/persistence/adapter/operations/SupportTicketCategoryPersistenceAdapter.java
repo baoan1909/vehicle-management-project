@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.operations;
 
-import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketCategoryPortOut;
+import com.ban.vehicle_management.application.operations.supportticketcategory.port.out.SupportTicketCategoryPortOut;
 import com.ban.vehicle_management.domain.operations.supportticketcategory.model.SupportTicketCategory;
 import com.ban.vehicle_management.infrastructure.mapper.operations.SupportTicketCategoryPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.SupportTicketCategoryEntity;

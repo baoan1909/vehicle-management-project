@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.application.operations.supportticketcategory.usecase;
 
-import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketCategoryPortOut;
+import com.ban.vehicle_management.application.operations.supportticketcategory.port.out.SupportTicketCategoryPortOut;
 import com.ban.vehicle_management.application.operations.supportticketcategory.port.in.SupportTicketCategoryPortIn;
 import com.ban.vehicle_management.domain.operations.supportticketcategory.model.SupportTicketCategory;
 import com.ban.vehicle_management.domain.operations.supportticketcategory.policy.SupportTicketCategoryPolicy;
