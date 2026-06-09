@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.domain.operations.supportticket.policy;
 
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
-import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
@@ -10,88 +9,152 @@ import java.util.UUID;
 
 public class SupportTicketPolicy {
 
-    public void initialize(SupportTicket supportTicket) {
-        requireSupportTicket(supportTicket);
-        supportTicket.setTitle(TextValidationUtils.normalizeRequiredText(supportTicket.getTitle(), "title", 200));
-        supportTicket.setContent(TextValidationUtils.normalizeRequiredText(supportTicket.getContent(), "content", 0));
-        if (supportTicket.getStatus() == null) {
-            supportTicket.setStatus(SupportTicketStatus.OPEN);
+    public void initialize(SupportTicket ticket) {
+        requireTicket(ticket);
+
+        if (ticket.getStatus() == null) {
+            ticket.setStatus(SupportTicketStatus.OPEN);
         }
-        if (supportTicket.getPriority() == null) {
-            supportTicket.setPriority(SupportTicketCategoryPriority.NORMAL);
+
+        if (ticket.getReopenCount() == null) {
+            ticket.setReopenCount(0);
         }
-        validateState(supportTicket);
+
+        ticket.setAssignedTo(null);
+        ticket.setResolvedAt(null);
+        ticket.setResolutionNote(null);
+        ticket.setClosedAt(null);
+        ticket.setClosedBy(null);
+        ticket.setLastReopenedAt(null);
+
+        validateState(ticket);
     }
 
-    public void assign(SupportTicket supportTicket, UUID assignedTo) {
-        requireSupportTicket(supportTicket);
+    public void assign(SupportTicket ticket, UUID assignedTo) {
+        requireTicket(ticket);
         requireField(assignedTo, "assignedTo");
-        if (supportTicket.getStatus() == SupportTicketStatus.RESOLVED || supportTicket.getStatus() == SupportTicketStatus.CLOSED) {
-            throw new BadRequestException("Resolved or closed ticket cannot be reassigned");
+
+        if (ticket.getStatus() != SupportTicketStatus.OPEN
+                && ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
+            throw new BadRequestException("Support ticket can only be assigned from OPEN or IN_PROGRESS status");
         }
 
-        supportTicket.setAssignedTo(assignedTo);
-        validateState(supportTicket);
+        ticket.setAssignedTo(assignedTo);
+        validateState(ticket);
     }
 
-    public void startProgress(SupportTicket supportTicket) {
-        requireSupportTicket(supportTicket);
-        if (supportTicket.getStatus() != SupportTicketStatus.OPEN) {
+    public void startProgress(SupportTicket ticket) {
+        requireTicket(ticket);
+
+        if (ticket.getStatus() != SupportTicketStatus.OPEN) {
             throw new BadRequestException("Support ticket must be OPEN to start progress");
         }
-        if (supportTicket.getAssignedTo() == null) {
-            throw new BadRequestException("Support ticket must be assigned before starting progress");
-        }
 
-        supportTicket.setStatus(SupportTicketStatus.IN_PROGRESS);
-        validateState(supportTicket);
+        requireField(ticket.getAssignedTo(), "assignedTo");
+
+        ticket.setStatus(SupportTicketStatus.IN_PROGRESS);
+        validateState(ticket);
     }
 
-    public void resolve(SupportTicket supportTicket, Instant resolvedAt) {
-        requireSupportTicket(supportTicket);
-        if (supportTicket.getStatus() != SupportTicketStatus.OPEN && supportTicket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
+    public void resolve(SupportTicket ticket, String resolutionNote, Instant resolvedAt) {
+        requireTicket(ticket);
+
+        if (ticket.getStatus() != SupportTicketStatus.OPEN
+                && ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
             throw new BadRequestException("Support ticket can only be resolved from OPEN or IN_PROGRESS status");
         }
-        requireField(resolvedAt, "resolvedAt");
 
-        supportTicket.setStatus(SupportTicketStatus.RESOLVED);
-        supportTicket.setResolvedAt(resolvedAt);
-        validateState(supportTicket);
+        ticket.setStatus(SupportTicketStatus.RESOLVED);
+        ticket.setResolvedAt(requireInstant(resolvedAt, "resolvedAt"));
+        ticket.setResolutionNote(TextValidationUtils.normalizeRequiredText(resolutionNote, "resolutionNote", 0));
+
+        validateState(ticket);
     }
 
-    public void close(SupportTicket supportTicket) {
-        requireSupportTicket(supportTicket);
-        if (supportTicket.getStatus() != SupportTicketStatus.RESOLVED) {
+    public void reopen(SupportTicket ticket, Instant reopenedAt) {
+        requireTicket(ticket);
+
+        if (ticket.getStatus() != SupportTicketStatus.RESOLVED) {
+            throw new BadRequestException("Only resolved ticket can be reopened");
+        }
+
+        ticket.setStatus(SupportTicketStatus.IN_PROGRESS);
+        ticket.setResolvedAt(null);
+        ticket.setResolutionNote(null);
+        ticket.setReopenCount(ticket.getReopenCount() == null ? 1 : ticket.getReopenCount() + 1);
+        ticket.setLastReopenedAt(requireInstant(reopenedAt, "lastReopenedAt"));
+
+        validateState(ticket);
+    }
+
+    public void close(SupportTicket ticket, UUID closedBy, Instant closedAt) {
+        requireTicket(ticket);
+
+        if (ticket.getStatus() != SupportTicketStatus.RESOLVED) {
             throw new BadRequestException("Only resolved ticket can be closed");
         }
 
-        supportTicket.setStatus(SupportTicketStatus.CLOSED);
-        validateState(supportTicket);
+        requireField(closedBy, "closedBy");
+
+        ticket.setStatus(SupportTicketStatus.CLOSED);
+        ticket.setClosedBy(closedBy);
+        ticket.setClosedAt(requireInstant(closedAt, "closedAt"));
+
+        validateState(ticket);
     }
 
-    public void validateState(SupportTicket supportTicket) {
-        requireSupportTicket(supportTicket);
-        supportTicket.setTitle(TextValidationUtils.normalizeRequiredText(supportTicket.getTitle(), "title", 200));
-        supportTicket.setContent(TextValidationUtils.normalizeRequiredText(supportTicket.getContent(), "content", 0));
-        requireField(supportTicket.getStatus(), "status");
-        requireField(supportTicket.getPriority(), "priority");
+    public void validateState(SupportTicket ticket) {
+        requireTicket(ticket);
 
-        if (supportTicket.getStatus() == SupportTicketStatus.IN_PROGRESS && supportTicket.getAssignedTo() == null) {
-            throw new BadRequestException("In-progress ticket must have assignedTo");
+        requireField(ticket.getCustomerId(), "customerId");
+        requireField(ticket.getCategoryId(), "categoryId");
+
+        ticket.setTitle(TextValidationUtils.normalizeRequiredText(ticket.getTitle(), "title", 150));
+        ticket.setContent(TextValidationUtils.normalizeRequiredText(ticket.getContent(), "content", 0));
+
+        requireField(ticket.getStatus(), "status");
+
+        if (ticket.getReopenCount() == null || ticket.getReopenCount() < 0) {
+            throw new BadRequestException("reopenCount must not be negative");
         }
 
-        if (supportTicket.getStatus() == SupportTicketStatus.RESOLVED || supportTicket.getStatus() == SupportTicketStatus.CLOSED) {
-            requireField(supportTicket.getResolvedAt(), "resolvedAt");
-            return;
+        if (ticket.getStatus() == SupportTicketStatus.IN_PROGRESS) {
+            requireField(ticket.getAssignedTo(), "assignedTo");
         }
 
-        if (supportTicket.getResolvedAt() != null) {
-            throw new BadRequestException("Only resolved or closed ticket can keep resolvedAt");
+        if (ticket.getStatus() == SupportTicketStatus.RESOLVED) {
+            requireField(ticket.getResolvedAt(), "resolvedAt");
+            ticket.setResolutionNote(TextValidationUtils.normalizeRequiredText(ticket.getResolutionNote(), "resolutionNote", 0));
+        }
+
+        if (ticket.getStatus() == SupportTicketStatus.CLOSED) {
+            requireField(ticket.getResolvedAt(), "resolvedAt");
+            requireField(ticket.getResolutionNote(), "resolutionNote");
+            requireField(ticket.getClosedAt(), "closedAt");
+            requireField(ticket.getClosedBy(), "closedBy");
+        }
+
+        if ((ticket.getStatus() == SupportTicketStatus.OPEN || ticket.getStatus() == SupportTicketStatus.IN_PROGRESS)
+                && ticket.getResolvedAt() != null) {
+            throw new BadRequestException("Unresolved ticket must not keep resolvedAt");
+        }
+
+        if (ticket.getStatus() != SupportTicketStatus.CLOSED && ticket.getClosedAt() != null) {
+            throw new BadRequestException("Unclosed ticket must not keep closedAt");
+        }
+
+        if (ticket.getStatus() != SupportTicketStatus.CLOSED && ticket.getClosedBy() != null) {
+            throw new BadRequestException("Unclosed ticket must not keep closedBy");
         }
     }
 
-    private void requireSupportTicket(SupportTicket supportTicket) {
-        requireField(supportTicket, "supportTicket");
+    private void requireTicket(SupportTicket ticket) {
+        requireField(ticket, "supportTicket");
+    }
+
+    private Instant requireInstant(Instant value, String fieldName) {
+        requireField(value, fieldName);
+        return value;
     }
 
     private void requireField(Object value, String fieldName) {
@@ -99,6 +162,4 @@ public class SupportTicketPolicy {
             throw new BadRequestException(fieldName + " must not be null");
         }
     }
-
 }
-

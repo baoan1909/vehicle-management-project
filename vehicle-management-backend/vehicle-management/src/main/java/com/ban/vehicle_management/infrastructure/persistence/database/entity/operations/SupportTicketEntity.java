@@ -4,15 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.com
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -32,14 +24,21 @@ public class SupportTicketEntity extends AuditableEntity {
     @Column(name = "support_ticket_id", nullable = false)
     private UUID supportTicketId;
 
-    @Column(name = "customer_id")
+    @Column(name = "customer_id", nullable = false)
     private UUID customerId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_id", referencedColumnName = "customer_id", insertable = false, updatable = false)
     private CustomerEntity customer;
 
-    @Column(name = "title", nullable = false)
+    @Column(name = "category_id", nullable = false)
+    private UUID categoryId;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "category_id", referencedColumnName = "category_id", insertable = false, updatable = false)
+    private SupportTicketCategoryEntity category;
+
+    @Column(name = "title", nullable = false, length = 150)
     private String title;
 
     @Column(name = "content", nullable = false)
@@ -59,13 +58,22 @@ public class SupportTicketEntity extends AuditableEntity {
     @Column(name = "resolved_at")
     private Instant resolvedAt;
 
-    @Column(name = "category_id", nullable = false)
-    private UUID categoryId;
+    @Column(name = "resolution_note")
+    private String resolutionNote;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "category_id", referencedColumnName = "category_id", insertable = false, updatable = false)
-    private SupportTicketCategoryEntity category;
+    @Column(name = "closed_at")
+    private Instant closedAt;
 
+    @Column(name = "closed_by")
+    private UUID closedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "closed_by", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity closedByAccount;
+
+    @Column(name = "reopen_count", nullable = false)
+    private Integer reopenCount;
+
+    @Column(name = "last_reopened_at")
+    private Instant lastReopenedAt;
 }
-
-
