@@ -23,6 +23,10 @@ public class ApprovalRequestPolicy {
     }
 
     public void approve(ApprovalRequest approvalRequest, UUID approvedBy, Instant approvedAt) {
+        approve(approvalRequest, approvedBy, approvedAt, null);
+    }
+
+    public void approve(ApprovalRequest approvalRequest, UUID approvedBy, Instant approvedAt, String note) {
         requireStatus(approvalRequest, ApprovalRequestStatus.PENDING);
         requireField(approvedBy, "approvedBy");
         requireField(approvedAt, "approvedAt");
@@ -30,6 +34,7 @@ public class ApprovalRequestPolicy {
         approvalRequest.setStatus(ApprovalRequestStatus.APPROVED);
         approvalRequest.setApprovedBy(approvedBy);
         approvalRequest.setApprovedAt(approvedAt);
+        approvalRequest.setNote(TextValidationUtils.normalizeNullableText(note, "note", 0));
         validateState(approvalRequest);
     }
 

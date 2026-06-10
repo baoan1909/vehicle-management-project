@@ -7,8 +7,6 @@ import java.util.UUID;
 
 public interface EmployeePortIn {
 
-    Employee createEmployee(Employee employee);
-
     Employee updateEmployee(UUID employeeId, Employee employee);
 
     Employee getEmployeeById(UUID employeeId);

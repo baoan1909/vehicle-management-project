@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.iam.account.model.command.UpdateAc
 import com.ban.vehicle_management.application.iam.account.model.result.AccountProfileStatusResult;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
+import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
 import com.ban.vehicle_management.domain.iam.account.policy.AccountProfilePolicy;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
@@ -15,17 +16,9 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,6 +27,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class UpdateAccountProfileUseCaseImplTest {
@@ -43,6 +42,9 @@ class UpdateAccountProfileUseCaseImplTest {
 
     @Mock
     private AccountProfilePortOut accountProfilePortOut;
+
+    @Mock
+    private InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
 
     @Mock
     private AccountProfileResultMapper accountProfileResultMapper;
@@ -159,6 +161,7 @@ class UpdateAccountProfileUseCaseImplTest {
                 initialState.username(),
                 initialState.email(),
                 initialState.keycloakUserId(),
+                initialState.roleCode(),
                 userProfileId,
                 initialState.fullName(),
                 initialState.dateOfBirth(),
@@ -168,6 +171,11 @@ class UpdateAccountProfileUseCaseImplTest {
                 initialState.identifyCard(),
                 initialState.avatarUrl(),
                 initialState.userProfileStatus(),
+                initialState.employeeId(),
+                initialState.employeeCode(),
+                initialState.jobTitle(),
+                initialState.employeeHiredAt(),
+                initialState.employeeStatus(),
                 initialState.customerId(),
                 initialState.customerCode(),
                 initialState.customerType(),
@@ -223,6 +231,7 @@ class UpdateAccountProfileUseCaseImplTest {
                         "https://cdn.example.com/avatars/bao-an.jpg",
                         "ACTIVE"
                 ),
+                null,
                 new AccountProfileStatusResult.CustomerInfoResult(
                         UUID.fromString("1f53b3c1-1ca4-4898-b35f-80ddf8745ae3"),
                         "CUS-ABC123",
@@ -275,6 +284,12 @@ class UpdateAccountProfileUseCaseImplTest {
                 null,
                 null,
                 null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 AccountStatus.PENDING
         );
     }
@@ -285,6 +300,7 @@ class UpdateAccountProfileUseCaseImplTest {
                 "baoan3236",
                 "baoan3236@gmail.com",
                 "23d493f8-e9f8-4843-917c-9e6c431bfeea",
+                null,
                 UUID.fromString("ec761405-c091-4a65-b1dd-c8fb23f0d6bd"),
                 "Nguyen Bao An",
                 LocalDate.of(2003, 9, 19),
@@ -294,6 +310,11 @@ class UpdateAccountProfileUseCaseImplTest {
                 "079203001234",
                 "https://cdn.example.com/avatars/bao-an.jpg",
                 UserProfileStatus.ACTIVE,
+                null,
+                null,
+                null,
+                null,
+                null,
                 UUID.fromString("1f53b3c1-1ca4-4898-b35f-80ddf8745ae3"),
                 "CUS-ABC123",
                 CustomerType.REGISTERED,

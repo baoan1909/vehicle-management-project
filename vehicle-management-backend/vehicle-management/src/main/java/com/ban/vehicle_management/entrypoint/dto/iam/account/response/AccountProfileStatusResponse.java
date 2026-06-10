@@ -1,12 +1,15 @@
 package com.ban.vehicle_management.entrypoint.dto.iam.account.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.LocalDate;
 import java.util.UUID;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record AccountProfileStatusResponse(
         boolean onboardingRequired,
         AccountInfoResponse account,
         ProfileInfoResponse profile,
+        EmployeeInfoResponse employee,
         CustomerInfoResponse customer
 ) {
     public record AccountInfoResponse(
@@ -28,6 +31,15 @@ public record AccountProfileStatusResponse(
             String identifyCard,
             String avatarUrl,
             String userProfileStatus
+    ) {
+    }
+
+    public record EmployeeInfoResponse(
+            UUID employeeId,
+            String employeeCode,
+            String jobTitle,
+            LocalDate hiredAt,
+            String employeeStatus
     ) {
     }
 

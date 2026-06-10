@@ -4,6 +4,8 @@ import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthor
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
 import org.springframework.stereotype.Component;
 
@@ -16,13 +18,19 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
 
     private final AccountRepository accountRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final RoleRepository roleRepository;
+    private final EmployeeRepository employeeRepository;
 
     public AccountAuthorizationPersistenceAdapter(
             AccountRepository accountRepository,
-            RolePermissionRepository rolePermissionRepository
+            RolePermissionRepository rolePermissionRepository,
+            RoleRepository roleRepository,
+            EmployeeRepository employeeRepository
     ) {
         this.accountRepository = accountRepository;
         this.rolePermissionRepository = rolePermissionRepository;
+        this.roleRepository = roleRepository;
+        this.employeeRepository = employeeRepository;
     }
 
     @Override
@@ -48,6 +56,9 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
     private CurrentAccountAccess toCurrentAccountAccess(AccountEntity accountEntity) {
         Set<String> permissionCodes = rolePermissionRepository
                 .findActivePermissionCodesByRoleId(accountEntity.getRoleId());
+        String roleCode = roleRepository.findById(accountEntity.getRoleId())
+                .map(role -> role.getCode())
+                .orElse(null);
 
         return new CurrentAccountAccess(
                 accountEntity.getAccountId(),
@@ -55,8 +66,19 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
                 accountEntity.getUsername(),
                 accountEntity.getEmail(),
                 accountEntity.getRoleId(),
+                roleCode,
                 accountEntity.getStatus(),
+                resolveEmployeeStatus(accountEntity),
                 permissionCodes
         );
+    }
+
+    private com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus resolveEmployeeStatus(AccountEntity accountEntity) {
+        if (accountEntity.getUserProfileId() == null) {
+            return null;
+        }
+        return employeeRepository.findByUserProfileId(accountEntity.getUserProfileId())
+                .map(employee -> employee.getStatus())
+                .orElse(null);
     }
 }

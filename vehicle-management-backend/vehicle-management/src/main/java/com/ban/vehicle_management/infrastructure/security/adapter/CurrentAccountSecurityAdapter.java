@@ -4,7 +4,6 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.security.principal.AuthenticatedAccountPrincipal;
-import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.access.AccessDeniedException;
@@ -58,7 +57,7 @@ public class CurrentAccountSecurityAdapter implements CurrentAccountPortIn {
         String normalizedPermissionCode = normalizePermissionCode(permissionCode);
 
         return getCurrentAccount()
-                .filter(account -> AccountStatus.ACTIVE.equals(account.status()))
+                .filter(CurrentAccountAccess::canUseBusinessPermissions)
                 .map(CurrentAccountAccess::permissionCodes)
                 .orElseGet(Set::of)
                 .contains(normalizedPermissionCode);
