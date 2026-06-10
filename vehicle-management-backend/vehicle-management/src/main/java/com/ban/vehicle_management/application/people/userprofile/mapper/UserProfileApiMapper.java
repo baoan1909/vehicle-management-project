@@ -7,6 +7,7 @@ import com.ban.vehicle_management.entrypoint.dto.people.userprofile.response.Use
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 
 import java.time.Instant;
 import java.util.List;
@@ -28,10 +29,13 @@ public interface UserProfileApiMapper {
     @Mapping(target = "updatedBy", ignore = true)
     UserProfile toDomain(UpdateUserProfileRequest request);
 
+    @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "formatInstant")
+    @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "formatInstant")
     UserProfileAdminResponse toAdminResponse(UserProfile userProfile);
 
     List<UserProfileAdminResponse> toAdminResponses(List<UserProfile> userProfiles);
 
+    @Named("formatInstant")
     default String map(Instant instant) {
         return DateTimeUtils.formatInstant(instant);
     }

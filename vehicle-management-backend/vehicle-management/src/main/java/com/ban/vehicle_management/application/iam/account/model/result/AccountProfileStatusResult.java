@@ -7,6 +7,7 @@ public record AccountProfileStatusResult(
         boolean onboardingRequired,
         AccountInfoResult account,
         ProfileInfoResult profile,
+        EmployeeInfoResult employee,
         CustomerInfoResult customer
 ) {
     public record AccountInfoResult(
@@ -28,6 +29,15 @@ public record AccountProfileStatusResult(
             String identifyCard,
             String avatarUrl,
             String userProfileStatus
+    ) {
+    }
+
+    public record EmployeeInfoResult(
+            UUID employeeId,
+            String employeeCode,
+            String jobTitle,
+            LocalDate hiredAt,
+            String employeeStatus
     ) {
     }
 

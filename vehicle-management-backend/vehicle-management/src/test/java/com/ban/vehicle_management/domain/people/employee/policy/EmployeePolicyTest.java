@@ -25,7 +25,7 @@ class EmployeePolicyTest {
 
         assertEquals("EMP-001", employee.getEmployeeCode());
         assertEquals("Cashier", employee.getJobTitle());
-        assertEquals(EmployeeStatus.ACTIVE, employee.getStatus());
+        assertEquals(EmployeeStatus.INACTIVE, employee.getStatus());
     }
 
     @Test

@@ -2,12 +2,14 @@ package com.ban.vehicle_management.infrastructure.security.adapter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.security.principal.AuthenticatedAccountPrincipal;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -46,7 +48,9 @@ class CurrentAccountSecurityAdapterTest {
                 "baoan3236",
                 "baoan3236@gmail.com",
                 UUID.fromString("3e899a68-84de-4665-8fda-f1e39efc3346"),
+                "SYSTEM_ADMIN",
                 AccountStatus.ACTIVE,
+                null,
                 Set.of("ACCOUNT_PROFILE_WRITE")
         );
         when(accountAuthorizationPortOut.findByKeycloakUserId(keycloakUserId))
@@ -74,6 +78,38 @@ class CurrentAccountSecurityAdapterTest {
                 updatedDetails
         );
         assertEquals(accountId, updatedPrincipal.accountId());
+    }
+
+    @Test
+    void shouldDenyBusinessPermissionForPendingInternalEmployee() {
+        UUID accountId = UUID.randomUUID();
+        CurrentAccountAccess currentAccountAccess = new CurrentAccountAccess(
+                accountId,
+                "keycloak-sub",
+                "pending.employee",
+                "pending.employee@example.com",
+                UUID.randomUUID(),
+                "EMPLOYEE",
+                AccountStatus.ACTIVE,
+                EmployeeStatus.INACTIVE,
+                Set.of("EMPLOYEE_READ_ALL")
+        );
+        when(accountAuthorizationPortOut.findByAccountId(accountId)).thenReturn(Optional.of(currentAccountAccess));
+
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                "user",
+                "pass",
+                java.util.List.of(new SimpleGrantedAuthority("ROLE_USER"))
+        );
+        authenticationToken.setDetails(new AuthenticatedAccountPrincipal(
+                accountId,
+                "keycloak-sub",
+                "pending.employee",
+                "pending.employee@example.com"
+        ));
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+        assertFalse(currentAccountSecurityAdapter.hasPermission("EMPLOYEE_READ_ALL"));
     }
 }
 

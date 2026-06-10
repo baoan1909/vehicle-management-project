@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.infrastructure.security.keycloak.adapter;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.ban.vehicle_management.application.iam.account.model.command.CreateProvisionedAccountCommand;
 import com.ban.vehicle_management.application.iam.account.model.command.RegisterAccountCommand;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -20,6 +21,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -57,26 +59,84 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
 
     @Override
     public String createUser(RegisterAccountCommand command) {
+        return createKeycloakUser(Map.of(
+                "username", command.username(),
+                "email", command.email(),
+                "enabled", true,
+                "emailVerified", false,
+                "requiredActions", List.of("VERIFY_EMAIL"),
+                "attributes", Map.of(
+                        "source", List.of("vehicle-management")
+                ),
+                "credentials", List.of(Map.of(
+                        "type", "password",
+                        "value", command.password(),
+                        "temporary", false
+                ))
+        ));
+    }
+
+    @Override
+    public String createProvisionedAccountUser(CreateProvisionedAccountCommand command) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("username", command.account().getUsername());
+        requestBody.put("email", command.account().getEmail());
+        requestBody.put("enabled", true);
+        requestBody.put("emailVerified", true);
+        requestBody.put("requiredActions", List.of("UPDATE_PASSWORD"));
+        requestBody.put("attributes", Map.of(
+                "source", List.of("vehicle-management"),
+                "account_type", List.of("PROVISIONED")
+        ));
+
+        if (StringUtils.hasText(command.password())) {
+            requestBody.put("credentials", List.of(Map.of(
+                    "type", "password",
+                    "value", command.password(),
+                    "temporary", true
+            )));
+        } else {
+            requestBody.put("credentials", new ArrayList<>());
+        }
+
+        return createKeycloakUser(requestBody);
+    }
+
+    @Override
+    public void updateAccountIdAttribute(String keycloakUserId, UUID accountId) {
+        try {
+            KeycloakUserRepresentation currentUser = getUserRepresentation(keycloakUserId);
+            if (currentUser == null || currentUser.username() == null || currentUser.username().isBlank()) {
+                throw new BadRequestException("Keycloak user is missing username");
+            }
+
+            Map<String, List<String>> mergedAttributes = new HashMap<>();
+            if (currentUser.attributes() != null) {
+                mergedAttributes.putAll(currentUser.attributes());
+            }
+            mergedAttributes.put("account_id", List.of(accountId.toString()));
+            mergedAttributes.putIfAbsent("source", List.of("vehicle-management"));
+
+            updateUser(keycloakUserId, currentUser.enabled(), mergedAttributes);
+        } catch (BadRequestException exception) {
+            throw exception;
+        } catch (HttpClientErrorException exception) {
+            throw new BadRequestException("Failed to sync account_id to Keycloak");
+        }
+    }
+
+    @Override
+    public void updateUserEnabled(String keycloakUserId, boolean enabled) {
+        updateUser(keycloakUserId, enabled, null);
+    }
+
+    private String createKeycloakUser(Map<String, Object> requestBody) {
         try {
             URI location = restClient.post()
                     .uri(baseUrl + "/admin/realms/" + realm + "/users")
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + getAdminAccessToken())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of(
-                            "username", command.username(),
-                            "email", command.email(),
-                            "enabled", true,
-                            "emailVerified", false,
-                            "requiredActions", List.of("VERIFY_EMAIL"),
-                            "attributes", Map.of(
-                                    "source", List.of("vehicle-management")
-                            ),
-                            "credentials", List.of(Map.of(
-                                    "type", "password",
-                                    "value", command.password(),
-                                    "temporary", false
-                            ))
-                    ))
+                    .body(requestBody)
                     .retrieve()
                     .toBodilessEntity()
                     .getHeaders()
@@ -100,20 +160,21 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
         }
     }
 
-    @Override
-    public void updateAccountIdAttribute(String keycloakUserId, UUID accountId) {
+    private void updateUser(String keycloakUserId, Boolean enabled, Map<String, List<String>> attributesOverride) {
         try {
             KeycloakUserRepresentation currentUser = getUserRepresentation(keycloakUserId);
             if (currentUser == null || currentUser.username() == null || currentUser.username().isBlank()) {
                 throw new BadRequestException("Keycloak user is missing username");
             }
 
-            Map<String, List<String>> mergedAttributes = new HashMap<>();
-            if (currentUser.attributes() != null) {
-                mergedAttributes.putAll(currentUser.attributes());
+            Map<String, List<String>> mergedAttributes = attributesOverride;
+            if (mergedAttributes == null) {
+                mergedAttributes = new HashMap<>();
+                if (currentUser.attributes() != null) {
+                    mergedAttributes.putAll(currentUser.attributes());
+                }
+                mergedAttributes.putIfAbsent("source", List.of("vehicle-management"));
             }
-            mergedAttributes.put("account_id", List.of(accountId.toString()));
-            mergedAttributes.putIfAbsent("source", List.of("vehicle-management"));
 
             restClient.put()
                     .uri(baseUrl + "/admin/realms/" + realm + "/users/" + keycloakUserId)
@@ -122,7 +183,7 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
                     .body(new KeycloakUserUpdateRequest(
                             currentUser.username(),
                             currentUser.email(),
-                            currentUser.enabled(),
+                            enabled,
                             currentUser.emailVerified(),
                             currentUser.firstName(),
                             currentUser.lastName(),
@@ -134,7 +195,7 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
         } catch (BadRequestException exception) {
             throw exception;
         } catch (HttpClientErrorException exception) {
-            throw new BadRequestException("Failed to sync account_id to Keycloak");
+            throw new BadRequestException("Failed to update Keycloak user");
         }
     }
 

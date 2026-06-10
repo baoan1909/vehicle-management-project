@@ -4,15 +4,19 @@ import com.ban.vehicle_management.application.iam.account.port.out.AccountProfil
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
+import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.infrastructure.mapper.iam.AccountPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.people.CustomerPersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.people.EmployeePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.people.UserProfilePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -27,24 +31,30 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     private final AccountRepository accountRepository;
     private final UserProfileRepository userProfileRepository;
     private final CustomerRepository customerRepository;
+    private final EmployeeRepository employeeRepository;
     private final AccountPersistenceMapper accountPersistenceMapper;
     private final UserProfilePersistenceMapper userProfilePersistenceMapper;
     private final CustomerPersistenceMapper customerPersistenceMapper;
+    private final EmployeePersistenceMapper employeePersistenceMapper;
 
     public AccountProfilePersistenceAdapter(
             AccountRepository accountRepository,
             UserProfileRepository userProfileRepository,
             CustomerRepository customerRepository,
+            EmployeeRepository employeeRepository,
             AccountPersistenceMapper accountPersistenceMapper,
             UserProfilePersistenceMapper userProfilePersistenceMapper,
-            CustomerPersistenceMapper customerPersistenceMapper
+            CustomerPersistenceMapper customerPersistenceMapper,
+            EmployeePersistenceMapper employeePersistenceMapper
     ) {
         this.accountRepository = accountRepository;
         this.userProfileRepository = userProfileRepository;
         this.customerRepository = customerRepository;
+        this.employeeRepository = employeeRepository;
         this.accountPersistenceMapper = accountPersistenceMapper;
         this.userProfilePersistenceMapper = userProfilePersistenceMapper;
         this.customerPersistenceMapper = customerPersistenceMapper;
+        this.employeePersistenceMapper = employeePersistenceMapper;
     }
 
     @Override
@@ -74,6 +84,17 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     }
 
     @Override
+    public Account completeProfileOnly(UUID accountId, UserProfile userProfile) {
+        AccountEntity accountEntity = accountRepository.findById(accountId)
+                .orElseThrow(() -> new NotFoundException("Account does not exist"));
+
+        userProfileRepository.save(userProfilePersistenceMapper.toEntity(userProfile));
+        accountEntity.setUserProfileId(userProfile.getUserProfileId());
+
+        return accountPersistenceMapper.toDomain(accountRepository.save(accountEntity));
+    }
+
+    @Override
     public Account completeProfile(UUID accountId, UserProfile userProfile, Customer customer) {
         AccountEntity accountEntity = accountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account does not exist"));
@@ -86,6 +107,18 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         accountEntity.setUserProfileId(userProfile.getUserProfileId());
         accountEntity.setStatus(AccountStatus.ACTIVE);
 
+        return accountPersistenceMapper.toDomain(accountRepository.save(accountEntity));
+    }
+
+    @Override
+    public Account completeInternalProfile(UUID accountId, UserProfile userProfile, Employee employee) {
+        AccountEntity accountEntity = accountRepository.findById(accountId)
+                .orElseThrow(() -> new NotFoundException("Account does not exist"));
+
+        userProfileRepository.save(userProfilePersistenceMapper.toEntity(userProfile));
+        employeeRepository.save(employeePersistenceMapper.toEntity(employee));
+
+        accountEntity.setUserProfileId(userProfile.getUserProfileId());
         return accountPersistenceMapper.toDomain(accountRepository.save(accountEntity));
     }
 
@@ -118,6 +151,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     private AccountProfileState toProfileState(AccountEntity accountEntity) {
         UUID userProfileId = accountEntity.getUserProfileId();
         UserProfileEntity userProfileEntity = resolveUserProfile(userProfileId);
+        EmployeeEntity employeeEntity = resolveEmployee(userProfileId);
         CustomerEntity customerEntity = resolveCustomer(userProfileId);
 
         return new AccountProfileState(
@@ -125,6 +159,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 accountEntity.getUsername(),
                 accountEntity.getEmail(),
                 accountEntity.getKeycloakUserId(),
+                accountEntity.getRole() == null ? null : accountEntity.getRole().getCode(),
                 userProfileId,
                 userProfileEntity == null ? null : userProfileEntity.getFullName(),
                 userProfileEntity == null ? null : userProfileEntity.getDateOfBirth(),
@@ -134,6 +169,11 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 userProfileEntity == null ? null : userProfileEntity.getIdentifyCard(),
                 userProfileEntity == null ? null : userProfileEntity.getAvatarUrl(),
                 userProfileEntity == null ? null : userProfileEntity.getStatus(),
+                employeeEntity == null ? null : employeeEntity.getEmployeeId(),
+                employeeEntity == null ? null : employeeEntity.getEmployeeCode(),
+                employeeEntity == null ? null : employeeEntity.getJobTitle(),
+                employeeEntity == null ? null : employeeEntity.getHiredAt(),
+                employeeEntity == null ? null : employeeEntity.getStatus(),
                 customerEntity == null ? null : customerEntity.getCustomerId(),
                 customerEntity == null ? null : customerEntity.getCustomerCode(),
                 customerEntity == null ? null : customerEntity.getCustomerType(),
@@ -155,5 +195,12 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
             return null;
         }
         return customerRepository.findByUserProfileId(userProfileId).orElse(null);
+    }
+
+    private EmployeeEntity resolveEmployee(UUID userProfileId) {
+        if (userProfileId == null) {
+            return null;
+        }
+        return employeeRepository.findByUserProfileId(userProfileId).orElse(null);
     }
 }

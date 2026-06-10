@@ -810,6 +810,8 @@ CREATE INDEX idx_parking_events_session_id ON parking.parking_events(parking_ses
 CREATE INDEX idx_invoices_status ON billing.invoices(status);
 CREATE INDEX idx_payments_invoice_id ON billing.payments(invoice_id);
 CREATE INDEX idx_notifications_account_id ON notification.notifications(account_id);
+CREATE INDEX idx_approval_requests_request_type_status ON operations.approval_requests(request_type, status);
+CREATE INDEX idx_approval_requests_target_lookup ON operations.approval_requests(target_schema, target_table, target_id);
 CREATE INDEX idx_audit_logs_target ON audit.audit_logs(target_schema, target_table, target_id);
 
 -- =========================================================

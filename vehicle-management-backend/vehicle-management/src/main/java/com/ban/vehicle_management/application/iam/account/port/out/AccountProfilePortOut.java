@@ -16,7 +16,11 @@ public interface AccountProfilePortOut {
 
     Optional<AccountProfileState> findProfileStateByAccountId(UUID accountId);
 
+    Account completeProfileOnly(UUID accountId, UserProfile userProfile);
+
     Account completeProfile(UUID accountId, UserProfile userProfile, Customer customer);
+
+    Account completeInternalProfile(UUID accountId, UserProfile userProfile, com.ban.vehicle_management.domain.people.employee.model.Employee employee);
 
     boolean existsByPhoneNumberAndUserProfileIdNot(String phoneNumber, UUID userProfileId);
 

@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.people.userprofile.usecase;
 
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfilePortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
@@ -16,16 +17,24 @@ import java.util.UUID;
 @Service
 public class UserProfileUseCaseImpl implements UserProfilePortIn {
 
+    private static final String USER_PROFILE_CREATE_ALL = "USER_PROFILE_CREATE_ALL";
+    private static final String USER_PROFILE_READ_ALL = "USER_PROFILE_READ_ALL";
+    private static final String USER_PROFILE_UPDATE_ALL = "USER_PROFILE_UPDATE_ALL";
+    private static final String USER_PROFILE_DELETE_ALL = "USER_PROFILE_DELETE_ALL";
+
+    private final CurrentAccountPortIn currentAccountPortIn;
     private final UserProfilePortOut userProfilePort;
     private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
 
-    public UserProfileUseCaseImpl(UserProfilePortOut userProfilePort) {
+    public UserProfileUseCaseImpl(CurrentAccountPortIn currentAccountPortIn, UserProfilePortOut userProfilePort) {
+        this.currentAccountPortIn = currentAccountPortIn;
         this.userProfilePort = userProfilePort;
     }
 
     @Override
     @Transactional
     public UserProfile createUserProfile(UserProfile userProfile) {
+        currentAccountPortIn.requirePermission(USER_PROFILE_CREATE_ALL);
         userProfilePolicy.initialize(userProfile);
         validateUniqueFields(userProfile);
 
@@ -36,6 +45,7 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     @Override
     @Transactional
     public UserProfile updateUserProfile(UUID userProfileId, UserProfile userProfile) {
+        currentAccountPortIn.requirePermission(USER_PROFILE_UPDATE_ALL);
         UserProfile existingUserProfile = getUserProfileById(userProfileId);
 
         existingUserProfile.setFullName(userProfile.getFullName());
@@ -58,6 +68,7 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     @Override
     @Transactional(readOnly = true)
     public UserProfile getUserProfileById(UUID userProfileId) {
+        currentAccountPortIn.requirePermission(USER_PROFILE_READ_ALL);
         return userProfilePort.findById(userProfileId)
                 .orElseThrow(() -> new NotFoundException("User profile not found"));
     }
@@ -65,12 +76,14 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     @Override
     @Transactional(readOnly = true)
     public List<UserProfile> getUserProfiles(UserProfileStatus status, String keyword) {
+        currentAccountPortIn.requirePermission(USER_PROFILE_READ_ALL);
         return userProfilePort.findAll(status, keyword);
     }
 
     @Override
     @Transactional
     public void deleteUserProfile(UUID userProfileId) {
+        currentAccountPortIn.requirePermission(USER_PROFILE_DELETE_ALL);
         UserProfile existingUserProfile = getUserProfileById(userProfileId);
         if (existingUserProfile.getStatus() == UserProfileStatus.INACTIVE) {
             return;
