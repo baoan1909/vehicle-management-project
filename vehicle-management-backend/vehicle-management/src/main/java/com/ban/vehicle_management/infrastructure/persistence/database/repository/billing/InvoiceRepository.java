@@ -2,10 +2,19 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.InvoiceEntity;
 
+import java.util.Collection;
 import java.util.UUID;
-import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID> {
+import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+
+public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID>, JpaSpecificationExecutor<InvoiceEntity> {
+    boolean existsByParkingSessionIdAndStatusIn(UUID parkingSessionId, Collection<InvoiceStatus> statuses);
+
+    boolean existsBySubscriptionIdAndStatusIn(UUID subcriptionId, Collection<InvoiceStatus> statuses);
+
+    boolean existsByLostCardReportIdAndStatusIn(UUID lostCardReportId, Collection<InvoiceStatus> statuses);
 }
 
 
