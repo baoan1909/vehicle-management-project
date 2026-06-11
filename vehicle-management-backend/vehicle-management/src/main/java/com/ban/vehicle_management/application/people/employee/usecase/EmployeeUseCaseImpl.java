@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.people.employee.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
+import com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuard;
 import com.ban.vehicle_management.application.people.employee.port.in.EmployeePortIn;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
@@ -27,16 +28,19 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
     private static final String EMPLOYEE_DELETE_ALL = "EMPLOYEE_DELETE_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final EmployeeAccessGuard employeeAccessGuard;
     private final EmployeePortOut employeePortOut;
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
 
     public EmployeeUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
+            EmployeeAccessGuard employeeAccessGuard,
             EmployeePortOut employeePortOut,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
+        this.employeeAccessGuard = employeeAccessGuard;
         this.employeePortOut = employeePortOut;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
     }
@@ -46,6 +50,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
     public Employee updateEmployee(UUID employeeId, Employee employee) {
         currentAccountPortIn.requirePermission(EMPLOYEE_UPDATE_ALL);
         Employee existingEmployee = getEmployeeById(employeeId);
+        employeeAccessGuard.ensureCanManage(existingEmployee);
 
         existingEmployee.setEmployeeCode(employee.getEmployeeCode());
         existingEmployee.setJobTitle(employee.getJobTitle());
@@ -67,15 +72,17 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
     @Transactional(readOnly = true)
     public Employee getEmployeeById(UUID employeeId) {
         currentAccountPortIn.requirePermission(EMPLOYEE_READ_ALL);
-        return employeePortOut.findById(employeeId)
+        Employee employee = employeePortOut.findById(employeeId)
                 .orElseThrow(() -> new NotFoundException("Employee not found"));
+        employeeAccessGuard.ensureCanRead(employee);
+        return employee;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Employee> getEmployees(EmployeeStatus status, String keyword) {
         currentAccountPortIn.requirePermission(EMPLOYEE_READ_ALL);
-        return employeePortOut.findAll(status, keyword);
+        return employeeAccessGuard.filterReadableEmployees(employeePortOut.findAll(status, keyword));
     }
 
     @Override
@@ -83,6 +90,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
     public void deleteEmployee(UUID employeeId) {
         currentAccountPortIn.requirePermission(EMPLOYEE_DELETE_ALL);
         Employee existingEmployee = getEmployeeById(employeeId);
+        employeeAccessGuard.ensureCanManage(existingEmployee);
         if (existingEmployee.getStatus() == EmployeeStatus.INACTIVE) {
             return;
         }
@@ -96,6 +104,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
     public Employee activateEmployee(UUID employeeId) {
         currentAccountPortIn.requirePermission(EMPLOYEE_UPDATE_ALL);
         Employee employee = getEmployeeById(employeeId);
+        employeeAccessGuard.ensureCanManage(employee);
         ensureInternalOnboardingApprovalSatisfied(employeeId);
         employeePolicy.activate(employee);
         return employeePortOut.save(employee);
@@ -106,6 +115,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
     public Employee inactivateEmployee(UUID employeeId) {
         currentAccountPortIn.requirePermission(EMPLOYEE_UPDATE_ALL);
         Employee employee = getEmployeeById(employeeId);
+        employeeAccessGuard.ensureCanManage(employee);
         employeePolicy.inactivate(employee);
         return employeePortOut.save(employee);
     }
@@ -115,6 +125,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
     public Employee suspendEmployee(UUID employeeId) {
         currentAccountPortIn.requirePermission(EMPLOYEE_UPDATE_ALL);
         Employee employee = getEmployeeById(employeeId);
+        employeeAccessGuard.ensureCanManage(employee);
         employeePolicy.suspend(employee);
         return employeePortOut.save(employee);
     }

@@ -4,7 +4,6 @@ import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
-import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,14 +17,6 @@ public interface CustomerPortIn {
             CustomerType customerType,
             String keyword
     );
-
-    Customer approveCustomer(UUID customerId, Instant approvedAt);
-
-    Customer rejectCustomer(UUID customerId);
-
-    Customer suspendCustomer(UUID customerId);
-
-    Customer moveCustomerToPending(UUID customerId);
 
     Customer activateCustomer(UUID customerId);
 

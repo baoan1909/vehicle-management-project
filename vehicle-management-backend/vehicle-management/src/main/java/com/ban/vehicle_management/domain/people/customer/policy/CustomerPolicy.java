@@ -50,19 +50,8 @@ public class CustomerPolicy {
         validateState(customer);
     }
 
-    public void suspend(Customer customer) {
-        if (customer == null || customer.getApprovalStatus() != CustomerApprovalStatus.APPROVED) {
-            throw new BadRequestException("Customer must be in APPROVED status");
-        }
-        customer.setApprovedBy(null);
-        customer.setApprovedAt(null);
-        customer.setApprovalStatus(CustomerApprovalStatus.SUSPENDED);
-        customer.setStatus(CustomerStatus.INACTIVE);
-        validateState(customer);
-    }
-
-    public void moveToPending(Customer customer) {
-        requireCustomer(customer);
+    public void resubmit(Customer customer) {
+        requireStatus(customer, CustomerApprovalStatus.REJECTED);
         customer.setApprovedBy(null);
         customer.setApprovedAt(null);
         customer.setApprovalStatus(CustomerApprovalStatus.PENDING);

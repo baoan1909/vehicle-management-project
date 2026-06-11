@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.operations.approvalrequest.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.operations.approvalrequest.authorization.InternalEmployeeApprovalAccessGuard;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.command.InternalEmployeeApprovalFilterCommand;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.command.ReviewInternalEmployeeApprovalCommand;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.InternalEmployeeApprovalCandidate;
@@ -21,23 +22,14 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeApprovalPortIn {
 
-    public static final String REQUEST_TYPE = "INTERNAL_EMPLOYEE_ONBOARDING";
-    public static final String TARGET_SCHEMA = "people";
-    public static final String TARGET_TABLE = "employees";
-
-    private static final String ACCOUNT_READ_ALL = "ACCOUNT_READ_ALL";
-    private static final String ACCOUNT_UPDATE_ALL = "ACCOUNT_UPDATE_ALL";
-    private static final String EMPLOYEE_READ_ALL = "EMPLOYEE_READ_ALL";
-    private static final String EMPLOYEE_UPDATE_ALL = "EMPLOYEE_UPDATE_ALL";
-
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final InternalEmployeeApprovalAccessGuard internalEmployeeApprovalAccessGuard;
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
@@ -45,9 +37,11 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
 
     public InternalEmployeeApprovalUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
+            InternalEmployeeApprovalAccessGuard internalEmployeeApprovalAccessGuard,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
+        this.internalEmployeeApprovalAccessGuard = internalEmployeeApprovalAccessGuard;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
         this.clock = Clock.systemUTC();
     }
@@ -55,26 +49,27 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
     @Override
     @Transactional(readOnly = true)
     public List<InternalEmployeeApprovalResult> getInternalEmployeeApprovals(InternalEmployeeApprovalFilterCommand command) {
-        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        ensureCanReadApprovals(currentAccount);
+        CurrentAccountAccess currentAccount = internalEmployeeApprovalAccessGuard.requireReadAccess();
 
         List<InternalEmployeeApprovalResult> results = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequests(
                 normalizeFilterCommand(command)
         );
         return results.stream()
-                .filter(result -> canAccessTargetRole(currentAccount, result.account().roleCode()))
+                .filter(result -> internalEmployeeApprovalAccessGuard.canAccessTargetRole(
+                        currentAccount,
+                        result.account().roleCode()
+                ))
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
     public InternalEmployeeApprovalResult getInternalEmployeeApprovalById(UUID approvalRequestId) {
-        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        ensureCanReadApprovals(currentAccount);
+        CurrentAccountAccess currentAccount = internalEmployeeApprovalAccessGuard.requireReadAccess();
 
         InternalEmployeeApprovalResult result = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
-        ensureCanReviewTarget(currentAccount, result.account().roleCode());
+        internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(currentAccount, result.account().roleCode());
         return result;
     }
 
@@ -92,14 +87,13 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
             UUID approvalRequestId,
             ReviewInternalEmployeeApprovalCommand command
     ) {
-        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        ensureCanWriteApprovals(currentAccount);
+        CurrentAccountAccess currentAccount = internalEmployeeApprovalAccessGuard.requireWriteAccess();
 
         ApprovalRequest approvalRequest = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequestById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
         InternalEmployeeApprovalCandidate candidate = internalEmployeeApprovalPortOut.findCandidateByEmployeeId(approvalRequest.getTargetId())
                 .orElseThrow(() -> new NotFoundException("Internal employee approval target not found"));
-        ensureCanReviewTarget(currentAccount, candidate.roleCode());
+        internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(currentAccount, candidate.roleCode());
 
         Employee employee = loadEmployee(candidate.employeeId());
         String note = normalizeNote(command);
@@ -122,14 +116,13 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
             UUID approvalRequestId,
             ReviewInternalEmployeeApprovalCommand command
     ) {
-        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        ensureCanWriteApprovals(currentAccount);
+        CurrentAccountAccess currentAccount = internalEmployeeApprovalAccessGuard.requireWriteAccess();
 
         ApprovalRequest approvalRequest = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequestById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
         InternalEmployeeApprovalCandidate candidate = internalEmployeeApprovalPortOut.findCandidateByEmployeeId(approvalRequest.getTargetId())
                 .orElseThrow(() -> new NotFoundException("Internal employee approval target not found"));
-        ensureCanReviewTarget(currentAccount, candidate.roleCode());
+        internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(currentAccount, candidate.roleCode());
 
         Employee employee = loadEmployee(candidate.employeeId());
         approvalRequestPolicy.reject(approvalRequest, normalizeNote(command));
@@ -146,7 +139,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
         InternalEmployeeApprovalCandidate candidate = internalEmployeeApprovalPortOut.findCandidateByAccountId(currentAccount.accountId())
                 .orElseThrow(() -> new NotFoundException("Internal employee approval target not found"));
-        AdminProvisionableAccountRoleCode roleCode = requireProvisionableRole(candidate.roleCode());
+        AdminProvisionableAccountRoleCode roleCode = internalEmployeeApprovalAccessGuard.requireProvisionableRole(candidate.roleCode());
         if (!roleCode.requiresEmployeeRecord()) {
             throw new ConflictException("Current account does not require internal employee approval");
         }
@@ -170,9 +163,9 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
     public ApprovalRequest buildPendingApprovalRequest(UUID employeeId, UUID requestedBy) {
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setApprovalRequestId(UUID.randomUUID());
-        approvalRequest.setRequestType(REQUEST_TYPE);
-        approvalRequest.setTargetSchema(TARGET_SCHEMA);
-        approvalRequest.setTargetTable(TARGET_TABLE);
+        approvalRequest.setRequestType(InternalEmployeeApprovalAccessGuard.REQUEST_TYPE);
+        approvalRequest.setTargetSchema(InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA);
+        approvalRequest.setTargetTable(InternalEmployeeApprovalAccessGuard.TARGET_TABLE);
         approvalRequest.setTargetId(employeeId);
         approvalRequest.setStatus(ApprovalRequestStatus.PENDING);
         approvalRequest.setRequestedBy(requestedBy);
@@ -193,50 +186,6 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
 
     private String normalizeNote(ReviewInternalEmployeeApprovalCommand command) {
         return TextValidationUtils.normalizeNullableText(command == null ? null : command.note(), "note", 0);
-    }
-
-    private void ensureCanReadApprovals(CurrentAccountAccess currentAccount) {
-        if (currentAccountPortIn.hasPermission(ACCOUNT_READ_ALL) || currentAccountPortIn.hasPermission(EMPLOYEE_READ_ALL)) {
-            return;
-        }
-        throw new AccessDeniedException("Access is denied");
-    }
-
-    private void ensureCanWriteApprovals(CurrentAccountAccess currentAccount) {
-        if (currentAccountPortIn.hasPermission(ACCOUNT_UPDATE_ALL) || currentAccountPortIn.hasPermission(EMPLOYEE_UPDATE_ALL)) {
-            return;
-        }
-        throw new AccessDeniedException("Access is denied");
-    }
-
-    private void ensureCanReviewTarget(CurrentAccountAccess currentAccount, String targetRoleCode) {
-        if (!canAccessTargetRole(currentAccount, targetRoleCode)) {
-            throw new AccessDeniedException("Access is denied");
-        }
-    }
-
-    private boolean canAccessTargetRole(CurrentAccountAccess currentAccount, String targetRoleCode) {
-        AdminProvisionableAccountRoleCode approverRole = requireProvisionableRole(currentAccount.roleCode());
-        AdminProvisionableAccountRoleCode targetRole = requireProvisionableRole(targetRoleCode);
-        if (!targetRole.requiresEmployeeRecord()) {
-            return false;
-        }
-        return switch (approverRole) {
-            case SYSTEM_ADMIN -> true;
-            case PARKING_MANAGER -> AdminProvisionableAccountRoleCode.EMPLOYEE.equals(targetRole);
-            case CUSTOMER, EMPLOYEE -> false;
-        };
-    }
-
-    private AdminProvisionableAccountRoleCode requireProvisionableRole(String roleCode) {
-        if (roleCode == null || roleCode.isBlank()) {
-            throw new AccessDeniedException("Access is denied");
-        }
-        try {
-            return AdminProvisionableAccountRoleCode.valueOf(roleCode);
-        } catch (IllegalArgumentException exception) {
-            throw new AccessDeniedException("Access is denied");
-        }
     }
 
     private Employee loadEmployee(UUID employeeId) {

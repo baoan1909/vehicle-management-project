@@ -1,8 +1,8 @@
-package com.ban.vehicle_management.entrypoint.dto.people.customer.request;
+package com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request;
 
 import java.util.UUID;
 
-public record UpdateCustomerAdminVehicleRequest(
+public record UpdateCustomerVehicleBatchRequest(
         UUID customerVehicleId,
         UUID vehicleTypeId,
         String licensePlate,

@@ -3,7 +3,7 @@ package com.ban.vehicle_management.entrypoint.controller.people;
 import com.ban.vehicle_management.application.people.customervehicle.mapper.CustomerVehicleApiMapper;
 import com.ban.vehicle_management.application.people.customervehicle.port.in.CustomerVehiclePortIn;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
-import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.CreateCustomerVehicleRequest;
+import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.CustomerVehicleBatchRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.CustomerVehicleFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.UpdateCustomerVehicleRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.response.CustomerVehicleAdminResponse;
@@ -40,15 +40,17 @@ public class CustomerVehicleController {
     }
 
     @PostMapping
-    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_CREATE_ALL', 'CUSTOMER_VEHICLE_CREATE_OWN')")
-    public ResponseEntity<ApiResponse<CustomerVehicleAdminResponse>> createCustomerVehicle(
-            @RequestBody CreateCustomerVehicleRequest request
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission(" +
+            "'CUSTOMER_VEHICLE_CREATE_ALL', 'CUSTOMER_VEHICLE_CREATE_OWN', " +
+            "'CUSTOMER_VEHICLE_UPDATE_ALL', 'CUSTOMER_VEHICLE_UPDATE_OWN')")
+    public ResponseEntity<ApiResponse<List<CustomerVehicleAdminResponse>>> applyCustomerVehicleBatch(
+            @RequestBody CustomerVehicleBatchRequest request
     ) {
-        CustomerVehicle createdCustomerVehicle =
-                customerVehiclePortIn.createCustomerVehicle(customerVehicleApiMapper.toDomain(request));
+        List<CustomerVehicle> customerVehicles =
+                customerVehiclePortIn.applyCustomerVehicleBatch(customerVehicleApiMapper.toBatchCommand(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
-                "Customer vehicle created successfully",
-                customerVehicleApiMapper.toAdminResponse(createdCustomerVehicle)
+                "Customer vehicles saved successfully",
+                customerVehicleApiMapper.toAdminResponses(customerVehicles)
         ));
     }
 

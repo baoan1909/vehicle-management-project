@@ -7,7 +7,12 @@ import com.ban.vehicle_management.application.iam.account.model.result.AccountPr
 import com.ban.vehicle_management.application.iam.account.port.in.AccountProfilePortIn;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
+import com.ban.vehicle_management.application.operations.approvalrequest.authorization.CustomerOnboardingApprovalAccessGuard;
+import com.ban.vehicle_management.application.operations.approvalrequest.authorization.InternalEmployeeApprovalAccessGuard;
+import com.ban.vehicle_management.application.operations.approvalrequest.authorization.SystemAdminApprovalAccessGuard;
+import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
+import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
@@ -17,6 +22,7 @@ import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.employee.policy.EmployeePolicy;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
@@ -35,13 +41,11 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
 
-    private static final String INTERNAL_EMPLOYEE_ONBOARDING_REQUEST_TYPE = "INTERNAL_EMPLOYEE_ONBOARDING";
-    private static final String INTERNAL_EMPLOYEE_ONBOARDING_TARGET_SCHEMA = "people";
-    private static final String INTERNAL_EMPLOYEE_ONBOARDING_TARGET_TABLE = "employees";
-
     private final CurrentAccountPortIn currentAccountPortIn;
     private final AccountProfilePortOut accountProfilePortOut;
+    private final CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
+    private final SystemAdminApprovalPortOut systemAdminApprovalPortOut;
     private final AccountProfileResultMapper accountProfileResultMapper;
     private final AccountProfilePolicy accountProfilePolicy;
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
@@ -50,13 +54,17 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
     public AccountProfileUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             AccountProfilePortOut accountProfilePortOut,
+            CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
+            SystemAdminApprovalPortOut systemAdminApprovalPortOut,
             AccountProfileResultMapper accountProfileResultMapper,
             AccountProfilePolicy accountProfilePolicy
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.accountProfilePortOut = accountProfilePortOut;
+        this.customerOnboardingApprovalPortOut = customerOnboardingApprovalPortOut;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
+        this.systemAdminApprovalPortOut = systemAdminApprovalPortOut;
         this.accountProfileResultMapper = accountProfileResultMapper;
         this.accountProfilePolicy = accountProfilePolicy;
     }
@@ -105,8 +113,16 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         } else if (AdminProvisionableAccountRoleCode.CUSTOMER.equals(roleCode)) {
             customer = buildOnboardingCustomer(userProfileId);
             updatedAccount = accountProfilePortOut.completeProfile(accountId, userProfile, customer);
+            customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalRequest(
+                    buildCustomerOnboardingApprovalRequest(customer.getCustomerId(), accountId)
+            );
         } else {
             updatedAccount = accountProfilePortOut.completeProfileOnly(accountId, userProfile);
+            if (shouldCreateSystemAdminApproval(state)) {
+                systemAdminApprovalPortOut.saveSystemAdminApprovalRequest(
+                        buildSystemAdminApprovalRequest(accountId, accountId)
+                );
+            }
         }
 
         AccountProfileState refreshedState = accountProfilePortOut.findProfileStateByAccountId(updatedAccount.getAccountId())
@@ -213,6 +229,11 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         return roleCode != null && roleCode.requiresEmployeeRecord();
     }
 
+    private boolean shouldCreateSystemAdminApproval(AccountProfileState state) {
+        return AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name().equals(state.roleCode())
+                && AccountStatus.PENDING.equals(state.accountStatus());
+    }
+
     private String defaultJobTitle(AdminProvisionableAccountRoleCode roleCode) {
         return switch (roleCode) {
             case EMPLOYEE -> "Parking Staff";
@@ -243,10 +264,36 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
     private ApprovalRequest buildInternalEmployeeApprovalRequest(UUID employeeId, UUID requestedBy) {
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setApprovalRequestId(UUID.randomUUID());
-        approvalRequest.setRequestType(INTERNAL_EMPLOYEE_ONBOARDING_REQUEST_TYPE);
-        approvalRequest.setTargetSchema(INTERNAL_EMPLOYEE_ONBOARDING_TARGET_SCHEMA);
-        approvalRequest.setTargetTable(INTERNAL_EMPLOYEE_ONBOARDING_TARGET_TABLE);
+        approvalRequest.setRequestType(InternalEmployeeApprovalAccessGuard.REQUEST_TYPE);
+        approvalRequest.setTargetSchema(InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA);
+        approvalRequest.setTargetTable(InternalEmployeeApprovalAccessGuard.TARGET_TABLE);
         approvalRequest.setTargetId(employeeId);
+        approvalRequest.setRequestedBy(requestedBy);
+        approvalRequest.setStatus(ApprovalRequestStatus.PENDING);
+        approvalRequestPolicy.initialize(approvalRequest);
+        return approvalRequest;
+    }
+
+    private ApprovalRequest buildCustomerOnboardingApprovalRequest(UUID customerId, UUID requestedBy) {
+        ApprovalRequest approvalRequest = new ApprovalRequest();
+        approvalRequest.setApprovalRequestId(UUID.randomUUID());
+        approvalRequest.setRequestType(CustomerOnboardingApprovalAccessGuard.REQUEST_TYPE);
+        approvalRequest.setTargetSchema(CustomerOnboardingApprovalAccessGuard.TARGET_SCHEMA);
+        approvalRequest.setTargetTable(CustomerOnboardingApprovalAccessGuard.TARGET_TABLE);
+        approvalRequest.setTargetId(customerId);
+        approvalRequest.setRequestedBy(requestedBy);
+        approvalRequest.setStatus(ApprovalRequestStatus.PENDING);
+        approvalRequestPolicy.initialize(approvalRequest);
+        return approvalRequest;
+    }
+
+    private ApprovalRequest buildSystemAdminApprovalRequest(UUID accountId, UUID requestedBy) {
+        ApprovalRequest approvalRequest = new ApprovalRequest();
+        approvalRequest.setApprovalRequestId(UUID.randomUUID());
+        approvalRequest.setRequestType(SystemAdminApprovalAccessGuard.REQUEST_TYPE);
+        approvalRequest.setTargetSchema(SystemAdminApprovalAccessGuard.TARGET_SCHEMA);
+        approvalRequest.setTargetTable(SystemAdminApprovalAccessGuard.TARGET_TABLE);
+        approvalRequest.setTargetId(accountId);
         approvalRequest.setRequestedBy(requestedBy);
         approvalRequest.setStatus(ApprovalRequestStatus.PENDING);
         approvalRequestPolicy.initialize(approvalRequest);

@@ -5,7 +5,9 @@ import com.ban.vehicle_management.application.iam.account.model.command.UpdateAc
 import com.ban.vehicle_management.application.iam.account.model.result.AccountProfileStatusResult;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
+import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
+import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
 import com.ban.vehicle_management.domain.iam.account.policy.AccountProfilePolicy;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
@@ -44,7 +46,13 @@ class UpdateAccountProfileUseCaseImplTest {
     private AccountProfilePortOut accountProfilePortOut;
 
     @Mock
+    private CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
+
+    @Mock
     private InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
+
+    @Mock
+    private SystemAdminApprovalPortOut systemAdminApprovalPortOut;
 
     @Mock
     private AccountProfileResultMapper accountProfileResultMapper;

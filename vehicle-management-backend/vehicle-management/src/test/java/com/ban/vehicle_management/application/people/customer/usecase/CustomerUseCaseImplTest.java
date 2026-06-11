@@ -3,11 +3,9 @@ package com.ban.vehicle_management.application.people.customer.usecase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
@@ -30,9 +28,6 @@ class CustomerUseCaseImplTest {
     @Mock
     private CustomerPortOut customerPortOut;
 
-    @Mock
-    private CurrentAccountPortIn currentAccountPortIn;
-
     @InjectMocks
     private CustomerUseCaseImpl customerUseCase;
 
@@ -50,68 +45,6 @@ class CustomerUseCaseImplTest {
 
         assertEquals(2, customers.size());
         verify(customerPortOut).findAll(CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus");
-    }
-
-    @Test
-    void shouldApproveCustomer() {
-        UUID customerId = UUID.randomUUID();
-        UUID approvedBy = UUID.randomUUID();
-        Instant approvedAt = Instant.parse("2026-05-17T03:00:00Z");
-        Customer customer = validPendingCustomer(customerId);
-        customer.setStatus(CustomerStatus.INACTIVE);
-
-        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(approvedBy);
-        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
-        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Customer approvedCustomer = customerUseCase.approveCustomer(customerId, approvedAt);
-
-        assertEquals(CustomerApprovalStatus.APPROVED, approvedCustomer.getApprovalStatus());
-        assertEquals(CustomerStatus.ACTIVE, approvedCustomer.getStatus());
-        assertEquals(approvedBy, approvedCustomer.getApprovedBy());
-        assertEquals(approvedAt, approvedCustomer.getApprovedAt());
-    }
-
-    @Test
-    void shouldRejectCustomer() {
-        UUID customerId = UUID.randomUUID();
-        Customer customer = validApprovedCustomer(customerId);
-
-        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
-        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Customer rejectedCustomer = customerUseCase.rejectCustomer(customerId);
-
-        assertEquals(CustomerApprovalStatus.REJECTED, rejectedCustomer.getApprovalStatus());
-        assertEquals(CustomerStatus.INACTIVE, rejectedCustomer.getStatus());
-    }
-
-    @Test
-    void shouldSuspendCustomer() {
-        UUID customerId = UUID.randomUUID();
-        Customer customer = validApprovedCustomer(customerId);
-
-        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
-        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Customer suspendedCustomer = customerUseCase.suspendCustomer(customerId);
-
-        assertEquals(CustomerApprovalStatus.SUSPENDED, suspendedCustomer.getApprovalStatus());
-        assertEquals(CustomerStatus.INACTIVE, suspendedCustomer.getStatus());
-    }
-
-    @Test
-    void shouldMoveCustomerToPending() {
-        UUID customerId = UUID.randomUUID();
-        Customer customer = validApprovedCustomer(customerId);
-
-        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
-        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Customer pendingCustomer = customerUseCase.moveCustomerToPending(customerId);
-
-        assertEquals(CustomerApprovalStatus.PENDING, pendingCustomer.getApprovalStatus());
-        assertEquals(CustomerStatus.INACTIVE, pendingCustomer.getStatus());
     }
 
     @Test
@@ -167,4 +100,5 @@ class CustomerUseCaseImplTest {
         customer.setApprovedAt(Instant.parse("2026-05-17T03:00:00Z"));
         return customer;
     }
+
 }

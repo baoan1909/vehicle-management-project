@@ -63,6 +63,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
                     normalizedCommand.account(),
                     accountId,
                     roleId,
+                    normalizedCommand.roleCode(),
                     keycloakUserId
             );
             provisionedAccountPortOut.provisionAccount(account);
@@ -200,15 +201,22 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             Account account,
             UUID accountId,
             UUID roleId,
+            AdminProvisionableAccountRoleCode roleCode,
             String keycloakUserId
     ) {
         account.setAccountId(accountId);
         account.setUserProfileId(null);
         account.setKeycloakUserId(keycloakUserId);
         account.setRoleId(roleId);
-        account.setStatus(AccountStatus.ACTIVE);
+        account.setStatus(initialAccountStatus(roleCode));
         account.setFailedLoginCount(0);
         return account;
+    }
+
+    private AccountStatus initialAccountStatus(AdminProvisionableAccountRoleCode roleCode) {
+        return AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.equals(roleCode)
+                ? AccountStatus.PENDING
+                : AccountStatus.ACTIVE;
     }
 
     private ProvisionedAccountResult getManagedAccount(UUID accountId) {

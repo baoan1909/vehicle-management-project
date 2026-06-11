@@ -5,7 +5,6 @@ import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 
 public record UpdateCustomerAdminProfileCommand(
         UserProfile userProfile,
-        Customer customer,
-        UpdateCustomerAdminVehicleDiffCommand vehicles
+        Customer customer
 ) {
 }

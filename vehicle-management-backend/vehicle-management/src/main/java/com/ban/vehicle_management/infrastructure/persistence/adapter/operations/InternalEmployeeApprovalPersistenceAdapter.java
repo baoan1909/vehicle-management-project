@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.operations;
 
+import com.ban.vehicle_management.application.operations.approvalrequest.authorization.InternalEmployeeApprovalAccessGuard;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.command.InternalEmployeeApprovalFilterCommand;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.InternalEmployeeApprovalCandidate;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.InternalEmployeeApprovalResult;
@@ -68,9 +69,9 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
     @Override
     public boolean existsPendingInternalEmployeeApprovalForEmployee(UUID employeeId) {
         return approvalRequestRepository.existsByRequestTypeAndTargetSchemaAndTargetTableAndTargetIdAndStatus(
-                com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.REQUEST_TYPE,
-                com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_SCHEMA,
-                com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_TABLE,
+                InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
+                InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
+                InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
                 employeeId,
                 ApprovalRequestStatus.PENDING
         );
@@ -80,9 +81,9 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
     public Optional<ApprovalRequest> findInternalEmployeeApprovalRequestById(UUID approvalRequestId) {
         return approvalRequestRepository.findByApprovalRequestIdAndRequestTypeAndTargetSchemaAndTargetTable(
                         approvalRequestId,
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.REQUEST_TYPE,
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_SCHEMA,
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_TABLE
+                        InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
+                        InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
+                        InternalEmployeeApprovalAccessGuard.TARGET_TABLE
                 )
                 .map(approvalRequestPersistenceMapper::toDomain);
     }
@@ -90,9 +91,9 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
     @Override
     public Optional<ApprovalRequest> findLatestInternalEmployeeApprovalRequest(UUID employeeId) {
         return approvalRequestRepository.findTopByRequestTypeAndTargetSchemaAndTargetTableAndTargetIdOrderByCreatedAtDesc(
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.REQUEST_TYPE,
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_SCHEMA,
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_TABLE,
+                        InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
+                        InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
+                        InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
                         employeeId
                 )
                 .map(approvalRequestPersistenceMapper::toDomain);
@@ -120,14 +121,14 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
     public List<InternalEmployeeApprovalResult> findInternalEmployeeApprovalRequests(InternalEmployeeApprovalFilterCommand command) {
         List<ApprovalRequestEntity> approvalRequests = command.status() == null
                 ? approvalRequestRepository.findByRequestTypeAndTargetSchemaAndTargetTableOrderByCreatedAtDesc(
-                com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.REQUEST_TYPE,
-                com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_SCHEMA,
-                com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_TABLE
+                InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
+                InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
+                InternalEmployeeApprovalAccessGuard.TARGET_TABLE
         )
                 : approvalRequestRepository.findByRequestTypeAndTargetSchemaAndTargetTableAndStatusOrderByCreatedAtDesc(
-                com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.REQUEST_TYPE,
-                com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_SCHEMA,
-                com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_TABLE,
+                InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
+                InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
+                InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
                 command.status()
         );
 
@@ -143,9 +144,9 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
     public Optional<InternalEmployeeApprovalResult> findInternalEmployeeApprovalResultById(UUID approvalRequestId) {
         return approvalRequestRepository.findByApprovalRequestIdAndRequestTypeAndTargetSchemaAndTargetTable(
                         approvalRequestId,
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.REQUEST_TYPE,
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_SCHEMA,
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_TABLE
+                        InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
+                        InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
+                        InternalEmployeeApprovalAccessGuard.TARGET_TABLE
                 )
                 .flatMap(this::toResult);
     }
@@ -154,9 +155,9 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
     public Optional<InternalEmployeeApprovalResult> findLatestInternalEmployeeApprovalResultByAccountId(UUID accountId) {
         return findCandidateByAccountId(accountId)
                 .flatMap(candidate -> approvalRequestRepository.findTopByRequestTypeAndTargetSchemaAndTargetTableAndTargetIdOrderByCreatedAtDesc(
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.REQUEST_TYPE,
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_SCHEMA,
-                        com.ban.vehicle_management.application.operations.approvalrequest.usecase.InternalEmployeeApprovalUseCaseImpl.TARGET_TABLE,
+                        InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
+                        InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
+                        InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
                         candidate.employeeId()
                 ))
                 .flatMap(this::toResult);

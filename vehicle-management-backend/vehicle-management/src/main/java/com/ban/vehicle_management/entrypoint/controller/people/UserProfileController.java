@@ -6,11 +6,14 @@ import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.entrypoint.dto.people.userprofile.request.UserProfileFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.userprofile.response.UserProfileAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/people/user-profiles")
@@ -44,9 +47,4 @@ public class UserProfileController {
         ));
     }
 
-    @DeleteMapping("/{userProfileId}")
-    public ResponseEntity<ApiResponse<Void>> deleteUserProfile(@PathVariable UUID userProfileId) {
-        userProfilePortIn.deleteUserProfile(userProfileId);
-        return ResponseEntity.ok(ApiResponse.ok("User profile deactivated successfully"));
-    }
 }
