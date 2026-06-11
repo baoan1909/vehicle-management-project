@@ -20,7 +20,6 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     private static final String USER_PROFILE_CREATE_ALL = "USER_PROFILE_CREATE_ALL";
     private static final String USER_PROFILE_READ_ALL = "USER_PROFILE_READ_ALL";
     private static final String USER_PROFILE_UPDATE_ALL = "USER_PROFILE_UPDATE_ALL";
-    private static final String USER_PROFILE_DELETE_ALL = "USER_PROFILE_DELETE_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final UserProfilePortOut userProfilePort;
@@ -78,19 +77,6 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     public List<UserProfile> getUserProfiles(UserProfileStatus status, String keyword) {
         currentAccountPortIn.requirePermission(USER_PROFILE_READ_ALL);
         return userProfilePort.findAll(status, keyword);
-    }
-
-    @Override
-    @Transactional
-    public void deleteUserProfile(UUID userProfileId) {
-        currentAccountPortIn.requirePermission(USER_PROFILE_DELETE_ALL);
-        UserProfile existingUserProfile = getUserProfileById(userProfileId);
-        if (existingUserProfile.getStatus() == UserProfileStatus.INACTIVE) {
-            return;
-        }
-
-        userProfilePolicy.inactivate(existingUserProfile);
-        userProfilePort.save(existingUserProfile);
     }
 
     private void validateUniqueFields(UserProfile userProfile) {

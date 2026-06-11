@@ -4,7 +4,6 @@ import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public interface UserProfilePortIn {
@@ -17,6 +16,5 @@ public interface UserProfilePortIn {
 
     List<UserProfile> getUserProfiles(UserProfileStatus status, String keyword);
 
-    void deleteUserProfile(UUID userProfileId);
 }
 

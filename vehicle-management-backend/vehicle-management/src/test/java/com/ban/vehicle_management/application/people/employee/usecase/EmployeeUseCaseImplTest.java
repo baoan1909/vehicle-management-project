@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.InternalEmployeeApprovalCandidate;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
+import com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuard;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
@@ -33,6 +34,9 @@ class EmployeeUseCaseImplTest {
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
+
+    @Mock
+    private EmployeeAccessGuard employeeAccessGuard;
 
     @Mock
     private EmployeePortOut employeePortOut;
@@ -92,6 +96,7 @@ class EmployeeUseCaseImplTest {
         org.mockito.Mockito.doNothing().when(currentAccountPortIn).requirePermission("EMPLOYEE_READ_ALL");
         when(employeePortOut.findAll(EmployeeStatus.ACTIVE, "nguyen"))
                 .thenReturn(List.of(new Employee(), new Employee()));
+        when(employeeAccessGuard.filterReadableEmployees(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         List<Employee> employees = employeeUseCase.getEmployees(EmployeeStatus.ACTIVE, "nguyen");
 

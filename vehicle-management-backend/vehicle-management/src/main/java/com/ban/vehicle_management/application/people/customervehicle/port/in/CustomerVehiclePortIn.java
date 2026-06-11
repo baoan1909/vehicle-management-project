@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.people.customervehicle.port.in;
 
+import com.ban.vehicle_management.application.people.customervehicle.model.command.CustomerVehicleBatchCommand;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import java.util.List;
@@ -8,6 +9,8 @@ import java.util.UUID;
 public interface CustomerVehiclePortIn {
 
     CustomerVehicle createCustomerVehicle(CustomerVehicle customerVehicle);
+
+    List<CustomerVehicle> applyCustomerVehicleBatch(CustomerVehicleBatchCommand command);
 
     CustomerVehicle updateCustomerVehicle(UUID customerVehicleId, CustomerVehicle customerVehicle);
 

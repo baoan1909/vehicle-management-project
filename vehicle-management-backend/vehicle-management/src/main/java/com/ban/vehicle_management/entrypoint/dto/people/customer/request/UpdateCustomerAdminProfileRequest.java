@@ -4,7 +4,6 @@ import com.ban.vehicle_management.entrypoint.dto.people.userprofile.request.Upda
 
 public record UpdateCustomerAdminProfileRequest(
         UpdateUserProfileRequest userProfile,
-        UpdateCustomerAdminRequest customer,
-        UpdateCustomerAdminVehicleOperationsRequest vehicles
+        UpdateCustomerAdminRequest customer
 ) {
 }
