@@ -3,7 +3,9 @@ package com.ban.vehicle_management.application.billing.invoice.usecase;
 import com.ban.vehicle_management.application.billing.invoice.authorization.InvoiceAccessGuard;
 import com.ban.vehicle_management.application.billing.invoice.port.in.InvoicePortIn;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
+import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -30,14 +32,17 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
 
     private final InvoicePortOut invoicePortOut;
     private final InvoiceAccessGuard invoiceAccessGuard;
+    private final PaymentPortOut paymentPortOut;
     private  final InvoicePolicy invoicePolicy = new InvoicePolicy();
 
     public  InvoiceUseCaseImpl(
             InvoicePortOut invoicePortOut,
-            InvoiceAccessGuard invoiceAccessGuard
+            InvoiceAccessGuard invoiceAccessGuard,
+            PaymentPortOut paymentPortOut
     ){
         this.invoicePortOut = invoicePortOut;
         this.invoiceAccessGuard = invoiceAccessGuard;
+        this.paymentPortOut = paymentPortOut;
     }
 
     @Override
@@ -57,10 +62,13 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
 
     @Override
     @Transactional(readOnly = true)
-    public Invoice getInvoiceById(UUID invoiceId){
+    public InvoiceDetail getInvoiceById(UUID invoiceId){
         Invoice invoice = findInvoiceOrThrow(invoiceId);
         invoiceAccessGuard.ensureCanRead(invoice);
-        return  invoice;
+        return new InvoiceDetail(
+                invoice,
+                paymentPortOut.findByInvoiceId(invoiceId)
+        );
     }
 
     @Override

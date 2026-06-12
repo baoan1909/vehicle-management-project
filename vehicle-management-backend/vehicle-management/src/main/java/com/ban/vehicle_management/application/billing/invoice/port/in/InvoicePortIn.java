@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.billing.invoice.port.in;
 
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 
 import java.time.Instant;
@@ -11,7 +12,7 @@ public interface InvoicePortIn {
 
     Invoice createInvoice(Invoice invoice);
 
-    Invoice getInvoiceById(UUID invoiceId);
+    InvoiceDetail getInvoiceById(UUID invoiceId);
 
     List<Invoice> getInvoices(
             UUID customerId,
