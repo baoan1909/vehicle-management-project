@@ -95,7 +95,6 @@ CREATE TABLE iam.accounts (
     user_profile_id UUID NOT NULL UNIQUE,
     username VARCHAR(100) NOT NULL UNIQUE,
     email CITEXT NOT NULL UNIQUE,
-    hash_password VARCHAR(255) NOT NULL,
     role_id UUID NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     last_login_at TIMESTAMPTZ,
@@ -123,35 +122,6 @@ CREATE TABLE iam.role_permissions (
     CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_id) REFERENCES iam.roles(role_id) ON DELETE CASCADE,
     CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_id) REFERENCES iam.permissions(permission_id) ON DELETE CASCADE,
     CONSTRAINT uq_role_permissions UNIQUE (role_id, permission_id)
-);
-
--- Lưu refresh token phục vụ JWT.
-CREATE TABLE iam.refresh_tokens (
-    refresh_token_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_id UUID NOT NULL,
-    token_hash VARCHAR(255) NOT NULL UNIQUE,
-    expires_at TIMESTAMPTZ NOT NULL,
-    revoked_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    created_by UUID,
-    updated_at TIMESTAMPTZ,
-    updated_by UUID,
-    created_by_ip VARCHAR(50),
-    user_agent TEXT,
-    CONSTRAINT fk_refresh_tokens_account FOREIGN KEY (account_id) REFERENCES iam.accounts(account_id) ON DELETE CASCADE
-);
-
--- Lưu lịch sử đăng nhập thành công/thất bại.
-CREATE TABLE iam.login_attempts (
-    login_attempt_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_id UUID,
-    username_or_email VARCHAR(150) NOT NULL,
-    success BOOLEAN NOT NULL DEFAULT FALSE,
-    failure_reason VARCHAR(100),
-    ip_address VARCHAR(50),
-    user_agent TEXT,
-    attempted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT fk_login_attempts_account FOREIGN KEY (account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL
 );
 
 -- Lưu lịch sử đổi trạng thái tài khoản.
@@ -184,10 +154,6 @@ ALTER TABLE people.user_profiles
 ALTER TABLE iam.accounts
     ADD CONSTRAINT fk_accounts_created_by FOREIGN KEY (created_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     ADD CONSTRAINT fk_accounts_updated_by FOREIGN KEY (updated_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL;
-
-ALTER TABLE iam.refresh_tokens
-    ADD CONSTRAINT fk_refresh_tokens_created_by FOREIGN KEY (created_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
-    ADD CONSTRAINT fk_refresh_tokens_updated_by FOREIGN KEY (updated_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL;
 
 -- =========================================================
 -- 2. PEOPLE - Khách hàng và nhân viên
@@ -769,7 +735,6 @@ CREATE TRIGGER trg_roles_set_updated_at BEFORE UPDATE ON iam.roles FOR EACH ROW 
 CREATE TRIGGER trg_permissions_set_updated_at BEFORE UPDATE ON iam.permissions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_user_profiles_set_updated_at BEFORE UPDATE ON people.user_profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_accounts_set_updated_at BEFORE UPDATE ON iam.accounts FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-CREATE TRIGGER trg_refresh_tokens_set_updated_at BEFORE UPDATE ON iam.refresh_tokens FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_customers_set_updated_at BEFORE UPDATE ON people.customers FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_employees_set_updated_at BEFORE UPDATE ON people.employees FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_customer_vehicles_set_updated_at BEFORE UPDATE ON people.customer_vehicles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -864,11 +829,11 @@ VALUES
     ('10000000-0000-0000-0000-000000000003', 'Võ Văn Tú', '2003-09-19', 'Nam', '0901000003', 'Tân Phú, TP.HCM', '079203000003', 'ACTIVE');
 
 -- Dữ liệu mẫu: tài khoản đăng nhập.
-INSERT INTO iam.accounts (account_id, user_profile_id, username, email, hash_password, role_id, status, password_changed_at)
+INSERT INTO iam.accounts (account_id, user_profile_id, username, email, role_id, status, password_changed_at)
 VALUES
-    ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'admin', 'admin@parking.local', '$2a$10$example-admin-hash', '00000000-0000-0000-0000-000000000001', 'ACTIVE', now()),
-    ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'employee01', 'employee01@parking.local', '$2a$10$example-employee-hash', '00000000-0000-0000-0000-000000000002', 'ACTIVE', now()),
-    ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', 'vovantu', 'tu.customer@example.com', '$2a$10$example-customer-hash', '00000000-0000-0000-0000-000000000003', 'ACTIVE', now());
+    ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'admin', 'admin@parking.local', '00000000-0000-0000-0000-000000000001', 'ACTIVE', now()),
+    ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'employee01', 'employee01@parking.local', '00000000-0000-0000-0000-000000000002', 'ACTIVE', now()),
+    ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', 'vovantu', 'tu.customer@example.com', '00000000-0000-0000-0000-000000000003', 'ACTIVE', now());
 
 -- Dữ liệu mẫu: khách hàng và nhân viên.
 INSERT INTO people.customers (customer_id, user_profile_id, customer_code, customer_type, approval_status, approved_by, approved_at)

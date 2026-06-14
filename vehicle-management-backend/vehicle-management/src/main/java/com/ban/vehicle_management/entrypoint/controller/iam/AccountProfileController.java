@@ -7,8 +7,10 @@ import com.ban.vehicle_management.entrypoint.dto.iam.account.request.CompleteAcc
 import com.ban.vehicle_management.entrypoint.dto.iam.account.request.UpdateAccountProfileRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.response.AccountProfileStatusResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/iam/accounts")
@@ -56,6 +58,26 @@ public class AccountProfileController {
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Profile updated successfully",
+                accountProfileApiMapper.toResponse(result)
+        ));
+    }
+
+    @PostMapping(value = "/profile/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<AccountProfileStatusResponse>> uploadMyAvatar(
+            @RequestPart("file") MultipartFile file
+    ) {
+        AccountProfileStatusResult result = accountProfilePortIn.uploadMyAvatar(file);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Avatar updated successfully",
+                accountProfileApiMapper.toResponse(result)
+        ));
+    }
+
+    @DeleteMapping("/profile/avatar")
+    public ResponseEntity<ApiResponse<AccountProfileStatusResponse>> deleteMyAvatar() {
+        AccountProfileStatusResult result = accountProfilePortIn.deleteMyAvatar();
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Avatar deleted successfully",
                 accountProfileApiMapper.toResponse(result)
         ));
     }

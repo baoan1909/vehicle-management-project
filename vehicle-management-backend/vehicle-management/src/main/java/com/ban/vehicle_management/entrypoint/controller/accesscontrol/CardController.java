@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -44,6 +45,7 @@ public class CardController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_CREATE_ALL')")
     public ResponseEntity<ApiResponse<CardAdminResponse>> createCard(@RequestBody CreateCardRequest request) {
         Card createdCard = cardPortIn.createCard(cardApiMapper.toDomain(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
@@ -53,6 +55,7 @@ public class CardController {
     }
 
     @GetMapping("/{cardId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_READ_ALL')")
     public ResponseEntity<ApiResponse<CardAdminResponse>> getCardById(@PathVariable UUID cardId) {
         Card card = cardPortIn.getCardById(cardId);
         return ResponseEntity.ok(ApiResponse.ok(
@@ -62,6 +65,7 @@ public class CardController {
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_READ_ALL')")
     public ResponseEntity<ApiResponse<List<CardAdminResponse>>> getCards(@ModelAttribute CardFilterRequest request) {
         List<Card> cards = cardPortIn.getCards(
                 request.status(),
@@ -76,6 +80,7 @@ public class CardController {
     }
 
     @PutMapping("/{cardId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<CardAdminResponse>> updateCard(
             @PathVariable UUID cardId,
             @RequestBody UpdateCardRequest request
@@ -88,6 +93,7 @@ public class CardController {
     }
 
     @PatchMapping("/{cardId}/status")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<CardAdminResponse>> changeCardStatus(
             @PathVariable UUID cardId,
             @RequestBody ChangeCardStatusRequest request
@@ -104,6 +110,7 @@ public class CardController {
     }
 
     @DeleteMapping("/{cardId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_DELETE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteCard(@PathVariable UUID cardId) {
         cardPortIn.deleteCard(cardId);
         return ResponseEntity.ok(ApiResponse.ok("Card retired successfully"));

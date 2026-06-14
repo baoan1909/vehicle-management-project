@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.infrastructure.mapper.catalog.CardTypePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.CardTypeEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.CardTypeRepository;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -19,6 +20,9 @@ class CardTypePersistenceAdapterTest {
 
     @Mock
     private CardTypeRepository cardTypeRepository;
+
+    @Mock
+    private CardRepository cardRepository;
 
     @Mock
     private CardTypePersistenceMapper cardTypePersistenceMapper;

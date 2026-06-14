@@ -40,8 +40,6 @@ Tables:
 - `iam.permissions`
 - `iam.accounts`
 - `iam.role_permissions`
-- `iam.refresh_tokens`
-- `iam.login_attempts`
 - `iam.account_status_history`
 
 Main concern:
@@ -49,7 +47,6 @@ Main concern:
 - authentication
 - authorization
 - account state
-- login lifecycle
 
 ### People
 

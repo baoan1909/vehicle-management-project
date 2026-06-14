@@ -27,4 +27,6 @@ public interface AccountProfilePortOut {
     boolean existsByIdentifyCardAndUserProfileIdNot(String identifyCard, UUID userProfileId);
 
     AccountProfileState updateProfile(UUID accountId, UserProfile userProfile);
+
+    AccountProfileState updateAvatar(UUID accountId, String avatarUrl);
 }

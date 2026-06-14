@@ -15,5 +15,7 @@ public interface CardTypePortIn {
     List<CardType> getCardTypes(Boolean isActive);
 
     void deleteCardType(UUID cardTypeId);
+
+    CardType activateCardType(UUID cardTypeId);
 }
 

@@ -24,6 +24,12 @@ public class CardTypePolicy {
         cardType.setIsActive(Boolean.FALSE);
     }
 
+    public void activate(CardType cardType) {
+        requireCardType(cardType);
+        cardType.setIsActive(Boolean.TRUE);
+        initialize(cardType);
+    }
+
     private void requireCardType(CardType cardType) {
         if (cardType == null) {
             throw new BadRequestException("cardType must not be null");

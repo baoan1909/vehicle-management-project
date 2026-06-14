@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.catalog.tickettype.usecase;
 
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.tickettype.port.in.TicketTypePortIn;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
@@ -16,16 +17,24 @@ import java.util.UUID;
 
 @Service
 public class TicketTypeUsecaseImpl implements TicketTypePortIn {
+    private static final String TICKET_TYPE_CREATE_ALL = "TICKET_TYPE_CREATE_ALL";
+    private static final String TICKET_TYPE_READ_ALL = "TICKET_TYPE_READ_ALL";
+    private static final String TICKET_TYPE_UPDATE_ALL = "TICKET_TYPE_UPDATE_ALL";
+    private static final String TICKET_TYPE_DELETE_ALL = "TICKET_TYPE_DELETE_ALL";
+
+    private  final CurrentAccountPortIn currentAccountPortIn;
     private  final TicketTypePortOut ticketTypePortOut;
     private  final TicketTypePolicy ticketTypePolicy = new TicketTypePolicy();
 
-    public TicketTypeUsecaseImpl (TicketTypePortOut ticketTypePortOut){
+    public TicketTypeUsecaseImpl (CurrentAccountPortIn currentAccountPortIn, TicketTypePortOut ticketTypePortOut){
+        this.currentAccountPortIn = currentAccountPortIn;
         this.ticketTypePortOut = ticketTypePortOut;
     }
 
     @Override
     @Transactional
     public TicketType createTicketType(TicketType ticketType){
+        currentAccountPortIn.requirePermission(TICKET_TYPE_CREATE_ALL);
         ticketTypePolicy.initialize(ticketType);
 
         if(ticketTypePortOut.existsActiveByCode(ticketType.getCode())){
@@ -39,20 +48,22 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     @Override
     @Transactional(readOnly = true)
     public  TicketType getTicketTypeById(UUID ticketTypeId){
-        return ticketTypePortOut.findById(ticketTypeId)
-                .orElseThrow(() -> new NotFoundException("Ticket type not found"));
+        currentAccountPortIn.requirePermission(TICKET_TYPE_READ_ALL);
+        return findExistingTicketType(ticketTypeId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<TicketType> getTicketTypes(TicketTypeStatus status, String keyword){
+        currentAccountPortIn.requirePermission(TICKET_TYPE_READ_ALL);
         return ticketTypePortOut.findAll(status, normalizeKeyword(keyword));
     }
 
     @Override
     @Transactional
     public TicketType updateTicketType(UUID ticketTypeId, TicketType ticketType){
-        TicketType existingTicketType = getTicketTypeById(ticketTypeId);
+        currentAccountPortIn.requirePermission(TICKET_TYPE_UPDATE_ALL);
+        TicketType existingTicketType = findExistingTicketType(ticketTypeId);
 
         if (existingTicketType.getStatus() != TicketTypeStatus.ACTIVE){
             throw new BadRequestException("Only active ticket type can be update");
@@ -79,7 +90,8 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     @Override
     @Transactional
     public void deleteTicketType(UUID ticketTypeId){
-        TicketType existingTicketType = getTicketTypeById(ticketTypeId);
+        currentAccountPortIn.requirePermission(TICKET_TYPE_DELETE_ALL);
+        TicketType existingTicketType = findExistingTicketType(ticketTypeId);
         if (existingTicketType.getStatus() == TicketTypeStatus.INACTIVE){
             return;
         }
@@ -99,7 +111,8 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     @Override
     @Transactional
     public TicketType activateTicketType(UUID ticketTypeId){
-        TicketType existingTicketType = getTicketTypeById(ticketTypeId);
+        currentAccountPortIn.requirePermission(TICKET_TYPE_UPDATE_ALL);
+        TicketType existingTicketType = findExistingTicketType(ticketTypeId);
 
         if (existingTicketType.getStatus() == TicketTypeStatus.ACTIVE){
             return existingTicketType;
@@ -116,6 +129,11 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
 
     private String normalizeKeyword(String keyword){
         return  keyword == null || keyword.isBlank() ? null : keyword.trim();
+    }
+
+    private TicketType findExistingTicketType(UUID ticketTypeId) {
+        return ticketTypePortOut.findById(ticketTypeId)
+                .orElseThrow(() -> new NotFoundException("Ticket type not found"));
     }
 
 }

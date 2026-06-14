@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
@@ -40,6 +41,9 @@ class CardUseCaseImplTest {
     @Mock
     private VehicleTypePortOut vehicleTypePort;
 
+    @Mock
+    private CurrentAccountPortIn currentAccountPortIn;
+
     @InjectMocks
     private CardUseCaseImpl cardUseCase;
 
@@ -61,6 +65,7 @@ class CardUseCaseImplTest {
 
         Card createdCard = cardUseCase.createCard(requestCard);
 
+        verify(currentAccountPortIn).requirePermission("CARD_CREATE_ALL");
         assertNotNull(createdCard.getCardId());
         assertEquals("C001", createdCard.getCardNumber());
         assertEquals("UID-001", createdCard.getUid());
@@ -91,6 +96,7 @@ class CardUseCaseImplTest {
         List<Card> cards = cardUseCase.getCards(CardStatus.AVAILABLE, cardTypeId, vehicleTypeId, " C001 ");
 
         assertEquals(2, cards.size());
+        verify(currentAccountPortIn).requirePermission("CARD_READ_ALL");
         verify(cardPort).findAll(CardStatus.AVAILABLE, cardTypeId, vehicleTypeId, "C001");
     }
 
@@ -141,6 +147,7 @@ class CardUseCaseImplTest {
 
         Card updatedCard = cardUseCase.updateCard(cardId, requestCard);
 
+        verify(currentAccountPortIn).requirePermission("CARD_UPDATE_ALL");
         assertEquals("C001", updatedCard.getCardNumber());
         assertEquals("UID-001", updatedCard.getUid());
         assertEquals(cardTypeId, updatedCard.getCardTypeId());
@@ -158,6 +165,7 @@ class CardUseCaseImplTest {
 
         cardUseCase.deleteCard(cardId);
 
+        verify(currentAccountPortIn).requirePermission("CARD_DELETE_ALL");
         assertEquals(CardStatus.RETIRED, existingCard.getStatus());
         verify(cardPort).save(existingCard);
     }

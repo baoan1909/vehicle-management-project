@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -29,6 +30,9 @@ class VehicleTypeUseCaseImplTest {
     @Mock
     private VehicleTypePortOut vehicleTypePort;
 
+    @Mock
+    private CurrentAccountPortIn currentAccountPortIn;
+
     @InjectMocks
     private VehicleTypeUseCaseImpl vehicleTypeUseCase;
 
@@ -44,6 +48,7 @@ class VehicleTypeUseCaseImplTest {
 
         VehicleType createdVehicleType = vehicleTypeUseCase.createVehicleType(requestVehicleType);
 
+        verify(currentAccountPortIn).requirePermission("VEHICLE_TYPE_CREATE_ALL");
         assertEquals("MOTORBIKE", createdVehicleType.getCode());
         assertEquals("Motorbike", createdVehicleType.getName());
         assertEquals("Two-wheel vehicle", createdVehicleType.getDescription());
@@ -98,6 +103,7 @@ class VehicleTypeUseCaseImplTest {
         List<VehicleType> vehicleTypes = vehicleTypeUseCase.getVehicleTypes(Boolean.TRUE);
 
         assertEquals(2, vehicleTypes.size());
+        verify(currentAccountPortIn).requirePermission("VEHICLE_TYPE_READ_ALL");
         verify(vehicleTypePort).findAll(Boolean.TRUE);
     }
 
@@ -116,8 +122,45 @@ class VehicleTypeUseCaseImplTest {
         vehicleTypeUseCase.deleteVehicleType(vehicleTypeId);
 
         ArgumentCaptor<VehicleType> vehicleTypeCaptor = ArgumentCaptor.forClass(VehicleType.class);
+        verify(currentAccountPortIn).requirePermission("VEHICLE_TYPE_DELETE_ALL");
         verify(vehicleTypePort).save(vehicleTypeCaptor.capture());
         assertFalse(vehicleTypeCaptor.getValue().getIsActive());
+    }
+
+    @Test
+    void shouldRejectDeactivateWhenVehicleTypeIsUsedByActiveCards() {
+        UUID vehicleTypeId = UUID.randomUUID();
+        VehicleType existingVehicleType = new VehicleType();
+        existingVehicleType.setVehicleTypeId(vehicleTypeId);
+        existingVehicleType.setCode("CAR");
+        existingVehicleType.setName("Car");
+        existingVehicleType.setIsActive(true);
+
+        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
+        when(vehicleTypePort.hasActiveCards(vehicleTypeId)).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> vehicleTypeUseCase.deleteVehicleType(vehicleTypeId));
+        verify(vehicleTypePort, never()).save(any(VehicleType.class));
+    }
+
+    @Test
+    void shouldActivateInactiveVehicleType() {
+        UUID vehicleTypeId = UUID.randomUUID();
+        VehicleType existingVehicleType = new VehicleType();
+        existingVehicleType.setVehicleTypeId(vehicleTypeId);
+        existingVehicleType.setCode(" car ");
+        existingVehicleType.setName(" Car ");
+        existingVehicleType.setIsActive(false);
+
+        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
+        when(vehicleTypePort.existsByCodeAndVehicleTypeIdNot("CAR", vehicleTypeId)).thenReturn(false);
+        when(vehicleTypePort.save(any(VehicleType.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        VehicleType activatedVehicleType = vehicleTypeUseCase.activateVehicleType(vehicleTypeId);
+
+        verify(currentAccountPortIn).requirePermission("VEHICLE_TYPE_UPDATE_ALL");
+        assertTrue(activatedVehicleType.getIsActive());
+        assertEquals("CAR", activatedVehicleType.getCode());
     }
 
     @Test
