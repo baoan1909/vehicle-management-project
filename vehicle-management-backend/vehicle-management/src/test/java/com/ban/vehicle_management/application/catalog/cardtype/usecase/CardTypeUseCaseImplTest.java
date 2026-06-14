@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -27,6 +28,9 @@ class CardTypeUseCaseImplTest {
     @Mock
     private CardTypePortOut cardTypePort;
 
+    @Mock
+    private CurrentAccountPortIn currentAccountPortIn;
+
     @InjectMocks
     private CardTypeUseCaseImpl cardTypeUseCase;
 
@@ -42,6 +46,7 @@ class CardTypeUseCaseImplTest {
 
         CardType createdCardType = cardTypeUseCase.createCardType(requestCardType);
 
+        verify(currentAccountPortIn).requirePermission("CARD_TYPE_CREATE_ALL");
         assertEquals("RFID", createdCardType.getCode());
         assertEquals("RFID Card", createdCardType.getName());
         assertEquals("Reusable access card", createdCardType.getDescription());
@@ -98,6 +103,7 @@ class CardTypeUseCaseImplTest {
         List<CardType> cardTypes = cardTypeUseCase.getCardTypes(Boolean.TRUE);
 
         assertEquals(2, cardTypes.size());
+        verify(currentAccountPortIn).requirePermission("CARD_TYPE_READ_ALL");
         verify(cardTypePort).findAll(Boolean.TRUE);
     }
 
@@ -116,8 +122,47 @@ class CardTypeUseCaseImplTest {
 
         cardTypeUseCase.deleteCardType(cardTypeId);
 
+        verify(currentAccountPortIn).requirePermission("CARD_TYPE_DELETE_ALL");
         assertEquals(Boolean.FALSE, existingCardType.getIsActive());
         verify(cardTypePort).save(existingCardType);
+    }
+
+    @Test
+    void shouldRejectDeactivateWhenCardTypeIsUsedByActiveCards() {
+        UUID cardTypeId = UUID.randomUUID();
+        CardType existingCardType = new CardType();
+        existingCardType.setCardTypeId(cardTypeId);
+        existingCardType.setCode("RFID");
+        existingCardType.setName("RFID Card");
+        existingCardType.setIsReturnRequired(true);
+        existingCardType.setIsActive(true);
+
+        when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(existingCardType));
+        when(cardTypePort.hasActiveCards(cardTypeId)).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> cardTypeUseCase.deleteCardType(cardTypeId));
+        verify(cardTypePort, never()).save(any(CardType.class));
+    }
+
+    @Test
+    void shouldActivateInactiveCardType() {
+        UUID cardTypeId = UUID.randomUUID();
+        CardType existingCardType = new CardType();
+        existingCardType.setCardTypeId(cardTypeId);
+        existingCardType.setCode(" rfid ");
+        existingCardType.setName(" RFID Card ");
+        existingCardType.setIsReturnRequired(true);
+        existingCardType.setIsActive(false);
+
+        when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(existingCardType));
+        when(cardTypePort.existsByCodeAndCardTypeIdNot("RFID", cardTypeId)).thenReturn(false);
+        when(cardTypePort.save(any(CardType.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CardType activatedCardType = cardTypeUseCase.activateCardType(cardTypeId);
+
+        verify(currentAccountPortIn).requirePermission("CARD_TYPE_UPDATE_ALL");
+        assertEquals(Boolean.TRUE, activatedCardType.getIsActive());
+        assertEquals("RFID", activatedCardType.getCode());
     }
 
     @Test

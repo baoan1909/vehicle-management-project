@@ -427,7 +427,6 @@ $tables = @(
         @{ Name = 'userProfileId'; Type = 'UUID'; Column = 'user_profile_id'; Nullable = $false; Unique = $true },
         @{ Name = 'username'; Type = 'String'; Column = 'username'; Nullable = $false; Unique = $true },
         @{ Name = 'email'; Type = 'String'; Column = 'email'; Nullable = $false; Unique = $true; ColumnDefinition = 'citext' },
-        @{ Name = 'hashPassword'; Type = 'String'; Column = 'hash_password'; Nullable = $false },
         @{ Name = 'roleId'; Type = 'UUID'; Column = 'role_id'; Nullable = $false },
         @{ Name = 'status'; Type = 'AccountStatus'; Column = 'status'; Nullable = $false },
         @{ Name = 'lastLoginAt'; Type = 'Instant'; Column = 'last_login_at' },
@@ -439,25 +438,6 @@ $tables = @(
         @{ Name = 'id'; Type = 'UUID'; Column = 'id'; Id = $true; Nullable = $false },
         @{ Name = 'roleId'; Type = 'UUID'; Column = 'role_id'; Nullable = $false },
         @{ Name = 'permissionId'; Type = 'UUID'; Column = 'permission_id'; Nullable = $false }
-    ) },
-    @{ SchemaPackage = 'iam'; FeaturePackage = 'account'; ClassName = 'RefreshToken'; TableSchema = 'iam'; TableName = 'refresh_tokens'; AuditKind = 'AUDITABLE'; Fields = @(
-        @{ Name = 'refreshTokenId'; Type = 'UUID'; Column = 'refresh_token_id'; Id = $true; Nullable = $false },
-        @{ Name = 'accountId'; Type = 'UUID'; Column = 'account_id'; Nullable = $false },
-        @{ Name = 'tokenHash'; Type = 'String'; Column = 'token_hash'; Nullable = $false; Unique = $true },
-        @{ Name = 'expiresAt'; Type = 'Instant'; Column = 'expires_at'; Nullable = $false },
-        @{ Name = 'revokedAt'; Type = 'Instant'; Column = 'revoked_at' },
-        @{ Name = 'createdByIp'; Type = 'String'; Column = 'created_by_ip' },
-        @{ Name = 'userAgent'; Type = 'String'; Column = 'user_agent' }
-    ) },
-    @{ SchemaPackage = 'iam'; FeaturePackage = 'account'; ClassName = 'LoginAttempt'; TableSchema = 'iam'; TableName = 'login_attempts'; AuditKind = 'NONE'; Fields = @(
-        @{ Name = 'loginAttemptId'; Type = 'UUID'; Column = 'login_attempt_id'; Id = $true; Nullable = $false },
-        @{ Name = 'accountId'; Type = 'UUID'; Column = 'account_id' },
-        @{ Name = 'usernameOrEmail'; Type = 'String'; Column = 'username_or_email'; Nullable = $false },
-        @{ Name = 'success'; Type = 'Boolean'; Column = 'success'; Nullable = $false },
-        @{ Name = 'failureReason'; Type = 'String'; Column = 'failure_reason' },
-        @{ Name = 'ipAddress'; Type = 'String'; Column = 'ip_address' },
-        @{ Name = 'userAgent'; Type = 'String'; Column = 'user_agent' },
-        @{ Name = 'attemptedAt'; Type = 'Instant'; Column = 'attempted_at'; Nullable = $false }
     ) },
     @{ SchemaPackage = 'iam'; FeaturePackage = 'account'; ClassName = 'AccountStatusHistory'; TableSchema = 'iam'; TableName = 'account_status_history'; AuditKind = 'NONE'; Fields = @(
         @{ Name = 'accountStatusHistoryId'; Type = 'UUID'; Column = 'account_status_history_id'; Id = $true; Nullable = $false },

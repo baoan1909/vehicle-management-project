@@ -19,8 +19,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.cat
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.hardware.DeviceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountStatusHistoryEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.LoginAttemptEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RefreshTokenEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.PermissionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RoleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RolePermissionEntity;
@@ -88,8 +86,6 @@ class PersistenceEntityRelationshipAnnotationsTest {
         List<Class<?>> entityClasses = List.of(
                 AccountEntity.class,
                 AccountStatusHistoryEntity.class,
-                LoginAttemptEntity.class,
-                RefreshTokenEntity.class,
                 RoleEntity.class,
                 PermissionEntity.class,
                 RolePermissionEntity.class,

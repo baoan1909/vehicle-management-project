@@ -7,6 +7,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.peo
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.people.UserProfileSpecifications;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
+import com.ban.vehicle_management.shared.exception.NotFoundException;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
@@ -67,5 +68,14 @@ public class UserProfilePersistenceAdapter implements UserProfilePortOut {
     @Override
     public boolean existsByIdentifyCardAndUserProfileIdNot(String identifyCard, UUID userProfileId) {
         return userProfileRepository.existsByIdentifyCardAndUserProfileIdNot(identifyCard, userProfileId);
+    }
+
+    @Override
+    public UserProfile updateAvatar(UUID userProfileId, String avatarUrl) {
+        UserProfileEntity userProfileEntity = userProfileRepository.findById(userProfileId)
+                .orElseThrow(() -> new NotFoundException("User profile not found"));
+        userProfileEntity.setAvatarUrl(avatarUrl);
+        UserProfileEntity savedUserProfileEntity = userProfileRepository.saveAndFlush(userProfileEntity);
+        return userProfilePersistenceMapper.toDomain(savedUserProfileEntity);
     }
 }

@@ -148,6 +148,24 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         return toProfileState(accountEntity);
     }
 
+    @Override
+    public AccountProfileState updateAvatar(UUID accountId, String avatarUrl) {
+        AccountEntity accountEntity = accountRepository.findById(accountId)
+                .orElseThrow(() -> new NotFoundException("Account does not exist"));
+
+        UUID userProfileId = accountEntity.getUserProfileId();
+        if (userProfileId == null) {
+            throw new NotFoundException("User profile does not exist");
+        }
+
+        UserProfileEntity existingUserProfileEntity = userProfileRepository.findById(userProfileId)
+                .orElseThrow(() -> new NotFoundException("User profile does not exist"));
+
+        existingUserProfileEntity.setAvatarUrl(avatarUrl);
+        userProfileRepository.saveAndFlush(existingUserProfileEntity);
+        return toProfileState(accountEntity);
+    }
+
     private AccountProfileState toProfileState(AccountEntity accountEntity) {
         UUID userProfileId = accountEntity.getUserProfileId();
         UserProfileEntity userProfileEntity = resolveUserProfile(userProfileId);

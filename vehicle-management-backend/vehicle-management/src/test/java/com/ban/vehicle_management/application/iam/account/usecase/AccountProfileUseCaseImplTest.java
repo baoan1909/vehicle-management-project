@@ -19,6 +19,7 @@ import com.ban.vehicle_management.application.iam.account.port.out.AccountProfil
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
+import com.ban.vehicle_management.application.storage.service.StorageUrlResolver;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
@@ -64,6 +65,9 @@ class AccountProfileUseCaseImplTest {
 
     @Mock
     private AccountProfilePolicy accountProfilePolicy;
+
+    @Mock
+    private StorageUrlResolver storageUrlResolver;
 
     @InjectMocks
     private AccountProfileUseCaseImpl accountProfileUseCase;

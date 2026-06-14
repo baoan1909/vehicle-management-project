@@ -16,5 +16,7 @@ public interface CardTypePortOut {
     boolean existsByCode(String code);
 
     boolean existsByCodeAndCardTypeIdNot(String code, UUID cardTypeId);
+
+    boolean hasActiveCards(UUID cardTypeId);
 }
 

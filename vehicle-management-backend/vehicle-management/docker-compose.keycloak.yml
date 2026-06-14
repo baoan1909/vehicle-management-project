@@ -37,8 +37,8 @@ services:
         condition: service_healthy
     restart: unless-stopped
     volumes:
-      - ./keycloak/themes:/opt/keycloak/themes
-      - ./keycloak/import:/opt/keycloak/data/import
+      - ../../vehicle-management-frontend/vehicle_management_react/keycloak/themes:/opt/keycloak/themes
+      - ../../vehicle-management-frontend/vehicle_management_react/keycloak/import:/opt/keycloak/data/import
 
 volumes:
   keycloak_postgres_data:

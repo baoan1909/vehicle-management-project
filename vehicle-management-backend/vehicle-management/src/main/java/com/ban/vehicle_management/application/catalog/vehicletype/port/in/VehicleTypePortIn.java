@@ -15,5 +15,7 @@ public interface VehicleTypePortIn {
     List<VehicleType> getVehicleTypes(Boolean isActive);
 
     void deleteVehicleType(UUID vehicleTypeId);
+
+    VehicleType activateVehicleType(UUID vehicleTypeId);
 }
 

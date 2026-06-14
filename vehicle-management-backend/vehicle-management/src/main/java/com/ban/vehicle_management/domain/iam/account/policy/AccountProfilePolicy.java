@@ -17,7 +17,7 @@ public class AccountProfilePolicy {
         String gender = TextValidationUtils.normalizeNullableText(command.gender(), "gender", 20);
         String address = TextValidationUtils.normalizeNullableText(command.address(), "address", 255);
         String identifyCard = TextValidationUtils.normalizeAlphaNumeric(command.identifyCard(), "identifyCard", 50);
-        String avatarUrl = TextValidationUtils.normalizeNullableText(command.avatarUrl(), "avatarUrl", 500);
+        String avatarUrl = TextValidationUtils.normalizeNullableText(command.avatarUrl(), "avatarUrl", 255);
 
         return new CompleteAccountProfileCommand(
                 fullName,
@@ -38,7 +38,7 @@ public class AccountProfilePolicy {
                 TextValidationUtils.normalizeNullableText(command.gender(), "gender", 20),
                 TextValidationUtils.normalizeNullableText(command.address(), "address", 255),
                 TextValidationUtils.normalizeAlphaNumeric(command.identifyCard(), "identifyCard", 50),
-                TextValidationUtils.normalizeNullableText(command.avatarUrl(), "avatarUrl", 500)
+                TextValidationUtils.normalizeNullableText(command.avatarUrl(), "avatarUrl", 255)
         );
     }
 

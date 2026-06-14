@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -35,6 +37,7 @@ public class CardTypeController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_TYPE_CREATE_ALL')")
     public ResponseEntity<ApiResponse<CardTypeAdminResponse>> createCardType(@RequestBody CreateCardTypeRequest request) {
         CardType createdCardType = cardTypePortIn.createCardType(cardTypeApiMapper.toDomain(request));
         CardTypeAdminResponse response = cardTypeApiMapper.toAdminResponse(createdCardType);
@@ -42,6 +45,7 @@ public class CardTypeController {
     }
 
     @GetMapping("/{cardTypeId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_TYPE_READ_ALL')")
     public ResponseEntity<ApiResponse<CardTypeAdminResponse>> getCardTypeById(@PathVariable UUID cardTypeId) {
         CardType cardType = cardTypePortIn.getCardTypeById(cardTypeId);
         CardTypeAdminResponse response = cardTypeApiMapper.toAdminResponse(cardType);
@@ -49,6 +53,7 @@ public class CardTypeController {
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_TYPE_READ_ALL')")
     public ResponseEntity<ApiResponse<List<CardTypeAdminResponse>>> getCardTypes(@ModelAttribute CardTypeFilterRequest request) {
         List<CardType> cardTypes = cardTypePortIn.getCardTypes(request.isActive());
         List<CardTypeAdminResponse> response = cardTypeApiMapper.toAdminResponses(cardTypes);
@@ -56,6 +61,7 @@ public class CardTypeController {
     }
 
     @PutMapping("/{cardTypeId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_TYPE_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<CardTypeAdminResponse>> updateCardType(
             @PathVariable UUID cardTypeId,
             @RequestBody UpdateCardTypeRequest request
@@ -66,9 +72,18 @@ public class CardTypeController {
     }
 
     @DeleteMapping("/{cardTypeId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_TYPE_DELETE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteCardType(@PathVariable UUID cardTypeId) {
         cardTypePortIn.deleteCardType(cardTypeId);
         return ResponseEntity.ok(ApiResponse.ok("Card type deactivated successfully"));
+    }
+
+    @PatchMapping("/{cardTypeId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_TYPE_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<CardTypeAdminResponse>> activateCardType(@PathVariable UUID cardTypeId) {
+        CardType cardType = cardTypePortIn.activateCardType(cardTypeId);
+        CardTypeAdminResponse response = cardTypeApiMapper.toAdminResponse(cardType);
+        return ResponseEntity.ok(ApiResponse.ok("Card type activated successfully", response));
     }
 }
 

@@ -154,7 +154,7 @@ class PriceRulePersistenceAdapterTest {
     void shouldReturnEmptyWhenTicketTypeIsInactive() {
         UUID ticketTypeId = UUID.randomUUID();
         TicketTypeEntity ticketTypeEntity = new TicketTypeEntity();
-        ticketTypeEntity.setStatus(TicketTypeStatus.ACTIVE);
+        ticketTypeEntity.setStatus(TicketTypeStatus.INACTIVE);
 
         when(ticketTypeRepository.findById(ticketTypeId)).thenReturn(Optional.of(ticketTypeEntity));
 

@@ -12,6 +12,8 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
 
     boolean existsByCardIdAndStatusIn(UUID cardId, Collection<ParkingSessionStatus> statuses);
 
+    boolean existsByVehicleTypeIdAndStatusIn(UUID vehicleTypeId, Collection<ParkingSessionStatus> statuses);
+
     long countByZoneIdAndStatus(UUID zoneId, ParkingSessionStatus status);
 
     boolean existsByZoneIdAndStatus(UUID zoneId, ParkingSessionStatus status);

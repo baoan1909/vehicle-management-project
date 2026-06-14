@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.catalog.cardtype.usecase;
 
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.cardtype.port.in.CardTypePortIn;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
@@ -14,16 +15,24 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CardTypeUseCaseImpl implements CardTypePortIn {
 
+    private static final String CARD_TYPE_CREATE_ALL = "CARD_TYPE_CREATE_ALL";
+    private static final String CARD_TYPE_READ_ALL = "CARD_TYPE_READ_ALL";
+    private static final String CARD_TYPE_UPDATE_ALL = "CARD_TYPE_UPDATE_ALL";
+    private static final String CARD_TYPE_DELETE_ALL = "CARD_TYPE_DELETE_ALL";
+
+    private final CurrentAccountPortIn currentAccountPortIn;
     private final CardTypePortOut cardTypePort;
     private final CardTypePolicy cardTypePolicy = new CardTypePolicy();
 
-    public CardTypeUseCaseImpl(CardTypePortOut cardTypePort) {
+    public CardTypeUseCaseImpl(CurrentAccountPortIn currentAccountPortIn, CardTypePortOut cardTypePort) {
+        this.currentAccountPortIn = currentAccountPortIn;
         this.cardTypePort = cardTypePort;
     }
 
     @Override
     @Transactional
     public CardType createCardType(CardType cardType) {
+        currentAccountPortIn.requirePermission(CARD_TYPE_CREATE_ALL);
         cardTypePolicy.initialize(cardType);
 
         if (cardTypePort.existsByCode(cardType.getCode())) {
@@ -37,7 +46,8 @@ public class CardTypeUseCaseImpl implements CardTypePortIn {
     @Override
     @Transactional
     public CardType updateCardType(UUID cardTypeId, CardType cardType) {
-        CardType existingCardType = getCardTypeById(cardTypeId);
+        currentAccountPortIn.requirePermission(CARD_TYPE_UPDATE_ALL);
+        CardType existingCardType = findExistingCardType(cardTypeId);
 
         existingCardType.setCode(cardType.getCode());
         existingCardType.setName(cardType.getName());
@@ -61,26 +71,53 @@ public class CardTypeUseCaseImpl implements CardTypePortIn {
     @Override
     @Transactional(readOnly = true)
     public CardType getCardTypeById(UUID cardTypeId) {
-        return cardTypePort.findById(cardTypeId)
-                .orElseThrow(() -> new NotFoundException("Card type not found"));
+        currentAccountPortIn.requirePermission(CARD_TYPE_READ_ALL);
+        return findExistingCardType(cardTypeId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CardType> getCardTypes(Boolean isActive) {
+        currentAccountPortIn.requirePermission(CARD_TYPE_READ_ALL);
         return cardTypePort.findAll(isActive);
     }
 
     @Override
     @Transactional
     public void deleteCardType(UUID cardTypeId) {
-        CardType existingCardType = getCardTypeById(cardTypeId);
+        currentAccountPortIn.requirePermission(CARD_TYPE_DELETE_ALL);
+        CardType existingCardType = findExistingCardType(cardTypeId);
         if (Boolean.FALSE.equals(existingCardType.getIsActive())) {
             return;
+        }
+        if (cardTypePort.hasActiveCards(cardTypeId)) {
+            throw new ConflictException("Card type is used by active cards");
         }
 
         cardTypePolicy.deactivate(existingCardType);
         cardTypePort.save(existingCardType);
+    }
+
+    @Override
+    @Transactional
+    public CardType activateCardType(UUID cardTypeId) {
+        currentAccountPortIn.requirePermission(CARD_TYPE_UPDATE_ALL);
+        CardType existingCardType = findExistingCardType(cardTypeId);
+        if (Boolean.TRUE.equals(existingCardType.getIsActive())) {
+            return existingCardType;
+        }
+
+        cardTypePolicy.activate(existingCardType);
+        if (cardTypePort.existsByCodeAndCardTypeIdNot(existingCardType.getCode(), cardTypeId)) {
+            throw new ConflictException("Card type code already exists");
+        }
+
+        return cardTypePort.save(existingCardType);
+    }
+
+    private CardType findExistingCardType(UUID cardTypeId) {
+        return cardTypePort.findById(cardTypeId)
+                .orElseThrow(() -> new NotFoundException("Card type not found"));
     }
 }
 

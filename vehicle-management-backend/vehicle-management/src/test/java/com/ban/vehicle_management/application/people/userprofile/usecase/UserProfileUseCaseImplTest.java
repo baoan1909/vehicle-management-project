@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.people.userprofile.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
+import com.ban.vehicle_management.application.storage.service.StorageUrlResolver;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -29,6 +30,9 @@ class UserProfileUseCaseImplTest {
 
     @Mock
     private UserProfilePortOut userProfilePort;
+
+    @Mock
+    private StorageUrlResolver storageUrlResolver;
 
     @InjectMocks
     private UserProfileUseCaseImpl userProfileUseCase;

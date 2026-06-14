@@ -21,6 +21,12 @@ public class VehicleTypePolicy {
         vehicleType.setIsActive(Boolean.FALSE);
     }
 
+    public void activate(VehicleType vehicleType) {
+        requireVehicleType(vehicleType);
+        vehicleType.setIsActive(Boolean.TRUE);
+        initialize(vehicleType);
+    }
+
     private void requireVehicleType(VehicleType vehicleType) {
         if (vehicleType == null) {
             throw new BadRequestException("vehicleType must not be null");
