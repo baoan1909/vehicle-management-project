@@ -3,6 +3,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.InvoiceEntity;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.UUID;
 
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
@@ -15,6 +16,13 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID>, J
     boolean existsBySubscriptionIdAndStatusIn(UUID subcriptionId, Collection<InvoiceStatus> statuses);
 
     boolean existsByLostCardReportIdAndStatusIn(UUID lostCardReportId, Collection<InvoiceStatus> statuses);
+
+    Optional<InvoiceEntity> findFirstBySubscriptionIdAndStatus(UUID subscriptionId, InvoiceStatus status);
+
+    Optional<InvoiceEntity> findFirstBySubscriptionIdAndStatusIn(
+            UUID subscriptionId,
+            Collection<InvoiceStatus> statuses
+    );
 }
 
 

@@ -120,4 +120,22 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
     public boolean existsByLostCardReportIdAndStatusIn(UUID lostCardReportId, Collection<InvoiceStatus> statuses) {
         return invoiceRepository.existsByLostCardReportIdAndStatusIn(lostCardReportId, statuses);
     }
+
+    @Override
+    public Optional<Invoice> findFirstBySubscriptionIdAndStatus(
+            UUID subscriptionId,
+            InvoiceStatus status
+    ) {
+        return invoiceRepository.findFirstBySubscriptionIdAndStatus(subscriptionId, status)
+                .map(invoicePersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Invoice> findFirstBySubscriptionIdAndStatusIn(
+            UUID subscriptionId,
+            Collection<InvoiceStatus> statuses
+    ) {
+        return invoiceRepository.findFirstBySubscriptionIdAndStatusIn(subscriptionId, statuses)
+                .map(invoicePersistenceMapper::toDomain);
+    }
 }

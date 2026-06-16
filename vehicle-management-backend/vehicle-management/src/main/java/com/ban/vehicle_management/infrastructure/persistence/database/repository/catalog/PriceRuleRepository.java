@@ -1,7 +1,10 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.PriceRuleEntity;
+
+import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -50,5 +53,27 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
             @Param("vehicleTypeId") UUID vehicleTypeId,
             @Param("ticketTypeId") UUID ticketTypeId,
             @Param("excludedPriceRuleId") UUID excludedPriceRuleId
+    );
+
+    @Query("""
+        select priceRule
+        from PriceRuleEntity priceRule
+        join priceRule.pricePlan pricePlan
+        where priceRule.isActive = true
+          and priceRule.vehicleTypeId = :vehicleTypeId
+          and priceRule.ticketTypeId = :ticketTypeId
+          and priceRule.timeFrom is null
+          and priceRule.timeTo is null
+          and pricePlan.isActive = true
+          and pricePlan.appliesTo = com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo.CUSTOMER
+          and pricePlan.effectiveFrom <= :effectiveDate
+          and (pricePlan.effectiveTo is null or pricePlan.effectiveTo >= :effectiveDate)
+        order by priceRule.priority asc, priceRule.createdAt desc
+        limit 1
+        """)
+    Optional<PriceRuleEntity> findActiveSubscriptionRule(
+            @Param("vehicleTypeId") UUID vehicleTypeId,
+            @Param("ticketTypeId") UUID ticketTypeId,
+            @Param("effectiveDate") LocalDate effectiveDate
     );
 }

@@ -11,6 +11,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.TicketTypeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.catalog.PriceRuleSpecifications;
+
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -128,5 +130,15 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
     @Override
     public boolean hasUsage(UUID priceRuleId) {
         return subscriptionRepository.existsByPriceRuleId(priceRuleId);
+    }
+
+    @Override
+    public Optional<PriceRule> findActiveSubscriptionRule(
+            UUID vehicleTypeId,
+            UUID ticketTypeId,
+            LocalDate effectiveDate
+    ) {
+        return priceRuleRepository.findActiveSubscriptionRule(vehicleTypeId, ticketTypeId, effectiveDate)
+                .map(priceRulePersistenceMapper::toDomain);
     }
 }

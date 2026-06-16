@@ -25,5 +25,7 @@ public interface CardPortOut {
     boolean hasOperationalHistory(UUID cardId);
 
     boolean hasActiveUsage(UUID cardId);
+
+    Optional<Card> findFirstAvailableByVehicleTypeId(UUID vehicleTypeId);
 }
 

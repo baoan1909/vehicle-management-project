@@ -26,4 +26,6 @@ public interface ZonePortOut {
     boolean hasOpenSessions(UUID zoneId);
 
     boolean hasActiveGates(UUID zoneId);
+
+    long sumActiveCapacityByVehicleTypeId(UUID vehicleTypeId);
 }
