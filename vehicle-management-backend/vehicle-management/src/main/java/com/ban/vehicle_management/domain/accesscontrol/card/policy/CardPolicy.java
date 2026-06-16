@@ -45,17 +45,6 @@ public class CardPolicy {
         clearBlockMetadata(card);
     }
 
-    public void release(Card card) {
-        requireCard(card);
-        if (card.getStatus() != CardStatus.ASSIGNED
-                && card.getStatus() != CardStatus.IN_USE
-                && card.getStatus() != CardStatus.BLOCKED) {
-            throw new BadRequestException("Card can only be released from ASSIGNED, IN_USE, or BLOCKED status");
-        }
-
-        card.setStatus(CardStatus.AVAILABLE);
-        clearBlockMetadata(card);
-    }
 
     public void block(Card card, Instant blockedAt, String blockedReason) {
         requireCard(card);
@@ -192,6 +181,36 @@ public class CardPolicy {
             throw new BadRequestException(fieldName + " must not be blank");
         }
     }
+
+    public void reserve(Card card) {
+        requireStatus(card, CardStatus.AVAILABLE);
+
+        card.setStatus(CardStatus.RESERVED);
+        clearBlockMetadata(card);
+    }
+
+    public void release(Card card) {
+        requireCard(card);
+        if (card.getStatus() != CardStatus.RESERVED
+                && card.getStatus() != CardStatus.ASSIGNED
+                && card.getStatus() != CardStatus.IN_USE
+                && card.getStatus() != CardStatus.BLOCKED) {
+            throw new BadRequestException("Card can only be released from RESERVED, ASSIGNED, IN_USE, or BLOCKED status");
+        }
+
+        card.setStatus(CardStatus.AVAILABLE);
+        clearBlockMetadata(card);
+    }
+
+    public void assignReserved(Card card, Instant issuedAt) {
+        requireStatus(card, CardStatus.RESERVED);
+        requireField(issuedAt, "issuedAt");
+
+        card.setStatus(CardStatus.ASSIGNED);
+        card.setIssuedAt(issuedAt);
+        clearBlockMetadata(card);
+    }
+
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();

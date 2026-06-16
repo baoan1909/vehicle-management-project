@@ -91,13 +91,26 @@ public class CardPersistenceAdapter implements CardPortOut {
     public boolean hasActiveUsage(UUID cardId) {
         return subscriptionRepository.existsByCardIdAndStatusIn(
                 cardId,
-                List.of(SubscriptionStatus.PENDING, SubscriptionStatus.ACTIVE)
+                List.of(
+                        SubscriptionStatus.PENDING_PAYMENT,
+                        SubscriptionStatus.PENDING_CARD,
+                        SubscriptionStatus.ACTIVE
+                )
         )
                 || lostCardReportRepository.existsByCardIdAndStatus(cardId, LostCardReportStatus.OPEN)
                 || parkingSessionRepository.existsByCardIdAndStatusIn(
                         cardId,
                         List.of(ParkingSessionStatus.OPEN, ParkingSessionStatus.LOST_CARD)
                 );
+    }
+
+    @Override
+    public Optional<Card> findFirstAvailableByVehicleTypeId(UUID vehicleTypeId) {
+        return cardRepository.findFirstByVehicleTypeIdAndStatusOrderByCardNumberAsc(
+                        vehicleTypeId,
+                        CardStatus.AVAILABLE
+                )
+                .map(cardPersistenceMapper::toDomain);
     }
 }
 

@@ -33,4 +33,14 @@ public interface InvoicePortOut {
     boolean existsByParkingSessionIdAndStatusIn(UUID parkingSessionId, Collection<InvoiceStatus> statuses);
     boolean existsBySubscriptionIdAndStatusIn(UUID subscriptionId, Collection<InvoiceStatus> statuses);
     boolean existsByLostCardReportIdAndStatusIn(UUID lostCardReportId, Collection<InvoiceStatus> statuses);
+
+    Optional<Invoice> findFirstBySubscriptionIdAndStatus(
+            UUID subscriptionId,
+            InvoiceStatus status
+    );
+
+    Optional<Invoice> findFirstBySubscriptionIdAndStatusIn(
+            UUID subscriptionId,
+            Collection<InvoiceStatus> statuses
+    );
 }

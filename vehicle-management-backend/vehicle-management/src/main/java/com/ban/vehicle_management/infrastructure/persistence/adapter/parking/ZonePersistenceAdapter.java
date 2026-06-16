@@ -104,4 +104,9 @@ public class ZonePersistenceAdapter implements ZonePortOut {
     public boolean hasActiveGates(UUID zoneId) {
         return gateRepository.existsByZoneIdAndStatus(zoneId, GateStatus.ACTIVE);
     }
+
+    @Override
+    public long sumActiveCapacityByVehicleTypeId(UUID vehicleTypeId) {
+        return zoneRepository.sumActiveCapacityByVehicleTypeId(vehicleTypeId);
+    }
 }

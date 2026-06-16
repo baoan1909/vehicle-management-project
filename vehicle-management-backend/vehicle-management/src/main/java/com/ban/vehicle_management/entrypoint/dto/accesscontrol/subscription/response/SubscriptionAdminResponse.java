@@ -1,12 +1,9 @@
-package com.ban.vehicle_management.domain.accesscontrol.subscription.model;
+package com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response;
 
-import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,8 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class Subscription extends AuditableDomainModel {
+public class SubscriptionAdminResponse {
 
     private UUID subscriptionId;
     private UUID customerId;
@@ -29,9 +25,13 @@ public class Subscription extends AuditableDomainModel {
     private BigDecimal price;
     private SubscriptionStatus status;
     private UUID approvedBy;
-    private Instant approvedAt;
+    private String approvedAt;
     private String rejectionReason;
     private UUID rejectedBy;
-    private Instant rejectedAt;
+    private String rejectedAt;
     private LocalDate cardReceiptDate;
+    private String createdAt;
+    private UUID createdBy;
+    private String updatedAt;
+    private UUID updatedBy;
 }
