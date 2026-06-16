@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.billing.payment.usecase;
 
+import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuard;
 import com.ban.vehicle_management.application.billing.payment.port.in.PaymentPortIn;
@@ -29,15 +30,18 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
     private final PaymentAccessGuard paymentAccessGuard;
     private final PaymentPolicy paymentPolicy = new PaymentPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
+    private final SubscriptionPortIn subscriptionPortIn;
 
     public PaymentUseCaseImpl(
             PaymentPortOut paymentPortOut,
             InvoicePortOut invoicePortOut,
-            PaymentAccessGuard paymentAccessGuard
+            PaymentAccessGuard paymentAccessGuard,
+            SubscriptionPortIn subscriptionPortIn
     ) {
         this.paymentPortOut = paymentPortOut;
         this.invoicePortOut = invoicePortOut;
         this.paymentAccessGuard = paymentAccessGuard;
+        this.subscriptionPortIn = subscriptionPortIn;
     }
 
     @Override
@@ -61,6 +65,10 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
 
         invoicePolicy.markPaid(invoice, savedPayment.getPaidAt());
         invoicePortOut.save(invoice);
+
+        if (invoice.getSubscriptionId() != null) {
+            subscriptionPortIn.markSubscriptionPaymentCompleted(invoice.getSubscriptionId());
+        }
 
         return savedPayment;
     }
