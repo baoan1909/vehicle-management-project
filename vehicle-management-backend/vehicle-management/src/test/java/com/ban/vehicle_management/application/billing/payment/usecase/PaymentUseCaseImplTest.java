@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuard;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
@@ -42,14 +43,19 @@ class PaymentUseCaseImplTest {
     @Mock
     private PaymentAccessGuard paymentAccessGuard;
 
+    @Mock
+    private SubscriptionPortIn subscriptionPortIn;
+
     @InjectMocks
     private PaymentUseCaseImpl paymentUseCase;
 
     @Test
     void shouldRecordPaymentAndMarkInvoicePaid() {
         UUID invoiceId = UUID.randomUUID();
+        UUID subscriptionId = UUID.randomUUID();
         UUID receivedBy = UUID.randomUUID();
         Invoice invoice = unpaidInvoice(invoiceId);
+        invoice.setSubscriptionId(subscriptionId);
         Payment request = validPayment(PaymentMethod.BANK_TRANSFER);
 
         when(paymentAccessGuard.requireCanCreateAndGetAccountId()).thenReturn(receivedBy);
@@ -68,8 +74,10 @@ class PaymentUseCaseImplTest {
         assertNotNull(savedPayment.getPaidAt());
         assertEquals(InvoiceStatus.PAID, invoice.getStatus());
         assertEquals(savedPayment.getPaidAt(), invoice.getPaidAt());
+
         verify(paymentPortOut).save(savedPayment);
         verify(invoicePortOut).save(invoice);
+        verify(subscriptionPortIn).markSubscriptionPaymentCompleted(subscriptionId);
     }
 
     @Test
