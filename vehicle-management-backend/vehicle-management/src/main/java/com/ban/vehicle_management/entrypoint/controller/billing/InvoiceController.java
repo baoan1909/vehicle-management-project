@@ -3,9 +3,11 @@ package com.ban.vehicle_management.entrypoint.controller.billing;
 import com.ban.vehicle_management.application.billing.invoice.mapper.InvoiceApiMapper;
 import com.ban.vehicle_management.application.billing.invoice.port.in.InvoicePortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.request.CreateInvoiceRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.request.InvoiceFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceDetailResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,14 +43,14 @@ public class InvoiceController {
     }
 
     @GetMapping("/{invoiceId}")
-    public ResponseEntity<ApiResponse<InvoiceAdminResponse>> getInvoiceById(
+    public ResponseEntity<ApiResponse<InvoiceDetailResponse>> getInvoiceById(
             @PathVariable UUID invoiceId
     ) {
-        Invoice invoice = invoicePortIn.getInvoiceById(invoiceId);
+        InvoiceDetail invoiceDetail = invoicePortIn.getInvoiceById(invoiceId);
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched invoice successfully",
-                invoiceApiMapper.toAdminResponse(invoice)
+                invoiceApiMapper.toDetailResponse(invoiceDetail)
         ));
     }
 

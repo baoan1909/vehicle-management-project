@@ -11,8 +11,13 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.billing.invoice.authorization.InvoiceAccessGuard;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
+import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
+import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.math.BigDecimal;
@@ -35,6 +40,9 @@ class InvoiceUseCaseImplTest {
 
     @Mock
     private InvoiceAccessGuard invoiceAccessGuard;
+
+    @Mock
+    private PaymentPortOut paymentPortOut;
 
     @InjectMocks
     private InvoiceUseCaseImpl invoiceUseCase;
@@ -115,12 +123,16 @@ class InvoiceUseCaseImplTest {
     void shouldReturnInvoiceByIdWhenReadable() {
         UUID invoiceId = UUID.randomUUID();
         Invoice invoice = validInitializedInvoice(invoiceId);
+        Payment payment = validPayment(invoiceId);
 
         when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(paymentPortOut.findByInvoiceId(invoiceId)).thenReturn(List.of(payment));
 
-        Invoice result = invoiceUseCase.getInvoiceById(invoiceId);
+        InvoiceDetail result = invoiceUseCase.getInvoiceById(invoiceId);
 
-        assertEquals(invoiceId, result.getInvoiceId());
+        assertEquals(invoiceId, result.getInvoice().getInvoiceId());
+        assertEquals(1, result.getPayments().size());
+        assertEquals(payment, result.getPayments().get(0));
         verify(invoiceAccessGuard).ensureCanRead(invoice);
     }
 
@@ -200,5 +212,19 @@ class InvoiceUseCaseImplTest {
         invoice.setStatus(InvoiceStatus.UNPAID);
         invoice.setIssuedAt(Instant.parse("2026-06-11T03:00:00Z"));
         return invoice;
+    }
+
+    private Payment validPayment(UUID invoiceId) {
+        Payment payment = new Payment();
+        payment.setPaymentId(UUID.randomUUID());
+        payment.setInvoiceId(invoiceId);
+        payment.setPaymentMethod(PaymentMethod.BANK_TRANSFER);
+        payment.setAmount(new BigDecimal("300000"));
+        payment.setTransactionRef("VCB202606120001");
+        payment.setStatus(PaymentStatus.SUCCESS);
+        payment.setPaidAt(Instant.parse("2026-06-11T04:00:00Z"));
+        payment.setReceivedBy(UUID.randomUUID());
+        payment.setNote("Da kiem tra sao ke");
+        return payment;
     }
 }
