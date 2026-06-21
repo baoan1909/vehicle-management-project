@@ -1,6 +1,7 @@
 # Ke hoach trien khai MinIO theo phase
 
 Ngay lap ke hoach: 2026-06-16
+Cap nhat trang thai: 2026-06-21
 
 ## 1. Muc tieu
 
@@ -19,7 +20,7 @@ Nguyen tac chinh:
 - Khong dung `external_url` trong phase hien tai.
 - Khong nhan `avatarUrl` string trong write request.
 - Upload/delete avatar phai di qua multipart endpoint.
-- Khong drop `people.user_profiles.avatar_url` ngay; drop sau khi dual-write/read migration on dinh.
+- `people.user_profiles.avatar_url` da duoc drop; cac mo ta dual-write/read ben duoi duoc giu nhu lich su trien khai va truy vet migration.
 - Khong tao `storage.files` qua som; chi them khi file mo rong ra nhieu module va can metadata dung chung.
 - Trong qua trinh thuc hien tung phase, chi cap nhat file ke hoach nay de ghi trang thai va viec da lam/chua lam.
 - Chi cap nhat file review MinIO sau khi hoan thanh toan bo `minio-phased-implementation-plan.md`, hoac khi co yeu cau review rieng ro rang.
@@ -62,12 +63,24 @@ Da co:
 - Backfill avatar MinIO object key cu tu `people.user_profiles.avatar_url` sang `people.user_profile_avatars`.
 - `people.user_profiles.avatar_url` da duoc drop khoi schema snapshot va JPA entity.
 
-Dang con:
+Da xong them:
 
 - Read path da doc current avatar tu `people.user_profile_avatars`; khong con doc fallback tu `people.user_profiles.avatar_url`.
+- Self/customer/employee avatar deu di qua `UserProfileAvatarPortIn`.
+- Account tao moi qua public register/provisioned account da co `people.user_profiles` toi thieu voi `fullName`.
+
+Con lai:
+
 - Chua co parking event images qua MinIO.
 - Chua co cleanup retry/outbox.
 - Chua co audit log cho file operations.
+- Chua dong bo schema snapshot parking voi migration V5/V6/V7/V8; `vehicle_management.sql` van con drift voi entity/migration check-flow.
+
+Luu y doc tai lieu:
+
+- Phase 0-6 ben duoi la lich su da thuc hien cho avatar/account profile.
+- Cac dong noi ve dual-write, fallback `avatar_url`, va drop column cu khong con la viec can lam tiep.
+- Viec can lam tiep lien quan parking la dong bo schema snapshot voi V5/V6/V7/V8 truoc, sau do moi them private images va upload trong check-in/check-out.
 
 ## 3. Quyet dinh kien truc da chot
 
@@ -1186,20 +1199,19 @@ Ly do:
 
 ## 16. Thu tu uu tien de lam
 
-Thu tu de xuat:
+Trang thai cap nhat 2026-06-21:
 
-1. Phase 0 - Refactor/hardening avatar hien co.
-2. Phase 1 - Tao `people.user_profile_avatars` va dual-write.
-3. Phase 2 - Backfill avatar cu.
-4. Phase 3 - Read avatar tu bang moi.
-5. Phase 4 - Stop writing `people.user_profiles.avatar_url`.
-6. Phase 5 - Drop `people.user_profiles.avatar_url`.
-7. Phase 6 - Tao user profile toi thieu khi tao account.
-8. Phase 7 - Parking event images private.
-9. Phase 8 - Check-in/check-out upload images.
-10. Phase 9 - Audit/cleanup/operations.
-11. Phase 10 - Avatar review/moderation neu can.
-12. Phase 11 - File metadata chung neu can.
+- Phase 0-6 da thuc hien cho avatar/account profile.
+- Truoc khi lam Phase 7-8, can dong bo `vehicle_management.sql` voi parking migrations V5/V6/V7/V8 de entity, schema snapshot va check-flow khong lech nhau.
+
+Thu tu de xuat tiep theo:
+
+1. Dong bo schema snapshot parking voi V5/V6/V7/V8.
+2. Phase 7 - Parking event images private.
+3. Phase 8 - Check-in/check-out upload images.
+4. Phase 9 - Audit/cleanup/operations.
+5. Phase 10 - Avatar review/moderation neu can.
+6. Phase 11 - File metadata chung neu can.
 
 Phase 6 da duoc chot theo huong khong tao draft profile rieng. Account moi co profile toi thieu ngay tu dau, con onboarding completed van dua vao customer/employee/approval flow.
 
@@ -1207,12 +1219,12 @@ Phase 6 da duoc chot theo huong khong tao draft profile rieng. Account moi co pr
 
 | Phase | Ten | DB change | API change | Risk | Uu tien |
 | --- | --- | --- | --- | --- | --- |
-| 0 | Refactor/hardening hien co | Khong | Khong | Thap | Bat buoc |
-| 1 | Tao avatar table va dual-write | Co | Khong | Trung binh | Bat buoc |
-| 2 | Backfill avatar cu | Co | Khong | Trung binh | Bat buoc |
-| 3 | Read tu avatar table | Khong/it | Khong | Trung binh | Bat buoc |
-| 4 | Stop write avatar_url | Khong | Khong | Trung binh | Bat buoc |
-| 5 | Drop avatar_url | Co | Khong | Cao neu lam som | Sau khi on dinh |
+| 0 | Refactor/hardening hien co | Khong | Khong | Thap | Da thuc hien |
+| 1 | Tao avatar table va dual-write | Co | Khong | Trung binh | Da thuc hien |
+| 2 | Backfill avatar cu | Co | Khong | Trung binh | Da thuc hien |
+| 3 | Read tu avatar table | Khong/it | Khong | Trung binh | Da thuc hien |
+| 4 | Stop write avatar_url | Khong | Khong | Trung binh | Da thuc hien |
+| 5 | Drop avatar_url | Co | Khong | Cao neu lam som | Da thuc hien |
 | 6 | Tao profile toi thieu khi tao account | Khong bat buoc | Request them `fullName` | Trung binh | Da thuc hien |
 | 7 | Parking event private images | Co the co | Co | Trung binh/cao | Sau avatar |
 | 8 | Check-in/out images | Co the co | Co | Cao | Sau parking image |

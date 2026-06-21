@@ -1,8 +1,9 @@
 # Chuc nang tiep theo: Parking Session Check-in/Check-out
 
 Ngay lap: 11-06-2026
+Cap nhat trang thai: 2026-06-21
 
-Tai lieu nay la ban dac ta feature tiep theo ngoai feature "Dang ky, phe duyet va kich hoat ve thang". Goc nhin ket hop PM, BA va senior backend: day la flow van hanh loi cua bai xe, khong nen lam nhu CRUD tren `parking.parking_sessions` va `parking.parking_events`.
+Tai lieu nay la ban dac ta va ke hoach implementation cho feature **Parking Session Check-in/Check-out** sau khi repo da co them account provisioning, avatar, subscription, invoice/payment va parking topology CRUD. Goc nhin ket hop PM, BA va senior backend: day la flow van hanh loi cua bai xe, khong nen lam nhu CRUD tren `parking.parking_sessions` va `parking.parking_events`.
 
 ## 1. Ket luan senior
 
@@ -14,7 +15,7 @@ Ly do chon feature nay:
 - Code da co domain model, policy, entity, repository va mapper skeleton cho parking session/event.
 - Role/permission trong migration da seed ro cho `PARKING_MANAGER`, `EMPLOYEE`, `CUSTOMER`.
 - Module parking topology da co controller cho parking lot, zone, gate, lane.
-- Day la flow noi cac module da co: card, customer vehicle, subscription, price rule, lost card, billing, parking event.
+- Day la flow noi cac module da co: card, customer vehicle, subscription, price rule, invoice/payment, lost card, parking event.
 
 Huong chot:
 
@@ -24,7 +25,7 @@ Huong chot:
 - `PARKING_MANAGER` quan ly va co quyen xu ly toan bo.
 - `CUSTOMER` chi xem lich su cua minh.
 - `SYSTEM_ADMIN` khong van hanh bai xe.
-- Billing/payment nen tach phase sau neu chua chot rule thu tien.
+- MVP nen lam visitor check-in/check-out truoc, sau do noi subscription va billing theo phase ro rang.
 
 ## 2. Boi canh da ra soat
 
@@ -43,7 +44,7 @@ Nhan dinh:
 
 - Permission seed da dung cho operation: employee co create/update session/event.
 - `DELETE` tren session/event khong nen la hard delete trong MVP, du permission co ton tai. Session/event la audit-sensitive, nen dung `cancel`/manual adjustment thay vi xoa.
-- Chua co permission granular cho invoice/payment trong migration hien tai, nen khong nen ep billing vao MVP parking.
+- Invoice/payment module hien da co application guard (`INVOICE_*`, `PAYMENT_*`) va controller/use case rieng, nhung parking checkout chua goi billing port. Khong ep billing vao MVP visitor neu chua chot thu tien/receipt UX.
 
 ### 2.2. Schema lien quan
 
@@ -54,15 +55,15 @@ Nhan dinh:
 | `parking.parking_lots` | Bai xe, trang thai operation. |
 | `parking.zones` | Khu trong bai, suc chua va loai xe duoc nhan. |
 | `parking.gates` | Cong thuoc zone sau migration V7. |
-| `parking.lanes` | Lan vao/ra, co direction `IN`, `OUT`, `BOTH`. |
+| `parking.lanes` | Lan vao/ra, direction hien tai theo migration V8/code la `IN`, `OUT`; khong con `BOTH`. |
 | `access_control.cards` | The vat ly dung de mo session va track xe trong bai. |
 | `access_control.subscriptions` | Ve thang/ve dang ky, dung de nhan dien customer da co quyen gui xe theo goi. |
 | `people.customers` | Customer business record. |
 | `people.customer_vehicles` | Xe da dang ky cua customer. |
 | `catalog.vehicle_types` | Loai xe de validate zone/lane va tinh gia. |
 | `catalog.price_rules` | Cau hinh gia theo loai xe/thoi gian, dung khi checkout ve luot. |
-| `billing.invoices` | Hoa don cho parking session, nen lam phase sau. |
-| `billing.payments` | Giao dich thanh toan, nen lam phase sau. |
+| `billing.invoices` | Hoa don da co module rieng; checkout visitor co the noi sau MVP visitor neu can thu/ghi hoa don. |
+| `billing.payments` | Giao dich thanh toan da co module rieng; record payment nen qua billing use case/port, khong nhung vao controller parking. |
 | `access_control.lost_card_reports` | Xu ly mat the, nen lam phase rieng sau MVP check-in/out. |
 
 ### 2.3. Hien trang code
@@ -79,7 +80,12 @@ Da co:
 - `infrastructure.persistence.database.repository.parking.ParkingEventRepository`.
 - `infrastructure.mapper.parking.ParkingSessionPersistenceMapper`.
 - `infrastructure.mapper.parking.ParkingEventPersistenceMapper`.
-- CRUD topology cho `parking_lots`, `zones`, `gates`, `lanes`.
+- Domain policy tests cho parking session/event.
+- CRUD topology cho `parking_lots`, `zones`, `gates`, `lanes` voi controller, use case, ports, persistence adapter, mapper va tests.
+- `ParkingSessionEntity`/domain da theo `zoneId`, khong con `parkingSpaceId` hay `priceRuleId`.
+- `LaneEntity`/domain da theo `gateId`; `LaneDirection` chi con `IN`, `OUT`.
+- Subscription module da co flow tao pending, approve, tao invoice, reserve/assign card, cancel, expire va access guard.
+- Billing invoice/payment module da co controller/use case/guard rieng.
 
 Chua co:
 
@@ -89,15 +95,22 @@ Chua co:
 - `ParkingSessionUseCaseImpl`.
 - `ParkingEventPortIn`, `ParkingEventPortOut`.
 - `ParkingSessionPersistenceAdapter`.
+- `ParkingEventPersistenceAdapter`.
 - `ParkingSessionSpecifications`.
+- `ParkingEventSpecifications`.
 - Fee calculation service cho checkout.
 - Read model list/detail co join card/customer/vehicle/lane/zone.
+- Query resolve card by `uid` trong `CardPortOut`.
+- Query active subscription by `cardId`/ngay hieu luc trong `SubscriptionPortOut`.
+- Query active visitor price rule phu hop checkout trong `PriceRulePortOut`.
+- Parking event image fields `licensePlateImagePath`, `personImagePath` trong domain/entity/mapper.
+- Controller/API check-in/check-out/manual-review/cancel/own-history.
 
 ### 2.4. Drift schema can xu ly truoc khi code
 
 Day la phan quan trong nhat neu lam feature parking.
 
-Base `vehicle_management.sql` dang chua dong bo voi migration moi:
+Base `vehicle_management.sql` dang chua dong bo voi migration moi va voi entity hien tai:
 
 - Base SQL van co `parking.parking_sessions.parking_space_id`.
 - Migration `V6__update_parking_structure_for_check_flow.sql` da bo `parking_space_id`, them `zone_id`.
@@ -106,12 +119,14 @@ Base `vehicle_management.sql` dang chua dong bo voi migration moi:
 - Base SQL chua co bang `parking.gates`, trong khi migration `V6` tao bang gates.
 - Base SQL `parking.lanes` van thuoc `parking_lot_id`, trong khi migration `V6` chuyen lane thuoc `gate_id`.
 - Migration `V7` chuyen gate thuoc `zone_id`, trong khi base SQL khong phan anh.
+- Migration `V8` bo direction `BOTH` va bo `lanes.vehicle_type_id`; base SQL van cho `BOTH` va entity/domain hien khong co `vehicleTypeId`.
+- Base SQL `parking.zones` chua co `status`, trong khi migration V7 va domain/entity da co `ZoneStatus`.
 - Migration `V6` them `license_plate_image_path` va `person_image_path` vao `parking_events`, nhung entity/domain hien moi co `imagePath`.
 
 De xuat senior:
 
-- Truoc khi implement check-in/check-out, can chot source of truth theo migration moi nhat.
-- Cap nhat `vehicle_management.sql` cho dong bo voi V5/V6/V7.
+- Truoc khi implement check-in/check-out, chot source of truth theo migration moi nhat V5/V6/V7/V8 va entity hien tai.
+- Cap nhat `vehicle_management.sql` cho dong bo voi V5/V6/V7/V8.
 - Cap nhat domain/entity/DTO neu muon dung `licensePlateImagePath` va `personImagePath`.
 - Khong tiep tuc code parking session khi base schema va entity con noi hai ngon ngu khac nhau.
 
@@ -148,8 +163,8 @@ Customer co the:
 
 Nen lam trong MVP:
 
-- Check-in bang card.
-- Check-out bang card.
+- Check-in visitor bang card `AVAILABLE`.
+- Check-out visitor bang card dang `IN_USE`.
 - Tao event `CHECK_IN` va `CHECK_OUT`.
 - Tao event `MANUAL_REVIEW` cho session da ton tai.
 - Tao event `BARRIER_OPEN` khi cho phep mo barrier.
@@ -161,22 +176,23 @@ Nen lam trong MVP:
 - Validate capacity zone.
 - Tinh `totalPrice` co ban luc checkout.
 - Cap nhat card status khi check-in/check-out.
+- Khong hard delete session/event.
 
 Chua nen lam trong MVP:
 
 - Payment online.
-- Invoice/payment day du.
 - Lost card full workflow.
 - Auto open physical barrier.
 - Device heartbeat/real reader integration.
 - License plate recognition service.
-- Subscription entitlement phuc tap neu subscription feature chua implement.
+- Subscription entitlement trong cung dot visitor MVP. Subscription module da co, nhung parking check-flow can them query/port va test rieng nen nen lam phase ngay sau visitor.
+- Invoice/payment day du trong checkout visitor neu BA chua chot thu tien va hoa don tai cong.
 
 De xuat:
 
 - MVP nen lam du luong visitor parking truoc: check-in -> open session -> checkout -> total price.
-- Sau do mo rong subscription/customer monthly parking.
-- Billing lam phase rieng de tranh lam check-out qua nang.
+- Sau do mo rong subscription/customer monthly parking bang subscription active theo card.
+- Billing da co module nen co the noi sau khi checkout visitor on dinh; khong viet logic payment truc tiep trong parking controller.
 
 ## 5. State machine
 
@@ -223,7 +239,9 @@ Flow de xuat:
 
 ```mermaid
 stateDiagram-v2
-    AVAILABLE --> ASSIGNED : Issue temporary card
+    AVAILABLE --> ASSIGNED : Issue visitor card
+    AVAILABLE --> RESERVED : Reserve for approved subscription
+    RESERVED --> ASSIGNED : Customer receives subscription card
     ASSIGNED --> IN_USE : Check-in
     IN_USE --> AVAILABLE : Checkout visitor card
     IN_USE --> ASSIGNED : Checkout subscription card
@@ -234,7 +252,8 @@ Can luu y:
 
 - `CardPolicy.markInUse` hien chi cho `ASSIGNED -> IN_USE`.
 - Visitor card neu dang `AVAILABLE` thi check-in phai `assign` roi `markInUse` cung transaction.
-- Subscription card khi checkout nen ve lai `ASSIGNED`, khong phai `AVAILABLE`. Hien `CardPolicy.release` chi dua ve `AVAILABLE`, nen can them method/domain rule rieng, vi neu release subscription card ve `AVAILABLE` thi co the mat lien ket nghiep vu.
+- Subscription workflow hien da dung `RESERVED -> ASSIGNED` khi giao the.
+- Subscription card khi checkout nen ve lai `ASSIGNED`, khong phai `AVAILABLE`. Hien `CardPolicy.release` dua ve `AVAILABLE`, nen can them method/domain rule rieng, vi neu release subscription card ve `AVAILABLE` thi co the mat lien ket nghiep vu.
 
 ## 6. Luong nghiep vu
 
@@ -245,7 +264,7 @@ Dieu kien:
 - Caller la `EMPLOYEE` hoac `PARKING_MANAGER`.
 - Caller co `PARKING_SESSION_CREATE_ALL` va `PARKING_EVENT_CREATE_ALL`.
 - Account caller active va neu la internal role thi employee status active theo central gate.
-- Lane ton tai, status `ACTIVE`, direction `IN` hoac `BOTH`.
+- Lane ton tai, status `ACTIVE`, direction `IN`.
 - Gate cua lane status `ACTIVE`.
 - Zone cua gate status `ACTIVE`.
 - Parking lot cua zone status `ACTIVE`.
@@ -270,12 +289,12 @@ Flow:
 9. Backend cap nhat card sang `IN_USE`.
 10. Response tra session va `barrierAction = OPEN`.
 
-Rule quan trong khi chua co subscription:
+Rule quan trong cho MVP visitor truoc khi noi entitlement subscription:
 
 - Backend chi biet `cards.vehicle_type_id`, khong biet card do dang ky cho bien so nao.
-- Neu chua co mapping `subscriptions.card_id -> customer_vehicle_id`, khong the xac dinh card `ASSIGNED` thuoc xe nao.
+- Subscription module da co `subscriptions.card_id -> customer_vehicle_id`, nhung parking use case chua co port/query de resolve active subscription theo `cardId` va ngay hieu luc.
 - Vi vay MVP visitor chi duoc dung card `AVAILABLE`.
-- Card `ASSIGNED` phai bi tu choi trong visitor check-in, tru khi da co subscription active de kiem chung.
+- Card `ASSIGNED` phai bi tu choi trong visitor check-in, tru khi luong subscription check-in da duoc implement de kiem chung.
 
 ### 6.1.1. Case nhan vien quet nham the theo loai xe cho khach vang lai
 
@@ -341,9 +360,9 @@ Flow:
 
 Ghi chu:
 
-- Neu subscription feature chua implement, MVP co the de customer/customerVehicle null cho visitor flow.
+- Subscription feature da co, nhung parking flow can them query active subscription by card va ownership/plate validation truoc khi cho card `ASSIGNED` check-in.
 - Khong nen hardcode customer mapping trong parking session use case; nen qua port/read model tu access control/people.
-- Neu chua co subscription, khong duoc cho card `ASSIGNED` check-in nhu visitor, vi se khong biet card do thuoc xe/bien so nao.
+- Neu khong tim thay active subscription, khong duoc cho card `ASSIGNED` check-in nhu visitor, vi se khong biet card do thuoc xe/bien so nao.
 - Neu card `ASSIGNED` nhung khong tim thay subscription active, backend phai tu choi check-in hoac dua vao manual review cho manager.
 
 ### 6.2.1. Case quet the dang ky cho xe khac
@@ -386,7 +405,7 @@ Dieu kien:
 
 - Caller la `EMPLOYEE` hoac `PARKING_MANAGER`.
 - Caller co `PARKING_SESSION_UPDATE_ALL` va `PARKING_EVENT_CREATE_ALL`.
-- Lane direction `OUT` hoac `BOTH`.
+- Lane direction `OUT`.
 - Card co session `OPEN`.
 - Bien so ra match bien so vao, hoac co manual override.
 
@@ -914,7 +933,6 @@ Can them:
 
 - `application.parking.parkingsession.port.in.ParkingSessionPortIn`
 - `application.parking.parkingsession.port.out.ParkingSessionPortOut`
-- `application.parking.parkingsession.usecase.ParkingSessionUseCaseImpl`
 - `application.parking.parkingsession.mapper.ParkingSessionApiMapper`
 - `application.parking.parkingsession.authorization.ParkingSessionAccessGuard`
 - `application.parking.parkingsession.model.command.CheckInCommand`
@@ -924,16 +942,26 @@ Can them:
 - `application.parking.parkingsession.model.result.ParkingSessionResult`
 - `application.parking.parkingevent.port.in.ParkingEventPortIn`
 - `application.parking.parkingevent.port.out.ParkingEventPortOut`
-- `application.parking.parkingevent.usecase.ParkingEventUseCaseImpl`
 - `application.parking.parkingevent.mapper.ParkingEventApiMapper`
+- `application.parking.parkingevent.model.command.ParkingEventFilterCommand`
+- `application.parking.parkingevent.model.result.ParkingEventResult`
 
-Co the tach:
+Nen tach use case de de test:
 
 - `ParkingCheckInUseCaseImpl`
 - `ParkingCheckOutUseCaseImpl`
 - `ParkingSessionQueryUseCaseImpl`
+- `ParkingSessionManualReviewUseCaseImpl`
+- `ParkingSessionCancelUseCaseImpl`
+- `ParkingEventQueryUseCaseImpl`
 
-Neu team muon use case nho va de test, nen tach theo command/query.
+Can mo rong/reuse ports hien co:
+
+- `CardPortOut.findByUid(String uid)` de resolve scan card.
+- `SubscriptionPortOut.findActiveByCardId(UUID cardId, LocalDate businessDate)` de check subscription entitlement.
+- `PriceRulePortOut.findActiveVisitorRule(UUID vehicleTypeId, Instant checkInTime, Instant checkOutTime)` hoac query tuong duong cho ve luot.
+- `ZonePortOut` can query capacity/open session count neu khong dat trong `ParkingSessionPortOut`.
+- Billing phase sau co the reuse `InvoicePortOut`/`PaymentPortOut`, nhung parking MVP visitor khong nen tao payment truc tiep trong controller.
 
 ### 9.2. Domain layer
 
@@ -953,6 +981,8 @@ Can bo sung:
 - `ParkingFeePolicy` hoac `ParkingFeeCalculator` cho tinh phi.
 - `ParkingCapacityPolicy` cho rule capacity.
 - `CardParkingUsagePolicy` de phan biet visitor card va subscription card khi checkout.
+- `CardPolicy` method moi de dua subscription card `IN_USE -> ASSIGNED` sau checkout, thay vi dung `release()` ve `AVAILABLE`.
+- `ParkingLicensePlatePolicy` cho normalize/compare plate vao/ra va plate subscription.
 
 ### 9.3. Infrastructure layer
 
@@ -964,9 +994,12 @@ Can them:
 - `infrastructure.persistence.database.specification.parking.ParkingEventSpecifications`.
 - Query resolve card by uid.
 - Query find open session by card.
+- Query find open session by license plate.
 - Query count open session by zone.
 - Query own session by customer account.
 - Query full detail join card/customer/vehicle/zone/events.
+- Query event list by session/lane/type/date.
+- Optional partial unique index `uq_parking_sessions_open_card` after data audit.
 
 ### 9.4. Entrypoint layer
 
@@ -1045,33 +1078,49 @@ Rule tinh gia:
 
 ### 11.2. Billing phase sau
 
-Khi lam billing:
+Trang thai hien tai:
+
+- `billing.invoices` va `billing.payments` da co controller/use case/port/persistence rieng.
+- `InvoiceAccessGuard` va `PaymentAccessGuard` da enforce permission o application layer.
+- Subscription approval hien da tao invoice subscription qua `InvoicePortOut`.
+- Parking checkout chua tao invoice/payment cho visitor parking session.
+
+Khi noi billing vao parking checkout:
 
 - Tao invoice khi checkout cho visitor session.
 - Payment cash/QR/manual tao record `billing.payments`.
 - Khi payment success du `finalAmount`, invoice `PAID`.
+- Dong session co the:
+  - dong ngay sau khi tinh phi neu BA chap nhan thu tien ngoai he thong MVP, hoac
+  - tao invoice `UNPAID`, cho record payment, roi mark paid trong billing flow.
 
-Can them permission:
+Permission can dam bao da seed/duoc dung:
 
-- `INVOICE_READ_ALL`
-- `INVOICE_UPDATE_ALL`
+- `INVOICE_CREATE_ALL`
+- `INVOICE_READ_ALL`, `INVOICE_READ_OWN`
+- `INVOICE_CANCEL_ALL`
 - `PAYMENT_CREATE_ALL`
 - `PAYMENT_READ_ALL`
-- `PAYMENT_UPDATE_ALL`
 
-Hien migration V3 co module `INVOICE/PAYMENT` nhung chua seed granular permission day du cho cac role.
+Khong nen:
+
+- Tu insert `billing.invoices`/`billing.payments` truc tiep trong controller parking.
+- Tron payment state transition vao `ParkingSessionPolicy`.
 
 ## 12. Data/migration de xuat
 
 Bat buoc truoc implementation:
 
-- Dong bo `vehicle_management.sql` voi V5/V6/V7.
+- Dong bo `vehicle_management.sql` voi V5/V6/V7/V8.
 - `parking_sessions` dung `zone_id`, khong dung `parking_space_id`.
 - `parking_sessions` khong con `price_rule_id` neu theo migration hien tai.
 - Base SQL phai co `parking.gates`.
 - Base SQL phai de `lanes.gate_id`, khong phai `lanes.parking_lot_id`.
+- Base SQL phai bo `lanes.vehicle_type_id`.
+- Base SQL `lanes.direction` chi cho `IN`, `OUT`.
 - Base SQL phai co `zones.status`.
 - Entity/domain/DTO `ParkingEvent` nen co `licensePlateImagePath` va `personImagePath` neu dung camera images.
+- Base SQL phai co `parking_events.license_plate_image_path` va `parking_events.person_image_path` neu migration da them va phase private image se dung.
 
 Index nen them/can xac nhan:
 
@@ -1114,11 +1163,22 @@ Parking session co the doc subscription de:
 
 Nhung parking session khong so huu approval subscription.
 
+Trang thai code:
+
+- Subscription approval/reserve/assign-card da co.
+- Parking flow can them read query active subscription by card/date, khong copy approval rule vao parking.
+- Checkout subscription card phai tra card ve `ASSIGNED`, khong release ve `AVAILABLE`.
+
 ### 13.2. Voi billing
 
 Parking session tinh hoac tra ra totalPrice. Billing tao invoice/payment o feature rieng.
 
 Khong nen de `ParkingSessionUseCaseImpl` tu lam het invoice/payment neu chua co port ro rang.
+
+Trang thai code:
+
+- Invoice/payment module da co port/use case rieng.
+- Parking MVP co the chi luu `parking_sessions.total_price`; phase billing integration se goi billing port de tao invoice/payment record.
 
 ### 13.3. Voi lost card
 
@@ -1138,6 +1198,9 @@ Domain tests:
 - Cancel chi cho session `OPEN`.
 - Lost card chi cho session `OPEN`.
 - Event `CHECK_IN/CHECK_OUT` bat buoc co license plate detected.
+- Card visitor check-in flow `AVAILABLE -> ASSIGNED -> IN_USE`.
+- Card subscription checkout flow `IN_USE -> ASSIGNED`.
+- Fee calculator voi `PriceRuleUnit.TURN`, `DAY` neu duoc ho tro.
 
 Application tests:
 
@@ -1157,14 +1220,22 @@ Application tests:
 - Check-out plate mismatch yeu cau manual override.
 - Cancel session tra card ve trang thai dung.
 - Customer chi xem own session.
+- Subscription card active map dung customer/customer vehicle.
+- Subscription card active nhung plate mismatch bi chan/manual review.
+- Visitor checkout khong tao invoice trong MVP neu billing phase chua bat.
 
 Persistence/integration tests:
 
 - Filter session theo status/date/keyword/card/zone.
 - Find open session by card.
+- Find open session by license plate.
 - Count open sessions by zone.
 - Query detail co events.
 - Query own sessions theo current customer.
+- Resolve card by UID.
+- Resolve active subscription by card/date.
+- Resolve active visitor price rule.
+- Hibernate validate pass voi schema snapshot sau khi dong bo V5/V6/V7/V8.
 
 Security/controller tests:
 
@@ -1221,23 +1292,57 @@ Guard tests:
 
 Thu tu implement nen la:
 
-1. Dong bo schema base SQL voi migration V5/V6/V7.
-2. Cap nhat ParkingEvent domain/entity neu dung image fields moi.
-3. Them ports/use cases/adapters cho session/event.
-4. Implement check-in visitor.
-5. Implement checkout visitor + fee calculator co ban.
-6. Implement read list/detail admin.
-7. Implement own history cho customer.
-8. Implement manual review/cancel.
-9. Sau khi on dinh moi noi subscription, lost card, billing.
+1. Phase 0 - Dong bo schema va skeleton.
+   - Cap nhat `vehicle_management.sql` theo V5/V6/V7/V8.
+   - Dam bao `ParkingSessionEntity`/domain/schema cung dung `zone_id`.
+   - Dam bao lanes theo `gate_id`, direction `IN/OUT`, khong con `BOTH`.
+   - Them `licensePlateImagePath` va `personImagePath` vao `ParkingEvent` domain/entity/mapper neu phase image se lam ngay sau.
+   - Chay test schema/Hibernate validation.
+
+2. Phase 1 - Visitor check-in/check-out core.
+   - Them `ParkingSessionPortIn/PortOut`, `ParkingEventPortIn/PortOut`.
+   - Them persistence adapters/specifications cho session/event.
+   - Mo rong `CardPortOut.findByUid(...)`.
+   - Mo rong `PriceRulePortOut` cho active visitor price rule.
+   - Implement check-in visitor: card `AVAILABLE -> ASSIGNED -> IN_USE`, tao session `OPEN`, tao event `CHECK_IN`.
+   - Implement checkout visitor: tim open session, validate lane OUT/plate, tinh `totalPrice`, tao event `CHECK_OUT`, card ve `AVAILABLE`.
+
+3. Phase 2 - Query va lich su.
+   - List/detail admin cho manager/employee.
+   - Own list/detail cho customer.
+   - Event list admin va own event list.
+   - Date filter dung `DateTimeUtils` cho Vietnam day range.
+
+4. Phase 3 - Manual review, barrier log, cancel.
+   - Manual review event bat buoc note.
+   - Barrier open event ghi actor.
+   - Cancel chi session `OPEN`, MVP nen gioi han manager.
+   - Restore card status dung visitor/subscription context.
+
+5. Phase 4 - Subscription parking.
+   - Mo rong `SubscriptionPortOut.findActiveByCardId(...)`.
+   - Check-in subscription card `ASSIGNED -> IN_USE`.
+   - Gan `customerId`, `customerVehicleId`.
+   - Validate plate detected voi `customer_vehicle.license_plate`.
+   - Checkout subscription card `IN_USE -> ASSIGNED`, `totalPrice = 0` hoac phi phat sinh neu BA chot.
+
+6. Phase 5 - Private parking images.
+   - Dung MinIO private bucket/folder `PARKING_EVENT`.
+   - Luu object key vao `image_path`, `license_plate_image_path`, `person_image_path`.
+   - API lay presigned URL theo `parkingEventId` + permission, khong theo raw object key.
+
+7. Phase 6 - Billing/lost-card/hardware.
+   - Noi checkout visitor voi invoice/payment neu BA chot.
+   - Lost card report va fee rieng.
+   - Device/camera/barrier integration qua adapter hardware.
 
 ## 17. Ket luan
 
-Parking Session Check-in/Check-out la feature loi tiep theo hop ly nhat sau khi da co account/onboarding/customer/employee/card/catalog va dang thiet ke subscription. No bien he thong tu quan ly du lieu thanh he thong van hanh bai xe that su.
+Parking Session Check-in/Check-out la feature loi tiep theo hop ly nhat sau khi da co account/onboarding/customer/employee/card/catalog/subscription va billing foundation. No bien he thong tu quan ly du lieu thanh he thong van hanh bai xe that su.
 
 Senior recommendation:
 
 - Lam MVP check-in/check-out truoc, dung API/Postman thay hardware.
-- Khong tron billing/lost-card/subscription approval vao cung mot dot.
+- Khong tron billing/lost-card/subscription approval vao visitor MVP; subscription parking nen la phase tiep theo sau khi visitor on dinh.
 - Sua drift schema truoc khi code.
 - Treat `parking_sessions` va `parking_events` la audit-sensitive workflow, khong CRUD/hard delete.

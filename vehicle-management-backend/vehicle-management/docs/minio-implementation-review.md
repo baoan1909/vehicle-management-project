@@ -1,6 +1,7 @@
 # Review trien khai MinIO trong vehicle-management
 
-Ngay review: 2026-06-16
+Ngay review goc: 2026-06-16
+Cap nhat trang thai: 2026-06-21
 
 ## 1. Muc dich
 
@@ -20,9 +21,9 @@ Tai lieu nay khong phai roadmap chi tiet. Muc tieu la giup PM/BA/Senior review n
 Phan MinIO hien tai di dung huong Clean Architecture:
 
 - Controller khong goi MinIO SDK truc tiep.
-- Application lam viec voi `FileStoragePort`, `FileAccessPort` va use case avatar.
+- Application lam viec voi `FileStoragePort`, `FileAccessPort` va use case avatar dung chung.
 - Infrastructure moi biet `MinioClient`.
-- DB khong luu presigned URL, chi luu object key trong `people.user_profiles.avatar_url`.
+- DB khong luu presigned URL; avatar object key va metadata hien luu trong `people.user_profile_avatars`.
 - Response avatar co the resolve object key thanh public URL neu cau hinh `MINIO_PUBLIC_URL_BASE`.
 
 Phan avatar da ap dung kha day du:
@@ -32,11 +33,11 @@ Phan avatar da ap dung kha day du:
 - Manager/admin upload/delete avatar employee theo `employeeId`.
 - Khong expose public API upload/delete avatar theo `userProfileId`; `UserProfileAvatarPortIn` chi la use case noi bo.
 - Raw `avatarUrl` string trong request profile da bi ignore/deprecate ve hanh vi write.
+- Self avatar, customer avatar va employee avatar deu reuse `UserProfileAvatarPortIn`.
+- `people.user_profiles.avatar_url` da drop khoi schema snapshot/JPA entity; API response van giu `avatarUrl`.
 
 Diem can review tiep:
 
-- `AccountProfileUseCaseImpl` van tu xu ly upload/delete self avatar truc tiep bang `FileStoragePort`, trong khi customer/employee/user-profile da dung `UserProfileAvatarPortIn`. Nen refactor ve chung `UserProfileAvatarPortIn` de giam duplicate.
-- `EmployeeController` chua co `@PreAuthorize`, dang rely vao application use case permission. Hanh vi dung, nhung style chua dong bo voi `CustomerController`.
 - Self avatar hien chi yeu cau authenticated va profile ready; neu muon chat hon, nen them/require `USER_PROFILE_UPDATE_OWN`.
 - Chua co cleanup retry/outbox khi xoa object cu that bai.
 - Chua ap dung parking event images, lost card evidence, support ticket attachments.
@@ -208,7 +209,7 @@ av/2026/06/16/0f6.../pb-9cc...-avatar.jpg
 Review:
 
 - Key co UUID nen tranh overwrite.
-- Folder segment ngan giup giu `avatar_url VARCHAR(255)`.
+- Folder segment ngan giup giu object key duoi 255 ky tu, phu hop voi avatar table va cac cot image path hien tai.
 - Generator enforce key <= 255 ky tu.
 - Ngay dang dung `LocalDate.now(ZoneOffset.UTC)`, chap nhan duoc cho object storage key.
 
@@ -266,45 +267,56 @@ Review:
 
 ## 8. Database va persistence
 
-### 8.1 Cot dang dung
+### 8.1 Bang avatar dang dung
 
 File schema:
 
 - `src/main/resources/db/vehicle_management.sql`
 
-Cot:
+Bang source of truth:
 
 ```sql
-people.user_profiles.avatar_url VARCHAR(255)
+people.user_profile_avatars
 ```
 
 Gia tri luu:
 
-- Object key MinIO, khong luu public URL/presigned URL.
+- `object_key`: MinIO object key, khong luu public URL/presigned URL.
+- `bucket`: `PUBLIC` hoac `PRIVATE`.
+- `status`: `ACTIVE`, `REPLACED`, `DELETED`.
+- `is_current`: chi ra avatar hien tai cua profile.
+- metadata: original filename, content type, size, checksum, uploader va audit fields.
 
-Vi du:
+Vi du object key:
 
 ```text
 av/2026/06/16/{userProfileId}/pb-{uuid}-avatar.jpg
 ```
 
+`people.user_profiles.avatar_url` da bi drop khoi schema snapshot va `UserProfileEntity`; chi con trong migration lich su/backfill/drop.
+
 ### 8.2 Persistence methods
 
 Files:
 
+- `infrastructure/persistence/adapter/people/UserProfileAvatarPersistenceAdapter.java`
 - `infrastructure/persistence/adapter/people/UserProfilePersistenceAdapter.java`
 - `infrastructure/persistence/adapter/iam/AccountProfilePersistenceAdapter.java`
 
-Methods lien quan:
+Methods/lop lien quan:
 
-- `UserProfilePortOut.updateAvatar(UUID userProfileId, String avatarUrl)`
-- `AccountProfilePortOut.updateAvatar(UUID accountId, String avatarUrl)`
+- `UserProfileAvatarPortOut.findCurrentByUserProfileId(...)`
+- `UserProfileAvatarPortOut.findCurrentByUserProfileIds(...)`
+- `UserProfileAvatarPortOut.markCurrentAsReplaced(...)`
+- `UserProfileAvatarPortOut.markCurrentAsDeleted(...)`
+- `UserProfileAvatarUseCaseImpl.uploadAvatar/deleteAvatar(...)`
 
 Review:
 
-- `saveAndFlush` duoc dung khi update avatar de response va transaction behavior ro hon.
-- Chua co bang `storage.files`; metadata hien nam trong MinIO user metadata.
-- Cot `avatar_url` van `VARCHAR(255)`, phu hop voi key ngan hien tai nhung can review neu format key thay doi.
+- `saveAndFlush` duoc dung khi luu avatar current de response/transaction behavior ro hon.
+- Metadata avatar da co bang rieng, chua can `storage.files` cho phase avatar.
+- Chua co bang `storage.files`; day van la backlog khi file lan sang nhieu module.
+- Parking event image path van can review length neu object key tuong lai dai hon 255.
 
 ## 9. API va luong da ap dung
 
@@ -324,15 +336,17 @@ API:
 Use case:
 
 - `application/iam/account/usecase/AccountProfileUseCaseImpl.java`
+- `application/people/userprofile/usecase/UserProfileAvatarUseCaseImpl.java`
 
 Behavior:
 
 - Lay current account id.
 - Load profile state theo account id.
 - Neu account chua co `userProfileId` thi reject: profile not ready.
+- Delegate upload/delete sang `UserProfileAvatarPortIn`.
 - Upload vao `StorageBucket.PUBLIC`, `StorageFolder.AVATAR`.
-- Update `people.user_profiles.avatar_url`.
-- Xoa avatar cu sau transaction commit.
+- Ghi avatar current trong `people.user_profile_avatars`.
+- Mark avatar cu `REPLACED` hoac `DELETED` va xoa object cu sau transaction commit.
 - Neu DB update fail thi xoa object moi vua upload.
 - Response `AccountProfileStatusResponse`, avatar co the da resolve public URL.
 
@@ -345,7 +359,7 @@ Review:
 
 - Hanh vi dung cho self-service.
 - Can chot co bat buoc `USER_PROFILE_UPDATE_OWN` khong.
-- Logic upload/delete/cleanup dang duplicate voi `UserProfileAvatarUseCaseImpl`; nen refactor self avatar dung chung `UserProfileAvatarPortIn`.
+- Logic upload/delete/cleanup da dung chung `UserProfileAvatarPortIn`.
 
 ### 9.2 User profile avatar internal use case
 
@@ -396,7 +410,7 @@ customerId
 -> CustomerPortOut.findById(customerId)
 -> customer.userProfileId
 -> UserProfileAvatarPortIn.uploadAvatar/deleteAvatar
--> update people.user_profiles.avatar_url
+-> write people.user_profile_avatars current avatar
 -> return CustomerAdminProfileResponse
 ```
 
@@ -436,21 +450,21 @@ employeeId
 -> EmployeeAccessGuard.ensureCanManage(employee)
 -> employee.userProfileId
 -> UserProfileAvatarPortIn.uploadAvatar/deleteAvatar
--> update people.user_profiles.avatar_url
+-> write people.user_profile_avatars current avatar
 -> return EmployeeAdminResponse
 ```
 
 Permission:
 
+- Controller: `@PreAuthorize(EMPLOYEE_UPDATE_ALL)` cho upload/delete avatar.
 - Application require `EMPLOYEE_UPDATE_ALL`.
 - Application goi read path nen cung require `EMPLOYEE_READ_ALL` qua `getEmployeeById(...)`.
 - `EmployeeAccessGuard` gioi han manager chi quan ly target phu hop.
 
 Review:
 
-- Hanh vi dung, nhung controller chua co `@PreAuthorize`.
-- Neu project muon style dong bo, nen them `@PreAuthorize("@permissionAuthorizer.hasPermission('EMPLOYEE_UPDATE_ALL')")` cho upload/delete avatar va cac endpoint employee update lifecycle.
-- Neu giu application-only thi van an toan vi permission enforcement nam trong use case.
+- Hanh vi dung va style da dong bo voi `CustomerController` cho hai endpoint avatar.
+- Cac endpoint employee khac van co permission application-layer trong use case.
 
 ## 10. Raw avatarUrl string trong request
 
@@ -542,19 +556,13 @@ Da co tests lien quan:
 - `UserProfileAvatarUseCaseImplTest`
 - `CustomerAdminProfileUseCaseImplTest`
 - `EmployeeUseCaseImplTest`
+- `UserProfileAvatarPersistenceAdapterTest`
 - Tests policy/mapper account profile lien quan raw `avatarUrl`
 
-Lenh da chay:
-
-```bash
-./mvnw test
-```
-
-Ket qua gan nhat:
+Lan cap nhat tai lieu 2026-06-21 khong chay lai full test suite. Trang thai verify gan nhat duoc ghi trong `minio-phased-implementation-plan.md`:
 
 ```text
-Tests run: 530, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS
+Full test suite sau khi local DB da drop people.user_profiles.avatar_url: 536 pass.
 ```
 
 Review:
@@ -599,42 +607,7 @@ Review:
 
 ## 15. Diem can review va de xuat tiep theo
 
-### 15.1 Refactor self avatar ve `UserProfileAvatarPortIn`
-
-Hien trang:
-
-- `AccountProfileUseCaseImpl.uploadMyAvatar/deleteMyAvatar` van tu store file, update DB, cleanup, resolve URL.
-- `UserProfileAvatarUseCaseImpl` da co logic gan tuong tu cho user-profile/customer/employee avatar.
-
-De xuat:
-
-- Trong self avatar, sau khi load state va check profile ready, goi:
-
-```text
-UserProfileAvatarPortIn.uploadAvatar(state.userProfileId(), file, accountId)
-UserProfileAvatarPortIn.deleteAvatar(state.userProfileId())
-```
-
-- Sau do reload/return `AccountProfileStatusResult`.
-
-Loi ich:
-
-- Giam duplicate cleanup logic.
-- Moi change ve avatar chi sua mot cho.
-
-### 15.2 Dong bo permission style o EmployeeController
-
-Hien trang:
-
-- Customer avatar co `@PreAuthorize` + application check.
-- Employee avatar chi application check.
-
-De xuat:
-
-- Them `@PreAuthorize` cho employee endpoints neu team muon controller contract ro rang.
-- Van giu application check vi do la lop bao ve chinh.
-
-### 15.3 Chot permission self avatar
+### 15.1 Chot permission self avatar
 
 Hien trang:
 
@@ -645,23 +618,23 @@ De xuat:
 - Neu dung DB permission nghiem ngat: require `USER_PROFILE_UPDATE_OWN`.
 - Neu onboarding/profile self-service duoc xem la capability mac dinh cua account authenticated: giu nhu hien tai, nhung document ro.
 
-### 15.4 Chot length database
+### 15.2 Chot length database
 
 Hien trang:
 
-- `avatar_url VARCHAR(255)`.
+- Avatar da dung bang `people.user_profile_avatars`.
 - Object key generator enforce 255.
+- Parking event image path columns hien van `VARCHAR(255)` theo migration.
 
 De xuat:
 
-- Neu phase 1 chi avatar key ngan: giu 255 duoc.
-- Neu mo rong folder/metadata/key format: migration len `VARCHAR(500)` cho:
-  - `people.user_profiles.avatar_url`
+- Khong can xu ly `avatar_url` vi column cu da drop.
+- Neu mo rong folder/metadata/key format parking images: migration len `VARCHAR(500)` cho:
   - `parking.parking_events.image_path`
   - `parking.parking_events.license_plate_image_path`
   - `parking.parking_events.person_image_path`
 
-### 15.5 Them cleanup retry/outbox
+### 15.3 Them cleanup retry/outbox
 
 Hien trang:
 
@@ -673,7 +646,7 @@ De xuat:
   - scan orphan object theo prefix/resource metadata, hoac
   - tao outbox task khi delete fail.
 
-### 15.6 Private image API khong duoc expose objectKey truc tiep
+### 15.4 Private image API khong duoc expose objectKey truc tiep
 
 Khi lam parking event images:
 
@@ -683,7 +656,7 @@ Khi lam parking event images:
 - TTL ngan 5-15 phut.
 - Khong log presigned URL.
 
-### 15.7 Audit log
+### 15.5 Audit log
 
 Nen audit:
 
@@ -714,16 +687,14 @@ Khong log:
 - Production da doi `MINIO_ACCESS_KEY`/`MINIO_SECRET_KEY` chua?
 - Public bucket chi dung avatar/public content chua?
 - Co can require `USER_PROFILE_UPDATE_OWN` cho self avatar khong?
-- Co can them `@PreAuthorize` o EmployeeController de dong bo contract khong?
 - Co audit log cho admin/manager avatar change khong?
 - Private file tuong lai co resource-level permission chua?
 
 ### Backend
 
-- Co muon refactor `AccountProfileUseCaseImpl` dung `UserProfileAvatarPortIn` khong?
 - Co can Testcontainers MinIO integration test khong?
 - Co can controller multipart tests khong?
-- Co can migration `VARCHAR(500)` khong?
+- Co can migration `VARCHAR(500)` cho parking event image path khong?
 - Co can cleanup retry/outbox khong?
 - Co can generalize `StorageUrlResolver` cho private/public resource khac khong?
 
@@ -741,9 +712,13 @@ Khong log:
 - `ImageFileProcessor`.
 - `MinioFileStorageAdapter`.
 - `StorageUrlResolver` cho public avatar.
+- Bang `people.user_profile_avatars` va migration/backfill/drop `avatar_url`.
+- `UserProfileAvatarPortOut`, entity/repository/mapper/persistence adapter cho avatar table.
 - Upload/delete self avatar.
 - Upload/delete customer avatar theo `customerId`.
 - Upload/delete employee avatar theo `employeeId`.
+- Self/customer/employee avatar dung chung `UserProfileAvatarPortIn`.
+- Account register/provisioned account tao `people.user_profiles` toi thieu voi `fullName`.
 - Ignore/deprecate raw `avatarUrl` write input.
 - Tests avatar/storage lien quan.
 
@@ -758,15 +733,15 @@ Khong log:
 - Audit log cho file operations.
 - Testcontainers MinIO.
 - Controller multipart tests.
+- Dong bo schema snapshot parking voi migration V5/V6/V7/V8 cho check-flow/private images.
 
 ## 18. Ket luan review
 
 MinIO foundation hien tai du de dung cho avatar production phase dau neu environment MinIO duoc cau hinh dung va public bucket policy duoc chap nhan cho avatar.
 
-Huong thiet ke tong the tot: storage la infrastructure, application lam viec qua port, avatar write di qua multipart endpoint, DB luu object key. Phan nen uu tien tiep theo khong phai viet lai MinIO, ma la hardening:
+Huong thiet ke tong the tot: storage la infrastructure, application lam viec qua port, avatar write di qua multipart endpoint, DB luu object key trong `people.user_profile_avatars`. Phan nen uu tien tiep theo khong phai viet lai MinIO, ma la hardening:
 
-1. Refactor self avatar dung chung `UserProfileAvatarPortIn`.
-2. Dong bo permission style cho employee endpoints.
-3. Chot policy `USER_PROFILE_UPDATE_OWN` cho self avatar.
-4. Them audit/cleanup neu avatar admin la thao tac nhay cam.
-5. Khi mo private images, bat buoc resource-level authorization va presigned URL TTL ngan.
+1. Chot policy `USER_PROFILE_UPDATE_OWN` cho self avatar.
+2. Them audit/cleanup neu avatar admin la thao tac nhay cam.
+3. Khi mo private images, bat buoc resource-level authorization va presigned URL TTL ngan.
+4. Dong bo schema snapshot parking voi migration check-flow truoc khi map `license_plate_image_path` va `person_image_path`.

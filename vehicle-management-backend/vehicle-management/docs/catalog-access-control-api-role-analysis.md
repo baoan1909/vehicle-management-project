@@ -1,5 +1,7 @@
 # Phan tich nhom API catalog/access-control va phan quyen theo role
 
+Cap nhat trang thai: 2026-06-21
+
 ## 1. Pham vi
 
 Tai lieu nay phan tich 4 nhom API:
@@ -34,13 +36,24 @@ Nguon da doc:
 - Tao/sua/xem/xoa mem `card-types`.
 - Tao/sua/xem/loc/doi trang thai/retire `cards`.
 
-Tuy nhien chua du de xem la hoan thien cho production, vi co 5 khoang ho can xu ly truoc:
+Trang thai moi: cac gap security lon trong ban review goc da duoc dong.
 
-1. Chua enforce permission cho 4 nhom API nay. Controller khong co `@PreAuthorize`, use case khong goi `CurrentAccountPortIn.requirePermission(...)`. Theo `SecurityConfig`, moi endpoint ngoai public deu can authenticated, nhung authenticated user nao cung co the goi 4 nhom API neu khong co check permission rieng.
-2. Permission trong migration da seed rat ro (`VEHICLE_TYPE_*`, `TICKET_TYPE_*`, `CARD_TYPE_*`, `CARD_*`) nhung chua duoc noi vao code cho 4 module nay.
-3. `vehicle-types` va `card-types` chua co dependency guard khi deactivate/update. Database co nhieu bang dang tham chieu `vehicle_type_id` va `card_type_id`; neu deactivate tuy y co the lam danh muc dang dung bi an khoi UI nhung nghiep vu van phu thuoc.
-4. `ticket-types` co nghiep vu tot hon nhung dang dong cung code hop le trong policy: `DAILY`, `MONTHLY`, `QUARTERLY`, `YEARLY`, `FREE`. Neu BA muon cau hinh loai ve linh hoat hon, API hien tai chua du.
-5. Chua co pagination, response user/public rieng, authorization tests va use case test cho `ticket-types`.
+Da lam:
+
+1. Da enforce permission cho 4 nhom API bang `@PreAuthorize` o controller va `CurrentAccountPortIn.requirePermission(...)` trong use case.
+2. `vehicle-types`, `ticket-types`, `card-types`, `cards` da noi vao permission seed (`VEHICLE_TYPE_*`, `TICKET_TYPE_*`, `CARD_TYPE_*`, `CARD_*`).
+3. `vehicle-types` da co dependency guard khi deactivate voi active price rules, active customer vehicles, open parking sessions, active cards, active zones.
+4. `card-types` da co dependency guard khi deactivate neu con active cards.
+5. `vehicle-types` va `card-types` da co activate endpoint.
+6. `ticket-types` da co use case test.
+
+Van con cac khoang ho can xu ly truoc production:
+
+1. `ticket-types` van hard-code code hop le trong policy: `DAILY`, `MONTHLY`, `QUARTERLY`, `YEARLY`, `FREE`. Neu BA muon loai ve linh hoat hon, API hien tai chua du.
+2. Chua co pagination va response user/public rieng cho cac danh muc public-facing.
+3. `CARD_UPDATE_ALL` van qua rong neu muon cho employee doi trang thai the; nen tach permission status rieng neu BA can.
+4. `CardAdminResponse` van nen bo sung lookup display fields/card usage summary neu frontend can man inventory day du.
+5. Can bo sung controller/security tests neu muon verify annotation/permission contract end-to-end, ngoai unit test use case.
 
 Khuyen nghi tong the:
 
@@ -100,7 +113,7 @@ Hien tai 4 controller:
 - `CardTypeController`
 - `CardController`
 
-deu khong co `@PreAuthorize`.
+da co `@PreAuthorize` tuong ung voi permission CRUD.
 
 4 use case:
 
@@ -109,13 +122,12 @@ deu khong co `@PreAuthorize`.
 - `CardTypeUseCaseImpl`
 - `CardUseCaseImpl`
 
-deu khong inject `CurrentAccountPortIn` va khong goi `requirePermission(...)`.
+da inject `CurrentAccountPortIn` va goi `requirePermission(...)` theo action.
 
-Ket luan security:
+Ket luan security cap nhat:
 
-- Theo DB/migration: role da duoc thiet ke phan quyen.
-- Theo runtime hien tai: chi can authenticated la co the goi 4 nhom API, bat ke role.
-- Day la gap can xu ly truoc khi noi frontend hoac public hoa he thong.
+- Gap "authenticated user nao cung goi duoc API admin" da duoc dong cho 4 nhom API nay.
+- Van nen them controller/security tests de bao ve annotation khi refactor.
 
 ## 4. Phan tich `/api/catalog/vehicle-types`
 
@@ -155,7 +167,7 @@ Thieu hoac nen bo sung:
 
 | Muc | Muc do | Ly do |
 |---|---|---|
-| Enforce permission | Bat buoc | DB da co `VEHICLE_TYPE_*` nhung code chua check. |
+| Enforce permission | Da lam | Controller va use case da check `VEHICLE_TYPE_*`. |
 | Keyword search | Nen co | Admin/manager can tim theo code/name/description. |
 | Pagination | Nen co | Danh muc co the nho, nhung nen dong bo voi cac API admin khac. |
 | Activate endpoint rieng | Nen co | Hien co the set `isActive` qua PUT, nhung action restore nen ro rang: `PATCH /{id}/activate`. |
@@ -201,8 +213,8 @@ Nhom nay tot nhat trong 3 danh muc catalog, nhung van can chot BA:
 
 | Muc | Muc do | Ly do |
 |---|---|---|
-| Enforce permission | Bat buoc | DB da co `TICKET_TYPE_*` nhung code chua check. |
-| Use case test | Bat buoc | Chua thay `TicketTypeUsecaseImplTest`; day la nhom co rule phuc tap nhat. |
+| Enforce permission | Da lam | Controller va use case da check `TICKET_TYPE_*`. |
+| Use case test | Da lam | Da co `TicketTypeUsecaseImplTest`; van co the bo sung controller/security tests. |
 | Pagination/sort | Nen co | List admin nen co paging khi data tang. |
 | Lam ro fixed code hay configurable | Bat buoc ve BA | Policy chi chap nhan `DAILY`, `MONTHLY`, `QUARTERLY`, `YEARLY`, `FREE`. Neu can loai ve 7 ngay/15 ngay/custom, hien tai chua dap ung. |
 | Public/User active list | Nen co | Customer/guest co the can xem loai ve active khi dang ky/xem gia. |
@@ -258,7 +270,7 @@ Du CRUD co ban, chua du cho dong bo van hanh.
 
 | Muc | Muc do | Ly do |
 |---|---|---|
-| Enforce permission | Bat buoc | DB co `CARD_TYPE_*`, code chua check. |
+| Enforce permission | Da lam | Controller va use case da check `CARD_TYPE_*`. |
 | `CARD_TYPE_READ_ALL` cho `EMPLOYEE` | Nen co | Employee co `CARD_READ_ALL` nhung khong co `CARD_TYPE_READ_ALL`, se kho hien thi dropdown/ten loai the khi van hanh. |
 | Keyword search | Nen co | Tim theo code/name/description. |
 | Activate endpoint rieng | Nen co | Nen dong bo voi `ticket-types`. |
@@ -315,7 +327,7 @@ Du cho inventory/card maintenance co ban. Chua du neu xem card module la vong do
 
 | Muc | Muc do | Ly do |
 |---|---|---|
-| Enforce permission | Bat buoc | DB co `CARD_*`, code chua check. |
+| Enforce permission | Da lam | Controller va use case da check `CARD_*`. |
 | Tach status permission | Nen co | Neu employee can block/lost/damaged card, khong nen cap full `CARD_UPDATE_ALL` vi se cho sua cardNumber/uid/cardType. Nen co permission rieng nhu `CARD_CHANGE_STATUS_ALL` hoac endpoint-level guard rieng. |
 | Include lookup display fields | Nen co | `CardAdminResponse` chi tra `cardTypeId`, `vehicleTypeId`, frontend thuong can `cardTypeCode/name`, `vehicleTypeCode/name`. |
 | Pagination | Nen co | Card inventory co the lon. |
@@ -427,10 +439,12 @@ Va tra `PageResponse<XxxAdminResponse>` neu project da co shared paging response
 
 ### Phase 1 - Dong gap security
 
-Them permission guard cho 4 nhom API theo mot trong hai cach:
+Trang thai: Da thuc hien.
 
-1. Dung `@PreAuthorize("@permissionAuthorizer.hasPermission('...')")` tren controller, giong `CustomerController` va `CustomerVehicleController`.
-2. Inject `CurrentAccountPortIn` vao use case va goi `requirePermission(...)`, giong `UserProfileUseCaseImpl`, `EmployeeUseCaseImpl`.
+Da them permission guard cho 4 nhom API theo ca hai lop:
+
+1. `@PreAuthorize("@permissionAuthorizer.hasPermission('...')")` tren controller.
+2. `CurrentAccountPortIn.requirePermission(...)` trong use case.
 
 Khuyen nghi:
 
@@ -445,16 +459,17 @@ Permission mapping:
 - CardType: create/read/update/delete/activate tuong ung `CARD_TYPE_*_ALL`; activate dung `CARD_TYPE_UPDATE_ALL`.
 - Card: create/read/update/delete/status tuong ung `CARD_*_ALL`; status tam dung `CARD_UPDATE_ALL` neu chua them permission moi.
 
-Can bo sung test:
+Con nen bo sung test:
 
 - Controller/security test cho 403 khi thieu permission.
-- Unit test verify use case guard neu chon check trong application.
+- Unit test/use case guard da co o muc nhat dinh; tiep tuc bo sung neu them endpoint moi.
 
 ### Phase 2 - Bo sung guard nghiep vu
 
 VehicleType:
 
-- Them port methods de check dependency:
+- Trang thai: Da thuc hien dependency guard khi deactivate.
+- Port methods da co:
   - active price rules by vehicle type
   - active customer vehicles by vehicle type
   - active/open parking sessions by vehicle type
@@ -464,8 +479,8 @@ VehicleType:
 
 CardType:
 
-- Them `CardRepository.existsByCardTypeIdAndStatusIn(...)`.
-- Khong cho deactivate neu con card `AVAILABLE`, `ASSIGNED`, `IN_USE`, `BLOCKED`, `LOST`, `DAMAGED` tuy chinh sach.
+- Trang thai: Da co guard khong cho deactivate neu con active cards.
+- Van can review chinh sach status nao duoc tinh la blocking neu BA muon cho retire/cleanup manh hon.
 
 TicketType:
 
@@ -507,25 +522,27 @@ TicketType:
 | `CUSTOMER` | Khong cap vao 4 API nay; dung lost card report/subscription/customer vehicle APIs rieng. |
 | `SYSTEM_ADMIN` | Neu business muon super admin, cap explicit read/all hoac full CRUD trong role_permission, khong dua vao legacy permission cu. |
 
-## 12. Rui ro neu giu nguyen
+## 12. Rui ro con lai
 
 | Rui ro | Tac dong |
 |---|---|
-| Moi authenticated user goi duoc API admin | Customer/employee co the tao/sua/xoa danh muc hoac retire card neu biet endpoint. |
+| Thieu authorization test hoi quy | Security gap co the tai dien khi refactor controller/use case hoac them endpoint moi. |
 | Employee thieu `CARD_TYPE_READ_ALL` | UI van hanh the co the khong load du lookup card type neu security duoc enforce dung. |
-| Deactivate vehicle/card type dang dung | UI va nghiep vu co the mau thuan: ban ghi active van phu thuoc vao danh muc da an. |
+| Dependency guard moi chi bao phu cac luong da biet | Khi them bang/flow moi phu thuoc vehicle/card type, can cap nhat guard tuong ung de khong retire danh muc dang dung. |
 | `CARD_UPDATE_ALL` qua rong | Neu cap cho employee de doi status, employee cung co the sua cardNumber/uid/cardType. |
 | Hard-code ticket type code | BA khong tao duoc goi ve moi neu sau nay co nhu cau 7 ngay/15 ngay/ban ngay. |
-| Thieu test authorization | Gap security de tai dien khi refactor. |
+| Thieu paging/search chuan | Frontend van hanh kho mo rong khi du lieu danh muc/the tang. |
 
 ## 13. Ket luan
 
-4 nhom API da co nen CRUD va domain rule co ban, dac biet `cards` va `ticket-types` da co nhieu rule quan trong. Tuy nhien, de dat muc san sang production, viec dau tien phai lam la enforce permission theo role da seed trong DB/migration. Sau do can bo sung dependency guard cho deactivate, paging/search chuan hoa, active/public read models, va tach quyen doi trang thai the neu employee can tham gia xu ly su co.
+4 nhom API da co nen CRUD va domain rule co ban, dac biet `cards` va `ticket-types` da co nhieu rule quan trong. Security gap lon da duoc dong: controller da co `@PreAuthorize`, application use case da goi `CurrentAccountPortIn.requirePermission(...)`, `vehicle-types` va `card-types` da co dependency guard khi deactivate, va `ticket-types` da co use case test.
+
+Phan con lai la hardening va mo rong van hanh: bo sung authorization test ro rang, review seed role-permission theo policy san pham, chuan hoa paging/search, them active/public read models neu frontend can, va tach quyen doi trang thai the neu employee can tham gia xu ly su co.
 
 Thu tu uu tien nen la:
 
-1. Enforce permission va them authorization tests.
-2. Chuan hoa role permission: `PARKING_MANAGER` full, `EMPLOYEE` read, `CUSTOMER` none, `SYSTEM_ADMIN` theo policy ro rang.
-3. Them dependency guard cho `vehicle-types` va `card-types`.
-4. Bo sung endpoint activate/search/paging va public/user lookup neu frontend can.
+1. Bo sung authorization tests cho controller/use case va giu guard khi them endpoint moi.
+2. Chuan hoa role permission seed: `PARKING_MANAGER` full, `EMPLOYEE` read, `CUSTOMER` none, `SYSTEM_ADMIN` theo policy ro rang.
+3. Bo sung search/paging va active/public lookup neu frontend can.
+4. Tach permission doi trang thai the neu employee can xu ly lost/damaged/block.
 5. Mo rong card inventory nhu bulk import, UID lookup, usage summary/history.
