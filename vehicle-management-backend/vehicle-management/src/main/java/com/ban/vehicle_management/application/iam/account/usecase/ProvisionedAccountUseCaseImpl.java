@@ -10,10 +10,12 @@ import com.ban.vehicle_management.application.iam.account.port.in.ProvisionedAcc
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
+import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.domain.iam.account.policy.ProvisionedAccountPolicy;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
-import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
-import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -21,7 +23,9 @@ import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,15 +39,19 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final ProvisionedAccountPortOut provisionedAccountPortOut;
     private final IdentityProviderAdminPortOut identityProviderAdminPortOut;
+    private final ProvisionedAccountPolicy provisionedAccountPolicy;
+    private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
 
     public ProvisionedAccountUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             ProvisionedAccountPortOut provisionedAccountPortOut,
-            IdentityProviderAdminPortOut identityProviderAdminPortOut
+            IdentityProviderAdminPortOut identityProviderAdminPortOut,
+            ProvisionedAccountPolicy provisionedAccountPolicy
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.provisionedAccountPortOut = provisionedAccountPortOut;
         this.identityProviderAdminPortOut = identityProviderAdminPortOut;
+        this.provisionedAccountPolicy = provisionedAccountPolicy;
     }
 
     @Override
@@ -52,6 +60,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         currentAccountPortIn.requirePermission(ACCOUNT_CREATE_ALL);
 
         CreateProvisionedAccountCommand normalizedCommand = normalizeCreateCommand(command);
+        ensureCanManageTargetRole(normalizedCommand.roleCode());
         ensureCreateNoConflict(normalizedCommand);
 
         UUID accountId = UUID.randomUUID();
@@ -66,7 +75,10 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
                     normalizedCommand.roleCode(),
                     keycloakUserId
             );
-            provisionedAccountPortOut.provisionAccount(account);
+            provisionedAccountPortOut.provisionAccount(
+                    account,
+                    buildMinimalUserProfile(account.getUserProfileId(), normalizedCommand.fullName())
+            );
             identityProviderAdminPortOut.updateAccountIdAttribute(keycloakUserId, accountId);
             identityProviderAdminPortOut.sendUpdatePasswordEmail(keycloakUserId);
             return provisionedAccountPortOut.findProvisionedAccountById(accountId)
@@ -81,7 +93,10 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     @Transactional(readOnly = true)
     public List<ProvisionedAccountResult> getProvisionedAccounts(ProvisionedAccountFilterCommand command) {
         currentAccountPortIn.requirePermission(ACCOUNT_READ_ALL);
-        return provisionedAccountPortOut.findProvisionedAccounts(normalizeFilterCommand(command));
+        return provisionedAccountPortOut.findProvisionedAccounts(normalizeFilterCommand(
+                command,
+                managedTargetRolesForCurrentAccount()
+        ));
     }
 
     @Override
@@ -101,15 +116,20 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
 
         ProvisionedAccountResult existingAccount = getManagedAccount(accountId);
         UpdateProvisionedAccountStatusCommand normalizedCommand = normalizeStatusCommand(command);
-        validateStatusTransition(existingAccount.account().accountStatus(), normalizedCommand.status());
+        provisionedAccountPolicy.validateStatusTransition(
+                existingAccount.account().accountStatus(),
+                normalizedCommand.status()
+        );
         AccountStatus targetStatus = normalizedCommand.status();
+        AdminProvisionableAccountRoleCode existingRole =
+                provisionedAccountPolicy.requireProvisionableRole(existingAccount.role().roleCode());
 
         provisionedAccountPortOut.updateProvisionedAccountStatus(
                 accountId,
                 targetStatus,
-                toUserProfileStatus(targetStatus),
-                toCustomerStatus(targetStatus),
-                toEmployeeStatus(existingAccount.role().roleCode(), targetStatus),
+                provisionedAccountPolicy.toUserProfileStatus(targetStatus),
+                provisionedAccountPolicy.toCustomerStatus(targetStatus),
+                provisionedAccountPolicy.toEmployeeStatus(existingRole, targetStatus),
                 currentAccountPortIn.getCurrentAccountIdOrThrow(),
                 normalizedCommand.reason()
         );
@@ -132,7 +152,11 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
 
         ProvisionedAccountResult existingAccount = getManagedAccount(accountId);
         UpdateProvisionedAccountRoleCommand normalizedCommand = normalizeRoleCommand(command);
-        validateRoleTransition(existingAccount.role().roleCode(), normalizedCommand.roleCode());
+        ensureCanManageTargetRole(normalizedCommand.roleCode());
+        provisionedAccountPolicy.validateRoleTransition(
+                provisionedAccountPolicy.requireProvisionableRole(existingAccount.role().roleCode()),
+                normalizedCommand.roleCode()
+        );
         UUID roleId = provisionedAccountPortOut.findActiveRoleIdByCode(normalizedCommand.roleCode());
         provisionedAccountPortOut.updateProvisionedAccountRole(accountId, roleId);
 
@@ -154,16 +178,21 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         return new CreateProvisionedAccountCommand(
                 normalizeAccount(command.account()),
                 null,
-                requireProvisionableRole(command.roleCode())
+                requireProvisionableRole(command.roleCode()),
+                TextValidationUtils.normalizeRequiredText(command.fullName(), "fullName", 150)
         );
     }
 
-    private ProvisionedAccountFilterCommand normalizeFilterCommand(ProvisionedAccountFilterCommand command) {
+    private ProvisionedAccountFilterCommand normalizeFilterCommand(
+            ProvisionedAccountFilterCommand command,
+            Set<AdminProvisionableAccountRoleCode> managedRoleCodes
+    ) {
         requireField(command, "command");
         return new ProvisionedAccountFilterCommand(
                 TextValidationUtils.normalizeNullableText(command.keyword(), "keyword", 100),
                 command.roleCode(),
-                command.accountStatus()
+                command.accountStatus(),
+                managedRoleCodes
         );
     }
 
@@ -205,18 +234,21 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             String keycloakUserId
     ) {
         account.setAccountId(accountId);
-        account.setUserProfileId(null);
+        account.setUserProfileId(UUID.randomUUID());
         account.setKeycloakUserId(keycloakUserId);
         account.setRoleId(roleId);
-        account.setStatus(initialAccountStatus(roleCode));
+        account.setStatus(provisionedAccountPolicy.initialAccountStatus(roleCode));
         account.setFailedLoginCount(0);
         return account;
     }
 
-    private AccountStatus initialAccountStatus(AdminProvisionableAccountRoleCode roleCode) {
-        return AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.equals(roleCode)
-                ? AccountStatus.PENDING
-                : AccountStatus.ACTIVE;
+    private UserProfile buildMinimalUserProfile(UUID userProfileId, String fullName) {
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUserProfileId(userProfileId);
+        userProfile.setFullName(fullName);
+        userProfile.setStatus(UserProfileStatus.ACTIVE);
+        userProfilePolicy.initialize(userProfile);
+        return userProfile;
     }
 
     private ProvisionedAccountResult getManagedAccount(UUID accountId) {
@@ -230,73 +262,38 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         if (result == null || result.role() == null || result.role().roleCode() == null) {
             throw new NotFoundException("Provisioned account not found");
         }
-        try {
-            AdminProvisionableAccountRoleCode.valueOf(result.role().roleCode());
-        } catch (IllegalArgumentException exception) {
+        if (provisionedAccountPolicy.resolveProvisionableRole(result.role().roleCode()) == null) {
             throw new NotFoundException("Provisioned account not found");
         }
-    }
-
-    private UserProfileStatus toUserProfileStatus(AccountStatus accountStatus) {
-        return switch (accountStatus) {
-            case ACTIVE -> UserProfileStatus.ACTIVE;
-            case LOCKED -> UserProfileStatus.SUSPENDED;
-            case DISABLED -> UserProfileStatus.INACTIVE;
-            case PENDING -> throw new BadRequestException("Provisioned accounts do not support PENDING status");
-        };
-    }
-
-    private EmployeeStatus toEmployeeStatus(String roleCode, AccountStatus accountStatus) {
-        AdminProvisionableAccountRoleCode currentRole = parseProvisionableRole(roleCode);
-        if (currentRole.requiresEmployeeRecord()) {
-            return null;
-        }
-        return switch (accountStatus) {
-            case ACTIVE -> EmployeeStatus.ACTIVE;
-            case LOCKED -> EmployeeStatus.SUSPENDED;
-            case DISABLED -> EmployeeStatus.INACTIVE;
-            case PENDING -> throw new BadRequestException("Provisioned accounts do not support PENDING status");
-        };
-    }
-
-    private CustomerStatus toCustomerStatus(AccountStatus accountStatus) {
-        return switch (accountStatus) {
-            case ACTIVE -> CustomerStatus.ACTIVE;
-            case LOCKED, DISABLED -> CustomerStatus.INACTIVE;
-            case PENDING -> throw new BadRequestException("Provisioned accounts do not support PENDING status");
-        };
-    }
-
-    private void validateStatusTransition(AccountStatus currentStatus, AccountStatus targetStatus) {
-        if (AccountStatus.DISABLED.equals(currentStatus) && AccountStatus.LOCKED.equals(targetStatus)) {
-            throw new BadRequestException("Provisioned accounts cannot transition from DISABLED to LOCKED");
-        }
-    }
-
-    private void validateRoleTransition(String currentRoleCode, AdminProvisionableAccountRoleCode targetRoleCode) {
-        AdminProvisionableAccountRoleCode currentRole = parseProvisionableRole(currentRoleCode);
-        if (currentRole.isInternalRole() != targetRoleCode.isInternalRole()) {
-            throw new BadRequestException(
-                    "Changing role between CUSTOMER and internal account types is not supported"
-            );
-        }
+        ensureCanManageTargetRole(result.role().roleCode());
     }
 
     private AdminProvisionableAccountRoleCode requireProvisionableRole(AdminProvisionableAccountRoleCode roleCode) {
-        if (roleCode == null) {
-            throw new BadRequestException("roleCode must not be null");
-        }
-        return roleCode;
+        return provisionedAccountPolicy.requireProvisionableRole(roleCode);
     }
 
-    private AdminProvisionableAccountRoleCode parseProvisionableRole(String roleCode) {
-        if (roleCode == null || roleCode.isBlank()) {
-            throw new BadRequestException("Current account role is not supported");
+    private Set<AdminProvisionableAccountRoleCode> managedTargetRolesForCurrentAccount() {
+        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
+        AdminProvisionableAccountRoleCode currentRoleCode =
+                provisionedAccountPolicy.requireProvisionableRole(currentAccount.roleCode());
+        Set<AdminProvisionableAccountRoleCode> managedRoleCodes =
+                provisionedAccountPolicy.managedTargetRoles(currentRoleCode);
+        if (managedRoleCodes.isEmpty()) {
+            throw new AccessDeniedException("Current account is not allowed to manage provisioned accounts");
         }
-        try {
-            return AdminProvisionableAccountRoleCode.valueOf(roleCode);
-        } catch (IllegalArgumentException exception) {
-            throw new BadRequestException("Current account role is not supported");
+        return managedRoleCodes;
+    }
+
+    private void ensureCanManageTargetRole(String targetRoleCode) {
+        ensureCanManageTargetRole(provisionedAccountPolicy.requireProvisionableRole(targetRoleCode));
+    }
+
+    private void ensureCanManageTargetRole(AdminProvisionableAccountRoleCode targetRoleCode) {
+        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
+        AdminProvisionableAccountRoleCode currentRoleCode =
+                provisionedAccountPolicy.requireProvisionableRole(currentAccount.roleCode());
+        if (!provisionedAccountPolicy.canManageTargetRole(currentRoleCode, targetRoleCode)) {
+            throw new AccessDeniedException("Current account is not allowed to manage target role");
         }
     }
 

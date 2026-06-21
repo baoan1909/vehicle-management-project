@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.people.customer.response;
 
+import com.ban.vehicle_management.entrypoint.dto.people.userprofile.response.UserProfileAdminResponse;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
@@ -21,6 +22,8 @@ public class CustomerAdminResponse {
     private CustomerApprovalStatus approvalStatus;
     private UUID approvedBy;
     private String approvedAt;
+    private String accountEmail;
+    private UserProfileAdminResponse userProfile;
     private String createdAt;
     private UUID createdBy;
     private String updatedAt;

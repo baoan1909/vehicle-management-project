@@ -88,7 +88,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         AccountEntity accountEntity = accountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account does not exist"));
 
-        userProfileRepository.save(userProfilePersistenceMapper.toEntity(userProfile));
+        saveUserProfile(userProfile);
         accountEntity.setUserProfileId(userProfile.getUserProfileId());
 
         return accountPersistenceMapper.toDomain(accountRepository.save(accountEntity));
@@ -99,7 +99,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         AccountEntity accountEntity = accountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account does not exist"));
 
-        userProfileRepository.save(userProfilePersistenceMapper.toEntity(userProfile));
+        saveUserProfile(userProfile);
 
         customer.setCustomerCode(IdentifierGenerationUtils.generateCustomerCode(customer.getCustomerId()));
         customerRepository.save(customerPersistenceMapper.toEntity(customer));
@@ -115,7 +115,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         AccountEntity accountEntity = accountRepository.findById(accountId)
                 .orElseThrow(() -> new NotFoundException("Account does not exist"));
 
-        userProfileRepository.save(userProfilePersistenceMapper.toEntity(userProfile));
+        saveUserProfile(userProfile);
         employeeRepository.save(employeePersistenceMapper.toEntity(employee));
 
         accountEntity.setUserProfileId(userProfile.getUserProfileId());
@@ -141,29 +141,31 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         existingUserProfileEntity.setGender(userProfile.getGender());
         existingUserProfileEntity.setAddress(userProfile.getAddress());
         existingUserProfileEntity.setIdentifyCard(userProfile.getIdentifyCard());
-        existingUserProfileEntity.setAvatarUrl(userProfile.getAvatarUrl());
         existingUserProfileEntity.setStatus(userProfile.getStatus());
 
         userProfileRepository.save(existingUserProfileEntity);
         return toProfileState(accountEntity);
     }
 
-    @Override
-    public AccountProfileState updateAvatar(UUID accountId, String avatarUrl) {
-        AccountEntity accountEntity = accountRepository.findById(accountId)
-                .orElseThrow(() -> new NotFoundException("Account does not exist"));
+    private void saveUserProfile(UserProfile userProfile) {
+        UserProfileEntity userProfileEntity = userProfileRepository.findById(userProfile.getUserProfileId())
+                .map(existingUserProfileEntity -> applyUserProfileChanges(existingUserProfileEntity, userProfile))
+                .orElseGet(() -> userProfilePersistenceMapper.toEntity(userProfile));
+        userProfileRepository.save(userProfileEntity);
+    }
 
-        UUID userProfileId = accountEntity.getUserProfileId();
-        if (userProfileId == null) {
-            throw new NotFoundException("User profile does not exist");
-        }
-
-        UserProfileEntity existingUserProfileEntity = userProfileRepository.findById(userProfileId)
-                .orElseThrow(() -> new NotFoundException("User profile does not exist"));
-
-        existingUserProfileEntity.setAvatarUrl(avatarUrl);
-        userProfileRepository.saveAndFlush(existingUserProfileEntity);
-        return toProfileState(accountEntity);
+    private UserProfileEntity applyUserProfileChanges(
+            UserProfileEntity userProfileEntity,
+            UserProfile userProfile
+    ) {
+        userProfileEntity.setFullName(userProfile.getFullName());
+        userProfileEntity.setPhoneNumber(userProfile.getPhoneNumber());
+        userProfileEntity.setDateOfBirth(userProfile.getDateOfBirth());
+        userProfileEntity.setGender(userProfile.getGender());
+        userProfileEntity.setAddress(userProfile.getAddress());
+        userProfileEntity.setIdentifyCard(userProfile.getIdentifyCard());
+        userProfileEntity.setStatus(userProfile.getStatus());
+        return userProfileEntity;
     }
 
     private AccountProfileState toProfileState(AccountEntity accountEntity) {
@@ -185,7 +187,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 userProfileEntity == null ? null : userProfileEntity.getPhoneNumber(),
                 userProfileEntity == null ? null : userProfileEntity.getAddress(),
                 userProfileEntity == null ? null : userProfileEntity.getIdentifyCard(),
-                userProfileEntity == null ? null : userProfileEntity.getAvatarUrl(),
+                null,
                 userProfileEntity == null ? null : userProfileEntity.getStatus(),
                 employeeEntity == null ? null : employeeEntity.getEmployeeId(),
                 employeeEntity == null ? null : employeeEntity.getEmployeeCode(),

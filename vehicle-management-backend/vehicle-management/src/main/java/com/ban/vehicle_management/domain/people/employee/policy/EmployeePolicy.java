@@ -20,7 +20,14 @@ public class EmployeePolicy {
     }
 
     public void activate(Employee employee) {
+        activate(employee, null);
+    }
+
+    public void activate(Employee employee, LocalDate hiredAtWhenMissing) {
         requireEmployee(employee);
+        if (employee.getHiredAt() == null && hiredAtWhenMissing != null) {
+            employee.setHiredAt(hiredAtWhenMissing);
+        }
         employee.setStatus(EmployeeStatus.ACTIVE);
         validateState(employee);
     }

@@ -22,16 +22,18 @@ import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
@@ -48,8 +50,17 @@ class InternalEmployeeApprovalUseCaseImplTest {
     @Mock
     private InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
 
-    @InjectMocks
     private InternalEmployeeApprovalUseCaseImpl internalEmployeeApprovalUseCase;
+
+    @BeforeEach
+    void setUp() {
+        internalEmployeeApprovalUseCase = new InternalEmployeeApprovalUseCaseImpl(
+                currentAccountPortIn,
+                internalEmployeeApprovalAccessGuard,
+                internalEmployeeApprovalPortOut,
+                Clock.fixed(Instant.parse("2026-06-20T16:29:30Z"), ZoneOffset.UTC)
+        );
+    }
 
     @Test
     void shouldApproveEmployeeApprovalRequestAndActivateEmployee() {
@@ -92,6 +103,45 @@ class InternalEmployeeApprovalUseCaseImplTest {
         assertEquals(ApprovalRequestStatus.APPROVED, approvalCaptor.getValue().getStatus());
         assertEquals(EmployeeStatus.ACTIVE, employeeCaptor.getValue().getStatus());
         assertEquals("APPROVED", result.request().approvalRequestStatus());
+    }
+
+    @Test
+    void shouldSetHireDateWhenApprovingEmployeeWithoutHireDate() {
+        UUID approvalRequestId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID employeeId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+
+        ApprovalRequest approvalRequest = pendingApprovalRequest(approvalRequestId, employeeId, accountId);
+        Employee employee = pendingEmployee(employeeId, userProfileId);
+        employee.setHiredAt(null);
+        InternalEmployeeApprovalResult expectedResult = approvalResult(
+                approvalRequestId,
+                "EMPLOYEE",
+                "APPROVED",
+                "Approved by parking manager",
+                employeeId,
+                EmployeeStatus.ACTIVE
+        );
+
+        when(internalEmployeeApprovalAccessGuard.requireWriteAccess()).thenReturn(currentParkingManager(accountId));
+        when(internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequestById(approvalRequestId))
+                .thenReturn(Optional.of(approvalRequest));
+        when(internalEmployeeApprovalPortOut.findCandidateByEmployeeId(employeeId))
+                .thenReturn(Optional.of(candidate(accountId, userProfileId, employeeId, "EMPLOYEE")));
+        when(internalEmployeeApprovalPortOut.findEmployeeById(employeeId)).thenReturn(Optional.of(employee));
+        when(internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId))
+                .thenReturn(Optional.of(expectedResult));
+
+        internalEmployeeApprovalUseCase.approveInternalEmployeeApproval(
+                approvalRequestId,
+                new ReviewInternalEmployeeApprovalCommand("Approved by parking manager")
+        );
+
+        ArgumentCaptor<Employee> employeeCaptor = ArgumentCaptor.forClass(Employee.class);
+        verify(internalEmployeeApprovalPortOut).saveInternalEmployeeApprovalDecision(any(), employeeCaptor.capture());
+        assertEquals(EmployeeStatus.ACTIVE, employeeCaptor.getValue().getStatus());
+        assertEquals(LocalDate.of(2026, 6, 20), employeeCaptor.getValue().getHiredAt());
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.specification.people;
 
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
@@ -25,6 +26,9 @@ public final class CustomerSpecifications {
     ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                root.fetch("userProfile", JoinType.LEFT).fetch("account", JoinType.LEFT);
+            }
 
             if (status != null) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), status));
@@ -38,10 +42,12 @@ public final class CustomerSpecifications {
             if (keyword != null && !keyword.trim().isEmpty()) {
                 String keywordPattern = "%" + keyword.trim().toLowerCase() + "%";
                 Join<CustomerEntity, UserProfileEntity> userProfileJoin = root.join("userProfile", JoinType.LEFT);
+                Join<UserProfileEntity, AccountEntity> accountJoin = userProfileJoin.join("account", JoinType.LEFT);
                 predicates.add(criteriaBuilder.or(
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("customerCode")), keywordPattern),
                         criteriaBuilder.like(criteriaBuilder.lower(userProfileJoin.get("fullName")), keywordPattern),
-                        criteriaBuilder.like(criteriaBuilder.lower(userProfileJoin.get("phoneNumber")), keywordPattern)
+                        criteriaBuilder.like(criteriaBuilder.lower(userProfileJoin.get("phoneNumber")), keywordPattern),
+                        criteriaBuilder.like(criteriaBuilder.lower(accountJoin.get("email")), keywordPattern)
                 ));
             }
 

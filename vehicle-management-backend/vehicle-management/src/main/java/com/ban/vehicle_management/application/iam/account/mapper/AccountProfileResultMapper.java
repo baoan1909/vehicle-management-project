@@ -45,7 +45,7 @@ public interface AccountProfileResultMapper {
     @Mapping(target = "gender", expression = "java(firstNonNull(command.gender(), state.gender()))")
     @Mapping(target = "address", expression = "java(firstNonNull(command.address(), state.address()))")
     @Mapping(target = "identifyCard", expression = "java(firstNonNull(command.identifyCard(), state.identifyCard()))")
-    @Mapping(target = "avatarUrl", expression = "java(firstNonNull(command.avatarUrl(), state.avatarUrl()))")
+    @Mapping(target = "avatarUrl", source = "state.avatarUrl")
     @Mapping(target = "status", expression = "java(resolveUserProfileStatus(state.userProfileStatus()))")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)

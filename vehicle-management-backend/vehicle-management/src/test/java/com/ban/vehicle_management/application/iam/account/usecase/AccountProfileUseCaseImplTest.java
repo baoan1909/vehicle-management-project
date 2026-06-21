@@ -19,10 +19,11 @@ import com.ban.vehicle_management.application.iam.account.port.out.AccountProfil
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
-import com.ban.vehicle_management.application.storage.service.StorageUrlResolver;
+import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
+import com.ban.vehicle_management.domain.iam.account.policy.AccountOnboardingPolicy;
 import com.ban.vehicle_management.domain.iam.account.policy.AccountProfilePolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
@@ -40,6 +41,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -63,11 +65,14 @@ class AccountProfileUseCaseImplTest {
     @Mock
     private AccountProfileResultMapper accountProfileResultMapper;
 
-    @Mock
-    private AccountProfilePolicy accountProfilePolicy;
+    @Spy
+    private AccountProfilePolicy accountProfilePolicy = new AccountProfilePolicy();
+
+    @Spy
+    private AccountOnboardingPolicy accountOnboardingPolicy = new AccountOnboardingPolicy();
 
     @Mock
-    private StorageUrlResolver storageUrlResolver;
+    private UserProfileAvatarPortIn userProfileAvatarPortIn;
 
     @InjectMocks
     private AccountProfileUseCaseImpl accountProfileUseCase;
@@ -175,6 +180,49 @@ class AccountProfileUseCaseImplTest {
     }
 
     @Test
+    void shouldMarkOnboardingRequiredForCustomerRoleWithProfileButWithoutCustomerRecord() {
+        UUID accountId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+        AccountProfileState state = profileOnlyState(
+                accountId,
+                AdminProvisionableAccountRoleCode.CUSTOMER,
+                userProfileId
+        );
+
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
+        when(accountProfilePortOut.findProfileStateByAccountId(accountId)).thenReturn(Optional.of(state));
+        when(accountProfileResultMapper.toStatusResult(state, true)).thenReturn(new AccountProfileStatusResult(
+                true,
+                new AccountProfileStatusResult.AccountInfoResult(
+                        accountId,
+                        "ACTIVE",
+                        "customer.pending",
+                        "customer.pending@example.com",
+                        "sub-123"
+                ),
+                new AccountProfileStatusResult.ProfileInfoResult(
+                        userProfileId,
+                        "Nguyen Pending",
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        "ACTIVE"
+                ),
+                null,
+                null
+        ));
+
+        AccountProfileStatusResult result = accountProfileUseCase.getMyProfile();
+
+        assertTrue(result.onboardingRequired());
+        assertEquals(userProfileId, result.profile().userProfileId());
+        assertNull(result.customer());
+    }
+
+    @Test
     void shouldMarkOnboardingRequiredForSystemAdminWithoutProfile() {
         UUID accountId = UUID.randomUUID();
         AccountProfileState state = onboardingPendingState(accountId, AdminProvisionableAccountRoleCode.SYSTEM_ADMIN);
@@ -242,16 +290,6 @@ class AccountProfileUseCaseImplTest {
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
         when(accountProfilePortOut.findProfileStateByAccountId(accountId))
                 .thenReturn(Optional.of(initialState), Optional.of(completedState));
-        when(accountProfilePolicy.normalizeForComplete(any(CompleteAccountProfileCommand.class)))
-                .thenReturn(new CompleteAccountProfileCommand(
-                        "Nguyen Bao An",
-                        "+84901234567",
-                        LocalDate.of(2003, 9, 19),
-                        "MALE",
-                        "Ho Chi Minh City",
-                        "079203001234",
-                        "https://cdn.example.com/avatars/bao-an.jpg"
-                ));
         when(accountProfilePortOut.existsByPhoneNumber("+84901234567")).thenReturn(false);
         when(accountProfilePortOut.existsByIdentifyCard("079203001234")).thenReturn(false);
         when(accountProfilePortOut.completeInternalProfile(eq(accountId), any(), any())).thenReturn(updatedAccount);
@@ -355,16 +393,6 @@ class AccountProfileUseCaseImplTest {
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
         when(accountProfilePortOut.findProfileStateByAccountId(accountId))
                 .thenReturn(Optional.of(initialState), Optional.of(completedState));
-        when(accountProfilePolicy.normalizeForComplete(any(CompleteAccountProfileCommand.class)))
-                .thenReturn(new CompleteAccountProfileCommand(
-                        "Nguyen Customer",
-                        "0901002003",
-                        LocalDate.of(1998, 3, 15),
-                        "MALE",
-                        "Ho Chi Minh City",
-                        "079100200003",
-                        null
-                ));
         when(accountProfilePortOut.existsByPhoneNumber("0901002003")).thenReturn(false);
         when(accountProfilePortOut.existsByIdentifyCard("079100200003")).thenReturn(false);
         when(accountProfilePortOut.completeProfile(eq(accountId), any(), any())).thenReturn(updatedAccount);
@@ -427,6 +455,103 @@ class AccountProfileUseCaseImplTest {
     }
 
     @Test
+    void shouldCompleteCustomerOnboardingUsingExistingProfileFromRegistration() {
+        UUID accountId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+
+        AccountProfileState initialState = profileOnlyState(
+                accountId,
+                AdminProvisionableAccountRoleCode.CUSTOMER,
+                userProfileId
+        );
+        AccountProfileState completedState = new AccountProfileState(
+                accountId,
+                "customer.pending",
+                "customer.pending@example.com",
+                "sub-customer",
+                AdminProvisionableAccountRoleCode.CUSTOMER.name(),
+                userProfileId,
+                "Nguyen Customer",
+                LocalDate.of(1998, 3, 15),
+                "MALE",
+                "0901002003",
+                "Ho Chi Minh City",
+                "079100200003",
+                null,
+                UserProfileStatus.ACTIVE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                customerId,
+                "CUS-001",
+                CustomerType.REGISTERED,
+                CustomerStatus.INACTIVE,
+                CustomerApprovalStatus.PENDING,
+                AccountStatus.ACTIVE
+        );
+        Account updatedAccount = buildUpdatedAccount(accountId, "customer.pending", "customer.pending@example.com");
+
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
+        when(accountProfilePortOut.findProfileStateByAccountId(accountId))
+                .thenReturn(Optional.of(initialState), Optional.of(completedState));
+        when(accountProfilePortOut.existsByPhoneNumberAndUserProfileIdNot("0901002003", userProfileId))
+                .thenReturn(false);
+        when(accountProfilePortOut.existsByIdentifyCardAndUserProfileIdNot("079100200003", userProfileId))
+                .thenReturn(false);
+        when(accountProfilePortOut.completeProfile(eq(accountId), any(), any())).thenReturn(updatedAccount);
+        when(accountProfileResultMapper.toStatusResult(completedState, false)).thenReturn(new AccountProfileStatusResult(
+                false,
+                new AccountProfileStatusResult.AccountInfoResult(
+                        accountId,
+                        "ACTIVE",
+                        "customer.pending",
+                        "customer.pending@example.com",
+                        "sub-customer"
+                ),
+                new AccountProfileStatusResult.ProfileInfoResult(
+                        userProfileId,
+                        "Nguyen Customer",
+                        LocalDate.of(1998, 3, 15),
+                        "MALE",
+                        "0901002003",
+                        "Ho Chi Minh City",
+                        "079100200003",
+                        null,
+                        "ACTIVE"
+                ),
+                null,
+                new AccountProfileStatusResult.CustomerInfoResult(
+                        customerId,
+                        "CUS-001",
+                        "REGISTERED",
+                        "INACTIVE",
+                        "PENDING"
+                )
+        ));
+
+        AccountProfileStatusResult result = accountProfileUseCase.completeMyProfile(
+                new CompleteAccountProfileCommand(
+                        "Nguyen Customer",
+                        "0901002003",
+                        LocalDate.of(1998, 3, 15),
+                        "MALE",
+                        "Ho Chi Minh City",
+                        "079100200003",
+                        null
+                )
+        );
+
+        ArgumentCaptor<com.ban.vehicle_management.domain.people.userprofile.model.UserProfile> profileCaptor =
+                ArgumentCaptor.forClass(com.ban.vehicle_management.domain.people.userprofile.model.UserProfile.class);
+        verify(accountProfilePortOut).completeProfile(eq(accountId), profileCaptor.capture(), any());
+        assertEquals(userProfileId, profileCaptor.getValue().getUserProfileId());
+        assertEquals(customerId, result.customer().customerId());
+    }
+
+    @Test
     void shouldTreatParkingManagerAsEmployeeBackedRoleDuringOnboarding() {
         UUID accountId = UUID.randomUUID();
         UUID userProfileId = UUID.randomUUID();
@@ -465,16 +590,6 @@ class AccountProfileUseCaseImplTest {
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
         when(accountProfilePortOut.findProfileStateByAccountId(accountId))
                 .thenReturn(Optional.of(initialState), Optional.of(completedState));
-        when(accountProfilePolicy.normalizeForComplete(any(CompleteAccountProfileCommand.class)))
-                .thenReturn(new CompleteAccountProfileCommand(
-                        "Tran Thi Manager",
-                        "0987001003",
-                        LocalDate.of(1992, 6, 10),
-                        "Female",
-                        "78 Le Loi, District 1, Ho Chi Minh City",
-                        "079123450203",
-                        "https://example.com/avatars/manager-01.jpg"
-                ));
         when(accountProfilePortOut.existsByPhoneNumber("0987001003")).thenReturn(false);
         when(accountProfilePortOut.existsByIdentifyCard("079123450203")).thenReturn(false);
         when(accountProfilePortOut.completeInternalProfile(eq(accountId), any(), any())).thenReturn(updatedAccount);
@@ -564,16 +679,6 @@ class AccountProfileUseCaseImplTest {
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
         when(accountProfilePortOut.findProfileStateByAccountId(accountId))
                 .thenReturn(Optional.of(initialState), Optional.of(completedState));
-        when(accountProfilePolicy.normalizeForComplete(any(CompleteAccountProfileCommand.class)))
-                .thenReturn(new CompleteAccountProfileCommand(
-                        "System Admin",
-                        "0901000000",
-                        LocalDate.of(1990, 1, 1),
-                        "MALE",
-                        "Ho Chi Minh City",
-                        "079100000001",
-                        "https://example.com/avatars/sysadmin.jpg"
-                ));
         when(accountProfilePortOut.existsByPhoneNumber("0901000000")).thenReturn(false);
         when(accountProfilePortOut.existsByIdentifyCard("079100000001")).thenReturn(false);
         when(accountProfilePortOut.completeProfileOnly(eq(accountId), any())).thenReturn(updatedAccount);
@@ -664,19 +769,11 @@ class AccountProfileUseCaseImplTest {
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
         when(accountProfilePortOut.findProfileStateByAccountId(accountId))
                 .thenReturn(Optional.of(initialState), Optional.of(completedState));
-        when(accountProfilePolicy.normalizeForComplete(any(CompleteAccountProfileCommand.class)))
-                .thenReturn(new CompleteAccountProfileCommand(
-                        "Pending System Admin",
-                        "0901000001",
-                        LocalDate.of(1990, 1, 1),
-                        "MALE",
-                        "Ho Chi Minh City",
-                        "079100000002",
-                        null
-                ));
         when(accountProfilePortOut.existsByPhoneNumber("0901000001")).thenReturn(false);
         when(accountProfilePortOut.existsByIdentifyCard("079100000002")).thenReturn(false);
         when(accountProfilePortOut.completeProfileOnly(eq(accountId), any())).thenReturn(updatedAccount);
+        when(systemAdminApprovalPortOut.findLatestSystemAdminApprovalRequest(accountId))
+                .thenReturn(Optional.of(new ApprovalRequest()));
         when(accountProfileResultMapper.toStatusResult(completedState, false)).thenReturn(new AccountProfileStatusResult(
                 false,
                 new AccountProfileStatusResult.AccountInfoResult(
@@ -755,16 +852,6 @@ class AccountProfileUseCaseImplTest {
 
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
         when(accountProfilePortOut.findProfileStateByAccountId(accountId)).thenReturn(Optional.of(state));
-        when(accountProfilePolicy.normalizeForComplete(any(CompleteAccountProfileCommand.class)))
-                .thenReturn(new CompleteAccountProfileCommand(
-                        "Unknown User",
-                        "0987001999",
-                        LocalDate.of(1990, 1, 1),
-                        "Male",
-                        "Unknown",
-                        "079123450999",
-                        null
-                ));
         when(accountProfilePortOut.existsByPhoneNumber("0987001999")).thenReturn(false);
         when(accountProfilePortOut.existsByIdentifyCard("079123450999")).thenReturn(false);
 
@@ -817,6 +904,42 @@ class AccountProfileUseCaseImplTest {
                 null,
                 null,
                 accountStatus
+        );
+    }
+
+    private AccountProfileState profileOnlyState(
+            UUID accountId,
+            AdminProvisionableAccountRoleCode roleCode,
+            UUID userProfileId
+    ) {
+        return new AccountProfileState(
+                accountId,
+                roleCode == AdminProvisionableAccountRoleCode.CUSTOMER ? "customer.pending" : "pending-user",
+                roleCode == AdminProvisionableAccountRoleCode.CUSTOMER
+                        ? "customer.pending@example.com"
+                        : "pending@example.com",
+                "sub-123",
+                roleCode.name(),
+                userProfileId,
+                "Nguyen Pending",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                UserProfileStatus.ACTIVE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                AccountStatus.ACTIVE
         );
     }
 

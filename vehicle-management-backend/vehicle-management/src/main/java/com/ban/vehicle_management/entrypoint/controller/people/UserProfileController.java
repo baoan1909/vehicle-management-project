@@ -8,17 +8,12 @@ import com.ban.vehicle_management.entrypoint.dto.people.userprofile.response.Use
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/people/user-profiles")
@@ -49,27 +44,6 @@ public class UserProfileController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched user profiles successfully",
                 userProfileApiMapper.toAdminResponses(userProfiles)
-        ));
-    }
-
-    @PostMapping(value = "/{userProfileId}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<UserProfileAdminResponse>> uploadAvatar(
-            @PathVariable UUID userProfileId,
-            @RequestPart("file") MultipartFile file
-    ) {
-        UserProfile userProfile = userProfilePortIn.uploadAvatar(userProfileId, file);
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Avatar updated successfully",
-                userProfileApiMapper.toAdminResponse(userProfile)
-        ));
-    }
-
-    @DeleteMapping("/{userProfileId}/avatar")
-    public ResponseEntity<ApiResponse<UserProfileAdminResponse>> deleteAvatar(@PathVariable UUID userProfileId) {
-        UserProfile userProfile = userProfilePortIn.deleteAvatar(userProfileId);
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Avatar deleted successfully",
-                userProfileApiMapper.toAdminResponse(userProfile)
         ));
     }
 

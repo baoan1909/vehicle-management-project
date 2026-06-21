@@ -5,9 +5,11 @@ import com.ban.vehicle_management.application.iam.account.model.result.Provision
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.AccountStatusHistory;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.infrastructure.mapper.iam.AccountPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.iam.AccountStatusHistoryPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.iam.ProvisionedAccountReadModelMapper;
+import com.ban.vehicle_management.infrastructure.mapper.people.UserProfilePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountStatusHistoryEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
@@ -46,6 +48,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
     private final AccountPersistenceMapper accountPersistenceMapper;
     private final AccountStatusHistoryPersistenceMapper accountStatusHistoryPersistenceMapper;
     private final ProvisionedAccountReadModelMapper provisionedAccountReadModelMapper;
+    private final UserProfilePersistenceMapper userProfilePersistenceMapper;
     private final EntityManager entityManager;
 
     public ProvisionedAccountPersistenceAdapter(
@@ -58,6 +61,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
             AccountPersistenceMapper accountPersistenceMapper,
             AccountStatusHistoryPersistenceMapper accountStatusHistoryPersistenceMapper,
             ProvisionedAccountReadModelMapper provisionedAccountReadModelMapper,
+            UserProfilePersistenceMapper userProfilePersistenceMapper,
             EntityManager entityManager
     ) {
         this.accountRepository = accountRepository;
@@ -69,6 +73,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
         this.accountPersistenceMapper = accountPersistenceMapper;
         this.accountStatusHistoryPersistenceMapper = accountStatusHistoryPersistenceMapper;
         this.provisionedAccountReadModelMapper = provisionedAccountReadModelMapper;
+        this.userProfilePersistenceMapper = userProfilePersistenceMapper;
         this.entityManager = entityManager;
     }
 
@@ -90,7 +95,8 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
     }
 
     @Override
-    public void provisionAccount(Account account) {
+    public void provisionAccount(Account account, UserProfile userProfile) {
+        userProfileRepository.save(userProfilePersistenceMapper.toEntity(userProfile));
         accountRepository.save(accountPersistenceMapper.toEntity(account));
         flushAndClear();
     }

@@ -59,35 +59,40 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
 
     @Override
     public String createUser(RegisterAccountCommand command) {
-        return createKeycloakUser(Map.of(
-                "username", command.username(),
-                "email", command.email(),
-                "enabled", true,
-                "emailVerified", false,
-                "requiredActions", List.of("VERIFY_EMAIL"),
-                "attributes", Map.of(
-                        "source", List.of("vehicle-management")
-                ),
-                "credentials", List.of(Map.of(
-                        "type", "password",
-                        "value", command.password(),
-                        "temporary", false
-                ))
-        ));
+        return createKeycloakUser(buildRegisterUserRequestBody(command));
     }
 
     @Override
     public String createProvisionedAccountUser(CreateProvisionedAccountCommand command) {
+        return createKeycloakUser(buildProvisionedUserRequestBody(command));
+    }
+
+    static Map<String, Object> buildRegisterUserRequestBody(RegisterAccountCommand command) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("username", command.username());
+        requestBody.put("email", command.email());
+        requestBody.put("enabled", true);
+        requestBody.put("emailVerified", false);
+        requestBody.put("requiredActions", List.of("VERIFY_EMAIL"));
+        requestBody.put("attributes", buildCreateUserAttributes(command.fullName(), false));
+        requestBody.put("credentials", List.of(Map.of(
+                "type", "password",
+                "value", command.password(),
+                "temporary", false
+        )));
+        putFullName(requestBody, command.fullName());
+        return requestBody;
+    }
+
+    static Map<String, Object> buildProvisionedUserRequestBody(CreateProvisionedAccountCommand command) {
         Map<String, Object> requestBody = new HashMap<>();
         requestBody.put("username", command.account().getUsername());
         requestBody.put("email", command.account().getEmail());
         requestBody.put("enabled", true);
         requestBody.put("emailVerified", true);
         requestBody.put("requiredActions", List.of("UPDATE_PASSWORD"));
-        requestBody.put("attributes", Map.of(
-                "source", List.of("vehicle-management"),
-                "account_type", List.of("PROVISIONED")
-        ));
+        requestBody.put("attributes", buildCreateUserAttributes(command.fullName(), true));
+        putFullName(requestBody, command.fullName());
 
         if (StringUtils.hasText(command.password())) {
             requestBody.put("credentials", List.of(Map.of(
@@ -99,7 +104,25 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
             requestBody.put("credentials", new ArrayList<>());
         }
 
-        return createKeycloakUser(requestBody);
+        return requestBody;
+    }
+
+    private static Map<String, List<String>> buildCreateUserAttributes(String fullName, boolean provisioned) {
+        Map<String, List<String>> attributes = new HashMap<>();
+        attributes.put("source", List.of("vehicle-management"));
+        if (provisioned) {
+            attributes.put("account_type", List.of("PROVISIONED"));
+        }
+        if (StringUtils.hasText(fullName)) {
+            attributes.put("full_name", List.of(fullName));
+        }
+        return attributes;
+    }
+
+    private static void putFullName(Map<String, Object> requestBody, String fullName) {
+        if (StringUtils.hasText(fullName)) {
+            requestBody.put("firstName", fullName);
+        }
     }
 
     @Override

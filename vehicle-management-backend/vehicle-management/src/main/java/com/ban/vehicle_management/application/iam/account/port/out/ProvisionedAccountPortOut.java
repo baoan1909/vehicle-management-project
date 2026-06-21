@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.iam.account.port.out;
 import com.ban.vehicle_management.application.iam.account.model.command.ProvisionedAccountFilterCommand;
 import com.ban.vehicle_management.application.iam.account.model.result.ProvisionedAccountResult;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
@@ -20,7 +21,7 @@ public interface ProvisionedAccountPortOut {
 
     UUID findActiveRoleIdByCode(AdminProvisionableAccountRoleCode roleCode);
 
-    void provisionAccount(Account account);
+    void provisionAccount(Account account, UserProfile userProfile);
 
     List<ProvisionedAccountResult> findProvisionedAccounts(ProvisionedAccountFilterCommand command);
 

@@ -5,7 +5,6 @@ import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 
 import java.util.List;
 import java.util.UUID;
-import org.springframework.web.multipart.MultipartFile;
 
 public interface UserProfilePortIn {
 
@@ -16,10 +15,6 @@ public interface UserProfilePortIn {
     UserProfile getUserProfileById(UUID userProfileId);
 
     List<UserProfile> getUserProfiles(UserProfileStatus status, String keyword);
-
-    UserProfile uploadAvatar(UUID userProfileId, MultipartFile file);
-
-    UserProfile deleteAvatar(UUID userProfileId);
 
 }
 

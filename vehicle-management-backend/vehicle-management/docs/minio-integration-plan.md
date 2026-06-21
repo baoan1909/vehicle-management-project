@@ -69,15 +69,27 @@ Trong migration:
   - `parking.parking_events.person_image_path VARCHAR(255)`
 - `V6__update_parking_structure_for_check_flow.sql` tiep tuc dam bao hai cot tren ton tai, dong thoi dieu chinh luong check-in/check-out theo `zone`, `gate`, `lane`.
 
-Trong code hien tai:
+Trong code hien tai sau phase avatar dau tien:
 
-- `UserProfile`, `AccountProfileState`, request/response profile dang co `avatarUrl`.
+- Da co dependency `io.minio:minio` va `metadata-extractor`.
+- Da co config `app.storage.minio` trong `application.yaml`, gom endpoint, access key, secret key, public/private bucket, TTL, public URL base, image max size, max width va JPEG quality.
+- Da co `MinioClient` bean, `MinioStorageProperties`, `MinioFileStorageAdapter`, `ImageFileProcessor`, `StorageObjectKeyGenerator`.
+- Da co `FileStoragePort`, `FileAccessPort`, `StoreFileCommand`, `StoredFile`, `StorageUrlResolver`.
+- Da co `StorageBucket` va `StorageFolder`; object key dang dung folder ngan nhu `av`, `pe`, `st`, `lcr` de giu duoi gioi han `VARCHAR(255)`.
+- Da co API self avatar:
+  - `POST /api/iam/accounts/profile/avatar`
+  - `DELETE /api/iam/accounts/profile/avatar`
+- Khong expose API avatar theo `userProfileId`; avatar admin/manager di qua aggregate customer/employee.
+- `UserProfile`, `AccountProfileState`, request/response profile van con `avatarUrl`.
+- `CompleteAccountProfileRequest`, `UpdateAccountProfileRequest`, `CreateUserProfileRequest`, `UpdateUserProfileRequest` van con nhan `avatarUrl` dang string; day la contract can deprecate de avatar chi di qua multipart upload endpoint.
 - `ParkingEventEntity` va `ParkingEvent` moi map `imagePath`, chua map `licensePlateImagePath` va `personImagePath`.
-- Chua co `MinioClient`, dependency MinIO, MinIO config, hoac storage port trong vehicle-management.
 
 Ket luan:
 
-- Phase 1 co the dung `avatar_url` va cac cot image path hien co de luu MinIO object key.
+- Phase avatar foundation da co the dung `people.user_profiles.avatar_url` de luu MinIO object key.
+- API self avatar la dung huong va nen giu.
+- API avatar theo `userProfileId` khong nen giu trong public contract vi UI quan tri thao tac theo customer/employee.
+- API avatar theo aggregate nghiep vu la contract chinh: `customers/{customerId}/avatar` va `employees/{employeeId}/avatar`.
 - Can cap nhat `ParkingEventEntity`, domain, mapper, response DTO khi bat luong anh su kien.
 - Nen coi `image_path` la legacy/general image, con `license_plate_image_path` va `person_image_path` la hai anh nghiep vu ro rang cho check flow.
 
@@ -341,6 +353,26 @@ Rang buoc code hien tai:
 - `CustomerVehicleAccessGuard` yeu cau current customer phai ton tai, `CustomerStatus.ACTIVE`, `CustomerApprovalStatus.APPROVED`.
 - Customer chi thao tac xe thuoc chinh customer id cua minh.
 
+### 4.8 Role-policy rieng cho avatar va file
+
+Avatar la file gan voi `people.user_profiles.avatar_url`, nhung API khong nen bat frontend quan ly theo bang `user_profiles` trong moi man hinh. Contract nen theo actor va aggregate dang thao tac.
+
+| Actor | API nen dung | Permission/guard | Ghi chu |
+| --- | --- | --- | --- |
+| Moi current user authenticated | `POST/DELETE /api/iam/accounts/profile/avatar` | Authenticated current account; version sau co the them `USER_PROFILE_UPDATE_OWN` neu role seed duoc can bang lai | Dung de user tu doi avatar cua minh sau khi profile da ton tai. Avatar khong la dieu kien onboarding. |
+| `PARKING_MANAGER` quan ly customer | `POST/DELETE /api/people/customers/{customerId}/avatar` | `CUSTOMER_UPDATE_ALL` | UI customer detail khong can biet `userProfileId`; backend resolve `customerId -> userProfileId`. |
+| `PARKING_MANAGER` quan ly employee | `POST/DELETE /api/people/employees/{employeeId}/avatar` | `EMPLOYEE_UPDATE_ALL` + `EmployeeAccessGuard` | Parking manager chi nen thao tac employee target role `EMPLOYEE`, khong sua parking manager khac. |
+| `SYSTEM_ADMIN` quan ly internal account | Can quyet dinh version sau: cap `EMPLOYEE_UPDATE_ALL` cho system admin, hoac cho phep qua `ACCOUNT_UPDATE_ALL` voi target hierarchy | Mac dinh seed hien tai cua `SYSTEM_ADMIN` nghieng ve IAM, khong co `USER_PROFILE_UPDATE_ALL`/`EMPLOYEE_UPDATE_ALL` trong migration V3 | Khong nen ngam cho system admin sua moi ho so neu DB permission khong cap. |
+| `EMPLOYEE` | Chi self avatar qua `/api/iam/accounts/profile/avatar` | Authenticated/self; khong co `EMPLOYEE_UPDATE_ALL` | Employee co `USER_PROFILE_UPDATE_OWN`, khong duoc sua avatar customer/employee khac. |
+| `CUSTOMER` | Chi self avatar qua `/api/iam/accounts/profile/avatar` | Authenticated/self; khong co `CUSTOMER_UPDATE_ALL` | Customer co `USER_PROFILE_UPDATE_OWN`, khong duoc sua avatar cua customer khac. |
+
+Nguyen tac:
+
+- Public API cho UI nen theo aggregate nghiep vu: account self, customer, employee.
+- Endpoint theo `userProfileId` khong expose public API, vi `userProfileId` la chi tiet persistence dung chung. Logic avatar theo `userProfileId` chi nam trong `UserProfileAvatarPortIn` noi bo.
+- Khi manager dang o man customer/employee, backend tu resolve sang `people.user_profiles.avatar_url`.
+- Khong tiep tuc mo rong write request nhan `avatarUrl` string. Avatar nen di qua multipart endpoint rieng de validate file, resize, metadata va cleanup object cu.
+
 ## 5. API va permission hien co dang duoc enforce
 
 ### 5.1 API dang enforce permission tot
@@ -353,6 +385,8 @@ Rang buoc code hien tai:
 | Current account profile | `GET /api/iam/accounts/onboarding` | Authenticated current account |
 | Current account profile | `POST /api/iam/accounts/onboarding` | Authenticated current account |
 | Current account profile | `PATCH /api/iam/accounts/profile` | Authenticated current account |
+| Current account avatar | `POST /api/iam/accounts/profile/avatar` | Authenticated current account, profile phai ton tai |
+| Current account avatar | `DELETE /api/iam/accounts/profile/avatar` | Authenticated current account, profile phai ton tai |
 | Account provisioning | `/api/iam/accounts/provisioned/**` | `ACCOUNT_CREATE_ALL`, `ACCOUNT_READ_ALL`, `ACCOUNT_UPDATE_ALL` |
 | Role | `/api/iam/roles/**` | `ROLE_CREATE_ALL`, `ROLE_READ_ALL`, `ROLE_UPDATE_ALL`, `ROLE_DELETE_ALL` |
 | Role permission | `/api/roles/{roleId}/permissions/**` | `ROLE_READ_ALL`, `ROLE_ASSIGN_PERMISSION_ALL`, `ROLE_REVOKE_PERMISSION_ALL` |
@@ -361,6 +395,10 @@ Rang buoc code hien tai:
 | Employees | `GET/PUT/DELETE/PATCH /api/people/employees/**` | Application requires `EMPLOYEE_READ_ALL`, `EMPLOYEE_UPDATE_ALL`, `EMPLOYEE_DELETE_ALL`; manager guard restricts target role |
 | Customers | `GET/PUT/PATCH /api/people/customers/**` | `CUSTOMER_READ_ALL`, `CUSTOMER_UPDATE_ALL` |
 | Customer vehicles | `/api/people/customer-vehicles/**` | `CUSTOMER_VEHICLE_*_ALL` or `CUSTOMER_VEHICLE_*_OWN` plus ownership guard |
+| Catalog vehicle types | `/api/catalog/vehicle-types/**` | `VEHICLE_TYPE_*_ALL` in controller va use case |
+| Catalog ticket types | `/api/catalog/ticket-types/**` | `TICKET_TYPE_*_ALL` in controller va use case |
+| Catalog card types | `/api/catalog/card-types/**` | `CARD_TYPE_*_ALL` in controller va use case |
+| Access control cards | `/api/access-control/cards/**` | `CARD_*_ALL` in controller va use case |
 | Approval system admin | `/api/operations/approval-requests/system-admin-onboarding/**` | `ACCOUNT_READ_ALL`, `ACCOUNT_UPDATE_ALL`, plus role `SYSTEM_ADMIN`, no self-review |
 | Approval internal employee | `/api/operations/approval-requests/internal-employee-onboarding/**` | `ACCOUNT_*` or `EMPLOYEE_*`, plus target hierarchy |
 | Approval customer | `/api/operations/approval-requests/customer-onboarding/**` | `CUSTOMER_READ_ALL`, `CUSTOMER_UPDATE_ALL`, plus role `PARKING_MANAGER` |
@@ -370,9 +408,6 @@ Rang buoc code hien tai:
 Nhung controller/use case sau dang co CRUD nghiep vu, nhung chua thay `@PreAuthorize` hoac `currentAccountPortIn.requirePermission(...)` tuong ung:
 
 - Catalog:
-  - `/api/catalog/vehicle-types`
-  - `/api/catalog/ticket-types`
-  - `/api/catalog/card-types`
   - `/api/catalog/price-plans`
   - `/api/catalog/price-rules`
 - Parking topology:
@@ -380,15 +415,16 @@ Nhung controller/use case sau dang co CRUD nghiep vu, nhung chua thay `@PreAutho
   - `/api/parking/zones`
   - `/api/parking/gates`
   - `/api/parking/lanes`
-- Access control cards:
-  - `/api/access-control/cards`
 - Support ticket categories:
   - `/api/operations/support-ticket-categories`
+- Avatar aggregate API can them:
+  - `/api/people/customers/{customerId}/avatar`
+  - `/api/people/employees/{employeeId}/avatar`
 
 De xuat truoc khi mo file/image API:
 
-- Bo sung permission enforcement cho cac module tren.
-- Dung application-layer guard, khong chi dua vao controller annotation.
+- Bo sung permission enforcement cho cac module con thieu.
+- Dung application-layer guard cho file private va avatar aggregate, khong chi dua vao controller annotation.
 - Them security tests cho moi API quan trong.
 
 ## 6. Phan tich luong MinIO trong job24-backend
@@ -593,10 +629,15 @@ Map<String, String> createReadUrls(Set<String> objectKeys, int expireSeconds);
 
 `StorageFolder`:
 
-- `AVATAR("avatars")`
-- `PARKING_EVENT("parking-events")`
-- `SUPPORT_TICKET("support-tickets")`
-- `LOST_CARD_REPORT("lost-card-reports")`
+- `AVATAR("av", "avatar")`
+- `PARKING_EVENT("pe", "parking-event")`
+- `SUPPORT_TICKET("st", "support-ticket")`
+- `LOST_CARD_REPORT("lcr", "lost-card-report")`
+
+Ghi chu:
+
+- Code hien tai dung folder segment ngan de object key khong vuot `VARCHAR(255)`.
+- Display/business name cua file role nam rieng trong enum de response/log de doc hon neu can.
 
 ### 8.4 Object key convention
 
@@ -646,6 +687,8 @@ app:
       presigned-url-expire-seconds: ${MINIO_PRESIGNED_EXPIRE_SECONDS:900}
       public-url-base: ${MINIO_PUBLIC_URL_BASE:}
       image-max-size-bytes: ${MINIO_IMAGE_MAX_SIZE_BYTES:5242880}
+      image-max-width-pixels: ${MINIO_IMAGE_MAX_WIDTH_PIXELS:1280}
+      image-jpeg-quality: ${MINIO_IMAGE_JPEG_QUALITY:0.85}
 ```
 
 ## 9. Luong nghiep vu de xuat
@@ -671,20 +714,53 @@ Permission:
 - Authenticated current user.
 - Nen gan voi `USER_PROFILE_UPDATE_OWN` khi hoan thien RBAC cho own-profile.
 
-### 9.2 Admin/manager cap nhat avatar user profile
+### 9.2 Nguyen tac admin/manager cap nhat avatar
 
-1. Caller goi API admin update avatar cho user profile.
-2. Application require `USER_PROFILE_UPDATE_ALL`.
-3. Validate file va upload len `PUBLIC/AVATAR`.
-4. Update target `people.user_profiles.avatar_url`.
-5. Xoa object cu sau commit.
+Manager/admin khong nen thao tac avatar qua `userProfileId` trong UI chinh. `people.user_profiles` la bang shared profile, con man hinh nghiep vu la customer hoac employee. Do do, API chinh nen resolve avatar qua aggregate:
+
+- Customer detail: `customerId -> customer.userProfileId -> user_profiles.avatar_url`
+- Employee detail: `employeeId -> employee.userProfileId -> user_profiles.avatar_url`
+
+Endpoint `POST/DELETE /api/people/user-profiles/{userProfileId}/avatar` khong giu trong public contract. `UserProfileAvatarPortIn` chi la use case noi bo de cac aggregate customer/employee/self-avatar tai su dung logic upload/delete/cleanup.
+
+### 9.3 Manager cap nhat avatar customer
+
+1. Parking manager goi API upload/delete avatar trong man customer detail.
+2. Application require `CUSTOMER_UPDATE_ALL`.
+3. Load customer theo `customerId`; neu khong ton tai thi `404`.
+4. Lay `userProfileId` tu customer; khong nhan `userProfileId` tu client.
+5. Validate file va upload len `PUBLIC/AVATAR`.
+6. Update `people.user_profiles.avatar_url`.
+7. Xoa object cu sau commit.
+8. Response tra `CustomerAdminProfileResponse` hoac response avatar ngan gon co `customerId`, `userProfileId`, `avatarUrl`.
 
 Permission:
 
-- `PARKING_MANAGER` co `USER_PROFILE_UPDATE_ALL`.
-- `SYSTEM_ADMIN` chi co neu DB role_permissions duoc cap quyen nay. Khong nen mac dinh bo qua permission.
+- `PARKING_MANAGER` co `CUSTOMER_UPDATE_ALL` theo seed V3.
+- `CUSTOMER` khong co quyen nay; customer tu sua avatar qua API self.
+- `SYSTEM_ADMIN` chi nen duoc dung neu DB cap `CUSTOMER_UPDATE_ALL`, khong bypass role-permission.
 
-### 9.3 Upload anh parking event
+### 9.4 Manager/admin cap nhat avatar employee
+
+1. Caller goi API upload/delete avatar trong man employee detail.
+2. Application require `EMPLOYEE_UPDATE_ALL` hoac policy dac biet duoc chot cho `SYSTEM_ADMIN`.
+3. Load employee theo `employeeId`; neu khong ton tai thi `404`.
+4. Apply target hierarchy:
+   - `PARKING_MANAGER` chi update employee target role `EMPLOYEE`.
+   - `SYSTEM_ADMIN` neu duoc cap quyen version sau thi chi update internal account/employee dung policy da chot.
+5. Lay `userProfileId` tu employee; khong nhan `userProfileId` tu client.
+6. Validate file va upload len `PUBLIC/AVATAR`.
+7. Update `people.user_profiles.avatar_url`.
+8. Xoa object cu sau commit.
+9. Response tra `EmployeeAdminResponse` hoac response avatar ngan gon co `employeeId`, `userProfileId`, `avatarUrl`.
+
+Permission:
+
+- `PARKING_MANAGER` co `EMPLOYEE_UPDATE_ALL` theo seed V3 va code hien co da co `EmployeeAccessGuard`.
+- `EMPLOYEE` khong co `EMPLOYEE_UPDATE_ALL`; employee tu sua avatar qua API self.
+- Can chot version sau: neu `SYSTEM_ADMIN` can sua avatar parking manager, nen them migration cap `EMPLOYEE_UPDATE_ALL` cho `SYSTEM_ADMIN` hoac tao guard rieng cho `ACCOUNT_UPDATE_ALL` + target role internal.
+
+### 9.5 Upload anh parking event
 
 Ap dung khi `parking_event` da ton tai hoac trong luong check-in/check-out tao event.
 
@@ -713,7 +789,7 @@ Permission doc:
 - `CUSTOMER`: chi read own event image neu event thuoc parking session cua minh va co `PARKING_EVENT_READ_OWN`.
 - `SYSTEM_ADMIN`: chi read/update neu co permission parking tu DB.
 
-### 9.4 Lay URL xem anh parking event
+### 9.6 Lay URL xem anh parking event
 
 1. Client yeu cau URL theo `parkingEventId`, khong gui object key tuy y.
 2. Application load event/session.
@@ -725,7 +801,7 @@ Permission doc:
 
 Khong de xuat API public `GET /api/files?filename=...` cho private object.
 
-### 9.5 Xoa/thay the anh
+### 9.7 Xoa/thay the anh
 
 1. Require permission update/delete cua resource.
 2. Neu thay the:
@@ -782,31 +858,131 @@ Nhiem vu:
 - Set `avatar_url = null`.
 - Xoa object cu sau commit.
 
-### 10.2 Avatar admin
+### 10.2 Avatar customer admin
 
-#### `POST /api/people/user-profiles/{userProfileId}/avatar`
+#### `POST /api/people/customers/{customerId}/avatar`
 
-Upload/thay avatar cho user profile bat ky.
+Upload/thay avatar cua customer trong man quan ly customer.
 
-Permission:
+Request:
 
-- `USER_PROFILE_UPDATE_ALL`
-
-Nhiem vu:
-
-- Dung cho parking manager/admin co quyen cap nhat ho so.
-- Kiem tra user profile ton tai.
-- Upload va update `avatar_url`.
-
-#### `DELETE /api/people/user-profiles/{userProfileId}/avatar`
-
-Xoa avatar cua user profile bat ky.
+- `multipart/form-data`
+- field `file`
 
 Permission:
 
-- `USER_PROFILE_UPDATE_ALL`
+- `CUSTOMER_UPDATE_ALL`
 
-### 10.3 Parking event images
+Muc dich:
+
+- Dung cho `PARKING_MANAGER` cap nhat avatar customer khi xu ly ho so khach hang.
+- Khong expose `userProfileId` cho frontend.
+- Backend resolve `customerId -> userProfileId`.
+- Upload MinIO public bucket va update `people.user_profiles.avatar_url`.
+- Xoa avatar cu sau commit.
+
+Response de xuat:
+
+- `CustomerAdminProfileResponse` neu man detail can refresh full profile.
+- Hoac `CustomerAvatarResponse` ngan gon:
+
+```json
+{
+  "customerId": "...",
+  "userProfileId": "...",
+  "avatarUrl": "https://..."
+}
+```
+
+#### `DELETE /api/people/customers/{customerId}/avatar`
+
+Xoa avatar cua customer trong man quan ly customer.
+
+Permission:
+
+- `CUSTOMER_UPDATE_ALL`
+
+Muc dich:
+
+- Set `avatar_url = null`.
+- Xoa object cu sau commit.
+- Response tuong tu upload.
+
+### 10.3 Avatar employee admin
+
+#### `POST /api/people/employees/{employeeId}/avatar`
+
+Upload/thay avatar cua employee trong man quan ly employee.
+
+Request:
+
+- `multipart/form-data`
+- field `file`
+
+Permission:
+
+- `EMPLOYEE_UPDATE_ALL`
+- Apply `EmployeeAccessGuard` de parking manager chi sua target role `EMPLOYEE`.
+
+Muc dich:
+
+- Dung cho `PARKING_MANAGER` cap nhat avatar employee.
+- Khong expose `userProfileId` cho frontend.
+- Backend resolve `employeeId -> userProfileId`.
+- Upload MinIO public bucket va update `people.user_profiles.avatar_url`.
+- Xoa avatar cu sau commit.
+
+Response de xuat:
+
+- `EmployeeAdminResponse` neu man detail can refresh full employee.
+- Hoac `EmployeeAvatarResponse` ngan gon:
+
+```json
+{
+  "employeeId": "...",
+  "userProfileId": "...",
+  "avatarUrl": "https://..."
+}
+```
+
+#### `DELETE /api/people/employees/{employeeId}/avatar`
+
+Xoa avatar cua employee trong man quan ly employee.
+
+Permission:
+
+- `EMPLOYEE_UPDATE_ALL`
+- Apply target hierarchy nhu upload.
+
+### 10.4 Avatar user-profile internal use case
+
+Khong expose public API theo `userProfileId`:
+
+```text
+POST /api/people/user-profiles/{userProfileId}/avatar
+DELETE /api/people/user-profiles/{userProfileId}/avatar
+```
+
+Ly do:
+
+- UI chinh thao tac theo `customerId` hoac `employeeId`.
+- `userProfileId` la chi tiet noi bo cua shared profile.
+- Neu expose API theo `userProfileId`, frontend co the bypass guard theo aggregate.
+
+Use case noi bo van giu:
+
+```text
+UserProfileAvatarPortIn
+UserProfileAvatarUseCaseImpl
+```
+
+Use case nay chi duoc goi tu cac luong:
+
+- self avatar cua current account
+- customer avatar aggregate
+- employee avatar aggregate
+
+### 10.5 Parking event images
 
 #### `POST /api/parking/events/{parkingEventId}/images`
 
@@ -869,7 +1045,7 @@ Nhiem vu:
 - Set cot tuong ung ve null.
 - Xoa object sau commit.
 
-### 10.4 Bulk presigned URL theo resource
+### 10.6 Bulk presigned URL theo resource
 
 #### `POST /api/parking/events/images/presigned-urls`
 
@@ -896,7 +1072,7 @@ Nhiem vu:
 
 Khong de xuat bulk by filename cho private image.
 
-### 10.5 API cho check-in/check-out trong tuong lai
+### 10.7 API cho check-in/check-out trong tuong lai
 
 Khi module `parking_session`/`parking_event` co endpoint nghiep vu:
 
@@ -981,8 +1157,10 @@ Current response dang co `avatarUrl`. Co hai cach:
 
 De xuat:
 
-- Với public avatar: response co the tra URL public neu bucket public/read gateway da cau hinh.
+- Voi public avatar: response co the tra URL public neu bucket public/read gateway da cau hinh.
 - Trong DB van luu object key, khong luu URL signed.
+- Write request khong nen tiep tuc nhan `avatarUrl` string; avatar nen duoc upload/delete qua multipart endpoint rieng.
+- Neu can backward compatibility ngan han, chi chap nhan `avatarUrl` la object key do backend quan ly hoac ignore field nay trong request update profile.
 
 ## 12. Phuong an database
 
@@ -1128,7 +1306,7 @@ Cho BA/PM:
 
 | Rủi ro | Tac dong | De xuat |
 | --- | --- | --- |
-| API catalog/parking/card chua enforce permission dong bo | Mo file API co the tao lo hong bao mat neu copy pattern cu | Bo sung guard/security tests truoc hoac cung phase |
+| Mot so API van chua enforce permission dong bo, dac biet `price-plans`, `price-rules`, parking topology va support ticket categories | Mo file/private image API co the tao lo hong bao mat neu copy pattern cu | Bo sung guard/security tests truoc hoac cung phase; catalog vehicle/ticket/card type va cards da co hardening tot hon |
 | Cot path chi `VARCHAR(255)` | Object key dai co the loi DB | Convention key ngan hoac migration len `VARCHAR(500)` |
 | Upload thanh cong nhung DB save fail | File rac tren MinIO | Xoa object moi trong catch hoac transaction synchronization |
 | DB save thanh cong nhung delete old file fail | File orphan | Outbox/retry cleanup job |
@@ -1138,36 +1316,103 @@ Cho BA/PM:
 | Ten file trung overwrite | Mat file cu | Object key bat buoc co UUID |
 | Presigned URL bi log/copy | Truy cap trai phep trong TTL | TTL ngan, khong log URL, HTTPS |
 
-## 16. Ke hoach thuc hien de xuat
+## 16. Trang thai thuc hien va roadmap
 
-### Phase 0: Hardening truoc MinIO
+### Da lam trong phase hien tai
 
-- Them permission enforcement cho catalog/parking/card/support-ticket-category endpoints.
-- Them tests cho cac permission quan trong.
-- Chot policy role nao duoc xem private parking images.
+MinIO foundation:
 
-### Phase 1: MinIO foundation
+- Da add dependency `io.minio:minio`.
+- Da add dependency `metadata-extractor` de ho tro EXIF orientation.
+- Da add config `app.storage.minio` trong `application.yaml`.
+- Da tao `MinioClient` bean.
+- Da tao `MinioStorageProperties`.
+- Da tao `StorageBucket`, `StorageFolder`.
+- Da tao `FileStoragePort`, `FileAccessPort`, `StoredFile`, `StoreFileCommand`.
+- Da implement `StorageObjectKeyGenerator` voi object key co UUID va folder segment ngan.
+- Da implement `MinioFileStorageAdapter`.
+- Da implement public bucket policy khi bucket moi duoc tao.
+- Da support `public-url-base`; neu cau hinh thi response co the tra URL public, neu khong thi fallback presigned/read URL.
+- Da upload metadata co resource/owner context.
 
-- Add dependency `io.minio:minio`.
-- Add config/properties.
-- Tao `MinioClient` bean.
-- Tao `StorageBucket`, `StorageFolder`.
-- Tao `FileStoragePort`, `FileAccessPort`, `StoredFile`, `StoreFileCommand`.
-- Implement `MinioFileStorageAdapter`.
-- Implement image validation/resize.
-- Unit test storage adapter bang mock MinioClient.
+Image processing:
 
-### Phase 2: Avatar
+- Da validate file rong, kich thuoc, content type/extension hop le.
+- Da support `jpg`, `jpeg`, `png`, `webp`.
+- Da decode image de tranh file gia danh.
+- Da resize anh theo max width.
+- Da nen JPEG theo quality cau hinh.
+- Da xu ly EXIF orientation cho JPEG.
+- Da validate WebP RIFF.
 
-- Tao use case upload/delete avatar current user.
-- Tao use case upload/delete avatar admin neu can.
-- Update mapper/response neu can tra URL.
-- Tests:
-  - upload avatar success
-  - invalid file
-  - no profile
-  - replace deletes old after save
-  - permission admin
+Avatar self-service:
+
+- Da co `POST /api/iam/accounts/profile/avatar`.
+- Da co `DELETE /api/iam/accounts/profile/avatar`.
+- Da yeu cau current account co profile truoc khi upload/delete avatar.
+- Da upload avatar vao public bucket/folder `AVATAR`.
+- Da update `people.user_profiles.avatar_url` bang object key.
+- Da delete object cu sau transaction commit.
+- Da cleanup object moi neu DB update fail.
+- Da resolve public avatar URL trong response neu object key do backend quan ly.
+
+Avatar user-profile internal use case:
+
+- Khong expose `POST /api/people/user-profiles/{userProfileId}/avatar`.
+- Khong expose `DELETE /api/people/user-profiles/{userProfileId}/avatar`.
+- Van giu `UserProfileAvatarPortIn` va `UserProfileAvatarUseCaseImpl` de cac aggregate customer/employee/self-avatar tai su dung logic upload/delete/cleanup.
+
+Tests da co:
+
+- `StorageObjectKeyGeneratorTest`.
+- `ImageFileProcessorTest`.
+- `MinioFileStorageAdapterTest`.
+- `StorageUrlResolverTest`.
+- `AccountProfileAvatarUseCaseImplTest`.
+- `UserProfileAvatarUseCaseImplTest`.
+
+Ghi chu test tong:
+
+- Cac test lien quan MinIO/avatar da duoc bo sung.
+- Full `mvnw test` hien con co the fail o `VehicleManagementApplicationTests.contextLoads` do schema validation thieu bang `operations.support_ticket_categories` trong database test/local; day khong phai loi cua MinIO/avatar.
+
+### Chua lam - uu tien version tiep theo
+
+Avatar API theo aggregate:
+
+- Them `POST /api/people/customers/{customerId}/avatar`.
+- Them `DELETE /api/people/customers/{customerId}/avatar`.
+- Them `POST /api/people/employees/{employeeId}/avatar`.
+- Them `DELETE /api/people/employees/{employeeId}/avatar`.
+- Reuse logic upload/delete avatar hien co, nhung resolve target qua `customerId`/`employeeId`.
+- Customer avatar require `CUSTOMER_UPDATE_ALL`.
+- Employee avatar require `EMPLOYEE_UPDATE_ALL` va reuse `EmployeeAccessGuard`.
+- Chot policy `SYSTEM_ADMIN` co duoc sua avatar parking manager hay khong:
+  - Neu co, them migration cap `EMPLOYEE_UPDATE_ALL` cho `SYSTEM_ADMIN`, hoac
+  - Tao guard rieng cho `ACCOUNT_UPDATE_ALL` + target role internal.
+
+Deprecate raw `avatarUrl` string trong request:
+
+- Bo hoac deprecate `avatarUrl` trong `CompleteAccountProfileRequest`.
+- Bo hoac deprecate `avatarUrl` trong `UpdateAccountProfileRequest`.
+- Bo hoac deprecate `avatarUrl` trong `CreateUserProfileRequest`.
+- Bo hoac deprecate `avatarUrl` trong `UpdateUserProfileRequest`.
+- Giai doan chuyen tiep co the ignore `avatarUrl` write input hoac chi chap nhan object key do backend quan ly.
+- Response van co `avatarUrl` de frontend hien thi.
+
+Hardening permission:
+
+- Bo sung permission enforcement cho `price-plans`.
+- Bo sung permission enforcement cho `price-rules`.
+- Bo sung permission enforcement cho parking topology: `parking-lots`, `zones`, `gates`, `lanes`.
+- Bo sung permission enforcement cho `support-ticket-categories`.
+- Them controller/use case security tests cho cac API file va module con thieu.
+
+Storage/database:
+
+- Can chot co migration tang length `avatar_url` va cac image path len `VARCHAR(500)` hay tiep tuc giu key ngan duoi 255.
+- Can co cleanup/retry job hoac outbox cho object cu xoa fail.
+- Can audit log cho admin/manager upload/delete avatar neu yeu cau trace.
 
 ### Phase 3: Parking event images
 
@@ -1259,8 +1504,9 @@ Nen dua MinIO vao `vehicle-management` theo huong tung buoc:
 
 1. Khong copy local `FileStorageService` cu tu Job24.
 2. Copy y tuong MinIO service/adapter, nhung sua cac diem yeu: UUID object key, validate that, private authorization, khong presign theo filename tuy y.
-3. Lam avatar truoc vi it rui ro va da co field/API profile.
-4. Lam parking event images ngay sau do vi database da co cot va nghiep vu bai xe can bang chung.
-5. Truoc khi mo private image cho nhieu role, can dong bo permission enforcement cho cac API parking/catalog/card da co seed permission nhung chua enforce ro.
+3. Lam avatar truoc vi it rui ro va da co field profile; DB van luu o `people.user_profiles.avatar_url`.
+4. API avatar public cho frontend chi theo actor/aggregate: current account self, customer, employee; khong expose endpoint `user-profiles/{userProfileId}/avatar`.
+5. Lam parking event images ngay sau do vi database da co cot va nghiep vu bai xe can bang chung.
+6. Truoc khi mo private image cho nhieu role, can dong bo permission enforcement cho cac API con thieu guard nhu price plan/rule, parking topology va support-ticket-category.
 
 Thiet ke nay giu dung Clean Architecture: controller mong, application quyet dinh use case/permission/ownership, domain giu rule, infrastructure moi biet MinIO.

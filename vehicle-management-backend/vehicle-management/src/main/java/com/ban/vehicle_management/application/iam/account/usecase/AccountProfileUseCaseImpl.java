@@ -13,20 +13,17 @@ import com.ban.vehicle_management.application.operations.approvalrequest.authori
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
-import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
-import com.ban.vehicle_management.application.storage.model.StoredFile;
-import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
-import com.ban.vehicle_management.application.storage.service.StorageUrlResolver;
+import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
+import com.ban.vehicle_management.domain.iam.account.policy.AccountOnboardingPolicy;
+import com.ban.vehicle_management.domain.iam.account.policy.AccountProfilePolicy;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.ApprovalRequestPolicy;
-import com.ban.vehicle_management.domain.iam.account.policy.AccountProfilePolicy;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.employee.policy.EmployeePolicy;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
-import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
@@ -34,37 +31,28 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
-import com.ban.vehicle_management.shared.enumeration.storage.StorageBucket;
-import com.ban.vehicle_management.shared.enumeration.storage.StorageFolder;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
-import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(AccountProfileUseCaseImpl.class);
-    private static final String USER_PROFILE_RESOURCE_TYPE = "people.user_profiles";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final AccountProfilePortOut accountProfilePortOut;
     private final CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
     private final SystemAdminApprovalPortOut systemAdminApprovalPortOut;
-    private final FileStoragePort fileStoragePort;
-    private final StorageUrlResolver storageUrlResolver;
+    private final UserProfileAvatarPortIn userProfileAvatarPortIn;
     private final AccountProfileResultMapper accountProfileResultMapper;
     private final AccountProfilePolicy accountProfilePolicy;
+    private final AccountOnboardingPolicy accountOnboardingPolicy;
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
 
@@ -74,20 +62,20 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
             SystemAdminApprovalPortOut systemAdminApprovalPortOut,
-            FileStoragePort fileStoragePort,
-            StorageUrlResolver storageUrlResolver,
+            UserProfileAvatarPortIn userProfileAvatarPortIn,
             AccountProfileResultMapper accountProfileResultMapper,
-            AccountProfilePolicy accountProfilePolicy
+            AccountProfilePolicy accountProfilePolicy,
+            AccountOnboardingPolicy accountOnboardingPolicy
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.accountProfilePortOut = accountProfilePortOut;
         this.customerOnboardingApprovalPortOut = customerOnboardingApprovalPortOut;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
         this.systemAdminApprovalPortOut = systemAdminApprovalPortOut;
-        this.fileStoragePort = fileStoragePort;
-        this.storageUrlResolver = storageUrlResolver;
+        this.userProfileAvatarPortIn = userProfileAvatarPortIn;
         this.accountProfileResultMapper = accountProfileResultMapper;
         this.accountProfilePolicy = accountProfilePolicy;
+        this.accountOnboardingPolicy = accountOnboardingPolicy;
     }
 
     @Override
@@ -111,21 +99,31 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             throw new ConflictException("Onboarding is already completed");
         }
 
-        CompleteAccountProfileCommand normalizedCommand = accountProfilePolicy.normalizeForComplete(command);
+        CompleteAccountProfileCommand normalizedCommand = normalizeCompleteCommand(command);
         accountProfilePolicy.ensureUniqueForComplete(
-                accountProfilePortOut.existsByPhoneNumber(normalizedCommand.phoneNumber()),
+                profileFieldExistsForComplete(
+                        state.userProfileId(),
+                        normalizedCommand.phoneNumber(),
+                        true
+                ),
                 normalizedCommand.identifyCard() != null
-                        && accountProfilePortOut.existsByIdentifyCard(normalizedCommand.identifyCard())
+                        && profileFieldExistsForComplete(
+                        state.userProfileId(),
+                        normalizedCommand.identifyCard(),
+                        false
+                )
         );
 
-        AdminProvisionableAccountRoleCode roleCode = requireSupportedOnboardingRole(state.roleCode());
-        UUID userProfileId = UUID.randomUUID();
+        AdminProvisionableAccountRoleCode roleCode = accountOnboardingPolicy.requireSupportedOnboardingRole(
+                state.roleCode()
+        );
+        UUID userProfileId = state.userProfileId() == null ? UUID.randomUUID() : state.userProfileId();
         UserProfile userProfile = buildOnboardingUserProfile(userProfileId, normalizedCommand);
 
         Employee employee = null;
         Customer customer = null;
         Account updatedAccount;
-        if (requiresEmployeeRecord(roleCode)) {
+        if (accountOnboardingPolicy.requiresEmployeeRecord(roleCode)) {
             employee = buildOnboardingEmployee(userProfileId, roleCode);
             updatedAccount = accountProfilePortOut.completeInternalProfile(accountId, userProfile, employee);
             internalEmployeeApprovalPortOut.saveInternalEmployeeApprovalRequest(
@@ -139,7 +137,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             );
         } else {
             updatedAccount = accountProfilePortOut.completeProfileOnly(accountId, userProfile);
-            if (shouldCreateSystemAdminApproval(state)) {
+            if (accountOnboardingPolicy.shouldCreateSystemAdminApproval(state)) {
                 systemAdminApprovalPortOut.saveSystemAdminApprovalRequest(
                         buildSystemAdminApprovalRequest(accountId, accountId)
                 );
@@ -149,7 +147,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         AccountProfileState refreshedState = accountProfilePortOut.findProfileStateByAccountId(updatedAccount.getAccountId())
                 .orElse(null);
         if (refreshedState != null) {
-            return toStatusResult(refreshedState, false);
+            return toStatusResult(refreshedState, isOnboardingRequired(refreshedState));
         }
 
         return resolvePublicAvatarUrl(accountProfileResultMapper.toStatusResult(
@@ -174,8 +172,16 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             throw new ConflictException("Profile is not ready. Complete onboarding first.");
         }
 
-        accountProfilePolicy.ensurePatchHasAtLeastOneField(command);
-        UpdateAccountProfileCommand normalizedCommand = accountProfilePolicy.normalizeForUpdate(command);
+        requireField(command, "command");
+        accountProfilePolicy.ensurePatchHasAtLeastOneField(
+                command.fullName(),
+                command.phoneNumber(),
+                command.dateOfBirth(),
+                command.gender(),
+                command.address(),
+                command.identifyCard()
+        );
+        UpdateAccountProfileCommand normalizedCommand = normalizeUpdateCommand(command);
         UserProfile updatedProfile = accountProfileResultMapper.mergeProfile(state, normalizedCommand);
         accountProfilePolicy.validateRequiredProfileFields(updatedProfile);
         accountProfilePolicy.ensureUniqueForUpdate(
@@ -206,24 +212,9 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             throw new ConflictException("Profile is not ready. Complete onboarding first.");
         }
 
-        StoredFile storedFile = fileStoragePort.store(new StoreFileCommand(
-                file,
-                StorageBucket.PUBLIC,
-                StorageFolder.AVATAR,
-                USER_PROFILE_RESOURCE_TYPE,
-                state.userProfileId(),
-                accountId,
-                Map.of("account_id", accountId.toString())
-        ));
-
-        try {
-            AccountProfileState updatedState = accountProfilePortOut.updateAvatar(accountId, storedFile.objectKey());
-            deleteManagedAvatarAfterCommit(state.avatarUrl());
-            return toStatusResult(updatedState, isOnboardingRequired(updatedState));
-        } catch (RuntimeException exception) {
-            deleteQuietly(storedFile.objectKey());
-            throw exception;
-        }
+        userProfileAvatarPortIn.uploadAvatar(state.userProfileId(), file, accountId);
+        AccountProfileState updatedState = reloadProfileState(accountId);
+        return toStatusResult(updatedState, isOnboardingRequired(updatedState));
     }
 
     @Override
@@ -237,8 +228,8 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             throw new ConflictException("Profile is not ready. Complete onboarding first.");
         }
 
-        AccountProfileState updatedState = accountProfilePortOut.updateAvatar(accountId, null);
-        deleteManagedAvatarAfterCommit(state.avatarUrl());
+        userProfileAvatarPortIn.deleteAvatar(state.userProfileId());
+        AccountProfileState updatedState = reloadProfileState(accountId);
         return toStatusResult(updatedState, isOnboardingRequired(updatedState));
     }
 
@@ -251,7 +242,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         userProfile.setGender(command.gender());
         userProfile.setAddress(command.address());
         userProfile.setIdentifyCard(command.identifyCard());
-        userProfile.setAvatarUrl(command.avatarUrl());
+        userProfile.setAvatarUrl(null);
         userProfile.setStatus(UserProfileStatus.ACTIVE);
         return userProfile;
     }
@@ -262,7 +253,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         employee.setEmployeeId(employeeId);
         employee.setUserProfileId(userProfileId);
         employee.setEmployeeCode(IdentifierGenerationUtils.generateEmployeeCode(employeeId));
-        employee.setJobTitle(defaultJobTitle(roleCode));
+        employee.setJobTitle(accountOnboardingPolicy.defaultJobTitle(roleCode));
         employee.setStatus(EmployeeStatus.INACTIVE);
         employeePolicy.initialize(employee);
         return employee;
@@ -279,54 +270,50 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         return customer;
     }
 
+    private CompleteAccountProfileCommand normalizeCompleteCommand(CompleteAccountProfileCommand command) {
+        requireField(command, "command");
+        return new CompleteAccountProfileCommand(
+                accountProfilePolicy.normalizeRequiredFullName(command.fullName()),
+                accountProfilePolicy.normalizeRequiredPhoneNumber(command.phoneNumber()),
+                command.dateOfBirth(),
+                accountProfilePolicy.normalizeNullableGender(command.gender()),
+                accountProfilePolicy.normalizeNullableAddress(command.address()),
+                accountProfilePolicy.normalizeNullableIdentifyCard(command.identifyCard()),
+                null
+        );
+    }
+
+    private UpdateAccountProfileCommand normalizeUpdateCommand(UpdateAccountProfileCommand command) {
+        return new UpdateAccountProfileCommand(
+                accountProfilePolicy.normalizeNullableFullName(command.fullName()),
+                accountProfilePolicy.normalizeNullablePhoneNumber(command.phoneNumber()),
+                command.dateOfBirth(),
+                accountProfilePolicy.normalizeNullableGender(command.gender()),
+                accountProfilePolicy.normalizeNullableAddress(command.address()),
+                accountProfilePolicy.normalizeNullableIdentifyCard(command.identifyCard()),
+                null
+        );
+    }
+
     private boolean isOnboardingRequired(AccountProfileState state) {
-        AdminProvisionableAccountRoleCode roleCode = resolveProvisionableRole(state.roleCode());
-        if (roleCode == null) {
-            return state.userProfileId() == null;
+        boolean latestSystemAdminApprovalRequestExists = false;
+        if (accountOnboardingPolicy.needsSystemAdminApprovalLookup(state)) {
+            latestSystemAdminApprovalRequestExists = systemAdminApprovalPortOut
+                    .findLatestSystemAdminApprovalRequest(state.accountId())
+                    .isPresent();
         }
-        if (requiresEmployeeRecord(roleCode)) {
-            return state.userProfileId() == null || state.employeeId() == null;
-        }
-        if (AdminProvisionableAccountRoleCode.CUSTOMER.equals(roleCode)) {
-            return state.userProfileId() == null || state.customerId() == null;
-        }
-        return state.userProfileId() == null;
+        return accountOnboardingPolicy.isOnboardingRequired(state, latestSystemAdminApprovalRequestExists);
     }
 
-    private boolean requiresEmployeeRecord(AdminProvisionableAccountRoleCode roleCode) {
-        return roleCode != null && roleCode.requiresEmployeeRecord();
-    }
-
-    private boolean shouldCreateSystemAdminApproval(AccountProfileState state) {
-        return AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name().equals(state.roleCode())
-                && AccountStatus.PENDING.equals(state.accountStatus());
-    }
-
-    private String defaultJobTitle(AdminProvisionableAccountRoleCode roleCode) {
-        return switch (roleCode) {
-            case EMPLOYEE -> "Parking Staff";
-            case PARKING_MANAGER -> "Parking Manager";
-            case CUSTOMER, SYSTEM_ADMIN -> null;
-        };
-    }
-
-    private AdminProvisionableAccountRoleCode requireSupportedOnboardingRole(String roleCode) {
-        AdminProvisionableAccountRoleCode resolvedRole = resolveProvisionableRole(roleCode);
-        if (resolvedRole == null) {
-            throw new BadRequestException("Current account role is not supported for onboarding");
+    private boolean profileFieldExistsForComplete(UUID userProfileId, String value, boolean phoneNumber) {
+        if (userProfileId == null) {
+            return phoneNumber
+                    ? accountProfilePortOut.existsByPhoneNumber(value)
+                    : accountProfilePortOut.existsByIdentifyCard(value);
         }
-        return resolvedRole;
-    }
-
-    private AdminProvisionableAccountRoleCode resolveProvisionableRole(String roleCode) {
-        if (roleCode == null || roleCode.isBlank()) {
-            return null;
-        }
-        try {
-            return AdminProvisionableAccountRoleCode.valueOf(roleCode);
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
+        return phoneNumber
+                ? accountProfilePortOut.existsByPhoneNumberAndUserProfileIdNot(value, userProfileId)
+                : accountProfilePortOut.existsByIdentifyCardAndUserProfileIdNot(value, userProfileId);
     }
 
     private ApprovalRequest buildInternalEmployeeApprovalRequest(UUID employeeId, UUID requestedBy) {
@@ -368,37 +355,23 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         return approvalRequest;
     }
 
-    private void deleteManagedAvatarAfterCommit(String objectKey) {
-        if (!storageUrlResolver.isManagedAvatarObjectKey(objectKey)) {
-            return;
-        }
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            deleteQuietly(objectKey);
-            return;
-        }
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                deleteQuietly(objectKey);
-            }
-        });
-    }
-
     private AccountProfileStatusResult toStatusResult(AccountProfileState state, boolean onboardingRequired) {
         return resolvePublicAvatarUrl(accountProfileResultMapper.toStatusResult(state, onboardingRequired));
     }
 
     private AccountProfileStatusResult resolvePublicAvatarUrl(AccountProfileStatusResult result) {
-        if (result == null || result.profile() == null || result.profile().avatarUrl() == null) {
+        if (result == null || result.profile() == null || result.profile().userProfileId() == null) {
             return result;
         }
-        String avatarUrl = result.profile().avatarUrl();
-        if (!storageUrlResolver.isManagedAvatarObjectKey(avatarUrl)) {
+        UserProfile profileToResolve = new UserProfile();
+        profileToResolve.setUserProfileId(result.profile().userProfileId());
+        profileToResolve.setAvatarUrl(result.profile().avatarUrl());
+        UserProfile resolvedProfile = userProfileAvatarPortIn.withResolvedAvatarUrl(profileToResolve);
+        if (resolvedProfile == null) {
             return result;
         }
-
-        String resolvedAvatarUrl = storageUrlResolver.resolvePublicAvatarUrl(avatarUrl);
-        if (avatarUrl.equals(resolvedAvatarUrl)) {
+        String resolvedAvatarUrl = resolvedProfile.getAvatarUrl();
+        if (Objects.equals(result.profile().avatarUrl(), resolvedAvatarUrl)) {
             return result;
         }
 
@@ -422,11 +395,14 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         );
     }
 
-    private void deleteQuietly(String objectKey) {
-        try {
-            fileStoragePort.delete(objectKey);
-        } catch (RuntimeException exception) {
-            LOGGER.warn("Failed to delete avatar object {}", objectKey, exception);
+    private AccountProfileState reloadProfileState(UUID accountId) {
+        return accountProfilePortOut.findProfileStateByAccountId(accountId)
+                .orElseThrow(() -> new NotFoundException("Current account does not exist"));
+    }
+
+    private void requireField(Object value, String fieldName) {
+        if (value == null) {
+            throw new BadRequestException(fieldName + " must not be null");
         }
     }
 }

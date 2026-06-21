@@ -4,10 +4,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.domain.iam.account.model.Account;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.infrastructure.mapper.iam.AccountPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.iam.AccountStatusHistoryPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.iam.ProvisionedAccountReadModelMapper;
+import com.ban.vehicle_management.infrastructure.mapper.people.UserProfilePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountStatusHistoryRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
@@ -53,6 +56,9 @@ class ProvisionedAccountPersistenceAdapterTest {
     private ProvisionedAccountReadModelMapper provisionedAccountReadModelMapper;
 
     @Mock
+    private UserProfilePersistenceMapper userProfilePersistenceMapper;
+
+    @Mock
     private EntityManager entityManager;
 
     @InjectMocks
@@ -61,11 +67,15 @@ class ProvisionedAccountPersistenceAdapterTest {
     @Test
     void shouldClearPersistenceContextAfterProvisionAccount() {
         Account account = new Account();
+        UserProfile userProfile = new UserProfile();
         AccountEntity accountEntity = new AccountEntity();
+        UserProfileEntity userProfileEntity = new UserProfileEntity();
         when(accountPersistenceMapper.toEntity(account)).thenReturn(accountEntity);
+        when(userProfilePersistenceMapper.toEntity(userProfile)).thenReturn(userProfileEntity);
 
-        adapter.provisionAccount(account);
+        adapter.provisionAccount(account, userProfile);
 
+        verify(userProfileRepository).save(userProfileEntity);
         verify(accountRepository).save(accountEntity);
         verify(accountRepository).flush();
         verify(entityManager).clear();

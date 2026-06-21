@@ -17,11 +17,13 @@ import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccou
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,15 +37,30 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
     private final Clock clock;
 
+    @Autowired
     public InternalEmployeeApprovalUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             InternalEmployeeApprovalAccessGuard internalEmployeeApprovalAccessGuard,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut
     ) {
+        this(
+                currentAccountPortIn,
+                internalEmployeeApprovalAccessGuard,
+                internalEmployeeApprovalPortOut,
+                Clock.systemUTC()
+        );
+    }
+
+    InternalEmployeeApprovalUseCaseImpl(
+            CurrentAccountPortIn currentAccountPortIn,
+            InternalEmployeeApprovalAccessGuard internalEmployeeApprovalAccessGuard,
+            InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
+            Clock clock
+    ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.internalEmployeeApprovalAccessGuard = internalEmployeeApprovalAccessGuard;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
-        this.clock = Clock.systemUTC();
+        this.clock = clock == null ? Clock.systemUTC() : clock;
     }
 
     @Override
@@ -97,13 +114,14 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
 
         Employee employee = loadEmployee(candidate.employeeId());
         String note = normalizeNote(command);
+        Instant approvedAt = Instant.now(clock);
         approvalRequestPolicy.approve(
                 approvalRequest,
                 currentAccount.accountId(),
-                Instant.now(clock),
+                approvedAt,
                 note
         );
-        employeePolicy.activate(employee);
+        employeePolicy.activate(employee, DateTimeUtils.toVietnamLocalDate(approvedAt));
         internalEmployeeApprovalPortOut.saveInternalEmployeeApprovalDecision(approvalRequest, employee);
 
         return internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId)

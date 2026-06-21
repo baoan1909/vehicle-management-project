@@ -3,10 +3,13 @@ package com.ban.vehicle_management.infrastructure.persistence.adapter.iam;
 import com.ban.vehicle_management.application.iam.account.model.command.RegisterAccountCommand;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountRegistrationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.infrastructure.mapper.people.UserProfilePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.iam.AccountPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RoleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import org.springframework.stereotype.Component;
@@ -21,16 +24,22 @@ public class AccountRegistrationPersistenceAdapter implements AccountRegistratio
 
     private final AccountRepository accountRepository;
     private final RoleRepository roleRepository;
+    private final UserProfileRepository userProfileRepository;
     private final AccountPersistenceMapper accountPersistenceMapper;
+    private final UserProfilePersistenceMapper userProfilePersistenceMapper;
 
     public AccountRegistrationPersistenceAdapter(
             AccountRepository accountRepository,
             RoleRepository roleRepository,
-            AccountPersistenceMapper accountPersistenceMapper
+            UserProfileRepository userProfileRepository,
+            AccountPersistenceMapper accountPersistenceMapper,
+            UserProfilePersistenceMapper userProfilePersistenceMapper
     ) {
         this.accountRepository = accountRepository;
         this.roleRepository = roleRepository;
+        this.userProfileRepository = userProfileRepository;
         this.accountPersistenceMapper = accountPersistenceMapper;
+        this.userProfilePersistenceMapper = userProfilePersistenceMapper;
     }
 
     @Override
@@ -57,15 +66,17 @@ public class AccountRegistrationPersistenceAdapter implements AccountRegistratio
     }
 
     @Override
-    public Account registerAccount(RegisterAccountCommand command, String keycloakUserId) {
+    public Account registerAccount(RegisterAccountCommand command, String keycloakUserId, UserProfile userProfile) {
         RoleEntity customerRole = roleRepository.findByCode(CUSTOMER_ROLE_CODE)
                 .orElseThrow(() -> new NotFoundException("Customer role is not configured"));
 
         UUID accountId = UUID.randomUUID();
 
+        userProfileRepository.save(userProfilePersistenceMapper.toEntity(userProfile));
+
         Account account = new Account();
         account.setAccountId(accountId);
-        account.setUserProfileId(null);
+        account.setUserProfileId(userProfile.getUserProfileId());
         account.setKeycloakUserId(keycloakUserId);
         account.setUsername(command.username());
         account.setEmail(command.email());

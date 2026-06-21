@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.domain.people.customer.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
@@ -25,5 +26,7 @@ public class Customer extends AuditableDomainModel {
     private CustomerApprovalStatus approvalStatus;
     private UUID approvedBy;
     private Instant approvedAt;
+    private String accountEmail;
+    private UserProfile userProfile;
 }
 

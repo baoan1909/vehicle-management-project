@@ -20,6 +20,7 @@ public interface UserProfileApiMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "avatarUrl", ignore = true)
     UserProfile toDomain(CreateUserProfileRequest request);
 
     @Mapping(target = "userProfileId", ignore = true)
@@ -27,6 +28,7 @@ public interface UserProfileApiMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "avatarUrl", ignore = true)
     UserProfile toDomain(UpdateUserProfileRequest request);
 
     @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "formatInstant")

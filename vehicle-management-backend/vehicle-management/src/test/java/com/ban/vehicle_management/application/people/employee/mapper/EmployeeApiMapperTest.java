@@ -43,6 +43,7 @@ class EmployeeApiMapperTest {
         employee.setJobTitle("Front Gate Staff");
         employee.setHiredAt(LocalDate.of(2026, 6, 1));
         employee.setStatus(EmployeeStatus.ACTIVE);
+        employee.setAccountEmail("employee01@example.com");
         employee.setUserProfile(userProfile);
 
         EmployeeAdminResponse response = employeeApiMapper.toAdminResponse(employee);
@@ -50,6 +51,7 @@ class EmployeeApiMapperTest {
         assertEquals(employeeId, response.getEmployeeId());
         assertEquals(userProfileId, response.getUserProfileId());
         assertEquals("EMP-0002", response.getEmployeeCode());
+        assertEquals("employee01@example.com", response.getAccountEmail());
         assertEquals("Nguyen Van A", response.getUserProfile().getFullName());
         assertEquals("0901234567", response.getUserProfile().getPhoneNumber());
         assertEquals("079203001234", response.getUserProfile().getIdentifyCard());
