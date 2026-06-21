@@ -15,7 +15,6 @@ public class UserProfilePolicy {
         userProfile.setPhoneNumber(TextValidationUtils.normalizePhoneNumber(userProfile.getPhoneNumber(), "phoneNumber", 20));
         userProfile.setAddress(TextValidationUtils.normalizeNullableText(userProfile.getAddress(), "address", 0));
         userProfile.setIdentifyCard(TextValidationUtils.normalizeAlphaNumeric(userProfile.getIdentifyCard(), "identifyCard", 20));
-        userProfile.setAvatarUrl(TextValidationUtils.normalizeNullableText(userProfile.getAvatarUrl(), "avatarUrl", 255));
         if (userProfile.getStatus() == null) {
             userProfile.setStatus(UserProfileStatus.ACTIVE);
         }
@@ -47,7 +46,6 @@ public class UserProfilePolicy {
         userProfile.setPhoneNumber(TextValidationUtils.normalizePhoneNumber(userProfile.getPhoneNumber(), "phoneNumber", 20));
         userProfile.setAddress(TextValidationUtils.normalizeNullableText(userProfile.getAddress(), "address", 0));
         userProfile.setIdentifyCard(TextValidationUtils.normalizeAlphaNumeric(userProfile.getIdentifyCard(), "identifyCard", 20));
-        userProfile.setAvatarUrl(TextValidationUtils.normalizeNullableText(userProfile.getAvatarUrl(), "avatarUrl", 255));
         requireField(userProfile.getStatus(), "status");
 
         if (userProfile.getDateOfBirth() != null && userProfile.getDateOfBirth().isAfter(LocalDate.now())) {

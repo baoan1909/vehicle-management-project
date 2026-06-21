@@ -6,6 +6,7 @@ import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccou
 public record CreateProvisionedAccountCommand(
         Account account,
         String password,
-        AdminProvisionableAccountRoleCode roleCode
+        AdminProvisionableAccountRoleCode roleCode,
+        String fullName
 ) {
 }

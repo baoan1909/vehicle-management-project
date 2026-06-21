@@ -31,6 +31,7 @@ public interface CustomerAdminProfileApiMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "avatarUrl", ignore = true)
     UserProfile toDomain(UpdateUserProfileRequest request);
 
     @Mapping(target = "customerId", ignore = true)
@@ -40,6 +41,8 @@ public interface CustomerAdminProfileApiMapper {
     @Mapping(target = "approvalStatus", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
     @Mapping(target = "approvedAt", ignore = true)
+    @Mapping(target = "accountEmail", ignore = true)
+    @Mapping(target = "userProfile", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

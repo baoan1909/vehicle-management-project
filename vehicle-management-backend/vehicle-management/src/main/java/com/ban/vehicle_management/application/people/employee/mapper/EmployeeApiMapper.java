@@ -13,6 +13,7 @@ public interface EmployeeApiMapper {
 
     @Mapping(target = "employeeId", ignore = true)
     @Mapping(target = "userProfileId", ignore = true)
+    @Mapping(target = "accountEmail", ignore = true)
     @Mapping(target = "userProfile", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)

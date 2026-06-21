@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.specification.people;
 
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
@@ -18,6 +19,9 @@ public final class EmployeeSpecifications {
     public static Specification<EmployeeEntity> withFilters(EmployeeStatus status, String keyword) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
+                root.fetch("userProfile", JoinType.LEFT).fetch("account", JoinType.LEFT);
+            }
 
             if (status != null) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), status));
@@ -26,10 +30,12 @@ public final class EmployeeSpecifications {
             if (hasText(keyword)) {
                 String normalizedKeyword = "%" + keyword.trim().toLowerCase() + "%";
                 Join<EmployeeEntity, UserProfileEntity> userProfileJoin = root.join("userProfile", JoinType.LEFT);
+                Join<UserProfileEntity, AccountEntity> accountJoin = userProfileJoin.join("account", JoinType.LEFT);
                 predicates.add(criteriaBuilder.or(
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("employeeCode")), normalizedKeyword),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("jobTitle")), normalizedKeyword),
-                        criteriaBuilder.like(criteriaBuilder.lower(userProfileJoin.get("fullName")), normalizedKeyword)
+                        criteriaBuilder.like(criteriaBuilder.lower(userProfileJoin.get("fullName")), normalizedKeyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(accountJoin.get("email")), normalizedKeyword)
                 ));
             }
 

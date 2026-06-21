@@ -12,7 +12,17 @@ public interface EmployeePersistenceMapper {
     @Mapping(target = "shiftAssignments", ignore = true)
     EmployeeEntity toEntity(Employee domain);
 
+    @Mapping(target = "accountEmail", expression = "java(resolveAccountEmail(entity))")
     Employee toDomain(EmployeeEntity entity);
+
+    default String resolveAccountEmail(EmployeeEntity entity) {
+        if (entity == null
+                || entity.getUserProfile() == null
+                || entity.getUserProfile().getAccount() == null) {
+            return null;
+        }
+        return entity.getUserProfile().getAccount().getEmail();
+    }
 }
 
 

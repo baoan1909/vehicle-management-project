@@ -11,7 +11,10 @@ import com.ban.vehicle_management.application.iam.account.port.out.VerificationE
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.policy.PublicAuthPolicy;
 import com.ban.vehicle_management.domain.iam.account.policy.VerificationEmailResendPolicy;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import org.slf4j.Logger;
@@ -34,6 +37,7 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
     private final VerificationEmailRateLimitPortOut verificationEmailRateLimitPortOut;
     private final VerificationEmailResendPolicy verificationEmailResendPolicy;
     private final PublicAuthPolicy publicAuthPolicy;
+    private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
     private final Clock clock;
 
     public PublicAuthUseCaseImpl(
@@ -52,13 +56,19 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
     }
 
     @Override
+    @Transactional
     public RegisterAccountResult register(RegisterAccountCommand command) {
         RegisterAccountCommand normalizedRequest = publicAuthPolicy.normalizeRegisterCommand(command);
         ensureRegisterNoConflict(normalizedRequest);
 
         String keycloakUserId = identityProviderAdminPortOut.createUser(normalizedRequest);
         try {
-            Account registeredAccount = accountRegistrationPortOut.registerAccount(normalizedRequest, keycloakUserId);
+            UserProfile userProfile = buildMinimalUserProfile(normalizedRequest.fullName());
+            Account registeredAccount = accountRegistrationPortOut.registerAccount(
+                    normalizedRequest,
+                    keycloakUserId,
+                    userProfile
+            );
             identityProviderAdminPortOut.updateAccountIdAttribute(keycloakUserId, registeredAccount.getAccountId());
             sendVerificationEmailSafely(keycloakUserId, registeredAccount.getAccountId());
             return new RegisterAccountResult(
@@ -71,6 +81,15 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
             identityProviderAdminPortOut.deleteUser(keycloakUserId);
             throw exception;
         }
+    }
+
+    private UserProfile buildMinimalUserProfile(String fullName) {
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUserProfileId(UUID.randomUUID());
+        userProfile.setFullName(fullName);
+        userProfile.setStatus(UserProfileStatus.ACTIVE);
+        userProfilePolicy.initialize(userProfile);
+        return userProfile;
     }
 
     @Override

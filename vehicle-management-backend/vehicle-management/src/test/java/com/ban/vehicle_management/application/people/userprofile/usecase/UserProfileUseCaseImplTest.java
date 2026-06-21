@@ -2,11 +2,12 @@ package com.ban.vehicle_management.application.people.userprofile.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
-import com.ban.vehicle_management.application.storage.service.StorageUrlResolver;
+import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -32,10 +33,18 @@ class UserProfileUseCaseImplTest {
     private UserProfilePortOut userProfilePort;
 
     @Mock
-    private StorageUrlResolver storageUrlResolver;
+    private UserProfileAvatarPortIn userProfileAvatarPortIn;
 
     @InjectMocks
     private UserProfileUseCaseImpl userProfileUseCase;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(userProfileAvatarPortIn.withResolvedAvatarUrl(any(UserProfile.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(userProfileAvatarPortIn.withResolvedAvatarUrls(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+    }
 
     @Test
     void shouldCreateUserProfileWithDefaultActiveStatus() {
@@ -59,7 +68,7 @@ class UserProfileUseCaseImplTest {
         assertEquals("0901234567", createdUserProfile.getPhoneNumber());
         assertEquals("Ho Chi Minh City", createdUserProfile.getAddress());
         assertEquals("079123456789", createdUserProfile.getIdentifyCard());
-        assertEquals("https://example.com/avatar.jpg", createdUserProfile.getAvatarUrl());
+        assertNull(createdUserProfile.getAvatarUrl());
         assertEquals(UserProfileStatus.ACTIVE, createdUserProfile.getStatus());
         verify(userProfilePort).save(any(UserProfile.class));
     }
@@ -125,7 +134,7 @@ class UserProfileUseCaseImplTest {
         assertEquals("0912345678", updatedUserProfile.getPhoneNumber());
         assertEquals("New address", updatedUserProfile.getAddress());
         assertEquals("012345678901", updatedUserProfile.getIdentifyCard());
-        assertEquals("https://example.com/new.jpg", updatedUserProfile.getAvatarUrl());
+        assertEquals("https://example.com/old.jpg", updatedUserProfile.getAvatarUrl());
         assertEquals(UserProfileStatus.SUSPENDED, updatedUserProfile.getStatus());
     }
 

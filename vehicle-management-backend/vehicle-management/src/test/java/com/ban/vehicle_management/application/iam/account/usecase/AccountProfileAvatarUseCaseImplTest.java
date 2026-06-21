@@ -16,27 +16,25 @@ import com.ban.vehicle_management.application.iam.account.port.out.AccountProfil
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
-import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
-import com.ban.vehicle_management.application.storage.model.StoredFile;
-import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
-import com.ban.vehicle_management.application.storage.service.StorageUrlResolver;
+import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
+import com.ban.vehicle_management.domain.iam.account.policy.AccountOnboardingPolicy;
 import com.ban.vehicle_management.domain.iam.account.policy.AccountProfilePolicy;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
-import com.ban.vehicle_management.shared.enumeration.storage.StorageBucket;
-import com.ban.vehicle_management.shared.enumeration.storage.StorageFolder;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 
 @ExtendWith(MockitoExtension.class)
 class AccountProfileAvatarUseCaseImplTest {
@@ -57,22 +55,22 @@ class AccountProfileAvatarUseCaseImplTest {
     private SystemAdminApprovalPortOut systemAdminApprovalPortOut;
 
     @Mock
-    private FileStoragePort fileStoragePort;
-
-    @Mock
-    private StorageUrlResolver storageUrlResolver;
+    private UserProfileAvatarPortIn userProfileAvatarPortIn;
 
     @Mock
     private AccountProfileResultMapper accountProfileResultMapper;
 
-    @Mock
-    private AccountProfilePolicy accountProfilePolicy;
+    @Spy
+    private AccountProfilePolicy accountProfilePolicy = new AccountProfilePolicy();
+
+    @Spy
+    private AccountOnboardingPolicy accountOnboardingPolicy = new AccountOnboardingPolicy();
 
     @InjectMocks
     private AccountProfileUseCaseImpl useCase;
 
     @Test
-    void shouldUploadCurrentUserAvatarAndDeleteOldManagedAvatar() {
+    void shouldUploadCurrentUserAvatarThroughSharedUserProfileAvatarUseCase() {
         UUID accountId = UUID.randomUUID();
         UUID userProfileId = UUID.randomUUID();
         String oldAvatar = "av/2026/06/11/" + userProfileId + "/pb-old-avatar.jpg";
@@ -82,52 +80,42 @@ class AccountProfileAvatarUseCaseImplTest {
         AccountProfileState initialState = state(accountId, userProfileId, oldAvatar);
         AccountProfileState updatedState = state(accountId, userProfileId, newAvatar);
         AccountProfileStatusResult mappedResult = result(accountId, userProfileId, newAvatar);
+        UserProfile resolvedProfile = new UserProfile();
+        resolvedProfile.setUserProfileId(userProfileId);
+        resolvedProfile.setAvatarUrl(publicAvatar);
 
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
-        when(accountProfilePortOut.findProfileStateByAccountId(accountId)).thenReturn(Optional.of(initialState));
-        when(fileStoragePort.store(any(StoreFileCommand.class)))
-                .thenReturn(new StoredFile(newAvatar, "avatar.jpg", "image/jpeg", 3, "checksum"));
-        when(accountProfilePortOut.updateAvatar(accountId, newAvatar)).thenReturn(updatedState);
+        when(accountProfilePortOut.findProfileStateByAccountId(accountId))
+                .thenReturn(Optional.of(initialState), Optional.of(updatedState));
+        when(userProfileAvatarPortIn.uploadAvatar(userProfileId, file, accountId))
+                .thenReturn(profile(userProfileId, publicAvatar));
         when(accountProfileResultMapper.toStatusResult(updatedState, false)).thenReturn(mappedResult);
-        when(storageUrlResolver.isManagedAvatarObjectKey(oldAvatar)).thenReturn(true);
-        when(storageUrlResolver.isManagedAvatarObjectKey(newAvatar)).thenReturn(true);
-        when(storageUrlResolver.resolvePublicAvatarUrl(newAvatar)).thenReturn(publicAvatar);
+        when(userProfileAvatarPortIn.withResolvedAvatarUrl(any(UserProfile.class))).thenReturn(resolvedProfile);
 
         AccountProfileStatusResult result = useCase.uploadMyAvatar(file);
 
-        ArgumentCaptor<StoreFileCommand> commandCaptor = ArgumentCaptor.forClass(StoreFileCommand.class);
-        verify(fileStoragePort).store(commandCaptor.capture());
-        StoreFileCommand command = commandCaptor.getValue();
-        assertEquals(StorageBucket.PUBLIC, command.bucket());
-        assertEquals(StorageFolder.AVATAR, command.folder());
-        assertEquals("people.user_profiles", command.resourceType());
-        assertEquals(userProfileId, command.resourceId());
-        assertEquals(accountId, command.ownerAccountId());
-        verify(accountProfilePortOut).updateAvatar(accountId, newAvatar);
-        verify(fileStoragePort).delete(oldAvatar);
+        verify(userProfileAvatarPortIn).uploadAvatar(userProfileId, file, accountId);
+        verify(accountProfilePortOut, never()).updateProfile(eq(accountId), any(UserProfile.class));
         assertEquals(publicAvatar, result.profile().avatarUrl());
     }
 
     @Test
-    void shouldCleanupNewAvatarWhenDatabaseUpdateFails() {
+    void shouldPropagateSharedAvatarUploadFailure() {
         UUID accountId = UUID.randomUUID();
         UUID userProfileId = UUID.randomUUID();
         String oldAvatar = "av/2026/06/11/" + userProfileId + "/pb-old-avatar.jpg";
-        String newAvatar = "av/2026/06/11/" + userProfileId + "/pb-new-avatar.jpg";
         MockMultipartFile file = new MockMultipartFile("file", "avatar.jpg", "image/jpeg", new byte[]{1, 2, 3});
 
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
         when(accountProfilePortOut.findProfileStateByAccountId(accountId))
                 .thenReturn(Optional.of(state(accountId, userProfileId, oldAvatar)));
-        when(fileStoragePort.store(any(StoreFileCommand.class)))
-                .thenReturn(new StoredFile(newAvatar, "avatar.jpg", "image/jpeg", 3, "checksum"));
-        when(accountProfilePortOut.updateAvatar(accountId, newAvatar))
+        when(userProfileAvatarPortIn.uploadAvatar(userProfileId, file, accountId))
                 .thenThrow(new ConflictException("DB update failed"));
 
         assertThrows(ConflictException.class, () -> useCase.uploadMyAvatar(file));
 
-        verify(fileStoragePort).delete(newAvatar);
-        verify(fileStoragePort, never()).delete(oldAvatar);
+        verify(userProfileAvatarPortIn).uploadAvatar(userProfileId, file, accountId);
+        verify(accountProfileResultMapper, never()).toStatusResult(any(AccountProfileState.class), eq(false));
     }
 
     @Test
@@ -140,15 +128,13 @@ class AccountProfileAvatarUseCaseImplTest {
 
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
         when(accountProfilePortOut.findProfileStateByAccountId(accountId))
-                .thenReturn(Optional.of(state(accountId, userProfileId, oldAvatar)));
-        when(accountProfilePortOut.updateAvatar(accountId, null)).thenReturn(updatedState);
+                .thenReturn(Optional.of(state(accountId, userProfileId, oldAvatar)), Optional.of(updatedState));
+        when(userProfileAvatarPortIn.deleteAvatar(userProfileId)).thenReturn(profile(userProfileId, null));
         when(accountProfileResultMapper.toStatusResult(updatedState, false)).thenReturn(mappedResult);
-        when(storageUrlResolver.isManagedAvatarObjectKey(oldAvatar)).thenReturn(true);
 
         AccountProfileStatusResult result = useCase.deleteMyAvatar();
 
-        verify(accountProfilePortOut).updateAvatar(accountId, null);
-        verify(fileStoragePort).delete(oldAvatar);
+        verify(userProfileAvatarPortIn).deleteAvatar(userProfileId);
         assertNull(result.profile().avatarUrl());
     }
 
@@ -162,7 +148,11 @@ class AccountProfileAvatarUseCaseImplTest {
                 .thenReturn(Optional.of(state(accountId, null, null)));
 
         assertThrows(ConflictException.class, () -> useCase.uploadMyAvatar(file));
-        verify(fileStoragePort, never()).store(any(StoreFileCommand.class));
+        verify(userProfileAvatarPortIn, never()).uploadAvatar(
+                any(UUID.class),
+                any(MultipartFile.class),
+                any(UUID.class)
+        );
     }
 
     private AccountProfileState state(UUID accountId, UUID userProfileId, String avatarUrl) {
@@ -219,5 +209,12 @@ class AccountProfileAvatarUseCaseImplTest {
                 null,
                 null
         );
+    }
+
+    private UserProfile profile(UUID userProfileId, String avatarUrl) {
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUserProfileId(userProfileId);
+        userProfile.setAvatarUrl(avatarUrl);
+        return userProfile;
     }
 }

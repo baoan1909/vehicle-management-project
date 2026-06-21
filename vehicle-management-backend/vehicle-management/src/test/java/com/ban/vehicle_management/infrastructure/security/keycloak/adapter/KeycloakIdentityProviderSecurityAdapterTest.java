@@ -2,13 +2,61 @@ package com.ban.vehicle_management.infrastructure.security.keycloak.adapter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.ban.vehicle_management.application.iam.account.model.command.CreateProvisionedAccountCommand;
+import com.ban.vehicle_management.application.iam.account.model.command.RegisterAccountCommand;
+import com.ban.vehicle_management.domain.iam.account.model.Account;
+import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.client.HttpClientErrorException;
 
 class KeycloakIdentityProviderSecurityAdapterTest {
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldIncludeFullNameWhenBuildingRegisterUserRequestBody() {
+        Map<String, Object> requestBody = KeycloakIdentityProviderSecurityAdapter.buildRegisterUserRequestBody(
+                new RegisterAccountCommand(
+                        "customer01",
+                        "customer01@example.com",
+                        "Secret123!",
+                        "Nguyen Van A"
+                )
+        );
+
+        Map<String, List<String>> attributes = (Map<String, List<String>>) requestBody.get("attributes");
+
+        assertEquals("Nguyen Van A", requestBody.get("firstName"));
+        assertEquals(List.of("Nguyen Van A"), attributes.get("full_name"));
+        assertEquals(List.of("vehicle-management"), attributes.get("source"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void shouldIncludeFullNameWhenBuildingProvisionedUserRequestBody() {
+        Account account = new Account();
+        account.setUsername("employee01");
+        account.setEmail("employee01@example.com");
+
+        Map<String, Object> requestBody = KeycloakIdentityProviderSecurityAdapter.buildProvisionedUserRequestBody(
+                new CreateProvisionedAccountCommand(
+                        account,
+                        null,
+                        AdminProvisionableAccountRoleCode.EMPLOYEE,
+                        "Tran Thi B"
+                )
+        );
+
+        Map<String, List<String>> attributes = (Map<String, List<String>>) requestBody.get("attributes");
+
+        assertEquals("Tran Thi B", requestBody.get("firstName"));
+        assertEquals(List.of("Tran Thi B"), attributes.get("full_name"));
+        assertEquals(List.of("PROVISIONED"), attributes.get("account_type"));
+    }
 
     @Test
     void shouldIncludeKeycloakResponseBodyWhenAvailable() {

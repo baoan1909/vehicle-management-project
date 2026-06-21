@@ -9,6 +9,7 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.springframework.data.jpa.domain.Specification;
 
 public final class ProvisionedAccountSpecifications {
@@ -21,7 +22,15 @@ public final class ProvisionedAccountSpecifications {
             Join<AccountEntity, RoleEntity> roleJoin = root.join("role", JoinType.INNER);
 
             List<Predicate> predicates = new ArrayList<>();
-            predicates.add(roleJoin.get("code").in(AdminProvisionableAccountRoleCode.codes()));
+            Set<AdminProvisionableAccountRoleCode> managedRoleCodes = command.managedRoleCodes();
+            if (managedRoleCodes == null || managedRoleCodes.isEmpty()) {
+                return criteriaBuilder.disjunction();
+            }
+            predicates.add(roleJoin.get("code").in(
+                    managedRoleCodes.stream()
+                            .map(AdminProvisionableAccountRoleCode::name)
+                            .toList()
+            ));
 
             if (command.roleCode() != null) {
                 predicates.add(criteriaBuilder.equal(roleJoin.get("code"), command.roleCode().name()));

@@ -7,7 +7,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
+import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
@@ -28,6 +30,9 @@ class CustomerUseCaseImplTest {
     @Mock
     private CustomerPortOut customerPortOut;
 
+    @Mock
+    private UserProfileAvatarPortIn userProfileAvatarPortIn;
+
     @InjectMocks
     private CustomerUseCaseImpl customerUseCase;
 
@@ -45,6 +50,24 @@ class CustomerUseCaseImplTest {
 
         assertEquals(2, customers.size());
         verify(customerPortOut).findAll(CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus");
+    }
+
+    @Test
+    void shouldResolveCustomerProfileAvatarWhenReturningCustomers() {
+        UUID customerId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+        Customer customer = validApprovedCustomer(customerId);
+        customer.setUserProfile(profile(userProfileId, null));
+        UserProfile resolvedProfile = profile(userProfileId, "https://cdn.example.com/customer-avatar.png");
+
+        when(customerPortOut.findAll(null, null, null, null)).thenReturn(List.of(customer));
+        when(userProfileAvatarPortIn.withResolvedAvatarUrls(List.of(customer.getUserProfile())))
+                .thenReturn(List.of(resolvedProfile));
+
+        List<Customer> customers = customerUseCase.getCustomers(null, null, null, null);
+
+        assertEquals("https://cdn.example.com/customer-avatar.png",
+                customers.getFirst().getUserProfile().getAvatarUrl());
     }
 
     @Test
@@ -99,6 +122,14 @@ class CustomerUseCaseImplTest {
         customer.setApprovedBy(UUID.randomUUID());
         customer.setApprovedAt(Instant.parse("2026-05-17T03:00:00Z"));
         return customer;
+    }
+
+    private UserProfile profile(UUID userProfileId, String avatarUrl) {
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUserProfileId(userProfileId);
+        userProfile.setFullName("Nguyen Van Customer");
+        userProfile.setAvatarUrl(avatarUrl);
+        return userProfile;
     }
 
 }

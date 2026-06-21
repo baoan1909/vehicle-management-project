@@ -27,11 +27,22 @@ public interface ProvisionedAccountApiMapper {
         return new CreateProvisionedAccountCommand(
                 toAccount(request),
                 null,
-                request.roleCode()
+                request.roleCode(),
+                request.fullName()
         );
     }
 
-    ProvisionedAccountFilterCommand toFilterCommand(ProvisionedAccountFilterRequest request);
+    default ProvisionedAccountFilterCommand toFilterCommand(ProvisionedAccountFilterRequest request) {
+        if (request == null) {
+            return null;
+        }
+        return new ProvisionedAccountFilterCommand(
+                request.keyword(),
+                request.roleCode(),
+                request.accountStatus(),
+                null
+        );
+    }
 
     UpdateProvisionedAccountStatusCommand toStatusCommand(UpdateProvisionedAccountStatusRequest request);
 
