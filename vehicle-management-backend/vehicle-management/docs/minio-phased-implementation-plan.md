@@ -911,13 +911,12 @@ Sau Phase 6, account moi co the upload avatar ngay sau khi account duoc tao vi d
 
 ### Muc tieu
 
-Dua anh bien so/anh nguoi/anh overview cua parking event vao MinIO private bucket.
+Dua anh bien so va anh nguoi/lai xe cua parking event vao MinIO private bucket.
 
 ### DB hien co
 
 Da co hoac du kien co:
 
-- `parking.parking_events.image_path`
 - `parking.parking_events.license_plate_image_path`
 - `parking.parking_events.person_image_path`
 
@@ -1009,7 +1008,7 @@ Khi check-in/check-out API duoc implement, upload anh ngay trong luong nghiep vu
 ### Check-in API tuong lai
 
 ```http
-POST /api/parking/sessions/check-in
+POST /api/parking/parking-sessions/check-in
 Content-Type: multipart/form-data
 ```
 
@@ -1018,7 +1017,7 @@ Parts:
 ```text
 request=<json>
 licensePlateImage=<file>
-personImage=<file optional>
+personImage=<file>
 ```
 
 Use case:
@@ -1026,10 +1025,20 @@ Use case:
 ```text
 validate lane/gate/zone/card/customer
 -> create parking session OPEN
--> create parking event CHECK_IN
--> upload images private
--> persist object keys vao event
+-> generate parking event id
+-> upload images private with resourceId=parkingEventId
+-> create parking event CHECK_IN with object keys
 ```
+
+Ghi chu:
+
+- Check-in co anh dung mot luong duy nhat la multipart.
+- Khong dung JSON `imagePath` tu client cho check-in MinIO.
+- Permission command cua luong nay la `PARKING_SESSION_CHECK_IN_ALL`; `CHECK_IN` event la side effect cua use case check-in.
+- Phase check-in hien tai nhan ca `licensePlateImage` va `personImage`.
+- `licensePlateImage` luu vao `parking_events.license_plate_image_path`.
+- `personImage` luu vao `parking_events.person_image_path`.
+- Cot cu `parking_events.image_path` khong con duoc dung.
 
 ### Check-out API tuong lai
 

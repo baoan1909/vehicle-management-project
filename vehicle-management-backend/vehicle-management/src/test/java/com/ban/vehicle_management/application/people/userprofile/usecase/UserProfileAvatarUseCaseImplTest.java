@@ -4,10 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ban.vehicle_management.application.people.userprofile.mapper.UserProfileSnapshotMapper;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfileAvatarPortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
@@ -26,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -50,8 +53,17 @@ class UserProfileAvatarUseCaseImplTest {
     @Mock
     private StorageUrlResolver storageUrlResolver;
 
+    @Mock
+    private UserProfileSnapshotMapper userProfileSnapshotMapper;
+
     @InjectMocks
     private UserProfileAvatarUseCaseImpl useCase;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(userProfileSnapshotMapper.toSnapshot(any(UserProfile.class)))
+                .thenAnswer(invocation -> snapshotProfile(invocation.getArgument(0)));
+    }
 
     @Test
     void shouldUploadAvatarAndDeleteOldManagedAvatar() {
@@ -225,6 +237,24 @@ class UserProfileAvatarUseCaseImplTest {
         userProfile.setFullName("Nguyen Bao An");
         userProfile.setAvatarUrl(avatarUrl);
         return userProfile;
+    }
+
+    private UserProfile snapshotProfile(UserProfile userProfile) {
+        UserProfile snapshotUserProfile = new UserProfile();
+        snapshotUserProfile.setUserProfileId(userProfile.getUserProfileId());
+        snapshotUserProfile.setFullName(userProfile.getFullName());
+        snapshotUserProfile.setDateOfBirth(userProfile.getDateOfBirth());
+        snapshotUserProfile.setGender(userProfile.getGender());
+        snapshotUserProfile.setPhoneNumber(userProfile.getPhoneNumber());
+        snapshotUserProfile.setAddress(userProfile.getAddress());
+        snapshotUserProfile.setIdentifyCard(userProfile.getIdentifyCard());
+        snapshotUserProfile.setAvatarUrl(userProfile.getAvatarUrl());
+        snapshotUserProfile.setStatus(userProfile.getStatus());
+        snapshotUserProfile.setCreatedAt(userProfile.getCreatedAt());
+        snapshotUserProfile.setCreatedBy(userProfile.getCreatedBy());
+        snapshotUserProfile.setUpdatedAt(userProfile.getUpdatedAt());
+        snapshotUserProfile.setUpdatedBy(userProfile.getUpdatedBy());
+        return snapshotUserProfile;
     }
 
     private UserProfileAvatar avatar(UUID userProfileId, String objectKey) {

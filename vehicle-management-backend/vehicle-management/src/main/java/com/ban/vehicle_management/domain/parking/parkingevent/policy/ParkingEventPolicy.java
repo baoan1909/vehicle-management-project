@@ -19,7 +19,16 @@ public class ParkingEventPolicy {
         requireField(parkingEvent.getEventTime(), "eventTime");
 
         parkingEvent.setLicensePlateDetected(TextValidationUtils.normalizeNullableText(parkingEvent.getLicensePlateDetected(), "licensePlateDetected", 20));
-        parkingEvent.setImagePath(TextValidationUtils.normalizeNullableText(parkingEvent.getImagePath(), "imagePath", 255));
+        parkingEvent.setLicensePlateImagePath(TextValidationUtils.normalizeNullableText(
+                parkingEvent.getLicensePlateImagePath(),
+                "licensePlateImagePath",
+                255
+        ));
+        parkingEvent.setPersonImagePath(TextValidationUtils.normalizeNullableText(
+                parkingEvent.getPersonImagePath(),
+                "personImagePath",
+                255
+        ));
         parkingEvent.setNote(TextValidationUtils.normalizeNullableText(parkingEvent.getNote(), "note", 0));
 
         if (parkingEvent.getEventType() == ParkingEventType.CHECK_IN

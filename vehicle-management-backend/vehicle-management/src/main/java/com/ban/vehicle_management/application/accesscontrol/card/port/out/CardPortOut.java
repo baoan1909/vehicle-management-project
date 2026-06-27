@@ -12,6 +12,10 @@ public interface CardPortOut {
 
     Optional<Card> findById(UUID cardId);
 
+    Optional<Card> findByUid(String uid);
+
+    Optional<Card> findByUidForUpdate(String uid);
+
     List<Card> findAll(CardStatus status, UUID cardTypeId, UUID vehicleTypeId, String keyword);
 
     boolean existsByCardNumber(String cardNumber);

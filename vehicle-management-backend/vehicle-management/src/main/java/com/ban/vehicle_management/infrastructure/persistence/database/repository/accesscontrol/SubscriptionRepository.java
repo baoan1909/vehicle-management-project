@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.acc
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -19,6 +20,14 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
     boolean existsByPriceRuleId(UUID priceRuleId);
 
     boolean existsByTicketTypeIdAndStatusIn(UUID ticketTypeId, Collection<SubscriptionStatus> statuses);
+
+    Optional<SubscriptionEntity>
+    findFirstByCardIdAndStatusAndEffectiveFromLessThanEqualAndEffectiveToGreaterThanEqualOrderByEffectiveFromDesc(
+            UUID cardId,
+            SubscriptionStatus status,
+            LocalDate effectiveFrom,
+            LocalDate effectiveTo
+    );
 
     @Query("""
             select count(subscription) > 0

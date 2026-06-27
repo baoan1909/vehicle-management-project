@@ -55,6 +55,18 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
     }
 
     @Override
+    public Optional<Subscription> findActiveByCardId(UUID cardId, LocalDate businessDate) {
+        return subscriptionRepository
+                .findFirstByCardIdAndStatusAndEffectiveFromLessThanEqualAndEffectiveToGreaterThanEqualOrderByEffectiveFromDesc(
+                        cardId,
+                        SubscriptionStatus.ACTIVE,
+                        businessDate,
+                        businessDate
+                )
+                .map(subscriptionPersistenceMapper::toDomain);
+    }
+
+    @Override
     public List<Subscription> findAll(
             UUID customerId,
             UUID customerVehicleId,
