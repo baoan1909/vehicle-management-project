@@ -7,7 +7,7 @@ Tai lieu nay tong hop hien trang `vehicle-management`, cac migration/database li
 Pham vi uu tien giai doan dau:
 
 - Anh ho so nguoi dung: `people.user_profile_avatars`.
-- Anh su kien gui xe: `parking.parking_events.image_path` trong schema goc, va hai cot da duoc migration bo sung `license_plate_image_path`, `person_image_path`.
+- Anh su kien gui xe: `parking.parking_events.license_plate_image_path` va `parking.parking_events.person_image_path`; cot cu `image_path` khong con duoc dung.
 - Khong thay doi cac nghiep vu da chot, chi them lop storage va API/luong cap nhat anh mot cach co kiem soat.
 
 Tai lieu nay khong de xuat luu file truc tiep tren local disk. MinIO duoc xem la storage provider nam o tang infrastructure, application chi lam viec voi port.
@@ -62,8 +62,8 @@ Trang thai cap nhat ngay 2026-06-21:
 - Schema snapshot `vehicle_management.sql` da co bang `people.user_profile_avatars` voi metadata avatar, `object_key`, bucket, status va `is_current`.
 - Migration `V14__create_people_user_profile_avatars.sql`, `V15__backfill_people_user_profile_avatars.sql`, `V16__drop_people_user_profiles_avatar_url.sql` da the hien chuoi chuyen doi sang bang avatar rieng.
 - `people.user_profiles.avatar_url` da bi drop khoi schema snapshot va JPA entity; chi con xuat hien trong migration lich su/backfill/drop.
-- `parking.parking_events.image_path VARCHAR(255)` van la anh overview/general theo schema snapshot.
-- Migration `V5__update_parking_check_images_and_price.sql` va `V6__update_parking_structure_for_check_flow.sql` them `license_plate_image_path` va `person_image_path`, nhung schema snapshot `vehicle_management.sql` chua dong bo hai cot nay.
+- `parking.parking_events.license_plate_image_path` va `person_image_path` la hai cot anh nghiep vu cua check flow.
+- Migration `V5__update_parking_check_images_and_price.sql` va `V6__update_parking_structure_for_check_flow.sql` them `license_plate_image_path` va `person_image_path`; migration sau V18 drop cot cu `image_path`.
 - Schema snapshot parking van con drift voi migration check-flow: snapshot chua co `parking.gates`, `parking.lanes` van theo `parking_lot_id`, va `parking_sessions` van con `parking_space_id`/`price_rule_id` trong khi entity/migration da di theo `zone_id`.
 
 Trong code hien tai:
@@ -85,7 +85,7 @@ Trong code hien tai:
 - `UserProfile`, `AccountProfileState` va response profile van con `avatarUrl` nhu enriched API field de frontend hien thi.
 - `CompleteAccountProfileRequest`, `UpdateAccountProfileRequest`, `CreateUserProfileRequest`, `UpdateUserProfileRequest` van con field `avatarUrl` de backward compatibility, nhung mapper/use case da ignore write input nay.
 - Self/customer/employee avatar deu delegate qua `UserProfileAvatarPortIn`; upload/delete chi ghi `people.user_profile_avatars`.
-- `ParkingEventEntity` va `ParkingEvent` moi map `imagePath`, chua map `licensePlateImagePath` va `personImagePath`.
+- `ParkingEventEntity`, `ParkingEvent` va response DTO da map `licensePlateImagePath` va `personImagePath`.
 
 Ket luan:
 
@@ -93,8 +93,8 @@ Ket luan:
 - API self avatar la dung huong va nen giu.
 - API avatar theo `userProfileId` khong nen giu trong public contract vi UI quan tri thao tac theo customer/employee.
 - API avatar theo aggregate nghiep vu da co va la contract chinh: `customers/{customerId}/avatar` va `employees/{employeeId}/avatar`.
-- Can cap nhat `ParkingEventEntity`, domain, mapper, response DTO khi bat luong anh su kien.
-- Nen coi `image_path` la legacy/general image, con `license_plate_image_path` va `person_image_path` la hai anh nghiep vu ro rang cho check flow.
+- Anh su kien parking dung hai cot ro rang: `license_plate_image_path` va `person_image_path`.
+- Cot `image_path` la legacy va khong con nam trong contract moi.
 
 ## 4. Hien trang phan quyen role
 
@@ -535,7 +535,7 @@ He thong cho phep upload, luu tru, thay the, xoa va truy cap tam thoi cac anh/fi
 Giai doan dau:
 
 - Avatar profile: anh public hoac semi-public, gan voi `people.user_profile_avatars`.
-- Parking event images: anh private, gan voi `parking.parking_events.image_path`, `license_plate_image_path`, `person_image_path`.
+- Parking event images: anh private, gan voi `parking.parking_events.license_plate_image_path`, `person_image_path`.
 
 Giai doan sau:
 
@@ -770,7 +770,8 @@ Ap dung khi `parking_event` da ton tai hoac trong luong check-in/check-out tao e
 1. Caller la employee/manager goi API upload image cho event.
 2. Application require:
    - `PARKING_EVENT_UPDATE_ALL` neu event da ton tai.
-   - Hoac `PARKING_EVENT_CREATE_ALL` trong luong tao event/check-in/check-out.
+   - Hoac permission command cua luong nghiep vu neu image duoc upload ngay trong check-in/check-out.
+   - Voi check-in hien tai: `PARKING_SESSION_CHECK_IN_ALL`; event `CHECK_IN` la side effect cua use case check-in, khong bat caller co them `PARKING_EVENT_CREATE_ALL`.
 3. Load event va parking session lien quan.
 4. Kiem tra business state:
    - Event ton tai.
@@ -781,7 +782,7 @@ Ap dung khi `parking_event` da ton tai hoac trong luong check-in/check-out tao e
 7. Cap nhat:
    - `license_plate_image_path` cho anh bien so.
    - `person_image_path` cho anh nguoi/lai xe.
-   - `image_path` chi de backward compatibility hoac anh tong hop.
+   - Khong ghi `image_path` trong contract moi.
 8. Xoa object cu sau commit.
 9. Response tra object keys va presigned URL ngan han neu client can hien thi ngay.
 
@@ -1005,7 +1006,7 @@ Permission:
 Nhiem vu:
 
 - Upload anh vao private bucket.
-- Cap nhat `license_plate_image_path`, `person_image_path`, `image_path`.
+- Cap nhat `license_plate_image_path`, `person_image_path`.
 - Tra response event image admin/user tuy permission.
 
 #### `GET /api/parking/events/{parkingEventId}/images/presigned-urls`
@@ -1079,27 +1080,33 @@ Khong de xuat bulk by filename cho private image.
 
 Khi module `parking_session`/`parking_event` co endpoint nghiep vu:
 
-#### `POST /api/parking/sessions/check-in`
+#### `POST /api/parking/parking-sessions/check-in`
 
-Request co the la multipart:
+Request la multipart:
 
-- JSON part: card, lane, licensePlate, vehicleType...
+- JSON part `request`: cardUid, laneId, licensePlate, note.
 - File part:
-  - `licensePlateImage`
-  - `personImage`
+  - `licensePlateImage` bat buoc trong luong MinIO check-in hien tai.
+  - `personImage` bat buoc trong luong MinIO check-in hien tai.
 
 Permission:
 
-- `PARKING_SESSION_CREATE_ALL`
-- `PARKING_EVENT_CREATE_ALL`
+- `PARKING_SESSION_CHECK_IN_ALL`
 
 Nhiem vu:
 
 - Validate lane/gate/zone active.
 - Tao session `OPEN`.
-- Tao event `CHECK_IN`.
-- Upload anh private bucket.
-- Luu object keys vao event.
+- Generate `parkingEventId`.
+- Upload anh private bucket voi `resourceId=parkingEventId`.
+- Tao event `CHECK_IN` va luu object key vao event.
+
+Ghi chu:
+
+- Khong nhan JSON `imagePath` tu client trong check-in MinIO.
+- `licensePlateImage` luu vao `parking_events.license_plate_image_path`.
+- `personImage` luu vao `parking_events.person_image_path`.
+- Cot cu `parking_events.image_path` khong con duoc dung.
 
 #### `POST /api/parking/sessions/{parkingSessionId}/check-out`
 
@@ -1123,10 +1130,8 @@ Nhiem vu:
 Admin/full response:
 
 - `parkingEventId`
-- `imagePath`
 - `licensePlateImagePath`
 - `personImagePath`
-- `imageUrl`
 - `licensePlateImageUrl`
 - `personImageUrl`
 - `expiresInSeconds`
@@ -1188,7 +1193,6 @@ Uu diem so voi cot cu:
 
 Khi lam parking event images, tiep tuc tan dung cac cot:
 
-- `parking.parking_events.image_path`
 - `parking.parking_events.license_plate_image_path`
 - `parking.parking_events.person_image_path`
 
@@ -1198,8 +1202,8 @@ Gia tri luu:
 
 Luu y:
 
-- Schema snapshot `vehicle_management.sql` hien chua dong bo `license_plate_image_path` va `person_image_path`; migration V5/V6 da them hai cot nay.
-- `ParkingEventEntity` va domain `ParkingEvent` hien moi map `imagePath`; can cap nhat truoc khi lam private image API.
+- Schema snapshot `vehicle_management.sql` da dong bo `license_plate_image_path` va `person_image_path`.
+- `ParkingEventEntity` va domain `ParkingEvent` da map hai cot anh moi.
 - Neu key parking event co nguy co vuot 255 ky tu, can chot migration tang length rieng cho cac cot image path cua parking event.
 
 ### 12.3 Phase sau: Bang file metadata dung chung

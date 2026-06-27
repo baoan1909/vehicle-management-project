@@ -22,7 +22,7 @@ Huong chot:
 - `parking.parking_sessions` la aggregate chinh cho mot lan gui xe.
 - `parking.parking_events` la event log theo session, dung cho check-in, check-out, manual review va barrier open.
 - `EMPLOYEE` la nguoi thao tac check-in/check-out hang ngay.
-- `PARKING_MANAGER` quan ly va co quyen xu ly toan bo.
+- `PARKING_MANAGER` quan ly, xem, loc va xu ly cac case ngoai le nhu manual review/cancel.
 - `CUSTOMER` chi xem lich su cua minh.
 - `SYSTEM_ADMIN` khong van hanh bai xe.
 - MVP nen lam visitor check-in/check-out truoc, sau do noi subscription va billing theo phase ro rang.
@@ -31,18 +31,19 @@ Huong chot:
 
 ### 2.1. Role va permission hien tai
 
-Ma tran dua tren migration `V3__split_modules_actions_scopes.sql` va `V10__seed_role_permission_management_permissions.sql`.
+Ma tran dua tren migration `V3__split_modules_actions_scopes.sql`, `V10__seed_role_permission_management_permissions.sql` va permission command bo sung cho check-flow.
 
 | Role | Quyen lien quan parking | Dien giai nghiep vu |
 |---|---|---|
 | `SYSTEM_ADMIN` | Khong co `PARKING_SESSION_*`, `PARKING_EVENT_*` | Quan tri account, role, permission, audit. Khong thao tac cong xe. |
-| `PARKING_MANAGER` | `PARKING_SESSION_CREATE_ALL`, `PARKING_SESSION_READ_ALL`, `PARKING_SESSION_UPDATE_ALL`, `PARKING_SESSION_DELETE_ALL`, `PARKING_EVENT_CREATE_ALL`, `PARKING_EVENT_READ_ALL`, `PARKING_EVENT_UPDATE_ALL`, `PARKING_EVENT_DELETE_ALL`, kem full quyen customer/card/catalog | Quan ly toan bo van hanh bai xe, xem report, xu ly case loi, cancel/manual review. |
-| `EMPLOYEE` | `PARKING_SESSION_CREATE_ALL`, `PARKING_SESSION_READ_ALL`, `PARKING_SESSION_UPDATE_ALL`, `PARKING_EVENT_CREATE_ALL`, `PARKING_EVENT_READ_ALL`, `PARKING_EVENT_UPDATE_ALL`, kem `CARD_READ_ALL`, `CUSTOMER_READ_ALL`, `CUSTOMER_VEHICLE_READ_ALL`, `VEHICLE_TYPE_READ_ALL`, `TICKET_TYPE_READ_ALL` | Nhan vien cong/quay thuc hien check-in, check-out, manual review co gioi han. |
+| `PARKING_MANAGER` | `PARKING_SESSION_READ_ALL`, `PARKING_SESSION_UPDATE_ALL`, `PARKING_SESSION_DELETE_ALL`, `PARKING_EVENT_READ_ALL`, `PARKING_EVENT_UPDATE_ALL`, `PARKING_EVENT_DELETE_ALL`, kem full quyen customer/card/catalog | Quan ly van hanh bai xe, xem report, xu ly case loi, cancel/manual review; khong check-in/check-out hang ngay. |
+| `EMPLOYEE` | `PARKING_SESSION_CHECK_IN_ALL`, `PARKING_SESSION_READ_ALL`, `PARKING_SESSION_UPDATE_ALL`, `PARKING_EVENT_READ_ALL`, `PARKING_EVENT_UPDATE_ALL`, kem `CARD_READ_ALL`, `CUSTOMER_READ_ALL`, `CUSTOMER_VEHICLE_READ_ALL`, `VEHICLE_TYPE_READ_ALL`, `TICKET_TYPE_READ_ALL` | Nhan vien cong/quay thuc hien check-in, check-out, manual review co gioi han. |
 | `CUSTOMER` | `PARKING_SESSION_READ_OWN`, `PARKING_EVENT_READ_OWN` | Xem lich su gui xe va su kien cua chinh minh. |
 
 Nhan dinh:
 
-- Permission seed da dung cho operation: employee co create/update session/event.
+- Permission check-in da tach khoi CRUD: `PARKING_SESSION_CHECK_IN_ALL` la command permission cho workflow check-in.
+- Event `CHECK_IN` la side effect noi bo cua check-in use case; caller khong can `PARKING_EVENT_CREATE_ALL` chi de check-in.
 - `DELETE` tren session/event khong nen la hard delete trong MVP, du permission co ton tai. Session/event la audit-sensitive, nen dung `cancel`/manual adjustment thay vi xoa.
 - Invoice/payment module hien da co application guard (`INVOICE_*`, `PAYMENT_*`) va controller/use case rieng, nhung parking checkout chua goi billing port. Khong ep billing vao MVP visitor neu chua chot thu tien/receipt UX.
 
@@ -121,7 +122,7 @@ Base `vehicle_management.sql` dang chua dong bo voi migration moi va voi entity 
 - Migration `V7` chuyen gate thuoc `zone_id`, trong khi base SQL khong phan anh.
 - Migration `V8` bo direction `BOTH` va bo `lanes.vehicle_type_id`; base SQL van cho `BOTH` va entity/domain hien khong co `vehicleTypeId`.
 - Base SQL `parking.zones` chua co `status`, trong khi migration V7 va domain/entity da co `ZoneStatus`.
-- Migration `V6` them `license_plate_image_path` va `person_image_path` vao `parking_events`, nhung entity/domain hien moi co `imagePath`.
+- Migration `V6` them `license_plate_image_path` va `person_image_path` vao `parking_events`; entity/domain/DTO hien dung hai field nay va khong ghi `image_path`.
 
 De xuat senior:
 
@@ -261,8 +262,8 @@ Can luu y:
 
 Dieu kien:
 
-- Caller la `EMPLOYEE` hoac `PARKING_MANAGER`.
-- Caller co `PARKING_SESSION_CREATE_ALL` va `PARKING_EVENT_CREATE_ALL`.
+- Caller co `PARKING_SESSION_CHECK_IN_ALL`.
+- Mac dinh chi `EMPLOYEE` duoc seed quyen check-in; role khac khong duoc check-in neu chua duoc System Admin gan permission nay.
 - Account caller active va neu la internal role thi employee status active theo central gate.
 - Lane ton tai, status `ACTIVE`, direction `IN`.
 - Gate cua lane status `ACTIVE`.
@@ -507,31 +508,37 @@ Phase sau:
 
 ```http
 POST /api/parking/parking-sessions/check-in
+Content-Type: multipart/form-data
 ```
 
 Permission:
 
 ```text
-PARKING_SESSION_CREATE_ALL
-PARKING_EVENT_CREATE_ALL
-CARD_READ_ALL
-VEHICLE_TYPE_READ_ALL
+PARKING_SESSION_CHECK_IN_ALL
 ```
 
-Body:
+Multipart body duy nhat:
 
-```json
+```text
+request: application/json
 {
-  "laneId": "uuid",
   "cardUid": "04AABBCCDD",
-  "vehicleTypeId": "uuid",
-  "licensePlateDetected": "59A1-12345",
-  "eventTime": "2026-07-01T08:00:00Z",
-  "licensePlateImagePath": "/parking/2026/07/01/in-001.jpg",
-  "personImagePath": "/parking/2026/07/01/person-001.jpg",
+  "laneId": "uuid",
+  "licensePlate": "59A1-12345",
   "note": null
 }
+
+licensePlateImage: image/jpeg | image/png | image/webp, required
+personImage: image/jpeg | image/png | image/webp, required
 ```
+
+Ghi chu:
+
+- Check-in co anh chi di qua multipart, khong nhan JSON `imagePath` do client truyen.
+- Backend upload `licensePlateImage` vao private MinIO bucket va luu object key vao `parking_events.license_plate_image_path`.
+- Backend upload `personImage` vao private MinIO bucket va luu object key vao `parking_events.person_image_path`.
+- Cot cu `parking_events.image_path` khong con duoc dung va duoc drop bang migration sau V18.
+- Client muon xem anh private se lay presigned URL theo `parkingEventId` trong phase event-image/read URL, khong truy cap bang raw object key.
 
 Nhiem vu:
 
@@ -1030,7 +1037,7 @@ Naming:
 
 Can co:
 
-- `requireCreateAll()`.
+- `requireCheckIn()`.
 - `requireReadAll()`.
 - `requireUpdateAll()`.
 - `requireReadOwn()`.
@@ -1039,10 +1046,11 @@ Can co:
 
 Rule:
 
-- `PARKING_MANAGER`: read/create/update all, cancel, manual review.
+- `PARKING_SESSION_CHECK_IN_ALL`: duoc thuc hien check-in va tao `CHECK_IN` event nhu side effect cua use case.
+- `PARKING_MANAGER`: read/update all, cancel, manual review; khong mac dinh co check-in neu chua duoc gan `PARKING_SESSION_CHECK_IN_ALL`.
 - `EMPLOYEE`: check-in/check-out/manual review co gioi han, read all de tra cuu.
 - `CUSTOMER`: read own only.
-- `SYSTEM_ADMIN`: khong dung parking operation API.
+- `SYSTEM_ADMIN`: khong duoc seed parking operation command permission mac dinh.
 
 ### 10.2. Business guard
 
@@ -1328,7 +1336,7 @@ Thu tu implement nen la:
 
 6. Phase 5 - Private parking images.
    - Dung MinIO private bucket/folder `PARKING_EVENT`.
-   - Luu object key vao `image_path`, `license_plate_image_path`, `person_image_path`.
+   - Luu object key vao `license_plate_image_path`, `person_image_path`.
    - API lay presigned URL theo `parkingEventId` + permission, khong theo raw object key.
 
 7. Phase 6 - Billing/lost-card/hardware.

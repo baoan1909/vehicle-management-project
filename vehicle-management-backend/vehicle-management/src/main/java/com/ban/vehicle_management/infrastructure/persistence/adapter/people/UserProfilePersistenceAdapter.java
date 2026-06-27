@@ -15,7 +15,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component
-public class UserProfilePersistenceAdapter implements UserProfilePortOut {
+public class    UserProfilePersistenceAdapter implements UserProfilePortOut {
 
     private final UserProfileRepository userProfileRepository;
     private final UserProfilePersistenceMapper userProfilePersistenceMapper;

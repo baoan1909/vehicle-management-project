@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.people.userprofile.usecase;
 
+import com.ban.vehicle_management.application.people.userprofile.mapper.UserProfileSnapshotMapper;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfileAvatarPortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
@@ -38,17 +39,20 @@ public class UserProfileAvatarUseCaseImpl implements UserProfileAvatarPortIn {
     private final UserProfileAvatarPortOut userProfileAvatarPortOut;
     private final FileStoragePort fileStoragePort;
     private final StorageUrlResolver storageUrlResolver;
+    private final UserProfileSnapshotMapper userProfileSnapshotMapper;
 
     public UserProfileAvatarUseCaseImpl(
             UserProfilePortOut userProfilePortOut,
             UserProfileAvatarPortOut userProfileAvatarPortOut,
             FileStoragePort fileStoragePort,
-            StorageUrlResolver storageUrlResolver
+            StorageUrlResolver storageUrlResolver,
+            UserProfileSnapshotMapper userProfileSnapshotMapper
     ) {
         this.userProfilePortOut = userProfilePortOut;
         this.userProfileAvatarPortOut = userProfileAvatarPortOut;
         this.fileStoragePort = fileStoragePort;
         this.storageUrlResolver = storageUrlResolver;
+        this.userProfileSnapshotMapper = userProfileSnapshotMapper;
     }
 
     @Override
@@ -160,7 +164,7 @@ public class UserProfileAvatarUseCaseImpl implements UserProfileAvatarPortIn {
             return userProfile;
         }
 
-        UserProfile responseProfile = copyUserProfile(userProfile);
+        UserProfile responseProfile = userProfileSnapshotMapper.toSnapshot(userProfile);
         responseProfile.setAvatarUrl(avatarUrl);
         return responseProfile;
     }
@@ -175,24 +179,6 @@ public class UserProfileAvatarUseCaseImpl implements UserProfileAvatarPortIn {
             return avatarValue;
         }
         return storageUrlResolver.resolvePublicAvatarUrl(avatarValue);
-    }
-
-    private UserProfile copyUserProfile(UserProfile userProfile) {
-        UserProfile responseProfile = new UserProfile();
-        responseProfile.setUserProfileId(userProfile.getUserProfileId());
-        responseProfile.setFullName(userProfile.getFullName());
-        responseProfile.setDateOfBirth(userProfile.getDateOfBirth());
-        responseProfile.setGender(userProfile.getGender());
-        responseProfile.setPhoneNumber(userProfile.getPhoneNumber());
-        responseProfile.setAddress(userProfile.getAddress());
-        responseProfile.setIdentifyCard(userProfile.getIdentifyCard());
-        responseProfile.setAvatarUrl(userProfile.getAvatarUrl());
-        responseProfile.setStatus(userProfile.getStatus());
-        responseProfile.setCreatedAt(userProfile.getCreatedAt());
-        responseProfile.setCreatedBy(userProfile.getCreatedBy());
-        responseProfile.setUpdatedAt(userProfile.getUpdatedAt());
-        responseProfile.setUpdatedBy(userProfile.getUpdatedBy());
-        return responseProfile;
     }
 
     private Optional<UserProfileAvatar> findCurrentAvatar(UUID userProfileId) {

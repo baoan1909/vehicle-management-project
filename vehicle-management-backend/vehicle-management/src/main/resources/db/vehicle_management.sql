@@ -528,7 +528,8 @@ CREATE TABLE parking.parking_events (
     event_type VARCHAR(20) NOT NULL,
     event_time TIMESTAMPTZ NOT NULL,
     license_plate_detected VARCHAR(20),
-    image_path VARCHAR(255),
+    license_plate_image_path VARCHAR(255),
+    person_image_path VARCHAR(255),
     actor_account_id UUID,
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -961,10 +962,10 @@ INSERT INTO parking.parking_sessions (parking_session_id, card_id, vehicle_type_
 VALUES
     ('90000000-0000-0000-0000-000000000001', '70000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000002', '62000000-0000-0000-0000-000000000001', '59B1-67890', '59B1-67890', '2026-05-14 07:30:00+07', '2026-05-14 10:15:00+07', 'CLOSED', 5000, '44000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002');
 
-INSERT INTO parking.parking_events (parking_event_id, parking_session_id, lane_id, event_type, event_time, license_plate_detected, image_path, actor_account_id, note)
+INSERT INTO parking.parking_events (parking_event_id, parking_session_id, lane_id, event_type, event_time, license_plate_detected, license_plate_image_path, person_image_path, actor_account_id, note)
 VALUES
-    ('91000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001', '63000000-0000-0000-0000-000000000001', 'CHECK_IN', '2026-05-14 07:30:00+07', '59B1-67890', 'images/checkin/59B1-67890.jpg', '20000000-0000-0000-0000-000000000002', 'Xe vãng lai vào bãi.'),
-    ('91000000-0000-0000-0000-000000000002', '90000000-0000-0000-0000-000000000001', '63000000-0000-0000-0000-000000000002', 'CHECK_OUT', '2026-05-14 10:15:00+07', '59B1-67890', 'images/checkout/59B1-67890.jpg', '20000000-0000-0000-0000-000000000002', 'Biển số khớp, cho ra cổng.');
+    ('91000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001', '63000000-0000-0000-0000-000000000001', 'CHECK_IN', '2026-05-14 07:30:00+07', '59B1-67890', 'images/checkin/59B1-67890-plate.jpg', 'images/checkin/59B1-67890-person.jpg', '20000000-0000-0000-0000-000000000002', 'Xe vãng lai vào bãi.'),
+    ('91000000-0000-0000-0000-000000000002', '90000000-0000-0000-0000-000000000001', '63000000-0000-0000-0000-000000000002', 'CHECK_OUT', '2026-05-14 10:15:00+07', '59B1-67890', 'images/checkout/59B1-67890-plate.jpg', 'images/checkout/59B1-67890-person.jpg', '20000000-0000-0000-0000-000000000002', 'Biển số khớp, cho ra cổng.');
 
 -- Dữ liệu mẫu: hóa đơn và thanh toán cho phiên gửi xe vãng lai.
 INSERT INTO billing.invoices (invoice_id, invoice_no, parking_session_id, amount, final_amount, status, issued_at, paid_at, created_by)

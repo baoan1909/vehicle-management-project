@@ -57,8 +57,11 @@ public class ParkingEventEntity extends AuditableEntity {
     @Column(name = "license_plate_detected")
     private String licensePlateDetected;
 
-    @Column(name = "image_path")
-    private String imagePath;
+    @Column(name = "license_plate_image_path")
+    private String licensePlateImagePath;
+
+    @Column(name = "person_image_path")
+    private String personImagePath;
 
     @Column(name = "actor_account_id")
     private UUID actorAccountId;
