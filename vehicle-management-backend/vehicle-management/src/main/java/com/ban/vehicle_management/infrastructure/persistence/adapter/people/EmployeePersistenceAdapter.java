@@ -71,4 +71,22 @@ public class EmployeePersistenceAdapter implements EmployeePortOut {
     public boolean existsUserProfileById(UUID userProfileId) {
         return userProfileRepository.existsById(userProfileId);
     }
+
+    @Override
+    public Optional<Employee> findByAccountId(UUID accountId) {
+        return employeeRepository.findByAccountId(accountId)
+                .map(employeePersistenceMapper::toDomain);
+    }
+
+    @Override
+    public boolean hasAccountRole(
+            UUID employeeId,
+            String roleCode
+    ) {
+        return employeeRepository
+                .existsByEmployeeIdAndAccountRoleCode(
+                        employeeId,
+                        roleCode
+                );
+    }
 }
