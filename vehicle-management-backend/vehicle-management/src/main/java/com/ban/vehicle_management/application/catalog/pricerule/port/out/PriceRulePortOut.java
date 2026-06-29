@@ -49,4 +49,10 @@ public interface PriceRulePortOut {
             UUID ticketTypeId,
             LocalDate effectiveDate
     );
+
+    Optional<PriceRule> findActiveVisitorRuleByTime(
+            UUID vehicleTypeId,
+            LocalDate effectiveDate,
+            LocalTime localTime
+    );
 }

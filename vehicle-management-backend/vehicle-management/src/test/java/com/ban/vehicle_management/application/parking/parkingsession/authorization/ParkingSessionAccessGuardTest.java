@@ -64,6 +64,28 @@ class ParkingSessionAccessGuardTest {
     }
 
     @Test
+    void shouldAllowEmployeeWhenExplicitlyGrantedCheckOutPermission() {
+        ParkingSessionAccessGuard accessGuard = accessGuard(currentAccount(
+                AdminProvisionableAccountRoleCode.EMPLOYEE.name(),
+                EmployeeStatus.ACTIVE,
+                Set.of(ParkingSessionAccessGuard.PARKING_SESSION_CHECK_OUT_ALL)
+        ));
+
+        assertDoesNotThrow(accessGuard::ensureCanCheckOut);
+    }
+
+    @Test
+    void shouldRejectEmployeeWithoutCheckOutPermission() {
+        ParkingSessionAccessGuard accessGuard = accessGuard(currentAccount(
+                AdminProvisionableAccountRoleCode.EMPLOYEE.name(),
+                EmployeeStatus.ACTIVE,
+                Set.of(ParkingSessionAccessGuard.PARKING_SESSION_CHECK_IN_ALL)
+        ));
+
+        assertThrows(AccessDeniedException.class, accessGuard::ensureCanCheckOut);
+    }
+
+    @Test
     void shouldRejectSystemAdminWithOnlyCrudParkingPermissions() {
         ParkingSessionAccessGuard accessGuard = accessGuard(currentAccount(
                 AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name(),

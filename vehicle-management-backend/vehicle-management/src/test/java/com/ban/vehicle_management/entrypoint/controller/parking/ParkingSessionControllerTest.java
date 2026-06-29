@@ -9,10 +9,14 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingSessionApiMapper;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInCommand;
+import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckOutCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInResult;
+import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingSessionPortIn;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInParkingSessionRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.UUID;
@@ -124,5 +128,72 @@ class ParkingSessionControllerTest {
         );
 
         assertEquals("request part must be valid JSON", exception.getMessage());
+    }
+
+    @Test
+    void shouldParseCheckOutRequestJsonPartBeforeCallingUseCase() {
+        ParkingSessionController controller = new ParkingSessionController(
+                parkingSessionPortIn,
+                parkingSessionApiMapper
+        );
+        UUID laneId = UUID.randomUUID();
+        MockMultipartFile licensePlateImage = new MockMultipartFile(
+                "licensePlateImage",
+                "plate.jpg",
+                "image/jpeg",
+                new byte[] {1, 2, 3}
+        );
+        MockMultipartFile personImage = new MockMultipartFile(
+                "personImage",
+                "person.jpg",
+                "image/jpeg",
+                new byte[] {4, 5, 6}
+        );
+        CheckOutCommand command = new CheckOutCommand(
+                laneId,
+                "RFID-VISITOR-001",
+                "60K8-2301",
+                licensePlateImage,
+                personImage,
+                "Xe vang lai check-out"
+        );
+        CheckOutResult result = new CheckOutResult(null, null, null, "VISITOR", "WAIT_PAYMENT");
+        ParkingSessionCheckOutResponse responseBody = new ParkingSessionCheckOutResponse();
+        responseBody.setCustomerType("VISITOR");
+        responseBody.setBarrierAction("WAIT_PAYMENT");
+
+        when(parkingSessionApiMapper.toCommand(
+                any(CheckOutParkingSessionRequest.class),
+                same(licensePlateImage),
+                same(personImage)
+        ))
+                .thenReturn(command);
+        when(parkingSessionPortIn.checkOut(command)).thenReturn(result);
+        when(parkingSessionApiMapper.toCheckOutResponse(result)).thenReturn(responseBody);
+
+        ResponseEntity<ApiResponse<ParkingSessionCheckOutResponse>> response = controller.checkOut(
+                """
+                {
+                  "laneId": "%s",
+                  "cardUid": "RFID-VISITOR-001",
+                  "licensePlate": "60K8-2301",
+                  "note": "Xe vang lai check-out"
+                }
+                """.formatted(laneId),
+                licensePlateImage,
+                personImage
+        );
+
+        ArgumentCaptor<CheckOutParkingSessionRequest> requestCaptor =
+                ArgumentCaptor.forClass(CheckOutParkingSessionRequest.class);
+        verify(parkingSessionApiMapper).toCommand(requestCaptor.capture(), same(licensePlateImage), same(personImage));
+        CheckOutParkingSessionRequest parsedRequest = requestCaptor.getValue();
+        assertEquals(laneId, parsedRequest.laneId());
+        assertEquals("RFID-VISITOR-001", parsedRequest.cardUid());
+        assertEquals("60K8-2301", parsedRequest.licensePlate());
+        assertEquals("Xe vang lai check-out", parsedRequest.note());
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("VISITOR", response.getBody().getData().getCustomerType());
+        assertEquals("WAIT_PAYMENT", response.getBody().getData().getBarrierAction());
     }
 }

@@ -123,12 +123,15 @@ class PriceRulePolicyTest {
     }
 
     @Test
-    void shouldRejectInvalidTimeRange() {
+    void shouldAllowOvernightTimeRange() {
         PriceRule priceRule = validPriceRule();
         priceRule.setTimeFrom(LocalTime.of(18, 0));
         priceRule.setTimeTo(LocalTime.of(6, 0));
 
-        assertThrows(BadRequestException.class, () -> priceRulePolicy.initialize(priceRule));
+        priceRulePolicy.initialize(priceRule);
+
+        assertEquals(LocalTime.of(18, 0), priceRule.getTimeFrom());
+        assertEquals(LocalTime.of(6, 0), priceRule.getTimeTo());
     }
 
     @Test

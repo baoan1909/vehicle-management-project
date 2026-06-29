@@ -30,6 +30,6 @@ public interface CardPortOut {
 
     boolean hasActiveUsage(UUID cardId);
 
-    Optional<Card> findFirstAvailableByVehicleTypeId(UUID vehicleTypeId);
+    Optional<Card> findFirstAvailableRegisteredByVehicleTypeId(UUID vehicleTypeId);
 }
 

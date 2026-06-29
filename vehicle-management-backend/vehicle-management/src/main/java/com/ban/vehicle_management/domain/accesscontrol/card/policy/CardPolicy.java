@@ -45,6 +45,13 @@ public class CardPolicy {
         clearBlockMetadata(card);
     }
 
+    public void markAssignedFromInUse(Card card) {
+        requireStatus(card, CardStatus.IN_USE);
+
+        card.setStatus(CardStatus.ASSIGNED);
+        clearBlockMetadata(card);
+    }
+
 
     public void block(Card card, Instant blockedAt, String blockedReason) {
         requireCard(card);

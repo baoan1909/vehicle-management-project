@@ -40,8 +40,8 @@ public class PriceRulePolicy {
         if (hasTimeFrom != hasTimeTo) {
             throw new BadRequestException("timeFrom and timeTo must appear together");
         }
-        if (hasTimeFrom && !priceRule.getTimeFrom().isBefore(priceRule.getTimeTo())) {
-            throw new BadRequestException("timeFrom must be before timeTo");
+        if (hasTimeFrom && priceRule.getTimeFrom().equals(priceRule.getTimeTo())) {
+            throw new BadRequestException("timeFrom must not equal timeTo");
         }
 
         if (priceRule.getIsActive() == null) {
