@@ -102,14 +102,54 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
             LocalTime timeTo,
             UUID excludedPriceRuleId
     ) {
-        return priceRuleRepository.existsActiveVisitorTimeOverlap(
-                pricePlanId,
-                vehicleTypeId,
-                ticketTypeId,
-                timeFrom,
-                timeTo,
-                excludedPriceRuleId
+        return priceRuleRepository.findActiveVisitorRulesForOverlap(
+                        pricePlanId,
+                        vehicleTypeId,
+                        ticketTypeId,
+                        excludedPriceRuleId
+                )
+                .stream()
+                .anyMatch(existingRule -> overlaps(
+                        existingRule.getTimeFrom(),
+                        existingRule.getTimeTo(),
+                        timeFrom,
+                        timeTo
+                ));
+    }
+
+    private boolean overlaps(
+            LocalTime existingFrom,
+            LocalTime existingTo,
+            LocalTime newFrom,
+            LocalTime newTo
+    ) {
+        List<TimeRange> existingRanges = splitRange(existingFrom, existingTo);
+        List<TimeRange> newRanges = splitRange(newFrom, newTo);
+
+        return existingRanges.stream()
+                .anyMatch(existingRange -> newRanges.stream()
+                        .anyMatch(newRange -> rangesOverlap(existingRange, newRange)));
+    }
+
+    private List<TimeRange> splitRange(LocalTime from, LocalTime to) {
+        int start = from.toSecondOfDay();
+        int end = to.toSecondOfDay();
+
+        if (start < end) {
+            return List.of(new TimeRange(start, end));
+        }
+
+        return List.of(
+                new TimeRange(start, 86399),
+                new TimeRange(0, end)
         );
+    }
+
+    private boolean rangesOverlap(TimeRange first, TimeRange second) {
+        return first.start <= second.end && second.start <= first.end;
+    }
+
+    private record TimeRange(int start, int end) {
     }
 
     @Override
@@ -139,6 +179,16 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
             LocalDate effectiveDate
     ) {
         return priceRuleRepository.findActiveSubscriptionRule(vehicleTypeId, ticketTypeId, effectiveDate)
+                .map(priceRulePersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<PriceRule> findActiveVisitorRuleByTime(
+            UUID vehicleTypeId,
+            LocalDate effectiveDate,
+            LocalTime localTime
+    ) {
+        return priceRuleRepository.findActiveVisitorRuleByTime(vehicleTypeId, effectiveDate, localTime)
                 .map(priceRulePersistenceMapper::toDomain);
     }
 }

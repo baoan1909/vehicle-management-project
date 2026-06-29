@@ -194,8 +194,8 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             throw new ConflictException("Active invoice already exists for subscription");
         }
 
-        Card reservedCard = cardPortOut.findFirstAvailableByVehicleTypeId(preparedData.customerVehicle().getVehicleTypeId())
-                .orElseThrow(() -> new ConflictException("No available card for vehicle type"));
+        Card reservedCard = cardPortOut.findFirstAvailableRegisteredByVehicleTypeId(preparedData.customerVehicle().getVehicleTypeId())
+                .orElseThrow(() -> new ConflictException("No available registered card for vehicle type"));
 
         cardPolicy.reserve(reservedCard);
         Card savedReservedCard = cardPortOut.save(reservedCard);

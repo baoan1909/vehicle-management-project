@@ -26,6 +26,7 @@ public class CardPersistenceAdapter implements CardPortOut {
     private final LostCardReportRepository lostCardReportRepository;
     private final ParkingSessionRepository parkingSessionRepository;
     private final CardPersistenceMapper cardPersistenceMapper;
+    private static final String CARD_TYPE_REGISTERED = "REGISTERED";
 
     public CardPersistenceAdapter(
             CardRepository cardRepository,
@@ -117,11 +118,14 @@ public class CardPersistenceAdapter implements CardPortOut {
     }
 
     @Override
-    public Optional<Card> findFirstAvailableByVehicleTypeId(UUID vehicleTypeId) {
-        return cardRepository.findFirstByVehicleTypeIdAndStatusOrderByCardNumberAsc(
+    public Optional<Card> findFirstAvailableRegisteredByVehicleTypeId(UUID vehicleTypeId) {
+        return cardRepository.findAvailableByVehicleTypeAndCardTypeCodeForUpdate(
                         vehicleTypeId,
-                        CardStatus.AVAILABLE
+                        CardStatus.AVAILABLE,
+                        CARD_TYPE_REGISTERED
                 )
+                .stream()
+                .findFirst()
                 .map(cardPersistenceMapper::toDomain);
     }
 }

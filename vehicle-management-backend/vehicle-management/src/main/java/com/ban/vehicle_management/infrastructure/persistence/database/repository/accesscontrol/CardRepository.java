@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.acc
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import jakarta.persistence.LockModeType;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -38,7 +39,21 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID>, JpaSpec
 
     boolean existsByUidAndCardIdNot(String uid, UUID cardId);
 
-    Optional<CardEntity> findFirstByVehicleTypeIdAndStatusOrderByCardNumberAsc(UUID vehicleTypeId, CardStatus status);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select card
+        from CardEntity card
+        join card.cardType cardType
+        where card.vehicleTypeId = :vehicleTypeId
+          and card.status = :status
+          and upper(cardType.code) = upper(:cardTypeCode)
+        order by card.cardNumber asc
+        """)
+    List<CardEntity> findAvailableByVehicleTypeAndCardTypeCodeForUpdate(
+            @Param("vehicleTypeId") UUID vehicleTypeId,
+            @Param("status") CardStatus status,
+            @Param("cardTypeCode") String cardTypeCode
+    );
 }
 
 

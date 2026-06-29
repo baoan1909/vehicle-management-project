@@ -173,7 +173,7 @@ class SubscriptionUseCaseImplTest {
         when(zonePortOut.sumActiveCapacityByVehicleTypeId(data.vehicleTypeId())).thenReturn(100L);
         when(subscriptionPortOut.countReservedOrActiveByVehicleTypeId(data.vehicleTypeId())).thenReturn(10L);
         when(invoicePortOut.existsBySubscriptionIdAndStatusIn(eq(data.subscriptionId()), any(List.class))).thenReturn(false);
-        when(cardPortOut.findFirstAvailableByVehicleTypeId(data.vehicleTypeId())).thenReturn(Optional.of(availableCard));
+        when(cardPortOut.findFirstAvailableRegisteredByVehicleTypeId(data.vehicleTypeId())).thenReturn(Optional.of(availableCard));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(managerAccountId);
         when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -208,7 +208,6 @@ class SubscriptionUseCaseImplTest {
         when(zonePortOut.sumActiveCapacityByVehicleTypeId(data.vehicleTypeId())).thenReturn(100L);
         when(subscriptionPortOut.countReservedOrActiveByVehicleTypeId(data.vehicleTypeId())).thenReturn(10L);
         when(invoicePortOut.existsBySubscriptionIdAndStatusIn(eq(data.subscriptionId()), any(List.class))).thenReturn(false);
-        when(cardPortOut.findFirstAvailableByVehicleTypeId(data.vehicleTypeId())).thenReturn(Optional.empty());
 
         assertThrows(ConflictException.class, () -> subscriptionUseCase.approveSubscription(data.subscriptionId()));
         verify(subscriptionPortOut, never()).save(any(Subscription.class));
