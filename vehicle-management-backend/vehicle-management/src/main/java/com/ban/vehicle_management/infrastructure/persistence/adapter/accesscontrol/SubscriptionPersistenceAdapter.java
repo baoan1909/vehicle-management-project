@@ -117,4 +117,16 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
                 CAPACITY_HOLDING_STATUSES
         );
     }
+
+    @Override
+    public Optional<Subscription> findActiveByLicensePlate(String licensePlate, LocalDate businessDate) {
+        return subscriptionRepository.findActiveByLicensePlate(
+                        licensePlate,
+                        SubscriptionStatus.ACTIVE,
+                        businessDate
+                )
+                .stream()
+                .findFirst()
+                .map(subscriptionPersistenceMapper::toDomain);
+    }
 }

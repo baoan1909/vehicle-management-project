@@ -41,10 +41,19 @@ public class LostCardReportPolicy {
         validateState(report);
     }
 
-    public void cancel(LostCardReport report) {
+    public void cancel(LostCardReport report, UUID cancelledBy, Instant cancelledAt, String cancelReason) {
         requireStatus(report, LostCardReportStatus.OPEN);
+        requireField(cancelledBy, "cancelledBy");
+        requireField(cancelledAt, "cancelledAt");
+
+        if (cancelledAt.isBefore(report.getNotificationTime())) {
+            throw new BadRequestException("cancelledAt must not be before notificationTime");
+        }
 
         report.setStatus(LostCardReportStatus.CANCELLED);
+        report.setCancelledBy(cancelledBy);
+        report.setCancelledAt(cancelledAt);
+        report.setCancelReason(TextValidationUtils.normalizeRequiredText(cancelReason, "cancelReason", 500));
         report.setResolvedBy(null);
         report.setResolvedAt(null);
         validateState(report);
@@ -56,11 +65,18 @@ public class LostCardReportPolicy {
         requireField(report.getNotificationTime(), "notificationTime");
         requireField(report.getTimeOfLost(), "timeOfLost");
         requireField(report.getStatus(), "status");
-        report.setReporterName(TextValidationUtils.normalizeNullableText(report.getReporterName(), "reporterName", 150));
+        requireField(report.getContext(), "context");
+        report.setReporterName(TextValidationUtils.normalizeRequiredText(report.getReporterName(), "reporterName", 150));
         report.setReporterPhone(TextValidationUtils.normalizePhoneNumber(report.getReporterPhone(), "reporterPhone", 20));
         report.setIdentifyCard(TextValidationUtils.normalizeAlphaNumeric(report.getIdentifyCard(), "identifyCard", 20));
         report.setRegistrationLicense(TextValidationUtils.normalizeNullableText(report.getRegistrationLicense(), "registrationLicense", 50));
-        report.setNote(TextValidationUtils.normalizeNullableText(report.getNote(), "note", 0));
+        boolean hasIdentifyCard = report.getIdentifyCard() != null && !report.getIdentifyCard().isBlank();
+        boolean hasRegistrationLicense = report.getRegistrationLicense() != null && !report.getRegistrationLicense().isBlank();
+
+        if (!hasIdentifyCard && !hasRegistrationLicense) {
+            throw new BadRequestException("identifyCard or registrationLicense must be provided");
+        }
+        report.setNote(TextValidationUtils.normalizeNullableText(report.getNote(), "note", 500));
 
         BigDecimal ticketPrice = report.getTicketPrice() == null ? BigDecimal.ZERO : report.getTicketPrice();
         BigDecimal lostCardFee = report.getLostCardFee() == null ? BigDecimal.ZERO : report.getLostCardFee();
@@ -87,6 +103,21 @@ public class LostCardReportPolicy {
 
         if (hasResolutionMetadata) {
             throw new BadRequestException("Only resolved report can keep resolvedBy and resolvedAt");
+        }
+
+        boolean hasCancelMetadata = report.getCancelledBy() != null
+                || report.getCancelledAt() != null
+                || (report.getCancelReason() != null && !report.getCancelReason().isBlank());
+
+        if (report.getStatus() == LostCardReportStatus.CANCELLED) {
+            requireField(report.getCancelledBy(), "cancelledBy");
+            requireField(report.getCancelledAt(), "cancelledAt");
+            report.setCancelReason(TextValidationUtils.normalizeRequiredText(report.getCancelReason(), "cancelReason", 500));
+            return;
+        }
+
+        if (hasCancelMetadata) {
+            throw new BadRequestException("Only cancelled report can keep cancelledBy, cancelledAt, and cancelReason");
         }
     }
 

@@ -6,6 +6,8 @@ import com.ban.vehicle_management.infrastructure.mapper.parking.ParkingSessionPe
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
+
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -46,5 +48,22 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
     @Override
     public long countOpenByZoneId(UUID zoneId) {
         return parkingSessionRepository.countByZoneIdAndStatus(zoneId, ParkingSessionStatus.OPEN);
+    }
+
+    @Override
+    public List<ParkingSession> findOpenByLicensePlateIn(String licensePlateIn) {
+        return parkingSessionRepository.findByLicensePlateInAndStatus(
+                        licensePlateIn,
+                        ParkingSessionStatus.OPEN
+                )
+                .stream()
+                .map(parkingSessionPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public Optional<ParkingSession> findById(UUID parkingSessionId) {
+        return parkingSessionRepository.findById(parkingSessionId)
+                .map(parkingSessionPersistenceMapper::toDomain);
     }
 }

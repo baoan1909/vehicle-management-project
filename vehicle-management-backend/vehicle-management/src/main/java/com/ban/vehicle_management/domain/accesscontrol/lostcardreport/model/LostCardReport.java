@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportContext;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -20,6 +21,7 @@ public class LostCardReport extends AuditableDomainModel {
     private UUID cardId;
     private UUID customerId;
     private UUID parkingSessionId;
+    private UUID subscriptionId;
     private Instant notificationTime;
     private Instant timeOfLost;
     private BigDecimal ticketPrice;
@@ -29,8 +31,11 @@ public class LostCardReport extends AuditableDomainModel {
     private String identifyCard;
     private String registrationLicense;
     private String note;
+    private LostCardReportContext context;
     private LostCardReportStatus status;
     private UUID resolvedBy;
     private Instant resolvedAt;
+    private UUID cancelledBy;
+    private Instant cancelledAt;
+    private String cancelReason;
 }
-
