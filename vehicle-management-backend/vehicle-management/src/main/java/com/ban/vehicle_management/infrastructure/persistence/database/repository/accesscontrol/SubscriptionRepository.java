@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.acc
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -56,5 +57,21 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
     long countByVehicleTypeIdAndStatusIn(
             @Param("vehicleTypeId") UUID vehicleTypeId,
             @Param("statuses") Collection<SubscriptionStatus> statuses
+    );
+
+    @Query("""
+        select subscription
+        from SubscriptionEntity subscription
+        join subscription.customerVehicle customerVehicle
+        where upper(customerVehicle.licensePlate) = upper(:licensePlate)
+          and subscription.status = :status
+          and subscription.effectiveFrom <= :businessDate
+          and subscription.effectiveTo >= :businessDate
+        order by subscription.effectiveFrom desc
+        """)
+    List<SubscriptionEntity> findActiveByLicensePlate(
+            @Param("licensePlate") String licensePlate,
+            @Param("status") SubscriptionStatus status,
+            @Param("businessDate") LocalDate businessDate
     );
 }

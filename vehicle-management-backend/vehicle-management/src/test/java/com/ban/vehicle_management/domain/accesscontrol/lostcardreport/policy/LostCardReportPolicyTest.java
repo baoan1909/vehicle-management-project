@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportContext;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
@@ -64,10 +65,15 @@ class LostCardReportPolicyTest {
         LostCardReport report = validReport(LostCardReportStatus.OPEN);
         report.setResolvedBy(UUID.randomUUID());
         report.setResolvedAt(Instant.parse("2026-05-15T12:00:00Z"));
+        UUID cancelledBy = UUID.randomUUID();
+        Instant cancelledAt = Instant.parse("2026-05-15T12:00:00Z");
 
-        lostCardReportPolicy.cancel(report);
+        lostCardReportPolicy.cancel(report, cancelledBy, cancelledAt, "Khach tim lai duoc the");
 
         assertEquals(LostCardReportStatus.CANCELLED, report.getStatus());
+        assertEquals(cancelledBy, report.getCancelledBy());
+        assertEquals(cancelledAt, report.getCancelledAt());
+        assertEquals("Khach tim lai duoc the", report.getCancelReason());
         assertNull(report.getResolvedBy());
         assertNull(report.getResolvedAt());
     }
@@ -110,10 +116,14 @@ class LostCardReportPolicyTest {
         LostCardReport report = new LostCardReport();
         report.setLostCardReportId(UUID.randomUUID());
         report.setCardId(UUID.randomUUID());
+        report.setContext(LostCardReportContext.VISITOR_IN_PARKING);
         report.setNotificationTime(Instant.parse("2026-05-15T11:00:00Z"));
         report.setTimeOfLost(Instant.parse("2026-05-15T10:00:00Z"));
         report.setTicketPrice(new BigDecimal("10000"));
         report.setLostCardFee(new BigDecimal("50000"));
+        report.setReporterName("Nguyen Van A");
+        report.setReporterPhone("0901234567");
+        report.setIdentifyCard("080112345678");
         report.setStatus(status);
         return report;
     }

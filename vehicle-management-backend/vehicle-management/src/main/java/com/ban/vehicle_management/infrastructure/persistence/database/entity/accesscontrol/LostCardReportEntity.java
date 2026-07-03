@@ -1,31 +1,19 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol;
 
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.CardEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.InvoiceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportContext;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Table(name = "lost_card_reports", schema = "access_control")
@@ -60,6 +48,13 @@ public class LostCardReportEntity extends AuditableEntity {
     @JoinColumn(name = "parking_session_id", referencedColumnName = "parking_session_id", insertable = false, updatable = false)
     private ParkingSessionEntity parkingSession;
 
+    @Column(name = "subscription_id")
+    private UUID subscriptionId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subscription_id", referencedColumnName = "subscription_id", insertable = false, updatable = false)
+    private SubscriptionEntity subscription;
+
     @Column(name = "notification_time", nullable = false)
     private Instant notificationTime;
 
@@ -88,6 +83,10 @@ public class LostCardReportEntity extends AuditableEntity {
     private String note;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "context", nullable = false)
+    private LostCardReportContext context;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private LostCardReportStatus status;
 
@@ -101,9 +100,19 @@ public class LostCardReportEntity extends AuditableEntity {
     @Column(name = "resolved_at")
     private Instant resolvedAt;
 
+    @Column(name = "cancelled_by")
+    private UUID cancelledBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancelled_by", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity cancelledByAccount;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
     @OneToMany(mappedBy = "lostCardReport")
     private Set<InvoiceEntity> invoices = new HashSet<>();
-
 }
-
-
