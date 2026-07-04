@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -38,6 +40,7 @@ public class VehicleTypeController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_CREATE_ALL')")
     public ResponseEntity<ApiResponse<VehicleTypeAdminResponse>> createVehicleType(@RequestBody CreateVehicleTypeRequest request) {
         VehicleType createdVehicleType = vehicleTypePortIn.createVehicleType(vehicleTypeApiMapper.toDomain(request));
         VehicleTypeAdminResponse response = vehicleTypeApiMapper.toAdminResponse(createdVehicleType);
@@ -46,6 +49,7 @@ public class VehicleTypeController {
     }
 
     @GetMapping("/{vehicleTypeId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_READ_ALL')")
     public ResponseEntity<ApiResponse<VehicleTypeAdminResponse>> getVehicleTypeById(@PathVariable UUID vehicleTypeId) {
         VehicleType vehicleType = vehicleTypePortIn.getVehicleTypeById(vehicleTypeId);
         VehicleTypeAdminResponse response = vehicleTypeApiMapper.toAdminResponse(vehicleType);
@@ -53,6 +57,7 @@ public class VehicleTypeController {
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_READ_ALL')")
     public ResponseEntity<ApiResponse<List<VehicleTypeAdminResponse>>> getVehicleTypes(
             @ModelAttribute VehicleTypeFilterRequest request
     ) {
@@ -62,6 +67,7 @@ public class VehicleTypeController {
     }
 
     @PutMapping("/{vehicleTypeId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<VehicleTypeAdminResponse>> updateVehicleType(
             @PathVariable UUID vehicleTypeId,
             @RequestBody UpdateVehicleTypeRequest request
@@ -75,9 +81,18 @@ public class VehicleTypeController {
     }
 
     @DeleteMapping("/{vehicleTypeId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_DELETE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteVehicleType(@PathVariable UUID vehicleTypeId) {
         vehicleTypePortIn.deleteVehicleType(vehicleTypeId);
         return ResponseEntity.ok(ApiResponse.ok("Vehicle type deactivated successfully"));
+    }
+
+    @PatchMapping("/{vehicleTypeId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<VehicleTypeAdminResponse>> activateVehicleType(@PathVariable UUID vehicleTypeId) {
+        VehicleType vehicleType = vehicleTypePortIn.activateVehicleType(vehicleTypeId);
+        VehicleTypeAdminResponse response = vehicleTypeApiMapper.toAdminResponse(vehicleType);
+        return ResponseEntity.ok(ApiResponse.ok("Vehicle type activated successfully", response));
     }
 }
 

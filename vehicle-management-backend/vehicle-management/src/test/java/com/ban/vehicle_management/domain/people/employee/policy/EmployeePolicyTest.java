@@ -25,7 +25,7 @@ class EmployeePolicyTest {
 
         assertEquals("EMP-001", employee.getEmployeeCode());
         assertEquals("Cashier", employee.getJobTitle());
-        assertEquals(EmployeeStatus.ACTIVE, employee.getStatus());
+        assertEquals(EmployeeStatus.INACTIVE, employee.getStatus());
     }
 
     @Test
@@ -37,6 +37,34 @@ class EmployeePolicyTest {
         employee.setHiredAt(LocalDate.now().plusDays(1));
 
         assertThrows(BadRequestException.class, () -> employeePolicy.validateState(employee));
+    }
+
+    @Test
+    void shouldSetHireDateWhenActivatingEmployeeWithoutHireDate() {
+        Employee employee = new Employee();
+        employee.setUserProfileId(UUID.randomUUID());
+        employee.setEmployeeCode("EMP-001");
+        employee.setStatus(EmployeeStatus.INACTIVE);
+        LocalDate hiredAt = LocalDate.of(2026, 6, 20);
+
+        employeePolicy.activate(employee, hiredAt);
+
+        assertEquals(EmployeeStatus.ACTIVE, employee.getStatus());
+        assertEquals(hiredAt, employee.getHiredAt());
+    }
+
+    @Test
+    void shouldKeepExistingHireDateWhenActivatingEmployee() {
+        Employee employee = new Employee();
+        employee.setUserProfileId(UUID.randomUUID());
+        employee.setEmployeeCode("EMP-001");
+        employee.setStatus(EmployeeStatus.INACTIVE);
+        employee.setHiredAt(LocalDate.of(2025, 1, 1));
+
+        employeePolicy.activate(employee, LocalDate.of(2026, 6, 20));
+
+        assertEquals(EmployeeStatus.ACTIVE, employee.getStatus());
+        assertEquals(LocalDate.of(2025, 1, 1), employee.getHiredAt());
     }
 
     @Test

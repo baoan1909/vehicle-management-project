@@ -3,15 +3,15 @@ package com.ban.vehicle_management.entrypoint.controller.people;
 import com.ban.vehicle_management.application.people.employee.mapper.EmployeeApiMapper;
 import com.ban.vehicle_management.application.people.employee.port.in.EmployeePortIn;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
-import com.ban.vehicle_management.entrypoint.dto.people.employee.request.CreateEmployeeRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.employee.request.EmployeeFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.employee.request.UpdateEmployeeRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.employee.response.EmployeeAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -21,7 +21,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/people/employees")
@@ -33,15 +35,6 @@ public class EmployeeController {
     public EmployeeController(EmployeePortIn employeePortIn, EmployeeApiMapper employeeApiMapper) {
         this.employeePortIn = employeePortIn;
         this.employeeApiMapper = employeeApiMapper;
-    }
-
-    @PostMapping
-    public ResponseEntity<ApiResponse<EmployeeAdminResponse>> createEmployee(@RequestBody CreateEmployeeRequest request) {
-        Employee createdEmployee = employeePortIn.createEmployee(employeeApiMapper.toDomain(request));
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
-                "Employee created successfully",
-                employeeApiMapper.toAdminResponse(createdEmployee)
-        ));
     }
 
     @GetMapping("/{employeeId}")
@@ -73,6 +66,29 @@ public class EmployeeController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Employee updated successfully",
                 employeeApiMapper.toAdminResponse(updatedEmployee)
+        ));
+    }
+
+    @PostMapping(value = "/{employeeId}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@permissionAuthorizer.hasPermission('EMPLOYEE_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<EmployeeAdminResponse>> uploadEmployeeAvatar(
+            @PathVariable UUID employeeId,
+            @RequestPart("file") MultipartFile file
+    ) {
+        Employee employee = employeePortIn.uploadEmployeeAvatar(employeeId, file);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Employee avatar updated successfully",
+                employeeApiMapper.toAdminResponse(employee)
+        ));
+    }
+
+    @DeleteMapping("/{employeeId}/avatar")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('EMPLOYEE_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<EmployeeAdminResponse>> deleteEmployeeAvatar(@PathVariable UUID employeeId) {
+        Employee employee = employeePortIn.deleteEmployeeAvatar(employeeId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Employee avatar deleted successfully",
+                employeeApiMapper.toAdminResponse(employee)
         ));
     }
 

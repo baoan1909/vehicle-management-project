@@ -21,7 +21,8 @@ public class ParkingEvent extends AuditableDomainModel {
     private ParkingEventType eventType;
     private Instant eventTime;
     private String licensePlateDetected;
-    private String imagePath;
+    private String licensePlateImagePath;
+    private String personImagePath;
     private UUID actorAccountId;
     private String note;
 }

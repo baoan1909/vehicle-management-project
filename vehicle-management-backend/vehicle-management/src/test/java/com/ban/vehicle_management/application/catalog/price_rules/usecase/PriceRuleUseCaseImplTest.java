@@ -69,6 +69,35 @@ class PriceRuleUseCaseImplTest {
     }
 
     @Test
+    void shouldCreateVisitorPriceRuleWhenTimeRangeCrossesMidnight() {
+        PriceRule request = validVisitorPriceRule();
+        request.setRuleName("Visitor night price");
+        request.setTimeFrom(LocalTime.of(20, 0, 0));
+        request.setTimeTo(LocalTime.of(5, 59, 59));
+        PricePlan pricePlan = activePricePlan(PricePlanAppliesTo.VISITOR);
+        TicketType ticketType = ticketType("DAILY");
+
+        when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
+        when(priceRulePortOut.existsActiveVehicleTypeById(request.getVehicleTypeId())).thenReturn(true);
+        when(priceRulePortOut.findActiveTicketTypeById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
+        when(priceRulePortOut.existsActiveVisitorTimeOverlap(
+                request.getPricePlanId(),
+                request.getVehicleTypeId(),
+                request.getTicketTypeId(),
+                request.getTimeFrom(),
+                request.getTimeTo(),
+                null
+        )).thenReturn(false);
+        when(priceRulePortOut.save(any(PriceRule.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PriceRule createdPriceRule = priceRuleUseCase.createPriceRule(request);
+
+        assertNotNull(createdPriceRule.getPriceRuleId());
+        assertEquals(LocalTime.of(20, 0, 0), createdPriceRule.getTimeFrom());
+        assertEquals(LocalTime.of(5, 59, 59), createdPriceRule.getTimeTo());
+    }
+
+    @Test
     void shouldRejectVisitorPriceRuleWithoutTimeRange() {
         PriceRule request = validVisitorPriceRule();
         request.setTimeFrom(null);

@@ -77,12 +77,6 @@ public class AccountEntity extends AuditableEntity {
     private Instant passwordChangedAt;
 
     @OneToMany(mappedBy = "account")
-    private Set<RefreshTokenEntity> refreshTokens = new HashSet<>();
-
-    @OneToMany(mappedBy = "account")
-    private Set<LoginAttemptEntity> loginAttempts = new HashSet<>();
-
-    @OneToMany(mappedBy = "account")
     private Set<AccountStatusHistoryEntity> accountStatusHistories = new HashSet<>();
 
     @OneToMany(mappedBy = "changedByAccount")

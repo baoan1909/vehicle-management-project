@@ -14,6 +14,8 @@ public interface RoleRepository extends JpaRepository<RoleEntity, UUID>, JpaSpec
     boolean existsByCodeAndRoleIdNot(String code, UUID roleId);
 
     Optional<RoleEntity> findByCode(String code);
+
+    Optional<RoleEntity> findByCodeAndIsActiveTrue(String code);
 }
 
 

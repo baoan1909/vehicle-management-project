@@ -1,13 +1,15 @@
 package com.ban.vehicle_management.application.people.userprofile.usecase;
 
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
+import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,10 +27,24 @@ import static org.mockito.Mockito.*;
 class UserProfileUseCaseImplTest {
 
     @Mock
+    private CurrentAccountPortIn currentAccountPortIn;
+
+    @Mock
     private UserProfilePortOut userProfilePort;
+
+    @Mock
+    private UserProfileAvatarPortIn userProfileAvatarPortIn;
 
     @InjectMocks
     private UserProfileUseCaseImpl userProfileUseCase;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(userProfileAvatarPortIn.withResolvedAvatarUrl(any(UserProfile.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(userProfileAvatarPortIn.withResolvedAvatarUrls(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+    }
 
     @Test
     void shouldCreateUserProfileWithDefaultActiveStatus() {
@@ -52,7 +68,7 @@ class UserProfileUseCaseImplTest {
         assertEquals("0901234567", createdUserProfile.getPhoneNumber());
         assertEquals("Ho Chi Minh City", createdUserProfile.getAddress());
         assertEquals("079123456789", createdUserProfile.getIdentifyCard());
-        assertEquals("https://example.com/avatar.jpg", createdUserProfile.getAvatarUrl());
+        assertNull(createdUserProfile.getAvatarUrl());
         assertEquals(UserProfileStatus.ACTIVE, createdUserProfile.getStatus());
         verify(userProfilePort).save(any(UserProfile.class));
     }
@@ -118,7 +134,7 @@ class UserProfileUseCaseImplTest {
         assertEquals("0912345678", updatedUserProfile.getPhoneNumber());
         assertEquals("New address", updatedUserProfile.getAddress());
         assertEquals("012345678901", updatedUserProfile.getIdentifyCard());
-        assertEquals("https://example.com/new.jpg", updatedUserProfile.getAvatarUrl());
+        assertEquals("https://example.com/old.jpg", updatedUserProfile.getAvatarUrl());
         assertEquals(UserProfileStatus.SUSPENDED, updatedUserProfile.getStatus());
     }
 
@@ -150,39 +166,6 @@ class UserProfileUseCaseImplTest {
 
         assertEquals(2, userProfiles.size());
         verify(userProfilePort).findAll(UserProfileStatus.ACTIVE, "nguyen");
-    }
-
-    @Test
-    void shouldSoftDeleteUserProfileBySettingInactiveStatus() {
-        UUID userProfileId = UUID.randomUUID();
-        UserProfile existingUserProfile = new UserProfile();
-        existingUserProfile.setUserProfileId(userProfileId);
-        existingUserProfile.setFullName("Nguyen Van A");
-        existingUserProfile.setStatus(UserProfileStatus.ACTIVE);
-
-        when(userProfilePort.findById(userProfileId)).thenReturn(Optional.of(existingUserProfile));
-        when(userProfilePort.save(any(UserProfile.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        userProfileUseCase.deleteUserProfile(userProfileId);
-
-        ArgumentCaptor<UserProfile> userProfileCaptor = ArgumentCaptor.forClass(UserProfile.class);
-        verify(userProfilePort).save(userProfileCaptor.capture());
-        assertEquals(UserProfileStatus.INACTIVE, userProfileCaptor.getValue().getStatus());
-    }
-
-    @Test
-    void shouldReturnWhenDeletingInactiveUserProfile() {
-        UUID userProfileId = UUID.randomUUID();
-        UserProfile existingUserProfile = new UserProfile();
-        existingUserProfile.setUserProfileId(userProfileId);
-        existingUserProfile.setFullName("Nguyen Van A");
-        existingUserProfile.setStatus(UserProfileStatus.INACTIVE);
-
-        when(userProfilePort.findById(userProfileId)).thenReturn(Optional.of(existingUserProfile));
-
-        userProfileUseCase.deleteUserProfile(userProfileId);
-
-        verify(userProfilePort, never()).save(any(UserProfile.class));
     }
 
     @Test

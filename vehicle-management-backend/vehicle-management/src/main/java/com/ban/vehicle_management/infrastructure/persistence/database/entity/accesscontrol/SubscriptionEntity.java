@@ -77,6 +77,9 @@ public class SubscriptionEntity extends AuditableEntity {
     @JoinColumn(name = "price_rule_id", referencedColumnName = "price_rule_id", insertable = false, updatable = false)
     private PriceRuleEntity priceRule;
 
+    @Column(name = "requested_effective_from", nullable = false)
+    private LocalDate requestedEffectiveFrom;
+
     @Column(name = "effective_from", nullable = false)
     private LocalDate effectiveFrom;
 
@@ -99,6 +102,19 @@ public class SubscriptionEntity extends AuditableEntity {
 
     @Column(name = "approved_at")
     private Instant approvedAt;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "rejected_by")
+    private UUID rejectedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rejected_by", referencedColumnName = "account_id", insertable = false, updatable = false)
+    private AccountEntity rejectedByAccount;
+
+    @Column(name = "rejected_at")
+    private Instant rejectedAt;
 
     @Column(name = "card_receipt_date")
     private LocalDate cardReceiptDate;

@@ -16,7 +16,8 @@ class PublicAuthPolicyTest {
         RegisterAccountCommand command = new RegisterAccountCommand(
                 "  baoan3236  ",
                 "  BaoAn3236@Gmail.Com  ",
-                " 12345678 "
+                " 12345678 ",
+                "  Nguyen Bao An  "
         );
 
         RegisterAccountCommand normalized = policy.normalizeRegisterCommand(command);
@@ -24,6 +25,7 @@ class PublicAuthPolicyTest {
         assertEquals("baoan3236", normalized.username());
         assertEquals("baoan3236@gmail.com", normalized.email());
         assertEquals("12345678", normalized.password());
+        assertEquals("Nguyen Bao An", normalized.fullName());
     }
 
     @Test
@@ -31,7 +33,8 @@ class PublicAuthPolicyTest {
         RegisterAccountCommand command = new RegisterAccountCommand(
                 "baoan3236",
                 "baoan3236@gmail.com",
-                "1234567"
+                "1234567",
+                "Nguyen Bao An"
         );
 
         assertThrows(BadRequestException.class, () -> policy.normalizeRegisterCommand(command));

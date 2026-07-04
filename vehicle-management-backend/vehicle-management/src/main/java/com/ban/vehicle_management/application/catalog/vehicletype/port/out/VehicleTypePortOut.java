@@ -16,5 +16,15 @@ public interface VehicleTypePortOut {
     boolean existsByCode(String code);
 
     boolean existsByCodeAndVehicleTypeIdNot(String code, UUID vehicleTypeId);
+
+    boolean hasActivePriceRules(UUID vehicleTypeId);
+
+    boolean hasActiveCustomerVehicles(UUID vehicleTypeId);
+
+    boolean hasOpenParkingSessions(UUID vehicleTypeId);
+
+    boolean hasActiveCards(UUID vehicleTypeId);
+
+    boolean hasActiveZones(UUID vehicleTypeId);
 }
 

@@ -3,13 +3,13 @@ package com.ban.vehicle_management.application.people.customer.usecase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
+import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
@@ -31,7 +31,7 @@ class CustomerUseCaseImplTest {
     private CustomerPortOut customerPortOut;
 
     @Mock
-    private CurrentAccountPortIn currentAccountPortIn;
+    private UserProfileAvatarPortIn userProfileAvatarPortIn;
 
     @InjectMocks
     private CustomerUseCaseImpl customerUseCase;
@@ -53,65 +53,21 @@ class CustomerUseCaseImplTest {
     }
 
     @Test
-    void shouldApproveCustomer() {
+    void shouldResolveCustomerProfileAvatarWhenReturningCustomers() {
         UUID customerId = UUID.randomUUID();
-        UUID approvedBy = UUID.randomUUID();
-        Instant approvedAt = Instant.parse("2026-05-17T03:00:00Z");
-        Customer customer = validPendingCustomer(customerId);
-        customer.setStatus(CustomerStatus.INACTIVE);
-
-        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(approvedBy);
-        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
-        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Customer approvedCustomer = customerUseCase.approveCustomer(customerId, approvedAt);
-
-        assertEquals(CustomerApprovalStatus.APPROVED, approvedCustomer.getApprovalStatus());
-        assertEquals(CustomerStatus.ACTIVE, approvedCustomer.getStatus());
-        assertEquals(approvedBy, approvedCustomer.getApprovedBy());
-        assertEquals(approvedAt, approvedCustomer.getApprovedAt());
-    }
-
-    @Test
-    void shouldRejectCustomer() {
-        UUID customerId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
         Customer customer = validApprovedCustomer(customerId);
+        customer.setUserProfile(profile(userProfileId, null));
+        UserProfile resolvedProfile = profile(userProfileId, "https://cdn.example.com/customer-avatar.png");
 
-        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
-        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(customerPortOut.findAll(null, null, null, null)).thenReturn(List.of(customer));
+        when(userProfileAvatarPortIn.withResolvedAvatarUrls(List.of(customer.getUserProfile())))
+                .thenReturn(List.of(resolvedProfile));
 
-        Customer rejectedCustomer = customerUseCase.rejectCustomer(customerId);
+        List<Customer> customers = customerUseCase.getCustomers(null, null, null, null);
 
-        assertEquals(CustomerApprovalStatus.REJECTED, rejectedCustomer.getApprovalStatus());
-        assertEquals(CustomerStatus.INACTIVE, rejectedCustomer.getStatus());
-    }
-
-    @Test
-    void shouldSuspendCustomer() {
-        UUID customerId = UUID.randomUUID();
-        Customer customer = validApprovedCustomer(customerId);
-
-        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
-        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Customer suspendedCustomer = customerUseCase.suspendCustomer(customerId);
-
-        assertEquals(CustomerApprovalStatus.SUSPENDED, suspendedCustomer.getApprovalStatus());
-        assertEquals(CustomerStatus.INACTIVE, suspendedCustomer.getStatus());
-    }
-
-    @Test
-    void shouldMoveCustomerToPending() {
-        UUID customerId = UUID.randomUUID();
-        Customer customer = validApprovedCustomer(customerId);
-
-        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
-        when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        Customer pendingCustomer = customerUseCase.moveCustomerToPending(customerId);
-
-        assertEquals(CustomerApprovalStatus.PENDING, pendingCustomer.getApprovalStatus());
-        assertEquals(CustomerStatus.INACTIVE, pendingCustomer.getStatus());
+        assertEquals("https://cdn.example.com/customer-avatar.png",
+                customers.getFirst().getUserProfile().getAvatarUrl());
     }
 
     @Test
@@ -167,4 +123,13 @@ class CustomerUseCaseImplTest {
         customer.setApprovedAt(Instant.parse("2026-05-17T03:00:00Z"));
         return customer;
     }
+
+    private UserProfile profile(UUID userProfileId, String avatarUrl) {
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUserProfileId(userProfileId);
+        userProfile.setFullName("Nguyen Van Customer");
+        userProfile.setAvatarUrl(avatarUrl);
+        return userProfile;
+    }
+
 }

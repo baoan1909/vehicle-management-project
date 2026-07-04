@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.catalog;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -154,7 +155,7 @@ class PriceRulePersistenceAdapterTest {
     void shouldReturnEmptyWhenTicketTypeIsInactive() {
         UUID ticketTypeId = UUID.randomUUID();
         TicketTypeEntity ticketTypeEntity = new TicketTypeEntity();
-        ticketTypeEntity.setStatus(TicketTypeStatus.ACTIVE);
+        ticketTypeEntity.setStatus(TicketTypeStatus.INACTIVE);
 
         when(ticketTypeRepository.findById(ticketTypeId)).thenReturn(Optional.of(ticketTypeEntity));
 
@@ -165,41 +166,140 @@ class PriceRulePersistenceAdapterTest {
     }
 
     @Test
-    void shouldDelegateVisitorTimeOverlapCheck() {
+    void shouldDetectVisitorTimeOverlapForRegularRange() {
         UUID pricePlanId = UUID.randomUUID();
         UUID vehicleTypeId = UUID.randomUUID();
         UUID ticketTypeId = UUID.randomUUID();
         UUID excludedPriceRuleId = UUID.randomUUID();
-        LocalTime timeFrom = LocalTime.of(6, 0, 0);
-        LocalTime timeTo = LocalTime.of(17, 59, 59);
+        PriceRuleEntity existingRule = priceRuleEntity(LocalTime.of(6, 0), LocalTime.of(19, 59, 59));
 
-        when(priceRuleRepository.existsActiveVisitorTimeOverlap(
+        when(priceRuleRepository.findActiveVisitorRulesForOverlap(
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
-                timeFrom,
-                timeTo,
                 excludedPriceRuleId
-        )).thenReturn(true);
+        )).thenReturn(List.of(existingRule));
 
         boolean exists = priceRulePersistenceAdapter.existsActiveVisitorTimeOverlap(
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
-                timeFrom,
-                timeTo,
+                LocalTime.of(19, 0),
+                LocalTime.of(20, 0),
                 excludedPriceRuleId
         );
 
         assertTrue(exists);
-        verify(priceRuleRepository).existsActiveVisitorTimeOverlap(
+        verify(priceRuleRepository).findActiveVisitorRulesForOverlap(
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
-                timeFrom,
-                timeTo,
                 excludedPriceRuleId
         );
+    }
+
+    @Test
+    void shouldNotDetectVisitorTimeOverlapWhenDayAndOvernightRangesAreSeparated() {
+        UUID pricePlanId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+        UUID ticketTypeId = UUID.randomUUID();
+        PriceRuleEntity dayRule = priceRuleEntity(LocalTime.of(6, 0), LocalTime.of(19, 59, 59));
+
+        when(priceRuleRepository.findActiveVisitorRulesForOverlap(
+                pricePlanId,
+                vehicleTypeId,
+                ticketTypeId,
+                null
+        )).thenReturn(List.of(dayRule));
+
+        boolean exists = priceRulePersistenceAdapter.existsActiveVisitorTimeOverlap(
+                pricePlanId,
+                vehicleTypeId,
+                ticketTypeId,
+                LocalTime.of(20, 0),
+                LocalTime.of(5, 59, 59),
+                null
+        );
+
+        assertFalse(exists);
+    }
+
+    @Test
+    void shouldDetectVisitorTimeOverlapInsideEveningPartOfOvernightRange() {
+        UUID pricePlanId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+        UUID ticketTypeId = UUID.randomUUID();
+        PriceRuleEntity overnightRule = priceRuleEntity(LocalTime.of(20, 0), LocalTime.of(5, 59, 59));
+
+        when(priceRuleRepository.findActiveVisitorRulesForOverlap(
+                pricePlanId,
+                vehicleTypeId,
+                ticketTypeId,
+                null
+        )).thenReturn(List.of(overnightRule));
+
+        boolean exists = priceRulePersistenceAdapter.existsActiveVisitorTimeOverlap(
+                pricePlanId,
+                vehicleTypeId,
+                ticketTypeId,
+                LocalTime.of(23, 0),
+                LocalTime.of(23, 30),
+                null
+        );
+
+        assertTrue(exists);
+    }
+
+    @Test
+    void shouldDetectVisitorTimeOverlapInsideMidnightPartOfOvernightRange() {
+        UUID pricePlanId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+        UUID ticketTypeId = UUID.randomUUID();
+        PriceRuleEntity overnightRule = priceRuleEntity(LocalTime.of(20, 0), LocalTime.of(5, 59, 59));
+
+        when(priceRuleRepository.findActiveVisitorRulesForOverlap(
+                pricePlanId,
+                vehicleTypeId,
+                ticketTypeId,
+                null
+        )).thenReturn(List.of(overnightRule));
+
+        boolean exists = priceRulePersistenceAdapter.existsActiveVisitorTimeOverlap(
+                pricePlanId,
+                vehicleTypeId,
+                ticketTypeId,
+                LocalTime.of(0, 30),
+                LocalTime.of(2, 0),
+                null
+        );
+
+        assertTrue(exists);
+    }
+
+    @Test
+    void shouldDetectVisitorTimeOverlapWhenNewRangeCrossesOvernightBoundary() {
+        UUID pricePlanId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+        UUID ticketTypeId = UUID.randomUUID();
+        PriceRuleEntity overnightRule = priceRuleEntity(LocalTime.of(20, 0), LocalTime.of(5, 59, 59));
+
+        when(priceRuleRepository.findActiveVisitorRulesForOverlap(
+                pricePlanId,
+                vehicleTypeId,
+                ticketTypeId,
+                null
+        )).thenReturn(List.of(overnightRule));
+
+        boolean exists = priceRulePersistenceAdapter.existsActiveVisitorTimeOverlap(
+                pricePlanId,
+                vehicleTypeId,
+                ticketTypeId,
+                LocalTime.of(5, 0),
+                LocalTime.of(7, 0),
+                null
+        );
+
+        assertTrue(exists);
     }
 
     @Test
@@ -254,5 +354,12 @@ class PriceRulePersistenceAdapterTest {
 
         assertEquals(false, hasUsage);
         verify(subscriptionRepository).existsByPriceRuleId(priceRuleId);
+    }
+
+    private PriceRuleEntity priceRuleEntity(LocalTime timeFrom, LocalTime timeTo) {
+        PriceRuleEntity priceRuleEntity = new PriceRuleEntity();
+        priceRuleEntity.setTimeFrom(timeFrom);
+        priceRuleEntity.setTimeTo(timeTo);
+        return priceRuleEntity;
     }
 }

@@ -1,0 +1,15 @@
+package com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result;
+
+import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
+import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
+
+public record LostCardReportWorkflowResult(
+        LostCardReport lostCardReport,
+        ParkingSession parkingSession,
+        Subscription subscription,
+        Invoice invoice,
+        String barrierAction
+) {
+}

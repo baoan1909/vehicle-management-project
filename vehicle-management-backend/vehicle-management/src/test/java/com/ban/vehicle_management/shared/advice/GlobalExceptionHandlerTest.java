@@ -6,15 +6,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.mock.http.MockHttpInputMessage;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.validation.BindException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 
 class GlobalExceptionHandlerTest {
 
@@ -47,6 +50,25 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals("Malformed request body", response.getBody().getMessage());
+    }
+
+    @Test
+    void shouldReturnUnsupportedMediaTypeForUnsupportedContentType() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/parking/parking-sessions/check-in");
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response =
+                globalExceptionHandler.handleMediaTypeNotSupportedException(
+                        new HttpMediaTypeNotSupportedException(
+                                MediaType.APPLICATION_OCTET_STREAM,
+                                List.of(MediaType.MULTIPART_FORM_DATA)
+                        ),
+                        request
+                );
+
+        assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, response.getStatusCode());
+        assertFalse(response.getBody().isSuccess());
+        assertEquals(415, response.getBody().getData().get("status"));
     }
 
     @Test

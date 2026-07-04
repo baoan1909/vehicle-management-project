@@ -2,6 +2,8 @@ package com.ban.vehicle_management.application.catalog.pricerule.port.out;
 
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
+
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
@@ -41,4 +43,16 @@ public interface PriceRulePortOut {
     );
 
     boolean hasUsage(UUID priceRuleId);
+
+    Optional<PriceRule> findActiveSubscriptionRule(
+            UUID vehicleTypeId,
+            UUID ticketTypeId,
+            LocalDate effectiveDate
+    );
+
+    Optional<PriceRule> findActiveVisitorRuleByTime(
+            UUID vehicleTypeId,
+            LocalDate effectiveDate,
+            LocalTime localTime
+    );
 }

@@ -80,7 +80,6 @@ CREATE TABLE people.user_profiles (
     phone_number VARCHAR(20) UNIQUE,
     address TEXT,
     identify_card VARCHAR(20) UNIQUE,
-    avatar_url VARCHAR(255),
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by UUID,
@@ -95,7 +94,6 @@ CREATE TABLE iam.accounts (
     user_profile_id UUID NOT NULL UNIQUE,
     username VARCHAR(100) NOT NULL UNIQUE,
     email CITEXT NOT NULL UNIQUE,
-    hash_password VARCHAR(255) NOT NULL,
     role_id UUID NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     last_login_at TIMESTAMPTZ,
@@ -112,6 +110,32 @@ CREATE TABLE iam.accounts (
 );
 
 -- Gán quyền cho từng vai trò.
+CREATE TABLE people.user_profile_avatars (
+    avatar_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_profile_id UUID NOT NULL,
+    object_key VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255),
+    content_type VARCHAR(100),
+    size_bytes BIGINT,
+    checksum_sha256 VARCHAR(64),
+    bucket VARCHAR(20) NOT NULL,
+    status VARCHAR(30) NOT NULL,
+    is_current BOOLEAN NOT NULL DEFAULT false,
+    uploaded_by_account_id UUID,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID,
+    updated_at TIMESTAMPTZ,
+    updated_by UUID,
+    CONSTRAINT fk_user_profile_avatars_user_profile FOREIGN KEY (user_profile_id) REFERENCES people.user_profiles(user_profile_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_user_profile_avatars_uploaded_by FOREIGN KEY (uploaded_by_account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_user_profile_avatars_created_by FOREIGN KEY (created_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_user_profile_avatars_updated_by FOREIGN KEY (updated_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT ck_user_profile_avatars_bucket CHECK (bucket IN ('PUBLIC', 'PRIVATE')),
+    CONSTRAINT ck_user_profile_avatars_status CHECK (status IN ('ACTIVE', 'REPLACED', 'DELETED')),
+    CONSTRAINT ck_user_profile_avatars_current_active CHECK (is_current = false OR status = 'ACTIVE'),
+    CONSTRAINT ck_user_profile_avatars_size_non_negative CHECK (size_bytes IS NULL OR size_bytes >= 0)
+);
+
 CREATE TABLE iam.role_permissions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     role_id UUID NOT NULL,
@@ -123,35 +147,6 @@ CREATE TABLE iam.role_permissions (
     CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_id) REFERENCES iam.roles(role_id) ON DELETE CASCADE,
     CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_id) REFERENCES iam.permissions(permission_id) ON DELETE CASCADE,
     CONSTRAINT uq_role_permissions UNIQUE (role_id, permission_id)
-);
-
--- Lưu refresh token phục vụ JWT.
-CREATE TABLE iam.refresh_tokens (
-    refresh_token_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_id UUID NOT NULL,
-    token_hash VARCHAR(255) NOT NULL UNIQUE,
-    expires_at TIMESTAMPTZ NOT NULL,
-    revoked_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    created_by UUID,
-    updated_at TIMESTAMPTZ,
-    updated_by UUID,
-    created_by_ip VARCHAR(50),
-    user_agent TEXT,
-    CONSTRAINT fk_refresh_tokens_account FOREIGN KEY (account_id) REFERENCES iam.accounts(account_id) ON DELETE CASCADE
-);
-
--- Lưu lịch sử đăng nhập thành công/thất bại.
-CREATE TABLE iam.login_attempts (
-    login_attempt_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_id UUID,
-    username_or_email VARCHAR(150) NOT NULL,
-    success BOOLEAN NOT NULL DEFAULT FALSE,
-    failure_reason VARCHAR(100),
-    ip_address VARCHAR(50),
-    user_agent TEXT,
-    attempted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT fk_login_attempts_account FOREIGN KEY (account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL
 );
 
 -- Lưu lịch sử đổi trạng thái tài khoản.
@@ -184,10 +179,6 @@ ALTER TABLE people.user_profiles
 ALTER TABLE iam.accounts
     ADD CONSTRAINT fk_accounts_created_by FOREIGN KEY (created_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     ADD CONSTRAINT fk_accounts_updated_by FOREIGN KEY (updated_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL;
-
-ALTER TABLE iam.refresh_tokens
-    ADD CONSTRAINT fk_refresh_tokens_created_by FOREIGN KEY (created_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
-    ADD CONSTRAINT fk_refresh_tokens_updated_by FOREIGN KEY (updated_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL;
 
 -- =========================================================
 -- 2. PEOPLE - Khách hàng và nhân viên
@@ -537,7 +528,8 @@ CREATE TABLE parking.parking_events (
     event_type VARCHAR(20) NOT NULL,
     event_time TIMESTAMPTZ NOT NULL,
     license_plate_detected VARCHAR(20),
-    image_path VARCHAR(255),
+    license_plate_image_path VARCHAR(255),
+    person_image_path VARCHAR(255),
     actor_account_id UUID,
     note TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -768,8 +760,8 @@ ALTER TABLE audit.audit_logs
 CREATE TRIGGER trg_roles_set_updated_at BEFORE UPDATE ON iam.roles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_permissions_set_updated_at BEFORE UPDATE ON iam.permissions FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_user_profiles_set_updated_at BEFORE UPDATE ON people.user_profiles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER trg_user_profile_avatars_set_updated_at BEFORE UPDATE ON people.user_profile_avatars FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_accounts_set_updated_at BEFORE UPDATE ON iam.accounts FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
-CREATE TRIGGER trg_refresh_tokens_set_updated_at BEFORE UPDATE ON iam.refresh_tokens FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_customers_set_updated_at BEFORE UPDATE ON people.customers FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_employees_set_updated_at BEFORE UPDATE ON people.employees FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_customer_vehicles_set_updated_at BEFORE UPDATE ON people.customer_vehicles FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -800,6 +792,10 @@ CREATE TRIGGER trg_audit_logs_set_updated_at BEFORE UPDATE ON audit.audit_logs F
 CREATE INDEX idx_accounts_role_id ON iam.accounts(role_id);
 CREATE INDEX idx_accounts_status ON iam.accounts(status);
 CREATE INDEX idx_role_permissions_role_id ON iam.role_permissions(role_id);
+CREATE UNIQUE INDEX uq_user_profile_current_avatar ON people.user_profile_avatars(user_profile_id) WHERE is_current = true;
+CREATE INDEX idx_user_profile_avatars_profile ON people.user_profile_avatars(user_profile_id);
+CREATE INDEX idx_user_profile_avatars_object_key ON people.user_profile_avatars(object_key);
+CREATE INDEX idx_user_profile_avatars_uploaded_by ON people.user_profile_avatars(uploaded_by_account_id);
 CREATE INDEX idx_customer_vehicles_customer_id ON people.customer_vehicles(customer_id);
 CREATE INDEX idx_subscriptions_customer_id ON access_control.subscriptions(customer_id);
 CREATE INDEX idx_cards_status ON access_control.cards(status);
@@ -810,6 +806,8 @@ CREATE INDEX idx_parking_events_session_id ON parking.parking_events(parking_ses
 CREATE INDEX idx_invoices_status ON billing.invoices(status);
 CREATE INDEX idx_payments_invoice_id ON billing.payments(invoice_id);
 CREATE INDEX idx_notifications_account_id ON notification.notifications(account_id);
+CREATE INDEX idx_approval_requests_request_type_status ON operations.approval_requests(request_type, status);
+CREATE INDEX idx_approval_requests_target_lookup ON operations.approval_requests(target_schema, target_table, target_id);
 CREATE INDEX idx_audit_logs_target ON audit.audit_logs(target_schema, target_table, target_id);
 
 -- =========================================================
@@ -862,11 +860,11 @@ VALUES
     ('10000000-0000-0000-0000-000000000003', 'Võ Văn Tú', '2003-09-19', 'Nam', '0901000003', 'Tân Phú, TP.HCM', '079203000003', 'ACTIVE');
 
 -- Dữ liệu mẫu: tài khoản đăng nhập.
-INSERT INTO iam.accounts (account_id, user_profile_id, username, email, hash_password, role_id, status, password_changed_at)
+INSERT INTO iam.accounts (account_id, user_profile_id, username, email, role_id, status, password_changed_at)
 VALUES
-    ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'admin', 'admin@parking.local', '$2a$10$example-admin-hash', '00000000-0000-0000-0000-000000000001', 'ACTIVE', now()),
-    ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'employee01', 'employee01@parking.local', '$2a$10$example-employee-hash', '00000000-0000-0000-0000-000000000002', 'ACTIVE', now()),
-    ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', 'vovantu', 'tu.customer@example.com', '$2a$10$example-customer-hash', '00000000-0000-0000-0000-000000000003', 'ACTIVE', now());
+    ('20000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 'admin', 'admin@parking.local', '00000000-0000-0000-0000-000000000001', 'ACTIVE', now()),
+    ('20000000-0000-0000-0000-000000000002', '10000000-0000-0000-0000-000000000002', 'employee01', 'employee01@parking.local', '00000000-0000-0000-0000-000000000002', 'ACTIVE', now()),
+    ('20000000-0000-0000-0000-000000000003', '10000000-0000-0000-0000-000000000003', 'vovantu', 'tu.customer@example.com', '00000000-0000-0000-0000-000000000003', 'ACTIVE', now());
 
 -- Dữ liệu mẫu: khách hàng và nhân viên.
 INSERT INTO people.customers (customer_id, user_profile_id, customer_code, customer_type, approval_status, approved_by, approved_at)
@@ -964,10 +962,10 @@ INSERT INTO parking.parking_sessions (parking_session_id, card_id, vehicle_type_
 VALUES
     ('90000000-0000-0000-0000-000000000001', '70000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000002', '62000000-0000-0000-0000-000000000001', '59B1-67890', '59B1-67890', '2026-05-14 07:30:00+07', '2026-05-14 10:15:00+07', 'CLOSED', 5000, '44000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000002');
 
-INSERT INTO parking.parking_events (parking_event_id, parking_session_id, lane_id, event_type, event_time, license_plate_detected, image_path, actor_account_id, note)
+INSERT INTO parking.parking_events (parking_event_id, parking_session_id, lane_id, event_type, event_time, license_plate_detected, license_plate_image_path, person_image_path, actor_account_id, note)
 VALUES
-    ('91000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001', '63000000-0000-0000-0000-000000000001', 'CHECK_IN', '2026-05-14 07:30:00+07', '59B1-67890', 'images/checkin/59B1-67890.jpg', '20000000-0000-0000-0000-000000000002', 'Xe vãng lai vào bãi.'),
-    ('91000000-0000-0000-0000-000000000002', '90000000-0000-0000-0000-000000000001', '63000000-0000-0000-0000-000000000002', 'CHECK_OUT', '2026-05-14 10:15:00+07', '59B1-67890', 'images/checkout/59B1-67890.jpg', '20000000-0000-0000-0000-000000000002', 'Biển số khớp, cho ra cổng.');
+    ('91000000-0000-0000-0000-000000000001', '90000000-0000-0000-0000-000000000001', '63000000-0000-0000-0000-000000000001', 'CHECK_IN', '2026-05-14 07:30:00+07', '59B1-67890', 'images/checkin/59B1-67890-plate.jpg', 'images/checkin/59B1-67890-person.jpg', '20000000-0000-0000-0000-000000000002', 'Xe vãng lai vào bãi.'),
+    ('91000000-0000-0000-0000-000000000002', '90000000-0000-0000-0000-000000000001', '63000000-0000-0000-0000-000000000002', 'CHECK_OUT', '2026-05-14 10:15:00+07', '59B1-67890', 'images/checkout/59B1-67890-plate.jpg', 'images/checkout/59B1-67890-person.jpg', '20000000-0000-0000-0000-000000000002', 'Biển số khớp, cho ra cổng.');
 
 -- Dữ liệu mẫu: hóa đơn và thanh toán cho phiên gửi xe vãng lai.
 INSERT INTO billing.invoices (invoice_id, invoice_no, parking_session_id, amount, final_amount, status, issued_at, paid_at, created_by)

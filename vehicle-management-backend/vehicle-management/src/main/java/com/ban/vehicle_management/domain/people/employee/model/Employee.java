@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.domain.people.employee.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -21,5 +22,7 @@ public class Employee extends AuditableDomainModel {
     private String jobTitle;
     private LocalDate hiredAt;
     private EmployeeStatus status;
+    private String accountEmail;
+    private UserProfile userProfile;
 }
 

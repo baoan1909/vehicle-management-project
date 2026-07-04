@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.application.people.userprofile.usecase;
 
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfilePortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
@@ -16,16 +18,30 @@ import java.util.UUID;
 @Service
 public class UserProfileUseCaseImpl implements UserProfilePortIn {
 
+    private static final String USER_PROFILE_CREATE_ALL = "USER_PROFILE_CREATE_ALL";
+    private static final String USER_PROFILE_READ_ALL = "USER_PROFILE_READ_ALL";
+    private static final String USER_PROFILE_UPDATE_ALL = "USER_PROFILE_UPDATE_ALL";
+
+    private final CurrentAccountPortIn currentAccountPortIn;
     private final UserProfilePortOut userProfilePort;
+    private final UserProfileAvatarPortIn userProfileAvatarPortIn;
     private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
 
-    public UserProfileUseCaseImpl(UserProfilePortOut userProfilePort) {
+    public UserProfileUseCaseImpl(
+            CurrentAccountPortIn currentAccountPortIn,
+            UserProfilePortOut userProfilePort,
+            UserProfileAvatarPortIn userProfileAvatarPortIn
+    ) {
+        this.currentAccountPortIn = currentAccountPortIn;
         this.userProfilePort = userProfilePort;
+        this.userProfileAvatarPortIn = userProfileAvatarPortIn;
     }
 
     @Override
     @Transactional
     public UserProfile createUserProfile(UserProfile userProfile) {
+        currentAccountPortIn.requirePermission(USER_PROFILE_CREATE_ALL);
+        userProfile.setAvatarUrl(null);
         userProfilePolicy.initialize(userProfile);
         validateUniqueFields(userProfile);
 
@@ -36,6 +52,7 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     @Override
     @Transactional
     public UserProfile updateUserProfile(UUID userProfileId, UserProfile userProfile) {
+        currentAccountPortIn.requirePermission(USER_PROFILE_UPDATE_ALL);
         UserProfile existingUserProfile = getUserProfileById(userProfileId);
 
         existingUserProfile.setFullName(userProfile.getFullName());
@@ -44,7 +61,6 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
         existingUserProfile.setPhoneNumber(userProfile.getPhoneNumber());
         existingUserProfile.setAddress(userProfile.getAddress());
         existingUserProfile.setIdentifyCard(userProfile.getIdentifyCard());
-        existingUserProfile.setAvatarUrl(userProfile.getAvatarUrl());
         if (userProfile.getStatus() != null) {
             existingUserProfile.setStatus(userProfile.getStatus());
         }
@@ -58,26 +74,16 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     @Override
     @Transactional(readOnly = true)
     public UserProfile getUserProfileById(UUID userProfileId) {
-        return userProfilePort.findById(userProfileId)
-                .orElseThrow(() -> new NotFoundException("User profile not found"));
+        currentAccountPortIn.requirePermission(USER_PROFILE_READ_ALL);
+        return userProfileAvatarPortIn.withResolvedAvatarUrl(userProfilePort.findById(userProfileId)
+                .orElseThrow(() -> new NotFoundException("User profile not found")));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UserProfile> getUserProfiles(UserProfileStatus status, String keyword) {
-        return userProfilePort.findAll(status, keyword);
-    }
-
-    @Override
-    @Transactional
-    public void deleteUserProfile(UUID userProfileId) {
-        UserProfile existingUserProfile = getUserProfileById(userProfileId);
-        if (existingUserProfile.getStatus() == UserProfileStatus.INACTIVE) {
-            return;
-        }
-
-        userProfilePolicy.inactivate(existingUserProfile);
-        userProfilePort.save(existingUserProfile);
+        currentAccountPortIn.requirePermission(USER_PROFILE_READ_ALL);
+        return userProfileAvatarPortIn.withResolvedAvatarUrls(userProfilePort.findAll(status, keyword));
     }
 
     private void validateUniqueFields(UserProfile userProfile) {
@@ -99,5 +105,6 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
             throw new ConflictException("User profile identify card already exists");
         }
     }
+
 }
 

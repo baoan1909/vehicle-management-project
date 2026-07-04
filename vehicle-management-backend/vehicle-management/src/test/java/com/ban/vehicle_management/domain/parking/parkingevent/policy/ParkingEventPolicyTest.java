@@ -19,13 +19,15 @@ class ParkingEventPolicyTest {
     void shouldNormalizeOptionalFields() {
         ParkingEvent parkingEvent = validParkingEvent(ParkingEventType.MANUAL_REVIEW);
         parkingEvent.setLicensePlateDetected("   ");
-        parkingEvent.setImagePath(" /images/e1.jpg ");
+        parkingEvent.setLicensePlateImagePath(" /images/e1.jpg ");
+        parkingEvent.setPersonImagePath(" /images/person.jpg ");
         parkingEvent.setNote(" reviewed manually ");
 
         parkingEventPolicy.initialize(parkingEvent);
 
         assertNull(parkingEvent.getLicensePlateDetected());
-        assertEquals("/images/e1.jpg", parkingEvent.getImagePath());
+        assertEquals("/images/e1.jpg", parkingEvent.getLicensePlateImagePath());
+        assertEquals("/images/person.jpg", parkingEvent.getPersonImagePath());
         assertEquals("reviewed manually", parkingEvent.getNote());
     }
 
@@ -39,7 +41,15 @@ class ParkingEventPolicyTest {
     @Test
     void shouldRejectImagePathExceedingSchemaLength() {
         ParkingEvent parkingEvent = validParkingEvent(ParkingEventType.MANUAL_REVIEW);
-        parkingEvent.setImagePath("A".repeat(256));
+        parkingEvent.setLicensePlateImagePath("A".repeat(256));
+
+        assertThrows(BadRequestException.class, () -> parkingEventPolicy.initialize(parkingEvent));
+    }
+
+    @Test
+    void shouldRejectPersonImagePathExceedingSchemaLength() {
+        ParkingEvent parkingEvent = validParkingEvent(ParkingEventType.MANUAL_REVIEW);
+        parkingEvent.setPersonImagePath("A".repeat(256));
 
         assertThrows(BadRequestException.class, () -> parkingEventPolicy.initialize(parkingEvent));
     }

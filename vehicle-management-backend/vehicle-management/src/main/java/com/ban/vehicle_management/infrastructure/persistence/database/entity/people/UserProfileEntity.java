@@ -50,9 +50,6 @@ public class UserProfileEntity extends AuditableEntity {
     @Column(name = "identify_card", unique = true)
     private String identifyCard;
 
-    @Column(name = "avatar_url")
-    private String avatarUrl;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private UserProfileStatus status;

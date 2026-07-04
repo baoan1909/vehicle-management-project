@@ -15,13 +15,12 @@ public class TicketTypePolicy {
         if (ticketType.getStatus() == null) {
             ticketType.setStatus(TicketTypeStatus.ACTIVE);
         }
-        if (ticketType.getDurationDays() != null && ticketType.getDurationDays() <= 0) {
-            throw new BadRequestException("durationDays must be greater than zero");
-        }
+        ticketType.setDurationDays(durationByCode(ticketType.getCode()));
     }
 
     public void deactivate(TicketType ticketType) {
         requireTicketType(ticketType);
+        validateState(ticketType);
         ticketType.setStatus(TicketTypeStatus.INACTIVE);
     }
     public  void activate(TicketType ticketType){

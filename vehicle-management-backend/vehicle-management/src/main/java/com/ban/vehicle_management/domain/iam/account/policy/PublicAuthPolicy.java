@@ -14,7 +14,8 @@ public class PublicAuthPolicy {
         String username = TextValidationUtils.normalizeRequiredText(command.username(), "username", 100);
         String email = normalizeRequiredEmail(command.email());
         String password = normalizePassword(command.password());
-        return new RegisterAccountCommand(username, email, password);
+        String fullName = TextValidationUtils.normalizeRequiredText(command.fullName(), "fullName", 150);
+        return new RegisterAccountCommand(username, email, password, fullName);
     }
 
     public String normalizeRequiredEmail(String email) {

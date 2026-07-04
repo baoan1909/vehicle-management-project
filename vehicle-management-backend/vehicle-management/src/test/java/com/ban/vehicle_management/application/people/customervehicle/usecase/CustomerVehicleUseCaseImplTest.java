@@ -9,9 +9,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.people.customervehicle.authorization.CustomerVehicleAccessGuard;
+import com.ban.vehicle_management.application.people.customervehicle.model.command.CustomerVehicleBatchCommand;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
@@ -151,6 +153,95 @@ class CustomerVehicleUseCaseImplTest {
         assertEquals("Toyota", updatedCustomerVehicle.getBrand());
         assertEquals("Black", updatedCustomerVehicle.getColor());
         assertEquals(Boolean.TRUE, updatedCustomerVehicle.getIsDefault());
+    }
+
+    @Test
+    void shouldApplyCustomerVehicleBatchWithCreateUpdateAndInactivate() {
+        UUID customerId = UUID.randomUUID();
+        UUID vehicleToUpdateId = UUID.randomUUID();
+        UUID vehicleToInactivateId = UUID.randomUUID();
+        UUID existingVehicleTypeId = UUID.randomUUID();
+        UUID newVehicleTypeId = UUID.randomUUID();
+
+        CustomerVehicle existingVehicleToUpdate =
+                customerVehicleWithCustomer(customerId, existingVehicleTypeId, "59A1-12345", Boolean.FALSE, vehicleToUpdateId);
+        CustomerVehicle existingVehicleToInactivate =
+                customerVehicleWithCustomer(customerId, existingVehicleTypeId, "60A1-12345", Boolean.FALSE, vehicleToInactivateId);
+
+        CustomerVehicle requestedVehicleUpdate = new CustomerVehicle();
+        requestedVehicleUpdate.setCustomerVehicleId(vehicleToUpdateId);
+        requestedVehicleUpdate.setVehicleTypeId(existingVehicleTypeId);
+        requestedVehicleUpdate.setLicensePlate("51B-67890");
+        requestedVehicleUpdate.setBrand("Toyota");
+        requestedVehicleUpdate.setColor("Black");
+        requestedVehicleUpdate.setIsDefault(Boolean.FALSE);
+
+        CustomerVehicle requestedVehicleCreate = new CustomerVehicle();
+        requestedVehicleCreate.setVehicleTypeId(newVehicleTypeId);
+        requestedVehicleCreate.setLicensePlate("61C-11111");
+        requestedVehicleCreate.setBrand("Honda");
+        requestedVehicleCreate.setColor("White");
+        requestedVehicleCreate.setIsDefault(Boolean.TRUE);
+
+        CustomerVehicle persistedCreatedVehicle =
+                customerVehicleWithCustomer(customerId, newVehicleTypeId, "61C-11111", Boolean.TRUE, UUID.randomUUID());
+        CustomerVehicle persistedUpdatedVehicle =
+                customerVehicleWithCustomer(customerId, existingVehicleTypeId, "51B-67890", Boolean.FALSE, vehicleToUpdateId);
+
+        when(customerVehicleAccessGuard.resolveCustomerIdForCreate(customerId)).thenReturn(customerId);
+        when(customerVehiclePortOut.existsCustomerById(customerId)).thenReturn(true);
+        when(customerVehiclePortOut.findAll(customerId, null, null, null, null))
+                .thenReturn(
+                        List.of(existingVehicleToUpdate, existingVehicleToInactivate),
+                        List.of(persistedUpdatedVehicle, persistedCreatedVehicle)
+                );
+        when(customerVehiclePortOut.existsVehicleTypeById(existingVehicleTypeId)).thenReturn(true);
+        when(customerVehiclePortOut.existsVehicleTypeById(newVehicleTypeId)).thenReturn(true);
+        when(customerVehiclePortOut.findByLicensePlate("51B-67890")).thenReturn(Optional.empty());
+        when(customerVehiclePortOut.findByLicensePlate("61C-11111")).thenReturn(Optional.empty());
+        when(customerVehiclePortOut.save(any(CustomerVehicle.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CustomerVehicleBatchCommand command = new CustomerVehicleBatchCommand(
+                customerId,
+                List.of(requestedVehicleCreate),
+                List.of(requestedVehicleUpdate),
+                List.of(vehicleToInactivateId)
+        );
+
+        List<CustomerVehicle> result = customerVehicleUseCase.applyCustomerVehicleBatch(command);
+
+        assertEquals(2, result.size());
+        assertEquals(List.of("51B-67890", "61C-11111"),
+                result.stream().map(CustomerVehicle::getLicensePlate).sorted().toList());
+        verify(customerVehicleAccessGuard).ensureCanUpdate(any(CustomerVehicle.class));
+        verify(customerVehicleAccessGuard).ensureCanActivateOrInactivate(any(CustomerVehicle.class));
+        verify(customerVehiclePortOut, times(3)).save(any(CustomerVehicle.class));
+    }
+
+    @Test
+    void shouldRejectBatchWhenSameVehicleIsUpdatedAndInactivated() {
+        UUID customerId = UUID.randomUUID();
+        UUID customerVehicleId = UUID.randomUUID();
+        CustomerVehicle existingVehicle = validCustomerVehicle(customerVehicleId);
+        existingVehicle.setCustomerId(customerId);
+
+        CustomerVehicle requestedVehicleUpdate = new CustomerVehicle();
+        requestedVehicleUpdate.setCustomerVehicleId(customerVehicleId);
+        requestedVehicleUpdate.setVehicleTypeId(existingVehicle.getVehicleTypeId());
+        requestedVehicleUpdate.setLicensePlate("51B-67890");
+
+        when(customerVehicleAccessGuard.resolveCustomerIdForRead(customerId)).thenReturn(customerId);
+        when(customerVehiclePortOut.existsCustomerById(customerId)).thenReturn(true);
+        when(customerVehiclePortOut.findAll(customerId, null, null, null, null)).thenReturn(List.of(existingVehicle));
+
+        CustomerVehicleBatchCommand command = new CustomerVehicleBatchCommand(
+                customerId,
+                List.of(),
+                List.of(requestedVehicleUpdate),
+                List.of(customerVehicleId)
+        );
+
+        assertThrows(BadRequestException.class, () -> customerVehicleUseCase.applyCustomerVehicleBatch(command));
     }
 
     @Test
@@ -311,6 +402,21 @@ class CustomerVehicleUseCaseImplTest {
         customerVehicle.setColor("White");
         customerVehicle.setIsDefault(Boolean.FALSE);
         customerVehicle.setStatus(CustomerVehicleStatus.ACTIVE);
+        return customerVehicle;
+    }
+
+    private CustomerVehicle customerVehicleWithCustomer(
+            UUID customerId,
+            UUID vehicleTypeId,
+            String licensePlate,
+            Boolean isDefault,
+            UUID customerVehicleId
+    ) {
+        CustomerVehicle customerVehicle = validCustomerVehicle(customerVehicleId);
+        customerVehicle.setCustomerId(customerId);
+        customerVehicle.setVehicleTypeId(vehicleTypeId);
+        customerVehicle.setLicensePlate(licensePlate);
+        customerVehicle.setIsDefault(isDefault);
         return customerVehicle;
     }
 }

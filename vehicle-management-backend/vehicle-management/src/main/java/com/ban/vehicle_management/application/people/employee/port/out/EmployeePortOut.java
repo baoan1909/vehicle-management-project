@@ -21,5 +21,9 @@ public interface EmployeePortOut {
     boolean existsByUserProfileId(UUID userProfileId);
 
     boolean existsUserProfileById(UUID userProfileId);
+
+    Optional<Employee> findByAccountId(UUID accountId);
+
+    boolean hasAccountRole(UUID employeeId, String roleCode);
 }
 

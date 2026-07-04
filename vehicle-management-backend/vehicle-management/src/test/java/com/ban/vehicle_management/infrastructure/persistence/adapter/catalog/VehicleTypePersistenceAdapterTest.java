@@ -5,8 +5,13 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.infrastructure.mapper.catalog.VehicleTypePersistenceMapper;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.PriceRuleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ZoneRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerVehicleRepository;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +24,21 @@ class VehicleTypePersistenceAdapterTest {
 
     @Mock
     private VehicleTypeRepository vehicleTypeRepository;
+
+    @Mock
+    private PriceRuleRepository priceRuleRepository;
+
+    @Mock
+    private CustomerVehicleRepository customerVehicleRepository;
+
+    @Mock
+    private ParkingSessionRepository parkingSessionRepository;
+
+    @Mock
+    private CardRepository cardRepository;
+
+    @Mock
+    private ZoneRepository zoneRepository;
 
     @Mock
     private VehicleTypePersistenceMapper vehicleTypePersistenceMapper;

@@ -23,12 +23,15 @@ public class Subscription extends AuditableDomainModel {
     private UUID cardId;
     private UUID ticketTypeId;
     private UUID priceRuleId;
+    private LocalDate requestedEffectiveFrom;
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
     private BigDecimal price;
     private SubscriptionStatus status;
     private UUID approvedBy;
     private Instant approvedAt;
+    private String rejectionReason;
+    private UUID rejectedBy;
+    private Instant rejectedAt;
     private LocalDate cardReceiptDate;
 }
-

@@ -26,6 +26,7 @@ public class CardPersistenceAdapter implements CardPortOut {
     private final LostCardReportRepository lostCardReportRepository;
     private final ParkingSessionRepository parkingSessionRepository;
     private final CardPersistenceMapper cardPersistenceMapper;
+    private static final String CARD_TYPE_REGISTERED = "REGISTERED";
 
     public CardPersistenceAdapter(
             CardRepository cardRepository,
@@ -50,6 +51,18 @@ public class CardPersistenceAdapter implements CardPortOut {
     @Override
     public Optional<Card> findById(UUID cardId) {
         return cardRepository.findById(cardId)
+                .map(cardPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Card> findByUid(String uid) {
+        return cardRepository.findByUid(uid)
+                .map(cardPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Card> findByUidForUpdate(String uid) {
+        return cardRepository.findByUidForUpdate(uid)
                 .map(cardPersistenceMapper::toDomain);
     }
 
@@ -91,13 +104,29 @@ public class CardPersistenceAdapter implements CardPortOut {
     public boolean hasActiveUsage(UUID cardId) {
         return subscriptionRepository.existsByCardIdAndStatusIn(
                 cardId,
-                List.of(SubscriptionStatus.PENDING, SubscriptionStatus.ACTIVE)
+                List.of(
+                        SubscriptionStatus.PENDING_PAYMENT,
+                        SubscriptionStatus.PENDING_CARD,
+                        SubscriptionStatus.ACTIVE
+                )
         )
                 || lostCardReportRepository.existsByCardIdAndStatus(cardId, LostCardReportStatus.OPEN)
                 || parkingSessionRepository.existsByCardIdAndStatusIn(
                         cardId,
                         List.of(ParkingSessionStatus.OPEN, ParkingSessionStatus.LOST_CARD)
                 );
+    }
+
+    @Override
+    public Optional<Card> findFirstAvailableRegisteredByVehicleTypeId(UUID vehicleTypeId) {
+        return cardRepository.findAvailableByVehicleTypeAndCardTypeCodeForUpdate(
+                        vehicleTypeId,
+                        CardStatus.AVAILABLE,
+                        CARD_TYPE_REGISTERED
+                )
+                .stream()
+                .findFirst()
+                .map(cardPersistenceMapper::toDomain);
     }
 }
 

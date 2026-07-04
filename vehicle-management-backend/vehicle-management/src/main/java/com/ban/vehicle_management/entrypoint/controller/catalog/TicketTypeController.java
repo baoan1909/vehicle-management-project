@@ -10,6 +10,7 @@ import com.ban.vehicle_management.entrypoint.dto.catalog.tickettype.response.Tic
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +28,7 @@ public class TicketTypeController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('TICKET_TYPE_CREATE_ALL')")
     public ResponseEntity<ApiResponse<TicketTypeAdminResponse>> createTicketType(@RequestBody CreateTicketTypeRequest request){
         TicketType createdTicketType = ticketTypePortIn.createTicketType(ticketTypeApiMapper.toDomain(request));
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -34,18 +36,21 @@ public class TicketTypeController {
     }
 
     @GetMapping("/{ticketTypeId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('TICKET_TYPE_READ_ALL')")
     public ResponseEntity<ApiResponse<TicketTypeAdminResponse>> getTicketTypeById(@PathVariable UUID ticketTypeId){
         TicketType ticketType =ticketTypePortIn.getTicketTypeById(ticketTypeId);
         return  ResponseEntity.ok(ApiResponse.ok("Fetched ticket type successfully", ticketTypeApiMapper.toAdminResponse(ticketType)));
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('TICKET_TYPE_READ_ALL')")
     public ResponseEntity<ApiResponse<List<TicketTypeAdminResponse>>> getTicketTypes(@ModelAttribute TicketTypeFilterRequest request){
         List<TicketType> ticketTypes = ticketTypePortIn.getTicketTypes(request.status(), request.keyword());
         return  ResponseEntity.ok(ApiResponse.ok("Fetched ticket types successfully", ticketTypeApiMapper.toAdminResponses(ticketTypes)));
     }
 
     @PutMapping("/{ticketTypeId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('TICKET_TYPE_UPDATE_ALL')")
     public  ResponseEntity<ApiResponse<TicketTypeAdminResponse>> updateTicketType(
             @PathVariable UUID ticketTypeId,
             @RequestBody UpdateTicketTypeRequest request
@@ -55,12 +60,14 @@ public class TicketTypeController {
     }
 
     @DeleteMapping("/{ticketTypeId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('TICKET_TYPE_DELETE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteTicketType(@PathVariable UUID ticketTypeId) {
         ticketTypePortIn.deleteTicketType(ticketTypeId);
         return ResponseEntity.ok(ApiResponse.ok("Ticket type deactivated successfully"));
     }
 
     @PatchMapping("/{ticketTypeId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('TICKET_TYPE_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<TicketTypeAdminResponse>> activateTicketType(@PathVariable UUID ticketTypeId) {
         TicketType ticketType = ticketTypePortIn.activateTicketType(ticketTypeId);
         return ResponseEntity.ok(ApiResponse.ok("Ticket type activated successfully", ticketTypeApiMapper.toAdminResponse(ticketType)));

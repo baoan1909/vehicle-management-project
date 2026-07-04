@@ -12,7 +12,17 @@ import {
   VisitorFeeFormPage,
   VisitorParkingFeePage,
 } from "@/features/catalog";
-import { ContactPage, CustomerHistoryPage, PricingPage, ProfilePage } from "@/features/customer-portal";
+import {
+  ContactPage,
+  CustomerDashboardPage,
+  CustomerHistoryPage,
+  GuidePage,
+  PricingPage,
+  ProfilePage,
+  SubscriptionPage,
+  SupportPage,
+  VehiclePage,
+} from "@/features/customer-portal";
 import { CustomerFormPage, CustomerListPage } from "@/features/customers";
 import { DashboardPage } from "@/features/dashboard";
 import { AccountFormPage, AccountListPage, RoleFormPage, RoleListPage } from "@/features/iam";
@@ -48,10 +58,17 @@ export const routes: RouteDefinition[] = [
   { path: "/admin/customer/form", title: "Thông tin khách hàng", layout: "admin", element: <CustomerFormPage /> },
   { path: "/admin/role", title: "Quản lý vai trò", layout: "admin", element: <RoleListPage /> },
   { path: "/admin/role/form", title: "Thông tin vai trò", layout: "admin", element: <RoleFormPage /> },
-  { path: "/pricing", title: "Bảng giá dịch vụ đỗ xe", layout: "client", element: <PricingPage /> },
-  { path: "/customerTicket/customer-infor", title: "Thông tin khách hàng", layout: "client", element: <CustomerHistoryPage /> },
-  { path: "/customerTicket/customer-infor-detail", title: "Thông tin tài khoản", layout: "client", element: <ProfilePage /> },
+  { path: "/pricing", title: "Bảng giá gửi xe", layout: "client", element: <PricingPage /> },
+  { path: "/guide", title: "Hướng dẫn", layout: "client", element: <GuidePage /> },
   { path: "/contact", title: "Liên hệ", layout: "client", element: <ContactPage /> },
+  { path: "/customerTicket/customer-infor", title: "Lịch sử gửi xe", layout: "client", element: <CustomerHistoryPage /> },
+  { path: "/customerTicket/customer-infor-detail", title: "Hồ sơ cá nhân", layout: "client", element: <ProfilePage /> },
+  { path: "/customer/dashboard", title: "Tổng quan khách hàng", layout: "client", element: <CustomerDashboardPage /> },
+  { path: "/customer/profile", title: "Hồ sơ cá nhân", layout: "client", element: <ProfilePage /> },
+  { path: "/customer/vehicles", title: "Xe của tôi", layout: "client", element: <VehiclePage /> },
+  { path: "/customer/subscriptions", title: "Vé tháng", layout: "client", element: <SubscriptionPage /> },
+  { path: "/customer/parking-history", title: "Lịch sử gửi xe", layout: "client", element: <CustomerHistoryPage /> },
+  { path: "/customer/support", title: "Hỗ trợ", layout: "client", element: <SupportPage /> },
   { path: "/login", title: "Đăng nhập", layout: "auth", element: <LoginPage mode="login" /> },
   { path: "/register", title: "Đăng ký", layout: "auth", element: <LoginPage mode="register" /> },
   { path: "/forgot-password", title: "Quên mật khẩu", layout: "auth", element: <LoginPage mode="forgot" /> },

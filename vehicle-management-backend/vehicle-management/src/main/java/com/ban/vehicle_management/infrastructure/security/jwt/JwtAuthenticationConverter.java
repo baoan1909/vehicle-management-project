@@ -3,7 +3,6 @@ package com.ban.vehicle_management.infrastructure.security.jwt;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.security.principal.AuthenticatedAccountPrincipal;
-import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -34,7 +33,7 @@ public class JwtAuthenticationConverter implements Converter<Jwt, AbstractAuthen
                 .ofNullable(jwtGrantedAuthoritiesConverter.convert(jwt))
                 .orElseGet(List::of));
         resolveCurrentAccount(jwt)
-                .filter(account -> AccountStatus.ACTIVE.equals(account.status()))
+                .filter(CurrentAccountAccess::canUseBusinessPermissions)
                 .ifPresent(account -> account.permissionCodes().forEach(permissionCode ->
                         authorities.add(new SimpleGrantedAuthority(permissionCode))
                 ));

@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.people.employee.response;
 
+import com.ban.vehicle_management.entrypoint.dto.people.userprofile.response.UserProfileAdminResponse;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -18,6 +19,8 @@ public class EmployeeAdminResponse {
     private String jobTitle;
     private LocalDate hiredAt;
     private EmployeeStatus status;
+    private String accountEmail;
+    private UserProfileAdminResponse userProfile;
     private String createdAt;
     private UUID createdBy;
     private String updatedAt;

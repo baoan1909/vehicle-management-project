@@ -6,18 +6,17 @@ import com.ban.vehicle_management.application.people.customer.model.result.Custo
 import com.ban.vehicle_management.application.people.customer.port.in.CustomerAdminProfilePortIn;
 import com.ban.vehicle_management.application.people.customer.port.in.CustomerPortIn;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
-import com.ban.vehicle_management.entrypoint.dto.people.customer.request.ApproveCustomerRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.request.CustomerFilterRequest;
-import com.ban.vehicle_management.entrypoint.dto.people.customer.request.CreateCustomerAdminProfileRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.request.UpdateCustomerAdminProfileRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.response.CustomerAdminProfileResponse;
 import com.ban.vehicle_management.entrypoint.dto.people.customer.response.CustomerAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -26,7 +25,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/people/customers")
@@ -47,19 +48,6 @@ public class CustomerController {
         this.customerAdminProfilePortIn = customerAdminProfilePortIn;
         this.customerApiMapper = customerApiMapper;
         this.customerAdminProfileApiMapper = customerAdminProfileApiMapper;
-    }
-
-    @PostMapping
-    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_CREATE_ALL')")
-    public ResponseEntity<ApiResponse<CustomerAdminProfileResponse>> createCustomer(
-            @RequestBody CreateCustomerAdminProfileRequest request
-    ) {
-        CustomerAdminProfileResult createdCustomerProfile =
-                customerAdminProfilePortIn.createCustomerAdminProfile(customerAdminProfileApiMapper.toCreateCommand(request));
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
-                "Customer created successfully",
-                customerAdminProfileApiMapper.toResponse(createdCustomerProfile)
-        ));
     }
 
     @GetMapping("/{customerId}")
@@ -105,49 +93,30 @@ public class CustomerController {
         ));
     }
 
-    @PatchMapping("/{customerId}/approve")
+    @PostMapping(value = "/{customerId}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
-    public ResponseEntity<ApiResponse<CustomerAdminResponse>> approveCustomer(
+    public ResponseEntity<ApiResponse<CustomerAdminProfileResponse>> uploadCustomerAvatar(
             @PathVariable UUID customerId,
-            @RequestBody(required = false) ApproveCustomerRequest request
+            @RequestPart("file") MultipartFile file
     ) {
-        Customer approvedCustomer = customerPortIn.approveCustomer(
-                customerId,
-                request == null ? null : request.approvedAt()
-        );
+        CustomerAdminProfileResult updatedCustomerProfile =
+                customerAdminProfilePortIn.uploadCustomerAvatar(customerId, file);
         return ResponseEntity.ok(ApiResponse.ok(
-                "Customer approved successfully",
-                customerApiMapper.toAdminResponse(approvedCustomer)
+                "Customer avatar updated successfully",
+                customerAdminProfileApiMapper.toResponse(updatedCustomerProfile)
         ));
     }
 
-    @PatchMapping("/{customerId}/reject")
+    @DeleteMapping("/{customerId}/avatar")
     @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
-    public ResponseEntity<ApiResponse<CustomerAdminResponse>> rejectCustomer(@PathVariable UUID customerId) {
-        Customer rejectedCustomer = customerPortIn.rejectCustomer(customerId);
+    public ResponseEntity<ApiResponse<CustomerAdminProfileResponse>> deleteCustomerAvatar(
+            @PathVariable UUID customerId
+    ) {
+        CustomerAdminProfileResult updatedCustomerProfile =
+                customerAdminProfilePortIn.deleteCustomerAvatar(customerId);
         return ResponseEntity.ok(ApiResponse.ok(
-                "Customer rejected successfully",
-                customerApiMapper.toAdminResponse(rejectedCustomer)
-        ));
-    }
-
-    @PatchMapping("/{customerId}/suspend")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
-    public ResponseEntity<ApiResponse<CustomerAdminResponse>> suspendCustomer(@PathVariable UUID customerId) {
-        Customer suspendedCustomer = customerPortIn.suspendCustomer(customerId);
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Customer suspended successfully",
-                customerApiMapper.toAdminResponse(suspendedCustomer)
-        ));
-    }
-
-    @PatchMapping("/{customerId}/move-to-pending")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
-    public ResponseEntity<ApiResponse<CustomerAdminResponse>> moveCustomerToPending(@PathVariable UUID customerId) {
-        Customer pendingCustomer = customerPortIn.moveCustomerToPending(customerId);
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Customer moved to pending successfully",
-                customerApiMapper.toAdminResponse(pendingCustomer)
+                "Customer avatar deleted successfully",
+                customerAdminProfileApiMapper.toResponse(updatedCustomerProfile)
         ));
     }
 
@@ -162,6 +131,7 @@ public class CustomerController {
     }
 
     @PatchMapping("/{customerId}/inactivate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<CustomerAdminResponse>> inactivateCustomer(@PathVariable UUID customerId) {
         Customer inactivatedCustomer = customerPortIn.inactivateCustomer(customerId);
         return ResponseEntity.ok(ApiResponse.ok(
