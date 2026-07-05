@@ -78,7 +78,11 @@ public class SupportTicketPolicy {
             throw new BadRequestException("Only resolved ticket can be reopened");
         }
 
-        ticket.setStatus(SupportTicketStatus.IN_PROGRESS);
+        if (ticket.getAssignedTo() == null) {
+            ticket.setStatus(SupportTicketStatus.OPEN);
+        } else {
+            ticket.setStatus(SupportTicketStatus.IN_PROGRESS);
+        }
         ticket.setResolvedAt(null);
         ticket.setResolutionNote(null);
         ticket.setReopenCount(ticket.getReopenCount() == null ? 1 : ticket.getReopenCount() + 1);
@@ -90,8 +94,8 @@ public class SupportTicketPolicy {
     public void close(SupportTicket ticket, UUID closedBy, Instant closedAt) {
         requireTicket(ticket);
 
-        if (ticket.getStatus() != SupportTicketStatus.RESOLVED) {
-            throw new BadRequestException("Only resolved ticket can be closed");
+        if (ticket.getStatus() == SupportTicketStatus.CLOSED) {
+            throw new BadRequestException("Support ticket is already closed");
         }
 
         requireField(closedBy, "closedBy");
@@ -128,8 +132,6 @@ public class SupportTicketPolicy {
         }
 
         if (ticket.getStatus() == SupportTicketStatus.CLOSED) {
-            requireField(ticket.getResolvedAt(), "resolvedAt");
-            requireField(ticket.getResolutionNote(), "resolutionNote");
             requireField(ticket.getClosedAt(), "closedAt");
             requireField(ticket.getClosedBy(), "closedBy");
         }

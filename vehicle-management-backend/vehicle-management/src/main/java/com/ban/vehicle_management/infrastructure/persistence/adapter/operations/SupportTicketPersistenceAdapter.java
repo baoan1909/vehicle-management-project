@@ -21,6 +21,11 @@ import org.springframework.stereotype.Component;
 public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
 
     private static final List<String> ASSIGNABLE_ROLE_CODES = List.of("EMPLOYEE", "PARKING_MANAGER");
+    private static final List<SupportTicketStatus> ACTIVE_WORKFLOW_STATUSES = List.of(
+            SupportTicketStatus.OPEN,
+            SupportTicketStatus.IN_PROGRESS,
+            SupportTicketStatus.RESOLVED
+    );
 
     private final SupportTicketRepository supportTicketRepository;
     private final SupportTicketCategoryRepository categoryRepository;
@@ -44,13 +49,13 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
         SupportTicketEntity savedEntity = supportTicketRepository.saveAndFlush(
                 supportTicketPersistenceMapper.toEntity(supportTicket)
         );
-        return supportTicketPersistenceMapper.toDomain(savedEntity);
+        return mapToDomain(savedEntity);
     }
 
     @Override
     public Optional<SupportTicket> findById(UUID supportTicketId) {
         return supportTicketRepository.findById(supportTicketId)
-                .map(supportTicketPersistenceMapper::toDomain);
+                .map(this::mapToDomain);
     }
 
     @Override
@@ -66,7 +71,7 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
                         SupportTicketSpecifications.withFilters(customerId, categoryId, assignedTo, status, priority, keyword)
                 )
                 .stream()
-                .map(supportTicketPersistenceMapper::toDomain)
+                .map(this::mapToDomain)
                 .toList();
     }
 
@@ -82,5 +87,30 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
                 AccountStatus.ACTIVE,
                 ASSIGNABLE_ROLE_CODES
         );
+    }
+
+    @Override
+    public boolean existsActiveWorkflowByCustomerIdAndCategoryId(UUID customerId, UUID categoryId) {
+        return supportTicketRepository.existsByCustomerIdAndCategoryIdAndStatusIn(
+                customerId,
+                categoryId,
+                ACTIVE_WORKFLOW_STATUSES
+        );
+    }
+
+    private SupportTicket mapToDomain(SupportTicketEntity entity) {
+        SupportTicket supportTicket = supportTicketPersistenceMapper.toDomain(entity);
+        if (supportTicket.getCategoryId() == null || supportTicket.getCategoryCode() != null) {
+            return supportTicket;
+        }
+
+        categoryRepository.findById(supportTicket.getCategoryId())
+                .ifPresent(category -> {
+                    supportTicket.setCategoryCode(category.getCode());
+                    supportTicket.setCategoryName(category.getName());
+                    supportTicket.setPriority(category.getPriority());
+                });
+
+        return supportTicket;
     }
 }

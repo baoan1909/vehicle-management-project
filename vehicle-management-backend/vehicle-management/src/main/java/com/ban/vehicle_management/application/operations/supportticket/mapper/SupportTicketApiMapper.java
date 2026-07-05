@@ -15,6 +15,9 @@ public interface SupportTicketApiMapper {
 
     @Mapping(target = "supportTicketId", ignore = true)
     @Mapping(target = "customerId", ignore = true)
+    @Mapping(target = "categoryCode", ignore = true)
+    @Mapping(target = "categoryName", ignore = true)
+    @Mapping(target = "priority", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "assignedTo", ignore = true)
     @Mapping(target = "resolvedAt", ignore = true)
@@ -31,6 +34,9 @@ public interface SupportTicketApiMapper {
 
     @Mapping(target = "supportTicketId", ignore = true)
     @Mapping(target = "customerId", ignore = true)
+    @Mapping(target = "categoryCode", ignore = true)
+    @Mapping(target = "categoryName", ignore = true)
+    @Mapping(target = "priority", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "assignedTo", ignore = true)
     @Mapping(target = "resolvedAt", ignore = true)

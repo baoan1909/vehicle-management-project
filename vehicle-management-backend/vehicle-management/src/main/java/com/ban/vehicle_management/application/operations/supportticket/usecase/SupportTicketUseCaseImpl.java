@@ -38,6 +38,13 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
 
         validateActiveCategory(supportTicket.getCategoryId());
 
+        if (supportTicketPortOut.existsActiveWorkflowByCustomerIdAndCategoryId(
+                customerId,
+                supportTicket.getCategoryId()
+        )) {
+            throw new ConflictException("Customer already has an active support ticket in this category");
+        }
+
         supportTicketPolicy.initialize(supportTicket);
         supportTicket.setSupportTicketId(UUID.randomUUID());
 

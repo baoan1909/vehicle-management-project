@@ -11,4 +11,10 @@ public interface SupportTicketRepository
         extends JpaRepository<SupportTicketEntity, UUID>, JpaSpecificationExecutor<SupportTicketEntity> {
 
     boolean existsByCategoryIdAndStatusIn(UUID categoryId, Collection<SupportTicketStatus> statuses);
+
+    boolean existsByCustomerIdAndCategoryIdAndStatusIn(
+            UUID customerId,
+            UUID categoryId,
+            Collection<SupportTicketStatus> statuses
+    );
 }

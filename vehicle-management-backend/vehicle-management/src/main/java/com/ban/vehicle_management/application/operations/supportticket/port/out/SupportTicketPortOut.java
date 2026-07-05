@@ -22,4 +22,5 @@ public interface SupportTicketPortOut {
 
     boolean existsActiveCategoryById(UUID categoryId);
     boolean existsAssignableAccountById(UUID accountId);
+    boolean existsActiveWorkflowByCustomerIdAndCategoryId(UUID customerId, UUID categoryId);
 }

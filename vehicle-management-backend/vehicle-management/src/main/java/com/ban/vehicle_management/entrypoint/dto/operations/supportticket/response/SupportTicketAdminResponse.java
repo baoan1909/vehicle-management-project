@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.operations.supportticket.response;
 
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import java.util.UUID;
 import lombok.Getter;
@@ -13,6 +14,9 @@ public class SupportTicketAdminResponse {
     private UUID supportTicketId;
     private UUID customerId;
     private UUID categoryId;
+    private String categoryCode;
+    private String categoryName;
+    private SupportTicketCategoryPriority priority;
     private String title;
     private String content;
     private SupportTicketStatus status;
