@@ -1,11 +1,8 @@
-package com.ban.vehicle_management.domain.operations.supportticket.model;
+package com.ban.vehicle_management.entrypoint.dto.operations.supportticket.response;
 
-import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
-import java.time.Instant;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,8 +10,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class SupportTicket extends AuditableDomainModel {
+public class SupportTicketAdminResponse {
     private UUID supportTicketId;
     private UUID customerId;
     private UUID categoryId;
@@ -25,10 +21,14 @@ public class SupportTicket extends AuditableDomainModel {
     private String content;
     private SupportTicketStatus status;
     private UUID assignedTo;
-    private Instant resolvedAt;
+    private String resolvedAt;
     private String resolutionNote;
-    private Instant closedAt;
+    private String closedAt;
     private UUID closedBy;
     private Integer reopenCount;
-    private Instant lastReopenedAt;
+    private String lastReopenedAt;
+    private String createdAt;
+    private UUID createdBy;
+    private String updatedAt;
+    private UUID updatedBy;
 }

@@ -17,4 +17,6 @@ public interface SupportTicketCategoryRepository
             UUID categoryId
     );
 
+    boolean existsByCategoryIdAndStatus(UUID categoryId, SupportTicketCategoryStatus status);
+
 }
