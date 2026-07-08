@@ -656,23 +656,149 @@ CREATE TABLE operations.approval_requests (
 );
 
 -- Lưu ticket hỗ trợ của khách hàng.
+CREATE TABLE operations.support_ticket_categories (
+    category_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(150) NOT NULL,
+    description TEXT,
+    priority VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID,
+    updated_at TIMESTAMPTZ,
+    updated_by UUID,
+    CONSTRAINT ck_support_ticket_categories_priority CHECK (priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT')),
+    CONSTRAINT ck_support_ticket_categories_status CHECK (status IN ('ACTIVE', 'INACTIVE'))
+);
+
+-- Lưu ticket hỗ trợ của khách hàng.
 CREATE TABLE operations.support_tickets (
     support_ticket_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     customer_id UUID,
+    category_id UUID NOT NULL,
     title VARCHAR(200) NOT NULL,
     content TEXT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'OPEN',
-    priority VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
     assigned_to UUID,
     resolved_at TIMESTAMPTZ,
+    resolution_note TEXT,
+    closed_at TIMESTAMPTZ,
+    closed_by UUID,
+    reopen_count INTEGER NOT NULL DEFAULT 0,
+    last_reopened_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by UUID,
     updated_at TIMESTAMPTZ,
     updated_by UUID,
     CONSTRAINT fk_support_tickets_customer FOREIGN KEY (customer_id) REFERENCES people.customers(customer_id) ON DELETE SET NULL,
+    CONSTRAINT fk_support_tickets_category FOREIGN KEY (category_id) REFERENCES operations.support_ticket_categories(category_id) ON DELETE RESTRICT,
     CONSTRAINT fk_support_tickets_assigned_to FOREIGN KEY (assigned_to) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_support_tickets_closed_by FOREIGN KEY (closed_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT ck_support_tickets_status CHECK (status IN ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED')),
-    CONSTRAINT ck_support_tickets_priority CHECK (priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT'))
+    CONSTRAINT ck_support_tickets_reopen_count_non_negative CHECK (reopen_count >= 0)
+);
+
+-- Lưu hội thoại vận hành: chat nội bộ, hỗ trợ khách hàng và hội thoại gắn ngữ cảnh nghiệp vụ.
+CREATE TABLE operations.chat_conversations (
+    conversation_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_type VARCHAR(30) NOT NULL,
+    title VARCHAR(200),
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    customer_id UUID,
+    support_ticket_id UUID,
+    owner_account_id UUID,
+    assigned_to UUID,
+    related_schema VARCHAR(50),
+    related_table VARCHAR(80),
+    related_id UUID,
+    last_message_id UUID,
+    last_message_at TIMESTAMPTZ,
+    metadata JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID,
+    updated_at TIMESTAMPTZ,
+    updated_by UUID,
+    CONSTRAINT fk_chat_conversations_customer FOREIGN KEY (customer_id) REFERENCES people.customers(customer_id) ON DELETE SET NULL,
+    CONSTRAINT fk_chat_conversations_support_ticket FOREIGN KEY (support_ticket_id) REFERENCES operations.support_tickets(support_ticket_id) ON DELETE SET NULL,
+    CONSTRAINT fk_chat_conversations_owner_account FOREIGN KEY (owner_account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_chat_conversations_assigned_to FOREIGN KEY (assigned_to) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT ck_chat_conversations_type CHECK (conversation_type IN ('INTERNAL_DIRECT', 'INTERNAL_GROUP', 'CUSTOMER_DIRECT', 'SUPPORT_TICKET', 'PARKING_SESSION', 'BILLING', 'LOST_CARD', 'SYSTEM_DIRECT')),
+    CONSTRAINT ck_chat_conversations_status CHECK (status IN ('ACTIVE', 'ARCHIVED', 'CLOSED'))
+);
+
+CREATE TABLE operations.chat_conversation_members (
+    conversation_member_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id UUID NOT NULL,
+    account_id UUID NOT NULL,
+    member_role VARCHAR(30) NOT NULL DEFAULT 'MEMBER',
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    last_read_message_id UUID,
+    muted_until TIMESTAMPTZ,
+    joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    left_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID,
+    updated_at TIMESTAMPTZ,
+    updated_by UUID,
+    CONSTRAINT fk_chat_members_conversation FOREIGN KEY (conversation_id) REFERENCES operations.chat_conversations(conversation_id) ON DELETE CASCADE,
+    CONSTRAINT fk_chat_members_account FOREIGN KEY (account_id) REFERENCES iam.accounts(account_id) ON DELETE CASCADE,
+    CONSTRAINT uq_chat_members_conversation_account UNIQUE (conversation_id, account_id),
+    CONSTRAINT ck_chat_members_role CHECK (member_role IN ('OWNER', 'MEMBER', 'ASSIGNEE', 'OBSERVER', 'CUSTOMER')),
+    CONSTRAINT ck_chat_members_status CHECK (status IN ('ACTIVE', 'LEFT', 'REMOVED', 'BLOCKED'))
+);
+
+CREATE TABLE operations.chat_messages (
+    message_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id UUID NOT NULL,
+    sender_account_id UUID,
+    message_type VARCHAR(30) NOT NULL,
+    content TEXT,
+    reply_to_message_id UUID,
+    related_schema VARCHAR(50),
+    related_table VARCHAR(80),
+    related_id UUID,
+    metadata JSONB,
+    deleted BOOLEAN NOT NULL DEFAULT FALSE,
+    deleted_at TIMESTAMPTZ,
+    edited_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID,
+    updated_at TIMESTAMPTZ,
+    updated_by UUID,
+    CONSTRAINT fk_chat_messages_conversation FOREIGN KEY (conversation_id) REFERENCES operations.chat_conversations(conversation_id) ON DELETE CASCADE,
+    CONSTRAINT fk_chat_messages_sender FOREIGN KEY (sender_account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_chat_messages_reply_to FOREIGN KEY (reply_to_message_id) REFERENCES operations.chat_messages(message_id) ON DELETE SET NULL,
+    CONSTRAINT ck_chat_messages_type CHECK (message_type IN ('TEXT', 'IMAGE', 'FILE', 'SYSTEM', 'CONTEXT_CARD', 'ACTION_CARD', 'SUPPORT_REQUEST'))
+);
+
+ALTER TABLE operations.chat_conversations
+    ADD CONSTRAINT fk_chat_conversations_last_message
+        FOREIGN KEY (last_message_id) REFERENCES operations.chat_messages(message_id) ON DELETE SET NULL;
+
+ALTER TABLE operations.chat_conversation_members
+    ADD CONSTRAINT fk_chat_members_last_read_message
+        FOREIGN KEY (last_read_message_id) REFERENCES operations.chat_messages(message_id) ON DELETE SET NULL;
+
+CREATE TABLE operations.chat_message_attachments (
+    attachment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    message_id UUID NOT NULL,
+    bucket VARCHAR(20) NOT NULL,
+    object_key VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255),
+    content_type VARCHAR(100),
+    size_bytes BIGINT,
+    checksum_sha256 VARCHAR(64),
+    attachment_type VARCHAR(30) NOT NULL DEFAULT 'IMAGE',
+    width INT,
+    height INT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID,
+    updated_at TIMESTAMPTZ,
+    updated_by UUID,
+    CONSTRAINT fk_chat_attachments_message FOREIGN KEY (message_id) REFERENCES operations.chat_messages(message_id) ON DELETE CASCADE,
+    CONSTRAINT ck_chat_attachments_bucket CHECK (bucket IN ('PUBLIC', 'PRIVATE')),
+    CONSTRAINT ck_chat_attachments_type CHECK (attachment_type IN ('IMAGE', 'DOCUMENT', 'AUDIO', 'PARKING_EVIDENCE', 'PAYMENT_PROOF')),
+    CONSTRAINT ck_chat_attachments_size_non_negative CHECK (size_bytes IS NULL OR size_bytes >= 0)
 );
 
 -- =========================================================
@@ -783,7 +909,12 @@ CREATE TRIGGER trg_parking_events_set_updated_at BEFORE UPDATE ON parking.parkin
 CREATE TRIGGER trg_invoices_set_updated_at BEFORE UPDATE ON billing.invoices FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_shifts_set_updated_at BEFORE UPDATE ON operations.shifts FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_approval_requests_set_updated_at BEFORE UPDATE ON operations.approval_requests FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER trg_support_ticket_categories_set_updated_at BEFORE UPDATE ON operations.support_ticket_categories FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_support_tickets_set_updated_at BEFORE UPDATE ON operations.support_tickets FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER trg_chat_conversations_set_updated_at BEFORE UPDATE ON operations.chat_conversations FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER trg_chat_conversation_members_set_updated_at BEFORE UPDATE ON operations.chat_conversation_members FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER trg_chat_messages_set_updated_at BEFORE UPDATE ON operations.chat_messages FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER trg_chat_message_attachments_set_updated_at BEFORE UPDATE ON operations.chat_message_attachments FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_devices_set_updated_at BEFORE UPDATE ON hardware.devices FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_notifications_set_updated_at BEFORE UPDATE ON notification.notifications FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_audit_logs_set_updated_at BEFORE UPDATE ON audit.audit_logs FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -805,6 +936,26 @@ CREATE INDEX idx_parking_sessions_check_in_time ON parking.parking_sessions(chec
 CREATE INDEX idx_parking_events_session_id ON parking.parking_events(parking_session_id);
 CREATE INDEX idx_invoices_status ON billing.invoices(status);
 CREATE INDEX idx_payments_invoice_id ON billing.payments(invoice_id);
+CREATE UNIQUE INDEX uq_support_ticket_categories_active_code ON operations.support_ticket_categories(code) WHERE status = 'ACTIVE';
+CREATE INDEX idx_support_ticket_categories_status ON operations.support_ticket_categories(status);
+CREATE INDEX idx_support_ticket_categories_code ON operations.support_ticket_categories(code);
+CREATE INDEX idx_support_tickets_category ON operations.support_tickets(category_id);
+CREATE INDEX idx_support_tickets_status ON operations.support_tickets(status);
+CREATE INDEX idx_support_tickets_customer ON operations.support_tickets(customer_id);
+CREATE INDEX idx_support_tickets_assigned_to ON operations.support_tickets(assigned_to);
+CREATE INDEX idx_chat_conversations_last_message_at ON operations.chat_conversations(last_message_at DESC, conversation_id DESC);
+CREATE INDEX idx_chat_conversations_customer ON operations.chat_conversations(customer_id);
+CREATE INDEX idx_chat_conversations_support_ticket ON operations.chat_conversations(support_ticket_id);
+CREATE INDEX idx_chat_conversations_related ON operations.chat_conversations(related_schema, related_table, related_id);
+CREATE INDEX idx_chat_conversations_assigned_to_status ON operations.chat_conversations(assigned_to, status);
+CREATE INDEX idx_chat_members_account_status ON operations.chat_conversation_members(account_id, status);
+CREATE INDEX idx_chat_members_conversation_status ON operations.chat_conversation_members(conversation_id, status);
+CREATE INDEX idx_chat_members_conversation_account_status ON operations.chat_conversation_members(conversation_id, account_id, status);
+CREATE INDEX idx_chat_messages_conversation_created_at ON operations.chat_messages(conversation_id, created_at DESC, message_id DESC);
+CREATE INDEX idx_chat_messages_sender_created_at ON operations.chat_messages(sender_account_id, created_at DESC);
+CREATE INDEX idx_chat_messages_related ON operations.chat_messages(related_schema, related_table, related_id);
+CREATE INDEX idx_chat_attachments_message ON operations.chat_message_attachments(message_id);
+CREATE INDEX idx_chat_attachments_object_key ON operations.chat_message_attachments(object_key);
 CREATE INDEX idx_notifications_account_id ON notification.notifications(account_id);
 CREATE INDEX idx_approval_requests_request_type_status ON operations.approval_requests(request_type, status);
 CREATE INDEX idx_approval_requests_target_lookup ON operations.approval_requests(target_schema, target_table, target_id);
@@ -982,9 +1133,22 @@ VALUES
     ('b0000000-0000-0000-0000-000000000001', '70000000-0000-0000-0000-000000000002', '90000000-0000-0000-0000-000000000001', '2026-05-14 10:20:00+07', '2026-05-14 10:00:00+07', 5000, 100000, 'Nguyễn Văn Khách', '0901999999', '079199999999', 'Khách báo làm mất thẻ sau khi checkout, đã đối chiếu ảnh camera.', 'RESOLVED', '20000000-0000-0000-0000-000000000002', '2026-05-14 10:25:00+07', '20000000-0000-0000-0000-000000000002');
 
 -- Dữ liệu mẫu: ticket hỗ trợ và thông báo.
-INSERT INTO operations.support_tickets (support_ticket_id, customer_id, title, content, status, priority, assigned_to, created_by)
+INSERT INTO operations.support_ticket_categories (category_id, code, name, description, priority, status)
 VALUES
-    ('c0000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'Hỏi về gia hạn vé tháng', 'Khách hàng muốn gia hạn vé tháng cho biển số 60K8-2301.', 'OPEN', 'NORMAL', '20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003');
+    ('c1000000-0000-0000-0000-000000000001', 'LOST_CARD', 'Mất thẻ xe', 'Khách hàng mất thẻ xe hoặc không xuất trình được thẻ khi ra bãi.', 'HIGH', 'ACTIVE'),
+    ('c1000000-0000-0000-0000-000000000002', 'WRONG_FEE', 'Khiếu nại phí gửi xe', 'Khách hàng phản ánh bị tính sai phí gửi xe.', 'HIGH', 'ACTIVE'),
+    ('c1000000-0000-0000-0000-000000000003', 'VEHICLE_DAMAGE', 'Xe hư hỏng/trầy xước', 'Khách hàng phản ánh xe bị trầy xước, hư hỏng hoặc mất tài sản.', 'URGENT', 'ACTIVE'),
+    ('c1000000-0000-0000-0000-000000000004', 'CARD_NOT_WORKING', 'Thẻ không hoạt động', 'Thẻ gửi xe không quét được hoặc không sử dụng được.', 'NORMAL', 'ACTIVE'),
+    ('c1000000-0000-0000-0000-000000000005', 'SUBSCRIPTION_PROBLEM', 'Vấn đề vé đăng ký', 'Vé tháng/quý/năm/miễn phí không hoạt động hoặc cần hỗ trợ.', 'NORMAL', 'ACTIVE'),
+    ('c1000000-0000-0000-0000-000000000006', 'PAYMENT_PROBLEM', 'Vấn đề thanh toán', 'Thanh toán lỗi, đã thanh toán nhưng chưa ghi nhận hoặc cần kiểm tra giao dịch.', 'HIGH', 'ACTIVE'),
+    ('c1000000-0000-0000-0000-000000000007', 'PARKING_HISTORY_REQUEST', 'Yêu cầu tra cứu lịch sử gửi xe', 'Khách hàng cần tra cứu lịch sử gửi xe.', 'LOW', 'ACTIVE'),
+    ('c1000000-0000-0000-0000-000000000008', 'PROFILE_OR_VEHICLE_UPDATE', 'Cập nhật hồ sơ/xe', 'Khách hàng cần hỗ trợ cập nhật thông tin cá nhân hoặc phương tiện.', 'LOW', 'ACTIVE'),
+    ('c1000000-0000-0000-0000-000000000009', 'STAFF_COMPLAINT', 'Khiếu nại nhân viên', 'Khách hàng phản ánh thái độ hoặc cách xử lý của nhân viên.', 'HIGH', 'ACTIVE'),
+    ('c1000000-0000-0000-0000-000000000010', 'OTHER', 'Vấn đề khác', 'Yêu cầu hỗ trợ khác chưa thuộc nhóm cố định.', 'NORMAL', 'ACTIVE');
+
+INSERT INTO operations.support_tickets (support_ticket_id, customer_id, category_id, title, content, status, assigned_to, created_by)
+VALUES
+    ('c0000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000005', 'Hỏi về gia hạn vé tháng', 'Khách hàng muốn gia hạn vé tháng cho biển số 60K8-2301.', 'OPEN', '20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003');
 
 INSERT INTO notification.notifications (notification_id, account_id, channel, title, message, status, sent_at, related_schema, related_table, related_id)
 VALUES

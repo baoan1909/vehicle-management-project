@@ -73,6 +73,11 @@ Preferred schema-aligned feature names:
 - `billing.payment`
 - `operations.shift`
 - `operations.approvalrequest`
+- `operations.supportticketcategory`
+- `operations.supportticket`
+- `operations.chatconversation`
+- `operations.chatmessage`
+- `operations.chatmessageattachment`
 - `hardware.device`
 - `notification.notification`
 - `audit.auditlog`
@@ -316,6 +321,14 @@ Important current status sets include:
 - `parking.parking_sessions.status`: `OPEN`, `CLOSED`, `LOST_CARD`, `CANCELLED`
 - `billing.invoices.status`: `UNPAID`, `PAID`, `CANCELLED`, `REFUNDED`
 - `billing.payments.status`: `PENDING`, `SUCCESS`, `FAILED`, `REFUNDED`
+- `operations.support_tickets.status`: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED`
+- `operations.chat_conversations.conversation_type`: `INTERNAL_DIRECT`, `INTERNAL_GROUP`, `CUSTOMER_DIRECT`, `SUPPORT_TICKET`, `PARKING_SESSION`, `BILLING`, `LOST_CARD`, `SYSTEM_DIRECT`
+- `operations.chat_conversations.status`: `ACTIVE`, `ARCHIVED`, `CLOSED`
+- `operations.chat_conversation_members.member_role`: `OWNER`, `MEMBER`, `ASSIGNEE`, `OBSERVER`, `CUSTOMER`
+- `operations.chat_conversation_members.status`: `ACTIVE`, `LEFT`, `REMOVED`, `BLOCKED`
+- `operations.chat_messages.message_type`: `TEXT`, `IMAGE`, `FILE`, `SYSTEM`, `CONTEXT_CARD`, `ACTION_CARD`, `SUPPORT_REQUEST`
+- `operations.chat_message_attachments.bucket`: `PUBLIC`, `PRIVATE`
+- `operations.chat_message_attachments.attachment_type`: `IMAGE`, `DOCUMENT`, `AUDIO`, `PARKING_EVIDENCE`, `PAYMENT_PROOF`
 
 Do not invent new values in code unless the schema is being changed intentionally.
 

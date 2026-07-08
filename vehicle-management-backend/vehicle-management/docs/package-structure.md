@@ -38,7 +38,7 @@ src/main/java/com/ban/vehicle_management
 - `accesscontrol`: `card`, `subscription`, `lostcardreport`
 - `parking`: `parkinglot`, `zone`, `parkingspace`, `lane`, `parkingsession`, `parkingevent`
 - `billing`: `invoice`, `payment`
-- `operations`: `shift`, `approvalrequest`, `supportticket`
+- `operations`: `shift`, `approvalrequest`, `supportticketcategory`, `supportticket`, `chatconversation`, `chatmessage`, `chatmessageattachment`
 - `hardware`: `device`
 - `notification`: `notification`
 - `audit`: `auditlog`

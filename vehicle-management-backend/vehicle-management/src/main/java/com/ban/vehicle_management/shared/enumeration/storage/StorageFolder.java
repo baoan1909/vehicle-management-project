@@ -2,6 +2,7 @@ package com.ban.vehicle_management.shared.enumeration.storage;
 
 public enum StorageFolder {
     AVATAR("av", "avatar"),
+    CHAT_ATTACHMENT("ca", "chat-attachment"),
     PARKING_EVENT("pe", "parking-event"),
     SUPPORT_TICKET("st", "support-ticket"),
     LOST_CARD_REPORT("lcr", "lost-card-report");

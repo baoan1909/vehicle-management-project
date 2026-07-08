@@ -1,0 +1,251 @@
+package com.ban.vehicle_management.infrastructure.persistence.adapter.operations;
+
+import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
+import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
+import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversationMember;
+import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessage;
+import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessageAttachment;
+import com.ban.vehicle_management.infrastructure.mapper.operations.ChatConversationMemberPersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.operations.ChatConversationPersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.operations.ChatMessageAttachmentPersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.operations.ChatMessagePersistenceMapper;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ChatConversationEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ChatConversationMemberEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ChatMessageAttachmentEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ChatMessageEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ChatConversationMemberRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ChatConversationRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ChatMessageAttachmentRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ChatMessageRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
+import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus;
+import java.time.Instant;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.stereotype.Component;
+
+@Component
+public class ChatConversationPersistenceAdapter implements ChatConversationPortOut {
+
+    private static final Set<String> INTERNAL_ROLE_CODES = Set.of("EMPLOYEE", "PARKING_MANAGER", "SYSTEM_ADMIN");
+
+    private final ChatConversationRepository conversationRepository;
+    private final ChatConversationMemberRepository memberRepository;
+    private final ChatMessageRepository messageRepository;
+    private final ChatMessageAttachmentRepository attachmentRepository;
+    private final AccountRepository accountRepository;
+    private final CustomerRepository customerRepository;
+    private final ChatConversationPersistenceMapper conversationMapper;
+    private final ChatConversationMemberPersistenceMapper memberMapper;
+    private final ChatMessagePersistenceMapper messageMapper;
+    private final ChatMessageAttachmentPersistenceMapper attachmentMapper;
+
+    public ChatConversationPersistenceAdapter(
+            ChatConversationRepository conversationRepository,
+            ChatConversationMemberRepository memberRepository,
+            ChatMessageRepository messageRepository,
+            ChatMessageAttachmentRepository attachmentRepository,
+            AccountRepository accountRepository,
+            CustomerRepository customerRepository,
+            ChatConversationPersistenceMapper conversationMapper,
+            ChatConversationMemberPersistenceMapper memberMapper,
+            ChatMessagePersistenceMapper messageMapper,
+            ChatMessageAttachmentPersistenceMapper attachmentMapper
+    ) {
+        this.conversationRepository = conversationRepository;
+        this.memberRepository = memberRepository;
+        this.messageRepository = messageRepository;
+        this.attachmentRepository = attachmentRepository;
+        this.accountRepository = accountRepository;
+        this.customerRepository = customerRepository;
+        this.conversationMapper = conversationMapper;
+        this.memberMapper = memberMapper;
+        this.messageMapper = messageMapper;
+        this.attachmentMapper = attachmentMapper;
+    }
+
+    @Override
+    public ChatConversation saveConversation(ChatConversation conversation) {
+        ChatConversationEntity savedEntity = conversationRepository.saveAndFlush(conversationMapper.toEntity(conversation));
+        return conversationMapper.toDomain(savedEntity);
+    }
+
+    @Override
+    public Optional<ChatConversation> findConversationById(UUID conversationId) {
+        return conversationRepository.findById(conversationId).map(conversationMapper::toDomain);
+    }
+
+    @Override
+    public List<ChatConversation> findInboxConversations(UUID accountId) {
+        return conversationRepository.findInboxConversations(accountId).stream()
+                .map(conversationMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public Optional<ChatConversation> findInternalDirectConversation(UUID firstAccountId, UUID secondAccountId) {
+        return conversationRepository.findDirectConversation(
+                        ChatConversationType.INTERNAL_DIRECT,
+                        firstAccountId,
+                        secondAccountId
+                )
+                .map(conversationMapper::toDomain);
+    }
+
+    @Override
+    public Optional<ChatConversation> findActiveCustomerSupportConversation(UUID customerId) {
+        return conversationRepository.findFirstByCustomerIdAndConversationTypeAndStatus(
+                        customerId,
+                        ChatConversationType.CUSTOMER_DIRECT,
+                        ChatConversationStatus.ACTIVE
+                )
+                .map(conversationMapper::toDomain);
+    }
+
+    @Override
+    public ChatConversationMember saveMember(ChatConversationMember member) {
+        ChatConversationMemberEntity savedEntity = memberRepository.saveAndFlush(memberMapper.toEntity(member));
+        return memberMapper.toDomain(savedEntity);
+    }
+
+    @Override
+    public Optional<ChatConversationMember> findMember(UUID conversationId, UUID accountId) {
+        return memberRepository.findByConversationIdAndAccountId(conversationId, accountId)
+                .map(memberMapper::toDomain);
+    }
+
+    @Override
+    public List<ChatConversationMember> findActiveMembers(UUID conversationId) {
+        return memberRepository.findByConversationIdAndStatus(conversationId, ChatMemberStatus.ACTIVE).stream()
+                .map(memberMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<UUID> findActiveMemberAccountIds(UUID conversationId) {
+        return memberRepository.findActiveMemberAccountIds(conversationId);
+    }
+
+    @Override
+    public void removeMember(UUID conversationId, UUID accountId, Instant leftAt) {
+        memberRepository.removeMember(conversationId, accountId, leftAt);
+    }
+
+    @Override
+    public boolean existsActiveMember(UUID conversationId, UUID accountId) {
+        return memberRepository.existsByConversationIdAndAccountIdAndStatus(
+                conversationId,
+                accountId,
+                ChatMemberStatus.ACTIVE
+        );
+    }
+
+    @Override
+    public ChatMessage saveMessage(ChatMessage message) {
+        ChatMessageEntity savedEntity = messageRepository.saveAndFlush(messageMapper.toEntity(message));
+        ChatMessage savedMessage = messageMapper.toDomain(savedEntity);
+        savedMessage.setAttachments(message.getAttachments());
+        return savedMessage;
+    }
+
+    @Override
+    public Optional<ChatMessage> findMessageById(UUID messageId) {
+        return messageRepository.findById(messageId).map(messageMapper::toDomain);
+    }
+
+    @Override
+    public List<ChatMessage> findMessageHistory(UUID conversationId, Instant beforeCreatedAt, int limit) {
+        List<ChatMessage> messages = messageRepository.findHistory(
+                        conversationId,
+                        beforeCreatedAt,
+                        PageRequest.of(0, limit)
+                )
+                .stream()
+                .map(messageMapper::toDomain)
+                .toList();
+        attachFiles(messages);
+        return messages;
+    }
+
+    @Override
+    public long countUnreadMessages(UUID conversationId, UUID accountId) {
+        return messageRepository.countUnreadMessages(conversationId, accountId);
+    }
+
+    @Override
+    public ChatMessageAttachment saveAttachment(ChatMessageAttachment attachment) {
+        ChatMessageAttachmentEntity savedEntity = attachmentRepository.saveAndFlush(attachmentMapper.toEntity(attachment));
+        return attachmentMapper.toDomain(savedEntity);
+    }
+
+    @Override
+    public List<ChatMessageAttachment> findAttachmentsByMessageIds(Collection<UUID> messageIds) {
+        if (messageIds == null || messageIds.isEmpty()) {
+            return List.of();
+        }
+        return attachmentRepository.findByMessageIdIn(messageIds).stream()
+                .map(attachmentMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public Optional<ChatMessageAttachment> findAttachmentById(UUID attachmentId) {
+        return attachmentRepository.findById(attachmentId).map(attachmentMapper::toDomain);
+    }
+
+    @Override
+    public void markRead(UUID conversationId, UUID accountId, UUID messageId) {
+        memberRepository.markRead(conversationId, accountId, messageId);
+    }
+
+    @Override
+    public boolean existsActiveAccount(UUID accountId) {
+        return accountRepository.findById(accountId)
+                .filter(account -> AccountStatus.ACTIVE.equals(account.getStatus()))
+                .isPresent();
+    }
+
+    @Override
+    public boolean existsActiveInternalAccount(UUID accountId) {
+        return accountRepository.findById(accountId)
+                .filter(account -> AccountStatus.ACTIVE.equals(account.getStatus()))
+                .map(account -> account.getRole())
+                .filter(role -> role.getIsActive() == null || role.getIsActive())
+                .map(role -> INTERNAL_ROLE_CODES.contains(role.getCode()))
+                .orElse(false);
+    }
+
+    @Override
+    public Optional<UUID> findCustomerIdByAccountId(UUID accountId) {
+        return accountRepository.findById(accountId)
+                .map(account -> account.getUserProfileId())
+                .flatMap(customerRepository::findByUserProfileId)
+                .map(customer -> customer.getCustomerId());
+    }
+
+    @Override
+    public boolean existsCustomer(UUID customerId) {
+        return customerRepository.existsById(customerId);
+    }
+
+    private void attachFiles(List<ChatMessage> messages) {
+        List<UUID> messageIds = messages.stream()
+                .map(ChatMessage::getMessageId)
+                .toList();
+        Map<UUID, List<ChatMessageAttachment>> attachmentsByMessageId = findAttachmentsByMessageIds(messageIds).stream()
+                .collect(Collectors.groupingBy(ChatMessageAttachment::getMessageId));
+        messages.forEach(message -> message.setAttachments(
+                attachmentsByMessageId.getOrDefault(message.getMessageId(), List.of())
+        ));
+    }
+}

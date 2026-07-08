@@ -132,13 +132,20 @@ Tables:
 - `operations.shifts`
 - `operations.shift_assignments`
 - `operations.approval_requests`
+- `operations.support_ticket_categories`
 - `operations.support_tickets`
+- `operations.chat_conversations`
+- `operations.chat_conversation_members`
+- `operations.chat_messages`
+- `operations.chat_message_attachments`
 
 Main concern:
 
 - shift operations
 - operational approval
 - support workflows
+- online chat between internal staff and between staff and customers
+- chat files and context links to operational records such as support tickets, parking sessions, invoices, payments, and lost card reports
 
 ### Hardware
 
@@ -277,6 +284,9 @@ The following areas should not collapse into one CRUD-style service:
 - `billing.payments`
 - `operations.shifts`
 - `operations.approval_requests`
+- `operations.support_tickets`
+- `operations.chat_conversations`
+- `operations.chat_messages`
 
 These modules contain or are expected to contain:
 
@@ -284,6 +294,8 @@ These modules contain or are expected to contain:
 - approval logic
 - pricing logic
 - operational control
+- participant-based access control
+- file and context-link handling
 - audit-sensitive behavior
 
 ## 8. Domain-driven guidance for important flows
