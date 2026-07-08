@@ -1,9 +1,4 @@
 export { PricingPage } from "./pages/PricingPage";
-export { GuidePage } from "./pages/GuidePage";
-export { ContactPage } from "./pages/ContactPage";
-export { CustomerDashboardPage } from "./pages/CustomerDashboardPage";
 export { CustomerHistoryPage } from "./pages/CustomerHistoryPage";
 export { ProfilePage } from "./pages/ProfilePage";
-export { VehiclePage } from "./pages/VehiclePage";
-export { SubscriptionPage } from "./pages/SubscriptionPage";
-export { SupportPage } from "./pages/SupportPage";
+export { ContactPage } from "./pages/ContactPage";

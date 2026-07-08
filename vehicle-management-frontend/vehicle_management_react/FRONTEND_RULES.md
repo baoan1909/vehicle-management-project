@@ -39,3 +39,15 @@
 4. Group parents and leaf items should have distinct active treatments: parent groups use a soft highlighted state, while active leaf routes use a stronger selected state.
 5. Sidebar items must preserve icon alignment, text truncation, and consistent `6px-10px` corner radius across desktop breakpoints.
 6. At tablet and mobile widths where no drawer behavior exists, the fixed sidebar should be hidden and admin content should reclaim the full width.
+
+## Phase 5 - Card Management Rules
+
+1. The admin card page redesign applies only to the `main content` canvas of `/admin/card`; it must not redefine the shared admin header or sidebar shell.
+2. `Quản lý thẻ` should be composed from five clear sections: page header actions, KPI summary, status tabs, filter toolbar, and a table-plus-detail workspace.
+3. Each table row represents one physical card from card inventory first; subscription state and lost-card state are related dimensions shown in dedicated columns.
+4. Search on the card page must match at least `card number`, `UID`, `license plate`, and `customer name`.
+5. Subscription badges must stay independent from inventory badges so a card can be `Đã gán` while the subscription is `Hết hạn` or `Chờ duyệt`.
+6. Lost-card badges must stay independent from inventory badges so a card can be `Mất thẻ` while the report itself is still `Đang mở` or already `Đã xử lý`.
+7. Selecting a row in the card list must update a contextual detail panel on the same page instead of forcing a navigation jump.
+8. Card page surfaces, filters, tabs, and table controls must keep the project radius rule within `6px-10px`, except fully circular pills or dots.
+9. Primary content section titles in admin feature pages, such as `Quản lý thẻ`, should use a standardized font size of `25px`.

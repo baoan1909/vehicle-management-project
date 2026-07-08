@@ -14,9 +14,20 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
 
+  const contentType = response.headers.get("content-type") ?? "";
+  const responseBody = contentType.includes("application/json") ? await response.json() : null;
+
   if (!response.ok) {
-    throw new Error(`API error ${response.status}`);
+    const message =
+      responseBody &&
+      typeof responseBody === "object" &&
+      "message" in responseBody &&
+      typeof responseBody.message === "string"
+        ? responseBody.message
+        : `API error ${response.status}`;
+
+    throw new Error(message);
   }
 
-  return response.json() as Promise<T>;
+  return responseBody as T;
 }

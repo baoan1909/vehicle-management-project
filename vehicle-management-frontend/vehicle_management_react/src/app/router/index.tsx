@@ -24,6 +24,10 @@ function getBodyClassName(layout: AppLayout) {
     return "hold-transition layout-top-nav";
   }
 
+  if (layout === "fullscreen") {
+    return "hold-transition";
+  }
+
   return "hold-transition login-page";
 }
 
@@ -70,6 +74,15 @@ function AuthShell() {
   );
 }
 
+function FullscreenShell() {
+  return (
+    <>
+      <RouteDocument layout="fullscreen" />
+      <Outlet />
+    </>
+  );
+}
+
 const adminRoutes = routes
   .filter((route) => route.layout === "admin")
   .map((route) => ({
@@ -88,6 +101,14 @@ const clientRoutes = routes
 
 const authRoutes = routes
   .filter((route) => route.layout === "auth")
+  .map((route) => ({
+    path: route.path.replace(/^\//, ""),
+    element: route.element,
+    handle: { title: route.title },
+  }));
+
+const fullscreenRoutes = routes
+  .filter((route) => route.layout === "fullscreen")
   .map((route) => ({
     path: route.path.replace(/^\//, ""),
     element: route.element,
@@ -116,6 +137,11 @@ const router = createBrowserRouter([
     path: "/",
     element: <AuthShell />,
     children: authRoutes,
+  },
+  {
+    path: "/",
+    element: <FullscreenShell />,
+    children: fullscreenRoutes,
   },
   {
     path: "*",

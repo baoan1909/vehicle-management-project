@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type AppLayout = "admin" | "client" | "auth";
+export type AppLayout = "admin" | "client" | "auth" | "fullscreen";
 
 export interface BreadcrumbItem {
   label: string;
@@ -28,7 +28,7 @@ export interface CurrentUser {
   avatarUrl: string;
 }
 
-export type AdminSidebarIcon = "dashboard" | "swipe" | "card" | "catalog" | "pricing" | "members" | "role";
+export type AdminSidebarIcon = "dashboard" | "swipe" | "card" | "catalog" | "parking" | "pricing" | "members" | "role" | "settings" | "support";
 
 export interface AdminSidebarLeaf {
   label: string;

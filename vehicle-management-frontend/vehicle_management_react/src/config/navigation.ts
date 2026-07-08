@@ -10,11 +10,16 @@ export const adminNavigation: AdminSidebarEntry[] = [
   },
   { kind: "divider" },
   {
-    kind: "link",
+    kind: "group",
     label: "Quản lý vào ra",
-    to: "/admin/swipe",
-    matches: ["/admin/swipe"],
     icon: "swipe",
+    defaultExpanded: true,
+    items: [
+      { label: "Vào/Ra", to: "/admin/swipe", matches: ["/admin/swipe"] },
+      { label: "Xe vào", to: "/admin/swipe/swipein", matches: ["/admin/swipe/swipein"] },
+      { label: "Xe ra", to: "/admin/swipe/swipeout", matches: ["/admin/swipe/swipeout"] },
+      { label: "Phiên gửi xe", to: "/admin/swipe/sessions", matches: ["/admin/swipe/sessions"] },
+    ],
   },
   {
     kind: "group",
@@ -27,12 +32,28 @@ export const adminNavigation: AdminSidebarEntry[] = [
     ],
   },
   {
+    kind: "link",
+    label: "Bãi xe",
+    to: "/admin/parking-lots",
+    matches: ["/admin/parking-lots"],
+    icon: "parking",
+  },
+  {
+    kind: "group",
+    label: "Hỗ trợ & CSKH",
+    icon: "support",
+    items: [
+      { label: "Danh mục ticket", to: "/admin/support-categories", matches: ["/admin/support-categories"] },
+    ],
+  },
+  {
     kind: "group",
     label: "Vé và phương tiện",
     icon: "catalog",
     defaultExpanded: true,
     items: [
       { label: "Vé", to: "/admin/ticket", matches: ["/admin/ticket"] },
+      { label: "Duyệt & Gán thẻ", to: "/admin/subscription-approvals", matches: ["/admin/subscription-approvals"] },
       { label: "Phương tiện", to: "/admin/vehicle", matches: ["/admin/vehicle"] },
     ],
   },
@@ -47,20 +68,23 @@ export const adminNavigation: AdminSidebarEntry[] = [
   },
   {
     kind: "group",
-    label: "Thành viên",
+    label: "Nhân sự",
     icon: "members",
     items: [
-      { label: "Tài khoản", to: "/admin/account", matches: ["/admin/account"] },
+      { label: "Nhân viên", to: "/admin/employee", matches: ["/admin/employee"] },
+      { label: "Ca trực", to: "/admin/shifts", matches: ["/admin/shifts"] },
       { label: "Khách hàng", to: "/admin/customer", matches: ["/admin/customer"] },
     ],
   },
   { kind: "divider" },
   {
-    kind: "link",
-    label: "Quản lý vai trò",
-    to: "/admin/role",
-    matches: ["/admin/role"],
-    icon: "role",
+    kind: "group",
+    label: "Cài đặt hệ thống",
+    icon: "settings",
+    items: [
+      { label: "Tài khoản", to: "/admin/account", matches: ["/admin/account"] },
+      { label: "Vai trò & Quyền", to: "/admin/role", matches: ["/admin/role"] },
+    ],
   },
 ];
 

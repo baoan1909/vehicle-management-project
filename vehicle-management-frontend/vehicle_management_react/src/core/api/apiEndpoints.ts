@@ -1,10 +1,7 @@
 export const apiEndpoints = {
   auth: {
-    login: "/auth/login",
-    register: "/auth/register",
-    forgotPassword: "/auth/forgot-password",
-    otp: "/auth/otp",
-    recoverPassword: "/auth/recover-password",
+    register: "/public/auth/register",
+    forgotPassword: "/public/auth/forgot-password",
   },
   dashboard: "/dashboard",
   parking: {
@@ -28,6 +25,11 @@ export const apiEndpoints = {
   },
   iam: {
     accounts: "/accounts",
+    accountProfile: {
+      onboarding: "/iam/accounts/onboarding",
+      profile: "/iam/accounts/profile",
+      avatar: "/iam/accounts/profile/avatar",
+    },
     roles: "/roles",
   },
 } as const;
