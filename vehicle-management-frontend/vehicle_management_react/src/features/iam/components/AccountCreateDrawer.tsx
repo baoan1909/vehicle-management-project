@@ -2,19 +2,24 @@ import { useEffect, useState } from "react";
 
 import { Badge, Button, InfoBanner } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import {
+  createProvisionedAccount,
+  type ProvisionedAccountResponse,
+  type ProvisionedAccountRoleCode,
+} from "@/features/iam/api/provisionedAccountApi";
 
 type DrawerPhase = "opening" | "open" | "closing";
-type RoleCode = "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER";
 type AccountStatus = "ACTIVE" | "LOCKED" | "DISABLED" | "PENDING";
 
 type AccountCreateDrawerProps = {
   isOpen: boolean;
   onClose: () => void;
+  onCreated?: (account: ProvisionedAccountResponse) => void;
 };
 
 const DRAWER_ANIMATION_MS = 280;
 
-const roleOptions: Array<{ code: RoleCode; description: string; label: string }> = [
+const roleOptions: Array<{ code: ProvisionedAccountRoleCode; description: string; label: string }> = [
   { code: "SYSTEM_ADMIN", description: "Toàn quyền hệ thống", label: "Quản trị" },
   { code: "PARKING_MANAGER", description: "Quản lý vận hành bãi xe", label: "Quản lý" },
   { code: "EMPLOYEE", description: "Vận hành, thu ngân, hỗ trợ", label: "Nhân viên" },
@@ -22,12 +27,21 @@ const roleOptions: Array<{ code: RoleCode; description: string; label: string }>
 ];
 
 const statusOptions: AccountStatus[] = ["PENDING", "ACTIVE", "LOCKED", "DISABLED"];
+const initialForm = {
+  email: "",
+  fullName: "",
+  username: "",
+};
 
-export function AccountCreateDrawer({ isOpen, onClose }: AccountCreateDrawerProps) {
+export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreateDrawerProps) {
   const [isRendered, setIsRendered] = useState(isOpen);
   const [phase, setPhase] = useState<DrawerPhase>(isOpen ? "open" : "closing");
-  const [selectedRole, setSelectedRole] = useState<RoleCode>("EMPLOYEE");
+  const [selectedRole, setSelectedRole] = useState<ProvisionedAccountRoleCode>("EMPLOYEE");
   const [selectedStatus, setSelectedStatus] = useState<AccountStatus>("PENDING");
+  const [form, setForm] = useState(initialForm);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -63,6 +77,34 @@ export function AccountCreateDrawer({ isOpen, onClose }: AccountCreateDrawerProp
   }, [isRendered, onClose]);
 
   if (!isRendered) return null;
+
+  function updateField(field: keyof typeof initialForm, value: string) {
+    setForm((currentValue) => ({ ...currentValue, [field]: value }));
+  }
+
+  async function handleSubmit() {
+    setErrorMessage("");
+    setSuccessMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await createProvisionedAccount({
+        email: form.email,
+        fullName: form.fullName,
+        roleCode: selectedRole,
+        username: form.username,
+      });
+      onCreated?.(response.data);
+      setSuccessMessage(response.message);
+      setForm(initialForm);
+      setSelectedRole("EMPLOYEE");
+      setSelectedStatus("PENDING");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không thể tạo tài khoản cấp sẵn.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <div className="tw-fixed tw-inset-0 tw-z-[2200] tw-isolate tw-flex tw-justify-end" role="dialog" aria-modal="true" aria-labelledby="account-create-drawer-title">
@@ -108,15 +150,17 @@ export function AccountCreateDrawer({ isOpen, onClose }: AccountCreateDrawerProp
             <h3 className="tw-m-0 tw-text-[0.96rem] tw-font-extrabold tw-text-vm-slate-900">Thông tin tài khoản</h3>
             <div className="tw-mt-4 tw-grid tw-gap-3">
               {[
-                { label: "Username", placeholder: "vd: binh.tran" },
-                { label: "Email", placeholder: "binh.tran@coparking.vn" },
-                { label: "Họ và tên", placeholder: "Trần Thị Bình" },
+                { field: "username", label: "Username", placeholder: "vd: binh.tran" },
+                { field: "email", label: "Email", placeholder: "binh.tran@coparking.vn" },
+                { field: "fullName", label: "Họ và tên", placeholder: "Trần Thị Bình" },
               ].map((field) => (
                 <label className="tw-grid tw-gap-1.5" key={field.label}>
                   <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-700">{field.label}</span>
                   <input
                     className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none tw-transition placeholder:tw-text-vm-slate-500 focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_4px_rgba(37,99,235,0.08)]"
                     placeholder={field.placeholder}
+                    value={form[field.field as keyof typeof initialForm]}
+                    onChange={(event) => updateField(field.field as keyof typeof initialForm, event.target.value)}
                   />
                 </label>
               ))}
@@ -188,6 +232,13 @@ export function AccountCreateDrawer({ isOpen, onClose }: AccountCreateDrawerProp
             icon={<i className="fas fa-info-circle" />}
           />
 
+          {successMessage ? (
+            <InfoBanner tone="success" title="Tạo tài khoản thành công" description={successMessage} icon={<i className="fas fa-check-circle" />} />
+          ) : null}
+          {errorMessage ? (
+            <InfoBanner tone="warning" title="Không thể tạo tài khoản" description={errorMessage} icon={<i className="fas fa-exclamation-circle" />} />
+          ) : null}
+
           <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-4">
             <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
               <div>
@@ -201,9 +252,9 @@ export function AccountCreateDrawer({ isOpen, onClose }: AccountCreateDrawerProp
 
         <footer className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-5 tw-py-4">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button variant="primary">
+          <Button variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
             <i className="fas fa-plus" />
-            Tạo tài khoản
+            {isSubmitting ? "Đang tạo..." : "Tạo tài khoản"}
           </Button>
         </footer>
       </aside>

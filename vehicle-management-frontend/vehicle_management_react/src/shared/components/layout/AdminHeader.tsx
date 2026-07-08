@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
 import { cn } from "@/lib/cn";
+import { clearAuthTokens } from "@/core/auth/session";
 
 const searchSuggestions = ["Tìm thẻ xe", "Tra cứu khách hàng", "Kiểm tra xe đang trong bãi"];
 
@@ -93,6 +94,7 @@ export function AdminHeader() {
   }
 
   function handleLogout() {
+    clearAuthTokens();
     setUser(null);
     setProfileOpen(false);
     navigate("/login");

@@ -1,8 +1,13 @@
-import { useState, type FormEvent, type ReactNode } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { appConfig } from "@/config/env";
+import { getCurrentUserFromAccessToken, saveAuthTokens } from "@/core/auth/session";
+import { useAuth } from "@/core/auth/useAuth";
 import {
+  buildKeycloakLoginUrl,
+  exchangeKeycloakAuthorizationCode,
   registerAccount,
+  resendVerificationEmail,
   requestPasswordReset,
   type RegisterAccountRequest,
 } from "@/features/auth/api/authApi";
@@ -26,6 +31,7 @@ interface AuthFieldProps {
 }
 
 type RegisterFormState = {
+  fullName: string;
   username: string;
   email: string;
   password: string;
@@ -39,6 +45,7 @@ const footerLinks = [
 ];
 
 const initialRegisterForm: RegisterFormState = {
+  fullName: "",
   username: "",
   email: "",
   password: "",
@@ -61,7 +68,7 @@ export function LoginPage({ mode = "login" }: AuthPageProps) {
     return <ForgotPasswordScreen />;
   }
 
-  return <LoginScreen />;
+  return <KeycloakRedirectScreen />;
 }
 
 function AuthShell({ children, wide = false, cardClassName = "" }: { children: ReactNode; wide?: boolean; cardClassName?: string }) {
@@ -192,8 +199,101 @@ function AuthAlert({ tone, message }: { tone: "success" | "error" | "info"; mess
   );
 }
 
+function KeycloakRedirectScreen() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
+  const [isExchangingCode, setIsExchangingCode] = useState(false);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const code = searchParams.get("code");
+    if (!code || isExchangingCode) return;
+    const authorizationCode = code;
+
+    async function exchangeCode() {
+      setIsExchangingCode(true);
+
+      try {
+        const tokenResponse = await exchangeKeycloakAuthorizationCode(authorizationCode);
+        saveAuthTokens({
+          accessToken: tokenResponse.access_token,
+          refreshToken: tokenResponse.refresh_token,
+          idToken: tokenResponse.id_token,
+        });
+        setUser(getCurrentUserFromAccessToken(tokenResponse.access_token));
+        navigate("/admin/dashboard", { replace: true });
+      } catch (error) {
+        console.error(error);
+        window.history.replaceState({}, "", "/login");
+      } finally {
+        setIsExchangingCode(false);
+      }
+    }
+
+    void exchangeCode();
+  }, [isExchangingCode, location.search, navigate, setUser]);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const code = searchParams.get("code");
+    if (code) return;
+
+    async function redirectToKeycloak() {
+      try {
+        const loginUrl = await buildKeycloakLoginUrl();
+        window.location.replace(loginUrl);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    void redirectToKeycloak();
+  }, [location.search]);
+
+  return null;
+}
+
 function LoginScreen() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
   const isLoginConfigured = appConfig.keycloakLoginUrl.trim().length > 0;
+  const [callbackMessage, setCallbackMessage] = useState("");
+  const [callbackError, setCallbackError] = useState("");
+  const [isExchangingCode, setIsExchangingCode] = useState(false);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const code = searchParams.get("code");
+    if (!code || isExchangingCode) return;
+    const authorizationCode = code;
+
+    async function exchangeCode() {
+      setIsExchangingCode(true);
+      setCallbackError("");
+      setCallbackMessage("Đang hoàn tất đăng nhập...");
+
+      try {
+        const tokenResponse = await exchangeKeycloakAuthorizationCode(authorizationCode);
+        saveAuthTokens({
+          accessToken: tokenResponse.access_token,
+          refreshToken: tokenResponse.refresh_token,
+          idToken: tokenResponse.id_token,
+        });
+        setUser(getCurrentUserFromAccessToken(tokenResponse.access_token));
+        navigate("/admin/dashboard", { replace: true });
+      } catch (error) {
+        setCallbackMessage("");
+        setCallbackError(error instanceof Error ? error.message : "Không thể hoàn tất đăng nhập Keycloak.");
+        navigate("/login", { replace: true });
+      } finally {
+        setIsExchangingCode(false);
+      }
+    }
+
+    void exchangeCode();
+  }, [isExchangingCode, location.search, navigate, setUser]);
 
   function handleLoginRedirect() {
     if (!isLoginConfigured) {
@@ -211,6 +311,9 @@ function LoginScreen() {
       />
 
       <div className="tw-grid tw-gap-[0.8rem]">
+        {callbackMessage && <AuthAlert tone="info" message={callbackMessage} />}
+        {callbackError && <AuthAlert tone="error" message={callbackError} />}
+
         <AuthAlert
           tone="info"
           message="Tài khoản nhân viên và khách hàng sẽ được xác thực trên trang đăng nhập Keycloak đã custom theme."
@@ -232,6 +335,8 @@ function LoginScreen() {
           <Link className="tw-font-extrabold tw-text-vm-primary tw-no-underline hover:tw-text-vm-primary-hover" to="/forgot-password">Quên mật khẩu?</Link>
         </div>
       </div>
+
+      <ResendVerificationPanel />
 
       <AuthSwitch text="Chưa có tài khoản?" label="Đăng ký" href="/register" />
     </AuthShell>
@@ -261,6 +366,7 @@ function RegisterScreen() {
     setIsSubmitting(true);
 
     const payload: RegisterAccountRequest = {
+      fullName: form.fullName,
       username: form.username,
       email: form.email,
       password: form.password,
@@ -288,6 +394,15 @@ function RegisterScreen() {
         {successMessage && <AuthAlert tone="success" message={successMessage} />}
         {errorMessage && <AuthAlert tone="error" message={errorMessage} />}
 
+        <AuthField
+          id="fullName"
+          label="Họ và tên"
+          icon="far fa-id-card"
+          placeholder="Nguyễn Văn A"
+          autoComplete="name"
+          value={form.fullName}
+          onChange={(value) => updateField("fullName", value)}
+        />
         <AuthField
           id="registerUsername"
           label="Tên đăng nhập"
@@ -391,6 +506,59 @@ function ForgotPasswordScreen() {
 
       <AuthBackLink />
     </AuthShell>
+  );
+}
+
+function ResendVerificationPanel() {
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+    setIsSubmitting(true);
+
+    try {
+      const response = await resendVerificationEmail({ email });
+      setSuccessMessage(response.message);
+      setEmail("");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không thể gửi lại email xác minh.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <form className="tw-mt-4 tw-grid tw-gap-[0.8rem] tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-pt-4" onSubmit={handleSubmit}>
+      <div>
+        <h2 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Chưa nhận được email xác minh?</h2>
+        <p className="tw-m-0 tw-mt-1 tw-text-[0.86rem] tw-font-semibold tw-leading-[1.45] tw-text-vm-slate-500">
+          Nhập email đã đăng ký để hệ thống gửi lại email xác minh nếu tài khoản còn đang chờ kích hoạt.
+        </p>
+      </div>
+
+      {successMessage && <AuthAlert tone="success" message={successMessage} />}
+      {errorMessage && <AuthAlert tone="error" message={errorMessage} />}
+
+      <AuthField
+        id="resendVerificationEmail"
+        label="Email cần xác minh"
+        icon="far fa-envelope"
+        type="email"
+        placeholder="customer@example.com"
+        autoComplete="email"
+        value={email}
+        onChange={setEmail}
+      />
+
+      <button className={authSubmitClassName} type="submit" disabled={isSubmitting}>
+        {isSubmitting ? "Đang gửi lại email..." : "Gửi lại email xác minh"}
+      </button>
+    </form>
   );
 }
 

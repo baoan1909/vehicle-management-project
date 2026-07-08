@@ -1,6 +1,7 @@
 import { appConfig } from "@/config/env";
 import { apiClient } from "@/core/api/apiClient";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
+import { getAccessToken } from "@/core/auth/session";
 
 type ApiResponse<T> = {
   data: T;
@@ -55,8 +56,17 @@ export type UpdateAccountProfileRequest = {
   phoneNumber?: string;
 };
 
+export type CompleteAccountProfileRequest = UpdateAccountProfileRequest;
+
 export async function getMyAccountProfile() {
   return apiClient<ApiResponse<AccountProfileStatusResponse>>(apiEndpoints.iam.accountProfile.onboarding);
+}
+
+export async function completeMyAccountProfile(payload: CompleteAccountProfileRequest) {
+  return apiClient<ApiResponse<AccountProfileStatusResponse>>(apiEndpoints.iam.accountProfile.onboarding, {
+    method: "POST",
+    body: payload,
+  });
 }
 
 export async function updateMyAccountProfile(payload: UpdateAccountProfileRequest) {
@@ -69,9 +79,13 @@ export async function updateMyAccountProfile(payload: UpdateAccountProfileReques
 export async function uploadMyAccountAvatar(file: File) {
   const formData = new FormData();
   formData.append("file", file);
+  const accessToken = getAccessToken();
 
   const response = await fetch(`${appConfig.apiBaseUrl}${apiEndpoints.iam.accountProfile.avatar}`, {
     body: formData,
+    headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
     method: "POST",
   });
 

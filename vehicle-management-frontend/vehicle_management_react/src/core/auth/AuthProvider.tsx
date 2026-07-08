@@ -1,5 +1,6 @@
 import { createContext, useMemo, useState, type PropsWithChildren } from "react";
-import type { CurrentUser } from "../../shared/types/common";
+import { getCurrentUserFromStoredToken } from "@/core/auth/session";
+import type { CurrentUser } from "@/shared/types/common";
 
 interface AuthContextValue {
   user: CurrentUser | null;
@@ -8,16 +9,8 @@ interface AuthContextValue {
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
 
-const defaultUser: CurrentUser = {
-  id: "A001",
-  username: "admin",
-  fullName: "Nguyễn Văn Admin",
-  role: "ADMIN",
-  avatarUrl: "/assets/admin/dist/img/user2-160x160.jpg",
-};
-
 export function AuthProvider({ children }: PropsWithChildren) {
-  const [user, setUser] = useState<CurrentUser | null>(defaultUser);
+  const [user, setUser] = useState<CurrentUser | null>(() => getCurrentUserFromStoredToken());
   const value = useMemo(() => ({ user, setUser }), [user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

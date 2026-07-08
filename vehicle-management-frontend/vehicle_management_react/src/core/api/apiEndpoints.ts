@@ -1,6 +1,7 @@
 export const apiEndpoints = {
   auth: {
     register: "/public/auth/register",
+    resendVerificationEmail: "/public/auth/resend-verification-email",
     forgotPassword: "/public/auth/forgot-password",
   },
   dashboard: "/dashboard",
@@ -25,6 +26,7 @@ export const apiEndpoints = {
   },
   iam: {
     accounts: "/accounts",
+    provisionedAccounts: "/iam/accounts/provisioned",
     accountProfile: {
       onboarding: "/iam/accounts/onboarding",
       profile: "/iam/accounts/profile",

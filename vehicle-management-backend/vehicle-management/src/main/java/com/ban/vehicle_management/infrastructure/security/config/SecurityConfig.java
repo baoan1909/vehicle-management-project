@@ -18,7 +18,13 @@ import org.springframework.security.oauth2.jwt.*;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.util.StringUtils;
+
+import java.util.Arrays;
+import java.util.List;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -32,6 +38,7 @@ public class SecurityConfig {
     private final String audience;
     private final int jwkConnectTimeoutMs;
     private final int jwkReadTimeoutMs;
+    private final String corsAllowedOrigins;
 
     public SecurityConfig(
             JwtAuthenticationConverter jwtAuthenticationConverter,
@@ -39,7 +46,8 @@ public class SecurityConfig {
             @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}") String jwkSetUri,
             @Value("${app.security.oauth2.audience:}") String audience,
             @Value("${app.security.oauth2.jwk.connect-timeout-ms:3000}") int jwkConnectTimeoutMs,
-            @Value("${app.security.oauth2.jwk.read-timeout-ms:15000}") int jwkReadTimeoutMs
+            @Value("${app.security.oauth2.jwk.read-timeout-ms:15000}") int jwkReadTimeoutMs,
+            @Value("${app.cors.allowed-origins:http://localhost:5173,http://127.0.0.1:5173}") String corsAllowedOrigins
     ) {
         this.jwtAuthenticationConverter = jwtAuthenticationConverter;
         this.issuerUri = issuerUri;
@@ -47,6 +55,7 @@ public class SecurityConfig {
         this.audience = audience;
         this.jwkConnectTimeoutMs = jwkConnectTimeoutMs;
         this.jwkReadTimeoutMs = jwkReadTimeoutMs;
+        this.corsAllowedOrigins = corsAllowedOrigins;
     }
 
     @Bean
@@ -71,6 +80,21 @@ public class SecurityConfig {
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
                 );
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(parseCsv(corsAllowedOrigins));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
+        configuration.setExposedHeaders(List.of("Location"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @Bean
@@ -120,5 +144,12 @@ public class SecurityConfig {
         }
 
         return issuerUri.replaceAll("/+$", "") + "/protocol/openid-connect/certs";
+    }
+
+    private List<String> parseCsv(String value) {
+        return Arrays.stream(value.split(","))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .toList();
     }
 }

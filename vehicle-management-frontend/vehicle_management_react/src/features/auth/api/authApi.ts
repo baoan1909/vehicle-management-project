@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/api/apiClient";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
+import { appConfig } from "@/config/env";
 
 type ApiResponse<T> = {
   success: boolean;
@@ -12,19 +13,35 @@ export type RegisterAccountRequest = {
   username: string;
   email: string;
   password: string;
+  fullName: string;
 };
 
 export type RegisterAccountResponse = {
   accountId: string;
-  userProfileId: string;
-  customerId: string;
   accountStatus: string;
   nextAction: string;
+  onboardingRequired: boolean;
 };
 
 export type ForgotPasswordRequest = {
   email: string;
 };
+
+export type ResendVerificationEmailRequest = {
+  email: string;
+};
+
+type KeycloakTokenResponse = {
+  access_token: string;
+  expires_in?: number;
+  id_token?: string;
+  refresh_expires_in?: number;
+  refresh_token?: string;
+  scope?: string;
+  token_type?: string;
+};
+
+const PKCE_CODE_VERIFIER_KEY = "vm_pkce_code_verifier";
 
 export async function registerAccount(payload: RegisterAccountRequest) {
   return apiClient<ApiResponse<RegisterAccountResponse>>(apiEndpoints.auth.register, {
@@ -38,4 +55,77 @@ export async function requestPasswordReset(payload: ForgotPasswordRequest) {
     method: "POST",
     body: payload,
   });
+}
+
+export async function resendVerificationEmail(payload: ResendVerificationEmailRequest) {
+  return apiClient<ApiResponse<null>>(apiEndpoints.auth.resendVerificationEmail, {
+    method: "POST",
+    body: payload,
+  });
+}
+
+export async function buildKeycloakLoginUrl() {
+  const loginUrl = new URL(appConfig.keycloakLoginUrl);
+  const codeVerifier = generateCodeVerifier();
+  const codeChallenge = await buildCodeChallenge(codeVerifier);
+
+  sessionStorage.setItem(PKCE_CODE_VERIFIER_KEY, codeVerifier);
+  loginUrl.searchParams.set("code_challenge", codeChallenge);
+  loginUrl.searchParams.set("code_challenge_method", "S256");
+  loginUrl.searchParams.set("prompt", "login");
+
+  return loginUrl.toString();
+}
+
+export async function exchangeKeycloakAuthorizationCode(code: string) {
+  const loginUrl = new URL(appConfig.keycloakLoginUrl);
+  const tokenUrl = new URL(loginUrl.toString());
+  tokenUrl.pathname = tokenUrl.pathname.replace(/\/auth$/, "/token");
+
+  const formData = new URLSearchParams();
+  formData.set("grant_type", "authorization_code");
+  formData.set("client_id", loginUrl.searchParams.get("client_id") ?? "vehicle-management-frontend");
+  formData.set("code", code);
+  formData.set("redirect_uri", loginUrl.searchParams.get("redirect_uri") ?? `${window.location.origin}${window.location.pathname}`);
+
+  const codeVerifier = sessionStorage.getItem(PKCE_CODE_VERIFIER_KEY);
+  if (codeVerifier) {
+    formData.set("code_verifier", codeVerifier);
+  }
+
+  const response = await fetch(tokenUrl.toString(), {
+    body: formData,
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    method: "POST",
+  });
+
+  const responseBody = (await response.json()) as KeycloakTokenResponse & { error_description?: string };
+
+  if (!response.ok) {
+    throw new Error(responseBody.error_description ?? `Keycloak token error ${response.status}`);
+  }
+
+  return responseBody;
+}
+
+function generateCodeVerifier() {
+  const randomValues = new Uint8Array(64);
+  crypto.getRandomValues(randomValues);
+  return base64UrlEncode(randomValues);
+}
+
+async function buildCodeChallenge(codeVerifier: string) {
+  const encodedVerifier = new TextEncoder().encode(codeVerifier);
+  const digest = await crypto.subtle.digest("SHA-256", encodedVerifier);
+  return base64UrlEncode(new Uint8Array(digest));
+}
+
+function base64UrlEncode(bytes: Uint8Array) {
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }

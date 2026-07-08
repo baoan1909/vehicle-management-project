@@ -1,11 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, Card, EntityAvatar, InfoBanner, SelectMenu } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { AccountCreateDrawer } from "../components/AccountCreateDrawer";
+import {
+  getProvisionedAccounts,
+  type ProvisionedAccountResponse,
+  type ProvisionedAccountRoleCode,
+  type ProvisionedAccountStatus,
+} from "@/features/iam/api/provisionedAccountApi";
 
-type RoleCode = "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER";
-type AccountStatus = "ACTIVE" | "LOCKED" | "DISABLED" | "PENDING";
+type RoleCode = ProvisionedAccountRoleCode;
+type AccountStatus = ProvisionedAccountStatus;
 
 type ProvisionedAccount = {
   accountId: string;
@@ -217,21 +223,108 @@ function AccountRow({
   );
 }
 
+function toInitials(value: string) {
+  const parts = value
+    .trim()
+    .split(/[\s._-]+/)
+    .filter(Boolean)
+    .slice(0, 2);
+  return (parts.map((part) => part[0]?.toUpperCase()).join("") || "TK").slice(0, 2);
+}
+
+function mapProvisionedAccount(response: ProvisionedAccountResponse): ProvisionedAccount {
+  return {
+    accountId: response.account.accountId,
+    createdAt: response.account.createdAt,
+    email: response.account.email,
+    fullName: response.account.username,
+    initials: toInitials(response.account.username),
+    keycloakUserId: response.account.keycloakUserId,
+    permissionCodes: response.role.permissionCodes ?? [],
+    permissionCount: response.role.permissionCodes?.length ?? 0,
+    roleCode: response.role.roleCode,
+    roleName: response.role.roleName,
+    status: response.account.accountStatus,
+    updatedAt: response.account.updatedAt,
+    username: response.account.username,
+  };
+}
+
 export function AccountListPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedAccountId, setSelectedAccountId] = useState("acc-003");
+  const [accountItems, setAccountItems] = useState<ProvisionedAccount[]>([]);
+  const [selectedAccountId, setSelectedAccountId] = useState("");
+  const [keyword, setKeyword] = useState("");
   const [selectedRole, setSelectedRole] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState<AccountStatus | "all">("all");
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const filteredAccounts = useMemo(() => {
-    return accounts.filter((account) => {
-      const matchesRole = selectedRole === "all" || account.roleCode === selectedRole;
-      const matchesStatus = selectedStatus === "all" || account.status === selectedStatus;
-      return matchesRole && matchesStatus;
-    });
+  async function loadAccounts() {
+    setIsLoading(true);
+    setErrorMessage("");
+
+    try {
+      const response = await getProvisionedAccounts({
+        accountStatus: selectedStatus === "all" ? undefined : selectedStatus,
+        keyword: keyword.trim() || undefined,
+        roleCode: selectedRole === "all" ? undefined : (selectedRole as RoleCode),
+      });
+      const mappedAccounts = response.data.map(mapProvisionedAccount);
+      setAccountItems(mappedAccounts);
+      setSelectedAccountId((currentValue) => currentValue || mappedAccounts[0]?.accountId || "");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không thể tải danh sách tài khoản.");
+      setAccountItems([]);
+      setSelectedAccountId("");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadAccounts();
   }, [selectedRole, selectedStatus]);
 
-  const selectedAccount = accounts.find((account) => account.accountId === selectedAccountId) ?? accounts[0];
+  const filteredAccounts = useMemo(() => {
+    return accountItems.filter((account) => {
+      const matchesRole = selectedRole === "all" || account.roleCode === selectedRole;
+      const matchesStatus = selectedStatus === "all" || account.status === selectedStatus;
+      const normalizedKeyword = keyword.trim().toLowerCase();
+      const matchesKeyword =
+        !normalizedKeyword ||
+        account.username.toLowerCase().includes(normalizedKeyword) ||
+        account.email.toLowerCase().includes(normalizedKeyword);
+      return matchesRole && matchesStatus && matchesKeyword;
+    });
+  }, [accountItems, keyword, selectedRole, selectedStatus]);
+
+  const selectedAccount = accountItems.find((account) => account.accountId === selectedAccountId) ?? accountItems[0];
+  const metricValues = useMemo(() => {
+    return {
+      active: accountItems.filter((account) => account.status === "ACTIVE").length,
+      locked: accountItems.filter((account) => account.status === "LOCKED").length,
+      pending: accountItems.filter((account) => account.status === "PENDING").length,
+      total: accountItems.length,
+    };
+  }, [accountItems]);
+
+  const emptyAccount: ProvisionedAccount = {
+    accountId: "-",
+    createdAt: "-",
+    email: "-",
+    fullName: "-",
+    initials: "TK",
+    keycloakUserId: "-",
+    permissionCodes: [],
+    permissionCount: 0,
+    roleCode: "CUSTOMER",
+    roleName: "-",
+    status: "PENDING",
+    updatedAt: "-",
+    username: "Chưa có dữ liệu",
+  };
+  const activeAccount = selectedAccount ?? emptyAccount;
 
   return (
     <>
@@ -259,10 +352,10 @@ export function AccountListPage() {
           </div>
 
           <div className="tw-grid tw-grid-cols-4 tw-gap-4 max-[1180px]:tw-grid-cols-2">
-            <AccountMetric icon="fas fa-users-cog" iconClassName="tw-bg-brand-100 tw-text-vm-primary" label="Tổng tài khoản" value="148" />
-            <AccountMetric icon="fas fa-user-check" iconClassName="tw-bg-green-50 tw-text-green-600" label="Đang hoạt động" value="126" />
-            <AccountMetric icon="far fa-clock" iconClassName="tw-bg-amber-50 tw-text-amber-500" label="Chờ kích hoạt" value="14" />
-            <AccountMetric icon="fas fa-lock" iconClassName="tw-bg-red-50 tw-text-vm-danger" label="Bị khóa" value="8" />
+            <AccountMetric icon="fas fa-users-cog" iconClassName="tw-bg-brand-100 tw-text-vm-primary" label="Tổng tài khoản" value={String(metricValues.total)} />
+            <AccountMetric icon="fas fa-user-check" iconClassName="tw-bg-green-50 tw-text-green-600" label="Đang hoạt động" value={String(metricValues.active)} />
+            <AccountMetric icon="far fa-clock" iconClassName="tw-bg-amber-50 tw-text-amber-500" label="Chờ kích hoạt" value={String(metricValues.pending)} />
+            <AccountMetric icon="fas fa-lock" iconClassName="tw-bg-red-50 tw-text-vm-danger" label="Bị khóa" value={String(metricValues.locked)} />
           </div>
 
           <Card className="tw-mt-5 tw-p-4">
@@ -274,11 +367,24 @@ export function AccountListPage() {
               <div className="tw-grid tw-flex-1 tw-grid-cols-[minmax(260px,1.5fr)_190px_190px_auto] tw-items-center tw-gap-3 max-[1180px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">
                 <div className="tw-flex tw-h-[42px] tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3">
                   <i className="fas fa-search tw-text-[0.82rem] tw-text-vm-slate-500" />
-                  <span className="tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-500">Tìm username, email...</span>
+                  <input
+                    className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none placeholder:tw-text-vm-slate-500"
+                    value={keyword}
+                    onChange={(event) => setKeyword(event.target.value)}
+                    placeholder="Tìm username, email..."
+                  />
                 </div>
                 <SelectMenu ariaLabel="Vai trò tài khoản" value={selectedRole} options={roleOptions} onChange={setSelectedRole} />
                 <SelectMenu ariaLabel="Trạng thái tài khoản" value={selectedStatus} options={statusOptions} onChange={(value) => setSelectedStatus(value as AccountStatus | "all")} />
-                <Button className="tw-h-[42px]" variant="secondary">
+                <Button
+                  className="tw-h-[42px]"
+                  variant="secondary"
+                  onClick={() => {
+                    setKeyword("");
+                    setSelectedRole("all");
+                    setSelectedStatus("all");
+                  }}
+                >
                   <i className="fas fa-sync-alt" />
                   Xóa bộ lọc
                 </Button>
@@ -328,17 +434,32 @@ export function AccountListPage() {
                 <span className="max-[1180px]:tw-hidden">Cập nhật</span>
               </div>
               <div className="tw-max-h-[470px] tw-overflow-y-auto tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden">
+                {isLoading ? (
+                  <div className="tw-p-4">
+                    <InfoBanner tone="info" title="Đang tải dữ liệu" description="Hệ thống đang lấy danh sách tài khoản từ backend." icon={<i className="fas fa-spinner fa-spin" />} />
+                  </div>
+                ) : null}
+                {errorMessage ? (
+                  <div className="tw-p-4">
+                    <InfoBanner tone="warning" title="Không thể tải tài khoản" description={errorMessage} icon={<i className="fas fa-exclamation-circle" />} />
+                  </div>
+                ) : null}
+                {!isLoading && !errorMessage && filteredAccounts.length === 0 ? (
+                  <div className="tw-p-4">
+                    <InfoBanner tone="info" title="Chưa có dữ liệu phù hợp" description="Thử thay đổi bộ lọc hoặc tạo tài khoản cấp sẵn mới." icon={<i className="far fa-folder-open" />} />
+                  </div>
+                ) : null}
                 {filteredAccounts.map((account) => (
                   <AccountRow
                     key={account.accountId}
                     account={account}
-                    selected={account.accountId === selectedAccount.accountId}
+                    selected={account.accountId === activeAccount.accountId}
                     onSelect={() => setSelectedAccountId(account.accountId)}
                   />
                 ))}
               </div>
               <div className="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-3">
-                <p className="tw-m-0 tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-500">Hiển thị 1 đến 10 của 148 tài khoản</p>
+                <p className="tw-m-0 tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-500">Hiển thị {filteredAccounts.length} tài khoản</p>
                 <div className="tw-flex tw-items-center tw-gap-2">
                   <Button size="sm" variant="secondary"><i className="fas fa-chevron-left" /></Button>
                   <span className="tw-inline-flex tw-h-8 tw-min-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-bg-vm-primary tw-px-2 tw-text-[0.9rem] tw-font-extrabold tw-text-white">1</span>
@@ -350,18 +471,18 @@ export function AccountListPage() {
             <Card className="tw-flex tw-min-h-full tw-flex-col tw-p-5 max-[1280px]:tw-col-span-2 max-[960px]:tw-col-span-1">
               <div className="tw-flex tw-items-start tw-justify-between tw-gap-4">
                 <h2 className="tw-m-0 tw-text-[1.05rem] tw-font-extrabold tw-text-vm-slate-900">Chi tiết tài khoản</h2>
-                <Badge tone={statusBadgeTone(selectedAccount.status)} className="tw-rounded-full tw-px-3">{selectedAccount.status}</Badge>
+                <Badge tone={statusBadgeTone(activeAccount.status)} className="tw-rounded-full tw-px-3">{activeAccount.status}</Badge>
               </div>
 
               <div className="tw-mt-5 tw-rounded-vm-lg tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50/70 tw-p-4">
                 <div className="tw-flex tw-items-center tw-gap-4">
-                  <EntityAvatar initials={selectedAccount.initials} size="xl" tone={selectedAccount.roleCode === "SYSTEM_ADMIN" ? "red" : selectedAccount.roleCode === "PARKING_MANAGER" ? "blue" : "green"} />
+                  <EntityAvatar initials={activeAccount.initials} size="xl" tone={activeAccount.roleCode === "SYSTEM_ADMIN" ? "red" : activeAccount.roleCode === "PARKING_MANAGER" ? "blue" : "green"} />
                   <div className="tw-min-w-0">
-                    <h3 className="tw-m-0 tw-truncate tw-text-[1.18rem] tw-font-extrabold tw-text-vm-slate-900">{selectedAccount.username}</h3>
-                    <p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500">{selectedAccount.email}</p>
+                    <h3 className="tw-m-0 tw-truncate tw-text-[1.18rem] tw-font-extrabold tw-text-vm-slate-900">{activeAccount.username}</h3>
+                    <p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500">{activeAccount.email}</p>
                     <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
-                      <Badge tone={roleBadgeTone(selectedAccount.roleCode)} className="tw-rounded-full tw-px-3">{selectedAccount.roleCode}</Badge>
-                      <Badge tone="neutral" className="tw-rounded-full tw-px-3">{selectedAccount.roleName}</Badge>
+                      <Badge tone={roleBadgeTone(activeAccount.roleCode)} className="tw-rounded-full tw-px-3">{activeAccount.roleCode}</Badge>
+                      <Badge tone="neutral" className="tw-rounded-full tw-px-3">{activeAccount.roleName}</Badge>
                     </div>
                   </div>
                 </div>
@@ -369,10 +490,10 @@ export function AccountListPage() {
 
               <div className="tw-mt-4 tw-grid tw-gap-3 tw-text-[0.86rem]">
                 {[
-                  ["Keycloak ID", selectedAccount.keycloakUserId],
-                  ["Ngày tạo", selectedAccount.createdAt],
-                  ["Cập nhật", selectedAccount.updatedAt],
-                  ["Account ID", selectedAccount.accountId],
+                  ["Keycloak ID", activeAccount.keycloakUserId],
+                  ["Ngày tạo", activeAccount.createdAt],
+                  ["Cập nhật", activeAccount.updatedAt],
+                  ["Account ID", activeAccount.accountId],
                 ].map(([label, value]) => (
                   <div key={label} className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-3 last:tw-border-b-0">
                     <span className="tw-font-bold tw-text-vm-slate-500">{label}</span>
@@ -384,7 +505,7 @@ export function AccountListPage() {
               <div className="tw-mt-5">
                 <h3 className="tw-m-0 tw-text-[0.92rem] tw-font-extrabold tw-text-vm-slate-900">Quyền nổi bật</h3>
                 <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
-                  {selectedAccount.permissionCodes.map((permission) => (
+                  {activeAccount.permissionCodes.map((permission) => (
                     <Badge key={permission} tone="primary" className="tw-rounded-full tw-px-2 tw-text-[0.65rem]">
                       {permission}
                     </Badge>
@@ -419,7 +540,15 @@ export function AccountListPage() {
         </section>
       </div>
 
-      <AccountCreateDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <AccountCreateDrawer
+        isOpen={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        onCreated={(account) => {
+          const mappedAccount = mapProvisionedAccount(account);
+          setAccountItems((currentValue) => [mappedAccount, ...currentValue]);
+          setSelectedAccountId(mappedAccount.accountId);
+        }}
+      />
     </>
   );
 }
