@@ -18,6 +18,12 @@ spring:
       ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: ${JPA_SHOW_SQL:true}
 
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_AMQP_HOST_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+
   security:
     oauth2:
       resourceserver:
