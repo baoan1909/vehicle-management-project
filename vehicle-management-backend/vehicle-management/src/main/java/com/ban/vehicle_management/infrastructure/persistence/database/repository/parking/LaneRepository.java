@@ -33,4 +33,19 @@ public interface LaneRepository extends JpaRepository<LaneEntity, UUID>, JpaSpec
             @Param("status") LaneStatus status,
             @Param("direction")LaneDirection direction
     );
+
+    @Query("""
+    select case when count(laneEntity) > 0 then true else false end
+    from LaneEntity laneEntity
+    join laneEntity.gate gateEntity
+    join gateEntity.zone zoneEntity
+    where laneEntity.laneId = :laneId
+      and zoneEntity.parkingLotId = :parkingLotId
+    """)
+    boolean existsLaneInParkingLot(
+            @Param("laneId") UUID laneId,
+            @Param("parkingLotId") UUID parkingLotId
+    );
+
+    boolean existsByLaneIdAndStatusNot(UUID laneId, LaneStatus status);
 }
