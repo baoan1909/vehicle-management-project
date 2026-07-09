@@ -1,11 +1,9 @@
-package com.ban.vehicle_management.domain.hardware.device.model;
+package com.ban.vehicle_management.entrypoint.dto.hardware.device.response;
 
-import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceStatus;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import java.util.Map;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,8 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class Device extends AuditableDomainModel {
+public class DeviceAdminResponse {
 
     private UUID deviceId;
     private UUID parkingLotId;
@@ -25,5 +22,8 @@ public class Device extends AuditableDomainModel {
     private String ipAddress;
     private DeviceStatus status;
     private Map<String, Object> config;
+    private String createdAt;
+    private UUID createdBy;
+    private String updatedAt;
+    private UUID updatedBy;
 }
-
