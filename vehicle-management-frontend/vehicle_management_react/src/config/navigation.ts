@@ -4,8 +4,8 @@ export const adminNavigation: AdminSidebarEntry[] = [
   {
     kind: "link",
     label: "Trang chủ",
-    to: "/api/dashboard/overview",
-    matches: ["/api/dashboard/overview", "/admin/dashboard"],
+    to: "/admin/dashboard",
+    matches: ["/admin/dashboard"],
     icon: "dashboard",
   },
   { kind: "divider" },

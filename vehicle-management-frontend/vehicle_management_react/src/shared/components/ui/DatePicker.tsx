@@ -4,10 +4,13 @@ import { cn } from "@/lib/cn";
 
 type DatePickerProps = {
   ariaLabel: string;
+  className?: string;
+  iconVariant?: "leading" | "trailingButton";
   max?: string;
   min?: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  triggerClassName?: string;
   value: string;
 };
 
@@ -32,7 +35,13 @@ function toIsoDate(date: Date) {
 
 function formatDate(value: string) {
   const date = parseIsoDate(value);
-  return date ? new Intl.DateTimeFormat("vi-VN").format(date) : "";
+  return date
+    ? new Intl.DateTimeFormat("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(date)
+    : "";
 }
 
 function startOfMonth(date: Date) {
@@ -53,7 +62,7 @@ function buildMonthDays(month: Date) {
   const totalDays = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
   return {
     blanks: firstDay.getDay(),
-    days: Array.from({ length: totalDays }, (_, index) => new Date(month.getFullYear(), month.getMonth(), index + 1))
+    days: Array.from({ length: totalDays }, (_, index) => new Date(month.getFullYear(), month.getMonth(), index + 1)),
   };
 }
 
@@ -80,7 +89,17 @@ function isYearDisabled(year: number, min?: string, max?: string) {
   return false;
 }
 
-export function DatePicker({ ariaLabel, max, min, onChange, placeholder = "Chọn ngày", value }: DatePickerProps) {
+export function DatePicker({
+  ariaLabel,
+  className,
+  iconVariant = "leading",
+  max,
+  min,
+  onChange,
+  placeholder = "Chọn ngày",
+  triggerClassName,
+  value,
+}: DatePickerProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selectedDate = useMemo(() => parseIsoDate(value), [value]);
   const [open, setOpen] = useState(false);
@@ -152,19 +171,33 @@ export function DatePicker({ ariaLabel, max, min, onChange, placeholder = "Chọ
   };
 
   return (
-    <div className="tw-relative tw-w-full" ref={rootRef}>
+    <div className={cn("tw-relative tw-w-full", className)} ref={rootRef}>
       <button
         className={cn(
-          "tw-group tw-flex tw-h-[42px] tw-w-full tw-items-center tw-gap-2.5 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-left tw-text-[0.88rem] tw-font-semibold tw-text-vm-slate-900 tw-transition hover:tw-border-vm-slate-200 hover:tw-shadow-[0_0_0_3px_rgba(148,163,184,0.08)] focus-visible:tw-border-vm-primary focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus",
+          iconVariant === "trailingButton"
+            ? "tw-group tw-grid tw-h-[54px] tw-w-full tw-grid-cols-[minmax(0,1fr)_56px] tw-items-stretch tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-p-0 tw-text-left tw-text-[1.02rem] tw-font-bold tw-text-slate-900 tw-shadow-[0_8px_18px_rgba(15,23,42,0.03)] tw-transition hover:tw-border-brand-200 hover:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] focus-visible:tw-border-vm-primary focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus"
+            : "tw-group tw-flex tw-h-[42px] tw-w-full tw-items-center tw-gap-2.5 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-left tw-text-[0.88rem] tw-font-semibold tw-text-vm-slate-900 tw-transition hover:tw-border-vm-slate-200 hover:tw-shadow-[0_0_0_3px_rgba(148,163,184,0.08)] focus-visible:tw-border-vm-primary focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus",
           open ? "tw-border-vm-primary tw-shadow-vm-focus" : "",
+          triggerClassName,
         )}
         type="button"
         aria-label={ariaLabel}
         onClick={() => setOpen((current) => !current)}
       >
-        <i className="far fa-calendar-alt tw-text-vm-slate-500" />
-        <span className={cn("tw-min-w-0 tw-flex-1 tw-truncate", value ? "" : "tw-text-slate-400")}>{value ? formatDate(value) : placeholder}</span>
-        {value ? (
+        {iconVariant === "trailingButton" ? (
+          <>
+            <span className={cn("tw-flex tw-min-w-0 tw-items-center tw-px-5", value ? "" : "tw-text-slate-400")}>{value ? formatDate(value) : placeholder}</span>
+            <span className="tw-inline-flex tw-h-full tw-items-center tw-justify-center tw-bg-vm-primary tw-text-white">
+              <i className="far fa-calendar-alt" />
+            </span>
+          </>
+        ) : (
+          <>
+            <i className="far fa-calendar-alt tw-text-vm-slate-500" />
+            <span className={cn("tw-min-w-0 tw-flex-1 tw-truncate", value ? "" : "tw-text-slate-400")}>{value ? formatDate(value) : placeholder}</span>
+          </>
+        )}
+        {value && iconVariant === "leading" ? (
           <span
             className="tw-inline-flex tw-h-[18px] tw-w-[18px] tw-scale-95 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-900/15 tw-text-[0.62rem] tw-text-vm-slate-700 tw-opacity-0 tw-transition hover:tw-bg-slate-900/25 group-hover:tw-scale-100 group-hover:tw-opacity-100 focus-visible:tw-scale-100 focus-visible:tw-opacity-100"
             role="button"

@@ -32,5 +32,9 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
     throw new Error(message);
   }
 
+  if (responseBody === null) {
+    throw new Error(`API response is not JSON for ${path}`);
+  }
+
   return responseBody as T;
 }
