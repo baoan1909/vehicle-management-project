@@ -72,9 +72,16 @@ export async function buildKeycloakLoginUrl() {
   sessionStorage.setItem(PKCE_CODE_VERIFIER_KEY, codeVerifier);
   loginUrl.searchParams.set("code_challenge", codeChallenge);
   loginUrl.searchParams.set("code_challenge_method", "S256");
-  loginUrl.searchParams.set("prompt", "login");
+  loginUrl.searchParams.set("scope", normalizeLoginScopes(loginUrl.searchParams.get("scope")));
+  loginUrl.searchParams.delete("prompt");
 
   return loginUrl.toString();
+}
+
+function normalizeLoginScopes(scope: string | null) {
+  const scopes = new Set((scope ?? "openid").split(/\s+/).filter(Boolean));
+  ["openid", "profile", "email", "roles"].forEach((requiredScope) => scopes.add(requiredScope));
+  return Array.from(scopes).join(" ");
 }
 
 export async function exchangeKeycloakAuthorizationCode(code: string) {

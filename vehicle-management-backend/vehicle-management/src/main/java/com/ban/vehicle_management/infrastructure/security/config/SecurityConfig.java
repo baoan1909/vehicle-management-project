@@ -21,6 +21,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
@@ -36,6 +37,7 @@ public class SecurityConfig {
     private final String issuerUri;
     private final String jwkSetUri;
     private final String audience;
+    private final String acceptedAuthorizedParties;
     private final int jwkConnectTimeoutMs;
     private final int jwkReadTimeoutMs;
     private final String corsAllowedOrigins;
@@ -45,6 +47,7 @@ public class SecurityConfig {
             @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri:}") String issuerUri,
             @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}") String jwkSetUri,
             @Value("${app.security.oauth2.audience:}") String audience,
+            @Value("${app.security.oauth2.accepted-authorized-parties:vehicle-management-frontend}") String acceptedAuthorizedParties,
             @Value("${app.security.oauth2.jwk.connect-timeout-ms:3000}") int jwkConnectTimeoutMs,
             @Value("${app.security.oauth2.jwk.read-timeout-ms:15000}") int jwkReadTimeoutMs,
             @Value("${app.cors.allowed-origins:http://localhost:5173,http://127.0.0.1:5173}") String corsAllowedOrigins
@@ -53,6 +56,7 @@ public class SecurityConfig {
         this.issuerUri = issuerUri;
         this.jwkSetUri = jwkSetUri;
         this.audience = audience;
+        this.acceptedAuthorizedParties = acceptedAuthorizedParties;
         this.jwkConnectTimeoutMs = jwkConnectTimeoutMs;
         this.jwkReadTimeoutMs = jwkReadTimeoutMs;
         this.corsAllowedOrigins = corsAllowedOrigins;
@@ -80,6 +84,11 @@ public class SecurityConfig {
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
                 );
         return http.build();
+    }
+
+    @Bean
+    public CorsFilter corsFilter(CorsConfigurationSource corsConfigurationSource) {
+        return new CorsFilter(corsConfigurationSource);
     }
 
     @Bean
@@ -116,10 +125,12 @@ public class SecurityConfig {
             validator = JwtValidators.createDefault();
         }
 
-        if (StringUtils.hasText(audience)) {
+        List<String> acceptedAudiences = parseCsv(audience);
+        List<String> acceptedParties = parseCsv(acceptedAuthorizedParties);
+        if (!acceptedAudiences.isEmpty() || !acceptedParties.isEmpty()) {
             validator = new DelegatingOAuth2TokenValidator<>(
                     validator,
-                    new JwtAudienceValidator(audience)
+                    new JwtAudienceValidator(acceptedAudiences, acceptedParties)
             );
         }
 

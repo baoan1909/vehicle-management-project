@@ -15,7 +15,8 @@ public record AccountProfileStatusResult(
             String accountStatus,
             String username,
             String email,
-            String keycloakUserId
+            String keycloakUserId,
+            String roleCode
     ) {
     }
 

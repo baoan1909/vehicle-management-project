@@ -25,6 +25,7 @@ const blankPage = <BlankPage />;
 
 export const routes: RouteDefinition[] = [
   { path: "/admin/dashboard", title: "Trang chu", layout: "admin", element: blankPage },
+  { path: "/api/dashboard/overview", title: "Trang chu", layout: "admin", element: blankPage },
   { path: "/admin/swipe", title: "Quan ly vao ra", layout: "admin", element: <SwipeListPage /> },
   { path: "/admin/swipe/swipein", title: "Xe vao", layout: "admin", element: blankPage },
   { path: "/admin/swipe/swipeout", title: "Xe ra", layout: "admin", element: blankPage },

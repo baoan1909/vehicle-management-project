@@ -10,6 +10,8 @@ import {
   type UpdateAccountProfileRequest
 } from "@/features/iam/api/accountProfileApi";
 import { AddressPicker, Badge, Button, Card, DatePicker, Input, Modal, SelectMenu } from "@/components/ui";
+import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
+import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta, type StatusTone } from "@/shared/utils/accountStatus";
 
 type ProfileFormState = {
   address: string;
@@ -32,35 +34,15 @@ type PasswordVisibilityState = {
   newPassword: boolean;
 };
 
-const defaultAvatar = "/assets/admin/dist/img/user2-160x160.jpg";
-
-function roleLabel(role?: string) {
-  switch (role) {
-    case "ADMIN":
-    case "SYSTEM_ADMIN":
-      return "Quản trị hệ thống";
-    case "PARKING_MANAGER":
-      return "Quản lý bãi xe";
-    case "EMPLOYEE":
-      return "Nhân viên nội bộ";
-    case "CUSTOMER":
-      return "Khách hàng";
-    default:
-      return "Nhân sự CoParking";
-  }
+function statusLabel(value?: string) {
+  return getStatusMeta(value).label;
 }
 
-function statusLabel(value?: string) {
-  if (!value) return "Chưa có dữ liệu";
-
-  const labels: Record<string, string> = {
-    ACTIVE: "Đang hoạt động",
-    INACTIVE: "Chưa kích hoạt",
-    PENDING: "Chờ duyệt",
-    SUSPENDED: "Tạm khóa"
-  };
-
-  return labels[value] ?? value;
+function approvalStatusValue(profile: AccountProfileStatusResponse) {
+  return getApprovalStatusValue({
+    accountStatus: profile.account?.accountStatus,
+    customerApprovalStatus: profile.customer?.customerApprovalStatus
+  });
 }
 
 function normalizeGender(value?: string) {
@@ -90,7 +72,7 @@ function buildFallbackProfile(user: ReturnType<typeof useAuth>["user"]): Account
     },
     profile: {
       address: "12 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh",
-      avatarUrl: user?.avatarUrl ?? defaultAvatar,
+      avatarUrl: user?.avatarUrl ?? DEFAULT_USER_AVATAR_URL,
       dateOfBirth: "1994-08-18",
       fullName: user?.fullName ?? "Nguyễn Văn Admin",
       gender: "Nam",
@@ -141,8 +123,8 @@ function Field({
   );
 }
 
-function StatusPill({ tone = "green", children }: { children: string; tone?: "blue" | "green" | "orange" | "slate" }) {
-  const badgeTone = tone === "blue" ? "primary" : tone === "orange" ? "warning" : tone === "green" ? "success" : "neutral";
+function StatusPill({ tone = "green", children }: { children: string; tone?: StatusTone }) {
+  const badgeTone = tone === "blue" ? "primary" : tone === "orange" ? "warning" : tone === "green" ? "success" : tone === "red" ? "danger" : "neutral";
   return <Badge tone={badgeTone}>{children}</Badge>;
 }
 
@@ -160,6 +142,8 @@ function IdentityCard({
   profile: AccountProfileStatusResponse;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const approvalStatus = approvalStatusValue(profile);
+  const approvalMeta = getStatusMeta(approvalStatus);
 
   return (
     <Card className="tw-grid tw-min-w-0 tw-justify-items-center tw-rounded-vm-lg tw-border tw-border-solid !tw-border-vm-slate-100 tw-p-[1.05rem] tw-text-center tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
@@ -191,7 +175,10 @@ function IdentityCard({
 
       <h3 className="tw-mb-1 tw-mt-3.5 tw-text-[1.14rem] tw-font-black tw-leading-tight tw-text-vm-slate-900">{displayName}</h3>
       <p className="tw-mb-[0.7rem] tw-text-[0.9rem] tw-font-bold tw-text-vm-slate-500">{profile.account?.email ?? "Chưa có email"}</p>
-      <StatusPill>{statusLabel(profile.account?.accountStatus)}</StatusPill>
+      <div className="tw-flex tw-flex-wrap tw-justify-center tw-gap-2">
+        <StatusPill tone={getStatusMeta(profile.account?.accountStatus).tone}>{statusLabel(profile.account?.accountStatus)}</StatusPill>
+        <StatusPill tone={approvalMeta.tone}>{approvalMeta.label}</StatusPill>
+      </div>
 
       <div className="tw-mt-4 tw-grid tw-w-full">
         <Button variant="danger" type="button" onClick={onAvatarDelete}>
@@ -207,7 +194,7 @@ function IdentityCard({
         </div>
         <div className="tw-grid tw-grid-cols-[minmax(86px,0.72fr)_minmax(0,1fr)] tw-items-start tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-pt-3 tw-text-left">
           <dt className="tw-text-[0.8rem] tw-font-extrabold tw-text-vm-slate-500">Chức danh</dt>
-          <dd className="tw-m-0 tw-break-words tw-text-[0.88rem] tw-font-extrabold tw-text-vm-slate-900">{profile.employee?.jobTitle ?? roleLabel()}</dd>
+          <dd className="tw-m-0 tw-break-words tw-text-[0.88rem] tw-font-extrabold tw-text-vm-slate-900">{profile.employee?.jobTitle ?? getRoleLabel()}</dd>
         </div>
         <div className="tw-grid tw-grid-cols-[minmax(86px,0.72fr)_minmax(0,1fr)] tw-items-start tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-pt-3 tw-text-left">
           <dt className="tw-text-[0.8rem] tw-font-extrabold tw-text-vm-slate-500">Ngày vào làm</dt>
@@ -334,11 +321,20 @@ function ChangePasswordModal({
 }
 
 function StatusPanel({ onChangePassword, profile }: { onChangePassword: () => void; profile: AccountProfileStatusResponse }) {
+  const approvalStatus = approvalStatusValue(profile);
+
   return (
     <Card className="tw-min-w-0 tw-rounded-vm-lg tw-border tw-border-solid !tw-border-vm-slate-100 tw-p-4 tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)] max-[1320px]:tw-col-span-full max-[900px]:tw-col-auto">
       <h3 className="tw-m-0 tw-text-vm-section-title tw-font-black tw-text-vm-slate-900">Trạng thái hệ thống</h3>
 
-      <div className="tw-mt-4 tw-grid tw-gap-3 max-[1320px]:tw-grid-cols-3 max-[900px]:tw-grid-cols-1">
+      <div className="tw-mt-4 tw-grid tw-gap-3 min-[1321px]:tw-grid-cols-1 max-[1320px]:tw-grid-cols-4 max-[900px]:tw-grid-cols-1">
+        <article className="tw-grid tw-min-h-[74px] tw-grid-cols-[48px_minmax(0,1fr)] tw-items-center tw-gap-3.5 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
+          <i className="fas fa-user-check tw-inline-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-vm-lg tw-bg-brand-50 tw-text-[1.2rem] tw-text-vm-primary" />
+          <div>
+            <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-500">Phê duyệt</span>
+            <strong className="tw-mt-1 tw-block tw-text-[0.94rem] tw-font-black tw-text-vm-slate-900">{statusLabel(approvalStatus)}</strong>
+          </div>
+        </article>
         <article className="tw-grid tw-min-h-[74px] tw-grid-cols-[48px_minmax(0,1fr)] tw-items-center tw-gap-3.5 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
           <i className="fas fa-user-shield tw-inline-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-vm-lg tw-bg-brand-50 tw-text-[1.2rem] tw-text-vm-primary" />
           <div>
@@ -412,7 +408,7 @@ export function InternalProfilePage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const displayName = form.fullName || profile.profile?.fullName || user?.fullName || "Nguyễn Văn Admin";
-  const avatarUrl = profile.profile?.avatarUrl || user?.avatarUrl || defaultAvatar;
+  const avatarUrl = profile.profile?.avatarUrl || user?.avatarUrl || DEFAULT_USER_AVATAR_URL;
   const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(normalizeProfile(profile)), [form, profile]);
 
   useEffect(() => {
@@ -454,15 +450,7 @@ export function InternalProfilePage() {
   const applyProfileResponse = (nextProfile: AccountProfileStatusResponse) => {
     setProfile(nextProfile);
     setForm(normalizeProfile(nextProfile));
-    setUser(
-      user
-        ? {
-            ...user,
-            avatarUrl: nextProfile.profile?.avatarUrl ?? user.avatarUrl,
-            fullName: nextProfile.profile?.fullName ?? user.fullName
-          }
-        : user
-    );
+    setUser(user ? mergeCurrentUserWithAccountProfile(user, nextProfile) : user);
   };
 
   const handleSave = async () => {
@@ -530,7 +518,7 @@ export function InternalProfilePage() {
         ...profile,
         profile: {
           ...profile.profile,
-          avatarUrl: defaultAvatar
+          avatarUrl: DEFAULT_USER_AVATAR_URL
         }
       });
       setNotice("Đã đưa ảnh đại diện về mặc định trên giao diện.");
@@ -589,7 +577,7 @@ export function InternalProfilePage() {
                     <h3 className="tw-m-0 tw-text-vm-section-title tw-font-black tw-text-[#111827]">Hồ sơ cá nhân</h3>
                     <p className="tw-mb-0 tw-mt-1.5 tw-text-[0.88rem] tw-font-semibold tw-text-vm-slate-500">Các trường họ tên và số điện thoại là bắt buộc theo rule backend.</p>
                   </div>
-                  <StatusPill tone="blue">{roleLabel(user?.role)}</StatusPill>
+                  <StatusPill tone="blue">{getRoleLabel(user?.role, user?.roleLabel)}</StatusPill>
                 </div>
 
                 <div className="tw-grid tw-grid-cols-2 tw-gap-3.5 max-[900px]:tw-grid-cols-1">

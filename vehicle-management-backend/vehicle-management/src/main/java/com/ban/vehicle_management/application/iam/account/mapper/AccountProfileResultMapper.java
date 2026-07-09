@@ -57,13 +57,26 @@ public interface AccountProfileResultMapper {
         return preferred != null ? preferred : fallback;
     }
 
-    @Mapping(target = "accountStatus", source = "accountStatus")
-    AccountProfileStatusResult.AccountInfoResult toAccountInfoResult(AccountProfileState state);
+    default AccountProfileStatusResult.AccountInfoResult toAccountInfoResult(AccountProfileState state) {
+        if (state == null) {
+            return null;
+        }
+
+        return new AccountProfileStatusResult.AccountInfoResult(
+                state.accountId(),
+                enumName(state.accountStatus()),
+                state.username(),
+                state.email(),
+                state.keycloakUserId(),
+                state.roleCode()
+        );
+    }
 
     @Mapping(target = "userProfileStatus", source = "userProfileStatus")
     AccountProfileStatusResult.ProfileInfoResult toProfileInfoResult(AccountProfileState state);
 
     @Mapping(target = "accountStatus", source = "status")
+    @Mapping(target = "roleCode", ignore = true)
     AccountProfileStatusResult.AccountInfoResult toAccountInfoResult(Account account);
 
     @Mapping(target = "userProfileId", source = "userProfileId")

@@ -4,8 +4,8 @@ export const adminNavigation: AdminSidebarEntry[] = [
   {
     kind: "link",
     label: "Trang chủ",
-    to: "/admin/dashboard",
-    matches: ["/admin/dashboard"],
+    to: "/api/dashboard/overview",
+    matches: ["/api/dashboard/overview", "/admin/dashboard"],
     icon: "dashboard",
   },
   { kind: "divider" },
@@ -16,8 +16,6 @@ export const adminNavigation: AdminSidebarEntry[] = [
     defaultExpanded: true,
     items: [
       { label: "Vào/Ra", to: "/admin/swipe", matches: ["/admin/swipe"] },
-      { label: "Xe vào", to: "/admin/swipe/swipein", matches: ["/admin/swipe/swipein"] },
-      { label: "Xe ra", to: "/admin/swipe/swipeout", matches: ["/admin/swipe/swipeout"] },
       { label: "Phiên gửi xe", to: "/admin/swipe/sessions", matches: ["/admin/swipe/sessions"] },
     ],
   },

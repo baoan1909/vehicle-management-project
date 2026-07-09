@@ -84,9 +84,17 @@ function FullscreenShell() {
 }
 
 const adminRoutes = routes
-  .filter((route) => route.layout === "admin")
+  .filter((route) => route.layout === "admin" && route.path.startsWith("/admin/"))
   .map((route) => ({
     path: route.path.replace(/^\/admin\//, ""),
+    element: route.element,
+    handle: { title: route.title },
+  }));
+
+const apiAdminRoutes = routes
+  .filter((route) => route.layout === "admin" && route.path.startsWith("/api/"))
+  .map((route) => ({
+    path: route.path.replace(/^\/api\//, ""),
     element: route.element,
     handle: { title: route.title },
   }));
@@ -127,6 +135,11 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="/admin/dashboard" replace /> },
       ...adminRoutes,
     ],
+  },
+  {
+    path: "/api",
+    element: <AdminShell />,
+    children: apiAdminRoutes,
   },
   {
     path: "/",

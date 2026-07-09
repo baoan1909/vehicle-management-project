@@ -15,6 +15,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.peo
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
@@ -29,6 +30,7 @@ import org.springframework.stereotype.Component;
 public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
 
     private final AccountRepository accountRepository;
+    private final RoleRepository roleRepository;
     private final UserProfileRepository userProfileRepository;
     private final CustomerRepository customerRepository;
     private final EmployeeRepository employeeRepository;
@@ -39,6 +41,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
 
     public AccountProfilePersistenceAdapter(
             AccountRepository accountRepository,
+            RoleRepository roleRepository,
             UserProfileRepository userProfileRepository,
             CustomerRepository customerRepository,
             EmployeeRepository employeeRepository,
@@ -48,6 +51,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
             EmployeePersistenceMapper employeePersistenceMapper
     ) {
         this.accountRepository = accountRepository;
+        this.roleRepository = roleRepository;
         this.userProfileRepository = userProfileRepository;
         this.customerRepository = customerRepository;
         this.employeeRepository = employeeRepository;
@@ -179,7 +183,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 accountEntity.getUsername(),
                 accountEntity.getEmail(),
                 accountEntity.getKeycloakUserId(),
-                accountEntity.getRole() == null ? null : accountEntity.getRole().getCode(),
+                resolveRoleCode(accountEntity.getRoleId()),
                 userProfileId,
                 userProfileEntity == null ? null : userProfileEntity.getFullName(),
                 userProfileEntity == null ? null : userProfileEntity.getDateOfBirth(),
@@ -201,6 +205,16 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 customerEntity == null ? null : customerEntity.getApprovalStatus(),
                 accountEntity.getStatus()
         );
+    }
+
+    private String resolveRoleCode(UUID roleId) {
+        if (roleId == null) {
+            return null;
+        }
+
+        return roleRepository.findById(roleId)
+                .map(role -> role.getCode())
+                .orElse(null);
     }
 
     private UserProfileEntity resolveUserProfile(UUID userProfileId) {
