@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import { clearAuthTokens } from "@/core/auth/session";
+import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta } from "@/shared/utils/accountStatus";
 
 const searchSuggestions = ["Tìm thẻ xe", "Tra cứu khách hàng", "Kiểm tra xe đang trong bãi"];
 
@@ -21,25 +22,12 @@ const notifications = [
     meta: "8 yêu cầu chờ xác nhận",
   },
   {
-    href: "/admin/dashboard",
+    href: "/api/dashboard/overview",
     icon: "fas fa-chart-line",
     title: "Báo cáo mới",
     meta: "3 báo cáo vừa được tạo",
   },
 ];
-
-function getRoleLabel(role?: string) {
-  switch (role) {
-    case "ADMIN":
-      return "Quản trị viên";
-    case "EMPLOYEE":
-      return "Nhân viên";
-    case "CUSTOMER":
-      return "Khách hàng";
-    default:
-      return "Người dùng";
-  }
-}
 
 const panelClassName =
   "tw-absolute tw-right-0 tw-top-[calc(100%+12px)] tw-z-[1080] tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-p-2 tw-shadow-[0_18px_42px_rgba(15,23,42,0.16)]";
@@ -60,6 +48,52 @@ function HeaderItemCopy({ title, meta }: { title: string; meta: string }) {
     <span className="tw-grid tw-min-w-0 tw-gap-1">
       <strong className="tw-text-[0.92rem] tw-font-extrabold tw-text-slate-900">{title}</strong>
       <small className="tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">{meta}</small>
+    </span>
+  );
+}
+
+function StatusBadge({ status }: { status?: string }) {
+  const meta = getStatusMeta(status);
+
+  return (
+    <span className={cn("tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-px-2.5 tw-py-1 tw-text-[0.72rem] tw-font-extrabold tw-ring-1", meta.className)}>
+      <span className={cn("tw-h-1.5 tw-w-1.5 tw-rounded-full", meta.dotClassName)} />
+      {meta.label}
+    </span>
+  );
+}
+
+function UserAvatar({
+  alt,
+  className,
+  status,
+  src
+}: {
+  alt: string;
+  className: string;
+  status?: string;
+  src?: string;
+}) {
+  const meta = getStatusMeta(status);
+
+  return (
+    <span className="tw-relative tw-inline-flex tw-flex-shrink-0">
+      <img
+        src={src || DEFAULT_USER_AVATAR_URL}
+        alt={alt}
+        className={cn("tw-rounded-full tw-object-cover", className)}
+        onError={(event) => {
+          event.currentTarget.src = DEFAULT_USER_AVATAR_URL;
+        }}
+      />
+      <span
+        className={cn(
+          "tw-absolute tw-bottom-0 tw-right-0 tw-inline-flex tw-h-3 tw-w-3 tw-items-center tw-justify-center tw-rounded-full tw-border-2 tw-border-white",
+          meta.dotClassName,
+        )}
+        aria-label={meta.label}
+        title={meta.label}
+      />
     </span>
   );
 }
@@ -100,14 +134,18 @@ export function AdminHeader() {
     navigate("/login");
   }
 
-  const displayName = user?.fullName ?? user?.username ?? "Người dùng";
-  const roleLabel = getRoleLabel(user?.role);
+  const usernameLabel = user?.username?.trim() || user?.email?.trim() || "";
+  const displayName = user?.fullName?.trim() || usernameLabel || "Người dùng";
+  const roleLabel = getRoleLabel(user?.role, user?.roleLabel);
+  const approvalStatus = getApprovalStatusValue(user);
+  const accountStatus = user?.accountStatus;
+  const avatarUrl = user?.avatarUrl || DEFAULT_USER_AVATAR_URL;
 
   return (
     <header className="tw-fixed tw-inset-x-0 tw-top-0 tw-z-[1050] tw-border-0 tw-border-b tw-border-solid tw-border-slate-200/95 tw-bg-white/95 tw-shadow-[0_10px_28px_rgba(15,23,42,0.08)] tw-backdrop-blur-[14px]">
       <div className="tw-grid tw-min-h-[72px] tw-grid-cols-[240px_minmax(280px,1fr)_auto] tw-items-center tw-gap-6 tw-px-6 max-[768px]:tw-grid-cols-[minmax(0,1fr)_auto] max-[768px]:tw-gap-4 max-[768px]:tw-px-4">
         <div className="tw-min-w-0">
-          <Link to="/admin/dashboard" className="tw-flex tw-min-w-0 tw-items-center tw-gap-3 tw-text-slate-900 hover:tw-text-slate-900 hover:tw-no-underline">
+          <Link to="/api/dashboard/overview" className="tw-flex tw-min-w-0 tw-items-center tw-gap-3 tw-text-slate-900 hover:tw-text-slate-900 hover:tw-no-underline">
             <span className="tw-inline-flex tw-h-12 tw-w-12 tw-flex-shrink-0 tw-items-center tw-justify-center">
               <img className="tw-block tw-h-12 tw-w-12 tw-object-contain" src="/assets/admin/dist/img/AdminLTELogo.png" alt="CoParking" />
             </span>
@@ -203,7 +241,7 @@ export function AdminHeader() {
             <button
               type="button"
               className={cn(
-                "tw-flex tw-min-h-12 tw-w-auto tw-min-w-[210px] tw-items-center tw-gap-3 tw-rounded-full tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-px-3 tw-py-1 tw-text-left tw-transition hover:tw-bg-brand-50",
+                "tw-flex tw-min-h-12 tw-w-auto tw-min-w-[238px] tw-items-center tw-gap-3 tw-rounded-full tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-px-3 tw-py-1 tw-text-left tw-transition hover:tw-bg-brand-50",
                 profileOpen ? "tw-bg-brand-50 tw-shadow-[0_8px_20px_rgba(37,99,235,0.08)]" : "",
               )}
               onClick={() => {
@@ -212,19 +250,35 @@ export function AdminHeader() {
               }}
               aria-label={`Mở hồ sơ ${displayName}`}
             >
-              <img src={user?.avatarUrl} alt={displayName} className="tw-h-9 tw-w-9 tw-flex-shrink-0 tw-rounded-full tw-object-cover" />
+              <UserAvatar src={avatarUrl} alt={displayName} status={approvalStatus} className="tw-h-9 tw-w-9" />
               <span className="tw-min-w-0 tw-flex-1">
-                <strong className="tw-block tw-whitespace-nowrap tw-text-[0.92rem] tw-font-extrabold tw-text-slate-900">{displayName}</strong>
+                <strong className="tw-block tw-truncate tw-text-[0.92rem] tw-font-extrabold tw-leading-tight tw-text-slate-900">{displayName}</strong>
+                <small className="tw-mt-0.5 tw-block tw-truncate tw-text-[0.74rem] tw-font-bold tw-leading-tight tw-text-vm-slate-500">{roleLabel}</small>
               </span>
             </button>
 
             {profileOpen ? (
               <div className={cn(panelClassName, "tw-w-[330px]")}>
                 <div className="tw-flex tw-items-center tw-gap-3 tw-rounded-vm-md tw-bg-brand-50 tw-p-3">
-                  <img src={user?.avatarUrl} alt={displayName} className="tw-h-12 tw-w-12 tw-rounded-full tw-object-cover" />
+                  <UserAvatar src={avatarUrl} alt={displayName} status={approvalStatus} className="tw-h-12 tw-w-12" />
                   <div className="tw-min-w-0">
                     <strong className="tw-block tw-truncate tw-text-[0.95rem] tw-font-extrabold tw-text-slate-900">{displayName}</strong>
-                    <small className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-500">{roleLabel}</small>
+                    <small className="tw-block tw-truncate tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-500">{roleLabel}</small>
+                  </div>
+                </div>
+
+                <div className="tw-my-2 tw-grid tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
+                  <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+                    <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-500">Tên tài khoản</span>
+                    <span className="tw-min-w-0 tw-truncate tw-text-right tw-text-[0.8rem] tw-font-black tw-text-vm-slate-900">{usernameLabel || displayName}</span>
+                  </div>
+                  <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+                    <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-500">Trạng thái duyệt</span>
+                    <StatusBadge status={approvalStatus} />
+                  </div>
+                  <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+                    <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-500">Tài khoản</span>
+                    <StatusBadge status={accountStatus} />
                   </div>
                 </div>
 

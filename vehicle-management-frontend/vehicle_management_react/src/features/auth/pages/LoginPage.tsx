@@ -11,6 +11,8 @@ import {
   requestPasswordReset,
   type RegisterAccountRequest,
 } from "@/features/auth/api/authApi";
+import { AuthBrandMark, AuthFormField, AuthFormSectionTitle, AuthInlineNotice, AuthPasswordInput } from "@/features/auth/components/AuthFormControls";
+import { Button } from "@/components/ui";
 import { cn } from "@/lib/cn";
 
 type AuthMode = "login" | "register" | "forgot" | "otp" | "recover";
@@ -52,6 +54,10 @@ const initialRegisterForm: RegisterFormState = {
   confirmPassword: "",
 };
 
+const postLoginRedirectPath = "/api/dashboard/overview";
+const processedAuthorizationCodeKey = "vm_keycloak_processed_authorization_code";
+let activeAuthorizationCode = "";
+
 const authSubmitClassName =
   "tw-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-[10px] tw-border-0 tw-bg-[linear-gradient(135deg,#2563EB,#1D4ED8)] tw-px-4 tw-text-[0.95rem] tw-font-black tw-text-white tw-shadow-[0_14px_28px_rgba(37,99,235,0.22)] tw-transition hover:-tw-translate-y-px hover:tw-text-white hover:tw-brightness-[0.98] disabled:tw-cursor-not-allowed disabled:tw-opacity-60";
 
@@ -61,7 +67,7 @@ export function LoginPage({ mode = "login" }: AuthPageProps) {
   }
 
   if (mode === "register") {
-    return <RegisterScreen />;
+    return <RegisterScreenV2 />;
   }
 
   if (mode === "forgot") {
@@ -209,7 +215,14 @@ function KeycloakRedirectScreen() {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get("code");
     if (!code || isExchangingCode) return;
+    if (activeAuthorizationCode === code) return;
+    if (sessionStorage.getItem(processedAuthorizationCodeKey) === code) {
+      navigate("/login", { replace: true });
+      return;
+    }
     const authorizationCode = code;
+    activeAuthorizationCode = authorizationCode;
+    sessionStorage.setItem(processedAuthorizationCodeKey, authorizationCode);
 
     async function exchangeCode() {
       setIsExchangingCode(true);
@@ -222,10 +235,12 @@ function KeycloakRedirectScreen() {
           idToken: tokenResponse.id_token,
         });
         setUser(getCurrentUserFromAccessToken(tokenResponse.access_token));
-        navigate("/admin/dashboard", { replace: true });
+        activeAuthorizationCode = "";
+        navigate(postLoginRedirectPath, { replace: true });
       } catch (error) {
         console.error(error);
-        window.history.replaceState({}, "", "/login");
+        activeAuthorizationCode = "";
+        navigate("/login", { replace: true });
       } finally {
         setIsExchangingCode(false);
       }
@@ -267,7 +282,14 @@ function LoginScreen() {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get("code");
     if (!code || isExchangingCode) return;
+    if (activeAuthorizationCode === code) return;
+    if (sessionStorage.getItem(processedAuthorizationCodeKey) === code) {
+      navigate("/login", { replace: true });
+      return;
+    }
     const authorizationCode = code;
+    activeAuthorizationCode = authorizationCode;
+    sessionStorage.setItem(processedAuthorizationCodeKey, authorizationCode);
 
     async function exchangeCode() {
       setIsExchangingCode(true);
@@ -282,8 +304,10 @@ function LoginScreen() {
           idToken: tokenResponse.id_token,
         });
         setUser(getCurrentUserFromAccessToken(tokenResponse.access_token));
-        navigate("/admin/dashboard", { replace: true });
+        activeAuthorizationCode = "";
+        navigate(postLoginRedirectPath, { replace: true });
       } catch (error) {
+        activeAuthorizationCode = "";
         setCallbackMessage("");
         setCallbackError(error instanceof Error ? error.message : "Không thể hoàn tất đăng nhập Keycloak.");
         navigate("/login", { replace: true });
@@ -295,12 +319,13 @@ function LoginScreen() {
     void exchangeCode();
   }, [isExchangingCode, location.search, navigate, setUser]);
 
-  function handleLoginRedirect() {
+  async function handleLoginRedirect() {
     if (!isLoginConfigured) {
       return;
     }
 
-    window.location.assign(appConfig.keycloakLoginUrl);
+    const loginUrl = await buildKeycloakLoginUrl();
+    window.location.assign(loginUrl);
   }
 
   return (
@@ -340,6 +365,199 @@ function LoginScreen() {
 
       <AuthSwitch text="Chưa có tài khoản?" label="Đăng ký" href="/register" />
     </AuthShell>
+  );
+}
+
+function RegisterScreenV2() {
+  const [form, setForm] = useState<RegisterFormState>(initialRegisterForm);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResendingVerification, setIsResendingVerification] = useState(false);
+  const [lastVerificationEmail, setLastVerificationEmail] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+  const resendTargetEmail = (lastVerificationEmail || form.email).trim();
+
+  function updateField<Key extends keyof RegisterFormState>(field: Key, value: RegisterFormState[Key]) {
+    setForm((currentValue) => ({ ...currentValue, [field]: value }));
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    if (!acceptedTerms) {
+      setErrorMessage("Vui lòng đồng ý điều khoản sử dụng và chính sách bảo mật.");
+      return;
+    }
+
+    if (form.password !== form.confirmPassword) {
+      setErrorMessage("Mật khẩu xác nhận không khớp.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    const verificationEmail = form.email.trim();
+    const payload: RegisterAccountRequest = {
+      fullName: form.fullName,
+      username: form.username,
+      email: verificationEmail,
+      password: form.password,
+    };
+
+    try {
+      const response = await registerAccount(payload);
+      setSuccessMessage(response.message);
+      setLastVerificationEmail(verificationEmail);
+      setForm(initialRegisterForm);
+      setAcceptedTerms(false);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không thể tạo tài khoản.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleResendVerificationEmail() {
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    if (!resendTargetEmail) {
+      setErrorMessage("Vui lòng nhập email để gửi lại email xác thực.");
+      return;
+    }
+
+    setIsResendingVerification(true);
+
+    try {
+      const response = await resendVerificationEmail({ email: resendTargetEmail });
+      setSuccessMessage(response.message || "Đã gửi lại email xác thực.");
+      setLastVerificationEmail(resendTargetEmail);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Không thể gửi lại email xác thực.");
+    } finally {
+      setIsResendingVerification(false);
+    }
+  }
+
+  return (
+    <div className="tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-flex-col tw-overflow-hidden tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-px-5 tw-py-2 tw-text-vm-slate-700 max-[768px]:tw-overflow-y-auto">
+      <main className="tw-mx-auto tw-flex tw-w-full tw-max-w-[920px] tw-flex-1 tw-flex-col tw-items-stretch tw-justify-center">
+        <section className="tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d9e2f2] tw-bg-white tw-px-8 tw-pb-4 tw-pt-4 tw-shadow-[0_18px_45px_rgba(15,23,42,0.08)] max-[768px]:tw-px-5">
+          <header className="tw-mx-auto tw-mb-4 tw-text-center">
+            <AuthBrandMark />
+            <h1 className="tw-m-0 tw-mt-2 tw-text-[1.3rem] tw-font-black tw-leading-tight tw-text-vm-slate-900">Tạo tài khoản mới</h1>
+            <p className="tw-mx-auto tw-mb-0 tw-mt-1 tw-max-w-[560px] tw-text-[0.86rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">
+              Vui lòng nhập thông tin để tạo tài khoản và sử dụng hệ thống.
+            </p>
+          </header>
+
+          <form className="tw-grid tw-gap-3" onSubmit={handleSubmit}>
+            {successMessage ? <AuthInlineNotice tone="success">{successMessage}</AuthInlineNotice> : null}
+            {errorMessage ? <AuthInlineNotice tone="error">{errorMessage}</AuthInlineNotice> : null}
+
+            <div className="tw-grid tw-grid-cols-2 tw-gap-x-8 tw-gap-y-3 max-[768px]:tw-grid-cols-1">
+              <section className="tw-grid tw-content-start tw-gap-2.5">
+                <AuthFormSectionTitle>Thông tin cá nhân</AuthFormSectionTitle>
+                <AuthFormField
+                  autoComplete="name"
+                  id="fullName"
+                  icon="far fa-user"
+                  label="Họ và tên"
+                  placeholder="Nhập họ và tên"
+                  value={form.fullName}
+                  onChange={(value) => updateField("fullName", value)}
+                />
+              </section>
+
+              <section className="tw-grid tw-content-start tw-gap-2.5">
+                <AuthFormSectionTitle>Thông tin đăng nhập</AuthFormSectionTitle>
+                <AuthFormField
+                  autoComplete="username"
+                  id="registerUsername"
+                  icon="far fa-user"
+                  label="Tên đăng nhập"
+                  placeholder="Nhập tên đăng nhập"
+                  value={form.username}
+                  onChange={(value) => updateField("username", value)}
+                />
+              </section>
+
+              <section className="tw-col-span-2 tw-grid tw-gap-2.5 max-[768px]:tw-col-span-1">
+                <AuthFormField
+                  autoComplete="email"
+                  id="email"
+                  icon="far fa-envelope"
+                  label="Email"
+                  placeholder="Nhập email của bạn"
+                  type="email"
+                  value={form.email}
+                  onChange={(value) => updateField("email", value)}
+                />
+                <AuthPasswordInput
+                  autoComplete="new-password"
+                  id="registerPassword"
+                  label="Mật khẩu"
+                  placeholder="Nhập mật khẩu"
+                  value={form.password}
+                  onChange={(value) => updateField("password", value)}
+                />
+                <AuthPasswordInput
+                  autoComplete="new-password"
+                  id="confirmPassword"
+                  label="Xác nhận mật khẩu"
+                  placeholder="Nhập lại mật khẩu"
+                  value={form.confirmPassword}
+                  onChange={(value) => updateField("confirmPassword", value)}
+                />
+              </section>
+            </div>
+
+            <AuthInlineNotice>
+              <div className="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-3 max-[768px]:tw-flex-col max-[768px]:tw-items-start">
+                <span className="tw-min-w-0 tw-flex-1">Sau khi tạo tài khoản, email xác thực sẽ được gửi đến địa chỉ email của bạn. Vui lòng kiểm tra email để kích hoạt tài khoản.</span>
+                <Button
+                  className="tw-ml-auto tw-mr-2 tw-h-8 tw-flex-shrink-0 tw-rounded-vm-sm tw-px-3 tw-text-[0.78rem] tw-font-extrabold max-[768px]:tw-ml-0 max-[768px]:tw-mr-0"
+                  disabled={isResendingVerification || !resendTargetEmail}
+                  size="sm"
+                  type="button"
+                  variant="secondary"
+                  onClick={handleResendVerificationEmail}
+                >
+                  {isResendingVerification ? "Đang gửi..." : "Gửi lại email"}
+                </Button>
+              </div>
+            </AuthInlineNotice>
+
+            <label className="tw-flex tw-items-center tw-gap-2.5 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-700">
+              <input
+                checked={acceptedTerms}
+                className="tw-h-4 tw-w-4 tw-rounded-vm-sm tw-border tw-border-solid tw-border-[#cbd5e1] tw-accent-vm-primary"
+                type="checkbox"
+                onChange={(event) => setAcceptedTerms(event.target.checked)}
+              />
+              <span>
+                Tôi đã đọc và đồng ý với{" "}
+                <Link className="tw-font-extrabold tw-text-vm-primary tw-no-underline hover:tw-text-vm-primary-hover" to="/pricing">Điều khoản sử dụng</Link>
+                {" "}và{" "}
+                <Link className="tw-font-extrabold tw-text-vm-primary tw-no-underline hover:tw-text-vm-primary-hover" to="/pricing">Chính sách bảo mật</Link>
+              </span>
+            </label>
+
+            <Button className="tw-h-[38px] tw-w-full tw-rounded-vm-md tw-text-[0.9rem] tw-font-extrabold" disabled={isSubmitting} type="submit" variant="primary">
+              {isSubmitting ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
+            </Button>
+          </form>
+        </section>
+
+        <div className="tw-mt-2 tw-text-center tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-700">
+          Đã có tài khoản?{" "}
+          <Link className="tw-font-extrabold tw-text-vm-primary tw-no-underline hover:tw-text-vm-primary-hover" to="/login">Đăng nhập</Link>
+        </div>
+      </main>
+    </div>
   );
 }
 
@@ -474,38 +692,45 @@ function ForgotPasswordScreen() {
   }
 
   return (
-    <AuthShell cardClassName="tw-flex tw-min-h-[500px] tw-flex-col">
-      <AuthHeader
-        title="Quên mật khẩu?"
-        description="Nhập email đã đăng ký. Backend sẽ yêu cầu Keycloak gửi email reset password đến bạn."
-      />
+    <div className="tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-flex-col tw-overflow-hidden tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-px-5 tw-py-4 tw-text-vm-slate-700 max-[768px]:tw-overflow-y-auto">
+      <main className="tw-mx-auto tw-flex tw-w-full tw-max-w-[520px] tw-flex-1 tw-flex-col tw-items-stretch tw-justify-center">
+        <section className="tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d9e2f2] tw-bg-white tw-px-8 tw-pb-6 tw-pt-6 tw-shadow-[0_18px_45px_rgba(15,23,42,0.08)] max-[480px]:tw-px-5">
+          <header className="tw-mx-auto tw-mb-5 tw-text-center">
+            <AuthBrandMark />
+            <h1 className="tw-m-0 tw-mt-4 tw-text-[1.35rem] tw-font-black tw-leading-tight tw-text-vm-slate-900">Đặt lại mật khẩu</h1>
+          </header>
 
-      <form className="tw-grid tw-gap-[0.8rem]" onSubmit={handleSubmit}>
-        {successMessage && <AuthAlert tone="success" message={successMessage} />}
-        {errorMessage && <AuthAlert tone="error" message={errorMessage} />}
+          <form className="tw-grid tw-gap-4" onSubmit={handleSubmit}>
+            {successMessage ? <AuthInlineNotice tone="success">{successMessage}</AuthInlineNotice> : null}
+            {errorMessage ? <AuthInlineNotice tone="error">{errorMessage}</AuthInlineNotice> : null}
 
-        <AuthField
-          id="forgotEmail"
-          label="Email"
-          icon="far fa-envelope"
-          type="email"
-          placeholder="customer@example.com"
-          autoComplete="email"
-          value={email}
-          onChange={setEmail}
-        />
+            <AuthFormField
+              autoComplete="email"
+              id="forgotEmail"
+              icon="far fa-envelope"
+              label="Email"
+              placeholder="Nhập email của bạn"
+              type="email"
+              value={email}
+              onChange={setEmail}
+            />
 
-        <p className="tw-mb-[0.1rem] tw-mt-[-0.2rem] tw-text-[0.9rem] tw-font-semibold tw-leading-[1.45] tw-text-vm-slate-500">
-          Link trong email sẽ đưa bạn tới themed page của Keycloak để đặt lại mật khẩu một cách an toàn.
-        </p>
+            <AuthInlineNotice>
+              Vui lòng kiểm tra hộp thư đến và thư rác. Đường dẫn đặt lại mật khẩu chỉ có hiệu lực trong một khoảng thời gian nhất định.
+            </AuthInlineNotice>
 
-        <button className={authSubmitClassName} type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Đang gửi yêu cầu..." : "Gửi email đặt lại mật khẩu"}
-        </button>
-      </form>
+            <Button className="tw-h-[38px] tw-w-full tw-rounded-vm-md tw-text-[0.9rem] tw-font-extrabold" disabled={isSubmitting} type="submit" variant="primary">
+              {isSubmitting ? "Đang gửi..." : "Gửi hướng dẫn đặt lại mật khẩu"}
+            </Button>
+          </form>
+        </section>
 
-      <AuthBackLink />
-    </AuthShell>
+        <div className="tw-mt-4 tw-text-center tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-700">
+          Đã nhớ mật khẩu?{" "}
+          <Link className="tw-font-extrabold tw-text-vm-primary tw-no-underline hover:tw-text-vm-primary-hover" to="/login">Đăng nhập</Link>
+        </div>
+      </main>
+    </div>
   );
 }
 

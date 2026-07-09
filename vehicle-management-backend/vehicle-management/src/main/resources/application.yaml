@@ -36,6 +36,7 @@ app:
   security:
     oauth2:
       audience: ${KEYCLOAK_AUDIENCE:vehicle-management-api}
+      accepted-authorized-parties: ${KEYCLOAK_ACCEPTED_AUTHORIZED_PARTIES:vehicle-management-frontend}
   keycloak:
     base-url: ${KEYCLOAK_BASE_URL:http://localhost:8081}
     realm: ${KEYCLOAK_REALM:vehicle-management}

@@ -24,8 +24,17 @@ export interface CurrentUser {
   id: string;
   username: string;
   fullName: string;
-  role: "ADMIN" | "EMPLOYEE" | "CUSTOMER";
+  role: "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER" | "UNKNOWN";
   avatarUrl: string;
+  accountStatus?: string;
+  customerApprovalStatus?: string;
+  customerStatus?: string;
+  email?: string;
+  employeeStatus?: string;
+  jobTitle?: string;
+  onboardingRequired?: boolean;
+  profileStatus?: string;
+  roleLabel?: string;
 }
 
 export type AdminSidebarIcon = "dashboard" | "swipe" | "card" | "catalog" | "parking" | "pricing" | "members" | "role" | "settings" | "support";
