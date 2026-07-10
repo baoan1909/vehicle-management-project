@@ -23,7 +23,7 @@ const notifications = [
     meta: "8 yêu cầu chờ xác nhận",
   },
   {
-    href: "/api/dashboard/overview",
+    href: "/admin/dashboard",
     icon: "fas fa-chart-line",
     title: "Báo cáo mới",
     meta: "3 báo cáo vừa được tạo",
@@ -147,7 +147,7 @@ export function AdminHeader() {
     <header className="tw-fixed tw-inset-x-0 tw-top-0 tw-z-[1050] tw-border-0 tw-border-b tw-border-solid tw-border-slate-200/95 tw-bg-white/95 tw-shadow-[0_10px_28px_rgba(15,23,42,0.08)] tw-backdrop-blur-[14px]">
       <div className="tw-grid tw-min-h-[72px] tw-grid-cols-[240px_minmax(280px,1fr)_auto] tw-items-center tw-gap-6 tw-px-6 max-[768px]:tw-grid-cols-[minmax(0,1fr)_auto] max-[768px]:tw-gap-4 max-[768px]:tw-px-4">
         <div className="tw-min-w-0">
-          <Link to="/api/dashboard/overview" className="tw-flex tw-min-w-0 tw-items-center tw-gap-3 tw-text-slate-900 hover:tw-text-slate-900 hover:tw-no-underline">
+          <Link to="/admin/dashboard" className="tw-flex tw-min-w-0 tw-items-center tw-gap-3 tw-text-slate-900 hover:tw-text-slate-900 hover:tw-no-underline">
             <span className="tw-inline-flex tw-h-12 tw-w-12 tw-flex-shrink-0 tw-items-center tw-justify-center">
               <img className="tw-block tw-h-12 tw-w-12 tw-object-contain" src="/assets/admin/dist/img/AdminLTELogo.png" alt="CoParking" />
             </span>

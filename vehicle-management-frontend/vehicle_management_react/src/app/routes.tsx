@@ -4,7 +4,19 @@ import type { AppLayout } from "@/shared/types/common";
 import { LoginPage } from "@/features/auth";
 import { CardListPage } from "@/features/cards";
 import { SubscriptionApprovalPage, TicketListPage, VehicleListPage } from "@/features/catalog";
+import {
+  ContactPage,
+  CustomerDashboardPage,
+  CustomerHistoryPage,
+  GuidePage,
+  PricingPage,
+  ProfilePage,
+  SubscriptionPage,
+  SupportPage,
+  VehiclePage,
+} from "@/features/customer-portal";
 import { CustomerListPage } from "@/features/customers";
+import { DashboardPage } from "@/features/dashboard";
 import { EmployeeListPage, ShiftSchedulePage } from "@/features/employees";
 import { AccountListPage, InternalProfilePage, RoleListPage } from "@/features/iam";
 import { ParkingOperationsPage, ParkingSessionPage, SwipeListPage } from "@/features/parking";
@@ -24,8 +36,8 @@ function BlankPage() {
 const blankPage = <BlankPage />;
 
 export const routes: RouteDefinition[] = [
-  { path: "/admin/dashboard", title: "Trang chu", layout: "admin", element: blankPage },
-  { path: "/api/dashboard/overview", title: "Trang chu", layout: "admin", element: blankPage },
+  { path: "/admin/dashboard", title: "Tong quan", layout: "admin", element: <DashboardPage /> },
+  { path: "/api/dashboard/overview", title: "Tong quan", layout: "admin", element: <Navigate to="/admin/dashboard" replace /> },
   { path: "/admin/swipe", title: "Quan ly vao ra", layout: "admin", element: <SwipeListPage /> },
   { path: "/admin/swipe/swipein", title: "Xe vao", layout: "admin", element: blankPage },
   { path: "/admin/swipe/swipeout", title: "Xe ra", layout: "admin", element: blankPage },
@@ -56,10 +68,17 @@ export const routes: RouteDefinition[] = [
   { path: "/admin/role/form", title: "Thong tin vai tro", layout: "admin", element: blankPage },
   { path: "/admin/support-categories", title: "Danh muc ho tro va quy trinh ticket", layout: "admin", element: <SupportCategoryWorkflowPage /> },
   { path: "/admin/support-center", title: "Trung tam ho tro van hanh", layout: "fullscreen", element: <OperationsSupportCenterPage /> },
-  { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: blankPage },
-  { path: "/customerTicket/customer-infor", title: "Thong tin khach hang", layout: "client", element: blankPage },
-  { path: "/customerTicket/customer-infor-detail", title: "Thong tin tai khoan", layout: "client", element: blankPage },
-  { path: "/contact", title: "Lien he", layout: "client", element: blankPage },
+  { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },
+  { path: "/guide", title: "Huong dan", layout: "client", element: <GuidePage /> },
+  { path: "/contact", title: "Lien he", layout: "client", element: <ContactPage /> },
+  { path: "/customerTicket/customer-infor", title: "Lich su gui xe", layout: "client", element: <CustomerHistoryPage /> },
+  { path: "/customerTicket/customer-infor-detail", title: "Thong tin tai khoan", layout: "client", element: <ProfilePage /> },
+  { path: "/customer/dashboard", title: "Tong quan khach hang", layout: "client", element: <CustomerDashboardPage /> },
+  { path: "/customer/profile", title: "Ho so ca nhan", layout: "client", element: <ProfilePage /> },
+  { path: "/customer/vehicles", title: "Xe cua toi", layout: "client", element: <VehiclePage /> },
+  { path: "/customer/subscriptions", title: "Ve thang", layout: "client", element: <SubscriptionPage /> },
+  { path: "/customer/parking-history", title: "Lich su gui xe", layout: "client", element: <CustomerHistoryPage /> },
+  { path: "/customer/support", title: "Ho tro", layout: "client", element: <SupportPage /> },
   { path: "/login", title: "Đăng nhập", layout: "auth", element: <LoginPage mode="login" /> },
   { path: "/register", title: "Đăng ký", layout: "auth", element: <LoginPage mode="register" /> },
   { path: "/forgot-password", title: "Quên mật khẩu", layout: "auth", element: <LoginPage mode="forgot" /> },
