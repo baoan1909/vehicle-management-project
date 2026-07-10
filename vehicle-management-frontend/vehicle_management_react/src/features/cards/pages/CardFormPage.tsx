@@ -10,7 +10,6 @@ export function CardFormPage() {
       fields={[
         { label: "Số thẻ:", name: "cardNumber", placeholder: "C002", value: "C001" },
         { label: "Loại thẻ:", name: "type", type: "select", options: ["Vãng lai", "Đăng ký"], value: "Đăng ký" },
-        { label: "Loại xe:", name: "vehicleType", type: "select", options: ["Xe máy", "Xe hơi", "Xe khác"], value: "Xe máy" },
         { label: "Đã tạo thẻ vật lý", name: "isCreated", type: "checkbox", checked: true },
         { label: "Đã được sử dụng", name: "isUsed", type: "checkbox", checked: true },
       ]}

@@ -267,7 +267,6 @@ class ParkingCheckOutUseCaseImplTest {
         card.setCardNumber("C001");
         card.setUid("UID-001");
         card.setCardTypeId(UUID.randomUUID());
-        card.setVehicleTypeId(vehicleTypeId);
         card.setStatus(status);
         return card;
     }

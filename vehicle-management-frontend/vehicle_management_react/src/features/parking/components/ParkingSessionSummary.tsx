@@ -1,8 +1,10 @@
 import { Button, Card, CardContent, CardHeader } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import type { ParkingSessionCheckInResponse } from "@/features/parking/api/parkingSessionApi";
 import type { ParkingOperationMode } from "./OperationModeTabs";
 
 type ParkingSessionSummaryProps = {
+  checkInResult?: ParkingSessionCheckInResponse | null;
   mode: ParkingOperationMode;
 };
 
@@ -58,8 +60,22 @@ function FeeHighlight({ isCheckIn }: { isCheckIn: boolean }) {
   );
 }
 
-export function ParkingSessionSummary({ mode }: ParkingSessionSummaryProps) {
+function customerTypeLabel(customerType?: string) {
+  if (customerType === "SUBSCRIPTION") return "Khách đăng ký";
+  if (customerType === "VISITOR") return "Khách vãng lai";
+  return "Chưa có dữ liệu";
+}
+
+function barrierActionLabel(action?: string) {
+  if (action === "OPEN") return "Mở barrier";
+  if (action === "WAIT_PAYMENT") return "Chờ thanh toán";
+  return "Chưa có dữ liệu";
+}
+
+export function ParkingSessionSummary({ checkInResult, mode }: ParkingSessionSummaryProps) {
   const isCheckIn = mode === "check-in";
+  const session = checkInResult?.parkingSession;
+  const event = checkInResult?.parkingEvent;
 
   return (
     <Card className="tw-flex tw-min-h-0 tw-flex-col tw-overflow-hidden">
@@ -71,12 +87,12 @@ export function ParkingSessionSummary({ mode }: ParkingSessionSummaryProps) {
         <FeeHighlight isCheckIn={isCheckIn} />
 
         <div className="tw-grid tw-gap-2.5">
-          <DetailRow icon="far fa-user" label="Loại khách hàng" value="Khách vãng lai" />
-          <DetailRow icon="fas fa-exchange-alt" label="Hành động barrier" tone="success" value={isCheckIn ? "Mở barrier" : "Chờ thanh toán"} />
-          <DetailRow icon="far fa-address-card" label="Mã phiên đỗ xe" value="PS250509000123" />
-          <DetailRow icon="far fa-clock" label="Thời gian check-in" value="09/05/2025 09:15:24" />
-          <DetailRow icon="fas fa-map-marker-alt" label="Khu vực" value="Khu A" />
-          <DetailRow icon="fas fa-car" label="Loại phương tiện" value="Ô tô con" />
+          <DetailRow icon="far fa-user" label="Loại khách hàng" value={customerTypeLabel(checkInResult?.customerType)} />
+          <DetailRow icon="fas fa-exchange-alt" label="Hành động barrier" tone="success" value={barrierActionLabel(checkInResult?.barrierAction)} />
+          <DetailRow icon="far fa-address-card" label="Mã phiên đỗ xe" value={session?.parkingSessionId?.slice(0, 13) ?? "Chưa có dữ liệu"} />
+          <DetailRow icon="far fa-clock" label="Thời gian check-in" value={session?.checkInTime ?? event?.eventTime ?? "Chưa có dữ liệu"} />
+          <DetailRow icon="fas fa-map-marker-alt" label="Khu vực" value={session?.zoneId?.slice(0, 8) ?? "Chưa có dữ liệu"} />
+          <DetailRow icon="fas fa-car" label="Biển số" value={session?.licensePlateIn ?? event?.licensePlateDetected ?? "Chưa có dữ liệu"} />
         </div>
 
         <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">

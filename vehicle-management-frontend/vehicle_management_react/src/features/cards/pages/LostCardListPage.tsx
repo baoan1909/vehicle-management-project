@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
-import { FilterControls } from "../../../shared/components/form/FilterControls";
 import { ActionButtons } from "../../../shared/components/table/ActionButtons";
 import { AdminTablePage } from "../../../shared/components/table/AdminTablePage";
-import { lostCards, vehicleTypes } from "../../../shared/data/mockData";
+import { lostCards } from "../../../shared/data/mockData";
 import type { TableColumn } from "../../../shared/types/common";
 
 type LostCardRow = (typeof lostCards)[number];
@@ -28,7 +27,6 @@ export function LostCardListPage() {
       tableTitle="Bảng quản lý thông tin thẻ bị mất"
       columns={columns}
       rows={lostCards}
-      filters={<FilterControls selects={[{ name: "vehicleTypeId", placeholder: "Tất cả loại xe", options: vehicleTypes }]} />}
       actions={
         <div className="form-group col-2 ml-auto mr-3">
           <Link to="/admin/lost/form" className="btn btn-info btn-block">

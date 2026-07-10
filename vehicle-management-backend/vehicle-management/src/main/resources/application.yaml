@@ -56,3 +56,10 @@ app:
       image-max-size-bytes: ${MINIO_IMAGE_MAX_SIZE_BYTES:5242880}
       image-max-width-pixels: ${MINIO_IMAGE_MAX_WIDTH_PIXELS:1280}
       image-jpeg-quality: ${MINIO_IMAGE_JPEG_QUALITY:0.85}
+  ocr:
+    enabled: ${OCR_ENABLED:true}
+    base-url: ${OCR_BASE_URL:http://localhost:8010}
+    internal-token: ${OCR_INTERNAL_TOKEN:dev-ocr-internal-token}
+    connect-timeout-ms: ${OCR_CONNECT_TIMEOUT_MS:1500}
+    read-timeout-ms: ${OCR_READ_TIMEOUT_MS:5000}
+    confidence-threshold: ${OCR_CONFIDENCE_THRESHOLD:0.70}

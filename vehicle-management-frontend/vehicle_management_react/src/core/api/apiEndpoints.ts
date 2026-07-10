@@ -6,15 +6,20 @@ export const apiEndpoints = {
   },
   dashboard: "/dashboard",
   parking: {
+    lanes: "/parking/lanes",
+    ocrLicensePlate: "/parking/ocr/license-plate",
+    parkingSessions: "/parking/parking-sessions",
     swipes: "/parking/swipes",
     swipeIn: "/parking/swipes/in",
     swipeOut: "/parking/swipes/out",
   },
   cards: {
-    cards: "/cards",
-    lostCards: "/lost-cards",
+    cards: "/access-control/cards",
+    lostCards: "/access-control/lost-card-reports",
   },
   catalog: {
+    cardTypes: "/catalog/card-types",
+    vehicleTypes: "/catalog/vehicle-types",
     tickets: "/tickets",
     vehicles: "/vehicles",
     visitorParkingFees: "/visitor-parking-fees",

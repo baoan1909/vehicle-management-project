@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
 import { cn } from "@/lib/cn";
-import { clearAuthTokens } from "@/core/auth/session";
+import { clearAuthTokens, getIdToken } from "@/core/auth/session";
+import { buildKeycloakLogoutUrl } from "@/features/auth/api/authApi";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta } from "@/shared/utils/accountStatus";
 
 const searchSuggestions = ["Tìm thẻ xe", "Tra cứu khách hàng", "Kiểm tra xe đang trong bãi"];
@@ -128,10 +129,11 @@ export function AdminHeader() {
   }
 
   function handleLogout() {
+    const logoutUrl = buildKeycloakLogoutUrl(getIdToken());
     clearAuthTokens();
     setUser(null);
     setProfileOpen(false);
-    navigate("/login");
+    window.location.assign(logoutUrl);
   }
 
   const usernameLabel = user?.username?.trim() || user?.email?.trim() || "";

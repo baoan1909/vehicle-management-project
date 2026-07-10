@@ -20,7 +20,6 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
-import java.util.Objects;
 import java.util.UUID;
 
 public class ParkingCheckInPolicy {
@@ -62,7 +61,6 @@ public class ParkingCheckInPolicy {
         requireField(card, "card");
         requireField(card.getCardId(), "cardId");
         requireField(card.getCardTypeId(), "cardTypeId");
-        requireField(card.getVehicleTypeId(), "vehicleTypeId");
         requireField(card.getStatus(), "cardStatus");
         requireField(cardType, "cardType");
         requireField(cardType.getCode(), "cardTypeCode");
@@ -145,9 +143,6 @@ public class ParkingCheckInPolicy {
         }
         if (customerVehicle.getStatus() != CustomerVehicleStatus.ACTIVE) {
             throw new ConflictException("Customer vehicle is not active");
-        }
-        if (!Objects.equals(card.getVehicleTypeId(), customerVehicle.getVehicleTypeId())) {
-            throw new ConflictException("Subscription vehicle type does not match card vehicle type");
         }
         if (!licensePlatePolicy.matches(customerVehicle.getLicensePlate(), detectedLicensePlate)) {
             throw new ConflictException("Detected license plate does not match subscription vehicle");

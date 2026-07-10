@@ -5,7 +5,6 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.infrastructure.mapper.catalog.VehicleTypePersistenceMapper;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.PriceRuleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
@@ -33,9 +32,6 @@ class VehicleTypePersistenceAdapterTest {
 
     @Mock
     private ParkingSessionRepository parkingSessionRepository;
-
-    @Mock
-    private CardRepository cardRepository;
 
     @Mock
     private ZoneRepository zoneRepository;

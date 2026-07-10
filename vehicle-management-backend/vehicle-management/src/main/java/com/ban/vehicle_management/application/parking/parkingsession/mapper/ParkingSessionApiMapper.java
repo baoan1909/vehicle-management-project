@@ -36,6 +36,7 @@ public interface ParkingSessionApiMapper {
         return new CheckInCommand(
                 command.cardUid(),
                 command.laneId(),
+                command.vehicleTypeId(),
                 command.licensePlate(),
                 licensePlateImage,
                 personImage,

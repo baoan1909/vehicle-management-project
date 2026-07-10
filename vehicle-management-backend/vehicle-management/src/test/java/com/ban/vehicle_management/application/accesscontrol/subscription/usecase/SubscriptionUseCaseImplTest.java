@@ -173,7 +173,7 @@ class SubscriptionUseCaseImplTest {
         when(zonePortOut.sumActiveCapacityByVehicleTypeId(data.vehicleTypeId())).thenReturn(100L);
         when(subscriptionPortOut.countReservedOrActiveByVehicleTypeId(data.vehicleTypeId())).thenReturn(10L);
         when(invoicePortOut.existsBySubscriptionIdAndStatusIn(eq(data.subscriptionId()), any(List.class))).thenReturn(false);
-        when(cardPortOut.findFirstAvailableRegisteredByVehicleTypeId(data.vehicleTypeId())).thenReturn(Optional.of(availableCard));
+        when(cardPortOut.findFirstAvailableRegistered()).thenReturn(Optional.of(availableCard));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(managerAccountId);
         when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -376,7 +376,6 @@ class SubscriptionUseCaseImplTest {
         card.setCardNumber("V001");
         card.setUid("RFID-001");
         card.setCardTypeId(UUID.randomUUID());
-        card.setVehicleTypeId(vehicleTypeId);
         card.setStatus(CardStatus.AVAILABLE);
         return card;
     }

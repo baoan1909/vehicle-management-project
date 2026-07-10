@@ -4,14 +4,12 @@ import com.ban.vehicle_management.application.catalog.vehicletype.port.out.Vehic
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.infrastructure.mapper.catalog.VehicleTypePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.PriceRuleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ZoneRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerVehicleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.catalog.VehicleTypeSpecifications;
-import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
@@ -28,7 +26,6 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
     private final PriceRuleRepository priceRuleRepository;
     private final CustomerVehicleRepository customerVehicleRepository;
     private final ParkingSessionRepository parkingSessionRepository;
-    private final CardRepository cardRepository;
     private final ZoneRepository zoneRepository;
     private final VehicleTypePersistenceMapper vehicleTypePersistenceMapper;
 
@@ -37,7 +34,6 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
             PriceRuleRepository priceRuleRepository,
             CustomerVehicleRepository customerVehicleRepository,
             ParkingSessionRepository parkingSessionRepository,
-            CardRepository cardRepository,
             ZoneRepository zoneRepository,
             VehicleTypePersistenceMapper vehicleTypePersistenceMapper
     ) {
@@ -45,7 +41,6 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
         this.priceRuleRepository = priceRuleRepository;
         this.customerVehicleRepository = customerVehicleRepository;
         this.parkingSessionRepository = parkingSessionRepository;
-        this.cardRepository = cardRepository;
         this.zoneRepository = zoneRepository;
         this.vehicleTypePersistenceMapper = vehicleTypePersistenceMapper;
     }
@@ -101,21 +96,6 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
         return parkingSessionRepository.existsByVehicleTypeIdAndStatusIn(
                 vehicleTypeId,
                 List.of(ParkingSessionStatus.OPEN, ParkingSessionStatus.LOST_CARD)
-        );
-    }
-
-    @Override
-    public boolean hasActiveCards(UUID vehicleTypeId) {
-        return cardRepository.existsByVehicleTypeIdAndStatusIn(
-                vehicleTypeId,
-                List.of(
-                        CardStatus.AVAILABLE,
-                        CardStatus.ASSIGNED,
-                        CardStatus.IN_USE,
-                        CardStatus.BLOCKED,
-                        CardStatus.LOST,
-                        CardStatus.DAMAGED
-                )
         );
     }
 

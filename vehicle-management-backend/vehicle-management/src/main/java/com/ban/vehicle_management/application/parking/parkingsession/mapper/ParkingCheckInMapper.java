@@ -21,7 +21,7 @@ public interface ParkingCheckInMapper {
     @Mapping(target = "cardId", source = "card.cardId")
     @Mapping(target = "customerId", source = "subscription.customerId")
     @Mapping(target = "customerVehicleId", source = "customerVehicle.customerVehicleId")
-    @Mapping(target = "vehicleTypeId", expression = "java(resolveVehicleTypeId(card, customerVehicle))")
+    @Mapping(target = "vehicleTypeId", source = "vehicleTypeId")
     @Mapping(target = "zoneId", source = "zone.zoneId")
     @Mapping(target = "licensePlateIn", source = "licensePlate")
     @Mapping(target = "checkInTime", source = "checkInTime")
@@ -31,6 +31,7 @@ public interface ParkingCheckInMapper {
             Subscription subscription,
             CustomerVehicle customerVehicle,
             Zone zone,
+            UUID vehicleTypeId,
             String licensePlate,
             Instant checkInTime
     );
@@ -57,13 +58,6 @@ public interface ParkingCheckInMapper {
             String note,
             Instant eventTime
     );
-
-    default UUID resolveVehicleTypeId(Card card, CustomerVehicle customerVehicle) {
-        if (customerVehicle != null) {
-            return customerVehicle.getVehicleTypeId();
-        }
-        return card == null ? null : card.getVehicleTypeId();
-    }
 
     default ParkingEventType checkInEventType() {
         return ParkingEventType.CHECK_IN;

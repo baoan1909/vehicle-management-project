@@ -40,6 +40,10 @@ export function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY) ?? sessionStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
+export function getIdToken() {
+  return localStorage.getItem(ID_TOKEN_KEY) ?? sessionStorage.getItem(ID_TOKEN_KEY);
+}
+
 export function saveAuthTokens(tokens: AuthTokenSet, remember = true) {
   const storage = remember ? localStorage : sessionStorage;
   clearAuthTokens();

@@ -299,11 +299,6 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 throw new ConflictException("New card must be AVAILABLE");
             }
 
-            UUID vehicleTypeId = resolveRegisteredVehicleType(session, subscription);
-            if (newCard.getVehicleTypeId() != null && !newCard.getVehicleTypeId().equals(vehicleTypeId)) {
-                throw new ConflictException("New card vehicle type does not match subscription vehicle type");
-            }
-
             cardPolicy.assign(newCard, Instant.now());
             cardPortOut.save(newCard);
 
@@ -587,17 +582,6 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
 
     private boolean isRegisteredSession(ParkingSession session) {
         return session.getCustomerId() != null || session.getCustomerVehicleId() != null;
-    }
-
-    private UUID resolveRegisteredVehicleType(ParkingSession session, Subscription subscription) {
-        if (session != null) {
-            return session.getVehicleTypeId();
-        }
-
-        CustomerVehicle customerVehicle = customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
-                .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
-
-        return customerVehicle.getVehicleTypeId();
     }
 
     private String generateInvoiceNo(UUID invoiceId, Instant now) {

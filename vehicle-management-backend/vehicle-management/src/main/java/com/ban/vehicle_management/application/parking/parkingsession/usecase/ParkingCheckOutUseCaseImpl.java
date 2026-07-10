@@ -346,16 +346,25 @@ public class ParkingCheckOutUseCaseImpl {
     }
 
     private Gate findGate(UUID gateId) {
+        if (gateId == null) {
+            throw new ConflictException("Lane is not linked to a gate");
+        }
         return gatePortOut.findById(gateId)
                 .orElseThrow(() -> new NotFoundException("Gate not found"));
     }
 
     private Zone findZone(UUID zoneId) {
+        if (zoneId == null) {
+            throw new ConflictException("Gate is not linked to a zone");
+        }
         return zonePortOut.findById(zoneId)
                 .orElseThrow(() -> new NotFoundException("Zone not found"));
     }
 
     private ParkingLot findParkingLot(UUID parkingLotId) {
+        if (parkingLotId == null) {
+            throw new ConflictException("Zone is not linked to a parking lot");
+        }
         return parkingLotPortOut.findById(parkingLotId)
                 .orElseThrow(() -> new NotFoundException("Parking lot not found"));
     }

@@ -53,7 +53,7 @@ public class CardTypeController {
     }
 
     @GetMapping
-    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_TYPE_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CARD_TYPE_READ_ALL', 'PARKING_SESSION_CHECK_IN_ALL', 'PARKING_SESSION_CHECK_OUT_ALL')")
     public ResponseEntity<ApiResponse<List<CardTypeAdminResponse>>> getCardTypes(@ModelAttribute CardTypeFilterRequest request) {
         List<CardType> cardTypes = cardTypePortIn.getCardTypes(request.isActive());
         List<CardTypeAdminResponse> response = cardTypeApiMapper.toAdminResponses(cardTypes);

@@ -60,7 +60,6 @@ class ParkingCheckOutPolicyTest {
         card.setCardNumber("C001");
         card.setUid("UID-001");
         card.setCardTypeId(UUID.randomUUID());
-        card.setVehicleTypeId(UUID.randomUUID());
         card.setStatus(status);
         return card;
     }

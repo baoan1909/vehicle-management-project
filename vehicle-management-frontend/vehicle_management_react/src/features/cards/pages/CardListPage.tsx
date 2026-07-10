@@ -29,7 +29,6 @@ export function CardListPage() {
   const [activeStatus, setActiveStatus] = useState<CardStatusTabValue>("all");
   const [searchValue, setSearchValue] = useState("");
   const [cardTypeValue, setCardTypeValue] = useState("all");
-  const [vehicleTypeValue, setVehicleTypeValue] = useState("all");
   const [inventoryStatusValue, setInventoryStatusValue] = useState("all");
   const [subscriptionStatusValue, setSubscriptionStatusValue] = useState("all");
   const [lostStatusValue, setLostStatusValue] = useState("all");
@@ -45,7 +44,6 @@ export function CardListPage() {
       cardManageRecords.filter((row) => {
         const matchesActiveTab = activeStatus === "all" ? true : row.inventoryStatus === activeStatus;
         const matchesCardType = cardTypeValue === "all" ? true : row.cardTypeLabel === cardTypeValue;
-        const matchesVehicleType = vehicleTypeValue === "all" ? true : row.vehicleType === vehicleTypeValue;
         const matchesInventoryStatus = inventoryStatusValue === "all" ? true : row.inventoryStatus === (inventoryStatusValue as CardInventoryStatus);
         const matchesSubscriptionStatus =
           subscriptionStatusValue === "all" ? true : row.subscriptionState === (subscriptionStatusValue as CardSubscriptionState);
@@ -54,14 +52,13 @@ export function CardListPage() {
         return (
           matchesActiveTab &&
           matchesCardType &&
-          matchesVehicleType &&
           matchesInventoryStatus &&
           matchesSubscriptionStatus &&
           matchesLostStatus &&
           matchesSearch(row, searchValue)
         );
       }),
-    [activeStatus, cardTypeValue, inventoryStatusValue, lostStatusValue, searchValue, subscriptionStatusValue, vehicleTypeValue],
+    [activeStatus, cardTypeValue, inventoryStatusValue, lostStatusValue, searchValue, subscriptionStatusValue],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
@@ -138,7 +135,6 @@ export function CardListPage() {
                       setActiveStatus("all");
                       setSearchValue("");
                       setCardTypeValue("all");
-                      setVehicleTypeValue("all");
                       setInventoryStatusValue("all");
                       setSubscriptionStatusValue("all");
                       setLostStatusValue("all");
@@ -152,13 +148,8 @@ export function CardListPage() {
                       setSubscriptionStatusValue(value);
                       setCurrentPage(1);
                     }}
-                    onVehicleTypeChange={(value) => {
-                      setVehicleTypeValue(value);
-                      setCurrentPage(1);
-                    }}
                     searchValue={searchValue}
                     subscriptionStatusValue={subscriptionStatusValue}
-                    vehicleTypeValue={vehicleTypeValue}
                   />
                   <CardListTable
                     checkedIds={checkedIds}

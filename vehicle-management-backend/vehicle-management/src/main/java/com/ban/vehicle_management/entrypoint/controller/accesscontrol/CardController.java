@@ -65,12 +65,11 @@ public class CardController {
     }
 
     @GetMapping
-    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CARD_READ_ALL', 'PARKING_SESSION_CHECK_IN_ALL', 'PARKING_SESSION_CHECK_OUT_ALL')")
     public ResponseEntity<ApiResponse<List<CardAdminResponse>>> getCards(@ModelAttribute CardFilterRequest request) {
         List<Card> cards = cardPortIn.getCards(
                 request.status(),
                 request.cardTypeId(),
-                request.vehicleTypeId(),
                 request.keyword()
         );
         return ResponseEntity.ok(ApiResponse.ok(
