@@ -7,9 +7,11 @@ import com.ban.vehicle_management.application.parking.parkingsession.model.resul
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingSessionPortIn;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutParkingSessionRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.ParkingSessionFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionManagementResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,12 +20,14 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/parking/parking-sessions")
@@ -40,6 +44,24 @@ public class ParkingSessionController {
     ) {
         this.parkingSessionPortIn = parkingSessionPortIn;
         this.parkingSessionApiMapper = parkingSessionApiMapper;
+    }
+
+    @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CARD_READ_ALL', 'PARKING_SESSION_CHECK_IN_ALL', 'PARKING_SESSION_CHECK_OUT_ALL')")
+    public ResponseEntity<ApiResponse<List<ParkingSessionManagementResponse>>> getParkingSessions(
+            @ModelAttribute ParkingSessionFilterRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched parking sessions successfully",
+                parkingSessionApiMapper.toManagementResponses(parkingSessionPortIn.getSessions(
+                        request.status(),
+                        request.vehicleTypeId(),
+                        request.zoneId(),
+                        request.fromDate(),
+                        request.toDate(),
+                        request.keyword()
+                ))
+        ));
     }
 
     @PostMapping(value = "/check-in", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

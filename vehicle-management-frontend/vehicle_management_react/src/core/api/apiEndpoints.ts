@@ -12,6 +12,7 @@ export const apiEndpoints = {
     swipes: "/parking/swipes",
     swipeIn: "/parking/swipes/in",
     swipeOut: "/parking/swipes/out",
+    zones: "/parking/zones",
   },
   cards: {
     cards: "/access-control/cards",

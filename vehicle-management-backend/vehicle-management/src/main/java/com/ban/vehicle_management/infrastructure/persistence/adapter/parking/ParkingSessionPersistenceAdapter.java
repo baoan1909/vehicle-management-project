@@ -1,15 +1,20 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.parking;
 
+import com.ban.vehicle_management.application.parking.parkingsession.model.result.ParkingSessionManagementResult;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
+import com.ban.vehicle_management.infrastructure.mapper.parking.ParkingSessionManagementPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.parking.ParkingSessionPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.specification.parking.ParkingSessionSpecifications;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,13 +22,16 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
 
     private final ParkingSessionRepository parkingSessionRepository;
     private final ParkingSessionPersistenceMapper parkingSessionPersistenceMapper;
+    private final ParkingSessionManagementPersistenceMapper parkingSessionManagementPersistenceMapper;
 
     public ParkingSessionPersistenceAdapter(
             ParkingSessionRepository parkingSessionRepository,
-            ParkingSessionPersistenceMapper parkingSessionPersistenceMapper
+            ParkingSessionPersistenceMapper parkingSessionPersistenceMapper,
+            ParkingSessionManagementPersistenceMapper parkingSessionManagementPersistenceMapper
     ) {
         this.parkingSessionRepository = parkingSessionRepository;
         this.parkingSessionPersistenceMapper = parkingSessionPersistenceMapper;
+        this.parkingSessionManagementPersistenceMapper = parkingSessionManagementPersistenceMapper;
     }
 
     @Override
@@ -65,5 +73,21 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
     public Optional<ParkingSession> findById(UUID parkingSessionId) {
         return parkingSessionRepository.findById(parkingSessionId)
                 .map(parkingSessionPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public List<ParkingSessionManagementResult> findManagementSessions(
+            ParkingSessionStatus status,
+            UUID vehicleTypeId,
+            UUID zoneId,
+            Instant checkInFrom,
+            Instant checkInTo,
+            String keyword
+    ) {
+        List<ParkingSessionEntity> entities = parkingSessionRepository.findAll(
+                ParkingSessionSpecifications.withFilters(status, vehicleTypeId, zoneId, checkInFrom, checkInTo, keyword),
+                Sort.by(Sort.Direction.DESC, "checkInTime")
+        );
+        return parkingSessionManagementPersistenceMapper.toResults(entities);
     }
 }
