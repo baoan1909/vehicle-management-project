@@ -7,6 +7,7 @@ import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 interface CardListTableProps {
   checkedIds: string[];
   currentPage: number;
+  isLoading?: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   onSelectRow: (id: string) => void;
@@ -51,6 +52,7 @@ function CheckButton({
 export function CardListTable({
   checkedIds,
   currentPage,
+  isLoading = false,
   onPageChange,
   onPageSizeChange,
   onSelectRow,
@@ -88,7 +90,21 @@ export function CardListTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => {
+            {isLoading ? (
+              <tr>
+                <td className="tw-py-10 tw-text-center tw-font-bold tw-text-vm-slate-500" colSpan={9}>
+                  Đang tải danh sách thẻ...
+                </td>
+              </tr>
+            ) : null}
+            {!isLoading && rows.length === 0 ? (
+              <tr>
+                <td className="tw-py-10 tw-text-center tw-font-bold tw-text-vm-slate-500" colSpan={9}>
+                  Không có thẻ phù hợp với bộ lọc hiện tại.
+                </td>
+              </tr>
+            ) : null}
+            {!isLoading && rows.map((row) => {
               const isSelected = row.id === selectedId;
               const isChecked = checkedIds.includes(row.id);
 

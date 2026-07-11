@@ -3,9 +3,47 @@ import { CardStateBadge } from "@/features/cards/components/CardStateBadge";
 import { cn } from "@/lib/cn";
 import type { CardManageRecord } from "@/features/cards/components/cardManageData";
 
+function fallback(value?: string | number | null) {
+  if (value === null || value === undefined || value === "") {
+    return "-";
+  }
+  return String(value);
+}
+
+function formatCurrency(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return "-";
+  }
+  return new Intl.NumberFormat("vi-VN", {
+    currency: "VND",
+    maximumFractionDigits: 0,
+    style: "currency",
+  }).format(value);
+}
+
+function enumLabel(value?: string | null) {
+  const labels: Record<string, string> = {
+    ACTIVE: "Đang hoạt động",
+    APPROVED: "Đã phê duyệt",
+    BUSINESS: "Doanh nghiệp",
+    INDIVIDUAL: "Cá nhân",
+    LOCKED: "Đã khóa",
+    PENDING: "Chờ duyệt",
+    REJECTED: "Từ chối",
+    SUSPENDED: "Tạm ngưng",
+  };
+  if (!value) return "-";
+  return labels[value] ?? value;
+}
+
 interface CardDetailPanelProps {
   isOpen: boolean;
+  onBlockToggle?: (row: CardManageRecord) => void;
   onClose: () => void;
+  onEdit?: (row: CardManageRecord) => void;
+  onMarkDamaged?: (row: CardManageRecord) => void;
+  onMarkLost?: (row: CardManageRecord) => void;
+  onRetire?: (row: CardManageRecord) => void;
   row: CardManageRecord | null;
 }
 
@@ -26,7 +64,7 @@ function CardPreview() {
   );
 }
 
-export function CardDetailPanel({ isOpen, onClose, row }: CardDetailPanelProps) {
+export function CardDetailPanel({ isOpen, onBlockToggle, onClose, onEdit, onMarkDamaged, onMarkLost, onRetire, row }: CardDetailPanelProps) {
   const [isRendered, setIsRendered] = useState(isOpen);
   const [phase, setPhase] = useState<DrawerPhase>(isOpen ? "open" : "closing");
 
@@ -133,24 +171,74 @@ export function CardDetailPanel({ isOpen, onClose, row }: CardDetailPanelProps) 
                 <span className="tw-text-[0.88rem] tw-font-medium tw-text-vm-slate-500">Trạng thái</span>
                 <CardStateBadge kind="inventory" label={row.inventoryStatusLabel} value={row.inventoryStatus} />
               </div>
+              {row.blockedReason ? (
+                <div className="tw-grid tw-grid-cols-[76px_1fr] tw-items-start tw-gap-[0.65rem]">
+                  <span className="tw-text-[0.88rem] tw-font-medium tw-text-vm-slate-500">Lý do khóa</span>
+                  <strong className="tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{row.blockedReason}</strong>
+                </div>
+              ) : null}
             </div>
 
             <div className="tw-py-4">
               <h4 className="tw-m-0 tw-mb-[0.9rem] tw-text-[0.98rem] tw-font-extrabold tw-text-slate-900">Chủ thẻ hiện tại</h4>
               <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
                 <span className="tw-text-[0.9rem] tw-text-vm-slate-700">
-                  <i className="far fa-user" /> {row.customerName ?? "-"}
+                  <i className="far fa-user" /> {fallback(row.customerName)}
                 </span>
-                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{row.phoneNumber ?? "-"}</strong>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.phoneNumber)}</strong>
               </div>
-              <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+              <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
+                <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Mã khách hàng</span>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.customerCode)}</strong>
+              </div>
+              <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
+                <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Email</span>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.customerEmail)}</strong>
+              </div>
+              <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
+                <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Loại khách</span>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{enumLabel(row.customerType)}</strong>
+              </div>
+              <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+                <div className="tw-grid tw-gap-1">
+                  <span className="tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-500">Trạng thái khách hàng</span>
+                  <strong className="tw-text-[0.86rem] tw-font-semibold tw-text-slate-900">{enumLabel(row.customerStatus)}</strong>
+                </div>
+                <div className="tw-grid tw-gap-1">
+                  <span className="tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-500">Trạng thái duyệt</span>
+                  <strong className="tw-text-[0.86rem] tw-font-semibold tw-text-slate-900">{enumLabel(row.customerApprovalStatus)}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="tw-py-4">
+              <h4 className="tw-m-0 tw-mb-[0.9rem] tw-text-[0.98rem] tw-font-extrabold tw-text-slate-900">Xe đăng ký</h4>
+              <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
                 <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Biển số</span>
-                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{row.licensePlate ?? "-"}</strong>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.licensePlate)}</strong>
+              </div>
+              <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
+                <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Loại xe</span>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.vehicleTypeLabel)}</strong>
+              </div>
+              <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+                <div className="tw-grid tw-gap-1">
+                  <span className="tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-500">Hãng xe</span>
+                  <strong className="tw-text-[0.86rem] tw-font-semibold tw-text-slate-900">{fallback(row.vehicleBrand)}</strong>
+                </div>
+                <div className="tw-grid tw-gap-1">
+                  <span className="tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-500">Màu xe</span>
+                  <strong className="tw-text-[0.86rem] tw-font-semibold tw-text-slate-900">{fallback(row.vehicleColor)}</strong>
+                </div>
               </div>
             </div>
 
             <div className="tw-py-4">
               <h4 className="tw-m-0 tw-mb-[0.9rem] tw-text-[0.98rem] tw-font-extrabold tw-text-slate-900">Vé tháng</h4>
+              <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
+                <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Gói vé</span>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.ticketTypeLabel)}</strong>
+              </div>
               <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
                 <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Trạng thái</span>
                 <strong className="tw-inline-flex tw-min-h-6 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-100 tw-px-[0.6rem] tw-py-[0.2rem] tw-text-[0.78rem] tw-font-bold tw-text-slate-600">
@@ -158,12 +246,24 @@ export function CardDetailPanel({ isOpen, onClose, row }: CardDetailPanelProps) 
                 </strong>
               </div>
               <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
+                <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Ngày yêu cầu</span>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.requestedEffectiveFrom)}</strong>
+              </div>
+              <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
                 <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Hiệu lực</span>
-                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">-</strong>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.effectiveFrom)}</strong>
+              </div>
+              <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
+                <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Hết hạn</span>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.effectiveTo)}</strong>
+              </div>
+              <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
+                <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Ngày nhận thẻ</span>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.cardReceiptDate)}</strong>
               </div>
               <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
-                <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Hết hạn</span>
-                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">-</strong>
+                <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Phí vé tháng</span>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{formatCurrency(row.subscriptionPrice)}</strong>
               </div>
             </div>
 
@@ -180,15 +280,23 @@ export function CardDetailPanel({ isOpen, onClose, row }: CardDetailPanelProps) 
             </div>
 
             <div className="tw-mt-4 tw-grid tw-grid-cols-2 tw-gap-[0.6rem] max-[900px]:tw-grid-cols-1">
-              <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-600/25 tw-bg-brand-600/10 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-vm-primary" type="button">
+              <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-600/25 tw-bg-brand-600/10 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-vm-primary" type="button" onClick={() => onEdit?.(row)}>
                 <i className="far fa-edit" />
                 <span>Cập nhật</span>
               </button>
-              <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-600/25 tw-bg-white tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-vm-primary" type="button">
+              <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-600/25 tw-bg-white tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-vm-primary" type="button" onClick={() => onBlockToggle?.(row)}>
                 <i className="fas fa-lock" />
-                <span>Khóa thẻ</span>
+                <span>{row.inventoryStatus === "blocked" ? "Mở khóa" : "Khóa thẻ"}</span>
               </button>
-              <button className="tw-col-span-full tw-grid tw-min-h-10 tw-w-full tw-grid-cols-[14px_1fr_14px] tw-items-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-red-500/25 tw-bg-red-500/5 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-center tw-text-[0.88rem] tw-font-bold tw-text-red-500" type="button">
+              <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-500/25 tw-bg-amber-500/5 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-amber-600" type="button" onClick={() => onMarkDamaged?.(row)}>
+                <i className="fas fa-tools" />
+                <span>Báo hỏng</span>
+              </button>
+              <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-400/25 tw-bg-slate-500/5 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-slate-600" type="button" onClick={() => onRetire?.(row)}>
+                <i className="far fa-trash-alt" />
+                <span>Ngừng dùng</span>
+              </button>
+              <button className="tw-col-span-full tw-grid tw-min-h-10 tw-w-full tw-grid-cols-[14px_1fr_14px] tw-items-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-red-500/25 tw-bg-red-500/5 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-center tw-text-[0.88rem] tw-font-bold tw-text-red-500" type="button" onClick={() => onMarkLost?.(row)}>
                 <i className="far fa-exclamation-circle tw-justify-self-start" />
                 <span className="tw-col-start-2 tw-justify-self-center">Báo mất thẻ</span>
                 <span aria-hidden="true" />

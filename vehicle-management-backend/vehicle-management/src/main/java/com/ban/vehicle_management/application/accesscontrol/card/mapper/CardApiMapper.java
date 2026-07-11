@@ -36,6 +36,30 @@ public interface CardApiMapper {
     Card toDomain(UpdateCardRequest request);
 
     @Mapping(target = "registeredVehicleTypeId", ignore = true)
+    @Mapping(target = "registeredVehicleTypeCode", ignore = true)
+    @Mapping(target = "registeredVehicleTypeName", ignore = true)
+    @Mapping(target = "subscriptionId", ignore = true)
+    @Mapping(target = "customerId", ignore = true)
+    @Mapping(target = "customerVehicleId", ignore = true)
+    @Mapping(target = "ticketTypeId", ignore = true)
+    @Mapping(target = "ticketTypeCode", ignore = true)
+    @Mapping(target = "ticketTypeName", ignore = true)
+    @Mapping(target = "requestedEffectiveFrom", ignore = true)
+    @Mapping(target = "effectiveFrom", ignore = true)
+    @Mapping(target = "effectiveTo", ignore = true)
+    @Mapping(target = "subscriptionPrice", ignore = true)
+    @Mapping(target = "subscriptionStatus", ignore = true)
+    @Mapping(target = "cardReceiptDate", ignore = true)
+    @Mapping(target = "licensePlate", ignore = true)
+    @Mapping(target = "vehicleBrand", ignore = true)
+    @Mapping(target = "vehicleColor", ignore = true)
+    @Mapping(target = "customerCode", ignore = true)
+    @Mapping(target = "customerType", ignore = true)
+    @Mapping(target = "customerStatus", ignore = true)
+    @Mapping(target = "customerApprovalStatus", ignore = true)
+    @Mapping(target = "customerEmail", ignore = true)
+    @Mapping(target = "customerFullName", ignore = true)
+    @Mapping(target = "customerPhoneNumber", ignore = true)
     CardAdminResponse toAdminResponse(Card card);
 
     List<CardAdminResponse> toAdminResponses(List<Card> cards);
