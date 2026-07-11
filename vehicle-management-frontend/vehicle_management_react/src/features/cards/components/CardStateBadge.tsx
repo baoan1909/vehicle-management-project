@@ -8,6 +8,8 @@ type CardBadgeTone =
   | "inventory-pending"
   | "inventory-lost"
   | "inventory-blocked"
+  | "inventory-damaged"
+  | "inventory-retired"
   | "subscription-none"
   | "subscription-active"
   | "subscription-pending"
@@ -23,12 +25,16 @@ function getInventoryTone(value: CardInventoryStatus): CardBadgeTone {
       return "inventory-assigned";
     case "in_use":
       return "inventory-in-use";
-    case "pending":
+    case "reserved":
       return "inventory-pending";
     case "lost":
       return "inventory-lost";
     case "blocked":
       return "inventory-blocked";
+    case "damaged":
+      return "inventory-damaged";
+    case "retired":
+      return "inventory-retired";
   }
 }
 
@@ -68,7 +74,10 @@ function getToneClass(tone: CardBadgeTone) {
     case "lost-open":
       return "tw-bg-red-500/10 tw-text-red-500";
     case "inventory-blocked":
+    case "inventory-damaged":
       return "tw-bg-slate-400/20 tw-text-slate-500";
+    case "inventory-retired":
+      return "tw-bg-slate-900/10 tw-text-slate-600";
     default:
       return "tw-bg-slate-100 tw-text-slate-600";
   }

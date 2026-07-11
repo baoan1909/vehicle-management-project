@@ -15,4 +15,5 @@ export { Modal } from "./Modal";
 export { PaginationFooter } from "./PaginationFooter";
 export { SelectMenu } from "./SelectMenu";
 export { StatusTabs } from "./StatusTabs";
+export { ToastProvider, useToast } from "./ToastProvider";
 export type { SelectMenuOption } from "./SelectMenu";
