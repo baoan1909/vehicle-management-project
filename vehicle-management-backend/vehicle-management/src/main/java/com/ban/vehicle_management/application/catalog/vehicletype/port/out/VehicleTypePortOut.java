@@ -23,8 +23,6 @@ public interface VehicleTypePortOut {
 
     boolean hasOpenParkingSessions(UUID vehicleTypeId);
 
-    boolean hasActiveCards(UUID vehicleTypeId);
-
     boolean hasActiveZones(UUID vehicleTypeId);
 }
 

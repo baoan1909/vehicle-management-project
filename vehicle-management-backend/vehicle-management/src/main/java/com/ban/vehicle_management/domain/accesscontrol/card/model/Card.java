@@ -19,7 +19,6 @@ public class Card extends AuditableDomainModel {
     private String cardNumber;
     private String uid;
     private UUID cardTypeId;
-    private UUID vehicleTypeId;
     private CardStatus status;
     private Instant issuedAt;
     private Instant blockedAt;

@@ -57,7 +57,7 @@ public class VehicleTypeController {
     }
 
     @GetMapping
-    @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('VEHICLE_TYPE_READ_ALL', 'PARKING_SESSION_CHECK_IN_ALL', 'PARKING_SESSION_CHECK_OUT_ALL')")
     public ResponseEntity<ApiResponse<List<VehicleTypeAdminResponse>>> getVehicleTypes(
             @ModelAttribute VehicleTypeFilterRequest request
     ) {

@@ -8,6 +8,7 @@ import com.ban.vehicle_management.application.parking.parkingsession.port.in.Par
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,8 +17,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
@@ -60,6 +63,15 @@ public class ParkingSessionController {
     ) {
         return buildCheckOutResponse(parkingSessionPortIn.checkOut(
                 parkingSessionApiMapper.toCommand(parseCheckOutRequest(request), licensePlateImage, personImage)
+        ));
+    }
+
+    @GetMapping("/open-by-card")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SESSION_CHECK_OUT_ALL')")
+    public ResponseEntity<ApiResponse<ParkingSessionCheckOutPreviewResponse>> findOpenByCardUid(@RequestParam String cardUid) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Open parking session preview fetched successfully",
+                parkingSessionApiMapper.toCheckOutPreviewResponse(parkingSessionPortIn.previewCheckOutByCardUid(cardUid))
         ));
     }
 

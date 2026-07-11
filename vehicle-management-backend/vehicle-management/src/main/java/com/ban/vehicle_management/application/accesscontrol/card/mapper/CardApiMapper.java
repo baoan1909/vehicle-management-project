@@ -35,6 +35,7 @@ public interface CardApiMapper {
     @Mapping(target = "updatedBy", ignore = true)
     Card toDomain(UpdateCardRequest request);
 
+    @Mapping(target = "registeredVehicleTypeId", ignore = true)
     CardAdminResponse toAdminResponse(Card card);
 
     List<CardAdminResponse> toAdminResponses(List<Card> cards);

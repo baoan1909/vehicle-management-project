@@ -19,6 +19,8 @@ public class CardTypeUseCaseImpl implements CardTypePortIn {
     private static final String CARD_TYPE_READ_ALL = "CARD_TYPE_READ_ALL";
     private static final String CARD_TYPE_UPDATE_ALL = "CARD_TYPE_UPDATE_ALL";
     private static final String CARD_TYPE_DELETE_ALL = "CARD_TYPE_DELETE_ALL";
+    private static final String PARKING_SESSION_CHECK_IN_ALL = "PARKING_SESSION_CHECK_IN_ALL";
+    private static final String PARKING_SESSION_CHECK_OUT_ALL = "PARKING_SESSION_CHECK_OUT_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final CardTypePortOut cardTypePort;
@@ -78,7 +80,7 @@ public class CardTypeUseCaseImpl implements CardTypePortIn {
     @Override
     @Transactional(readOnly = true)
     public List<CardType> getCardTypes(Boolean isActive) {
-        currentAccountPortIn.requirePermission(CARD_TYPE_READ_ALL);
+        requireCatalogReadForOperation();
         return cardTypePort.findAll(isActive);
     }
 
@@ -118,6 +120,16 @@ public class CardTypeUseCaseImpl implements CardTypePortIn {
     private CardType findExistingCardType(UUID cardTypeId) {
         return cardTypePort.findById(cardTypeId)
                 .orElseThrow(() -> new NotFoundException("Card type not found"));
+    }
+
+    private void requireCatalogReadForOperation() {
+        if (currentAccountPortIn.hasPermission(CARD_TYPE_READ_ALL)
+                || currentAccountPortIn.hasPermission(PARKING_SESSION_CHECK_IN_ALL)
+                || currentAccountPortIn.hasPermission(PARKING_SESSION_CHECK_OUT_ALL)) {
+            return;
+        }
+
+        currentAccountPortIn.requirePermission(CARD_TYPE_READ_ALL);
     }
 }
 

@@ -316,11 +316,6 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 throw new ConflictException("New card must be AVAILABLE");
             }
 
-            UUID vehicleTypeId = resolveRegisteredVehicleType(session, subscription);
-            if (newCard.getVehicleTypeId() != null && !newCard.getVehicleTypeId().equals(vehicleTypeId)) {
-                throw new ConflictException("New card vehicle type does not match subscription vehicle type");
-            }
-
             cardPolicy.assign(newCard, Instant.now());
             cardPortOut.save(newCard);
 

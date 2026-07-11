@@ -79,7 +79,6 @@ export function CardListTable({
               </th>
               <th>Mã thẻ <HeaderSort /></th>
               <th>Loại thẻ <HeaderSort /></th>
-              <th>Loại xe</th>
               <th>Khách hàng</th>
               <th>Biển số</th>
               <th>Trạng thái</th>
@@ -107,7 +106,6 @@ export function CardListTable({
                   </td>
                   <td className="tw-font-bold tw-text-vm-primary">{row.cardCode}</td>
                   <td>{row.cardTypeLabel}</td>
-                  <td>{row.vehicleType}</td>
                   <td>{row.customerName ?? "-"}</td>
                   <td>{row.licensePlate ?? "-"}</td>
                   <td>

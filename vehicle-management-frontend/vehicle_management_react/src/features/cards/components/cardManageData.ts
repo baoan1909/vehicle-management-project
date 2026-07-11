@@ -8,7 +8,6 @@ export interface CardManageRecord {
   cardCode: string;
   uid: string;
   cardTypeLabel: string;
-  vehicleType: string;
   customerName: string | null;
   phoneNumber: string | null;
   licensePlate: string | null;
@@ -95,7 +94,6 @@ export const cardManageRecords: CardManageRecord[] = [
     cardCode: "C000123",
     uid: "04AABBCC11223344",
     cardTypeLabel: "Đăng ký",
-    vehicleType: "Xe máy",
     customerName: "Nguyễn Văn An",
     phoneNumber: "0901 234 111",
     licensePlate: "59C1-123.45",
@@ -113,7 +111,6 @@ export const cardManageRecords: CardManageRecord[] = [
     cardCode: "V000456",
     uid: "04AABBCC55667788",
     cardTypeLabel: "Vãng lai",
-    vehicleType: "Xe ô tô",
     customerName: "Trần Thị Bình",
     phoneNumber: "0901 234 567",
     licensePlate: "30A-987.65",
@@ -131,7 +128,6 @@ export const cardManageRecords: CardManageRecord[] = [
     cardCode: "V000789",
     uid: "04AABBCC99887766",
     cardTypeLabel: "Vãng lai",
-    vehicleType: "Xe máy",
     customerName: null,
     phoneNumber: null,
     licensePlate: null,
@@ -149,7 +145,6 @@ export const cardManageRecords: CardManageRecord[] = [
     cardCode: "C000321",
     uid: "04AABBCC22334455",
     cardTypeLabel: "Đăng ký",
-    vehicleType: "Xe ô tô",
     customerName: "Lê Minh Cường",
     phoneNumber: "0901 234 222",
     licensePlate: "51F-345.67",
@@ -167,7 +162,6 @@ export const cardManageRecords: CardManageRecord[] = [
     cardCode: "C000654",
     uid: "04AABBCC33445566",
     cardTypeLabel: "Đăng ký",
-    vehicleType: "Xe máy",
     customerName: "Phạm Hoàng Dũng",
     phoneNumber: "0901 234 333",
     licensePlate: "59U1-111.22",
@@ -185,7 +179,6 @@ export const cardManageRecords: CardManageRecord[] = [
     cardCode: "V001012",
     uid: "04AABBCC66778899",
     cardTypeLabel: "Vãng lai",
-    vehicleType: "Xe khác",
     customerName: null,
     phoneNumber: null,
     licensePlate: null,
@@ -203,7 +196,6 @@ export const cardManageRecords: CardManageRecord[] = [
     cardCode: "C000987",
     uid: "04AABBCC44556677",
     cardTypeLabel: "Đăng ký",
-    vehicleType: "Xe ô tô",
     customerName: "Hoàng Thị Em",
     phoneNumber: "0901 234 444",
     licensePlate: "30G-222.33",

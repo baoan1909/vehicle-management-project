@@ -38,11 +38,10 @@ It does not redefine the global admin header or the admin sidebar shell.
    - Dense operational table.
    - Selected row controls the right detail panel.
    - Columns:
-     - `Mã thẻ`
-     - `UID`
-     - `Loại thẻ`
-     - `Loại xe`
-     - `Khách hàng`
+    - `Mã thẻ`
+    - `UID`
+    - `Loại thẻ`
+    - `Khách hàng`
      - `Biển số`
      - `Trạng thái`
      - `Vé tháng`
@@ -63,7 +62,7 @@ It does not redefine the global admin header or the admin sidebar shell.
 
 - `access_control.cards`
   - drives inventory identity and stock state
-  - `card_number`, `uid`, `card_type_id`, `vehicle_type_id`, `status`, `issued_at`, `blocked_reason`
+  - `card_number`, `uid`, `card_type_id`, `status`, `issued_at`, `blocked_reason`
 
 - `access_control.subscriptions`
   - drives registered card lifecycle

@@ -5,6 +5,9 @@ import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent
 import com.ban.vehicle_management.infrastructure.mapper.parking.ParkingEventPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingEventEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingEventRepository;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -27,5 +30,12 @@ public class ParkingEventPersistenceAdapter implements ParkingEventPortOut {
                 parkingEventPersistenceMapper.toEntity(parkingEvent)
         );
         return parkingEventPersistenceMapper.toDomain(savedEntity);
+    }
+
+    @Override
+    public Optional<ParkingEvent> findLatestBySessionIdAndEventType(UUID parkingSessionId, ParkingEventType eventType) {
+        return parkingEventRepository
+                .findFirstByParkingSessionIdAndEventTypeOrderByEventTimeDesc(parkingSessionId, eventType)
+                .map(parkingEventPersistenceMapper::toDomain);
     }
 }

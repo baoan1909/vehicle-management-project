@@ -27,7 +27,8 @@ class AccountProfileStatusResponseTest {
                         "PENDING",
                         "employee.user",
                         "employee@example.com",
-                        "kc-employee"
+                        "kc-employee",
+                        "EMPLOYEE"
                 ),
                 new AccountProfileStatusResponse.ProfileInfoResponse(
                         null,
@@ -57,7 +58,8 @@ class AccountProfileStatusResponseTest {
                         "PENDING",
                         "customer.user",
                         "customer@example.com",
-                        "kc-customer"
+                        "kc-customer",
+                        "CUSTOMER"
                 ),
                 new AccountProfileStatusResponse.ProfileInfoResponse(
                         null,

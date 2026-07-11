@@ -16,7 +16,7 @@ public interface CardPortOut {
 
     Optional<Card> findByUidForUpdate(String uid);
 
-    List<Card> findAll(CardStatus status, UUID cardTypeId, UUID vehicleTypeId, String keyword);
+    List<Card> findAll(CardStatus status, UUID cardTypeId, String keyword);
 
     boolean existsByCardNumber(String cardNumber);
 
@@ -30,6 +30,6 @@ public interface CardPortOut {
 
     boolean hasActiveUsage(UUID cardId);
 
-    Optional<Card> findFirstAvailableRegisteredByVehicleTypeId(UUID vehicleTypeId);
+    Optional<Card> findFirstAvailableRegistered();
 }
 

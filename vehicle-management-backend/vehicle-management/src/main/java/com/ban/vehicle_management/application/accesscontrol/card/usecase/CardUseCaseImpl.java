@@ -4,7 +4,6 @@ import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardPor
 import com.ban.vehicle_management.application.accesscontrol.card.port.in.ChangeCardStatusPortIn;
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
-import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
@@ -25,23 +24,22 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
     private static final String CARD_READ_ALL = "CARD_READ_ALL";
     private static final String CARD_UPDATE_ALL = "CARD_UPDATE_ALL";
     private static final String CARD_DELETE_ALL = "CARD_DELETE_ALL";
+    private static final String PARKING_SESSION_CHECK_IN_ALL = "PARKING_SESSION_CHECK_IN_ALL";
+    private static final String PARKING_SESSION_CHECK_OUT_ALL = "PARKING_SESSION_CHECK_OUT_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final CardPortOut cardPort;
     private final CardTypePortOut cardTypePort;
-    private final VehicleTypePortOut vehicleTypePort;
     private final CardPolicy cardPolicy = new CardPolicy();
 
     public CardUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             CardPortOut cardPort,
-            CardTypePortOut cardTypePort,
-            VehicleTypePortOut vehicleTypePort
+            CardTypePortOut cardTypePort
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.cardPort = cardPort;
         this.cardTypePort = cardTypePort;
-        this.vehicleTypePort = vehicleTypePort;
     }
 
     @Override
@@ -50,7 +48,6 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
         currentAccountPortIn.requirePermission(CARD_CREATE_ALL);
         cardPolicy.initializeNewCard(card);
         validateCardTypeExists(card.getCardTypeId());
-        validateVehicleTypeExists(card.getVehicleTypeId());
 
         if (cardPort.existsByCardNumber(card.getCardNumber())) {
             throw new ConflictException("Card number already exists");
@@ -72,9 +69,9 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Card> getCards(CardStatus status, UUID cardTypeId, UUID vehicleTypeId, String keyword) {
-        currentAccountPortIn.requirePermission(CARD_READ_ALL);
-        return cardPort.findAll(status, cardTypeId, vehicleTypeId, cardPolicy.normalizeKeyword(keyword));
+    public List<Card> getCards(CardStatus status, UUID cardTypeId, String keyword) {
+        requireCardReadForOperation();
+        return cardPort.findAll(status, cardTypeId, cardPolicy.normalizeKeyword(keyword));
     }
 
     @Override
@@ -94,11 +91,8 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
         existingCard.setCardNumber(card.getCardNumber());
         existingCard.setUid(card.getUid());
         existingCard.setCardTypeId(card.getCardTypeId());
-        existingCard.setVehicleTypeId(card.getVehicleTypeId());
-
         cardPolicy.validateMaintenance(existingCard);
         validateCardTypeExists(existingCard.getCardTypeId());
-        validateVehicleTypeExists(existingCard.getVehicleTypeId());
 
         if (cardPort.existsByCardNumberAndCardIdNot(existingCard.getCardNumber(), cardId)) {
             throw new ConflictException("Card number already exists");
@@ -163,10 +157,14 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
                 .orElseThrow(() -> new NotFoundException("Card not found"));
     }
 
-    private void validateVehicleTypeExists(UUID vehicleTypeId) {
-        if (vehicleTypeId != null && vehicleTypePort.findById(vehicleTypeId).isEmpty()) {
-            throw new BadRequestException("Vehicle type does not exist");
+    private void requireCardReadForOperation() {
+        if (currentAccountPortIn.hasPermission(CARD_READ_ALL)
+                || currentAccountPortIn.hasPermission(PARKING_SESSION_CHECK_IN_ALL)
+                || currentAccountPortIn.hasPermission(PARKING_SESSION_CHECK_OUT_ALL)) {
+            return;
         }
+
+        currentAccountPortIn.requirePermission(CARD_READ_ALL);
     }
 
 }

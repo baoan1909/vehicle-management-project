@@ -45,6 +45,7 @@ class ParkingSessionControllerTest {
                 parkingSessionApiMapper
         );
         UUID laneId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
         MockMultipartFile licensePlateImage = new MockMultipartFile(
                 "licensePlateImage",
                 "plate.jpg",
@@ -60,6 +61,7 @@ class ParkingSessionControllerTest {
         CheckInCommand command = new CheckInCommand(
                 "RFID-REGISTERED-001",
                 laneId,
+                vehicleTypeId,
                 "60K8-2301",
                 licensePlateImage,
                 personImage,

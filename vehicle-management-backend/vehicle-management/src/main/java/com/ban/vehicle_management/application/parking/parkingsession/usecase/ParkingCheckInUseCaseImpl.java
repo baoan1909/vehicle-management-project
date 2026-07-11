@@ -125,6 +125,7 @@ public class ParkingCheckInUseCaseImpl {
 
         Instant now = Instant.now();
         String cardUid = TextValidationUtils.normalizeRequiredText(command.cardUid(), "cardUid", 100);
+        UUID requestedVehicleTypeId = command.vehicleTypeId();
         String licensePlate = licensePlatePolicy.normalizeRequired(command.licensePlate(), "licensePlate");
         String note = TextValidationUtils.normalizeNullableText(command.note(), "note", 0);
 
@@ -140,11 +141,12 @@ public class ParkingCheckInUseCaseImpl {
         CardType cardType = cardTypePortOut.findById(card.getCardTypeId())
                 .orElseThrow(() -> new NotFoundException("Card type not found"));
         parkingCheckInPolicy.validateCardCanEnter(card, cardType);
-        parkingCheckInPolicy.validateVehicleTypeAccepted(card.getVehicleTypeId(), zone);
         parkingCheckInPolicy.ensureCardHasNoOpenSession(parkingSessionPortOut.existsOpenByCardId(card.getCardId()));
         parkingCheckInPolicy.validateZoneCapacity(zone, parkingSessionPortOut.countOpenByZoneId(zone.getZoneId()));
 
         CheckInCustomerContext customerContext = resolveCustomerContext(card, cardType, licensePlate, now);
+        UUID resolvedVehicleTypeId = resolveVehicleTypeId(customerContext, requestedVehicleTypeId);
+        parkingCheckInPolicy.validateVehicleTypeAccepted(resolvedVehicleTypeId, zone);
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         UUID parkingEventId = UUID.randomUUID();
         StoredFile storedLicensePlateImage = null;
@@ -159,6 +161,7 @@ public class ParkingCheckInUseCaseImpl {
                     customerContext.subscription(),
                     customerContext.customerVehicle(),
                     zone,
+                    resolvedVehicleTypeId,
                     licensePlate,
                     now
             );
@@ -294,6 +297,20 @@ public class ParkingCheckInUseCaseImpl {
         throw new ConflictException("Card is not eligible for parking check-in");
     }
 
+    private UUID resolveVehicleTypeId(CheckInCustomerContext customerContext, UUID requestedVehicleTypeId) {
+        CustomerVehicle customerVehicle = customerContext.customerVehicle();
+        if (customerVehicle != null) {
+            UUID subscriptionVehicleTypeId = customerVehicle.getVehicleTypeId();
+            if (requestedVehicleTypeId != null && !requestedVehicleTypeId.equals(subscriptionVehicleTypeId)) {
+                throw new ConflictException("Selected vehicle type does not match subscription vehicle");
+            }
+            return subscriptionVehicleTypeId;
+        }
+
+        requireField(requestedVehicleTypeId, "vehicleTypeId");
+        return requestedVehicleTypeId;
+    }
+
     private Lane findLane(UUID laneId) {
         requireField(laneId, "laneId");
         return lanePortOut.findById(laneId)
@@ -301,16 +318,25 @@ public class ParkingCheckInUseCaseImpl {
     }
 
     private Gate findGate(UUID gateId) {
+        if (gateId == null) {
+            throw new ConflictException("Lane is not linked to a gate");
+        }
         return gatePortOut.findById(gateId)
                 .orElseThrow(() -> new NotFoundException("Gate not found"));
     }
 
     private Zone findZone(UUID zoneId) {
+        if (zoneId == null) {
+            throw new ConflictException("Gate is not linked to a zone");
+        }
         return zonePortOut.findById(zoneId)
                 .orElseThrow(() -> new NotFoundException("Zone not found"));
     }
 
     private ParkingLot findParkingLot(UUID parkingLotId) {
+        if (parkingLotId == null) {
+            throw new ConflictException("Zone is not linked to a parking lot");
+        }
         return parkingLotPortOut.findById(parkingLotId)
                 .orElseThrow(() -> new NotFoundException("Parking lot not found"));
     }

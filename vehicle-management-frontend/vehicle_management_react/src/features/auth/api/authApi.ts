@@ -117,6 +117,19 @@ export async function exchangeKeycloakAuthorizationCode(code: string) {
   return responseBody;
 }
 
+export function buildKeycloakLogoutUrl(idToken?: string | null) {
+  const loginUrl = new URL(appConfig.keycloakLoginUrl);
+  const logoutUrl = new URL(loginUrl.toString());
+  logoutUrl.pathname = logoutUrl.pathname.replace(/\/auth$/, "/logout");
+  logoutUrl.search = "";
+  logoutUrl.searchParams.set("client_id", loginUrl.searchParams.get("client_id") ?? "vehicle-management-frontend");
+  logoutUrl.searchParams.set("post_logout_redirect_uri", `${window.location.origin}/login`);
+  if (idToken) {
+    logoutUrl.searchParams.set("id_token_hint", idToken);
+  }
+  return logoutUrl.toString();
+}
+
 function generateCodeVerifier() {
   const randomValues = new Uint8Array(64);
   crypto.getRandomValues(randomValues);

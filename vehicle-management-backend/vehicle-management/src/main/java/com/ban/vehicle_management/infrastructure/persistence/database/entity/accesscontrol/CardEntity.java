@@ -3,7 +3,6 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.ac
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.LostCardReportEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.SubscriptionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.CardTypeEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
@@ -50,13 +49,6 @@ public class CardEntity extends AuditableEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "card_type_id", referencedColumnName = "card_type_id", insertable = false, updatable = false)
     private CardTypeEntity cardType;
-
-    @Column(name = "vehicle_type_id")
-    private UUID vehicleTypeId;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicle_type_id", referencedColumnName = "vehicle_type_id", insertable = false, updatable = false)
-    private VehicleTypeEntity vehicleType;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)

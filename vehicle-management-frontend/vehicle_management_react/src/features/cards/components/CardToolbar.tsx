@@ -2,7 +2,6 @@ import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 
 interface CardToolbarProps {
   cardTypeValue: string;
-  vehicleTypeValue: string;
   inventoryStatusValue: string;
   subscriptionStatusValue: string;
   lostStatusValue: string;
@@ -13,12 +12,10 @@ interface CardToolbarProps {
   onReset: () => void;
   onSearchChange: (value: string) => void;
   onSubscriptionStatusChange: (value: string) => void;
-  onVehicleTypeChange: (value: string) => void;
 }
 
 export function CardToolbar({
   cardTypeValue,
-  vehicleTypeValue,
   inventoryStatusValue,
   subscriptionStatusValue,
   lostStatusValue,
@@ -28,8 +25,7 @@ export function CardToolbar({
   onLostStatusChange,
   onReset,
   onSearchChange,
-  onSubscriptionStatusChange,
-  onVehicleTypeChange
+  onSubscriptionStatusChange
 }: CardToolbarProps) {
   return (
     <div className="tw-flex tw-flex-col tw-items-stretch tw-gap-[0.85rem] tw-p-[1.1rem]">
@@ -47,7 +43,7 @@ export function CardToolbar({
       </div>
 
       <div className="tw-flex tw-flex-col tw-items-start tw-gap-[0.85rem]">
-        <div className="tw-grid tw-w-auto tw-max-w-full tw-grid-cols-[repeat(4,minmax(140px,168px))] tw-gap-3 max-[900px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
+        <div className="tw-grid tw-w-auto tw-max-w-full tw-grid-cols-[repeat(3,minmax(140px,168px))] tw-gap-3 max-[900px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
           <label className="tw-m-0 tw-grid tw-gap-[0.35rem]">
             <span className="tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-500">Loại thẻ</span>
             <SelectMenu
@@ -58,21 +54,6 @@ export function CardToolbar({
                 { label: "Tất cả", value: "all" },
                 { label: "Đăng ký", value: "Đăng ký" },
                 { label: "Vãng lai", value: "Vãng lai" }
-              ]}
-            />
-          </label>
-
-          <label className="tw-m-0 tw-grid tw-gap-[0.35rem]">
-            <span className="tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-500">Loại xe</span>
-            <SelectMenu
-              ariaLabel="Loại xe"
-              value={vehicleTypeValue}
-              onChange={onVehicleTypeChange}
-              options={[
-                { label: "Tất cả", value: "all" },
-                { label: "Xe máy", value: "Xe máy" },
-                { label: "Xe ô tô", value: "Xe ô tô" },
-                { label: "Xe khác", value: "Xe khác" }
               ]}
             />
           </label>

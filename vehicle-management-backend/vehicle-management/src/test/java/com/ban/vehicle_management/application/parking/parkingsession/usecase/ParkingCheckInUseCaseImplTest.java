@@ -143,6 +143,7 @@ class ParkingCheckInUseCaseImplTest {
         CheckInCommand command = new CheckInCommand(
                 " UID-001 ",
                 data.laneId(),
+                data.vehicleTypeId(),
                 " 51A-12345 ",
                 licensePlateImage,
                 personImage,
@@ -193,6 +194,7 @@ class ParkingCheckInUseCaseImplTest {
         CheckInCommand command = new CheckInCommand(
                 " UID-001 ",
                 data.laneId(),
+                data.vehicleTypeId(),
                 " 51A-12345 ",
                 licensePlateImage,
                 personImage,
@@ -242,7 +244,7 @@ class ParkingCheckInUseCaseImplTest {
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
 
         CheckInResult result = parkingCheckInUseCase.checkIn(
-                new CheckInCommand("UID-001", data.laneId(), "51a-12345", licensePlateImage(), personImage(), null)
+                new CheckInCommand("UID-001", data.laneId(), data.vehicleTypeId(), "51a-12345", licensePlateImage(), personImage(), null)
         );
 
         assertEquals(CardStatus.IN_USE, subscriptionCard.getStatus());
@@ -266,6 +268,7 @@ class ParkingCheckInUseCaseImplTest {
                 () -> parkingCheckInUseCase.checkIn(new CheckInCommand(
                         "UID-001",
                         data.laneId(),
+                        data.vehicleTypeId(),
                         "51A-12345",
                         licensePlateImage(),
                         personImage(),
@@ -284,6 +287,7 @@ class ParkingCheckInUseCaseImplTest {
                 () -> parkingCheckInUseCase.checkIn(new CheckInCommand(
                         "UID-001",
                         data.laneId(),
+                        data.vehicleTypeId(),
                         "51A-12345",
                         null,
                         personImage(),
@@ -303,6 +307,7 @@ class ParkingCheckInUseCaseImplTest {
                 () -> parkingCheckInUseCase.checkIn(new CheckInCommand(
                         "UID-001",
                         data.laneId(),
+                        data.vehicleTypeId(),
                         "51A-12345",
                         licensePlateImage(),
                         null,
@@ -329,6 +334,7 @@ class ParkingCheckInUseCaseImplTest {
                 () -> parkingCheckInUseCase.checkIn(new CheckInCommand(
                         "UID-001",
                         data.laneId(),
+                        data.vehicleTypeId(),
                         "51A-12345",
                         licensePlateImage(),
                         personImage(),
@@ -355,6 +361,7 @@ class ParkingCheckInUseCaseImplTest {
                 () -> parkingCheckInUseCase.checkIn(new CheckInCommand(
                         "UID-001",
                         data.laneId(),
+                        data.vehicleTypeId(),
                         "51A-12345",
                         licensePlateImage(),
                         personImage(),
@@ -432,7 +439,6 @@ class ParkingCheckInUseCaseImplTest {
         card.setCardNumber("C001");
         card.setUid("UID-001");
         card.setCardTypeId(UUID.randomUUID());
-        card.setVehicleTypeId(vehicleTypeId);
         card.setStatus(status);
         return card;
     }

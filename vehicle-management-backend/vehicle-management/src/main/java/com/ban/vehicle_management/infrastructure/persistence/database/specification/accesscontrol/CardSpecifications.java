@@ -15,7 +15,6 @@ public final class CardSpecifications {
     public static Specification<CardEntity> withFilters(
             CardStatus status,
             UUID cardTypeId,
-            UUID vehicleTypeId,
             String keyword
     ) {
         return (root, query, criteriaBuilder) -> {
@@ -26,9 +25,6 @@ public final class CardSpecifications {
             }
             if (cardTypeId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("cardTypeId"), cardTypeId));
-            }
-            if (vehicleTypeId != null) {
-                predicates.add(criteriaBuilder.equal(root.get("vehicleTypeId"), vehicleTypeId));
             }
             if (keyword != null && !keyword.isBlank()) {
                 String keywordPattern = "%" + keyword.trim().toLowerCase() + "%";

@@ -11,7 +11,7 @@ public interface CardPortIn {
 
     Card getCardById(UUID cardId);
 
-    List<Card> getCards(CardStatus status, UUID cardTypeId, UUID vehicleTypeId, String keyword);
+    List<Card> getCards(CardStatus status, UUID cardTypeId, String keyword);
 
     Card updateCard(UUID cardId, Card card);
 

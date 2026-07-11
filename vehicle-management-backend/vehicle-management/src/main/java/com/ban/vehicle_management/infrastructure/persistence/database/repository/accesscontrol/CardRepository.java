@@ -19,8 +19,6 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID>, JpaSpec
 
     boolean existsByCardTypeIdAndStatusIn(UUID cardTypeId, Collection<CardStatus> statuses);
 
-    boolean existsByVehicleTypeIdAndStatusIn(UUID vehicleTypeId, Collection<CardStatus> statuses);
-
     boolean existsByCardNumber(String cardNumber);
 
     boolean existsByUid(String uid);
@@ -44,13 +42,11 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID>, JpaSpec
         select card
         from CardEntity card
         join card.cardType cardType
-        where card.vehicleTypeId = :vehicleTypeId
-          and card.status = :status
+        where card.status = :status
           and upper(cardType.code) = upper(:cardTypeCode)
         order by card.cardNumber asc
         """)
-    List<CardEntity> findAvailableByVehicleTypeAndCardTypeCodeForUpdate(
-            @Param("vehicleTypeId") UUID vehicleTypeId,
+    List<CardEntity> findAvailableByCardTypeCodeForUpdate(
             @Param("status") CardStatus status,
             @Param("cardTypeCode") String cardTypeCode
     );

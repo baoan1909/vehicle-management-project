@@ -1,6 +1,5 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog;
 
-import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.CardEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.PriceRuleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
@@ -48,9 +47,6 @@ public class VehicleTypeEntity extends AuditableEntity {
 
     @OneToMany(mappedBy = "vehicleType")
     private Set<PriceRuleEntity> priceRules = new HashSet<>();
-
-    @OneToMany(mappedBy = "vehicleType")
-    private Set<CardEntity> cards = new HashSet<>();
 
     @OneToMany(mappedBy = "vehicleType")
     private Set<ZoneEntity> zones = new HashSet<>();

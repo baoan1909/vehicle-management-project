@@ -67,8 +67,8 @@ public class CardPersistenceAdapter implements CardPortOut {
     }
 
     @Override
-    public List<Card> findAll(CardStatus status, UUID cardTypeId, UUID vehicleTypeId, String keyword) {
-        return cardRepository.findAll(CardSpecifications.withFilters(status, cardTypeId, vehicleTypeId, keyword)).stream()
+    public List<Card> findAll(CardStatus status, UUID cardTypeId, String keyword) {
+        return cardRepository.findAll(CardSpecifications.withFilters(status, cardTypeId, keyword)).stream()
                 .map(cardPersistenceMapper::toDomain)
                 .toList();
     }
@@ -118,9 +118,8 @@ public class CardPersistenceAdapter implements CardPortOut {
     }
 
     @Override
-    public Optional<Card> findFirstAvailableRegisteredByVehicleTypeId(UUID vehicleTypeId) {
-        return cardRepository.findAvailableByVehicleTypeAndCardTypeCodeForUpdate(
-                        vehicleTypeId,
+    public Optional<Card> findFirstAvailableRegistered() {
+        return cardRepository.findAvailableByCardTypeCodeForUpdate(
                         CardStatus.AVAILABLE,
                         CARD_TYPE_REGISTERED
                 )

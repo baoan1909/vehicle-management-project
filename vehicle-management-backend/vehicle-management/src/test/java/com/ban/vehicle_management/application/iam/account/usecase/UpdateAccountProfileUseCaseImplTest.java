@@ -207,7 +207,8 @@ class UpdateAccountProfileUseCaseImplTest {
                         "ACTIVE",
                         "baoan3236",
                         "baoan3236@gmail.com",
-                        "23d493f8-e9f8-4843-917c-9e6c431bfeea"
+                        "23d493f8-e9f8-4843-917c-9e6c431bfeea",
+                        "CUSTOMER"
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(
                         userProfileId,

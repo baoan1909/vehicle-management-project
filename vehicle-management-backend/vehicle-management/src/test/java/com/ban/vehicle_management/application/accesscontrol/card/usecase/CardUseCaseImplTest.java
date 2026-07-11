@@ -11,11 +11,9 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
-import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
-import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -39,9 +37,6 @@ class CardUseCaseImplTest {
     private CardTypePortOut cardTypePort;
 
     @Mock
-    private VehicleTypePortOut vehicleTypePort;
-
-    @Mock
     private CurrentAccountPortIn currentAccountPortIn;
 
     @InjectMocks
@@ -50,15 +45,12 @@ class CardUseCaseImplTest {
     @Test
     void shouldCreateCardWithDefaultAvailableStatus() {
         UUID cardTypeId = UUID.randomUUID();
-        UUID vehicleTypeId = UUID.randomUUID();
         Card requestCard = new Card();
         requestCard.setCardNumber(" C001 ");
         requestCard.setUid(" UID-001 ");
         requestCard.setCardTypeId(cardTypeId);
-        requestCard.setVehicleTypeId(vehicleTypeId);
 
         when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(new CardType()));
-        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(new VehicleType()));
         when(cardPort.existsByCardNumber("C001")).thenReturn(false);
         when(cardPort.existsByUid("UID-001")).thenReturn(false);
         when(cardPort.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -89,22 +81,21 @@ class CardUseCaseImplTest {
     @Test
     void shouldReturnFilteredCards() {
         UUID cardTypeId = UUID.randomUUID();
-        UUID vehicleTypeId = UUID.randomUUID();
-        when(cardPort.findAll(CardStatus.AVAILABLE, cardTypeId, vehicleTypeId, "C001"))
+        when(cardPort.findAll(CardStatus.AVAILABLE, cardTypeId, "C001"))
                 .thenReturn(List.of(new Card(), new Card()));
 
-        List<Card> cards = cardUseCase.getCards(CardStatus.AVAILABLE, cardTypeId, vehicleTypeId, " C001 ");
+        List<Card> cards = cardUseCase.getCards(CardStatus.AVAILABLE, cardTypeId, " C001 ");
 
         assertEquals(2, cards.size());
         verify(currentAccountPortIn).requirePermission("CARD_READ_ALL");
-        verify(cardPort).findAll(CardStatus.AVAILABLE, cardTypeId, vehicleTypeId, "C001");
+        verify(cardPort).findAll(CardStatus.AVAILABLE, cardTypeId, "C001");
     }
 
     @Test
     void shouldRejectUpdateWhenCardIsInUse() {
         UUID cardId = UUID.randomUUID();
         Card existingCard = existingCard(cardId, CardStatus.IN_USE);
-        Card requestCard = updateRequest(existingCard.getCardTypeId(), existingCard.getVehicleTypeId());
+        Card requestCard = updateRequest(existingCard.getCardTypeId());
 
         when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
 
@@ -116,7 +107,7 @@ class CardUseCaseImplTest {
     void shouldRejectSensitiveUpdateAfterOperationalHistoryExists() {
         UUID cardId = UUID.randomUUID();
         Card existingCard = existingCard(cardId, CardStatus.AVAILABLE);
-        Card requestCard = updateRequest(existingCard.getCardTypeId(), existingCard.getVehicleTypeId());
+        Card requestCard = updateRequest(existingCard.getCardTypeId());
         requestCard.setCardNumber("C999");
 
         when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
@@ -130,17 +121,14 @@ class CardUseCaseImplTest {
     void shouldUpdateCardWhenMaintenanceDataIsAllowed() {
         UUID cardId = UUID.randomUUID();
         UUID cardTypeId = UUID.randomUUID();
-        UUID vehicleTypeId = UUID.randomUUID();
         Card existingCard = existingCard(cardId, CardStatus.AVAILABLE);
         Card requestCard = new Card();
         requestCard.setCardNumber(" C001 ");
         requestCard.setUid(" UID-001 ");
         requestCard.setCardTypeId(cardTypeId);
-        requestCard.setVehicleTypeId(vehicleTypeId);
 
         when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
         when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(new CardType()));
-        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(new VehicleType()));
         when(cardPort.existsByCardNumberAndCardIdNot("C001", cardId)).thenReturn(false);
         when(cardPort.existsByUidAndCardIdNot("UID-001", cardId)).thenReturn(false);
         when(cardPort.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -151,7 +139,6 @@ class CardUseCaseImplTest {
         assertEquals("C001", updatedCard.getCardNumber());
         assertEquals("UID-001", updatedCard.getUid());
         assertEquals(cardTypeId, updatedCard.getCardTypeId());
-        assertEquals(vehicleTypeId, updatedCard.getVehicleTypeId());
     }
 
     @Test
@@ -235,24 +222,21 @@ class CardUseCaseImplTest {
 
     private Card existingCard(UUID cardId, CardStatus status) {
         UUID cardTypeId = UUID.randomUUID();
-        UUID vehicleTypeId = UUID.randomUUID();
 
         Card existingCard = new Card();
         existingCard.setCardId(cardId);
         existingCard.setCardNumber("C001");
         existingCard.setUid("UID-001");
         existingCard.setCardTypeId(cardTypeId);
-        existingCard.setVehicleTypeId(vehicleTypeId);
         existingCard.setStatus(status);
         return existingCard;
     }
 
-    private Card updateRequest(UUID cardTypeId, UUID vehicleTypeId) {
+    private Card updateRequest(UUID cardTypeId) {
         Card requestCard = new Card();
         requestCard.setCardNumber("C001");
         requestCard.setUid("UID-001");
         requestCard.setCardTypeId(cardTypeId);
-        requestCard.setVehicleTypeId(vehicleTypeId);
         return requestCard;
     }
 }

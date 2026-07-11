@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.parking.parkingsession.mapper;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckOutCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInResult;
+import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent;
@@ -13,6 +14,7 @@ import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
@@ -36,6 +38,7 @@ public interface ParkingSessionApiMapper {
         return new CheckInCommand(
                 command.cardUid(),
                 command.laneId(),
+                command.vehicleTypeId(),
                 command.licensePlate(),
                 licensePlateImage,
                 personImage,
@@ -66,6 +69,8 @@ public interface ParkingSessionApiMapper {
     }
 
     ParkingSessionCheckOutResponse toCheckOutResponse(CheckOutResult result);
+
+    ParkingSessionCheckOutPreviewResponse toCheckOutPreviewResponse(CheckOutPreviewResult result);
 
     ParkingSessionResponse toResponse(ParkingSession parkingSession);
 

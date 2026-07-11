@@ -242,7 +242,6 @@ class LostCardReportUseCaseImplTest {
         Subscription subscription = activeSubscription();
         Card newCard = card(CardStatus.AVAILABLE);
         newCard.setCardId(NEW_CARD_ID);
-        newCard.setVehicleTypeId(null);
         Invoice invoice = paidLostCardInvoice();
 
         when(lostCardReportPortOut.findById(REPORT_ID)).thenReturn(Optional.of(report));
@@ -358,7 +357,6 @@ class LostCardReportUseCaseImplTest {
         card.setCardNumber("V001");
         card.setUid("RFID-001");
         card.setCardTypeId(UUID.randomUUID());
-        card.setVehicleTypeId(VEHICLE_TYPE_ID);
         card.setStatus(status);
         return card;
     }

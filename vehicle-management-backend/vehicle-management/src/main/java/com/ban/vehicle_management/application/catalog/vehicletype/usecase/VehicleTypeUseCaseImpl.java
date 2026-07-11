@@ -19,6 +19,8 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
     private static final String VEHICLE_TYPE_READ_ALL = "VEHICLE_TYPE_READ_ALL";
     private static final String VEHICLE_TYPE_UPDATE_ALL = "VEHICLE_TYPE_UPDATE_ALL";
     private static final String VEHICLE_TYPE_DELETE_ALL = "VEHICLE_TYPE_DELETE_ALL";
+    private static final String PARKING_SESSION_CHECK_IN_ALL = "PARKING_SESSION_CHECK_IN_ALL";
+    private static final String PARKING_SESSION_CHECK_OUT_ALL = "PARKING_SESSION_CHECK_OUT_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final VehicleTypePortOut vehicleTypePort;
@@ -75,7 +77,7 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
     @Override
     @Transactional(readOnly = true)
     public List<VehicleType> getVehicleTypes(Boolean isActive) {
-        currentAccountPortIn.requirePermission(VEHICLE_TYPE_READ_ALL);
+        requireCatalogReadForOperation();
         return vehicleTypePort.findAll(isActive);
     }
 
@@ -115,6 +117,16 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
                 .orElseThrow(() -> new NotFoundException("Vehicle type not found"));
     }
 
+    private void requireCatalogReadForOperation() {
+        if (currentAccountPortIn.hasPermission(VEHICLE_TYPE_READ_ALL)
+                || currentAccountPortIn.hasPermission(PARKING_SESSION_CHECK_IN_ALL)
+                || currentAccountPortIn.hasPermission(PARKING_SESSION_CHECK_OUT_ALL)) {
+            return;
+        }
+
+        currentAccountPortIn.requirePermission(VEHICLE_TYPE_READ_ALL);
+    }
+
     private void rejectDeactivateWhenInUse(UUID vehicleTypeId) {
         if (vehicleTypePort.hasActivePriceRules(vehicleTypeId)) {
             throw new ConflictException("Vehicle type is used by active price rules");
@@ -124,9 +136,6 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
         }
         if (vehicleTypePort.hasOpenParkingSessions(vehicleTypeId)) {
             throw new ConflictException("Vehicle type is used by open parking sessions");
-        }
-        if (vehicleTypePort.hasActiveCards(vehicleTypeId)) {
-            throw new ConflictException("Vehicle type is used by active cards");
         }
         if (vehicleTypePort.hasActiveZones(vehicleTypeId)) {
             throw new ConflictException("Vehicle type is used by active zones");

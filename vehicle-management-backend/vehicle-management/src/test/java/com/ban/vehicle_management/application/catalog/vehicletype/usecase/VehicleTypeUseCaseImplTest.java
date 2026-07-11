@@ -128,22 +128,6 @@ class VehicleTypeUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectDeactivateWhenVehicleTypeIsUsedByActiveCards() {
-        UUID vehicleTypeId = UUID.randomUUID();
-        VehicleType existingVehicleType = new VehicleType();
-        existingVehicleType.setVehicleTypeId(vehicleTypeId);
-        existingVehicleType.setCode("CAR");
-        existingVehicleType.setName("Car");
-        existingVehicleType.setIsActive(true);
-
-        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
-        when(vehicleTypePort.hasActiveCards(vehicleTypeId)).thenReturn(true);
-
-        assertThrows(ConflictException.class, () -> vehicleTypeUseCase.deleteVehicleType(vehicleTypeId));
-        verify(vehicleTypePort, never()).save(any(VehicleType.class));
-    }
-
-    @Test
     void shouldActivateInactiveVehicleType() {
         UUID vehicleTypeId = UUID.randomUUID();
         VehicleType existingVehicleType = new VehicleType();
