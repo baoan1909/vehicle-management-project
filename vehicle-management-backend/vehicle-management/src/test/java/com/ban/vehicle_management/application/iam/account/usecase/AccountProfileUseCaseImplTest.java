@@ -119,7 +119,8 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE",
                         "baoan3236",
                         "baoan3236@gmail.com",
-                        "23d493f8-e9f8-4843-917c-9e6c431bfeea"
+                        "23d493f8-e9f8-4843-917c-9e6c431bfeea",
+                        AdminProvisionableAccountRoleCode.CUSTOMER.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(
                         userProfileId,
@@ -164,7 +165,8 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE",
                         "pending-user",
                         "pending@example.com",
-                        "sub-123"
+                        "sub-123",
+                        AdminProvisionableAccountRoleCode.EMPLOYEE.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(null, null, null, null, null, null, null, null, null),
                 new AccountProfileStatusResult.EmployeeInfoResult(null, null, null, null, null),
@@ -198,7 +200,8 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE",
                         "customer.pending",
                         "customer.pending@example.com",
-                        "sub-123"
+                        "sub-123",
+                        AdminProvisionableAccountRoleCode.CUSTOMER.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(
                         userProfileId,
@@ -236,7 +239,8 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE",
                         "pending-user",
                         "pending@example.com",
-                        "sub-123"
+                        "sub-123",
+                        AdminProvisionableAccountRoleCode.EMPLOYEE.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(null, null, null, null, null, null, null, null, null),
                 null,
@@ -300,7 +304,8 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE",
                         "baoan3236",
                         "baoan3236@gmail.com",
-                        "23d493f8-e9f8-4843-917c-9e6c431bfeea"
+                        "23d493f8-e9f8-4843-917c-9e6c431bfeea",
+                        AdminProvisionableAccountRoleCode.CUSTOMER.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(
                         userProfileId,
@@ -403,7 +408,8 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE",
                         "customer.registered",
                         "customer@example.com",
-                        "sub-customer"
+                        "sub-customer",
+                        AdminProvisionableAccountRoleCode.CUSTOMER.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(
                         userProfileId,
@@ -509,7 +515,8 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE",
                         "customer.pending",
                         "customer.pending@example.com",
-                        "sub-customer"
+                        "sub-customer",
+                        AdminProvisionableAccountRoleCode.CUSTOMER.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(
                         userProfileId,
@@ -600,7 +607,8 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE",
                         "manager.provisioned.01",
                         "manager@example.com",
-                        "sub-456"
+                        "sub-456",
+                        AdminProvisionableAccountRoleCode.PARKING_MANAGER.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(
                         userProfileId,
@@ -689,7 +697,8 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE",
                         "sysadmin",
                         "sysadmin@example.com",
-                        "sub-admin"
+                        "sub-admin",
+                        AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(
                         userProfileId,
@@ -781,7 +790,8 @@ class AccountProfileUseCaseImplTest {
                         "PENDING",
                         "sysadmin.pending",
                         "sysadmin.pending@example.com",
-                        "sub-admin-pending"
+                        "sub-admin-pending",
+                        AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(
                         userProfileId,

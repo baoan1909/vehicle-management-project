@@ -33,6 +33,7 @@ export type ParkingCardResponse = {
   cardTypeId?: string;
   createdAt?: string;
   issuedAt?: string;
+  registeredVehicleTypeId?: string;
   status: ParkingCardStatus;
   uid: string;
   updatedAt?: string;
@@ -61,6 +62,13 @@ export type CheckInParkingSessionRequest = {
   licensePlate: string;
   note?: string;
   vehicleTypeId?: string;
+};
+
+export type CheckOutParkingSessionRequest = {
+  cardUid: string;
+  laneId: string;
+  licensePlate: string;
+  note?: string;
 };
 
 export type ParkingSessionResponse = {
@@ -97,6 +105,39 @@ export type ParkingSessionCheckInResponse = {
   parkingEvent: ParkingEventResponse;
   parkingSession: ParkingSessionResponse;
   subscriptionId?: string;
+};
+
+export type InvoiceAdminResponse = {
+  amount?: number;
+  customerId?: string;
+  discountAmount?: number;
+  finalAmount?: number;
+  invoiceId: string;
+  invoiceNo?: string;
+  issuedAt?: string;
+  paidAt?: string;
+  parkingSessionId?: string;
+  status?: "UNPAID" | "PAID" | "CANCELLED" | string;
+  subscriptionId?: string;
+};
+
+export type ParkingSessionCheckOutResponse = {
+  barrierAction: "OPEN" | "WAIT_PAYMENT" | string;
+  customerType: "VISITOR" | "SUBSCRIPTION" | string;
+  invoice?: InvoiceAdminResponse | null;
+  parkingEvent: ParkingEventResponse;
+  parkingSession: ParkingSessionResponse;
+};
+
+export type ParkingSessionOperationResponse = ParkingSessionCheckInResponse | ParkingSessionCheckOutResponse;
+
+export type ParkingSessionCheckOutPreviewResponse = {
+  checkInEvent?: ParkingEventResponse | null;
+  customerType: "VISITOR" | "SUBSCRIPTION" | string;
+  estimatedTotalPrice?: number;
+  parkingSession: ParkingSessionResponse;
+  pricingMessage?: string;
+  previewCheckOutTime?: string;
 };
 
 export type LicensePlateOcrCandidate = {
@@ -163,6 +204,17 @@ export async function fetchVehicleTypes() {
   return response.data;
 }
 
+export async function fetchOpenParkingSessionByCardUid(cardUid: string) {
+  const query = new URLSearchParams();
+  query.set("cardUid", cardUid);
+
+  const response = await apiClient<ApiResponse<ParkingSessionCheckOutPreviewResponse>>(
+    `${apiEndpoints.parking.parkingSessions}/open-by-card?${query.toString()}`,
+  );
+
+  return response.data;
+}
+
 export async function checkInParkingSession(
   request: CheckInParkingSessionRequest,
   licensePlateImage: File,
@@ -175,6 +227,22 @@ export async function checkInParkingSession(
 
   return postMultipart<ApiResponse<ParkingSessionCheckInResponse>>(
     `${apiEndpoints.parking.parkingSessions}/check-in`,
+    formData,
+  );
+}
+
+export async function checkOutParkingSession(
+  request: CheckOutParkingSessionRequest,
+  licensePlateImage: File,
+  personImage: File,
+) {
+  const formData = new FormData();
+  formData.append("request", JSON.stringify(request));
+  formData.append("licensePlateImage", licensePlateImage, licensePlateImage.name);
+  formData.append("personImage", personImage, personImage.name);
+
+  return postMultipart<ApiResponse<ParkingSessionCheckOutResponse>>(
+    `${apiEndpoints.parking.parkingSessions}/check-out`,
     formData,
   );
 }

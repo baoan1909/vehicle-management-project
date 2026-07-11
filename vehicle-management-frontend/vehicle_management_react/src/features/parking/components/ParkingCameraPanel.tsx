@@ -184,6 +184,7 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
   }
 
   const hasVisualCapture = capture || defaultCaptured;
+  const captureStatusLabel = isCapturing ? "LIVE" : capture ? "Đã chụp" : defaultCaptured ? "Ảnh mẫu" : "Chưa chụp";
 
   return (
     <div className={cn("tw-relative tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid", compact ? "tw-h-[180px]" : "tw-h-[286px]", hasVisualCapture ? "tw-border-vm-slate-100" : "tw-border-vm-slate-200")}>
@@ -213,7 +214,7 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
 
       {compact ? (
         <span className="tw-absolute tw-left-2 tw-top-2 tw-rounded-full tw-bg-emerald-50 tw-px-2 tw-py-1 tw-text-[0.68rem] tw-font-extrabold tw-text-emerald-700">
-          {capture ? "Đã chụp" : defaultCaptured ? "Ảnh mẫu" : "Chưa chụp"}
+          {captureStatusLabel}
         </span>
       ) : null}
 
@@ -340,12 +341,13 @@ export function ParkingCameraPanel({
   useEffect(() => {
     if (!autoStartLaneCamera) return;
     void laneCameraRef.current?.startCamera();
+    void driverCameraRef.current?.startCamera();
   }, [autoStartLaneCamera]);
 
   useEffect(() => {
     if (!resetKey) return;
     laneCameraRef.current?.clear(true);
-    driverCameraRef.current?.clear(false);
+    driverCameraRef.current?.clear(true);
   }, [resetKey]);
 
   useEffect(() => {

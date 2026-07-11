@@ -22,6 +22,7 @@ type ParkingOperationFormProps = {
   ocrMessage?: string;
   ocrStatus?: OcrStatus;
   showVehicleTypeField?: boolean;
+  vehicleTypeDisabled?: boolean;
   vehicleTypeId: string;
   vehicleTypeOptions: SelectMenuOption[];
   vehicleTypeRequired?: boolean;
@@ -229,6 +230,7 @@ export function ParkingOperationForm({
   ocrMessage,
   ocrStatus = "idle",
   showVehicleTypeField = true,
+  vehicleTypeDisabled = false,
   vehicleTypeId,
   vehicleTypeOptions,
   vehicleTypeRequired = true,
@@ -258,12 +260,11 @@ export function ParkingOperationForm({
         <CardUidField
           cardOptions={cardOptions}
           cardUid={cardUid}
-          helperText={isCheckIn ? undefined : "Check-out chỉ hiển thị thẻ đang có phiên gửi xe mở."}
           isLoadingCards={isLoadingCards}
           onCardUidChange={onCardUidChange}
         />
 
-        {isCheckIn && showVehicleTypeField ? (
+        {showVehicleTypeField ? (
           <label className="tw-m-0 tw-grid tw-gap-2">
             <span className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">Loại xe</span>
             <div className="tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3.5">
@@ -276,6 +277,7 @@ export function ParkingOperationForm({
                 options={vehicleTypeOptions.length ? vehicleTypeOptions : [{ label: "Chưa có loại xe active", value: "" }]}
                 value={vehicleTypeId}
                 clearValue=""
+                disabled={vehicleTypeDisabled}
                 onChange={onVehicleTypeChange}
                 menuClassName="tw-min-w-[240px]"
                 triggerClassName="!tw-h-10 !tw-border-0 !tw-px-0 !tw-shadow-none tw-text-[0.92rem] tw-font-bold"

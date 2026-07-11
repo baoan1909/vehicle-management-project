@@ -11,11 +11,13 @@ import com.ban.vehicle_management.application.parking.parkinglot.port.out.Parkin
 import com.ban.vehicle_management.application.parking.parkingsession.authorization.ParkingSessionAccessGuard;
 import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingCheckOutMapper;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckOutCommand;
+import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
 import com.ban.vehicle_management.application.storage.model.StoredFile;
+import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
 import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
@@ -34,6 +36,7 @@ import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingLi
 import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingSessionPolicy;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageBucket;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageFolder;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -65,6 +68,7 @@ public class ParkingCheckOutUseCaseImpl {
     private static final String CUSTOMER_TYPE_SUBSCRIPTION = "SUBSCRIPTION";
     private static final String BARRIER_ACTION_OPEN = "OPEN";
     private static final String BARRIER_ACTION_WAIT_PAYMENT = "WAIT_PAYMENT";
+    private static final int CHECK_IN_IMAGE_READ_URL_EXPIRE_SECONDS = 15 * 60;
     private static final LocalTime DAY_REFERENCE_TIME = LocalTime.NOON;
     private static final LocalTime NIGHT_REFERENCE_TIME = LocalTime.MIDNIGHT;
     private static final DateTimeFormatter INVOICE_NO_TIME_FORMATTER = DateTimeFormatter
@@ -88,6 +92,7 @@ public class ParkingCheckOutUseCaseImpl {
     private final InvoicePortOut invoicePortOut;
     private final ParkingCheckOutMapper parkingCheckOutMapper;
     private final FileStoragePort fileStoragePort;
+    private final FileAccessPort fileAccessPort;
     private final CardPolicy cardPolicy = new CardPolicy();
     private final ParkingCheckOutPolicy parkingCheckOutPolicy = new ParkingCheckOutPolicy();
     private final ParkingCheckoutPricePolicy parkingCheckoutPricePolicy = new ParkingCheckoutPricePolicy();
@@ -109,7 +114,8 @@ public class ParkingCheckOutUseCaseImpl {
             PriceRulePortOut priceRulePortOut,
             InvoicePortOut invoicePortOut,
             ParkingCheckOutMapper parkingCheckOutMapper,
-            FileStoragePort fileStoragePort
+            FileStoragePort fileStoragePort,
+            FileAccessPort fileAccessPort
     ) {
         this.parkingSessionAccessGuard = parkingSessionAccessGuard;
         this.currentAccountPortIn = currentAccountPortIn;
@@ -124,6 +130,7 @@ public class ParkingCheckOutUseCaseImpl {
         this.invoicePortOut = invoicePortOut;
         this.parkingCheckOutMapper = parkingCheckOutMapper;
         this.fileStoragePort = fileStoragePort;
+        this.fileAccessPort = fileAccessPort;
     }
 
     @Transactional
@@ -221,6 +228,57 @@ public class ParkingCheckOutUseCaseImpl {
             deleteStoredFileQuietly(storedPersonImage);
             throw exception;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public CheckOutPreviewResult previewCheckOutByCardUid(String rawCardUid) {
+        parkingSessionAccessGuard.ensureCanCheckOut();
+        String cardUid = TextValidationUtils.normalizeRequiredText(rawCardUid, "cardUid", 100);
+        Card card = cardPortOut.findByUid(cardUid)
+                .orElseThrow(() -> new NotFoundException("Card not found"));
+        parkingCheckOutPolicy.validateCardCanExit(card);
+
+        ParkingSession parkingSession = parkingSessionPortOut.findOpenByCardId(card.getCardId())
+                .orElseThrow(() -> new ConflictException("Open parking session not found for card"));
+        ParkingEvent checkInEvent = parkingEventPortOut
+                .findLatestBySessionIdAndEventType(parkingSession.getParkingSessionId(), ParkingEventType.CHECK_IN)
+                .orElse(null);
+        resolveCheckInEventImageUrls(checkInEvent);
+        Instant now = Instant.now();
+        boolean subscriptionSession = isSubscriptionSession(parkingSession);
+        BigDecimal estimatedTotalPrice = BigDecimal.ZERO;
+        String pricingMessage = null;
+        if (!subscriptionSession) {
+            try {
+                estimatedTotalPrice = calculateVisitorPrice(parkingSession, now);
+            } catch (NotFoundException exception) {
+                estimatedTotalPrice = null;
+                pricingMessage = exception.getMessage();
+            }
+        }
+        String customerType = subscriptionSession ? CUSTOMER_TYPE_SUBSCRIPTION : CUSTOMER_TYPE_VISITOR;
+
+        return new CheckOutPreviewResult(parkingSession, checkInEvent, estimatedTotalPrice, now, customerType, pricingMessage);
+    }
+
+    private void resolveCheckInEventImageUrls(ParkingEvent checkInEvent) {
+        if (checkInEvent == null) {
+            return;
+        }
+        checkInEvent.setLicensePlateImagePath(resolvePrivateReadUrl(checkInEvent.getLicensePlateImagePath()));
+        checkInEvent.setPersonImagePath(resolvePrivateReadUrl(checkInEvent.getPersonImagePath()));
+    }
+
+    private String resolvePrivateReadUrl(String objectKey) {
+        if (objectKey == null || objectKey.isBlank() || isBrowserReachableUrl(objectKey)) {
+            return objectKey;
+        }
+        return fileAccessPort.createReadUrl(objectKey, CHECK_IN_IMAGE_READ_URL_EXPIRE_SECONDS);
+    }
+
+    private boolean isBrowserReachableUrl(String value) {
+        String normalized = value.toLowerCase();
+        return normalized.startsWith("http://") || normalized.startsWith("https://") || normalized.startsWith("/");
     }
 
     private BigDecimal calculateVisitorPrice(ParkingSession parkingSession, Instant checkOutTime) {

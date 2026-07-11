@@ -3,7 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SelectMenu } from "@/components/ui";
 import {
   checkInParkingSession,
+  checkOutParkingSession,
   fetchCardTypes,
+  fetchOpenParkingSessionByCardUid,
   fetchParkingCards,
   fetchParkingLanes,
   fetchVehicleTypes,
@@ -14,7 +16,8 @@ import {
   type LaneResponse,
   type ParkingCardResponse,
   type ParkingCardStatus,
-  type ParkingSessionCheckInResponse,
+  type ParkingSessionCheckOutPreviewResponse,
+  type ParkingSessionOperationResponse,
   type VehicleTypeResponse,
 } from "@/features/parking/api/parkingSessionApi";
 import { OperationModeTabs, type ParkingOperationMode } from "@/features/parking/components/OperationModeTabs";
@@ -50,6 +53,12 @@ function findMatchingCard(cards: ParkingCardResponse[], input: string) {
     const cardNumber = normalizeCardInput(card.cardNumber ?? "");
     return uid === normalized || cardNumber === normalized;
   });
+}
+
+function formatCurrentCheckOutTime() {
+  const now = new Date();
+  const pad = (value: number) => value.toString().padStart(2, "0");
+  return `${pad(now.getHours())}:${pad(now.getMinutes())} ${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
 }
 
 function normalizeCardTypeCode(cardType?: CardTypeResponse) {
@@ -131,7 +140,8 @@ export function SwipeListPage() {
   const [note, setNote] = useState("");
   const [licensePlateImage, setLicensePlateImage] = useState<File | null>(null);
   const [personImage, setPersonImage] = useState<File | null>(null);
-  const [checkInResult, setCheckInResult] = useState<ParkingSessionCheckInResponse | null>(null);
+  const [checkOutPreview, setCheckOutPreview] = useState<ParkingSessionCheckOutPreviewResponse | null>(null);
+  const [parkingSessionResult, setParkingSessionResult] = useState<ParkingSessionOperationResponse | null>(null);
   const [cardError, setCardError] = useState("");
   const [vehicleTypeError, setVehicleTypeError] = useState("");
   const [cardsLoaded, setCardsLoaded] = useState(false);
@@ -182,13 +192,35 @@ export function SwipeListPage() {
     })),
   ], [vehicleTypes]);
   const selectedCardTypeCode = getParkingCardTypeCode(selectedParkingCard);
-  const selectedRequiresVehicleType =
+  const selectedIsVisitorCard =
     mode === "check-in" &&
     Boolean(selectedParkingCard) &&
     (selectedCardTypeCode
       ? selectedCardTypeCode === CARD_TYPE_VISITOR
       : selectedParkingCard?.status === "AVAILABLE");
+  const selectedIsRegisteredCard =
+    mode === "check-in" &&
+    Boolean(selectedParkingCard) &&
+    (selectedCardTypeCode
+      ? selectedCardTypeCode === CARD_TYPE_REGISTERED
+      : selectedParkingCard?.status === "ASSIGNED");
+  const selectedRegisteredVehicleTypeId = selectedIsRegisteredCard
+    ? selectedParkingCard?.registeredVehicleTypeId ?? ""
+    : "";
+  const selectedRequiresVehicleType = selectedIsVisitorCard || selectedIsRegisteredCard;
+  const selectedLocksVehicleType = selectedIsRegisteredCard;
   const canCaptureCurrentCard = Boolean(selectedParkingCard && (!selectedRequiresVehicleType || vehicleTypeId));
+  const formVehicleTypeOptions = useMemo(() => {
+    const lockedVehicleTypeId = mode === "check-out" ? checkOutPreview?.parkingSession.vehicleTypeId ?? "" : selectedRegisteredVehicleTypeId;
+    if (!lockedVehicleTypeId || vehicleTypeOptions.some((option) => option.value === lockedVehicleTypeId)) {
+      return vehicleTypeOptions;
+    }
+
+    return [
+      ...vehicleTypeOptions,
+      { label: mode === "check-out" ? "Loại xe trong phiên gửi" : "Loại xe đã đăng ký", value: lockedVehicleTypeId },
+    ];
+  }, [checkOutPreview?.parkingSession.vehicleTypeId, mode, selectedRegisteredVehicleTypeId, vehicleTypeOptions]);
 
   useEffect(() => {
     let active = true;
@@ -200,6 +232,7 @@ export function SwipeListPage() {
       } catch {
         if (active) setCardTypes([]);
       }
+      return;
     }
 
     void loadCardTypes();
@@ -290,7 +323,8 @@ export function SwipeListPage() {
   useEffect(() => {
     setCardUid("");
     setVehicleTypeId("");
-    setCheckInResult(null);
+    setCheckOutPreview(null);
+    setParkingSessionResult(null);
     setSubmitError("");
     setSubmitSuccess("");
     lastAutoCapturedCardRef.current = "";
@@ -299,13 +333,58 @@ export function SwipeListPage() {
 
   useEffect(() => {
     if (mode !== "check-in") return;
-    if (!selectedRequiresVehicleType) {
+    if (selectedLocksVehicleType) {
+      setVehicleTypeId(selectedRegisteredVehicleTypeId);
+      return;
+    }
+    if (selectedIsVisitorCard || !selectedRequiresVehicleType) {
       setVehicleTypeId("");
     }
-  }, [mode, selectedRequiresVehicleType]);
+  }, [mode, selectedIsVisitorCard, selectedLocksVehicleType, selectedParkingCard?.cardId, selectedRegisteredVehicleTypeId, selectedRequiresVehicleType]);
 
   useEffect(() => {
-    if (mode !== "check-in") return;
+    if (mode !== "check-out") {
+      setCheckOutPreview(null);
+      return;
+    }
+
+    const uid = selectedParkingCard?.uid;
+    if (!uid) {
+      setCheckOutPreview(null);
+      setVehicleTypeId("");
+      return;
+    }
+
+    const selectedUid = uid;
+    let active = true;
+    setSubmitError("");
+    setCheckOutPreview(null);
+    setParkingSessionResult(null);
+
+    async function loadOpenSession() {
+      try {
+        const session = await fetchOpenParkingSessionByCardUid(selectedUid);
+        if (!active) return;
+        setCheckOutPreview({
+          ...session,
+          previewCheckOutTime: formatCurrentCheckOutTime(),
+        });
+        setVehicleTypeId(session.parkingSession.vehicleTypeId ?? "");
+      } catch (error) {
+        if (!active) return;
+        setVehicleTypeId("");
+        setCheckOutPreview(null);
+        setSubmitError(error instanceof Error ? error.message : "Không tải được thông tin phiên gửi.");
+      }
+    }
+
+    void loadOpenSession();
+    return () => {
+      active = false;
+    };
+  }, [mode, selectedParkingCard?.uid]);
+
+  useEffect(() => {
     if (!cardsLoaded || !cardUid.trim() || !canCaptureCurrentCard) {
       lastAutoCapturedCardRef.current = "";
       return;
@@ -314,7 +393,7 @@ export function SwipeListPage() {
     const matchedCard = selectedParkingCard;
     if (!matchedCard) return;
 
-    const captureKey = `${matchedCard.uid || matchedCard.cardNumber}:${selectedRequiresVehicleType ? vehicleTypeId : "subscription"}`;
+    const captureKey = `${mode}:${matchedCard.uid || matchedCard.cardNumber}:${selectedRequiresVehicleType ? vehicleTypeId : "subscription"}`;
     if (!captureKey || lastAutoCapturedCardRef.current === captureKey) return;
 
     lastAutoCapturedCardRef.current = captureKey;
@@ -358,9 +437,11 @@ export function SwipeListPage() {
     setSubmitError(
       !selectedParkingCard
         ? "Vui lòng chọn thẻ xe hợp lệ trước khi chụp hoặc tải ảnh."
-        : "Vui lòng chọn loại xe cho thẻ vãng lai trước khi chụp hoặc tải ảnh.",
+        : selectedLocksVehicleType
+          ? "Thẻ đăng ký chưa có loại xe hợp lệ, vui lòng kiểm tra hồ sơ xe đã đăng ký."
+          : "Vui lòng chọn loại xe cho thẻ vãng lai trước khi chụp hoặc tải ảnh.",
     );
-  }, [selectedParkingCard]);
+  }, [selectedLocksVehicleType, selectedParkingCard]);
 
   function resetOcrState() {
     setOcrStatus("idle");
@@ -379,7 +460,7 @@ export function SwipeListPage() {
     setSubmitSuccess("");
     setLicensePlate("");
 
-    if (!file || mode !== "check-in") {
+    if (!file) {
       resetOcrState();
       return;
     }
@@ -430,11 +511,6 @@ export function SwipeListPage() {
     setSubmitError("");
     setSubmitSuccess("");
 
-    if (mode !== "check-in") {
-      setSubmitError("Luồng check-out sẽ được nối ở bước tiếp theo. Hiện tại màn này đang gắn API check-in.");
-      return;
-    }
-
     if (!laneId) {
       setSubmitError("Vui lòng chọn làn xe active từ backend.");
       return;
@@ -456,14 +532,26 @@ export function SwipeListPage() {
     }
 
     const matchedCardTypeCode = getParkingCardTypeCode(matchedCard);
-    const matchedCardRequiresVehicleType =
+    const matchedCardIsVisitor =
       mode === "check-in" &&
       Boolean(matchedCard) &&
       (matchedCardTypeCode
         ? matchedCardTypeCode === CARD_TYPE_VISITOR
         : matchedCard?.status === "AVAILABLE");
+    const matchedCardIsRegistered =
+      mode === "check-in" &&
+      Boolean(matchedCard) &&
+      (matchedCardTypeCode
+        ? matchedCardTypeCode === CARD_TYPE_REGISTERED
+        : matchedCard?.status === "ASSIGNED");
+    const matchedCardRequiresVehicleType = matchedCardIsVisitor || matchedCardIsRegistered;
     if (matchedCardRequiresVehicleType && !vehicleTypeId) {
+      if (matchedCardIsRegistered) {
+        setSubmitError("Thẻ đăng ký chưa có loại xe hợp lệ, vui lòng kiểm tra hồ sơ xe đã đăng ký.");
+      } else {
       setSubmitError("Vui lòng chọn loại xe cho thẻ vãng lai.");
+      return;
+      }
       return;
     }
 
@@ -474,18 +562,24 @@ export function SwipeListPage() {
 
     setIsSubmitting(true);
     try {
-      const response = await checkInParkingSession(
-        {
-          cardUid: matchedCard?.uid ?? cardUid.trim(),
-          laneId,
-          licensePlate: licensePlate.trim(),
-          note: note.trim() || undefined,
-          vehicleTypeId: matchedCardRequiresVehicleType ? vehicleTypeId : undefined,
-        },
-        licensePlateImage,
-        personImage,
-      );
-      setCheckInResult(response.data);
+      const request = {
+        cardUid: matchedCard?.uid ?? cardUid.trim(),
+        laneId,
+        licensePlate: licensePlate.trim(),
+        note: note.trim() || undefined,
+      };
+      const response = mode === "check-in"
+        ? await checkInParkingSession(
+            {
+              ...request,
+              vehicleTypeId: matchedCardRequiresVehicleType ? vehicleTypeId : undefined,
+            },
+            licensePlateImage,
+            personImage,
+          )
+        : await checkOutParkingSession(request, licensePlateImage, personImage);
+
+      setParkingSessionResult(response.data);
       setCards((currentCards) => currentCards.filter((card) => card.cardId !== matchedCard?.cardId));
       setCardUid("");
       setVehicleTypeId("");
@@ -493,6 +587,7 @@ export function SwipeListPage() {
       setNote("");
       setLicensePlateImage(null);
       setPersonImage(null);
+      setCheckOutPreview(null);
       resetOcrState();
       ocrRequestSeq.current += 1;
       lastAutoCapturedCardRef.current = "";
@@ -528,7 +623,7 @@ export function SwipeListPage() {
         <div className={mode === "check-in" ? "tw-grid tw-min-h-0 tw-grid-cols-[minmax(430px,1.12fr)_minmax(340px,0.88fr)] tw-gap-3 max-[980px]:tw-grid-cols-1" : "tw-grid tw-min-h-0 tw-grid-cols-[minmax(430px,1.08fr)_minmax(340px,0.88fr)_minmax(360px,0.98fr)] tw-gap-3 max-[1380px]:tw-grid-cols-[minmax(390px,1fr)_minmax(330px,0.9fr)] max-[980px]:tw-grid-cols-1"}>
           <ParkingCameraPanel
             autoCaptureKey={autoCaptureKey}
-            autoStartLaneCamera={mode === "check-in"}
+            autoStartLaneCamera={mode === "check-in" || mode === "check-out"}
             canCaptureMedia={canCaptureCurrentCard}
             ocrMessage={ocrMessage}
             ocrStatus={ocrStatus}
@@ -557,15 +652,16 @@ export function SwipeListPage() {
             onLicensePlateChange={handleLicensePlateChange}
             onNoteChange={setNote}
             onSubmit={handleSubmit}
-            vehicleTypeRequired={selectedRequiresVehicleType}
+            vehicleTypeDisabled={mode === "check-out" || selectedLocksVehicleType}
+            vehicleTypeRequired={mode === "check-in" && selectedRequiresVehicleType}
             vehicleTypeId={vehicleTypeId}
-            vehicleTypeOptions={vehicleTypeOptions}
-            showVehicleTypeField={mode === "check-in" && (!selectedParkingCard || selectedRequiresVehicleType)}
+            vehicleTypeOptions={formVehicleTypeOptions}
+            showVehicleTypeField={mode === "check-out" || (mode === "check-in" && (!selectedParkingCard || selectedRequiresVehicleType))}
             onVehicleTypeChange={handleVehicleTypeChange}
           />
           {mode === "check-out" ? (
             <div className="tw-grid tw-min-h-0 tw-gap-3">
-              <ParkingSessionSummary mode={mode} checkInResult={checkInResult} />
+              <ParkingSessionSummary mode={mode} preview={checkOutPreview} result={parkingSessionResult} />
             </div>
           ) : null}
           {submitSuccess ? (

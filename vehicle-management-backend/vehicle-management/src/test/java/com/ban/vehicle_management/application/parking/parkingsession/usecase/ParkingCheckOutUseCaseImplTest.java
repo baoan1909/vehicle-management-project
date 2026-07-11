@@ -28,6 +28,7 @@ import com.ban.vehicle_management.application.parking.parkingsession.port.out.Pa
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
 import com.ban.vehicle_management.application.storage.model.StoredFile;
+import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
 import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
@@ -101,6 +102,9 @@ class ParkingCheckOutUseCaseImplTest {
     @Mock
     private FileStoragePort fileStoragePort;
 
+    @Mock
+    private FileAccessPort fileAccessPort;
+
     private ParkingCheckOutUseCaseImpl parkingCheckOutUseCase;
 
     @BeforeEach
@@ -118,7 +122,8 @@ class ParkingCheckOutUseCaseImplTest {
                 priceRulePortOut,
                 invoicePortOut,
                 Mappers.getMapper(ParkingCheckOutMapper.class),
-                fileStoragePort
+                fileStoragePort,
+                fileAccessPort
         );
     }
 

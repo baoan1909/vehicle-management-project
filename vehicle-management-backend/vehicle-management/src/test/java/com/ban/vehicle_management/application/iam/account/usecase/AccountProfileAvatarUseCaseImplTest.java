@@ -193,7 +193,8 @@ class AccountProfileAvatarUseCaseImplTest {
                         "ACTIVE",
                         "baoan3236",
                         "baoan3236@example.com",
-                        "keycloak-user-id"
+                        "keycloak-user-id",
+                        "CUSTOMER"
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(
                         userProfileId,

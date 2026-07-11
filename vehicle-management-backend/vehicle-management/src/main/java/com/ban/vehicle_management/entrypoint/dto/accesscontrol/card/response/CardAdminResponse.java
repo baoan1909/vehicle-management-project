@@ -15,6 +15,7 @@ public class CardAdminResponse {
     private String cardNumber;
     private String uid;
     private UUID cardTypeId;
+    private UUID registeredVehicleTypeId;
     private CardStatus status;
     private String issuedAt;
     private String blockedAt;
