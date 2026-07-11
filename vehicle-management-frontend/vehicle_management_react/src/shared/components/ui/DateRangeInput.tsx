@@ -364,7 +364,7 @@ export function DateRangeInput({ ariaLabel = "Khoảng ngày", className, label,
               </div>
 
               <div className="tw-flex-1 tw-overflow-auto tw-p-4">
-                <div className="tw-mb-4 tw-flex tw-items-center tw-gap-2 tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-2">
+                <div className="tw-mb-4 tw-grid tw-grid-cols-[36px_minmax(150px,1fr)_116px_36px] tw-items-center tw-gap-2 tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-2">
                   <button
                     aria-label="Tháng trước"
                     className="tw-inline-flex tw-h-9 tw-w-9 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-sm tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-600 tw-transition hover:tw-border-brand-100 hover:tw-bg-brand-50 hover:tw-text-vm-primary"
@@ -376,25 +376,25 @@ export function DateRangeInput({ ariaLabel = "Khoảng ngày", className, label,
 
                   <SelectMenu
                     ariaLabel="Chọn tháng"
-                    className="tw-min-w-0 tw-flex-1"
+                    className="tw-min-w-0"
                     clearValue={`${visibleMonth.getMonth()}`}
-                    menuClassName="tw-z-[2500] tw-max-h-[230px] tw-py-1"
+                    menuClassName="tw-z-[2500] tw-max-h-[230px] !tw-w-[180px] tw-py-1"
                     onChange={(nextMonth) => updateVisibleMonth(visibleMonth.getFullYear(), Number(nextMonth))}
                     optionClassName="tw-min-h-9 tw-text-[0.82rem]"
                     options={monthMenuOptions}
-                    triggerClassName="tw-h-9 tw-rounded-vm-sm tw-pl-3 tw-pr-2 tw-text-[0.82rem] tw-font-black"
+                    triggerClassName="tw-h-9 tw-rounded-vm-sm tw-pl-3 tw-pr-2 tw-text-[0.82rem] tw-font-black [&>span:first-child]:tw-pr-1"
                     value={`${visibleMonth.getMonth()}`}
                   />
 
                   <SelectMenu
                     ariaLabel="Chọn năm"
-                    className="tw-w-[104px] tw-flex-shrink-0"
+                    className="tw-min-w-0"
                     clearValue={`${visibleMonth.getFullYear()}`}
-                    menuClassName="tw-z-[2500] tw-max-h-[230px] tw-py-1"
+                    menuClassName="tw-z-[2500] tw-max-h-[230px] !tw-w-[116px] tw-py-1"
                     onChange={(nextYear) => updateVisibleMonth(Number(nextYear), visibleMonth.getMonth())}
                     optionClassName="tw-min-h-9 tw-text-[0.82rem]"
                     options={yearMenuOptions}
-                    triggerClassName="tw-h-9 tw-rounded-vm-sm tw-pl-3 tw-pr-2 tw-text-[0.82rem] tw-font-black"
+                    triggerClassName="tw-h-9 tw-rounded-vm-sm tw-pl-3 tw-pr-2 tw-text-[0.82rem] tw-font-black [&>span:first-child]:tw-pr-1"
                     value={`${visibleMonth.getFullYear()}`}
                   />
 

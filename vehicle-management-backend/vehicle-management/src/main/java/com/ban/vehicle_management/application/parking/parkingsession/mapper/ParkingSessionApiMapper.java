@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.parking.parkingsession.model.comma
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
+import com.ban.vehicle_management.application.parking.parkingsession.model.result.ParkingSessionManagementResult;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent;
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
@@ -15,9 +16,11 @@ import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutPreviewResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionManagementResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
+import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.springframework.web.multipart.MultipartFile;
@@ -71,6 +74,12 @@ public interface ParkingSessionApiMapper {
     ParkingSessionCheckOutResponse toCheckOutResponse(CheckOutResult result);
 
     ParkingSessionCheckOutPreviewResponse toCheckOutPreviewResponse(CheckOutPreviewResult result);
+
+    List<ParkingSessionManagementResponse> toManagementResponses(List<ParkingSessionManagementResult> result);
+
+    ParkingSessionManagementResponse toManagementResponse(ParkingSessionManagementResult result);
+
+    ParkingSessionManagementResponse.EventResponse toManagementEventResponse(ParkingSessionManagementResult.EventResult result);
 
     ParkingSessionResponse toResponse(ParkingSession parkingSession);
 

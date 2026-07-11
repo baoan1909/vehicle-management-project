@@ -602,7 +602,7 @@ export function SwipeListPage() {
 
   return (
     <main className="tw-px-4 tw-pb-5 tw-pt-3 lg:tw-px-5">
-      <section className="tw-mx-auto tw-grid tw-min-h-[calc(100vh-124px)] tw-w-[min(100%,1660px)] tw-grid-rows-[auto_minmax(0,1fr)] tw-gap-3">
+      <section className="tw-mx-auto tw-grid tw-min-h-[calc(100vh-124px)] tw-w-[min(100%,1660px)] tw-grid-rows-[auto_minmax(0,1fr)] tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
         <div className="tw-grid tw-grid-cols-[minmax(260px,470px)_minmax(320px,1fr)_auto] tw-items-end tw-gap-3 max-[1280px]:tw-grid-cols-1">
           <div className="tw-grid tw-gap-2">
             <h1 className="tw-m-0 tw-text-[1.36rem] tw-font-black tw-leading-tight tw-text-slate-950">Vận hành vào / ra bãi</h1>

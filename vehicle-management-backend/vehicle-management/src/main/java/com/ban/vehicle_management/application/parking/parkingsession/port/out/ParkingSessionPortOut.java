@@ -1,7 +1,10 @@
 package com.ban.vehicle_management.application.parking.parkingsession.port.out;
 
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
+import com.ban.vehicle_management.application.parking.parkingsession.model.result.ParkingSessionManagementResult;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,4 +22,13 @@ public interface ParkingSessionPortOut {
     List<ParkingSession> findOpenByLicensePlateIn(String licensePlateIn);
 
     Optional<ParkingSession> findById(UUID parkingSessionId);
+
+    List<ParkingSessionManagementResult> findManagementSessions(
+            ParkingSessionStatus status,
+            UUID vehicleTypeId,
+            UUID zoneId,
+            Instant checkInFrom,
+            Instant checkInTo,
+            String keyword
+    );
 }

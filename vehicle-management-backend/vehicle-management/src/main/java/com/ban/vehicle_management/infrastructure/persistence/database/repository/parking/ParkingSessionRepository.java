@@ -6,11 +6,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEntity, UUID> {
+public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEntity, UUID>, JpaSpecificationExecutor<ParkingSessionEntity> {
 
     boolean existsByCardId(UUID cardId);
 
@@ -36,6 +40,18 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
             @Param("licensePlateIn") String licensePlateIn,
             @Param("status") ParkingSessionStatus status
     );
+
+    @Override
+    @EntityGraph(attributePaths = {
+            "card",
+            "card.cardType",
+            "vehicleType",
+            "zone",
+            "zone.parkingLot",
+            "parkingEvents",
+            "parkingEvents.lane"
+    })
+    List<ParkingSessionEntity> findAll(Specification<ParkingSessionEntity> specification, Sort sort);
 }
 
 

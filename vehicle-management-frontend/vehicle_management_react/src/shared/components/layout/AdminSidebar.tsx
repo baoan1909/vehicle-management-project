@@ -8,6 +8,20 @@ function isPathMatch(pathname: string, matches: string[]) {
   return matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
 }
 
+function getLeafMatchScore(item: AdminSidebarLeaf, pathname: string) {
+  return item.matches.reduce((bestScore, match) => {
+    if (pathname === match) {
+      return Math.max(bestScore, match.length + 10000);
+    }
+
+    if (pathname.startsWith(`${match}/`)) {
+      return Math.max(bestScore, match.length);
+    }
+
+    return bestScore;
+  }, -1);
+}
+
 function SidebarIcon({ icon }: { icon: AdminSidebarIcon }) {
   const iconClassName = {
     dashboard: "fas fa-tachometer-alt",
@@ -48,9 +62,9 @@ function getActiveGroupLabel(pathname: string) {
   return activeGroup?.kind === "group" ? activeGroup.label : null;
 }
 
-function SidebarLeaf({ collapsed, item }: { collapsed: boolean; item: AdminSidebarLeaf }) {
+function SidebarLeaf({ active: activeOverride, collapsed, item }: { active?: boolean; collapsed: boolean; item: AdminSidebarLeaf }) {
   const location = useLocation();
-  const active = isLeafActive(item, location.pathname);
+  const active = activeOverride ?? isLeafActive(item, location.pathname);
 
   return (
     <NavLink
@@ -81,6 +95,10 @@ function SidebarGroup({
   expanded: boolean;
   onToggle: (label: string) => void;
 }) {
+  const location = useLocation();
+  const leafScores = entry.items.map((item) => getLeafMatchScore(item, location.pathname));
+  const bestLeafScore = Math.max(...leafScores);
+
   return (
     <div className="tw-grid tw-gap-1">
       <button
@@ -103,7 +121,18 @@ function SidebarGroup({
         {collapsed ? null : <Chevron expanded={expanded} />}
       </button>
 
-      {!collapsed && expanded ? <div className="tw-grid tw-gap-1 tw-border-0 tw-border-l tw-border-solid tw-border-brand-100 tw-pl-1">{entry.items.map((item) => <SidebarLeaf key={`${entry.label}-${item.label}`} collapsed={collapsed} item={item} />)}</div> : null}
+      {!collapsed && expanded ? (
+        <div className="tw-grid tw-gap-1 tw-border-0 tw-border-l tw-border-solid tw-border-brand-100 tw-pl-1">
+          {entry.items.map((item) => (
+            <SidebarLeaf
+              key={`${entry.label}-${item.label}`}
+              active={bestLeafScore >= 0 && getLeafMatchScore(item, location.pathname) === bestLeafScore}
+              collapsed={collapsed}
+              item={item}
+            />
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -49,11 +49,11 @@ function DetailRow({ icon, label, tone, value }: { icon: string; label: string; 
   );
 }
 
-function MiniLaneImage({ empty, imagePath }: { empty?: boolean; imagePath?: string | null }) {
+function MiniLaneImage({ alt, empty, imagePath }: { alt: string; empty?: boolean; imagePath?: string | null }) {
   if (imagePath) {
     return (
       <div className="tw-relative tw-h-[210px] tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25">
-        <img src={imagePath} alt="Ảnh khi vào" className="tw-h-full tw-w-full tw-object-cover" />
+        <img src={imagePath} alt={alt} className="tw-h-full tw-w-full tw-object-cover" />
       </div>
     );
   }
@@ -121,6 +121,7 @@ export function ParkingSessionSummary({ mode, preview, result }: ParkingSessionS
     ? session?.checkOutTime ?? event?.eventTime ?? preview?.previewCheckOutTime
     : preview?.previewCheckOutTime ?? (isCheckIn ? null : formatCurrentCheckOutTime());
   const checkInImagePath = checkInEvent?.licensePlateImagePath;
+  const checkInPersonImagePath = checkInEvent?.personImagePath;
   const hasPricingWarning = Boolean(preview?.pricingMessage && !invoice);
   const paid = !hasPricingWarning && (invoice?.status === "PAID" || payableAmount === 0);
   const paymentStatus = hasPricingWarning
@@ -155,10 +156,16 @@ export function ParkingSessionSummary({ mode, preview, result }: ParkingSessionS
             <h3 className="tw-m-0 tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900">Đối chiếu ảnh</h3>
           </div>
 
-          <div className="tw-grid tw-gap-2">
-            <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-700">Ảnh khi vào</span>
-            <MiniLaneImage empty={!session && !checkInImagePath} imagePath={checkInImagePath} />
-            <span className="tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">{fallback(session?.checkInTime ?? checkInEvent?.eventTime)}</span>
+          <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[1280px]:tw-grid-cols-1">
+            <div className="tw-grid tw-gap-2">
+              <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-700">Ảnh xe khi vào</span>
+              <MiniLaneImage alt="Ảnh xe khi vào" empty={!session && !checkInImagePath} imagePath={checkInImagePath} />
+            </div>
+            <div className="tw-grid tw-gap-2">
+              <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-700">Ảnh người / tài xế khi vào</span>
+              <MiniLaneImage alt="Ảnh người / tài xế khi vào" empty={!session && !checkInPersonImagePath} imagePath={checkInPersonImagePath} />
+            </div>
+            <span className="tw-col-span-full tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">{fallback(session?.checkInTime ?? checkInEvent?.eventTime)}</span>
           </div>
         </div>
 

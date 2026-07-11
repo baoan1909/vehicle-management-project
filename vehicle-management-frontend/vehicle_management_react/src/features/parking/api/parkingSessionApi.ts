@@ -13,6 +13,7 @@ type ApiResponse<T> = {
 export type LaneDirection = "IN" | "OUT";
 export type LaneStatus = "ACTIVE" | "MAINTENANCE" | "CLOSED";
 export type ParkingCardStatus = "AVAILABLE" | "ASSIGNED" | "IN_USE" | "BLOCKED" | "LOST" | "DAMAGED" | "RETIRED" | "RESERVED";
+export type ZoneStatus = "ACTIVE" | "MAINTENANCE" | "CLOSED";
 
 export type LaneResponse = {
   code: string;
@@ -54,6 +55,16 @@ export type VehicleTypeResponse = {
   isActive?: boolean;
   name: string;
   vehicleTypeId: string;
+};
+
+export type ZoneResponse = {
+  capacity?: number;
+  code: string;
+  name: string;
+  parkingLotId?: string;
+  status: ZoneStatus;
+  vehicleTypeId?: string;
+  zoneId: string;
 };
 
 export type CheckInParkingSessionRequest = {
@@ -140,6 +151,57 @@ export type ParkingSessionCheckOutPreviewResponse = {
   previewCheckOutTime?: string;
 };
 
+export type ParkingSessionManagementEventResponse = {
+  actorAccountId?: string;
+  eventTime?: string;
+  eventType?: "CHECK_IN" | "CHECK_OUT";
+  laneCode?: string;
+  laneId?: string;
+  laneName?: string;
+  licensePlateDetected?: string;
+  licensePlateImagePath?: string;
+  note?: string;
+  parkingEventId: string;
+  parkingSessionId: string;
+  personImagePath?: string;
+};
+
+export type ParkingSessionManagementResponse = {
+  cardId?: string;
+  cardNumber?: string;
+  cardTypeCode?: string;
+  cardTypeName?: string;
+  cardUid?: string;
+  checkInTime?: string;
+  checkOutTime?: string;
+  customerId?: string;
+  customerVehicleId?: string;
+  events?: ParkingSessionManagementEventResponse[];
+  licensePlateIn?: string;
+  licensePlateOut?: string;
+  parkingLotCode?: string;
+  parkingLotId?: string;
+  parkingLotName?: string;
+  parkingSessionId: string;
+  status: "OPEN" | "CLOSED" | "LOST_CARD";
+  totalPrice?: number;
+  vehicleTypeCode?: string;
+  vehicleTypeId?: string;
+  vehicleTypeName?: string;
+  zoneCode?: string;
+  zoneId?: string;
+  zoneName?: string;
+};
+
+export type ParkingSessionManagementFilters = {
+  fromDate?: string;
+  keyword?: string;
+  status?: ParkingSessionResponse["status"];
+  toDate?: string;
+  vehicleTypeId?: string;
+  zoneId?: string;
+};
+
 export type LicensePlateOcrCandidate = {
   confidence: number;
   detectorConfidence: number;
@@ -204,12 +266,41 @@ export async function fetchVehicleTypes() {
   return response.data;
 }
 
+export async function fetchParkingZones(status?: ZoneStatus) {
+  const query = new URLSearchParams();
+  if (status) query.set("status", status);
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await apiClient<ApiResponse<ZoneResponse[]>>(
+    `${apiEndpoints.parking.zones}${suffix}`,
+  );
+
+  return response.data;
+}
+
 export async function fetchOpenParkingSessionByCardUid(cardUid: string) {
   const query = new URLSearchParams();
   query.set("cardUid", cardUid);
 
   const response = await apiClient<ApiResponse<ParkingSessionCheckOutPreviewResponse>>(
     `${apiEndpoints.parking.parkingSessions}/open-by-card?${query.toString()}`,
+  );
+
+  return response.data;
+}
+
+export async function fetchParkingSessions(filters: ParkingSessionManagementFilters = {}) {
+  const query = new URLSearchParams();
+  if (filters.status) query.set("status", filters.status);
+  if (filters.fromDate) query.set("fromDate", filters.fromDate);
+  if (filters.toDate) query.set("toDate", filters.toDate);
+  if (filters.vehicleTypeId) query.set("vehicleTypeId", filters.vehicleTypeId);
+  if (filters.zoneId) query.set("zoneId", filters.zoneId);
+  if (filters.keyword?.trim()) query.set("keyword", filters.keyword.trim());
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  const response = await apiClient<ApiResponse<ParkingSessionManagementResponse[]>>(
+    `${apiEndpoints.parking.parkingSessions}${suffix}`,
   );
 
   return response.data;
