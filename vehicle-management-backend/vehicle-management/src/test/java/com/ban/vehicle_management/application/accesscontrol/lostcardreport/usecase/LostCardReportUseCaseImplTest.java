@@ -2,11 +2,13 @@ package com.ban.vehicle_management.application.accesscontrol.lostcardreport.usec
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +39,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -125,6 +128,7 @@ class LostCardReportUseCaseImplTest {
         when(parkingSessionPortOut.findById(PARKING_SESSION_ID)).thenReturn(Optional.of(session));
         when(cardPortOut.findById(CARD_ID)).thenReturn(Optional.of(card));
         when(lostCardReportPortOut.existsOpenByCardId(CARD_ID)).thenReturn(false);
+        when(lostCardReportPortOut.existsOpenByParkingSessionId(PARKING_SESSION_ID)).thenReturn(false);
         when(parkingSessionPortOut.save(any(ParkingSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(lostCardReportPortOut.save(any(LostCardReport.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -141,6 +145,28 @@ class LostCardReportUseCaseImplTest {
         assertEquals(InvoiceStatus.UNPAID, result.invoice().getStatus());
         assertEquals(result.lostCardReport().getLostCardReportId(), result.invoice().getLostCardReportId());
         verify(lostCardReportAccessGuard).ensureCanCreate();
+    }
+
+    @Test
+    void shouldRejectCreateWhenOpenReportAlreadyExistsForParkingSession() {
+        ParkingSession session = visitorOpenSession();
+        Card card = card(CardStatus.IN_USE);
+        LostCardReport request = createVisitorReportRequest();
+
+        when(parkingSessionPortOut.findById(PARKING_SESSION_ID)).thenReturn(Optional.of(session));
+        when(cardPortOut.findById(CARD_ID)).thenReturn(Optional.of(card));
+        when(lostCardReportPortOut.existsOpenByCardId(CARD_ID)).thenReturn(false);
+        when(lostCardReportPortOut.existsOpenByParkingSessionId(PARKING_SESSION_ID)).thenReturn(true);
+
+        ConflictException exception = assertThrows(
+                ConflictException.class,
+                () -> lostCardReportUseCase.createReport(request)
+        );
+
+        assertEquals("Open lost card report already exists for parking session", exception.getMessage());
+        verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
+        verify(cardPortOut, never()).save(any(Card.class));
+        verify(lostCardReportPortOut, never()).save(any(LostCardReport.class));
     }
 
     @Test

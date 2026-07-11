@@ -17,6 +17,14 @@ export const apiEndpoints = {
     cards: "/access-control/cards",
     lostCards: "/access-control/lost-card-reports",
   },
+  accessControl: {
+    cards: "/access-control/cards",
+    lostCardReports: "/access-control/lost-card-reports",
+  },
+  billing: {
+    invoices: "/billing/invoices",
+    payments: "/billing/payments",
+  },
   catalog: {
     cardTypes: "/catalog/card-types",
     vehicleTypes: "/catalog/vehicle-types",

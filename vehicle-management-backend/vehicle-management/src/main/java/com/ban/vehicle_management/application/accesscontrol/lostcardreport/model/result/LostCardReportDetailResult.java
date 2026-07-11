@@ -7,6 +7,9 @@ import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSes
 
 public record LostCardReportDetailResult(
         LostCardReport lostCardReport,
+        String oldCardNumber,
+        String customerName,
+        String licensePlate,
         ParkingSession parkingSession,
         Subscription subscription,
         InvoiceDetail invoiceDetail

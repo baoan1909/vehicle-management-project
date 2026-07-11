@@ -2,6 +2,8 @@ package com.ban.vehicle_management.application.accesscontrol.lostcardreport.mapp
 
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardPreviewResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportDetailResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportSummaryResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportWorkflowResult;
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
@@ -11,7 +13,9 @@ import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSes
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.request.CreateLostCardReportRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportDetailResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportListItemResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportSummaryResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportWorkflowResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceDetailResponse;
@@ -19,6 +23,7 @@ import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.Paymen
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -49,9 +54,55 @@ public interface LostCardReportApiMapper {
 
     List<LostCardReportResponse> toResponses(List<LostCardReport> reports);
 
+    default LostCardReportListItemResponse toListItemResponse(LostCardReportListItemResult item) {
+        if (item == null) {
+            return null;
+        }
+
+        return new LostCardReportListItemResponse(
+                item.lostCardReportId(),
+                buildReportCode(item),
+                item.cardId(),
+                item.customerId(),
+                item.parkingSessionId(),
+                item.subscriptionId(),
+                item.licensePlate(),
+                map(item.notificationTime()),
+                map(item.timeOfLost()),
+                item.ticketPrice(),
+                item.lostCardFee(),
+                item.totalAmount(),
+                item.reporterName(),
+                item.reporterPhone(),
+                item.identifyCard(),
+                item.registrationLicense(),
+                item.context(),
+                item.status(),
+                item.invoiceId(),
+                item.invoiceNo(),
+                item.invoiceStatus(),
+                map(item.createdAt()),
+                item.createdBy(),
+                map(item.updatedAt()),
+                item.updatedBy()
+        );
+    }
+
+    default List<LostCardReportListItemResponse> toListItemResponses(List<LostCardReportListItemResult> items) {
+        if (items == null) {
+            return List.of();
+        }
+
+        return items.stream()
+                .map(this::toListItemResponse)
+                .toList();
+    }
+
     LostCardPreviewResponse toPreviewResponse(LostCardPreviewResult preview);
 
     LostCardReportWorkflowResponse toWorkflowResponse(LostCardReportWorkflowResult result);
+
+    LostCardReportSummaryResponse toSummaryResponse(LostCardReportSummaryResult result);
 
     default LostCardReportDetailResponse toDetailResponse(LostCardReportDetailResult detail) {
         if (detail == null) {
@@ -60,6 +111,9 @@ public interface LostCardReportApiMapper {
 
         return new LostCardReportDetailResponse(
                 toResponse(detail.lostCardReport()),
+                detail.oldCardNumber(),
+                detail.customerName(),
+                detail.licensePlate(),
                 toParkingSessionResponse(detail.parkingSession()),
                 toSubscriptionResponse(detail.subscription()),
                 toInvoiceDetailResponse(detail.invoiceDetail())
@@ -68,6 +122,19 @@ public interface LostCardReportApiMapper {
 
     default String map(Instant value) {
         return DateTimeUtils.formatInstant(value, DateTimeUtils.VIETNAM_ZONE);
+    }
+
+    private String buildReportCode(LostCardReportListItemResult item) {
+        String datePart = item.notificationTime() == null
+                ? "UNKNOWN"
+                : DateTimeFormatter.ofPattern("yyyyMMdd")
+                .withZone(DateTimeUtils.VIETNAM_ZONE)
+                .format(item.notificationTime());
+        String idPart = item.lostCardReportId() == null
+                ? "UNKNOWN"
+                : item.lostCardReportId().toString().replace("-", "").substring(0, 8).toUpperCase();
+
+        return "LC-" + datePart + "-" + idPart;
     }
 
     private ParkingSessionResponse toParkingSessionResponse(ParkingSession parkingSession) {

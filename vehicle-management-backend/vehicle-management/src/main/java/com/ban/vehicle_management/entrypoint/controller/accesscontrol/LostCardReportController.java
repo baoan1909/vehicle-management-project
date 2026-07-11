@@ -3,18 +3,21 @@ package com.ban.vehicle_management.entrypoint.controller.accesscontrol;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.mapper.LostCardReportApiMapper;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardPreviewResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportDetailResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportSummaryResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportWorkflowResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.port.in.LostCardReportPortIn;
-import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.request.CancelLostCardReportRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.request.CreateLostCardReportRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.request.LostCardReportFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.request.ResolveLostCardReportRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportDetailResponse;
-import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportListItemResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportSummaryResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportWorkflowResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -96,6 +99,19 @@ public class LostCardReportController {
         ));
     }
 
+    @GetMapping("/summary")
+    public ResponseEntity<ApiResponse<LostCardReportSummaryResponse>> getSummary(
+            @RequestParam(required = false) Instant fromDate,
+            @RequestParam(required = false) Instant toDate
+    ) {
+        LostCardReportSummaryResult result = lostCardReportPortIn.getSummary(fromDate, toDate);
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched lost card report summary successfully",
+                lostCardReportApiMapper.toSummaryResponse(result)
+        ));
+    }
+
     @GetMapping("/{lostCardReportId}")
     public ResponseEntity<ApiResponse<LostCardReportDetailResponse>> getReportById(
             @PathVariable UUID lostCardReportId
@@ -109,10 +125,10 @@ public class LostCardReportController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<LostCardReportResponse>>> getReports(
+    public ResponseEntity<ApiResponse<List<LostCardReportListItemResponse>>> getReports(
             @ModelAttribute LostCardReportFilterRequest request
     ) {
-        List<LostCardReport> reports = lostCardReportPortIn.getReports(
+        List<LostCardReportListItemResult> reports = lostCardReportPortIn.getReportListItems(
                 request.status(),
                 request.context(),
                 request.customerId(),
@@ -126,7 +142,7 @@ public class LostCardReportController {
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched lost card reports successfully",
-                lostCardReportApiMapper.toResponses(reports)
+                lostCardReportApiMapper.toListItemResponses(reports)
         ));
     }
 }

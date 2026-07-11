@@ -930,6 +930,7 @@ CREATE INDEX idx_user_profile_avatars_uploaded_by ON people.user_profile_avatars
 CREATE INDEX idx_customer_vehicles_customer_id ON people.customer_vehicles(customer_id);
 CREATE INDEX idx_subscriptions_customer_id ON access_control.subscriptions(customer_id);
 CREATE INDEX idx_cards_status ON access_control.cards(status);
+CREATE UNIQUE INDEX ux_lost_card_reports_open_parking_session ON access_control.lost_card_reports(parking_session_id) WHERE parking_session_id IS NOT NULL AND status = 'OPEN';
 CREATE INDEX idx_parking_sessions_card_id ON parking.parking_sessions(card_id);
 CREATE INDEX idx_parking_sessions_status ON parking.parking_sessions(status);
 CREATE INDEX idx_parking_sessions_check_in_time ON parking.parking_sessions(check_in_time);

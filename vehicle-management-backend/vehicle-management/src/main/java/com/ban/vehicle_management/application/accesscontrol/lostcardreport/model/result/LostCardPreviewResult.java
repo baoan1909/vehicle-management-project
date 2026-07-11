@@ -16,6 +16,9 @@ public record LostCardPreviewResult(
         BigDecimal ticketPrice,
         BigDecimal lostCardFee,
         BigDecimal totalAmount,
+        String oldCardNumber,
+        String customerName,
+        String licensePlate,
         String checkInLicensePlateImagePath,
         String checkInPersonImagePath
 ) {

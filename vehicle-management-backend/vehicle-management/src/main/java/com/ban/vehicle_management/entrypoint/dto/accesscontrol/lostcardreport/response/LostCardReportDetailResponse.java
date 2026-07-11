@@ -6,6 +6,9 @@ import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response
 
 public record LostCardReportDetailResponse(
         LostCardReportResponse lostCardReport,
+        String oldCardNumber,
+        String customerName,
+        String licensePlate,
         ParkingSessionResponse parkingSession,
         SubscriptionAdminResponse subscription,
         InvoiceDetailResponse invoice

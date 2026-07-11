@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import type { AppLayout } from "@/shared/types/common";
 import { LoginPage } from "@/features/auth";
-import { CardListPage } from "@/features/cards";
+import { CardListPage, LostCardCreatePage, LostCardDetailPage, LostCardListPage } from "@/features/cards";
 import { SubscriptionApprovalPage, TicketListPage, VehicleListPage } from "@/features/catalog";
 import {
   ContactPage,
@@ -20,6 +20,7 @@ import { DashboardPage } from "@/features/dashboard";
 import { EmployeeListPage, ShiftSchedulePage } from "@/features/employees";
 import { AccountListPage, InternalProfilePage, RoleListPage } from "@/features/iam";
 import { ParkingOperationsPage, ParkingSessionPage, SwipeListPage } from "@/features/parking";
+import { PricePlanListPage, PriceRuleListPage } from "@/features/pricing";
 import { OperationsSupportCenterPage, SupportCategoryWorkflowPage } from "@/features/support";
 
 export interface RouteDefinition {
@@ -44,18 +45,19 @@ export const routes: RouteDefinition[] = [
   { path: "/admin/swipe/sessions", title: "Phien gui xe", layout: "admin", element: <ParkingSessionPage /> },
   { path: "/admin/card", title: "Quan ly the", layout: "admin", element: <CardListPage /> },
   { path: "/admin/card/form", title: "Thong tin the", layout: "admin", element: blankPage },
-  { path: "/admin/lost", title: "The bi mat", layout: "admin", element: blankPage },
-  { path: "/admin/lost/form", title: "Thong tin the bi mat", layout: "admin", element: blankPage },
+  { path: "/admin/lost", title: "The bi mat", layout: "admin", element: <LostCardListPage /> },
+  { path: "/admin/lost/form", title: "Tao phieu bao mat the", layout: "admin", element: <LostCardCreatePage /> },
+  { path: "/admin/lost/detail", title: "Chi tiet phieu bao mat the", layout: "admin", element: <LostCardDetailPage /> },
   { path: "/admin/ticket", title: "Quan ly ve", layout: "admin", element: <TicketListPage /> },
   { path: "/admin/ticket/form", title: "Thong tin ve", layout: "admin", element: blankPage },
   { path: "/admin/subscription-approvals", title: "Duyet dang ky ve thang va gan the", layout: "admin", element: <SubscriptionApprovalPage /> },
   { path: "/admin/vehicle", title: "Quan ly phuong tien", layout: "admin", element: <VehicleListPage /> },
   { path: "/admin/vehicle/form", title: "Thong tin phuong tien", layout: "admin", element: blankPage },
   { path: "/admin/parking-lots", title: "Bãi xe & Sơ đồ vận hành", layout: "admin", element: <ParkingOperationsPage /> },
-  { path: "/admin/visitorParkingFee", title: "Phi vang lai", layout: "admin", element: blankPage },
-  { path: "/admin/visitorParkingFee/form", title: "Thong tin phi vang lai", layout: "admin", element: blankPage },
-  { path: "/admin/parkingFeeOfCustomer", title: "Phi dang ky", layout: "admin", element: blankPage },
-  { path: "/admin/parkingFeeOfCustomer/form", title: "Thong tin phi dang ky", layout: "admin", element: blankPage },
+  { path: "/admin/price-plans", title: "Ke hoach gia", layout: "admin", element: <PricePlanListPage /> },
+  { path: "/admin/price-rules", title: "Quy tac gia", layout: "admin", element: <PriceRuleListPage /> },
+  { path: "/admin/visitorParkingFee", title: "Phi vang lai", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
+  { path: "/admin/parkingFeeOfCustomer", title: "Phi dang ky", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
   { path: "/admin/employee", title: "Nhân viên", layout: "admin", element: <EmployeeListPage /> },
   { path: "/admin/employee/form", title: "Thong tin nhan vien", layout: "admin", element: blankPage },
   { path: "/admin/shifts", title: "Ca trực & Phân công", layout: "admin", element: <ShiftSchedulePage /> },
