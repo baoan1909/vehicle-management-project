@@ -4,6 +4,8 @@ import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPo
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.authorization.LostCardReportAccessGuard;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardPreviewResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportDetailResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportSummaryResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportWorkflowResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.port.in.LostCardReportPortIn;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.port.out.LostCardReportPortOut;
@@ -13,6 +15,7 @@ import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPo
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
+import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
@@ -77,6 +80,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
     private final PriceRulePortOut priceRulePortOut;
     private final InvoicePortOut invoicePortOut;
     private final PaymentPortOut paymentPortOut;
+    private final CustomerPortOut customerPortOut;
     private final CustomerVehiclePortOut customerVehiclePortOut;
 
     private final LostCardReportPolicy lostCardReportPolicy = new LostCardReportPolicy();
@@ -96,6 +100,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
             PriceRulePortOut priceRulePortOut,
             InvoicePortOut invoicePortOut,
             PaymentPortOut paymentPortOut,
+            CustomerPortOut customerPortOut,
             CustomerVehiclePortOut customerVehiclePortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
@@ -107,6 +112,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         this.priceRulePortOut = priceRulePortOut;
         this.invoicePortOut = invoicePortOut;
         this.paymentPortOut = paymentPortOut;
+        this.customerPortOut = customerPortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
     }
 
@@ -149,6 +155,11 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                     ticketPrice,
                     lostCardFee,
                     ticketPrice.add(lostCardFee),
+                    resolveCardNumber(session.getCardId()),
+                    resolveCustomerName(context == LostCardReportContext.REGISTERED_IN_PARKING
+                            ? subscription.getCustomerId()
+                            : session.getCustomerId()),
+                    session.getLicensePlateIn(),
                     null,
                     null
             );
@@ -170,6 +181,9 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 BigDecimal.ZERO,
                 lostCardFee,
                 lostCardFee,
+                resolveCardNumber(subscription.getCardId()),
+                resolveCustomerName(subscription.getCustomerId()),
+                resolveLicensePlate(null, subscription),
                 null,
                 null
         );
@@ -224,6 +238,9 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
 
         if (lostCardReportPortOut.existsOpenByCardId(cardId)) {
             throw new ConflictException("Open lost card report already exists for card");
+        }
+        if (session != null && lostCardReportPortOut.existsOpenByParkingSessionId(session.getParkingSessionId())) {
+            throw new ConflictException("Open lost card report already exists for parking session");
         }
 
         BigDecimal ticketPrice = context == LostCardReportContext.VISITOR_IN_PARKING
@@ -400,6 +417,9 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
 
         return new LostCardReportDetailResult(
                 report,
+                resolveCardNumber(report.getCardId()),
+                resolveCustomerName(report.getCustomerId()),
+                resolveLicensePlate(session, subscription),
                 session,
                 subscription,
                 new InvoiceDetail(invoice, paymentPortOut.findByInvoiceId(invoice.getInvoiceId()))
@@ -431,6 +451,47 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 fromDate,
                 toDate,
                 normalizeKeyword(keyword)
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LostCardReportListItemResult> getReportListItems(
+            LostCardReportStatus status,
+            LostCardReportContext context,
+            UUID customerId,
+            UUID cardId,
+            UUID parkingSessionId,
+            UUID subscriptionId,
+            Instant fromDate,
+            Instant toDate,
+            String keyword
+    ) {
+        lostCardReportAccessGuard.ensureCanRead();
+
+        return lostCardReportPortOut.findListItems(
+                status,
+                context,
+                customerId,
+                cardId,
+                parkingSessionId,
+                subscriptionId,
+                fromDate,
+                toDate,
+                normalizeKeyword(keyword)
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public LostCardReportSummaryResult getSummary(Instant fromDate, Instant toDate) {
+        lostCardReportAccessGuard.ensureCanRead();
+
+        return new LostCardReportSummaryResult(
+                lostCardReportPortOut.countByStatus(LostCardReportStatus.OPEN),
+                lostCardReportPortOut.countOpenByInvoiceStatus(InvoiceStatus.UNPAID),
+                lostCardReportPortOut.countByStatusAndResolvedAtBetween(LostCardReportStatus.RESOLVED, fromDate, toDate),
+                lostCardReportPortOut.countDistinctCardsByCardStatus(CardStatus.LOST)
         );
     }
 
@@ -598,6 +659,46 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
 
         return customerVehicle.getVehicleTypeId();
+    }
+
+    private String resolveLicensePlate(ParkingSession session, Subscription subscription) {
+        if (session != null) {
+            return session.getLicensePlateIn();
+        }
+        if (subscription == null || subscription.getCustomerVehicleId() == null) {
+            return null;
+        }
+
+        return customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
+                .map(CustomerVehicle::getLicensePlate)
+                .orElse(null);
+    }
+
+    private String resolveCardNumber(UUID cardId) {
+        if (cardId == null) {
+            return null;
+        }
+
+        return cardPortOut.findById(cardId)
+                .map(Card::getCardNumber)
+                .orElse(null);
+    }
+
+    private String resolveCustomerName(UUID customerId) {
+        if (customerId == null) {
+            return null;
+        }
+
+        return customerPortOut.findById(customerId)
+                .map(customer -> {
+                    if (customer.getUserProfile() != null
+                            && customer.getUserProfile().getFullName() != null
+                            && !customer.getUserProfile().getFullName().isBlank()) {
+                        return customer.getUserProfile().getFullName();
+                    }
+                    return customer.getCustomerCode();
+                })
+                .orElse(null);
     }
 
     private String generateInvoiceNo(UUID invoiceId, Instant now) {

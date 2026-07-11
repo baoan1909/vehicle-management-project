@@ -14,6 +14,14 @@ export const apiEndpoints = {
     cards: "/cards",
     lostCards: "/lost-cards",
   },
+  accessControl: {
+    cards: "/access-control/cards",
+    lostCardReports: "/access-control/lost-card-reports",
+  },
+  billing: {
+    invoices: "/billing/invoices",
+    payments: "/billing/payments",
+  },
   catalog: {
     tickets: "/tickets",
     vehicles: "/vehicles",

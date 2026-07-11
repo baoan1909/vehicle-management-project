@@ -60,8 +60,8 @@ export const adminNavigation: AdminSidebarEntry[] = [
     label: "Bảng giá",
     icon: "pricing",
     items: [
-      { label: "Phí vãng lai", to: "/admin/visitorParkingFee", matches: ["/admin/visitorParkingFee"] },
-      { label: "Phí đăng ký", to: "/admin/parkingFeeOfCustomer", matches: ["/admin/parkingFeeOfCustomer"] },
+      { label: "Kế hoạch giá", to: "/admin/price-plans", matches: ["/admin/price-plans"] },
+      { label: "Quy tắc giá", to: "/admin/price-rules", matches: ["/admin/price-rules"] },
     ],
   },
   {

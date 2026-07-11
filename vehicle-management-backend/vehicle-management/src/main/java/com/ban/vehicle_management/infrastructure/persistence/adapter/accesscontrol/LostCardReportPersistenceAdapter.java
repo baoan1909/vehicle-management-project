@@ -1,12 +1,15 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.accesscontrol;
 
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.port.out.LostCardReportPortOut;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
 import com.ban.vehicle_management.infrastructure.mapper.accesscontrol.LostCardReportPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.LostCardReportEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.LostCardReportRepository;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportContext;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -18,6 +21,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
+
+    private static final Instant MIN_FILTER_INSTANT = Instant.parse("1900-01-01T00:00:00Z");
+    private static final Instant MAX_FILTER_INSTANT = Instant.parse("9999-12-31T23:59:59Z");
 
     private final LostCardReportRepository lostCardReportRepository;
     private final LostCardReportPersistenceMapper lostCardReportPersistenceMapper;
@@ -48,6 +54,14 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
     }
 
     @Override
+    public boolean existsOpenByParkingSessionId(UUID parkingSessionId) {
+        return lostCardReportRepository.existsByParkingSessionIdAndStatus(
+                parkingSessionId,
+                LostCardReportStatus.OPEN
+        );
+    }
+
+    @Override
     public List<LostCardReport> findAll(
             LostCardReportStatus status,
             LostCardReportContext context,
@@ -70,6 +84,62 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
                 toDate,
                 normalizeKeyword(keyword)
         )).stream().map(lostCardReportPersistenceMapper::toDomain).toList();
+    }
+
+    @Override
+    public List<LostCardReportListItemResult> findListItems(
+            LostCardReportStatus status,
+            LostCardReportContext context,
+            UUID customerId,
+            UUID cardId,
+            UUID parkingSessionId,
+            UUID subscriptionId,
+            Instant fromDate,
+            Instant toDate,
+            String keyword
+    ) {
+        return lostCardReportRepository.findListItems(
+                status,
+                context,
+                customerId,
+                cardId,
+                parkingSessionId,
+                subscriptionId,
+                fromDateOrDefault(fromDate),
+                toDateOrDefault(toDate),
+                toKeywordPattern(keyword)
+        );
+    }
+
+    @Override
+    public long countByStatus(LostCardReportStatus status) {
+        return lostCardReportRepository.countByStatus(status);
+    }
+
+    @Override
+    public long countByStatusAndResolvedAtBetween(
+            LostCardReportStatus status,
+            Instant fromDate,
+            Instant toDate
+    ) {
+        return lostCardReportRepository.countByStatusAndResolvedAtBetween(
+                status,
+                fromDateOrDefault(fromDate),
+                toDateOrDefault(toDate)
+        );
+    }
+
+    @Override
+    public long countOpenByInvoiceStatus(InvoiceStatus invoiceStatus) {
+        return lostCardReportRepository.countByReportStatusAndInvoiceStatus(
+                LostCardReportStatus.OPEN,
+                invoiceStatus
+        );
+    }
+
+    @Override
+    public long countDistinctCardsByCardStatus(CardStatus cardStatus) {
+        return lostCardReportRepository.countDistinctCardsByCardStatus(cardStatus);
     }
 
     private Specification<LostCardReportEntity> buildSpecification(
@@ -127,5 +197,18 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
 
     private String normalizeKeyword(String keyword) {
         return keyword == null || keyword.isBlank() ? null : keyword.trim();
+    }
+
+    private String toKeywordPattern(String keyword) {
+        String normalizedKeyword = normalizeKeyword(keyword);
+        return normalizedKeyword == null ? null : "%" + normalizedKeyword.toLowerCase() + "%";
+    }
+
+    private Instant fromDateOrDefault(Instant fromDate) {
+        return fromDate == null ? MIN_FILTER_INSTANT : fromDate;
+    }
+
+    private Instant toDateOrDefault(Instant toDate) {
+        return toDate == null ? MAX_FILTER_INSTANT : toDate;
     }
 }

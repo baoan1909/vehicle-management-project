@@ -2,6 +2,8 @@ package com.ban.vehicle_management.application.accesscontrol.lostcardreport.port
 
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardPreviewResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportDetailResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportSummaryResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportWorkflowResult;
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportContext;
@@ -33,4 +35,18 @@ public interface LostCardReportPortIn {
             Instant toDate,
             String keyword
     );
+
+    List<LostCardReportListItemResult> getReportListItems(
+            LostCardReportStatus status,
+            LostCardReportContext context,
+            UUID customerId,
+            UUID cardId,
+            UUID parkingSessionId,
+            UUID subscriptionId,
+            Instant fromDate,
+            Instant toDate,
+            String keyword
+    );
+
+    LostCardReportSummaryResult getSummary(Instant fromDate, Instant toDate);
 }
