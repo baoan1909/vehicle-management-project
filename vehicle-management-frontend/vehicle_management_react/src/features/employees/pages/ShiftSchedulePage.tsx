@@ -1,28 +1,41 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 
 import { Badge, Button, Card, EntityAvatar, SelectMenu, useToast } from "@/components/ui";
+import { ShiftConfigurationPanel } from "@/features/employees/components/ShiftConfigurationPanel";
 import { getEmployees, type EmployeeApiResponse } from "@/features/employees/api/employeesApi";
 import {
   approveWorkScheduleWeek,
+  createShiftAssignment,
+  deleteShiftAssignment,
   generateWorkScheduleWeek,
+  getEmployeeRosterRules,
   getGates,
   getParkingLots,
   getShiftAssignments,
+  getShiftTemplates,
   getShifts,
+  replaceShiftAssignment,
+  swapShiftAssignments,
+  type EmployeeRosterRuleApiResponse,
   type GateApiResponse,
   type ParkingLotApiResponse,
   type ShiftApiResponse,
   type ShiftAssignmentApiResponse,
   type ShiftStatusApi,
+  type ShiftTemplateApiResponse,
   type ShiftTypeApi,
 } from "@/features/employees/api/shiftsApi";
 import { cn } from "@/lib/cn";
 
 type DrawerPhase = "opening" | "open" | "closing";
+type ShiftWorkspace = "schedule" | "templates" | "rules";
 
 type ShiftAssignmentView = {
   assignmentId: string;
+  employeeId: string;
   employeeName: string;
+  gateId?: string | null;
   gateName: string;
   initials: string;
   role: string;
@@ -184,7 +197,9 @@ function toAssignmentView(
 
   return {
     assignmentId: assignment.shiftAssignmentId,
+    employeeId: assignment.employeeId,
     employeeName: name,
+    gateId: assignment.gateId,
     gateName: gate?.name ?? gate?.code ?? shortCode("Cổng", assignment.gateId),
     initials: getInitials(name),
     role: employee?.jobTitle ?? "Nhân viên ca trực",
@@ -460,9 +475,56 @@ function WeekSummaryPanel({ shifts }: { shifts: ShiftCell[] }) {
   );
 }
 
-function ShiftDetailDrawer({ isOpen, onClose, shift }: { isOpen: boolean; onClose: () => void; shift: ShiftCell | null }) {
+function ShiftDetailDrawer({
+  allShifts,
+  employees,
+  gates,
+  isOpen,
+  onChanged,
+  onClose,
+  shift,
+}: {
+  allShifts: ShiftCell[];
+  employees: EmployeeApiResponse[];
+  gates: GateApiResponse[];
+  isOpen: boolean;
+  onChanged: () => Promise<void> | void;
+  onClose: () => void;
+  shift: ShiftCell | null;
+}) {
+  const toast = useToast();
   const [isRendered, setIsRendered] = useState(isOpen);
   const [phase, setPhase] = useState<DrawerPhase>(isOpen ? "open" : "closing");
+  const [assignmentAction, setAssignmentAction] = useState<"add" | "replace" | "swap">("add");
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState("");
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
+  const [selectedGateId, setSelectedGateId] = useState("");
+  const [secondAssignmentId, setSecondAssignmentId] = useState("");
+  const [actionReason, setActionReason] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [savingAction, setSavingAction] = useState(false);
+
+  const employeeOptions = useMemo(
+    () => employees.map((employee) => ({ label: getEmployeeName(employee), value: employee.employeeId })),
+    [employees],
+  );
+  const gateOptions = useMemo(
+    () => gates.map((gate) => ({ label: `${gate.code} - ${gate.name}`, value: gate.gateId })),
+    [gates],
+  );
+  const currentAssignmentOptions = useMemo(
+    () => shift?.assignments.map((assignment) => ({ label: `${assignment.employeeName} - ${assignment.gateName}`, value: assignment.assignmentId })) ?? [],
+    [shift],
+  );
+  const allAssignmentOptions = useMemo(
+    () => allShifts
+      .filter((item) => !item.isPlaceholder)
+      .flatMap((item) => item.assignments.map((assignment) => ({
+        label: `${item.code} - ${assignment.employeeName}`,
+        value: assignment.assignmentId,
+      }))),
+    [allShifts],
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -495,6 +557,87 @@ function ShiftDetailDrawer({ isOpen, onClose, shift }: { isOpen: boolean; onClos
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [isRendered, onClose]);
+
+  useEffect(() => {
+    setActionError("");
+    setSelectedAssignmentId(shift?.assignments[0]?.assignmentId ?? "");
+    setSelectedEmployeeId(employeeOptions[0]?.value ?? "");
+    setSelectedGateId(gateOptions[0]?.value ?? "");
+    setSecondAssignmentId(allAssignmentOptions.find((option) => option.value !== shift?.assignments[0]?.assignmentId)?.value ?? "");
+    setActionReason("");
+  }, [allAssignmentOptions, employeeOptions, gateOptions, shift]);
+
+  async function handleAssignmentSubmit(event: FormEvent) {
+    event.preventDefault();
+
+    if (!shift || shift.isPlaceholder) {
+      setActionError("Chưa có ca trực để thao tác phân công.");
+      return;
+    }
+
+    setActionError("");
+    setSavingAction(true);
+
+    try {
+      if (assignmentAction === "add") {
+        if (!selectedEmployeeId || !selectedGateId) {
+          throw new Error("Vui lòng chọn nhân viên và cổng.");
+        }
+
+        await createShiftAssignment(shift.id, {
+          employeeId: selectedEmployeeId,
+          gateId: selectedGateId,
+        });
+        toast.success("Đã thêm phân công ca trực.");
+      }
+
+      if (assignmentAction === "replace") {
+        if (!selectedAssignmentId || !selectedEmployeeId) {
+          throw new Error("Vui lòng chọn phân công và nhân viên thay thế.");
+        }
+
+        await replaceShiftAssignment(selectedAssignmentId, {
+          reason: actionReason || null,
+          replacementEmployeeId: selectedEmployeeId,
+        });
+        toast.success("Đã thay nhân viên trong ca.");
+      }
+
+      if (assignmentAction === "swap") {
+        if (!selectedAssignmentId || !secondAssignmentId || selectedAssignmentId === secondAssignmentId) {
+          throw new Error("Vui lòng chọn hai phân công khác nhau để đổi ca.");
+        }
+
+        await swapShiftAssignments({
+          firstAssignmentId: selectedAssignmentId,
+          reason: actionReason || null,
+          secondAssignmentId,
+        });
+        toast.success("Đã đổi ca trực.");
+      }
+
+      await onChanged();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Không thể thực hiện thao tác phân công.");
+    } finally {
+      setSavingAction(false);
+    }
+  }
+
+  async function handleDeleteAssignment(assignmentId: string) {
+    setActionError("");
+    setSavingAction(true);
+
+    try {
+      await deleteShiftAssignment(assignmentId);
+      toast.success("Đã xóa phân công.");
+      await onChanged();
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Không thể xóa phân công.");
+    } finally {
+      setSavingAction(false);
+    }
+  }
 
   if (!isRendered || !shift) return null;
 
@@ -565,6 +708,9 @@ function ShiftDetailDrawer({ isOpen, onClose, shift }: { isOpen: boolean; onClos
                     <small className="tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">{employee.role} · {employee.gateName}</small>
                   </div>
                   <Badge tone={employee.status === "REMOVED" ? "danger" : "success"} className="tw-rounded-full tw-px-3">{employee.status}</Badge>
+                  <Button size="sm" variant="danger" disabled={savingAction} onClick={() => void handleDeleteAssignment(employee.assignmentId)}>
+                    Xoa
+                  </Button>
                 </div>
               )) : (
                 <div className="tw-rounded-vm-md tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-vm-slate-25 tw-p-4 tw-text-center tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-500">
@@ -576,7 +722,83 @@ function ShiftDetailDrawer({ isOpen, onClose, shift }: { isOpen: boolean; onClos
 
           <section className="tw-mt-6">
             <h3 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Thao tác nhanh</h3>
-            <div className="tw-mt-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-orange-100 tw-bg-orange-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-orange-700">
+            <form className="tw-mt-4 tw-grid tw-gap-3" onSubmit={(event) => void handleAssignmentSubmit(event)}>
+              <div className="tw-grid tw-grid-cols-3 tw-gap-2">
+                {[
+                  ["add", "Thêm"],
+                  ["replace", "Thay"],
+                  ["swap", "Đổi ca"],
+                ].map(([value, label]) => (
+                  <button
+                    className={cn(
+                      "tw-h-9 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-700",
+                      assignmentAction === value ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary" : "",
+                    )}
+                    key={value}
+                    type="button"
+                    onClick={() => setAssignmentAction(value as "add" | "replace" | "swap")}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {assignmentAction !== "add" ? (
+                <SelectMenu
+                  ariaLabel="Phân công hiện tại"
+                  disabled={!currentAssignmentOptions.length}
+                  options={currentAssignmentOptions.length ? currentAssignmentOptions : [{ label: "Chưa có phân công", value: "" }]}
+                  value={selectedAssignmentId}
+                  onChange={setSelectedAssignmentId}
+                />
+              ) : null}
+
+              {assignmentAction === "swap" ? (
+                <SelectMenu
+                  ariaLabel="Phân công đổi ca"
+                  disabled={!allAssignmentOptions.length}
+                  options={allAssignmentOptions}
+                  value={secondAssignmentId}
+                  onChange={setSecondAssignmentId}
+                />
+              ) : (
+                <SelectMenu
+                  ariaLabel="Nhân viên"
+                  disabled={!employeeOptions.length}
+                  options={employeeOptions.length ? employeeOptions : [{ label: "Chưa có nhân viên", value: "" }]}
+                  value={selectedEmployeeId}
+                  onChange={setSelectedEmployeeId}
+                />
+              )}
+
+              {assignmentAction === "add" ? (
+                <SelectMenu
+                  ariaLabel="Cổng"
+                  disabled={!gateOptions.length}
+                  options={gateOptions.length ? gateOptions : [{ label: "Chưa có cổng", value: "" }]}
+                  value={selectedGateId}
+                  onChange={setSelectedGateId}
+                />
+              ) : null}
+
+              {assignmentAction !== "add" ? (
+                <textarea
+                  className="tw-min-h-[76px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]"
+                  placeholder="Lý do thay đổi"
+                  value={actionReason}
+                  onChange={(event) => setActionReason(event.target.value)}
+                />
+              ) : null}
+
+              {actionError ? (
+                <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-p-3 tw-text-[0.78rem] tw-font-bold tw-text-red-600">{actionError}</div>
+              ) : null}
+
+              <Button disabled={savingAction || shift.isPlaceholder} type="submit">
+                {assignmentAction === "add" ? "Thêm phân công" : assignmentAction === "replace" ? "Thay nhân viên" : "Đổi ca trực"}
+              </Button>
+            </form>
+            <div className="tw-mt-4 tw-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-orange-100 tw-bg-orange-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-orange-700">
               Mở ca, đóng ca, đổi nhân viên và swap ca cần form nhập liệu riêng theo payload backend. Màn này hiện đã gắn dữ liệu đọc, sinh lịch tuần và duyệt lịch tuần.
             </div>
           </section>
@@ -597,6 +819,9 @@ export function ShiftSchedulePage() {
   const [employees, setEmployees] = useState<EmployeeApiResponse[]>([]);
   const [shifts, setShifts] = useState<ShiftApiResponse[]>([]);
   const [assignments, setAssignments] = useState<ShiftAssignmentApiResponse[]>([]);
+  const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplateApiResponse[]>([]);
+  const [rosterRules, setRosterRules] = useState<EmployeeRosterRuleApiResponse[]>([]);
+  const [workspace, setWorkspace] = useState<ShiftWorkspace>("schedule");
   const [selectedLot, setSelectedLot] = useState("all");
   const [selectedShiftType, setSelectedShiftType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -633,7 +858,7 @@ export function ShiftSchedulePage() {
     setError("");
 
     try {
-      const [shiftResponse, assignmentResponse, employeeResponse, lotResponse, gateResponse] = await Promise.all([
+      const [shiftResponse, assignmentResponse, employeeResponse, lotResponse, gateResponse, templateResponse, rosterRuleResponse] = await Promise.all([
         getShifts({
           fromDate: weekStartDate,
           keyword: searchValue.trim() || undefined,
@@ -651,6 +876,12 @@ export function ShiftSchedulePage() {
         getEmployees(),
         getParkingLots(),
         getGates(),
+        getShiftTemplates({
+          parkingLotId: selectedLot === "all" ? undefined : selectedLot,
+        }),
+        getEmployeeRosterRules({
+          parkingLotId: selectedLot === "all" ? undefined : selectedLot,
+        }),
       ]);
 
       setShifts(shiftResponse.data ?? []);
@@ -658,6 +889,8 @@ export function ShiftSchedulePage() {
       setEmployees(employeeResponse.data ?? []);
       setParkingLots(lotResponse.data ?? []);
       setGates(gateResponse.data ?? []);
+      setShiftTemplates(templateResponse.data ?? []);
+      setRosterRules(rosterRuleResponse.data ?? []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Không thể tải dữ liệu ca trực.");
     } finally {
@@ -750,6 +983,29 @@ export function ShiftSchedulePage() {
             </div>
           </div>
 
+          <div className="tw-mb-4 tw-flex tw-flex-wrap tw-gap-2" role="tablist" aria-label="Quản lý ca trực">
+            {[
+              ["schedule", "Lịch tuần"],
+              ["templates", "Mẫu ca"],
+              ["rules", "Quy tắc phân công"],
+            ].map(([value, label]) => (
+              <button
+                aria-pressed={workspace === value}
+                className={cn(
+                  "tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.88rem] tw-font-extrabold tw-text-vm-slate-600 tw-transition hover:tw-border-brand-100 hover:tw-text-vm-primary",
+                  workspace === value ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary" : "",
+                )}
+                key={value}
+                type="button"
+                onClick={() => setWorkspace(value as ShiftWorkspace)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {workspace === "schedule" ? (
+            <>
           <div className="tw-grid tw-grid-cols-4 tw-gap-4 max-[1180px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">
             <ShiftMetricCard icon="far fa-calendar-alt" label="Ca tuần này" tone="blue" value={`${realShifts.length}`} />
             <ShiftMetricCard icon="fas fa-users" label="Đã phân công" tone="green" value={`${assignedCount}`} />
@@ -797,10 +1053,31 @@ export function ShiftSchedulePage() {
               <WeeklyScheduleBoard days={days} selectedShiftId={selectedShiftId} shifts={shiftCells} onSelectShift={handleSelectShift} />
             )}
           </div>
+            </>
+          ) : (
+            <ShiftConfigurationPanel
+              employees={employees}
+              gates={gates}
+              mode={workspace}
+              onChanged={loadData}
+              parkingLots={parkingLots}
+              rosterRules={rosterRules}
+              selectedLot={selectedLot}
+              shiftTemplates={shiftTemplates}
+            />
+          )}
         </section>
       </div>
 
-      <ShiftDetailDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} shift={selectedShift} />
+      <ShiftDetailDrawer
+        allShifts={shiftCells}
+        employees={employees}
+        gates={gates}
+        isOpen={drawerOpen}
+        onChanged={loadData}
+        onClose={() => setDrawerOpen(false)}
+        shift={selectedShift}
+      />
     </>
   );
 }

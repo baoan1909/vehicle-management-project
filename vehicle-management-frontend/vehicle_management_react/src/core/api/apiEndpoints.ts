@@ -61,8 +61,10 @@ export const apiEndpoints = {
   },
   operations: {
     approveWorkScheduleWeek: "/operations/work-schedules/approve-week",
+    employeeRosterRules: "/operations/employee-roster-rules",
     generateWorkScheduleWeek: "/operations/work-schedules/generate-week",
     shiftAssignments: "/operations/shift-assignments",
+    shiftTemplates: "/operations/shift-templates",
     shifts: "/operations/shifts",
   },
 } as const;
