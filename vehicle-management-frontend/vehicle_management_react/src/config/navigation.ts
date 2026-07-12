@@ -41,6 +41,7 @@ export const adminNavigation: AdminSidebarEntry[] = [
     label: "Hỗ trợ & CSKH",
     icon: "support",
     items: [
+      { label: "Khách hàng", to: "/admin/customer", matches: ["/admin/customer"] },
       { label: "Danh mục ticket", to: "/admin/support-categories", matches: ["/admin/support-categories"] },
     ],
   },
@@ -71,7 +72,6 @@ export const adminNavigation: AdminSidebarEntry[] = [
     items: [
       { label: "Nhân viên", to: "/admin/employee", matches: ["/admin/employee"] },
       { label: "Ca trực", to: "/admin/shifts", matches: ["/admin/shifts"] },
-      { label: "Khách hàng", to: "/admin/customer", matches: ["/admin/customer"] },
     ],
   },
   { kind: "divider" },

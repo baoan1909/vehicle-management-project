@@ -279,7 +279,7 @@ export function CardDetailPanel({ isOpen, onBlockToggle, onClose, onEdit, onMark
               </div>
             </div>
 
-            <div className="tw-mt-4 tw-grid tw-grid-cols-2 tw-gap-[0.6rem] max-[900px]:tw-grid-cols-1">
+            <div className="tw-hidden">
               <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-600/25 tw-bg-brand-600/10 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-vm-primary" type="button" onClick={() => onEdit?.(row)}>
                 <i className="far fa-edit" />
                 <span>Cập nhật</span>
