@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { SelectMenu } from "@/components/ui";
+import { SelectMenu, useToast } from "@/components/ui";
 import {
   checkInParkingSession,
   checkOutParkingSession,
@@ -127,6 +127,7 @@ function FilterSelect({
 }
 
 export function SwipeListPage() {
+  const toast = useToast();
   const [mode, setMode] = useState<ParkingOperationMode>("check-in");
   const [cardTypes, setCardTypes] = useState<CardTypeResponse[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeResponse[]>([]);
@@ -148,7 +149,6 @@ export function SwipeListPage() {
   const [isLoadingCards, setIsLoadingCards] = useState(false);
   const [laneError, setLaneError] = useState("");
   const [submitError, setSubmitError] = useState("");
-  const [submitSuccess, setSubmitSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>("idle");
   const [ocrMessage, setOcrMessage] = useState("");
@@ -326,7 +326,6 @@ export function SwipeListPage() {
     setCheckOutPreview(null);
     setParkingSessionResult(null);
     setSubmitError("");
-    setSubmitSuccess("");
     lastAutoCapturedCardRef.current = "";
     resetOcrState();
   }, [mode]);
@@ -400,7 +399,6 @@ export function SwipeListPage() {
     setLicensePlateImage(null);
     setLicensePlate("");
     setSubmitError("");
-    setSubmitSuccess("");
     setOcrResult(null);
     setOcrStatus("recognizing");
     setOcrMessage("Đã chọn thẻ, camera đang tự chụp ảnh biển số...");
@@ -410,13 +408,11 @@ export function SwipeListPage() {
   function handleCardUidChange(value: string) {
     setCardUid(value);
     setSubmitError("");
-    setSubmitSuccess("");
   }
 
   function handleVehicleTypeChange(value: string) {
     setVehicleTypeId(value);
     setSubmitError("");
-    setSubmitSuccess("");
   }
 
   function handleLicensePlateChange(value: string) {
@@ -433,7 +429,6 @@ export function SwipeListPage() {
   }, []);
 
   const handleRequireCapturePrerequisites = useCallback(() => {
-    setSubmitSuccess("");
     setSubmitError(
       !selectedParkingCard
         ? "Vui lòng chọn thẻ xe hợp lệ trước khi chụp hoặc tải ảnh."
@@ -457,7 +452,6 @@ export function SwipeListPage() {
   function handleLicensePlateImageChange(file: File | null) {
     setLicensePlateImage(file);
     setSubmitError("");
-    setSubmitSuccess("");
     setLicensePlate("");
 
     if (!file) {
@@ -509,7 +503,6 @@ export function SwipeListPage() {
 
   async function handleSubmit() {
     setSubmitError("");
-    setSubmitSuccess("");
 
     if (!laneId) {
       setSubmitError("Vui lòng chọn làn xe active từ backend.");
@@ -592,9 +585,18 @@ export function SwipeListPage() {
       ocrRequestSeq.current += 1;
       lastAutoCapturedCardRef.current = "";
       setCameraResetKey((current) => current + 1);
-      setSubmitSuccess(response.message || (mode === "check-out" ? "Check-out thành công." : "Check-in thành công."));
-    } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : mode === "check-out" ? "Check-out thất bại." : "Check-in thất bại.");
+toast.success(
+  response.message || (mode === "check-in" ? "Check-in thành công." : "Check-out thành công."),
+  mode === "check-in" ? "Check-in thành công" : "Check-out thành công",
+);
+} catch (error) {
+  toast.error(
+    error instanceof Error ? error.message : mode === "check-in" ? "Check-in thất bại." : "Check-out thất bại.",
+    mode === "check-in" ? "Check-in thất bại" : "Check-out thất bại",
+  );
+} finally {
+  setIsSubmitting(false);
+}
     } finally {
       setIsSubmitting(false);
     }
@@ -662,11 +664,6 @@ export function SwipeListPage() {
           {mode === "check-out" ? (
             <div className="tw-grid tw-min-h-0 tw-gap-3">
               <ParkingSessionSummary mode={mode} preview={checkOutPreview} result={parkingSessionResult} />
-            </div>
-          ) : null}
-          {submitSuccess ? (
-            <div className="tw-col-span-full tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-200 tw-bg-emerald-50 tw-px-4 tw-py-3 tw-text-[0.86rem] tw-font-extrabold tw-text-emerald-700">
-              {submitSuccess}
             </div>
           ) : null}
         </div>
