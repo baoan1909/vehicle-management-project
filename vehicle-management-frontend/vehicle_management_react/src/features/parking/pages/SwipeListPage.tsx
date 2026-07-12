@@ -579,7 +579,7 @@ export function SwipeListPage() {
           )
         : await checkOutParkingSession(request, licensePlateImage, personImage);
 
-      setParkingSessionResult(response.data);
+      setParkingSessionResult(mode === "check-out" ? null : response.data);
       setCards((currentCards) => currentCards.filter((card) => card.cardId !== matchedCard?.cardId));
       setCardUid("");
       setVehicleTypeId("");
@@ -592,9 +592,9 @@ export function SwipeListPage() {
       ocrRequestSeq.current += 1;
       lastAutoCapturedCardRef.current = "";
       setCameraResetKey((current) => current + 1);
-      setSubmitSuccess(response.message || "Check-in thành công.");
+      setSubmitSuccess(response.message || (mode === "check-out" ? "Check-out thành công." : "Check-in thành công."));
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Check-in thất bại.");
+      setSubmitError(error instanceof Error ? error.message : mode === "check-out" ? "Check-out thất bại." : "Check-in thất bại.");
     } finally {
       setIsSubmitting(false);
     }

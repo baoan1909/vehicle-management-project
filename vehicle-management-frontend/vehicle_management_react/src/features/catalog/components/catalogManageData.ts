@@ -6,10 +6,14 @@ export type TicketCatalogRecord = {
   code: string;
   name: string;
   duration: string;
+  durationDays?: number | null;
   status: CatalogStatus;
   priceRuleCount: number;
+  createdAt?: string;
+  createdBy?: string | null;
   updatedAt: string;
   updatedTime: string;
+  updatedBy?: string | null;
   description: string;
 };
 
@@ -19,10 +23,14 @@ export type VehicleCatalogRecord = {
   name: string;
   description: string;
   status: CatalogStatus;
+  createdAt?: string;
+  createdBy?: string | null;
+  isActive?: boolean | null;
   linkedCount: number;
   priceRuleCount: number;
   updatedAt: string;
   updatedTime: string;
+  updatedBy?: string | null;
   icon: "motorbike" | "car" | "bike" | "scooter" | "truck" | "heavyTruck";
 };
 

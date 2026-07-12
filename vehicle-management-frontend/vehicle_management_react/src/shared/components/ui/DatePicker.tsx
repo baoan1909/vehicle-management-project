@@ -7,6 +7,7 @@ type DatePickerProps = {
   className?: string;
   iconVariant?: "leading" | "trailingButton";
   max?: string;
+  menuAlign?: "left" | "right";
   min?: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -94,6 +95,7 @@ export function DatePicker({
   className,
   iconVariant = "leading",
   max,
+  menuAlign = "left",
   min,
   onChange,
   placeholder = "Chọn ngày",
@@ -223,7 +225,12 @@ export function DatePicker({
       </button>
 
       {open ? (
-        <div className="tw-absolute tw-left-0 tw-top-[calc(100%+8px)] tw-z-[95] tw-w-[min(304px,calc(100vw-2rem))] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3.5 tw-shadow-vm-dropdown">
+        <div
+          className={cn(
+            "tw-absolute tw-top-[calc(100%+8px)] tw-z-[95] tw-w-[min(304px,calc(100vw-2rem))] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3.5 tw-shadow-vm-dropdown",
+            menuAlign === "right" ? "tw-right-0" : "tw-left-0",
+          )}
+        >
           <div className="tw-mb-3 tw-flex tw-items-center tw-justify-between tw-gap-3">
             <button
               className="tw-inline-flex tw-h-[30px] tw-min-w-[30px] tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-2 tw-text-vm-slate-700 tw-transition hover:tw-border-vm-slate-200 hover:tw-bg-vm-slate-25 hover:tw-text-vm-slate-900"
