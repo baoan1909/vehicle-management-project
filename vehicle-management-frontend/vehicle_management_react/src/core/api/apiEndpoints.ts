@@ -6,8 +6,10 @@ export const apiEndpoints = {
   },
   dashboard: "/dashboard",
   parking: {
+    gates: "/parking/gates",
     lanes: "/parking/lanes",
     ocrLicensePlate: "/parking/ocr/license-plate",
+    parkingLots: "/parking/parking-lots",
     parkingSessions: "/parking/parking-sessions",
     swipes: "/parking/swipes",
     swipeIn: "/parking/swipes/in",
@@ -21,6 +23,7 @@ export const apiEndpoints = {
   accessControl: {
     cards: "/access-control/cards",
     lostCardReports: "/access-control/lost-card-reports",
+    subscriptions: "/access-control/subscriptions",
   },
   billing: {
     invoices: "/billing/invoices",
@@ -52,6 +55,14 @@ export const apiEndpoints = {
     roles: "/roles",
   },
   people: {
+    customerVehicles: "/people/customer-vehicles",
+    customers: "/people/customers",
     employees: "/people/employees",
+  },
+  operations: {
+    approveWorkScheduleWeek: "/operations/work-schedules/approve-week",
+    generateWorkScheduleWeek: "/operations/work-schedules/generate-week",
+    shiftAssignments: "/operations/shift-assignments",
+    shifts: "/operations/shifts",
   },
 } as const;
