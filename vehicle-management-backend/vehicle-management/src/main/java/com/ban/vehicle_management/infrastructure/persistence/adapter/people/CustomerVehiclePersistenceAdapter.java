@@ -9,6 +9,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerVehicleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.people.CustomerVehicleSpecifications;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,8 +39,30 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
     @Override
     public CustomerVehicle save(CustomerVehicle customerVehicle) {
         CustomerVehicleEntity customerVehicleEntity = customerVehiclePersistenceMapper.toEntity(customerVehicle);
+        ensureAuditFields(customerVehicleEntity);
         CustomerVehicleEntity savedCustomerVehicleEntity = customerVehicleRepository.saveAndFlush(customerVehicleEntity);
         return customerVehiclePersistenceMapper.toDomain(savedCustomerVehicleEntity);
+    }
+
+    private void ensureAuditFields(CustomerVehicleEntity customerVehicleEntity) {
+        Instant now = Instant.now();
+        if (customerVehicleEntity.getCustomerVehicleId() != null) {
+            customerVehicleRepository.findById(customerVehicleEntity.getCustomerVehicleId())
+                    .ifPresent(existingCustomerVehicleEntity -> {
+                        if (customerVehicleEntity.getCreatedAt() == null) {
+                            customerVehicleEntity.setCreatedAt(existingCustomerVehicleEntity.getCreatedAt());
+                        }
+                        if (customerVehicleEntity.getCreatedBy() == null) {
+                            customerVehicleEntity.setCreatedBy(existingCustomerVehicleEntity.getCreatedBy());
+                        }
+                    });
+        }
+        if (customerVehicleEntity.getCreatedAt() == null) {
+            customerVehicleEntity.setCreatedAt(now);
+        }
+        if (customerVehicleEntity.getUpdatedAt() == null) {
+            customerVehicleEntity.setUpdatedAt(now);
+        }
     }
 
     @Override

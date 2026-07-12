@@ -1,15 +1,30 @@
-import type { MouseEvent } from "react";
+import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from "react";
+import { createPortal } from "react-dom";
+
 import { CardStateBadge } from "@/features/cards/components/CardStateBadge";
 import type { CardManageRecord } from "@/features/cards/components/cardManageData";
 import { cn } from "@/lib/cn";
 import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 
+export type CardTableAction = "block" | "retire" | "damaged" | "lost";
+
+type ActionMenuPosition = {
+  left: number;
+  top: number;
+};
+
+const ACTION_MENU_WIDTH = 176;
+const ACTION_MENU_HEIGHT = 156;
+const ACTION_MENU_GAP = 6;
+
 interface CardListTableProps {
   checkedIds: string[];
   currentPage: number;
   isLoading?: boolean;
+  onEditRow: (row: CardManageRecord) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
+  onRequestAction: (row: CardManageRecord, action: CardTableAction) => void;
   onSelectRow: (id: string) => void;
   onToggleAllRows: () => void;
   onToggleRowCheck: (id: string) => void;
@@ -31,7 +46,7 @@ function CheckButton({
 }: {
   checked: boolean;
   label: string;
-  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+  onClick: (event: ReactMouseEvent<HTMLButtonElement>) => void;
   partial?: boolean;
 }) {
   return (
@@ -53,8 +68,10 @@ export function CardListTable({
   checkedIds,
   currentPage,
   isLoading = false,
+  onEditRow,
   onPageChange,
   onPageSizeChange,
+  onRequestAction,
   onSelectRow,
   onToggleAllRows,
   onToggleRowCheck,
@@ -69,6 +86,91 @@ export function CardListTable({
   const checkedCount = rows.filter((row) => checkedIds.includes(row.id)).length;
   const allRowsChecked = rows.length > 0 && checkedCount === rows.length;
   const someRowsChecked = checkedCount > 0 && checkedCount < rows.length;
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<ActionMenuPosition | null>(null);
+  const menuRootRef = useRef<HTMLDivElement | null>(null);
+  const openMenuRow = openMenuId ? rows.find((row) => row.id === openMenuId) ?? null : null;
+
+  useEffect(() => {
+    if (!openMenuId) return undefined;
+
+    const closeMenu = () => {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+    };
+
+    const handlePointerDown = (event: globalThis.MouseEvent) => {
+      if (!menuRootRef.current?.contains(event.target as Node)) {
+        closeMenu();
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeMenu();
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
+    };
+  }, [openMenuId]);
+
+  const openActionMenu = (rowId: string, trigger: HTMLButtonElement) => {
+    if (openMenuId === rowId) {
+      setOpenMenuId(null);
+      setMenuPosition(null);
+      return;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    const maxLeft = window.innerWidth - ACTION_MENU_WIDTH - 8;
+    const shouldOpenAbove = rect.bottom + ACTION_MENU_GAP + ACTION_MENU_HEIGHT > window.innerHeight - 8;
+    setMenuPosition({
+      left: Math.max(8, Math.min(rect.right - ACTION_MENU_WIDTH, maxLeft)),
+      top: shouldOpenAbove ? Math.max(8, rect.top - ACTION_MENU_HEIGHT - ACTION_MENU_GAP) : rect.bottom + ACTION_MENU_GAP,
+    });
+    setOpenMenuId(rowId);
+  };
+
+  const actionMenu = openMenuRow && menuPosition
+    ? createPortal(
+        <div
+          className="tw-fixed tw-z-[2600] tw-w-44 tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-1.5 tw-text-left tw-shadow-[0_16px_36px_rgba(15,23,42,0.16)]"
+          ref={menuRootRef}
+          style={{ left: menuPosition.left, top: menuPosition.top }}
+        >
+          {[
+            { action: "block" as const, icon: "fas fa-lock", label: "Khóa thẻ" },
+            { action: "retire" as const, icon: "far fa-trash-alt", label: "Ngưng sử dụng" },
+            { action: "damaged" as const, icon: "fas fa-tools", label: "Báo hỏng" },
+            { action: "lost" as const, icon: "far fa-exclamation-circle", label: "Báo mất thẻ" },
+          ].map((item) => (
+            <button
+              className="tw-flex tw-min-h-9 tw-w-full tw-items-center tw-gap-2.5 tw-border-0 tw-bg-transparent tw-px-3 tw-text-left tw-text-[0.86rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 hover:tw-text-vm-primary"
+              key={item.action}
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                setOpenMenuId(null);
+                setMenuPosition(null);
+                onRequestAction(openMenuRow, item.action);
+              }}
+            >
+              <i className={`${item.icon} tw-w-4 tw-text-center tw-text-[0.82rem]`} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </div>,
+        document.body,
+      )
+    : null;
 
   return (
     <div className="tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100">
@@ -86,7 +188,7 @@ export function CardListTable({
               <th>Trạng thái</th>
               <th>Vé tháng</th>
               <th>Báo mất <HeaderSort /></th>
-              <th>Cập nhật</th>
+              <th className="tw-w-[96px] tw-text-center">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -137,10 +239,31 @@ export function CardListTable({
                       <span className="tw-inline-flex tw-min-h-6 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-100 tw-px-[0.6rem] tw-py-[0.2rem] tw-text-[0.78rem] tw-font-bold tw-text-slate-600">{row.lostCardStateLabel}</span>
                     )}
                   </td>
-                  <td>
-                    <div className="tw-grid tw-gap-[0.15rem]">
-                      <span className="tw-text-[0.88rem] tw-text-vm-slate-700">{row.updatedDate}</span>
-                      <strong className="tw-text-[0.88rem] tw-font-medium tw-text-slate-900">{row.updatedTime}</strong>
+                  <td className="tw-w-[96px]">
+                    <div className="tw-flex tw-items-center tw-justify-center tw-gap-1.5">
+                      <button
+                        aria-label={`Cập nhật thẻ ${row.cardCode}`}
+                        className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-brand-50 tw-text-[0.82rem] tw-text-vm-primary tw-transition hover:tw-bg-brand-100"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onEditRow(row);
+                        }}
+                      >
+                        <i className="far fa-edit" />
+                      </button>
+                      <button
+                        aria-expanded={openMenuId === row.id}
+                        aria-label={`Mở menu thao tác thẻ ${row.cardCode}`}
+                        className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-[0.86rem] tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openActionMenu(row.id, event.currentTarget);
+                        }}
+                      >
+                        <i className="fas fa-ellipsis-v" />
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -162,6 +285,7 @@ export function CardListTable({
         totalPages={totalPages}
         totalRecords={totalRecords}
       />
+      {actionMenu}
     </div>
   );
 }

@@ -38,8 +38,12 @@ export const apiEndpoints = {
     registrationFees: "/registration-fees",
   },
   customers: {
-    customers: "/customers",
+    customers: "/people/customers",
+    customerVehicles: "/people/customer-vehicles",
     histories: "/customer-histories",
+  },
+  operations: {
+    customerOnboardingApprovals: "/operations/approval-requests/customer-onboarding",
   },
   iam: {
     accounts: "/accounts",

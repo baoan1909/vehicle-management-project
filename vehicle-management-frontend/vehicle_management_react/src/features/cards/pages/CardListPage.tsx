@@ -13,7 +13,7 @@ import {
 } from "@/features/cards/api/cardApi";
 import { CardDetailPanel } from "@/features/cards/components/CardDetailPanel";
 import { CardExportDrawer } from "@/features/cards/components/CardExportDrawer";
-import { CardListTable } from "@/features/cards/components/CardListTable";
+import { CardListTable, type CardTableAction } from "@/features/cards/components/CardListTable";
 import { CardManageHeader } from "@/features/cards/components/CardManageHeader";
 import { CardStatusTabs } from "@/features/cards/components/CardStatusTabs";
 import { CardSummaryGrid } from "@/features/cards/components/CardSummaryGrid";
@@ -35,6 +35,11 @@ type EditorState = {
   mode: "create" | "edit";
   row: CardManageRecord | null;
 };
+
+type ActionDialogState = {
+  action: CardTableAction;
+  row: CardManageRecord;
+} | null;
 
 const inventoryStatusByBackendStatus: Record<CardStatus, CardInventoryStatus> = {
   ASSIGNED: "assigned",
@@ -261,16 +266,14 @@ function buildSummaryMetrics(records: CardManageRecord[]): CardSummaryMetric[] {
 function filterRecords(
   records: CardManageRecord[],
   activeStatus: CardStatusTabValue,
-  inventoryStatusValue: string,
   subscriptionStatusValue: string,
   lostStatusValue: string,
 ) {
   return records.filter((row) => {
     const matchesActiveTab = activeStatus === "all" ? true : row.inventoryStatus === activeStatus;
-    const matchesInventoryStatus = inventoryStatusValue === "all" ? true : row.inventoryStatus === (inventoryStatusValue as CardInventoryStatus);
     const matchesSubscriptionStatus = subscriptionStatusValue === "all" ? true : row.subscriptionState === (subscriptionStatusValue as CardSubscriptionState);
     const matchesLostStatus = lostStatusValue === "all" ? true : row.lostCardState === (lostStatusValue as CardLostState);
-    return matchesActiveTab && matchesInventoryStatus && matchesSubscriptionStatus && matchesLostStatus;
+    return matchesActiveTab && matchesSubscriptionStatus && matchesLostStatus;
   });
 }
 
@@ -357,12 +360,119 @@ function CardEditorModal({
   );
 }
 
+const actionDialogMeta: Record<CardTableAction, { icon: string; title: string; description: string; confirmLabel: string; confirmClassName: string; requiresReason: boolean }> = {
+  block: {
+    confirmClassName: "tw-border-vm-primary tw-bg-vm-primary tw-text-white",
+    confirmLabel: "Khóa thẻ",
+    description: "Thẻ bị khóa sẽ không thể dùng cho các luồng vào / ra cho đến khi được xử lý lại.",
+    icon: "fas fa-lock",
+    requiresReason: true,
+    title: "Khóa thẻ",
+  },
+  damaged: {
+    confirmClassName: "tw-border-amber-500 tw-bg-amber-500 tw-text-white",
+    confirmLabel: "Báo hỏng",
+    description: "Thẻ sẽ được chuyển sang trạng thái hỏng để tách khỏi luồng vận hành.",
+    icon: "fas fa-tools",
+    requiresReason: false,
+    title: "Báo hỏng thẻ",
+  },
+  lost: {
+    confirmClassName: "tw-border-red-500 tw-bg-red-500 tw-text-white",
+    confirmLabel: "Báo mất thẻ",
+    description: "Thẻ sẽ được đánh dấu mất để không tiếp tục sử dụng cho các phiên gửi xe.",
+    icon: "far fa-exclamation-circle",
+    requiresReason: false,
+    title: "Báo mất thẻ",
+  },
+  retire: {
+    confirmClassName: "tw-border-slate-700 tw-bg-slate-700 tw-text-white",
+    confirmLabel: "Ngưng sử dụng",
+    description: "Thẻ sẽ được xóa mềm khỏi danh sách thẻ đang vận hành.",
+    icon: "far fa-trash-alt",
+    requiresReason: false,
+    title: "Ngưng sử dụng thẻ",
+  },
+};
+
+function CardActionModal({
+  actionDialog,
+  isSaving,
+  onClose,
+  onSubmit,
+}: {
+  actionDialog: ActionDialogState;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    setReason("");
+  }, [actionDialog]);
+
+  if (!actionDialog) return null;
+
+  const meta = actionDialogMeta[actionDialog.action];
+  const canSubmit = !meta.requiresReason || reason.trim().length > 0;
+
+  return (
+    <Modal
+      actions={
+        <div className="tw-flex tw-justify-end tw-gap-3">
+          <button className="tw-inline-flex tw-min-h-10 tw-items-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-font-bold tw-text-vm-slate-700" type="button" onClick={onClose}>
+            Hủy
+          </button>
+          <button
+            className={`tw-inline-flex tw-min-h-10 tw-items-center tw-rounded-vm-md tw-border tw-border-solid tw-px-4 tw-font-bold disabled:tw-cursor-not-allowed disabled:tw-opacity-60 ${meta.confirmClassName}`}
+            disabled={isSaving || !canSubmit}
+            type="button"
+            onClick={() => onSubmit(reason.trim())}
+          >
+            {isSaving ? "Đang xử lý..." : meta.confirmLabel}
+          </button>
+        </div>
+      }
+      description={meta.description}
+      onClose={onClose}
+      open={Boolean(actionDialog)}
+      title={meta.title}
+    >
+      <div className="tw-grid tw-gap-4">
+        <div className="tw-flex tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
+          <span className="tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-bg-white tw-text-vm-primary tw-shadow-sm">
+            <i className={meta.icon} />
+          </span>
+          <div className="tw-min-w-0">
+            <p className="tw-m-0 tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-500">Thẻ đang xử lý</p>
+            <strong className="tw-block tw-truncate tw-text-[1rem] tw-font-black tw-text-vm-slate-900">{actionDialog.row.cardCode}</strong>
+          </div>
+        </div>
+
+        {meta.requiresReason ? (
+          <label className="tw-grid tw-gap-2">
+            <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Lý do</span>
+            <textarea
+              className="tw-min-h-[110px] tw-resize-none tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-px-3 tw-py-2.5 tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-vm-focus"
+              maxLength={255}
+              placeholder="Nhập lý do để nhân sự vận hành dễ theo dõi..."
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+            />
+            <span className="tw-text-right tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500">{reason.length} / 255</span>
+          </label>
+        ) : null}
+      </div>
+    </Modal>
+  );
+}
+
 export function CardListPage() {
   const toast = useToast();
   const [activeStatus, setActiveStatus] = useState<CardStatusTabValue>("all");
   const [searchValue, setSearchValue] = useState("");
   const [cardTypeValue, setCardTypeValue] = useState("all");
-  const [inventoryStatusValue, setInventoryStatusValue] = useState("all");
   const [subscriptionStatusValue, setSubscriptionStatusValue] = useState("all");
   const [lostStatusValue, setLostStatusValue] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -376,6 +486,7 @@ export function CardListPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [actionDialog, setActionDialog] = useState<ActionDialogState>(null);
   const [loadError, setLoadError] = useState("");
   const [filterLoadError, setFilterLoadError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
@@ -441,8 +552,8 @@ export function CardListPage() {
   const records = useMemo(() => cards.map((card) => mapCardToRecord(card, cardTypeLookup)), [cardTypeLookup, cards]);
 
   const filteredRecords = useMemo(
-    () => filterRecords(records, activeStatus, inventoryStatusValue, subscriptionStatusValue, lostStatusValue),
-    [activeStatus, inventoryStatusValue, lostStatusValue, records, subscriptionStatusValue],
+    () => filterRecords(records, activeStatus, subscriptionStatusValue, lostStatusValue),
+    [activeStatus, lostStatusValue, records, subscriptionStatusValue],
   );
 
   const statusCounts = useMemo(() => buildStatusCounts(records), [records]);
@@ -470,7 +581,7 @@ export function CardListPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeStatus, cardTypeValue, inventoryStatusValue, lostStatusValue, searchValue, subscriptionStatusValue]);
+  }, [activeStatus, cardTypeValue, lostStatusValue, searchValue, subscriptionStatusValue]);
 
   const reloadCards = () => setReloadKey((current) => current + 1);
 
@@ -542,11 +653,41 @@ export function CardListPage() {
     }
   };
 
+  const handleActionDialogSubmit = async (reason: string) => {
+    if (!actionDialog) return;
+
+    const { action, row } = actionDialog;
+    setIsSaving(true);
+    try {
+      if (action === "block") {
+        await handleStatusChange(row, "BLOCKED", reason || "Khóa từ màn quản lý thẻ");
+      } else if (action === "damaged") {
+        await handleStatusChange(row, "DAMAGED");
+      } else if (action === "lost") {
+        await handleStatusChange(row, "LOST");
+      } else {
+        setLoadError("");
+        try {
+          await retireCard(row.id);
+          toast.success("Đã chuyển thẻ sang trạng thái ngưng dùng.", "Xóa mềm thành công");
+          setIsDetailDrawerOpen(false);
+          reloadCards();
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "Không ngưng dùng được thẻ.", "Thao tác thất bại");
+          return;
+        }
+      }
+
+      setActionDialog(null);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const resetFilters = () => {
     setActiveStatus("all");
     setSearchValue("");
     setCardTypeValue("all");
-    setInventoryStatusValue("all");
     setSubscriptionStatusValue("all");
     setLostStatusValue("all");
     setCurrentPage(1);
@@ -577,10 +718,8 @@ export function CardListPage() {
                 <CardToolbar
                   cardTypeOptions={cardTypeOptions}
                   cardTypeValue={cardTypeValue}
-                  inventoryStatusValue={inventoryStatusValue}
                   lostStatusValue={lostStatusValue}
                   onCardTypeChange={setCardTypeValue}
-                  onInventoryStatusChange={setInventoryStatusValue}
                   onLostStatusChange={setLostStatusValue}
                   onReset={resetFilters}
                   onSearchChange={setSearchValue}
@@ -600,11 +739,13 @@ export function CardListPage() {
                   checkedIds={checkedIds}
                   currentPage={safeCurrentPage}
                   isLoading={isLoading}
+                  onEditRow={(row) => setEditor({ mode: "edit", row })}
                   onPageChange={setCurrentPage}
                   onPageSizeChange={(value) => {
                     setPageSize(value);
                     setCurrentPage(1);
                   }}
+                  onRequestAction={(row, action) => setActionDialog({ action, row })}
                   onSelectRow={(id) => {
                     setSelectedId(id);
                     setIsDetailDrawerOpen(true);
@@ -625,25 +766,11 @@ export function CardListPage() {
       <CardDetailPanel
         isOpen={isDetailDrawerOpen && Boolean(selectedRecord)}
         row={selectedRecord}
-        onBlockToggle={handleBlockToggle}
         onClose={() => setIsDetailDrawerOpen(false)}
-        onEdit={(row) => setEditor({ mode: "edit", row })}
-        onMarkDamaged={(row) => {
-          if (window.confirm(`Báo hỏng thẻ ${row.cardCode}?`)) {
-            void handleStatusChange(row, "DAMAGED");
-          }
-        }}
-        onMarkLost={(row) => {
-          if (window.confirm(`Báo mất thẻ ${row.cardCode}?`)) {
-            void handleStatusChange(row, "LOST");
-          }
-        }}
-        onRetire={(row) => {
-          void handleRetire(row);
-        }}
       />
       <CardExportDrawer isOpen={isExportDrawerOpen} totalRecords={filteredRecords.length} onClose={() => setIsExportDrawerOpen(false)} />
       <CardEditorModal cardTypeOptions={editorCardTypeOptions} editor={editor} isSaving={isSaving} onClose={() => setEditor(null)} onSubmit={handleEditorSubmit} />
+      <CardActionModal actionDialog={actionDialog} isSaving={isSaving} onClose={() => setActionDialog(null)} onSubmit={handleActionDialogSubmit} />
     </div>
   );
 }
