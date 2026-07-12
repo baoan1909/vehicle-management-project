@@ -597,10 +597,7 @@ toast.success(
 } finally {
   setIsSubmitting(false);
 }
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+}
 
   return (
     <main className="tw-px-4 tw-pb-5 tw-pt-3 lg:tw-px-5">
