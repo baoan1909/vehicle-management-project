@@ -1,4 +1,4 @@
-export type PricePlanAppliesTo = "ALL" | "VISITOR" | "SUBSCRIPTION";
+export type PricePlanAppliesTo = "ALL" | "VISITOR" | "CUSTOMER";
 export type PriceRuleGroup = "all" | "visitor" | "subscription" | "free";
 export type PricingStatus = "active" | "expired" | "upcoming";
 
@@ -32,12 +32,12 @@ export type PriceRuleRecord = {
   vehicleTypeId: string;
   vehicleTypeName: string;
   ticketTypeId: string;
-  ticketTypeCode: "DAILY" | "MONTHLY" | "QUARTERLY" | "YEARLY" | "FREE";
+  ticketTypeCode: string;
   ruleName: string;
   timeFrom: string | null;
   timeTo: string | null;
   basePrice: number;
-  unit: "TURN" | "MONTH" | "QUARTER" | "YEAR";
+  unit: string;
   lostCardFee: number;
   priority: number;
   group: PriceRuleGroup;
@@ -91,7 +91,7 @@ export const pricePlanRecords: PricePlanRecord[] = [
     code: "PLAN-FREE-HOSP",
     name: "Miễn giảm bệnh viện",
     description: "Kế hoạch miễn giảm cho khách đăng ký đặc biệt.",
-    appliesTo: "SUBSCRIPTION",
+    appliesTo: "CUSTOMER",
     effectiveFrom: "01/06/2026",
     effectiveTo: null,
     status: "active",

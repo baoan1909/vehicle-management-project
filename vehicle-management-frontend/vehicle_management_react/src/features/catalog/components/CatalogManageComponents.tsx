@@ -20,6 +20,8 @@ export type CatalogMetric = {
 
 type CatalogHeaderProps = {
   createLabel: string;
+  onCreateClick?: () => void;
+  onExportClick?: () => void;
   title: string;
 };
 
@@ -62,16 +64,22 @@ type VehicleGridProps = {
 };
 
 type TicketDetailProps = {
+  onActivate?: (row: TicketCatalogRecord) => void;
+  onDeactivate?: (row: TicketCatalogRecord) => void;
+  onEdit?: (row: TicketCatalogRecord) => void;
   row: TicketCatalogRecord | null;
 };
 
 type VehicleDetailProps = {
+  onActivate?: (row: VehicleCatalogRecord) => void;
+  onDeactivate?: (row: VehicleCatalogRecord) => void;
+  onEdit?: (row: VehicleCatalogRecord) => void;
   row: VehicleCatalogRecord | null;
 };
 
 const statusLabels: Record<CatalogStatus, string> = {
-  active: "ACTIVE",
-  inactive: "INACTIVE"
+  active: "Đang hoạt động",
+  inactive: "Ngừng dùng"
 };
 
 const statusText: Record<CatalogStatus, string> = {
@@ -175,7 +183,7 @@ export function CatalogIcon({
   );
 }
 
-export function CatalogHeader({ createLabel, title }: CatalogHeaderProps) {
+export function CatalogHeader({ createLabel, onCreateClick, onExportClick, title }: CatalogHeaderProps) {
   return (
     <div className="tw-flex tw-items-center tw-justify-between tw-gap-4 max-[760px]:tw-flex-col max-[760px]:tw-items-stretch">
       <div className="tw-flex tw-items-center tw-gap-4 max-[760px]:tw-flex-col max-[760px]:tw-items-stretch">
@@ -187,11 +195,11 @@ export function CatalogHeader({ createLabel, title }: CatalogHeaderProps) {
       </div>
 
       <div className="tw-flex tw-items-center tw-gap-3 max-[760px]:tw-flex-col max-[760px]:tw-items-stretch">
-        <button className="tw-inline-flex tw-min-h-12 tw-items-center tw-justify-center tw-gap-[0.7rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-[linear-gradient(135deg,#2563EB,#1D4ED8)] tw-px-[1.15rem] tw-text-[0.92rem] tw-font-bold tw-text-white tw-shadow-[0_12px_24px_rgba(37,99,235,0.18)] tw-transition-[transform,box-shadow] hover:tw-translate-y-px hover:tw-text-white hover:tw-shadow-[0_8px_16px_rgba(37,99,235,0.16)]" type="button">
+        <button className="tw-inline-flex tw-min-h-12 tw-items-center tw-justify-center tw-gap-[0.7rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-[linear-gradient(135deg,#2563EB,#1D4ED8)] tw-px-[1.15rem] tw-text-[0.92rem] tw-font-bold tw-text-white tw-shadow-[0_12px_24px_rgba(37,99,235,0.18)] tw-transition-[transform,box-shadow] hover:tw-translate-y-px hover:tw-text-white hover:tw-shadow-[0_8px_16px_rgba(37,99,235,0.16)]" type="button" onClick={onCreateClick}>
           <i className="fas fa-plus" />
           <span>{createLabel}</span>
         </button>
-        <button className="tw-inline-flex tw-min-h-12 tw-items-center tw-justify-center tw-gap-[0.7rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-[1.15rem] tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-700 tw-shadow-[0_8px_20px_rgba(15,23,42,0.04)]" type="button">
+        <button className="tw-inline-flex tw-min-h-12 tw-items-center tw-justify-center tw-gap-[0.7rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-[1.15rem] tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-700 tw-shadow-[0_8px_20px_rgba(15,23,42,0.04)]" type="button" onClick={onExportClick}>
           <i className="fas fa-download" />
           <span>Xuất dữ liệu</span>
           <i className="fas fa-chevron-down" />
@@ -357,7 +365,7 @@ export function TicketCatalogTable({ onSelect, rows, selectedId }: TicketTablePr
   );
 }
 
-export function TicketDetailPanel({ row }: TicketDetailProps) {
+export function TicketDetailPanel({ onActivate, onDeactivate, onEdit, row }: TicketDetailProps) {
   if (!row) {
     return (
       <DetailPanel title="Thông tin loại vé" empty={<p className="tw-m-auto tw-text-center tw-font-bold tw-text-vm-slate-500">Chưa có loại vé phù hợp.</p>} />
@@ -377,10 +385,23 @@ export function TicketDetailPanel({ row }: TicketDetailProps) {
         </div>
       }
       actions={
-        <button className="tw-mt-[1.6rem] tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-font-extrabold tw-text-vm-primary tw-transition hover:tw-bg-brand-50" type="button">
-          <i className="far fa-edit" />
-          <span>Cập nhật</span>
-        </button>
+        <div className="tw-mt-[1.6rem] tw-grid tw-gap-2">
+          <button className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-font-extrabold tw-text-vm-primary tw-transition hover:tw-bg-brand-50" type="button" onClick={() => onEdit?.(row)}>
+            <i className="far fa-edit" />
+            <span>Cập nhật</span>
+          </button>
+          {row.status === "active" ? (
+            <button className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-font-extrabold tw-text-red-600 tw-transition hover:tw-bg-red-100" type="button" onClick={() => onDeactivate?.(row)}>
+              <i className="fas fa-ban" />
+              <span>Ngừng dùng</span>
+            </button>
+          ) : (
+            <button className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-green-100 tw-bg-green-50 tw-font-extrabold tw-text-green-700 tw-transition hover:tw-bg-green-100" type="button" onClick={() => onActivate?.(row)}>
+              <i className="fas fa-check" />
+              <span>Kích hoạt lại</span>
+            </button>
+          )}
+        </div>
       }
     >
       <dl className="tw-mb-0 tw-mt-[1.35rem] tw-grid tw-gap-[0.85rem] [&_dd]:tw-m-0 [&_dd]:tw-text-[0.9rem] [&_dd]:tw-font-bold [&_dd]:tw-text-[#111827] [&_div]:tw-grid [&_div]:tw-grid-cols-[110px_minmax(0,1fr)] [&_div]:tw-gap-3 [&_dt]:tw-text-[0.88rem] [&_dt]:tw-font-bold [&_dt]:tw-text-vm-slate-500">
@@ -480,7 +501,7 @@ export function VehicleCatalogGrid({ onSelect, rows, selectedId }: VehicleGridPr
   );
 }
 
-export function VehicleDetailPanel({ row }: VehicleDetailProps) {
+export function VehicleDetailPanel({ onActivate, onDeactivate, onEdit, row }: VehicleDetailProps) {
   if (!row) {
     return (
       <DetailPanel title="Thông tin loại phương tiện" empty={<p className="tw-m-auto tw-text-center tw-font-bold tw-text-vm-slate-500">Chưa có loại phương tiện phù hợp.</p>} />
@@ -496,10 +517,23 @@ export function VehicleDetailPanel({ row }: VehicleDetailProps) {
         </div>
       }
       actions={
-        <button className="tw-mt-[1.6rem] tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-font-extrabold tw-text-vm-primary tw-transition hover:tw-bg-brand-50" type="button">
-          <i className="far fa-edit" />
-          <span>Cập nhật</span>
-        </button>
+        <div className="tw-mt-[1.6rem] tw-grid tw-gap-2">
+          <button className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-font-extrabold tw-text-vm-primary tw-transition hover:tw-bg-brand-50" type="button" onClick={() => onEdit?.(row)}>
+            <i className="far fa-edit" />
+            <span>Cập nhật</span>
+          </button>
+          {row.status === "active" ? (
+            <button className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-font-extrabold tw-text-red-600 tw-transition hover:tw-bg-red-100" type="button" onClick={() => onDeactivate?.(row)}>
+              <i className="fas fa-ban" />
+              <span>Ngừng dùng</span>
+            </button>
+          ) : (
+            <button className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-green-100 tw-bg-green-50 tw-font-extrabold tw-text-green-700 tw-transition hover:tw-bg-green-100" type="button" onClick={() => onActivate?.(row)}>
+              <i className="fas fa-check" />
+              <span>Kích hoạt lại</span>
+            </button>
+          )}
+        </div>
       }
     >
       <dl className="tw-mb-0 tw-mt-[1.35rem] tw-grid tw-gap-[0.85rem] [&_dd]:tw-m-0 [&_dd]:tw-text-[0.9rem] [&_dd]:tw-font-bold [&_dd]:tw-text-[#111827] [&_div]:tw-grid [&_div]:tw-grid-cols-[110px_minmax(0,1fr)] [&_div]:tw-gap-3 [&_dt]:tw-text-[0.88rem] [&_dt]:tw-font-bold [&_dt]:tw-text-vm-slate-500">

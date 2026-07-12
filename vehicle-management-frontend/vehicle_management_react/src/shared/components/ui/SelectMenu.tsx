@@ -18,6 +18,7 @@ type SelectMenuProps = {
   options: SelectMenuOption[];
   placement?: "bottom" | "top";
   triggerClassName?: string;
+  triggerLabel?: string;
   value: string;
 };
 
@@ -32,6 +33,7 @@ export function SelectMenu({
   options,
   placement = "bottom",
   triggerClassName,
+  triggerLabel,
   value,
 }: SelectMenuProps) {
   const [open, setOpen] = useState(false);
@@ -82,7 +84,7 @@ export function SelectMenu({
           setOpen((current) => !current);
         }}
       >
-        <span className="tw-min-w-0 tw-flex-1 tw-truncate">{selected?.label}</span>
+        <span className="tw-min-w-0 tw-flex-1 tw-truncate">{triggerLabel ?? selected?.label}</span>
         {canClear ? (
           <span
             className="tw-ml-auto tw-inline-flex tw-h-[18px] tw-w-[18px] tw-flex-shrink-0 tw-scale-90 tw-items-center tw-justify-center tw-rounded-full tw-bg-slate-900/15 tw-text-[0.62rem] tw-text-vm-slate-700 tw-opacity-0 tw-transition hover:tw-bg-slate-900/25 hover:tw-text-vm-slate-900 group-hover:tw-scale-100 group-hover:tw-opacity-100 focus-visible:tw-scale-100 focus-visible:tw-opacity-100 focus-visible:tw-outline-none"

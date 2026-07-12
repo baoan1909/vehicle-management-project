@@ -28,6 +28,9 @@ export const apiEndpoints = {
   },
   catalog: {
     cardTypes: "/catalog/card-types",
+    pricePlans: "/catalog/price-plans",
+    priceRules: "/catalog/price-rules",
+    ticketTypes: "/catalog/ticket-types",
     vehicleTypes: "/catalog/vehicle-types",
     tickets: "/tickets",
     vehicles: "/vehicles",
@@ -47,5 +50,8 @@ export const apiEndpoints = {
       avatar: "/iam/accounts/profile/avatar",
     },
     roles: "/roles",
+  },
+  people: {
+    employees: "/people/employees",
   },
 } as const;
