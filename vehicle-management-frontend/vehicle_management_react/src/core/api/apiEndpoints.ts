@@ -45,9 +45,6 @@ export const apiEndpoints = {
     customerVehicles: "/people/customer-vehicles",
     histories: "/customer-histories",
   },
-  operations: {
-    customerOnboardingApprovals: "/operations/approval-requests/customer-onboarding",
-  },
   iam: {
     accounts: "/accounts",
     provisionedAccounts: "/iam/accounts/provisioned",
@@ -65,10 +62,13 @@ export const apiEndpoints = {
   },
   operations: {
     approveWorkScheduleWeek: "/operations/work-schedules/approve-week",
+    customerOnboardingApprovals: "/operations/approval-requests/customer-onboarding",
     employeeRosterRules: "/operations/employee-roster-rules",
     generateWorkScheduleWeek: "/operations/work-schedules/generate-week",
     shiftAssignments: "/operations/shift-assignments",
     shiftTemplates: "/operations/shift-templates",
     shifts: "/operations/shifts",
+    supportTicketCategories: "/operations/support-ticket-categories",
+    supportTickets: "/operations/support-tickets",
   },
 } as const;
