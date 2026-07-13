@@ -1,13 +1,49 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 
-import { Badge, Button, Card, SelectMenu } from "@/components/ui";
+import { Badge, Button, Card, SelectMenu, useToast } from "@/components/ui";
+import { getVehicleTypes, type VehicleTypeApiResponse } from "@/features/catalog/api/vehicleTypesApi";
+import {
+  activateParkingLot,
+  closeParkingLot,
+  createParkingLot,
+  getParkingLots,
+  markParkingLotMaintenance,
+  updateParkingLot,
+  type ParkingLotApiResponse,
+  type ParkingLotStatusApi,
+} from "@/features/parking/api/parkingLotsApi";
+import {
+  activateGate,
+  activateLane,
+  activateZone,
+  closeGate,
+  closeLane,
+  closeZone,
+  getGates,
+  getLanes,
+  getZones,
+  markGateMaintenance,
+  markLaneMaintenance,
+  markZoneMaintenance,
+  updateGate,
+  updateLane,
+  updateZone,
+  type GateApiResponse,
+  type GateStatusApi,
+  type LaneApiResponse,
+  type LaneDirectionApi,
+  type LaneStatusApi,
+  type ZoneApiResponse,
+  type ZoneStatusApi,
+} from "@/features/parking/api/parkingTopologyApi";
 import { cn } from "@/lib/cn";
 
-type ParkingLotStatus = "ACTIVE" | "MAINTENANCE" | "CLOSED";
-type ZoneStatus = "ACTIVE" | "MAINTENANCE" | "CLOSED";
-type GateStatus = "ACTIVE" | "MAINTENANCE" | "CLOSED";
-type LaneStatus = "ACTIVE" | "MAINTENANCE" | "CLOSED" | "OVERLOAD";
-type LaneDirection = "IN" | "OUT" | "VIP";
+type ParkingLotStatus = ParkingLotStatusApi;
+type ZoneStatus = ZoneStatusApi;
+type GateStatus = GateStatusApi;
+type LaneStatus = LaneStatusApi | "OVERLOAD";
+type LaneDirection = LaneDirectionApi | "VIP";
 type DrawerPhase = "opening" | "open" | "closing";
 
 type ParkingLot = {
@@ -15,6 +51,7 @@ type ParkingLot = {
   code: string;
   id: string;
   name: string;
+  source: "api" | "mock";
   sessions: number;
   status: ParkingLotStatus;
   totalCapacity: number;
@@ -29,7 +66,8 @@ type Zone = {
   parkingLotId: string;
   status: ZoneStatus;
   used: number;
-  vehicleType: "Xe máy" | "Ô tô" | "Hỗn hợp";
+  vehicleType: string;
+  vehicleTypeId: string | null;
 };
 
 type Gate = {
@@ -62,11 +100,12 @@ type SelectedNode =
 
 const DRAWER_ANIMATION_MS = 280;
 
-const parkingLots: ParkingLot[] = [
+const mockParkingLots: ParkingLot[] = [
   {
     address: "12 Nguyễn Văn Linh, Quận 7, TP. HCM",
     code: "CP-LOT-A",
     id: "lot-a",
+    source: "mock",
     name: "CP-Lot A - Trung tâm",
     sessions: 184,
     status: "ACTIVE",
@@ -77,6 +116,7 @@ const parkingLots: ParkingLot[] = [
     address: "88 Võ Chí Công, TP. Thủ Đức",
     code: "CP-LOT-B",
     id: "lot-b",
+    source: "mock",
     name: "CP-Lot B - Thủ Đức",
     sessions: 97,
     status: "MAINTENANCE",
@@ -87,6 +127,7 @@ const parkingLots: ParkingLot[] = [
     address: "22 Cộng Hòa, Tân Bình",
     code: "CP-LOT-C",
     id: "lot-c",
+    source: "mock",
     name: "CP-Lot C - Sân bay",
     sessions: 0,
     status: "CLOSED",
@@ -95,14 +136,14 @@ const parkingLots: ParkingLot[] = [
   },
 ];
 
-const zones: Zone[] = [
-  { capacity: 500, code: "ZONE-A", id: "zone-a", name: "Khu A", parkingLotId: "lot-a", status: "ACTIVE", used: 342, vehicleType: "Xe máy" },
-  { capacity: 400, code: "ZONE-B", id: "zone-b", name: "Khu B", parkingLotId: "lot-a", status: "ACTIVE", used: 265, vehicleType: "Ô tô" },
-  { capacity: 300, code: "ZONE-C", id: "zone-c", name: "Khu C", parkingLotId: "lot-a", status: "MAINTENANCE", used: 120, vehicleType: "Hỗn hợp" },
-  { capacity: 200, code: "ZONE-D", id: "zone-d", name: "Khu D", parkingLotId: "lot-a", status: "CLOSED", used: 0, vehicleType: "Xe máy" },
+const mockZones: Zone[] = [
+  { capacity: 500, code: "ZONE-A", id: "zone-a", name: "Khu A", parkingLotId: "lot-a", status: "ACTIVE", used: 342, vehicleType: "Xe máy", vehicleTypeId: null },
+  { capacity: 400, code: "ZONE-B", id: "zone-b", name: "Khu B", parkingLotId: "lot-a", status: "ACTIVE", used: 265, vehicleType: "Ô tô", vehicleTypeId: null },
+  { capacity: 300, code: "ZONE-C", id: "zone-c", name: "Khu C", parkingLotId: "lot-a", status: "MAINTENANCE", used: 120, vehicleType: "Hỗn hợp", vehicleTypeId: null },
+  { capacity: 200, code: "ZONE-D", id: "zone-d", name: "Khu D", parkingLotId: "lot-a", status: "CLOSED", used: 0, vehicleType: "Xe máy", vehicleTypeId: null },
 ];
 
-const gates: Gate[] = [
+const mockGates: Gate[] = [
   { code: "GATE-A1", id: "gate-a1", name: "Cổng A1", status: "ACTIVE", zoneId: "zone-a" },
   { code: "GATE-A2", id: "gate-a2", name: "Cổng A2", status: "ACTIVE", zoneId: "zone-a" },
   { code: "GATE-B1", id: "gate-b1", name: "Cổng B1", status: "ACTIVE", zoneId: "zone-b" },
@@ -112,7 +153,7 @@ const gates: Gate[] = [
   { code: "GATE-D1", id: "gate-d1", name: "Cổng D1", status: "CLOSED", zoneId: "zone-d" },
 ];
 
-const lanes: Lane[] = [
+const mockLanes: Lane[] = [
   {
     activeSessions: 42,
     camera: "CAM-A1-01",
@@ -283,20 +324,99 @@ const lanes: Lane[] = [
   },
 ];
 
-const lotOptions = parkingLots.map((lot) => ({ label: `Bãi xe: ${lot.name}`, value: lot.id }));
 const statusOptions = [
   { label: "Tất cả trạng thái", value: "all" },
   { label: "Đang hoạt động", value: "ACTIVE" },
   { label: "Bảo trì", value: "MAINTENANCE" },
   { label: "Đã đóng", value: "CLOSED" },
-  { label: "Quá tải", value: "OVERLOAD" },
 ];
-const vehicleTypeOptions = [
-  { label: "Tất cả loại xe", value: "all" },
-  { label: "Xe máy", value: "motorbike" },
-  { label: "Ô tô", value: "car" },
-  { label: "Hỗn hợp", value: "mixed" },
-];
+function toParkingLotView(lot: ParkingLotApiResponse): ParkingLot {
+  return {
+    address: lot.address ?? "",
+    code: lot.code,
+    id: lot.parkingLotId,
+    name: lot.name,
+    sessions: 0,
+    source: "api",
+    status: lot.status,
+    totalCapacity: Number(lot.totalCapacity ?? 0),
+    used: 0,
+  };
+}
+
+function toParkingLotPayload(lot: ParkingLot) {
+  return {
+    address: lot.address,
+    code: lot.code,
+    name: lot.name,
+    totalCapacity: lot.totalCapacity,
+  };
+}
+
+function getVehicleTypeLabel(vehicleTypeId: string | null, vehicleTypeLookup: Map<string, VehicleTypeApiResponse>) {
+  if (!vehicleTypeId) return "Hỗn hợp";
+  const vehicleType = vehicleTypeLookup.get(vehicleTypeId);
+  return vehicleType?.name || vehicleType?.code || "Hỗn hợp";
+}
+
+function toZoneView(zone: ZoneApiResponse, vehicleTypeLookup: Map<string, VehicleTypeApiResponse>): Zone {
+  return {
+    capacity: Number(zone.capacity ?? 0),
+    code: zone.code,
+    id: zone.zoneId,
+    name: zone.name,
+    parkingLotId: zone.parkingLotId,
+    status: zone.status,
+    used: 0,
+    vehicleType: getVehicleTypeLabel(zone.vehicleTypeId, vehicleTypeLookup),
+    vehicleTypeId: zone.vehicleTypeId,
+  };
+}
+
+function toGateView(gate: GateApiResponse): Gate {
+  return {
+    code: gate.code,
+    id: gate.gateId,
+    name: gate.name,
+    status: gate.status,
+    zoneId: gate.zoneId,
+  };
+}
+
+function toLaneView(lane: LaneApiResponse): Lane {
+  return {
+    activeSessions: 0,
+    camera: "--",
+    code: lane.code,
+    deviceHealth: "Ổn định",
+    direction: lane.direction,
+    gateId: lane.gateId,
+    id: lane.laneId,
+    name: lane.name,
+    rfid: "--",
+    status: lane.status,
+    throughput: 0,
+    updatedAt: lane.updatedAt ?? lane.createdAt ?? "--",
+  };
+}
+
+function getVehicleTypeFilterValue(vehicleType: VehicleTypeApiResponse) {
+  const text = `${vehicleType.code} ${vehicleType.name}`.toLowerCase();
+  if (text.includes("moto") || text.includes("motor") || text.includes("xe máy") || text.includes("xe may")) return "motorbike";
+  if (text.includes("car") || text.includes("oto") || text.includes("ô tô") || text.includes("o to")) return "car";
+  return vehicleType.vehicleTypeId;
+}
+
+function zoneMatchesVehicleFilter(zone: Zone, selectedVehicleType: string) {
+  if (selectedVehicleType === "all") return true;
+  if (zone.vehicleTypeId === selectedVehicleType) return true;
+
+  const text = zone.vehicleType.toLowerCase();
+  if (selectedVehicleType === "motorbike") return text.includes("moto") || text.includes("motor") || text.includes("xe máy") || text.includes("xe may");
+  if (selectedVehicleType === "car") return text.includes("car") || text.includes("oto") || text.includes("ô tô") || text.includes("o to");
+
+  return false;
+}
 
 function statusTone(status: ParkingLotStatus | ZoneStatus | GateStatus | LaneStatus) {
   if (status === "ACTIVE") return "success";
@@ -358,8 +478,9 @@ function laneIcon(direction: LaneDirection) {
 }
 
 function vehicleIcon(vehicleType: Zone["vehicleType"]) {
-  if (vehicleType === "Xe máy") return "fas fa-motorcycle";
-  if (vehicleType === "Ô tô") return "fas fa-car";
+  const normalized = vehicleType.toLowerCase();
+  if (normalized.includes("moto") || normalized.includes("motor") || normalized.includes("xe máy") || normalized.includes("xe may")) return "fas fa-motorcycle";
+  if (normalized.includes("car") || normalized.includes("oto") || normalized.includes("ô tô") || normalized.includes("o to")) return "fas fa-car";
   return "fas fa-shuttle-van";
 }
 
@@ -419,7 +540,7 @@ function ParkingMetricCard({
 function LaneChip({ lane, onSelect, selected }: { lane: Lane; onSelect: () => void; selected: boolean }) {
   const tone = topologyTone(lane.status);
   const capacity = lane.status === "CLOSED" || lane.status === "MAINTENANCE" ? 40 : lane.direction === "VIP" ? 50 : 120;
-  const used = Math.min(capacity, lane.status === "CLOSED" || lane.status === "MAINTENANCE" ? 0 : Math.max(10, Math.round(lane.throughput * 0.75)));
+  const used = Math.min(capacity, lane.status === "CLOSED" || lane.status === "MAINTENANCE" ? 0 : Math.round(lane.throughput * 0.75));
   const percent = Math.round((used / capacity) * 100);
 
   return (
@@ -458,8 +579,8 @@ function GateNode({
 }) {
   const selected = selectedNode?.kind === "gate" && selectedNode.id === gate.id;
   const tone = topologyTone(gate.status);
-  const motorbikeCount = lanes.filter((lane) => lane.direction !== "VIP").length;
-  const carCount = Math.max(0, lanes.length - motorbikeCount + (gate.id.endsWith("1") ? 1 : 0));
+  const inLaneCount = lanes.filter((lane) => lane.direction === "IN").length;
+  const outLaneCount = lanes.filter((lane) => lane.direction === "OUT").length;
 
   return (
     <button
@@ -483,8 +604,8 @@ function GateNode({
         </span>
       </span>
       <span className="tw-mt-3 tw-flex tw-items-center tw-gap-4 tw-text-[0.8rem] tw-font-extrabold tw-text-vm-primary">
-        <span><i className="fas fa-motorcycle tw-mr-1.5" />{motorbikeCount}</span>
-        <span><i className="fas fa-car tw-mr-1.5" />{carCount}</span>
+        <span title="Làn vào"><i className="fas fa-sign-in-alt tw-mr-1.5" />{inLaneCount}</span>
+        <span title="Làn ra"><i className="fas fa-sign-out-alt tw-mr-1.5" />{outLaneCount}</span>
       </span>
     </button>
   );
@@ -641,12 +762,24 @@ function ParkingTopologyMap({
             className="tw-absolute tw-left-0 tw-top-0 tw-w-[1320px] tw-origin-top-left tw-transition-transform tw-duration-200"
             style={{ transform: `scale(${zoomScale})` }}
           >
-            <div className="tw-absolute tw-left-[11%] tw-right-[11%] tw-top-[66px] tw-h-px tw-bg-slate-300" />
-            <div className="tw-grid tw-grid-cols-4 tw-gap-8">
-            {zonesForLot.map((zone) => (
-              <ZoneCard key={zone.id} zone={zone} gatesByZone={gatesByZone} lanesByGate={lanesByGate} selectedNode={selectedNode} onSelect={onSelect} />
-            ))}
-            </div>
+            {zonesForLot.length ? (
+              <>
+                <div className="tw-absolute tw-left-[11%] tw-right-[11%] tw-top-[66px] tw-h-px tw-bg-slate-300" />
+                <div className="tw-grid tw-grid-cols-4 tw-gap-8">
+                  {zonesForLot.map((zone) => (
+                    <ZoneCard key={zone.id} zone={zone} gatesByZone={gatesByZone} lanesByGate={lanesByGate} selectedNode={selectedNode} onSelect={onSelect} />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="tw-flex tw-h-[360px] tw-w-[720px] tw-items-center tw-justify-center tw-rounded-vm-lg tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-vm-slate-25 tw-p-6 tw-text-center">
+                <div>
+                  <i className="fas fa-parking tw-text-[2rem] tw-text-vm-slate-400" />
+                  <p className="tw-m-0 tw-mt-3 tw-text-[0.92rem] tw-font-extrabold tw-text-vm-slate-900">Chưa có dữ liệu khu, cổng và làn cho bãi này.</p>
+                  <p className="tw-m-0 tw-mt-1 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">API đã được gọi nhưng bãi này chưa có cấu hình topology phù hợp với bộ lọc hiện tại.</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -668,9 +801,14 @@ function ParkingTopologyMap({
   );
 }
 
-function OperationSummary({ selectedParkingLot }: { selectedParkingLot: ParkingLot }) {
-  const percent = Math.round((selectedParkingLot.used / selectedParkingLot.totalCapacity) * 100);
-  const free = selectedParkingLot.totalCapacity - selectedParkingLot.used;
+function OperationSummary({ gates, lanes, selectedParkingLot }: { gates: Gate[]; lanes: Lane[]; selectedParkingLot: ParkingLot }) {
+  const totalCapacity = Math.max(selectedParkingLot.totalCapacity, 0);
+  const percent = totalCapacity ? Math.round((selectedParkingLot.used / totalCapacity) * 100) : 0;
+  const free = Math.max(totalCapacity - selectedParkingLot.used, 0);
+  const activeGateCount = gates.filter((gate) => gate.status === "ACTIVE").length;
+  const activeLaneCount = lanes.filter((lane) => lane.status === "ACTIVE").length;
+  const maintenanceLaneCount = lanes.filter((lane) => lane.status === "MAINTENANCE").length;
+  const overloadLaneCount = lanes.filter((lane) => lane.status === "OVERLOAD").length;
 
   return (
     <aside className="tw-grid tw-gap-4">
@@ -693,7 +831,7 @@ function OperationSummary({ selectedParkingLot }: { selectedParkingLot: ParkingL
               {[
                 ["Đang dùng", selectedParkingLot.used.toLocaleString("vi-VN"), "tw-bg-vm-primary"],
                 ["Còn trống", free.toLocaleString("vi-VN"), "tw-bg-vm-slate-300"],
-                ["Tổng sức chứa", selectedParkingLot.totalCapacity.toLocaleString("vi-VN"), "tw-bg-vm-slate-400"],
+                ["Tổng sức chứa", totalCapacity.toLocaleString("vi-VN"), "tw-bg-vm-slate-400"],
               ].map(([label, value, color]) => (
                 <div className="tw-flex tw-items-center tw-justify-between tw-gap-3" key={label}>
                   <span className="tw-inline-flex tw-items-center tw-gap-2 tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-700">
@@ -709,11 +847,11 @@ function OperationSummary({ selectedParkingLot }: { selectedParkingLot: ParkingL
 
         <div className="tw-mt-5 tw-grid tw-gap-0 tw-divide-y tw-divide-vm-slate-100">
           {[
-            ["Phiên đang hoạt động", "156", "far fa-id-badge", "tw-text-vm-primary"],
-            ["Cổng hoạt động", "8 / 10", "fas fa-archway", "tw-text-vm-primary"],
-            ["Làn đang hoạt động", "28 / 36", "fas fa-road", "tw-text-vm-primary"],
-            ["Làn bảo trì", "2", "fas fa-tools", "tw-text-red-500"],
-            ["Làn quá tải", "1", "fas fa-exclamation-triangle", "tw-text-red-500"],
+            ["Phiên đang hoạt động", selectedParkingLot.sessions.toLocaleString("vi-VN"), "far fa-id-badge", "tw-text-vm-primary"],
+            ["Cổng hoạt động", `${activeGateCount.toLocaleString("vi-VN")} / ${gates.length.toLocaleString("vi-VN")}`, "fas fa-archway", "tw-text-vm-primary"],
+            ["Làn đang hoạt động", `${activeLaneCount.toLocaleString("vi-VN")} / ${lanes.length.toLocaleString("vi-VN")}`, "fas fa-road", "tw-text-vm-primary"],
+            ["Làn bảo trì", maintenanceLaneCount.toLocaleString("vi-VN"), "fas fa-tools", "tw-text-red-500"],
+            ["Làn quá tải", overloadLaneCount.toLocaleString("vi-VN"), "fas fa-exclamation-triangle", "tw-text-red-500"],
           ].map(([label, value, icon]) => (
             <div className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-py-3" key={label}>
               <span className="tw-flex tw-items-center tw-gap-3 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-700">
@@ -763,23 +901,182 @@ function OperationSummary({ selectedParkingLot }: { selectedParkingLot: ParkingL
   );
 }
 
+function ParkingLotDrawer({
+  error,
+  isOpen,
+  lot,
+  onClose,
+  onSubmit,
+  saving,
+}: {
+  error: string;
+  isOpen: boolean;
+  lot: ParkingLot | null;
+  onClose: () => void;
+  onSubmit: (payload: ParkingLot) => Promise<void> | void;
+  saving: boolean;
+}) {
+  const [form, setForm] = useState<ParkingLot>(() => lot ?? {
+    address: "",
+    code: "",
+    id: "",
+    name: "",
+    sessions: 0,
+    source: "api",
+    status: "ACTIVE",
+    totalCapacity: 0,
+    used: 0,
+  });
+  const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    setForm(lot ?? {
+      address: "",
+      code: "",
+      id: "",
+      name: "",
+      sessions: 0,
+      source: "api",
+      status: "ACTIVE",
+      totalCapacity: 0,
+      used: 0,
+    });
+    setFormError("");
+  }, [lot, isOpen]);
+
+  if (!isOpen) return null;
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setFormError("");
+
+    if (!form.code.trim() || !form.name.trim() || form.totalCapacity <= 0) {
+      setFormError("Vui lòng nhập mã bãi, tên bãi và sức chứa hợp lệ.");
+      return;
+    }
+
+    await onSubmit({
+      ...form,
+      address: form.address.trim(),
+      code: form.code.trim(),
+      name: form.name.trim(),
+      totalCapacity: Number(form.totalCapacity),
+    });
+  }
+
+  return (
+    <div className="tw-fixed tw-inset-0 tw-z-[2300] tw-isolate tw-flex tw-justify-end" role="dialog" aria-modal="true" aria-labelledby="parking-lot-drawer-title">
+      <button className="tw-absolute tw-inset-0 tw-border-0 tw-bg-slate-900/30 tw-p-0" type="button" aria-label="Đóng form bãi xe" onClick={onClose} />
+      <aside className="tw-relative tw-z-[1] tw-flex tw-h-full tw-w-[min(100%,460px)] tw-flex-col tw-border-0 tw-border-l tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-vm-drawer">
+        <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-px-6 tw-py-5">
+          <div>
+            <h2 id="parking-lot-drawer-title" className="tw-m-0 tw-text-[1.22rem] tw-font-extrabold tw-text-vm-slate-900">{lot ? "Sửa bãi xe" : "Thêm bãi xe"}</h2>
+            <p className="tw-m-0 tw-mt-1 tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-500">Dữ liệu được lưu trực tiếp qua API bãi xe.</p>
+          </div>
+          <button className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-vm-slate-600 hover:tw-bg-vm-slate-100" type="button" aria-label="Đóng" onClick={onClose}>
+            <i className="fas fa-times" />
+          </button>
+        </header>
+
+        <form className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col" onSubmit={(event) => void handleSubmit(event)}>
+          <div className="tw-grid tw-gap-4 tw-overflow-y-auto tw-px-6 tw-pb-5">
+            {[
+              ["Mã bãi xe", "code", "LOT-HCMUTE"],
+              ["Tên bãi xe", "name", "Bãi xe HCMUTE"],
+              ["Địa chỉ", "address", "Số 1 Võ Văn Ngân"],
+            ].map(([label, key, placeholder]) => (
+              <label className="tw-m-0 tw-grid tw-gap-2" key={key}>
+                <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">{label}</span>
+                <input
+                  className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]"
+                  placeholder={placeholder}
+                  value={String(form[key as "code" | "name" | "address"])}
+                  onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
+                />
+              </label>
+            ))}
+
+            <label className="tw-m-0 tw-grid tw-gap-2">
+              <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Tổng sức chứa</span>
+              <input
+                className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]"
+                min={1}
+                type="number"
+                value={form.totalCapacity || ""}
+                onChange={(event) => setForm((current) => ({ ...current, totalCapacity: Number(event.target.value) }))}
+              />
+            </label>
+
+            {lot ? (
+              <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
+                <span className="tw-text-[0.74rem] tw-font-extrabold tw-text-vm-slate-500">Trạng thái hiện tại</span>
+                <div className="tw-mt-2">
+                  <Badge tone={statusTone(form.status)} className="tw-rounded-full tw-px-3">{statusLabel(form.status)}</Badge>
+                </div>
+              </div>
+            ) : null}
+
+            {formError || error ? <div className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{formError || error}</div> : null}
+          </div>
+
+          <footer className="tw-grid tw-grid-cols-2 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6 tw-py-4">
+            <Button variant="secondary" onClick={onClose}>Hủy</Button>
+            <Button disabled={saving} type="submit">{lot ? "Cập nhật" : "Tạo bãi xe"}</Button>
+          </footer>
+        </form>
+      </aside>
+    </div>
+  );
+}
+
+type ParkingNodeFormPayload = {
+  capacity: number;
+  code: string;
+  direction: LaneDirectionApi;
+  name: string;
+  vehicleTypeId: string | null;
+};
+
+type ParkingNodeStatusAction = "ACTIVE" | "MAINTENANCE" | "CLOSED";
+
 function ParkingNodeDrawer({
+  error,
   gate,
+  lanes,
   isOpen,
   lane,
   node,
   onClose,
+  onSave,
+  onStatusChange,
+  saving,
+  vehicleTypeOptions,
   zone,
 }: {
+  error: string;
   gate?: Gate;
+  lanes: Lane[];
   isOpen: boolean;
   lane?: Lane;
   node: SelectedNode | null;
   onClose: () => void;
+  onSave: (node: SelectedNode, payload: ParkingNodeFormPayload) => Promise<void> | void;
+  onStatusChange: (node: SelectedNode, action: ParkingNodeStatusAction) => Promise<void> | void;
+  saving: boolean;
+  vehicleTypeOptions: Array<{ label: string; value: string }>;
   zone?: Zone;
 }) {
   const [isRendered, setIsRendered] = useState(isOpen);
   const [phase, setPhase] = useState<DrawerPhase>(isOpen ? "open" : "closing");
+  const [form, setForm] = useState<ParkingNodeFormPayload>({
+    capacity: 0,
+    code: "",
+    direction: "IN",
+    name: "",
+    vehicleTypeId: null,
+  });
+  const [formError, setFormError] = useState("");
+  const [confirmAction, setConfirmAction] = useState<ParkingNodeStatusAction | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -813,11 +1110,60 @@ function ParkingNodeDrawer({
     };
   }, [isRendered, onClose]);
 
-  if (!isRendered || !node) return null;
+  useEffect(() => {
+    setForm({
+      capacity: zone?.capacity ?? 0,
+      code: lane?.code ?? gate?.code ?? zone?.code ?? "",
+      direction: lane?.direction === "OUT" ? "OUT" : "IN",
+      name: lane?.name ?? gate?.name ?? zone?.name ?? "",
+      vehicleTypeId: zone?.vehicleTypeId ?? null,
+    });
+    setFormError("");
+    setConfirmAction(null);
+  }, [gate, lane, node, zone]);
 
-  const title = node.kind === "lane" ? "Chi tiết làn" : node.kind === "gate" ? "Chi tiết cổng" : "Chi tiết khu";
+  if (!isRendered || !node) return null;
+  const currentNode = node;
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setFormError("");
+
+    if (!form.code.trim() || !form.name.trim()) {
+      setFormError("Vui lòng nhập mã và tên.");
+      return;
+    }
+
+    if (currentNode.kind === "zone" && form.capacity <= 0) {
+      setFormError("Sức chứa khu phải lớn hơn 0.");
+      return;
+    }
+
+    await onSave(currentNode, {
+      ...form,
+      code: form.code.trim(),
+      name: form.name.trim(),
+    });
+  }
+
+  async function handleConfirmStatus() {
+    if (!confirmAction) return;
+    await onStatusChange(currentNode, confirmAction);
+    setConfirmAction(null);
+  }
+
+  const title = currentNode.kind === "lane" ? "Chi tiết làn" : currentNode.kind === "gate" ? "Chi tiết cổng" : "Chi tiết khu vực";
   const status = lane?.status ?? gate?.status ?? zone?.status ?? "ACTIVE";
   const code = lane?.code ?? gate?.code ?? zone?.code ?? "";
+  const canEdit = !currentNode.id.startsWith("zone-") && !currentNode.id.startsWith("gate-") && !currentNode.id.startsWith("lane-");
+  const nodeLabel = currentNode.kind === "lane" ? "làn" : currentNode.kind === "gate" ? "cổng" : "khu";
+  const confirmTitle = confirmAction === "MAINTENANCE" ? `Xác nhận đưa ${nodeLabel} vào bảo trì?` : `Xác nhận đóng ${nodeLabel}?`;
+  const confirmMessage =
+    confirmAction === "MAINTENANCE"
+      ? `${nodeLabel.charAt(0).toUpperCase()}${nodeLabel.slice(1)} sẽ tạm ngưng hoạt động cho đến khi được kích hoạt lại.`
+      : `Sau khi đóng, ${nodeLabel} sẽ không còn được sử dụng trong luồng vận hành. Chỉ thực hiện khi chắc chắn không còn phiên hoặc thiết bị đang phụ thuộc.`;
+  const inLaneCount = gate ? lanes.filter((item) => item.gateId === gate.id && item.direction === "IN").length : 0;
+  const outLaneCount = gate ? lanes.filter((item) => item.gateId === gate.id && item.direction === "OUT").length : 0;
 
   return (
     <div className="tw-fixed tw-inset-0 tw-z-[2200] tw-isolate tw-flex tw-justify-end" role="dialog" aria-modal="true" aria-labelledby="parking-node-drawer-title">
@@ -853,6 +1199,7 @@ function ParkingNodeDrawer({
           </button>
         </header>
 
+        <form className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col" onSubmit={(event) => void handleSubmit(event)}>
         <div className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-px-6 tw-pb-5 tw-pt-0 tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden">
           <section className="tw-mb-4 tw-flex tw-items-center tw-gap-4 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4">
             <span className={cn("tw-inline-flex tw-h-12 tw-w-12 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-md tw-text-[1.1rem]", topologyTone(status).icon)}>
@@ -867,35 +1214,89 @@ function ParkingNodeDrawer({
           </section>
 
           <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4">
-            <h3 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Thông tin cơ bản</h3>
-            <dl className="tw-m-0 tw-mt-4 tw-grid tw-gap-3">
-              {[
-                ["Tên", node.label],
-                ["Mã", code],
-                ["Loại node", node.kind === "lane" ? "Làn xe" : node.kind === "gate" ? "Cổng" : "Khu"],
-                ["Hướng lưu thông", lane?.direction === "IN" ? "Vào bãi" : lane?.direction === "OUT" ? "Ra bãi" : lane?.direction === "VIP" ? "Làn ưu tiên" : "-"],
-              ].map(([label, value]) => (
-                <div className="tw-grid tw-grid-cols-[120px_1fr] tw-gap-3" key={label}>
-                  <dt className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-500">{label}</dt>
-                  <dd className="tw-m-0 tw-text-[0.86rem] tw-font-bold tw-text-vm-slate-900">{value}</dd>
+            <h3 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Thông tin cấu hình</h3>
+            <div className="tw-mt-4 tw-grid tw-gap-3">
+              <label className="tw-m-0 tw-grid tw-gap-2">
+                <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Mã</span>
+                <input
+                  className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] disabled:tw-bg-vm-slate-25"
+                  disabled={!canEdit || saving}
+                  value={form.code}
+                  onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))}
+                />
+              </label>
+              <label className="tw-m-0 tw-grid tw-gap-2">
+                <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Tên</span>
+                <input
+                  className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] disabled:tw-bg-vm-slate-25"
+                  disabled={!canEdit || saving}
+                  value={form.name}
+                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                />
+              </label>
+              {node.kind === "zone" ? (
+                <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+                  <label className="tw-m-0 tw-grid tw-gap-2">
+                    <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Sức chứa</span>
+                    <input
+                      className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] disabled:tw-bg-vm-slate-25"
+                      disabled={!canEdit || saving}
+                      min={1}
+                      type="number"
+                      value={form.capacity || ""}
+                      onChange={(event) => setForm((current) => ({ ...current, capacity: Number(event.target.value) }))}
+                    />
+                  </label>
+                  <label className="tw-m-0 tw-grid tw-gap-2">
+                    <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Loại xe</span>
+                    <select
+                      className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] disabled:tw-bg-vm-slate-25"
+                      disabled={!canEdit || saving}
+                      value={form.vehicleTypeId ?? ""}
+                      onChange={(event) => setForm((current) => ({ ...current, vehicleTypeId: event.target.value || null }))}
+                    >
+                      <option value="">Chưa chọn</option>
+                      {vehicleTypeOptions.filter((option) => option.value !== "all").map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
-              ))}
-            </dl>
+              ) : null}
+              {node.kind === "lane" ? (
+                <label className="tw-m-0 tw-grid tw-gap-2">
+                  <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Hướng lưu thông</span>
+                  <select
+                    className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] disabled:tw-bg-vm-slate-25"
+                    disabled={!canEdit || saving}
+                    value={form.direction}
+                    onChange={(event) => setForm((current) => ({ ...current, direction: event.target.value as LaneDirectionApi }))}
+                  >
+                    <option value="IN">Vào bãi</option>
+                    <option value="OUT">Ra bãi</option>
+                  </select>
+                </label>
+              ) : null}
+              {!canEdit ? <div className="tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-[0.78rem] tw-font-bold tw-text-amber-700">Dữ liệu mẫu chỉ dùng để xem giao diện, không thể cập nhật.</div> : null}
+              {formError || error ? <div className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{formError || error}</div> : null}
+            </div>
           </section>
 
           <section className="tw-mt-4 tw-rounded-vm-lg tw-bg-white tw-p-0">
             <h3 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Trạng thái vận hành</h3>
             <div className="tw-mt-4 tw-grid tw-grid-cols-3 tw-gap-2">
-              {[
-                ["Kích hoạt", "fas fa-check", "tw-border-emerald-100 tw-bg-emerald-50 tw-text-emerald-700"],
-                ["Bảo trì", "fas fa-tools", "tw-border-amber-100 tw-bg-amber-50 tw-text-amber-700"],
-                ["Đóng làn", "fas fa-ban", "tw-border-red-100 tw-bg-red-50 tw-text-red-700"],
-              ].map(([label, icon, className]) => (
-                <button className={cn("tw-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-text-[0.78rem] tw-font-extrabold tw-transition hover:tw-translate-y-[-1px]", className)} key={label} type="button">
-                  <i className={icon} />
-                  {label}
-                </button>
-              ))}
+              <button className="tw-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-100 tw-bg-emerald-50 tw-text-[0.78rem] tw-font-extrabold tw-text-emerald-700 tw-transition hover:tw-translate-y-[-1px] disabled:tw-opacity-50" disabled={!canEdit || saving || status === "ACTIVE"} type="button" onClick={() => void onStatusChange(node, "ACTIVE")}>
+                <i className="fas fa-check" />
+                Kích hoạt
+              </button>
+              <button className="tw-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-100 tw-bg-amber-50 tw-text-[0.78rem] tw-font-extrabold tw-text-amber-700 tw-transition hover:tw-translate-y-[-1px] disabled:tw-opacity-50" disabled={!canEdit || saving || status === "MAINTENANCE"} type="button" onClick={() => setConfirmAction("MAINTENANCE")}>
+                <i className="fas fa-tools" />
+                Bảo trì
+              </button>
+              <button className="tw-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-text-[0.78rem] tw-font-extrabold tw-text-red-700 tw-transition hover:tw-translate-y-[-1px] disabled:tw-opacity-50" disabled={!canEdit || saving || status === "CLOSED"} type="button" onClick={() => setConfirmAction("CLOSED")}>
+                <i className="fas fa-ban" />
+                Đóng
+              </button>
             </div>
           </section>
 
@@ -903,9 +1304,9 @@ function ParkingNodeDrawer({
             <h3 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Luồng xe hiện tại</h3>
             <div className="tw-mt-4 tw-grid tw-grid-cols-3 tw-gap-3">
               {[
-                ["Xe máy", "28", "fas fa-motorcycle"],
-                ["Ô tô", "16", "fas fa-car"],
-                ["Phiên đang mở", (lane?.activeSessions ?? 6).toString(), "far fa-clock"],
+                ["Làn vào", node.kind === "gate" ? inLaneCount.toString() : lane?.direction === "IN" ? "1" : "0", "fas fa-sign-in-alt"],
+                ["Làn ra", node.kind === "gate" ? outLaneCount.toString() : lane?.direction === "OUT" ? "1" : "0", "fas fa-sign-out-alt"],
+                ["Phiên đang mở", (lane?.activeSessions ?? 0).toString(), "far fa-clock"],
               ].map(([label, value, icon]) => (
                 <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3" key={label}>
                   <span className="tw-flex tw-items-center tw-gap-2 tw-text-[0.72rem] tw-font-extrabold tw-text-vm-slate-500"><i className={cn(icon, "tw-text-vm-primary")} />{label}</span>
@@ -915,7 +1316,7 @@ function ParkingNodeDrawer({
             </div>
           </section>
 
-          <section className="tw-mt-6 tw-rounded-vm-lg tw-bg-white">
+          {node.kind === "lane" ? <section className="tw-mt-6 tw-rounded-vm-lg tw-bg-white">
             <h3 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Thiết bị liên kết</h3>
             <div className="tw-mt-4 tw-grid tw-grid-cols-3 tw-gap-3">
               {[
@@ -937,7 +1338,7 @@ function ParkingNodeDrawer({
                 </div>
               ))}
             </div>
-          </section>
+          </section> : null}
 
           <section className="tw-mt-6 tw-rounded-vm-lg tw-bg-white">
             <h3 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Lịch sử gần đây</h3>
@@ -959,57 +1360,267 @@ function ParkingNodeDrawer({
           </section>
         </div>
 
-        <div className="tw-absolute tw-bottom-[84px] tw-right-5 tw-w-[220px] tw-rounded-vm-lg tw-border tw-border-solid tw-border-amber-100 tw-bg-white tw-p-4 tw-shadow-[0_18px_42px_rgba(15,23,42,0.16)]">
-          <div className="tw-flex tw-gap-2">
-            <i className="fas fa-exclamation-triangle tw-mt-0.5 tw-text-amber-500" />
-            <div>
-              <strong className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-900">Xác nhận đưa làn vào bảo trì?</strong>
-              <p className="tw-m-0 tw-mt-1 tw-text-[0.68rem] tw-font-semibold tw-leading-4 tw-text-vm-slate-500">Làn sẽ tạm ngưng hoạt động cho đến khi kích hoạt lại.</p>
+        {confirmAction ? (
+          <div className="tw-fixed tw-inset-0 tw-z-[2600] tw-flex tw-items-center tw-justify-center tw-bg-slate-900/35 tw-p-4">
+            <div className="tw-w-[min(100%,380px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-[0_24px_70px_rgba(15,23,42,0.22)]">
+              <div className="tw-flex tw-gap-3">
+                <span className={cn("tw-inline-flex tw-h-10 tw-w-10 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-full", confirmAction === "CLOSED" ? "tw-bg-red-50 tw-text-red-500" : "tw-bg-amber-50 tw-text-amber-500")}>
+                  <i className="fas fa-exclamation-triangle" />
+                </span>
+                <div>
+                  <strong className="tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">{confirmTitle}</strong>
+                  <p className="tw-m-0 tw-mt-2 tw-text-[0.82rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">{confirmMessage}</p>
+                </div>
+              </div>
+              <div className="tw-mt-5 tw-flex tw-justify-end tw-gap-3">
+                <Button variant="secondary" disabled={saving} onClick={() => setConfirmAction(null)}>Không</Button>
+                <Button className={confirmAction === "CLOSED" ? "tw-bg-red-500 hover:tw-bg-red-600" : "tw-bg-orange-500 hover:tw-bg-orange-600"} disabled={saving} onClick={() => void handleConfirmStatus()}>Xác nhận</Button>
+              </div>
             </div>
           </div>
-          <div className="tw-mt-3 tw-flex tw-justify-end tw-gap-2">
-            <Button size="sm" variant="secondary">Không</Button>
-            <Button size="sm" className="tw-bg-red-500 hover:tw-bg-red-600">Xác nhận</Button>
-          </div>
-        </div>
+        ) : null}
 
-        <footer className="tw-grid tw-grid-cols-[1fr_1.35fr_1.35fr] tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6 tw-py-4">
+        <footer className="tw-grid tw-grid-cols-[1fr_1.35fr] tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6 tw-py-4">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button variant="primary">
+          <Button variant="primary" type="submit" disabled={!canEdit || saving}>
             <i className="far fa-save" />
-            Lưu thay đổi
-          </Button>
-          <Button className="tw-border-orange-200 tw-bg-white tw-text-orange-600 hover:tw-bg-orange-50" variant="secondary">
-            <i className="fas fa-tools" />
-            Đưa bảo trì
+            {saving ? "Đang lưu" : "Lưu thay đổi"}
           </Button>
         </footer>
+        </form>
       </aside>
     </div>
   );
 }
 
 export function ParkingOperationsPage() {
-  const [selectedLotId, setSelectedLotId] = useState(parkingLots[0].id);
+  const toast = useToast();
+  const [parkingLots, setParkingLots] = useState<ParkingLot[]>(mockParkingLots);
+  const [selectedLotId, setSelectedLotId] = useState(mockParkingLots[0].id);
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedVehicleType, setSelectedVehicleType] = useState("all");
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>({ id: "lane-a1-in", kind: "lane", label: "Làn vào" });
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [lotDrawerOpen, setLotDrawerOpen] = useState(false);
+  const [editingLot, setEditingLot] = useState<ParkingLot | null>(null);
+  const [loadingLots, setLoadingLots] = useState(false);
+  const [savingLot, setSavingLot] = useState(false);
+  const [lotError, setLotError] = useState("");
+  const [zones, setZones] = useState<Zone[]>(mockZones);
+  const [gates, setGates] = useState<Gate[]>(mockGates);
+  const [lanes, setLanes] = useState<Lane[]>(mockLanes);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeApiResponse[]>([]);
+  const [loadingTopology, setLoadingTopology] = useState(false);
+  const [savingNode, setSavingNode] = useState(false);
+  const [topologyError, setTopologyError] = useState("");
 
   const selectedParkingLot = parkingLots.find((lot) => lot.id === selectedLotId) ?? parkingLots[0];
+  const selectedLotCanMutate = selectedParkingLot?.source === "api";
+  const dynamicLotOptions = useMemo(() => parkingLots.map((lot) => ({ label: `Bãi xe: ${lot.name}`, value: lot.id })), [parkingLots]);
+  const activeLotCount = parkingLots.filter((lot) => lot.status === "ACTIVE").length;
+  const maintenanceLotCount = parkingLots.filter((lot) => lot.status === "MAINTENANCE").length;
+  const vehicleTypeLookup = useMemo(() => new Map(vehicleTypes.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType])), [vehicleTypes]);
+  const dynamicVehicleTypeOptions = useMemo(() => {
+    const options = vehicleTypes.map((vehicleType) => ({
+      label: vehicleType.name || vehicleType.code,
+      value: vehicleType.vehicleTypeId,
+    }));
+    return [{ label: "Tất cả loại xe", value: "all" }, ...options];
+  }, [vehicleTypes]);
+  const activeGateCount = gates.filter((gate) => gate.status === "ACTIVE").length;
+  const activeLaneCount = lanes.filter((lane) => lane.status === "ACTIVE").length;
+  const maintenanceLaneCount = lanes.filter((lane) => lane.status === "MAINTENANCE").length;
+
+  const loadParkingLots = useCallback(async (preferredLotId?: string) => {
+    setLoadingLots(true);
+    setLotError("");
+
+    try {
+      const response = await getParkingLots();
+      const nextLots = (response.data ?? []).map(toParkingLotView);
+      setParkingLots(nextLots.length ? nextLots : mockParkingLots);
+      setSelectedLotId((current) => {
+        const candidate = preferredLotId ?? current;
+        if (nextLots.some((lot) => lot.id === candidate)) return candidate;
+        return nextLots[0]?.id ?? mockParkingLots[0].id;
+      });
+    } catch (error) {
+      setLotError(error instanceof Error ? error.message : "Không thể tải dữ liệu bãi xe.");
+      setParkingLots(mockParkingLots);
+      setSelectedLotId(mockParkingLots[0].id);
+    } finally {
+      setLoadingLots(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadParkingLots();
+  }, [loadParkingLots]);
+
+  const loadParkingTopology = useCallback(async (parkingLotId: string) => {
+    if (!parkingLotId) return;
+
+    setLoadingTopology(true);
+    setTopologyError("");
+
+    try {
+      const [vehicleTypeResponse, zoneResponse] = await Promise.all([
+        getVehicleTypes({ isActive: true }),
+        getZones({ parkingLotId }),
+      ]);
+      const nextVehicleTypes = vehicleTypeResponse.data ?? [];
+      const nextVehicleTypeLookup = new Map(nextVehicleTypes.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType]));
+      const nextZones = (zoneResponse.data ?? []).map((zone) => toZoneView(zone, nextVehicleTypeLookup));
+      const gateResponses = await Promise.all(nextZones.map((zone) => getGates({ zoneId: zone.id })));
+      const nextGates = gateResponses.flatMap((response) => (response.data ?? []).map(toGateView));
+      const laneResponses = await Promise.all(nextGates.map((gate) => getLanes({ gateId: gate.id })));
+      const nextLanes = laneResponses.flatMap((response) => (response.data ?? []).map(toLaneView));
+
+      setVehicleTypes(nextVehicleTypes);
+      setZones(nextZones);
+      setGates(nextGates);
+      setLanes(nextLanes);
+      setSelectedNode((current) => {
+        if (!current) return null;
+        if (current.kind === "zone" && nextZones.some((zone) => zone.id === current.id)) return current;
+        if (current.kind === "gate" && nextGates.some((gate) => gate.id === current.id)) return current;
+        if (current.kind === "lane" && nextLanes.some((lane) => lane.id === current.id)) return current;
+        return null;
+      });
+    } catch (error) {
+      setTopologyError(error instanceof Error ? error.message : "Không thể tải sơ đồ bãi xe.");
+      setZones(mockZones);
+      setGates(mockGates);
+      setLanes(mockLanes);
+    } finally {
+      setLoadingTopology(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadParkingTopology(selectedLotId);
+  }, [loadParkingTopology, selectedLotId]);
+
+  async function handleSubmitParkingLot(payload: ParkingLot) {
+    setSavingLot(true);
+    setLotError("");
+
+    try {
+      if (editingLot) {
+        await updateParkingLot(editingLot.id, toParkingLotPayload(payload));
+        toast.success("Đã cập nhật bãi xe.");
+        await loadParkingLots(editingLot.id);
+      } else {
+        const created = await createParkingLot(toParkingLotPayload(payload));
+        toast.success("Đã tạo bãi xe.");
+        await loadParkingLots(created.data.parkingLotId);
+      }
+
+      setLotDrawerOpen(false);
+      setEditingLot(null);
+    } catch (error) {
+      setLotError(error instanceof Error ? error.message : "Không thể lưu bãi xe.");
+    } finally {
+      setSavingLot(false);
+    }
+  }
+
+  async function handleChangeLotStatus(status: ParkingLotStatus) {
+    if (!selectedParkingLot || !selectedLotCanMutate) return;
+
+    setSavingLot(true);
+    setLotError("");
+
+    try {
+      if (status === "ACTIVE") {
+        await activateParkingLot(selectedParkingLot.id);
+      } else if (status === "MAINTENANCE") {
+        await markParkingLotMaintenance(selectedParkingLot.id);
+      } else {
+        await closeParkingLot(selectedParkingLot.id);
+      }
+
+      toast.success("Đã cập nhật trạng thái bãi xe.");
+      await loadParkingLots();
+    } catch (error) {
+      setLotError(error instanceof Error ? error.message : "Không thể cập nhật trạng thái bãi xe.");
+    } finally {
+      setSavingLot(false);
+    }
+  }
+
+  async function handleSaveNode(node: SelectedNode, payload: ParkingNodeFormPayload) {
+    setSavingNode(true);
+    setTopologyError("");
+
+    try {
+      if (node.kind === "zone") {
+        await updateZone(node.id, {
+          capacity: payload.capacity,
+          code: payload.code,
+          name: payload.name,
+          vehicleTypeId: payload.vehicleTypeId,
+        });
+      } else if (node.kind === "gate") {
+        await updateGate(node.id, {
+          code: payload.code,
+          name: payload.name,
+        });
+      } else {
+        await updateLane(node.id, {
+          code: payload.code,
+          direction: payload.direction,
+          name: payload.name,
+        });
+      }
+
+      toast.success("Đã cập nhật thông tin.");
+      await loadParkingTopology(selectedLotId);
+    } catch (error) {
+      setTopologyError(error instanceof Error ? error.message : "Không thể cập nhật thông tin.");
+    } finally {
+      setSavingNode(false);
+    }
+  }
+
+  async function handleChangeNodeStatus(node: SelectedNode, action: ParkingNodeStatusAction) {
+    setSavingNode(true);
+    setTopologyError("");
+
+    try {
+      if (node.kind === "zone") {
+        if (action === "ACTIVE") await activateZone(node.id);
+        else if (action === "MAINTENANCE") await markZoneMaintenance(node.id);
+        else await closeZone(node.id);
+      } else if (node.kind === "gate") {
+        if (action === "ACTIVE") await activateGate(node.id);
+        else if (action === "MAINTENANCE") await markGateMaintenance(node.id);
+        else await closeGate(node.id);
+      } else if (action === "ACTIVE") {
+        await activateLane(node.id);
+      } else if (action === "MAINTENANCE") {
+        await markLaneMaintenance(node.id);
+      } else {
+        await closeLane(node.id);
+      }
+
+      toast.success("Đã cập nhật trạng thái.");
+      await loadParkingTopology(selectedLotId);
+    } catch (error) {
+      setTopologyError(error instanceof Error ? error.message : "Không thể cập nhật trạng thái.");
+    } finally {
+      setSavingNode(false);
+    }
+  }
 
   const zonesForLot = useMemo(() => {
     return zones.filter((zone) => {
-      const matchesLot = zone.parkingLotId === selectedLotId;
-      const matchesVehicle =
-        selectedVehicleType === "all" ||
-        (selectedVehicleType === "motorbike" && zone.vehicleType === "Xe máy") ||
-        (selectedVehicleType === "car" && zone.vehicleType === "Ô tô") ||
-        (selectedVehicleType === "mixed" && zone.vehicleType === "Hỗn hợp");
+      const matchesLot = zone.parkingLotId === selectedLotId || zone.parkingLotId === mockParkingLots[0].id;
+      const matchesVehicle = zoneMatchesVehicleFilter(zone, selectedVehicleType);
       const matchesStatus = selectedStatus === "all" || zone.status === selectedStatus;
       return matchesLot && matchesVehicle && matchesStatus;
     });
-  }, [selectedLotId, selectedStatus, selectedVehicleType]);
+  }, [selectedLotId, selectedStatus, selectedVehicleType, zones]);
 
   const gatesByZone = useMemo(() => {
     return gates.reduce((map, gate) => {
@@ -1018,7 +1629,7 @@ export function ParkingOperationsPage() {
       map.set(gate.zoneId, current);
       return map;
     }, new Map<string, Gate[]>());
-  }, []);
+  }, [gates]);
 
   const lanesByGate = useMemo(() => {
     return lanes.reduce((map, lane) => {
@@ -1027,7 +1638,7 @@ export function ParkingOperationsPage() {
       map.set(lane.gateId, current);
       return map;
     }, new Map<string, Lane[]>());
-  }, []);
+  }, [lanes]);
 
   const selectedLane = selectedNode?.kind === "lane" ? lanes.find((lane) => lane.id === selectedNode.id) : undefined;
   const selectedGate = selectedNode?.kind === "gate" ? gates.find((gate) => gate.id === selectedNode.id) : selectedLane ? gates.find((gate) => gate.id === selectedLane.gateId) : undefined;
@@ -1051,9 +1662,42 @@ export function ParkingOperationsPage() {
               </a>
             </div>
             <div className="tw-flex tw-flex-shrink-0 tw-items-center tw-gap-3">
-              <Button size="lg" variant="primary">
+              <Button
+                size="lg"
+                variant="primary"
+                onClick={() => {
+                  setLotError("");
+                  setEditingLot(null);
+                  setLotDrawerOpen(true);
+                }}
+              >
                 <i className="fas fa-plus" />
                 Thêm bãi xe
+              </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                disabled={!selectedLotCanMutate}
+                onClick={() => {
+                  setLotError("");
+                  setEditingLot(selectedParkingLot);
+                  setLotDrawerOpen(true);
+                }}
+              >
+                <i className="far fa-edit" />
+                Sửa bãi
+              </Button>
+              <Button
+                size="lg"
+                variant="secondary"
+                disabled={loadingLots || loadingTopology}
+                onClick={() => {
+                  void loadParkingLots();
+                  void loadParkingTopology(selectedLotId);
+                }}
+              >
+                <i className="fas fa-sync-alt" />
+                Làm mới
               </Button>
               <Button size="lg" variant="secondary">
                 <i className="fas fa-download" />
@@ -1064,15 +1708,26 @@ export function ParkingOperationsPage() {
           </div>
 
           <div className="tw-grid tw-grid-cols-4 tw-gap-4 max-[1180px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">
-            <ParkingMetricCard delta="+1 so với tháng trước" icon="fas fa-parking" label="Tổng bãi xe" tone="blue" value="3" />
-            <ParkingMetricCard delta="+4 khu đang mở" icon="fas fa-layer-group" label="Khu đang mở" tone="green" value="12" />
-            <ParkingMetricCard delta="+2 cổng hôm nay" icon="fas fa-door-open" label="Cổng hoạt động" tone="amber" value="8" />
-            <ParkingMetricCard delta="-1 so với hôm qua" icon="fas fa-road" label="Làn bảo trì" tone="red" value="2" />
+            <ParkingMetricCard delta={`${activeLotCount} đang hoạt động`} icon="fas fa-parking" label="Tổng bãi xe" tone="blue" value={parkingLots.length.toLocaleString("vi-VN")} />
+            <ParkingMetricCard delta={`${maintenanceLotCount} đang bảo trì`} icon="fas fa-layer-group" label="Bãi đang mở" tone="green" value={activeLotCount.toLocaleString("vi-VN")} />
+            <ParkingMetricCard delta={`${gates.length} tổng cổng`} icon="fas fa-door-open" label="Cổng hoạt động" tone="amber" value={activeGateCount.toLocaleString("vi-VN")} />
+            <ParkingMetricCard delta={`${lanes.length} tổng làn`} icon="fas fa-road" label="Làn bảo trì" tone="red" value={maintenanceLaneCount.toLocaleString("vi-VN")} />
           </div>
 
           <Card className="tw-mt-4 tw-p-4">
             <div className="tw-grid tw-grid-cols-[260px_minmax(260px,1fr)_180px_180px_auto] tw-items-start tw-gap-3 max-[1180px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">
-              <SelectMenu className="tw-self-start" ariaLabel="Chọn bãi xe" options={lotOptions} value={selectedLotId} clearValue={parkingLots[0].id} onChange={setSelectedLotId} />
+              <SelectMenu
+                className="tw-self-start"
+                ariaLabel="Chọn bãi xe"
+                options={dynamicLotOptions}
+                value={selectedLotId}
+                clearValue={parkingLots[0]?.id}
+                onChange={(value) => {
+                  setSelectedLotId(value);
+                  setDrawerOpen(false);
+                  setSelectedNode(null);
+                }}
+              />
               <label className="tw-m-0 tw-box-border tw-flex tw-h-[42px] tw-self-start tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3.5 tw-shadow-[0_4px_10px_rgba(15,23,42,0.025)] tw-transition focus-within:tw-border-brand-200 focus-within:tw-shadow-[0_0_0_4px_rgba(37,99,235,0.08)]">
                 <i className="fas fa-search tw-flex-shrink-0 tw-text-[0.92rem] tw-leading-none tw-text-vm-slate-500" />
                 <input
@@ -1081,7 +1736,7 @@ export function ParkingOperationsPage() {
                 />
               </label>
               <SelectMenu className="tw-self-start" ariaLabel="Trạng thái" options={statusOptions} value={selectedStatus} onChange={setSelectedStatus} />
-              <SelectMenu className="tw-self-start" ariaLabel="Loại phương tiện" options={vehicleTypeOptions} value={selectedVehicleType} onChange={setSelectedVehicleType} />
+              <SelectMenu className="tw-self-start" ariaLabel="Loại phương tiện" options={dynamicVehicleTypeOptions} value={selectedVehicleType} onChange={setSelectedVehicleType} />
               <Button
                 className="tw-h-[42px] tw-self-start tw-whitespace-nowrap"
                 variant="secondary"
@@ -1094,6 +1749,46 @@ export function ParkingOperationsPage() {
                 Xóa bộ lọc
               </Button>
             </div>
+            <div className="tw-mt-3 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!selectedLotCanMutate || savingLot || selectedParkingLot.status === "ACTIVE"}
+                onClick={() => void handleChangeLotStatus("ACTIVE")}
+              >
+                Kích hoạt
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!selectedLotCanMutate || savingLot || selectedParkingLot.status === "MAINTENANCE"}
+                onClick={() => void handleChangeLotStatus("MAINTENANCE")}
+              >
+                Bảo trì
+              </Button>
+              <Button
+                size="sm"
+                className="tw-border-red-200 tw-bg-white tw-text-red-600 hover:tw-bg-red-50"
+                variant="secondary"
+                disabled={!selectedLotCanMutate || savingLot || selectedParkingLot.status === "CLOSED"}
+                onClick={() => void handleChangeLotStatus("CLOSED")}
+              >
+                Đóng bãi
+              </Button>
+              {selectedLotCanMutate ? null : (
+                <span className="tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Dữ liệu mẫu chỉ dùng để xem giao diện, không thể cập nhật.</span>
+              )}
+            </div>
+            {lotError ? (
+              <div className="tw-mt-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-px-3 tw-py-2 tw-text-[0.82rem] tw-font-semibold tw-text-red-700">
+                {lotError}
+              </div>
+            ) : null}
+            {topologyError ? (
+              <div className="tw-mt-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-100 tw-bg-amber-50 tw-px-3 tw-py-2 tw-text-[0.82rem] tw-font-semibold tw-text-amber-700">
+                {topologyError}
+              </div>
+            ) : null}
           </Card>
 
           <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1fr)_330px] tw-gap-4 max-[1280px]:tw-grid-cols-1">
@@ -1105,18 +1800,36 @@ export function ParkingOperationsPage() {
               selectedParkingLot={selectedParkingLot}
               zonesForLot={zonesForLot}
             />
-            <OperationSummary selectedParkingLot={selectedParkingLot} />
+            <OperationSummary gates={gates} lanes={lanes} selectedParkingLot={selectedParkingLot} />
           </div>
         </section>
       </div>
 
       <ParkingNodeDrawer
+        error={topologyError}
         gate={selectedGate}
         isOpen={drawerOpen}
         lane={selectedLane}
+        lanes={lanes}
         node={selectedNode}
         onClose={() => setDrawerOpen(false)}
+        onSave={handleSaveNode}
+        onStatusChange={handleChangeNodeStatus}
+        saving={savingNode}
+        vehicleTypeOptions={dynamicVehicleTypeOptions}
         zone={selectedZone}
+      />
+      <ParkingLotDrawer
+        error={lotError}
+        isOpen={lotDrawerOpen}
+        lot={editingLot}
+        saving={savingLot}
+        onClose={() => {
+          setLotDrawerOpen(false);
+          setEditingLot(null);
+          setLotError("");
+        }}
+        onSubmit={handleSubmitParkingLot}
       />
     </>
   );
