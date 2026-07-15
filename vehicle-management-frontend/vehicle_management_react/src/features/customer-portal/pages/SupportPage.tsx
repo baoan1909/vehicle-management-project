@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useToast } from "@/components/ui";
 import {
+  getCustomerPortalProfile,
+  type CustomerPortalProfile,
+} from "@/features/customer-portal/api/customerPortalApi";
+import {
   closeSupportTicket,
   createSupportTicket,
   getSupportTicketCategories,
@@ -13,7 +17,7 @@ import {
   type SupportTicketStatus,
 } from "@/features/support/api/supportApi";
 
-import { CustomerPageHeader, CustomerPortalLayout, Field, StatCard, StatusPill } from "./PortalShared";
+import { CustomerPageHeader, CustomerPortalLayout, Field, PaginationLite, StatCard, StatusPill } from "./PortalShared";
 
 type PillTone = "green" | "blue" | "orange" | "red" | "gray" | "purple";
 
@@ -57,6 +61,10 @@ function formatDateTime(value: string | null) {
   if (!value) {
     return "--";
   }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "--";
+  }
 
   return new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
@@ -64,7 +72,7 @@ function formatDateTime(value: string | null) {
     minute: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(new Date(value));
+  }).format(date);
 }
 
 function shortCode(id: string) {
@@ -88,10 +96,13 @@ function activeStepClass(ticket: SupportTicketResponse, step: SupportTicketStatu
 
 export function SupportPage() {
   const toast = useToast();
+  const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [tickets, setTickets] = useState<SupportTicketResponse[]>([]);
   const [categories, setCategories] = useState<SupportTicketCategoryResponse[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string>("");
   const [keyword, setKeyword] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState<SupportTicketStatus | "ALL">("ALL");
   const [priorityFilter, setPriorityFilter] = useState<SupportTicketPriority | "ALL">("ALL");
   const [form, setForm] = useState(emptyForm);
@@ -102,14 +113,22 @@ export function SupportPage() {
   const loadData = useCallback(async (preferredTicketId?: string) => {
     setLoading(true);
     try {
+      const nextProfile = await getCustomerPortalProfile();
+      const customerId = nextProfile.customer?.customerId;
+      if (!customerId) {
+        throw new Error("Tài khoản hiện tại chưa liên kết hồ sơ khách hàng.");
+      }
+
       const [ticketResponse, categoryResponse] = await Promise.all([
-        getSupportTickets(),
+        getSupportTickets({ customerId }),
         getSupportTicketCategories({ status: "ACTIVE" }),
       ]);
       const nextTickets = ticketResponse.data ?? [];
 
+      setProfile(nextProfile);
       setTickets(nextTickets);
       setCategories(categoryResponse.data ?? []);
+      setCurrentPage(1);
       setSelectedTicketId((current) => {
         if (preferredTicketId && nextTickets.some((ticket) => ticket.supportTicketId === preferredTicketId)) {
           return preferredTicketId;
@@ -147,6 +166,13 @@ export function SupportPage() {
       return matchesKeyword && matchesStatus && matchesPriority;
     });
   }, [keyword, priorityFilter, statusFilter, tickets]);
+  const totalPages = Math.max(1, Math.ceil(filteredTickets.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pagedTickets = filteredTickets.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [keyword, pageSize, priorityFilter, statusFilter]);
 
   const selectedTicket = useMemo(
     () => tickets.find((ticket) => ticket.supportTicketId === selectedTicketId) ?? filteredTickets[0] ?? null,
@@ -268,7 +294,7 @@ export function SupportPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredTickets.map((ticket) => (
+                {pagedTickets.map((ticket) => (
                   <tr key={ticket.supportTicketId}>
                     <td>{shortCode(ticket.supportTicketId)}</td>
                     <td>{ticket.title}</td>
@@ -297,12 +323,13 @@ export function SupportPage() {
                 )}
               </tbody>
             </table>
-            <div className="vm-table-footer-lite">
-              <span>Hiển thị {filteredTickets.length.toLocaleString("vi-VN")} của {tickets.length.toLocaleString("vi-VN")} yêu cầu</span>
-              <button type="button" onClick={() => void loadData(selectedTicket?.supportTicketId)}>
-                <i className="fas fa-sync-alt" />
-              </button>
-            </div>
+            <PaginationLite
+              currentPage={safeCurrentPage}
+              pageSize={pageSize}
+              totalRecords={filteredTickets.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={setPageSize}
+            />
           </section>
         </div>
 
@@ -336,7 +363,7 @@ export function SupportPage() {
             {selectedTicket ? (
               <>
                 <dl className="vm-info-list">
-                  <dt>Khách hàng:</dt><dd>{selectedTicket.customerId}</dd>
+                  <dt>Khách hàng:</dt><dd>{profile?.profile?.fullName ?? profile?.account?.username ?? selectedTicket.customerId}</dd>
                   <dt>Trạng thái:</dt><dd><StatusPill tone={statusTone[selectedTicket.status]}>{statusLabels[selectedTicket.status]}</StatusPill></dd>
                   <dt>Mức độ:</dt><dd><StatusPill tone={priorityTone[selectedTicket.priority]}>{priorityLabels[selectedTicket.priority]}</StatusPill></dd>
                   <dt>Loại yêu cầu:</dt><dd>{selectedTicket.categoryName ?? selectedTicket.categoryCode ?? "--"}</dd>

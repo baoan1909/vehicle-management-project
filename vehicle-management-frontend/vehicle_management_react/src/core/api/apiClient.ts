@@ -3,18 +3,20 @@ import { getAccessToken } from "@/core/auth/session";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
+  skipAuth?: boolean;
 };
 
 export async function apiClient<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const accessToken = getAccessToken();
+  const { body, skipAuth, ...requestOptions } = options;
+  const accessToken = skipAuth ? null : getAccessToken();
   const response = await fetch(`${appConfig.apiBaseUrl}${path}`, {
-    ...options,
+    ...requestOptions,
     headers: {
       "Content-Type": "application/json",
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...options.headers,
+      ...requestOptions.headers,
     },
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: body ? JSON.stringify(body) : undefined,
   });
 
   const contentType = response.headers.get("content-type") ?? "";

@@ -22,6 +22,15 @@ public interface ParkingSessionPortIn {
             String keyword
     );
 
+    List<ParkingSessionManagementResult> getOwnSessions(
+            ParkingSessionStatus status,
+            UUID vehicleTypeId,
+            UUID zoneId,
+            LocalDate fromDate,
+            LocalDate toDate,
+            String keyword
+    );
+
     CheckInResult checkIn(CheckInCommand command);
 
     CheckOutResult checkOut(CheckOutCommand command);

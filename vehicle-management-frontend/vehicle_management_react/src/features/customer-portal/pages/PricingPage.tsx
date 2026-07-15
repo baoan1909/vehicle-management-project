@@ -1,94 +1,288 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+
 import { ClientPage } from "@/shared/components/layout/ClientPage";
-import { PublicContactStrip, PublicFooter, PublicHero, VehicleTabs } from "./PortalShared";
+import {
+  getPublicPricePlans,
+  getPublicPriceRules,
+  getPublicPricingTicketTypes,
+  getPublicPricingVehicleTypes,
+  type PricePlanApiResponse,
+  type PriceRuleApiResponse,
+  type TicketTypeApiResponse,
+  type VehicleTypeApiResponse,
+} from "@/features/pricing/api/pricingApi";
 
-const visitorPlans = [
-  {
-    icon: "far fa-sun",
-    title: "Khung giờ 6:00 - 17:59",
-    price: "4.000 VNĐ",
-    period: "/ lượt",
-    items: ["Áp dụng ban ngày", "Thanh toán theo lượt", "Không giới hạn thời gian trong khung"],
-  },
-  {
-    icon: "fas fa-moon",
-    title: "Khung giờ 18:00 - 23:59",
-    price: "5.000 VNĐ",
-    period: "/ lượt",
-    items: ["Áp dụng buổi tối", "Phù hợp gửi xe ngắn hạn", "Có nhân viên hỗ trợ"],
-  },
-  {
-    icon: "fas fa-moon",
-    title: "Qua đêm 00:00 - 5:59",
-    price: "15.000 VNĐ",
-    period: "/ lượt",
-    items: ["Áp dụng qua đêm", "Giữ xe an toàn", "Theo dõi camera"],
-  },
+import { PublicContactStrip, PublicFooter, PublicHero } from "./PortalShared";
+
+type PricingAudience = "VISITOR" | "CUSTOMER";
+type VehicleFilterKey = "MOTORBIKE" | "CAR" | "OTHER";
+
+type DisplayRule = PriceRuleApiResponse & {
+  plan?: PricePlanApiResponse;
+  ticketType?: TicketTypeApiResponse;
+  vehicleType?: VehicleTypeApiResponse;
+};
+
+const vehicleFilterOptions: Array<{ icon: string; label: string; value: VehicleFilterKey }> = [
+  { icon: "fas fa-motorcycle", label: "Xe máy", value: "MOTORBIKE" },
+  { icon: "fas fa-car", label: "Ô tô", value: "CAR" },
+  { icon: "far fa-ellipsis-h", label: "Xe khác", value: "OTHER" },
 ];
 
-const customerPlans = [
-  {
-    icon: "far fa-calendar-alt",
-    title: "Vé tháng",
-    price: "120.000 VNĐ",
-    period: "/ tháng",
-    items: ["Hiệu lực 30 ngày", "Dành cho xe đã đăng ký", "Gia hạn dễ dàng"],
-  },
-  {
-    icon: "far fa-calendar-alt",
-    title: "Vé quý",
-    price: "330.000 VNĐ",
-    period: "/ quý",
-    items: ["Hiệu lực 3 tháng", "Tiết kiệm hơn vé tháng", "Ưu tiên xử lý gia hạn"],
-  },
-  {
-    icon: "far fa-calendar-check",
-    title: "Vé năm",
-    price: "1.200.000 VNĐ",
-    period: "/ năm",
-    items: ["Hiệu lực 12 tháng", "Chi phí ổn định cả năm", "Phù hợp khách gửi thường xuyên"],
-  },
-];
+function normalizeSearchText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+}
+
+function vehicleFilterLabel(value: VehicleFilterKey) {
+  return vehicleFilterOptions.find((option) => option.value === value)?.label ?? "Loại xe";
+}
+
+function vehicleCategory(vehicleType?: VehicleTypeApiResponse): VehicleFilterKey {
+  const text = normalizeSearchText(`${vehicleType?.code ?? ""} ${vehicleType?.name ?? ""}`);
+
+  if (text.includes("motor") || text.includes("moto") || text.includes("xe may")) {
+    return "MOTORBIKE";
+  }
+
+  if (text.includes("car") || text.includes("oto") || text.includes("o to")) {
+    return "CAR";
+  }
+
+  return "OTHER";
+}
+
+function matchesVehicleFilter(rule: DisplayRule, selectedVehicleFilter: VehicleFilterKey) {
+  return vehicleCategory(rule.vehicleType) === selectedVehicleFilter;
+}
+
+function formatCurrency(value: number | null) {
+  if (value === null || Number.isNaN(value)) {
+    return "Chưa cấu hình";
+  }
+
+  return new Intl.NumberFormat("vi-VN", {
+    currency: "VND",
+    maximumFractionDigits: 0,
+    style: "currency",
+  }).format(value);
+}
+
+function formatDate(value: string | null) {
+  if (!value) return "Không giới hạn";
+  return new Intl.DateTimeFormat("vi-VN").format(new Date(value));
+}
+
+function unitLabel(unit: string | null, ticketType?: TicketTypeApiResponse) {
+  const normalized = unit?.trim().toUpperCase();
+
+  if (normalized === "MONTH") return "/ tháng";
+  if (normalized === "QUARTER") return "/ quý";
+  if (normalized === "YEAR") return "/ năm";
+  if (normalized === "DAY") return "/ ngày";
+  if (normalized === "HOUR") return "/ giờ";
+  if (normalized === "TURN" || normalized === "SESSION") return "/ lượt";
+  if (ticketType?.durationDays) return `/ ${ticketType.durationDays} ngày`;
+  if (unit) return `/ ${unit.toLowerCase()}`;
+  return "";
+}
+
+function timeRange(rule: PriceRuleApiResponse) {
+  if (rule.timeFrom && rule.timeTo) return `${rule.timeFrom} - ${rule.timeTo}`;
+  if (rule.timeFrom) return `Từ ${rule.timeFrom}`;
+  if (rule.timeTo) return `Đến ${rule.timeTo}`;
+  return "Cả ngày";
+}
+
+function iconForRule(audience: PricingAudience, rule: DisplayRule) {
+  if (audience === "CUSTOMER") return "far fa-calendar-check";
+  if (rule.timeFrom && rule.timeFrom >= "18:00") return "fas fa-moon";
+  return "far fa-sun";
+}
+
+function buildRules(
+  audience: PricingAudience,
+  plans: PricePlanApiResponse[],
+  rules: PriceRuleApiResponse[],
+  vehicleTypes: VehicleTypeApiResponse[],
+  ticketTypes: TicketTypeApiResponse[],
+) {
+  const allowedPlans = plans.filter((plan) => plan.appliesTo === audience || plan.appliesTo === "ALL");
+  const allowedPlanIds = new Set(allowedPlans.map((plan) => plan.pricePlanId));
+  const planById = new Map(allowedPlans.map((plan) => [plan.pricePlanId, plan]));
+  const vehicleById = new Map(vehicleTypes.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType]));
+  const ticketById = new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType]));
+
+  return rules
+    .filter((rule) => Boolean(rule.pricePlanId && allowedPlanIds.has(rule.pricePlanId)))
+    .map((rule) => ({
+      ...rule,
+      plan: rule.pricePlanId ? planById.get(rule.pricePlanId) : undefined,
+      ticketType: rule.ticketTypeId ? ticketById.get(rule.ticketTypeId) : undefined,
+      vehicleType: rule.vehicleTypeId ? vehicleById.get(rule.vehicleTypeId) : undefined,
+    }))
+    .sort((left, right) => (left.priority ?? 999) - (right.priority ?? 999) || left.ruleName.localeCompare(right.ruleName));
+}
+
+function PriceCard({ audience, rule }: { audience: PricingAudience; rule: DisplayRule }) {
+  const vehicleName = rule.vehicleType?.name ?? "Tất cả loại xe";
+  const ticketName = rule.ticketType?.name ?? (audience === "VISITOR" ? "Khách vãng lai" : "Vé đăng ký");
+  const colorClass = audience === "CUSTOMER" ? "vm-price-green" : "vm-price-blue";
+  const iconClass = audience === "CUSTOMER" ? "vm-price-icon vm-price-icon-green" : "vm-price-icon";
+
+  return (
+    <article className={audience === "CUSTOMER" ? "vm-price-card vm-price-card-subscription" : "vm-price-card"}>
+      <span className={iconClass}><i className={iconForRule(audience, rule)} /></span>
+      <h3>{rule.ruleName || ticketName}</h3>
+      <strong className={colorClass}>{formatCurrency(rule.basePrice)}</strong>
+      <p>{unitLabel(rule.unit, rule.ticketType)}</p>
+      <ul>
+        <li><i className="fas fa-check-circle" /> {vehicleName}</li>
+        <li><i className="fas fa-check-circle" /> {ticketName}</li>
+        <li><i className="fas fa-check-circle" /> Khung giờ: {timeRange(rule)}</li>
+        {rule.lostCardFee ? <li><i className="fas fa-check-circle" /> Phí mất thẻ: {formatCurrency(rule.lostCardFee)}</li> : null}
+        {rule.plan ? <li><i className="fas fa-check-circle" /> Bảng giá: {rule.plan.name}</li> : null}
+      </ul>
+      {audience === "CUSTOMER" ? <Link to="/customer/subscriptions">Đăng ký</Link> : null}
+    </article>
+  );
+}
+
+function EmptyPricing({ label }: { label: string }) {
+  return (
+    <article className="vm-price-card">
+      <span className="vm-price-icon"><i className="fas fa-tags" /></span>
+      <h3>{label}</h3>
+      <strong className="vm-price-blue">Chưa có dữ liệu</strong>
+      <p>API chưa trả quy tắc giá phù hợp</p>
+      <ul>
+        <li><i className="fas fa-info-circle" /> Kiểm tra kế hoạch giá đang hiệu lực</li>
+        <li><i className="fas fa-info-circle" /> Kiểm tra quy tắc giá đang hoạt động</li>
+      </ul>
+    </article>
+  );
+}
+
+function VehicleFilterTabs({
+  selected,
+  onChange,
+}: {
+  selected: VehicleFilterKey;
+  onChange: (value: VehicleFilterKey) => void;
+}) {
+  return (
+    <div className="vm-vehicle-tabs" role="tablist" aria-label="Lọc bảng giá theo loại xe">
+      {vehicleFilterOptions.map((option) => (
+        <button
+          aria-selected={selected === option.value}
+          className={selected === option.value ? "active" : ""}
+          key={option.value}
+          onClick={() => onChange(option.value)}
+          role="tab"
+          type="button"
+        >
+          <i className={option.icon} /> {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function PricingPage() {
+  const [plans, setPlans] = useState<PricePlanApiResponse[]>([]);
+  const [rules, setRules] = useState<PriceRuleApiResponse[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeApiResponse[]>([]);
+  const [ticketTypes, setTicketTypes] = useState<TicketTypeApiResponse[]>([]);
+  const [selectedVehicleFilter, setSelectedVehicleFilter] = useState<VehicleFilterKey>("MOTORBIKE");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadPricing() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const [planResponse, ruleResponse, vehicleTypeResponse, ticketTypeResponse] = await Promise.all([
+          getPublicPricePlans({ effectiveDate: new Date().toISOString().slice(0, 10), isActive: true }),
+          getPublicPriceRules({ isActive: true }),
+          getPublicPricingVehicleTypes(),
+          getPublicPricingTicketTypes(),
+        ]);
+
+        if (ignore) return;
+        setPlans(planResponse.data ?? []);
+        setRules(ruleResponse.data ?? []);
+        setVehicleTypes(vehicleTypeResponse.data ?? []);
+        setTicketTypes(ticketTypeResponse.data ?? []);
+      } catch (requestError) {
+        if (ignore) return;
+        setError(requestError instanceof Error ? requestError.message : "Không thể tải bảng giá.");
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }
+
+    void loadPricing();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const visitorRules = useMemo(
+    () => buildRules("VISITOR", plans, rules, vehicleTypes, ticketTypes),
+    [plans, rules, ticketTypes, vehicleTypes],
+  );
+  const customerRules = useMemo(
+    () => buildRules("CUSTOMER", plans, rules, vehicleTypes, ticketTypes),
+    [plans, rules, ticketTypes, vehicleTypes],
+  );
+  const filteredVisitorRules = useMemo(
+    () => visitorRules.filter((rule) => matchesVehicleFilter(rule, selectedVehicleFilter)),
+    [selectedVehicleFilter, visitorRules],
+  );
+  const filteredCustomerRules = useMemo(
+    () => customerRules.filter((rule) => matchesVehicleFilter(rule, selectedVehicleFilter)),
+    [customerRules, selectedVehicleFilter],
+  );
+  const planRange = plans.length
+    ? `${formatDate(plans[0]?.effectiveFrom ?? null)} - ${formatDate(plans[0]?.effectiveTo ?? null)}`
+    : "Theo bảng giá đang hiệu lực";
+  const selectedVehicleLabel = vehicleFilterLabel(selectedVehicleFilter);
+
   return (
     <ClientPage>
       <div className="vm-public-page">
         <PublicHero title="Bảng giá gửi xe" subtitle="Minh bạch - Tiện lợi - An toàn" />
 
         <section className="vm-pricing-section">
+          <h2><i className="fas fa-tags" /> Bảng giá hiện hành</h2>
+          <p>{loading ? "Đang tải dữ liệu bảng giá..." : planRange}</p>
+          {error ? <p className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-font-bold tw-text-red-600">{error}</p> : null}
+          <VehicleFilterTabs selected={selectedVehicleFilter} onChange={setSelectedVehicleFilter} />
+        </section>
+
+        <section className="vm-pricing-section">
           <h2><i className="fas fa-user" /> Khách vãng lai</h2>
-          <VehicleTabs />
           <div className="vm-price-grid">
-            {visitorPlans.map((plan) => (
-              <article className="vm-price-card" key={plan.title}>
-                <span className="vm-price-icon"><i className={plan.icon} /></span>
-                <h3>{plan.title}</h3>
-                <strong className="vm-price-blue">{plan.price}</strong>
-                <p>{plan.period}</p>
-                <ul>
-                  {plan.items.map((item) => <li key={item}><i className="fas fa-check-circle" /> {item}</li>)}
-                </ul>
-              </article>
-            ))}
+            {filteredVisitorRules.length
+              ? filteredVisitorRules.map((rule) => <PriceCard audience="VISITOR" key={rule.priceRuleId} rule={rule} />)
+              : <EmptyPricing label={`Khách vãng lai - ${selectedVehicleLabel}`} />}
           </div>
         </section>
 
         <section className="vm-pricing-section">
           <h2><i className="fas fa-users" /> Khách đăng ký</h2>
-          <VehicleTabs />
           <div className="vm-price-grid">
-            {customerPlans.map((plan) => (
-              <article className="vm-price-card vm-price-card-subscription" key={plan.title}>
-                <span className="vm-price-icon vm-price-icon-green"><i className={plan.icon} /></span>
-                <h3>{plan.title}</h3>
-                <strong className="vm-price-green">{plan.price}</strong>
-                <p>{plan.period}</p>
-                <ul>
-                  {plan.items.map((item) => <li key={item}><i className="fas fa-check-circle" /> {item}</li>)}
-                </ul>
-                <button type="button">Đăng ký</button>
-              </article>
-            ))}
+            {filteredCustomerRules.length
+              ? filteredCustomerRules.map((rule) => <PriceCard audience="CUSTOMER" key={rule.priceRuleId} rule={rule} />)
+              : <EmptyPricing label={`Khách đăng ký - ${selectedVehicleLabel}`} />}
           </div>
         </section>
 
