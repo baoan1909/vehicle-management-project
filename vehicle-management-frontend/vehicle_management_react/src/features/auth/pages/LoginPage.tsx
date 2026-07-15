@@ -3,6 +3,9 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { appConfig } from "@/config/env";
 import { getCurrentUserFromAccessToken, saveAuthTokens } from "@/core/auth/session";
 import { useAuth } from "@/core/auth/useAuth";
+import { getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
+import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
+import type { CurrentUser } from "@/shared/types/common";
 import {
   buildKeycloakLoginUrl,
   exchangeKeycloakAuthorizationCode,
@@ -54,12 +57,29 @@ const initialRegisterForm: RegisterFormState = {
   confirmPassword: "",
 };
 
-const postLoginRedirectPath = "/api/dashboard/overview";
+const adminPostLoginRedirectPath = "/api/dashboard/overview";
+const customerPostLoginRedirectPath = "/customer/dashboard";
 const processedAuthorizationCodeKey = "vm_keycloak_processed_authorization_code";
 let activeAuthorizationCode = "";
 
 const authSubmitClassName =
   "tw-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-[10px] tw-border-0 tw-bg-[linear-gradient(135deg,#2563EB,#1D4ED8)] tw-px-4 tw-text-[0.95rem] tw-font-black tw-text-white tw-shadow-[0_14px_28px_rgba(37,99,235,0.22)] tw-transition hover:-tw-translate-y-px hover:tw-text-white hover:tw-brightness-[0.98] disabled:tw-cursor-not-allowed disabled:tw-opacity-60";
+
+function resolvePostLoginRedirectPath(user: CurrentUser | null) {
+  return user?.role === "CUSTOMER" ? customerPostLoginRedirectPath : adminPostLoginRedirectPath;
+}
+
+async function resolveLoggedInUser(accessToken: string) {
+  const tokenUser = getCurrentUserFromAccessToken(accessToken);
+  if (!tokenUser) return null;
+
+  try {
+    const response = await getMyAccountProfile();
+    return mergeCurrentUserWithAccountProfile(tokenUser, response.data);
+  } catch {
+    return tokenUser;
+  }
+}
 
 export function LoginPage({ mode = "login" }: AuthPageProps) {
   if (mode === "otp" || mode === "recover") {
@@ -234,9 +254,10 @@ function KeycloakRedirectScreen() {
           refreshToken: tokenResponse.refresh_token,
           idToken: tokenResponse.id_token,
         });
-        setUser(getCurrentUserFromAccessToken(tokenResponse.access_token));
+        const loggedInUser = await resolveLoggedInUser(tokenResponse.access_token);
+        setUser(loggedInUser);
         activeAuthorizationCode = "";
-        navigate(postLoginRedirectPath, { replace: true });
+        navigate(resolvePostLoginRedirectPath(loggedInUser), { replace: true });
       } catch (error) {
         console.error(error);
         activeAuthorizationCode = "";
@@ -303,9 +324,10 @@ function LoginScreen() {
           refreshToken: tokenResponse.refresh_token,
           idToken: tokenResponse.id_token,
         });
-        setUser(getCurrentUserFromAccessToken(tokenResponse.access_token));
+        const loggedInUser = await resolveLoggedInUser(tokenResponse.access_token);
+        setUser(loggedInUser);
         activeAuthorizationCode = "";
-        navigate(postLoginRedirectPath, { replace: true });
+        navigate(resolvePostLoginRedirectPath(loggedInUser), { replace: true });
       } catch (error) {
         activeAuthorizationCode = "";
         setCallbackMessage("");

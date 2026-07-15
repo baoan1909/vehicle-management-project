@@ -29,6 +29,7 @@ public interface ParkingSessionPortOut {
             UUID zoneId,
             Instant checkInFrom,
             Instant checkInTo,
-            String keyword
+            String keyword,
+            List<UUID> customerVehicleIds
     );
 }

@@ -1,94 +1,383 @@
+import { useEffect, useMemo, useState } from "react";
+
+import {
+  createMySubscription,
+  getCustomerPortalLookups,
+  getCustomerPortalProfile,
+  getMyCustomerVehicles,
+  getMySubscriptions,
+  type CustomerPortalPriceRule,
+  type CustomerPortalProfile,
+  type CustomerPortalSubscription,
+  type CustomerPortalTicketType,
+  type CustomerPortalVehicle,
+  type CustomerPortalVehicleType,
+} from "@/features/customer-portal/api/customerPortalApi";
+
 import { CustomerPageHeader, CustomerPortalLayout, Field, PaginationLite, StatCard, StatusPill } from "./PortalShared";
 
-const subscriptions = [
-  ["SUB-000123", "59C1-123.45", "Xe máy - Tháng", "01/05/2024 - 31/05/2024", "120.000 VNĐ", "ACTIVE", "green"],
-  ["SUB-000122", "59C1-123.45", "Xe máy - Tháng", "01/04/2024 - 30/04/2024", "120.000 VNĐ", "EXPIRED", "gray"],
-  ["SUB-000121", "59C1-987.65", "Xe máy - Tháng", "01/06/2024 - 30/06/2024", "120.000 VNĐ", "PENDING", "orange"],
-  ["SUB-000120", "59C1-123.45", "Xe máy - Tháng", "01/03/2024 - 31/03/2024", "120.000 VNĐ", "CANCELLED", "red"],
-  ["SUB-000119", "59C2-345.67", "Xe máy - Tháng", "01/02/2024 - 29/02/2024", "120.000 VNĐ", "REJECTED", "red"],
-] as const;
+type SubscriptionForm = {
+  customerVehicleId: string;
+  requestedEffectiveFrom: string;
+  ticketTypeId: string;
+};
+
+type StatusTone = "green" | "blue" | "orange" | "red" | "gray" | "purple";
+
+const today = new Date().toISOString().slice(0, 10);
+
+function formatCurrency(value?: number | string | null) {
+  const numberValue = Number(value ?? 0);
+  return `${new Intl.NumberFormat("vi-VN").format(Number.isFinite(numberValue) ? numberValue : 0)} đ`;
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return new Intl.DateTimeFormat("vi-VN").format(date);
+}
+
+function formatDateRange(from?: string | null, to?: string | null) {
+  return `${formatDate(from)} - ${to ? formatDate(to) : "Chưa xác định"}`;
+}
+
+function statusTone(status?: string | null): StatusTone {
+  if (status === "ACTIVE") return "green";
+  if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "PENDING_CARD") return "orange";
+  if (status === "EXPIRED") return "gray";
+  if (status === "CANCELLED" || status === "REJECTED") return "red";
+  return "gray";
+}
+
+function statusLabel(status?: string | null) {
+  if (status === "ACTIVE") return "Đang hoạt động";
+  if (status === "PENDING") return "Chờ duyệt";
+  if (status === "PENDING_PAYMENT") return "Chờ thanh toán";
+  if (status === "PENDING_CARD") return "Chờ gán thẻ";
+  if (status === "EXPIRED") return "Hết hạn";
+  if (status === "CANCELLED") return "Đã hủy";
+  if (status === "REJECTED") return "Từ chối";
+  return status || "--";
+}
+
+function daysUntil(value?: string | null) {
+  if (!value) return null;
+  const end = new Date(value);
+  const start = new Date();
+  end.setHours(0, 0, 0, 0);
+  start.setHours(0, 0, 0, 0);
+  return Math.ceil((end.getTime() - start.getTime()) / 86_400_000);
+}
+
+function toDateOnly(value?: string | null) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function toDateInputValue(date: Date | null) {
+  if (!date) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function getDisplayEffectiveFrom(subscription?: CustomerPortalSubscription) {
+  if (!subscription) return null;
+  const candidates = [
+    subscription.effectiveFrom,
+    subscription.requestedEffectiveFrom,
+    subscription.approvedAt,
+    subscription.cardReceiptDate,
+  ]
+    .map(toDateOnly)
+    .filter((date): date is Date => Boolean(date));
+
+  if (candidates.length === 0) return null;
+  return new Date(Math.max(...candidates.map((date) => date.getTime())));
+}
+
+function remainingPercent(subscription?: CustomerPortalSubscription) {
+  const start = getDisplayEffectiveFrom(subscription);
+  const end = toDateOnly(subscription?.effectiveTo);
+  if (!start || !end || end.getTime() <= start.getTime()) return 0;
+
+  const todayValue = toDateOnly(today);
+  if (!todayValue) return 0;
+
+  const totalDays = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86_400_000));
+  const remainingDays = Math.max(0, Math.ceil((end.getTime() - todayValue.getTime()) / 86_400_000));
+  return Math.max(0, Math.min(100, Math.round((remainingDays / totalDays) * 100)));
+}
+
+function compactCode(value?: string | null) {
+  if (!value) return "--";
+  return value.length > 18 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value;
+}
+
+function vehicleLabel(vehicle?: CustomerPortalVehicle, vehicleTypeById?: Map<string, CustomerPortalVehicleType>) {
+  if (!vehicle) return "--";
+  const typeName = vehicle.vehicleTypeId ? vehicleTypeById?.get(vehicle.vehicleTypeId)?.name : "";
+  return [vehicle.licensePlate, vehicle.brand, typeName].filter(Boolean).join(" - ");
+}
+
+function findMatchingPriceRule(
+  vehicle?: CustomerPortalVehicle,
+  ticketTypeId?: string,
+  priceRules: CustomerPortalPriceRule[] = [],
+) {
+  if (!vehicle?.vehicleTypeId || !ticketTypeId) return undefined;
+  return priceRules.find((rule) => (
+    rule.isActive !== false
+    && rule.vehicleTypeId === vehicle.vehicleTypeId
+    && rule.ticketTypeId === ticketTypeId
+  ));
+}
 
 export function SubscriptionPage() {
+  const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
+  const [vehicles, setVehicles] = useState<CustomerPortalVehicle[]>([]);
+  const [subscriptions, setSubscriptions] = useState<CustomerPortalSubscription[]>([]);
+  const [priceRules, setPriceRules] = useState<CustomerPortalPriceRule[]>([]);
+  const [ticketTypes, setTicketTypes] = useState<CustomerPortalTicketType[]>([]);
+  const [vehicleTypes, setVehicleTypes] = useState<CustomerPortalVehicleType[]>([]);
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [keyword, setKeyword] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [form, setForm] = useState<SubscriptionForm>({
+    customerVehicleId: "",
+    requestedEffectiveFrom: today,
+    ticketTypeId: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  const vehicleById = useMemo(() => new Map(vehicles.map((vehicle) => [vehicle.customerVehicleId, vehicle])), [vehicles]);
+  const ticketTypeById = useMemo(() => new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType])), [ticketTypes]);
+  const priceRuleById = useMemo(() => new Map(priceRules.map((rule) => [rule.priceRuleId, rule])), [priceRules]);
+  const vehicleTypeById = useMemo(() => new Map(vehicleTypes.map((type) => [type.vehicleTypeId, type])), [vehicleTypes]);
+
+  const activeVehicles = vehicles.filter((vehicle) => vehicle.status === "ACTIVE");
+  const selectedVehicle = vehicleById.get(form.customerVehicleId);
+  const selectedPriceRule = findMatchingPriceRule(selectedVehicle, form.ticketTypeId, priceRules);
+  const activeSubscription = subscriptions.find((subscription) => subscription.status === "ACTIVE");
+  const pendingCount = subscriptions.filter((subscription) => subscription.status?.startsWith("PENDING")).length;
+  const activeDaysLeft = daysUntil(activeSubscription?.effectiveTo);
+  const activeTotal = subscriptions
+    .filter((subscription) => subscription.status === "ACTIVE")
+    .reduce((sum, subscription) => sum + Number(subscription.price ?? 0), 0);
+
+  const filteredSubscriptions = useMemo(() => {
+    const normalizedKeyword = keyword.trim().toLowerCase();
+    return subscriptions.filter((subscription) => {
+      const vehicle = vehicleById.get(subscription.customerVehicleId);
+      const ticketType = ticketTypeById.get(subscription.ticketTypeId);
+      const matchesStatus = statusFilter === "ALL" || subscription.status === statusFilter;
+      const matchesKeyword = !normalizedKeyword
+        || subscription.subscriptionId.toLowerCase().includes(normalizedKeyword)
+        || (vehicle?.licensePlate ?? "").toLowerCase().includes(normalizedKeyword)
+        || (ticketType?.name ?? "").toLowerCase().includes(normalizedKeyword);
+      return matchesStatus && matchesKeyword;
+    });
+  }, [keyword, statusFilter, subscriptions, ticketTypeById, vehicleById]);
+  const totalPages = Math.max(1, Math.ceil(filteredSubscriptions.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pagedSubscriptions = filteredSubscriptions.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
+
+  async function loadData() {
+    setLoading(true);
+    setError("");
+    try {
+      const nextProfile = await getCustomerPortalProfile();
+      const [nextVehicles, nextSubscriptions, lookups] = await Promise.all([
+        getMyCustomerVehicles(nextProfile),
+        getMySubscriptions(nextProfile),
+        getCustomerPortalLookups(),
+      ]);
+      setProfile(nextProfile);
+      setVehicles(nextVehicles);
+      setSubscriptions(nextSubscriptions);
+      setPriceRules(lookups.priceRules);
+      setTicketTypes(lookups.ticketTypes);
+      setVehicleTypes(lookups.vehicleTypes);
+      setForm((current) => ({
+        ...current,
+        customerVehicleId: current.customerVehicleId || nextVehicles.find((vehicle) => vehicle.status === "ACTIVE")?.customerVehicleId || "",
+        ticketTypeId: current.ticketTypeId || lookups.ticketTypes[0]?.ticketTypeId || "",
+      }));
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Không thể tải dữ liệu vé tháng.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadData();
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [keyword, pageSize, statusFilter]);
+
+  const handleCreate = async () => {
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      if (!form.customerVehicleId) {
+        throw new Error("Vui lòng chọn xe đăng ký.");
+      }
+      if (!form.ticketTypeId) {
+        throw new Error("Vui lòng chọn loại vé.");
+      }
+      if (!form.requestedEffectiveFrom) {
+        throw new Error("Vui lòng chọn ngày bắt đầu.");
+      }
+      await createMySubscription(form);
+      setNotice("Đã gửi yêu cầu đăng ký vé tháng.");
+      if (profile) {
+        setSubscriptions(await getMySubscriptions(profile));
+      }
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Không thể gửi yêu cầu đăng ký vé.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const currentVehicle = activeSubscription ? vehicleById.get(activeSubscription.customerVehicleId) : undefined;
+  const currentTicketType = activeSubscription ? ticketTypeById.get(activeSubscription.ticketTypeId) : undefined;
+  const currentPriceRule = activeSubscription?.priceRuleId ? priceRuleById.get(activeSubscription.priceRuleId) : undefined;
+  const currentEffectiveFrom = getDisplayEffectiveFrom(activeSubscription);
+  const currentEffectiveFromValue = toDateInputValue(currentEffectiveFrom);
+  const activeRemainingPercent = remainingPercent(activeSubscription);
+
   return (
     <CustomerPortalLayout>
       <CustomerPageHeader
         title="Vé tháng"
         subtitle="Đăng ký, gia hạn và theo dõi vé gửi xe của bạn"
-        action={<button type="button"><i className="fas fa-plus" /> Đăng ký vé mới</button>}
+        action={<button type="button" onClick={handleCreate} disabled={saving || !profile}><i className="fas fa-plus" /> Đăng ký vé mới</button>}
       />
+
+      {error ? <div className="vm-info-note tw-bg-red-50 tw-text-red-600"><i className="fas fa-exclamation-circle" /> {error}</div> : null}
+      {notice ? <div className="vm-info-note tw-bg-green-50 tw-text-green-700"><i className="fas fa-check-circle" /> {notice}</div> : null}
+
       <div className="vm-stat-grid vm-stat-grid-four">
-        <StatCard icon="far fa-calendar-check" label="Vé đang hoạt động" value="1" note="vé" tone="green" />
-        <StatCard icon="far fa-clock" label="Sắp hết hạn" value="09 ngày" note="31/05/2024" tone="orange" />
-        <StatCard icon="fas fa-hourglass-half" label="Chờ duyệt" value="1" note="vé" tone="orange" />
-        <StatCard icon="fas fa-wallet" label="Tổng phí tháng này" value="120.000 VNĐ" />
+        <StatCard icon="far fa-calendar-check" label="Vé đang hoạt động" value={String(subscriptions.filter((item) => item.status === "ACTIVE").length)} note="vé" tone="green" />
+        <StatCard icon="far fa-clock" label="Sắp hết hạn" value={activeDaysLeft === null ? "--" : `${Math.max(activeDaysLeft, 0)} ngày`} note={activeSubscription?.effectiveTo ? formatDate(activeSubscription.effectiveTo) : "Chưa có vé"} tone="orange" />
+        <StatCard icon="fas fa-hourglass-half" label="Chờ xử lý" value={String(pendingCount)} note="vé" tone="orange" />
+        <StatCard icon="fas fa-wallet" label="Phí vé đang hiệu lực" value={formatCurrency(activeTotal)} />
       </div>
 
       <section className="vm-customer-card vm-subscription-current">
         <div className="vm-section-title-row">
-          <h2>Vé tháng hiện tại <StatusPill>ACTIVE</StatusPill></h2>
-          <div className="vm-progress-inline"><span>Thời hạn còn lại</span><b>09 ngày</b><em><i /></em><strong>74%</strong></div>
+          <h2>Vé tháng hiện tại <StatusPill tone={statusTone(activeSubscription?.status)}>{statusLabel(activeSubscription?.status)}</StatusPill></h2>
+          <div className="vm-progress-inline"><span>Thời hạn còn lại</span><b>{activeDaysLeft === null ? "--" : `${Math.max(activeDaysLeft, 0)} ngày`}</b><em><i style={{ width: `${activeRemainingPercent}%` }} /></em><strong>{activeSubscription?.effectiveTo ? formatDate(activeSubscription.effectiveTo) : "--"}</strong></div>
         </div>
         <div className="vm-subscription-detail">
           <dl className="vm-info-list">
-            <dt><i className="far fa-hashtag" /> Mã vé</dt><dd>SUB-000123</dd>
-            <dt><i className="fas fa-motorcycle" /> Xe đăng ký</dt><dd>59C1-123.45 - Honda Vision</dd>
-            <dt><i className="far fa-id-badge" /> Loại vé</dt><dd>Xe máy - Tháng</dd>
-            <dt><i className="fas fa-tags" /> Quy tắc giá</dt><dd>Vé tháng xe máy</dd>
-            <dt><i className="far fa-credit-card" /> Thẻ sử dụng</dt><dd>CARD-00123</dd>
+            <dt><i className="fas fa-motorcycle" /> Xe đăng ký</dt><dd>{vehicleLabel(currentVehicle, vehicleTypeById)}</dd>
+            <dt><i className="far fa-id-badge" /> Loại vé</dt><dd>{currentTicketType?.name ?? "--"}</dd>
+            <dt><i className="fas fa-tags" /> Quy tắc giá</dt><dd>{currentPriceRule?.ruleName ?? "--"}</dd>
+            <dt><i className="far fa-credit-card" /> Thẻ sử dụng</dt><dd title={activeSubscription?.cardId ?? undefined}>{activeSubscription?.cardId ? compactCode(activeSubscription.cardId) : "Chưa gán thẻ"}</dd>
           </dl>
           <dl className="vm-info-list">
-            <dt><i className="far fa-calendar" /> Ngày nhận thẻ</dt><dd>01/05/2024</dd>
-            <dt><i className="far fa-clock" /> Hiệu lực từ</dt><dd>01/05/2024</dd>
-            <dt><i className="far fa-calendar-check" /> Hiệu lực đến</dt><dd>31/05/2024</dd>
-            <dt><i className="far fa-money-bill-alt" /> Giá vé</dt><dd>120.000 VNĐ</dd>
-            <dt><i className="far fa-question-circle" /> Ngày duyệt</dt><dd>01/05/2024 08:30</dd>
+            <dt><i className="far fa-calendar" /> Ngày nhận thẻ</dt><dd>{formatDate(activeSubscription?.cardReceiptDate)}</dd>
+            <dt><i className="far fa-clock" /> Hiệu lực từ</dt><dd>{formatDate(currentEffectiveFromValue)}</dd>
+            <dt><i className="far fa-calendar-check" /> Hiệu lực đến</dt><dd>{formatDate(activeSubscription?.effectiveTo)}</dd>
+            <dt><i className="far fa-money-bill-alt" /> Giá vé</dt><dd>{formatCurrency(activeSubscription?.price)}</dd>
+            <dt><i className="far fa-question-circle" /> Ngày duyệt</dt><dd>{activeSubscription?.approvedAt ?? "--"}</dd>
           </dl>
         </div>
-        <div className="vm-form-actions"><button className="vm-outline-btn" type="button">Xem chi tiết</button><button type="button">Gia hạn vé</button></div>
+        {!activeSubscription ? <div className="vm-info-note"><i className="fas fa-info-circle" /> Chưa có vé tháng đang hoạt động.</div> : null}
       </section>
 
-      <div className="vm-two-column-even">
-        <section className="vm-customer-card vm-table-card">
+      <div className="vm-two-column-even vm-subscription-workspace">
+        <section className="vm-customer-card vm-table-card vm-subscription-history-card">
           <h2>Lịch sử đăng ký vé</h2>
           <div className="vm-table-filters">
-            <select defaultValue="Tất cả"><option>Tất cả</option></select>
-            <select defaultValue="Tất cả"><option>Tất cả</option></select>
-            <label><i className="fas fa-search" /><input placeholder="Tìm biển số..." /></label>
+            <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="ACTIVE">Đang hoạt động</option>
+              <option value="PENDING">Chờ duyệt</option>
+              <option value="PENDING_PAYMENT">Chờ thanh toán</option>
+              <option value="PENDING_CARD">Chờ gán thẻ</option>
+              <option value="EXPIRED">Hết hạn</option>
+              <option value="CANCELLED">Đã hủy</option>
+              <option value="REJECTED">Từ chối</option>
+            </select>
+            <label><i className="fas fa-search" /><input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm biển số, mã vé..." /></label>
           </div>
           <table className="vm-customer-table">
             <thead><tr><th>Mã vé</th><th>Biển số</th><th>Loại vé</th><th>Hiệu lực</th><th>Giá</th><th>Trạng thái</th></tr></thead>
             <tbody>
-              {subscriptions.map((row) => (
-                <tr key={row[0]}><td>{row[0]}</td><td>{row[1]}</td><td>{row[2]}</td><td>{row[3]}</td><td>{row[4]}</td><td><StatusPill tone={row[6]}>{row[5]}</StatusPill></td></tr>
-              ))}
+              {pagedSubscriptions.map((subscription) => {
+                const vehicle = vehicleById.get(subscription.customerVehicleId);
+                const ticketType = ticketTypeById.get(subscription.ticketTypeId);
+                return (
+                  <tr key={subscription.subscriptionId}>
+                    <td title={subscription.subscriptionId}>{compactCode(subscription.subscriptionId)}</td>
+                    <td>{vehicle?.licensePlate ?? "--"}</td>
+                    <td>{ticketType?.name ?? "--"}</td>
+                    <td>{formatDateRange(toDateInputValue(getDisplayEffectiveFrom(subscription)) ?? subscription.requestedEffectiveFrom, subscription.effectiveTo)}</td>
+                    <td>{formatCurrency(subscription.price)}</td>
+                    <td><StatusPill tone={statusTone(subscription.status)}>{statusLabel(subscription.status)}</StatusPill></td>
+                  </tr>
+                );
+              })}
+              {!loading && filteredSubscriptions.length === 0 ? <tr><td colSpan={6}>Chưa có vé phù hợp với bộ lọc.</td></tr> : null}
+              {loading ? <tr><td colSpan={6}>Đang tải dữ liệu...</td></tr> : null}
             </tbody>
           </table>
-          <PaginationLite />
+          <PaginationLite
+            currentPage={safeCurrentPage}
+            pageSize={pageSize}
+            totalRecords={filteredSubscriptions.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
         </section>
 
         <section className="vm-customer-card vm-side-form">
           <h2>Đăng ký / gia hạn nhanh</h2>
           <div className="vm-form-grid">
-            <Field label="Xe đăng ký"><select defaultValue="59C1-123.45 - Honda Vision"><option>59C1-123.45 - Honda Vision</option></select></Field>
-            <Field label="Loại vé"><select defaultValue="Vé tháng"><option>Vé tháng</option></select></Field>
-            <Field label="Bảng giá"><select defaultValue="Vé tháng xe máy - 120.000 VNĐ"><option>Vé tháng xe máy - 120.000 VNĐ</option></select></Field>
-            <Field label="Ngày bắt đầu"><input defaultValue="01/06/2024" /></Field>
-            <Field label="Ngày kết thúc"><input defaultValue="30/06/2024" /></Field>
-            <Field label="Tổng phí"><input defaultValue="120.000 VNĐ" readOnly /></Field>
-            <Field label="Thẻ hiện có (tùy chọn)"><select defaultValue="CARD-00123"><option>CARD-00123</option></select></Field>
+            <Field label="Xe đăng ký">
+              <select value={form.customerVehicleId} onChange={(event) => setForm((current) => ({ ...current, customerVehicleId: event.target.value }))}>
+                <option value="">Chọn xe</option>
+                {activeVehicles.map((vehicle) => <option key={vehicle.customerVehicleId} value={vehicle.customerVehicleId}>{vehicleLabel(vehicle, vehicleTypeById)}</option>)}
+              </select>
+            </Field>
+            <Field label="Loại vé">
+              <select value={form.ticketTypeId} onChange={(event) => setForm((current) => ({ ...current, ticketTypeId: event.target.value }))}>
+                <option value="">Chọn loại vé</option>
+                {ticketTypes.map((ticketType) => <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>{ticketType.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Quy tắc giá"><input value={selectedPriceRule?.ruleName ?? "Chưa có quy tắc phù hợp"} readOnly /></Field>
+            <Field label="Ngày bắt đầu"><input type="date" value={form.requestedEffectiveFrom} onChange={(event) => setForm((current) => ({ ...current, requestedEffectiveFrom: event.target.value }))} /></Field>
+            <Field label="Tổng phí"><input value={formatCurrency(selectedPriceRule?.basePrice)} readOnly /></Field>
           </div>
-          <button type="button">Gửi đăng ký</button>
-          <small><i className="fas fa-info-circle" /> Yêu cầu mới sẽ ở trạng thái PENDING cho đến khi được duyệt.</small>
+          <button type="button" disabled={saving || !profile} onClick={handleCreate}>{saving ? "Đang gửi..." : "Gửi đăng ký"}</button>
+          <small><i className="fas fa-info-circle" /> Yêu cầu mới sẽ chờ nhân viên duyệt, xác nhận thanh toán và gán thẻ theo quy trình backend.</small>
         </section>
       </div>
 
       <section className="vm-customer-card vm-note-list">
         <h2>Lưu ý về vé tháng</h2>
         <ul>
-          <li><i className="fas fa-check-circle" /> Chỉ xe ACTIVE mới được đăng ký vé</li>
-          <li><i className="fas fa-check-circle" /> Vé mới cần được duyệt trước khi kích hoạt</li>
-          <li><i className="fas fa-check-circle" /> Có thể gia hạn trước ngày hết hạn</li>
-          <li><i className="fas fa-check-circle" /> Vé CANCELLED hoặc REJECTED không thể kích hoạt lại trực tiếp</li>
+          <li><i className="fas fa-check-circle" /> Chỉ xe đang hoạt động mới được đăng ký vé.</li>
+          <li><i className="fas fa-check-circle" /> Vé mới cần được duyệt trước khi kích hoạt.</li>
+          <li><i className="fas fa-check-circle" /> Giá hiển thị theo quy tắc giá đang hoạt động của hệ thống.</li>
+          <li><i className="fas fa-check-circle" /> Vé bị hủy hoặc từ chối không thể kích hoạt lại trực tiếp từ phía khách hàng.</li>
         </ul>
       </section>
     </CustomerPortalLayout>

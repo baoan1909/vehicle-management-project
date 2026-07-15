@@ -118,6 +118,13 @@ export function getPricePlans(filter: PricePlanFilter = {}) {
   );
 }
 
+export function getPublicPricePlans(filter: PricePlanFilter = {}) {
+  return apiClient<ApiResponse<PricePlanApiResponse[]>>(
+    `${apiEndpoints.public.pricing.pricePlans}${buildQuery(filter)}`,
+    { skipAuth: true },
+  );
+}
+
 export function createPricePlan(payload: CreatePricePlanRequest) {
   return apiClient<ApiResponse<PricePlanApiResponse>>(apiEndpoints.catalog.pricePlans, {
     method: "POST",
@@ -128,6 +135,13 @@ export function createPricePlan(payload: CreatePricePlanRequest) {
 export function getPriceRules(filter: PriceRuleFilter = {}) {
   return apiClient<ApiResponse<PriceRuleApiResponse[]>>(
     `${apiEndpoints.catalog.priceRules}${buildQuery(filter)}`,
+  );
+}
+
+export function getPublicPriceRules(filter: PriceRuleFilter = {}) {
+  return apiClient<ApiResponse<PriceRuleApiResponse[]>>(
+    `${apiEndpoints.public.pricing.priceRules}${buildQuery(filter)}`,
+    { skipAuth: true },
   );
 }
 
@@ -154,5 +168,19 @@ export function getPricingVehicleTypes() {
 export function getPricingTicketTypes() {
   return apiClient<ApiResponse<TicketTypeApiResponse[]>>(
     `${apiEndpoints.catalog.ticketTypes}${buildQuery({ status: "ACTIVE" })}`,
+  );
+}
+
+export function getPublicPricingVehicleTypes() {
+  return apiClient<ApiResponse<VehicleTypeApiResponse[]>>(
+    `${apiEndpoints.public.pricing.vehicleTypes}${buildQuery({ isActive: true })}`,
+    { skipAuth: true },
+  );
+}
+
+export function getPublicPricingTicketTypes() {
+  return apiClient<ApiResponse<TicketTypeApiResponse[]>>(
+    `${apiEndpoints.public.pricing.ticketTypes}${buildQuery({ status: "ACTIVE" })}`,
+    { skipAuth: true },
   );
 }

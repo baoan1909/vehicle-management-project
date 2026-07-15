@@ -4,6 +4,14 @@ export const apiEndpoints = {
     resendVerificationEmail: "/public/auth/resend-verification-email",
     forgotPassword: "/public/auth/forgot-password",
   },
+  public: {
+    pricing: {
+      pricePlans: "/public/pricing/price-plans",
+      priceRules: "/public/pricing/price-rules",
+      ticketTypes: "/public/pricing/ticket-types",
+      vehicleTypes: "/public/pricing/vehicle-types",
+    },
+  },
   dashboard: "/dashboard",
   parking: {
     gates: "/parking/gates",

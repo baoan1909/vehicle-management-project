@@ -64,6 +64,24 @@ public class ParkingSessionController {
         ));
     }
 
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<ParkingSessionManagementResponse>>> getMyParkingSessions(
+            @ModelAttribute ParkingSessionFilterRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched customer parking sessions successfully",
+                parkingSessionApiMapper.toManagementResponses(parkingSessionPortIn.getOwnSessions(
+                        request.status(),
+                        request.vehicleTypeId(),
+                        request.zoneId(),
+                        request.fromDate(),
+                        request.toDate(),
+                        request.keyword()
+                ))
+        ));
+    }
+
     @PostMapping(value = "/check-in", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SESSION_CHECK_IN_ALL')")
     public ResponseEntity<ApiResponse<ParkingSessionCheckInResponse>> checkIn(

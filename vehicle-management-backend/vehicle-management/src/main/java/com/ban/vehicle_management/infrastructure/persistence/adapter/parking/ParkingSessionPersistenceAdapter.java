@@ -82,10 +82,19 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
             UUID zoneId,
             Instant checkInFrom,
             Instant checkInTo,
-            String keyword
+            String keyword,
+            List<UUID> customerVehicleIds
     ) {
         List<ParkingSessionEntity> entities = parkingSessionRepository.findAll(
-                ParkingSessionSpecifications.withFilters(status, vehicleTypeId, zoneId, checkInFrom, checkInTo, keyword),
+                ParkingSessionSpecifications.withFilters(
+                        status,
+                        vehicleTypeId,
+                        zoneId,
+                        checkInFrom,
+                        checkInTo,
+                        keyword,
+                        customerVehicleIds
+                ),
                 Sort.by(Sort.Direction.DESC, "checkInTime")
         );
         return parkingSessionManagementPersistenceMapper.toResults(entities);
