@@ -20,6 +20,10 @@ public class EmployeeAdminResponse {
     private LocalDate hiredAt;
     private EmployeeStatus status;
     private String accountEmail;
+    private String accountUsername;
+    private String accountStatus;
+    private String roleCode;
+    private String roleName;
     private UserProfileAdminResponse userProfile;
     private String createdAt;
     private UUID createdBy;

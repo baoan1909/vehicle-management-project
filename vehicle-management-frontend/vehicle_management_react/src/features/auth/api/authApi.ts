@@ -80,7 +80,7 @@ export async function buildKeycloakLoginUrl() {
 
 function normalizeLoginScopes(scope: string | null) {
   const scopes = new Set((scope ?? "openid").split(/\s+/).filter(Boolean));
-  ["openid", "profile", "email", "roles"].forEach((requiredScope) => scopes.add(requiredScope));
+  ["openid", "profile", "email", "roles", "offline_access"].forEach((requiredScope) => scopes.add(requiredScope));
   return Array.from(scopes).join(" ");
 }
 

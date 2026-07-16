@@ -28,7 +28,15 @@ public class EmployeeAccessGuard {
     }
 
     public void ensureCanManage(Employee employee) {
-        ensureParkingManagerTargetsEmployeeOnly(employee);
+        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
+        String targetRole = resolveTargetRole(employee);
+        if (isSystemAdmin(currentAccount) && isSystemAdminManagedTarget(targetRole)) {
+            return;
+        }
+        if (isParkingManager(currentAccount) && AdminProvisionableAccountRoleCode.EMPLOYEE.name().equals(targetRole)) {
+            return;
+        }
+        throw new AccessDeniedException("Access is denied");
     }
 
     public List<Employee> filterReadableEmployees(List<Employee> employees) {
@@ -52,12 +60,28 @@ public class EmployeeAccessGuard {
         return AdminProvisionableAccountRoleCode.PARKING_MANAGER.name().equals(currentAccount.roleCode());
     }
 
+    private boolean isSystemAdmin(CurrentAccountAccess currentAccount) {
+        return AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name().equals(currentAccount.roleCode());
+    }
+
+    private boolean isSystemAdminManagedTarget(String roleCode) {
+        return AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name().equals(roleCode)
+                || AdminProvisionableAccountRoleCode.PARKING_MANAGER.name().equals(roleCode);
+    }
+
     private boolean isEmployeeTarget(Employee employee) {
+        return AdminProvisionableAccountRoleCode.EMPLOYEE.name().equals(resolveTargetRole(employee));
+    }
+
+    private String resolveTargetRole(Employee employee) {
         if (employee == null || employee.getEmployeeId() == null) {
-            return false;
+            return null;
+        }
+        if (employee.getRoleCode() != null && !employee.getRoleCode().isBlank()) {
+            return employee.getRoleCode();
         }
         return internalEmployeeApprovalPortOut.findCandidateByEmployeeId(employee.getEmployeeId())
-                .map(candidate -> AdminProvisionableAccountRoleCode.EMPLOYEE.name().equals(candidate.roleCode()))
-                .orElse(false);
+                .map(candidate -> candidate.roleCode())
+                .orElse(null);
     }
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { Badge, Button, Card, EntityAvatar, InfoBanner, Input, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
+import { Badge, Button, Card, DatePicker, EntityAvatar, InfoBanner, Input, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
 import { openSupportCenterConversation } from "@/features/support";
 import { cn } from "@/lib/cn";
 
@@ -76,6 +76,11 @@ const segmentTabs: Array<{ label: string; value: SegmentValue }> = [
 const customerTypeOptions = [
   { label: "Đăng ký", value: "REGISTERED" },
   { label: "VIP", value: "VIP" },
+];
+
+const genderOptions = [
+  { label: "Nam", value: "MALE" },
+  { label: "Nữ", value: "FEMALE" },
 ];
 
 const emptyActivities: Activity[] = [
@@ -182,13 +187,17 @@ function getVehicleTypeName(vehicleTypes: VehicleTypeResponse[], vehicleTypeId?:
   return vehicleType?.name ?? "Chưa đồng bộ loại xe";
 }
 
+function normalizeBinaryGender(value?: string | null) {
+  return value === "FEMALE" ? "FEMALE" : "MALE";
+}
+
 function toCustomerForm(customer: CustomerAdminResponse): CustomerFormState {
   return {
     address: customer.userProfile?.address ?? "",
     customerType: customer.customerType ?? "REGISTERED",
     dateOfBirth: customer.userProfile?.dateOfBirth ?? "",
     fullName: getCustomerName(customer),
-    gender: customer.userProfile?.gender ?? "",
+    gender: normalizeBinaryGender(customer.userProfile?.gender),
     identifyCard: customer.userProfile?.identifyCard ?? "",
     phoneNumber: customer.userProfile?.phoneNumber ?? "",
   };
@@ -253,7 +262,7 @@ function CustomerListItem({
       )}
     >
       <button type="button" className="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-3 tw-border-0 tw-bg-transparent tw-px-1 tw-py-1 tw-text-left" onClick={onSelect}>
-        <EntityAvatar initials={getInitials(name)} size="sm" />
+        <EntityAvatar initials={getInitials(name)} size="sm" src={customer.userProfile?.avatarUrl} />
         <span className="tw-w-0 tw-min-w-0 tw-flex-1">
           <strong className="tw-block tw-truncate tw-text-[0.83rem] tw-font-extrabold tw-text-vm-slate-900">{name}</strong>
           <small className="tw-block tw-truncate tw-text-[0.74rem] tw-font-semibold tw-text-vm-slate-500">{getCustomerCode(customer)}</small>
@@ -861,7 +870,7 @@ export function CustomerListPage() {
               {selectedCustomer ? (
                 <>
                   <div className="tw-mt-3 tw-grid tw-grid-cols-[56px_minmax(0,1fr)] tw-gap-4">
-                    <EntityAvatar initials={getInitials(selectedName)} size="lg" />
+                    <EntityAvatar initials={getInitials(selectedName)} size="lg" src={selectedCustomer.userProfile?.avatarUrl} />
                     <div className="tw-min-w-0">
                       <h3 className="tw-m-0 tw-text-[1.14rem] tw-font-extrabold tw-leading-tight tw-text-vm-slate-900">{selectedName}</h3>
                       <p className="tw-m-0 tw-mt-0.5 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">{selectedCode}</p>
@@ -910,7 +919,7 @@ export function CustomerListPage() {
                     </Button>
                     <Button size="sm" variant={selectedCustomer.status === "ACTIVE" ? "danger" : "primary"} onClick={handleToggleCustomerStatus} disabled={submitting}>
                       <i className={selectedCustomer.status === "ACTIVE" ? "fas fa-pause" : "fas fa-play"} />
-                      {selectedCustomer.status === "ACTIVE" ? "Tạm ngưng" : "Kích hoạt"}
+                      {selectedCustomer.status === "ACTIVE" ? "Tạm khóa" : "Kích hoạt"}
                     </Button>
                   </div>
                 </>
@@ -1047,10 +1056,21 @@ export function CustomerListPage() {
               />
             </Field>
             <Field label="Ngày sinh">
-              <Input type="date" value={form.dateOfBirth} onChange={(event) => setForm((current) => (current ? { ...current, dateOfBirth: event.target.value } : current))} />
+              <DatePicker
+                ariaLabel="Ngày sinh"
+                max={new Date().toISOString().slice(0, 10)}
+                value={form.dateOfBirth}
+                onChange={(value) => setForm((current) => (current ? { ...current, dateOfBirth: value } : current))}
+              />
             </Field>
             <Field label="Giới tính">
-              <Input value={form.gender} onChange={(event) => setForm((current) => (current ? { ...current, gender: event.target.value } : current))} />
+              <SelectMenu
+                ariaLabel="Giới tính"
+                clearValue="MALE"
+                options={genderOptions}
+                value={form.gender}
+                onChange={(value) => setForm((current) => (current ? { ...current, gender: value } : current))}
+              />
             </Field>
             <Field label="CCCD/CMND">
               <Input value={form.identifyCard} onChange={(event) => setForm((current) => (current ? { ...current, identifyCard: event.target.value } : current))} />

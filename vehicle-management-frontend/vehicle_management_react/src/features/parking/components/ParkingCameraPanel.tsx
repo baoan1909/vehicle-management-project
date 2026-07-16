@@ -28,53 +28,24 @@ export type CameraCaptureBoxHandle = {
   uploadFile: (file: File) => void;
 };
 
-function LaneFallbackScene() {
+function CameraLoadingScene({ compact }: { compact?: boolean }) {
   return (
-    <div className="tw-relative tw-h-full tw-w-full tw-overflow-hidden tw-bg-[#dbe7de]">
-      <div className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(180deg,rgba(45,79,54,0.18)_0%,rgba(241,245,249,0)_34%),linear-gradient(90deg,#a7b79b_0_8%,#e2e8f0_8%_12%,#57616c_12%_76%,#f59e0b_76%_79%,#232f3b_79%_81%,#cbd5e1_81%)]" />
-      <div className="tw-absolute tw-left-[12%] tw-top-[8%] tw-h-[28%] tw-w-[76%] tw-rounded-full tw-bg-emerald-900/18 tw-blur-2xl" />
-      <div className="tw-absolute tw-left-[46%] tw-top-[5%] tw-h-[62%] tw-w-2 tw-bg-slate-300/80" />
-      <div className="tw-absolute tw-right-[13%] tw-top-[12%] tw-h-[62%] tw-w-[7%] tw-rounded-t-vm-md tw-bg-slate-700 tw-shadow-[inset_0_0_0_5px_rgba(255,255,255,0.14)]" />
-      <div className="tw-absolute tw-right-[18%] tw-top-[26%] tw-h-4 tw-w-[28%] tw-rounded-full tw-bg-white tw-shadow-[0_0_0_2px_rgba(15,23,42,0.14)]" />
-      <div className="tw-absolute tw-right-[18%] tw-top-[27%] tw-h-2 tw-w-[28%] tw-rounded-full tw-bg-red-500" />
-
-      <div className="tw-absolute tw-bottom-[18%] tw-left-[25%] tw-h-[38%] tw-w-[44%]">
-        <div className="tw-absolute tw-left-[17%] tw-top-0 tw-h-[34%] tw-w-[66%] tw-rounded-t-[52px] tw-bg-slate-100 tw-shadow-[inset_0_-10px_0_rgba(15,23,42,0.08)]" />
-        <div className="tw-absolute tw-bottom-[12%] tw-h-[56%] tw-w-full tw-rounded-[38px_38px_16px_16px] tw-bg-slate-50 tw-shadow-[0_18px_30px_rgba(15,23,42,0.32),inset_0_-12px_0_rgba(15,23,42,0.08)]" />
-        <div className="tw-absolute tw-bottom-[40%] tw-left-[18%] tw-h-[24%] tw-w-[64%] tw-rounded-t-[34px] tw-bg-slate-800/55" />
-        <div className="tw-absolute tw-bottom-[24%] tw-left-[10%] tw-h-[14%] tw-w-[20%] tw-rounded-full tw-bg-amber-200" />
-        <div className="tw-absolute tw-bottom-[24%] tw-right-[10%] tw-h-[14%] tw-w-[20%] tw-rounded-full tw-bg-amber-200" />
-        <div className="tw-absolute tw-bottom-[13%] tw-left-[34%] tw-flex tw-h-[18%] tw-w-[32%] tw-items-center tw-justify-center tw-rounded-vm-sm tw-border tw-border-solid tw-border-slate-700 tw-bg-white tw-text-[1.12rem] tw-font-black tw-text-slate-900">30A-123.45</div>
-      </div>
-
-      <div className="tw-absolute tw-bottom-[22%] tw-left-[6%] tw-h-[45%] tw-w-[18%]">
-        <div className="tw-absolute tw-left-[32%] tw-top-0 tw-h-[18%] tw-w-[28%] tw-rounded-full tw-bg-slate-900" />
-        <div className="tw-absolute tw-left-[30%] tw-top-[9%] tw-h-[14%] tw-w-[34%] tw-rounded-full tw-bg-blue-700" />
-        <div className="tw-absolute tw-left-[20%] tw-top-[22%] tw-h-[38%] tw-w-[44%] tw-rounded-vm-lg tw-bg-slate-800" />
-        <div className="tw-absolute tw-bottom-0 tw-left-[22%] tw-h-[46%] tw-w-[58%] tw-rounded-[50%] tw-border-[7px] tw-border-solid tw-border-slate-800" />
-      </div>
-
-      <div className="tw-absolute tw-bottom-[20%] tw-left-[32%] tw-h-[16%] tw-w-[30%] tw-border-4 tw-border-solid tw-border-vm-primary tw-bg-transparent tw-shadow-[0_0_0_999px_rgba(15,23,42,0.04)]">
-        <span className="tw-absolute -tw-left-1 -tw-top-1 tw-h-5 tw-w-5 tw-border-0 tw-border-l-4 tw-border-t-4 tw-border-solid tw-border-white" />
-        <span className="tw-absolute -tw-right-1 -tw-bottom-1 tw-h-5 tw-w-5 tw-border-0 tw-border-b-4 tw-border-r-4 tw-border-solid tw-border-white" />
+    <div className="tw-relative tw-flex tw-h-full tw-w-full tw-items-center tw-justify-center tw-overflow-hidden tw-bg-[linear-gradient(135deg,#0f5fd8_0%,#2563eb_48%,#0ea5e9_100%)]">
+      <div className="tw-absolute tw-inset-0 tw-bg-[radial-gradient(circle_at_28%_18%,rgba(255,255,255,0.26),transparent_32%),radial-gradient(circle_at_74%_70%,rgba(14,165,233,0.42),transparent_34%)]" />
+      <div className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(0deg,rgba(255,255,255,0.08)_1px,transparent_1px)] tw-bg-[length:34px_34px]" />
+      <div className={cn("tw-relative tw-flex tw-items-center tw-justify-center", compact ? "tw-h-[58px] tw-w-[58px]" : "tw-h-[76px] tw-w-[76px]")}>
+        <span className="tw-absolute tw-inset-0 tw-animate-spin tw-rounded-full tw-border-[4px] tw-border-solid tw-border-white/30 tw-border-t-white" />
+        <span className="tw-absolute tw-inset-[9px] tw-rounded-full tw-bg-white/15 tw-shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)]" />
+        <span className={cn("tw-relative tw-inline-flex tw-items-center tw-justify-center tw-rounded-full tw-bg-white tw-text-vm-primary tw-shadow-[0_16px_34px_rgba(15,23,42,0.18)]", compact ? "tw-h-8 tw-w-8" : "tw-h-10 tw-w-10")}>
+          <i className={cn(sceneIconClass(compact), "fas fa-video")} />
+        </span>
       </div>
     </div>
   );
 }
 
-function DriverFallbackScene({ compact }: { compact?: boolean }) {
-  return (
-    <div className="tw-relative tw-h-full tw-w-full tw-overflow-hidden tw-bg-slate-200">
-      <div className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(135deg,#cbd5e1_0%,#f8fafc_48%,#94a3b8_49%,#64748b_100%)]" />
-      <div className="tw-absolute tw-bottom-0 tw-left-[16%] tw-h-[62%] tw-w-[68%] tw-rounded-t-full tw-bg-slate-900" />
-      <div className="tw-absolute tw-left-[34%] tw-top-[18%] tw-h-[34%] tw-w-[32%] tw-rounded-full tw-bg-[#d8b294]" />
-      <div className="tw-absolute tw-left-[30%] tw-top-[14%] tw-h-[22%] tw-w-[40%] tw-rounded-t-full tw-bg-slate-900" />
-      <div className="tw-absolute tw-left-[39%] tw-top-[32%] tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-slate-900" />
-      <div className="tw-absolute tw-right-[39%] tw-top-[32%] tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-slate-900" />
-      <div className="tw-absolute tw-left-[42%] tw-top-[43%] tw-h-1 tw-w-[16%] tw-rounded-full tw-bg-slate-700" />
-      {compact ? null : <div className="tw-absolute tw-bottom-[18%] tw-left-[12%] tw-h-[9%] tw-w-[76%] tw-rotate-[-16deg] tw-rounded-full tw-bg-slate-700" />}
-    </div>
-  );
+function sceneIconClass(compact?: boolean) {
+  return compact ? "tw-text-[0.9rem]" : "tw-text-[1.08rem]";
 }
 
 const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProps>(function CameraCaptureBox(
@@ -192,10 +163,8 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
         <video ref={videoRef} autoPlay playsInline muted className="tw-h-full tw-w-full tw-bg-slate-900 tw-object-cover" />
       ) : capture ? (
         <img src={capture.url} alt={label} className="tw-h-full tw-w-full tw-object-cover" />
-      ) : scene === "lane" ? (
-        <LaneFallbackScene />
       ) : (
-        <DriverFallbackScene compact={compact} />
+        <CameraLoadingScene compact={compact} />
       )}
 
       <canvas ref={canvasRef} className="tw-hidden" />

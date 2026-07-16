@@ -5,6 +5,7 @@ import { cn } from "@/lib/cn";
 import { clearAuthTokens, getIdToken } from "@/core/auth/session";
 import { buildKeycloakLogoutUrl } from "@/features/auth/api/authApi";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta } from "@/shared/utils/accountStatus";
+import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
 const searchSuggestions = ["Tìm thẻ xe", "Tra cứu khách hàng", "Kiểm tra xe đang trong bãi"];
 
@@ -141,7 +142,7 @@ export function AdminHeader() {
   const roleLabel = getRoleLabel(user?.role, user?.roleLabel);
   const approvalStatus = getApprovalStatusValue(user);
   const accountStatus = user?.accountStatus;
-  const avatarUrl = user?.avatarUrl || DEFAULT_USER_AVATAR_URL;
+  const avatarUrl = resolvePublicMediaUrl(user?.avatarUrl) || DEFAULT_USER_AVATAR_URL;
 
   return (
     <header className="tw-fixed tw-inset-x-0 tw-top-0 tw-z-[1050] tw-border-0 tw-border-b tw-border-solid tw-border-slate-200/95 tw-bg-white/95 tw-shadow-[0_10px_28px_rgba(15,23,42,0.08)] tw-backdrop-blur-[14px]">

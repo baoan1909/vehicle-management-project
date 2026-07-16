@@ -16,6 +16,7 @@ type JwtPayload = {
   account_id?: string;
   authorities?: string[];
   email?: string;
+  exp?: number;
   family_name?: string;
   given_name?: string;
   groups?: string[];
@@ -40,6 +41,10 @@ export function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY) ?? sessionStorage.getItem(ACCESS_TOKEN_KEY);
 }
 
+export function getRefreshToken() {
+  return localStorage.getItem(REFRESH_TOKEN_KEY) ?? sessionStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
 export function getIdToken() {
   return localStorage.getItem(ID_TOKEN_KEY) ?? sessionStorage.getItem(ID_TOKEN_KEY);
 }
@@ -47,6 +52,13 @@ export function getIdToken() {
 export function saveAuthTokens(tokens: AuthTokenSet, remember = true) {
   const storage = remember ? localStorage : sessionStorage;
   clearAuthTokens();
+  storage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
+  if (tokens.refreshToken) storage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  if (tokens.idToken) storage.setItem(ID_TOKEN_KEY, tokens.idToken);
+}
+
+export function saveRefreshedAuthTokens(tokens: AuthTokenSet) {
+  const storage = getTokenStorage();
   storage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
   if (tokens.refreshToken) storage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
   if (tokens.idToken) storage.setItem(ID_TOKEN_KEY, tokens.idToken);
@@ -70,11 +82,13 @@ export function getCurrentUserFromStoredToken(): CurrentUser | null {
   const cachedUser = getStoredCurrentUserSnapshot(tokenUser);
   if (!cachedUser) return tokenUser;
 
+  const role = tokenUser.role !== "UNKNOWN" ? tokenUser.role : cachedUser.role ?? tokenUser.role;
+
   return {
     ...tokenUser,
     ...cachedUser,
-    role: tokenUser.role,
-    roleLabel: tokenUser.roleLabel
+    role,
+    roleLabel: role !== "UNKNOWN" ? getRoleLabel(role) : getRoleLabel(role, cachedUser.roleLabel ?? tokenUser.roleLabel)
   };
 }
 
@@ -116,6 +130,17 @@ function decodeJwtPayload(token: string): JwtPayload | null {
   } catch {
     return null;
   }
+}
+
+export function isAccessTokenExpiringWithin(seconds: number) {
+  const accessToken = getAccessToken();
+  if (!accessToken) return false;
+
+  const payload = decodeJwtPayload(accessToken);
+  if (!payload?.exp) return true;
+
+  const expiresAtMs = payload.exp * 1000;
+  return expiresAtMs - Date.now() <= seconds * 1000;
 }
 
 function getTokenRoles(payload: JwtPayload) {

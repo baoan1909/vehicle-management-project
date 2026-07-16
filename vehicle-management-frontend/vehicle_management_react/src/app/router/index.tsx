@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { routes } from "@/app/routes";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
 import { ClientLayout } from "@/shared/components/layout/ClientLayout";
+import { PageTransitionLoader } from "@/shared/components/ui/PageTransitionLoader";
 import type { AppLayout } from "@/shared/types/common";
 import {
   createBrowserRouter,
@@ -47,6 +48,7 @@ function AdminShell() {
   return (
     <>
       <RouteDocument layout="admin" />
+      <PageTransitionLoader />
       <AdminLayout>
         <Outlet />
       </AdminLayout>
@@ -58,6 +60,7 @@ function ClientShell() {
   return (
     <>
       <RouteDocument layout="client" />
+      <PageTransitionLoader />
       <ClientLayout>
         <Outlet />
       </ClientLayout>
@@ -69,6 +72,7 @@ function AuthShell() {
   return (
     <>
       <RouteDocument layout="auth" />
+      <PageTransitionLoader />
       <Outlet />
     </>
   );
@@ -78,6 +82,7 @@ function FullscreenShell() {
   return (
     <>
       <RouteDocument layout="fullscreen" />
+      <PageTransitionLoader />
       <Outlet />
     </>
   );

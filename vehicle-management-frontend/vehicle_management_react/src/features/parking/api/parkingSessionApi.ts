@@ -1,7 +1,7 @@
 import { appConfig } from "@/config/env";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
 import { apiClient } from "@/core/api/apiClient";
-import { getAccessToken } from "@/core/auth/session";
+import { getValidAccessToken, refreshAccessToken } from "@/core/auth/tokenRefresh";
 
 type ApiResponse<T> = {
   data: T;
@@ -349,12 +349,15 @@ export async function recognizeLicensePlate(image: File) {
 }
 
 async function postMultipart<T>(path: string, body: FormData): Promise<T> {
-  const accessToken = getAccessToken();
-  const response = await fetch(`${appConfig.apiBaseUrl}${path}`, {
-    body,
-    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
-    method: "POST",
-  });
+  const accessToken = await getValidAccessToken();
+  let response = await sendMultipartRequest(path, body, accessToken);
+
+  if (response.status === 401 && accessToken) {
+    const refreshedToken = await refreshAccessToken();
+    if (refreshedToken) {
+      response = await sendMultipartRequest(path, body, refreshedToken);
+    }
+  }
 
   const contentType = response.headers.get("content-type") ?? "";
   const responseBody = contentType.includes("application/json") ? await response.json() : null;
@@ -372,4 +375,12 @@ async function postMultipart<T>(path: string, body: FormData): Promise<T> {
   }
 
   return responseBody as T;
+}
+
+function sendMultipartRequest(path: string, body: FormData, accessToken: string | null) {
+  return fetch(`${appConfig.apiBaseUrl}${path}`, {
+    body,
+    headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    method: "POST",
+  });
 }

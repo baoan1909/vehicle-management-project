@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.people.employee.port.in;
 
+import com.ban.vehicle_management.application.people.employee.model.command.UpdateEmployeeAdminProfileCommand;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.util.List;
@@ -9,6 +10,8 @@ import org.springframework.web.multipart.MultipartFile;
 public interface EmployeePortIn {
 
     Employee updateEmployee(UUID employeeId, Employee employee);
+
+    Employee updateEmployeeAdminProfile(UUID employeeId, UpdateEmployeeAdminProfileCommand command);
 
     Employee uploadEmployeeAvatar(UUID employeeId, MultipartFile file);
 

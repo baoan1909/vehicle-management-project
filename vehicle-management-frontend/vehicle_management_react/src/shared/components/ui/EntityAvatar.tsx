@@ -1,12 +1,14 @@
-import type { HTMLAttributes } from "react";
+import { useEffect, useState, type HTMLAttributes } from "react";
 
 import { cn } from "@/lib/cn";
+import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
 type EntityAvatarSize = "sm" | "md" | "lg" | "xl";
 
 type EntityAvatarProps = HTMLAttributes<HTMLDivElement> & {
   initials: string;
   size?: EntityAvatarSize;
+  src?: string | null;
   tone?: "blue" | "green" | "amber" | "red" | "violet";
 };
 
@@ -25,18 +27,35 @@ const toneClassName: Record<NonNullable<EntityAvatarProps["tone"]>, string> = {
   violet: "tw-bg-violet-50 tw-text-violet-700",
 };
 
-export function EntityAvatar({ className, initials, size = "md", tone = "blue", ...props }: EntityAvatarProps) {
+export function EntityAvatar({ className, initials, size = "md", src, tone = "blue", ...props }: EntityAvatarProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const imageSrc = resolvePublicMediaUrl(src);
+  const shouldShowImage = Boolean(imageSrc) && !imageFailed;
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageSrc]);
+
   return (
     <div
       className={cn(
-        "tw-inline-flex tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-font-extrabold",
+        "tw-inline-flex tw-flex-shrink-0 tw-items-center tw-justify-center tw-overflow-hidden tw-rounded-full tw-font-extrabold",
         sizeClassName[size],
-        toneClassName[tone],
+        shouldShowImage ? "tw-bg-vm-slate-100 tw-text-transparent" : toneClassName[tone],
         className,
       )}
       {...props}
     >
-      {initials}
+      {shouldShowImage ? (
+        <img
+          alt=""
+          className="tw-h-full tw-w-full tw-object-cover"
+          src={imageSrc}
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        initials
+      )}
     </div>
   );
 }

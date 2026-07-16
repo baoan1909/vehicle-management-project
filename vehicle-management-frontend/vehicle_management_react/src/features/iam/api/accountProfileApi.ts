@@ -1,7 +1,7 @@
 import { appConfig } from "@/config/env";
 import { apiClient } from "@/core/api/apiClient";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
-import { getAccessToken } from "@/core/auth/session";
+import { getValidAccessToken, refreshAccessToken } from "@/core/auth/tokenRefresh";
 
 type ApiResponse<T> = {
   data: T;
@@ -17,6 +17,7 @@ export type AccountProfileStatusResponse = {
     email?: string;
     keycloakUserId?: string;
     roleCode?: string;
+    roleName?: string;
     username?: string;
   };
   customer?: {
@@ -80,15 +81,16 @@ export async function updateMyAccountProfile(payload: UpdateAccountProfileReques
 export async function uploadMyAccountAvatar(file: File) {
   const formData = new FormData();
   formData.append("file", file);
-  const accessToken = getAccessToken();
+  const accessToken = await getValidAccessToken();
 
-  const response = await fetch(`${appConfig.apiBaseUrl}${apiEndpoints.iam.accountProfile.avatar}`, {
-    body: formData,
-    headers: {
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-    },
-    method: "POST",
-  });
+  let response = await sendAvatarUploadRequest(formData, accessToken);
+
+  if (response.status === 401 && accessToken) {
+    const refreshedToken = await refreshAccessToken();
+    if (refreshedToken) {
+      response = await sendAvatarUploadRequest(formData, refreshedToken);
+    }
+  }
 
   const responseBody = await response.json();
 
@@ -97,6 +99,16 @@ export async function uploadMyAccountAvatar(file: File) {
   }
 
   return responseBody as ApiResponse<AccountProfileStatusResponse>;
+}
+
+function sendAvatarUploadRequest(formData: FormData, accessToken: string | null) {
+  return fetch(`${appConfig.apiBaseUrl}${apiEndpoints.iam.accountProfile.avatar}`, {
+    body: formData,
+    headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    method: "POST",
+  });
 }
 
 export async function deleteMyAccountAvatar() {
