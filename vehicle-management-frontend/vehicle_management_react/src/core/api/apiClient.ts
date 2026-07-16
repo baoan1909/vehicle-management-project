@@ -3,16 +3,18 @@ import { getValidAccessToken, refreshAccessToken } from "@/core/auth/tokenRefres
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
+  skipAuth?: boolean;
 };
 
 export async function apiClient<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const accessToken = await getValidAccessToken();
-  let response = await sendJsonRequest(path, options, accessToken);
+  const { skipAuth, ...requestOptions } = options;
+  const accessToken = skipAuth ? null : await getValidAccessToken();
+  let response = await sendJsonRequest(path, requestOptions, accessToken);
 
-  if (response.status === 401 && accessToken) {
+  if (!skipAuth && response.status === 401 && accessToken) {
     const refreshedToken = await refreshAccessToken();
     if (refreshedToken) {
-      response = await sendJsonRequest(path, options, refreshedToken);
+      response = await sendJsonRequest(path, requestOptions, refreshedToken);
     }
   }
 
