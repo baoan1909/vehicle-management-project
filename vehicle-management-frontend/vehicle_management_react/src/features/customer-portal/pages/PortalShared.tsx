@@ -1,5 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { buildKeycloakLogoutUrl } from "@/features/auth/api/authApi";
+import { clearAuthTokens, getIdToken } from "@/core/auth/session";
+import { useAuth } from "@/core/auth/useAuth";
 
 export const publicContactItems = [
   { icon: "fas fa-phone-alt", title: "Hotline", value: "1900 1234", note: "Hỗ trợ 24/7" },
@@ -75,17 +78,90 @@ export function StatusPill({ children, tone = "green" }: { children: ReactNode; 
 
 export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { user, setUser } = useAuth();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement | null>(null);
+  const profileRef = useRef<HTMLDivElement | null>(null);
+  const displayName = user?.fullName || user?.username || "Khách hàng";
+  const initials = displayName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(-2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase() || "KH";
+
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node;
+      if (notificationsRef.current && !notificationsRef.current.contains(target)) setNotificationsOpen(false);
+      if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, []);
+
+  function handleLogout() {
+    const logoutUrl = buildKeycloakLogoutUrl(getIdToken());
+    clearAuthTokens();
+    setUser(null);
+    setProfileOpen(false);
+    window.location.assign(logoutUrl);
+  }
 
   return (
     <div className="vm-customer-shell">
       <header className="vm-customer-topbar">
         <Link to="/customer/dashboard" className="vm-customer-logo">CoParking</Link>
         <button className="vm-customer-menu" type="button" aria-label="Menu"><i className="fas fa-bars" /></button>
-        <div className="vm-customer-user">
-          <span className="vm-customer-bell"><i className="far fa-bell" /><b>3</b></span>
-          <span className="vm-customer-avatar">KH</span>
-          <span>Xin chào,<strong>Nguyễn Văn A</strong></span>
-          <i className="fas fa-chevron-down" />
+        <div className="vm-customer-actions">
+          <div className="vm-customer-action-wrap" ref={notificationsRef}>
+            <button
+              className="vm-customer-bell"
+              type="button"
+              aria-expanded={notificationsOpen}
+              aria-label="Thông báo"
+              onClick={() => {
+                setNotificationsOpen((open) => !open);
+                setProfileOpen(false);
+              }}
+            >
+              <i className="far fa-bell" />
+              <b>3</b>
+            </button>
+            {notificationsOpen ? (
+              <div className="vm-customer-popover vm-customer-notifications">
+                <h3>Thông báo</h3>
+                <p>Chưa có thông báo mới từ hệ thống.</p>
+                <Link to="/customer/support" onClick={() => setNotificationsOpen(false)}>Mở trung tâm hỗ trợ</Link>
+              </div>
+            ) : null}
+          </div>
+          <div className="vm-customer-action-wrap" ref={profileRef}>
+            <button
+              className="vm-customer-user"
+              type="button"
+              aria-expanded={profileOpen}
+              onClick={() => {
+                setProfileOpen((open) => !open);
+                setNotificationsOpen(false);
+              }}
+            >
+              <span className="vm-customer-avatar">{initials}</span>
+          <span>Xin chào,<strong>{displayName}</strong></span>
+              <i className="fas fa-chevron-down" />
+            </button>
+            {profileOpen ? (
+              <div className="vm-customer-popover vm-customer-profile-menu">
+                <Link to="/customer/profile" onClick={() => setProfileOpen(false)}><i className="far fa-user" /> Hồ sơ cá nhân</Link>
+                <Link to="/customer/support" onClick={() => setProfileOpen(false)}><i className="far fa-question-circle" /> Hỗ trợ</Link>
+                <button type="button" onClick={handleLogout}><i className="fas fa-sign-out-alt" /> Đăng xuất</button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
       <div className="vm-customer-body">
@@ -160,18 +236,68 @@ export function StatCard({
   );
 }
 
-export function PaginationLite() {
+type PaginationLiteProps = {
+  currentPage?: number;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+  pageSize?: number;
+  totalRecords?: number;
+};
+
+function formatCount(value: number) {
+  return new Intl.NumberFormat("vi-VN").format(value);
+}
+
+export function PaginationLite({
+  currentPage = 1,
+  onPageChange,
+  onPageSizeChange,
+  pageSize = 10,
+  totalRecords = 5,
+}: PaginationLiteProps) {
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+  const safeCurrentPage = Math.min(Math.max(currentPage, 1), totalPages);
+  const startIndex = totalRecords === 0 ? 0 : (safeCurrentPage - 1) * pageSize + 1;
+  const endIndex = Math.min(safeCurrentPage * pageSize, totalRecords);
+
   return (
-    <div className="vm-table-footer-lite">
-      <span>Hiển thị 1 đến 5 của 5</span>
-      <div className="vm-pagination-lite">
-        <button type="button"><i className="fas fa-chevron-left" /></button>
-        <button className="active" type="button">1</button>
-        <button type="button"><i className="fas fa-chevron-right" /></button>
+    <div className="vm-table-footer vm-table-footer-lite">
+      <span>
+        {totalRecords === 0
+          ? "Không có bản ghi phù hợp"
+          : `Hiển thị ${formatCount(startIndex)} đến ${formatCount(endIndex)} của ${formatCount(totalRecords)} bản ghi`}
+      </span>
+      <div className="vm-table-footer-controls">
+        <label className="vm-table-length">
+          <span>Số dòng mỗi trang</span>
+          <select
+            aria-label="Số dòng mỗi trang"
+            value={pageSize}
+            onChange={(event) => onPageSizeChange?.(Number(event.target.value))}
+          >
+            {[5, 10, 20].map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
+        </label>
+        <div className="vm-pagination">
+          <button
+            className="vm-page-btn"
+            disabled={safeCurrentPage === 1}
+            type="button"
+            onClick={() => onPageChange?.(safeCurrentPage - 1)}
+          >
+            <i className="fas fa-chevron-left" />
+          </button>
+          <button className="vm-page-btn active" type="button">{safeCurrentPage}</button>
+          <button
+            className="vm-page-btn"
+            disabled={safeCurrentPage === totalPages}
+            type="button"
+            onClick={() => onPageChange?.(safeCurrentPage + 1)}
+          >
+            <i className="fas fa-chevron-right" />
+          </button>
+        </div>
       </div>
-      <select defaultValue="10 / trang">
-        <option>10 / trang</option>
-      </select>
     </div>
   );
 }

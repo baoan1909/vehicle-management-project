@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { routes } from "@/app/routes";
+import { useAuth } from "@/core/auth/useAuth";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
 import { ClientLayout } from "@/shared/components/layout/ClientLayout";
 import { PageTransitionLoader } from "@/shared/components/ui/PageTransitionLoader";
@@ -45,6 +46,12 @@ function RouteDocument({ layout }: { layout: AppLayout }) {
 }
 
 function AdminShell() {
+  const { user } = useAuth();
+
+  if (user?.role === "CUSTOMER") {
+    return <Navigate to="/customer/dashboard" replace />;
+  }
+
   return (
     <>
       <RouteDocument layout="admin" />

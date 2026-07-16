@@ -8,6 +8,7 @@ import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import org.hibernate.query.criteria.JpaExpression;
 import org.springframework.data.jpa.domain.Specification;
@@ -23,12 +24,14 @@ public final class ParkingSessionSpecifications {
             UUID zoneId,
             Instant checkInFrom,
             Instant checkInTo,
-            String keyword
+            String keyword,
+            List<UUID> customerVehicleIds
     ) {
         return Specification
                 .where(distinct())
                 .and(hasStatus(status))
                 .and(hasVehicleType(vehicleTypeId))
+                .and(hasCustomerVehicleIn(customerVehicleIds))
                 .and(hasZone(zoneId))
                 .and(checkInFrom(checkInFrom))
                 .and(checkInTo(checkInTo))
@@ -54,6 +57,18 @@ public final class ParkingSessionSpecifications {
 
     private static Specification<ParkingSessionEntity> hasZone(UUID zoneId) {
         return (root, query, cb) -> zoneId == null ? null : cb.equal(root.get("zoneId"), zoneId);
+    }
+
+    private static Specification<ParkingSessionEntity> hasCustomerVehicleIn(List<UUID> customerVehicleIds) {
+        return (root, query, cb) -> {
+            if (customerVehicleIds == null) {
+                return null;
+            }
+            if (customerVehicleIds.isEmpty()) {
+                return cb.disjunction();
+            }
+            return root.get("customerVehicleId").in(customerVehicleIds);
+        };
     }
 
     private static Specification<ParkingSessionEntity> checkInFrom(Instant checkInFrom) {

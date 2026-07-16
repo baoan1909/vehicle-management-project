@@ -4,10 +4,20 @@ export const apiEndpoints = {
     resendVerificationEmail: "/public/auth/resend-verification-email",
     forgotPassword: "/public/auth/forgot-password",
   },
+  public: {
+    pricing: {
+      pricePlans: "/public/pricing/price-plans",
+      priceRules: "/public/pricing/price-rules",
+      ticketTypes: "/public/pricing/ticket-types",
+      vehicleTypes: "/public/pricing/vehicle-types",
+    },
+  },
   dashboard: "/dashboard",
   parking: {
+    gates: "/parking/gates",
     lanes: "/parking/lanes",
     ocrLicensePlate: "/parking/ocr/license-plate",
+    parkingLots: "/parking/parking-lots",
     parkingSessions: "/parking/parking-sessions",
     swipes: "/parking/swipes",
     swipeIn: "/parking/swipes/in",
@@ -21,6 +31,7 @@ export const apiEndpoints = {
   accessControl: {
     cards: "/access-control/cards",
     lostCardReports: "/access-control/lost-card-reports",
+    subscriptions: "/access-control/subscriptions",
   },
   billing: {
     invoices: "/billing/invoices",
@@ -42,9 +53,6 @@ export const apiEndpoints = {
     customerVehicles: "/people/customer-vehicles",
     histories: "/customer-histories",
   },
-  operations: {
-    customerOnboardingApprovals: "/operations/approval-requests/customer-onboarding",
-  },
   iam: {
     accounts: "/accounts",
     provisionedAccounts: "/iam/accounts/provisioned",
@@ -56,6 +64,19 @@ export const apiEndpoints = {
     roles: "/roles",
   },
   people: {
+    customerVehicles: "/people/customer-vehicles",
+    customers: "/people/customers",
     employees: "/people/employees",
+  },
+  operations: {
+    approveWorkScheduleWeek: "/operations/work-schedules/approve-week",
+    customerOnboardingApprovals: "/operations/approval-requests/customer-onboarding",
+    employeeRosterRules: "/operations/employee-roster-rules",
+    generateWorkScheduleWeek: "/operations/work-schedules/generate-week",
+    shiftAssignments: "/operations/shift-assignments",
+    shiftTemplates: "/operations/shift-templates",
+    shifts: "/operations/shifts",
+    supportTicketCategories: "/operations/support-ticket-categories",
+    supportTickets: "/operations/support-tickets",
   },
 } as const;
