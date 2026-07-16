@@ -59,6 +59,30 @@ class EmployeeAccessGuardTest {
     }
 
     @Test
+    void shouldAllowSystemAdminToManageParkingManagerTarget() {
+        UUID employeeId = UUID.randomUUID();
+        Employee employee = employee(employeeId);
+
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentSystemAdmin());
+        when(internalEmployeeApprovalPortOut.findCandidateByEmployeeId(employeeId))
+                .thenReturn(Optional.of(candidate(employeeId, "PARKING_MANAGER")));
+
+        employeeAccessGuard.ensureCanManage(employee);
+    }
+
+    @Test
+    void shouldRejectSystemAdminManagingEmployeeTarget() {
+        UUID employeeId = UUID.randomUUID();
+        Employee employee = employee(employeeId);
+
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentSystemAdmin());
+        when(internalEmployeeApprovalPortOut.findCandidateByEmployeeId(employeeId))
+                .thenReturn(Optional.of(candidate(employeeId, "EMPLOYEE")));
+
+        assertThrows(AccessDeniedException.class, () -> employeeAccessGuard.ensureCanManage(employee));
+    }
+
+    @Test
     void shouldFilterParkingManagerListToEmployeeTargetsOnly() {
         UUID employeeId = UUID.randomUUID();
         UUID managerEmployeeId = UUID.randomUUID();

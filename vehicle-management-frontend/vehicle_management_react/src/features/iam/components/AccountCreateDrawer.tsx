@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, InfoBanner } from "@/components/ui";
+import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import {
   createProvisionedAccount,
   type ProvisionedAccountResponse,
   type ProvisionedAccountRoleCode,
 } from "@/features/iam/api/provisionedAccountApi";
+import type { CurrentUser } from "@/shared/types/common";
 
 type DrawerPhase = "opening" | "open" | "closing";
 type AccountStatus = "ACTIVE" | "LOCKED" | "DISABLED" | "PENDING";
@@ -33,7 +35,25 @@ const initialForm = {
   username: "",
 };
 
+function getManageableRoleOptions(currentRole: CurrentUser["role"]) {
+  if (currentRole === "SYSTEM_ADMIN") {
+    return roleOptions.filter((role) => role.code === "SYSTEM_ADMIN" || role.code === "PARKING_MANAGER");
+  }
+
+  if (currentRole === "PARKING_MANAGER") {
+    return roleOptions.filter((role) => role.code === "EMPLOYEE" || role.code === "CUSTOMER");
+  }
+
+  return [];
+}
+
+function getDefaultRole(availableRoles: typeof roleOptions): ProvisionedAccountRoleCode {
+  return availableRoles[0]?.code ?? "EMPLOYEE";
+}
+
 export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreateDrawerProps) {
+  const { user } = useAuth();
+  const manageableRoleOptions = useMemo(() => getManageableRoleOptions(user?.role ?? "UNKNOWN"), [user?.role]);
   const [isRendered, setIsRendered] = useState(isOpen);
   const [phase, setPhase] = useState<DrawerPhase>(isOpen ? "open" : "closing");
   const [selectedRole, setSelectedRole] = useState<ProvisionedAccountRoleCode>("EMPLOYEE");
@@ -76,6 +96,12 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
     };
   }, [isRendered, onClose]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    if (manageableRoleOptions.some((role) => role.code === selectedRole)) return;
+    setSelectedRole(getDefaultRole(manageableRoleOptions));
+  }, [isOpen, manageableRoleOptions, selectedRole]);
+
   if (!isRendered) return null;
 
   function updateField(field: keyof typeof initialForm, value: string) {
@@ -97,7 +123,7 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
       onCreated?.(response.data);
       setSuccessMessage(response.message);
       setForm(initialForm);
-      setSelectedRole("EMPLOYEE");
+      setSelectedRole(getDefaultRole(manageableRoleOptions));
       setSelectedStatus("PENDING");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể tạo tài khoản cấp sẵn.");
@@ -170,7 +196,12 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
           <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4">
             <h3 className="tw-m-0 tw-text-[0.96rem] tw-font-extrabold tw-text-vm-slate-900">Vai trò</h3>
             <div className="tw-mt-4 tw-grid tw-gap-2.5">
-              {roleOptions.map((role) => {
+              {manageableRoleOptions.length === 0 ? (
+                <div className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500">
+                  Tài khoản hiện tại chưa có quyền tạo tài khoản cấp sẵn.
+                </div>
+              ) : null}
+              {manageableRoleOptions.map((role) => {
                 const selected = selectedRole === role.code;
 
                 return (
@@ -225,34 +256,17 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
             </div>
           </section>
 
-          <InfoBanner
-            tone="info"
-            title="Đồng bộ Keycloak"
-            description="Tài khoản mới sẽ được tạo trên Keycloak và đồng bộ accountId về hệ thống."
-            icon={<i className="fas fa-info-circle" />}
-          />
-
           {successMessage ? (
             <InfoBanner tone="success" title="Tạo tài khoản thành công" description={successMessage} icon={<i className="fas fa-check-circle" />} />
           ) : null}
           {errorMessage ? (
             <InfoBanner tone="warning" title="Không thể tạo tài khoản" description={errorMessage} icon={<i className="fas fa-exclamation-circle" />} />
           ) : null}
-
-          <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-4">
-            <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
-              <div>
-                <h3 className="tw-m-0 tw-text-[0.9rem] tw-font-extrabold tw-text-vm-slate-900">Tác vụ sau khi tạo</h3>
-                <p className="tw-m-0 tw-mt-1 tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500">Có thể mở modal/drawer riêng để đổi vai trò hoặc trạng thái.</p>
-              </div>
-              <Badge tone="neutral" className="tw-rounded-full">Tùy chọn</Badge>
-            </div>
-          </section>
         </div>
 
         <footer className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-5 tw-py-4">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button variant="primary" onClick={handleSubmit} disabled={isSubmitting}>
+          <Button variant="primary" onClick={handleSubmit} disabled={isSubmitting || manageableRoleOptions.length === 0}>
             <i className="fas fa-plus" />
             {isSubmitting ? "Đang tạo..." : "Tạo tài khoản"}
           </Button>

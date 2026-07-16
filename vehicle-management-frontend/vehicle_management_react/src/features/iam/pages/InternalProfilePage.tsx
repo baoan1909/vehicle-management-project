@@ -12,6 +12,7 @@ import {
 import { AddressPicker, Badge, Button, Card, DatePicker, Input, Modal, SelectMenu } from "@/components/ui";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta, type StatusTone } from "@/shared/utils/accountStatus";
+import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
 type ProfileFormState = {
   address: string;
@@ -408,7 +409,7 @@ export function InternalProfilePage() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const displayName = form.fullName || profile.profile?.fullName || user?.fullName || "Nguyễn Văn Admin";
-  const avatarUrl = profile.profile?.avatarUrl || user?.avatarUrl || DEFAULT_USER_AVATAR_URL;
+  const avatarUrl = resolvePublicMediaUrl(profile.profile?.avatarUrl) || resolvePublicMediaUrl(user?.avatarUrl) || DEFAULT_USER_AVATAR_URL;
   const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(normalizeProfile(profile)), [form, profile]);
 
   useEffect(() => {

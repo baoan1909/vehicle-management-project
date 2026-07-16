@@ -1,5 +1,5 @@
 import { appConfig } from "@/config/env";
-import { getAccessToken } from "@/core/auth/session";
+import { getValidAccessToken, refreshAccessToken } from "@/core/auth/tokenRefresh";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
@@ -7,17 +7,16 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 };
 
 export async function apiClient<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { body, skipAuth, ...requestOptions } = options;
-  const accessToken = skipAuth ? null : getAccessToken();
-  const response = await fetch(`${appConfig.apiBaseUrl}${path}`, {
-    ...requestOptions,
-    headers: {
-      "Content-Type": "application/json",
-      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-      ...requestOptions.headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const { skipAuth, ...requestOptions } = options;
+  const accessToken = skipAuth ? null : await getValidAccessToken();
+  let response = await sendJsonRequest(path, requestOptions, accessToken);
+
+  if (!skipAuth && response.status === 401 && accessToken) {
+    const refreshedToken = await refreshAccessToken();
+    if (refreshedToken) {
+      response = await sendJsonRequest(path, requestOptions, refreshedToken);
+    }
+  }
 
   const contentType = response.headers.get("content-type") ?? "";
   const responseBody = contentType.includes("application/json") ? await response.json() : null;
@@ -39,4 +38,16 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
   }
 
   return responseBody as T;
+}
+
+function sendJsonRequest(path: string, options: RequestOptions, accessToken: string | null) {
+  return fetch(`${appConfig.apiBaseUrl}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...options.headers,
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
 }

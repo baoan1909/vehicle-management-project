@@ -21,6 +21,19 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
     @Query("""
         SELECT employee
         FROM EmployeeEntity employee
+        LEFT JOIN FETCH employee.userProfile userProfile
+        LEFT JOIN FETCH userProfile.account account
+        LEFT JOIN FETCH account.role
+        WHERE employee.employeeId = :employeeId
+        """)
+    Optional<EmployeeEntity> findDetailedByEmployeeId(@Param("employeeId") UUID employeeId);
+
+    @Query("""
+        SELECT employee
+        FROM EmployeeEntity employee
+        LEFT JOIN FETCH employee.userProfile userProfile
+        LEFT JOIN FETCH userProfile.account fetchedAccount
+        LEFT JOIN FETCH fetchedAccount.role
         JOIN AccountEntity account
           ON account.userProfileId = employee.userProfileId
         WHERE account.accountId = :accountId

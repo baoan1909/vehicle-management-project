@@ -12,6 +12,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.port.ou
 import com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuard;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
+import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
@@ -49,6 +50,9 @@ class EmployeeUseCaseImplTest {
 
     @Mock
     private UserProfileAvatarPortIn userProfileAvatarPortIn;
+
+    @Mock
+    private UserProfilePortOut userProfilePortOut;
 
     @InjectMocks
     private EmployeeUseCaseImpl employeeUseCase;

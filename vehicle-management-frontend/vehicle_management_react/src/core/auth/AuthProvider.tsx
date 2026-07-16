@@ -1,5 +1,6 @@
 import { createContext, useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type PropsWithChildren, type SetStateAction } from "react";
 import { getCurrentUserFromStoredToken, saveCurrentUserSnapshot } from "@/core/auth/session";
+import { getValidAccessToken } from "@/core/auth/tokenRefresh";
 import { getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import type { CurrentUser } from "@/shared/types/common";
@@ -48,6 +49,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
       mounted = false;
     };
   }, [user?.id, user?.username]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let mounted = true;
+    const keepSessionFresh = () => {
+      getValidAccessToken().catch(() => {
+        if (mounted) setUser(null);
+      });
+    };
+
+    const intervalId = window.setInterval(keepSessionFresh, 60_000);
+
+    return () => {
+      mounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [user?.id, setUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

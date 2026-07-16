@@ -47,6 +47,7 @@ export async function registerAccount(payload: RegisterAccountRequest) {
   return apiClient<ApiResponse<RegisterAccountResponse>>(apiEndpoints.auth.register, {
     method: "POST",
     body: payload,
+    skipAuth: true,
   });
 }
 
@@ -54,6 +55,7 @@ export async function requestPasswordReset(payload: ForgotPasswordRequest) {
   return apiClient<ApiResponse<null>>(apiEndpoints.auth.forgotPassword, {
     method: "POST",
     body: payload,
+    skipAuth: true,
   });
 }
 
@@ -61,6 +63,7 @@ export async function resendVerificationEmail(payload: ResendVerificationEmailRe
   return apiClient<ApiResponse<null>>(apiEndpoints.auth.resendVerificationEmail, {
     method: "POST",
     body: payload,
+    skipAuth: true,
   });
 }
 
@@ -80,7 +83,7 @@ export async function buildKeycloakLoginUrl() {
 
 function normalizeLoginScopes(scope: string | null) {
   const scopes = new Set((scope ?? "openid").split(/\s+/).filter(Boolean));
-  ["openid", "profile", "email", "roles"].forEach((requiredScope) => scopes.add(requiredScope));
+  ["openid", "profile", "email", "roles", "offline_access"].forEach((requiredScope) => scopes.add(requiredScope));
   return Array.from(scopes).join(" ");
 }
 

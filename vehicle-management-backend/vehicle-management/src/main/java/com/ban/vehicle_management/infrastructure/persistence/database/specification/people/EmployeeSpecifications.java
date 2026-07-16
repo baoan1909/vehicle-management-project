@@ -20,7 +20,7 @@ public final class EmployeeSpecifications {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (query.getResultType() != Long.class && query.getResultType() != long.class) {
-                root.fetch("userProfile", JoinType.LEFT).fetch("account", JoinType.LEFT);
+                root.fetch("userProfile", JoinType.LEFT).fetch("account", JoinType.LEFT).fetch("role", JoinType.LEFT);
             }
 
             if (status != null) {

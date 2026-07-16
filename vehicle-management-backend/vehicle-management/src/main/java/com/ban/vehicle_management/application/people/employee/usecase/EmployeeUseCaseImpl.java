@@ -3,13 +3,16 @@ package com.ban.vehicle_management.application.people.employee.usecase;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuard;
+import com.ban.vehicle_management.application.people.employee.model.command.UpdateEmployeeAdminProfileCommand;
 import com.ban.vehicle_management.application.people.employee.port.in.EmployeePortIn;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
+import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.domain.people.employee.policy.EmployeePolicy;
+import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
@@ -37,20 +40,24 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
     private final EmployeePortOut employeePortOut;
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
     private final UserProfileAvatarPortIn userProfileAvatarPortIn;
+    private final UserProfilePortOut userProfilePortOut;
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
+    private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
 
     public EmployeeUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             EmployeeAccessGuard employeeAccessGuard,
             EmployeePortOut employeePortOut,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
-            UserProfileAvatarPortIn userProfileAvatarPortIn
+            UserProfileAvatarPortIn userProfileAvatarPortIn,
+            UserProfilePortOut userProfilePortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.employeeAccessGuard = employeeAccessGuard;
         this.employeePortOut = employeePortOut;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
+        this.userProfilePortOut = userProfilePortOut;
     }
 
     @Override
@@ -73,7 +80,105 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
             throw new ConflictException("Employee code already exists");
         }
 
-        return withResolvedAvatarUrl(employeePortOut.save(existingEmployee));
+        return saveEmployeeAndReload(existingEmployee);
+    }
+
+    @Override
+    @Transactional
+    public Employee updateEmployeeAdminProfile(UUID employeeId, UpdateEmployeeAdminProfileCommand command) {
+        currentAccountPortIn.requirePermission(EMPLOYEE_UPDATE_ALL);
+        ensureAdminProfilePayloadHasContent(command);
+
+        Employee existingEmployee = getEmployeeById(employeeId);
+        ensureEmployeeUserProfileExists(existingEmployee);
+        employeeAccessGuard.ensureCanManage(existingEmployee);
+
+        if (hasEmployeeChanges(command.employee())) {
+            applyEmployeeChanges(existingEmployee, command.employee());
+            employeePolicy.validateState(existingEmployee);
+
+            if (employeePortOut.existsByEmployeeCodeAndEmployeeIdNot(existingEmployee.getEmployeeCode(), employeeId)) {
+                throw new ConflictException("Employee code already exists");
+            }
+
+            existingEmployee = employeePortOut.save(existingEmployee);
+        }
+
+        if (hasUserProfileChanges(command.userProfile())) {
+            UserProfile existingUserProfile = userProfilePortOut.findById(existingEmployee.getUserProfileId())
+                    .orElseThrow(() -> new ConflictException("Employee user profile is missing"));
+            applyUserProfileChanges(existingUserProfile, command.userProfile());
+            userProfilePolicy.validateState(existingUserProfile);
+            validateUniqueUserProfile(existingUserProfile, existingUserProfile.getUserProfileId());
+            UserProfile updatedUserProfile = userProfilePortOut.save(existingUserProfile);
+            existingEmployee.setUserProfile(updatedUserProfile);
+        }
+
+        return reloadEmployeeForResponse(employeeId);
+    }
+
+    private void ensureAdminProfilePayloadHasContent(UpdateEmployeeAdminProfileCommand command) {
+        if (command == null || (!hasEmployeeChanges(command.employee())
+                && !hasUserProfileChanges(command.userProfile()))) {
+            throw new BadRequestException("At least one profile field or employee field must be provided");
+        }
+    }
+
+    private void ensureEmployeeUserProfileExists(Employee employee) {
+        if (employee == null || employee.getUserProfileId() == null || employee.getUserProfile() == null) {
+            throw new ConflictException("Employee user profile is missing");
+        }
+    }
+
+    private void applyEmployeeChanges(Employee existingEmployee, Employee updatedEmployee) {
+        existingEmployee.setEmployeeCode(updatedEmployee.getEmployeeCode());
+        existingEmployee.setJobTitle(updatedEmployee.getJobTitle());
+        existingEmployee.setHiredAt(updatedEmployee.getHiredAt());
+        if (updatedEmployee.getStatus() != null && !Objects.equals(updatedEmployee.getStatus(), existingEmployee.getStatus())) {
+            throw new BadRequestException("Use activate, inactivate, or suspend endpoints to change employee status");
+        }
+    }
+
+    private void applyUserProfileChanges(UserProfile existingUserProfile, UserProfile updatedUserProfile) {
+        existingUserProfile.setFullName(updatedUserProfile.getFullName());
+        existingUserProfile.setDateOfBirth(updatedUserProfile.getDateOfBirth());
+        existingUserProfile.setGender(updatedUserProfile.getGender());
+        existingUserProfile.setPhoneNumber(updatedUserProfile.getPhoneNumber());
+        existingUserProfile.setAddress(updatedUserProfile.getAddress());
+        existingUserProfile.setIdentifyCard(updatedUserProfile.getIdentifyCard());
+        if (updatedUserProfile.getStatus() != null) {
+            existingUserProfile.setStatus(updatedUserProfile.getStatus());
+        }
+    }
+
+    private boolean hasEmployeeChanges(Employee employee) {
+        return employee != null
+                && (employee.getEmployeeCode() != null
+                || employee.getJobTitle() != null
+                || employee.getHiredAt() != null
+                || employee.getStatus() != null);
+    }
+
+    private boolean hasUserProfileChanges(UserProfile userProfile) {
+        return userProfile != null
+                && (userProfile.getFullName() != null
+                || userProfile.getDateOfBirth() != null
+                || userProfile.getGender() != null
+                || userProfile.getPhoneNumber() != null
+                || userProfile.getAddress() != null
+                || userProfile.getIdentifyCard() != null
+                || userProfile.getStatus() != null);
+    }
+
+    private void validateUniqueUserProfile(UserProfile userProfile, UUID userProfileId) {
+        if (userProfile.getPhoneNumber() != null
+                && userProfilePortOut.existsByPhoneNumberAndUserProfileIdNot(userProfile.getPhoneNumber(), userProfileId)) {
+            throw new ConflictException("User profile phone number already exists");
+        }
+        if (userProfile.getIdentifyCard() != null
+                && userProfilePortOut.existsByIdentifyCardAndUserProfileIdNot(userProfile.getIdentifyCard(), userProfileId)) {
+            throw new ConflictException("User profile identify card already exists");
+        }
     }
 
     @Override
@@ -145,7 +250,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         employeeAccessGuard.ensureCanManage(employee);
         ensureInternalOnboardingApprovalSatisfied(employeeId);
         employeePolicy.activate(employee);
-        return withResolvedAvatarUrl(employeePortOut.save(employee));
+        return saveEmployeeAndReload(employee);
     }
 
     @Override
@@ -155,7 +260,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         Employee employee = getEmployeeById(employeeId);
         employeeAccessGuard.ensureCanManage(employee);
         employeePolicy.inactivate(employee);
-        return withResolvedAvatarUrl(employeePortOut.save(employee));
+        return saveEmployeeAndReload(employee);
     }
 
     @Override
@@ -165,7 +270,17 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         Employee employee = getEmployeeById(employeeId);
         employeeAccessGuard.ensureCanManage(employee);
         employeePolicy.suspend(employee);
-        return withResolvedAvatarUrl(employeePortOut.save(employee));
+        return saveEmployeeAndReload(employee);
+    }
+
+    private Employee saveEmployeeAndReload(Employee employee) {
+        Employee savedEmployee = employeePortOut.save(employee);
+        return reloadEmployeeForResponse(savedEmployee.getEmployeeId());
+    }
+
+    private Employee reloadEmployeeForResponse(UUID employeeId) {
+        return withResolvedAvatarUrl(employeePortOut.findById(employeeId)
+                .orElseThrow(() -> new NotFoundException("Employee not found")));
     }
 
     private Employee withResolvedAvatarUrl(Employee employee) {

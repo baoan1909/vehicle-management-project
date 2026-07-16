@@ -33,6 +33,16 @@ public class EmployeePersistenceAdapter implements EmployeePortOut {
 
     @Override
     public Employee save(Employee employee) {
+        if (employee.getEmployeeId() != null) {
+            Optional<EmployeeEntity> existingEmployeeEntity = employeeRepository.findDetailedByEmployeeId(employee.getEmployeeId());
+            if (existingEmployeeEntity.isPresent()) {
+                EmployeeEntity managedEmployeeEntity = existingEmployeeEntity.get();
+                employeePersistenceMapper.updateEntityFromDomain(employee, managedEmployeeEntity);
+                EmployeeEntity savedEmployeeEntity = employeeRepository.saveAndFlush(managedEmployeeEntity);
+                return employeePersistenceMapper.toDomain(savedEmployeeEntity);
+            }
+        }
+
         EmployeeEntity employeeEntity = employeePersistenceMapper.toEntity(employee);
         EmployeeEntity savedEmployeeEntity = employeeRepository.saveAndFlush(employeeEntity);
         return employeePersistenceMapper.toDomain(savedEmployeeEntity);
@@ -40,7 +50,7 @@ public class EmployeePersistenceAdapter implements EmployeePortOut {
 
     @Override
     public Optional<Employee> findById(UUID employeeId) {
-        return employeeRepository.findById(employeeId)
+        return employeeRepository.findDetailedByEmployeeId(employeeId)
                 .map(employeePersistenceMapper::toDomain);
     }
 

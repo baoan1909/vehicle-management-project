@@ -23,6 +23,10 @@ public class Employee extends AuditableDomainModel {
     private LocalDate hiredAt;
     private EmployeeStatus status;
     private String accountEmail;
+    private String accountUsername;
+    private String accountStatus;
+    private String roleCode;
+    private String roleName;
     private UserProfile userProfile;
 }
 
