@@ -1723,6 +1723,256 @@ body {
   text-decoration: none;
 }
 
+.vm-pricing-page {
+  padding: 2rem 2.8rem 1.5rem;
+}
+
+.vm-pricing-hero-panel {
+  display: grid;
+  width: min(100%, 1280px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.45fr);
+  align-items: end;
+  gap: 2rem;
+  margin: 0 auto 1.45rem;
+}
+
+.vm-pricing-hero-panel h1 {
+  margin: 0;
+  color: #07122f;
+  font-size: clamp(2.5rem, 4vw, 3.35rem);
+  font-weight: 950;
+  letter-spacing: 0;
+  line-height: 1.05;
+}
+
+.vm-pricing-hero-panel p {
+  margin: 0.55rem 0 0;
+  color: #506386;
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.vm-current-plan-card {
+  padding: 1rem 1.15rem;
+  border: 1px solid #dfe7f2;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.vm-current-plan-card span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--vm-blue);
+  font-size: 0.86rem;
+  font-weight: 900;
+}
+
+.vm-current-plan-card strong {
+  display: block;
+  margin-top: 0.55rem;
+  color: #07122f;
+  font-size: 1.05rem;
+  font-weight: 950;
+}
+
+.vm-pricing-page .vm-pricing-section {
+  width: min(100%, 1280px);
+  margin: 1.45rem auto;
+}
+
+.vm-pricing-page .vm-vehicle-tabs {
+  width: min(100%, 900px);
+  padding: 0.3rem;
+  overflow: visible;
+  border: 1px solid #d9e2ef;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.vm-pricing-page .vm-vehicle-tabs button {
+  min-height: 50px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 1rem;
+}
+
+.vm-pricing-page .vm-vehicle-tabs button.active {
+  color: white;
+  background: linear-gradient(135deg, #0b63f6, #0052d9);
+  box-shadow: 0 10px 22px rgba(11, 99, 246, 0.2);
+}
+
+.vm-section-heading-lite {
+  margin-bottom: 0.95rem;
+}
+
+.vm-section-heading-lite h2 {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin: 0;
+  color: #07122f;
+  font-size: 1.55rem;
+  font-weight: 950;
+}
+
+.vm-section-heading-lite h2 i {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 10px;
+  color: var(--vm-blue);
+  background: #eaf2ff;
+  font-size: 1.15rem;
+}
+
+.vm-price-card {
+  display: grid;
+  min-height: 300px;
+  grid-template-rows: auto auto auto 1fr auto;
+  gap: 0.85rem;
+  padding: 1.2rem;
+  overflow: hidden;
+  border-radius: 8px;
+  box-shadow: 0 18px 38px rgba(15, 23, 42, 0.07);
+}
+
+.vm-price-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #0b63f6, #48a7ff);
+}
+
+.vm-price-card-subscription::before {
+  background: linear-gradient(90deg, #168571, #42c99a);
+}
+
+.vm-price-card-head {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.vm-price-card .vm-price-icon {
+  position: static;
+  width: 58px;
+  height: 58px;
+  border-radius: 14px;
+  font-size: 1.45rem;
+}
+
+.vm-price-card h3 {
+  margin: 0;
+  font-size: 1.18rem;
+  line-height: 1.25;
+  font-weight: 950;
+}
+
+.vm-price-card-head p {
+  margin: 0.22rem 0 0;
+  color: #506386;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.vm-price-amount {
+  display: flex;
+  align-items: baseline;
+  gap: 0.55rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #d9e2ef;
+}
+
+.vm-price-amount strong {
+  display: inline;
+  font-size: 2rem;
+}
+
+.vm-price-amount span {
+  color: #07122f;
+  font-weight: 900;
+}
+
+.vm-price-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.vm-price-tags span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  color: #1f3657;
+  background: #f1f6fd;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.vm-price-tags i {
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--vm-blue);
+}
+
+.vm-price-card-subscription .vm-price-tags i {
+  background: #168571;
+}
+
+.vm-price-card ul {
+  display: grid;
+  align-content: start;
+  gap: 0.55rem;
+  padding-top: 0.15rem;
+  border-top: 0;
+}
+
+.vm-price-card li {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 0.55rem;
+  margin: 0;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.vm-price-card li i {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border-radius: 999px;
+  color: white;
+  background: var(--vm-blue);
+  font-size: 0.72rem;
+}
+
+.vm-price-card-subscription li i {
+  color: white;
+  background: #168571;
+}
+
+.vm-price-card a {
+  align-self: end;
+  min-height: 44px;
+  margin-top: 0;
+  border-color: #168571;
+  background: linear-gradient(135deg, #168571, #0f745f);
+}
+
 .vm-public-contact-strip {
   width: min(100%, 1320px);
   margin: 1rem auto 0;

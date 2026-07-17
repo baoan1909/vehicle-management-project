@@ -13,7 +13,7 @@ import {
   type VehicleTypeApiResponse,
 } from "@/features/pricing/api/pricingApi";
 
-import { PublicContactStrip, PublicFooter, PublicHero } from "./PortalShared";
+import { PublicContactStrip } from "./PortalShared";
 
 type PricingAudience = "VISITOR" | "CUSTOMER";
 type VehicleFilterKey = "MOTORBIKE" | "CAR" | "OTHER";
@@ -132,21 +132,31 @@ function PriceCard({ audience, rule }: { audience: PricingAudience; rule: Displa
   const ticketName = rule.ticketType?.name ?? (audience === "VISITOR" ? "Khách vãng lai" : "Vé đăng ký");
   const colorClass = audience === "CUSTOMER" ? "vm-price-green" : "vm-price-blue";
   const iconClass = audience === "CUSTOMER" ? "vm-price-icon vm-price-icon-green" : "vm-price-icon";
+  const description = audience === "CUSTOMER" ? "Gói gửi xe theo chu kỳ" : "Áp dụng theo lượt gửi xe";
 
   return (
     <article className={audience === "CUSTOMER" ? "vm-price-card vm-price-card-subscription" : "vm-price-card"}>
-      <span className={iconClass}><i className={iconForRule(audience, rule)} /></span>
-      <h3>{rule.ruleName || ticketName}</h3>
-      <strong className={colorClass}>{formatCurrency(rule.basePrice)}</strong>
-      <p>{unitLabel(rule.unit, rule.ticketType)}</p>
+      <div className="vm-price-card-head">
+        <span className={iconClass}><i className={iconForRule(audience, rule)} /></span>
+        <div>
+          <h3>{rule.ruleName || ticketName}</h3>
+          <p>{description}</p>
+        </div>
+      </div>
+      <div className="vm-price-amount">
+        <strong className={colorClass}>{formatCurrency(rule.basePrice)}</strong>
+        <span>{unitLabel(rule.unit, rule.ticketType)}</span>
+      </div>
+      <div className="vm-price-tags">
+        <span><i /> {vehicleName}</span>
+        <span><i /> {ticketName}</span>
+        <span><i /> {timeRange(rule)}</span>
+      </div>
       <ul>
-        <li><i className="fas fa-check-circle" /> {vehicleName}</li>
-        <li><i className="fas fa-check-circle" /> {ticketName}</li>
-        <li><i className="fas fa-check-circle" /> Khung giờ: {timeRange(rule)}</li>
         {rule.lostCardFee ? <li><i className="fas fa-check-circle" /> Phí mất thẻ: {formatCurrency(rule.lostCardFee)}</li> : null}
         {rule.plan ? <li><i className="fas fa-check-circle" /> Bảng giá: {rule.plan.name}</li> : null}
       </ul>
-      {audience === "CUSTOMER" ? <Link to="/customer/subscriptions">Đăng ký</Link> : null}
+      {audience === "CUSTOMER" ? <Link to="/customer/subscriptions">Đăng ký vé tháng</Link> : null}
     </article>
   );
 }
@@ -154,10 +164,16 @@ function PriceCard({ audience, rule }: { audience: PricingAudience; rule: Displa
 function EmptyPricing({ label }: { label: string }) {
   return (
     <article className="vm-price-card">
-      <span className="vm-price-icon"><i className="fas fa-tags" /></span>
-      <h3>{label}</h3>
-      <strong className="vm-price-blue">Chưa có dữ liệu</strong>
-      <p>API chưa trả quy tắc giá phù hợp</p>
+      <div className="vm-price-card-head">
+        <span className="vm-price-icon"><i className="fas fa-tags" /></span>
+        <div>
+          <h3>{label}</h3>
+          <p>API chưa trả quy tắc giá phù hợp</p>
+        </div>
+      </div>
+      <div className="vm-price-amount">
+        <strong className="vm-price-blue">Chưa có dữ liệu</strong>
+      </div>
       <ul>
         <li><i className="fas fa-info-circle" /> Kiểm tra kế hoạch giá đang hiệu lực</li>
         <li><i className="fas fa-info-circle" /> Kiểm tra quy tắc giá đang hoạt động</li>
@@ -258,18 +274,27 @@ export function PricingPage() {
 
   return (
     <ClientPage>
-      <div className="vm-public-page">
-        <PublicHero title="Bảng giá gửi xe" subtitle="Minh bạch - Tiện lợi - An toàn" />
+      <div className="vm-public-page vm-pricing-page">
+        <section className="vm-pricing-hero-panel">
+          <div>
+            <h1>Bảng giá gửi xe</h1>
+            <p>Minh bạch - Tiện lợi - An toàn</p>
+          </div>
+          <aside className="vm-current-plan-card">
+            <span><i className="fas fa-tags" /> Bảng giá hiện hành</span>
+            <strong>{loading ? "Đang tải dữ liệu bảng giá..." : planRange}</strong>
+          </aside>
+        </section>
 
         <section className="vm-pricing-section">
-          <h2><i className="fas fa-tags" /> Bảng giá hiện hành</h2>
-          <p>{loading ? "Đang tải dữ liệu bảng giá..." : planRange}</p>
           {error ? <p className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-font-bold tw-text-red-600">{error}</p> : null}
           <VehicleFilterTabs selected={selectedVehicleFilter} onChange={setSelectedVehicleFilter} />
         </section>
 
         <section className="vm-pricing-section">
-          <h2><i className="fas fa-user" /> Khách vãng lai</h2>
+          <div className="vm-section-heading-lite">
+            <h2><i className="fas fa-user" /> Khách vãng lai</h2>
+          </div>
           <div className="vm-price-grid">
             {filteredVisitorRules.length
               ? filteredVisitorRules.map((rule) => <PriceCard audience="VISITOR" key={rule.priceRuleId} rule={rule} />)
@@ -278,7 +303,9 @@ export function PricingPage() {
         </section>
 
         <section className="vm-pricing-section">
-          <h2><i className="fas fa-users" /> Khách đăng ký</h2>
+          <div className="vm-section-heading-lite">
+            <h2><i className="fas fa-users" /> Khách đăng ký</h2>
+          </div>
           <div className="vm-price-grid">
             {filteredCustomerRules.length
               ? filteredCustomerRules.map((rule) => <PriceCard audience="CUSTOMER" key={rule.priceRuleId} rule={rule} />)
@@ -287,7 +314,6 @@ export function PricingPage() {
         </section>
 
         <PublicContactStrip />
-        <PublicFooter />
       </div>
     </ClientPage>
   );
