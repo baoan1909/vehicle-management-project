@@ -60,6 +60,7 @@ type RoleFormState = {
 };
 
 const fallbackSelectedRoleId = "supervisor-custom";
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const scopeCodeByFilter: Partial<Record<PermissionFilter, string>> = {
   assigned: "ASSIGNED",
   lot: "LOT",
@@ -122,6 +123,10 @@ function parsePermissionCode(permissionCode: string): ParsedPermissionCode {
 
 function formatScopeLabel(scope: string) {
   return scope === "ALL" ? "" : ` / ${scope}`;
+}
+
+function isBackendRoleId(roleId?: string | null) {
+  return Boolean(roleId && uuidPattern.test(roleId));
 }
 
 function mapRoleResponseToRecord(role: RoleAdminResponse): RolePermissionRecord {
@@ -974,6 +979,11 @@ export function RolePermissionPage() {
 
   useEffect(() => {
     if (!canReadPermissions || !allPermissions.length || !selectedRoleId) return;
+    if (!isBackendRoleId(selectedRoleId)) {
+      setSelectedPermissionIds(new Set());
+      setPersistedPermissionIds(new Set());
+      return;
+    }
 
     let cancelled = false;
 
@@ -1007,6 +1017,10 @@ export function RolePermissionPage() {
 
   useEffect(() => {
     if (!selectedRoleId) return;
+    if (!isBackendRoleId(selectedRoleId)) {
+      setAuditRecords(roleAuditRecords);
+      return;
+    }
 
     let cancelled = false;
 
@@ -1160,6 +1174,11 @@ export function RolePermissionPage() {
 
     try {
       if (roleEditor.mode === "edit" && roleEditor.role) {
+        if (!isBackendRoleId(roleEditor.role.id)) {
+          setApiError("Role dang chon la du lieu mau nen khong the cap nhat backend.");
+          return;
+        }
+
         const response = await updateIamRole(roleEditor.role.id, {
           ...payload,
           isActive: true
@@ -1177,6 +1196,11 @@ export function RolePermissionPage() {
       let copiedPermissionIds: string[] = [];
 
       if (roleForm.copyPermissionSourceRoleId) {
+        if (!isBackendRoleId(roleForm.copyPermissionSourceRoleId)) {
+          setApiError("Role nguon la du lieu mau nen khong the copy quyen tu backend.");
+          return;
+        }
+
         const sourcePermissions = await getIamRolePermissions(roleForm.copyPermissionSourceRoleId);
         copiedPermissionIds = (sourcePermissions.data.permissions ?? []).map((permission) => permission.permissionId);
         await syncIamRolePermissions(
@@ -1210,6 +1234,11 @@ export function RolePermissionPage() {
   const confirmDeactivateRole = async () => {
     if (!deactivatingRole) return;
     if (!canDeleteRole || !deactivatingRole.editable || deactivatingRole.locked) return;
+    if (!isBackendRoleId(deactivatingRole.id)) {
+      setApiError("Role dang chon la du lieu mau nen khong the ngung dung tren backend.");
+      setDeactivatingRole(null);
+      return;
+    }
 
     setIsRoleSaving(true);
     setSaveStatus("");
@@ -1230,6 +1259,10 @@ export function RolePermissionPage() {
 
   const saveChanges = async () => {
     if (matrixDisabled || !allPermissions.length || !canPersistPendingPermissionChanges) return;
+    if (!isBackendRoleId(selectedRole.id)) {
+      setSaveStatus("Role dang chon la du lieu mau nen khong the luu quyen len backend.");
+      return;
+    }
 
     setIsSaving(true);
     setSaveStatus("");
