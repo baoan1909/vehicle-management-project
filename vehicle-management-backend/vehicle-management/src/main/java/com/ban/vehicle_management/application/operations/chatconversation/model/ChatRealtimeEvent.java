@@ -7,6 +7,9 @@ import java.util.UUID;
 public record ChatRealtimeEvent(
         UUID conversationId,
         UUID messageId,
-        Instant occurredAt
+        Instant occurredAt,
+        ChatRealtimeMessage message
 ) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 }

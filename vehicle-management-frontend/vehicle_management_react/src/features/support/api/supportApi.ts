@@ -127,6 +127,10 @@ export function getSupportTickets(filter: SupportTicketFilter = {}) {
   );
 }
 
+export function getSupportTicketById(ticketId: string) {
+  return apiClient<ApiResponse<SupportTicketResponse>>(`${apiEndpoints.operations.supportTickets}/${ticketId}`);
+}
+
 export function createSupportTicket(payload: SaveSupportTicketRequest) {
   return apiClient<ApiResponse<SupportTicketResponse>>(apiEndpoints.operations.supportTickets, {
     body: payload,

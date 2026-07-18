@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.application.operations.chatconversation.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatRealtimeEventMapper;
 import com.ban.vehicle_management.application.operations.chatconversation.model.ChatAttachmentReadUrl;
-import com.ban.vehicle_management.application.operations.chatconversation.model.ChatRealtimeEvent;
 import com.ban.vehicle_management.application.operations.chatconversation.port.in.ChatConversationPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatRealtimeEventPublisherPortOut;
@@ -52,6 +52,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final ChatConversationPortOut chatPortOut;
     private final ChatRealtimeEventPublisherPortOut realtimeEventPublisher;
+    private final ChatRealtimeEventMapper realtimeEventMapper;
     private final FileStoragePort fileStoragePort;
     private final FileAccessPort fileAccessPort;
     private final ChatConversationPolicy conversationPolicy = new ChatConversationPolicy();
@@ -62,12 +63,14 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
             CurrentAccountPortIn currentAccountPortIn,
             ChatConversationPortOut chatPortOut,
             ChatRealtimeEventPublisherPortOut realtimeEventPublisher,
+            ChatRealtimeEventMapper realtimeEventMapper,
             FileStoragePort fileStoragePort,
             FileAccessPort fileAccessPort
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.chatPortOut = chatPortOut;
         this.realtimeEventPublisher = realtimeEventPublisher;
+        this.realtimeEventMapper = realtimeEventMapper;
         this.fileStoragePort = fileStoragePort;
         this.fileAccessPort = fileAccessPort;
     }
@@ -137,7 +140,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
                 accountId,
                 accountId.equals(currentAccountId) ? ChatMemberRole.OWNER : ChatMemberRole.MEMBER
         ));
-        return savedConversation;
+        return getConversationOrThrow(savedConversation.getConversationId());
     }
 
     @Override
@@ -166,7 +169,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
             return conversation;
         }
         saveMember(conversationId, accountId, ChatMemberRole.MEMBER);
-        return conversation;
+        return getConversationOrThrow(conversationId);
     }
 
     @Override
@@ -285,7 +288,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         ChatConversation savedConversation = chatPortOut.saveConversation(conversation);
         saveMember(savedConversation.getConversationId(), currentAccountId, ChatMemberRole.OWNER);
         saveMember(savedConversation.getConversationId(), targetAccountId, ChatMemberRole.MEMBER);
-        return savedConversation;
+        return getConversationOrThrow(savedConversation.getConversationId());
     }
 
     private ChatConversation createCustomerSupportConversation(UUID currentAccountId, UUID customerId, String title) {
@@ -295,7 +298,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         conversation.setConversationId(UUID.randomUUID());
         ChatConversation savedConversation = chatPortOut.saveConversation(conversation);
         saveMember(savedConversation.getConversationId(), currentAccountId, ChatMemberRole.CUSTOMER);
-        return savedConversation;
+        return getConversationOrThrow(savedConversation.getConversationId());
     }
 
     private ChatConversationMember saveMember(UUID conversationId, UUID accountId, ChatMemberRole role) {
@@ -330,11 +333,9 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     }
 
     private void publishAfterCommit(ChatMessage message) {
-        TransactionalEvents.runAfterCommit(() -> realtimeEventPublisher.publish(new ChatRealtimeEvent(
-                message.getConversationId(),
-                message.getMessageId(),
-                Instant.now()
-        )));
+        TransactionalEvents.runAfterCommit(() -> realtimeEventPublisher.publish(
+                realtimeEventMapper.toRealtimeEvent(message, Instant.now())
+        ));
     }
 
     private ChatMessageAttachment storeImageAttachment(UUID messageId, UUID currentAccountId, MultipartFile file) {

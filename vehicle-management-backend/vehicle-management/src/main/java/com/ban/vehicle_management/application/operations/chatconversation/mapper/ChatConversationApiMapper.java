@@ -2,15 +2,16 @@ package com.ban.vehicle_management.application.operations.chatconversation.mappe
 
 import com.ban.vehicle_management.application.operations.chatconversation.model.ChatAttachmentReadUrl;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
+import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversationParticipant;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatInboxItem;
 import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessage;
 import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessageAttachment;
+import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatConversationParticipantUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatConversationUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatInboxItemUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.response.ChatAttachmentReadUrlResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.response.ChatAttachmentUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.response.ChatMessageUserResponse;
-import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
 import org.mapstruct.AfterMapping;
@@ -27,6 +28,10 @@ public interface ChatConversationApiMapper {
     ChatConversationUserResponse toConversationUserResponse(ChatConversation conversation);
 
     List<ChatConversationUserResponse> toConversationUserResponses(List<ChatConversation> conversations);
+
+    ChatConversationParticipantUserResponse toParticipantUserResponse(ChatConversationParticipant participant);
+
+    List<ChatConversationParticipantUserResponse> toParticipantUserResponses(List<ChatConversationParticipant> participants);
 
     ChatInboxItemUserResponse toInboxItemUserResponse(ChatInboxItem item);
 
@@ -54,6 +59,6 @@ public interface ChatConversationApiMapper {
 
     @Named("formatInstant")
     default String formatInstant(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
+        return instant == null ? "" : instant.toString();
     }
 }

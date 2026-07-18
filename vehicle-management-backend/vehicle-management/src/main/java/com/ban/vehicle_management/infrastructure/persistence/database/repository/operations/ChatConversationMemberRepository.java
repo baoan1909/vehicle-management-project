@@ -1,7 +1,9 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.repository.operations;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ChatConversationMemberEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.operations.ChatConversationParticipantProjection;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +23,30 @@ public interface ChatConversationMemberRepository extends JpaRepository<ChatConv
     );
 
     List<ChatConversationMemberEntity> findByConversationIdAndStatus(UUID conversationId, ChatMemberStatus status);
+
+    @Query("""
+            SELECT member.conversationId AS conversationId,
+                   member.accountId AS accountId,
+                   member.memberRole AS memberRole,
+                   account.username AS username,
+                   account.email AS email,
+                   profile.fullName AS fullName,
+                   avatar.objectKey AS avatarObjectKey
+            FROM ChatConversationMemberEntity member
+            JOIN AccountEntity account
+                ON account.accountId = member.accountId
+            LEFT JOIN UserProfileEntity profile
+                ON profile.userProfileId = account.userProfileId
+            LEFT JOIN UserProfileAvatarEntity avatar
+                ON avatar.userProfileId = account.userProfileId
+               AND avatar.current = TRUE
+            WHERE member.conversationId IN :conversationIds
+              AND member.status = com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus.ACTIVE
+            ORDER BY member.joinedAt ASC, member.conversationMemberId ASC
+            """)
+    List<ChatConversationParticipantProjection> findActiveParticipantsByConversationIds(
+            @Param("conversationIds") Collection<UUID> conversationIds
+    );
 
     @Query("""
             SELECT member.accountId

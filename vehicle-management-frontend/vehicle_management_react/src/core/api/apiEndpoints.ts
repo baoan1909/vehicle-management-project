@@ -79,6 +79,7 @@ export const apiEndpoints = {
     shiftAssignments: "/operations/shift-assignments",
     shiftTemplates: "/operations/shift-templates",
     shifts: "/operations/shifts",
+    chat: "/operations/chat",
     supportTicketCategories: "/operations/support-ticket-categories",
     supportTickets: "/operations/support-tickets",
   },

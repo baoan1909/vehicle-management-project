@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { canAccessAdminRoute } from "@/app/routePermissions";
 import { useAuth } from "../../../core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import { logoutCurrentUser } from "@/core/auth/logout";
@@ -139,6 +140,7 @@ export function AdminHeader() {
   const approvalStatus = getApprovalStatusValue(user);
   const accountStatus = user?.accountStatus;
   const avatarUrl = resolvePublicMediaUrl(user?.avatarUrl) || DEFAULT_USER_AVATAR_URL;
+  const visibleNotifications = notifications.filter((item) => !item.href.startsWith("/admin/") || canAccessAdminRoute(user, item.href));
 
   return (
     <header className="tw-fixed tw-inset-x-0 tw-top-0 tw-z-[1050] tw-border-0 tw-border-b tw-border-solid tw-border-slate-200/95 tw-bg-white/95 tw-shadow-[0_10px_28px_rgba(15,23,42,0.08)] tw-backdrop-blur-[14px]">
@@ -213,13 +215,13 @@ export function AdminHeader() {
               aria-label="Thông báo"
             >
               <i className="far fa-bell tw-text-[1.3rem]" />
-              <span className="tw-absolute tw-right-2.5 tw-top-2.5 tw-inline-flex tw-h-[17px] tw-min-w-[17px] tw-items-center tw-justify-center tw-rounded-full tw-bg-red-500 tw-px-1 tw-text-[0.58rem] tw-font-extrabold tw-leading-none tw-text-white">3</span>
+              <span className="tw-absolute tw-right-2.5 tw-top-2.5 tw-inline-flex tw-h-[17px] tw-min-w-[17px] tw-items-center tw-justify-center tw-rounded-full tw-bg-red-500 tw-px-1 tw-text-[0.58rem] tw-font-extrabold tw-leading-none tw-text-white">{visibleNotifications.length}</span>
             </button>
 
             {notificationsOpen ? (
               <div className={cn(panelClassName, "tw-w-[320px]")}>
                 <div className="tw-px-3 tw-py-2 tw-text-[0.78rem] tw-font-extrabold tw-uppercase tw-tracking-[0.04em] tw-text-vm-slate-500">Thông báo</div>
-                {notifications.map((item) => (
+                {visibleNotifications.map((item) => (
                   <Link
                     key={item.title}
                     to={item.href}

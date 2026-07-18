@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -30,4 +31,5 @@ public class ChatConversation extends AuditableDomainModel {
     private UUID lastMessageId;
     private Instant lastMessageAt;
     private String metadata;
+    private List<ChatConversationParticipant> participants = List.of();
 }

@@ -11,16 +11,14 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessageEntity, UUID> {
 
-    @Query("""
-            SELECT message
-            FROM ChatMessageEntity message
-            WHERE message.conversationId = :conversationId
-              AND (:beforeCreatedAt IS NULL OR message.createdAt < :beforeCreatedAt)
-            ORDER BY message.createdAt DESC, message.messageId DESC
-            """)
-    List<ChatMessageEntity> findHistory(
-            @Param("conversationId") UUID conversationId,
-            @Param("beforeCreatedAt") Instant beforeCreatedAt,
+    List<ChatMessageEntity> findByConversationIdAndDeletedFalseOrderByCreatedAtDescMessageIdDesc(
+            UUID conversationId,
+            Pageable pageable
+    );
+
+    List<ChatMessageEntity> findByConversationIdAndDeletedFalseAndCreatedAtBeforeOrderByCreatedAtDescMessageIdDesc(
+            UUID conversationId,
+            Instant beforeCreatedAt,
             Pageable pageable
     );
 

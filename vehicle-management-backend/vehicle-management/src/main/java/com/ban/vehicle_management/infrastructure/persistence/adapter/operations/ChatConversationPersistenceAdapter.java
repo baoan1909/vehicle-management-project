@@ -3,9 +3,11 @@ package com.ban.vehicle_management.infrastructure.persistence.adapter.operations
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversationMember;
+import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversationParticipant;
 import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessage;
 import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessageAttachment;
 import com.ban.vehicle_management.infrastructure.mapper.operations.ChatConversationMemberPersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.operations.ChatConversationParticipantPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.operations.ChatConversationPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.operations.ChatMessageAttachmentPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.operations.ChatMessagePersistenceMapper;
@@ -47,6 +49,7 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
     private final CustomerRepository customerRepository;
     private final ChatConversationPersistenceMapper conversationMapper;
     private final ChatConversationMemberPersistenceMapper memberMapper;
+    private final ChatConversationParticipantPersistenceMapper participantMapper;
     private final ChatMessagePersistenceMapper messageMapper;
     private final ChatMessageAttachmentPersistenceMapper attachmentMapper;
 
@@ -59,6 +62,7 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
             CustomerRepository customerRepository,
             ChatConversationPersistenceMapper conversationMapper,
             ChatConversationMemberPersistenceMapper memberMapper,
+            ChatConversationParticipantPersistenceMapper participantMapper,
             ChatMessagePersistenceMapper messageMapper,
             ChatMessageAttachmentPersistenceMapper attachmentMapper
     ) {
@@ -70,6 +74,7 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
         this.customerRepository = customerRepository;
         this.conversationMapper = conversationMapper;
         this.memberMapper = memberMapper;
+        this.participantMapper = participantMapper;
         this.messageMapper = messageMapper;
         this.attachmentMapper = attachmentMapper;
     }
@@ -82,14 +87,18 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
 
     @Override
     public Optional<ChatConversation> findConversationById(UUID conversationId) {
-        return conversationRepository.findById(conversationId).map(conversationMapper::toDomain);
+        return conversationRepository.findById(conversationId)
+                .map(conversationMapper::toDomain)
+                .map(this::attachParticipants);
     }
 
     @Override
     public List<ChatConversation> findInboxConversations(UUID accountId) {
-        return conversationRepository.findInboxConversations(accountId).stream()
+        List<ChatConversation> conversations = conversationRepository.findInboxConversations(accountId).stream()
                 .map(conversationMapper::toDomain)
                 .toList();
+        attachParticipants(conversations);
+        return conversations;
     }
 
     @Override
@@ -165,11 +174,18 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
 
     @Override
     public List<ChatMessage> findMessageHistory(UUID conversationId, Instant beforeCreatedAt, int limit) {
-        List<ChatMessage> messages = messageRepository.findHistory(
+        PageRequest pageRequest = PageRequest.of(0, limit);
+        List<ChatMessageEntity> messageEntities = beforeCreatedAt == null
+                ? messageRepository.findByConversationIdAndDeletedFalseOrderByCreatedAtDescMessageIdDesc(
+                        conversationId,
+                        pageRequest
+                )
+                : messageRepository.findByConversationIdAndDeletedFalseAndCreatedAtBeforeOrderByCreatedAtDescMessageIdDesc(
                         conversationId,
                         beforeCreatedAt,
-                        PageRequest.of(0, limit)
-                )
+                        pageRequest
+                );
+        List<ChatMessage> messages = messageEntities
                 .stream()
                 .map(messageMapper::toDomain)
                 .toList();
@@ -246,6 +262,30 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
                 .collect(Collectors.groupingBy(ChatMessageAttachment::getMessageId));
         messages.forEach(message -> message.setAttachments(
                 attachmentsByMessageId.getOrDefault(message.getMessageId(), List.of())
+        ));
+    }
+
+    private ChatConversation attachParticipants(ChatConversation conversation) {
+        attachParticipants(List.of(conversation));
+        return conversation;
+    }
+
+    private void attachParticipants(List<ChatConversation> conversations) {
+        List<UUID> conversationIds = conversations.stream()
+                .map(ChatConversation::getConversationId)
+                .toList();
+        if (conversationIds.isEmpty()) {
+            return;
+        }
+
+        Map<UUID, List<ChatConversationParticipant>> participantsByConversationId = memberRepository
+                .findActiveParticipantsByConversationIds(conversationIds)
+                .stream()
+                .map(participantMapper::toDomain)
+                .collect(Collectors.groupingBy(ChatConversationParticipant::getConversationId));
+
+        conversations.forEach(conversation -> conversation.setParticipants(
+                participantsByConversationId.getOrDefault(conversation.getConversationId(), List.of())
         ));
     }
 }

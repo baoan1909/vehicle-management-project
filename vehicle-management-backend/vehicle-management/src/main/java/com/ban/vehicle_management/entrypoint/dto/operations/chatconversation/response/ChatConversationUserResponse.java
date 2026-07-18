@@ -2,6 +2,7 @@ package com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.re
 
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
+import java.util.List;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,4 +25,5 @@ public class ChatConversationUserResponse {
     private UUID relatedId;
     private UUID lastMessageId;
     private String lastMessageAt;
+    private List<ChatConversationParticipantUserResponse> participants;
 }
