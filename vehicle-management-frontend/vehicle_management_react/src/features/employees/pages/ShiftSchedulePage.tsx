@@ -794,8 +794,8 @@ function ShiftDetailDrawer({
                 <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-p-3 tw-text-[0.78rem] tw-font-bold tw-text-red-600">{actionError}</div>
               ) : null}
 
-              <Button disabled={savingAction || shift.isPlaceholder} type="submit">
-                {assignmentAction === "add" ? "Thêm phân công" : assignmentAction === "replace" ? "Thay nhân viên" : "Đổi ca trực"}
+              <Button disabled={shift.isPlaceholder} loading={savingAction} type="submit">
+                {savingAction ? "Đang lưu..." : assignmentAction === "add" ? "Thêm phân công" : assignmentAction === "replace" ? "Thay nhân viên" : "Đổi ca trực"}
               </Button>
             </form>
             <div className="tw-mt-4 tw-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-orange-100 tw-bg-orange-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-orange-700">

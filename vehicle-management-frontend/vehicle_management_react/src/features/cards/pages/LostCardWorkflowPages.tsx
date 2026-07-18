@@ -581,11 +581,12 @@ function PaymentConfirmModal({
             Đóng
           </button>
           <button
-            className="tw-min-h-10 tw-rounded-vm-lg tw-bg-vm-primary tw-px-4 tw-text-[0.9rem] tw-font-extrabold tw-text-white disabled:tw-bg-slate-200 disabled:tw-text-vm-slate-500"
+            className="tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-lg tw-bg-vm-primary tw-px-4 tw-text-[0.9rem] tw-font-extrabold tw-text-white disabled:tw-bg-slate-200 disabled:tw-text-vm-slate-500"
             disabled={isSubmitting}
             type="button"
             onClick={onSubmit}
           >
+            {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
             {isSubmitting ? "Đang xác nhận..." : "Xác nhận đã thanh toán"}
           </button>
         </div>
@@ -848,11 +849,12 @@ export function LostCardCreatePage() {
                 </ul>
               </section>
               <button
-                className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-rounded-vm-lg tw-bg-vm-primary tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white tw-shadow-[0_12px_22px_rgba(37,99,235,0.18)] hover:tw-bg-brand-700 hover:tw-text-white hover:tw-no-underline"
+                className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-lg tw-bg-vm-primary tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white tw-shadow-[0_12px_22px_rgba(37,99,235,0.18)] hover:tw-bg-brand-700 hover:tw-text-white hover:tw-no-underline"
                 disabled={isSubmitting}
                 type="button"
                 onClick={handleCreateReport}
               >
+                {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
                 {isSubmitting ? "Đang tạo phiếu..." : "Tạo phiếu và in biên bản"}
               </button>
             </aside>

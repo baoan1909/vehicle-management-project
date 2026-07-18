@@ -7,6 +7,7 @@ type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+  loading?: boolean;
   variant?: ButtonVariant;
   size?: ButtonSize;
 };
@@ -29,18 +30,23 @@ const sizeClassName: Record<ButtonSize, string> = {
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, size = "md", type = "button", variant = "primary", ...props }, ref) => (
+  ({ children, className, disabled, loading = false, size = "md", type = "button", variant = "primary", ...props }, ref) => (
     <button
       ref={ref}
       type={type}
+      aria-busy={loading || undefined}
       className={cn(
         "tw-inline-flex tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-font-semibold tw-transition tw-duration-150 focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus disabled:tw-pointer-events-none disabled:tw-cursor-not-allowed disabled:tw-opacity-60",
         sizeClassName[size],
         variantClassName[variant],
         className,
       )}
+      disabled={disabled || loading}
       {...props}
-    />
+    >
+      {loading ? <i className="fas fa-spinner fa-spin" aria-hidden="true" /> : null}
+      {children}
+    </button>
   ),
 );
 

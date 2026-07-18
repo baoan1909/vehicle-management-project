@@ -87,6 +87,7 @@ export function getCurrentUserFromStoredToken(): CurrentUser | null {
   return {
     ...tokenUser,
     ...cachedUser,
+    permissionCodes: undefined,
     role,
     roleLabel: role !== "UNKNOWN" ? getRoleLabel(role) : getRoleLabel(role, cachedUser.roleLabel ?? tokenUser.roleLabel)
   };
@@ -109,6 +110,7 @@ export function getCurrentUserFromAccessToken(accessToken: string): CurrentUser 
     role,
     avatarUrl: DEFAULT_USER_AVATAR_URL,
     email: payload.email,
+    permissionCodes: undefined,
     roleLabel: getRoleLabel(role),
   };
 }

@@ -13,6 +13,7 @@ export { Input } from "./Input";
 export { MetricCard } from "./MetricCard";
 export { Modal } from "./Modal";
 export { PaginationFooter } from "./PaginationFooter";
+export { SearchInput } from "./SearchInput";
 export { SelectMenu } from "./SelectMenu";
 export { StatusTabs } from "./StatusTabs";
 export { ToastProvider, useToast } from "./ToastProvider";

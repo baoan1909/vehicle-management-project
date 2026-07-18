@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.iam.account.model.result;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public record AccountProfileStatusResult(
@@ -16,7 +17,8 @@ public record AccountProfileStatusResult(
             String username,
             String email,
             String keycloakUserId,
-            String roleCode
+            String roleCode,
+            List<String> permissionCodes
     ) {
     }
 

@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { Badge, Button, Card, EntityAvatar, InfoBanner, SelectMenu } from "@/components/ui";
+import { Badge, Button, Card, EntityAvatar, InfoBanner, SearchInput, SelectMenu } from "@/components/ui";
+import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import { AccountCreateDrawer } from "../components/AccountCreateDrawer";
 import {
   getProvisionedAccounts,
+  updateProvisionedAccountRole,
+  updateProvisionedAccountStatus,
   type ProvisionedAccountResponse,
   type ProvisionedAccountRoleCode,
   type ProvisionedAccountStatus,
 } from "@/features/iam/api/provisionedAccountApi";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 
 type RoleCode = ProvisionedAccountRoleCode;
 type AccountStatus = ProvisionedAccountStatus;
@@ -28,6 +32,19 @@ type ProvisionedAccount = {
   updatedAt: string;
   username: string;
 };
+
+type AccountRoleChangeModalState = {
+  account: ProvisionedAccount;
+  roleCode: RoleCode;
+} | null;
+
+type AccountStatusChangeModalState = {
+  account: ProvisionedAccount;
+  reason: string;
+  status: AccountStatus;
+} | null;
+
+type AccountPermissionModalState = ProvisionedAccount | null;
 
 const roleOptions = [
   { label: "Tất cả vai trò", value: "all" },
@@ -52,6 +69,25 @@ const statusTabs: Array<{ label: string; value: AccountStatus | "all" }> = [
   { label: "LOCKED", value: "LOCKED" },
   { label: "DISABLED", value: "DISABLED" },
 ];
+
+const internalRoleCodes: RoleCode[] = ["SYSTEM_ADMIN", "PARKING_MANAGER", "EMPLOYEE"];
+const editableStatusOptions: AccountStatus[] = ["ACTIVE", "LOCKED", "DISABLED"];
+
+function isInternalRole(roleCode: RoleCode) {
+  return internalRoleCodes.includes(roleCode);
+}
+
+function canTransitionRole(currentRole: RoleCode, nextRole: RoleCode) {
+  return isInternalRole(currentRole) === isInternalRole(nextRole);
+}
+
+function canTransitionStatus(currentStatus: AccountStatus, nextStatus: AccountStatus) {
+  return !(currentStatus === "DISABLED" && nextStatus === "LOCKED");
+}
+
+function replaceAccount(accounts: ProvisionedAccount[], account: ProvisionedAccount) {
+  return accounts.map((currentAccount) => (currentAccount.accountId === account.accountId ? account : currentAccount));
+}
 
 const accounts: ProvisionedAccount[] = [
   {
@@ -250,7 +286,251 @@ function mapProvisionedAccount(response: ProvisionedAccountResponse): Provisione
   };
 }
 
+function AccountRoleChangeModal({
+  canUpdateAccount,
+  errorMessage,
+  isSaving,
+  modal,
+  onClose,
+  onRoleChange,
+  onSubmit,
+}: {
+  canUpdateAccount: boolean;
+  errorMessage: string;
+  isSaving: boolean;
+  modal: AccountRoleChangeModalState;
+  onClose: () => void;
+  onRoleChange: (roleCode: RoleCode) => void;
+  onSubmit: () => void;
+}) {
+  if (!modal) return null;
+
+  const availableOptions = roleOptions
+    .filter((option): option is { label: string; value: RoleCode } => option.value !== "all")
+    .map((option) => ({
+      ...option,
+      disabled: !canTransitionRole(modal.account.roleCode, option.value),
+      reason: !canTransitionRole(modal.account.roleCode, option.value) ? "Không hỗ trợ đổi giữa nhóm internal và customer." : "",
+    }));
+  const selectedOption = availableOptions.find((option) => option.value === modal.roleCode);
+  const cannotSubmit =
+    isSaving ||
+    modal.roleCode === modal.account.roleCode ||
+    !selectedOption ||
+    selectedOption.disabled ||
+    !canUpdateAccount;
+
+  return (
+    <div className="tw-fixed tw-inset-0 tw-z-[2300] tw-grid tw-place-items-center tw-bg-slate-950/45 tw-p-4" role="dialog" aria-modal="true" aria-labelledby="account-role-modal-title">
+      <div className="tw-w-full tw-max-w-[520px] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_28px_80px_rgba(15,23,42,0.24)]">
+        <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-5 tw-py-4">
+          <div>
+            <h3 id="account-role-modal-title" className="tw-m-0 tw-text-[1.08rem] tw-font-black tw-text-vm-slate-900">Đổi vai trò</h3>
+            <p className="tw-m-0 tw-mt-1 tw-text-[0.82rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-500">{modal.account.username}</p>
+          </div>
+          <button className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-vm-slate-600 hover:tw-bg-vm-slate-100" disabled={isSaving} onClick={onClose} type="button" aria-label="Đóng">
+            <i className="fas fa-times" />
+          </button>
+        </header>
+
+        <div className="tw-grid tw-gap-4 tw-px-5 tw-py-4">
+          <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
+              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Hiện tại</span>
+              <Badge tone={roleBadgeTone(modal.account.roleCode)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{modal.account.roleCode}</Badge>
+            </div>
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50 tw-p-3">
+              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Role mới</span>
+              <Badge tone={roleBadgeTone(modal.roleCode)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{modal.roleCode}</Badge>
+            </div>
+          </div>
+
+          <div>
+            <label className="tw-mb-1.5 tw-block tw-text-[0.78rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Chọn vai trò</label>
+            <SelectMenu
+              ariaLabel="Vai trò mới"
+              clearValue={modal.account.roleCode}
+              disabled={isSaving}
+              options={availableOptions.map((option) => ({ label: option.label, value: option.value }))}
+              value={modal.roleCode}
+              onChange={(value) => onRoleChange(value as RoleCode)}
+            />
+            {selectedOption?.disabled ? <p className="tw-m-0 tw-mt-2 tw-text-[0.78rem] tw-font-semibold tw-text-vm-danger">{selectedOption.reason}</p> : null}
+          </div>
+
+          <InfoBanner
+            tone="info"
+            title="Giới hạn theo backend"
+            description="Frontend chỉ mở thao tác khi role hiện tại có ACCOUNT_UPDATE_ALL; backend tiếp tục kiểm tra scope target role và không cho đổi giữa nhóm internal/customer."
+            icon={<i className="fas fa-shield-alt" />}
+          />
+          {errorMessage ? <InfoBanner tone="warning" title="Không thể đổi vai trò" description={errorMessage} icon={<i className="fas fa-exclamation-circle" />} /> : null}
+        </div>
+
+        <footer className="tw-flex tw-justify-end tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-5 tw-py-4">
+          <Button variant="secondary" disabled={isSaving} onClick={onClose}>Hủy</Button>
+          <Button variant="primary" disabled={cannotSubmit} loading={isSaving} onClick={onSubmit}>
+            {!isSaving ? <i className="fas fa-user-shield" /> : null}
+            {isSaving ? "Đang lưu..." : "Lưu vai trò"}
+          </Button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function AccountStatusChangeModal({
+  errorMessage,
+  isSaving,
+  modal,
+  onClose,
+  onReasonChange,
+  onStatusChange,
+  onSubmit,
+}: {
+  errorMessage: string;
+  isSaving: boolean;
+  modal: AccountStatusChangeModalState;
+  onClose: () => void;
+  onReasonChange: (reason: string) => void;
+  onStatusChange: (status: AccountStatus) => void;
+  onSubmit: () => void;
+}) {
+  if (!modal) return null;
+
+  const invalidTransition = !canTransitionStatus(modal.account.status, modal.status);
+  const cannotSubmit = isSaving || modal.status === modal.account.status || invalidTransition;
+
+  return (
+    <div className="tw-fixed tw-inset-0 tw-z-[2300] tw-grid tw-place-items-center tw-bg-slate-950/45 tw-p-4" role="dialog" aria-modal="true" aria-labelledby="account-status-modal-title">
+      <div className="tw-w-full tw-max-w-[540px] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_28px_80px_rgba(15,23,42,0.24)]">
+        <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-5 tw-py-4">
+          <div>
+            <h3 id="account-status-modal-title" className="tw-m-0 tw-text-[1.08rem] tw-font-black tw-text-vm-slate-900">Đổi trạng thái</h3>
+            <p className="tw-m-0 tw-mt-1 tw-text-[0.82rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-500">{modal.account.username}</p>
+          </div>
+          <button className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-vm-slate-600 hover:tw-bg-vm-slate-100" disabled={isSaving} onClick={onClose} type="button" aria-label="Đóng">
+            <i className="fas fa-times" />
+          </button>
+        </header>
+
+        <div className="tw-grid tw-gap-4 tw-px-5 tw-py-4">
+          <div className="tw-flex tw-flex-wrap tw-gap-2">
+            {editableStatusOptions.map((status) => {
+              const disabled = !canTransitionStatus(modal.account.status, status);
+              const selected = modal.status === status;
+
+              return (
+                <button
+                  className={cn(
+                    "tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.82rem] tw-font-extrabold tw-transition disabled:tw-cursor-not-allowed disabled:tw-opacity-55",
+                    selected ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary" : "tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-700 hover:tw-border-brand-100",
+                  )}
+                  disabled={disabled || isSaving}
+                  key={status}
+                  onClick={() => onStatusChange(status)}
+                  type="button"
+                >
+                  {status}
+                </button>
+              );
+            })}
+          </div>
+
+          {invalidTransition ? (
+            <InfoBanner tone="warning" title="Chuyển trạng thái không hợp lệ" description="Không cho chuyển tài khoản từ DISABLED sang LOCKED." icon={<i className="fas fa-ban" />} />
+          ) : null}
+
+          <label className="tw-grid tw-gap-1.5">
+            <span className="tw-text-[0.78rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Lý do</span>
+            <textarea
+              className="tw-min-h-[92px] tw-resize-none tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-py-2 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_4px_rgba(37,99,235,0.08)]"
+              disabled={isSaving}
+              maxLength={255}
+              onChange={(event) => onReasonChange(event.target.value)}
+              placeholder="Nhập lý do cập nhật trạng thái..."
+              value={modal.reason}
+            />
+          </label>
+
+          <InfoBanner tone="info" title="PENDING không hỗ trợ cập nhật thủ công" description="Tài khoản cấp sẵn chỉ có thể cập nhật sang ACTIVE, LOCKED hoặc DISABLED." icon={<i className="fas fa-info-circle" />} />
+          {errorMessage ? <InfoBanner tone="warning" title="Không thể đổi trạng thái" description={errorMessage} icon={<i className="fas fa-exclamation-circle" />} /> : null}
+        </div>
+
+        <footer className="tw-flex tw-justify-end tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-5 tw-py-4">
+          <Button variant="secondary" disabled={isSaving} onClick={onClose}>Hủy</Button>
+          <Button variant="primary" disabled={cannotSubmit} loading={isSaving} onClick={onSubmit}>
+            {!isSaving ? <i className="fas fa-toggle-on" /> : null}
+            {isSaving ? "Đang lưu..." : "Lưu trạng thái"}
+          </Button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+function AccountPermissionModal({
+  account,
+  onClose,
+}: {
+  account: AccountPermissionModalState;
+  onClose: () => void;
+}) {
+  if (!account) return null;
+
+  return (
+    <div className="tw-fixed tw-inset-0 tw-z-[2300] tw-grid tw-place-items-center tw-bg-slate-950/45 tw-p-4" role="dialog" aria-modal="true" aria-labelledby="account-permission-modal-title">
+      <div className="tw-flex tw-max-h-[min(680px,calc(100vh-32px))] tw-w-full tw-max-w-[720px] tw-flex-col tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_28px_80px_rgba(15,23,42,0.24)]">
+        <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-5 tw-py-4">
+          <div className="tw-min-w-0">
+            <h3 id="account-permission-modal-title" className="tw-m-0 tw-text-[1.08rem] tw-font-black tw-text-vm-slate-900">Quyền của tài khoản</h3>
+            <p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.82rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-500">{account.username}</p>
+          </div>
+          <button className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-vm-slate-600 hover:tw-bg-vm-slate-100" onClick={onClose} type="button" aria-label="Đóng">
+            <i className="fas fa-times" />
+          </button>
+        </header>
+
+        <div className="tw-grid tw-gap-4 tw-overflow-y-auto tw-px-5 tw-py-4">
+          <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-[640px]:tw-grid-cols-1">
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
+              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Vai trò</span>
+              <Badge tone={roleBadgeTone(account.roleCode)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{account.roleCode}</Badge>
+            </div>
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
+              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Trạng thái</span>
+              <Badge tone={statusBadgeTone(account.status)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{account.status}</Badge>
+            </div>
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
+              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Tổng quyền</span>
+              <strong className="tw-mt-2 tw-block tw-text-[1.35rem] tw-font-black tw-leading-none tw-text-vm-slate-900">{account.permissionCount}</strong>
+            </div>
+          </div>
+
+          {account.permissionCodes.length > 0 ? (
+            <div className="tw-grid tw-grid-cols-2 tw-gap-2.5 max-[640px]:tw-grid-cols-1">
+              {account.permissionCodes.map((permission) => (
+                <div key={permission} className="tw-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-py-2 tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-800">
+                  <i className="fas fa-check-circle tw-text-[0.82rem] tw-text-green-600" />
+                  <span className="tw-min-w-0 tw-truncate">{permission}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <InfoBanner tone="info" title="Chưa có quyền" description="Vai trò hiện tại chưa trả về danh sách quyền cho tài khoản này." icon={<i className="far fa-folder-open" />} />
+          )}
+        </div>
+
+        <footer className="tw-flex tw-justify-end tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-5 tw-py-4">
+          <Button variant="secondary" onClick={onClose}>Đóng</Button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
 export function AccountListPage() {
+  const { user } = useAuth();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [accountItems, setAccountItems] = useState<ProvisionedAccount[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState("");
@@ -259,6 +539,13 @@ export function AccountListPage() {
   const [selectedStatus, setSelectedStatus] = useState<AccountStatus | "all">("all");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [roleModal, setRoleModal] = useState<AccountRoleChangeModalState>(null);
+  const [statusModal, setStatusModal] = useState<AccountStatusChangeModalState>(null);
+  const [permissionModal, setPermissionModal] = useState<AccountPermissionModalState>(null);
+  const [isActionSaving, setIsActionSaving] = useState(false);
+  const [actionErrorMessage, setActionErrorMessage] = useState("");
+  const canCreateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_CREATE_ALL"]);
+  const canUpdateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_UPDATE_ALL"]);
 
   async function loadAccounts() {
     setIsLoading(true);
@@ -325,6 +612,65 @@ export function AccountListPage() {
     username: "Chưa có dữ liệu",
   };
   const activeAccount = selectedAccount ?? emptyAccount;
+  const canManageActiveAccount = canUpdateProvisionedAccount && activeAccount.accountId !== "-";
+
+  function openRoleModal(account: ProvisionedAccount) {
+    if (!canUpdateProvisionedAccount) return;
+    setActionErrorMessage("");
+    setRoleModal({ account, roleCode: account.roleCode });
+  }
+
+  function openStatusModal(account: ProvisionedAccount) {
+    if (!canUpdateProvisionedAccount) return;
+    const defaultStatus = account.status === "ACTIVE" ? "LOCKED" : "ACTIVE";
+    setActionErrorMessage("");
+    setStatusModal({
+      account,
+      reason: "",
+      status: canTransitionStatus(account.status, defaultStatus) ? defaultStatus : "ACTIVE",
+    });
+  }
+
+  async function submitRoleChange() {
+    if (!roleModal) return;
+
+    setIsActionSaving(true);
+    setActionErrorMessage("");
+
+    try {
+      const response = await updateProvisionedAccountRole(roleModal.account.accountId, { roleCode: roleModal.roleCode });
+      const mappedAccount = mapProvisionedAccount(response.data);
+      setAccountItems((currentAccounts) => replaceAccount(currentAccounts, mappedAccount));
+      setSelectedAccountId(mappedAccount.accountId);
+      setRoleModal(null);
+    } catch (error) {
+      setActionErrorMessage(error instanceof Error ? error.message : "Không thể đổi vai trò tài khoản.");
+    } finally {
+      setIsActionSaving(false);
+    }
+  }
+
+  async function submitStatusChange() {
+    if (!statusModal) return;
+
+    setIsActionSaving(true);
+    setActionErrorMessage("");
+
+    try {
+      const response = await updateProvisionedAccountStatus(statusModal.account.accountId, {
+        reason: statusModal.reason.trim() || undefined,
+        status: statusModal.status,
+      });
+      const mappedAccount = mapProvisionedAccount(response.data);
+      setAccountItems((currentAccounts) => replaceAccount(currentAccounts, mappedAccount));
+      setSelectedAccountId(mappedAccount.accountId);
+      setStatusModal(null);
+    } catch (error) {
+      setActionErrorMessage(error instanceof Error ? error.message : "Không thể đổi trạng thái tài khoản.");
+    } finally {
+      setIsActionSaving(false);
+    }
+  }
 
   return (
     <>
@@ -339,7 +685,7 @@ export function AccountListPage() {
               </a>
             </div>
             <div className="tw-flex tw-flex-shrink-0 tw-items-center tw-gap-3">
-              <Button size="lg" variant="primary" onClick={() => setDrawerOpen(true)}>
+              <Button size="lg" variant="primary" disabled={!canCreateProvisionedAccount} onClick={() => setDrawerOpen(true)}>
                 <i className="fas fa-plus" />
                 Tạo tài khoản
               </Button>
@@ -365,15 +711,13 @@ export function AccountListPage() {
                 <p className="tw-m-0 tw-mt-1 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Lọc theo username, vai trò và trạng thái tài khoản cấp sẵn.</p>
               </div>
               <div className="tw-grid tw-flex-1 tw-grid-cols-[minmax(260px,1.5fr)_190px_190px_auto] tw-items-center tw-gap-3 max-[1180px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">
-                <div className="tw-flex tw-h-[42px] tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3">
-                  <i className="fas fa-search tw-text-[0.82rem] tw-text-vm-slate-500" />
-                  <input
-                    className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none placeholder:tw-text-vm-slate-500"
-                    value={keyword}
-                    onChange={(event) => setKeyword(event.target.value)}
-                    placeholder="Tìm username, email..."
-                  />
-                </div>
+                <SearchInput
+                  aria-label="Tìm tài khoản"
+                  containerClassName="tw-h-[42px]"
+                  onChange={setKeyword}
+                  placeholder="Tìm username, email..."
+                  value={keyword}
+                />
                 <SelectMenu ariaLabel="Vai trò tài khoản" value={selectedRole} options={roleOptions} onChange={setSelectedRole} />
                 <SelectMenu ariaLabel="Trạng thái tài khoản" value={selectedStatus} options={statusOptions} onChange={(value) => setSelectedStatus(value as AccountStatus | "all")} />
                 <Button
@@ -408,13 +752,6 @@ export function AccountListPage() {
                   {tab.label}
                 </button>
               ))}
-              <span className="tw-ml-auto tw-flex tw-flex-wrap tw-gap-2 max-[1180px]:tw-ml-0">
-                {["ACCOUNT_READ_ALL", "ACCOUNT_CREATE_ALL", "ACCOUNT_UPDATE_ALL"].map((permission) => (
-                  <Badge key={permission} tone="primary" className="tw-rounded-full tw-px-2 tw-text-[0.65rem]">
-                    {permission}
-                  </Badge>
-                ))}
-              </span>
             </div>
           </Card>
 
@@ -436,7 +773,7 @@ export function AccountListPage() {
               <div className="tw-max-h-[470px] tw-overflow-y-auto tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden">
                 {isLoading ? (
                   <div className="tw-p-4">
-                    <InfoBanner tone="info" title="Đang tải dữ liệu" description="Hệ thống đang lấy danh sách tài khoản từ backend." icon={<i className="fas fa-spinner fa-spin" />} />
+                    <InfoBanner tone="info" title="Đang tải dữ liệu" description="Hệ thống đang lấy danh sách tài khoản." icon={<i className="fas fa-spinner fa-spin" />} />
                   </div>
                 ) : null}
                 {errorMessage ? (
@@ -502,27 +839,16 @@ export function AccountListPage() {
                 ))}
               </div>
 
-              <div className="tw-mt-5">
-                <h3 className="tw-m-0 tw-text-[0.92rem] tw-font-extrabold tw-text-vm-slate-900">Quyền nổi bật</h3>
-                <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
-                  {activeAccount.permissionCodes.map((permission) => (
-                    <Badge key={permission} tone="primary" className="tw-rounded-full tw-px-2 tw-text-[0.65rem]">
-                      {permission}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
               <div className="tw-mt-auto tw-grid tw-grid-cols-1 tw-gap-3 tw-pt-5">
-                <Button variant="secondary">
+                <Button variant="secondary" disabled={!canManageActiveAccount} onClick={() => openRoleModal(activeAccount)}>
                   <i className="fas fa-user-shield" />
                   Đổi vai trò
                 </Button>
-                <Button variant="secondary">
+                <Button variant="secondary" disabled={!canManageActiveAccount} onClick={() => openStatusModal(activeAccount)}>
                   <i className="fas fa-toggle-on" />
                   Đổi trạng thái
                 </Button>
-                <Button variant="primary">
+                <Button variant="primary" disabled={activeAccount.accountId === "-"} onClick={() => setPermissionModal(activeAccount)}>
                   <i className="fas fa-key" />
                   Xem quyền
                 </Button>
@@ -533,8 +859,8 @@ export function AccountListPage() {
           <InfoBanner
             className="tw-mt-4"
             tone="info"
-            title="Tạo mới, đổi vai trò và đổi trạng thái sẽ mở bằng drawer/modal để tránh quá tải màn hình."
-            description="Trang chính tập trung vào quan sát, lọc và chọn tài khoản; thao tác phức tạp được tách riêng."
+            title="Quản lý tài khoản theo quyền"
+            description="Trang và nút thao tác được mở theo ACCOUNT_READ_ALL, ACCOUNT_CREATE_ALL, ACCOUNT_UPDATE_ALL của role hiện tại; backend vẫn giữ scope target role cho API provisioned account."
             icon={<i className="fas fa-info-circle" />}
           />
         </section>
@@ -549,6 +875,29 @@ export function AccountListPage() {
           setSelectedAccountId(mappedAccount.accountId);
         }}
       />
+      <AccountRoleChangeModal
+        canUpdateAccount={canUpdateProvisionedAccount}
+        errorMessage={actionErrorMessage}
+        isSaving={isActionSaving}
+        modal={roleModal}
+        onClose={() => {
+          if (!isActionSaving) setRoleModal(null);
+        }}
+        onRoleChange={(roleCode) => setRoleModal((currentValue) => (currentValue ? { ...currentValue, roleCode } : currentValue))}
+        onSubmit={() => void submitRoleChange()}
+      />
+      <AccountStatusChangeModal
+        errorMessage={actionErrorMessage}
+        isSaving={isActionSaving}
+        modal={statusModal}
+        onClose={() => {
+          if (!isActionSaving) setStatusModal(null);
+        }}
+        onReasonChange={(reason) => setStatusModal((currentValue) => (currentValue ? { ...currentValue, reason } : currentValue))}
+        onStatusChange={(status) => setStatusModal((currentValue) => (currentValue ? { ...currentValue, status } : currentValue))}
+        onSubmit={() => void submitStatusChange()}
+      />
+      <AccountPermissionModal account={permissionModal} onClose={() => setPermissionModal(null)} />
     </>
   );
 }

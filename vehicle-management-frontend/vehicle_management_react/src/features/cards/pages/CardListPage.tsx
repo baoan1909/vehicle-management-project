@@ -312,11 +312,12 @@ function CardEditorModal({
             Hủy
           </button>
           <button
-            className="tw-inline-flex tw-min-h-10 tw-items-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-font-bold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60"
+            className="tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-font-bold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60"
             disabled={isSaving || !canSubmit}
             type="button"
             onClick={() => onSubmit({ cardNumber: form.cardNumber.trim(), cardTypeId: form.cardTypeId, uid: form.uid.trim() })}
           >
+            {isSaving ? <i className="fas fa-spinner fa-spin" /> : null}
             {isSaving ? "Đang lưu..." : "Lưu thẻ"}
           </button>
         </div>
@@ -425,11 +426,12 @@ function CardActionModal({
             Hủy
           </button>
           <button
-            className={`tw-inline-flex tw-min-h-10 tw-items-center tw-rounded-vm-md tw-border tw-border-solid tw-px-4 tw-font-bold disabled:tw-cursor-not-allowed disabled:tw-opacity-60 ${meta.confirmClassName}`}
+            className={`tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-px-4 tw-font-bold disabled:tw-cursor-not-allowed disabled:tw-opacity-60 ${meta.confirmClassName}`}
             disabled={isSaving || !canSubmit}
             type="button"
             onClick={() => onSubmit(reason.trim())}
           >
+            {isSaving ? <i className="fas fa-spinner fa-spin" /> : null}
             {isSaving ? "Đang xử lý..." : meta.confirmLabel}
           </button>
         </div>

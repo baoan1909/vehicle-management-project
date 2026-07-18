@@ -57,11 +57,14 @@ export const apiEndpoints = {
     accounts: "/accounts",
     provisionedAccounts: "/iam/accounts/provisioned",
     accountProfile: {
+      currentAccess: "/iam/accounts/current-access",
       onboarding: "/iam/accounts/onboarding",
       profile: "/iam/accounts/profile",
       avatar: "/iam/accounts/profile/avatar",
     },
-    roles: "/roles",
+    permissions: "/permissions",
+    rolePermissions: (roleId: string) => `/roles/${roleId}/permissions`,
+    roles: "/iam/roles",
   },
   people: {
     customerVehicles: "/people/customer-vehicles",

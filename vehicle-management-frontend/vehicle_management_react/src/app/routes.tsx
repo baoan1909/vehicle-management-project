@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
+import { getRoutePermissions } from "@/app/routePermissions";
 import type { AppLayout } from "@/shared/types/common";
 import { LoginPage } from "@/features/auth";
 import { CardListPage, LostCardCreatePage, LostCardDetailPage, LostCardListPage } from "@/features/cards";
@@ -28,6 +29,7 @@ export interface RouteDefinition {
   title: string;
   layout: AppLayout;
   element: ReactNode;
+  permissions?: string[];
 }
 
 function BlankPage() {
@@ -36,7 +38,7 @@ function BlankPage() {
 
 const blankPage = <BlankPage />;
 
-export const routes: RouteDefinition[] = [
+const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/dashboard", title: "Tong quan", layout: "admin", element: <DashboardPage /> },
   { path: "/api/dashboard/overview", title: "Tong quan", layout: "admin", element: <Navigate to="/admin/dashboard" replace /> },
   { path: "/admin/swipe", title: "Quan ly vao ra", layout: "admin", element: <SwipeListPage /> },
@@ -87,3 +89,8 @@ export const routes: RouteDefinition[] = [
   { path: "/forgot-password/otp", title: "OTP", layout: "auth", element: <Navigate to="/forgot-password" replace /> },
   { path: "/recover-password", title: "Recover", layout: "auth", element: <Navigate to="/forgot-password" replace /> },
 ];
+
+export const routes: RouteDefinition[] = routeDefinitions.map((route) => ({
+  ...route,
+  permissions: getRoutePermissions(route.path),
+}));

@@ -1,7 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { buildKeycloakLogoutUrl } from "@/features/auth/api/authApi";
-import { clearAuthTokens, getIdToken } from "@/core/auth/session";
+import { logoutCurrentUser } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
 
 export const publicContactItems = [
@@ -105,11 +104,8 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   }, []);
 
   function handleLogout() {
-    const logoutUrl = buildKeycloakLogoutUrl(getIdToken());
-    clearAuthTokens();
-    setUser(null);
     setProfileOpen(false);
-    window.location.assign(logoutUrl);
+    logoutCurrentUser(setUser);
   }
 
   return (

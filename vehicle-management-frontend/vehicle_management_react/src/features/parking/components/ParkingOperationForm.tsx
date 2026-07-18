@@ -334,8 +334,8 @@ export function ParkingOperationForm({
           </div>
         ) : null}
 
-        <Button className="tw-h-[48px] tw-w-full tw-text-[0.96rem] tw-font-extrabold" size="lg" disabled={!canSubmit} onClick={onSubmit}>
-          <i className="far fa-check-circle tw-text-[1.18rem]" />
+        <Button className="tw-h-[48px] tw-w-full tw-text-[0.96rem] tw-font-extrabold" size="lg" disabled={!canSubmit} loading={isSubmitting} onClick={onSubmit}>
+          {!isSubmitting ? <i className="far fa-check-circle tw-text-[1.18rem]" /> : null}
           {isSubmitting ? "Đang xử lý..." : isCheckIn ? "Xác nhận check-in" : "Xác nhận check-out"}
         </Button>
       </CardContent>

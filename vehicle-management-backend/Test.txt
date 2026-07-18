@@ -175,3 +175,4 @@ Status card đang dùng:
 	BLOCKED
 	DAMAGED
 	RETIRED
+----------------------------------------------------

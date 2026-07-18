@@ -1031,9 +1031,9 @@ export function CustomerListPage() {
             <Button variant="secondary" onClick={() => setEditOpen(false)} disabled={submitting}>
               Hủy
             </Button>
-            <Button onClick={handleSaveCustomer} disabled={submitting}>
-              <i className="fas fa-save" />
-              Lưu thay đổi
+            <Button onClick={handleSaveCustomer} loading={submitting}>
+              {!submitting ? <i className="fas fa-save" /> : null}
+              {submitting ? "Đang lưu..." : "Lưu thay đổi"}
             </Button>
           </div>
         }
@@ -1136,9 +1136,9 @@ export function CustomerListPage() {
                     Hủy sửa
                   </Button>
                 ) : null}
-                <Button size="sm" onClick={handleSaveVehicle} disabled={submitting}>
-                  <i className="fas fa-save" />
-                  {editingVehicle ? "Lưu xe" : "Thêm xe"}
+                <Button size="sm" onClick={handleSaveVehicle} loading={submitting}>
+                  {!submitting ? <i className="fas fa-save" /> : null}
+                  {submitting ? "Đang lưu..." : editingVehicle ? "Lưu xe" : "Thêm xe"}
                 </Button>
               </div>
             </div>

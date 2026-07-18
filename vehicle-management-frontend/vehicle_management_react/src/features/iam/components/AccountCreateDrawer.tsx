@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { Badge, Button, InfoBanner } from "@/components/ui";
+import { Badge, Button, InfoBanner, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import {
@@ -8,10 +8,10 @@ import {
   type ProvisionedAccountResponse,
   type ProvisionedAccountRoleCode,
 } from "@/features/iam/api/provisionedAccountApi";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 import type { CurrentUser } from "@/shared/types/common";
 
 type DrawerPhase = "opening" | "open" | "closing";
-type AccountStatus = "ACTIVE" | "LOCKED" | "DISABLED" | "PENDING";
 
 type AccountCreateDrawerProps = {
   isOpen: boolean;
@@ -28,7 +28,6 @@ const roleOptions: Array<{ code: ProvisionedAccountRoleCode; description: string
   { code: "CUSTOMER", description: "Tài khoản cổng khách hàng", label: "Khách hàng" },
 ];
 
-const statusOptions: AccountStatus[] = ["PENDING", "ACTIVE", "LOCKED", "DISABLED"];
 const initialForm = {
   email: "",
   fullName: "",
@@ -53,15 +52,15 @@ function getDefaultRole(availableRoles: typeof roleOptions): ProvisionedAccountR
 
 export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreateDrawerProps) {
   const { user } = useAuth();
+  const toast = useToast();
+  const canCreateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_CREATE_ALL"]);
   const manageableRoleOptions = useMemo(() => getManageableRoleOptions(user?.role ?? "UNKNOWN"), [user?.role]);
   const [isRendered, setIsRendered] = useState(isOpen);
   const [phase, setPhase] = useState<DrawerPhase>(isOpen ? "open" : "closing");
   const [selectedRole, setSelectedRole] = useState<ProvisionedAccountRoleCode>("EMPLOYEE");
-  const [selectedStatus, setSelectedStatus] = useState<AccountStatus>("PENDING");
   const [form, setForm] = useState(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -109,8 +108,9 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
   }
 
   async function handleSubmit() {
+    if (!canCreateProvisionedAccount || manageableRoleOptions.length === 0) return;
+
     setErrorMessage("");
-    setSuccessMessage("");
     setIsSubmitting(true);
 
     try {
@@ -121,10 +121,9 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
         username: form.username,
       });
       onCreated?.(response.data);
-      setSuccessMessage(response.message);
+      toast.success(response.message || "Đã tạo tài khoản.", "Tạo tài khoản thành công");
       setForm(initialForm);
       setSelectedRole(getDefaultRole(manageableRoleOptions));
-      setSelectedStatus("PENDING");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể tạo tài khoản cấp sẵn.");
     } finally {
@@ -155,10 +154,10 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
         <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-5 tw-py-4">
           <div className="tw-min-w-0">
             <h2 id="account-create-drawer-title" className="tw-m-0 tw-text-[1.18rem] tw-font-extrabold tw-text-vm-slate-900">
-              Tạo tài khoản cấp sẵn
+              Tạo tài khoản
             </h2>
             <p className="tw-m-0 tw-mt-1.5 tw-text-[0.84rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-500">
-              Tạo tài khoản nội bộ và gán vai trò ban đầu.
+              Tạo tài khoản và gán vai trò ban đầu theo phạm vi được phân quyền.
             </p>
           </div>
           <button
@@ -198,7 +197,9 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
             <div className="tw-mt-4 tw-grid tw-gap-2.5">
               {manageableRoleOptions.length === 0 ? (
                 <div className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500">
-                  Tài khoản hiện tại chưa có quyền tạo tài khoản cấp sẵn.
+                  {canCreateProvisionedAccount
+                    ? "Backend provisioned account hien chi ho tro scope role he thong; custom role can API scope rieng o phase sau."
+                    : "Tai khoan hien tai chua co ACCOUNT_CREATE_ALL de tao tai khoan cap san."}
                 </div>
               ) : null}
               {manageableRoleOptions.map((role) => {
@@ -235,30 +236,6 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
             </div>
           </section>
 
-          <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4">
-            <h3 className="tw-m-0 tw-text-[0.96rem] tw-font-extrabold tw-text-vm-slate-900">Trạng thái khởi tạo</h3>
-            <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
-              {statusOptions.map((status) => (
-                <button
-                  className={cn(
-                    "tw-h-9 tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.78rem] tw-font-extrabold tw-transition",
-                    selectedStatus === status
-                      ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary"
-                      : "tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-700 hover:tw-border-brand-100 hover:tw-bg-vm-slate-25",
-                  )}
-                  key={status}
-                  type="button"
-                  onClick={() => setSelectedStatus(status)}
-                >
-                  {status}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {successMessage ? (
-            <InfoBanner tone="success" title="Tạo tài khoản thành công" description={successMessage} icon={<i className="fas fa-check-circle" />} />
-          ) : null}
           {errorMessage ? (
             <InfoBanner tone="warning" title="Không thể tạo tài khoản" description={errorMessage} icon={<i className="fas fa-exclamation-circle" />} />
           ) : null}
@@ -266,8 +243,8 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
 
         <footer className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-5 tw-py-4">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button variant="primary" onClick={handleSubmit} disabled={isSubmitting || manageableRoleOptions.length === 0}>
-            <i className="fas fa-plus" />
+          <Button variant="primary" onClick={handleSubmit} disabled={!canCreateProvisionedAccount || manageableRoleOptions.length === 0} loading={isSubmitting}>
+            {!isSubmitting ? <i className="fas fa-plus" /> : null}
             {isSubmitting ? "Đang tạo..." : "Tạo tài khoản"}
           </Button>
         </footer>

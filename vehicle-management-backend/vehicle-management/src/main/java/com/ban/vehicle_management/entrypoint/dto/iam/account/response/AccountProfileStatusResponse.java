@@ -2,6 +2,7 @@ package com.ban.vehicle_management.entrypoint.dto.iam.account.response;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -18,7 +19,8 @@ public record AccountProfileStatusResponse(
             String username,
             String email,
             String keycloakUserId,
-            String roleCode
+            String roleCode,
+            List<String> permissionCodes
     ) {
     }
 

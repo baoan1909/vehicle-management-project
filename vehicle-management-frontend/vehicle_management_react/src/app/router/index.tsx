@@ -1,9 +1,12 @@
 import { useEffect } from "react";
+import type { ReactNode } from "react";
+import { canAccessAdminRoute, getFirstAccessibleAdminPath, getRoutePermissions } from "@/app/routePermissions";
 import { routes } from "@/app/routes";
 import { useAuth } from "@/core/auth/useAuth";
+import { hasResolvedPermissions } from "@/shared/auth/permissions";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
 import { ClientLayout } from "@/shared/components/layout/ClientLayout";
-import { PageTransitionLoader } from "@/shared/components/ui/PageTransitionLoader";
+import { FullPageCarLoader, PageTransitionLoader } from "@/shared/components/ui/PageTransitionLoader";
 import type { AppLayout } from "@/shared/types/common";
 import {
   createBrowserRouter,
@@ -48,6 +51,10 @@ function RouteDocument({ layout }: { layout: AppLayout }) {
 function AdminShell() {
   const { user } = useAuth();
 
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   if (user?.role === "CUSTOMER") {
     return <Navigate to="/customer/dashboard" replace />;
   }
@@ -61,6 +68,43 @@ function AdminShell() {
       </AdminLayout>
     </>
   );
+}
+
+function AdminPermissionLoading() {
+  return <FullPageCarLoader label="Đang tải quyền truy cập..." />;
+}
+
+function AdminIndexRedirect() {
+  const { isAccessLoading, user } = useAuth();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user && !hasResolvedPermissions(user) && isAccessLoading) {
+    return <AdminPermissionLoading />;
+  }
+
+  return <Navigate to={getFirstAccessibleAdminPath(user)} replace />;
+}
+
+function AdminRouteGate({ element, path }: { element: ReactNode; path: string }) {
+  const { isAccessLoading, user } = useAuth();
+  const permissions = getRoutePermissions(path);
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (permissions.length > 0 && user && !hasResolvedPermissions(user) && isAccessLoading) {
+    return <AdminPermissionLoading />;
+  }
+
+  if (!canAccessAdminRoute(user, path)) {
+    return <Navigate to={getFirstAccessibleAdminPath(user)} replace />;
+  }
+
+  return <>{element}</>;
 }
 
 function ClientShell() {
@@ -99,7 +143,7 @@ const adminRoutes = routes
   .filter((route) => route.layout === "admin" && route.path.startsWith("/admin/"))
   .map((route) => ({
     path: route.path.replace(/^\/admin\//, ""),
-    element: route.element,
+    element: <AdminRouteGate path={route.path} element={route.element} />,
     handle: { title: route.title },
   }));
 
@@ -107,7 +151,7 @@ const apiAdminRoutes = routes
   .filter((route) => route.layout === "admin" && route.path.startsWith("/api/"))
   .map((route) => ({
     path: route.path.replace(/^\/api\//, ""),
-    element: route.element,
+    element: <AdminRouteGate path={route.path} element={route.element} />,
     handle: { title: route.title },
   }));
 
@@ -131,7 +175,7 @@ const fullscreenRoutes = routes
   .filter((route) => route.layout === "fullscreen")
   .map((route) => ({
     path: route.path.replace(/^\//, ""),
-    element: route.element,
+    element: route.path.startsWith("/admin/") ? <AdminRouteGate path={route.path} element={route.element} /> : route.element,
     handle: { title: route.title },
   }));
 
@@ -144,7 +188,7 @@ const router = createBrowserRouter([
     path: "/admin",
     element: <AdminShell />,
     children: [
-      { index: true, element: <Navigate to="/admin/dashboard" replace /> },
+      { index: true, element: <AdminIndexRedirect /> },
       ...adminRoutes,
     ],
   },

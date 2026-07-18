@@ -556,7 +556,7 @@ function EmployeeEditDrawer({
       actions={
         <div className="tw-grid tw-grid-cols-2 tw-gap-3">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button disabled={isSubmitting} onClick={handleSave}>{isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}</Button>
+          <Button loading={isSubmitting} onClick={handleSave}>{isSubmitting ? "Đang lưu..." : "Lưu thay đổi"}</Button>
         </div>
       }
     >

@@ -1,4 +1,4 @@
-export type PermissionAction = "create" | "read" | "update" | "delete" | "assign" | "unassign";
+export type PermissionAction = string;
 
 export type PermissionFilter = "all" | "own" | "public" | "assigned" | "lot";
 
@@ -7,6 +7,7 @@ export type PermissionState = "granted" | "empty" | "locked";
 export type RoleKind = "system" | "custom";
 
 export type RolePermissionRecord = {
+  active: boolean;
   code: string;
   description: string;
   editable: boolean;
@@ -52,6 +53,7 @@ export const rolePermissionRoles: RolePermissionRecord[] = [
   {
     id: "system-admin",
     code: "SYSTEM_ADMIN",
+    active: true,
     description: "Role hệ thống",
     kind: "system",
     locked: true,
@@ -61,6 +63,7 @@ export const rolePermissionRoles: RolePermissionRecord[] = [
   {
     id: "parking-manager",
     code: "PARKING_MANAGER",
+    active: true,
     description: "Role hệ thống",
     kind: "system",
     locked: true,
@@ -70,6 +73,7 @@ export const rolePermissionRoles: RolePermissionRecord[] = [
   {
     id: "employee",
     code: "EMPLOYEE",
+    active: true,
     description: "Role hệ thống",
     kind: "system",
     locked: true,
@@ -79,6 +83,7 @@ export const rolePermissionRoles: RolePermissionRecord[] = [
   {
     id: "customer",
     code: "CUSTOMER",
+    active: true,
     description: "Role hệ thống",
     kind: "system",
     locked: true,
@@ -88,6 +93,7 @@ export const rolePermissionRoles: RolePermissionRecord[] = [
   {
     id: "supervisor-custom",
     code: "SUPERVISOR_CUSTOM",
+    active: true,
     description: "Role tùy chỉnh",
     kind: "custom",
     locked: false,

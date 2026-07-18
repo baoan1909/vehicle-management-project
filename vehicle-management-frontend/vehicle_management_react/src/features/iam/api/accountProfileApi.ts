@@ -16,6 +16,7 @@ export type AccountProfileStatusResponse = {
     accountStatus?: string;
     email?: string;
     keycloakUserId?: string;
+    permissionCodes?: string[];
     roleCode?: string;
     roleName?: string;
     username?: string;

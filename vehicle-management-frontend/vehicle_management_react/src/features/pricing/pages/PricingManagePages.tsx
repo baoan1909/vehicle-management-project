@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { DatePicker } from "@/components/ui";
+import { DatePicker, SearchInput } from "@/components/ui";
 import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 import { SelectMenu, type SelectMenuOption } from "@/shared/components/ui/SelectMenu";
 import { cn } from "@/lib/cn";
@@ -647,29 +647,6 @@ function TicketTypeBadge({ value }: { value: PriceRuleRecord["ticketTypeCode"] }
   };
 
   return <span className={cn("tw-inline-flex tw-min-h-6 tw-items-center tw-rounded-full tw-px-[0.65rem] tw-text-[0.72rem] tw-font-extrabold", className[value] ?? "tw-bg-slate-100 tw-text-slate-600")}>{getTicketTypeLabel(value)}</span>;
-}
-
-function SearchInput({
-  onChange,
-  placeholder,
-  value
-}: {
-  onChange: (value: string) => void;
-  placeholder: string;
-  value: string;
-}) {
-  return (
-    <label className="tw-m-0 tw-flex tw-min-h-10 tw-w-full tw-items-center tw-gap-[0.7rem] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-[0.95rem] tw-text-vm-slate-500">
-      <i className="fas fa-search" />
-      <input
-        className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.92rem] tw-font-medium tw-text-[#111827] tw-outline-none placeholder:tw-text-vm-slate-500"
-        onChange={(event) => onChange(event.target.value)}
-        placeholder={placeholder}
-        type="search"
-        value={value}
-      />
-    </label>
-  );
 }
 
 function FilterSelect({
@@ -1536,7 +1513,8 @@ function PricePlanDetailPanel({
           <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" type="button" onClick={onClose}>
             Hủy
           </button>
-          <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white hover:tw-bg-brand-700 disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={isSubmitting} onClick={handleSave}>
+          <button className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white hover:tw-bg-brand-700 disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={isSubmitting} onClick={handleSave}>
+            {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
             {isSubmitting ? "Đang xử lý..." : isCreateMode ? "Tạo kế hoạch" : "Lưu thay đổi"}
           </button>
         </div>
@@ -1834,7 +1812,8 @@ function PriceRuleCreatePanel({
           <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" type="button" onClick={onClose}>
             Hủy
           </button>
-          <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white hover:tw-bg-brand-700 disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={isSubmitting} onClick={handleSubmit}>
+          <button className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white hover:tw-bg-brand-700 disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={isSubmitting} onClick={handleSubmit}>
+            {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
             {isSubmitting ? "Đang xử lý..." : isEditMode ? "Lưu thay đổi" : "Tạo quy tắc"}
           </button>
         </div>

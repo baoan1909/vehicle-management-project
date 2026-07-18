@@ -37,6 +37,57 @@ function getNextUrl(value?: string | URL | null) {
   }
 }
 
+function CarLoaderGraphic() {
+  return (
+    <div className="tw-relative tw-h-[78px] tw-w-[78px]">
+      <span className="tw-absolute tw-inset-0 tw-rounded-full tw-bg-[conic-gradient(from_0deg,rgba(37,99,235,0),rgba(37,99,235,0.92),rgba(16,185,129,0.82),rgba(37,99,235,0))] tw-animate-[vm-loader-spin_1.1s_linear_infinite]" />
+      <span className="tw-absolute tw-inset-[5px] tw-rounded-full tw-bg-slate-50/70 tw-shadow-[inset_0_0_0_1px_rgba(191,219,254,0.75)]" />
+      <span className="tw-absolute tw-inset-[14px] tw-rounded-full tw-bg-brand-50/80 tw-shadow-[0_12px_24px_rgba(37,99,235,0.16)]" />
+      <span className="tw-absolute tw-left-1/2 tw-top-1/2 tw-flex tw-h-[42px] tw-w-[42px] tw--translate-x-1/2 tw--translate-y-1/2 tw-animate-[vm-loader-car_1.2s_ease-in-out_infinite] tw-items-center tw-justify-center tw-rounded-full tw-bg-vm-primary tw-text-white">
+        <i className="fas fa-car-side tw-text-[1.1rem]" />
+      </span>
+      <span className="tw-absolute tw-bottom-[14px] tw-left-[19px] tw-h-[2px] tw-w-[40px] tw-overflow-hidden tw-rounded-full tw-bg-brand-100">
+        <span className="tw-block tw-h-full tw-w-1/2 tw-animate-[vm-loader-lane_0.85s_ease-in-out_infinite] tw-rounded-full tw-bg-vm-primary" />
+      </span>
+    </div>
+  );
+}
+
+function LoaderKeyframes() {
+  return (
+    <style>
+      {`
+        @keyframes vm-loader-spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        @keyframes vm-loader-car {
+          0%, 100% { transform: translate(-50%, -50%) translateY(0); }
+          50% { transform: translate(-50%, -50%) translateY(-3px); }
+        }
+
+        @keyframes vm-loader-lane {
+          0% { transform: translateX(-120%); }
+          100% { transform: translateX(230%); }
+        }
+      `}
+    </style>
+  );
+}
+
+export function FullPageCarLoader({ label = "Đang tải dữ liệu..." }: { label?: string }) {
+  return (
+    <div className="tw-fixed tw-inset-0 tw-z-[2400] tw-flex tw-items-center tw-justify-center tw-bg-slate-50/95 tw-text-vm-slate-700 tw-backdrop-blur-[2px]" role="status" aria-live="polite">
+      <div className="tw-grid tw-place-items-center tw-gap-4">
+        <CarLoaderGraphic />
+        <span className="tw-text-[0.94rem] tw-font-extrabold tw-text-vm-slate-600">{label}</span>
+      </div>
+      <LoaderKeyframes />
+    </div>
+  );
+}
+
 export function PageTransitionLoader() {
   const location = useLocation();
   const navigation = useNavigation();
@@ -146,36 +197,9 @@ export function PageTransitionLoader() {
           visible ? "tw-scale-100" : "tw-scale-95",
         )}
       >
-        <div className="tw-relative tw-h-[78px] tw-w-[78px]">
-          <span className="tw-absolute tw-inset-0 tw-rounded-full tw-bg-[conic-gradient(from_0deg,rgba(37,99,235,0),rgba(37,99,235,0.92),rgba(16,185,129,0.82),rgba(37,99,235,0))] tw-animate-[vm-loader-spin_1.1s_linear_infinite]" />
-          <span className="tw-absolute tw-inset-[5px] tw-rounded-full tw-bg-slate-50/70 tw-shadow-[inset_0_0_0_1px_rgba(191,219,254,0.75)]" />
-          <span className="tw-absolute tw-inset-[14px] tw-rounded-full tw-bg-brand-50/80 tw-shadow-[0_12px_24px_rgba(37,99,235,0.16)]" />
-          <span className="tw-absolute tw-left-1/2 tw-top-1/2 tw-flex tw-h-[42px] tw-w-[42px] tw--translate-x-1/2 tw--translate-y-1/2 tw-animate-[vm-loader-car_1.2s_ease-in-out_infinite] tw-items-center tw-justify-center tw-rounded-full tw-bg-vm-primary tw-text-white">
-            <i className="fas fa-car-side tw-text-[1.1rem]" />
-          </span>
-          <span className="tw-absolute tw-bottom-[14px] tw-left-[19px] tw-h-[2px] tw-w-[40px] tw-overflow-hidden tw-rounded-full tw-bg-brand-100">
-            <span className="tw-block tw-h-full tw-w-1/2 tw-animate-[vm-loader-lane_0.85s_ease-in-out_infinite] tw-rounded-full tw-bg-vm-primary" />
-          </span>
-        </div>
+        <CarLoaderGraphic />
       </div>
-      <style>
-        {`
-          @keyframes vm-loader-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
-
-          @keyframes vm-loader-car {
-            0%, 100% { transform: translate(-50%, -50%) translateY(0); }
-            50% { transform: translate(-50%, -50%) translateY(-3px); }
-          }
-
-          @keyframes vm-loader-lane {
-            0% { transform: translateX(-120%); }
-            100% { transform: translateX(230%); }
-          }
-        `}
-      </style>
+      <LoaderKeyframes />
     </div>
   );
 }
