@@ -217,7 +217,7 @@ function CategoryDrawer({
       actions={
         <div className="tw-grid tw-grid-cols-2 tw-gap-2">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button disabled={saving} onClick={(event) => void handleSubmit(event as unknown as FormEvent)}>{saving ? "Đang lưu" : "Lưu thay đổi"}</Button>
+          <Button loading={saving} onClick={(event) => void handleSubmit(event as unknown as FormEvent)}>{saving ? "Đang lưu" : "Lưu thay đổi"}</Button>
         </div>
       }
       description="Dữ liệu được lưu qua API danh mục ticket"
@@ -260,7 +260,7 @@ function DeactivateModal({ category, onClose, onConfirm, saving }: { category: S
       actions={
         <div className="tw-flex tw-justify-end tw-gap-2">
           <Button variant="secondary" disabled={saving} onClick={onClose}>Hủy</Button>
-          <Button variant="danger" disabled={saving || category.openTickets > 0} onClick={() => void onConfirm()}>{saving ? "Đang xử lý" : "Ngưng sử dụng"}</Button>
+          <Button variant="danger" disabled={category.openTickets > 0} loading={saving} onClick={() => void onConfirm()}>{saving ? "Đang xử lý" : "Ngưng sử dụng"}</Button>
         </div>
       }
       description={category.openTickets > 0 ? "Không thể tắt khi còn ticket chưa hoàn tất." : "Danh mục sẽ không còn được chọn khi tạo ticket mới."}

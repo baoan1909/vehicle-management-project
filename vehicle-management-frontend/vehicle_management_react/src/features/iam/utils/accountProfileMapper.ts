@@ -1,4 +1,6 @@
 import type { AccountProfileStatusResponse } from "@/features/iam/api/accountProfileApi";
+import type { CurrentAccountAccessResponse } from "@/features/iam/api/currentAccountAccessApi";
+import { normalizePermissionCodes } from "@/shared/auth/permissions";
 import { DEFAULT_USER_AVATAR_URL, getRoleLabel } from "@/shared/utils/accountStatus";
 import type { CurrentUser } from "@/shared/types/common";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
@@ -21,10 +23,29 @@ export function mergeCurrentUserWithAccountProfile(currentUser: CurrentUser, pro
     id: profile.account?.accountId ?? currentUser.id,
     jobTitle: profile.employee?.jobTitle ?? currentUser.jobTitle,
     onboardingRequired: profile.onboardingRequired,
+    permissionCodes: normalizePermissionCodes(profile.account?.permissionCodes ?? []),
     profileStatus: profile.profile?.userProfileStatus ?? currentUser.profileStatus,
     role,
     roleLabel: getRoleLabel(role),
     username
+  };
+}
+
+export function mergeCurrentUserWithCurrentAccess(currentUser: CurrentUser, access: CurrentAccountAccessResponse): CurrentUser {
+  const username = access.username?.trim() || currentUser.username?.trim() || currentUser.email?.trim() || "user";
+  const role = resolveProfileRole(access.roleCode) ?? currentUser.role;
+
+  return {
+    ...currentUser,
+    accountStatus: access.accountStatus ?? currentUser.accountStatus,
+    email: access.email ?? currentUser.email,
+    employeeStatus: access.employeeStatus ?? currentUser.employeeStatus,
+    fullName: currentUser.fullName?.trim() || username,
+    id: access.accountId ?? currentUser.id,
+    permissionCodes: normalizePermissionCodes(access.permissionCodes ?? []),
+    role,
+    roleLabel: getRoleLabel(role),
+    username,
   };
 }
 

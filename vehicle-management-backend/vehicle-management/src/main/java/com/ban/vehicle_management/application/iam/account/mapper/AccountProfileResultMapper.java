@@ -68,7 +68,8 @@ public interface AccountProfileResultMapper {
                 state.username(),
                 state.email(),
                 state.keycloakUserId(),
-                state.roleCode()
+                state.roleCode(),
+                state.permissionCodes()
         );
     }
 
@@ -77,6 +78,7 @@ public interface AccountProfileResultMapper {
 
     @Mapping(target = "accountStatus", source = "status")
     @Mapping(target = "roleCode", ignore = true)
+    @Mapping(target = "permissionCodes", ignore = true)
     AccountProfileStatusResult.AccountInfoResult toAccountInfoResult(Account account);
 
     @Mapping(target = "userProfileId", source = "userProfileId")

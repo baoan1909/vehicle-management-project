@@ -8,6 +8,7 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public record AccountProfileState(
@@ -35,6 +36,7 @@ public record AccountProfileState(
         CustomerType customerType,
         CustomerStatus customerStatus,
         CustomerApprovalStatus customerApprovalStatus,
-        AccountStatus accountStatus
+        AccountStatus accountStatus,
+        List<String> permissionCodes
 ) {
 }

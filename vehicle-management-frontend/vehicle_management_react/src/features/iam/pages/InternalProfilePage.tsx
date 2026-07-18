@@ -555,8 +555,8 @@ export function InternalProfilePage() {
                   <i className="fas fa-undo" />
                   <span>Hoàn tác</span>
                 </Button>
-                <Button className="tw-min-h-11 tw-font-extrabold" disabled={saving || loading} type="button" onClick={handleSave}>
-                  <i className="far fa-save" />
+                <Button className="tw-min-h-11 tw-font-extrabold" disabled={loading} loading={saving} type="button" onClick={handleSave}>
+                  {!saving ? <i className="far fa-save" /> : null}
                   <span>{saving ? "Đang lưu..." : "Lưu hồ sơ"}</span>
                 </Button>
               </div>

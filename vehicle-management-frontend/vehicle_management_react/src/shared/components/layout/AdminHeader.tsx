@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../core/auth/useAuth";
 import { cn } from "@/lib/cn";
-import { clearAuthTokens, getIdToken } from "@/core/auth/session";
-import { buildKeycloakLogoutUrl } from "@/features/auth/api/authApi";
+import { logoutCurrentUser } from "@/core/auth/logout";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta } from "@/shared/utils/accountStatus";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
@@ -130,11 +129,8 @@ export function AdminHeader() {
   }
 
   function handleLogout() {
-    const logoutUrl = buildKeycloakLogoutUrl(getIdToken());
-    clearAuthTokens();
-    setUser(null);
     setProfileOpen(false);
-    window.location.assign(logoutUrl);
+    logoutCurrentUser(setUser);
   }
 
   const usernameLabel = user?.username?.trim() || user?.email?.trim() || "";

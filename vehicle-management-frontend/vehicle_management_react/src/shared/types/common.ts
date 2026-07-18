@@ -33,6 +33,7 @@ export interface CurrentUser {
   employeeStatus?: string;
   jobTitle?: string;
   onboardingRequired?: boolean;
+  permissionCodes?: string[];
   profileStatus?: string;
   roleLabel?: string;
 }

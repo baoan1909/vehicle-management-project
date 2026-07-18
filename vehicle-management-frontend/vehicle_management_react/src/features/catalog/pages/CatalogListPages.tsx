@@ -335,7 +335,8 @@ function TicketTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Tick
           <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-font-extrabold tw-text-vm-slate-700" type="button" onClick={onClose}>
             Hủy
           </button>
-          <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-font-extrabold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={isSubmitting} onClick={handleSubmit}>
+          <button className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-font-extrabold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={isSubmitting} onClick={handleSubmit}>
+            {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
             {isSubmitting ? "Đang lưu..." : isEditMode ? "Lưu thay đổi" : "Thêm loại vé"}
           </button>
         </div>
@@ -463,7 +464,8 @@ function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Veh
           <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-font-extrabold tw-text-vm-slate-700" type="button" onClick={onClose}>
             Hủy
           </button>
-          <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-font-extrabold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={isSubmitting} onClick={handleSubmit}>
+          <button className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-font-extrabold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={isSubmitting} onClick={handleSubmit}>
+            {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
             {isSubmitting ? "Đang lưu..." : isEditMode ? "Lưu thay đổi" : "Thêm loại xe"}
           </button>
         </div>

@@ -374,7 +374,7 @@ export function ShiftConfigurationPanel({
               </Field>
             </div>
             {formError ? <div className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{formError}</div> : null}
-            <Button disabled={saving} type="submit">{editingTemplateId ? "Cập nhật mẫu ca" : "Tạo mẫu ca"}</Button>
+            <Button loading={saving} type="submit">{saving ? "Đang lưu..." : editingTemplateId ? "Cập nhật mẫu ca" : "Tạo mẫu ca"}</Button>
           </form>
         </Card>
 
@@ -485,7 +485,7 @@ export function ShiftConfigurationPanel({
             </Field>
           </div>
           {formError ? <div className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{formError}</div> : null}
-          <Button disabled={saving} type="submit">{editingRuleId ? "Cập nhật quy tắc" : "Tạo quy tắc"}</Button>
+          <Button loading={saving} type="submit">{saving ? "Đang lưu..." : editingRuleId ? "Cập nhật quy tắc" : "Tạo quy tắc"}</Button>
         </form>
       </Card>
 

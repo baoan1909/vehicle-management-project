@@ -15,13 +15,17 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.peo
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
+import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -31,6 +35,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
 
     private final AccountRepository accountRepository;
     private final RoleRepository roleRepository;
+    private final RolePermissionRepository rolePermissionRepository;
     private final UserProfileRepository userProfileRepository;
     private final CustomerRepository customerRepository;
     private final EmployeeRepository employeeRepository;
@@ -42,6 +47,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     public AccountProfilePersistenceAdapter(
             AccountRepository accountRepository,
             RoleRepository roleRepository,
+            RolePermissionRepository rolePermissionRepository,
             UserProfileRepository userProfileRepository,
             CustomerRepository customerRepository,
             EmployeeRepository employeeRepository,
@@ -52,6 +58,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     ) {
         this.accountRepository = accountRepository;
         this.roleRepository = roleRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
         this.userProfileRepository = userProfileRepository;
         this.customerRepository = customerRepository;
         this.employeeRepository = employeeRepository;
@@ -177,13 +184,14 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         UserProfileEntity userProfileEntity = resolveUserProfile(userProfileId);
         EmployeeEntity employeeEntity = resolveEmployee(userProfileId);
         CustomerEntity customerEntity = resolveCustomer(userProfileId);
+        String roleCode = resolveRoleCode(accountEntity.getRoleId());
 
         return new AccountProfileState(
                 accountEntity.getAccountId(),
                 accountEntity.getUsername(),
                 accountEntity.getEmail(),
                 accountEntity.getKeycloakUserId(),
-                resolveRoleCode(accountEntity.getRoleId()),
+                roleCode,
                 userProfileId,
                 userProfileEntity == null ? null : userProfileEntity.getFullName(),
                 userProfileEntity == null ? null : userProfileEntity.getDateOfBirth(),
@@ -203,7 +211,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 customerEntity == null ? null : customerEntity.getCustomerType(),
                 customerEntity == null ? null : customerEntity.getStatus(),
                 customerEntity == null ? null : customerEntity.getApprovalStatus(),
-                accountEntity.getStatus()
+                accountEntity.getStatus(),
+                resolveEffectivePermissionCodes(accountEntity, roleCode, employeeEntity)
         );
     }
 
@@ -236,5 +245,49 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
             return null;
         }
         return employeeRepository.findByUserProfileId(userProfileId).orElse(null);
+    }
+
+    private List<String> resolveEffectivePermissionCodes(
+            AccountEntity accountEntity,
+            String roleCode,
+            EmployeeEntity employeeEntity
+    ) {
+        if (accountEntity.getRoleId() == null || !canUseBusinessPermissions(accountEntity, roleCode, employeeEntity)) {
+            return List.of();
+        }
+
+        return rolePermissionRepository.findActivePermissionCodesByRoleId(accountEntity.getRoleId())
+                .stream()
+                .sorted()
+                .toList();
+    }
+
+    private boolean canUseBusinessPermissions(
+            AccountEntity accountEntity,
+            String roleCode,
+            EmployeeEntity employeeEntity
+    ) {
+        if (!AccountStatus.ACTIVE.equals(accountEntity.getStatus())) {
+            return false;
+        }
+
+        AdminProvisionableAccountRoleCode provisionableRole = resolveProvisionableRole(roleCode);
+        if (provisionableRole == null || !provisionableRole.requiresEmployeeRecord()) {
+            return true;
+        }
+
+        return employeeEntity != null && EmployeeStatus.ACTIVE.equals(employeeEntity.getStatus());
+    }
+
+    private AdminProvisionableAccountRoleCode resolveProvisionableRole(String roleCode) {
+        if (roleCode == null || roleCode.isBlank()) {
+            return null;
+        }
+
+        try {
+            return AdminProvisionableAccountRoleCode.valueOf(roleCode);
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 }

@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { adminNavigation } from "../../../config/navigation";
+import { getVisibleAdminNavigation } from "@/app/routePermissions";
+import { useAuth } from "@/core/auth/useAuth";
 import type { AdminSidebarEntry, AdminSidebarIcon, AdminSidebarLeaf } from "../../types/common";
+import { hasResolvedPermissions } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
 
 function isPathMatch(pathname: string, matches: string[]) {
@@ -57,8 +59,8 @@ function isEntryActive(entry: Extract<AdminSidebarEntry, { kind: "group" }>, pat
   return entry.items.some((item) => isLeafActive(item, pathname));
 }
 
-function getActiveGroupLabel(pathname: string) {
-  const activeGroup = adminNavigation.find((entry) => entry.kind === "group" && isEntryActive(entry, pathname));
+function getActiveGroupLabel(navigation: AdminSidebarEntry[], pathname: string) {
+  const activeGroup = navigation.find((entry) => entry.kind === "group" && isEntryActive(entry, pathname));
   return activeGroup?.kind === "group" ? activeGroup.label : null;
 }
 
@@ -144,11 +146,14 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps) {
   const location = useLocation();
-  const [expandedGroupLabel, setExpandedGroupLabel] = useState<string | null>(() => getActiveGroupLabel(location.pathname));
+  const { isAccessLoading, user } = useAuth();
+  const isPermissionLoading = Boolean(user && !hasResolvedPermissions(user) && isAccessLoading);
+  const visibleNavigation = useMemo(() => getVisibleAdminNavigation(user), [user]);
+  const [expandedGroupLabel, setExpandedGroupLabel] = useState<string | null>(() => getActiveGroupLabel(visibleNavigation, location.pathname));
 
   useEffect(() => {
-    setExpandedGroupLabel(getActiveGroupLabel(location.pathname));
-  }, [location.pathname]);
+    setExpandedGroupLabel(getActiveGroupLabel(visibleNavigation, location.pathname));
+  }, [location.pathname, visibleNavigation]);
 
   const handleToggleGroup = (label: string) => {
     setExpandedGroupLabel((current) => (current === label ? null : label));
@@ -165,7 +170,15 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
       <div className={cn("tw-flex tw-h-full tw-flex-col", collapsed ? "tw-px-3" : "tw-px-4")}>
         <div className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-pb-4 tw-pt-7 [scrollbar-width:none] [&::-webkit-scrollbar]:tw-hidden">
         <nav className="tw-grid tw-gap-2" role="menu" aria-label="CoParking admin navigation">
-          {adminNavigation.map((entry, index) => {
+          {isPermissionLoading ? (
+            <div className={cn("tw-flex tw-min-h-[48px] tw-items-center tw-gap-3 tw-rounded-vm-sm tw-bg-brand-50 tw-px-3 tw-text-[0.9rem] tw-font-extrabold tw-text-vm-primary", collapsed ? "tw-justify-center" : "")}>
+              <span className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-vm-sm tw-bg-white tw-text-vm-primary">
+                <i className="fas fa-spinner fa-spin" />
+              </span>
+              <span className={cn("tw-min-w-0 tw-truncate", collapsed ? "tw-sr-only" : "")}>Đang tải quyền...</span>
+            </div>
+          ) : null}
+          {!isPermissionLoading && visibleNavigation.map((entry, index) => {
             if (entry.kind === "divider") {
               return <div key={`divider-${index}`} className={cn("tw-my-2 tw-h-px tw-bg-slate-100", collapsed ? "tw-mx-2" : "")} />;
             }

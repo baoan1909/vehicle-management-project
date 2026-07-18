@@ -31,6 +31,10 @@ public record CurrentAccountAccess(
         return EmployeeStatus.ACTIVE.equals(employeeStatus);
     }
 
+    public Set<String> getEffectivePermissionCodes() {
+        return canUseBusinessPermissions() ? permissionCodes : Set.of();
+    }
+
     private static AdminProvisionableAccountRoleCode resolveProvisionableRole(String roleCode) {
         if (roleCode == null || roleCode.isBlank()) {
             return null;

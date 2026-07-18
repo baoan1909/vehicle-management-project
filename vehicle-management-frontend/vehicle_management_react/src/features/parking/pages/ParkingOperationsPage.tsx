@@ -1021,7 +1021,7 @@ function ParkingLotDrawer({
 
           <footer className="tw-grid tw-grid-cols-2 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6 tw-py-4">
             <Button variant="secondary" onClick={onClose}>Hủy</Button>
-            <Button disabled={saving} type="submit">{lot ? "Cập nhật" : "Tạo bãi xe"}</Button>
+            <Button loading={saving} type="submit">{saving ? "Đang lưu..." : lot ? "Cập nhật" : "Tạo bãi xe"}</Button>
           </footer>
         </form>
       </aside>
@@ -1374,7 +1374,9 @@ function ParkingNodeDrawer({
               </div>
               <div className="tw-mt-5 tw-flex tw-justify-end tw-gap-3">
                 <Button variant="secondary" disabled={saving} onClick={() => setConfirmAction(null)}>Không</Button>
-                <Button className={confirmAction === "CLOSED" ? "tw-bg-red-500 hover:tw-bg-red-600" : "tw-bg-orange-500 hover:tw-bg-orange-600"} disabled={saving} onClick={() => void handleConfirmStatus()}>Xác nhận</Button>
+                <Button className={confirmAction === "CLOSED" ? "tw-bg-red-500 hover:tw-bg-red-600" : "tw-bg-orange-500 hover:tw-bg-orange-600"} loading={saving} onClick={() => void handleConfirmStatus()}>
+                  {saving ? "Đang xử lý..." : "Xác nhận"}
+                </Button>
               </div>
             </div>
           </div>
@@ -1382,8 +1384,8 @@ function ParkingNodeDrawer({
 
         <footer className="tw-grid tw-grid-cols-[1fr_1.35fr] tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6 tw-py-4">
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
-          <Button variant="primary" type="submit" disabled={!canEdit || saving}>
-            <i className="far fa-save" />
+          <Button variant="primary" type="submit" disabled={!canEdit} loading={saving}>
+            {!saving ? <i className="far fa-save" /> : null}
             {saving ? "Đang lưu" : "Lưu thay đổi"}
           </Button>
         </footer>
