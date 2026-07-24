@@ -99,6 +99,11 @@ type SelectedNode =
   | { id: string; kind: "lane"; label: string };
 
 const DRAWER_ANIMATION_MS = 280;
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string) {
+  return UUID_PATTERN.test(value);
+}
 
 const mockParkingLots: ParkingLot[] = [
   {
@@ -1460,7 +1465,7 @@ export function ParkingOperationsPage() {
   }, [loadParkingLots]);
 
   const loadParkingTopology = useCallback(async (parkingLotId: string) => {
-    if (!parkingLotId) return;
+    if (!isUuid(parkingLotId)) return;
 
     setLoadingTopology(true);
     setTopologyError("");
@@ -1500,8 +1505,9 @@ export function ParkingOperationsPage() {
   }, []);
 
   useEffect(() => {
-    void loadParkingTopology(selectedLotId);
-  }, [loadParkingTopology, selectedLotId]);
+    if (selectedParkingLot?.source !== "api") return;
+    void loadParkingTopology(selectedParkingLot.id);
+  }, [loadParkingTopology, selectedParkingLot]);
 
   async function handleSubmitParkingLot(payload: ParkingLot) {
     setSavingLot(true);
@@ -1695,7 +1701,6 @@ export function ParkingOperationsPage() {
                 disabled={loadingLots || loadingTopology}
                 onClick={() => {
                   void loadParkingLots();
-                  void loadParkingTopology(selectedLotId);
                 }}
               >
                 <i className="fas fa-sync-alt" />
