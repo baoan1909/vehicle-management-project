@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 
 import type { SelectMenuOption } from "@/components/ui";
 import { Button, Card, CardContent, CardHeader, SelectMenu } from "@/components/ui";
+import type {
+  LicensePlateOcrCandidate,
+  LicensePlateOcrResponse,
+} from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
 import type { ParkingOperationMode } from "./OperationModeTabs";
 
@@ -20,6 +24,7 @@ type ParkingOperationFormProps = {
   note: string;
   ocrConfidence?: number;
   ocrMessage?: string;
+  ocrResult?: LicensePlateOcrResponse | null;
   ocrStatus?: OcrStatus;
   showVehicleTypeField?: boolean;
   vehicleTypeDisabled?: boolean;
@@ -30,6 +35,7 @@ type ParkingOperationFormProps = {
   onLaneChange: (laneId: string) => void;
   onLicensePlateChange: (value: string) => void;
   onNoteChange: (value: string) => void;
+  onApplyOcrCandidate?: (candidate: LicensePlateOcrCandidate) => void;
   onSubmit: () => void;
   onVehicleTypeChange: (value: string) => void;
 };
@@ -75,16 +81,43 @@ function FieldShell({
   );
 }
 
+function formatPercent(value?: number | null) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "";
+  return `${Math.round(value * 100)}%`;
+}
+
+function candidatePlate(candidate: LicensePlateOcrCandidate) {
+  return candidate.normalizedLicensePlate || candidate.formattedLicensePlate || candidate.licensePlate;
+}
+
+function reviewReasonLabel(reason: string) {
+  const labels: Record<string, string> = {
+    below_backend_confidence_threshold: "Dưới ngưỡng backend",
+    below_confidence_threshold: "Dưới ngưỡng OCR",
+    invalid_plate_format: "Sai format biển số",
+    low_detector_confidence: "Detector yếu",
+    low_ocr_confidence: "Recognizer yếu",
+    no_candidate: "Không có candidate",
+    non_production_model_stage: "Biển số dự đoán",
+  };
+
+  return labels[reason] ?? reason.replace(/_/g, " ");
+}
+
 function OcrStatusMessage({
   confidence,
   message,
+  ocrResult,
   status,
+  onApplyCandidate,
 }: {
   confidence?: number;
   message?: string;
+  ocrResult?: LicensePlateOcrResponse | null;
   status: OcrStatus;
+  onApplyCandidate?: (candidate: LicensePlateOcrCandidate) => void;
 }) {
-  if (status === "idle" || !message) return null;
+  if (status === "idle" && !ocrResult) return null;
 
   const toneClassName =
     status === "success"
@@ -102,14 +135,44 @@ function OcrStatusMessage({
         : status === "review"
           ? "fas fa-exclamation-triangle"
           : "fas fa-info-circle";
+  const candidates = ocrResult?.candidates ?? [];
+  const reviewReasons = ocrResult?.reviewReasons ?? [];
+  const percent = formatPercent(confidence);
 
   return (
-    <div className={cn("tw-flex tw-min-h-9 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-py-2 tw-text-[0.8rem] tw-font-extrabold", toneClassName)}>
-      <i className={cn(icon, "tw-w-4 tw-text-center")} />
-      <span className="tw-min-w-0 tw-flex-1">{message}</span>
-      {typeof confidence === "number" && Number.isFinite(confidence) ? (
-        <span className="tw-rounded-full tw-bg-white/70 tw-px-2 tw-py-0.5">{Math.round(confidence * 100)}%</span>
+    <div className={cn("tw-grid tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-py-2 tw-text-[0.8rem] tw-font-bold", toneClassName)}>
+      <div className="tw-flex tw-min-h-6 tw-items-center tw-gap-2">
+        <i className={cn(icon, "tw-w-4 tw-text-center")} />
+        <span className="tw-min-w-0 tw-flex-1">{message}</span>
+        {percent ? <span className="tw-rounded-full tw-bg-white/70 tw-px-2 tw-py-0.5">{percent}</span> : null}
+      </div>
+
+      {reviewReasons.length ? (
+        <div className="tw-flex tw-flex-wrap tw-gap-1.5">
+          {reviewReasons.map((reason) => (
+            <span className="tw-rounded-full tw-bg-white/75 tw-px-2 tw-py-0.5 tw-text-[0.72rem] tw-font-extrabold" key={reason}>
+              {reviewReasonLabel(reason)}
+            </span>
+          ))}
+        </div>
       ) : null}
+
+      {candidates.length ? (
+        <div className="tw-flex tw-flex-wrap tw-gap-1.5">
+          {candidates.slice(0, 4).map((candidate, index) => (
+            <button
+              className="tw-h-7 tw-rounded-vm-sm tw-border tw-border-solid tw-border-white/70 tw-bg-white/80 tw-px-2 tw-text-[0.74rem] tw-font-extrabold tw-text-vm-slate-800 tw-transition hover:tw-bg-white focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus"
+              key={`${candidatePlate(candidate)}-${index}`}
+              type="button"
+              onClick={() => onApplyCandidate?.(candidate)}
+            >
+              {candidatePlate(candidate)}
+              {formatPercent(candidate.confidence) ? ` ${formatPercent(candidate.confidence)}` : ""}
+            </button>
+          ))}
+        </div>
+      ) : null}
+
     </div>
   );
 }
@@ -228,6 +291,7 @@ export function ParkingOperationForm({
   note,
   ocrConfidence,
   ocrMessage,
+  ocrResult,
   ocrStatus = "idle",
   showVehicleTypeField = true,
   vehicleTypeDisabled = false,
@@ -238,11 +302,19 @@ export function ParkingOperationForm({
   onLaneChange,
   onLicensePlateChange,
   onNoteChange,
+  onApplyOcrCandidate,
   onSubmit,
   onVehicleTypeChange,
 }: ParkingOperationFormProps) {
   const isCheckIn = mode === "check-in";
-  const canSubmit = Boolean(cardUid.trim() && licensePlate.trim() && laneId && (!isCheckIn || !vehicleTypeRequired || vehicleTypeId) && !isSubmitting && ocrStatus !== "recognizing");
+  const canSubmit = Boolean(
+    cardUid.trim() &&
+      licensePlate.trim() &&
+      laneId &&
+      (!isCheckIn || !vehicleTypeRequired || vehicleTypeId) &&
+      !isSubmitting &&
+      ocrStatus !== "recognizing",
+  );
 
   return (
     <Card className="tw-flex tw-min-h-0 tw-flex-col tw-overflow-hidden">
@@ -289,12 +361,18 @@ export function ParkingOperationForm({
         <FieldShell
           actionIcon="fas fa-car"
           icon="fas fa-car-side"
-          label="Biển số nhận diện"
+          label="Biển số"
           value={licensePlate}
           placeholder="VD: 30A-123.45"
           onChange={onLicensePlateChange}
         />
-        <OcrStatusMessage confidence={ocrConfidence} message={ocrMessage} status={ocrStatus} />
+        <OcrStatusMessage
+          confidence={ocrConfidence}
+          message={ocrMessage}
+          ocrResult={ocrResult}
+          status={ocrStatus}
+          onApplyCandidate={onApplyOcrCandidate}
+        />
 
         <label className="tw-m-0 tw-grid tw-gap-2">
           <span className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">Làn xe</span>

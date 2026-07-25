@@ -14,6 +14,6 @@ public class OcrProperties {
     private String baseUrl = "http://localhost:8010";
     private String internalToken = "dev-ocr-internal-token";
     private int connectTimeoutMs = 1500;
-    private int readTimeoutMs = 5000;
+    private int readTimeoutMs = 10000;
     private double confidenceThreshold = 0.70;
 }

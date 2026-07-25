@@ -158,11 +158,11 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
   const captureStatusLabel = isCapturing ? "LIVE" : capture ? "Đã chụp" : defaultCaptured ? "Ảnh mẫu" : "Chưa chụp";
 
   return (
-    <div className={cn("tw-relative tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid", compact ? "tw-h-[180px]" : "tw-h-[286px]", hasVisualCapture ? "tw-border-vm-slate-100" : "tw-border-vm-slate-200")}>
+    <div className={cn("tw-relative tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-bg-slate-950", compact ? "tw-h-[180px]" : "tw-h-[286px]", hasVisualCapture ? "tw-border-vm-slate-100" : "tw-border-vm-slate-200")}>
       {isCapturing ? (
         <video ref={videoRef} autoPlay playsInline muted className="tw-h-full tw-w-full tw-bg-slate-900 tw-object-cover" />
       ) : capture ? (
-        <img src={capture.url} alt={label} className="tw-h-full tw-w-full tw-object-cover" />
+        <img src={capture.url} alt={label} className="tw-h-full tw-w-full tw-object-contain" />
       ) : (
         <CameraLoadingScene compact={compact} />
       )}
