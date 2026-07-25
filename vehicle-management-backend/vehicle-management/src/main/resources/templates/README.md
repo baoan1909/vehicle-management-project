@@ -1,4 +1,4 @@
-﻿# Placeholder
+# Placeholder
 
 Placeholder for future implementation files in this folder.
 

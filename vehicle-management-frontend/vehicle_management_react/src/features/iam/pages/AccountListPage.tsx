@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { Badge, Button, Card, EntityAvatar, InfoBanner, SearchInput, SelectMenu } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import { AccountCreateDrawer } from "../components/AccountCreateDrawer";
+import { OnboardingApprovalWorkspace } from "./OnboardingApprovalPage";
 import {
   getProvisionedAccounts,
   updateProvisionedAccountRole,
@@ -45,6 +47,7 @@ type AccountStatusChangeModalState = {
 } | null;
 
 type AccountPermissionModalState = ProvisionedAccount | null;
+type AccountWorkspaceTab = "accounts" | "onboarding";
 
 const roleOptions = [
   { label: "Tất cả vai trò", value: "all" },
@@ -360,8 +363,8 @@ function AccountRoleChangeModal({
 
           <InfoBanner
             tone="info"
-            title="Giới hạn theo backend"
-            description="Frontend chỉ mở thao tác khi role hiện tại có ACCOUNT_UPDATE_ALL; backend tiếp tục kiểm tra scope target role và không cho đổi giữa nhóm internal/customer."
+            title="Quy định thay đổi vai trò"
+            description="Chỉ có thể đổi vai trò trong phạm vi được phân quyền. Không hỗ trợ đổi qua lại giữa tài khoản nội bộ và khách hàng."
             icon={<i className="fas fa-shield-alt" />}
           />
           {errorMessage ? <InfoBanner tone="warning" title="Không thể đổi vai trò" description={errorMessage} icon={<i className="fas fa-exclamation-circle" />} /> : null}
@@ -531,6 +534,7 @@ function AccountPermissionModal({
 
 export function AccountListPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [accountItems, setAccountItems] = useState<ProvisionedAccount[]>([]);
   const [selectedAccountId, setSelectedAccountId] = useState("");
@@ -544,10 +548,29 @@ export function AccountListPage() {
   const [permissionModal, setPermissionModal] = useState<AccountPermissionModalState>(null);
   const [isActionSaving, setIsActionSaving] = useState(false);
   const [actionErrorMessage, setActionErrorMessage] = useState("");
+  const canReadProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_READ_ALL"]);
+  const canReadOnboardingApprovals =
+    (user?.role === "SYSTEM_ADMIN" && hasAnyPermission(user, ["ACCOUNT_READ_ALL", "EMPLOYEE_READ_ALL"])) ||
+    (user?.role === "PARKING_MANAGER" && hasAnyPermission(user, ["ACCOUNT_READ_ALL", "EMPLOYEE_READ_ALL", "CUSTOMER_READ_ALL"]));
   const canCreateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_CREATE_ALL"]);
   const canUpdateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_UPDATE_ALL"]);
+  const requestedWorkspaceTab = searchParams.get("tab") === "onboarding" ? "onboarding" : "accounts";
+  const activeWorkspaceTab: AccountWorkspaceTab =
+    requestedWorkspaceTab === "onboarding" && canReadOnboardingApprovals ? "onboarding" : canReadProvisionedAccount ? "accounts" : "onboarding";
+
+  function setWorkspaceTab(tab: AccountWorkspaceTab) {
+    const nextSearchParams = new URLSearchParams(searchParams);
+    if (tab === "onboarding") {
+      nextSearchParams.set("tab", "onboarding");
+    } else {
+      nextSearchParams.delete("tab");
+    }
+    setSearchParams(nextSearchParams, { replace: true });
+  }
 
   async function loadAccounts() {
+    if (!canReadProvisionedAccount) return;
+
     setIsLoading(true);
     setErrorMessage("");
 
@@ -570,8 +593,9 @@ export function AccountListPage() {
   }
 
   useEffect(() => {
+    if (activeWorkspaceTab !== "accounts") return;
     void loadAccounts();
-  }, [selectedRole, selectedStatus]);
+  }, [activeWorkspaceTab, canReadProvisionedAccount, selectedRole, selectedStatus]);
 
   const filteredAccounts = useMemo(() => {
     return accountItems.filter((account) => {
@@ -684,19 +708,56 @@ export function AccountListPage() {
                 Hướng dẫn & Trợ giúp
               </a>
             </div>
-            <div className="tw-flex tw-flex-shrink-0 tw-items-center tw-gap-3">
-              <Button size="lg" variant="primary" disabled={!canCreateProvisionedAccount} onClick={() => setDrawerOpen(true)}>
-                <i className="fas fa-plus" />
-                Tạo tài khoản
-              </Button>
-              <Button size="lg" variant="secondary">
-                <i className="fas fa-download" />
-                Xuất dữ liệu
-                <i className="fas fa-chevron-down tw-text-[0.72rem]" />
-              </Button>
-            </div>
+            {activeWorkspaceTab === "accounts" && canReadProvisionedAccount ? (
+              <div className="tw-flex tw-flex-shrink-0 tw-items-center tw-gap-3">
+                <Button size="lg" variant="primary" disabled={!canCreateProvisionedAccount} onClick={() => setDrawerOpen(true)}>
+                  <i className="fas fa-plus" />
+                  Tạo tài khoản
+                </Button>
+                <Button size="lg" variant="secondary">
+                  <i className="fas fa-download" />
+                  Xuất dữ liệu
+                  <i className="fas fa-chevron-down tw-text-[0.72rem]" />
+                </Button>
+              </div>
+            ) : null}
           </div>
 
+          <div className="tw-mb-5 tw-flex tw-flex-wrap tw-gap-2">
+            {canReadProvisionedAccount ? (
+              <button
+                className={cn(
+                  "tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-transition",
+                  activeWorkspaceTab === "accounts"
+                    ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary"
+                    : "tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-700 hover:tw-border-brand-100",
+                )}
+                onClick={() => setWorkspaceTab("accounts")}
+                type="button"
+              >
+                <i className="fas fa-users-cog" />
+                Danh sách tài khoản
+              </button>
+            ) : null}
+            {canReadOnboardingApprovals ? (
+              <button
+                className={cn(
+                  "tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-transition",
+                  activeWorkspaceTab === "onboarding"
+                    ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary"
+                    : "tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-700 hover:tw-border-brand-100",
+                )}
+                onClick={() => setWorkspaceTab("onboarding")}
+                type="button"
+              >
+                <i className="fas fa-user-check" />
+                Duyệt onboarding
+              </button>
+            ) : null}
+          </div>
+
+          {activeWorkspaceTab === "accounts" ? (
+            <>
           <div className="tw-grid tw-grid-cols-4 tw-gap-4 max-[1180px]:tw-grid-cols-2">
             <AccountMetric icon="fas fa-users-cog" iconClassName="tw-bg-brand-100 tw-text-vm-primary" label="Tổng tài khoản" value={String(metricValues.total)} />
             <AccountMetric icon="fas fa-user-check" iconClassName="tw-bg-green-50 tw-text-green-600" label="Đang hoạt động" value={String(metricValues.active)} />
@@ -860,9 +921,13 @@ export function AccountListPage() {
             className="tw-mt-4"
             tone="info"
             title="Quản lý tài khoản theo quyền"
-            description="Trang và nút thao tác được mở theo ACCOUNT_READ_ALL, ACCOUNT_CREATE_ALL, ACCOUNT_UPDATE_ALL của role hiện tại; backend vẫn giữ scope target role cho API provisioned account."
+            description="Các thao tác hiển thị theo quyền của tài khoản hiện tại."
             icon={<i className="fas fa-info-circle" />}
           />
+            </>
+          ) : (
+            <OnboardingApprovalWorkspace embedded />
+          )}
         </section>
       </div>
 

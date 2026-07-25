@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">CoParking</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f8fafc;
+            color: #334155;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        .email-page {
+            width: 100%;
+            background: #f8fafc;
+            padding: 32px 12px;
+        }
+
+        .email-shell {
+            width: 100%;
+            max-width: 640px;
+            margin: 0 auto;
+            overflow: hidden;
+            border: 1px solid #d9e2f2;
+            border-radius: 12px;
+            background: #ffffff;
+            box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+        }
+
+        .email-header {
+            padding: 24px 28px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+        }
+
+        .brand-row {
+            display: table;
+            width: 100%;
+        }
+
+        .brand-mark,
+        .brand-copy {
+            display: table-cell;
+            vertical-align: middle;
+        }
+
+        .brand-mark span {
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: #ffffff;
+            color: #2563eb;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 48px;
+            text-align: center;
+        }
+
+        .brand-copy {
+            padding-left: 14px;
+        }
+
+        .brand-copy strong {
+            display: block;
+            color: #ffffff;
+            font-size: 22px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .brand-copy small {
+            display: block;
+            margin-top: 3px;
+            color: #dbeafe;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .email-content {
+            padding: 30px 28px 28px;
+        }
+
+        .status-row {
+            display: table;
+            width: 100%;
+            margin-bottom: 22px;
+        }
+
+        .status-icon,
+        .status-copy {
+            display: table-cell;
+            vertical-align: top;
+        }
+
+        .status-icon span {
+            display: inline-block;
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: #eff6ff;
+            color: #2563eb;
+            font-size: 24px;
+            font-weight: 700;
+            line-height: 48px;
+            text-align: center;
+        }
+
+        .status-copy {
+            padding-left: 16px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            color: #0f172a;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+            font-size: 24px;
+            line-height: 1.25;
+            font-weight: 700;
+        }
+
+        p {
+            margin: 0 0 14px;
+            color: #475569;
+            font-size: 15px;
+            line-height: 1.65;
+        }
+
+        .info-box {
+            margin: 22px 0;
+            padding: 16px;
+            border: 1px solid #dbeafe;
+            border-radius: 10px;
+            background: #eff6ff;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #1e40af;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .note-box {
+            margin: 22px 0;
+            padding: 16px;
+            border: 1px solid #fde68a;
+            border-radius: 10px;
+            background: #fffbeb;
+        }
+
+        .note-box strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #92400e;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .email-button {
+            display: inline-block;
+            min-width: 150px;
+            padding: 12px 18px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff !important;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: center;
+            box-shadow: 0 14px 28px rgba(37, 99, 235, 0.22);
+        }
+
+        .email-footer {
+            padding: 18px 28px 24px;
+            border-top: 1px solid #e2e8f0;
+            background: #ffffff;
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        @media screen and (max-width: 520px) {
+            .email-page {
+                padding: 16px 8px;
+            }
+
+            .email-header,
+            .email-content,
+            .email-footer {
+                padding-left: 18px;
+                padding-right: 18px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div th:fragment="header" class="email-header">
+    <div class="brand-row">
+        <div class="brand-mark"><span>CP</span></div>
+        <div class="brand-copy">
+            <strong th:text="${brandName}">CoParking</strong>
+            <small>Parking Management Portal</small>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="footer" class="email-footer">
+    Email này được gửi tự động từ CoParking. Vui lòng không trả lời trực tiếp email này.
+</div>
+
+<div th:fragment="ctaButton(label)" style="margin-top: 24px;">
+    <a class="email-button" th:href="${portalUrl}" th:text="${label}">Mở CoParking</a>
+</div>
+</body>
+</html>

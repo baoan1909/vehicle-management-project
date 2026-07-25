@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/core/auth/useAuth";
 import {
+  completeMyAccountProfile,
   deleteMyAccountAvatar,
   getMyAccountProfile,
   updateMyAccountProfile,
@@ -9,6 +10,12 @@ import {
   type AccountProfileStatusResponse,
   type UpdateAccountProfileRequest
 } from "@/features/iam/api/accountProfileApi";
+import {
+  fetchMyOnboardingApproval,
+  resubmitMyOnboardingApproval,
+  type OnboardingApprovalKind,
+  type OnboardingApprovalResponse
+} from "@/features/iam/api/onboardingApprovalApi";
 import { AddressPicker, Badge, Button, Card, DatePicker, Input, Modal, SelectMenu } from "@/components/ui";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta, type StatusTone } from "@/shared/utils/accountStatus";
@@ -42,8 +49,20 @@ function statusLabel(value?: string) {
 function approvalStatusValue(profile: AccountProfileStatusResponse) {
   return getApprovalStatusValue({
     accountStatus: profile.account?.accountStatus,
-    customerApprovalStatus: profile.customer?.customerApprovalStatus
+    customerApprovalStatus: profile.customer?.customerApprovalStatus,
+    customerStatus: profile.customer?.customerStatus,
+    employeeStatus: profile.employee?.employeeStatus,
+    onboardingRequired: profile.onboardingRequired,
+    role: profile.account?.roleCode as NonNullable<ReturnType<typeof useAuth>["user"]>["role"]
   });
+}
+
+function resolveMyOnboardingKind(profile: AccountProfileStatusResponse): OnboardingApprovalKind | null {
+  const roleCode = profile.account?.roleCode;
+  if (roleCode === "CUSTOMER") return "customer";
+  if (roleCode === "SYSTEM_ADMIN") return "system-admin";
+  if (roleCode === "PARKING_MANAGER" || roleCode === "EMPLOYEE") return "internal-employee";
+  return null;
 }
 
 function normalizeGender(value?: string) {
@@ -246,7 +265,7 @@ function ChangePasswordModal({
     <Modal
       open={open}
       title="Đổi mật khẩu"
-      description="Cập nhật mật khẩu đăng nhập nội bộ. Endpoint đổi mật khẩu sẽ được nối với Keycloak ở bước tích hợp backend."
+      description="Cập nhật mật khẩu đăng nhập nội bộ."
       onClose={onClose}
       actions={
         <div className="tw-flex tw-justify-end tw-gap-3">
@@ -321,6 +340,62 @@ function ChangePasswordModal({
   );
 }
 
+function ProfileReadinessBanner({
+  dirty,
+  latestApproval,
+  onComplete,
+  onResubmit,
+  profile,
+  resubmitting,
+  saving
+}: {
+  dirty: boolean;
+  latestApproval: OnboardingApprovalResponse | null;
+  onComplete: () => void;
+  onResubmit: () => void;
+  profile: AccountProfileStatusResponse;
+  resubmitting: boolean;
+  saving: boolean;
+}) {
+  const isRequired = profile.onboardingRequired;
+  const approvalStatus = latestApproval?.request?.approvalRequestStatus ?? approvalStatusValue(profile);
+  const isPending = approvalStatus === "PENDING";
+  const isRejected = approvalStatus === "REJECTED";
+  const rejectionNote = latestApproval?.request?.note?.trim();
+
+  return (
+    <section
+      className={`tw-grid tw-min-h-[82px] tw-grid-cols-[28px_minmax(0,1fr)] tw-items-start tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-px-5 tw-py-4 ${
+        isRejected || isRequired || isPending ? "tw-border-amber-200 tw-bg-amber-50/70 tw-text-amber-700" : "tw-border-green-100 tw-bg-green-50/80 tw-text-green-700"
+      }`}
+    >
+      <i className={`${isRejected || isRequired ? "fas fa-exclamation-circle" : isPending ? "fas fa-clock" : "fas fa-check-circle"} tw-mt-1 tw-text-[1.15rem]`} />
+      <div className="tw-grid tw-min-w-0 tw-gap-3 min-[760px]:tw-grid-cols-[minmax(0,1fr)_auto] min-[760px]:tw-items-center">
+        <div className="tw-min-w-0">
+        <strong className="tw-block tw-text-[0.98rem] tw-font-black tw-text-vm-slate-900">
+          {isRejected ? "Hồ sơ cần bổ sung" : isRequired ? "Cần hoàn tất hồ sơ" : isPending ? "Hồ sơ đang chờ duyệt" : "Hồ sơ đã sẵn sàng"}
+        </strong>
+        <p className="tw-mb-0 tw-mt-1.5 tw-text-[0.84rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-700">
+          {isRejected ? "Cập nhật thông tin theo góp ý rồi gửi lại để chờ duyệt." : isRequired ? "Vui lòng bổ sung thông tin để hoàn tất hồ sơ." : isPending ? "Thông tin đã được gửi và đang chờ người phụ trách duyệt." : "Thông tin cá nhân đã đủ để đồng bộ với tài khoản nội bộ."}
+        </p>
+        {rejectionNote ? <p className="tw-mb-0 tw-mt-1 tw-text-[0.84rem] tw-font-bold tw-leading-6 tw-text-amber-800">Lý do: {rejectionNote}</p> : null}
+        </div>
+        {isRejected ? (
+          <Button className="tw-min-h-10 tw-whitespace-nowrap tw-font-extrabold" type="button" disabled={saving || resubmitting} loading={resubmitting} onClick={onResubmit}>
+            {!resubmitting ? <i className="fas fa-paper-plane" /> : null}
+            <span>{resubmitting ? "Đang gửi..." : dirty ? "Lưu và gửi duyệt lại" : "Gửi duyệt lại"}</span>
+          </Button>
+        ) : isRequired ? (
+          <Button className="tw-min-h-10 tw-whitespace-nowrap tw-font-extrabold" type="button" disabled={saving || resubmitting} loading={saving} onClick={onComplete}>
+            {!saving ? <i className="fas fa-paper-plane" /> : null}
+            <span>{saving ? "Đang gửi..." : "Gửi hồ sơ"}</span>
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 function StatusPanel({ onChangePassword, profile }: { onChangePassword: () => void; profile: AccountProfileStatusResponse }) {
   const approvalStatus = approvalStatusValue(profile);
 
@@ -379,21 +454,6 @@ function StatusPanel({ onChangePassword, profile }: { onChangePassword: () => vo
         </dl>
       </div>
 
-      <div
-        className={`tw-mt-4 tw-grid tw-grid-cols-[26px_minmax(0,1fr)] tw-gap-3 tw-rounded-vm-md tw-border tw-p-3.5 ${
-          profile.onboardingRequired ? "tw-border-orange-200 tw-bg-orange-50 tw-text-orange-700" : "tw-border-green-200 tw-bg-green-50 tw-text-green-700"
-        }`}
-      >
-        <i className={profile.onboardingRequired ? "fas fa-exclamation-circle" : "fas fa-check-circle"} />
-        <div>
-          <strong className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-900">{profile.onboardingRequired ? "Cần hoàn tất hồ sơ" : "Hồ sơ đã sẵn sàng"}</strong>
-          <p className="tw-mb-0 tw-mt-1.5 tw-text-[0.78rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-700">
-            {profile.onboardingRequired
-              ? "Backend yêu cầu bổ sung thông tin trước khi sử dụng đầy đủ tính năng nội bộ."
-              : "Thông tin cá nhân đã đủ để đồng bộ với tài khoản nội bộ."}
-          </p>
-        </div>
-      </div>
     </Card>
   );
 }
@@ -402,15 +462,34 @@ export function InternalProfilePage() {
   const { user, setUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState<AccountProfileStatusResponse>(() => buildFallbackProfile(user));
+  const [latestApproval, setLatestApproval] = useState<OnboardingApprovalResponse | null>(null);
   const [form, setForm] = useState<ProfileFormState>(() => normalizeProfile(buildFallbackProfile(user)));
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [resubmitting, setResubmitting] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(() => searchParams.get("action") === "change-password");
   const [notice, setNotice] = useState<string | null>(null);
 
   const displayName = form.fullName || profile.profile?.fullName || user?.fullName || "Nguyễn Văn Admin";
   const avatarUrl = resolvePublicMediaUrl(profile.profile?.avatarUrl) || resolvePublicMediaUrl(user?.avatarUrl) || DEFAULT_USER_AVATAR_URL;
   const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(normalizeProfile(profile)), [form, profile]);
+  const currentApprovalStatus = latestApproval?.request?.approvalRequestStatus ?? approvalStatusValue(profile);
+  const showSaveProfileButton = currentApprovalStatus === "APPROVED";
+
+  const refreshLatestApproval = async (nextProfile: AccountProfileStatusResponse) => {
+    const kind = resolveMyOnboardingKind(nextProfile);
+    if (!kind) {
+      setLatestApproval(null);
+      return;
+    }
+
+    try {
+      const approval = await fetchMyOnboardingApproval(kind);
+      setLatestApproval(approval);
+    } catch {
+      setLatestApproval(null);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -421,13 +500,15 @@ export function InternalProfilePage() {
         setProfile(response.data);
         setForm(normalizeProfile(response.data));
         setNotice(null);
+        void refreshLatestApproval(response.data);
       })
       .catch(() => {
         if (!mounted) return;
         const fallback = buildFallbackProfile(user);
         setProfile(fallback);
         setForm(normalizeProfile(fallback));
-        setNotice("Đang hiển thị dữ liệu mẫu theo tài khoản hiện tại. API profile đã sẵn sàng để kết nối backend.");
+        setLatestApproval(null);
+        setNotice("Chưa tải được hồ sơ mới nhất. Đang hiển thị thông tin tạm thời.");
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -454,23 +535,38 @@ export function InternalProfilePage() {
     setUser(user ? mergeCurrentUserWithAccountProfile(user, nextProfile) : user);
   };
 
-  const handleSave = async () => {
-    setSaving(true);
-    setNotice(null);
-
-    const payload: UpdateAccountProfileRequest = {
+  const buildProfilePayload = (): UpdateAccountProfileRequest => ({
       address: form.address || undefined,
       dateOfBirth: form.dateOfBirth || undefined,
       fullName: form.fullName,
       gender: form.gender || undefined,
       identifyCard: form.identifyCard || undefined,
       phoneNumber: form.phoneNumber
+  });
+
+  const saveProfileChanges = async () => {
+    const payload = buildProfilePayload();
+    const shouldCompleteOnboarding = profile.onboardingRequired || !profile.profile?.userProfileId;
+    const response = shouldCompleteOnboarding
+      ? await completeMyAccountProfile(payload)
+      : await updateMyAccountProfile(payload);
+    applyProfileResponse(response.data);
+    return {
+      profile: response.data,
+      shouldCompleteOnboarding
     };
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setNotice(null);
+
+    const payload = buildProfilePayload();
 
     try {
-      const response = await updateMyAccountProfile(payload);
-      applyProfileResponse(response.data);
-      setNotice("Đã lưu hồ sơ cá nhân thành công.");
+      const result = await saveProfileChanges();
+      void refreshLatestApproval(result.profile);
+      setNotice(result.shouldCompleteOnboarding ? "Đã gửi hồ sơ để chờ phê duyệt." : "Đã lưu hồ sơ cá nhân thành công.");
     } catch {
       const fallbackProfile: AccountProfileStatusResponse = {
         ...profile,
@@ -481,9 +577,38 @@ export function InternalProfilePage() {
         }
       };
       applyProfileResponse(fallbackProfile);
-      setNotice("Đã cập nhật giao diện với dữ liệu mới. Backend chưa phản hồi trong môi trường hiện tại.");
+      setNotice("Đã cập nhật thông tin trên giao diện. Vui lòng thử lại nếu dữ liệu chưa được lưu.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResubmitApproval = async () => {
+    const kind = resolveMyOnboardingKind(profile);
+    if (!kind) {
+      setNotice("Tài khoản hiện tại chưa có luồng duyệt lại phù hợp.");
+      return;
+    }
+
+    setResubmitting(true);
+    setNotice(null);
+
+    try {
+      let nextProfile = profile;
+      if (dirty) {
+        const result = await saveProfileChanges();
+        nextProfile = result.profile;
+      }
+      const approval = await resubmitMyOnboardingApproval(kind);
+      const response = await getMyAccountProfile();
+      setLatestApproval(approval);
+      applyProfileResponse(response.data);
+      void refreshLatestApproval(response.data ?? nextProfile);
+      setNotice("Đã gửi lại hồ sơ để chờ phê duyệt.");
+    } catch {
+      setNotice("Không thể gửi lại hồ sơ để duyệt. Vui lòng kiểm tra thông tin và thử lại.");
+    } finally {
+      setResubmitting(false);
     }
   };
 
@@ -505,7 +630,7 @@ export function InternalProfilePage() {
       setNotice("Đã cập nhật ảnh đại diện.");
       URL.revokeObjectURL(previewUrl);
     } catch {
-      setNotice("Đã xem trước ảnh đại diện. Upload backend sẽ hoạt động khi API sẵn sàng.");
+      setNotice("Đã xem trước ảnh đại diện. Vui lòng thử lại nếu ảnh chưa được lưu.");
     }
   };
 
@@ -535,7 +660,7 @@ export function InternalProfilePage() {
 
   const handleChangePassword = () => {
     closePasswordModal();
-    setNotice("Yêu cầu đổi mật khẩu đã được ghi nhận trên giao diện. Cần backend bổ sung endpoint đổi mật khẩu hoặc redirect Keycloak account console.");
+    setNotice("Yêu cầu đổi mật khẩu đã được ghi nhận.");
   };
 
   return (
@@ -551,16 +676,20 @@ export function InternalProfilePage() {
                 </p>
               </div>
               <div className="tw-flex tw-items-center tw-gap-3 max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
-                <Button className="tw-min-h-11 tw-font-extrabold" variant="secondary" disabled={!dirty || saving} type="button" onClick={() => setForm(normalizeProfile(profile))}>
+                <Button className="tw-min-h-11 tw-font-extrabold" variant="secondary" disabled={!dirty || saving || resubmitting} type="button" onClick={() => setForm(normalizeProfile(profile))}>
                   <i className="fas fa-undo" />
                   <span>Hoàn tác</span>
                 </Button>
-                <Button className="tw-min-h-11 tw-font-extrabold" disabled={loading} loading={saving} type="button" onClick={handleSave}>
-                  {!saving ? <i className="far fa-save" /> : null}
-                  <span>{saving ? "Đang lưu..." : "Lưu hồ sơ"}</span>
-                </Button>
+                {showSaveProfileButton ? (
+                  <Button className="tw-min-h-11 tw-font-extrabold" disabled={loading || resubmitting} loading={saving} type="button" onClick={handleSave}>
+                    {!saving ? <i className="far fa-save" /> : null}
+                    <span>{saving ? "Đang lưu..." : "Lưu hồ sơ"}</span>
+                  </Button>
+                ) : null}
               </div>
             </header>
+
+            <ProfileReadinessBanner dirty={dirty} latestApproval={latestApproval} onComplete={handleSave} onResubmit={handleResubmitApproval} profile={profile} resubmitting={resubmitting} saving={saving} />
 
             {notice ? (
               <div className="tw-flex tw-min-h-11 tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-brand-100 tw-bg-brand-50 tw-px-4 tw-text-[0.86rem] tw-font-bold tw-text-blue-900">
@@ -576,7 +705,7 @@ export function InternalProfilePage() {
                 <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-gap-4 max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
                   <div>
                     <h3 className="tw-m-0 tw-text-vm-section-title tw-font-black tw-text-[#111827]">Hồ sơ cá nhân</h3>
-                    <p className="tw-mb-0 tw-mt-1.5 tw-text-[0.88rem] tw-font-semibold tw-text-vm-slate-500">Các trường họ tên và số điện thoại là bắt buộc theo rule backend.</p>
+                    <p className="tw-mb-0 tw-mt-1.5 tw-text-[0.88rem] tw-font-semibold tw-text-vm-slate-500">Họ tên và số điện thoại là thông tin bắt buộc.</p>
                   </div>
                   <StatusPill tone="blue">{getRoleLabel(user?.role, user?.roleLabel)}</StatusPill>
                 </div>

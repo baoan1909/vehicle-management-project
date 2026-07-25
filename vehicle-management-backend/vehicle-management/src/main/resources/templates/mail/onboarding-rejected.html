@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{mail/fragments :: head('Hồ sơ cần bổ sung - CoParking')}"></head>
+<body>
+<div class="email-page">
+    <div class="email-shell">
+        <div th:replace="~{mail/fragments :: header}"></div>
+        <div class="email-content">
+            <div class="status-row">
+                <div class="status-icon"><span>!</span></div>
+                <div class="status-copy">
+                    <h1>Hồ sơ cần bổ sung</h1>
+                    <p>Chào <span th:text="${fullName}">bạn</span>,</p>
+                </div>
+            </div>
+            <p>
+                Hồ sơ <span th:text="${roleLabel}">tài khoản</span>
+                của bạn chưa được phê duyệt.
+            </p>
+            <div class="note-box">
+                <strong>Lý do</strong>
+                <p th:text="${note}">Vui lòng kiểm tra lại thông tin hồ sơ và gửi duyệt lại.</p>
+            </div>
+            <p>Bạn có thể cập nhật lại thông tin cần thiết và gửi lại yêu cầu duyệt.</p>
+            <div style="margin-top: 24px;">
+                <a class="email-button" th:href="${portalUrl}">Cập nhật hồ sơ</a>
+            </div>
+        </div>
+        <div th:replace="~{mail/fragments :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

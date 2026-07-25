@@ -19,6 +19,7 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
+import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
@@ -33,6 +34,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
     private final CurrentAccountPortIn currentAccountPortIn;
     private final InternalEmployeeApprovalAccessGuard internalEmployeeApprovalAccessGuard;
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
+    private final VehicleMailService vehicleMailService;
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
     private final Clock clock;
@@ -41,12 +43,14 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
     public InternalEmployeeApprovalUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             InternalEmployeeApprovalAccessGuard internalEmployeeApprovalAccessGuard,
-            InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut
+            InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
+            VehicleMailService vehicleMailService
     ) {
         this(
                 currentAccountPortIn,
                 internalEmployeeApprovalAccessGuard,
                 internalEmployeeApprovalPortOut,
+                vehicleMailService,
                 Clock.systemUTC()
         );
     }
@@ -55,11 +59,13 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
             CurrentAccountPortIn currentAccountPortIn,
             InternalEmployeeApprovalAccessGuard internalEmployeeApprovalAccessGuard,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
+            VehicleMailService vehicleMailService,
             Clock clock
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.internalEmployeeApprovalAccessGuard = internalEmployeeApprovalAccessGuard;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
+        this.vehicleMailService = vehicleMailService;
         this.clock = clock == null ? Clock.systemUTC() : clock;
     }
 
@@ -124,8 +130,10 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         employeePolicy.activate(employee, DateTimeUtils.toVietnamLocalDate(approvedAt));
         internalEmployeeApprovalPortOut.saveInternalEmployeeApprovalDecision(approvalRequest, employee);
 
-        return internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId)
+        InternalEmployeeApprovalResult result = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
+        sendOnboardingApprovedEmail(result);
+        return result;
     }
 
     @Override
@@ -147,8 +155,10 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         employeePolicy.inactivate(employee);
         internalEmployeeApprovalPortOut.saveInternalEmployeeApprovalDecision(approvalRequest, employee);
 
-        return internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId)
+        InternalEmployeeApprovalResult result = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
+        sendOnboardingRejectedEmail(result);
+        return result;
     }
 
     @Override
@@ -209,5 +219,32 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
     private Employee loadEmployee(UUID employeeId) {
         return internalEmployeeApprovalPortOut.findEmployeeById(employeeId)
                 .orElseThrow(() -> new NotFoundException("Employee not found"));
+    }
+
+    private void sendOnboardingApprovedEmail(InternalEmployeeApprovalResult result) {
+        vehicleMailService.sendOnboardingApprovedEmail(
+                result.account().email(),
+                result.profile().fullName(),
+                resolveRoleLabel(result.account().roleCode())
+        );
+    }
+
+    private void sendOnboardingRejectedEmail(InternalEmployeeApprovalResult result) {
+        vehicleMailService.sendOnboardingRejectedEmail(
+                result.account().email(),
+                result.profile().fullName(),
+                resolveRoleLabel(result.account().roleCode()),
+                result.request().note()
+        );
+    }
+
+    private String resolveRoleLabel(String roleCode) {
+        if ("PARKING_MANAGER".equals(roleCode)) {
+            return "quản lý bãi xe";
+        }
+        if ("PARKING_ATTENDANT".equals(roleCode)) {
+            return "nhân viên vận hành";
+        }
+        return "nhân sự nội bộ";
     }
 }

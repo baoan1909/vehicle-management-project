@@ -8,6 +8,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.port.ou
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.infrastructure.mapper.operations.ApprovalRequestPersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.operations.OnboardingApprovalReadModelMapper;
 import com.ban.vehicle_management.infrastructure.mapper.people.CustomerPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RoleEntity;
@@ -36,6 +37,7 @@ public class CustomerOnboardingApprovalPersistenceAdapter implements CustomerOnb
     private final RoleRepository roleRepository;
     private final ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper;
     private final CustomerPersistenceMapper customerPersistenceMapper;
+    private final OnboardingApprovalReadModelMapper onboardingApprovalReadModelMapper;
 
     public CustomerOnboardingApprovalPersistenceAdapter(
             ApprovalRequestRepository approvalRequestRepository,
@@ -44,7 +46,8 @@ public class CustomerOnboardingApprovalPersistenceAdapter implements CustomerOnb
             AccountRepository accountRepository,
             RoleRepository roleRepository,
             ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper,
-            CustomerPersistenceMapper customerPersistenceMapper
+            CustomerPersistenceMapper customerPersistenceMapper,
+            OnboardingApprovalReadModelMapper onboardingApprovalReadModelMapper
     ) {
         this.approvalRequestRepository = approvalRequestRepository;
         this.customerRepository = customerRepository;
@@ -53,6 +56,7 @@ public class CustomerOnboardingApprovalPersistenceAdapter implements CustomerOnb
         this.roleRepository = roleRepository;
         this.approvalRequestPersistenceMapper = approvalRequestPersistenceMapper;
         this.customerPersistenceMapper = customerPersistenceMapper;
+        this.onboardingApprovalReadModelMapper = onboardingApprovalReadModelMapper;
     }
 
     @Override
@@ -210,39 +214,12 @@ public class CustomerOnboardingApprovalPersistenceAdapter implements CustomerOnb
             return Optional.empty();
         }
 
-        return Optional.of(new CustomerOnboardingApprovalResult(
-                new CustomerOnboardingApprovalResult.RequestInfoResult(
-                        approvalRequestEntity.getApprovalRequestId(),
-                        approvalRequestEntity.getRequestType(),
-                        enumName(approvalRequestEntity.getStatus()),
-                        approvalRequestEntity.getNote(),
-                        approvalRequestEntity.getRequestedBy(),
-                        approvalRequestEntity.getApprovedBy(),
-                        approvalRequestEntity.getApprovedAt(),
-                        approvalRequestEntity.getCreatedAt(),
-                        approvalRequestEntity.getUpdatedAt()
-                ),
-                new CustomerOnboardingApprovalResult.AccountInfoResult(
-                        accountEntity.get().getAccountId(),
-                        accountEntity.get().getUsername(),
-                        accountEntity.get().getEmail(),
-                        roleEntity.get().getCode(),
-                        enumName(accountEntity.get().getStatus())
-                ),
-                new CustomerOnboardingApprovalResult.ProfileInfoResult(
-                        userProfileEntity.get().getUserProfileId(),
-                        userProfileEntity.get().getFullName(),
-                        userProfileEntity.get().getPhoneNumber()
-                ),
-                new CustomerOnboardingApprovalResult.CustomerInfoResult(
-                        customerEntity.get().getCustomerId(),
-                        customerEntity.get().getCustomerCode(),
-                        enumName(customerEntity.get().getCustomerType()),
-                        enumName(customerEntity.get().getStatus()),
-                        enumName(customerEntity.get().getApprovalStatus()),
-                        customerEntity.get().getApprovedBy(),
-                        customerEntity.get().getApprovedAt()
-                )
+        return Optional.of(onboardingApprovalReadModelMapper.toCustomerResult(
+                approvalRequestEntity,
+                accountEntity.get(),
+                roleEntity.get(),
+                userProfileEntity.get(),
+                customerEntity.get()
         ));
     }
 
@@ -269,7 +246,4 @@ public class CustomerOnboardingApprovalPersistenceAdapter implements CustomerOnb
         return value != null && value.toLowerCase(Locale.ROOT).contains(normalizedKeyword);
     }
 
-    private String enumName(Enum<?> value) {
-        return value == null ? null : value.name();
-    }
 }

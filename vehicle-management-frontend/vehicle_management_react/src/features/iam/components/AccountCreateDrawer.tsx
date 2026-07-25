@@ -198,8 +198,8 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
               {manageableRoleOptions.length === 0 ? (
                 <div className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500">
                   {canCreateProvisionedAccount
-                    ? "Backend provisioned account hien chi ho tro scope role he thong; custom role can API scope rieng o phase sau."
-                    : "Tai khoan hien tai chua co ACCOUNT_CREATE_ALL de tao tai khoan cap san."}
+                    ? "Chưa có vai trò phù hợp để tạo tài khoản."
+                    : "Tài khoản hiện tại chưa có quyền tạo tài khoản."}
                 </div>
               ) : null}
               {manageableRoleOptions.map((role) => {
