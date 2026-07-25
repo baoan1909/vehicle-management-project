@@ -10,6 +10,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.port.ou
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.ApprovalRequestPolicy;
+import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -28,17 +29,20 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
     private final CurrentAccountPortIn currentAccountPortIn;
     private final SystemAdminApprovalAccessGuard systemAdminApprovalAccessGuard;
     private final SystemAdminApprovalPortOut systemAdminApprovalPortOut;
+    private final VehicleMailService vehicleMailService;
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
     private final Clock clock;
 
     public SystemAdminApprovalUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             SystemAdminApprovalAccessGuard systemAdminApprovalAccessGuard,
-            SystemAdminApprovalPortOut systemAdminApprovalPortOut
+            SystemAdminApprovalPortOut systemAdminApprovalPortOut,
+            VehicleMailService vehicleMailService
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.systemAdminApprovalAccessGuard = systemAdminApprovalAccessGuard;
         this.systemAdminApprovalPortOut = systemAdminApprovalPortOut;
+        this.vehicleMailService = vehicleMailService;
         this.clock = Clock.systemUTC();
     }
 
@@ -87,8 +91,10 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
                 approvalRequest.getTargetId(),
                 AccountStatus.ACTIVE
         );
-        return systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
+        SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
+        sendOnboardingApprovedEmail(result);
+        return result;
     }
 
     @Override
@@ -108,8 +114,10 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
                 approvalRequest.getTargetId(),
                 AccountStatus.PENDING
         );
-        return systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
+        SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
+        sendOnboardingRejectedEmail(result);
+        return result;
     }
 
     @Override
@@ -161,4 +169,20 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         return TextValidationUtils.normalizeNullableText(command == null ? null : command.note(), "note", 0);
     }
 
+    private void sendOnboardingApprovedEmail(SystemAdminApprovalResult result) {
+        vehicleMailService.sendOnboardingApprovedEmail(
+                result.account().email(),
+                result.profile().fullName(),
+                "quản trị hệ thống"
+        );
+    }
+
+    private void sendOnboardingRejectedEmail(SystemAdminApprovalResult result) {
+        vehicleMailService.sendOnboardingRejectedEmail(
+                result.account().email(),
+                result.profile().fullName(),
+                "quản trị hệ thống",
+                result.request().note()
+        );
+    }
 }

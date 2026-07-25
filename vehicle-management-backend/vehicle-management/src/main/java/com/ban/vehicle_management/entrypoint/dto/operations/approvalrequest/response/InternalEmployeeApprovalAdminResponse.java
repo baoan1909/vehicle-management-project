@@ -34,7 +34,11 @@ public record InternalEmployeeApprovalAdminResponse(
     public record ProfileInfoResponse(
             UUID userProfileId,
             String fullName,
-            String phoneNumber
+            String phoneNumber,
+            LocalDate dateOfBirth,
+            String gender,
+            String address,
+            String identifyCard
     ) {
     }
 

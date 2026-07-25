@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{mail/fragments :: head('Hồ sơ đã được phê duyệt - CoParking')}"></head>
+<body>
+<div class="email-page">
+    <div class="email-shell">
+        <div th:replace="~{mail/fragments :: header}"></div>
+        <div class="email-content">
+            <div class="status-row">
+                <div class="status-icon"><span>✓</span></div>
+                <div class="status-copy">
+                    <h1>Hồ sơ đã được phê duyệt</h1>
+                    <p>Chào <span th:text="${fullName}">bạn</span>,</p>
+                </div>
+            </div>
+            <p>
+                Hồ sơ <span th:text="${roleLabel}">tài khoản</span>
+                của bạn đã được duyệt trên CoParking.
+            </p>
+            <div class="info-box">
+                <strong>Tài khoản đã sẵn sàng</strong>
+                <p>Bạn có thể đăng nhập để tiếp tục quản lý hồ sơ và sử dụng các chức năng được cấp quyền.</p>
+            </div>
+            <div style="margin-top: 24px;">
+                <a class="email-button" th:href="${portalUrl}">Mở CoParking</a>
+            </div>
+        </div>
+        <div th:replace="~{mail/fragments :: footer}"></div>
+    </div>
+</div>
+</body>
+</html>

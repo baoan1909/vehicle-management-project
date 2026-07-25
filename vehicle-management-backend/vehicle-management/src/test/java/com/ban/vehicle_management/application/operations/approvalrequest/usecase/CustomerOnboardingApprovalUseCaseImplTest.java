@@ -14,6 +14,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.port.ou
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
+import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
@@ -40,6 +41,9 @@ class CustomerOnboardingApprovalUseCaseImplTest {
 
     @Mock
     private CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
+
+    @Mock
+    private VehicleMailService vehicleMailService;
 
     @InjectMocks
     private CustomerOnboardingApprovalUseCaseImpl customerOnboardingApprovalUseCase;
@@ -86,6 +90,7 @@ class CustomerOnboardingApprovalUseCaseImplTest {
         assertEquals(CustomerApprovalStatus.APPROVED, customerCaptor.getValue().getApprovalStatus());
         assertEquals(CustomerStatus.ACTIVE, customerCaptor.getValue().getStatus());
         assertEquals("APPROVED", result.request().approvalRequestStatus());
+        verify(vehicleMailService).sendOnboardingApprovedEmail("customer@example.com", "Customer User", "khách hàng");
     }
 
     @Test
@@ -124,6 +129,7 @@ class CustomerOnboardingApprovalUseCaseImplTest {
         assertEquals(CustomerApprovalStatus.REJECTED, customerCaptor.getValue().getApprovalStatus());
         assertEquals(CustomerStatus.INACTIVE, customerCaptor.getValue().getStatus());
         assertEquals("REJECTED", result.request().approvalRequestStatus());
+        verify(vehicleMailService).sendOnboardingRejectedEmail("customer@example.com", "Customer User", "khách hàng", null);
     }
 
     @Test

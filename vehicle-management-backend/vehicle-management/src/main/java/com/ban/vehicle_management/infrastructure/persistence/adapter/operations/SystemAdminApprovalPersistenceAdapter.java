@@ -6,6 +6,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.r
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.infrastructure.mapper.operations.ApprovalRequestPersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.operations.OnboardingApprovalReadModelMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RoleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ApprovalRequestEntity;
@@ -30,19 +31,22 @@ public class SystemAdminApprovalPersistenceAdapter implements SystemAdminApprova
     private final RoleRepository roleRepository;
     private final UserProfileRepository userProfileRepository;
     private final ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper;
+    private final OnboardingApprovalReadModelMapper onboardingApprovalReadModelMapper;
 
     public SystemAdminApprovalPersistenceAdapter(
             ApprovalRequestRepository approvalRequestRepository,
             AccountRepository accountRepository,
             RoleRepository roleRepository,
             UserProfileRepository userProfileRepository,
-            ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper
+            ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper,
+            OnboardingApprovalReadModelMapper onboardingApprovalReadModelMapper
     ) {
         this.approvalRequestRepository = approvalRequestRepository;
         this.accountRepository = accountRepository;
         this.roleRepository = roleRepository;
         this.userProfileRepository = userProfileRepository;
         this.approvalRequestPersistenceMapper = approvalRequestPersistenceMapper;
+        this.onboardingApprovalReadModelMapper = onboardingApprovalReadModelMapper;
     }
 
     @Override
@@ -155,30 +159,11 @@ public class SystemAdminApprovalPersistenceAdapter implements SystemAdminApprova
                 ? Optional.empty()
                 : userProfileRepository.findById(accountEntity.get().getUserProfileId());
 
-        return Optional.of(new SystemAdminApprovalResult(
-                new SystemAdminApprovalResult.RequestInfoResult(
-                        approvalRequestEntity.getApprovalRequestId(),
-                        approvalRequestEntity.getRequestType(),
-                        enumName(approvalRequestEntity.getStatus()),
-                        approvalRequestEntity.getNote(),
-                        approvalRequestEntity.getRequestedBy(),
-                        approvalRequestEntity.getApprovedBy(),
-                        approvalRequestEntity.getApprovedAt(),
-                        approvalRequestEntity.getCreatedAt(),
-                        approvalRequestEntity.getUpdatedAt()
-                ),
-                new SystemAdminApprovalResult.AccountInfoResult(
-                        accountEntity.get().getAccountId(),
-                        accountEntity.get().getUsername(),
-                        accountEntity.get().getEmail(),
-                        roleEntity.get().getCode(),
-                        enumName(accountEntity.get().getStatus())
-                ),
-                new SystemAdminApprovalResult.ProfileInfoResult(
-                        userProfileEntity.map(UserProfileEntity::getUserProfileId).orElse(null),
-                        userProfileEntity.map(UserProfileEntity::getFullName).orElse(null),
-                        userProfileEntity.map(UserProfileEntity::getPhoneNumber).orElse(null)
-                )
+        return Optional.of(onboardingApprovalReadModelMapper.toSystemAdminResult(
+                approvalRequestEntity,
+                accountEntity.get(),
+                roleEntity.get(),
+                userProfileEntity.orElse(null)
         ));
     }
 
@@ -197,7 +182,4 @@ public class SystemAdminApprovalPersistenceAdapter implements SystemAdminApprova
         return value != null && value.toLowerCase(Locale.ROOT).contains(normalizedKeyword);
     }
 
-    private String enumName(Enum<?> value) {
-        return value == null ? null : value.name();
-    }
 }

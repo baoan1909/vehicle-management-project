@@ -65,6 +65,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/shifts", title: "Ca trực & Phân công", layout: "admin", element: <ShiftSchedulePage /> },
   { path: "/admin/account", title: "Tài khoản", layout: "admin", element: <AccountListPage /> },
   { path: "/admin/account/form", title: "Thong tin tai khoan", layout: "admin", element: blankPage },
+  { path: "/admin/onboarding-approvals", title: "Duyet onboarding", layout: "admin", element: <Navigate to="/admin/account?tab=onboarding" replace /> },
   { path: "/admin/profile", title: "Thong tin tai khoan ca nhan", layout: "admin", element: <InternalProfilePage /> },
   { path: "/admin/customer", title: "Quản lý khách hàng", layout: "admin", element: <CustomerListPage /> },
   { path: "/admin/customer/form", title: "Thong tin khach hang", layout: "admin", element: blankPage },

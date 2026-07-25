@@ -112,9 +112,31 @@ export function getStatusMeta(value?: string): StatusMeta {
   };
 }
 
-export function getApprovalStatusValue(user?: Pick<CurrentUser, "accountStatus" | "customerApprovalStatus"> | null) {
+export function getApprovalStatusValue(
+  user?: Pick<CurrentUser, "accountStatus" | "customerApprovalStatus" | "customerStatus" | "employeeStatus" | "onboardingRequired" | "role"> | null
+) {
   if (!user) return undefined;
-  if (user.customerApprovalStatus) return user.customerApprovalStatus;
-  if (user.accountStatus === "ACTIVE") return "APPROVED";
+
+  if (user.onboardingRequired) return "PENDING";
+
+  if (user.role === "CUSTOMER") {
+    if (user.customerApprovalStatus) return user.customerApprovalStatus;
+    if (user.customerStatus === "ACTIVE") return "APPROVED";
+    if (user.accountStatus === "LOCKED" || user.accountStatus === "DISABLED") return user.accountStatus;
+    return "PENDING";
+  }
+
+  if (user.role === "PARKING_MANAGER" || user.role === "EMPLOYEE") {
+    if (user.employeeStatus === "ACTIVE") return "APPROVED";
+    if (user.employeeStatus === "SUSPENDED") return "SUSPENDED";
+    if (user.accountStatus === "LOCKED" || user.accountStatus === "DISABLED") return user.accountStatus;
+    return "PENDING";
+  }
+
+  if (user.role === "SYSTEM_ADMIN") {
+    if (user.accountStatus === "ACTIVE") return "APPROVED";
+    return user.accountStatus;
+  }
+
   return user.accountStatus;
 }

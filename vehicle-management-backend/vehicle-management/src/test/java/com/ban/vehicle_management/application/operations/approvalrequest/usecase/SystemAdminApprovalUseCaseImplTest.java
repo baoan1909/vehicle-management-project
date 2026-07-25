@@ -15,6 +15,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.r
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
+import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -42,6 +43,9 @@ class SystemAdminApprovalUseCaseImplTest {
 
     @Mock
     private SystemAdminApprovalPortOut systemAdminApprovalPortOut;
+
+    @Mock
+    private VehicleMailService vehicleMailService;
 
     @InjectMocks
     private SystemAdminApprovalUseCaseImpl systemAdminApprovalUseCase;
@@ -92,6 +96,11 @@ class SystemAdminApprovalUseCaseImplTest {
         assertEquals(ApprovalRequestStatus.APPROVED, approvalCaptor.getValue().getStatus());
         assertEquals(AccountStatus.ACTIVE, accountStatusCaptor.getValue());
         assertEquals("APPROVED", result.request().approvalRequestStatus());
+        verify(vehicleMailService).sendOnboardingApprovedEmail(
+                "system.admin.pending@example.com",
+                "Pending System Admin",
+                "quản trị hệ thống"
+        );
     }
 
     @Test
@@ -121,6 +130,12 @@ class SystemAdminApprovalUseCaseImplTest {
         );
         assertEquals(AccountStatus.PENDING, accountStatusCaptor.getValue());
         assertEquals("REJECTED", result.request().approvalRequestStatus());
+        verify(vehicleMailService).sendOnboardingRejectedEmail(
+                "system.admin.pending@example.com",
+                "Pending System Admin",
+                "quản trị hệ thống",
+                null
+        );
     }
 
     @Test
