@@ -63,3 +63,17 @@ app:
     connect-timeout-ms: ${OCR_CONNECT_TIMEOUT_MS:1500}
     read-timeout-ms: ${OCR_READ_TIMEOUT_MS:5000}
     confidence-threshold: ${OCR_CONFIDENCE_THRESHOLD:0.70}
+  payment:
+    vnpay:
+      enabled: ${VNPAY_ENABLED:false}
+      version: ${VNPAY_VERSION:2.1.0}
+      command: ${VNPAY_COMMAND:pay}
+      tmn-code: ${VNPAY_TMN_CODE:}
+      hash-secret: ${VNPAY_HASH_SECRET:}
+      payment-url: ${VNPAY_PAYMENT_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+      return-url: ${VNPAY_RETURN_URL:}
+      ipn-url: ${VNPAY_IPN_URL:}
+      frontend-return-url: ${VNPAY_FRONTEND_RETURN_URL:http://localhost:5173/admin/swipe}
+      order-type: ${VNPAY_ORDER_TYPE:other}
+      timeout-minutes: ${VNPAY_TIMEOUT_MINUTES:15}
+      minimum-amount: ${VNPAY_MINIMUM_AMOUNT:10000}

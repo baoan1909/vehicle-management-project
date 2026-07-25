@@ -100,7 +100,7 @@ export type ParkingSessionResponse = {
 export type ParkingEventResponse = {
   actorAccountId?: string;
   eventTime?: string;
-  eventType?: "CHECK_IN" | "CHECK_OUT";
+  eventType?: "CHECK_IN" | "CHECK_OUT_PENDING" | "CHECK_OUT";
   laneId: string;
   licensePlateDetected?: string;
   licensePlateImagePath?: string;
@@ -154,7 +154,7 @@ export type ParkingSessionCheckOutPreviewResponse = {
 export type ParkingSessionManagementEventResponse = {
   actorAccountId?: string;
   eventTime?: string;
-  eventType?: "CHECK_IN" | "CHECK_OUT";
+  eventType?: "CHECK_IN" | "CHECK_OUT_PENDING" | "CHECK_OUT";
   laneCode?: string;
   laneId?: string;
   laneName?: string;
@@ -336,6 +336,30 @@ export async function checkOutParkingSession(
     `${apiEndpoints.parking.parkingSessions}/check-out`,
     formData,
   );
+}
+
+export async function prepareVisitorParkingCheckOut(
+  request: CheckOutParkingSessionRequest,
+  licensePlateImage: File,
+  personImage: File,
+) {
+  const formData = new FormData();
+  formData.append("request", JSON.stringify(request));
+  formData.append("licensePlateImage", licensePlateImage, licensePlateImage.name);
+  formData.append("personImage", personImage, personImage.name);
+
+  return postMultipart<ApiResponse<ParkingSessionCheckOutResponse>>(
+    `${apiEndpoints.parking.parkingSessions}/check-out/prepare`,
+    formData,
+  );
+}
+
+export async function fetchParkingCheckOutByInvoice(invoiceId: string) {
+  const query = new URLSearchParams({ invoiceId });
+  const response = await apiClient<ApiResponse<ParkingSessionCheckOutResponse>>(
+    `${apiEndpoints.parking.parkingSessions}/check-out/by-invoice?${query.toString()}`,
+  );
+  return response.data;
 }
 
 export async function recognizeLicensePlate(image: File) {

@@ -1,4 +1,5 @@
-import { Card, CardContent, CardHeader } from "@/components/ui";
+import { Button, Card, CardContent, CardHeader } from "@/components/ui";
+import { VNPAY_MINIMUM_AMOUNT } from "@/features/parking/api/parkingPaymentApi";
 import type {
   ParkingSessionCheckOutPreviewResponse,
   ParkingSessionOperationResponse,
@@ -7,7 +8,11 @@ import { cn } from "@/lib/cn";
 import type { ParkingOperationMode } from "./OperationModeTabs";
 
 type ParkingSessionSummaryProps = {
+  isPaymentActionLoading?: boolean;
   mode: ParkingOperationMode;
+  onPayCash?: () => void;
+  onRetryVnpay?: () => void;
+  paymentActionError?: string;
   preview?: ParkingSessionCheckOutPreviewResponse | null;
   result?: ParkingSessionOperationResponse | null;
 };
@@ -109,7 +114,15 @@ function customerTypeLabel(customerType?: string) {
   return "Chưa có dữ liệu";
 }
 
-export function ParkingSessionSummary({ mode, preview, result }: ParkingSessionSummaryProps) {
+export function ParkingSessionSummary({
+  isPaymentActionLoading = false,
+  mode,
+  onPayCash,
+  onRetryVnpay,
+  paymentActionError,
+  preview,
+  result,
+}: ParkingSessionSummaryProps) {
   const isCheckIn = mode === "check-in";
   const session = result?.parkingSession ?? preview?.parkingSession;
   const event = result?.parkingEvent;
@@ -133,6 +146,9 @@ export function ParkingSessionSummary({ mode, preview, result }: ParkingSessionS
       : payableAmount === 0
         ? "Không phát sinh phí"
         : "Chưa có hóa đơn";
+  const showPaymentActions = Boolean(result && invoice?.status === "UNPAID");
+  const vnpayAvailable =
+    typeof payableAmount === "number" && payableAmount >= VNPAY_MINIMUM_AMOUNT;
 
   return (
     <Card className="tw-flex tw-min-h-0 tw-flex-col tw-overflow-hidden">
@@ -147,7 +163,11 @@ export function ParkingSessionSummary({ mode, preview, result }: ParkingSessionS
           <DetailRow icon="far fa-user" label="Loại hành khách" value={customerTypeLabel(customerType)} />
           <DetailRow icon="far fa-address-card" label="Mã phiên đỗ xe" value={session?.parkingSessionId?.slice(0, 13) ?? "Chưa có dữ liệu"} />
           <DetailRow icon="far fa-clock" label="Thời gian check-in" value={fallback(session?.checkInTime)} />
-          <DetailRow icon="far fa-clock" label="Thời gian check-out" value={fallback(checkOutTime)} />
+          <DetailRow
+            icon="far fa-clock"
+            label="Thời gian check-out"
+            value={event?.eventType === "CHECK_OUT_PENDING" ? "Chưa hoàn tất" : fallback(checkOutTime)}
+          />
           <DetailRow icon="fas fa-car" label="Biển số" value={fallback(session?.licensePlateOut ?? session?.licensePlateIn ?? event?.licensePlateDetected)} />
         </div>
 
@@ -173,6 +193,53 @@ export function ParkingSessionSummary({ mode, preview, result }: ParkingSessionS
           <PaymentStatus label="Mã hóa đơn" value={invoice?.invoiceNo ?? "--"} />
           <PaymentStatus label="Trạng thái thanh toán" tone={paid ? "success" : "warning"} value={paymentStatus} />
         </div>
+
+        {showPaymentActions ? (
+          <div className="tw-grid tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-p-3">
+            <div className="tw-flex tw-items-start tw-gap-2.5">
+              <i className="fas fa-exclamation-circle tw-mt-0.5 tw-text-amber-600" />
+              <div className="tw-grid tw-gap-0.5">
+                <strong className="tw-text-[0.82rem] tw-font-extrabold tw-text-amber-800">Hóa đơn chưa thanh toán</strong>
+                <span className="tw-text-[0.74rem] tw-font-semibold tw-leading-snug tw-text-amber-700">
+                  Có thể xác nhận tiền mặt hoặc tạo lại giao dịch VNPAY.
+                </span>
+              </div>
+            </div>
+
+            {!vnpayAvailable ? (
+              <div className="tw-rounded-vm-sm tw-bg-white/80 tw-px-3 tw-py-2 tw-text-[0.72rem] tw-font-bold tw-text-amber-700">
+                VNPAY Sandbox yêu cầu hóa đơn tối thiểu 10.000 đồng. Hóa đơn này chỉ có thể chuyển sang tiền mặt.
+              </div>
+            ) : null}
+
+            {paymentActionError ? (
+              <div className="tw-rounded-vm-sm tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-px-3 tw-py-2 tw-text-[0.74rem] tw-font-bold tw-text-red-600">
+                {paymentActionError}
+              </div>
+            ) : null}
+
+            <div className="tw-grid tw-grid-cols-2 tw-gap-2">
+              <Button
+                className="tw-h-10 tw-w-full"
+                disabled={!onPayCash || isPaymentActionLoading}
+                loading={isPaymentActionLoading}
+                onClick={onPayCash}
+              >
+                {!isPaymentActionLoading ? <i className="fas fa-money-bill-wave" /> : null}
+                Xác nhận tiền mặt
+              </Button>
+              <Button
+                className="tw-h-10 tw-w-full"
+                disabled={!vnpayAvailable || !onRetryVnpay || isPaymentActionLoading}
+                variant="secondary"
+                onClick={onRetryVnpay}
+              >
+                <i className="fas fa-qrcode" />
+                Thanh toán VNPAY
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

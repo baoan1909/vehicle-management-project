@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { SelectMenu, useToast } from "@/components/ui";
+import {
+  createParkingVnpayPayment,
+  recordParkingCashPayment,
+  VNPAY_MINIMUM_AMOUNT,
+} from "@/features/parking/api/parkingPaymentApi";
 import {
   checkInParkingSession,
   checkOutParkingSession,
   fetchCardTypes,
   fetchOpenParkingSessionByCardUid,
+  fetchParkingCheckOutByInvoice,
   fetchParkingCards,
   fetchParkingLanes,
   fetchVehicleTypes,
+  prepareVisitorParkingCheckOut,
   recognizeLicensePlate,
   type CardTypeResponse,
   type LaneDirection,
@@ -16,13 +24,17 @@ import {
   type LaneResponse,
   type ParkingCardResponse,
   type ParkingCardStatus,
+  type ParkingSessionCheckOutResponse,
   type ParkingSessionCheckOutPreviewResponse,
   type ParkingSessionOperationResponse,
   type VehicleTypeResponse,
 } from "@/features/parking/api/parkingSessionApi";
 import { OperationModeTabs, type ParkingOperationMode } from "@/features/parking/components/OperationModeTabs";
 import { ParkingCameraPanel } from "@/features/parking/components/ParkingCameraPanel";
-import { ParkingOperationForm } from "@/features/parking/components/ParkingOperationForm";
+import {
+  ParkingOperationForm,
+  type CheckOutPaymentMethod,
+} from "@/features/parking/components/ParkingOperationForm";
 import { ParkingSessionSummary } from "@/features/parking/components/ParkingSessionSummary";
 
 const cameraOptions = [
@@ -39,6 +51,48 @@ type OcrStatus = "idle" | "recognizing" | "success" | "review" | "error";
 
 const CARD_TYPE_REGISTERED = "REGISTERED";
 const CARD_TYPE_VISITOR = "VISITOR";
+const PENDING_VNPAY_CHECKOUT_KEY = "parking.pending-vnpay-checkout";
+
+type PendingVnpayCheckOut = {
+  form: {
+    cardUid: string;
+    laneId: string;
+    licensePlate: string;
+    note: string;
+  };
+  result: ParkingSessionCheckOutResponse;
+  savedAt: string;
+};
+
+function readPendingVnpayCheckOut(): PendingVnpayCheckOut | null {
+  try {
+    const rawValue = sessionStorage.getItem(PENDING_VNPAY_CHECKOUT_KEY);
+    if (!rawValue) return null;
+    const parsed = JSON.parse(rawValue) as PendingVnpayCheckOut;
+    if (!parsed?.result?.invoice?.invoiceId) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function storePendingVnpayCheckOut(
+  result: ParkingSessionCheckOutResponse,
+  form: PendingVnpayCheckOut["form"],
+) {
+  sessionStorage.setItem(
+    PENDING_VNPAY_CHECKOUT_KEY,
+    JSON.stringify({
+      result,
+      form,
+      savedAt: new Date().toISOString(),
+    } satisfies PendingVnpayCheckOut),
+  );
+}
+
+function clearPendingVnpayCheckOut() {
+  sessionStorage.removeItem(PENDING_VNPAY_CHECKOUT_KEY);
+}
 
 function normalizeCardInput(value: string) {
   return value.trim().toLowerCase();
@@ -128,7 +182,11 @@ function FilterSelect({
 
 export function SwipeListPage() {
   const toast = useToast();
-  const [mode, setMode] = useState<ParkingOperationMode>("check-in");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [mode, setMode] = useState<ParkingOperationMode>(() =>
+    searchParams.has("vnpayResult") ? "check-out" : "check-in",
+  );
+  const [checkOutPaymentMethod, setCheckOutPaymentMethod] = useState<CheckOutPaymentMethod>("CASH");
   const [cardTypes, setCardTypes] = useState<CardTypeResponse[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeResponse[]>([]);
   const [cards, setCards] = useState<ParkingCardResponse[]>([]);
@@ -141,6 +199,8 @@ export function SwipeListPage() {
   const [note, setNote] = useState("");
   const [licensePlateImage, setLicensePlateImage] = useState<File | null>(null);
   const [personImage, setPersonImage] = useState<File | null>(null);
+  const [restoredLicensePlateImageUrl, setRestoredLicensePlateImageUrl] = useState("");
+  const [restoredPersonImageUrl, setRestoredPersonImageUrl] = useState("");
   const [checkOutPreview, setCheckOutPreview] = useState<ParkingSessionCheckOutPreviewResponse | null>(null);
   const [parkingSessionResult, setParkingSessionResult] = useState<ParkingSessionOperationResponse | null>(null);
   const [cardError, setCardError] = useState("");
@@ -150,6 +210,8 @@ export function SwipeListPage() {
   const [laneError, setLaneError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCompletingPendingPayment, setIsCompletingPendingPayment] = useState(false);
+  const [pendingPaymentError, setPendingPaymentError] = useState("");
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>("idle");
   const [ocrMessage, setOcrMessage] = useState("");
   const [ocrResult, setOcrResult] = useState<LicensePlateOcrResponse | null>(null);
@@ -157,6 +219,84 @@ export function SwipeListPage() {
   const [cameraResetKey, setCameraResetKey] = useState(0);
   const lastAutoCapturedCardRef = useRef("");
   const ocrRequestSeq = useRef(0);
+  const skipInitialModeResetRef = useRef(searchParams.has("vnpayResult"));
+  const restoredPendingCheckoutRef = useRef(false);
+
+  useEffect(() => {
+    const vnpayResult = searchParams.get("vnpayResult");
+    if (!vnpayResult) return;
+    const pendingCheckOut = readPendingVnpayCheckOut();
+
+    if (pendingCheckOut) {
+      restoredPendingCheckoutRef.current = true;
+      const restoredResult =
+        vnpayResult === "success" && searchParams.get("paymentStatus") === "SUCCESS"
+          ? {
+              ...pendingCheckOut.result,
+              invoice: pendingCheckOut.result.invoice
+                ? {
+                    ...pendingCheckOut.result.invoice,
+                    status: "PAID" as const,
+                  }
+                : null,
+            }
+          : pendingCheckOut.result;
+      setMode("check-out");
+      setParkingSessionResult(restoredResult);
+      setCheckOutPaymentMethod("CASH");
+      setPendingPaymentError("");
+      setLaneId(pendingCheckOut.form?.laneId ?? pendingCheckOut.result.parkingEvent?.laneId ?? "");
+      setCardUid(pendingCheckOut.form?.cardUid ?? "");
+      setLicensePlate(
+        pendingCheckOut.form?.licensePlate
+          ?? pendingCheckOut.result.parkingEvent?.licensePlateDetected
+          ?? pendingCheckOut.result.parkingSession?.licensePlateIn
+          ?? "",
+      );
+      setNote(pendingCheckOut.form?.note ?? pendingCheckOut.result.parkingEvent?.note ?? "");
+      setRestoredLicensePlateImageUrl(
+        pendingCheckOut.result.parkingEvent?.licensePlateImagePath ?? "",
+      );
+      setRestoredPersonImageUrl(pendingCheckOut.result.parkingEvent?.personImagePath ?? "");
+
+      const invoiceId = pendingCheckOut.result.invoice?.invoiceId;
+      if (invoiceId) {
+        void fetchParkingCheckOutByInvoice(invoiceId)
+          .then((latestResult) => {
+            setParkingSessionResult(latestResult);
+            setRestoredLicensePlateImageUrl(
+              latestResult.parkingEvent?.licensePlateImagePath ?? "",
+            );
+            setRestoredPersonImageUrl(latestResult.parkingEvent?.personImagePath ?? "");
+          })
+          .catch(() => {
+            // The saved snapshot still allows the employee to retry or switch to cash.
+          });
+      }
+    }
+
+    if (vnpayResult === "success") {
+      toast.success(
+        "Thanh toán VNPAY thành công và phiên checkout đã được hoàn tất.",
+        "Thanh toán thành công",
+      );
+      clearPendingVnpayCheckOut();
+    } else if (vnpayResult === "cancelled") {
+      toast.warning(
+        "Giao dịch đã hủy. Hóa đơn vẫn chưa thanh toán và có thể chuyển sang tiền mặt.",
+        "Đã hủy thanh toán",
+      );
+    } else {
+      toast.error(
+        "Giao dịch VNPAY không thành công. Hóa đơn vẫn có thể được thanh toán bằng tiền mặt.",
+        "Thanh toán thất bại",
+      );
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    ["vnpayResult", "transactionRef", "responseCode", "paymentStatus"].forEach((key) => nextParams.delete(key));
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams, toast]);
 
   const laneDirection: LaneDirection = mode === "check-in" ? "IN" : "OUT";
   const cardStatuses: ParkingCardStatus[] = mode === "check-in" ? ["AVAILABLE", "ASSIGNED"] : ["IN_USE"];
@@ -321,10 +461,18 @@ export function SwipeListPage() {
   }, [mode]);
 
   useEffect(() => {
+    if (skipInitialModeResetRef.current) {
+      skipInitialModeResetRef.current = false;
+      return;
+    }
     setCardUid("");
     setVehicleTypeId("");
+    setCheckOutPaymentMethod("CASH");
     setCheckOutPreview(null);
     setParkingSessionResult(null);
+    restoredPendingCheckoutRef.current = false;
+    setRestoredLicensePlateImageUrl("");
+    setRestoredPersonImageUrl("");
     setSubmitError("");
     lastAutoCapturedCardRef.current = "";
     resetOcrState();
@@ -358,7 +506,9 @@ export function SwipeListPage() {
     let active = true;
     setSubmitError("");
     setCheckOutPreview(null);
-    setParkingSessionResult(null);
+    if (!restoredPendingCheckoutRef.current) {
+      setParkingSessionResult(null);
+    }
 
     async function loadOpenSession() {
       try {
@@ -384,6 +534,17 @@ export function SwipeListPage() {
   }, [mode, selectedParkingCard?.uid]);
 
   useEffect(() => {
+    if (
+      checkOutPreview?.customerType === "VISITOR" &&
+      typeof checkOutPreview.estimatedTotalPrice === "number" &&
+      checkOutPreview.estimatedTotalPrice < VNPAY_MINIMUM_AMOUNT
+    ) {
+      setCheckOutPaymentMethod("CASH");
+    }
+  }, [checkOutPreview?.customerType, checkOutPreview?.estimatedTotalPrice]);
+
+  useEffect(() => {
+    if (restoredPendingCheckoutRef.current) return;
     if (!cardsLoaded || !cardUid.trim() || !canCaptureCurrentCard) {
       lastAutoCapturedCardRef.current = "";
       return;
@@ -406,6 +567,11 @@ export function SwipeListPage() {
   }, [canCaptureCurrentCard, cardUid, cardsLoaded, mode, selectedParkingCard, selectedRequiresVehicleType, vehicleTypeId]);
 
   function handleCardUidChange(value: string) {
+    if (value !== cardUid) {
+      restoredPendingCheckoutRef.current = false;
+      setRestoredLicensePlateImageUrl("");
+      setRestoredPersonImageUrl("");
+    }
     setCardUid(value);
     setSubmitError("");
   }
@@ -501,6 +667,60 @@ export function SwipeListPage() {
     }
   }
 
+  async function handleCompletePendingCashPayment() {
+    const result = parkingSessionResult;
+    if (!result || !("invoice" in result)) return;
+    const invoice = result.invoice;
+    const amount = invoice?.finalAmount;
+    if (!invoice || typeof amount !== "number" || !Number.isFinite(amount)) return;
+
+    setPendingPaymentError("");
+    setIsCompletingPendingPayment(true);
+    try {
+      await recordParkingCashPayment(invoice.invoiceId, amount);
+      const completedResult = await fetchParkingCheckOutByInvoice(invoice.invoiceId);
+      setParkingSessionResult(completedResult);
+      clearPendingVnpayCheckOut();
+      toast.success("Đã chuyển sang và xác nhận thanh toán tiền mặt.", "Thanh toán thành công");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể xác nhận thanh toán tiền mặt.";
+      setPendingPaymentError(message);
+      toast.error(message, "Thanh toán thất bại");
+    } finally {
+      setIsCompletingPendingPayment(false);
+    }
+  }
+
+  async function handleRetryPendingVnpayPayment() {
+    const result = parkingSessionResult;
+    if (!result || !("invoice" in result)) return;
+    const invoice = result.invoice;
+    const amount = invoice?.finalAmount;
+    if (!invoice || typeof amount !== "number" || !Number.isFinite(amount)) return;
+    if (amount < VNPAY_MINIMUM_AMOUNT) {
+      setPendingPaymentError("VNPAY Sandbox chỉ áp dụng cho hóa đơn từ 10.000 đồng.");
+      return;
+    }
+
+    setPendingPaymentError("");
+    setIsCompletingPendingPayment(true);
+    try {
+      const paymentResponse = await createParkingVnpayPayment(invoice.invoiceId);
+      storePendingVnpayCheckOut(result, {
+        cardUid,
+        laneId,
+        licensePlate,
+        note,
+      });
+      window.location.assign(paymentResponse.data.paymentUrl);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Không thể tạo lại giao dịch VNPAY.";
+      setPendingPaymentError(message);
+      toast.error(message, "Không thể thanh toán VNPAY");
+      setIsCompletingPendingPayment(false);
+    }
+  }
+
   async function handleSubmit() {
     setSubmitError("");
 
@@ -553,6 +773,11 @@ export function SwipeListPage() {
       return;
     }
 
+    if (mode === "check-out" && !checkOutPreview) {
+      setSubmitError("Chưa tải được thông tin phiên gửi xe. Vui lòng chọn lại thẻ trước khi checkout.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const request = {
@@ -561,18 +786,63 @@ export function SwipeListPage() {
         licensePlate: licensePlate.trim(),
         note: note.trim() || undefined,
       };
-      const response = mode === "check-in"
-        ? await checkInParkingSession(
-            {
-              ...request,
-              vehicleTypeId: matchedCardRequiresVehicleType ? vehicleTypeId : undefined,
-            },
-            licensePlateImage,
-            personImage,
-          )
-        : await checkOutParkingSession(request, licensePlateImage, personImage);
 
-      setParkingSessionResult(mode === "check-out" ? null : response.data);
+      if (mode === "check-in") {
+        const response = await checkInParkingSession(
+          {
+            ...request,
+            vehicleTypeId: matchedCardRequiresVehicleType ? vehicleTypeId : undefined,
+          },
+          licensePlateImage,
+          personImage,
+        );
+        setParkingSessionResult(response.data);
+        toast.success(response.message || "Check-in thành công.", "Check-in thành công");
+      } else {
+        const response =
+          checkOutPreview?.customerType === "VISITOR"
+            ? await prepareVisitorParkingCheckOut(request, licensePlateImage, personImage)
+            : await checkOutParkingSession(request, licensePlateImage, personImage);
+        const checkOutResult = response.data;
+        setParkingSessionResult(checkOutResult);
+
+        if (checkOutResult.customerType === "VISITOR") {
+          const invoice = checkOutResult.invoice;
+          const amount = invoice?.finalAmount;
+          if (!invoice || typeof amount !== "number" || !Number.isFinite(amount)) {
+            throw new Error("Backend không trả về hóa đơn hợp lệ để tiếp tục thanh toán checkout.");
+          }
+
+          if (checkOutPaymentMethod === "CASH") {
+            await recordParkingCashPayment(invoice.invoiceId, amount, note);
+            const completedResult = await fetchParkingCheckOutByInvoice(invoice.invoiceId);
+            setParkingSessionResult(completedResult);
+            toast.success(
+              "Đã checkout và ghi nhận thanh toán tiền mặt thành công.",
+              "Thanh toán thành công",
+            );
+          } else {
+            const paymentResponse = await createParkingVnpayPayment(invoice.invoiceId);
+            if (!paymentResponse.data.paymentUrl) {
+              throw new Error("Backend không trả về URL thanh toán VNPAY.");
+            }
+            storePendingVnpayCheckOut(checkOutResult, {
+              cardUid: request.cardUid,
+              laneId: request.laneId,
+              licensePlate: request.licensePlate,
+              note: request.note ?? "",
+            });
+            toast.success("Đang chuyển đến cổng thanh toán VNPAY.", "Đã tạo giao dịch");
+            window.location.assign(paymentResponse.data.paymentUrl);
+          }
+        } else {
+          toast.success(
+            response.message || "Check-out thành công. Vé đăng ký không phát sinh thanh toán.",
+            "Check-out thành công",
+          );
+        }
+      }
+
       setCards((currentCards) => currentCards.filter((card) => card.cardId !== matchedCard?.cardId));
       setCardUid("");
       setVehicleTypeId("");
@@ -585,19 +855,22 @@ export function SwipeListPage() {
       ocrRequestSeq.current += 1;
       lastAutoCapturedCardRef.current = "";
       setCameraResetKey((current) => current + 1);
-toast.success(
-  response.message || (mode === "check-in" ? "Check-in thành công." : "Check-out thành công."),
-  mode === "check-in" ? "Check-in thành công" : "Check-out thành công",
-);
-} catch (error) {
-  toast.error(
-    error instanceof Error ? error.message : mode === "check-in" ? "Check-in thất bại." : "Check-out thất bại.",
-    mode === "check-in" ? "Check-in thất bại" : "Check-out thất bại",
-  );
-} finally {
-  setIsSubmitting(false);
-}
-}
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : mode === "check-in"
+            ? "Check-in thất bại."
+            : "Check-out hoặc thanh toán thất bại.";
+      setSubmitError(message);
+      toast.error(
+        message,
+        mode === "check-in" ? "Check-in thất bại" : "Không thể hoàn tất checkout",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   return (
     <main className="tw-px-4 tw-pb-5 tw-pt-3 lg:tw-px-5">
@@ -627,6 +900,8 @@ toast.success(
             ocrMessage={ocrMessage}
             ocrStatus={ocrStatus}
             resetKey={cameraResetKey}
+            restoredLicensePlateImageUrl={restoredLicensePlateImageUrl}
+            restoredPersonImageUrl={restoredPersonImageUrl}
             onAutoCaptureFailed={handleAutoCaptureFailed}
             onLicensePlateImageChange={handleLicensePlateImageChange}
             onPersonImageChange={setPersonImage}
@@ -635,6 +910,9 @@ toast.success(
           <ParkingOperationForm
             cardUid={cardUid}
             cardOptions={cardOptions}
+            checkOutCustomerType={checkOutPreview?.customerType}
+            checkOutPaymentMethod={checkOutPaymentMethod}
+            estimatedPaymentAmount={checkOutPreview?.estimatedTotalPrice}
             error={submitError || laneError || cardError || vehicleTypeError}
             isLoadingCards={isLoadingCards}
             isSubmitting={isSubmitting}
@@ -647,6 +925,7 @@ toast.success(
             ocrMessage={ocrMessage}
             ocrStatus={ocrStatus}
             onCardUidChange={handleCardUidChange}
+            onCheckOutPaymentMethodChange={setCheckOutPaymentMethod}
             onLaneChange={setLaneId}
             onLicensePlateChange={handleLicensePlateChange}
             onNoteChange={setNote}
@@ -660,7 +939,15 @@ toast.success(
           />
           {mode === "check-out" ? (
             <div className="tw-grid tw-min-h-0 tw-gap-3">
-              <ParkingSessionSummary mode={mode} preview={checkOutPreview} result={parkingSessionResult} />
+              <ParkingSessionSummary
+                isPaymentActionLoading={isCompletingPendingPayment}
+                mode={mode}
+                paymentActionError={pendingPaymentError}
+                preview={checkOutPreview}
+                result={parkingSessionResult}
+                onPayCash={handleCompletePendingCashPayment}
+                onRetryVnpay={handleRetryPendingVnpayPayment}
+              />
             </div>
           ) : null}
         </div>

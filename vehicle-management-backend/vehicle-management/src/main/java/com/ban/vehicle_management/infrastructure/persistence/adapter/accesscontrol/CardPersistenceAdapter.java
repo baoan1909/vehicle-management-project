@@ -55,6 +55,12 @@ public class CardPersistenceAdapter implements CardPortOut {
     }
 
     @Override
+    public Optional<Card> findByIdForUpdate(UUID cardId) {
+        return cardRepository.findByIdForUpdate(cardId)
+                .map(cardPersistenceMapper::toDomain);
+    }
+
+    @Override
     public Optional<Card> findByUid(String uid) {
         return cardRepository.findByUid(uid)
                 .map(cardPersistenceMapper::toDomain);

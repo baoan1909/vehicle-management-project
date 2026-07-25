@@ -43,4 +43,9 @@ public interface InvoicePortOut {
             UUID subscriptionId,
             Collection<InvoiceStatus> statuses
     );
+
+    Optional<Invoice> findFirstByParkingSessionIdAndStatusIn(
+            UUID parkingSessionId,
+            Collection<InvoiceStatus> statuses
+    );
 }

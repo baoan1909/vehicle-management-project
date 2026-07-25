@@ -18,6 +18,7 @@ type CameraCaptureBoxProps = {
   defaultCaptured?: boolean;
   label: string;
   onCaptureChange?: (capture: CaptureResult | null) => void;
+  restoredImageUrl?: string;
   scene: "lane" | "driver";
 };
 
@@ -49,13 +50,14 @@ function sceneIconClass(compact?: boolean) {
 }
 
 const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProps>(function CameraCaptureBox(
-  { compact, defaultCaptured, label, onCaptureChange, scene },
+  { compact, defaultCaptured, label, onCaptureChange, restoredImageUrl, scene },
   ref,
 ) {
   const [capture, setCapture] = useState<CaptureResult | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState("");
+  const [restoredImageDismissed, setRestoredImageDismissed] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -65,6 +67,10 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
     onCaptureChange?.(null);
     return undefined;
   }, [defaultCaptured, scene]);
+
+  useEffect(() => {
+    setRestoredImageDismissed(false);
+  }, [restoredImageUrl]);
 
   useEffect(() => {
     if (videoRef.current && stream) {
@@ -79,7 +85,8 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
     };
   }, [capture?.url, stream]);
 
-  async function startCamera() {
+  async function startCamera(force = false) {
+    if (!force && restoredImageUrl && !restoredImageDismissed) return;
     if (stream || isCapturing) return;
     try {
       setCameraError("");
@@ -107,9 +114,10 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
   function clearCapture(restartCamera = true) {
     if (capture?.url) URL.revokeObjectURL(capture.url);
     setCapture(null);
+    setRestoredImageDismissed(true);
     onCaptureChange?.(null);
     setCameraError("");
-    if (restartCamera) void startCamera();
+    if (restartCamera) void startCamera(true);
   }
 
   function uploadFile(file: File) {
@@ -154,8 +162,17 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
     return true;
   }
 
-  const hasVisualCapture = capture || defaultCaptured;
-  const captureStatusLabel = isCapturing ? "LIVE" : capture ? "Đã chụp" : defaultCaptured ? "Ảnh mẫu" : "Chưa chụp";
+  const visibleRestoredImageUrl = restoredImageDismissed ? "" : restoredImageUrl;
+  const hasVisualCapture = capture || visibleRestoredImageUrl || defaultCaptured;
+  const captureStatusLabel = isCapturing
+    ? "LIVE"
+    : capture
+      ? "Đã chụp"
+      : visibleRestoredImageUrl
+        ? "Đã lưu"
+        : defaultCaptured
+          ? "Ảnh mẫu"
+          : "Chưa chụp";
 
   return (
     <div className={cn("tw-relative tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid", compact ? "tw-h-[180px]" : "tw-h-[286px]", hasVisualCapture ? "tw-border-vm-slate-100" : "tw-border-vm-slate-200")}>
@@ -163,6 +180,8 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
         <video ref={videoRef} autoPlay playsInline muted className="tw-h-full tw-w-full tw-bg-slate-900 tw-object-cover" />
       ) : capture ? (
         <img src={capture.url} alt={label} className="tw-h-full tw-w-full tw-object-cover" />
+      ) : visibleRestoredImageUrl ? (
+        <img src={visibleRestoredImageUrl} alt={label} className="tw-h-full tw-w-full tw-object-cover" />
       ) : (
         <CameraLoadingScene compact={compact} />
       )}
@@ -257,6 +276,8 @@ type ParkingCameraPanelProps = {
   ocrMessage?: string;
   ocrStatus?: OcrStatus;
   resetKey?: number;
+  restoredLicensePlateImageUrl?: string;
+  restoredPersonImageUrl?: string;
   onAutoCaptureFailed?: () => void;
   onLicensePlateImageChange: (file: File | null) => void;
   onPersonImageChange: (file: File | null) => void;
@@ -298,6 +319,8 @@ export function ParkingCameraPanel({
   ocrMessage,
   ocrStatus = "idle",
   resetKey = 0,
+  restoredLicensePlateImageUrl,
+  restoredPersonImageUrl,
   onAutoCaptureFailed,
   onLicensePlateImageChange,
   onPersonImageChange,
@@ -442,6 +465,7 @@ export function ParkingCameraPanel({
           <CameraCaptureBox
             ref={laneCameraRef}
             label="Ảnh biển số"
+            restoredImageUrl={restoredLicensePlateImageUrl}
             scene="lane"
             onCaptureChange={(capture) => onLicensePlateImageChange(capture?.file ?? null)}
           />
@@ -477,6 +501,7 @@ export function ParkingCameraPanel({
               compact
               defaultCaptured
               label="Ảnh người / tài xế"
+              restoredImageUrl={restoredPersonImageUrl}
               scene="driver"
               onCaptureChange={(capture) => onPersonImageChange(capture?.file ?? null)}
             />

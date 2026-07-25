@@ -10,6 +10,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -72,5 +73,23 @@ public class PaymentPersistenceAdapter implements PaymentPortOut {
     @Override
     public boolean existsByTransactionRefAndStatus(String transactionRef, PaymentStatus status) {
         return paymentRepository.existsByTransactionRefAndStatus(transactionRef, status);
+    }
+
+    @Override
+    public Optional<Payment> findFirstByInvoiceIdAndStatus(UUID invoiceId, PaymentStatus status) {
+        return paymentRepository.findFirstByInvoiceIdAndStatusOrderByCreatedAtDesc(invoiceId, status)
+                .map(paymentPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Payment> findByTransactionRef(String transactionRef) {
+        return paymentRepository.findByTransactionRef(transactionRef)
+                .map(paymentPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Payment> findByTransactionRefForUpdate(String transactionRef) {
+        return paymentRepository.findByTransactionRefForUpdate(transactionRef)
+                .map(paymentPersistenceMapper::toDomain);
     }
 }

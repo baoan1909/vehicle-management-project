@@ -122,6 +122,69 @@ class PaymentPolicyTest {
         );
     }
 
+    @Test
+    void shouldInitializePendingVnpayPayment() {
+        Payment payment = new Payment();
+        payment.setPaymentId(UUID.randomUUID());
+        Instant createdAt = Instant.parse("2026-07-25T02:00:00Z");
+        Instant expiresAt = Instant.parse("2026-07-25T02:15:00Z");
+
+        paymentPolicy.initializePendingVnpayPayment(
+                payment,
+                UUID.randomUUID(),
+                new BigDecimal("50000.00"),
+                "VNP123",
+                createdAt,
+                expiresAt
+        );
+
+        assertEquals(PaymentMethod.VNPAY, payment.getPaymentMethod());
+        assertEquals(PaymentStatus.PENDING, payment.getStatus());
+        assertEquals(createdAt, payment.getCreatedAt());
+        assertEquals(expiresAt, payment.getExpiresAt());
+        assertNull(payment.getPaidAt());
+        assertNull(payment.getReceivedBy());
+    }
+
+    @Test
+    void shouldMarkPendingVnpayPaymentSuccessful() {
+        Payment payment = pendingVnpayPayment();
+        Instant paidAt = Instant.parse("2026-07-25T02:05:00Z");
+
+        paymentPolicy.markVnpaySuccessful(
+                payment,
+                paidAt,
+                "123456789",
+                "00",
+                "00",
+                "NCB",
+                "ATM"
+        );
+
+        assertEquals(PaymentStatus.SUCCESS, payment.getStatus());
+        assertEquals(paidAt, payment.getPaidAt());
+        assertEquals("123456789", payment.getProviderTransactionNo());
+        assertEquals("NCB", payment.getBankCode());
+    }
+
+    @Test
+    void shouldMarkPendingVnpayPaymentFailed() {
+        Payment payment = pendingVnpayPayment();
+
+        paymentPolicy.markVnpayFailed(
+                payment,
+                "123456789",
+                "24",
+                "02",
+                "NCB",
+                "ATM"
+        );
+
+        assertEquals(PaymentStatus.FAILED, payment.getStatus());
+        assertNull(payment.getPaidAt());
+        assertEquals("VNPAY response code 24", payment.getFailureReason());
+    }
+
     private Payment validPayment(PaymentMethod paymentMethod) {
         Payment payment = new Payment();
         payment.setPaymentId(UUID.randomUUID());
@@ -140,6 +203,20 @@ class PaymentPolicyTest {
         payment.setReceivedBy(UUID.randomUUID());
         payment.setTransactionRef("VCB202606120001");
         payment.setNote("Da kiem tra sao ke");
+        return payment;
+    }
+
+    private Payment pendingVnpayPayment() {
+        Payment payment = new Payment();
+        payment.setPaymentId(UUID.randomUUID());
+        paymentPolicy.initializePendingVnpayPayment(
+                payment,
+                UUID.randomUUID(),
+                new BigDecimal("50000.00"),
+                "VNP123",
+                Instant.parse("2026-07-25T02:00:00Z"),
+                Instant.parse("2026-07-25T02:15:00Z")
+        );
         return payment;
     }
 }

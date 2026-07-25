@@ -2,14 +2,19 @@ import { useEffect, useRef, useState } from "react";
 
 import type { SelectMenuOption } from "@/components/ui";
 import { Button, Card, CardContent, CardHeader, SelectMenu } from "@/components/ui";
+import { VNPAY_MINIMUM_AMOUNT } from "@/features/parking/api/parkingPaymentApi";
 import { cn } from "@/lib/cn";
 import type { ParkingOperationMode } from "./OperationModeTabs";
 
 type OcrStatus = "idle" | "recognizing" | "success" | "review" | "error";
+export type CheckOutPaymentMethod = "CASH" | "VNPAY";
 
 type ParkingOperationFormProps = {
   cardUid: string;
   cardOptions: SelectMenuOption[];
+  checkOutCustomerType?: string;
+  checkOutPaymentMethod: CheckOutPaymentMethod;
+  estimatedPaymentAmount?: number | null;
   error?: string;
   isSubmitting?: boolean;
   isLoadingCards?: boolean;
@@ -27,6 +32,7 @@ type ParkingOperationFormProps = {
   vehicleTypeOptions: SelectMenuOption[];
   vehicleTypeRequired?: boolean;
   onCardUidChange: (value: string) => void;
+  onCheckOutPaymentMethodChange: (value: CheckOutPaymentMethod) => void;
   onLaneChange: (laneId: string) => void;
   onLicensePlateChange: (value: string) => void;
   onNoteChange: (value: string) => void;
@@ -218,6 +224,9 @@ function CardUidField({
 export function ParkingOperationForm({
   cardUid,
   cardOptions,
+  checkOutCustomerType,
+  checkOutPaymentMethod,
+  estimatedPaymentAmount,
   error,
   isLoadingCards = false,
   isSubmitting = false,
@@ -235,6 +244,7 @@ export function ParkingOperationForm({
   vehicleTypeOptions,
   vehicleTypeRequired = true,
   onCardUidChange,
+  onCheckOutPaymentMethodChange,
   onLaneChange,
   onLicensePlateChange,
   onNoteChange,
@@ -242,7 +252,22 @@ export function ParkingOperationForm({
   onVehicleTypeChange,
 }: ParkingOperationFormProps) {
   const isCheckIn = mode === "check-in";
-  const canSubmit = Boolean(cardUid.trim() && licensePlate.trim() && laneId && (!isCheckIn || !vehicleTypeRequired || vehicleTypeId) && !isSubmitting && ocrStatus !== "recognizing");
+  const checkOutPreviewReady = isCheckIn || Boolean(checkOutCustomerType);
+  const canSubmit = Boolean(cardUid.trim() && licensePlate.trim() && laneId && (!isCheckIn || !vehicleTypeRequired || vehicleTypeId) && checkOutPreviewReady && !isSubmitting && ocrStatus !== "recognizing");
+  const requiresPayment = !isCheckIn && checkOutCustomerType === "VISITOR";
+  const isSubscription = !isCheckIn && checkOutCustomerType === "SUBSCRIPTION";
+  const vnpayUnavailable =
+    requiresPayment &&
+    typeof estimatedPaymentAmount === "number" &&
+    estimatedPaymentAmount < VNPAY_MINIMUM_AMOUNT;
+  const formattedAmount =
+    typeof estimatedPaymentAmount === "number" && Number.isFinite(estimatedPaymentAmount)
+      ? new Intl.NumberFormat("vi-VN", {
+          currency: "VND",
+          maximumFractionDigits: 0,
+          style: "currency",
+        }).format(estimatedPaymentAmount)
+      : "--";
 
   return (
     <Card className="tw-flex tw-min-h-0 tw-flex-col tw-overflow-hidden">
@@ -314,6 +339,89 @@ export function ParkingOperationForm({
           </div>
         </label>
 
+        {!isCheckIn ? (
+          <div className="tw-grid tw-gap-2">
+            <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+              <span className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">Hình thức thanh toán</span>
+              {requiresPayment ? (
+                <strong className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-primary">{formattedAmount}</strong>
+              ) : null}
+            </div>
+
+            {requiresPayment ? (
+              <div className="tw-grid tw-grid-cols-2 tw-gap-2" role="radiogroup" aria-label="Hình thức thanh toán khi checkout">
+                {([
+                  {
+                    description: "Xác nhận sau khi đã thu tiền",
+                    icon: "fas fa-money-bill-wave",
+                    label: "Tiền mặt",
+                    value: "CASH" as const,
+                  },
+                  {
+                    description: "Thanh toán qua cổng VNPAY",
+                    icon: "fas fa-qrcode",
+                    label: "VNPAY",
+                    value: "VNPAY" as const,
+                  },
+                ]).map((option) => {
+                  const selected = checkOutPaymentMethod === option.value;
+                  const disabled = option.value === "VNPAY" && vnpayUnavailable;
+                  return (
+                    <button
+                      aria-checked={selected}
+                      aria-disabled={disabled}
+                      className={cn(
+                        "tw-grid tw-min-h-[78px] tw-grid-cols-[34px_minmax(0,1fr)] tw-items-center tw-gap-2.5 tw-rounded-vm-md tw-border tw-border-solid tw-p-3 tw-text-left tw-transition focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus",
+                        disabled
+                          ? "tw-cursor-not-allowed tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-text-vm-slate-400 tw-opacity-70"
+                          : selected
+                          ? "tw-border-brand-300 tw-bg-brand-50 tw-text-vm-primary tw-shadow-[0_6px_16px_rgba(37,99,235,0.1)]"
+                          : "tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-700 hover:tw-border-brand-200 hover:tw-bg-vm-slate-25",
+                      )}
+                      disabled={disabled}
+                      key={option.value}
+                      role="radio"
+                      type="button"
+                      onClick={() => onCheckOutPaymentMethodChange(option.value)}
+                    >
+                      <span
+                        className={cn(
+                          "tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-sm",
+                          selected ? "tw-bg-vm-primary tw-text-white" : "tw-bg-vm-slate-50 tw-text-vm-slate-500",
+                        )}
+                      >
+                        <i className={option.icon} />
+                      </span>
+                      <span className="tw-grid tw-min-w-0 tw-gap-0.5">
+                        <strong className="tw-text-[0.82rem] tw-font-extrabold">{option.label}</strong>
+                        <span className="tw-text-[0.68rem] tw-font-semibold tw-leading-snug tw-text-vm-slate-500">
+                          {option.description}
+                        </span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : isSubscription ? (
+              <div className="tw-flex tw-items-center tw-gap-2.5 tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-200 tw-bg-emerald-50 tw-px-3 tw-py-2.5 tw-text-[0.8rem] tw-font-bold tw-text-emerald-700">
+                <i className="fas fa-check-circle" />
+                Vé đăng ký còn hiệu lực, không phát sinh thanh toán khi checkout.
+              </div>
+            ) : (
+              <div className="tw-flex tw-items-center tw-gap-2.5 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-3 tw-py-2.5 tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-500">
+                <i className="fas fa-info-circle" />
+                Chọn thẻ xe để hệ thống xác định hình thức thanh toán.
+              </div>
+            )}
+            {vnpayUnavailable ? (
+              <div className="tw-flex tw-items-start tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-3 tw-py-2 tw-text-[0.74rem] tw-font-bold tw-leading-snug tw-text-amber-700">
+                <i className="fas fa-info-circle tw-mt-0.5" />
+                VNPAY Sandbox chỉ áp dụng cho hóa đơn từ 10.000 đồng. Hóa đơn này cần thanh toán bằng tiền mặt.
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <label className="tw-m-0 tw-grid tw-gap-1.5">
           <span className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">Ghi chú (tùy chọn)</span>
           <span className="tw-relative tw-flex">
@@ -336,7 +444,15 @@ export function ParkingOperationForm({
 
         <Button className="tw-h-[48px] tw-w-full tw-text-[0.96rem] tw-font-extrabold" size="lg" disabled={!canSubmit} loading={isSubmitting} onClick={onSubmit}>
           {!isSubmitting ? <i className="far fa-check-circle tw-text-[1.18rem]" /> : null}
-          {isSubmitting ? "Đang xử lý..." : isCheckIn ? "Xác nhận check-in" : "Xác nhận check-out"}
+          {isSubmitting
+            ? "Đang xử lý..."
+            : isCheckIn
+              ? "Xác nhận check-in"
+              : requiresPayment && checkOutPaymentMethod === "VNPAY"
+                ? "Tiếp tục thanh toán qua VNPAY"
+                : requiresPayment
+                  ? "Xác nhận tiền mặt và checkout"
+                  : "Xác nhận check-out"}
         </Button>
       </CardContent>
     </Card>

@@ -32,6 +32,7 @@ public class ParkingEventPolicy {
         parkingEvent.setNote(TextValidationUtils.normalizeNullableText(parkingEvent.getNote(), "note", 0));
 
         if (parkingEvent.getEventType() == ParkingEventType.CHECK_IN
+                || parkingEvent.getEventType() == ParkingEventType.CHECK_OUT_PENDING
                 || parkingEvent.getEventType() == ParkingEventType.CHECK_OUT) {
             parkingEvent.setLicensePlateDetected(
                     TextValidationUtils.normalizeRequiredText(parkingEvent.getLicensePlateDetected(), "licensePlateDetected", 20));

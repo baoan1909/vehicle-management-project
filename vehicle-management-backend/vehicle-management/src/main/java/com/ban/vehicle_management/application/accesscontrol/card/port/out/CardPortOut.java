@@ -12,6 +12,8 @@ public interface CardPortOut {
 
     Optional<Card> findById(UUID cardId);
 
+    Optional<Card> findByIdForUpdate(UUID cardId);
+
     Optional<Card> findByUid(String uid);
 
     Optional<Card> findByUidForUpdate(String uid);

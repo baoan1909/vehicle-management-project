@@ -539,8 +539,12 @@ CREATE TABLE parking.parking_events (
     CONSTRAINT fk_parking_events_session FOREIGN KEY (parking_session_id) REFERENCES parking.parking_sessions(parking_session_id) ON DELETE CASCADE,
     CONSTRAINT fk_parking_events_lane FOREIGN KEY (lane_id) REFERENCES parking.lanes(lane_id) ON DELETE RESTRICT,
     CONSTRAINT fk_parking_events_actor FOREIGN KEY (actor_account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
-    CONSTRAINT ck_parking_events_type CHECK (event_type IN ('CHECK_IN', 'CHECK_OUT', 'MANUAL_REVIEW', 'BARRIER_OPEN'))
+    CONSTRAINT ck_parking_events_type CHECK (event_type IN ('CHECK_IN', 'CHECK_OUT_PENDING', 'CHECK_OUT', 'MANUAL_REVIEW', 'BARRIER_OPEN'))
 );
+
+CREATE UNIQUE INDEX uq_parking_events_pending_checkout
+    ON parking.parking_events (parking_session_id)
+    WHERE event_type = 'CHECK_OUT_PENDING';
 
 ALTER TABLE access_control.lost_card_reports
     ADD CONSTRAINT fk_lost_card_reports_session FOREIGN KEY (parking_session_id) REFERENCES parking.parking_sessions(parking_session_id) ON DELETE SET NULL;
@@ -587,10 +591,19 @@ CREATE TABLE billing.payments (
     payment_method VARCHAR(30) NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
     transaction_ref VARCHAR(100),
-    status VARCHAR(20) NOT NULL DEFAULT 'SUCCESS',
-    paid_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    paid_at TIMESTAMPTZ,
     received_by UUID,
     note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    provider_transaction_no VARCHAR(100),
+    provider_response_code VARCHAR(20),
+    provider_transaction_status VARCHAR(20),
+    bank_code VARCHAR(20),
+    card_type VARCHAR(30),
+    failure_reason VARCHAR(255),
     CONSTRAINT fk_payments_invoice FOREIGN KEY (invoice_id) REFERENCES billing.invoices(invoice_id) ON DELETE CASCADE,
     CONSTRAINT fk_payments_received_by FOREIGN KEY (received_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT ck_payments_method CHECK (payment_method IN ('CASH', 'QR', 'BANK_TRANSFER', 'MOMO', 'VNPAY')),
@@ -937,6 +950,9 @@ CREATE INDEX idx_parking_sessions_check_in_time ON parking.parking_sessions(chec
 CREATE INDEX idx_parking_events_session_id ON parking.parking_events(parking_session_id);
 CREATE INDEX idx_invoices_status ON billing.invoices(status);
 CREATE INDEX idx_payments_invoice_id ON billing.payments(invoice_id);
+CREATE UNIQUE INDEX uq_payments_transaction_ref
+    ON billing.payments(transaction_ref)
+    WHERE transaction_ref IS NOT NULL;
 CREATE UNIQUE INDEX uq_support_ticket_categories_active_code ON operations.support_ticket_categories(code) WHERE status = 'ACTIVE';
 CREATE INDEX idx_support_ticket_categories_status ON operations.support_ticket_categories(status);
 CREATE INDEX idx_support_ticket_categories_code ON operations.support_ticket_categories(code);

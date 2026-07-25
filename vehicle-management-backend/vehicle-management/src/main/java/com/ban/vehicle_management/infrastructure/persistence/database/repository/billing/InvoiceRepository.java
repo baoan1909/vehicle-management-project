@@ -23,6 +23,11 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID>, J
             UUID subscriptionId,
             Collection<InvoiceStatus> statuses
     );
+
+    Optional<InvoiceEntity> findFirstByParkingSessionIdAndStatusIn(
+            UUID parkingSessionId,
+            Collection<InvoiceStatus> statuses
+    );
 }
 
 

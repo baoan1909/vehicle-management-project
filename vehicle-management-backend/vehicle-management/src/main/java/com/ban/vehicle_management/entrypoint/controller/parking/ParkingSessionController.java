@@ -28,6 +28,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/parking/parking-sessions")
@@ -103,6 +104,38 @@ public class ParkingSessionController {
     ) {
         return buildCheckOutResponse(parkingSessionPortIn.checkOut(
                 parkingSessionApiMapper.toCommand(parseCheckOutRequest(request), licensePlateImage, personImage)
+        ));
+    }
+
+    @PostMapping(value = "/check-out/prepare", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SESSION_CHECK_OUT_ALL')")
+    public ResponseEntity<ApiResponse<ParkingSessionCheckOutResponse>> prepareVisitorCheckOut(
+            @RequestPart("request") String request,
+            @RequestPart("licensePlateImage") MultipartFile licensePlateImage,
+            @RequestPart("personImage") MultipartFile personImage
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                "Visitor checkout prepared successfully",
+                parkingSessionApiMapper.toCheckOutResponse(parkingSessionPortIn.prepareVisitorCheckOut(
+                        parkingSessionApiMapper.toCommand(
+                                parseCheckOutRequest(request),
+                                licensePlateImage,
+                                personImage
+                        )
+                ))
+        ));
+    }
+
+    @GetMapping("/check-out/by-invoice")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SESSION_CHECK_OUT_ALL')")
+    public ResponseEntity<ApiResponse<ParkingSessionCheckOutResponse>> getCheckOutByInvoice(
+            @RequestParam UUID invoiceId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Checkout payment state fetched successfully",
+                parkingSessionApiMapper.toCheckOutResponse(
+                        parkingSessionPortIn.getCheckOutByInvoice(invoiceId)
+                )
         ));
     }
 

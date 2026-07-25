@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePo
 import com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuard;
 import com.ban.vehicle_management.application.billing.payment.port.in.PaymentPortIn;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
@@ -31,17 +32,20 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
     private final PaymentPolicy paymentPolicy = new PaymentPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
     private final SubscriptionPortIn subscriptionPortIn;
+    private final ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
 
     public PaymentUseCaseImpl(
             PaymentPortOut paymentPortOut,
             InvoicePortOut invoicePortOut,
             PaymentAccessGuard paymentAccessGuard,
-            SubscriptionPortIn subscriptionPortIn
+            SubscriptionPortIn subscriptionPortIn,
+            ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn
     ) {
         this.paymentPortOut = paymentPortOut;
         this.invoicePortOut = invoicePortOut;
         this.paymentAccessGuard = paymentAccessGuard;
         this.subscriptionPortIn = subscriptionPortIn;
+        this.parkingCheckoutCompletionPortIn = parkingCheckoutCompletionPortIn;
     }
 
     @Override
@@ -55,6 +59,8 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
         validatePayableInvoice(invoice);
         validatePaymentAmount(payment, invoice);
         validateNoSuccessfulPayment(invoiceId);
+        validateManualPaymentMethod(payment);
+        failPendingVnpayPayment(invoiceId);
 
         payment.setPaymentId(UUID.randomUUID());
         paymentPolicy.initializeSuccessfulPayment(payment, invoiceId, receivedBy, Instant.now());
@@ -69,8 +75,24 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
         if (invoice.getSubscriptionId() != null) {
             subscriptionPortIn.markSubscriptionPaymentCompleted(invoice.getSubscriptionId());
         }
+        parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());
 
         return savedPayment;
+    }
+
+    private void failPendingVnpayPayment(UUID invoiceId) {
+        paymentPortOut.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING)
+                .ifPresent(pendingPayment -> {
+                    paymentPolicy.markVnpayFailed(
+                            pendingPayment,
+                            null,
+                            "CANCELLED_BY_CASH",
+                            "CANCELLED",
+                            null,
+                            null
+                    );
+                    paymentPortOut.save(pendingPayment);
+                });
     }
 
     @Override
@@ -141,6 +163,12 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
 
         if (paymentPortOut.existsByTransactionRefAndStatus(payment.getTransactionRef(), PaymentStatus.SUCCESS)) {
             throw new ConflictException("transactionRef already exists");
+        }
+    }
+
+    private void validateManualPaymentMethod(Payment payment) {
+        if (PaymentMethod.VNPAY.equals(payment.getPaymentMethod())) {
+            throw new BadRequestException("Use the VNPAY payment endpoint for VNPAY transactions");
         }
     }
 

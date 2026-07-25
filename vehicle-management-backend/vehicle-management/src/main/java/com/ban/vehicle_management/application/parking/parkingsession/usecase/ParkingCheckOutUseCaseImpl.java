@@ -13,6 +13,7 @@ import com.ban.vehicle_management.application.parking.parkingsession.mapper.Park
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckOutCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
+import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
@@ -37,6 +38,7 @@ import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingSe
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageBucket;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageFolder;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -60,7 +62,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Component
-public class ParkingCheckOutUseCaseImpl {
+public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPortIn {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParkingCheckOutUseCaseImpl.class);
     private static final String PARKING_EVENT_RESOURCE_TYPE = "parking.parking_events";
@@ -163,6 +165,9 @@ public class ParkingCheckOutUseCaseImpl {
         }
 
         boolean subscriptionSession = isSubscriptionSession(parkingSession);
+        if (!subscriptionSession) {
+            throw new ConflictException("Visitor checkout must be prepared and paid before completion");
+        }
         BigDecimal totalPrice = subscriptionSession
                 ? BigDecimal.ZERO
                 : calculateVisitorPrice(parkingSession, now);
@@ -230,6 +235,175 @@ public class ParkingCheckOutUseCaseImpl {
         }
     }
 
+    @Transactional
+    public CheckOutResult prepareVisitorCheckOut(CheckOutCommand command) {
+        parkingSessionAccessGuard.ensureCanCheckOut();
+        requireCommand(command);
+        requireLicensePlateImage(command.licensePlateImage());
+        requirePersonImage(command.personImage());
+
+        Instant now = Instant.now();
+        String cardUid = TextValidationUtils.normalizeRequiredText(command.cardUid(), "cardUid", 100);
+        String licensePlate = licensePlatePolicy.normalizeRequired(command.licensePlate(), "licensePlate");
+        String note = TextValidationUtils.normalizeNullableText(command.note(), "note", 0);
+
+        Lane lane = findLane(command.laneId());
+        parkingCheckOutPolicy.validateLaneForCheckOut(lane);
+        Gate gate = findGate(lane.getGateId());
+        Zone zone = findZone(gate.getZoneId());
+        ParkingLot parkingLot = findParkingLot(zone.getParkingLotId());
+        parkingCheckOutPolicy.validateOperationalTopology(lane, gate, zone, parkingLot);
+
+        Card card = cardPortOut.findByUidForUpdate(cardUid)
+                .orElseThrow(() -> new NotFoundException("Card not found"));
+        parkingCheckOutPolicy.validateCardCanExit(card);
+
+        ParkingSession parkingSession = parkingSessionPortOut.findOpenByCardId(card.getCardId())
+                .orElseThrow(() -> new ConflictException("Open parking session not found for card"));
+        if (!licensePlatePolicy.matches(parkingSession.getLicensePlateIn(), licensePlate)) {
+            throw new ConflictException("Detected license plate does not match check-in license plate");
+        }
+        if (isSubscriptionSession(parkingSession)) {
+            throw new ConflictException("Subscription checkout does not require payment preparation");
+        }
+
+        Invoice existingInvoice = invoicePortOut.findFirstByParkingSessionIdAndStatusIn(
+                        parkingSession.getParkingSessionId(),
+                        ACTIVE_INVOICE_STATUSES
+                )
+                .orElse(null);
+        if (existingInvoice != null) {
+            ParkingEvent pendingEvent = findPendingCheckOutEvent(parkingSession.getParkingSessionId());
+            resolveParkingEventImageUrls(pendingEvent);
+            return new CheckOutResult(
+                    parkingSession,
+                    pendingEvent,
+                    existingInvoice,
+                    CUSTOMER_TYPE_VISITOR,
+                    BARRIER_ACTION_WAIT_PAYMENT
+            );
+        }
+
+        BigDecimal totalPrice = calculateVisitorPrice(parkingSession, now);
+        UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
+        UUID parkingEventId = UUID.randomUUID();
+        StoredFile storedLicensePlateImage = null;
+        StoredFile storedPersonImage = null;
+
+        try {
+            storedLicensePlateImage = storeCheckOutLicensePlateImage(
+                    command.licensePlateImage(),
+                    parkingEventId,
+                    parkingSession.getParkingSessionId(),
+                    actorAccountId,
+                    licensePlate
+            );
+            storedPersonImage = storeCheckOutPersonImage(
+                    command.personImage(),
+                    parkingEventId,
+                    parkingSession.getParkingSessionId(),
+                    actorAccountId,
+                    licensePlate
+            );
+
+            ParkingEvent pendingEvent = parkingCheckOutMapper.toCheckOutEvent(
+                    parkingEventId,
+                    parkingSession.getParkingSessionId(),
+                    lane.getLaneId(),
+                    licensePlate,
+                    storedLicensePlateImage.objectKey(),
+                    storedPersonImage.objectKey(),
+                    actorAccountId,
+                    note,
+                    now
+            );
+            pendingEvent.setEventType(ParkingEventType.CHECK_OUT_PENDING);
+            parkingEventPolicy.initialize(pendingEvent);
+            ParkingEvent savedPendingEvent = parkingEventPortOut.save(pendingEvent);
+            Invoice invoice = createParkingSessionInvoice(parkingSession, totalPrice, now);
+            resolveParkingEventImageUrls(savedPendingEvent);
+
+            return new CheckOutResult(
+                    parkingSession,
+                    savedPendingEvent,
+                    invoice,
+                    CUSTOMER_TYPE_VISITOR,
+                    BARRIER_ACTION_WAIT_PAYMENT
+            );
+        } catch (RuntimeException exception) {
+            deleteStoredFileQuietly(storedLicensePlateImage);
+            deleteStoredFileQuietly(storedPersonImage);
+            throw exception;
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public CheckOutResult getCheckOutByInvoice(UUID invoiceId) {
+        parkingSessionAccessGuard.ensureCanCheckOut();
+        Invoice invoice = invoicePortOut.findById(invoiceId)
+                .orElseThrow(() -> new NotFoundException("Invoice not found"));
+        if (invoice.getParkingSessionId() == null) {
+            throw new ConflictException("Invoice is not linked to a parking session");
+        }
+
+        ParkingSession parkingSession = parkingSessionPortOut.findById(invoice.getParkingSessionId())
+                .orElseThrow(() -> new NotFoundException("Parking session not found"));
+        ParkingEvent parkingEvent = findCheckOutEvent(parkingSession);
+        resolveParkingEventImageUrls(parkingEvent);
+
+        return new CheckOutResult(
+                parkingSession,
+                parkingEvent,
+                invoice,
+                CUSTOMER_TYPE_VISITOR,
+                ParkingSessionStatus.CLOSED.equals(parkingSession.getStatus())
+                        ? BARRIER_ACTION_OPEN
+                        : BARRIER_ACTION_WAIT_PAYMENT
+        );
+    }
+
+    @Override
+    @Transactional
+    public void completePaidCheckout(UUID invoiceId) {
+        Invoice invoice = invoicePortOut.findById(invoiceId)
+                .orElseThrow(() -> new NotFoundException("Invoice not found"));
+        if (invoice.getParkingSessionId() == null) {
+            return;
+        }
+        if (!InvoiceStatus.PAID.equals(invoice.getStatus())) {
+            throw new ConflictException("Parking checkout invoice must be paid before completion");
+        }
+
+        ParkingSession parkingSession = parkingSessionPortOut.findByIdForUpdate(invoice.getParkingSessionId())
+                .orElseThrow(() -> new NotFoundException("Parking session not found"));
+        if (ParkingSessionStatus.CLOSED.equals(parkingSession.getStatus())) {
+            return;
+        }
+        if (!ParkingSessionStatus.OPEN.equals(parkingSession.getStatus())) {
+            throw new ConflictException("Parking session is not open for checkout");
+        }
+
+        ParkingEvent pendingEvent = findPendingCheckOutEvent(parkingSession.getParkingSessionId());
+        Instant checkOutTime = invoice.getPaidAt() == null ? Instant.now() : invoice.getPaidAt();
+        parkingSessionPolicy.checkOut(
+                parkingSession,
+                checkOutTime,
+                pendingEvent.getLicensePlateDetected(),
+                invoice.getFinalAmount()
+        );
+        parkingSessionPortOut.save(parkingSession);
+
+        Card card = cardPortOut.findByIdForUpdate(parkingSession.getCardId())
+                .orElseThrow(() -> new NotFoundException("Card not found"));
+        cardPolicy.release(card);
+        cardPortOut.save(card);
+
+        pendingEvent.setEventType(ParkingEventType.CHECK_OUT);
+        pendingEvent.setEventTime(checkOutTime);
+        parkingEventPolicy.validateState(pendingEvent);
+        parkingEventPortOut.save(pendingEvent);
+    }
+
     @Transactional(readOnly = true)
     public CheckOutPreviewResult previewCheckOutByCardUid(String rawCardUid) {
         parkingSessionAccessGuard.ensureCanCheckOut();
@@ -267,6 +441,29 @@ public class ParkingCheckOutUseCaseImpl {
         }
         checkInEvent.setLicensePlateImagePath(resolvePrivateReadUrl(checkInEvent.getLicensePlateImagePath()));
         checkInEvent.setPersonImagePath(resolvePrivateReadUrl(checkInEvent.getPersonImagePath()));
+    }
+
+    private void resolveParkingEventImageUrls(ParkingEvent parkingEvent) {
+        if (parkingEvent == null) {
+            return;
+        }
+        parkingEvent.setLicensePlateImagePath(resolvePrivateReadUrl(parkingEvent.getLicensePlateImagePath()));
+        parkingEvent.setPersonImagePath(resolvePrivateReadUrl(parkingEvent.getPersonImagePath()));
+    }
+
+    private ParkingEvent findPendingCheckOutEvent(UUID parkingSessionId) {
+        return parkingEventPortOut
+                .findLatestBySessionIdAndEventType(parkingSessionId, ParkingEventType.CHECK_OUT_PENDING)
+                .orElseThrow(() -> new ConflictException("Pending checkout evidence not found"));
+    }
+
+    private ParkingEvent findCheckOutEvent(ParkingSession parkingSession) {
+        ParkingEventType eventType = ParkingSessionStatus.CLOSED.equals(parkingSession.getStatus())
+                ? ParkingEventType.CHECK_OUT
+                : ParkingEventType.CHECK_OUT_PENDING;
+        return parkingEventPortOut
+                .findLatestBySessionIdAndEventType(parkingSession.getParkingSessionId(), eventType)
+                .orElseThrow(() -> new ConflictException("Checkout evidence not found"));
     }
 
     private String resolvePrivateReadUrl(String objectKey) {
