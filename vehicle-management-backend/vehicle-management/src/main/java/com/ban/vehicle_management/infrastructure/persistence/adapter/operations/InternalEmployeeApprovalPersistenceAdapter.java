@@ -8,6 +8,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.port.ou
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.infrastructure.mapper.operations.ApprovalRequestPersistenceMapper;
+import com.ban.vehicle_management.infrastructure.mapper.operations.OnboardingApprovalReadModelMapper;
 import com.ban.vehicle_management.infrastructure.mapper.people.EmployeePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RoleEntity;
@@ -36,6 +37,7 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
     private final RoleRepository roleRepository;
     private final ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper;
     private final EmployeePersistenceMapper employeePersistenceMapper;
+    private final OnboardingApprovalReadModelMapper onboardingApprovalReadModelMapper;
 
     public InternalEmployeeApprovalPersistenceAdapter(
             ApprovalRequestRepository approvalRequestRepository,
@@ -44,7 +46,8 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
             AccountRepository accountRepository,
             RoleRepository roleRepository,
             ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper,
-            EmployeePersistenceMapper employeePersistenceMapper
+            EmployeePersistenceMapper employeePersistenceMapper,
+            OnboardingApprovalReadModelMapper onboardingApprovalReadModelMapper
     ) {
         this.approvalRequestRepository = approvalRequestRepository;
         this.employeeRepository = employeeRepository;
@@ -53,6 +56,7 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
         this.roleRepository = roleRepository;
         this.approvalRequestPersistenceMapper = approvalRequestPersistenceMapper;
         this.employeePersistenceMapper = employeePersistenceMapper;
+        this.onboardingApprovalReadModelMapper = onboardingApprovalReadModelMapper;
     }
 
     @Override
@@ -208,37 +212,12 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
             return Optional.empty();
         }
 
-        return Optional.of(new InternalEmployeeApprovalResult(
-                new InternalEmployeeApprovalResult.RequestInfoResult(
-                        approvalRequestEntity.getApprovalRequestId(),
-                        approvalRequestEntity.getRequestType(),
-                        enumName(approvalRequestEntity.getStatus()),
-                        approvalRequestEntity.getNote(),
-                        approvalRequestEntity.getRequestedBy(),
-                        approvalRequestEntity.getApprovedBy(),
-                        approvalRequestEntity.getApprovedAt(),
-                        approvalRequestEntity.getCreatedAt(),
-                        approvalRequestEntity.getUpdatedAt()
-                ),
-                new InternalEmployeeApprovalResult.AccountInfoResult(
-                        accountEntity.get().getAccountId(),
-                        accountEntity.get().getUsername(),
-                        accountEntity.get().getEmail(),
-                        roleEntity.get().getCode(),
-                        enumName(accountEntity.get().getStatus())
-                ),
-                new InternalEmployeeApprovalResult.ProfileInfoResult(
-                        userProfileEntity.get().getUserProfileId(),
-                        userProfileEntity.get().getFullName(),
-                        userProfileEntity.get().getPhoneNumber()
-                ),
-                new InternalEmployeeApprovalResult.EmployeeInfoResult(
-                        employeeEntity.get().getEmployeeId(),
-                        employeeEntity.get().getEmployeeCode(),
-                        employeeEntity.get().getJobTitle(),
-                        employeeEntity.get().getHiredAt(),
-                        enumName(employeeEntity.get().getStatus())
-                )
+        return Optional.of(onboardingApprovalReadModelMapper.toInternalEmployeeResult(
+                approvalRequestEntity,
+                accountEntity.get(),
+                roleEntity.get(),
+                userProfileEntity.get(),
+                employeeEntity.get()
         ));
     }
 
@@ -273,7 +252,4 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
         return value != null && value.toLowerCase(Locale.ROOT).contains(normalizedKeyword);
     }
 
-    private String enumName(Enum<?> value) {
-        return value == null ? null : value.name();
-    }
 }

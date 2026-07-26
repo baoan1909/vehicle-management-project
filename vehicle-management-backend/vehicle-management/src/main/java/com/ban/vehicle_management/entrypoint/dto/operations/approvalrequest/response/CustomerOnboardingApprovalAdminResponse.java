@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.operations.approvalrequest.response;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record CustomerOnboardingApprovalAdminResponse(
@@ -33,7 +34,11 @@ public record CustomerOnboardingApprovalAdminResponse(
     public record ProfileInfoResponse(
             UUID userProfileId,
             String fullName,
-            String phoneNumber
+            String phoneNumber,
+            LocalDate dateOfBirth,
+            String gender,
+            String address,
+            String identifyCard
     ) {
     }
 

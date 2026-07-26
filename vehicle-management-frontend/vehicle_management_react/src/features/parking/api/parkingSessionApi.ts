@@ -205,22 +205,52 @@ export type ParkingSessionManagementFilters = {
   zoneId?: string;
 };
 
+export type LicensePlateOcrBoundingBox = {
+  x1?: number | null;
+  y1?: number | null;
+  x2?: number | null;
+  y2?: number | null;
+};
+
 export type LicensePlateOcrCandidate = {
-  confidence: number;
-  detectorConfidence: number;
+  bbox?: LicensePlateOcrBoundingBox | null;
+  confidence?: number | null;
+  correctionCount?: number | null;
+  detectorConfidence?: number | null;
+  formattedLicensePlate?: string | null;
   licensePlate: string;
   normalizedLicensePlate: string;
-  ocrConfidence: number;
+  ocrConfidence?: number | null;
+  plateType?: string | null;
+  validFormat?: boolean | null;
+};
+
+export type LicensePlateOcrDetection = {
+  bbox?: LicensePlateOcrBoundingBox | null;
+  classId?: number | null;
+  confidence?: number | null;
 };
 
 export type LicensePlateOcrResponse = {
+  bbox?: LicensePlateOcrBoundingBox | null;
   candidates: LicensePlateOcrCandidate[];
-  confidence: number;
-  detectorConfidence: number;
+  confidence?: number | null;
+  correctionCount?: number | null;
+  detections: LicensePlateOcrDetection[];
+  detectorConfidence?: number | null;
+  formattedLicensePlate?: string | null;
   licensePlate: string;
+  modelStage?: string | null;
+  modelVersion?: string | null;
   needsReview: boolean;
   normalizedLicensePlate: string;
-  ocrConfidence: number;
+  ocrConfidence?: number | null;
+  plateType?: string | null;
+  processingMs?: number | null;
+  rawResponse?: Record<string, unknown>;
+  requestId?: string | null;
+  reviewReasons: string[];
+  validFormat?: boolean | null;
 };
 
 export async function fetchParkingLanes(direction?: LaneDirection) {
@@ -368,6 +398,8 @@ export async function fetchParkingCheckOutByInvoice(invoiceId: string) {
 export async function recognizeLicensePlate(image: File) {
   const formData = new FormData();
   formData.append("image", image, image.name);
+  if (context.laneId) formData.append("laneId", context.laneId);
+  if (context.direction) formData.append("direction", context.direction);
 
   return postMultipart<ApiResponse<LicensePlateOcrResponse>>(
     apiEndpoints.parking.ocrLicensePlate,

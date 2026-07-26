@@ -20,6 +20,7 @@ import {
   recognizeLicensePlate,
   type CardTypeResponse,
   type LaneDirection,
+  type LicensePlateOcrCandidate,
   type LicensePlateOcrResponse,
   type LaneResponse,
   type ParkingCardResponse,
@@ -618,10 +619,28 @@ export function SwipeListPage() {
 
   function handleLicensePlateChange(value: string) {
     setLicensePlate(value);
+    const editedMatchesSuggestion = false;
+
+    if (editedMatchesSuggestion) {
+      if (ocrStatus === "success" || ocrStatus === "review") {
+        setOcrStatus("review");
+        setOcrMessage("Biển số OCR đang chờ nhân viên kiểm tra.");
+      }
+      return;
+    }
+
     if (ocrStatus === "success" || ocrStatus === "review") {
       setOcrStatus("review");
       setOcrMessage("Biển số đã được chỉnh sửa thủ công.");
     }
+  }
+
+  function handleApplyOcrCandidate(candidate: LicensePlateOcrCandidate) {
+    const candidatePlate = bestCandidatePlate(candidate);
+    if (!candidatePlate) return;
+    setLicensePlate(candidatePlate);
+    setOcrStatus("review");
+    setOcrMessage("Đã chọn biển số dự đoán, có thể sửa trực tiếp nếu chưa đúng.");
   }
 
   const handleAutoCaptureFailed = useCallback(() => {
@@ -646,9 +665,8 @@ export function SwipeListPage() {
     setOcrMessage("");
     setOcrResult(null);
   }
-
-  function formatConfidence(value: number) {
-    if (!Number.isFinite(value)) return "";
+  function formatConfidence(value?: number | null) {
+    if (typeof value !== "number" || !Number.isFinite(value)) return "";
     return `${Math.round(value * 100)}%`;
   }
 
@@ -673,7 +691,7 @@ export function SwipeListPage() {
     setOcrResult(null);
 
     try {
-      const response = await recognizeLicensePlate(file);
+      const response = await recognizeLicensePlate(file, { direction: laneDirection, laneId });
       if (ocrRequestSeq.current !== requestId) return;
 
       const result = response.data;
@@ -683,7 +701,6 @@ export function SwipeListPage() {
       if (detectedPlate) {
         setLicensePlate(detectedPlate);
       }
-
       if (!detectedPlate) {
         setOcrStatus("review");
         setOcrMessage("Chưa nhận diện được biển số, vui lòng nhập thủ công.");
@@ -965,12 +982,14 @@ export function SwipeListPage() {
             licensePlate={licensePlate}
             mode={mode}
             note={note}
-            ocrConfidence={ocrResult?.confidence}
+            ocrConfidence={ocrResult?.confidence ?? undefined}
             ocrMessage={ocrMessage}
+            ocrResult={ocrResult}
             ocrStatus={ocrStatus}
             onCardUidChange={handleCardUidChange}
             onCheckOutPaymentMethodChange={setCheckOutPaymentMethod}
             onLaneChange={setLaneId}
+            onApplyOcrCandidate={handleApplyOcrCandidate}
             onLicensePlateChange={handleLicensePlateChange}
             onNoteChange={setNote}
             onSubmit={handleSubmit}

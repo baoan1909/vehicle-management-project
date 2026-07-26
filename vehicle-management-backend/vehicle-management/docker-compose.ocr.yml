@@ -1,17 +1,27 @@
 services:
   ocr-service:
-    image: ${OCR_IMAGE:-ghcr.io/baoan1909/license-plate-recognition-yolov7-and-cnn-model:latest}
-    container_name: ${OCR_CONTAINER_NAME:-vehicle-ocr-service}
+    image: ${OCR_IMAGE:-ghcr.io/baoan1909/license-plate-recognition-yolov7-and-cnn-model:v5-candidate}
+    container_name: ${OCR_CONTAINER_NAME:-ocr-v5-candidate}
     environment:
       OCR_HOST: 0.0.0.0
       OCR_PORT: 8010
       OCR_INTERNAL_TOKEN: ${OCR_INTERNAL_TOKEN:-dev-ocr-internal-token}
+      OCR_MODEL_VERSION: ${OCR_MODEL_VERSION:-detector-yolov7-v2-crnn-v5-grouped-hybrid}
+      OCR_MODEL_STAGE: ${OCR_MODEL_STAGE:-candidate}
+      OCR_YOLO_WEIGHTS: ${OCR_YOLO_WEIGHTS:-/models/detector/best.pt}
+      OCR_RECOGNIZER_BACKEND: ${OCR_RECOGNIZER_BACKEND:-crnn}
+      OCR_CRNN_WEIGHTS: ${OCR_CRNN_WEIGHTS:-/models/recognizer/best.pt}
+      OCR_CRNN_DECODER: ${OCR_CRNN_DECODER:-plate_beam}
+      OCR_CRNN_BEAM_WIDTH: ${OCR_CRNN_BEAM_WIDTH:-8}
+      OCR_REQUIRE_PRODUCTION_STAGE_FOR_AUTO_ACCEPT: ${OCR_REQUIRE_PRODUCTION_STAGE_FOR_AUTO_ACCEPT:-true}
       OCR_IMAGE_SIZE: ${OCR_IMAGE_SIZE:-640}
       OCR_CONF_THRESHOLD: ${OCR_CONF_THRESHOLD:-0.25}
       OCR_IOU_THRESHOLD: ${OCR_IOU_THRESHOLD:-0.45}
       OCR_REVIEW_THRESHOLD: ${OCR_REVIEW_THRESHOLD:-0.70}
       OCR_MAX_IMAGE_SIZE_BYTES: ${OCR_MAX_IMAGE_SIZE_BYTES:-5242880}
       OCR_FORCE_CPU: ${OCR_FORCE_CPU:-true}
+      OCR_ENABLE_CLAHE: ${OCR_ENABLE_CLAHE:-true}
+      OCR_ENABLE_SHARPEN: ${OCR_ENABLE_SHARPEN:-false}
     ports:
       - "${OCR_HOST_PORT:-8010}:8010"
     restart: unless-stopped

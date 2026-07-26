@@ -6,6 +6,11 @@ import {
   type CustomerPortalProfile,
 } from "@/features/customer-portal/api/customerPortalApi";
 import { requestPasswordReset } from "@/features/auth/api/authApi";
+import {
+  fetchMyOnboardingApproval,
+  resubmitMyOnboardingApproval,
+  type OnboardingApprovalResponse,
+} from "@/features/iam/api/onboardingApprovalApi";
 import { Modal } from "@/shared/components/ui/Modal";
 
 import { CustomerPageHeader, CustomerPortalLayout, Field, StatusPill } from "./PortalShared";
@@ -59,12 +64,14 @@ function profileToForm(profile: CustomerPortalProfile): ProfileForm {
 
 export function ProfilePage() {
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
+  const [latestApproval, setLatestApproval] = useState<OnboardingApprovalResponse | null>(null);
   const [form, setForm] = useState<ProfileForm>(emptyForm);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordSending, setPasswordSending] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [resubmitting, setResubmitting] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -79,6 +86,12 @@ export function ProfilePage() {
         if (ignore) return;
         setProfile(nextProfile);
         setForm(profileToForm(nextProfile));
+        try {
+          const approval = await fetchMyOnboardingApproval("customer");
+          if (!ignore) setLatestApproval(approval);
+        } catch {
+          if (!ignore) setLatestApproval(null);
+        }
       } catch (requestError) {
         if (!ignore) setError(requestError instanceof Error ? requestError.message : "Không thể tải hồ sơ khách hàng.");
       } finally {
@@ -104,27 +117,56 @@ export function ProfilePage() {
     if (!profile) return false;
     return JSON.stringify(form) !== JSON.stringify(profileToForm(profile));
   }, [form, profile]);
+  const approvalRequestStatus = latestApproval?.request?.approvalRequestStatus;
+  const isRejected = approvalRequestStatus === "REJECTED" || approvalStatus === "REJECTED";
+  const rejectionNote = latestApproval?.request?.note?.trim();
+
+  const saveProfileChanges = async () => {
+    const updatedProfile = await updateCustomerPortalProfile({
+      address: form.address.trim() || undefined,
+      dateOfBirth: form.dateOfBirth || undefined,
+      fullName: form.fullName.trim() || undefined,
+      gender: form.gender.trim() || undefined,
+      identifyCard: form.identifyCard.trim() || undefined,
+      phoneNumber: form.phoneNumber.trim() || undefined,
+    });
+    setProfile(updatedProfile);
+    setForm(profileToForm(updatedProfile));
+    return updatedProfile;
+  };
 
   const handleSave = async () => {
     setSaving(true);
     setError("");
     setNotice("");
     try {
-      const updatedProfile = await updateCustomerPortalProfile({
-        address: form.address.trim() || undefined,
-        dateOfBirth: form.dateOfBirth || undefined,
-        fullName: form.fullName.trim() || undefined,
-        gender: form.gender.trim() || undefined,
-        identifyCard: form.identifyCard.trim() || undefined,
-        phoneNumber: form.phoneNumber.trim() || undefined,
-      });
-      setProfile(updatedProfile);
-      setForm(profileToForm(updatedProfile));
+      await saveProfileChanges();
       setNotice("Đã cập nhật hồ sơ.");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Không thể cập nhật hồ sơ.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleResubmitApproval = async () => {
+    setResubmitting(true);
+    setError("");
+    setNotice("");
+    try {
+      if (formChanged) {
+        await saveProfileChanges();
+      }
+      const approval = await resubmitMyOnboardingApproval("customer");
+      const nextProfile = await getCustomerPortalProfile();
+      setLatestApproval(approval);
+      setProfile(nextProfile);
+      setForm(profileToForm(nextProfile));
+      setNotice("Đã gửi lại hồ sơ để chờ duyệt.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Không thể gửi lại hồ sơ để duyệt.");
+    } finally {
+      setResubmitting(false);
     }
   };
 
@@ -162,6 +204,26 @@ export function ProfilePage() {
 
       {error ? <div className="vm-info-note tw-bg-red-50 tw-text-red-600"><i className="fas fa-exclamation-circle" /> {error}</div> : null}
       {notice ? <div className="vm-info-note tw-bg-green-50 tw-text-green-700"><i className="fas fa-check-circle" /> {notice}</div> : null}
+      {isRejected ? (
+        <div className="vm-info-note tw-items-start tw-justify-between tw-gap-4 tw-bg-amber-50 tw-text-amber-800">
+          <div className="tw-flex tw-min-w-0 tw-gap-3">
+            <i className="fas fa-exclamation-circle tw-mt-1" />
+            <div>
+              <strong className="tw-block tw-text-vm-slate-900">Hồ sơ cần bổ sung</strong>
+              <span className="tw-mt-1 tw-block">Cập nhật thông tin theo góp ý rồi gửi lại để chờ duyệt.</span>
+              {rejectionNote ? <span className="tw-mt-1 tw-block tw-font-semibold">Lý do: {rejectionNote}</span> : null}
+            </div>
+          </div>
+          <button
+            className="tw-inline-flex tw-min-h-10 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-4 tw-text-[0.88rem] tw-font-extrabold tw-text-white tw-shadow-[0_10px_18px_rgba(37,99,235,0.18)] disabled:tw-cursor-not-allowed disabled:tw-opacity-60"
+            type="button"
+            disabled={saving || resubmitting || !profile}
+            onClick={handleResubmitApproval}
+          >
+            {resubmitting ? "Đang gửi..." : "Gửi duyệt lại"}
+          </button>
+        </div>
+      ) : null}
 
       <div className="vm-profile-top">
         <article className="vm-customer-card vm-profile-summary">
@@ -212,8 +274,8 @@ export function ProfilePage() {
           <Field label="Ghi chú"><textarea placeholder="Thông tin bổ sung..." /></Field>
         </div>
         <div className="vm-form-actions vm-profile-form-actions">
-          <button className="vm-outline-btn" type="button" disabled={!profile || saving} onClick={() => profile && setForm(profileToForm(profile))}>Hủy thay đổi</button>
-          <button type="button" disabled={!formChanged || saving} onClick={handleSave}>{saving ? "Đang lưu..." : "Lưu thay đổi"}</button>
+          <button className="vm-outline-btn" type="button" disabled={!profile || saving || resubmitting} onClick={() => profile && setForm(profileToForm(profile))}>Hủy thay đổi</button>
+          <button type="button" disabled={!formChanged || saving || resubmitting} onClick={handleSave}>{saving ? "Đang lưu..." : "Lưu thay đổi"}</button>
         </div>
       </section>
 

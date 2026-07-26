@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.operations.approvalrequest.model.result;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 public record SystemAdminApprovalResult(
@@ -33,7 +34,11 @@ public record SystemAdminApprovalResult(
     public record ProfileInfoResult(
             UUID userProfileId,
             String fullName,
-            String phoneNumber
+            String phoneNumber,
+            LocalDate dateOfBirth,
+            String gender,
+            String address,
+            String identifyCard
     ) {
     }
 }

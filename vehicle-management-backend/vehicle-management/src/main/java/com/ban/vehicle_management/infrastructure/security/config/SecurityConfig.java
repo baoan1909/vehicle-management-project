@@ -73,6 +73,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/error",
                                 "/api/public/auth/**",
+                                "/api/dev/mail-preview/**",
                                 "/actuator/health/**",
                                 "/actuator/info",
                                 "/v3/api-docs/**",

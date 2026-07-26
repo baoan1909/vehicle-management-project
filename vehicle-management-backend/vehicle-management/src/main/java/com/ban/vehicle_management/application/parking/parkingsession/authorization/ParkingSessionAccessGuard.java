@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.parking.parkingsession.authorization;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -21,5 +22,13 @@ public class ParkingSessionAccessGuard {
 
     public void ensureCanCheckOut() {
         currentAccountPortIn.requirePermission(PARKING_SESSION_CHECK_OUT_ALL);
+    }
+
+    public void ensureCanUseOcr() {
+        if (currentAccountPortIn.hasPermission(PARKING_SESSION_CHECK_IN_ALL)
+                || currentAccountPortIn.hasPermission(PARKING_SESSION_CHECK_OUT_ALL)) {
+            return;
+        }
+        throw new AccessDeniedException("Access is denied");
     }
 }

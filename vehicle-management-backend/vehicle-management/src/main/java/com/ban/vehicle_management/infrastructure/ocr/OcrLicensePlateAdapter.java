@@ -1,14 +1,19 @@
 package com.ban.vehicle_management.infrastructure.ocr;
 
 import com.ban.vehicle_management.application.parking.ocr.model.LicensePlateOcrResult;
+import com.ban.vehicle_management.application.parking.ocr.model.LicensePlateOcrResult.LicensePlateOcrBoundingBox;
 import com.ban.vehicle_management.application.parking.ocr.model.LicensePlateOcrResult.LicensePlateOcrCandidate;
+import com.ban.vehicle_management.application.parking.ocr.model.LicensePlateOcrResult.LicensePlateOcrDetection;
 import com.ban.vehicle_management.application.parking.ocr.port.out.LicensePlateOcrPortOut;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
@@ -26,6 +31,8 @@ public class OcrLicensePlateAdapter implements LicensePlateOcrPortOut {
 
     private static final String OCR_TOKEN_HEADER = "X-Internal-Token";
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final TypeReference<Map<String, Object>> MAP_OF_OBJECTS = new TypeReference<>() {
+    };
 
     private final OcrProperties properties;
     private final RestClient restClient;
@@ -53,19 +60,21 @@ public class OcrLicensePlateAdapter implements LicensePlateOcrPortOut {
         }
 
         try {
-            OcrServiceResponse response = restClient.post()
+            String responseBody = restClient.post()
                     .uri("/v1/license-plate/recognize")
                     .header(OCR_TOKEN_HEADER, properties.getInternalToken())
                     .contentType(MediaType.MULTIPART_FORM_DATA)
                     .body(toMultipartBody(image))
                     .retrieve()
-                    .body(OcrServiceResponse.class);
+                    .body(String.class);
 
-            if (response == null) {
+            if (!StringUtils.hasText(responseBody)) {
                 throw new ConflictException("OCR service returned an empty response");
             }
 
-            return response.toResult(properties.getConfidenceThreshold());
+            Map<String, Object> rawResponse = OBJECT_MAPPER.readValue(responseBody, MAP_OF_OBJECTS);
+            OcrServiceResponse response = OBJECT_MAPPER.convertValue(rawResponse, OcrServiceResponse.class);
+            return response.toResult(properties.getConfidenceThreshold(), rawResponse);
         } catch (IOException exception) {
             throw new BadRequestException("Could not read OCR image");
         } catch (RestClientResponseException exception) {
@@ -76,6 +85,8 @@ public class OcrLicensePlateAdapter implements LicensePlateOcrPortOut {
             throw new ConflictException(message);
         } catch (RestClientException exception) {
             throw new ConflictException("Could not recognize license plate. Please enter it manually.");
+        } catch (IllegalArgumentException exception) {
+            throw new ConflictException("OCR service returned an unsupported response");
         }
     }
 
@@ -122,36 +133,99 @@ public class OcrLicensePlateAdapter implements LicensePlateOcrPortOut {
         return fallback;
     }
 
+    private static double numberOrZero(Double value) {
+        return value == null || !Double.isFinite(value) ? 0.0 : value;
+    }
+
+    private static Integer integerValue(Object value) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value instanceof String text && StringUtils.hasText(text)) {
+            try {
+                return Integer.parseInt(text.trim());
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static LicensePlateOcrBoundingBox toBoundingBox(Map<String, Object> bbox) {
+        if (bbox == null || bbox.isEmpty()) {
+            return null;
+        }
+        return new LicensePlateOcrBoundingBox(
+                integerValue(bbox.get("x1")),
+                integerValue(bbox.get("y1")),
+                integerValue(bbox.get("x2")),
+                integerValue(bbox.get("y2"))
+        );
+    }
+
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record OcrErrorResponse(String detail) {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record OcrServiceResponse(
+            String request_id,
             String license_plate,
             String normalized_license_plate,
-            double confidence,
-            double detector_confidence,
-            double ocr_confidence,
-            boolean needs_review,
+            String formatted_license_plate,
+            String plate_type,
+            Boolean valid_format,
+            Integer correction_count,
+            Map<String, Object> bbox,
+            Double confidence,
+            Double detector_confidence,
+            Double ocr_confidence,
+            Boolean needs_review,
+            Double processing_ms,
+            String model_version,
+            String model_stage,
+            List<String> review_reasons,
+            List<OcrDetectionResponse> detections,
             List<OcrCandidateResponse> candidates
     ) {
-        LicensePlateOcrResult toResult(double confidenceThreshold) {
-            boolean reviewRequired = needs_review || confidence < confidenceThreshold;
+        LicensePlateOcrResult toResult(double confidenceThreshold, Map<String, Object> rawResponse) {
+            double confidenceValue = numberOrZero(confidence);
+            boolean reviewRequired = Boolean.TRUE.equals(needs_review) || confidenceValue < confidenceThreshold;
+            List<String> mappedReviewReasons = new ArrayList<>(review_reasons == null ? List.of() : review_reasons);
+            if (confidenceValue < confidenceThreshold && !mappedReviewReasons.contains("below_backend_confidence_threshold")) {
+                mappedReviewReasons.add("below_backend_confidence_threshold");
+            }
             List<LicensePlateOcrCandidate> mappedCandidates = candidates == null
                     ? List.of()
                     : candidates.stream()
                     .map(OcrCandidateResponse::toCandidate)
                     .toList();
+            List<LicensePlateOcrDetection> mappedDetections = detections == null
+                    ? List.of()
+                    : detections.stream()
+                    .map(OcrDetectionResponse::toDetection)
+                    .toList();
 
             return new LicensePlateOcrResult(
+                    request_id,
                     license_plate,
                     normalized_license_plate,
+                    formatted_license_plate,
+                    plate_type,
+                    valid_format,
+                    correction_count,
+                    toBoundingBox(bbox),
                     confidence,
                     detector_confidence,
                     ocr_confidence,
                     reviewRequired,
-                    mappedCandidates
+                    processing_ms,
+                    model_version,
+                    model_stage,
+                    mappedReviewReasons,
+                    mappedDetections,
+                    mappedCandidates,
+                    rawResponse
             );
         }
     }
@@ -160,17 +234,42 @@ public class OcrLicensePlateAdapter implements LicensePlateOcrPortOut {
     private record OcrCandidateResponse(
             String license_plate,
             String normalized_license_plate,
-            double confidence,
-            double detector_confidence,
-            double ocr_confidence
+            String formatted_license_plate,
+            String plate_type,
+            Boolean valid_format,
+            Integer correction_count,
+            Map<String, Object> bbox,
+            Double confidence,
+            Double detector_confidence,
+            Double ocr_confidence
     ) {
         LicensePlateOcrCandidate toCandidate() {
             return new LicensePlateOcrCandidate(
                     license_plate,
                     normalized_license_plate,
+                    formatted_license_plate,
+                    plate_type,
+                    valid_format,
+                    correction_count,
+                    toBoundingBox(bbox),
                     confidence,
                     detector_confidence,
                     ocr_confidence
+            );
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record OcrDetectionResponse(
+            Map<String, Object> bbox,
+            Double confidence,
+            Integer class_id
+    ) {
+        LicensePlateOcrDetection toDetection() {
+            return new LicensePlateOcrDetection(
+                    toBoundingBox(bbox),
+                    confidence,
+                    class_id
             );
         }
     }

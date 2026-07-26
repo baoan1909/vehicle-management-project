@@ -18,6 +18,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.port.ou
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
+import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
@@ -50,6 +51,9 @@ class InternalEmployeeApprovalUseCaseImplTest {
     @Mock
     private InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
 
+    @Mock
+    private VehicleMailService vehicleMailService;
+
     private InternalEmployeeApprovalUseCaseImpl internalEmployeeApprovalUseCase;
 
     @BeforeEach
@@ -58,6 +62,7 @@ class InternalEmployeeApprovalUseCaseImplTest {
                 currentAccountPortIn,
                 internalEmployeeApprovalAccessGuard,
                 internalEmployeeApprovalPortOut,
+                vehicleMailService,
                 Clock.fixed(Instant.parse("2026-06-20T16:29:30Z"), ZoneOffset.UTC)
         );
     }
@@ -103,6 +108,7 @@ class InternalEmployeeApprovalUseCaseImplTest {
         assertEquals(ApprovalRequestStatus.APPROVED, approvalCaptor.getValue().getStatus());
         assertEquals(EmployeeStatus.ACTIVE, employeeCaptor.getValue().getStatus());
         assertEquals("APPROVED", result.request().approvalRequestStatus());
+        verify(vehicleMailService).sendOnboardingApprovedEmail("internal.user@example.com", "Internal User", "nhân sự nội bộ");
     }
 
     @Test
@@ -206,6 +212,12 @@ class InternalEmployeeApprovalUseCaseImplTest {
         verify(internalEmployeeApprovalPortOut).saveInternalEmployeeApprovalDecision(any(), employeeCaptor.capture());
         assertEquals(EmployeeStatus.INACTIVE, employeeCaptor.getValue().getStatus());
         assertEquals("REJECTED", result.request().approvalRequestStatus());
+        verify(vehicleMailService).sendOnboardingRejectedEmail(
+                "internal.user@example.com",
+                "Internal User",
+                "nhân sự nội bộ",
+                "Missing documents"
+        );
     }
 
     @Test

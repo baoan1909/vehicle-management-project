@@ -12,6 +12,7 @@ import com.ban.vehicle_management.domain.operations.approvalrequest.model.Approv
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.ApprovalRequestPolicy;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customer.policy.CustomerPolicy;
+import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -28,16 +29,19 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
 
     private final CustomerOnboardingApprovalAccessGuard customerOnboardingApprovalAccessGuard;
     private final CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
+    private final VehicleMailService vehicleMailService;
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
     private final CustomerPolicy customerPolicy = new CustomerPolicy();
     private final Clock clock;
 
     public CustomerOnboardingApprovalUseCaseImpl(
             CustomerOnboardingApprovalAccessGuard customerOnboardingApprovalAccessGuard,
-            CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut
+            CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut,
+            VehicleMailService vehicleMailService
     ) {
         this.customerOnboardingApprovalAccessGuard = customerOnboardingApprovalAccessGuard;
         this.customerOnboardingApprovalPortOut = customerOnboardingApprovalPortOut;
+        this.vehicleMailService = vehicleMailService;
         this.clock = Clock.systemUTC();
     }
 
@@ -93,8 +97,10 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         customerPolicy.approve(customer, currentAccount.accountId(), approvalRequest.getApprovedAt());
         customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalDecision(approvalRequest, customer);
 
-        return customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
+        CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
+        sendOnboardingApprovedEmail(result);
+        return result;
     }
 
     @Override
@@ -117,8 +123,10 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         customerPolicy.reject(customer);
         customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalDecision(approvalRequest, customer);
 
-        return customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
+        CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
+        sendOnboardingRejectedEmail(result);
+        return result;
     }
 
     @Override
@@ -182,5 +190,22 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
     private Customer loadCustomer(UUID customerId) {
         return customerOnboardingApprovalPortOut.findCustomerById(customerId)
                 .orElseThrow(() -> new NotFoundException("Customer not found"));
+    }
+
+    private void sendOnboardingApprovedEmail(CustomerOnboardingApprovalResult result) {
+        vehicleMailService.sendOnboardingApprovedEmail(
+                result.account().email(),
+                result.profile().fullName(),
+                "khách hàng"
+        );
+    }
+
+    private void sendOnboardingRejectedEmail(CustomerOnboardingApprovalResult result) {
+        vehicleMailService.sendOnboardingRejectedEmail(
+                result.account().email(),
+                result.profile().fullName(),
+                "khách hàng",
+                result.request().note()
+        );
     }
 }
