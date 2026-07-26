@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.accesscontrol.lostcardreport.usec
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.authorization.LostCardReportAccessGuard;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardPreviewResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReplacementCardResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportDetailResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportSummaryResult;
@@ -15,8 +16,10 @@ import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPo
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
+import com.ban.vehicle_management.application.parking.parkingevent.port.out.ParkingEventPortOut;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
+import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
@@ -27,6 +30,7 @@ import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
+import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent;
 import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingCheckoutPricePolicy;
 import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingLicensePlatePolicy;
 import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingSessionPolicy;
@@ -38,6 +42,7 @@ import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionS
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -50,6 +55,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +65,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
 
     private static final String BARRIER_ACTION_OPEN = "OPEN";
     private static final String BARRIER_ACTION_NONE = "NONE";
+    private static final int CHECK_IN_IMAGE_READ_URL_EXPIRE_SECONDS = 15 * 60;
     private static final LocalTime DAY_REFERENCE_TIME = LocalTime.NOON;
     private static final LocalTime NIGHT_REFERENCE_TIME = LocalTime.MIDNIGHT;
 
@@ -75,6 +82,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
     private final LostCardReportAccessGuard lostCardReportAccessGuard;
     private final LostCardReportPortOut lostCardReportPortOut;
     private final ParkingSessionPortOut parkingSessionPortOut;
+    private final ParkingEventPortOut parkingEventPortOut;
     private final SubscriptionPortOut subscriptionPortOut;
     private final CardPortOut cardPortOut;
     private final PriceRulePortOut priceRulePortOut;
@@ -82,6 +90,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
     private final PaymentPortOut paymentPortOut;
     private final CustomerPortOut customerPortOut;
     private final CustomerVehiclePortOut customerVehiclePortOut;
+    private final FileAccessPort fileAccessPort;
 
     private final LostCardReportPolicy lostCardReportPolicy = new LostCardReportPolicy();
     private final ParkingSessionPolicy parkingSessionPolicy = new ParkingSessionPolicy();
@@ -95,18 +104,21 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
             LostCardReportAccessGuard lostCardReportAccessGuard,
             LostCardReportPortOut lostCardReportPortOut,
             ParkingSessionPortOut parkingSessionPortOut,
+            ParkingEventPortOut parkingEventPortOut,
             SubscriptionPortOut subscriptionPortOut,
             CardPortOut cardPortOut,
             PriceRulePortOut priceRulePortOut,
             InvoicePortOut invoicePortOut,
             PaymentPortOut paymentPortOut,
             CustomerPortOut customerPortOut,
-            CustomerVehiclePortOut customerVehiclePortOut
+            CustomerVehiclePortOut customerVehiclePortOut,
+            FileAccessPort fileAccessPort
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.lostCardReportAccessGuard = lostCardReportAccessGuard;
         this.lostCardReportPortOut = lostCardReportPortOut;
         this.parkingSessionPortOut = parkingSessionPortOut;
+        this.parkingEventPortOut = parkingEventPortOut;
         this.subscriptionPortOut = subscriptionPortOut;
         this.cardPortOut = cardPortOut;
         this.priceRulePortOut = priceRulePortOut;
@@ -114,6 +126,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         this.paymentPortOut = paymentPortOut;
         this.customerPortOut = customerPortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
+        this.fileAccessPort = fileAccessPort;
     }
 
     @Override
@@ -144,6 +157,9 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                     ? calculateVisitorPrice(session, now)
                     : BigDecimal.ZERO;
             BigDecimal lostCardFee = resolveLostCardFee(session, subscription, businessDate, now);
+            ParkingEvent checkInEvent = parkingEventPortOut
+                    .findLatestBySessionIdAndEventType(session.getParkingSessionId(), ParkingEventType.CHECK_IN)
+                    .orElse(null);
 
             return new LostCardPreviewResult(
                     context,
@@ -160,8 +176,8 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                             ? subscription.getCustomerId()
                             : session.getCustomerId()),
                     session.getLicensePlateIn(),
-                    null,
-                    null
+                    resolvePrivateReadUrl(checkInEvent == null ? null : checkInEvent.getLicensePlateImagePath()),
+                    resolvePrivateReadUrl(checkInEvent == null ? null : checkInEvent.getPersonImagePath())
             );
         }
 
@@ -316,6 +332,11 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 throw new ConflictException("New card must be AVAILABLE");
             }
 
+            Card oldCard = findCard(report.getCardId());
+            if (!Objects.equals(oldCard.getCardTypeId(), newCard.getCardTypeId())) {
+                throw new ConflictException("New card must have the same card type as the lost card");
+            }
+
             cardPolicy.assign(newCard, Instant.now());
             cardPortOut.save(newCard);
 
@@ -339,6 +360,30 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 invoice,
                 report.getContext() == LostCardReportContext.REGISTERED_OUTSIDE ? BARRIER_ACTION_NONE : BARRIER_ACTION_OPEN
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<LostCardReplacementCardResult> getAvailableReplacementCards(UUID lostCardReportId) {
+        lostCardReportAccessGuard.ensureCanUpdate();
+
+        LostCardReport report = findReport(lostCardReportId);
+        if (report.getStatus() != LostCardReportStatus.OPEN
+                || report.getContext() == LostCardReportContext.VISITOR_IN_PARKING) {
+            return List.of();
+        }
+
+        Card oldCard = findCard(report.getCardId());
+        return cardPortOut.findAll(CardStatus.AVAILABLE, oldCard.getCardTypeId(), null)
+                .stream()
+                .map(card -> new LostCardReplacementCardResult(
+                        card.getCardId(),
+                        card.getCardNumber(),
+                        card.getUid(),
+                        card.getCardTypeId(),
+                        card.getStatus()
+                ))
+                .toList();
     }
 
     @Override
@@ -409,6 +454,11 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 ? null
                 : findSubscription(report.getSubscriptionId());
         Invoice invoice = findInvoiceForReport(report.getLostCardReportId());
+        ParkingEvent checkInEvent = session == null
+                ? null
+                : parkingEventPortOut
+                .findLatestBySessionIdAndEventType(session.getParkingSessionId(), ParkingEventType.CHECK_IN)
+                .orElse(null);
 
         return new LostCardReportDetailResult(
                 report,
@@ -417,7 +467,9 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 resolveLicensePlate(session, subscription),
                 session,
                 subscription,
-                new InvoiceDetail(invoice, paymentPortOut.findByInvoiceId(invoice.getInvoiceId()))
+                new InvoiceDetail(invoice, paymentPortOut.findByInvoiceId(invoice.getInvoiceId())),
+                resolvePrivateReadUrl(checkInEvent == null ? null : checkInEvent.getLicensePlateImagePath()),
+                resolvePrivateReadUrl(checkInEvent == null ? null : checkInEvent.getPersonImagePath())
         );
     }
 
@@ -643,6 +695,20 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
 
     private boolean isRegisteredSession(ParkingSession session) {
         return session.getCustomerId() != null || session.getCustomerVehicleId() != null;
+    }
+
+    private String resolvePrivateReadUrl(String objectKey) {
+        if (objectKey == null || objectKey.isBlank() || isBrowserReachableUrl(objectKey)) {
+            return objectKey;
+        }
+        return fileAccessPort.createReadUrl(objectKey, CHECK_IN_IMAGE_READ_URL_EXPIRE_SECONDS);
+    }
+
+    private boolean isBrowserReachableUrl(String value) {
+        String normalized = value.toLowerCase();
+        return normalized.startsWith("http://")
+                || normalized.startsWith("https://")
+                || normalized.startsWith("/");
     }
 
     private UUID resolveRegisteredVehicleType(ParkingSession session, Subscription subscription) {

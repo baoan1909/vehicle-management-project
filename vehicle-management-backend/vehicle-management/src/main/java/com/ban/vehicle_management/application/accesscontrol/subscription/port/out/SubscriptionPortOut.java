@@ -15,6 +15,8 @@ public interface SubscriptionPortOut {
 
     Optional<Subscription> findActiveByCardId(UUID cardId, LocalDate businessDate);
 
+    Optional<Subscription> findLatestActiveByCardId(UUID cardId);
+
     List<Subscription> findAll(
             UUID customerId,
             UUID customerVehicleId,

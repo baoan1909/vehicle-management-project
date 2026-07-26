@@ -2,6 +2,7 @@ package com.ban.vehicle_management.entrypoint.controller.accesscontrol;
 
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.mapper.LostCardReportApiMapper;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardPreviewResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReplacementCardResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportDetailResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportSummaryResult;
@@ -12,6 +13,7 @@ import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.re
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.request.LostCardReportFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.request.ResolveLostCardReportRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardPreviewResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReplacementCardResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportDetailResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportListItemResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportSummaryResponse;
@@ -121,6 +123,28 @@ public class LostCardReportController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched lost card report successfully",
                 lostCardReportApiMapper.toDetailResponse(result)
+        ));
+    }
+
+    @GetMapping("/{lostCardReportId}/replacement-cards")
+    public ResponseEntity<ApiResponse<List<LostCardReplacementCardResponse>>> getAvailableReplacementCards(
+            @PathVariable UUID lostCardReportId
+    ) {
+        List<LostCardReplacementCardResult> cards =
+                lostCardReportPortIn.getAvailableReplacementCards(lostCardReportId);
+        List<LostCardReplacementCardResponse> response = cards.stream()
+                .map(card -> new LostCardReplacementCardResponse(
+                        card.cardId(),
+                        card.cardNumber(),
+                        card.uid(),
+                        card.cardTypeId(),
+                        card.status()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched available replacement cards successfully",
+                response
         ));
     }
 

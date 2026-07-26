@@ -164,6 +164,7 @@ public class CardController {
 
     private void enrichRegisteredVehicleType(Card card, CardAdminResponse response, LocalDate businessDate) {
         subscriptionPortOut.findActiveByCardId(card.getCardId(), businessDate)
+                .or(() -> subscriptionPortOut.findLatestActiveByCardId(card.getCardId()))
                 .ifPresent(subscription -> enrichRegisteredCardContext(response, subscription));
     }
 

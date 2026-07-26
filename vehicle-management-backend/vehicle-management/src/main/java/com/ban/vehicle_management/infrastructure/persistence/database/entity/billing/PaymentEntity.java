@@ -13,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.EntityListeners;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -20,9 +21,13 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 @Entity
 @Table(name = "payments", schema = "billing")
+@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -54,7 +59,7 @@ public class PaymentEntity {
     @Column(name = "status", nullable = false)
     private PaymentStatus status;
 
-    @Column(name = "paid_at", nullable = false)
+    @Column(name = "paid_at")
     private Instant paidAt;
 
     @Column(name = "received_by")
@@ -67,6 +72,34 @@ public class PaymentEntity {
     @Column(name = "note")
     private String note;
 
+    @CreatedDate
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at")
+    private Instant updatedAt;
+
+    @Column(name = "expires_at")
+    private Instant expiresAt;
+
+    @Column(name = "provider_transaction_no", length = 100)
+    private String providerTransactionNo;
+
+    @Column(name = "provider_response_code", length = 20)
+    private String providerResponseCode;
+
+    @Column(name = "provider_transaction_status", length = 20)
+    private String providerTransactionStatus;
+
+    @Column(name = "bank_code", length = 20)
+    private String bankCode;
+
+    @Column(name = "card_type", length = 30)
+    private String cardType;
+
+    @Column(name = "failure_reason", length = 255)
+    private String failureReason;
 }
 
 

@@ -128,7 +128,7 @@ class ParkingCheckOutUseCaseImplTest {
     }
 
     @Test
-    void shouldCheckOutVisitorSessionAndCreateUnpaidInvoice() {
+    void shouldPrepareVisitorCheckoutWithoutClosingSession() {
         TestData data = validTestData();
         Card card = card(data.cardId(), data.vehicleTypeId(), CardStatus.IN_USE);
         ParkingSession openSession = visitorOpenSession(data, Instant.now().minusSeconds(2 * 60 * 60));
@@ -142,31 +142,39 @@ class ParkingCheckOutUseCaseImplTest {
                 .thenReturn(Optional.of(priceRule(data.vehicleTypeId(), new BigDecimal("5000"), LocalTime.of(6, 0), LocalTime.of(19, 59, 59))));
         when(priceRulePortOut.findActiveVisitorRuleByTime(eq(data.vehicleTypeId()), any(LocalDate.class), eq(LocalTime.MIDNIGHT)))
                 .thenReturn(Optional.of(priceRule(data.vehicleTypeId(), new BigDecimal("10000"), LocalTime.of(20, 0), LocalTime.of(5, 59, 59))));
-        when(parkingSessionPortOut.save(any(ParkingSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedLicensePlateFile, storedPersonFile);
         when(parkingEventPortOut.save(any(ParkingEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(invoicePortOut.findFirstByParkingSessionIdAndStatusIn(eq(data.parkingSessionId()), anyCollection()))
+                .thenReturn(Optional.empty());
         when(invoicePortOut.existsByParkingSessionIdAndStatusIn(eq(data.parkingSessionId()), anyCollection()))
                 .thenReturn(false);
         when(invoicePortOut.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
+        when(fileAccessPort.createReadUrl(storedLicensePlateFile.objectKey(), 900))
+                .thenReturn("https://files.test/license-plate");
+        when(fileAccessPort.createReadUrl(storedPersonFile.objectKey(), 900))
+                .thenReturn("https://files.test/person");
 
-        CheckOutResult result = parkingCheckOutUseCase.checkOut(command(data.laneId(), "51A-12345"));
+        CheckOutResult result = parkingCheckOutUseCase.prepareVisitorCheckOut(
+                command(data.laneId(), "51A-12345")
+        );
 
         verify(parkingSessionAccessGuard).ensureCanCheckOut();
-        assertEquals(ParkingSessionStatus.CLOSED, result.parkingSession().getStatus());
-        assertEquals("51A-12345", result.parkingSession().getLicensePlateOut());
-        assertEquals(new BigDecimal("5000"), result.parkingSession().getTotalPrice());
-        assertEquals(CardStatus.AVAILABLE, card.getStatus());
+        assertEquals(ParkingSessionStatus.OPEN, result.parkingSession().getStatus());
+        assertNull(result.parkingSession().getLicensePlateOut());
+        assertNull(result.parkingSession().getTotalPrice());
+        assertEquals(CardStatus.IN_USE, card.getStatus());
         assertEquals("VISITOR", result.customerType());
         assertEquals("WAIT_PAYMENT", result.barrierAction());
         assertNotNull(result.invoice());
         assertEquals(InvoiceStatus.UNPAID, result.invoice().getStatus());
         assertEquals(data.parkingSessionId(), result.invoice().getParkingSessionId());
         assertEquals(new BigDecimal("5000"), result.invoice().getAmount());
-        assertEquals(ParkingEventType.CHECK_OUT, result.parkingEvent().getEventType());
-        assertEquals(storedLicensePlateFile.objectKey(), result.parkingEvent().getLicensePlateImagePath());
-        assertEquals(storedPersonFile.objectKey(), result.parkingEvent().getPersonImagePath());
+        assertEquals(ParkingEventType.CHECK_OUT_PENDING, result.parkingEvent().getEventType());
+        assertEquals("https://files.test/license-plate", result.parkingEvent().getLicensePlateImagePath());
+        assertEquals("https://files.test/person", result.parkingEvent().getPersonImagePath());
+        verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
+        verify(cardPortOut, never()).save(any(Card.class));
         verify(fileStoragePort, times(2)).store(any(StoreFileCommand.class));
     }
 
@@ -209,7 +217,7 @@ class ParkingCheckOutUseCaseImplTest {
 
         assertThrows(
                 ConflictException.class,
-                () -> parkingCheckOutUseCase.checkOut(command(data.laneId(), "51A-99999"))
+                () -> parkingCheckOutUseCase.prepareVisitorCheckOut(command(data.laneId(), "51A-99999"))
         );
 
         verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));

@@ -5,6 +5,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface PaymentPortOut {
@@ -26,4 +27,10 @@ public interface PaymentPortOut {
     boolean existsByInvoiceIdAndStatus(UUID invoiceId, PaymentStatus status);
 
     boolean existsByTransactionRefAndStatus(String transactionRef, PaymentStatus status);
+
+    Optional<Payment> findFirstByInvoiceIdAndStatus(UUID invoiceId, PaymentStatus status);
+
+    Optional<Payment> findByTransactionRef(String transactionRef);
+
+    Optional<Payment> findByTransactionRefForUpdate(String transactionRef);
 }

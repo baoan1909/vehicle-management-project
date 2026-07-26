@@ -76,6 +76,12 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
     }
 
     @Override
+    public Optional<ParkingSession> findByIdForUpdate(UUID parkingSessionId) {
+        return parkingSessionRepository.findByIdForUpdate(parkingSessionId)
+                .map(parkingSessionPersistenceMapper::toDomain);
+    }
+
+    @Override
     public List<ParkingSessionManagementResult> findManagementSessions(
             ParkingSessionStatus status,
             UUID vehicleTypeId,

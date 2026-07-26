@@ -67,6 +67,13 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
     }
 
     @Override
+    public Optional<Subscription> findLatestActiveByCardId(UUID cardId) {
+        return subscriptionRepository
+                .findFirstByCardIdAndStatusOrderByEffectiveFromDesc(cardId, SubscriptionStatus.ACTIVE)
+                .map(subscriptionPersistenceMapper::toDomain);
+    }
+
+    @Override
     public List<Subscription> findAll(
             UUID customerId,
             UUID customerVehicleId,

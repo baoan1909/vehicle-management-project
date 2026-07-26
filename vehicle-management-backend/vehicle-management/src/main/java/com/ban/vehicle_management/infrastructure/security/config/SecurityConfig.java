@@ -83,7 +83,8 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET,
-                                "/api/public/pricing/**"
+                                "/api/public/pricing/**",
+                                "/api/public/payments/vnpay/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

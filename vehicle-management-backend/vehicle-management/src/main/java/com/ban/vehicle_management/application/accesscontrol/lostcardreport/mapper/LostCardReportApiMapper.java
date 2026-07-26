@@ -116,7 +116,9 @@ public interface LostCardReportApiMapper {
                 detail.licensePlate(),
                 toParkingSessionResponse(detail.parkingSession()),
                 toSubscriptionResponse(detail.subscription()),
-                toInvoiceDetailResponse(detail.invoiceDetail())
+                toInvoiceDetailResponse(detail.invoiceDetail()),
+                detail.checkInLicensePlateImagePath(),
+                detail.checkInPersonImagePath()
         );
     }
 

@@ -35,5 +35,9 @@ public interface ParkingSessionPortIn {
 
     CheckOutResult checkOut(CheckOutCommand command);
 
+    CheckOutResult prepareVisitorCheckOut(CheckOutCommand command);
+
+    CheckOutResult getCheckOutByInvoice(UUID invoiceId);
+
     CheckOutPreviewResult previewCheckOutByCardUid(String cardUid);
 }

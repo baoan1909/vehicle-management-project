@@ -203,7 +203,6 @@ export type LostCardReplacementCardResponse = {
   cardNumber: string;
   uid: string | null;
   cardTypeId: string | null;
-  vehicleTypeId: string | null;
   status: "AVAILABLE" | "ASSIGNED" | "IN_USE" | "LOST" | "BLOCKED" | string;
 };
 
@@ -215,6 +214,8 @@ export type LostCardReportDetailResponse = {
   parkingSession: LostCardParkingSessionResponse | null;
   subscription: LostCardSubscriptionResponse | null;
   invoice: LostCardInvoiceDetailResponse | null;
+  checkInLicensePlateImagePath: string | null;
+  checkInPersonImagePath: string | null;
 };
 
 export type LostCardReportWorkflowResponse = {
@@ -277,14 +278,9 @@ export async function createLostCardReport(payload: CreateLostCardReportRequest)
   );
 }
 
-export async function getAvailableReplacementCards(vehicleTypeId?: string | null) {
-  const params = new URLSearchParams({ status: "AVAILABLE" });
-  if (vehicleTypeId) {
-    params.set("vehicleTypeId", vehicleTypeId);
-  }
-
+export async function getAvailableReplacementCards(lostCardReportId: string) {
   return apiClient<ApiResponse<LostCardReplacementCardResponse[]>>(
-    `${apiEndpoints.accessControl.cards}?${params.toString()}`,
+    `${apiEndpoints.accessControl.lostCardReports}/${lostCardReportId}/replacement-cards`,
   );
 }
 

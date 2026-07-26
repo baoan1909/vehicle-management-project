@@ -25,5 +25,14 @@ public class Payment {
     private Instant paidAt;
     private UUID receivedBy;
     private String note;
+    private Instant createdAt;
+    private Instant updatedAt;
+    private Instant expiresAt;
+    private String providerTransactionNo;
+    private String providerResponseCode;
+    private String providerTransactionStatus;
+    private String bankCode;
+    private String cardType;
+    private String failureReason;
 }
 

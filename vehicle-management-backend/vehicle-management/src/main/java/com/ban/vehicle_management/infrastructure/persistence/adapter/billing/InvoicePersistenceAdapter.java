@@ -138,4 +138,13 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
         return invoiceRepository.findFirstBySubscriptionIdAndStatusIn(subscriptionId, statuses)
                 .map(invoicePersistenceMapper::toDomain);
     }
+
+    @Override
+    public Optional<Invoice> findFirstByParkingSessionIdAndStatusIn(
+            UUID parkingSessionId,
+            Collection<InvoiceStatus> statuses
+    ) {
+        return invoiceRepository.findFirstByParkingSessionIdAndStatusIn(parkingSessionId, statuses)
+                .map(invoicePersistenceMapper::toDomain);
+    }
 }

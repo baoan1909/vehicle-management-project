@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Badge, Button, Card, DateRangeInput, Drawer, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
+import { Badge, Button, Card, DateRangeInput, Drawer, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
+import {
+  getSubscriptionInvoice,
+  recordCashInvoicePayment,
+  type InvoiceSummaryResponse,
+} from "@/features/billing/api/invoicePaymentsApi";
 import {
   approveSubscription,
   assignSubscriptionCard,
@@ -350,6 +355,7 @@ function ReviewDrawer({
   onApprove,
   onAssignCard,
   onClose,
+  onOpenCashPayment,
   onReject,
   open,
   request,
@@ -359,6 +365,7 @@ function ReviewDrawer({
   onApprove: (request: SubscriptionView) => void;
   onAssignCard: (request: SubscriptionView) => void;
   onClose: () => void;
+  onOpenCashPayment: (request: SubscriptionView) => void;
   onReject: (request: SubscriptionView, reason: string) => void;
   open: boolean;
   request: SubscriptionView | null;
@@ -389,7 +396,7 @@ function ReviewDrawer({
             {canApprove ? <Button disabled={actionLoading} variant="danger" onClick={() => onReject(request, rejectReason)}>Từ chối</Button> : null}
             {canApprove ? <Button disabled={actionLoading} onClick={() => onApprove(request)}>Duyệt yêu cầu</Button> : null}
             {canAssignCard ? <Button disabled={actionLoading} onClick={() => onAssignCard(request)}>Gán thẻ</Button> : null}
-            {waitingPayment ? <Button disabled>Chờ thanh toán</Button> : null}
+            {waitingPayment ? <Button disabled={actionLoading} onClick={() => onOpenCashPayment(request)}>Xác nhận tại quầy</Button> : null}
             {!canApprove && !canAssignCard && !waitingPayment ? <Button disabled>Không có thao tác</Button> : null}
           </div>
         </div>
@@ -475,6 +482,11 @@ export function SubscriptionApprovalPage() {
   const [error, setError] = useState("");
   const [actionError, setActionError] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
+  const [cashPaymentOpen, setCashPaymentOpen] = useState(false);
+  const [cashPaymentInvoice, setCashPaymentInvoice] = useState<InvoiceSummaryResponse | null>(null);
+  const [cashPaymentNote, setCashPaymentNote] = useState("Nhân viên xác nhận đã thu tiền đăng ký vé tại quầy");
+  const [cashPaymentError, setCashPaymentError] = useState("");
+  const [cashPaymentLoading, setCashPaymentLoading] = useState(false);
 
   const loadData = useCallback(async () => {
     const { effectiveFrom, effectiveTo } = splitDateRange(dateRange);
@@ -602,6 +614,44 @@ export function SubscriptionApprovalPage() {
     }
   }, [refreshAfterAction]);
 
+  const handleOpenCashPayment = useCallback(async (request: SubscriptionView) => {
+    setCashPaymentOpen(true);
+    setCashPaymentInvoice(null);
+    setCashPaymentError("");
+    setCashPaymentLoading(true);
+    try {
+      const invoice = await getSubscriptionInvoice(request.subscriptionId);
+      if (!invoice || invoice.status !== "UNPAID") {
+        throw new Error("Không tìm thấy hóa đơn đang chờ thanh toán của đăng ký này.");
+      }
+      setCashPaymentInvoice(invoice);
+    } catch (paymentError) {
+      setCashPaymentError(paymentError instanceof Error ? paymentError.message : "Không thể tải hóa đơn đăng ký.");
+    } finally {
+      setCashPaymentLoading(false);
+    }
+  }, []);
+
+  const handleConfirmCashPayment = useCallback(async () => {
+    if (!cashPaymentInvoice) return;
+    setCashPaymentLoading(true);
+    setCashPaymentError("");
+    try {
+      await recordCashInvoicePayment(
+        cashPaymentInvoice.invoiceId,
+        Number(cashPaymentInvoice.finalAmount),
+        cashPaymentNote,
+      );
+      setCashPaymentOpen(false);
+      setDrawerOpen(false);
+      await refreshAfterAction("Đã xác nhận thanh toán tại quầy. Hồ sơ chuyển sang chờ gán thẻ.");
+    } catch (paymentError) {
+      setCashPaymentError(paymentError instanceof Error ? paymentError.message : "Không thể xác nhận thanh toán tại quầy.");
+    } finally {
+      setCashPaymentLoading(false);
+    }
+  }, [cashPaymentInvoice, cashPaymentNote, refreshAfterAction]);
+
   return (
     <div className="content-header tw-px-0 tw-pb-4 tw-pt-3">
       <section className="content tw-pb-8">
@@ -713,10 +763,51 @@ export function SubscriptionApprovalPage() {
         onApprove={handleApprove}
         onAssignCard={handleAssignCard}
         onClose={() => setDrawerOpen(false)}
+        onOpenCashPayment={handleOpenCashPayment}
         onReject={handleReject}
         open={drawerOpen}
         request={selectedRequest}
       />
+
+      <Modal
+        actions={(
+          <div className="tw-flex tw-justify-end tw-gap-3">
+            <Button variant="secondary" disabled={cashPaymentLoading} onClick={() => setCashPaymentOpen(false)}>
+              Đóng
+            </Button>
+            <Button disabled={cashPaymentLoading || !cashPaymentInvoice} onClick={() => void handleConfirmCashPayment()}>
+              {cashPaymentLoading ? "Đang xử lý..." : "Xác nhận đã thu tiền"}
+            </Button>
+          </div>
+        )}
+        description="Chỉ xác nhận sau khi nhân viên đã nhận đủ tiền từ khách hàng."
+        onClose={() => setCashPaymentOpen(false)}
+        open={cashPaymentOpen}
+        title="Thanh toán đăng ký vé tại quầy"
+      >
+        <div className="tw-grid tw-gap-4">
+          {cashPaymentError ? (
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-[0.82rem] tw-font-bold tw-text-red-600">
+              {cashPaymentError}
+            </div>
+          ) : null}
+          <div className="tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-4">
+            <span className="tw-block tw-text-[0.75rem] tw-font-bold tw-text-vm-slate-500">Số tiền cần thu</span>
+            <strong className="tw-mt-1 tw-block tw-text-[1.3rem] tw-font-black tw-text-vm-primary">
+              {cashPaymentInvoice ? formatMoney(cashPaymentInvoice.finalAmount) : "Đang tải..."}
+            </strong>
+            {cashPaymentInvoice ? <span className="tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500">{cashPaymentInvoice.invoiceNo}</span> : null}
+          </div>
+          <label>
+            <span className="tw-mb-1.5 tw-block tw-text-[0.8rem] tw-font-black tw-text-vm-slate-700">Ghi chú</span>
+            <textarea
+              className="tw-min-h-[92px] tw-w-full tw-resize-y tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-p-3 tw-text-[0.86rem] tw-font-semibold tw-outline-none focus:tw-border-vm-primary"
+              value={cashPaymentNote}
+              onChange={(event) => setCashPaymentNote(event.target.value)}
+            />
+          </label>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -119,6 +119,16 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
     }
 
     @Override
+    public CheckOutResult prepareVisitorCheckOut(CheckOutCommand command) {
+        return parkingCheckOutUseCase.prepareVisitorCheckOut(command);
+    }
+
+    @Override
+    public CheckOutResult getCheckOutByInvoice(UUID invoiceId) {
+        return parkingCheckOutUseCase.getCheckOutByInvoice(invoiceId);
+    }
+
+    @Override
     public CheckOutPreviewResult previewCheckOutByCardUid(String cardUid) {
         return parkingCheckOutUseCase.previewCheckOutByCardUid(cardUid);
     }

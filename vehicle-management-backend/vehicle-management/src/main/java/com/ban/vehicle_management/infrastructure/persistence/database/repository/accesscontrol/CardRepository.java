@@ -26,6 +26,10 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID>, JpaSpec
     Optional<CardEntity> findByUid(String uid);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select card from CardEntity card where card.cardId = :cardId")
+    Optional<CardEntity> findByIdForUpdate(@Param("cardId") UUID cardId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select card
             from CardEntity card
