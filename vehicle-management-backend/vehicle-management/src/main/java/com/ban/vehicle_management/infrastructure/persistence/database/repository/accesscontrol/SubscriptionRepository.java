@@ -30,6 +30,11 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
             LocalDate effectiveTo
     );
 
+    Optional<SubscriptionEntity> findFirstByCardIdAndStatusOrderByEffectiveFromDesc(
+            UUID cardId,
+            SubscriptionStatus status
+    );
+
     @Query("""
             select count(subscription) > 0
             from SubscriptionEntity subscription

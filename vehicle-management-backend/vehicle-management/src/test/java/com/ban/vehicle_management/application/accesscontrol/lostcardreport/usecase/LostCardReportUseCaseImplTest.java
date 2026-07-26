@@ -22,14 +22,17 @@ import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePo
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.parking.parkingevent.port.out.ParkingEventPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
+import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
+import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportContext;
@@ -39,6 +42,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -67,6 +71,7 @@ class LostCardReportUseCaseImplTest {
     private static final UUID PRICE_RULE_ID = UUID.fromString("10000000-0000-0000-0000-000000000008");
     private static final UUID INVOICE_ID = UUID.fromString("10000000-0000-0000-0000-000000000009");
     private static final UUID ACCOUNT_ID = UUID.fromString("10000000-0000-0000-0000-000000000010");
+    private static final UUID CARD_TYPE_ID = UUID.fromString("10000000-0000-0000-0000-000000000011");
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
@@ -79,6 +84,9 @@ class LostCardReportUseCaseImplTest {
 
     @Mock
     private ParkingSessionPortOut parkingSessionPortOut;
+
+    @Mock
+    private ParkingEventPortOut parkingEventPortOut;
 
     @Mock
     private SubscriptionPortOut subscriptionPortOut;
@@ -98,15 +106,29 @@ class LostCardReportUseCaseImplTest {
     @Mock
     private CustomerVehiclePortOut customerVehiclePortOut;
 
+    @Mock
+    private FileAccessPort fileAccessPort;
+
     @InjectMocks
     private LostCardReportUseCaseImpl lostCardReportUseCase;
 
     @Test
     void shouldPreviewVisitorLostCardInParking() {
         ParkingSession session = visitorOpenSession();
+        ParkingEvent checkInEvent = new ParkingEvent();
+        checkInEvent.setParkingSessionId(PARKING_SESSION_ID);
+        checkInEvent.setEventType(ParkingEventType.CHECK_IN);
+        checkInEvent.setLicensePlateImagePath("parking/check-in/plate.jpg");
+        checkInEvent.setPersonImagePath("parking/check-in/person.jpg");
         stubVisitorPriceRules();
 
         when(parkingSessionPortOut.findOpenByLicensePlateIn("60K8-2301")).thenReturn(List.of(session));
+        when(parkingEventPortOut.findLatestBySessionIdAndEventType(PARKING_SESSION_ID, ParkingEventType.CHECK_IN))
+                .thenReturn(Optional.of(checkInEvent));
+        when(fileAccessPort.createReadUrl("parking/check-in/plate.jpg", 15 * 60))
+                .thenReturn("https://minio.test/plate.jpg");
+        when(fileAccessPort.createReadUrl("parking/check-in/person.jpg", 15 * 60))
+                .thenReturn("https://minio.test/person.jpg");
 
         LostCardPreviewResult result = lostCardReportUseCase.previewByLicensePlate(" 60K8-2301 ");
 
@@ -115,6 +137,8 @@ class LostCardReportUseCaseImplTest {
         assertEquals(CARD_ID, result.cardId());
         assertEquals(new BigDecimal("50000"), result.lostCardFee());
         assertEquals(result.ticketPrice().add(result.lostCardFee()), result.totalAmount());
+        assertEquals("https://minio.test/plate.jpg", result.checkInLicensePlateImagePath());
+        assertEquals("https://minio.test/person.jpg", result.checkInPersonImagePath());
         verify(lostCardReportAccessGuard).ensureCanRead();
     }
 
@@ -240,6 +264,7 @@ class LostCardReportUseCaseImplTest {
     void shouldResolveRegisteredOutsideReportWithNewCard() {
         LostCardReport report = openRegisteredOutsideReport();
         Subscription subscription = activeSubscription();
+        Card oldCard = card(CardStatus.LOST);
         Card newCard = card(CardStatus.AVAILABLE);
         newCard.setCardId(NEW_CARD_ID);
         Invoice invoice = paidLostCardInvoice();
@@ -257,6 +282,7 @@ class LostCardReportUseCaseImplTest {
         )).thenReturn(List.of(invoice));
         when(subscriptionPortOut.findById(SUBSCRIPTION_ID)).thenReturn(Optional.of(subscription));
         when(customerVehiclePortOut.findById(CUSTOMER_VEHICLE_ID)).thenReturn(Optional.of(customerVehicle()));
+        when(cardPortOut.findById(CARD_ID)).thenReturn(Optional.of(oldCard));
         when(cardPortOut.findById(NEW_CARD_ID)).thenReturn(Optional.of(newCard));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -269,6 +295,28 @@ class LostCardReportUseCaseImplTest {
         assertEquals(CardStatus.ASSIGNED, newCard.getStatus());
         assertEquals(NEW_CARD_ID, result.subscription().getCardId());
         assertEquals("NONE", result.barrierAction());
+    }
+
+    @Test
+    void shouldReturnOnlyAvailableCardsWithSameCardTypeForRegisteredReport() {
+        LostCardReport report = openRegisteredOutsideReport();
+        Card oldCard = card(CardStatus.LOST);
+        Card replacementCard = card(CardStatus.AVAILABLE);
+        replacementCard.setCardId(NEW_CARD_ID);
+        replacementCard.setCardNumber("R002");
+
+        when(lostCardReportPortOut.findById(REPORT_ID)).thenReturn(Optional.of(report));
+        when(cardPortOut.findById(CARD_ID)).thenReturn(Optional.of(oldCard));
+        when(cardPortOut.findAll(CardStatus.AVAILABLE, CARD_TYPE_ID, null))
+                .thenReturn(List.of(replacementCard));
+
+        var result = lostCardReportUseCase.getAvailableReplacementCards(REPORT_ID);
+
+        assertEquals(1, result.size());
+        assertEquals(NEW_CARD_ID, result.getFirst().cardId());
+        assertEquals("R002", result.getFirst().cardNumber());
+        assertEquals(CARD_TYPE_ID, result.getFirst().cardTypeId());
+        verify(lostCardReportAccessGuard).ensureCanUpdate();
     }
 
     private void stubVisitorPriceRules() {
@@ -356,7 +404,7 @@ class LostCardReportUseCaseImplTest {
         card.setCardId(CARD_ID);
         card.setCardNumber("V001");
         card.setUid("RFID-001");
-        card.setCardTypeId(UUID.randomUUID());
+        card.setCardTypeId(CARD_TYPE_ID);
         card.setStatus(status);
         return card;
     }

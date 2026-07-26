@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
+  createVnpayInvoicePayment,
+  VNPAY_MINIMUM_AMOUNT,
+} from "@/features/billing/api/invoicePaymentsApi";
+import {
   createLostCardReport,
   getAvailableReplacementCards,
   getLostCardReportById,
@@ -16,6 +20,7 @@ import {
   type LostCardReplacementCardResponse,
 } from "@/features/cards/api/lostCardReportsApi";
 import { Modal } from "@/shared/components/ui/Modal";
+import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
 type WorkflowStep = {
   number: number;
@@ -122,7 +127,7 @@ const createSteps: WorkflowStep[] = [
 const historySteps: WorkflowStep[] = [
   { number: 1, title: "Tạo phiếu", subtitle: "Khóa thẻ cũ, phiên gửi xe chuyển sang trạng thái mất thẻ, tạo hóa đơn chờ thanh toán" },
   { number: 2, title: "Xác nhận thanh toán", subtitle: "Giao dịch thành công, hóa đơn đã thanh toán" },
-  { number: 3, title: "Chờ cấp thẻ mới", subtitle: "Chọn thẻ đang sẵn sàng và cùng loại xe để hoàn tất" },
+  { number: 3, title: "Chờ cấp thẻ mới", subtitle: "Chọn thẻ đang sẵn sàng và cùng loại với thẻ đã mất để hoàn tất" },
 ];
 
 function StepList({ steps }: { steps: WorkflowStep[] }) {
@@ -167,10 +172,46 @@ function InfoBox({ label, value }: InfoBoxProps) {
   );
 }
 
-function MediaPlaceholder({ children }: { children: string }) {
+function LostCardEvidenceImage({
+  alt,
+  emptyText,
+  imagePath,
+  label,
+}: {
+  alt: string;
+  emptyText: string;
+  imagePath?: string | null;
+  label: string;
+}) {
+  const [hasLoadError, setHasLoadError] = useState(false);
+  const imageUrl = resolvePublicMediaUrl(imagePath);
+
+  useEffect(() => {
+    setHasLoadError(false);
+  }, [imagePath]);
+
   return (
-    <div className="tw-flex tw-min-h-[138px] tw-items-center tw-justify-center tw-rounded-vm-lg tw-border tw-border-dashed tw-border-slate-300 tw-bg-vm-slate-25 tw-p-4 tw-text-center tw-text-[0.95rem] tw-font-extrabold tw-leading-snug tw-text-vm-slate-500">
-      {children}
+    <div className="tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white">
+      <div className="tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-3 tw-py-2">
+        <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-700">{label}</span>
+      </div>
+      {imageUrl && !hasLoadError ? (
+        <div className="tw-aspect-[16/9] tw-w-full tw-bg-vm-slate-25">
+          <img
+            alt={alt}
+            className="tw-h-full tw-w-full tw-object-cover"
+            src={imageUrl}
+            onError={() => setHasLoadError(true)}
+          />
+        </div>
+      ) : (
+        <div className="tw-flex tw-aspect-[16/9] tw-w-full tw-flex-col tw-items-center tw-justify-center tw-gap-2 tw-bg-vm-slate-25 tw-p-4 tw-text-center tw-text-vm-slate-500">
+          <i className="far fa-image tw-text-2xl" />
+          <span className="tw-text-[0.86rem] tw-font-bold tw-leading-snug">
+            {hasLoadError ? "Không tải được ảnh. Hãy tra cứu lại để tạo URL ảnh mới." : emptyText}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -246,7 +287,7 @@ function InvoicePaymentPanel({
   invoice,
   isPaymentSubmitting,
   lostCardFee,
-  onConfirmPayment,
+  onStartPayment,
   onShowInvoice,
   state,
   ticketPrice,
@@ -256,7 +297,7 @@ function InvoicePaymentPanel({
   invoice: LostCardInvoiceDetailResponse | null;
   isPaymentSubmitting: boolean;
   lostCardFee: number;
-  onConfirmPayment: () => void;
+  onStartPayment: (paymentMethod: LostCardPaymentMethod) => void;
   onShowInvoice: () => void;
   state: DetailPaymentState;
   ticketPrice: number;
@@ -318,38 +359,79 @@ function InvoicePaymentPanel({
             : "Phiếu đã được tạo và hóa đơn đang chờ thanh toán. Nhân viên cần xác nhận khách đã thanh toán trước khi hoàn tất xử lý."}
         </div>
         {!isPaid ? (
-          <button
-            className="tw-min-h-11 tw-rounded-vm-lg tw-bg-vm-primary tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white tw-shadow-[0_12px_22px_rgba(37,99,235,0.18)] disabled:tw-bg-slate-200 disabled:tw-text-vm-slate-500"
-            disabled={!invoice || !canConfirmPayment || isPaymentSubmitting}
-            type="button"
-            onClick={onConfirmPayment}
-          >
-            {isPaymentSubmitting ? "Đang xác nhận..." : canConfirmPayment ? "Xác nhận thanh toán" : "Không thể xác nhận thanh toán"}
-          </button>
+          <div className="tw-grid tw-grid-cols-2 tw-gap-2 max-sm:tw-grid-cols-1">
+            <button
+              className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-lg tw-border tw-border-solid tw-border-green-600 tw-bg-white tw-px-3 tw-text-[0.88rem] tw-font-extrabold tw-text-green-700 hover:tw-bg-green-50 disabled:tw-border-slate-200 disabled:tw-bg-slate-100 disabled:tw-text-vm-slate-500"
+              disabled={!invoice || !canConfirmPayment || isPaymentSubmitting}
+              type="button"
+              onClick={() => onStartPayment("CASH")}
+            >
+              <i className="fas fa-money-bill-wave" />
+              <span>Thu tiền mặt</span>
+            </button>
+            <button
+              className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-lg tw-bg-vm-primary tw-px-3 tw-text-[0.88rem] tw-font-extrabold tw-text-white tw-shadow-[0_12px_22px_rgba(37,99,235,0.18)] hover:tw-bg-brand-700 disabled:tw-bg-slate-200 disabled:tw-text-vm-slate-500"
+              disabled={!invoice || !canConfirmPayment || isPaymentSubmitting || totalAmount < VNPAY_MINIMUM_AMOUNT}
+              title={totalAmount < VNPAY_MINIMUM_AMOUNT ? "VNPay áp dụng cho hóa đơn từ 10.000 đồng" : "Thanh toán qua VNPay"}
+              type="button"
+              onClick={() => onStartPayment("VNPAY")}
+            >
+              <i className="fas fa-qrcode" />
+              <span>Thanh toán VNPay</span>
+            </button>
+          </div>
         ) : null}
       </div>
     </section>
   );
 }
 
-function getDetailHistorySteps(state: DetailPaymentState): WorkflowStep[] {
+function getDetailHistorySteps(
+  state: DetailPaymentState,
+  context: LostCardReportContext | null | undefined,
+): WorkflowStep[] {
+  const needsNewCard = requiresReplacementCard(context);
+
   if (state === "unpaid") {
     return [
       historySteps[0],
       { number: 2, title: "Chờ thanh toán", subtitle: "Invoice đang UNPAID, chưa được phép hoàn tất xử lý", state: "active" },
-      { number: 3, title: "Hoàn tất xử lý", subtitle: "Chỉ thực hiện sau khi hóa đơn đã PAID" },
+      {
+        number: 3,
+        title: needsNewCard ? "Cấp lại thẻ và hoàn tất" : "Hoàn tất xử lý",
+        subtitle: needsNewCard
+          ? "Sau khi thanh toán, chọn thẻ mới để gán lại cho vé đăng ký"
+          : "Sau khi thanh toán, đóng phiên gửi xe và hoàn tất phiếu",
+      },
     ];
   }
 
   if (state === "resolved") {
+    const resolvedSubtitle = context === "REGISTERED_IN_PARKING"
+      ? "Đã gán thẻ mới vào vé đăng ký, đóng phiên gửi xe và mở thanh chắn"
+      : context === "REGISTERED_OUTSIDE"
+        ? "Đã gán thẻ mới vào vé đăng ký và hoàn tất phiếu"
+        : "Đã đóng phiên gửi xe và mở thanh chắn";
+
     return [
       historySteps[0],
       historySteps[1],
-      { number: 3, title: "Hoàn tất xử lý", subtitle: "Đã cấp thẻ mới, đóng phiên gửi xe và mở thanh chắn", state: "done" },
+      {
+        number: 3,
+        title: needsNewCard ? "Cấp thẻ mới và hoàn tất" : "Hoàn tất xử lý",
+        subtitle: resolvedSubtitle,
+        state: "done",
+      },
     ];
   }
 
-  return historySteps;
+  return [
+    historySteps[0],
+    historySteps[1],
+    needsNewCard
+      ? historySteps[2]
+      : { number: 3, title: "Chờ hoàn tất xử lý", subtitle: "Đóng phiên gửi xe và mở thanh chắn" },
+  ];
 }
 
 function LostCardResolvePanel({
@@ -360,6 +442,7 @@ function LostCardResolvePanel({
   isCompleting,
   onComplete,
   onNewCardChange,
+  reportStatus,
   selectedNewCardId,
   state,
 }: {
@@ -370,18 +453,27 @@ function LostCardResolvePanel({
   isCompleting: boolean;
   onComplete: () => void;
   onNewCardChange: (value: string) => void;
+  reportStatus: LostCardReportDetailReportResponse["status"];
   selectedNewCardId: string;
   state: DetailPaymentState;
 }) {
   const isPaid = state === "paid" || state === "resolved";
   const isResolved = state === "resolved";
+  const isCancelled = reportStatus === "CANCELLED";
   const needsNewCard = requiresReplacementCard(context);
-  const canComplete = isPaid && !isResolved && (!needsNewCard || Boolean(selectedNewCardId));
+  const canComplete = isPaid && !isResolved && !isCancelled && (!needsNewCard || Boolean(selectedNewCardId));
+  const panelTitle = isCancelled
+    ? "Phiếu đã hủy"
+    : needsNewCard
+      ? "Cấp lại thẻ cho khách đăng ký"
+      : isPaid
+        ? "Hoàn tất xử lý"
+        : "Chờ thanh toán";
 
   return (
     <section className="tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
       <div className="tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-4">
-        <h2 className="tw-m-0 tw-text-[1.1rem] tw-font-extrabold tw-text-slate-900">{isPaid ? "Hoàn tất xử lý" : "Chờ thanh toán"}</h2>
+        <h2 className="tw-m-0 tw-text-[1.1rem] tw-font-extrabold tw-text-slate-900">{panelTitle}</h2>
       </div>
       <div className="tw-grid tw-gap-3 tw-p-4">
         <div className="tw-flex tw-items-center tw-justify-between tw-text-[0.9rem] tw-font-bold">
@@ -390,41 +482,69 @@ function LostCardResolvePanel({
         </div>
         <div className="tw-flex tw-items-center tw-justify-between tw-text-[0.9rem] tw-font-bold">
           <span className="tw-text-vm-slate-500">Yêu cầu</span>
-          <b className="tw-text-slate-900">{isPaid ? (needsNewCard ? "Cần thẻ mới" : "Hoàn tất phiếu") : "Thanh toán hóa đơn"}</b>
+          <b className="tw-text-slate-900">
+            {isCancelled
+              ? "Không thể tiếp tục"
+              : isPaid
+                ? needsNewCard
+                  ? "Chọn và cấp thẻ mới"
+                  : "Hoàn tất phiếu"
+                : "Thanh toán hóa đơn"}
+          </b>
         </div>
         {needsNewCard ? (
-          <select
-            className="tw-h-11 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900 disabled:tw-bg-slate-100 disabled:tw-text-vm-slate-500"
-            disabled={!isPaid || isResolved || isCardsLoading}
-            value={selectedNewCardId}
-            onChange={(event) => onNewCardChange(event.target.value)}
-          >
-            <option value="">
-              {isCardsLoading
-                ? "Đang tải thẻ khả dụng..."
-                : isPaid
-                  ? "Chọn thẻ mới từ danh sách thẻ khả dụng"
-                  : "Chỉ chọn thẻ mới sau khi thanh toán"}
-            </option>
-            {availableCards.map((card) => (
-              <option key={card.cardId} value={card.cardId}>
-                {card.cardNumber} {card.uid ? `· ${card.uid}` : ""}
+          <label>
+            <span className="tw-mb-1.5 tw-block tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-600">
+              Thẻ mới
+            </span>
+            <select
+              className="tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900 disabled:tw-bg-slate-100 disabled:tw-text-vm-slate-500"
+              disabled={!isPaid || isResolved || isCancelled || isCardsLoading}
+              value={selectedNewCardId}
+              onChange={(event) => onNewCardChange(event.target.value)}
+            >
+              <option value="">
+                {isCardsLoading
+                  ? "Đang tải thẻ khả dụng..."
+                  : isPaid
+                    ? "Chọn thẻ mới cùng loại với thẻ đã mất"
+                    : "Thanh toán hóa đơn trước khi cấp thẻ mới"}
               </option>
-            ))}
-          </select>
+              {availableCards.map((card) => (
+                <option key={card.cardId} value={card.cardId}>
+                  {card.cardNumber} {card.uid ? `· UID ${card.uid}` : ""}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        {needsNewCard && isPaid && !isCardsLoading && availableCards.length === 0 && !isResolved ? (
+          <div className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-p-3 tw-text-[0.82rem] tw-font-bold tw-leading-relaxed tw-text-amber-700">
+            Không có thẻ cùng loại ở trạng thái sẵn sàng. Hãy bổ sung hoặc kích hoạt thẻ trước khi cấp lại.
+          </div>
         ) : null}
         <div
           className={`tw-rounded-vm-lg tw-border tw-border-solid tw-p-3 tw-text-[0.82rem] tw-font-bold tw-leading-relaxed ${
-            isPaid ? "tw-border-green-200 tw-bg-green-50 tw-text-green-700" : "tw-border-orange-200 tw-bg-orange-50 tw-text-orange-700"
+            isCancelled
+              ? "tw-border-slate-200 tw-bg-slate-50 tw-text-slate-600"
+              : isPaid
+                ? "tw-border-green-200 tw-bg-green-50 tw-text-green-700"
+                : "tw-border-orange-200 tw-bg-orange-50 tw-text-orange-700"
           }`}
         >
-          {isPaid
+          {isCancelled
+            ? "Phiếu đã hủy nên không thể thanh toán hoặc cấp thẻ thay thế."
+            : isPaid
             ? needsNewCard
-              ? "Phiếu đăng ký cần chọn thẻ mới trước khi hoàn tất xử lý."
+              ? "Chọn thẻ mới rồi xác nhận cấp thẻ. Hệ thống sẽ gán thẻ vào vé đăng ký và hoàn tất phiếu."
               : "Sau khi hoàn tất: phiên mất thẻ được đóng và thanh chắn có thể mở theo kết quả backend."
             : "Hóa đơn chưa thanh toán nên chưa thể hoàn tất phiếu. Hãy xác nhận thanh toán trước."}
         </div>
-        {!isPaid ? (
+        {isCancelled ? (
+          <button className="tw-min-h-11 tw-rounded-vm-lg tw-bg-slate-100 tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-vm-slate-600" disabled type="button">
+            Phiếu đã hủy
+          </button>
+        ) : !isPaid ? (
           <button className="tw-min-h-11 tw-rounded-vm-lg tw-bg-slate-100 tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-vm-slate-600" disabled type="button">
             Chờ thanh toán hóa đơn
           </button>
@@ -439,7 +559,13 @@ function LostCardResolvePanel({
             type="button"
             onClick={onComplete}
           >
-            {isCompleting ? "Đang hoàn tất..." : needsNewCard && !selectedNewCardId ? "Cần chọn thẻ mới để hoàn tất" : "Hoàn tất"}
+            {isCompleting
+              ? "Đang cấp thẻ..."
+              : needsNewCard
+                ? selectedNewCardId
+                  ? "Cấp thẻ mới và hoàn tất"
+                  : "Chọn thẻ mới để tiếp tục"
+                : "Hoàn tất phiếu"}
           </button>
         )}
         <button className="tw-min-h-11 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-vm-slate-700" type="button">
@@ -587,7 +713,11 @@ function PaymentConfirmModal({
             onClick={onSubmit}
           >
             {isSubmitting ? <i className="fas fa-spinner fa-spin" /> : null}
-            {isSubmitting ? "Đang xác nhận..." : "Xác nhận đã thanh toán"}
+            {isSubmitting
+              ? "Đang xử lý..."
+              : paymentMethod === "VNPAY"
+                ? "Thanh toán qua VNPay"
+                : "Xác nhận đã thanh toán"}
           </button>
         </div>
       }
@@ -620,15 +750,23 @@ function PaymentConfirmModal({
             ))}
           </select>
         </label>
-        <label>
-          <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Mã giao dịch</span>
-          <input
-            className="tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.95rem] tw-font-semibold tw-text-slate-900 tw-outline-none"
-            placeholder="Không bắt buộc"
-            value={transactionRef}
-            onChange={(event) => onTransactionRefChange(event.target.value)}
-          />
-        </label>
+        {paymentMethod === "VNPAY" ? (
+          <div className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-blue-200 tw-bg-blue-50 tw-p-3 tw-text-[0.82rem] tw-font-bold tw-leading-relaxed tw-text-blue-700">
+            Hệ thống sẽ chuyển sang cổng VNPay. Hóa đơn chỉ được ghi nhận đã thanh toán khi VNPay trả về giao dịch thành công.
+            Số tiền tối thiểu là {formatCurrency(VNPAY_MINIMUM_AMOUNT)}.
+          </div>
+        ) : null}
+        {paymentMethod !== "CASH" && paymentMethod !== "VNPAY" ? (
+          <label>
+            <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Mã giao dịch</span>
+            <input
+              className="tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.95rem] tw-font-semibold tw-text-slate-900 tw-outline-none"
+              placeholder="Nhập mã giao dịch"
+              value={transactionRef}
+              onChange={(event) => onTransactionRefChange(event.target.value)}
+            />
+          </label>
+        ) : null}
         <label>
           <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Ghi chú</span>
           <textarea
@@ -801,8 +939,18 @@ export function LostCardCreatePage() {
                 </div>
 
                 <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-md:tw-grid-cols-1">
-                  <MediaPlaceholder>{preview?.checkInPersonImagePath ? "Đã có ảnh người gửi xe từ sự kiện vào bãi" : "Chưa có ảnh người gửi xe từ dữ liệu preview"}</MediaPlaceholder>
-                  <MediaPlaceholder>{preview?.checkInLicensePlateImagePath ? "Đã có ảnh biển số từ sự kiện vào bãi" : "Chưa có ảnh biển số từ dữ liệu preview"}</MediaPlaceholder>
+                  <LostCardEvidenceImage
+                    alt="Ảnh người gửi xe khi vào bãi"
+                    emptyText="Phiên gửi xe chưa có ảnh người gửi xe"
+                    imagePath={preview?.checkInPersonImagePath}
+                    label="Ảnh người gửi xe khi vào"
+                  />
+                  <LostCardEvidenceImage
+                    alt="Ảnh biển số xe khi vào bãi"
+                    emptyText="Phiên gửi xe chưa có ảnh biển số"
+                    imagePath={preview?.checkInLicensePlateImagePath}
+                    label="Ảnh biển số khi vào"
+                  />
                 </div>
 
                 <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-md:tw-grid-cols-1">
@@ -866,7 +1014,7 @@ export function LostCardCreatePage() {
 }
 
 export function LostCardDetailPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const reportId = searchParams.get("reportId");
   const paymentParam = searchParams.get("payment");
   const [detail, setDetail] = useState<LostCardReportDetailResponse | null>(null);
@@ -924,12 +1072,41 @@ export function LostCardDetailPage() {
     };
   }, [reportId]);
 
+  useEffect(() => {
+    const vnpayResult = searchParams.get("vnpayResult");
+    if (!vnpayResult) return;
+
+    if (vnpayResult === "success" && searchParams.get("paymentStatus") === "SUCCESS") {
+      setActionMessage("Thanh toán VNPay thành công. Bạn có thể tiếp tục hoàn tất phiếu.");
+      setActionError("");
+      if (reportId) {
+        void getLostCardReportById(reportId)
+          .then((response) => setDetail(response.data))
+          .catch((error) => {
+            setActionError(
+              error instanceof Error
+                ? error.message
+                : "Thanh toán thành công nhưng chưa tải lại được trạng thái hóa đơn.",
+            );
+          });
+      }
+    } else if (vnpayResult === "cancelled") {
+      setActionError("Giao dịch VNPay đã bị hủy. Hóa đơn vẫn đang chờ thanh toán.");
+    } else {
+      setActionError("Giao dịch VNPay chưa thành công. Hóa đơn chưa được ghi nhận đã thanh toán.");
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    ["vnpayResult", "transactionRef", "responseCode", "paymentStatus"].forEach((key) => nextParams.delete(key));
+    setSearchParams(nextParams, { replace: true });
+  }, [reportId, searchParams, setSearchParams]);
+
   const report = detail?.lostCardReport ?? null;
   const paymentState: DetailPaymentState = detail && report ? getPaymentStateFromDetail(report, detail.invoice, paymentParam) : "unpaid";
   const isPaid = paymentState === "paid" || paymentState === "resolved";
   const isResolved = report?.status === "RESOLVED";
   const isCancelled = report?.status === "CANCELLED";
-  const detailHistorySteps = getDetailHistorySteps(paymentState);
+  const detailHistorySteps = getDetailHistorySteps(paymentState, report?.context);
   const contextLabel = getContextLabel(report?.context);
   const totalAmount = report ? getTotalAmount(report, detail?.invoice ?? null) : 0;
   const needsNewCard = requiresReplacementCard(report?.context);
@@ -942,12 +1119,13 @@ export function LostCardDetailPage() {
     }
 
     let cancelled = false;
+    const currentReportId = report.lostCardReportId;
 
     async function fetchAvailableCards() {
       setIsCardsLoading(true);
 
       try {
-        const response = await getAvailableReplacementCards(detail?.parkingSession?.vehicleTypeId ?? null);
+        const response = await getAvailableReplacementCards(currentReportId);
         if (!cancelled) {
           setAvailableCards(response.data);
         }
@@ -968,7 +1146,7 @@ export function LostCardDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [detail?.parkingSession?.vehicleTypeId, isPaid, isResolved, needsNewCard, report]);
+  }, [isPaid, isResolved, needsNewCard, report]);
 
   const stepTimes = useMemo(() => {
     if (!report) {
@@ -995,11 +1173,12 @@ export function LostCardDetailPage() {
 
   const canConfirmPayment = Boolean(detail?.invoice && detail.invoice.status === "UNPAID" && report?.status !== "CANCELLED");
 
-  const handleOpenPaymentForm = () => {
+  const handleOpenPaymentForm = (method: LostCardPaymentMethod) => {
     if (!canConfirmPayment) return;
     setActionError("");
     setActionMessage("");
     setPaymentFormError("");
+    setPaymentMethod(method);
     setIsPaymentFormOpen(true);
   };
 
@@ -1009,7 +1188,7 @@ export function LostCardDetailPage() {
       setPaymentFormError("Không thể xác nhận thanh toán cho phiếu đã hủy hoặc hóa đơn không còn chờ thanh toán.");
       return;
     }
-    if (paymentMethod !== "CASH" && !transactionRef.trim()) {
+    if (paymentMethod !== "CASH" && paymentMethod !== "VNPAY" && !transactionRef.trim()) {
       setPaymentFormError("Vui lòng nhập mã giao dịch khi thanh toán không dùng tiền mặt.");
       return;
     }
@@ -1019,6 +1198,18 @@ export function LostCardDetailPage() {
     setActionMessage("");
 
     try {
+      if (paymentMethod === "VNPAY") {
+        if (Number(detail.invoice.finalAmount) < VNPAY_MINIMUM_AMOUNT) {
+          throw new Error("VNPay Sandbox chỉ nhận hóa đơn từ 10.000 đồng. Vui lòng chọn phương thức khác.");
+        }
+        const response = await createVnpayInvoicePayment(
+          detail.invoice.invoiceId,
+          `/admin/lost/detail?reportId=${report.lostCardReportId}`,
+        );
+        window.location.assign(response.data.paymentUrl);
+        return;
+      }
+
       await recordLostCardInvoicePayment(detail.invoice.invoiceId, {
         amount: Number(detail.invoice.finalAmount),
         note: paymentNote.trim(),
@@ -1136,8 +1327,18 @@ export function LostCardDetailPage() {
                     </div>
                   ) : null}
                   <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-md:tw-grid-cols-1">
-                    <MediaPlaceholder>Chưa có ảnh người gửi xe trong dữ liệu chi tiết</MediaPlaceholder>
-                    <MediaPlaceholder>Chưa có ảnh biển số trong dữ liệu chi tiết</MediaPlaceholder>
+                    <LostCardEvidenceImage
+                      alt="Ảnh người gửi xe khi vào bãi"
+                      emptyText="Phiên gửi xe chưa có ảnh người gửi xe"
+                      imagePath={detail.checkInPersonImagePath}
+                      label="Ảnh người gửi xe khi vào"
+                    />
+                    <LostCardEvidenceImage
+                      alt="Ảnh biển số xe khi vào bãi"
+                      emptyText="Phiên gửi xe chưa có ảnh biển số"
+                      imagePath={detail.checkInLicensePlateImagePath}
+                      label="Ảnh biển số khi vào"
+                    />
                   </div>
                 </div>
               </section>
@@ -1182,7 +1383,7 @@ export function LostCardDetailPage() {
                 invoice={detail.invoice}
                 isPaymentSubmitting={isPaymentSubmitting}
                 lostCardFee={Number(report.lostCardFee ?? 0)}
-                onConfirmPayment={handleOpenPaymentForm}
+                onStartPayment={handleOpenPaymentForm}
                 onShowInvoice={() => setIsInvoiceDetailOpen(true)}
                 state={paymentState}
                 ticketPrice={Number(report.ticketPrice ?? 0)}
@@ -1224,6 +1425,7 @@ export function LostCardDetailPage() {
                 isCompleting={isCompleting}
                 onComplete={handleCompleteReport}
                 onNewCardChange={setSelectedNewCardId}
+                reportStatus={report.status}
                 selectedNewCardId={selectedNewCardId}
                 state={paymentState}
               />

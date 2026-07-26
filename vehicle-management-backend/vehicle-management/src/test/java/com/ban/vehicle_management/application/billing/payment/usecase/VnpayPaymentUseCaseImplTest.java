@@ -14,6 +14,7 @@ import com.ban.vehicle_management.application.billing.payment.model.command.Vnpa
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayCallbackData;
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayPaymentLink;
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayPaymentResult;
+import com.ban.vehicle_management.application.billing.payment.model.result.VnpayReturnResult;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.VnpayGatewayPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
@@ -120,6 +121,43 @@ class VnpayPaymentUseCaseImplTest {
 
         useCase.processIpn(new VnpayCallbackCommand(Map.of("vnp_TxnRef", payment.getTransactionRef())));
 
+        assertEquals(PaymentStatus.SUCCESS, payment.getStatus());
+        assertEquals(InvoiceStatus.PAID, invoice.getStatus());
+        assertEquals(paidAt, invoice.getPaidAt());
+        verify(subscriptionPortIn).markSubscriptionPaymentCompleted(subscriptionId);
+    }
+
+    @Test
+    void shouldCompleteInvoiceAndSubscriptionFromSuccessfulReturn() {
+        UUID invoiceId = UUID.randomUUID();
+        UUID subscriptionId = UUID.randomUUID();
+        Invoice invoice = unpaidInvoice(invoiceId, subscriptionId);
+        Payment payment = pendingPayment(invoiceId);
+        Instant paidAt = Instant.parse("2026-07-25T03:00:00Z");
+
+        when(vnpayGatewayPortOut.verifyCallback(any())).thenReturn(new VnpayCallbackData(
+                true,
+                "TESTCODE",
+                payment.getTransactionRef(),
+                payment.getAmount(),
+                "00",
+                "00",
+                "123456789",
+                "NCB",
+                "ATM",
+                paidAt
+        ));
+        when(paymentPortOut.findByTransactionRefForUpdate(payment.getTransactionRef()))
+                .thenReturn(Optional.of(payment));
+        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(paymentPortOut.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(invoicePortOut.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        VnpayReturnResult result = useCase.verifyReturn(
+                new VnpayCallbackCommand(Map.of("vnp_TxnRef", payment.getTransactionRef()))
+        );
+
+        assertEquals(PaymentStatus.SUCCESS, result.paymentStatus());
         assertEquals(PaymentStatus.SUCCESS, payment.getStatus());
         assertEquals(InvoiceStatus.PAID, invoice.getStatus());
         assertEquals(paidAt, invoice.getPaidAt());

@@ -3626,11 +3626,24 @@ body {
 }
 
 .vm-subscription-workspace {
+  grid-template-columns: minmax(0, 1fr) 350px;
   align-items: stretch;
 }
 
 .vm-subscription-workspace > .vm-customer-card {
   min-height: 430px;
+}
+
+.vm-subscription-workspace .vm-table-filters {
+  grid-template-columns: minmax(220px, 280px) minmax(260px, 1fr);
+}
+
+.vm-subscription-workspace .vm-side-form {
+  align-content: start;
+}
+
+.vm-subscription-workspace .vm-side-form .vm-form-grid {
+  grid-template-columns: 1fr;
 }
 
 .vm-subscription-history-card {
@@ -4434,6 +4447,20 @@ a.vm-auth-submit:hover {
   .vm-sidebar {
     width: 232px;
   }
+
+  .vm-subscription-workspace {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+}
+
+@media (max-width: 1400px) {
+  .vm-subscription-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .vm-subscription-workspace .vm-side-form .vm-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 992px) {
@@ -4443,5 +4470,12 @@ a.vm-auth-submit:hover {
 
   .vm-sidebar {
     display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .vm-subscription-workspace .vm-table-filters,
+  .vm-subscription-workspace .vm-side-form .vm-form-grid {
+    grid-template-columns: 1fr;
   }
 }

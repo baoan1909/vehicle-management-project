@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.accesscontrol.lostcardreport.port.in;
 
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardPreviewResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReplacementCardResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportDetailResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportSummaryResult;
@@ -23,6 +24,8 @@ public interface LostCardReportPortIn {
     LostCardReportWorkflowResult cancelReport(UUID lostCardReportId, String cancelReason);
 
     LostCardReportDetailResult getReportById(UUID lostCardReportId);
+
+    List<LostCardReplacementCardResult> getAvailableReplacementCards(UUID lostCardReportId);
 
     List<LostCardReport> getReports(
             LostCardReportStatus status,

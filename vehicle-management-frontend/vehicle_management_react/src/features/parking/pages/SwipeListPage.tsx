@@ -115,6 +115,34 @@ function formatCurrentCheckOutTime() {
   return `${pad(now.getHours())}:${pad(now.getMinutes())} ${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
 }
 
+function formatDateOnly(value?: string) {
+  if (!value) return "";
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return value;
+  return `${day}/${month}/${year}`;
+}
+
+function getLocalDateKey(date = new Date()) {
+  const pad = (value: number) => value.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function getRegisteredCardAvailabilityError(card?: ParkingCardResponse) {
+  if (!card) return "";
+  if (!card.registeredVehicleTypeId) {
+    return "Thẻ đăng ký chưa liên kết được loại xe, vui lòng kiểm tra hồ sơ xe đã đăng ký.";
+  }
+
+  const today = getLocalDateKey();
+  if (card.effectiveFrom && today < card.effectiveFrom) {
+    return `Vé đăng ký chưa đến ngày hiệu lực. Có thể check-in từ ${formatDateOnly(card.effectiveFrom)}.`;
+  }
+  if (card.effectiveTo && today > card.effectiveTo) {
+    return `Vé đăng ký đã hết hiệu lực từ ${formatDateOnly(card.effectiveTo)}.`;
+  }
+  return "";
+}
+
 function normalizeCardTypeCode(cardType?: CardTypeResponse) {
   return (cardType?.code ?? "").trim().toUpperCase();
 }
@@ -349,7 +377,14 @@ export function SwipeListPage() {
     : "";
   const selectedRequiresVehicleType = selectedIsVisitorCard || selectedIsRegisteredCard;
   const selectedLocksVehicleType = selectedIsRegisteredCard;
-  const canCaptureCurrentCard = Boolean(selectedParkingCard && (!selectedRequiresVehicleType || vehicleTypeId));
+  const registeredCardAvailabilityError = selectedIsRegisteredCard
+    ? getRegisteredCardAvailabilityError(selectedParkingCard)
+    : "";
+  const canCaptureCurrentCard = Boolean(
+    selectedParkingCard &&
+    (!selectedRequiresVehicleType || vehicleTypeId) &&
+    !registeredCardAvailabilityError,
+  );
   const formVehicleTypeOptions = useMemo(() => {
     const lockedVehicleTypeId = mode === "check-out" ? checkOutPreview?.parkingSession.vehicleTypeId ?? "" : selectedRegisteredVehicleTypeId;
     if (!lockedVehicleTypeId || vehicleTypeOptions.some((option) => option.value === lockedVehicleTypeId)) {
@@ -598,11 +633,13 @@ export function SwipeListPage() {
     setSubmitError(
       !selectedParkingCard
         ? "Vui lòng chọn thẻ xe hợp lệ trước khi chụp hoặc tải ảnh."
-        : selectedLocksVehicleType
-          ? "Thẻ đăng ký chưa có loại xe hợp lệ, vui lòng kiểm tra hồ sơ xe đã đăng ký."
-          : "Vui lòng chọn loại xe cho thẻ vãng lai trước khi chụp hoặc tải ảnh.",
+        : registeredCardAvailabilityError
+          ? registeredCardAvailabilityError
+          : selectedLocksVehicleType
+            ? "Thẻ đăng ký chưa liên kết được loại xe, vui lòng kiểm tra hồ sơ xe đã đăng ký."
+            : "Vui lòng chọn loại xe cho thẻ vãng lai trước khi chụp hoặc tải ảnh.",
     );
-  }, [selectedLocksVehicleType, selectedParkingCard]);
+  }, [registeredCardAvailabilityError, selectedLocksVehicleType, selectedParkingCard]);
 
   function resetOcrState() {
     setOcrStatus("idle");
@@ -758,12 +795,19 @@ export function SwipeListPage() {
         ? matchedCardTypeCode === CARD_TYPE_REGISTERED
         : matchedCard?.status === "ASSIGNED");
     const matchedCardRequiresVehicleType = matchedCardIsVisitor || matchedCardIsRegistered;
+    const matchedRegisteredCardError = matchedCardIsRegistered
+      ? getRegisteredCardAvailabilityError(matchedCard)
+      : "";
+    if (matchedRegisteredCardError) {
+      setSubmitError(matchedRegisteredCardError);
+      return;
+    }
     if (matchedCardRequiresVehicleType && !vehicleTypeId) {
       if (matchedCardIsRegistered) {
-        setSubmitError("Thẻ đăng ký chưa có loại xe hợp lệ, vui lòng kiểm tra hồ sơ xe đã đăng ký.");
+        setSubmitError("Thẻ đăng ký chưa liên kết được loại xe, vui lòng kiểm tra hồ sơ xe đã đăng ký.");
       } else {
-      setSubmitError("Vui lòng chọn loại xe cho thẻ vãng lai.");
-      return;
+        setSubmitError("Vui lòng chọn loại xe cho thẻ vãng lai.");
+        return;
       }
       return;
     }

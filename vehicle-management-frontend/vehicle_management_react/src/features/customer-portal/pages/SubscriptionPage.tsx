@@ -1,5 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
+import {
+  createVnpayInvoicePayment,
+  getSubscriptionInvoice,
+  type InvoiceSummaryResponse,
+  VNPAY_MINIMUM_AMOUNT,
+} from "@/features/billing/api/invoicePaymentsApi";
 import {
   createMySubscription,
   getCustomerPortalLookups,
@@ -15,6 +22,7 @@ import {
 } from "@/features/customer-portal/api/customerPortalApi";
 
 import { CustomerPageHeader, CustomerPortalLayout, Field, PaginationLite, StatCard, StatusPill } from "./PortalShared";
+import { Modal, useToast } from "@/components/ui";
 
 type SubscriptionForm = {
   customerVehicleId: string;
@@ -23,6 +31,7 @@ type SubscriptionForm = {
 };
 
 type StatusTone = "green" | "blue" | "orange" | "red" | "gray" | "purple";
+type CustomerPaymentChoice = "VNPAY" | "AT_COUNTER";
 
 const today = new Date().toISOString().slice(0, 10);
 
@@ -139,6 +148,9 @@ function findMatchingPriceRule(
 }
 
 export function SubscriptionPage() {
+  const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const handledVnpayReturnRef = useRef(false);
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [vehicles, setVehicles] = useState<CustomerPortalVehicle[]>([]);
   const [subscriptions, setSubscriptions] = useState<CustomerPortalSubscription[]>([]);
@@ -156,8 +168,11 @@ export function SubscriptionPage() {
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentChoice, setPaymentChoice] = useState<CustomerPaymentChoice>("VNPAY");
+  const [paymentInvoice, setPaymentInvoice] = useState<InvoiceSummaryResponse | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
 
   const vehicleById = useMemo(() => new Map(vehicles.map((vehicle) => [vehicle.customerVehicleId, vehicle])), [vehicles]);
   const ticketTypeById = useMemo(() => new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType])), [ticketTypes]);
@@ -193,7 +208,6 @@ export function SubscriptionPage() {
 
   async function loadData() {
     setLoading(true);
-    setError("");
     try {
       const nextProfile = await getCustomerPortalProfile();
       const [nextVehicles, nextSubscriptions, lookups] = await Promise.all([
@@ -213,7 +227,10 @@ export function SubscriptionPage() {
         ticketTypeId: current.ticketTypeId || lookups.ticketTypes[0]?.ticketTypeId || "",
       }));
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Không thể tải dữ liệu vé tháng.");
+      toast.error(
+        requestError instanceof Error ? requestError.message : "Không thể tải dữ liệu vé tháng.",
+        "Tải dữ liệu thất bại",
+      );
     } finally {
       setLoading(false);
     }
@@ -224,13 +241,38 @@ export function SubscriptionPage() {
   }, []);
 
   useEffect(() => {
+    const vnpayResult = searchParams.get("vnpayResult");
+    if (!vnpayResult || handledVnpayReturnRef.current) return;
+    handledVnpayReturnRef.current = true;
+
+    if (vnpayResult === "success" && searchParams.get("paymentStatus") === "SUCCESS") {
+      toast.success(
+        "Hồ sơ đang chờ nhân viên gán thẻ.",
+        "Thanh toán VNPay thành công",
+      );
+    } else if (vnpayResult === "cancelled") {
+      toast.warning(
+        "Hóa đơn vẫn đang chờ thanh toán và có thể thanh toán lại hoặc trả tại quầy.",
+        "Đã hủy giao dịch VNPay",
+      );
+    } else {
+      toast.error(
+        "Hóa đơn vẫn được giữ ở trạng thái chờ thanh toán.",
+        "Giao dịch VNPay chưa thành công",
+      );
+    }
+
+    const nextParams = new URLSearchParams(searchParams);
+    ["vnpayResult", "transactionRef", "responseCode", "paymentStatus"].forEach((key) => nextParams.delete(key));
+    setSearchParams(nextParams, { replace: true });
+  }, [searchParams, setSearchParams, toast]);
+
+  useEffect(() => {
     setCurrentPage(1);
   }, [keyword, pageSize, statusFilter]);
 
   const handleCreate = async () => {
     setSaving(true);
-    setError("");
-    setNotice("");
     try {
       if (!form.customerVehicleId) {
         throw new Error("Vui lòng chọn xe đăng ký.");
@@ -242,14 +284,71 @@ export function SubscriptionPage() {
         throw new Error("Vui lòng chọn ngày bắt đầu.");
       }
       await createMySubscription(form);
-      setNotice("Đã gửi yêu cầu đăng ký vé tháng.");
+      toast.success(
+        "Yêu cầu đang chờ nhân viên phê duyệt.",
+        "Đã gửi đăng ký vé",
+      );
       if (profile) {
         setSubscriptions(await getMySubscriptions(profile));
       }
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Không thể gửi yêu cầu đăng ký vé.");
+      toast.error(
+        requestError instanceof Error ? requestError.message : "Không thể gửi yêu cầu đăng ký vé.",
+        "Đăng ký không thành công",
+      );
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleOpenPayment = async (subscription: CustomerPortalSubscription) => {
+    setPaymentModalOpen(true);
+    setPaymentChoice("VNPAY");
+    setPaymentInvoice(null);
+    setPaymentError("");
+    setPaymentLoading(true);
+
+    try {
+      const invoice = await getSubscriptionInvoice(subscription.subscriptionId);
+      if (!invoice || invoice.status !== "UNPAID") {
+        throw new Error("Không tìm thấy hóa đơn đang chờ thanh toán của đăng ký này.");
+      }
+      setPaymentInvoice(invoice);
+    } catch (requestError) {
+      setPaymentError(requestError instanceof Error ? requestError.message : "Không thể tải hóa đơn đăng ký.");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleSubmitPayment = async () => {
+    if (!paymentInvoice) return;
+
+    if (paymentChoice === "AT_COUNTER") {
+      setPaymentModalOpen(false);
+      toast.info(
+        `Hóa đơn ${paymentInvoice.invoiceNo} sẽ được nhân viên xác nhận sau khi nhận tiền.`,
+        "Đã chọn thanh toán tại quầy",
+      );
+      return;
+    }
+
+    if (Number(paymentInvoice.finalAmount) < VNPAY_MINIMUM_AMOUNT) {
+      setPaymentError("VNPay Sandbox chỉ nhận hóa đơn từ 10.000 đồng. Vui lòng chọn thanh toán tại quầy.");
+      return;
+    }
+
+    setPaymentLoading(true);
+    setPaymentError("");
+    try {
+      const response = await createVnpayInvoicePayment(
+        paymentInvoice.invoiceId,
+        "/customer/subscriptions",
+      );
+      window.location.assign(response.data.paymentUrl);
+    } catch (requestError) {
+      setPaymentError(requestError instanceof Error ? requestError.message : "Không thể tạo giao dịch VNPay.");
+      setPaymentLoading(false);
     }
   };
 
@@ -267,9 +366,6 @@ export function SubscriptionPage() {
         subtitle="Đăng ký, gia hạn và theo dõi vé gửi xe của bạn"
         action={<button type="button" onClick={handleCreate} disabled={saving || !profile}><i className="fas fa-plus" /> Đăng ký vé mới</button>}
       />
-
-      {error ? <div className="vm-info-note tw-bg-red-50 tw-text-red-600"><i className="fas fa-exclamation-circle" /> {error}</div> : null}
-      {notice ? <div className="vm-info-note tw-bg-green-50 tw-text-green-700"><i className="fas fa-check-circle" /> {notice}</div> : null}
 
       <div className="vm-stat-grid vm-stat-grid-four">
         <StatCard icon="far fa-calendar-check" label="Vé đang hoạt động" value={String(subscriptions.filter((item) => item.status === "ACTIVE").length)} note="vé" tone="green" />
@@ -318,7 +414,7 @@ export function SubscriptionPage() {
             <label><i className="fas fa-search" /><input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm biển số, mã vé..." /></label>
           </div>
           <table className="vm-customer-table">
-            <thead><tr><th>Mã vé</th><th>Biển số</th><th>Loại vé</th><th>Hiệu lực</th><th>Giá</th><th>Trạng thái</th></tr></thead>
+            <thead><tr><th>Mã vé</th><th>Biển số</th><th>Loại vé</th><th>Hiệu lực</th><th>Giá</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
             <tbody>
               {pagedSubscriptions.map((subscription) => {
                 const vehicle = vehicleById.get(subscription.customerVehicleId);
@@ -331,11 +427,22 @@ export function SubscriptionPage() {
                     <td>{formatDateRange(toDateInputValue(getDisplayEffectiveFrom(subscription)) ?? subscription.requestedEffectiveFrom, subscription.effectiveTo)}</td>
                     <td>{formatCurrency(subscription.price)}</td>
                     <td><StatusPill tone={statusTone(subscription.status)}>{statusLabel(subscription.status)}</StatusPill></td>
+                    <td>
+                      {subscription.status === "PENDING_PAYMENT" ? (
+                        <button
+                          className="tw-inline-flex tw-h-9 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-3 tw-text-[0.78rem] tw-font-extrabold tw-text-white"
+                          type="button"
+                          onClick={() => void handleOpenPayment(subscription)}
+                        >
+                          <i className="far fa-credit-card" /> Thanh toán
+                        </button>
+                      ) : <span>--</span>}
+                    </td>
                   </tr>
                 );
               })}
-              {!loading && filteredSubscriptions.length === 0 ? <tr><td colSpan={6}>Chưa có vé phù hợp với bộ lọc.</td></tr> : null}
-              {loading ? <tr><td colSpan={6}>Đang tải dữ liệu...</td></tr> : null}
+              {!loading && filteredSubscriptions.length === 0 ? <tr><td colSpan={7}>Chưa có vé phù hợp với bộ lọc.</td></tr> : null}
+              {loading ? <tr><td colSpan={7}>Đang tải dữ liệu...</td></tr> : null}
             </tbody>
           </table>
           <PaginationLite
@@ -362,7 +469,6 @@ export function SubscriptionPage() {
                 {ticketTypes.map((ticketType) => <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>{ticketType.name}</option>)}
               </select>
             </Field>
-            <Field label="Quy tắc giá"><input value={selectedPriceRule?.ruleName ?? "Chưa có quy tắc phù hợp"} readOnly /></Field>
             <Field label="Ngày bắt đầu"><input type="date" value={form.requestedEffectiveFrom} onChange={(event) => setForm((current) => ({ ...current, requestedEffectiveFrom: event.target.value }))} /></Field>
             <Field label="Tổng phí"><input value={formatCurrency(selectedPriceRule?.basePrice)} readOnly /></Field>
           </div>
@@ -380,6 +486,78 @@ export function SubscriptionPage() {
           <li><i className="fas fa-check-circle" /> Vé bị hủy hoặc từ chối không thể kích hoạt lại trực tiếp từ phía khách hàng.</li>
         </ul>
       </section>
+
+      <Modal
+        actions={(
+          <div className="tw-flex tw-justify-end tw-gap-3">
+            <button
+              className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-font-bold tw-text-vm-slate-700"
+              type="button"
+              disabled={paymentLoading}
+              onClick={() => setPaymentModalOpen(false)}
+            >
+              Đóng
+            </button>
+            <button
+              className="tw-h-10 tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-4 tw-font-bold tw-text-white disabled:tw-bg-vm-slate-200"
+              type="button"
+              disabled={paymentLoading || !paymentInvoice}
+              onClick={() => void handleSubmitPayment()}
+            >
+              {paymentLoading
+                ? "Đang xử lý..."
+                : paymentChoice === "VNPAY"
+                  ? "Thanh toán qua VNPay"
+                  : "Xác nhận trả tại quầy"}
+            </button>
+          </div>
+        )}
+        description="Chọn thanh toán trực tuyến hoặc thanh toán trực tiếp với nhân viên tại quầy."
+        onClose={() => setPaymentModalOpen(false)}
+        open={paymentModalOpen}
+        title="Thanh toán đăng ký vé"
+      >
+        <div className="tw-grid tw-gap-4">
+          {paymentError ? (
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-600">
+              {paymentError}
+            </div>
+          ) : null}
+          <div className="tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-4">
+            <span className="tw-block tw-text-xs tw-font-bold tw-text-vm-slate-500">Số tiền cần thanh toán</span>
+            <strong className="tw-mt-1 tw-block tw-text-xl tw-font-black tw-text-vm-primary">
+              {paymentInvoice ? formatCurrency(paymentInvoice.finalAmount) : "Đang tải..."}
+            </strong>
+            {paymentInvoice ? <span className="tw-mt-1 tw-block tw-text-xs tw-font-semibold tw-text-vm-slate-500">{paymentInvoice.invoiceNo}</span> : null}
+          </div>
+          <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+            <button
+              className={`tw-min-h-[92px] tw-rounded-vm-md tw-border tw-border-solid tw-p-3 tw-text-left ${paymentChoice === "VNPAY" ? "tw-border-vm-primary tw-bg-brand-50" : "tw-border-vm-slate-100 tw-bg-white"}`}
+              type="button"
+              onClick={() => {
+                setPaymentChoice("VNPAY");
+                setPaymentError("");
+              }}
+            >
+              <i className="fas fa-qrcode tw-mr-2 tw-text-vm-primary" />
+              <strong>VNPay</strong>
+              <span className="tw-mt-2 tw-block tw-text-xs tw-font-semibold tw-text-vm-slate-500">Chuyển sang cổng thanh toán VNPay Sandbox.</span>
+            </button>
+            <button
+              className={`tw-min-h-[92px] tw-rounded-vm-md tw-border tw-border-solid tw-p-3 tw-text-left ${paymentChoice === "AT_COUNTER" ? "tw-border-emerald-500 tw-bg-emerald-50" : "tw-border-vm-slate-100 tw-bg-white"}`}
+              type="button"
+              onClick={() => {
+                setPaymentChoice("AT_COUNTER");
+                setPaymentError("");
+              }}
+            >
+              <i className="fas fa-money-bill-wave tw-mr-2 tw-text-emerald-600" />
+              <strong>Tại quầy</strong>
+              <span className="tw-mt-2 tw-block tw-text-xs tw-font-semibold tw-text-vm-slate-500">Hồ sơ tiếp tục chờ đến khi nhân viên nhận tiền và xác nhận.</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
     </CustomerPortalLayout>
   );
 }

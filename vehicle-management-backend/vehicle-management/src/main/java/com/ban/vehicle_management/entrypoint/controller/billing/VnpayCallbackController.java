@@ -28,7 +28,7 @@ public class VnpayCallbackController {
 
     public VnpayCallbackController(
             VnpayPaymentPortIn vnpayPaymentPortIn,
-            @Value("${app.payment.vnpay.frontend-return-url:http://localhost:5173/admin/swipe}")
+            @Value("${app.payment.vnpay.frontend-return-url:http://localhost:5173/payment/vnpay-return}")
             String frontendReturnUrl
     ) {
         this.vnpayPaymentPortIn = vnpayPaymentPortIn;

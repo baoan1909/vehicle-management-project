@@ -73,7 +73,7 @@ app:
       payment-url: ${VNPAY_PAYMENT_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
       return-url: ${VNPAY_RETURN_URL:}
       ipn-url: ${VNPAY_IPN_URL:}
-      frontend-return-url: ${VNPAY_FRONTEND_RETURN_URL:http://localhost:5173/admin/swipe}
+      frontend-return-url: ${VNPAY_FRONTEND_RETURN_URL:http://localhost:5173/payment/vnpay-return}
       order-type: ${VNPAY_ORDER_TYPE:other}
       timeout-minutes: ${VNPAY_TIMEOUT_MINUTES:15}
       minimum-amount: ${VNPAY_MINIMUM_AMOUNT:10000}

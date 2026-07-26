@@ -3,6 +3,7 @@ import { Navigate } from "react-router-dom";
 import { getRoutePermissions } from "@/app/routePermissions";
 import type { AppLayout } from "@/shared/types/common";
 import { LoginPage } from "@/features/auth";
+import { VnpayReturnPage } from "@/features/billing/pages/VnpayReturnPage";
 import { CardListPage, LostCardCreatePage, LostCardDetailPage, LostCardListPage } from "@/features/cards";
 import { SubscriptionApprovalPage, TicketListPage, VehicleListPage } from "@/features/catalog";
 import {
@@ -75,6 +76,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },
   { path: "/guide", title: "Huong dan", layout: "client", element: <GuidePage /> },
   { path: "/contact", title: "Lien he", layout: "client", element: <ContactPage /> },
+  { path: "/payment/vnpay-return", title: "Ket qua thanh toan", layout: "client", element: <VnpayReturnPage /> },
   { path: "/customerTicket/customer-infor", title: "Lich su gui xe", layout: "client", element: <CustomerHistoryPage /> },
   { path: "/customerTicket/customer-infor-detail", title: "Thong tin tai khoan", layout: "client", element: <ProfilePage /> },
   { path: "/customer/dashboard", title: "Tong quan khach hang", layout: "client", element: <CustomerDashboardPage /> },

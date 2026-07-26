@@ -33,9 +33,12 @@ export type ParkingCardResponse = {
   cardNumber: string;
   cardTypeId?: string;
   createdAt?: string;
+  effectiveFrom?: string;
+  effectiveTo?: string;
   issuedAt?: string;
   registeredVehicleTypeId?: string;
   status: ParkingCardStatus;
+  subscriptionStatus?: string;
   uid: string;
   updatedAt?: string;
 };

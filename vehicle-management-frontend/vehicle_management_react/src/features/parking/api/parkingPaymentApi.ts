@@ -1,57 +1,19 @@
-import { apiEndpoints } from "@/core/api/apiEndpoints";
-import { apiClient } from "@/core/api/apiClient";
+import {
+  createVnpayInvoicePayment,
+  recordCashInvoicePayment,
+  VNPAY_MINIMUM_AMOUNT,
+} from "@/features/billing/api/invoicePaymentsApi";
 
-export const VNPAY_MINIMUM_AMOUNT = 10000;
-
-type ApiResponse<T> = {
-  data: T;
-  message: string;
-  success: boolean;
-  timestamp: string;
-};
-
-export type ParkingPaymentResponse = {
-  amount: number;
-  invoiceId: string;
-  note?: string | null;
-  paidAt?: string | null;
-  paymentId: string;
-  paymentMethod: string;
-  receivedBy?: string | null;
-  status: string;
-  transactionRef?: string | null;
-};
-
-export type VnpayPaymentResponse = {
-  expiresAt: string;
-  invoiceId: string;
-  paymentId: string;
-  paymentUrl: string;
-  transactionRef: string;
-};
+export { VNPAY_MINIMUM_AMOUNT };
 
 export function recordParkingCashPayment(invoiceId: string, amount: number, note?: string) {
-  return apiClient<ApiResponse<ParkingPaymentResponse>>(
-    `${apiEndpoints.billing.invoices}/${invoiceId}/payments`,
-    {
-      method: "POST",
-      body: {
-        amount,
-        note: note?.trim() || "Nhân viên xác nhận đã thu tiền mặt khi checkout",
-        paymentMethod: "CASH",
-      },
-    },
+  return recordCashInvoicePayment(
+    invoiceId,
+    amount,
+    note?.trim() || "Nhân viên xác nhận đã thu tiền mặt khi checkout",
   );
 }
 
 export function createParkingVnpayPayment(invoiceId: string) {
-  return apiClient<ApiResponse<VnpayPaymentResponse>>(
-    `${apiEndpoints.billing.invoices}/${invoiceId}/payments/vnpay`,
-    {
-      method: "POST",
-      body: {
-        locale: "vn",
-      },
-    },
-  );
+  return createVnpayInvoicePayment(invoiceId, "/admin/swipe");
 }
