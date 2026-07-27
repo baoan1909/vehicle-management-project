@@ -252,12 +252,12 @@ export function SubscriptionPage() {
       );
     } else if (vnpayResult === "cancelled") {
       toast.warning(
-        "Hóa đơn vẫn đang chờ thanh toán và có thể thanh toán lại hoặc trả tại quầy.",
+        "Hóa đơn vẫn đang chờ; bạn có thể chọn lại VNPay hoặc thanh toán tại quầy.",
         "Đã hủy giao dịch VNPay",
       );
     } else {
       toast.error(
-        "Hóa đơn vẫn được giữ ở trạng thái chờ thanh toán.",
+        "Hóa đơn vẫn được giữ ở trạng thái chờ và có thể thực hiện thanh toán lại.",
         "Giao dịch VNPay chưa thành công",
       );
     }

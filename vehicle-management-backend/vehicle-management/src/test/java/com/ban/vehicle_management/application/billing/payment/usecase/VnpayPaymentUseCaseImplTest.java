@@ -2,7 +2,10 @@ package com.ban.vehicle_management.application.billing.payment.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -94,6 +97,72 @@ class VnpayPaymentUseCaseImplTest {
     }
 
     @Test
+    void shouldReusePendingVnpayPaymentWhilePaymentLinkIsActive() {
+        UUID invoiceId = UUID.randomUUID();
+        Invoice invoice = unpaidInvoice(invoiceId, null);
+        Payment pendingPayment = pendingPayment(
+                invoiceId,
+                Instant.now().minusSeconds(60),
+                Instant.now().plusSeconds(840)
+        );
+
+        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(paymentPortOut.existsByInvoiceIdAndStatus(invoiceId, PaymentStatus.SUCCESS)).thenReturn(false);
+        when(paymentPortOut.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING))
+                .thenReturn(Optional.of(pendingPayment));
+        when(vnpayGatewayPortOut.createPaymentLink(any()))
+                .thenReturn(new VnpayPaymentLink(
+                        "https://sandbox.vnpayment.vn/payment?retry=true",
+                        pendingPayment.getExpiresAt()
+                ));
+
+        VnpayPaymentResult result = useCase.createPayment(
+                invoiceId,
+                new CreateVnpayPaymentCommand(null, "vn", "127.0.0.1")
+        );
+
+        assertEquals(pendingPayment.getPaymentId(), result.paymentId());
+        assertEquals(pendingPayment.getTransactionRef(), result.transactionRef());
+        assertEquals(pendingPayment.getExpiresAt(), result.expiresAt());
+        assertEquals("https://sandbox.vnpayment.vn/payment?retry=true", result.paymentUrl());
+        verify(paymentPortOut, never()).save(any());
+    }
+
+    @Test
+    void shouldFailExpiredPendingPaymentAndCreateNewPaymentAttempt() {
+        UUID invoiceId = UUID.randomUUID();
+        Invoice invoice = unpaidInvoice(invoiceId, null);
+        Payment expiredPayment = pendingPayment(
+                invoiceId,
+                Instant.now().minusSeconds(1800),
+                Instant.now().minusSeconds(900)
+        );
+        Instant newExpiresAt = Instant.now().plusSeconds(900);
+
+        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(paymentPortOut.existsByInvoiceIdAndStatus(invoiceId, PaymentStatus.SUCCESS)).thenReturn(false);
+        when(paymentPortOut.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING))
+                .thenReturn(Optional.of(expiredPayment));
+        when(vnpayGatewayPortOut.createPaymentLink(any()))
+                .thenReturn(new VnpayPaymentLink(
+                        "https://sandbox.vnpayment.vn/payment?new=true",
+                        newExpiresAt
+                ));
+        when(paymentPortOut.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        VnpayPaymentResult result = useCase.createPayment(
+                invoiceId,
+                new CreateVnpayPaymentCommand(null, "vn", "127.0.0.1")
+        );
+
+        assertEquals(PaymentStatus.FAILED, expiredPayment.getStatus());
+        assertEquals("EXPIRED", expiredPayment.getProviderResponseCode());
+        assertNotEquals(expiredPayment.getPaymentId(), result.paymentId());
+        assertEquals("https://sandbox.vnpayment.vn/payment?new=true", result.paymentUrl());
+        verify(paymentPortOut, times(2)).save(any());
+    }
+
+    @Test
     void shouldCompleteInvoiceAndSubscriptionFromSuccessfulIpn() {
         UUID invoiceId = UUID.randomUUID();
         UUID subscriptionId = UUID.randomUUID();
@@ -164,6 +233,41 @@ class VnpayPaymentUseCaseImplTest {
         verify(subscriptionPortIn).markSubscriptionPaymentCompleted(subscriptionId);
     }
 
+    @Test
+    void shouldMarkPendingPaymentFailedWhenCustomerCancelsAtVnpay() {
+        UUID invoiceId = UUID.randomUUID();
+        Payment payment = pendingPayment(
+                invoiceId,
+                Instant.now().minusSeconds(60),
+                Instant.now().plusSeconds(840)
+        );
+
+        when(vnpayGatewayPortOut.verifyCallback(any())).thenReturn(new VnpayCallbackData(
+                true,
+                "TESTCODE",
+                payment.getTransactionRef(),
+                payment.getAmount(),
+                "24",
+                "02",
+                null,
+                "NCB",
+                "ATM",
+                null
+        ));
+        when(paymentPortOut.findByTransactionRefForUpdate(payment.getTransactionRef()))
+                .thenReturn(Optional.of(payment));
+        when(paymentPortOut.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        VnpayReturnResult result = useCase.verifyReturn(
+                new VnpayCallbackCommand(Map.of("vnp_TxnRef", payment.getTransactionRef()))
+        );
+
+        assertEquals(PaymentStatus.FAILED, result.paymentStatus());
+        assertEquals(PaymentStatus.FAILED, payment.getStatus());
+        assertEquals("24", payment.getProviderResponseCode());
+        verify(paymentPortOut).save(payment);
+    }
+
     private Invoice unpaidInvoice(UUID invoiceId, UUID subscriptionId) {
         Invoice invoice = new Invoice();
         invoice.setInvoiceId(invoiceId);
@@ -179,6 +283,14 @@ class VnpayPaymentUseCaseImplTest {
     }
 
     private Payment pendingPayment(UUID invoiceId) {
+        return pendingPayment(
+                invoiceId,
+                Instant.parse("2026-07-25T02:00:00Z"),
+                Instant.parse("2026-07-25T02:15:00Z")
+        );
+    }
+
+    private Payment pendingPayment(UUID invoiceId, Instant createdAt, Instant expiresAt) {
         Payment payment = new Payment();
         payment.setPaymentId(UUID.randomUUID());
         new PaymentPolicy().initializePendingVnpayPayment(
@@ -186,8 +298,8 @@ class VnpayPaymentUseCaseImplTest {
                 invoiceId,
                 new BigDecimal("50000.00"),
                 "VNP123",
-                Instant.parse("2026-07-25T02:00:00Z"),
-                Instant.parse("2026-07-25T02:15:00Z")
+                createdAt,
+                expiresAt
         );
         return payment;
     }

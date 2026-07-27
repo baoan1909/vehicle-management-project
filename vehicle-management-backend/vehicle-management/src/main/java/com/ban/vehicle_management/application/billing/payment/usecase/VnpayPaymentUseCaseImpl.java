@@ -27,6 +27,7 @@ import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -80,8 +81,19 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
         if (paymentPortOut.existsByInvoiceIdAndStatus(invoiceId, PaymentStatus.SUCCESS)) {
             throw new ConflictException("Successful payment already exists for this invoice");
         }
-        if (paymentPortOut.findFirstByInvoiceIdAndStatus(invoiceId, PaymentStatus.PENDING).isPresent()) {
-            throw new ConflictException("A VNPAY payment is already pending for this invoice");
+        Optional<Payment> pendingPayment = paymentPortOut.findFirstByInvoiceIdAndStatus(
+                invoiceId,
+                PaymentStatus.PENDING
+        );
+        if (pendingPayment.isPresent()) {
+            VnpayPaymentResult reusablePayment = reusePendingPayment(
+                    invoice,
+                    pendingPayment.get(),
+                    command
+            );
+            if (reusablePayment != null) {
+                return reusablePayment;
+            }
         }
 
         UUID paymentId = UUID.randomUUID();
@@ -115,6 +127,46 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
                 savedPayment.getTransactionRef(),
                 paymentLink.paymentUrl(),
                 savedPayment.getExpiresAt()
+        );
+    }
+
+    private VnpayPaymentResult reusePendingPayment(
+            Invoice invoice,
+            Payment payment,
+            CreateVnpayPaymentCommand command
+    ) {
+        Instant now = Instant.now();
+        if (payment.getCreatedAt() == null
+                || payment.getExpiresAt() == null
+                || !payment.getExpiresAt().isAfter(now)) {
+            paymentPolicy.markVnpayFailed(
+                    payment,
+                    null,
+                    "EXPIRED",
+                    "EXPIRED",
+                    null,
+                    null
+            );
+            paymentPortOut.save(payment);
+            return null;
+        }
+
+        VnpayPaymentLink paymentLink = vnpayGatewayPortOut.createPaymentLink(new VnpayPaymentRequest(
+                payment.getTransactionRef(),
+                payment.getAmount(),
+                buildOrderInfo(invoice),
+                command.clientIp(),
+                normalizeBankCode(command.bankCode()),
+                command.locale(),
+                payment.getCreatedAt()
+        ));
+
+        return new VnpayPaymentResult(
+                payment.getPaymentId(),
+                payment.getInvoiceId(),
+                payment.getTransactionRef(),
+                paymentLink.paymentUrl(),
+                payment.getExpiresAt()
         );
     }
 
