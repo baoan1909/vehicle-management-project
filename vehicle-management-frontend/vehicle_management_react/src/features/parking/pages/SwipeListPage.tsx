@@ -130,9 +130,6 @@ function getLocalDateKey(date = new Date()) {
 
 function getRegisteredCardAvailabilityError(card?: ParkingCardResponse) {
   if (!card) return "";
-  if (!card.registeredVehicleTypeId) {
-    return "Thẻ đăng ký chưa liên kết được loại xe, vui lòng kiểm tra hồ sơ xe đã đăng ký.";
-  }
 
   const today = getLocalDateKey();
   if (card.effectiveFrom && today < card.effectiveFrom) {
@@ -376,8 +373,8 @@ export function SwipeListPage() {
   const selectedRegisteredVehicleTypeId = selectedIsRegisteredCard
     ? selectedParkingCard?.registeredVehicleTypeId ?? ""
     : "";
-  const selectedRequiresVehicleType = selectedIsVisitorCard || selectedIsRegisteredCard;
-  const selectedLocksVehicleType = selectedIsRegisteredCard;
+  const selectedRequiresVehicleType = selectedIsVisitorCard;
+  const selectedLocksVehicleType = selectedIsRegisteredCard && Boolean(selectedRegisteredVehicleTypeId);
   const registeredCardAvailabilityError = selectedIsRegisteredCard
     ? getRegisteredCardAvailabilityError(selectedParkingCard)
     : "";
@@ -520,10 +517,10 @@ export function SwipeListPage() {
       setVehicleTypeId(selectedRegisteredVehicleTypeId);
       return;
     }
-    if (selectedIsVisitorCard || !selectedRequiresVehicleType) {
+    if (selectedIsVisitorCard || selectedIsRegisteredCard || !selectedRequiresVehicleType) {
       setVehicleTypeId("");
     }
-  }, [mode, selectedIsVisitorCard, selectedLocksVehicleType, selectedParkingCard?.cardId, selectedRegisteredVehicleTypeId, selectedRequiresVehicleType]);
+  }, [mode, selectedIsRegisteredCard, selectedIsVisitorCard, selectedLocksVehicleType, selectedParkingCard?.cardId, selectedRegisteredVehicleTypeId, selectedRequiresVehicleType]);
 
   useEffect(() => {
     if (mode !== "check-out") {
@@ -654,11 +651,11 @@ export function SwipeListPage() {
         ? "Vui lòng chọn thẻ xe hợp lệ trước khi chụp hoặc tải ảnh."
         : registeredCardAvailabilityError
           ? registeredCardAvailabilityError
-          : selectedLocksVehicleType
-            ? "Thẻ đăng ký chưa liên kết được loại xe, vui lòng kiểm tra hồ sơ xe đã đăng ký."
-            : "Vui lòng chọn loại xe cho thẻ vãng lai trước khi chụp hoặc tải ảnh.",
+          : selectedRequiresVehicleType && !vehicleTypeId
+            ? "Vui lòng chọn loại xe cho thẻ vãng lai trước khi chụp hoặc tải ảnh."
+            : "Vui lòng kiểm tra lại điều kiện thẻ trước khi chụp hoặc tải ảnh.",
     );
-  }, [registeredCardAvailabilityError, selectedLocksVehicleType, selectedParkingCard]);
+  }, [registeredCardAvailabilityError, selectedParkingCard, selectedRequiresVehicleType, vehicleTypeId]);
 
   function resetOcrState() {
     setOcrStatus("idle");
@@ -811,7 +808,7 @@ export function SwipeListPage() {
       (matchedCardTypeCode
         ? matchedCardTypeCode === CARD_TYPE_REGISTERED
         : matchedCard?.status === "ASSIGNED");
-    const matchedCardRequiresVehicleType = matchedCardIsVisitor || matchedCardIsRegistered;
+    const matchedCardRequiresVehicleType = matchedCardIsVisitor;
     const matchedRegisteredCardError = matchedCardIsRegistered
       ? getRegisteredCardAvailabilityError(matchedCard)
       : "";
@@ -820,12 +817,7 @@ export function SwipeListPage() {
       return;
     }
     if (matchedCardRequiresVehicleType && !vehicleTypeId) {
-      if (matchedCardIsRegistered) {
-        setSubmitError("Thẻ đăng ký chưa liên kết được loại xe, vui lòng kiểm tra hồ sơ xe đã đăng ký.");
-      } else {
-        setSubmitError("Vui lòng chọn loại xe cho thẻ vãng lai.");
-        return;
-      }
+      setSubmitError("Vui lòng chọn loại xe cho thẻ vãng lai.");
       return;
     }
 
@@ -980,12 +972,14 @@ export function SwipeListPage() {
             laneId={laneId}
             laneOptions={laneOptions}
             licensePlate={licensePlate}
+            licensePlateImageReady={Boolean(licensePlateImage)}
             mode={mode}
             note={note}
             ocrConfidence={ocrResult?.confidence ?? undefined}
             ocrMessage={ocrMessage}
             ocrResult={ocrResult}
             ocrStatus={ocrStatus}
+            personImageReady={Boolean(personImage)}
             onCardUidChange={handleCardUidChange}
             onCheckOutPaymentMethodChange={setCheckOutPaymentMethod}
             onLaneChange={setLaneId}
@@ -997,7 +991,7 @@ export function SwipeListPage() {
             vehicleTypeRequired={mode === "check-in" && selectedRequiresVehicleType}
             vehicleTypeId={vehicleTypeId}
             vehicleTypeOptions={formVehicleTypeOptions}
-            showVehicleTypeField={mode === "check-out" || (mode === "check-in" && (!selectedParkingCard || selectedRequiresVehicleType))}
+            showVehicleTypeField={mode === "check-out" || (mode === "check-in" && (!selectedParkingCard || selectedRequiresVehicleType || selectedLocksVehicleType))}
             onVehicleTypeChange={handleVehicleTypeChange}
           />
           {mode === "check-out" ? (

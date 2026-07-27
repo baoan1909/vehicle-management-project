@@ -22,12 +22,14 @@ type ParkingOperationFormProps = {
   laneId: string;
   laneOptions: SelectMenuOption[];
   licensePlate: string;
+  licensePlateImageReady?: boolean;
   mode: ParkingOperationMode;
   note: string;
   ocrConfidence?: number;
   ocrMessage?: string;
   ocrResult?: LicensePlateOcrResponse | null;
   ocrStatus?: OcrStatus;
+  personImageReady?: boolean;
   showVehicleTypeField?: boolean;
   vehicleTypeDisabled?: boolean;
   vehicleTypeId: string;
@@ -293,12 +295,14 @@ export function ParkingOperationForm({
   laneId,
   laneOptions,
   licensePlate,
+  licensePlateImageReady = true,
   mode,
   note,
   ocrConfidence,
   ocrMessage,
   ocrResult,
   ocrStatus = "idle",
+  personImageReady = true,
   showVehicleTypeField = true,
   vehicleTypeDisabled = false,
   vehicleTypeId,
@@ -315,7 +319,20 @@ export function ParkingOperationForm({
 }: ParkingOperationFormProps) {
   const isCheckIn = mode === "check-in";
   const checkOutPreviewReady = isCheckIn || Boolean(checkOutCustomerType);
-  const canSubmit = Boolean(cardUid.trim() && licensePlate.trim() && laneId && (!isCheckIn || !vehicleTypeRequired || vehicleTypeId) && checkOutPreviewReady && !isSubmitting && ocrStatus !== "recognizing");
+  const missingRequirements = [
+    !cardUid.trim() ? "thẻ/RFID" : "",
+    !laneId ? "làn xe" : "",
+    isCheckIn && vehicleTypeRequired && !vehicleTypeId ? "loại xe" : "",
+    !licensePlate.trim() ? "biển số" : "",
+    !licensePlateImageReady ? "ảnh biển số" : "",
+    !personImageReady ? "ảnh người/tài xế" : "",
+    !checkOutPreviewReady ? "phiên gửi xe" : "",
+    ocrStatus === "recognizing" ? "OCR đang xử lý" : "",
+  ].filter(Boolean);
+  const canSubmit = missingRequirements.length === 0 && !isSubmitting;
+  const submitReadinessText = missingRequirements.length
+    ? `Còn thiếu: ${missingRequirements.join(", ")}.`
+    : "";
   const requiresPayment = !isCheckIn && checkOutCustomerType === "VISITOR";
   const isSubscription = !isCheckIn && checkOutCustomerType === "SUBSCRIPTION";
   const vnpayUnavailable =
@@ -522,6 +539,11 @@ export function ParkingOperationForm({
                   ? "Xác nhận tiền mặt và checkout"
                   : "Xác nhận check-out"}
         </Button>
+        {submitReadinessText && !error ? (
+          <p className="tw-m-0 tw-text-center tw-text-[0.76rem] tw-font-bold tw-leading-snug tw-text-vm-slate-500">
+            {submitReadinessText}
+          </p>
+        ) : null}
       </CardContent>
     </Card>
   );

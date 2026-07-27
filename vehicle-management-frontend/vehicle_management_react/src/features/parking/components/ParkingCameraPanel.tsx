@@ -499,7 +499,6 @@ export function ParkingCameraPanel({
             <CameraCaptureBox
               ref={driverCameraRef}
               compact
-              defaultCaptured
               label="Ảnh người / tài xế"
               restoredImageUrl={restoredPersonImageUrl}
               scene="driver"
