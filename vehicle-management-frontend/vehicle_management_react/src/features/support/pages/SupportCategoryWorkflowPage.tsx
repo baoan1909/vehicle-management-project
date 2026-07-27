@@ -107,7 +107,7 @@ function CategoryTable({
 
   return (
     <div className="tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white">
-      <div className="tw-grid tw-h-11 tw-grid-cols-[48px_150px_minmax(150px,1fr)_110px_130px_132px_112px] tw-items-center tw-bg-vm-slate-25 tw-px-4 tw-text-[0.72rem] tw-font-black tw-text-vm-slate-700 max-[1180px]:tw-hidden">
+      <div className="tw-grid tw-h-11 tw-grid-cols-[48px_230px_minmax(150px,1fr)_110px_130px_132px_112px] tw-items-center tw-bg-vm-slate-25 tw-px-4 tw-text-[0.72rem] tw-font-black tw-text-vm-slate-700 max-[1180px]:tw-hidden">
         <span>#</span>
         <span>Mã danh mục</span>
         <span>Tên danh mục</span>
@@ -118,10 +118,10 @@ function CategoryTable({
       </div>
 
       {rows.map((category, index) => (
-        <div key={category.categoryId} className="tw-grid tw-min-h-[56px] tw-grid-cols-[48px_150px_minmax(150px,1fr)_110px_130px_132px_112px] tw-items-center tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-700 max-[1180px]:tw-grid-cols-1 max-[1180px]:tw-gap-2 max-[1180px]:tw-py-3">
+        <div key={category.categoryId} className="tw-grid tw-min-h-[56px] tw-grid-cols-[48px_230px_minmax(150px,1fr)_110px_130px_132px_112px] tw-items-center tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-700 max-[1180px]:tw-grid-cols-1 max-[1180px]:tw-gap-2 max-[1180px]:tw-py-3">
           <span>{startIndex + index}</span>
-          <strong className="tw-text-[0.78rem] tw-text-vm-slate-900">{category.code}</strong>
-          <span>
+          <strong className="tw-min-w-0 tw-whitespace-nowrap tw-pr-4 tw-text-[0.78rem] tw-leading-5 tw-text-vm-slate-900">{category.code}</strong>
+          <span className="tw-min-w-0">
             <strong className="tw-block tw-text-vm-slate-900">{category.name}</strong>
             {category.description ? <small className="tw-mt-1 tw-block tw-text-vm-slate-500">{category.description}</small> : null}
           </span>
@@ -129,15 +129,15 @@ function CategoryTable({
           <strong className="tw-text-vm-slate-900">{category.openTickets.toLocaleString("vi-VN")}</strong>
           <Badge tone={category.status === "ACTIVE" ? "success" : "neutral"} className="tw-w-fit tw-rounded-vm-sm tw-px-3">{category.status === "ACTIVE" ? "Đang hoạt động" : "Ngưng sử dụng"}</Badge>
           <span className="tw-flex tw-justify-end tw-gap-3 max-[1180px]:tw-justify-start">
-            <button type="button" className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-white tw-text-vm-primary hover:tw-bg-brand-50" aria-label={`Chỉnh ${category.name}`} onClick={() => onEdit(category)}>
+            <button type="button" className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-white tw-text-vm-primary hover:tw-bg-brand-50" aria-label={`Chỉnh sửa danh mục ${category.name}`} title="Chỉnh sửa danh mục" onClick={() => onEdit(category)}>
               <i className="far fa-edit tw-text-[1rem]" />
             </button>
             {category.status === "ACTIVE" ? (
-              <button type="button" className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-red-50 hover:tw-text-vm-danger" aria-label={`Ngưng ${category.name}`} onClick={() => onDeactivate(category)}>
+              <button type="button" className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-red-50 hover:tw-text-vm-danger" aria-label={`Ngưng sử dụng danh mục ${category.name}`} title="Ngưng sử dụng danh mục" onClick={() => onDeactivate(category)}>
                 <i className="fas fa-ban" />
               </button>
             ) : (
-              <button type="button" className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-white tw-text-emerald-600 hover:tw-bg-emerald-50" aria-label={`Kích hoạt ${category.name}`} onClick={() => onReactivate(category)}>
+              <button type="button" className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-white tw-text-emerald-600 hover:tw-bg-emerald-50" aria-label={`Kích hoạt lại danh mục ${category.name}`} title="Kích hoạt lại danh mục" onClick={() => onReactivate(category)}>
                 <i className="fas fa-check" />
               </button>
             )}

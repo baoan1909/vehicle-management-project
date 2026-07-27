@@ -79,15 +79,27 @@ export type UpdateZoneRequest = {
   vehicleTypeId: string | null;
 };
 
+export type CreateZoneRequest = UpdateZoneRequest & {
+  parkingLotId: string;
+};
+
 export type UpdateGateRequest = {
   code: string;
   name: string;
+};
+
+export type CreateGateRequest = UpdateGateRequest & {
+  zoneId: string;
 };
 
 export type UpdateLaneRequest = {
   code: string;
   direction: LaneDirectionApi;
   name: string;
+};
+
+export type CreateLaneRequest = UpdateLaneRequest & {
+  gateId: string;
 };
 
 function buildQuery(filter: Record<string, string | number | boolean | null | undefined>) {
@@ -121,6 +133,13 @@ export function getLanes(filter: LaneFilter = {}) {
   );
 }
 
+export function createZone(payload: CreateZoneRequest) {
+  return apiClient<ApiResponse<ZoneApiResponse>>(apiEndpoints.parking.zones, {
+    body: payload,
+    method: "POST",
+  });
+}
+
 export function updateZone(zoneId: string, payload: UpdateZoneRequest) {
   return apiClient<ApiResponse<ZoneApiResponse>>(`${apiEndpoints.parking.zones}/${zoneId}`, {
     body: payload,
@@ -146,6 +165,13 @@ export function closeZone(zoneId: string) {
   });
 }
 
+export function createGate(payload: CreateGateRequest) {
+  return apiClient<ApiResponse<GateApiResponse>>(apiEndpoints.parking.gates, {
+    body: payload,
+    method: "POST",
+  });
+}
+
 export function updateGate(gateId: string, payload: UpdateGateRequest) {
   return apiClient<ApiResponse<GateApiResponse>>(`${apiEndpoints.parking.gates}/${gateId}`, {
     body: payload,
@@ -168,6 +194,13 @@ export function markGateMaintenance(gateId: string) {
 export function closeGate(gateId: string) {
   return apiClient<ApiResponse<GateApiResponse>>(`${apiEndpoints.parking.gates}/${gateId}/close`, {
     method: "PATCH",
+  });
+}
+
+export function createLane(payload: CreateLaneRequest) {
+  return apiClient<ApiResponse<LaneApiResponse>>(apiEndpoints.parking.lanes, {
+    body: payload,
+    method: "POST",
   });
 }
 

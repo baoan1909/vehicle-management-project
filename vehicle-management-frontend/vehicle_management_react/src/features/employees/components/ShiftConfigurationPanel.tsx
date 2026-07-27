@@ -204,26 +204,24 @@ export function ShiftConfigurationPanel({
   const [ruleForm, setRuleForm] = useState(() => toRosterRuleForm(null, selectedLot));
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [statusChangingTemplateId, setStatusChangingTemplateId] = useState<string | null>(null);
+  const [statusChangingRuleId, setStatusChangingRuleId] = useState<string | null>(null);
 
   function resetTemplateForm() {
     setEditingTemplateId(null);
     setTemplateForm(toTemplateForm(null, selectedLot));
-    setFormError("");
   }
 
   function resetRuleForm() {
     setEditingRuleId(null);
     setRuleForm(toRosterRuleForm(null, selectedLot));
-    setFormError("");
   }
 
   async function handleSubmitTemplate(event: FormEvent) {
     event.preventDefault();
-    setFormError("");
 
     if (!templateForm.parkingLotId || !templateForm.name.trim() || !templateForm.startLocalTime || !templateForm.endLocalTime) {
-      setFormError("Vui lòng nhập đủ bãi xe, tên mẫu ca và khung giờ.");
+      toast.error("Vui lòng nhập đủ bãi xe, tên mẫu ca và khung giờ.", "Thiếu thông tin");
       return;
     }
 
@@ -249,7 +247,10 @@ export function ShiftConfigurationPanel({
       resetTemplateForm();
       await onChanged();
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Không thể lưu mẫu ca.");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể lưu mẫu ca.",
+        "Thao tác thất bại",
+      );
     } finally {
       setSaving(false);
     }
@@ -257,10 +258,9 @@ export function ShiftConfigurationPanel({
 
   async function handleSubmitRule(event: FormEvent) {
     event.preventDefault();
-    setFormError("");
 
     if (!ruleForm.parkingLotId || !ruleForm.employeeId || !ruleForm.effectiveFrom) {
-      setFormError("Vui lòng chọn bãi xe, nhân viên và ngày hiệu lực.");
+      toast.error("Vui lòng chọn bãi xe, nhân viên và ngày hiệu lực.", "Thiếu thông tin");
       return;
     }
 
@@ -287,15 +287,17 @@ export function ShiftConfigurationPanel({
       resetRuleForm();
       await onChanged();
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Không thể lưu quy tắc phân công.");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể lưu quy tắc phân công.",
+        "Thao tác thất bại",
+      );
     } finally {
       setSaving(false);
     }
   }
 
   async function handleToggleTemplate(template: ShiftTemplateApiResponse) {
-    setSaving(true);
-    setFormError("");
+    setStatusChangingTemplateId(template.shiftTemplateId);
     try {
       if (template.status === "ACTIVE") {
         await deleteShiftTemplate(template.shiftTemplateId);
@@ -306,15 +308,17 @@ export function ShiftConfigurationPanel({
       }
       await onChanged();
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Không thể đổi trạng thái mẫu ca.");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể đổi trạng thái mẫu ca.",
+        "Thao tác thất bại",
+      );
     } finally {
-      setSaving(false);
+      setStatusChangingTemplateId(null);
     }
   }
 
   async function handleToggleRule(rule: EmployeeRosterRuleApiResponse) {
-    setSaving(true);
-    setFormError("");
+    setStatusChangingRuleId(rule.rosterRuleId);
     try {
       if (rule.status === "ACTIVE") {
         await deleteEmployeeRosterRule(rule.rosterRuleId);
@@ -325,9 +329,12 @@ export function ShiftConfigurationPanel({
       }
       await onChanged();
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Không thể đổi trạng thái quy tắc.");
+      toast.error(
+        error instanceof Error ? error.message : "Không thể đổi trạng thái quy tắc.",
+        "Thao tác thất bại",
+      );
     } finally {
-      setSaving(false);
+      setStatusChangingRuleId(null);
     }
   }
 
@@ -373,7 +380,6 @@ export function ShiftConfigurationPanel({
                 <TextInput type="time" value={templateForm.endLocalTime} onChange={(event) => setTemplateForm((current) => ({ ...current, endLocalTime: event.target.value }))} />
               </Field>
             </div>
-            {formError ? <div className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{formError}</div> : null}
             <Button loading={saving} type="submit">{saving ? "Đang lưu..." : editingTemplateId ? "Cập nhật mẫu ca" : "Tạo mẫu ca"}</Button>
           </form>
         </Card>
@@ -391,7 +397,7 @@ export function ShiftConfigurationPanel({
                   <th>Tên mẫu</th>
                   <th>Khung giờ</th>
                   <th>Trạng thái</th>
-                  <th></th>
+                  <th className="tw-text-center">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -399,20 +405,31 @@ export function ShiftConfigurationPanel({
                   <tr className="tw-cursor-pointer hover:tw-bg-brand-50/30" key={template.shiftTemplateId} onClick={() => {
                     setEditingTemplateId(template.shiftTemplateId);
                     setTemplateForm(toTemplateForm(template, selectedLot));
-                    setFormError("");
                   }}>
                     <td className="tw-font-bold tw-text-vm-slate-900">{getLotName(parkingLots, template.parkingLotId)}</td>
                     <td>{shiftTypeLabels[template.shiftType]}</td>
                     <td>{template.name}</td>
                     <td>{template.startLocalTime?.slice(0, 5)} - {template.endLocalTime?.slice(0, 5)}</td>
                     <td><Badge tone={template.status === "ACTIVE" ? "success" : "neutral"}>{template.status === "ACTIVE" ? "Đang hoạt động" : "Ngưng"}</Badge></td>
-                    <td>
-                      <Button size="sm" variant={template.status === "ACTIVE" ? "danger" : "secondary"} disabled={saving} onClick={(event) => {
-                        event.stopPropagation();
-                        void handleToggleTemplate(template);
-                      }}>
-                        {template.status === "ACTIVE" ? "Vô hiệu hóa" : "Kích hoạt"}
-                      </Button>
+                    <td className="tw-text-center">
+                      <button
+                        aria-label={template.status === "ACTIVE" ? "Ngưng sử dụng mẫu ca" : "Kích hoạt lại mẫu ca"}
+                        className={cn(
+                          "tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-transition disabled:tw-cursor-not-allowed disabled:tw-opacity-50",
+                          template.status === "ACTIVE"
+                            ? "tw-text-vm-danger hover:tw-bg-red-50"
+                            : "tw-text-emerald-600 hover:tw-bg-emerald-50",
+                        )}
+                        disabled={saving || statusChangingTemplateId !== null}
+                        title={template.status === "ACTIVE" ? "Ngưng sử dụng mẫu ca" : "Kích hoạt lại mẫu ca"}
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void handleToggleTemplate(template);
+                        }}
+                      >
+                        <i className={statusChangingTemplateId === template.shiftTemplateId ? "fas fa-spinner fa-spin" : template.status === "ACTIVE" ? "fas fa-ban" : "fas fa-check"} />
+                      </button>
                     </td>
                   </tr>
                 )) : (
@@ -484,7 +501,6 @@ export function ShiftConfigurationPanel({
               <TextInput type="date" value={ruleForm.effectiveTo} onChange={(event) => setRuleForm((current) => ({ ...current, effectiveTo: event.target.value }))} />
             </Field>
           </div>
-          {formError ? <div className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{formError}</div> : null}
           <Button loading={saving} type="submit">{saving ? "Đang lưu..." : editingRuleId ? "Cập nhật quy tắc" : "Tạo quy tắc"}</Button>
         </form>
       </Card>
@@ -505,7 +521,7 @@ export function ShiftConfigurationPanel({
                 <th>Chế độ</th>
                 <th>Hiệu lực</th>
                 <th>Trạng thái</th>
-                <th></th>
+                <th className="tw-text-center">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -513,7 +529,6 @@ export function ShiftConfigurationPanel({
                 <tr className="tw-cursor-pointer hover:tw-bg-brand-50/30" key={rule.rosterRuleId} onClick={() => {
                   setEditingRuleId(rule.rosterRuleId);
                   setRuleForm(toRosterRuleForm(rule, selectedLot));
-                  setFormError("");
                 }}>
                   <td className="tw-font-bold tw-text-vm-slate-900">{getEmployeeName(employees.find((employee) => employee.employeeId === rule.employeeId))}</td>
                   <td>{getLotName(parkingLots, rule.parkingLotId)}</td>
@@ -523,13 +538,25 @@ export function ShiftConfigurationPanel({
                   <td>{assignmentModeLabels[rule.assignmentMode]}</td>
                   <td>{rule.effectiveFrom} - {rule.effectiveTo || "Không giới hạn"}</td>
                   <td><Badge tone={rule.status === "ACTIVE" ? "success" : "neutral"}>{rule.status === "ACTIVE" ? "Đang hoạt động" : "Ngưng"}</Badge></td>
-                  <td>
-                    <Button size="sm" variant={rule.status === "ACTIVE" ? "danger" : "secondary"} disabled={saving} onClick={(event) => {
-                      event.stopPropagation();
-                      void handleToggleRule(rule);
-                    }}>
-                      {rule.status === "ACTIVE" ? "Vô hiệu hóa" : "Kích hoạt"}
-                    </Button>
+                  <td className="tw-text-center">
+                    <button
+                      aria-label={rule.status === "ACTIVE" ? "Ngưng sử dụng quy tắc" : "Kích hoạt lại quy tắc"}
+                      className={cn(
+                        "tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-transition disabled:tw-cursor-not-allowed disabled:tw-opacity-50",
+                        rule.status === "ACTIVE"
+                          ? "tw-text-vm-danger hover:tw-bg-red-50"
+                          : "tw-text-emerald-600 hover:tw-bg-emerald-50",
+                      )}
+                      disabled={saving || statusChangingRuleId !== null}
+                      title={rule.status === "ACTIVE" ? "Ngưng sử dụng quy tắc" : "Kích hoạt lại quy tắc"}
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void handleToggleRule(rule);
+                      }}
+                    >
+                      <i className={statusChangingRuleId === rule.rosterRuleId ? "fas fa-spinner fa-spin" : rule.status === "ACTIVE" ? "fas fa-ban" : "fas fa-check"} />
+                    </button>
                   </td>
                 </tr>
               )) : (
