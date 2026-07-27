@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { SelectMenuOption } from "@/components/ui";
 import { Button, Card, CardContent, CardHeader, SelectMenu } from "@/components/ui";
 import { VNPAY_MINIMUM_AMOUNT } from "@/features/parking/api/parkingPaymentApi";
+import type { LicensePlateOcrCandidate, LicensePlateOcrResponse } from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
 import type { ParkingOperationMode } from "./OperationModeTabs";
 

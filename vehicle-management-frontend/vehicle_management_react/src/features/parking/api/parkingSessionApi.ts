@@ -253,6 +253,11 @@ export type LicensePlateOcrResponse = {
   validFormat?: boolean | null;
 };
 
+export type LicensePlateOcrContext = {
+  direction?: LaneDirection;
+  laneId?: string;
+};
+
 export async function fetchParkingLanes(direction?: LaneDirection) {
   const query = new URLSearchParams();
   if (direction) query.set("direction", direction);
@@ -395,7 +400,7 @@ export async function fetchParkingCheckOutByInvoice(invoiceId: string) {
   return response.data;
 }
 
-export async function recognizeLicensePlate(image: File) {
+export async function recognizeLicensePlate(image: File, context: LicensePlateOcrContext = {}) {
   const formData = new FormData();
   formData.append("image", image, image.name);
   if (context.laneId) formData.append("laneId", context.laneId);

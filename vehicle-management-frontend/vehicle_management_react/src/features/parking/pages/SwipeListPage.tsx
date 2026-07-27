@@ -636,9 +636,9 @@ export function SwipeListPage() {
   }
 
   function handleApplyOcrCandidate(candidate: LicensePlateOcrCandidate) {
-    const candidatePlate = bestCandidatePlate(candidate);
-    if (!candidatePlate) return;
-    setLicensePlate(candidatePlate);
+    const plate = candidate.normalizedLicensePlate || candidate.formattedLicensePlate || candidate.licensePlate;
+    if (!plate) return;
+    setLicensePlate(plate);
     setOcrStatus("review");
     setOcrMessage("Đã chọn biển số dự đoán, có thể sửa trực tiếp nếu chưa đúng.");
   }
