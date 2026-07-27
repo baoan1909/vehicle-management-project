@@ -132,6 +132,18 @@ export function createPricePlan(payload: CreatePricePlanRequest) {
   });
 }
 
+export function deactivatePricePlan(pricePlanId: string) {
+  return apiClient<ApiResponse<null>>(`${apiEndpoints.catalog.pricePlans}/${pricePlanId}`, {
+    method: "DELETE",
+  });
+}
+
+export function activatePricePlan(pricePlanId: string) {
+  return apiClient<ApiResponse<PricePlanApiResponse>>(`${apiEndpoints.catalog.pricePlans}/${pricePlanId}/activate`, {
+    method: "PATCH",
+  });
+}
+
 export function getPriceRules(filter: PriceRuleFilter = {}) {
   return apiClient<ApiResponse<PriceRuleApiResponse[]>>(
     `${apiEndpoints.catalog.priceRules}${buildQuery(filter)}`,
@@ -156,6 +168,18 @@ export function updatePriceRule(priceRuleId: string, payload: UpdatePriceRuleReq
   return apiClient<ApiResponse<PriceRuleApiResponse>>(`${apiEndpoints.catalog.priceRules}/${priceRuleId}`, {
     method: "PUT",
     body: payload,
+  });
+}
+
+export function deactivatePriceRule(priceRuleId: string) {
+  return apiClient<ApiResponse<null>>(`${apiEndpoints.catalog.priceRules}/${priceRuleId}`, {
+    method: "DELETE",
+  });
+}
+
+export function activatePriceRule(priceRuleId: string) {
+  return apiClient<ApiResponse<PriceRuleApiResponse>>(`${apiEndpoints.catalog.priceRules}/${priceRuleId}/activate`, {
+    method: "PATCH",
   });
 }
 

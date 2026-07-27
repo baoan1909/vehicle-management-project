@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import { DatePicker, SearchInput } from "@/components/ui";
+import { Button, DatePicker, SearchInput, useToast } from "@/components/ui";
 import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
+import { Modal } from "@/shared/components/ui/Modal";
 import { SelectMenu, type SelectMenuOption } from "@/shared/components/ui/SelectMenu";
 import { cn } from "@/lib/cn";
 import {
+  activatePricePlan,
+  activatePriceRule,
   createPricePlan,
   createPriceRule,
+  deactivatePricePlan,
+  deactivatePriceRule,
   getPricePlans,
   getPriceRules,
   getPricingTicketTypes,
@@ -53,7 +58,8 @@ const statusOptions: SelectMenuOption[] = [
   { label: "Tất cả trạng thái", value: "all" },
   { label: "Đang áp dụng", value: "active" },
   { label: "Sắp hiệu lực", value: "upcoming" },
-  { label: "Hết hiệu lực", value: "expired" }
+  { label: "Hết hiệu lực", value: "expired" },
+  { label: "Ngưng sử dụng", value: "inactive" }
 ];
 
 const appliesToOptions: SelectMenuOption[] = [
@@ -239,7 +245,7 @@ function getDateTimeParts(value: string | null | undefined) {
 }
 
 function getPricingStatus(isActive: boolean | null | undefined, effectiveFrom: string | null | undefined, effectiveTo: string | null | undefined): PricingStatus {
-  if (!isActive) return "expired";
+  if (!isActive) return "inactive";
 
   const today = new Date().toISOString().slice(0, 10);
   if (effectiveFrom && today < effectiveFrom) return "upcoming";
@@ -611,12 +617,14 @@ function StatusBadge({ status }: { status: PricingStatus }) {
   const label: Record<PricingStatus, string> = {
     active: "Đang áp dụng",
     upcoming: "Sắp hiệu lực",
-    expired: "Hết hiệu lực"
+    expired: "Hết hiệu lực",
+    inactive: "Ngưng sử dụng"
   };
   const className: Record<PricingStatus, string> = {
     active: "tw-bg-[rgba(22,163,74,0.12)] tw-text-vm-success",
     upcoming: "tw-bg-[rgba(245,158,11,0.13)] tw-text-[#f59e0b]",
-    expired: "tw-bg-slate-100 tw-text-slate-500"
+    expired: "tw-bg-slate-100 tw-text-slate-500",
+    inactive: "tw-bg-red-50 tw-text-vm-danger"
   };
 
   return (
@@ -1194,23 +1202,87 @@ function PriceRuleToolbar({
   );
 }
 
+type PricingStatusActionTarget = {
+  id: string;
+  isActive: boolean;
+  kind: "plan" | "rule";
+  name: string;
+};
+
+function PricingStatusConfirmModal({
+  onClose,
+  onConfirm,
+  saving,
+  target
+}: {
+  onClose: () => void;
+  onConfirm: () => Promise<void> | void;
+  saving: boolean;
+  target: PricingStatusActionTarget | null;
+}) {
+  const entityLabel = target?.kind === "plan" ? "kế hoạch giá" : "quy tắc giá";
+  const isDeactivating = Boolean(target?.isActive);
+
+  return (
+    <Modal
+      actions={
+        <div className="tw-flex tw-justify-end tw-gap-2">
+          <Button variant="secondary" disabled={saving} onClick={onClose}>Hủy</Button>
+          <Button variant={isDeactivating ? "danger" : "primary"} loading={saving} onClick={() => void onConfirm()}>
+            {isDeactivating ? "Ngưng sử dụng" : "Kích hoạt lại"}
+          </Button>
+        </div>
+      }
+      description={
+        isDeactivating
+          ? `${target?.name ?? entityLabel} sẽ không còn được áp dụng cho các giao dịch mới.`
+          : `${target?.name ?? entityLabel} sẽ được đưa trở lại danh sách có thể áp dụng.`
+      }
+      onClose={onClose}
+      open={Boolean(target)}
+      title={`${isDeactivating ? "Ngưng sử dụng" : "Kích hoạt lại"} ${entityLabel}`}
+      width="sm"
+    >
+      <div>
+        <div className={cn(
+          "tw-flex tw-items-start tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-p-3 tw-text-[0.84rem] tw-font-semibold tw-leading-6",
+          isDeactivating
+            ? "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-800"
+            : "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-800",
+        )}>
+          <i className={cn("tw-mt-1", isDeactivating ? "fas fa-exclamation-triangle" : "fas fa-check-circle")} />
+          <span>
+            {isDeactivating
+              ? `Bạn có chắc muốn ngưng sử dụng ${entityLabel} này?`
+              : `Bạn có chắc muốn kích hoạt lại ${entityLabel} này?`}
+          </span>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function PricePlanTable({
   currentPage,
   onSelectRow,
+  onToggleStatus,
   onPageChange,
   onPageSizeChange,
   pageSize,
   rows,
   selectedId,
+  statusChangingId,
   totalRecords
 }: {
   currentPage: number;
   onSelectRow: (id: string) => void;
+  onToggleStatus: (row: PricePlanRecord) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   pageSize: number;
   rows: PricePlanRecord[];
   selectedId: string | null;
+  statusChangingId: string | null;
   totalRecords: number;
 }) {
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
@@ -1231,7 +1303,7 @@ function PricePlanTable({
               <th>Hiệu lực đến</th>
               <th>Trạng thái</th>
               <th>Cập nhật</th>
-              <th className="tw-w-8" />
+              <th className="tw-w-24 tw-text-center">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -1257,9 +1329,24 @@ function PricePlanTable({
                     <strong className="tw-text-[0.88rem] tw-font-medium tw-text-slate-900">{row.updatedTime}</strong>
                   </div>
                 </td>
-                <td>
-                  <button className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-transparent tw-text-vm-slate-500 hover:tw-bg-vm-slate-25" type="button" onClick={(event) => event.stopPropagation()}>
-                    <i className="fas fa-ellipsis-v" />
+                <td className="tw-text-center">
+                  <button
+                    aria-label={row.isActive ? `Ngưng sử dụng kế hoạch ${row.name}` : `Kích hoạt lại kế hoạch ${row.name}`}
+                    className={cn(
+                      "tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-transition",
+                      row.isActive
+                        ? "tw-text-vm-danger hover:tw-bg-red-50"
+                        : "tw-text-emerald-600 hover:tw-bg-emerald-50",
+                    )}
+                    disabled={statusChangingId === row.id}
+                    title={row.isActive ? "Ngưng sử dụng kế hoạch" : "Kích hoạt lại kế hoạch"}
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onToggleStatus(row);
+                    }}
+                  >
+                    <i className={statusChangingId === row.id ? "fas fa-spinner fa-spin" : row.isActive ? "fas fa-ban" : "fas fa-check"} />
                   </button>
                 </td>
               </tr>
@@ -1825,20 +1912,24 @@ function PriceRuleCreatePanel({
 function PriceRuleTable({
   currentPage,
   onSelectRow,
+  onToggleStatus,
   onPageChange,
   onPageSizeChange,
   pageSize,
   rows,
   selectedId,
+  statusChangingId,
   totalRecords
 }: {
   currentPage: number;
   onSelectRow: (id: string) => void;
+  onToggleStatus: (row: PriceRuleRecord) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   pageSize: number;
   rows: PriceRuleRecord[];
   selectedId: string | null;
+  statusChangingId: string | null;
   totalRecords: number;
 }) {
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
@@ -1861,7 +1952,7 @@ function PriceRuleTable({
               <th>Phí mất thẻ</th>
               <th>Ưu tiên</th>
               <th>Trạng thái</th>
-              <th className="tw-w-8" />
+              <th className="tw-w-24 tw-text-center">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -1884,9 +1975,24 @@ function PriceRuleTable({
                 <td>{formatMoney(row.lostCardFee)}</td>
                 <td>{row.priority}</td>
                 <td><StatusBadge status={row.status} /></td>
-                <td>
-                  <button className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-transparent tw-text-vm-slate-500 hover:tw-bg-vm-slate-25" type="button" onClick={(event) => event.stopPropagation()}>
-                    <i className="fas fa-ellipsis-v" />
+                <td className="tw-text-center">
+                  <button
+                    aria-label={row.isActive ? `Ngưng sử dụng quy tắc ${row.ruleName}` : `Kích hoạt lại quy tắc ${row.ruleName}`}
+                    className={cn(
+                      "tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-transition",
+                      row.isActive
+                        ? "tw-text-vm-danger hover:tw-bg-red-50"
+                        : "tw-text-emerald-600 hover:tw-bg-emerald-50",
+                    )}
+                    disabled={statusChangingId === row.id}
+                    title={row.isActive ? "Ngưng sử dụng quy tắc" : "Kích hoạt lại quy tắc"}
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onToggleStatus(row);
+                    }}
+                  >
+                    <i className={statusChangingId === row.id ? "fas fa-spinner fa-spin" : row.isActive ? "fas fa-ban" : "fas fa-check"} />
                   </button>
                 </td>
               </tr>
@@ -1913,7 +2019,6 @@ function PriceRuleTable({
 
 export function PricePlanListPage() {
   const [records, setRecords] = useState<PricePlanRecord[]>([]);
-  const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [searchValue, setSearchValue] = useState("");
   const [statusValue, setStatusValue] = useState("all");
@@ -1923,16 +2028,16 @@ export function PricePlanListPage() {
   const [isCreatePanelOpen, setIsCreatePanelOpen] = useState(false);
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
   const [isExportDrawerOpen, setIsExportDrawerOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [statusTarget, setStatusTarget] = useState<PricePlanRecord | null>(null);
+  const [statusChangingId, setStatusChangingId] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     let isMounted = true;
 
     setIsLoading(true);
-    setErrorMessage("");
-
     getPricePlans()
       .then((response) => {
         if (!isMounted) return;
@@ -1942,7 +2047,10 @@ export function PricePlanListPage() {
       .catch((error) => {
         if (!isMounted) return;
 
-        setErrorMessage(error instanceof Error ? error.message : "Không thể tải kế hoạch giá.");
+        toast.error(
+          error instanceof Error ? error.message : "Không thể tải kế hoạch giá.",
+          "Tải dữ liệu thất bại",
+        );
       })
       .finally(() => {
         if (isMounted) {
@@ -1953,7 +2061,7 @@ export function PricePlanListPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [toast]);
 
   const filteredRecords = useMemo(
     () =>
@@ -1995,8 +2103,44 @@ export function PricePlanListPage() {
 
     setRecords((currentRecords) => [createdRecord, ...currentRecords]);
     setSelectedId(createdRecord.id);
-    setSuccessMessage(response.message || "Tạo kế hoạch giá thành công.");
+    toast.success(response.message || "Tạo kế hoạch giá thành công.", "Tạo thành công");
     setCurrentPage(1);
+  };
+
+  const handleConfirmPlanStatus = async () => {
+    if (!statusTarget) return;
+
+    setStatusChangingId(statusTarget.id);
+
+    try {
+      if (statusTarget.isActive) {
+        const response = await deactivatePricePlan(statusTarget.id);
+        setRecords((currentRecords) =>
+          currentRecords.map((record) =>
+            record.id === statusTarget.id
+              ? { ...record, isActive: false, status: "inactive" }
+              : record,
+          ),
+        );
+        toast.success(response.message || "Đã ngưng sử dụng kế hoạch giá.", "Cập nhật thành công");
+      } else {
+        const response = await activatePricePlan(statusTarget.id);
+        const activatedRecord = mapPricePlan(response.data);
+        setRecords((currentRecords) =>
+          currentRecords.map((record) => (record.id === activatedRecord.id ? activatedRecord : record)),
+        );
+        toast.success(response.message || "Đã kích hoạt lại kế hoạch giá.", "Cập nhật thành công");
+      }
+
+      setStatusTarget(null);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật trạng thái kế hoạch giá.",
+        "Cập nhật thất bại",
+      );
+    } finally {
+      setStatusChangingId(null);
+    }
   };
 
   const handleExportPlans = (options: PricingExportOptions) => {
@@ -2043,25 +2187,19 @@ export function PricePlanListPage() {
             setCurrentPage(1);
           }}
         />
-        {successMessage ? (
-          <div className="tw-m-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-green-100 tw-bg-green-50 tw-px-4 tw-py-3 tw-text-[0.9rem] tw-font-bold tw-text-green-700">
-            {successMessage}
-          </div>
-        ) : null}
-        {errorMessage ? (
-          <div className="tw-m-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-px-4 tw-py-3 tw-text-[0.9rem] tw-font-bold tw-text-red-600">
-            {errorMessage}
-          </div>
-        ) : null}
         {isLoading ? (
           <div className="tw-px-4 tw-py-5 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-500">Đang tải dữ liệu bảng giá...</div>
         ) : null}
         <PricePlanTable
           currentPage={page.safeCurrentPage}
           selectedId={effectiveSelectedId}
+          statusChangingId={statusChangingId}
           onSelectRow={(id) => {
             setSelectedId(id);
             setIsDetailPanelOpen(true);
+          }}
+          onToggleStatus={(row) => {
+            setStatusTarget(row);
           }}
           onPageChange={setCurrentPage}
           onPageSizeChange={(value) => {
@@ -2075,6 +2213,15 @@ export function PricePlanListPage() {
       </main>
       <PricePlanDetailPanel isOpen={isCreatePanelOpen} row={null} onClose={() => setIsCreatePanelOpen(false)} onCreate={handleCreatePlan} onSave={handleSavePlan} />
       <PricePlanDetailPanel isOpen={isDetailPanelOpen && Boolean(selectedRecord)} row={selectedRecord} onClose={() => setIsDetailPanelOpen(false)} onSave={handleSavePlan} />
+      <PricingStatusConfirmModal
+        saving={Boolean(statusChangingId)}
+        target={statusTarget ? { id: statusTarget.id, isActive: statusTarget.isActive, kind: "plan", name: statusTarget.name } : null}
+        onClose={() => {
+          if (statusChangingId) return;
+          setStatusTarget(null);
+        }}
+        onConfirm={handleConfirmPlanStatus}
+      />
       <PricingExportDrawer isOpen={isExportDrawerOpen} totalRecords={filteredRecords.length} onClose={() => setIsExportDrawerOpen(false)} onExport={handleExportPlans} />
     </PricingPageShell>
   );
@@ -2085,11 +2232,9 @@ export function PriceRuleListPage() {
   const [plans, setPlans] = useState<PricePlanRecord[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketTypeApiResponse[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeApiResponse[]>([]);
-  const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isCreatePanelOpen, setIsCreatePanelOpen] = useState(false);
   const [isExportDrawerOpen, setIsExportDrawerOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
   const [searchValue, setSearchValue] = useState("");
   const [planValue, setPlanValue] = useState("all");
   const [vehicleTypeValue, setVehicleTypeValue] = useState("all");
@@ -2100,13 +2245,14 @@ export function PriceRuleListPage() {
   const [isDetailPanelOpen, setIsDetailPanelOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
+  const [statusTarget, setStatusTarget] = useState<PriceRuleRecord | null>(null);
+  const [statusChangingId, setStatusChangingId] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     let isMounted = true;
 
     setIsLoading(true);
-    setErrorMessage("");
-
     Promise.all([
       getPricePlans(),
       getPriceRules(),
@@ -2129,7 +2275,10 @@ export function PriceRuleListPage() {
       .catch((error) => {
         if (!isMounted) return;
 
-        setErrorMessage(error instanceof Error ? error.message : "Không thể tải quy tắc giá.");
+        toast.error(
+          error instanceof Error ? error.message : "Không thể tải quy tắc giá.",
+          "Tải dữ liệu thất bại",
+        );
       })
       .finally(() => {
         if (isMounted) {
@@ -2140,7 +2289,7 @@ export function PriceRuleListPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [toast]);
 
   const dynamicPricePlanOptions = useMemo(() => buildPricePlanOptions(plans), [plans]);
   const dynamicVehicleTypeOptions = useMemo(() => buildVehicleTypeOptions(vehicleTypes), [vehicleTypes]);
@@ -2195,7 +2344,7 @@ export function PriceRuleListPage() {
     const createdRecord = mapPriceRule(response.data, planLookup, vehicleTypeLookup, ticketTypeLookup);
 
     setRecords((currentRecords) => [createdRecord, ...currentRecords]);
-    setSuccessMessage(response.message || "Tạo quy tắc giá thành công.");
+    toast.success(response.message || "Tạo quy tắc giá thành công.", "Tạo thành công");
     setCurrentPage(1);
   };
 
@@ -2207,7 +2356,47 @@ export function PriceRuleListPage() {
     const updatedRecord = mapPriceRule(response.data, planLookup, vehicleTypeLookup, ticketTypeLookup);
 
     setRecords((currentRecords) => currentRecords.map((record) => (record.id === updatedRecord.id ? updatedRecord : record)));
-    setSuccessMessage(response.message || "Cập nhật quy tắc giá thành công.");
+    toast.success(response.message || "Cập nhật quy tắc giá thành công.", "Cập nhật thành công");
+  };
+
+  const handleConfirmRuleStatus = async () => {
+    if (!statusTarget) return;
+
+    setStatusChangingId(statusTarget.id);
+
+    try {
+      if (statusTarget.isActive) {
+        const response = await deactivatePriceRule(statusTarget.id);
+        setRecords((currentRecords) =>
+          currentRecords.map((record) =>
+            record.id === statusTarget.id
+              ? { ...record, isActive: false, status: "inactive" }
+              : record,
+          ),
+        );
+        toast.success(response.message || "Đã ngưng sử dụng quy tắc giá.", "Cập nhật thành công");
+      } else {
+        const response = await activatePriceRule(statusTarget.id);
+        const planLookup = new Map(plans.map((plan) => [plan.id, plan]));
+        const vehicleTypeLookup = new Map(vehicleTypes.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType]));
+        const ticketTypeLookup = new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType]));
+        const activatedRecord = mapPriceRule(response.data, planLookup, vehicleTypeLookup, ticketTypeLookup);
+
+        setRecords((currentRecords) =>
+          currentRecords.map((record) => (record.id === activatedRecord.id ? activatedRecord : record)),
+        );
+        toast.success(response.message || "Đã kích hoạt lại quy tắc giá.", "Cập nhật thành công");
+      }
+
+      setStatusTarget(null);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Không thể cập nhật trạng thái quy tắc giá.",
+        "Cập nhật thất bại",
+      );
+    } finally {
+      setStatusChangingId(null);
+    }
   };
 
   const handleExportRules = (options: PricingRuleExportOptions) => {
@@ -2267,25 +2456,19 @@ export function PriceRuleListPage() {
             setCurrentPage(1);
           }}
         />
-        {successMessage ? (
-          <div className="tw-m-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-green-100 tw-bg-green-50 tw-px-4 tw-py-3 tw-text-[0.9rem] tw-font-bold tw-text-green-700">
-            {successMessage}
-          </div>
-        ) : null}
-        {errorMessage ? (
-          <div className="tw-m-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-px-4 tw-py-3 tw-text-[0.9rem] tw-font-bold tw-text-red-600">
-            {errorMessage}
-          </div>
-        ) : null}
         {isLoading ? (
           <div className="tw-px-4 tw-py-5 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-500">Đang tải dữ liệu quy tắc giá...</div>
         ) : null}
         <PriceRuleTable
           currentPage={page.safeCurrentPage}
           selectedId={effectiveSelectedId}
+          statusChangingId={statusChangingId}
           onSelectRow={(id) => {
             setSelectedId(id);
             setIsDetailPanelOpen(true);
+          }}
+          onToggleStatus={(row) => {
+            setStatusTarget(row);
           }}
           onPageChange={setCurrentPage}
           onPageSizeChange={(value) => {
@@ -2315,6 +2498,15 @@ export function PriceRuleListPage() {
         onClose={() => setIsDetailPanelOpen(false)}
         onCreate={handleCreateRule}
         onUpdate={handleUpdateRule}
+      />
+      <PricingStatusConfirmModal
+        saving={Boolean(statusChangingId)}
+        target={statusTarget ? { id: statusTarget.id, isActive: statusTarget.isActive, kind: "rule", name: statusTarget.ruleName } : null}
+        onClose={() => {
+          if (statusChangingId) return;
+          setStatusTarget(null);
+        }}
+        onConfirm={handleConfirmRuleStatus}
       />
       <PricingRuleExportDrawer isOpen={isExportDrawerOpen} totalRecords={filteredRecords.length} onClose={() => setIsExportDrawerOpen(false)} onExport={handleExportRules} />
     </PricingPageShell>

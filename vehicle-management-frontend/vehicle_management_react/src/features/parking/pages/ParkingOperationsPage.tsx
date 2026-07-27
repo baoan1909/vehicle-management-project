@@ -20,6 +20,9 @@ import {
   closeGate,
   closeLane,
   closeZone,
+  createGate,
+  createLane,
+  createZone,
   getGates,
   getLanes,
   getZones,
@@ -97,6 +100,11 @@ type SelectedNode =
   | { id: string; kind: "zone"; label: string }
   | { id: string; kind: "gate"; label: string }
   | { id: string; kind: "lane"; label: string };
+
+type CreatingNode =
+  | { kind: "zone"; parentId: string }
+  | { kind: "gate"; parentId: string }
+  | { kind: "lane"; parentId: string };
 
 const DRAWER_ANIMATION_MS = 280;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -394,7 +402,7 @@ function toLaneView(lane: LaneApiResponse): Lane {
     camera: "--",
     code: lane.code,
     deviceHealth: "Ổn định",
-    direction: lane.direction,
+    direction: normalizeLaneDirection(lane.direction),
     gateId: lane.gateId,
     id: lane.laneId,
     name: lane.name,
@@ -403,6 +411,11 @@ function toLaneView(lane: LaneApiResponse): Lane {
     throughput: 0,
     updatedAt: lane.updatedAt ?? lane.createdAt ?? "--",
   };
+}
+
+function normalizeLaneDirection(direction: unknown): LaneDirectionApi {
+  const normalized = String(direction ?? "").toUpperCase();
+  return normalized === "OUT" ? "OUT" : "IN";
 }
 
 function getVehicleTypeFilterValue(vehicleType: VehicleTypeApiResponse) {
@@ -482,6 +495,45 @@ function laneIcon(direction: LaneDirection) {
   return "fas fa-star";
 }
 
+function laneDirectionLabel(direction: LaneDirection) {
+  if (direction === "OUT") return "Làn ra";
+  if (direction === "VIP") return "Làn VIP";
+  return "Làn vào";
+}
+
+function laneDisplayName(lane: Lane) {
+  const label = laneDirectionLabel(lane.direction);
+  const name = lane.name.trim();
+  if (!name) return label;
+  return name.replace(/^(làn|lan)\s+(vào|vao|ra|vip)\b/i, label);
+}
+
+function laneDiagramDirectionLabel(direction: LaneDirection) {
+  if (direction === "OUT") return "L\u00e0n ra";
+  if (direction === "VIP") return "L\u00e0n VIP";
+  return "L\u00e0n v\u00e0o";
+}
+
+function laneDiagramDisplayName(lane: Lane) {
+  const label = laneDiagramDirectionLabel(lane.direction);
+  const name = lane.name.trim();
+  if (!name) return label;
+
+  const normalizedWords = name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .split(/\s+/);
+  const words = name.split(/\s+/);
+
+  if (normalizedWords[0] === "lan" && ["vao", "ra", "vip"].includes(normalizedWords[1] ?? "")) {
+    const suffix = words.slice(2).join(" ");
+    return suffix ? `${label} ${suffix}` : label;
+  }
+
+  return label;
+}
+
 function vehicleIcon(vehicleType: Zone["vehicleType"]) {
   const normalized = vehicleType.toLowerCase();
   if (normalized.includes("moto") || normalized.includes("motor") || normalized.includes("xe máy") || normalized.includes("xe may")) return "fas fa-motorcycle";
@@ -544,9 +596,7 @@ function ParkingMetricCard({
 
 function LaneChip({ lane, onSelect, selected }: { lane: Lane; onSelect: () => void; selected: boolean }) {
   const tone = topologyTone(lane.status);
-  const capacity = lane.status === "CLOSED" || lane.status === "MAINTENANCE" ? 40 : lane.direction === "VIP" ? 50 : 120;
-  const used = Math.min(capacity, lane.status === "CLOSED" || lane.status === "MAINTENANCE" ? 0 : Math.round(lane.throughput * 0.75));
-  const percent = Math.round((used / capacity) * 100);
+  const displayName = laneDiagramDisplayName(lane);
 
   return (
     <button
@@ -558,14 +608,10 @@ function LaneChip({ lane, onSelect, selected }: { lane: Lane; onSelect: () => vo
       onClick={onSelect}
     >
       <i className={cn(laneIcon(lane.direction), "tw-text-[1.05rem]", lane.status === "CLOSED" ? "tw-text-red-500" : lane.status === "MAINTENANCE" ? "tw-text-orange-500" : lane.direction === "OUT" ? "tw-text-emerald-600" : "tw-text-vm-primary")} />
-      <strong className="tw-mt-2 tw-text-[0.76rem] tw-font-extrabold tw-text-vm-slate-900">{lane.name}</strong>
+      <strong className="tw-mt-2 tw-text-[0.76rem] tw-font-extrabold tw-text-vm-slate-900">{displayName}</strong>
       <span className={cn("tw-mt-1 tw-inline-flex tw-items-center tw-gap-1 tw-text-[0.58rem] tw-font-extrabold", tone.text)}>
         <span className={cn("tw-h-1.5 tw-w-1.5 tw-rounded-full", statusDotClassName(lane.status))} />
         {statusLabel(lane.status)}
-      </span>
-      <span className="tw-mt-auto tw-text-[0.7rem] tw-font-extrabold tw-text-vm-slate-900">{used} / {capacity}</span>
-      <span className="tw-mt-2 tw-h-1.5 tw-w-full tw-overflow-hidden tw-rounded-full tw-bg-vm-slate-100">
-        <span className={cn("tw-block tw-h-full tw-rounded-full", tone.progress)} style={{ width: `${percent}%` }} />
       </span>
     </button>
   );
@@ -683,7 +729,7 @@ function ZoneCard({
             key={lane.id}
             lane={lane}
             selected={selectedNode?.kind === "lane" && selectedNode.id === lane.id}
-            onSelect={() => onSelect({ id: lane.id, kind: "lane", label: lane.name })}
+            onSelect={() => onSelect({ id: lane.id, kind: "lane", label: laneDiagramDisplayName(lane) })}
           />
         ))}
       </div>
@@ -1045,32 +1091,41 @@ type ParkingNodeFormPayload = {
 type ParkingNodeStatusAction = "ACTIVE" | "MAINTENANCE" | "CLOSED";
 
 function ParkingNodeDrawer({
-  error,
+  creatingNode,
   gate,
+  gates,
   lanes,
   isOpen,
   lane,
   node,
   onClose,
+  onCreatingParentChange,
   onSave,
   onStatusChange,
+  parkingLots,
   saving,
   vehicleTypeOptions,
   zone,
+  zones,
 }: {
-  error: string;
+  creatingNode: CreatingNode | null;
   gate?: Gate;
+  gates: Gate[];
   lanes: Lane[];
   isOpen: boolean;
   lane?: Lane;
   node: SelectedNode | null;
   onClose: () => void;
+  onCreatingParentChange: (parentId: string) => void;
   onSave: (node: SelectedNode, payload: ParkingNodeFormPayload) => Promise<void> | void;
   onStatusChange: (node: SelectedNode, action: ParkingNodeStatusAction) => Promise<void> | void;
+  parkingLots: ParkingLot[];
   saving: boolean;
   vehicleTypeOptions: Array<{ label: string; value: string }>;
   zone?: Zone;
+  zones: Zone[];
 }) {
+  const toast = useToast();
   const [isRendered, setIsRendered] = useState(isOpen);
   const [phase, setPhase] = useState<DrawerPhase>(isOpen ? "open" : "closing");
   const [form, setForm] = useState<ParkingNodeFormPayload>({
@@ -1080,7 +1135,6 @@ function ParkingNodeDrawer({
     name: "",
     vehicleTypeId: null,
   });
-  const [formError, setFormError] = useState("");
   const [confirmAction, setConfirmAction] = useState<ParkingNodeStatusAction | null>(null);
 
   useEffect(() => {
@@ -1116,6 +1170,18 @@ function ParkingNodeDrawer({
   }, [isRendered, onClose]);
 
   useEffect(() => {
+    if (creatingNode) {
+      setForm({
+        capacity: creatingNode.kind === "zone" ? 1 : 0,
+        code: "",
+        direction: "IN",
+        name: "",
+        vehicleTypeId: null,
+      });
+      setConfirmAction(null);
+      return;
+    }
+
     setForm({
       capacity: zone?.capacity ?? 0,
       code: lane?.code ?? gate?.code ?? zone?.code ?? "",
@@ -1123,24 +1189,28 @@ function ParkingNodeDrawer({
       name: lane?.name ?? gate?.name ?? zone?.name ?? "",
       vehicleTypeId: zone?.vehicleTypeId ?? null,
     });
-    setFormError("");
     setConfirmAction(null);
-  }, [gate, lane, node, zone]);
+  }, [creatingNode, gate, lane, node, zone]);
 
   if (!isRendered || !node) return null;
   const currentNode = node;
+  const isCreating = Boolean(creatingNode);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setFormError("");
 
     if (!form.code.trim() || !form.name.trim()) {
-      setFormError("Vui lòng nhập mã và tên.");
+      toast.error("Vui lòng nhập mã và tên.");
       return;
     }
 
     if (currentNode.kind === "zone" && form.capacity <= 0) {
-      setFormError("Sức chứa khu phải lớn hơn 0.");
+      toast.error("Sức chứa khu phải lớn hơn 0.");
+      return;
+    }
+
+    if (isCreating && !creatingNode?.parentId) {
+      toast.error(currentNode.kind === "zone" ? "Vui lòng chọn bãi xe." : currentNode.kind === "gate" ? "Vui lòng chọn khu vực." : "Vui lòng chọn cổng.");
       return;
     }
 
@@ -1157,11 +1227,28 @@ function ParkingNodeDrawer({
     setConfirmAction(null);
   }
 
-  const title = currentNode.kind === "lane" ? "Chi tiết làn" : currentNode.kind === "gate" ? "Chi tiết cổng" : "Chi tiết khu vực";
+  const title = isCreating
+    ? currentNode.kind === "lane"
+      ? "Thêm làn xe"
+      : currentNode.kind === "gate"
+        ? "Thêm cổng"
+        : "Thêm khu vực đỗ xe"
+    : currentNode.kind === "lane" ? "Chi tiết làn" : currentNode.kind === "gate" ? "Chi tiết cổng" : "Chi tiết khu vực";
   const status = lane?.status ?? gate?.status ?? zone?.status ?? "ACTIVE";
-  const code = lane?.code ?? gate?.code ?? zone?.code ?? "";
-  const canEdit = !currentNode.id.startsWith("zone-") && !currentNode.id.startsWith("gate-") && !currentNode.id.startsWith("lane-");
+  const code = isCreating ? "Mới" : lane?.code ?? gate?.code ?? zone?.code ?? "";
+  const canEdit = isCreating || (!currentNode.id.startsWith("zone-") && !currentNode.id.startsWith("gate-") && !currentNode.id.startsWith("lane-"));
   const nodeLabel = currentNode.kind === "lane" ? "làn" : currentNode.kind === "gate" ? "cổng" : "khu";
+  const parentOptions = !creatingNode
+    ? []
+    : creatingNode.kind === "zone"
+      ? parkingLots.filter((lot) => lot.source === "api").map((lot) => ({ label: lot.name, value: lot.id }))
+      : creatingNode.kind === "gate"
+        ? zones.map((item) => ({ label: `${item.name} - ${item.code}`, value: item.id }))
+        : gates.map((item) => {
+            const parentZone = zones.find((zoneItem) => zoneItem.id === item.zoneId);
+            return { label: `${item.name} - ${item.code}${parentZone ? ` (${parentZone.name})` : ""}`, value: item.id };
+          });
+  const parentLabel = creatingNode?.kind === "zone" ? "Bãi xe" : creatingNode?.kind === "gate" ? "Khu vực" : "Cổng";
   const confirmTitle = confirmAction === "MAINTENANCE" ? `Xác nhận đưa ${nodeLabel} vào bảo trì?` : `Xác nhận đóng ${nodeLabel}?`;
   const confirmMessage =
     confirmAction === "MAINTENANCE"
@@ -1221,6 +1308,22 @@ function ParkingNodeDrawer({
           <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4">
             <h3 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Thông tin cấu hình</h3>
             <div className="tw-mt-4 tw-grid tw-gap-3">
+              {isCreating ? (
+                <label className="tw-m-0 tw-grid tw-gap-2">
+                  <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">{parentLabel}</span>
+                  <select
+                    className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] disabled:tw-bg-vm-slate-25"
+                    disabled={saving}
+                    value={creatingNode?.parentId ?? ""}
+                    onChange={(event) => onCreatingParentChange(event.target.value)}
+                  >
+                    <option value="">Chọn {parentLabel.toLowerCase()}</option>
+                    {parentOptions.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
               <label className="tw-m-0 tw-grid tw-gap-2">
                 <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Mã</span>
                 <input
@@ -1283,22 +1386,21 @@ function ParkingNodeDrawer({
                 </label>
               ) : null}
               {!canEdit ? <div className="tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-[0.78rem] tw-font-bold tw-text-amber-700">Dữ liệu mẫu chỉ dùng để xem giao diện, không thể cập nhật.</div> : null}
-              {formError || error ? <div className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{formError || error}</div> : null}
             </div>
           </section>
 
           <section className="tw-mt-4 tw-rounded-vm-lg tw-bg-white tw-p-0">
             <h3 className="tw-m-0 tw-text-[0.98rem] tw-font-extrabold tw-text-vm-slate-900">Trạng thái vận hành</h3>
             <div className="tw-mt-4 tw-grid tw-grid-cols-3 tw-gap-2">
-              <button className="tw-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-100 tw-bg-emerald-50 tw-text-[0.78rem] tw-font-extrabold tw-text-emerald-700 tw-transition hover:tw-translate-y-[-1px] disabled:tw-opacity-50" disabled={!canEdit || saving || status === "ACTIVE"} type="button" onClick={() => void onStatusChange(node, "ACTIVE")}>
+              <button className="tw-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-100 tw-bg-emerald-50 tw-text-[0.78rem] tw-font-extrabold tw-text-emerald-700 tw-transition hover:tw-translate-y-[-1px] disabled:tw-opacity-50" disabled={isCreating || !canEdit || saving || status === "ACTIVE"} type="button" onClick={() => void onStatusChange(node, "ACTIVE")}>
                 <i className="fas fa-check" />
                 Kích hoạt
               </button>
-              <button className="tw-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-100 tw-bg-amber-50 tw-text-[0.78rem] tw-font-extrabold tw-text-amber-700 tw-transition hover:tw-translate-y-[-1px] disabled:tw-opacity-50" disabled={!canEdit || saving || status === "MAINTENANCE"} type="button" onClick={() => setConfirmAction("MAINTENANCE")}>
+              <button className="tw-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-100 tw-bg-amber-50 tw-text-[0.78rem] tw-font-extrabold tw-text-amber-700 tw-transition hover:tw-translate-y-[-1px] disabled:tw-opacity-50" disabled={isCreating || !canEdit || saving || status === "MAINTENANCE"} type="button" onClick={() => setConfirmAction("MAINTENANCE")}>
                 <i className="fas fa-tools" />
                 Bảo trì
               </button>
-              <button className="tw-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-text-[0.78rem] tw-font-extrabold tw-text-red-700 tw-transition hover:tw-translate-y-[-1px] disabled:tw-opacity-50" disabled={!canEdit || saving || status === "CLOSED"} type="button" onClick={() => setConfirmAction("CLOSED")}>
+              <button className="tw-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-text-[0.78rem] tw-font-extrabold tw-text-red-700 tw-transition hover:tw-translate-y-[-1px] disabled:tw-opacity-50" disabled={isCreating || !canEdit || saving || status === "CLOSED"} type="button" onClick={() => setConfirmAction("CLOSED")}>
                 <i className="fas fa-ban" />
                 Đóng
               </button>
@@ -1391,7 +1493,7 @@ function ParkingNodeDrawer({
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
           <Button variant="primary" type="submit" disabled={!canEdit} loading={saving}>
             {!saving ? <i className="far fa-save" /> : null}
-            {saving ? "Đang lưu" : "Lưu thay đổi"}
+            {saving ? "Đang lưu" : isCreating ? "Tạo mới" : "Lưu thay đổi"}
           </Button>
         </footer>
         </form>
@@ -1407,6 +1509,7 @@ export function ParkingOperationsPage() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedVehicleType, setSelectedVehicleType] = useState("all");
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>({ id: "lane-a1-in", kind: "lane", label: "Làn vào" });
+  const [creatingNode, setCreatingNode] = useState<CreatingNode | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [lotDrawerOpen, setLotDrawerOpen] = useState(false);
   const [editingLot, setEditingLot] = useState<ParkingLot | null>(null);
@@ -1419,7 +1522,6 @@ export function ParkingOperationsPage() {
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeApiResponse[]>([]);
   const [loadingTopology, setLoadingTopology] = useState(false);
   const [savingNode, setSavingNode] = useState(false);
-  const [topologyError, setTopologyError] = useState("");
 
   const selectedParkingLot = parkingLots.find((lot) => lot.id === selectedLotId) ?? parkingLots[0];
   const selectedLotCanMutate = selectedParkingLot?.source === "api";
@@ -1468,8 +1570,6 @@ export function ParkingOperationsPage() {
     if (!isUuid(parkingLotId)) return;
 
     setLoadingTopology(true);
-    setTopologyError("");
-
     try {
       const [vehicleTypeResponse, zoneResponse] = await Promise.all([
         getVehicleTypes({ isActive: true }),
@@ -1495,14 +1595,14 @@ export function ParkingOperationsPage() {
         return null;
       });
     } catch (error) {
-      setTopologyError(error instanceof Error ? error.message : "Không thể tải sơ đồ bãi xe.");
+      toast.error(error instanceof Error ? error.message : "Không thể tải sơ đồ bãi xe.");
       setZones(mockZones);
       setGates(mockGates);
       setLanes(mockLanes);
     } finally {
       setLoadingTopology(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     if (selectedParkingLot?.source !== "api") return;
@@ -1559,9 +1659,54 @@ export function ParkingOperationsPage() {
 
   async function handleSaveNode(node: SelectedNode, payload: ParkingNodeFormPayload) {
     setSavingNode(true);
-    setTopologyError("");
 
     try {
+      if (creatingNode?.kind === "zone") {
+        const created = await createZone({
+          capacity: payload.capacity,
+          code: payload.code,
+          name: payload.name,
+          parkingLotId: creatingNode.parentId,
+          vehicleTypeId: payload.vehicleTypeId,
+        });
+        toast.success("Đã thêm khu vực đỗ xe.");
+        setCreatingNode(null);
+        setSelectedLotId(creatingNode.parentId);
+        await loadParkingTopology(creatingNode.parentId);
+        setSelectedNode({ id: created.data.zoneId, kind: "zone", label: created.data.name });
+        setDrawerOpen(true);
+        return;
+      }
+
+      if (creatingNode?.kind === "gate") {
+        const created = await createGate({
+          code: payload.code,
+          name: payload.name,
+          zoneId: creatingNode.parentId,
+        });
+        toast.success("Đã thêm cổng.");
+        setCreatingNode(null);
+        await loadParkingTopology(selectedLotId);
+        setSelectedNode({ id: created.data.gateId, kind: "gate", label: created.data.name });
+        setDrawerOpen(true);
+        return;
+      }
+
+      if (creatingNode?.kind === "lane") {
+        const created = await createLane({
+          code: payload.code,
+          direction: payload.direction,
+          gateId: creatingNode.parentId,
+          name: payload.name,
+        });
+        toast.success("Đã thêm làn xe.");
+        setCreatingNode(null);
+        await loadParkingTopology(selectedLotId);
+        setSelectedNode({ id: created.data.laneId, kind: "lane", label: created.data.name });
+        setDrawerOpen(true);
+        return;
+      }
+
       if (node.kind === "zone") {
         await updateZone(node.id, {
           capacity: payload.capacity,
@@ -1585,7 +1730,7 @@ export function ParkingOperationsPage() {
       toast.success("Đã cập nhật thông tin.");
       await loadParkingTopology(selectedLotId);
     } catch (error) {
-      setTopologyError(error instanceof Error ? error.message : "Không thể cập nhật thông tin.");
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật thông tin.");
     } finally {
       setSavingNode(false);
     }
@@ -1593,7 +1738,6 @@ export function ParkingOperationsPage() {
 
   async function handleChangeNodeStatus(node: SelectedNode, action: ParkingNodeStatusAction) {
     setSavingNode(true);
-    setTopologyError("");
 
     try {
       if (node.kind === "zone") {
@@ -1615,7 +1759,7 @@ export function ParkingOperationsPage() {
       toast.success("Đã cập nhật trạng thái.");
       await loadParkingTopology(selectedLotId);
     } catch (error) {
-      setTopologyError(error instanceof Error ? error.message : "Không thể cập nhật trạng thái.");
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật trạng thái.");
     } finally {
       setSavingNode(false);
     }
@@ -1652,7 +1796,42 @@ export function ParkingOperationsPage() {
   const selectedGate = selectedNode?.kind === "gate" ? gates.find((gate) => gate.id === selectedNode.id) : selectedLane ? gates.find((gate) => gate.id === selectedLane.gateId) : undefined;
   const selectedZone = selectedNode?.kind === "zone" ? zones.find((zone) => zone.id === selectedNode.id) : selectedGate ? zones.find((zone) => zone.id === selectedGate.zoneId) : undefined;
 
+  function handleCreateNode(kind: CreatingNode["kind"]) {
+    if (!selectedLotCanMutate || !selectedParkingLot) return;
+
+    if (kind === "zone") {
+      setCreatingNode({ kind, parentId: selectedParkingLot.id });
+      setSelectedNode({ id: "new-zone", kind: "zone", label: "Khu vực mới" });
+      setDrawerOpen(true);
+      return;
+    }
+
+    if (kind === "gate") {
+      const parentZone = selectedZone ?? zones[0];
+      if (!parentZone) {
+        toast.error("Vui lòng tạo hoặc chọn khu vực trước khi thêm cổng.");
+        return;
+      }
+
+      setCreatingNode({ kind, parentId: parentZone.id });
+      setSelectedNode({ id: "new-gate", kind: "gate", label: "Cổng mới" });
+      setDrawerOpen(true);
+      return;
+    }
+
+    const parentGate = selectedGate ?? gates[0];
+    if (!parentGate) {
+      toast.error("Vui lòng tạo hoặc chọn cổng trước khi thêm làn xe.");
+      return;
+    }
+
+    setCreatingNode({ kind, parentId: parentGate.id });
+    setSelectedNode({ id: "new-lane", kind: "lane", label: "Làn xe mới" });
+    setDrawerOpen(true);
+  }
+
   function handleSelectNode(node: SelectedNode) {
+    setCreatingNode(null);
     setSelectedNode(node);
     setDrawerOpen(true);
   }
@@ -1733,6 +1912,7 @@ export function ParkingOperationsPage() {
                   setSelectedLotId(value);
                   setDrawerOpen(false);
                   setSelectedNode(null);
+                  setCreatingNode(null);
                 }}
               />
               <label className="tw-m-0 tw-box-border tw-flex tw-h-[42px] tw-self-start tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3.5 tw-shadow-[0_4px_10px_rgba(15,23,42,0.025)] tw-transition focus-within:tw-border-brand-200 focus-within:tw-shadow-[0_0_0_4px_rgba(37,99,235,0.08)]">
@@ -1782,6 +1962,33 @@ export function ParkingOperationsPage() {
               >
                 Đóng bãi
               </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!selectedLotCanMutate || savingNode}
+                onClick={() => handleCreateNode("zone")}
+              >
+                <i className="fas fa-layer-group" />
+                Thêm khu
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!selectedLotCanMutate || savingNode}
+                onClick={() => handleCreateNode("gate")}
+              >
+                <i className="fas fa-archway" />
+                Thêm cổng
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={!selectedLotCanMutate || savingNode}
+                onClick={() => handleCreateNode("lane")}
+              >
+                <i className="fas fa-road" />
+                Thêm làn
+              </Button>
               {selectedLotCanMutate ? null : (
                 <span className="tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Dữ liệu mẫu chỉ dùng để xem giao diện, không thể cập nhật.</span>
               )}
@@ -1789,11 +1996,6 @@ export function ParkingOperationsPage() {
             {lotError ? (
               <div className="tw-mt-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-px-3 tw-py-2 tw-text-[0.82rem] tw-font-semibold tw-text-red-700">
                 {lotError}
-              </div>
-            ) : null}
-            {topologyError ? (
-              <div className="tw-mt-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-100 tw-bg-amber-50 tw-px-3 tw-py-2 tw-text-[0.82rem] tw-font-semibold tw-text-amber-700">
-                {topologyError}
               </div>
             ) : null}
           </Card>
@@ -1813,18 +2015,27 @@ export function ParkingOperationsPage() {
       </div>
 
       <ParkingNodeDrawer
-        error={topologyError}
+        creatingNode={creatingNode}
         gate={selectedGate}
+        gates={gates}
         isOpen={drawerOpen}
         lane={selectedLane}
         lanes={lanes}
         node={selectedNode}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => {
+          setDrawerOpen(false);
+          setCreatingNode(null);
+        }}
+        onCreatingParentChange={(parentId) => {
+          setCreatingNode((current) => current ? { ...current, parentId } : current);
+        }}
         onSave={handleSaveNode}
         onStatusChange={handleChangeNodeStatus}
+        parkingLots={parkingLots}
         saving={savingNode}
         vehicleTypeOptions={dynamicVehicleTypeOptions}
         zone={selectedZone}
+        zones={zones}
       />
       <ParkingLotDrawer
         error={lotError}
