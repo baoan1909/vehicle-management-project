@@ -309,12 +309,12 @@ export function SwipeListPage() {
       clearPendingVnpayCheckOut();
     } else if (vnpayResult === "cancelled") {
       toast.warning(
-        "Giao dịch đã hủy. Hóa đơn vẫn chưa thanh toán và có thể chuyển sang tiền mặt.",
+        "Giao dịch đã hủy. Hóa đơn vẫn chưa thanh toán; bạn có thể chọn lại VNPAY hoặc chuyển sang tiền mặt.",
         "Đã hủy thanh toán",
       );
     } else {
       toast.error(
-        "Giao dịch VNPAY không thành công. Hóa đơn vẫn có thể được thanh toán bằng tiền mặt.",
+        "Giao dịch VNPAY không thành công. Hóa đơn vẫn có thể thanh toán lại bằng VNPAY hoặc tiền mặt.",
         "Thanh toán thất bại",
       );
     }

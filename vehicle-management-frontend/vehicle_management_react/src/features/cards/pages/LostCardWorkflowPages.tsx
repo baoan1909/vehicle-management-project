@@ -1091,9 +1091,9 @@ export function LostCardDetailPage() {
           });
       }
     } else if (vnpayResult === "cancelled") {
-      setActionError("Giao dịch VNPay đã bị hủy. Hóa đơn vẫn đang chờ thanh toán.");
+      setActionError("Giao dịch VNPay đã bị hủy. Hóa đơn vẫn đang chờ và có thể thanh toán lại bằng VNPay hoặc phương thức khác.");
     } else {
-      setActionError("Giao dịch VNPay chưa thành công. Hóa đơn chưa được ghi nhận đã thanh toán.");
+      setActionError("Giao dịch VNPay chưa thành công. Hóa đơn chưa được ghi nhận và có thể thực hiện thanh toán lại.");
     }
 
     const nextParams = new URLSearchParams(searchParams);
