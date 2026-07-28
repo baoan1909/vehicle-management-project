@@ -42,6 +42,9 @@ type KeycloakTokenResponse = {
 };
 
 const PKCE_CODE_VERIFIER_KEY = "vm_pkce_code_verifier";
+type KeycloakLoginOptions = {
+  prompt?: "login";
+};
 
 export async function registerAccount(payload: RegisterAccountRequest) {
   return apiClient<ApiResponse<RegisterAccountResponse>>(apiEndpoints.auth.register, {
@@ -67,7 +70,7 @@ export async function resendVerificationEmail(payload: ResendVerificationEmailRe
   });
 }
 
-export async function buildKeycloakLoginUrl() {
+export async function buildKeycloakLoginUrl(options: KeycloakLoginOptions = {}) {
   const loginUrl = new URL(appConfig.keycloakLoginUrl);
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = await buildCodeChallenge(codeVerifier);
@@ -76,7 +79,11 @@ export async function buildKeycloakLoginUrl() {
   loginUrl.searchParams.set("code_challenge", codeChallenge);
   loginUrl.searchParams.set("code_challenge_method", "S256");
   loginUrl.searchParams.set("scope", normalizeLoginScopes(loginUrl.searchParams.get("scope")));
-  loginUrl.searchParams.delete("prompt");
+  if (options.prompt) {
+    loginUrl.searchParams.set("prompt", options.prompt);
+  } else {
+    loginUrl.searchParams.delete("prompt");
+  }
 
   return loginUrl.toString();
 }

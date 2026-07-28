@@ -22,6 +22,16 @@ public record AccountProfileStatusResponse(
             String roleCode,
             List<String> permissionCodes
     ) {
+        public AccountInfoResponse(
+                UUID accountId,
+                String accountStatus,
+                String username,
+                String email,
+                String keycloakUserId,
+                String roleCode
+        ) {
+            this(accountId, accountStatus, username, email, keycloakUserId, roleCode, List.of());
+        }
     }
 
     public record ProfileInfoResponse(

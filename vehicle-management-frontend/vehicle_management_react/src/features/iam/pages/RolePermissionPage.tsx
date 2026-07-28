@@ -25,7 +25,8 @@ import {
   type CreateRoleRequest,
   type PermissionAdminResponse,
   type RolePermissionAuditLogResponse,
-  type RoleAdminResponse
+  type RoleAdminResponse,
+  type RolePermissionsResponse
 } from "@/features/iam/api/rolePermissionApi";
 import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
@@ -35,7 +36,9 @@ import { SelectMenu, type SelectMenuOption } from "@/shared/components/ui/Select
 type RoleFilter = "all" | "inactive" | RoleKind;
 
 type PermissionMatrixModuleRecord = PermissionModuleRecord & {
+  permissionCodes: Partial<Record<PermissionAction, string>>;
   permissionIds: Partial<Record<PermissionAction, string>>;
+  permissionKeys: Partial<Record<PermissionAction, string>>;
   scope: string;
 };
 
@@ -60,7 +63,7 @@ type RoleFormState = {
 };
 
 const fallbackSelectedRoleId = "supervisor-custom";
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const scopeCodeByFilter: Partial<Record<PermissionFilter, string>> = {
   assigned: "ASSIGNED",
   lot: "LOT",
@@ -101,7 +104,9 @@ function matchesText(values: string[], searchValue: string) {
 function clonePermissionModules() {
   return initialPermissionModules.map((module) => ({
     ...module,
+    permissionCodes: {},
     permissionIds: {},
+    permissionKeys: {},
     permissions: { ...module.permissions },
     scope: "ALL"
   }));
@@ -141,7 +146,8 @@ function mapRoleResponseToRecord(role: RoleAdminResponse): RolePermissionRecord 
     id: role.roleId ?? role.id ?? role.code,
     kind: isSystem ? "system" : "custom",
     locked: isSystem || !isActive,
-    name: role.name || role.code
+    name: role.name || role.code,
+    permissionCount: role.permissionCount ?? null
   };
 }
 
@@ -160,7 +166,8 @@ function buildPermissionActions(permissions: PermissionAdminResponse[]) {
   const dynamicActionKeys = new Set<PermissionAction>();
 
   permissions.forEach((permission) => {
-    dynamicActionKeys.add(parsePermissionCode(permission.permissionCode).action);
+    const permissionCode = getPermissionCode(permission);
+    if (permissionCode) dynamicActionKeys.add(parsePermissionCode(permissionCode).action);
   });
 
   const extraActions = Array.from(dynamicActionKeys)
@@ -171,24 +178,41 @@ function buildPermissionActions(permissions: PermissionAdminResponse[]) {
   return [...permissionActions, ...extraActions];
 }
 
-function buildPermissionModules(permissions: PermissionAdminResponse[], selectedPermissionIds: Set<string>): PermissionMatrixModuleRecord[] {
+function buildPermissionModules(
+  permissions: PermissionAdminResponse[],
+  selectedPermissionIds: Set<string>,
+  selectedPermissionCodes: Set<string>,
+  selectedPermissionKeys: Set<string>,
+): PermissionMatrixModuleRecord[] {
   const modules = new Map<string, PermissionMatrixModuleRecord>();
 
   permissions.forEach((permission) => {
-    const parsed = parsePermissionCode(permission.permissionCode);
+    const permissionId = getPermissionId(permission);
+    const permissionCode = getPermissionCode(permission);
+    const permissionKey = buildPermissionCompositeKey(permission);
+    if (!permissionCode) return;
+
+    const parsed = parsePermissionCode(permissionCode);
     const moduleKey = `${parsed.moduleCode}:${parsed.scope}`;
     const currentModule =
       modules.get(moduleKey) ??
       ({
         key: moduleKey,
         label: `${parsed.moduleCode}${formatScopeLabel(parsed.scope)}`,
+        permissionCodes: {},
         permissionIds: {},
+        permissionKeys: {},
         permissions: {},
         scope: parsed.scope
       } satisfies PermissionMatrixModuleRecord);
 
-    currentModule.permissionIds[parsed.action] = permission.permissionId;
-    currentModule.permissions[parsed.action] = selectedPermissionIds.has(permission.permissionId) ? "granted" : "empty";
+    currentModule.permissionCodes[parsed.action] = permissionCode;
+    currentModule.permissionIds[parsed.action] = permissionId;
+    currentModule.permissionKeys[parsed.action] = permissionKey;
+    currentModule.permissions[parsed.action] =
+      selectedPermissionKeys.has(permissionKey) || selectedPermissionCodes.has(permissionCode) || selectedPermissionIds.has(permissionId)
+        ? "granted"
+        : "empty";
     modules.set(moduleKey, currentModule);
   });
 
@@ -197,6 +221,43 @@ function buildPermissionModules(permissions: PermissionAdminResponse[], selected
 
 function countGrantedPermissions(modules: PermissionMatrixModuleRecord[]) {
   return modules.reduce((total, module) => total + Object.values(module.permissions).filter((state) => state === "granted").length, 0);
+}
+
+function countResolvedPermissions(permissions: PermissionAdminResponse[] | undefined, fallbackCount = 0) {
+  return permissions?.length ?? fallbackCount;
+}
+
+function updateRolePermissionCount(roles: RolePermissionRecord[], roleId: string, permissionCount: number) {
+  return roles.map((role) => (role.id === roleId ? { ...role, permissionCount } : role));
+}
+
+function getRoleResponsePermissions(response: RolePermissionsResponse) {
+  const permissionCodes = response.permissionCodes ?? response.permission_codes ?? [];
+  if (Array.isArray(response.permissions) && (response.permissions.length > 0 || !permissionCodes.length)) {
+    return response.permissions;
+  }
+
+  return permissionCodes.map((permissionCode) => ({ permissionCode }));
+}
+
+async function getRolePermissionCounts(roles: RolePermissionRecord[]) {
+  const backendRoles = roles.filter((role) => isBackendRoleId(role.id));
+  const results = await Promise.allSettled(
+    backendRoles.map(async (role) => {
+      const response = await getIamRolePermissions(role.id);
+      const permissions = getRoleResponsePermissions(response.data);
+      return [role.id, countResolvedPermissions(permissions, response.data.permissionCount ?? 0)] as const;
+    }),
+  );
+  const countsByRoleId = new Map<string, number>();
+
+  results.forEach((result) => {
+    if (result.status === "fulfilled") {
+      countsByRoleId.set(result.value[0], result.value[1]);
+    }
+  });
+
+  return countsByRoleId;
 }
 
 function buildRoleFormState(mode: RoleEditorMode, role?: RolePermissionRecord): RoleFormState {
@@ -236,6 +297,100 @@ function normalizeRoleCodeInput(value: string) {
 
 function toStringArray(value: unknown) {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function normalizePermissionCode(value?: string | null) {
+  return value?.trim().toUpperCase() ?? "";
+}
+
+function getPermissionId(permission: PermissionAdminResponse | string) {
+  if (typeof permission === "string") return "";
+  return permission.permissionId ?? permission.permission_id ?? permission.id ?? "";
+}
+
+function getPermissionCode(permission: PermissionAdminResponse | string) {
+  if (typeof permission === "string") return normalizePermissionCode(permission);
+  return normalizePermissionCode(permission.permissionCode ?? permission.permission_code);
+}
+
+function normalizePermissionKeyPart(value?: string | null) {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function buildPermissionCompositeKey(permission: PermissionAdminResponse | string) {
+  if (typeof permission === "string") return "";
+
+  const parts = [
+    normalizePermissionKeyPart(permission.moduleId ?? permission.module_id),
+    normalizePermissionKeyPart(permission.actionId ?? permission.action_id),
+    normalizePermissionKeyPart(permission.scopeId ?? permission.scope_id),
+  ];
+
+  return parts.every(Boolean) ? parts.join(":") : "";
+}
+
+function resolvePermissionIdsFromResponse(
+  permissions: PermissionAdminResponse[] | undefined,
+  catalogPermissions: PermissionAdminResponse[],
+) {
+  const catalogIdsByCode = new Map<string, string>();
+  const catalogCodesById = new Map<string, string>();
+  const catalogIdsByKey = new Map<string, string>();
+  const catalogCodesByKey = new Map<string, string>();
+  const catalogKeysByCode = new Map<string, string>();
+  const catalogKeysById = new Map<string, string>();
+
+  catalogPermissions.forEach((permission) => {
+    const permissionId = getPermissionId(permission);
+    const permissionCode = getPermissionCode(permission);
+    const permissionKey = buildPermissionCompositeKey(permission);
+
+    if (permissionId && permissionCode) {
+      catalogIdsByCode.set(permissionCode, permissionId);
+      catalogCodesById.set(permissionId, permissionCode);
+    }
+
+    if (permissionKey) {
+      if (permissionId) {
+        catalogIdsByKey.set(permissionKey, permissionId);
+        catalogKeysById.set(permissionId, permissionKey);
+      }
+
+      if (permissionCode) {
+        catalogCodesByKey.set(permissionKey, permissionCode);
+        catalogKeysByCode.set(permissionCode, permissionKey);
+      }
+    }
+  });
+
+  return (permissions ?? []).reduce(
+    (selection, permission) => {
+      const rawPermissionId = getPermissionId(permission);
+      const rawPermissionCode = getPermissionCode(permission);
+      const rawPermissionKey = buildPermissionCompositeKey(permission);
+      const permissionKey =
+        rawPermissionKey ||
+        (rawPermissionId ? catalogKeysById.get(rawPermissionId) : "") ||
+        (rawPermissionCode ? catalogKeysByCode.get(rawPermissionCode) : "") ||
+        "";
+      const permissionCode =
+        rawPermissionCode ||
+        (permissionKey ? catalogCodesByKey.get(permissionKey) : "") ||
+        (rawPermissionId ? catalogCodesById.get(rawPermissionId) : "") ||
+        "";
+      const permissionId =
+        (permissionKey ? catalogIdsByKey.get(permissionKey) : "") ||
+        (permissionCode ? catalogIdsByCode.get(permissionCode) : "") ||
+        rawPermissionId;
+
+      if (permissionId) selection.ids.add(permissionId);
+      if (permissionCode) selection.codes.add(permissionCode);
+      if (permissionKey) selection.keys.add(permissionKey);
+
+      return selection;
+    },
+    { codes: new Set<string>(), ids: new Set<string>(), keys: new Set<string>() },
+  );
 }
 
 function getAuditDataArray(data: Record<string, unknown> | undefined, key: string) {
@@ -389,6 +544,7 @@ function RoleListPanel({
               </span>
               <span className="tw-flex tw-flex-col tw-items-end tw-gap-1">
                 {selected ? <span className="tw-inline-flex tw-min-h-[22px] tw-items-center tw-rounded-full tw-bg-emerald-500/10 tw-px-[0.55rem] tw-text-[0.72rem] tw-font-extrabold tw-text-emerald-600">Đang chọn</span> : null}
+                {role.permissionCount != null ? <span className="tw-inline-flex tw-min-h-[22px] tw-items-center tw-rounded-full tw-bg-brand-600/10 tw-px-[0.55rem] tw-text-[0.72rem] tw-font-extrabold tw-text-vm-primary">{role.permissionCount} quyền</span> : null}
                 <span className={cn("tw-inline-flex tw-min-h-[22px] tw-items-center tw-gap-[0.35rem] tw-rounded-full tw-px-[0.55rem] tw-text-[0.72rem] tw-font-extrabold", role.locked ? "tw-bg-slate-100 tw-text-slate-500" : "tw-bg-brand-50 tw-text-vm-primary")}>
                   {role.locked ? <i className="fas fa-lock" /> : null}
                   {role.locked ? "Bị khóa" : "Có thể chỉnh sửa"}
@@ -413,6 +569,22 @@ function RoleListPanel({
   );
 }
 
+function GrantedCheckGlyph() {
+  return (
+    <svg className="tw-relative tw-z-[1] tw-h-[18px] tw-w-[18px] tw-flex-shrink-0" viewBox="0 0 20 20" aria-hidden="true" focusable="false">
+      <path d="M4.25 10.35 8.1 14.2 15.95 6.35" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.1" />
+    </svg>
+  );
+}
+
+function GrantedCheckIcon() {
+  return (
+    <span className="tw-inline-flex tw-h-7 tw-w-7 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-text-white tw-shadow-[0_0_0_2px_rgba(37,99,235,0.16)]">
+      <GrantedCheckGlyph />
+    </span>
+  );
+}
+
 function PermissionCheck({
   disabled,
   onToggle,
@@ -424,7 +596,7 @@ function PermissionCheck({
 }) {
   if (state === "locked") {
     return (
-      <span className="tw-inline-flex tw-h-6 tw-w-6 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-slate-100 tw-text-[0.76rem] tw-leading-none tw-text-vm-slate-500" aria-label="Bị khóa">
+      <span className="tw-inline-flex tw-h-7 tw-w-7 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-slate-100 tw-text-[0.78rem] tw-leading-none tw-text-vm-slate-500" aria-label="Bị khóa">
         <i className="fas fa-lock" />
       </span>
     );
@@ -432,16 +604,23 @@ function PermissionCheck({
 
   return (
     <button
+      aria-disabled={disabled}
+      aria-label={state === "granted" ? "Đã cấp quyền" : "Chưa cấp quyền"}
       aria-pressed={state === "granted"}
       className={cn(
-        "tw-inline-flex tw-h-6 tw-w-6 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-white tw-text-[0.78rem] tw-leading-none tw-text-transparent tw-shadow-[inset_0_0_0_1px_rgba(255,255,255,0.35)] disabled:tw-cursor-not-allowed disabled:tw-opacity-100",
-        state === "granted" ? "tw-border-[#1D4ED8] tw-bg-[#2563EB] tw-text-white tw-shadow-[0_0_0_2px_rgba(37,99,235,0.12)]" : "",
+        "tw-inline-flex tw-h-7 tw-w-7 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-text-[0.78rem] tw-leading-none tw-shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45)] tw-transition focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-brand-300",
+        state === "granted" ? "tw-border-vm-primary tw-bg-vm-primary tw-text-white tw-shadow-[0_0_0_3px_rgba(37,99,235,0.18),0_8px_18px_rgba(37,99,235,0.18)]" : "tw-border-slate-300 tw-bg-white tw-text-transparent",
+        disabled ? "tw-cursor-not-allowed tw-opacity-100" : "hover:tw-border-brand-400 hover:tw-bg-brand-50",
       )}
-      disabled={disabled}
-      onClick={onToggle}
+      tabIndex={disabled ? -1 : 0}
+      title={state === "granted" ? "Đã cấp" : "Chưa cấp"}
+      onClick={() => {
+        if (disabled) return;
+        onToggle();
+      }}
       type="button"
     >
-      {state === "granted" ? <i className="fas fa-check tw-block tw-text-[0.78rem] tw-leading-none" /> : null}
+      {state === "granted" ? <GrantedCheckGlyph /> : null}
     </button>
   );
 }
@@ -519,7 +698,10 @@ function PermissionMatrix({
                 <td className="tw-sticky tw-left-0 tw-z-[1] tw-h-[52px] tw-w-[172px] tw-min-w-[172px] tw-border-0 tw-border-b tw-border-r tw-border-solid tw-border-slate-200/80 tw-bg-white tw-px-3 tw-py-2 tw-text-left tw-text-[0.78rem] tw-font-extrabold tw-leading-tight tw-text-slate-900">{module.label}</td>
                 {actions.map((action) => {
                   const permissionId = module.permissionIds[action.key];
-                  const state = permissionId ? module.permissions[action.key] ?? "empty" : "locked";
+                  const permissionCode = module.permissionCodes[action.key];
+                  const permissionKey = module.permissionKeys[action.key];
+                  const permissionExists = Boolean(permissionId || permissionCode || permissionKey);
+                  const state = permissionExists ? module.permissions[action.key] ?? "empty" : "locked";
                   const disabledByPermission = state === "granted" ? !canRevokePermissions : !canAssignPermissions;
 
                   return (
@@ -541,13 +723,13 @@ function PermissionMatrix({
       <div className="tw-mt-4 tw-flex tw-flex-wrap tw-items-center tw-gap-4 tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-500">
         <span>Chú thích:</span>
         <span>
-          <i className="fas fa-check tw-inline-flex tw-h-6 tw-w-6 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-border-[#1D4ED8] tw-bg-[#2563EB] tw-text-[0.78rem] tw-leading-none tw-text-white" /> Đã cấp
+          <GrantedCheckIcon /> Đã cấp
         </span>
         <span>
-          <i className="tw-inline-flex tw-h-6 tw-w-6 tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-white" /> Chưa cấp
+          <i className="tw-inline-flex tw-h-7 tw-w-7 tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-white" /> Chưa cấp
         </span>
         <span>
-          <i className="fas fa-lock tw-inline-flex tw-h-6 tw-w-6 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-slate-100 tw-text-[0.76rem] tw-leading-none tw-text-vm-slate-500" /> Bị khóa/Không thể chỉnh sửa
+          <i className="fas fa-lock tw-inline-flex tw-h-7 tw-w-7 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-slate-100 tw-text-[0.78rem] tw-leading-none tw-text-vm-slate-500" /> Bị khóa/Không thể chỉnh sửa
         </span>
       </div>
 
@@ -616,13 +798,13 @@ function SummaryPanel({
 
       <div className="tw-mt-5 tw-grid tw-gap-[0.85rem] tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-500">
         <span>
-          <i className="fas fa-check tw-inline-flex tw-h-6 tw-w-6 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-border-[#1D4ED8] tw-bg-[#2563EB] tw-text-[0.78rem] tw-leading-none tw-text-white" /> Đã cấp
+          <GrantedCheckIcon /> Đã cấp
         </span>
         <span>
-          <i className="tw-inline-flex tw-h-6 tw-w-6 tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-white" /> Chưa cấp
+          <i className="tw-inline-flex tw-h-7 tw-w-7 tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-white" /> Chưa cấp
         </span>
         <span>
-          <i className="fas fa-lock tw-inline-flex tw-h-6 tw-w-6 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-slate-100 tw-text-[0.76rem] tw-leading-none tw-text-vm-slate-500" /> Bị khóa/Không thể chỉnh sửa
+          <i className="fas fa-lock tw-inline-flex tw-h-7 tw-w-7 tw-items-center tw-justify-center tw-rounded-md tw-border tw-border-solid tw-border-slate-300 tw-bg-slate-100 tw-text-[0.78rem] tw-leading-none tw-text-vm-slate-500" /> Bị khóa/Không thể chỉnh sửa
         </span>
       </div>
 
@@ -746,17 +928,24 @@ function RoleEditorModal({
             />
           </label>
 
-          {!isEdit && canCopyPermissions ? (
+          {!isEdit ? (
             <label className="tw-grid tw-gap-1.5">
               <span className="tw-text-[0.78rem] tw-font-black tw-uppercase tw-text-slate-700">Copy quyền từ role</span>
               <SelectMenu
                 ariaLabel="Copy quyền từ role"
                 clearValue=""
-                disabled={isSaving}
+                disabled={isSaving || !canCopyPermissions}
+                menuClassName="tw-min-w-[280px]"
                 options={copyRoleOptions}
+                portal
                 value={form.copyPermissionSourceRoleId}
                 onChange={(value) => onFormChange({ ...form, copyPermissionSourceRoleId: value })}
               />
+              {!canCopyPermissions ? (
+                <span className="tw-text-[0.74rem] tw-font-bold tw-leading-snug tw-text-amber-600">
+                  Cần quyền ROLE_ASSIGN_PERMISSION_ALL để copy quyền từ role có sẵn.
+                </span>
+              ) : null}
             </label>
           ) : null}
         </div>
@@ -877,7 +1066,8 @@ function RoleAuditHistoryModal({
 
 export function RolePermissionPage() {
   const { user } = useAuth();
-  const canReadPermissions = hasAnyPermission(user, ["PERMISSION_READ_ALL"]);
+  const canReadPermissionCatalog = hasAnyPermission(user, ["PERMISSION_READ_ALL"]);
+  const canReadRolePermissions = hasAnyPermission(user, ["ROLE_READ_ALL"]);
   const canCreateRole = hasAnyPermission(user, ["ROLE_CREATE_ALL"]);
   const canUpdateRole = hasAnyPermission(user, ["ROLE_UPDATE_ALL"]);
   const canDeleteRole = hasAnyPermission(user, ["ROLE_DELETE_ALL"]);
@@ -892,8 +1082,13 @@ export function RolePermissionPage() {
   const [permissionFilter, setPermissionFilter] = useState<PermissionFilter>("all");
   const [rolePanelOpen, setRolePanelOpen] = useState(true);
   const [allPermissions, setAllPermissions] = useState<PermissionAdminResponse[]>([]);
+  const [selectedRolePermissions, setSelectedRolePermissions] = useState<PermissionAdminResponse[]>([]);
+  const [selectedPermissionCodes, setSelectedPermissionCodes] = useState<Set<string>>(new Set());
   const [selectedPermissionIds, setSelectedPermissionIds] = useState<Set<string>>(new Set());
+  const [selectedPermissionKeys, setSelectedPermissionKeys] = useState<Set<string>>(new Set());
+  const [persistedPermissionCodes, setPersistedPermissionCodes] = useState<Set<string>>(new Set());
   const [persistedPermissionIds, setPersistedPermissionIds] = useState<Set<string>>(new Set());
+  const [persistedPermissionKeys, setPersistedPermissionKeys] = useState<Set<string>>(new Set());
   const [mockModules, setMockModules] = useState<PermissionMatrixModuleRecord[]>(clonePermissionModules);
   const [apiError, setApiError] = useState("");
   const [saveStatus, setSaveStatus] = useState("");
@@ -916,7 +1111,7 @@ export function RolePermissionPage() {
 
       try {
         const roleResponse = await getIamRoles();
-        const permissionResponse = canReadPermissions ? await getIamPermissions() : null;
+        const permissionResponse = canReadPermissionCatalog ? await getIamPermissions() : null;
 
         if (cancelled) return;
 
@@ -928,12 +1123,24 @@ export function RolePermissionPage() {
         }
 
         setAllPermissions(permissionResponse?.data ?? []);
+        setSelectedRolePermissions([]);
+
+        if (canReadRolePermissions && nextRoles.length > 0) {
+          const countsByRoleId = await getRolePermissionCounts(nextRoles);
+          if (cancelled) return;
+          setRoles((currentRoles) =>
+            currentRoles.map((role) =>
+              countsByRoleId.has(role.id) ? { ...role, permissionCount: countsByRoleId.get(role.id) ?? null } : role,
+            ),
+          );
+        }
       } catch (error) {
         if (cancelled) return;
         setApiError(error instanceof Error ? error.message : "Không tải được dữ liệu phân quyền từ backend.");
         setRoles(rolePermissionRoles);
         setSelectedRoleId(fallbackSelectedRoleId);
         setAllPermissions([]);
+        setSelectedRolePermissions([]);
         setMockModules(clonePermissionModules());
       } finally {
         if (!cancelled) setIsLoading(false);
@@ -945,7 +1152,7 @@ export function RolePermissionPage() {
     return () => {
       cancelled = true;
     };
-  }, [canReadPermissions]);
+  }, [canReadPermissionCatalog, canReadRolePermissions]);
 
   const refreshIamCatalog = async (preferredRoleId?: string) => {
     setIsLoading(true);
@@ -953,7 +1160,7 @@ export function RolePermissionPage() {
 
     try {
       const roleResponse = await getIamRoles();
-      const permissionResponse = canReadPermissions ? await getIamPermissions() : null;
+      const permissionResponse = canReadPermissionCatalog ? await getIamPermissions() : null;
       const nextRoles = (roleResponse.data ?? []).map(mapRoleResponseToRecord);
 
       if (nextRoles.length > 0) {
@@ -966,11 +1173,21 @@ export function RolePermissionPage() {
       }
 
       setAllPermissions(permissionResponse?.data ?? []);
+
+      if (canReadRolePermissions && nextRoles.length > 0) {
+        const countsByRoleId = await getRolePermissionCounts(nextRoles);
+        setRoles((currentRoles) =>
+          currentRoles.map((role) =>
+            countsByRoleId.has(role.id) ? { ...role, permissionCount: countsByRoleId.get(role.id) ?? null } : role,
+          ),
+        );
+      }
     } catch (error) {
       setApiError(error instanceof Error ? error.message : "Không tải được dữ liệu phân quyền từ backend.");
       setRoles(rolePermissionRoles);
       setSelectedRoleId(fallbackSelectedRoleId);
       setAllPermissions([]);
+      setSelectedRolePermissions([]);
       setMockModules(clonePermissionModules());
     } finally {
       setIsLoading(false);
@@ -978,31 +1195,50 @@ export function RolePermissionPage() {
   };
 
   useEffect(() => {
-    if (!canReadPermissions || !allPermissions.length || !selectedRoleId) return;
+    if (!canReadRolePermissions || !selectedRoleId) return;
     if (!isBackendRoleId(selectedRoleId)) {
+      setSelectedRolePermissions([]);
+      setSelectedPermissionCodes(new Set());
       setSelectedPermissionIds(new Set());
+      setSelectedPermissionKeys(new Set());
+      setPersistedPermissionCodes(new Set());
       setPersistedPermissionIds(new Set());
+      setPersistedPermissionKeys(new Set());
       return;
     }
 
     let cancelled = false;
+    const currentRoleId = selectedRoleId;
 
     async function loadRolePermissions() {
       setIsPermissionLoading(true);
       setSaveStatus("");
 
       try {
-        const response = await getIamRolePermissions(selectedRoleId);
+        const response = await getIamRolePermissions(currentRoleId);
         if (cancelled) return;
 
-        const permissionIds = new Set((response.data.permissions ?? []).map((permission) => permission.permissionId));
-        setSelectedPermissionIds(permissionIds);
-        setPersistedPermissionIds(new Set(permissionIds));
+        const responsePermissions = getRoleResponsePermissions(response.data);
+        const permissionCount = countResolvedPermissions(responsePermissions, response.data.permissionCount ?? 0);
+        const permissionSelection = resolvePermissionIdsFromResponse(responsePermissions, allPermissions);
+        setSelectedRolePermissions(responsePermissions);
+        setSelectedPermissionCodes(permissionSelection.codes);
+        setSelectedPermissionIds(permissionSelection.ids);
+        setSelectedPermissionKeys(permissionSelection.keys);
+        setPersistedPermissionCodes(new Set(permissionSelection.codes));
+        setPersistedPermissionIds(new Set(permissionSelection.ids));
+        setPersistedPermissionKeys(new Set(permissionSelection.keys));
+        setRoles((currentRoles) => updateRolePermissionCount(currentRoles, currentRoleId, permissionCount));
       } catch (error) {
         if (cancelled) return;
         setApiError(error instanceof Error ? error.message : "Không tải được quyền của vai trò.");
+        setSelectedRolePermissions([]);
+        setSelectedPermissionCodes(new Set());
         setSelectedPermissionIds(new Set());
+        setSelectedPermissionKeys(new Set());
+        setPersistedPermissionCodes(new Set());
         setPersistedPermissionIds(new Set());
+        setPersistedPermissionKeys(new Set());
       } finally {
         if (!cancelled) setIsPermissionLoading(false);
       }
@@ -1013,7 +1249,7 @@ export function RolePermissionPage() {
     return () => {
       cancelled = true;
     };
-  }, [allPermissions.length, canReadPermissions, selectedRoleId]);
+  }, [allPermissions, canReadRolePermissions, selectedRoleId]);
 
   useEffect(() => {
     if (!selectedRoleId) return;
@@ -1043,13 +1279,17 @@ export function RolePermissionPage() {
     };
   }, [selectedRoleId]);
 
-  const permissionMatrixActions = useMemo(() => (allPermissions.length ? buildPermissionActions(allPermissions) : permissionActions), [allPermissions]);
+  const permissionCatalog = useMemo(
+    () => (allPermissions.length ? allPermissions : selectedRolePermissions),
+    [allPermissions, selectedRolePermissions],
+  );
+  const permissionMatrixActions = useMemo(() => (permissionCatalog.length ? buildPermissionActions(permissionCatalog) : permissionActions), [permissionCatalog]);
   const modules = useMemo(
     () => {
-      if (!canReadPermissions) return [];
-      return allPermissions.length ? buildPermissionModules(allPermissions, selectedPermissionIds) : mockModules;
+      if (!canReadRolePermissions) return [];
+      return permissionCatalog.length ? buildPermissionModules(permissionCatalog, selectedPermissionIds, selectedPermissionCodes, selectedPermissionKeys) : mockModules;
     },
-    [allPermissions, canReadPermissions, mockModules, selectedPermissionIds],
+    [canReadRolePermissions, mockModules, permissionCatalog, selectedPermissionCodes, selectedPermissionIds, selectedPermissionKeys],
   );
 
   const filteredRoles = roles
@@ -1065,14 +1305,18 @@ export function RolePermissionPage() {
     const matchesScope = selectedScope ? module.scope === selectedScope : true;
     return matchesScope && matchesText([module.label, module.key], permissionSearch);
   });
-  const matrixDisabled = !canReadPermissions || selectedRole.locked || isLoading || isPermissionLoading || isSaving;
-  const grantedCount = countGrantedPermissions(modules);
+  const matrixDisabled = !canReadRolePermissions || selectedRole.locked || isLoading || isPermissionLoading || isSaving;
+  const grantedMatrixCount = countGrantedPermissions(modules);
+  const hasResolvedPermissionSelection =
+    selectedPermissionIds.size > 0 ||
+    selectedPermissionCodes.size > 0 ||
+    selectedPermissionKeys.size > 0 ||
+    selectedRole.permissionCount === 0;
+  const grantedCount = modules.length && hasResolvedPermissionSelection ? grantedMatrixCount : selectedRole.permissionCount ?? grantedMatrixCount;
   const pendingCount = useMemo(() => {
-    if (!allPermissions.length) return 0;
-
     const changedPermissionIds = new Set([...Array.from(selectedPermissionIds), ...Array.from(persistedPermissionIds)]);
     return Array.from(changedPermissionIds).filter((permissionId) => selectedPermissionIds.has(permissionId) !== persistedPermissionIds.has(permissionId)).length;
-  }, [allPermissions.length, persistedPermissionIds, selectedPermissionIds]);
+  }, [persistedPermissionIds, selectedPermissionIds]);
   const hasPendingPermissionAddition = useMemo(
     () => Array.from(selectedPermissionIds).some((permissionId) => !persistedPermissionIds.has(permissionId)),
     [persistedPermissionIds, selectedPermissionIds],
@@ -1088,7 +1332,7 @@ export function RolePermissionPage() {
   const togglePermission = (moduleKey: string, action: PermissionAction) => {
     if (matrixDisabled) return;
 
-    if (!allPermissions.length) {
+    if (!permissionCatalog.length) {
       setMockModules((current) =>
         current.map((module) => {
           if (module.key !== moduleKey) return module;
@@ -1108,14 +1352,20 @@ export function RolePermissionPage() {
       return;
     }
 
-    const permissionId = modules.find((module) => module.key === moduleKey)?.permissionIds[action];
+    const moduleRecord = modules.find((module) => module.key === moduleKey);
+    const permissionId = moduleRecord?.permissionIds[action];
+    const permissionCode = moduleRecord?.permissionCodes[action];
+    const permissionKey = moduleRecord?.permissionKeys[action];
     if (!permissionId) return;
 
-    setSelectedPermissionIds((current) => {
-      const isRemovingPermission = current.has(permissionId);
-      if (isRemovingPermission && !canRevokePermissions) return current;
-      if (!isRemovingPermission && !canAssignPermissions) return current;
+    const isRemovingPermission =
+      Boolean(permissionKey && selectedPermissionKeys.has(permissionKey)) ||
+      Boolean(permissionCode && selectedPermissionCodes.has(permissionCode)) ||
+      selectedPermissionIds.has(permissionId);
+    if (isRemovingPermission && !canRevokePermissions) return;
+    if (!isRemovingPermission && !canAssignPermissions) return;
 
+    setSelectedPermissionIds((current) => {
       const nextPermissionIds = new Set(current);
 
       if (isRemovingPermission) {
@@ -1126,6 +1376,32 @@ export function RolePermissionPage() {
 
       return nextPermissionIds;
     });
+    setSelectedPermissionCodes((current) => {
+      if (!permissionCode) return current;
+
+      const nextPermissionCodes = new Set(current);
+
+      if (isRemovingPermission) {
+        nextPermissionCodes.delete(permissionCode);
+      } else {
+        nextPermissionCodes.add(permissionCode);
+      }
+
+      return nextPermissionCodes;
+    });
+    setSelectedPermissionKeys((current) => {
+      if (!permissionKey) return current;
+
+      const nextPermissionKeys = new Set(current);
+
+      if (isRemovingPermission) {
+        nextPermissionKeys.delete(permissionKey);
+      } else {
+        nextPermissionKeys.add(permissionKey);
+      }
+
+      return nextPermissionKeys;
+    });
   };
 
   const resetPage = () => {
@@ -1134,7 +1410,9 @@ export function RolePermissionPage() {
     setSelectedRoleId(roles[0]?.id ?? fallbackSelectedRoleId);
     setPermissionSearch("");
     setPermissionFilter("all");
+    setSelectedPermissionCodes(new Set(persistedPermissionCodes));
     setSelectedPermissionIds(new Set(persistedPermissionIds));
+    setSelectedPermissionKeys(new Set(persistedPermissionKeys));
     setMockModules(clonePermissionModules());
     setSaveStatus("");
   };
@@ -1193,7 +1471,9 @@ export function RolePermissionPage() {
       const response = await createIamRole(payload);
       const createdRole = mapCreatedRoleToEditableRecord(response.data);
       const createdRoleId = createdRole.id;
+      let copiedPermissionCodes: string[] = [];
       let copiedPermissionIds: string[] = [];
+      let copiedPermissionKeys: string[] = [];
 
       if (roleForm.copyPermissionSourceRoleId) {
         if (!isBackendRoleId(roleForm.copyPermissionSourceRoleId)) {
@@ -1202,7 +1482,10 @@ export function RolePermissionPage() {
         }
 
         const sourcePermissions = await getIamRolePermissions(roleForm.copyPermissionSourceRoleId);
-        copiedPermissionIds = (sourcePermissions.data.permissions ?? []).map((permission) => permission.permissionId);
+        const copiedPermissionSelection = resolvePermissionIdsFromResponse(getRoleResponsePermissions(sourcePermissions.data), allPermissions);
+        copiedPermissionCodes = Array.from(copiedPermissionSelection.codes);
+        copiedPermissionIds = Array.from(copiedPermissionSelection.ids);
+        copiedPermissionKeys = Array.from(copiedPermissionSelection.keys);
         await syncIamRolePermissions(
           createdRoleId,
           copiedPermissionIds,
@@ -1210,13 +1493,22 @@ export function RolePermissionPage() {
       }
 
       setSaveStatus(roleForm.copyPermissionSourceRoleId ? "Đã tạo role tùy chỉnh và copy quyền." : "Đã tạo role tùy chỉnh.");
+      const createdRoleWithCount = {
+        ...createdRole,
+        permissionCount: copiedPermissionIds.length
+      };
+
       setRoles((currentRoles) => {
         const nextRoles = currentRoles.filter((role) => role.id !== createdRoleId);
-        return [...nextRoles, createdRole];
+        return [...nextRoles, createdRoleWithCount];
       });
       setSelectedRoleId(createdRoleId);
+      setSelectedPermissionCodes(new Set(copiedPermissionCodes));
       setSelectedPermissionIds(new Set(copiedPermissionIds));
+      setSelectedPermissionKeys(new Set(copiedPermissionKeys));
+      setPersistedPermissionCodes(new Set(copiedPermissionCodes));
       setPersistedPermissionIds(new Set(copiedPermissionIds));
+      setPersistedPermissionKeys(new Set(copiedPermissionKeys));
       setRoleEditor(null);
       await refreshIamCatalog(createdRoleId);
     } catch (error) {
@@ -1258,7 +1550,7 @@ export function RolePermissionPage() {
   };
 
   const saveChanges = async () => {
-    if (matrixDisabled || !allPermissions.length || !canPersistPendingPermissionChanges) return;
+    if (matrixDisabled || !permissionCatalog.length || !canPersistPendingPermissionChanges) return;
     if (!isBackendRoleId(selectedRole.id)) {
       setSaveStatus("Role dang chon la du lieu mau nen khong the luu quyen len backend.");
       return;
@@ -1269,10 +1561,18 @@ export function RolePermissionPage() {
 
     try {
       const response = await syncIamRolePermissions(selectedRole.id, Array.from(selectedPermissionIds));
-      const permissionIds = new Set((response.data.permissions ?? []).map((permission) => permission.permissionId));
+      const responsePermissions = getRoleResponsePermissions(response.data);
+      const permissionCount = countResolvedPermissions(responsePermissions, response.data.permissionCount ?? 0);
+      const permissionSelection = resolvePermissionIdsFromResponse(responsePermissions, allPermissions);
 
-      setSelectedPermissionIds(permissionIds);
-      setPersistedPermissionIds(new Set(permissionIds));
+      setSelectedRolePermissions(responsePermissions);
+      setSelectedPermissionCodes(permissionSelection.codes);
+      setSelectedPermissionIds(permissionSelection.ids);
+      setSelectedPermissionKeys(permissionSelection.keys);
+      setPersistedPermissionCodes(new Set(permissionSelection.codes));
+      setPersistedPermissionIds(new Set(permissionSelection.ids));
+      setPersistedPermissionKeys(new Set(permissionSelection.keys));
+      setRoles((currentRoles) => updateRolePermissionCount(currentRoles, selectedRole.id, permissionCount));
       setSaveStatus("Đã lưu thay đổi quyền cho vai trò.");
     } catch (error) {
       setSaveStatus(error instanceof Error ? error.message : "Không lưu được thay đổi quyền.");
@@ -1300,7 +1600,7 @@ export function RolePermissionPage() {
                   <i className="fas fa-undo" />
                   <span>Đặt lại</span>
                 </button>
-                <button className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-[0.65rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-[#2563EB] tw-bg-[linear-gradient(135deg,#2563EB,#1D4ED8)] tw-px-[1.15rem] tw-text-[0.92rem] tw-font-extrabold tw-text-white tw-shadow-[0_12px_24px_rgba(37,99,235,0.18)] tw-transition hover:tw-translate-y-px hover:tw-text-white hover:tw-shadow-[0_8px_18px_rgba(37,99,235,0.16)] disabled:tw-cursor-not-allowed disabled:tw-opacity-60" disabled={matrixDisabled || !allPermissions.length || !canPersistPendingPermissionChanges} onClick={saveChanges} type="button">
+                <button className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-[0.65rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-[#2563EB] tw-bg-[linear-gradient(135deg,#2563EB,#1D4ED8)] tw-px-[1.15rem] tw-text-[0.92rem] tw-font-extrabold tw-text-white tw-shadow-[0_12px_24px_rgba(37,99,235,0.18)] tw-transition hover:tw-translate-y-px hover:tw-text-white hover:tw-shadow-[0_8px_18px_rgba(37,99,235,0.16)] disabled:tw-cursor-not-allowed disabled:tw-opacity-60" disabled={matrixDisabled || !permissionCatalog.length || !canPersistPendingPermissionChanges} onClick={saveChanges} type="button">
                   <i className="far fa-save" />
                   <span>{isSaving ? "Đang lưu..." : "Lưu thay đổi"}</span>
                 </button>
@@ -1312,9 +1612,13 @@ export function RolePermissionPage() {
                 {apiError || saveStatus}
               </div>
             ) : null}
-            {!canReadPermissions ? (
+            {!canReadRolePermissions ? (
               <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-px-4 tw-py-3 tw-text-[0.82rem] tw-font-bold tw-text-slate-600">
-                Role hien tai chua co PERMISSION_READ_ALL nen frontend khong goi API catalog permission va khoa ma tran quyen de tranh Access is denied.
+                Role hien tai chua co ROLE_READ_ALL nen khong the tai danh sach quyen cua vai tro.
+              </div>
+            ) : !canReadPermissionCatalog ? (
+              <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-px-4 tw-py-3 tw-text-[0.82rem] tw-font-bold tw-text-slate-600">
+                Role hien tai chua co PERMISSION_READ_ALL nen chi hien thi cac quyen da duoc gan cho vai tro dang chon.
               </div>
             ) : null}
             {pendingCount > 0 && !canPersistPendingPermissionChanges ? (

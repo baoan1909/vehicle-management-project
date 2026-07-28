@@ -28,20 +28,6 @@
 </head>
 <body class="login-page <#if split>vm-auth-page-split</#if>">
   <div class="vm-auth-shell">
-    <#if !split>
-      <header class="vm-auth-topbar">
-        <a class="vm-auth-brand" href="${frontendPricingUrl}">
-          <span class="vm-auth-brand-mark">
-            <img src="${url.resourcesPath}/img/AdminLTELogo.png" alt="CoParking">
-          </span>
-          <span>CoParking</span>
-        </a>
-        <a class="vm-auth-help" href="${frontendContactUrl}" aria-label="Trợ giúp">
-          <i class="far fa-question-circle" aria-hidden="true"></i>
-        </a>
-      </header>
-    </#if>
-
     <main class="vm-auth-main <#if split>vm-auth-main-split</#if>">
       <#if split>
         <section class="vm-auth-split-card ${cardClassName}">
@@ -134,16 +120,6 @@
       </#if>
     </main>
 
-    <#if !split>
-      <footer class="vm-auth-footer">
-        <span>© 2026 Hệ thống quản lý bãi xe. All rights reserved.</span>
-        <nav aria-label="Liên kết phụ">
-          <a href="${frontendPricingUrl}">Điều khoản</a>
-          <a href="${frontendPricingUrl}">Bảo mật</a>
-          <a href="${frontendContactUrl}">Liên hệ</a>
-        </nav>
-      </footer>
-    </#if>
   </div>
   <script src="${url.resourcesPath}/js/coparking-auth.js"></script>
 </body>

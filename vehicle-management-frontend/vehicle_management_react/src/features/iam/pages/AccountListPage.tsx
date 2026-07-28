@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { Badge, Button, Card, EntityAvatar, InfoBanner, SearchInput, SelectMenu } from "@/components/ui";
@@ -6,10 +6,12 @@ import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import { AccountCreateDrawer } from "../components/AccountCreateDrawer";
 import { OnboardingApprovalWorkspace } from "./OnboardingApprovalPage";
+import { openSupportCenterConversation } from "@/features/support/utils";
 import {
   getProvisionedAccounts,
   updateProvisionedAccountRole,
   updateProvisionedAccountStatus,
+  type AdminProvisionableAccountRoleCode,
   type ProvisionedAccountResponse,
   type ProvisionedAccountRoleCode,
   type ProvisionedAccountStatus,
@@ -17,6 +19,7 @@ import {
 import { hasAnyPermission } from "@/shared/auth/permissions";
 
 type RoleCode = ProvisionedAccountRoleCode;
+type ProvisionableRoleCode = AdminProvisionableAccountRoleCode;
 type AccountStatus = ProvisionedAccountStatus;
 
 type ProvisionedAccount = {
@@ -37,7 +40,7 @@ type ProvisionedAccount = {
 
 type AccountRoleChangeModalState = {
   account: ProvisionedAccount;
-  roleCode: RoleCode;
+  roleCode: ProvisionableRoleCode;
 } | null;
 
 type AccountStatusChangeModalState = {
@@ -49,7 +52,7 @@ type AccountStatusChangeModalState = {
 type AccountPermissionModalState = ProvisionedAccount | null;
 type AccountWorkspaceTab = "accounts" | "onboarding";
 
-const roleOptions = [
+const roleOptions: Array<{ label: string; value: ProvisionableRoleCode | "all" }> = [
   { label: "Tất cả vai trò", value: "all" },
   { label: "SYSTEM_ADMIN", value: "SYSTEM_ADMIN" },
   { label: "PARKING_MANAGER", value: "PARKING_MANAGER" },
@@ -73,14 +76,22 @@ const statusTabs: Array<{ label: string; value: AccountStatus | "all" }> = [
   { label: "DISABLED", value: "DISABLED" },
 ];
 
-const internalRoleCodes: RoleCode[] = ["SYSTEM_ADMIN", "PARKING_MANAGER", "EMPLOYEE"];
 const editableStatusOptions: AccountStatus[] = ["ACTIVE", "LOCKED", "DISABLED"];
 
 function isInternalRole(roleCode: RoleCode) {
-  return internalRoleCodes.includes(roleCode);
+  return roleCode !== "CUSTOMER";
 }
 
-function canTransitionRole(currentRole: RoleCode, nextRole: RoleCode) {
+function isAdminProvisionableRole(roleCode: RoleCode): roleCode is ProvisionableRoleCode {
+  return roleCode === "SYSTEM_ADMIN" || roleCode === "PARKING_MANAGER" || roleCode === "EMPLOYEE" || roleCode === "CUSTOMER";
+}
+
+function getProvisionableRoleFallback(roleCode: RoleCode): ProvisionableRoleCode {
+  if (isAdminProvisionableRole(roleCode)) return roleCode;
+  return isInternalRole(roleCode) ? "EMPLOYEE" : "CUSTOMER";
+}
+
+function canTransitionRole(currentRole: RoleCode, nextRole: ProvisionableRoleCode) {
   return isInternalRole(currentRole) === isInternalRole(nextRole);
 }
 
@@ -227,26 +238,65 @@ function AccountMetric({
 
 function AccountRow({
   account,
+  canMessage,
+  messageDisabledReason,
+  onMessage,
   onSelect,
   selected,
 }: {
   account: ProvisionedAccount;
+  canMessage: boolean;
+  messageDisabledReason?: string;
+  onMessage: () => void;
   onSelect: () => void;
   selected: boolean;
 }) {
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.target !== event.currentTarget) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    onSelect();
+  }
+
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       className={cn(
         "tw-grid tw-w-full tw-grid-cols-[minmax(210px,1.35fr)_150px_110px_90px_96px] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-py-3 tw-text-left tw-transition last:tw-border-b-0 max-[1180px]:tw-grid-cols-[minmax(220px,1fr)_110px_90px]",
         selected ? "tw-bg-brand-50 tw-shadow-[inset_3px_0_0_#2563EB]" : "hover:tw-bg-vm-slate-25",
       )}
       onClick={onSelect}
+      onKeyDown={handleKeyDown}
     >
       <span className="tw-flex tw-min-w-0 tw-items-center tw-gap-3">
         <EntityAvatar initials={account.initials} size="md" tone={account.roleCode === "SYSTEM_ADMIN" ? "red" : account.roleCode === "PARKING_MANAGER" ? "blue" : "green"} />
         <span className="tw-min-w-0">
-          <strong className="tw-block tw-truncate tw-text-[0.9rem] tw-font-extrabold tw-text-vm-slate-900">{account.username}</strong>
+          <span className="tw-flex tw-min-w-0 tw-items-center tw-gap-2">
+            <strong className="tw-min-w-0 tw-truncate tw-text-[0.9rem] tw-font-extrabold tw-text-vm-slate-900">{account.username}</strong>
+            {canMessage ? (
+              <button
+                type="button"
+                className="tw-inline-flex tw-h-7 tw-w-7 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-teal-100 tw-bg-teal-50 tw-text-[0.78rem] tw-text-teal-600 tw-transition hover:tw-border-teal-200 hover:tw-bg-teal-100 focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus"
+                title="Nhắn tin"
+                aria-label={`Nhắn tin với ${account.username}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onMessage();
+                }}
+              >
+                <i className="far fa-comment-dots" />
+              </button>
+            ) : (
+              <span
+                className="tw-inline-flex tw-h-7 tw-w-7 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-text-[0.78rem] tw-text-vm-slate-400"
+                title={messageDisabledReason ?? "Tài khoản hiện tại chưa có quyền mở trung tâm chat"}
+                aria-label="Chưa có quyền nhắn tin"
+              >
+                <i className="far fa-comment-dots" />
+              </span>
+            )}
+          </span>
           <small className="tw-block tw-truncate tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500">{account.email}</small>
         </span>
       </span>
@@ -258,7 +308,7 @@ function AccountRow({
       </Badge>
       <span className="tw-text-[0.8rem] tw-font-extrabold tw-text-vm-slate-700">{account.permissionCount} quyền</span>
       <span className="tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500 max-[1180px]:tw-hidden">{account.updatedAt}</span>
-    </button>
+    </div>
   );
 }
 
@@ -303,13 +353,13 @@ function AccountRoleChangeModal({
   isSaving: boolean;
   modal: AccountRoleChangeModalState;
   onClose: () => void;
-  onRoleChange: (roleCode: RoleCode) => void;
+  onRoleChange: (roleCode: ProvisionableRoleCode) => void;
   onSubmit: () => void;
 }) {
   if (!modal) return null;
 
   const availableOptions = roleOptions
-    .filter((option): option is { label: string; value: RoleCode } => option.value !== "all")
+    .filter((option): option is { label: string; value: ProvisionableRoleCode } => option.value !== "all")
     .map((option) => ({
       ...option,
       disabled: !canTransitionRole(modal.account.roleCode, option.value),
@@ -356,7 +406,7 @@ function AccountRoleChangeModal({
               disabled={isSaving}
               options={availableOptions.map((option) => ({ label: option.label, value: option.value }))}
               value={modal.roleCode}
-              onChange={(value) => onRoleChange(value as RoleCode)}
+              onChange={(value) => onRoleChange(value as ProvisionableRoleCode)}
             />
             {selectedOption?.disabled ? <p className="tw-m-0 tw-mt-2 tw-text-[0.78rem] tw-font-semibold tw-text-vm-danger">{selectedOption.reason}</p> : null}
           </div>
@@ -554,6 +604,8 @@ export function AccountListPage() {
     (user?.role === "PARKING_MANAGER" && hasAnyPermission(user, ["ACCOUNT_READ_ALL", "EMPLOYEE_READ_ALL", "CUSTOMER_READ_ALL"]));
   const canCreateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_CREATE_ALL"]);
   const canUpdateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_UPDATE_ALL"]);
+  const canOpenSupportCenter = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
+  const canCreateChatConversation = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN"]);
   const requestedWorkspaceTab = searchParams.get("tab") === "onboarding" ? "onboarding" : "accounts";
   const activeWorkspaceTab: AccountWorkspaceTab =
     requestedWorkspaceTab === "onboarding" && canReadOnboardingApprovals ? "onboarding" : canReadProvisionedAccount ? "accounts" : "onboarding";
@@ -578,7 +630,7 @@ export function AccountListPage() {
       const response = await getProvisionedAccounts({
         accountStatus: selectedStatus === "all" ? undefined : selectedStatus,
         keyword: keyword.trim() || undefined,
-        roleCode: selectedRole === "all" ? undefined : (selectedRole as RoleCode),
+        roleCode: selectedRole === "all" ? undefined : (selectedRole as ProvisionableRoleCode),
       });
       const mappedAccounts = response.data.map(mapProvisionedAccount);
       setAccountItems(mappedAccounts);
@@ -641,7 +693,7 @@ export function AccountListPage() {
   function openRoleModal(account: ProvisionedAccount) {
     if (!canUpdateProvisionedAccount) return;
     setActionErrorMessage("");
-    setRoleModal({ account, roleCode: account.roleCode });
+    setRoleModal({ account, roleCode: getProvisionableRoleFallback(account.roleCode) });
   }
 
   function openStatusModal(account: ProvisionedAccount) {
@@ -653,6 +705,27 @@ export function AccountListPage() {
       reason: "",
       status: canTransitionStatus(account.status, defaultStatus) ? defaultStatus : "ACTIVE",
     });
+  }
+
+  function openAccountConversation(account: ProvisionedAccount) {
+    if (getAccountChatDisabledReason(account)) return;
+
+    openSupportCenterConversation({
+      mode: "internal-direct",
+      participantId: account.accountId,
+      participantName: account.username,
+      participantType: "employee",
+    });
+  }
+
+  function getAccountChatDisabledReason(account: ProvisionedAccount) {
+    if (account.accountId === "-") return "Chưa có tài khoản để mở chat.";
+    if (account.accountId === user?.id) return "Không thể tạo hội thoại trực tiếp với chính mình.";
+    if (account.status !== "ACTIVE") return "Chỉ có thể nhắn tin với tài khoản đang ACTIVE.";
+    if (!isInternalRole(account.roleCode)) return "Từ màn Tài khoản hiện chỉ tạo chat trực tiếp cho tài khoản nội bộ.";
+    if (!canOpenSupportCenter) return "Cần quyền CHAT_CONVERSATION_READ_OWN hoặc CHAT_CONVERSATION_READ_ALL.";
+    if (!canCreateChatConversation) return "Cần quyền CHAT_CONVERSATION_CREATE_OWN để tạo hội thoại nội bộ.";
+    return "";
   }
 
   async function submitRoleChange() {
@@ -847,14 +920,21 @@ export function AccountListPage() {
                     <InfoBanner tone="info" title="Chưa có dữ liệu phù hợp" description="Thử thay đổi bộ lọc hoặc tạo tài khoản cấp sẵn mới." icon={<i className="far fa-folder-open" />} />
                   </div>
                 ) : null}
-                {filteredAccounts.map((account) => (
-                  <AccountRow
-                    key={account.accountId}
-                    account={account}
-                    selected={account.accountId === activeAccount.accountId}
-                    onSelect={() => setSelectedAccountId(account.accountId)}
-                  />
-                ))}
+                {filteredAccounts.map((account) => {
+                  const messageDisabledReason = getAccountChatDisabledReason(account);
+
+                  return (
+                    <AccountRow
+                      key={account.accountId}
+                      account={account}
+                      canMessage={!messageDisabledReason}
+                      messageDisabledReason={messageDisabledReason || undefined}
+                      selected={account.accountId === activeAccount.accountId}
+                      onMessage={() => openAccountConversation(account)}
+                      onSelect={() => setSelectedAccountId(account.accountId)}
+                    />
+                  );
+                })}
               </div>
               <div className="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-3">
                 <p className="tw-m-0 tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-500">Hiển thị {filteredAccounts.length} tài khoản</p>

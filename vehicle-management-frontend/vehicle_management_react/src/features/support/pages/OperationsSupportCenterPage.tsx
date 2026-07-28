@@ -5,6 +5,8 @@ import { useSearchParams } from "react-router-dom";
 import { Badge, Button, EntityAvatar, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import {
+  createInternalDirectConversation,
+  deleteChatMessage,
   getChatAttachmentReadUrl,
   getChatConversation,
   getChatInbox,
@@ -313,6 +315,47 @@ function shortCode(prefix: string, value: string | null | undefined) {
   return value ? `${prefix}-${value.slice(0, 8).toUpperCase()}` : "--";
 }
 
+function isImageAttachment(attachment: ChatAttachmentResponse) {
+  return attachment.attachmentType === "IMAGE" || Boolean(attachment.contentType?.startsWith("image/"));
+}
+
+function isVideoAttachment(attachment: ChatAttachmentResponse) {
+  return Boolean(attachment.contentType?.startsWith("video/"));
+}
+
+function isVisualAttachment(attachment: ChatAttachmentResponse) {
+  return isImageAttachment(attachment) || isVideoAttachment(attachment);
+}
+
+function getAttachmentExtension(attachment: ChatAttachmentResponse) {
+  const originalExtension = attachment.originalFilename?.split(".").pop();
+  if (originalExtension && originalExtension.length <= 6) return originalExtension;
+  if (attachment.contentType?.includes("png")) return "png";
+  if (attachment.contentType?.includes("webp")) return "webp";
+  if (attachment.contentType?.includes("gif")) return "gif";
+  if (attachment.contentType?.includes("mp4")) return "mp4";
+  return isVideoAttachment(attachment) ? "mp4" : "jpg";
+}
+
+function getAttachmentDownloadName(attachment: ChatAttachmentResponse) {
+  return attachment.originalFilename?.trim() || `chat-${attachment.attachmentId}.${getAttachmentExtension(attachment)}`;
+}
+
+function getVisualDownloadLabel(count: number) {
+  return count > 1 ? `Lưu ${count} ảnh về máy` : "Lưu ảnh về máy";
+}
+
+function triggerDownload(url: string, filename: string) {
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.rel = "noopener noreferrer";
+  link.target = "_blank";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 function getInitials(value: string) {
   const words = value
     .trim()
@@ -431,8 +474,13 @@ function mapChatStatus(status: ChatConversationResponse["status"]): Conversation
   return "processing";
 }
 
-function mapApiConversation(inboxItem: ChatInboxItemResponse, index: number, currentAccountId?: string): Conversation {
-  const { conversation, lastMessage, unreadCount } = inboxItem;
+function mapChatConversation(
+  conversation: ChatConversationResponse,
+  index: number,
+  currentAccountId?: string,
+  lastMessage?: ChatMessageResponse | null,
+  unreadCount = 0,
+): Conversation {
   const primaryParticipant = resolvePrimaryParticipant(conversation, currentAccountId);
   const title = conversation.title?.trim() || chatConversationTypeLabel[conversation.conversationType] || "Hội thoại";
   const fallback = conversations[index % conversations.length];
@@ -466,6 +514,10 @@ function mapApiConversation(inboxItem: ChatInboxItemResponse, index: number, cur
     unread: unreadCount || undefined,
     userName: resolvedTitle,
   };
+}
+
+function mapApiConversation(inboxItem: ChatInboxItemResponse, index: number, currentAccountId?: string): Conversation {
+  return mapChatConversation(inboxItem.conversation, index, currentAccountId, inboxItem.lastMessage, inboxItem.unreadCount);
 }
 
 function mapTicketPriority(priority?: SupportTicketPriority | null): Priority {
@@ -796,79 +848,332 @@ function ApiAttachmentPreview({ attachment, onOpen }: { attachment: ChatAttachme
   );
 }
 
+type ResolveAttachmentUrl = (attachment: ChatAttachmentResponse) => Promise<string>;
+
+function VisualAttachmentTile({
+  attachment,
+  compact,
+  onOpen,
+  resolveAttachmentUrl,
+}: {
+  attachment: ChatAttachmentResponse;
+  compact: boolean;
+  onOpen: (attachment: ChatAttachmentResponse) => void;
+  resolveAttachmentUrl: ResolveAttachmentUrl;
+}) {
+  const [url, setUrl] = useState("");
+  const [loadFailed, setLoadFailed] = useState(false);
+  const isVideo = isVideoAttachment(attachment);
+  const label = attachment.originalFilename || (isVideo ? "Video đính kèm" : "Ảnh đính kèm");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadFailed(false);
+
+    void resolveAttachmentUrl(attachment)
+      .then((readUrl) => {
+        if (!cancelled) setUrl(readUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setLoadFailed(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attachment, resolveAttachmentUrl]);
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        "tw-group/tile tw-relative tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-white/70 tw-bg-vm-slate-100 tw-text-left tw-shadow-[0_8px_18px_rgba(15,23,42,0.08)] focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus",
+        compact ? "tw-h-[118px]" : "tw-h-[228px] tw-w-[304px] max-[768px]:tw-w-[min(304px,72vw)]",
+      )}
+      onClick={() => onOpen(attachment)}
+      title={label}
+    >
+      {url && !loadFailed ? (
+        isVideo ? (
+          <video className="tw-h-full tw-w-full tw-object-cover" muted playsInline preload="metadata" src={url} />
+        ) : (
+          <img alt={label} className="tw-h-full tw-w-full tw-object-cover tw-transition tw-duration-200 group-hover/tile:tw-scale-[1.025]" src={url} />
+        )
+      ) : (
+        <span className="tw-flex tw-h-full tw-w-full tw-items-center tw-justify-center tw-text-vm-slate-400">
+          <i className={cn(loadFailed ? "far fa-image" : "fas fa-spinner fa-spin", "tw-text-[1.35rem]")} />
+        </span>
+      )}
+      <span className="tw-absolute tw-left-2 tw-top-2 tw-rounded tw-bg-black/55 tw-px-1.5 tw-py-0.5 tw-text-[0.62rem] tw-font-black tw-leading-none tw-text-white">
+        HD
+      </span>
+      {isVideo ? (
+        <span className="tw-absolute tw-inset-0 tw-grid tw-place-items-center tw-bg-black/10 tw-text-white">
+          <i className="fas fa-play tw-text-[1.1rem] tw-drop-shadow" />
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
+function ChatAttachmentGallery({
+  attachments,
+  onOpenAttachment,
+  resolveAttachmentUrl,
+}: {
+  attachments: ChatAttachmentResponse[];
+  onOpenAttachment: (attachment: ChatAttachmentResponse) => void;
+  resolveAttachmentUrl: ResolveAttachmentUrl;
+}) {
+  const visualAttachments = attachments.filter(isVisualAttachment);
+  const fileAttachments = attachments.filter((attachment) => !isVisualAttachment(attachment));
+  const visualCount = visualAttachments.length;
+
+  return (
+    <>
+      {visualCount ? (
+        <div
+          className={cn(
+            "tw-mt-3 tw-grid tw-gap-1.5",
+            visualCount === 1 ? "tw-max-w-[304px] tw-grid-cols-1" : "",
+            visualCount === 2 ? "tw-max-w-[360px] tw-grid-cols-2" : "",
+            visualCount === 3 ? "tw-max-w-[420px] tw-grid-cols-3" : "",
+            visualCount >= 4 ? "tw-max-w-[520px] tw-grid-cols-4 max-[900px]:tw-grid-cols-2" : "",
+          )}
+        >
+          {visualAttachments.map((attachment) => (
+            <VisualAttachmentTile
+              attachment={attachment}
+              compact={visualCount > 1}
+              key={attachment.attachmentId}
+              onOpen={onOpenAttachment}
+              resolveAttachmentUrl={resolveAttachmentUrl}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {fileAttachments.length ? (
+        <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
+          {fileAttachments.map((attachment) => (
+            <ApiAttachmentPreview attachment={attachment} key={attachment.attachmentId} onOpen={onOpenAttachment} />
+          ))}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function DeletedMessageBody({ hasVisualContent, time }: { hasVisualContent: boolean; time: string }) {
+  if (hasVisualContent) {
+    return (
+      <div className="tw-flex tw-h-[228px] tw-w-[304px] tw-max-w-[72vw] tw-flex-col tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-100 tw-text-vm-slate-400">
+        <i className="far fa-image tw-text-[1.5rem]" />
+        <span className="tw-mt-2 tw-text-[0.86rem] tw-font-black">Đã thu hồi</span>
+        <span className="tw-mt-2 tw-text-[0.72rem] tw-font-semibold">{time}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-50 tw-px-4 tw-py-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-400">
+      Tin nhắn đã được thu hồi
+      <div className="tw-mt-2 tw-text-right tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-400">{time}</div>
+    </div>
+  );
+}
+
+function MessageActionsMenu({
+  align = "right",
+  canDelete,
+  message,
+  onDeleteMessage,
+  onDownloadAttachments,
+}: {
+  align?: "left" | "right";
+  canDelete: boolean;
+  message: ChatMessageResponse;
+  onDeleteMessage: (message: ChatMessageResponse) => void;
+  onDownloadAttachments: (attachments: ChatAttachmentResponse[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const downloadableAttachments = message.deleted ? [] : message.attachments.filter(isVisualAttachment);
+  const hasDownloadAction = downloadableAttachments.length > 0;
+  const hasActions = hasDownloadAction || canDelete;
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    function closeOnOutsideClick(event: PointerEvent) {
+      if (menuRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    }
+
+    window.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => window.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [open]);
+
+  if (!hasActions) return null;
+
+  return (
+    <div className="tw-relative tw-self-end" ref={menuRef}>
+      <button
+        type="button"
+        className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-500 tw-shadow-[0_8px_18px_rgba(15,23,42,0.08)] hover:tw-bg-vm-slate-50 hover:tw-text-vm-slate-900 focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus"
+        aria-label="Mở tác vụ tin nhắn"
+        aria-expanded={open}
+        onClick={(event) => {
+          event.stopPropagation();
+          setOpen((currentValue) => !currentValue);
+        }}
+      >
+        <i className="fas fa-ellipsis-h tw-text-[0.78rem]" />
+      </button>
+
+      {open ? (
+        <div
+          className={cn(
+            "tw-absolute tw-bottom-10 tw-z-30 tw-w-[240px] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-2 tw-text-[0.86rem] tw-font-semibold tw-shadow-[0_20px_60px_rgba(15,23,42,0.18)]",
+            align === "left" ? "tw-left-0" : "tw-right-0",
+          )}
+        >
+          {hasDownloadAction ? (
+            <button
+              type="button"
+              className="tw-flex tw-w-full tw-items-center tw-gap-3 tw-border-0 tw-bg-white tw-px-4 tw-py-3 tw-text-left tw-text-vm-slate-700 hover:tw-bg-vm-slate-50"
+              onClick={() => {
+                setOpen(false);
+                onDownloadAttachments(downloadableAttachments);
+              }}
+            >
+              <i className="fas fa-download tw-w-4 tw-text-vm-slate-600" />
+              {getVisualDownloadLabel(downloadableAttachments.length)}
+            </button>
+          ) : null}
+          {canDelete ? (
+            <button
+              type="button"
+              className={cn(
+                "tw-flex tw-w-full tw-items-center tw-gap-3 tw-border-0 tw-bg-white tw-px-4 tw-py-3 tw-text-left tw-text-vm-danger hover:tw-bg-red-50",
+                hasDownloadAction ? "tw-border-t tw-border-solid tw-border-vm-slate-100" : "",
+              )}
+              onClick={() => {
+                setOpen(false);
+                onDeleteMessage(message);
+              }}
+            >
+              <i className="far fa-trash-alt tw-w-4" />
+              Xóa tin nhắn
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function ChatMessageBubble({
+  canDelete,
   conversation,
   currentUserId,
   message,
+  onDeleteMessage,
+  onDownloadAttachments,
   onOpenAttachment,
+  resolveAttachmentUrl,
 }: {
+  canDelete: boolean;
   conversation: Conversation;
   currentUserId?: string;
   message: ChatMessageResponse;
+  onDeleteMessage: (message: ChatMessageResponse) => void;
+  onDownloadAttachments: (attachments: ChatAttachmentResponse[]) => void;
   onOpenAttachment: (attachment: ChatAttachmentResponse) => void;
+  resolveAttachmentUrl: ResolveAttachmentUrl;
 }) {
   const isOwnMessage = Boolean(currentUserId && message.senderAccountId === currentUserId);
   const sender = findMessageSender(conversation, message.senderAccountId);
   const senderName = getParticipantDisplayName(sender) || (isOwnMessage ? "You" : conversation.userName);
   const senderInitials = getInitials(senderName);
   const senderAvatarUrl = sender?.avatarUrl ?? (isOwnMessage ? null : conversation.avatarUrl);
-  const content = message.deleted ? "Tin nhắn đã bị xóa" : message.content?.trim();
+  const content = message.deleted ? "" : message.content?.trim();
+  const formattedTime = formatClock(message.createdAt);
+  const hasVisualContent = message.attachments.some(isVisualAttachment) || message.messageType === "IMAGE";
+  const bubbleClassName = cn(
+    "tw-max-w-[560px] tw-rounded-vm-lg tw-border tw-border-solid tw-p-4",
+    isOwnMessage
+      ? "tw-border-brand-100 tw-bg-brand-50 tw-text-[0.86rem] tw-font-semibold tw-leading-relaxed tw-text-vm-slate-900"
+      : "tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_8px_20px_rgba(15,23,42,0.04)]",
+  );
 
   if (isOwnMessage) {
     return (
-      <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_40px] tw-gap-3 tw-self-end">
-        <div className="tw-max-w-[560px] tw-rounded-vm-lg tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50 tw-p-4 tw-text-[0.86rem] tw-font-semibold tw-leading-relaxed tw-text-vm-slate-900">
-          {content ? <p className="tw-m-0">{content}</p> : null}
-          {message.attachments.length ? (
-            <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
-              {message.attachments.map((attachment) => (
-                <ApiAttachmentPreview attachment={attachment} key={attachment.attachmentId} onOpen={onOpenAttachment} />
-              ))}
+      <div className="tw-flex tw-items-end tw-justify-end tw-gap-2 tw-self-end">
+        <MessageActionsMenu align="right" canDelete={canDelete} message={message} onDeleteMessage={onDeleteMessage} onDownloadAttachments={onDownloadAttachments} />
+        {message.deleted ? (
+          <DeletedMessageBody hasVisualContent={hasVisualContent} time={formattedTime} />
+        ) : (
+          <div className={bubbleClassName}>
+            {content ? <p className="tw-m-0">{content}</p> : null}
+            {message.attachments.length ? (
+              <ChatAttachmentGallery attachments={message.attachments} onOpenAttachment={onOpenAttachment} resolveAttachmentUrl={resolveAttachmentUrl} />
+            ) : null}
+            <div className="tw-mt-2 tw-flex tw-justify-end tw-gap-2 tw-text-[0.72rem] tw-text-vm-slate-500">
+              {formattedTime}
+              <i className="fas fa-check-double tw-text-vm-primary" />
             </div>
-          ) : null}
-          <div className="tw-mt-2 tw-flex tw-justify-end tw-gap-2 tw-text-[0.72rem] tw-text-vm-slate-500">
-            {formatClock(message.createdAt)}
-            <i className="fas fa-check-double tw-text-vm-primary" />
           </div>
-        </div>
+        )}
         <EntityAvatar initials={senderInitials} src={senderAvatarUrl} tone="blue" title={senderName} />
       </div>
     );
   }
 
   return (
-    <div className="tw-grid tw-grid-cols-[40px_minmax(0,1fr)] tw-gap-3">
+    <div className="tw-flex tw-items-end tw-gap-2">
       <EntityAvatar initials={senderInitials} src={senderAvatarUrl} tone={conversation.tone} title={senderName} />
-      <div className="tw-max-w-[560px] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_8px_20px_rgba(15,23,42,0.04)]">
-        {content ? <p className="tw-m-0 tw-text-[0.86rem] tw-font-semibold tw-leading-relaxed tw-text-vm-slate-900">{content}</p> : null}
-        {message.attachments.length ? (
-          <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
-            {message.attachments.map((attachment) => (
-              <ApiAttachmentPreview attachment={attachment} key={attachment.attachmentId} onOpen={onOpenAttachment} />
-            ))}
-          </div>
-        ) : null}
-        <div className="tw-mt-2 tw-text-right tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">{formatClock(message.createdAt)}</div>
-      </div>
+      {message.deleted ? (
+        <DeletedMessageBody hasVisualContent={hasVisualContent} time={formattedTime} />
+      ) : (
+        <div className={bubbleClassName}>
+          {content ? <p className="tw-m-0 tw-text-[0.86rem] tw-font-semibold tw-leading-relaxed tw-text-vm-slate-900">{content}</p> : null}
+          {message.attachments.length ? (
+            <ChatAttachmentGallery attachments={message.attachments} onOpenAttachment={onOpenAttachment} resolveAttachmentUrl={resolveAttachmentUrl} />
+          ) : null}
+          <div className="tw-mt-2 tw-text-right tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">{formattedTime}</div>
+        </div>
+      )}
+      <MessageActionsMenu align="left" canDelete={canDelete} message={message} onDeleteMessage={onDeleteMessage} onDownloadAttachments={onDownloadAttachments} />
     </div>
   );
 }
 
 function ChatMessages({
+  canDeleteOwnMessage,
+  canModerateMessages,
   conversation,
   currentUserId,
   errorMessage,
   isLoading,
   messages,
+  onDeleteMessage,
+  onDownloadAttachments,
   onOpenAttachment,
+  resolveAttachmentUrl,
   usingMockData,
 }: {
+  canDeleteOwnMessage: boolean;
+  canModerateMessages: boolean;
   conversation: Conversation;
   currentUserId?: string;
   errorMessage?: string;
   isLoading: boolean;
   messages: ChatMessageResponse[];
+  onDeleteMessage: (message: ChatMessageResponse) => void;
+  onDownloadAttachments: (attachments: ChatAttachmentResponse[]) => void;
   onOpenAttachment: (attachment: ChatAttachmentResponse) => void;
+  resolveAttachmentUrl: ResolveAttachmentUrl;
   usingMockData: boolean;
 }) {
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -913,11 +1218,18 @@ function ChatMessages({
         ) : null}
         {orderedMessages.map((message) => (
           <ChatMessageBubble
+            canDelete={
+              !message.deleted &&
+              (canModerateMessages || Boolean(currentUserId && message.senderAccountId === currentUserId && canDeleteOwnMessage))
+            }
             conversation={conversation}
             currentUserId={currentUserId}
             key={message.messageId}
             message={message}
+            onDeleteMessage={onDeleteMessage}
+            onDownloadAttachments={onDownloadAttachments}
             onOpenAttachment={onOpenAttachment}
+            resolveAttachmentUrl={resolveAttachmentUrl}
           />
         ))}
       </div>
@@ -990,20 +1302,33 @@ function Composer({
   canAttach,
   canSend,
   disabledReason,
+  focusSignal,
   isSending,
   onSend,
 }: {
   canAttach: boolean;
   canSend: boolean;
   disabledReason?: string;
+  focusSignal: string;
   isSending: boolean;
   onSend: (content: string, files: File[]) => Promise<void>;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [content, setContent] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const trimmedContent = content.trim();
   const canSubmit = canSend && !isSending && Boolean(trimmedContent || files.length);
+
+  useEffect(() => {
+    if (!canSend || disabledReason) return;
+
+    const animationFrameId = window.requestAnimationFrame(() => {
+      textareaRef.current?.focus({ preventScroll: true });
+    });
+
+    return () => window.cancelAnimationFrame(animationFrameId);
+  }, [canSend, disabledReason, focusSignal]);
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -1026,6 +1351,7 @@ function Composer({
         <button type="button" className="tw-border-0 tw-bg-transparent tw-pb-3 tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-500" title="Backend chưa có API ghi chú nội bộ riêng cho chat, giữ lại cho phase sau">Ghi chú nội bộ</button>
       </div>
       <textarea
+        ref={textareaRef}
         className="tw-mt-4 tw-h-20 tw-w-full tw-resize-none tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-vm-focus disabled:tw-bg-vm-slate-25"
         disabled={!canSend || isSending}
         placeholder={disabledReason || "Nhập nội dung trả lời..."}
@@ -1092,6 +1418,8 @@ function Composer({
 
 function ChatWorkspace({
   canAttach,
+  canDeleteOwnMessage,
+  canModerateMessages,
   canSend,
   conversation,
   currentUserId,
@@ -1100,11 +1428,16 @@ function ChatWorkspace({
   messages,
   messageError,
   messagesLoading,
+  onDeleteMessage,
+  onDownloadAttachments,
   onOpenAttachment,
   onSend,
+  resolveAttachmentUrl,
   usingMockData,
 }: {
   canAttach: boolean;
+  canDeleteOwnMessage: boolean;
+  canModerateMessages: boolean;
   canSend: boolean;
   conversation: Conversation;
   currentUserId?: string;
@@ -1113,8 +1446,11 @@ function ChatWorkspace({
   messages: ChatMessageResponse[];
   messageError?: string;
   messagesLoading: boolean;
+  onDeleteMessage: (message: ChatMessageResponse) => void;
+  onDownloadAttachments: (attachments: ChatAttachmentResponse[]) => void;
   onOpenAttachment: (attachment: ChatAttachmentResponse) => void;
   onSend: (content: string, files: File[]) => Promise<void>;
+  resolveAttachmentUrl: ResolveAttachmentUrl;
   usingMockData: boolean;
 }) {
   return (
@@ -1122,18 +1458,24 @@ function ChatWorkspace({
       <ChatHeader conversation={conversation} />
       <TicketStrip conversation={conversation} />
       <ChatMessages
+        canDeleteOwnMessage={canDeleteOwnMessage}
+        canModerateMessages={canModerateMessages}
         conversation={conversation}
         currentUserId={currentUserId}
         errorMessage={messageError}
         isLoading={messagesLoading}
         messages={messages}
+        onDeleteMessage={onDeleteMessage}
+        onDownloadAttachments={onDownloadAttachments}
         onOpenAttachment={onOpenAttachment}
+        resolveAttachmentUrl={resolveAttachmentUrl}
         usingMockData={usingMockData}
       />
       <Composer
         canAttach={canAttach}
         canSend={canSend}
         disabledReason={disabledReason}
+        focusSignal={conversation.id}
         isSending={isSending}
         onSend={onSend}
       />
@@ -1197,9 +1539,12 @@ function RightPanel({ className, conversation, ticket }: { className?: string; c
 export function OperationsSupportCenterPage() {
   const toast = useToast();
   const { user } = useAuth();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedConversationId = searchParams.get("conversationId");
+  const requestedChatMode = searchParams.get("mode");
   const requestedParticipantId = searchParams.get("participantId");
   const requestedParticipantName = searchParams.get("participantName");
+  const requestedParticipantType = searchParams.get("participantType");
   const [apiConversations, setApiConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [searchValue, setSearchValue] = useState("");
@@ -1214,14 +1559,24 @@ export function OperationsSupportCenterPage() {
   const inboxLoadedRef = useRef(false);
   const lastMarkedReadKeyRef = useRef<string | null>(null);
   const latestRealtimeMessageIdRef = useRef<string | null>(null);
+  const ensuredDirectConversationKeyRef = useRef<string | null>(null);
+  const attachmentReadUrlCacheRef = useRef<Map<string, string>>(new Map());
   const realtimeSyncTimerIdRef = useRef<number | undefined>(undefined);
   const realtimeSyncVersionRef = useRef(0);
   const canReadChat = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
+  const canCreateChat = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN"]);
   const canSendChat = hasAnyPermission(user, ["CHAT_MESSAGE_SEND_OWN"]);
+  const canDeleteOwnMessage = hasAnyPermission(user, ["CHAT_MESSAGE_DELETE_OWN"]);
+  const canModerateMessages = hasAnyPermission(user, ["CHAT_MESSAGE_MODERATE_ALL"]);
   const canAttachChat = canSendChat && hasAnyPermission(user, ["CHAT_ATTACHMENT_CREATE_OWN"]);
   const canReadAttachment = hasAnyPermission(user, ["CHAT_ATTACHMENT_READ_OWN"]);
 
   const resolvePreferredConversationId = useCallback((sourceConversations: Conversation[]) => {
+    if (requestedConversationId) {
+      const byConversationId = sourceConversations.find((conversation) => conversation.id === requestedConversationId);
+      if (byConversationId) return byConversationId.id;
+    }
+
     if (requestedParticipantId) {
       const byParticipant = sourceConversations.find((conversation) =>
         conversation.participantId === requestedParticipantId ||
@@ -1248,7 +1603,7 @@ export function OperationsSupportCenterPage() {
     }
 
     return sourceConversations[0]?.id ?? "";
-  }, [requestedParticipantId, requestedParticipantName]);
+  }, [requestedConversationId, requestedParticipantId, requestedParticipantName]);
 
   const loadInbox = useCallback(async (options: LoadInboxOptions = {}) => {
     const shouldShowLoading = options.showLoading ?? !inboxLoadedRef.current;
@@ -1291,6 +1646,81 @@ export function OperationsSupportCenterPage() {
       if (shouldShowLoading) setIsInboxLoading(false);
     }
   }, [canReadChat, resolvePreferredConversationId, user?.id]);
+
+  useEffect(() => {
+    if (requestedChatMode !== "internal-direct" || requestedParticipantType !== "employee") return;
+    if (!requestedParticipantId || !isUuid(requestedParticipantId)) return;
+    if (!user) return;
+
+    const directConversationKey = `${requestedChatMode}:${requestedParticipantId}`;
+    if (ensuredDirectConversationKeyRef.current === directConversationKey) return;
+
+    if (!canReadChat || !canCreateChat) {
+      ensuredDirectConversationKeyRef.current = directConversationKey;
+      toast.error(
+        "Tài khoản hiện tại cần quyền CHAT_CONVERSATION_READ_OWN/READ_ALL và CHAT_CONVERSATION_CREATE_OWN để mở chat nội bộ.",
+        "Không thể mở chat",
+      );
+      return;
+    }
+
+    let cancelled = false;
+    ensuredDirectConversationKeyRef.current = directConversationKey;
+    const currentUserId = user.id;
+    const targetAccountId = requestedParticipantId;
+
+    async function ensureInternalDirectConversation() {
+      try {
+        const response = await createInternalDirectConversation(targetAccountId);
+        if (cancelled) return;
+
+        const conversation = response.data;
+        const mappedConversation = mapChatConversation(conversation, 0, currentUserId);
+        setApiConversations((currentConversations) => {
+          const existingIndex = currentConversations.findIndex((item) => item.id === conversation.conversationId);
+          if (existingIndex >= 0) {
+            const nextConversations = [...currentConversations];
+            nextConversations[existingIndex] = {
+              ...nextConversations[existingIndex],
+              ...mappedConversation,
+            };
+            return nextConversations;
+          }
+
+          return [mappedConversation, ...currentConversations];
+        });
+        setSelectedId(conversation.conversationId);
+
+        const nextSearchParams = new URLSearchParams(searchParams);
+        nextSearchParams.set("conversationId", conversation.conversationId);
+        nextSearchParams.delete("mode");
+        setSearchParams(nextSearchParams, { replace: true });
+
+        void loadInbox({ showLoading: false });
+      } catch (error) {
+        if (cancelled) return;
+        ensuredDirectConversationKeyRef.current = null;
+        toast.error(error instanceof Error ? error.message : "Không thể tạo hoặc mở hội thoại nội bộ.", "Không thể mở chat");
+      }
+    }
+
+    void ensureInternalDirectConversation();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    canCreateChat,
+    canReadChat,
+    loadInbox,
+    requestedChatMode,
+    requestedParticipantId,
+    requestedParticipantType,
+    searchParams,
+    setSearchParams,
+    toast,
+    user,
+  ]);
 
   const markReadAndRefreshInbox = useCallback((conversationId: string, messageId?: string | null) => {
     const normalizedMessageId = messageId?.trim();
@@ -1623,12 +2053,68 @@ export function OperationsSupportCenterPage() {
         : await sendChatTextMessage(selectedConversation.id, content);
 
       setMessages((currentMessages) => upsertChatMessages(currentMessages, [response.data]));
-      toast.success("Đã gửi tin nhắn.", "Chat");
       await loadInbox({ showLoading: false });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không gửi được tin nhắn.", "Gửi thất bại");
     } finally {
       setIsSending(false);
+    }
+  }
+
+  const resolveAttachmentUrl = useCallback(async (attachment: ChatAttachmentResponse) => {
+    if (!canReadAttachment) {
+      throw new Error("Bạn chưa có quyền CHAT_ATTACHMENT_READ_OWN.");
+    }
+
+    const cachedReadUrl = attachmentReadUrlCacheRef.current.get(attachment.attachmentId);
+    if (cachedReadUrl) return cachedReadUrl;
+
+    const response = await getChatAttachmentReadUrl(attachment.attachmentId);
+    attachmentReadUrlCacheRef.current.set(attachment.attachmentId, response.data.readUrl);
+    return response.data.readUrl;
+  }, [canReadAttachment]);
+
+  async function handleDownloadAttachments(attachments: ChatAttachmentResponse[]) {
+    const visualAttachments = attachments.filter(isVisualAttachment);
+    if (!visualAttachments.length) return;
+
+    try {
+      for (const attachment of visualAttachments) {
+        const readUrl = await resolveAttachmentUrl(attachment);
+        triggerDownload(readUrl, getAttachmentDownloadName(attachment));
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể tải ảnh về máy.", "Tải ảnh thất bại");
+    }
+  }
+
+  async function handleDeleteMessage(message: ChatMessageResponse) {
+    if (message.deleted || !message.messageId) return;
+
+    const isOwnMessage = Boolean(user?.id && message.senderAccountId === user.id);
+    if (!canModerateMessages && !(isOwnMessage && canDeleteOwnMessage)) {
+      toast.error("Bạn chưa có quyền xóa tin nhắn này.", "Không thể xóa");
+      return;
+    }
+
+    try {
+      await deleteChatMessage(message.messageId);
+      const deletedAt = new Date().toISOString();
+      setMessages((currentMessages) =>
+        currentMessages.map((currentMessage) =>
+          currentMessage.messageId === message.messageId
+            ? {
+                ...currentMessage,
+                content: null,
+                deleted: true,
+                deletedAt,
+              }
+            : currentMessage,
+        ),
+      );
+      await loadInbox({ showLoading: false });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể xóa tin nhắn.", "Xóa thất bại");
     }
   }
 
@@ -1639,8 +2125,8 @@ export function OperationsSupportCenterPage() {
     }
 
     try {
-      const response = await getChatAttachmentReadUrl(attachment.attachmentId);
-      window.open(response.data.readUrl, "_blank", "noopener,noreferrer");
+      const readUrl = await resolveAttachmentUrl(attachment);
+      window.open(readUrl, "_blank", "noopener,noreferrer");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không tạo được đường dẫn đọc tệp.", "Mở tệp thất bại");
     }
@@ -1673,6 +2159,8 @@ export function OperationsSupportCenterPage() {
           />
           <ChatWorkspace
             canAttach={canUseComposer && canAttachChat}
+            canDeleteOwnMessage={canDeleteOwnMessage}
+            canModerateMessages={canModerateMessages}
             canSend={canUseComposer}
             conversation={selectedConversation}
             currentUserId={user?.id}
@@ -1681,8 +2169,11 @@ export function OperationsSupportCenterPage() {
             messageError={messageError}
             messages={messages}
             messagesLoading={messagesLoading}
+            onDeleteMessage={handleDeleteMessage}
+            onDownloadAttachments={handleDownloadAttachments}
             onOpenAttachment={handleOpenAttachment}
             onSend={handleSendMessage}
+            resolveAttachmentUrl={resolveAttachmentUrl}
             usingMockData={usingMockData}
           />
           <RightPanel className="max-[1280px]:tw-hidden" conversation={selectedConversation} ticket={effectiveSelectedTicket} />

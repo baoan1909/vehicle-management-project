@@ -15,6 +15,7 @@ export type RolePermissionRecord = {
   kind: RoleKind;
   locked: boolean;
   name: string;
+  permissionCount?: number | null;
 };
 
 export type PermissionModuleRecord = {

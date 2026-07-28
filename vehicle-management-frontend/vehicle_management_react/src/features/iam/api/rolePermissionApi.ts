@@ -18,6 +18,7 @@ export type RoleAdminResponse = {
   isActive?: boolean;
   isSystem?: boolean;
   name: string;
+  permissionCount?: number | null;
   roleId: string;
   system?: boolean;
   updatedAt?: string;
@@ -39,14 +40,20 @@ export type UpdateRoleRequest = {
 
 export type PermissionAdminResponse = {
   actionId?: string;
+  action_id?: string;
   createdAt?: string;
   createdBy?: string;
   description?: string;
+  id?: string;
   moduleId?: string;
+  module_id?: string;
   name?: string;
-  permissionCode: string;
-  permissionId: string;
+  permissionCode?: string;
+  permission_code?: string;
+  permissionId?: string;
+  permission_id?: string;
   scopeId?: string;
+  scope_id?: string;
   updatedAt?: string;
   updatedBy?: string;
 };
@@ -54,7 +61,10 @@ export type PermissionAdminResponse = {
 export type RolePermissionsResponse = {
   isActive?: boolean;
   isSystem?: boolean;
-  permissions: PermissionAdminResponse[];
+  permissionCount?: number | null;
+  permissionCodes?: string[];
+  permission_codes?: string[];
+  permissions?: PermissionAdminResponse[];
   roleCode: string;
   roleId: string;
   roleName: string;

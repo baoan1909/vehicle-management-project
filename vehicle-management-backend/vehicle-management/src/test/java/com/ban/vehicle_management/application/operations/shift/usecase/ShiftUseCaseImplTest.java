@@ -214,6 +214,7 @@ class ShiftUseCaseImplTest {
                 assignment(shift.getShiftId(), UUID.randomUUID(), UUID.randomUUID()),
                 assignment(shift.getShiftId(), UUID.randomUUID(), UUID.randomUUID())
         );
+        assignments.forEach(item -> item.setStatus(ShiftAssignmentStatus.SCHEDULED));
 
         when(currentAccountPortIn.hasPermission("SHIFT_UPDATE_ALL"))
                 .thenReturn(true);
@@ -230,7 +231,7 @@ class ShiftUseCaseImplTest {
                 )));
         when(assignmentPortOut.findByShiftId(
                 shift.getShiftId(),
-                ShiftAssignmentStatus.ACTIVE
+                ShiftAssignmentStatus.SCHEDULED
         )).thenReturn(assignments);
         stubValidAssignmentReferences(assignments, zoneId, parkingLotId);
         when(shiftPortOut.hasOpenShift(parkingLotId)).thenReturn(false);
@@ -263,7 +264,7 @@ class ShiftUseCaseImplTest {
                 )));
         when(assignmentPortOut.findByShiftId(
                 shift.getShiftId(),
-                ShiftAssignmentStatus.ACTIVE
+                ShiftAssignmentStatus.SCHEDULED
         )).thenReturn(List.of());
 
         assertThrows(
@@ -313,10 +314,8 @@ class ShiftUseCaseImplTest {
 
         when(shiftPortOut.findByIdForUpdate(shift.getShiftId()))
                 .thenReturn(Optional.of(shift));
-        when(assignmentPortOut.findByShiftId(
-                shift.getShiftId(),
-                ShiftAssignmentStatus.ACTIVE
-        )).thenReturn(List.of(assignment));
+        when(assignmentPortOut.findNotRemovedByShiftId(shift.getShiftId()))
+                .thenReturn(List.of(assignment));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow())
                 .thenReturn(accountId);
         when(assignmentPortOut.saveAll(anyList()))

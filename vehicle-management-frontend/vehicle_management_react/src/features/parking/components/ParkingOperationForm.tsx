@@ -10,6 +10,13 @@ import type { ParkingOperationMode } from "./OperationModeTabs";
 type OcrStatus = "idle" | "recognizing" | "success" | "review" | "error";
 export type CheckOutPaymentMethod = "CASH" | "VNPAY";
 
+export type ParkingOperationValidationErrors = {
+  cardUid?: string;
+  laneId?: string;
+  licensePlate?: string;
+  vehicleTypeId?: string;
+};
+
 type ParkingOperationFormProps = {
   cardUid: string;
   cardOptions: SelectMenuOption[];
@@ -31,6 +38,7 @@ type ParkingOperationFormProps = {
   ocrStatus?: OcrStatus;
   personImageReady?: boolean;
   showVehicleTypeField?: boolean;
+  validationErrors?: ParkingOperationValidationErrors;
   vehicleTypeDisabled?: boolean;
   vehicleTypeId: string;
   vehicleTypeOptions: SelectMenuOption[];
@@ -54,6 +62,17 @@ function ValidationChip({ icon, label }: { icon: string; label: string }) {
   );
 }
 
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+
+  return (
+    <span className="tw-flex tw-items-center tw-gap-1.5 tw-text-[0.76rem] tw-font-bold tw-leading-snug tw-text-red-600">
+      <i className="fas fa-exclamation-circle tw-text-[0.72rem]" />
+      {message}
+    </span>
+  );
+}
+
 function FieldShell({
   actionIcon,
   icon,
@@ -61,8 +80,10 @@ function FieldShell({
   onChange,
   placeholder,
   value,
+  error,
 }: {
   actionIcon?: string;
+  error?: string;
   icon: string;
   label: string;
   onChange: (value: string) => void;
@@ -71,9 +92,12 @@ function FieldShell({
 }) {
   return (
     <label className="tw-m-0 tw-grid tw-gap-2">
-      <span className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">{label}</span>
-      <span className="tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3.5 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-900">
-        <i className={cn(icon, "tw-w-5 tw-text-center tw-text-vm-slate-500")} />
+      <span className={cn("tw-text-[0.8rem] tw-font-bold", error ? "tw-text-red-600" : "tw-text-vm-slate-700")}>{label}</span>
+      <span className={cn(
+        "tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-bg-white tw-px-3.5 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-900",
+        error ? "tw-border-red-300 tw-shadow-[0_0_0_3px_rgba(239,68,68,0.12)]" : "tw-border-vm-slate-100",
+      )}>
+        <i className={cn(icon, "tw-w-5 tw-text-center", error ? "tw-text-red-500" : "tw-text-vm-slate-500")} />
         <input
           className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-900 tw-outline-none placeholder:tw-text-vm-slate-500"
           value={value}
@@ -82,6 +106,7 @@ function FieldShell({
         />
         {actionIcon ? <i className={cn(actionIcon, "tw-text-vm-primary")} /> : null}
       </span>
+      <FieldError message={error} />
     </label>
   );
 }
@@ -188,9 +213,11 @@ function CardUidField({
   helperText,
   isLoadingCards,
   onCardUidChange,
+  error,
 }: {
   cardOptions: SelectMenuOption[];
   cardUid: string;
+  error?: string;
   helperText?: string;
   isLoadingCards: boolean;
   onCardUidChange: (value: string) => void;
@@ -226,10 +253,13 @@ function CardUidField({
 
   return (
     <div className="tw-m-0 tw-grid tw-gap-2" ref={rootRef}>
-      <span className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">Thẻ xe / RFID</span>
+      <span className={cn("tw-text-[0.8rem] tw-font-bold", error ? "tw-text-red-600" : "tw-text-vm-slate-700")}>Thẻ xe / RFID</span>
       <div className="tw-relative">
-        <div className="tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-pl-3.5 tw-pr-2 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-900 focus-within:tw-border-brand-200 focus-within:tw-shadow-vm-focus">
-          <i className="far fa-id-badge tw-w-5 tw-text-center tw-text-vm-slate-500" />
+        <div className={cn(
+          "tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-bg-white tw-pl-3.5 tw-pr-2 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-900 focus-within:tw-border-brand-200 focus-within:tw-shadow-vm-focus",
+          error ? "tw-border-red-300 tw-shadow-[0_0_0_3px_rgba(239,68,68,0.12)]" : "tw-border-vm-slate-100",
+        )}>
+          <i className={cn("far fa-id-badge tw-w-5 tw-text-center", error ? "tw-text-red-500" : "tw-text-vm-slate-500")} />
           <input
             className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-900 tw-outline-none placeholder:tw-text-vm-slate-500"
             value={cardUid}
@@ -279,6 +309,7 @@ function CardUidField({
       {helperText ? (
         <span className="tw-text-[0.72rem] tw-font-semibold tw-leading-snug tw-text-vm-slate-500">{helperText}</span>
       ) : null}
+      <FieldError message={error} />
     </div>
   );
 }
@@ -304,6 +335,7 @@ export function ParkingOperationForm({
   ocrStatus = "idle",
   personImageReady = true,
   showVehicleTypeField = true,
+  validationErrors = {},
   vehicleTypeDisabled = false,
   vehicleTypeId,
   vehicleTypeOptions,
@@ -330,9 +362,6 @@ export function ParkingOperationForm({
     ocrStatus === "recognizing" ? "OCR đang xử lý" : "",
   ].filter(Boolean);
   const canSubmit = missingRequirements.length === 0 && !isSubmitting;
-  const submitReadinessText = missingRequirements.length
-    ? `Còn thiếu: ${missingRequirements.join(", ")}.`
-    : "";
   const requiresPayment = !isCheckIn && checkOutCustomerType === "VISITOR";
   const isSubscription = !isCheckIn && checkOutCustomerType === "SUBSCRIPTION";
   const vnpayUnavailable =
@@ -364,15 +393,19 @@ export function ParkingOperationForm({
         <CardUidField
           cardOptions={cardOptions}
           cardUid={cardUid}
+          error={validationErrors.cardUid}
           isLoadingCards={isLoadingCards}
           onCardUidChange={onCardUidChange}
         />
 
         {showVehicleTypeField ? (
           <label className="tw-m-0 tw-grid tw-gap-2">
-            <span className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">Loại xe</span>
-            <div className="tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3.5">
-              <span className="tw-inline-flex tw-w-5 tw-flex-shrink-0 tw-items-center tw-justify-center tw-text-vm-slate-700">
+            <span className={cn("tw-text-[0.8rem] tw-font-bold", validationErrors.vehicleTypeId ? "tw-text-red-600" : "tw-text-vm-slate-700")}>Loại xe</span>
+            <div className={cn(
+              "tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-bg-white tw-px-3.5",
+              validationErrors.vehicleTypeId ? "tw-border-red-300 tw-shadow-[0_0_0_3px_rgba(239,68,68,0.12)]" : "tw-border-vm-slate-100",
+            )}>
+              <span className={cn("tw-inline-flex tw-w-5 tw-flex-shrink-0 tw-items-center tw-justify-center", validationErrors.vehicleTypeId ? "tw-text-red-500" : "tw-text-vm-slate-700")}>
                 <i className="fas fa-car" />
               </span>
               <SelectMenu
@@ -387,6 +420,7 @@ export function ParkingOperationForm({
                 triggerClassName="!tw-h-10 !tw-border-0 !tw-px-0 !tw-shadow-none tw-text-[0.92rem] tw-font-bold"
               />
             </div>
+            <FieldError message={validationErrors.vehicleTypeId} />
           </label>
         ) : null}
 
@@ -397,6 +431,7 @@ export function ParkingOperationForm({
           value={licensePlate}
           placeholder="VD: 30A-123.45"
           onChange={onLicensePlateChange}
+          error={validationErrors.licensePlate}
         />
         <OcrStatusMessage
           confidence={ocrConfidence}
@@ -407,9 +442,12 @@ export function ParkingOperationForm({
         />
 
         <label className="tw-m-0 tw-grid tw-gap-2">
-          <span className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">Làn xe</span>
-          <div className="tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3.5">
-            <span className="tw-inline-flex tw-w-5 tw-flex-shrink-0 tw-items-center tw-justify-center tw-text-vm-slate-700">
+          <span className={cn("tw-text-[0.8rem] tw-font-bold", validationErrors.laneId ? "tw-text-red-600" : "tw-text-vm-slate-700")}>Làn xe</span>
+          <div className={cn(
+            "tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-bg-white tw-px-3.5",
+            validationErrors.laneId ? "tw-border-red-300 tw-shadow-[0_0_0_3px_rgba(239,68,68,0.12)]" : "tw-border-vm-slate-100",
+          )}>
+            <span className={cn("tw-inline-flex tw-w-5 tw-flex-shrink-0 tw-items-center tw-justify-center", validationErrors.laneId ? "tw-text-red-500" : "tw-text-vm-slate-700")}>
               <i className="fas fa-road" />
             </span>
             <SelectMenu
@@ -422,6 +460,7 @@ export function ParkingOperationForm({
               triggerClassName="!tw-h-10 !tw-border-0 !tw-px-0 !tw-shadow-none tw-text-[0.92rem] tw-font-bold"
             />
           </div>
+          <FieldError message={validationErrors.laneId} />
         </label>
 
         {!isCheckIn ? (
@@ -527,7 +566,16 @@ export function ParkingOperationForm({
           </div>
         ) : null}
 
-        <Button className="tw-h-[48px] tw-w-full tw-text-[0.96rem] tw-font-extrabold" size="lg" disabled={!canSubmit} loading={isSubmitting} onClick={onSubmit}>
+        <Button
+          className={cn(
+            "tw-h-[48px] tw-w-full tw-text-[0.96rem] tw-font-extrabold",
+            !canSubmit && !isSubmitting ? "tw-border-red-500 tw-bg-red-500 hover:tw-bg-red-600" : "",
+          )}
+          size="lg"
+          disabled={isSubmitting}
+          loading={isSubmitting}
+          onClick={onSubmit}
+        >
           {!isSubmitting ? <i className="far fa-check-circle tw-text-[1.18rem]" /> : null}
           {isSubmitting
             ? "Đang xử lý..."
@@ -539,11 +587,6 @@ export function ParkingOperationForm({
                   ? "Xác nhận tiền mặt và checkout"
                   : "Xác nhận check-out"}
         </Button>
-        {submitReadinessText && !error ? (
-          <p className="tw-m-0 tw-text-center tw-text-[0.76rem] tw-font-bold tw-leading-snug tw-text-vm-slate-500">
-            {submitReadinessText}
-          </p>
-        ) : null}
       </CardContent>
     </Card>
   );

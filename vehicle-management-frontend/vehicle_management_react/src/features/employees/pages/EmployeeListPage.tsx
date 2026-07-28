@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Badge, Button, Card, DatePicker, Drawer, EntityAvatar, InfoBanner, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
+import { Badge, Button, Card, DatePicker, Drawer, EntityAvatar, InfoBanner, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import {
   activateEmployee,
@@ -19,8 +19,14 @@ import {
   type EmployeeStatusApi,
   type UpdateEmployeeAdminProfileRequest
 } from "@/features/employees/api/employeesApi";
+import {
+  getProvisionedAccounts,
+  type AdminProvisionableAccountRoleCode,
+  type ProvisionedAccountResponse
+} from "@/features/iam/api/provisionedAccountApi";
 import { openSupportCenterConversation } from "@/features/support";
 import { cn } from "@/lib/cn";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 
 type EmployeeRole = Exclude<EmployeeRoleCodeApi, "CUSTOMER"> | "UNKNOWN";
 type EmployeeStatus = EmployeeStatusApi;
@@ -32,7 +38,15 @@ type JobTitleOption = {
   value: string;
 };
 
+type EmployeePermissionModalState = {
+  employee: Employee;
+  isLoading: boolean;
+  permissions: string[];
+  roleName: string;
+};
+
 type Employee = {
+  accountId: string | null;
   accountStatus: AccountStatus;
   address: string;
   avatarTone: "blue" | "green" | "amber" | "red" | "violet";
@@ -80,6 +94,7 @@ const genderOptions = [
 ];
 
 const emptyEmployee: Employee = {
+  accountId: null,
   accountStatus: "UNLINKED",
   address: "-",
   avatarTone: "blue",
@@ -243,6 +258,7 @@ function mapEmployee(row: EmployeeApiResponse, index = 0): Employee {
   const roleCode = row.roleCode && row.roleCode !== "CUSTOMER" ? row.roleCode : "UNKNOWN";
 
   return {
+    accountId: row.accountId,
     accountStatus: row.accountStatus ?? "UNLINKED",
     address: row.userProfile?.address || "-",
     avatarTone: getAvatarTone(index),
@@ -274,6 +290,7 @@ function mergeEmployeeWithCurrent(updatedEmployee: Employee, currentEmployee?: E
 
   return {
     ...updatedEmployee,
+    accountId: updatedEmployee.accountId ?? currentEmployee.accountId,
     accountStatus: updatedEmployee.accountStatus === "UNLINKED" ? currentEmployee.accountStatus : updatedEmployee.accountStatus,
     avatarUrl: updatedEmployee.avatarUrl || currentEmployee.avatarUrl,
     email: updatedEmployee.email === "-" ? currentEmployee.email : updatedEmployee.email,
@@ -328,7 +345,21 @@ function EmployeeMetric({ icon, iconClassName, label, value }: { icon: string; i
   );
 }
 
-function EmployeeListItem({ employee, onContact, onSelect, selected }: { employee: Employee; onContact: () => void; onSelect: () => void; selected: boolean }) {
+function EmployeeListItem({
+  contactDisabledReason,
+  employee,
+  onContact,
+  onSelect,
+  selected,
+}: {
+  contactDisabledReason?: string;
+  employee: Employee;
+  onContact: () => void;
+  onSelect: () => void;
+  selected: boolean;
+}) {
+  const contactDisabled = Boolean(contactDisabledReason);
+
   return (
     <article
       className={cn(
@@ -350,10 +381,11 @@ function EmployeeListItem({ employee, onContact, onSelect, selected }: { employe
       </button>
       <button
         type="button"
-        className="tw-inline-flex tw-h-8 tw-w-8 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-text-vm-primary hover:tw-bg-brand-50"
+        className="tw-inline-flex tw-h-8 tw-w-8 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-text-vm-primary hover:tw-bg-brand-50 disabled:tw-cursor-not-allowed disabled:tw-border-vm-slate-100 disabled:tw-text-vm-slate-400 disabled:tw-opacity-70"
+        disabled={contactDisabled}
         onClick={onContact}
         aria-label={`Liên hệ ${employee.name}`}
-        title="Liên hệ"
+        title={contactDisabledReason ?? "Liên hệ"}
       >
         <i className="far fa-comment-dots tw-text-[0.9rem]" />
       </button>
@@ -452,6 +484,119 @@ function ActivityTimeline({ activities, isLoading }: { activities: EmployeeActiv
         </div>
       ))}
     </div>
+  );
+}
+
+function getPermissionModule(permissionCode: string) {
+  const normalizedCode = permissionCode.trim().toUpperCase();
+  const scope = ["_ASSIGNED", "_PUBLIC", "_OWN", "_LOT", "_ALL"].find((item) => normalizedCode.endsWith(item));
+  const withoutScope = scope ? normalizedCode.slice(0, -scope.length) : normalizedCode;
+  const action = [
+    "_ASSIGN_CARD",
+    "_CHECK_IN",
+    "_CHECK_OUT",
+    "_CREATE",
+    "_READ",
+    "_UPDATE",
+    "_DELETE",
+    "_ASSIGN",
+    "_UNASSIGN",
+    "_PROCESS",
+    "_APPROVE",
+    "_GENERATE",
+    "_PAY",
+    "_CANCEL",
+    "_COMPLETE",
+    "_OPEN",
+    "_CLOSE",
+  ].find((item) => withoutScope.endsWith(item));
+
+  return action ? withoutScope.slice(0, -action.length) : withoutScope;
+}
+
+function groupPermissionsByModule(permissions: string[]) {
+  return permissions.reduce<Array<{ moduleCode: string; permissions: string[] }>>((groups, permissionCode) => {
+    const moduleCode = getPermissionModule(permissionCode) || "KHAC";
+    const existingGroup = groups.find((group) => group.moduleCode === moduleCode);
+
+    if (existingGroup) {
+      existingGroup.permissions.push(permissionCode);
+    } else {
+      groups.push({ moduleCode, permissions: [permissionCode] });
+    }
+
+    return groups;
+  }, []);
+}
+
+function findProvisionedAccountForEmployee(accounts: ProvisionedAccountResponse[], employee: Employee) {
+  return accounts.find((item) => item.account.accountId === employee.accountId) ??
+    accounts.find((item) => item.account.email?.toLowerCase() === employee.email.toLowerCase()) ??
+    accounts.find((item) => item.account.username?.toLowerCase() === employee.username.toLowerCase());
+}
+
+function EmployeePermissionModal({
+  onClose,
+  open,
+  state,
+}: {
+  onClose: () => void;
+  open: boolean;
+  state: EmployeePermissionModalState | null;
+}) {
+  const groupedPermissions = groupPermissionsByModule(state?.permissions ?? []);
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Quyền của nhân viên"
+      description={state ? `${state.employee.name} · ${state.roleName || state.employee.roleLabel}` : undefined}
+      width="lg"
+      actions={
+        <div className="tw-flex tw-justify-end">
+          <Button variant="secondary" onClick={onClose}>Đóng</Button>
+        </div>
+      }
+    >
+      {state?.isLoading ? (
+        <div className="tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-4 tw-text-[0.88rem] tw-font-bold tw-text-vm-slate-500">Đang tải danh sách quyền...</div>
+      ) : groupedPermissions.length === 0 ? (
+        <EmptyPanel
+          icon="fas fa-key"
+          title="Chưa có quyền"
+          description="Vai trò của nhân viên này chưa có quyền nào được cấp."
+        />
+      ) : (
+        <div className="tw-grid tw-gap-3">
+          <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+            <Badge tone="primary" className="tw-rounded-full tw-px-3">{state?.permissions.length ?? 0} quyền</Badge>
+            <Badge tone="neutral" className="tw-rounded-full tw-px-3">{groupedPermissions.length} module</Badge>
+          </div>
+          <div className="tw-grid tw-max-h-[52vh] tw-gap-3 tw-overflow-y-auto tw-pr-1">
+            {groupedPermissions.map((group) => (
+              <section key={group.moduleCode} className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
+                <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+                  <h4 className="tw-m-0 tw-text-[0.86rem] tw-font-black tw-text-vm-slate-900">{group.moduleCode}</h4>
+                  <Badge tone="neutral" className="tw-rounded-full tw-px-2">{group.permissions.length}</Badge>
+                </div>
+                <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
+                  {group.permissions.map((permissionCode) => (
+                    <span
+                      key={permissionCode}
+                      className="tw-inline-flex tw-items-center tw-rounded-full tw-bg-brand-50 tw-px-3 tw-py-1 tw-text-[0.76rem] tw-font-extrabold tw-text-vm-primary"
+                      title={permissionCode}
+                    >
+                      {permissionCode}
+                    </span>
+                  ))}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
+      )}
+    </Modal>
   );
 }
 
@@ -683,6 +828,7 @@ export function EmployeeListPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [recentShifts, setRecentShifts] = useState<EmployeeRecentShiftApiResponse[]>([]);
   const [activityTimeline, setActivityTimeline] = useState<EmployeeActivityTimelineApiResponse[]>([]);
+  const [permissionModalState, setPermissionModalState] = useState<EmployeePermissionModalState | null>(null);
 
   const loadEmployees = async () => {
     setIsLoading(true);
@@ -751,6 +897,10 @@ export function EmployeeListPage() {
 
   const selectedEmployee = filteredEmployees.find((employee) => employee.id === selectedId) ?? filteredEmployees[0] ?? emptyEmployee;
   const canManageSelectedEmployee = canManageEmployeeForOperator(user?.role, selectedEmployee.role);
+  const canReadProvisionedAccounts = hasAnyPermission(user, ["ACCOUNT_READ_ALL"]);
+  const canOpenSupportCenter = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
+  const canCreateChatConversation = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN"]);
+  const selectedEmployeeContactDisabledReason = getEmployeeContactDisabledReason(selectedEmployee);
 
   useEffect(() => {
     void loadEmployeeDetails(selectedEmployee.id);
@@ -779,6 +929,88 @@ export function EmployeeListPage() {
     }));
     setSelectedId(employee.id);
   };
+
+  function getEmployeeContactDisabledReason(employee: Employee) {
+    if (!employee.id) return "Chưa có nhân viên để mở chat.";
+    if (!employee.accountId) return "Nhân viên chưa có tài khoản để tạo chat.";
+    if (employee.accountId === user?.id) return "Không thể tạo hội thoại trực tiếp với chính mình.";
+    if (employee.accountStatus !== "ACTIVE") return "Chỉ có thể nhắn tin với tài khoản nhân viên đang ACTIVE.";
+    if (employee.role === "UNKNOWN") return "Chỉ có thể tạo chat với tài khoản nội bộ.";
+    if (!canOpenSupportCenter) return "Cần quyền CHAT_CONVERSATION_READ_OWN hoặc CHAT_CONVERSATION_READ_ALL.";
+    if (!canCreateChatConversation) return "Cần quyền CHAT_CONVERSATION_CREATE_OWN để tạo hội thoại nội bộ.";
+    return "";
+  }
+
+  function openEmployeeConversation(employee: Employee) {
+    if (getEmployeeContactDisabledReason(employee) || !employee.accountId) return;
+
+    openSupportCenterConversation({
+      mode: "internal-direct",
+      participantId: employee.accountId,
+      participantName: employee.name,
+      participantType: "employee",
+    });
+  }
+
+  async function openSelectedRolePermissions() {
+    if (!selectedEmployee.id || selectedEmployee.role === "UNKNOWN") {
+      toast.warning("Nhân viên này chưa có vai trò nội bộ để xem quyền.", "Chưa có vai trò");
+      return;
+    }
+
+    if (!selectedEmployee.accountId) {
+      toast.warning("Nhân viên này chưa liên kết tài khoản để xem quyền.", "Chưa có tài khoản");
+      return;
+    }
+
+    if (!canReadProvisionedAccounts) {
+      toast.warning("Tài khoản hiện tại cần quyền ACCOUNT_READ_ALL để xem quyền của nhân viên.", "Thiếu quyền");
+      return;
+    }
+
+    const pendingState: EmployeePermissionModalState = {
+      employee: selectedEmployee,
+      isLoading: true,
+      permissions: [],
+      roleName: selectedEmployee.roleLabel,
+    };
+    setPermissionModalState(pendingState);
+
+    try {
+      const keyword = selectedEmployee.email !== "-" ? selectedEmployee.email : selectedEmployee.username !== "-" ? selectedEmployee.username : undefined;
+      const roleCode = selectedEmployee.role as AdminProvisionableAccountRoleCode;
+      const accountsResponse = await getProvisionedAccounts({ keyword, roleCode });
+      let provisionedAccount = findProvisionedAccountForEmployee(accountsResponse.data, selectedEmployee);
+
+      if (!provisionedAccount) {
+        const fallbackResponse = await getProvisionedAccounts({ roleCode });
+        provisionedAccount = findProvisionedAccountForEmployee(fallbackResponse.data, selectedEmployee);
+      }
+
+      if (!provisionedAccount) {
+        setPermissionModalState({
+          ...pendingState,
+          isLoading: false,
+        });
+        toast.warning("Không tìm thấy tài khoản tương ứng với nhân viên này.", "Không tìm thấy tài khoản");
+        return;
+      }
+
+      setPermissionModalState({
+        employee: selectedEmployee,
+        isLoading: false,
+        permissions: provisionedAccount.role.permissionCodes ?? [],
+        roleName: provisionedAccount.role.roleName || selectedEmployee.roleLabel,
+      });
+    } catch (error) {
+      setPermissionModalState(null);
+      toast.error(error instanceof Error ? error.message : "Không thể tải danh sách quyền của nhân viên.", "Tải quyền thất bại");
+    }
+  }
+
+  function closePermissionModal() {
+    setPermissionModalState(null);
+  }
 
   const openEditDrawer = () => {
     if (!selectedEmployee.id) {
@@ -907,8 +1139,9 @@ export function EmployeeListPage() {
               {paginatedEmployees.map((employee) => (
                 <EmployeeListItem
                   key={employee.id}
+                  contactDisabledReason={getEmployeeContactDisabledReason(employee) || undefined}
                   employee={employee}
-                  onContact={() => openSupportCenterConversation({ participantId: employee.id, participantName: employee.name, participantType: "employee" })}
+                  onContact={() => openEmployeeConversation(employee)}
                   selected={employee.id === selectedEmployee.id}
                   onSelect={() => setSelectedId(employee.id)}
                 />
@@ -965,8 +1198,9 @@ export function EmployeeListPage() {
               <div className="tw-mt-5 tw-flex tw-flex-wrap tw-gap-3">
                 <Button
                   variant="primary"
-                  disabled={!selectedEmployee.id}
-                  onClick={() => openSupportCenterConversation({ participantId: selectedEmployee.id, participantName: selectedEmployee.name, participantType: "employee" })}
+                  disabled={Boolean(selectedEmployeeContactDisabledReason)}
+                  title={selectedEmployeeContactDisabledReason || "Liên hệ"}
+                  onClick={() => openEmployeeConversation(selectedEmployee)}
                 >
                   <i className="far fa-comment-dots" />
                   Liên hệ
@@ -1033,7 +1267,7 @@ export function EmployeeListPage() {
                   <i className="fas fa-user-shield" />
                   Tài khoản
                 </Button>
-                <Button className="tw-whitespace-nowrap tw-px-3" variant="secondary" onClick={() => navigate("/admin/role")}>
+                <Button className="tw-whitespace-nowrap tw-px-3" variant="secondary" onClick={() => void openSelectedRolePermissions()}>
                   <i className="fas fa-key" />
                   Quyền
                 </Button>
@@ -1050,6 +1284,7 @@ export function EmployeeListPage() {
         </div>
 
         <EmployeeEditDrawer employee={editingEmployee} jobTitleOptions={jobTitleOptions} open={isEditOpen} onClose={closeEditDrawer} onSave={handleUpdateEmployee} />
+        <EmployeePermissionModal open={Boolean(permissionModalState)} state={permissionModalState} onClose={closePermissionModal} />
       </section>
     </div>
   );

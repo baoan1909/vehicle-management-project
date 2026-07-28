@@ -3,6 +3,7 @@ import {
   clearAuthTokens,
   getAccessToken,
   getRefreshToken,
+  isAuthLogoutInProgress,
   isAccessTokenExpiringWithin,
   saveRefreshedAuthTokens,
 } from "@/core/auth/session";
@@ -20,6 +21,8 @@ type KeycloakTokenResponse = {
 let refreshPromise: Promise<string | null> | null = null;
 
 export async function getValidAccessToken() {
+  if (isAuthLogoutInProgress()) return null;
+
   const accessToken = getAccessToken();
   if (!accessToken) return null;
 
@@ -31,6 +34,7 @@ export async function getValidAccessToken() {
 }
 
 export async function refreshAccessToken() {
+  if (isAuthLogoutInProgress()) return null;
   if (refreshPromise) return refreshPromise;
 
   const refreshToken = getRefreshToken();
@@ -41,6 +45,8 @@ export async function refreshAccessToken() {
 
   refreshPromise = requestTokenRefresh(refreshToken)
     .then((tokenResponse) => {
+      if (isAuthLogoutInProgress()) return null;
+
       saveRefreshedAuthTokens({
         accessToken: tokenResponse.access_token,
         refreshToken: tokenResponse.refresh_token ?? refreshToken,

@@ -5,6 +5,8 @@ const ACCESS_TOKEN_KEY = "vm_access_token";
 const REFRESH_TOKEN_KEY = "vm_refresh_token";
 const ID_TOKEN_KEY = "vm_id_token";
 const CURRENT_USER_KEY = "vm_current_user";
+const AUTH_LOGOUT_IN_PROGRESS_KEY = "vm_auth_logout_in_progress";
+const AUTH_LOGOUT_STALE_MS = 5 * 60 * 1000;
 
 export type AuthTokenSet = {
   accessToken: string;
@@ -51,6 +53,7 @@ export function getIdToken() {
 
 export function saveAuthTokens(tokens: AuthTokenSet, remember = true) {
   const storage = remember ? localStorage : sessionStorage;
+  clearAuthLogoutInProgress();
   clearAuthTokens();
   storage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
   if (tokens.refreshToken) storage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
@@ -58,6 +61,8 @@ export function saveAuthTokens(tokens: AuthTokenSet, remember = true) {
 }
 
 export function saveRefreshedAuthTokens(tokens: AuthTokenSet) {
+  if (isAuthLogoutInProgress()) return;
+
   const storage = getTokenStorage();
   storage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
   if (tokens.refreshToken) storage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
@@ -71,6 +76,33 @@ export function clearAuthTokens() {
     storage.removeItem(ID_TOKEN_KEY);
     storage.removeItem(CURRENT_USER_KEY);
   });
+}
+
+export function markAuthLogoutInProgress() {
+  const startedAt = Date.now().toString();
+  sessionStorage.setItem(AUTH_LOGOUT_IN_PROGRESS_KEY, startedAt);
+  localStorage.setItem(AUTH_LOGOUT_IN_PROGRESS_KEY, startedAt);
+}
+
+export function clearAuthLogoutInProgress() {
+  sessionStorage.removeItem(AUTH_LOGOUT_IN_PROGRESS_KEY);
+  localStorage.removeItem(AUTH_LOGOUT_IN_PROGRESS_KEY);
+}
+
+export function isAuthLogoutInProgress() {
+  const rawValue =
+    sessionStorage.getItem(AUTH_LOGOUT_IN_PROGRESS_KEY) ??
+    localStorage.getItem(AUTH_LOGOUT_IN_PROGRESS_KEY);
+
+  if (!rawValue) return false;
+
+  const startedAt = Number(rawValue);
+  if (!Number.isFinite(startedAt) || Date.now() - startedAt > AUTH_LOGOUT_STALE_MS) {
+    clearAuthLogoutInProgress();
+    return false;
+  }
+
+  return true;
 }
 
 export function getCurrentUserFromStoredToken(): CurrentUser | null {

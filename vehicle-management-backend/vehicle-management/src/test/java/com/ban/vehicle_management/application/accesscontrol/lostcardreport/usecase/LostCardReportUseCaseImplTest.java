@@ -281,7 +281,6 @@ class LostCardReportUseCaseImplTest {
                 nullable(String.class)
         )).thenReturn(List.of(invoice));
         when(subscriptionPortOut.findById(SUBSCRIPTION_ID)).thenReturn(Optional.of(subscription));
-        when(customerVehiclePortOut.findById(CUSTOMER_VEHICLE_ID)).thenReturn(Optional.of(customerVehicle()));
         when(cardPortOut.findById(CARD_ID)).thenReturn(Optional.of(oldCard));
         when(cardPortOut.findById(NEW_CARD_ID)).thenReturn(Optional.of(newCard));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));

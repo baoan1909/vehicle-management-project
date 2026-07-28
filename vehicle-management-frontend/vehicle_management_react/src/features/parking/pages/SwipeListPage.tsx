@@ -7,6 +7,7 @@ import {
   recordParkingCashPayment,
   VNPAY_MINIMUM_AMOUNT,
 } from "@/features/parking/api/parkingPaymentApi";
+import { getDevices, type DeviceApiResponse, type DeviceStatusApi } from "@/features/hardware/api/deviceApi";
 import {
   checkInParkingSession,
   checkOutParkingSession,
@@ -35,23 +36,17 @@ import { ParkingCameraPanel } from "@/features/parking/components/ParkingCameraP
 import {
   ParkingOperationForm,
   type CheckOutPaymentMethod,
+  type ParkingOperationValidationErrors,
 } from "@/features/parking/components/ParkingOperationForm";
 import { ParkingSessionSummary } from "@/features/parking/components/ParkingSessionSummary";
-
-const cameraOptions = [
-  { label: "CAM-A1-01", value: "cam-a1-01" },
-  { label: "CAM-A1-02", value: "cam-a1-02" },
-  { label: "CAM-B1-01", value: "cam-b1-01" },
-];
-
-const fallbackLaneOptions = [
-  { label: "LANE-A1-IN", value: "" },
-];
+import { cn } from "@/lib/cn";
 
 type OcrStatus = "idle" | "recognizing" | "success" | "review" | "error";
 
 const CARD_TYPE_REGISTERED = "REGISTERED";
 const CARD_TYPE_VISITOR = "VISITOR";
+const LOCAL_CAMERA_ID = "local-browser-camera";
+const LOCAL_CAMERA_LABEL = "Camera mặc định";
 const PENDING_VNPAY_CHECKOUT_KEY = "parking.pending-vnpay-checkout";
 
 type PendingVnpayCheckOut = {
@@ -63,6 +58,11 @@ type PendingVnpayCheckOut = {
   };
   result: ParkingSessionCheckOutResponse;
   savedAt: string;
+};
+
+type ParkingCameraValidationErrors = {
+  licensePlateImage?: string;
+  personImage?: string;
 };
 
 function readPendingVnpayCheckOut(): PendingVnpayCheckOut | null {
@@ -168,6 +168,39 @@ function getCardOptionLabel(card: ParkingCardResponse, cardTypeById: Map<string,
   return [card.cardNumber, card.uid, cardTypeLabel].filter(Boolean).join(" • ");
 }
 
+function getCameraOptionLabel(device: DeviceApiResponse) {
+  return [device.deviceCode, device.name].filter(Boolean).join(" • ") || "Camera chưa đặt tên";
+}
+
+function getCameraStatusLabel(status?: DeviceStatusApi) {
+  const labels: Record<DeviceStatusApi, string> = {
+    ACTIVE: "Đang kết nối",
+    MAINTENANCE: "Bảo trì",
+    OFFLINE: "Mất kết nối",
+    RETIRED: "Ngưng sử dụng",
+  };
+
+  return status ? labels[status] : "Chưa chọn camera";
+}
+
+function isLocalCamera(cameraId: string) {
+  return cameraId === LOCAL_CAMERA_ID;
+}
+
+function getCameraStatusTone(status?: DeviceStatusApi) {
+  if (status === "ACTIVE") return "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700";
+  if (status === "MAINTENANCE") return "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700";
+  if (status === "OFFLINE") return "tw-border-red-200 tw-bg-red-50 tw-text-red-600";
+  return "tw-border-vm-slate-200 tw-bg-vm-slate-25 tw-text-vm-slate-500";
+}
+
+function getCameraStatusDot(status?: DeviceStatusApi) {
+  if (status === "ACTIVE") return "tw-bg-emerald-500";
+  if (status === "MAINTENANCE") return "tw-bg-amber-500";
+  if (status === "OFFLINE") return "tw-bg-red-500";
+  return "tw-bg-vm-slate-400";
+}
+
 function FilterSelect({
   ariaLabel,
   icon,
@@ -218,7 +251,8 @@ export function SwipeListPage() {
   const [cards, setCards] = useState<ParkingCardResponse[]>([]);
   const [lanes, setLanes] = useState<LaneResponse[]>([]);
   const [laneId, setLaneId] = useState("");
-  const [cameraId, setCameraId] = useState("cam-a1-01");
+  const [cameraDevices, setCameraDevices] = useState<DeviceApiResponse[]>([]);
+  const [cameraId, setCameraId] = useState("");
   const [cardUid, setCardUid] = useState("");
   const [vehicleTypeId, setVehicleTypeId] = useState("");
   const [licensePlate, setLicensePlate] = useState("");
@@ -233,8 +267,12 @@ export function SwipeListPage() {
   const [vehicleTypeError, setVehicleTypeError] = useState("");
   const [cardsLoaded, setCardsLoaded] = useState(false);
   const [isLoadingCards, setIsLoadingCards] = useState(false);
+  const [isLoadingCameras, setIsLoadingCameras] = useState(false);
+  const [isLoadingLanes, setIsLoadingLanes] = useState(false);
+  const [cameraError, setCameraError] = useState("");
   const [laneError, setLaneError] = useState("");
   const [submitError, setSubmitError] = useState("");
+  const [validationShown, setValidationShown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompletingPendingPayment, setIsCompletingPendingPayment] = useState(false);
   const [pendingPaymentError, setPendingPaymentError] = useState("");
@@ -341,8 +379,30 @@ export function SwipeListPage() {
       label: lane.code || lane.name,
       value: lane.laneId,
     }));
-    return options.length ? options : fallbackLaneOptions;
-  }, [lanes]);
+    if (options.length) return options;
+    return [{ label: isLoadingLanes ? "Đang tải làn..." : "Chưa có làn active", value: "" }];
+  }, [isLoadingLanes, lanes]);
+  const cameraOptions = useMemo(() => {
+    const options = cameraDevices.map((device) => ({
+      label: getCameraOptionLabel(device),
+      value: device.deviceId,
+    }));
+    if (!options.length) {
+      return [{ label: isLoadingCameras ? "Đang tải camera..." : LOCAL_CAMERA_LABEL, value: isLoadingCameras ? "" : LOCAL_CAMERA_ID }];
+    }
+    return [{ label: "Chọn camera", value: "" }, ...options];
+  }, [cameraDevices, isLoadingCameras]);
+  const selectedCamera = useMemo(
+    () => cameraDevices.find((device) => device.deviceId === cameraId),
+    [cameraDevices, cameraId],
+  );
+  const cameraStatusText = selectedCamera
+    ? `${getCameraOptionLabel(selectedCamera)} • ${getCameraStatusLabel(selectedCamera.status)}`
+    : isLocalCamera(cameraId)
+      ? `${LOCAL_CAMERA_LABEL} • Sẵn sàng`
+      : cameraError
+        ? "Không tải được camera"
+        : "Chưa chọn camera";
   const cardOptions = useMemo(() => [
     { label: isLoadingCards ? "Đang tải thẻ..." : "Quẹt hoặc chọn thẻ hợp lệ", value: "" },
     ...eligibleCards.map((card) => ({
@@ -394,6 +454,66 @@ export function SwipeListPage() {
       { label: mode === "check-out" ? "Loại xe trong phiên gửi" : "Loại xe đã đăng ký", value: lockedVehicleTypeId },
     ];
   }, [checkOutPreview?.parkingSession.vehicleTypeId, mode, selectedRegisteredVehicleTypeId, vehicleTypeOptions]);
+  const submitValidation = useMemo(() => {
+    const formErrors: ParkingOperationValidationErrors = {};
+    const cameraErrors: ParkingCameraValidationErrors = {};
+
+    if (!cardUid.trim()) {
+      formErrors.cardUid = "Vui lòng quẹt, nhập UID hoặc chọn thẻ.";
+    }
+    if (!laneId) {
+      formErrors.laneId = "Vui lòng chọn làn xe active.";
+    }
+    if (mode === "check-in" && selectedRequiresVehicleType && !vehicleTypeId) {
+      formErrors.vehicleTypeId = "Vui lòng chọn loại xe cho thẻ vãng lai.";
+    }
+    if (!licensePlate.trim()) {
+      formErrors.licensePlate = "Vui lòng nhập hoặc nhận diện biển số.";
+    }
+    if (!licensePlateImage) {
+      cameraErrors.licensePlateImage = "Vui lòng chụp hoặc tải lên ảnh biển số.";
+    }
+    if (!personImage) {
+      cameraErrors.personImage = "Vui lòng chụp ảnh người/tài xế.";
+    }
+    const missingCheckOutPreview = mode === "check-out" && Boolean(cardUid.trim()) && !checkOutPreview;
+    if (missingCheckOutPreview) {
+      formErrors.cardUid = formErrors.cardUid ?? "Vui lòng chọn lại thẻ để tải phiên gửi xe.";
+    }
+    if (ocrStatus === "recognizing") {
+      formErrors.licensePlate = formErrors.licensePlate ?? "Vui lòng chờ OCR xử lý xong.";
+    }
+
+    const missingLabels = [
+      formErrors.cardUid ? "thẻ/RFID" : "",
+      formErrors.laneId ? "làn xe" : "",
+      formErrors.vehicleTypeId ? "loại xe" : "",
+      formErrors.licensePlate ? "biển số" : "",
+      cameraErrors.licensePlateImage ? "ảnh biển số" : "",
+      cameraErrors.personImage ? "ảnh người/tài xế" : "",
+      missingCheckOutPreview ? "phiên gửi xe" : "",
+    ].filter(Boolean);
+
+    return {
+      cameraErrors,
+      formErrors,
+      hasErrors: missingLabels.length > 0,
+      message: missingLabels.length ? `Còn thiếu: ${missingLabels.join(", ")}.` : "",
+    };
+  }, [
+    cardUid,
+    checkOutPreview,
+    laneId,
+    licensePlate,
+    licensePlateImage,
+    mode,
+    ocrStatus,
+    personImage,
+    selectedRequiresVehicleType,
+    vehicleTypeId,
+  ]);
+  const visibleFormValidationErrors = validationShown ? submitValidation.formErrors : {};
+  const visibleCameraValidationErrors = validationShown ? submitValidation.cameraErrors : {};
 
   useEffect(() => {
     let active = true;
@@ -438,8 +558,41 @@ export function SwipeListPage() {
   useEffect(() => {
     let active = true;
 
+    async function loadCameras() {
+      setCameraError("");
+      setIsLoadingCameras(true);
+      try {
+        const response = await getDevices({ deviceType: "CAMERA" });
+        const nextCameras = (response.data ?? []).filter((device) => device.status !== "RETIRED");
+        if (!active) return;
+
+        setCameraDevices(nextCameras);
+        setCameraId((current) => {
+          if (nextCameras.some((device) => device.deviceId === current)) return current;
+          return nextCameras.find((device) => device.status === "ACTIVE")?.deviceId ?? nextCameras[0]?.deviceId ?? LOCAL_CAMERA_ID;
+        });
+      } catch (error) {
+        if (!active) return;
+        setCameraDevices([]);
+        setCameraId(LOCAL_CAMERA_ID);
+        setCameraError(error instanceof Error ? error.message : "Không tải được danh sách camera.");
+      } finally {
+        if (active) setIsLoadingCameras(false);
+      }
+    }
+
+    void loadCameras();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
     async function loadLanes() {
       setLaneError("");
+      setIsLoadingLanes(true);
       try {
         const nextLanes = await fetchParkingLanes(laneDirection);
         const operationalLanes = nextLanes.filter((lane) => Boolean(lane.gateId));
@@ -457,6 +610,8 @@ export function SwipeListPage() {
         setLanes([]);
         setLaneId("");
         setLaneError(error instanceof Error ? error.message : "Không tải được danh sách làn xe.");
+      } finally {
+        if (active) setIsLoadingLanes(false);
       }
     }
 
@@ -507,6 +662,7 @@ export function SwipeListPage() {
     setRestoredLicensePlateImageUrl("");
     setRestoredPersonImageUrl("");
     setSubmitError("");
+    setValidationShown(false);
     lastAutoCapturedCardRef.current = "";
     resetOcrState();
   }, [mode]);
@@ -774,6 +930,15 @@ export function SwipeListPage() {
 
   async function handleSubmit() {
     setSubmitError("");
+    setValidationShown(true);
+
+    if (submitValidation.hasErrors) {
+      toast.error(
+        submitValidation.message,
+        mode === "check-in" ? "Thiếu thông tin check-in" : "Thiếu thông tin check-out",
+      );
+      return;
+    }
 
     if (!laneId) {
       setSubmitError("Vui lòng chọn làn xe active từ backend.");
@@ -904,6 +1069,7 @@ export function SwipeListPage() {
       setLicensePlateImage(null);
       setPersonImage(null);
       setCheckOutPreview(null);
+      setValidationShown(false);
       resetOcrState();
       ocrRequestSeq.current += 1;
       lastAutoCapturedCardRef.current = "";
@@ -939,9 +1105,23 @@ export function SwipeListPage() {
             <FilterSelect ariaLabel="Chọn camera" icon="fas fa-video" label="Camera" options={cameraOptions} value={cameraId} onChange={setCameraId} />
           </div>
 
-          <div className="tw-flex tw-h-10 tw-items-center tw-gap-2 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-200 tw-bg-emerald-50 tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-text-emerald-700 tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]">
-            <span className="tw-h-2 tw-w-2 tw-rounded-full tw-bg-emerald-500" />
-            {cameraOptions.find((option) => option.value === cameraId)?.label ?? "CAM-A1-01"} • Đang kết nối
+          <div className={cn(
+            "tw-flex tw-h-10 tw-items-center tw-gap-2 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]",
+            isLocalCamera(cameraId)
+                ? "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700"
+                : cameraError
+                  ? "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700"
+                  : getCameraStatusTone(selectedCamera?.status),
+          )}>
+            <span className={cn(
+              "tw-h-2 tw-w-2 tw-rounded-full",
+              isLocalCamera(cameraId)
+                  ? "tw-bg-emerald-500"
+                  : cameraError
+                    ? "tw-bg-amber-500"
+                    : getCameraStatusDot(selectedCamera?.status),
+            )} />
+            {cameraStatusText}
           </div>
         </div>
 
@@ -950,8 +1130,12 @@ export function SwipeListPage() {
             autoCaptureKey={autoCaptureKey}
             autoStartLaneCamera={mode === "check-in" || mode === "check-out"}
             canCaptureMedia={canCaptureCurrentCard}
+            cameraLabel={selectedCamera ? getCameraOptionLabel(selectedCamera) : isLocalCamera(cameraId) ? LOCAL_CAMERA_LABEL : "Chưa chọn camera"}
+            cameraStatus={selectedCamera?.status ?? (isLocalCamera(cameraId) ? "ACTIVE" : undefined)}
+            licensePlateImageError={visibleCameraValidationErrors.licensePlateImage}
             ocrMessage={ocrMessage}
             ocrStatus={ocrStatus}
+            personImageError={visibleCameraValidationErrors.personImage}
             resetKey={cameraResetKey}
             restoredLicensePlateImageUrl={restoredLicensePlateImageUrl}
             restoredPersonImageUrl={restoredPersonImageUrl}
@@ -980,6 +1164,7 @@ export function SwipeListPage() {
             ocrResult={ocrResult}
             ocrStatus={ocrStatus}
             personImageReady={Boolean(personImage)}
+            validationErrors={visibleFormValidationErrors}
             onCardUidChange={handleCardUidChange}
             onCheckOutPaymentMethodChange={setCheckOutPaymentMethod}
             onLaneChange={setLaneId}

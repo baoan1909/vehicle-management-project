@@ -91,7 +91,7 @@ class ShiftAssignmentUseCaseImplTest {
                 .requirePermission("SHIFT_ASSIGNMENT_CREATE_ALL");
         assertNotNull(result.getShiftAssignmentId());
         assertEquals(shift.getShiftId(), result.getShiftId());
-        assertEquals(ShiftAssignmentStatus.ACTIVE, result.getStatus());
+        assertEquals(ShiftAssignmentStatus.DRAFT, result.getStatus());
     }
 
     @Test
@@ -136,10 +136,8 @@ class ShiftAssignmentUseCaseImplTest {
         when(shiftPortOut.findById(shift.getShiftId()))
                 .thenReturn(Optional.of(shift));
         stubEmployeeAndGate(request, shift, zoneId);
-        when(assignmentPortOut.findByShiftId(
-                shift.getShiftId(),
-                ShiftAssignmentStatus.ACTIVE
-        )).thenReturn(List.of(existing));
+        when(assignmentPortOut.findNotRemovedByShiftId(shift.getShiftId()))
+                .thenReturn(List.of(existing));
 
         assertThrows(
                 ConflictException.class,
@@ -169,10 +167,8 @@ class ShiftAssignmentUseCaseImplTest {
         when(shiftPortOut.findById(candidate.getShiftId()))
                 .thenReturn(Optional.of(candidate));
         stubEmployeeAndGate(request, candidate, zoneId);
-        when(assignmentPortOut.findByShiftId(
-                candidate.getShiftId(),
-                ShiftAssignmentStatus.ACTIVE
-        )).thenReturn(List.of());
+        when(assignmentPortOut.findNotRemovedByShiftId(candidate.getShiftId()))
+                .thenReturn(List.of());
 
         for (int index = 0; index < 6; index++) {
             Shift existingShift = futureShift(
@@ -190,7 +186,7 @@ class ShiftAssignmentUseCaseImplTest {
                     .thenReturn(Optional.of(existingShift));
         }
 
-        when(assignmentPortOut.findActiveEmployeeSchedule(
+        when(assignmentPortOut.findNotRemovedEmployeeSchedule(
                 eq(request.getEmployeeId()),
                 any(LocalDate.class),
                 any(LocalDate.class)
@@ -297,6 +293,7 @@ class ShiftAssignmentUseCaseImplTest {
                 UUID.randomUUID(),
                 UUID.randomUUID()
         );
+        existing.setStatus(ShiftAssignmentStatus.DRAFT);
         UUID assignmentId = existing.getShiftAssignmentId();
         ShiftAssignment request = requestAssignment();
 
@@ -331,6 +328,7 @@ class ShiftAssignmentUseCaseImplTest {
                 UUID.randomUUID(),
                 UUID.randomUUID()
         );
+        existing.setStatus(ShiftAssignmentStatus.SCHEDULED);
         UUID replacementEmployeeId = UUID.randomUUID();
 
         when(assignmentPortOut.findByIdForUpdate(
@@ -344,11 +342,9 @@ class ShiftAssignmentUseCaseImplTest {
                 shift,
                 zoneId
         );
-        when(assignmentPortOut.findByShiftId(
-                shift.getShiftId(),
-                ShiftAssignmentStatus.ACTIVE
-        )).thenReturn(List.of(existing));
-        when(assignmentPortOut.findActiveEmployeeSchedule(
+        when(assignmentPortOut.findNotRemovedByShiftId(shift.getShiftId()))
+                .thenReturn(List.of(existing));
+        when(assignmentPortOut.findNotRemovedEmployeeSchedule(
                 eq(replacementEmployeeId),
                 any(LocalDate.class),
                 any(LocalDate.class)
@@ -363,7 +359,7 @@ class ShiftAssignmentUseCaseImplTest {
         );
 
         assertEquals(ShiftAssignmentStatus.REMOVED, existing.getStatus());
-        assertEquals(ShiftAssignmentStatus.ACTIVE, result.getStatus());
+        assertEquals(ShiftAssignmentStatus.SCHEDULED, result.getStatus());
         assertEquals(replacementEmployeeId, result.getEmployeeId());
         assertNotEquals(existing.getShiftAssignmentId(), result.getShiftAssignmentId());
         verify(assignmentPortOut, times(2))
@@ -382,6 +378,7 @@ class ShiftAssignmentUseCaseImplTest {
                 UUID.randomUUID(),
                 UUID.randomUUID()
         );
+        existing.setStatus(ShiftAssignmentStatus.SCHEDULED);
 
         when(assignmentPortOut.findByIdForUpdate(
                 existing.getShiftAssignmentId()
@@ -424,6 +421,8 @@ class ShiftAssignmentUseCaseImplTest {
                 UUID.randomUUID(),
                 UUID.randomUUID()
         );
+        first.setStatus(ShiftAssignmentStatus.SCHEDULED);
+        second.setStatus(ShiftAssignmentStatus.SCHEDULED);
 
         when(assignmentPortOut.findAllByIdsForUpdate(anyList()))
                 .thenReturn(List.of(first, second));
@@ -447,16 +446,15 @@ class ShiftAssignmentUseCaseImplTest {
                 )));
         when(zonePortOut.findById(zoneId))
                 .thenReturn(Optional.of(zone(zoneId, parkingLotId)));
-        when(assignmentPortOut.findByShiftId(
-                any(UUID.class),
-                eq(ShiftAssignmentStatus.ACTIVE)
+        when(assignmentPortOut.findNotRemovedByShiftId(
+                any(UUID.class)
         )).thenAnswer(invocation -> {
             UUID shiftId = invocation.getArgument(0);
             return shiftId.equals(firstShift.getShiftId())
                     ? List.of(first)
                     : List.of(second);
         });
-        when(assignmentPortOut.findActiveEmployeeSchedule(
+        when(assignmentPortOut.findNotRemovedEmployeeSchedule(
                 any(UUID.class),
                 any(LocalDate.class),
                 any(LocalDate.class)
@@ -507,6 +505,7 @@ class ShiftAssignmentUseCaseImplTest {
                 UUID.randomUUID(),
                 UUID.randomUUID()
         );
+        assignment.setStatus(ShiftAssignmentStatus.DRAFT);
 
         when(assignmentPortOut.findByIdForUpdate(
                 assignment.getShiftAssignmentId()
@@ -555,11 +554,9 @@ class ShiftAssignmentUseCaseImplTest {
             UUID zoneId
     ) {
         stubEmployeeAndGate(candidate, shift, zoneId);
-        when(assignmentPortOut.findByShiftId(
-                shift.getShiftId(),
-                ShiftAssignmentStatus.ACTIVE
-        )).thenReturn(List.of());
-        when(assignmentPortOut.findActiveEmployeeSchedule(
+        when(assignmentPortOut.findNotRemovedByShiftId(shift.getShiftId()))
+                .thenReturn(List.of());
+        when(assignmentPortOut.findNotRemovedEmployeeSchedule(
                 eq(candidate.getEmployeeId()),
                 any(LocalDate.class),
                 any(LocalDate.class)

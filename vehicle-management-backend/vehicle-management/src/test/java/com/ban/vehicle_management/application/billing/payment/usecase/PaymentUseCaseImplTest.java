@@ -12,6 +12,7 @@ import com.ban.vehicle_management.application.accesscontrol.subscription.port.in
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuard;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
@@ -46,6 +47,9 @@ class PaymentUseCaseImplTest {
     @Mock
     private SubscriptionPortIn subscriptionPortIn;
 
+    @Mock
+    private ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
+
     @InjectMocks
     private PaymentUseCaseImpl paymentUseCase;
 
@@ -78,6 +82,7 @@ class PaymentUseCaseImplTest {
         verify(paymentPortOut).save(savedPayment);
         verify(invoicePortOut).save(invoice);
         verify(subscriptionPortIn).markSubscriptionPaymentCompleted(subscriptionId);
+        verify(parkingCheckoutCompletionPortIn).completePaidCheckout(invoiceId);
     }
 
     @Test
@@ -97,6 +102,7 @@ class PaymentUseCaseImplTest {
 
         assertEquals(PaymentStatus.SUCCESS, savedPayment.getStatus());
         verify(paymentPortOut, never()).existsByTransactionRefAndStatus(any(), any());
+        verify(parkingCheckoutCompletionPortIn).completePaidCheckout(invoiceId);
     }
 
     @Test

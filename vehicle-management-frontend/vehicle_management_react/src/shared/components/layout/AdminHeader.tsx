@@ -107,6 +107,7 @@ export function AdminHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const searchRef = useRef<HTMLDivElement | null>(null);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
@@ -130,6 +131,8 @@ export function AdminHeader() {
   }
 
   function handleLogout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     setProfileOpen(false);
     logoutCurrentUser(setUser);
   }
@@ -305,9 +308,15 @@ export function AdminHeader() {
                   <HeaderItemCopy title="Trợ giúp" meta="Xem hướng dẫn và liên hệ hỗ trợ" />
                 </Link>
 
-                <button type="button" className={cn(itemClassName, "tw-w-full tw-border-0 tw-bg-white")} onClick={handleLogout}>
-                  <HeaderItemIcon icon="fas fa-sign-out-alt" />
-                  <HeaderItemCopy title="Đăng xuất" meta="Thoát khỏi phiên làm việc hiện tại" />
+                <button
+                  type="button"
+                  className={cn(itemClassName, "tw-w-full tw-border-0 tw-bg-white", isLoggingOut ? "tw-cursor-wait tw-opacity-75" : "")}
+                  disabled={isLoggingOut}
+                  aria-busy={isLoggingOut}
+                  onClick={handleLogout}
+                >
+                  <HeaderItemIcon icon={isLoggingOut ? "fas fa-spinner fa-spin" : "fas fa-sign-out-alt"} />
+                  <HeaderItemCopy title={isLoggingOut ? "Đang đăng xuất" : "Đăng xuất"} meta="Thoát khỏi phiên làm việc hiện tại" />
                 </button>
               </div>
             ) : null}

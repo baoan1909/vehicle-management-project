@@ -98,12 +98,35 @@ export type ChatRealtimeEvent = {
   occurredAt: string | null;
 };
 
+export type CreateInternalDirectConversationRequest = {
+  targetAccountId: string;
+};
+
+export type CreateCustomerSupportConversationRequest = {
+  customerId: string;
+  title?: string | null;
+};
+
 export function getChatInbox() {
   return apiClient<ApiResponse<ChatInboxItemResponse[]>>(`${apiEndpoints.operations.chat}/conversations`);
 }
 
 export function getChatConversation(conversationId: string) {
   return apiClient<ApiResponse<ChatConversationResponse>>(`${apiEndpoints.operations.chat}/conversations/${conversationId}`);
+}
+
+export function createInternalDirectConversation(targetAccountId: string) {
+  return apiClient<ApiResponse<ChatConversationResponse>>(`${apiEndpoints.operations.chat}/conversations/internal/direct`, {
+    body: { targetAccountId } satisfies CreateInternalDirectConversationRequest,
+    method: "POST",
+  });
+}
+
+export function createCustomerSupportConversation(payload: CreateCustomerSupportConversationRequest) {
+  return apiClient<ApiResponse<ChatConversationResponse>>(`${apiEndpoints.operations.chat}/conversations/customer-support`, {
+    body: payload,
+    method: "POST",
+  });
 }
 
 export function getChatMessages(conversationId: string, options: { beforeCreatedAt?: string; limit?: number } = {}) {
@@ -141,6 +164,12 @@ export function markChatConversationRead(conversationId: string, messageId?: str
   return apiClient<ApiResponse<void>>(`${apiEndpoints.operations.chat}/conversations/${conversationId}/read`, {
     body: messageId ? { messageId } : null,
     method: "POST",
+  });
+}
+
+export function deleteChatMessage(messageId: string) {
+  return apiClient<ApiResponse<void>>(`${apiEndpoints.operations.chat}/messages/${messageId}`, {
+    method: "DELETE",
   });
 }
 

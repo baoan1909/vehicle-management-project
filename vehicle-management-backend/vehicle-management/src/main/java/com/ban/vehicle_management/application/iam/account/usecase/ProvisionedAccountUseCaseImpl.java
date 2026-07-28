@@ -166,10 +166,10 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
 
     private void ensureCreateNoConflict(CreateProvisionedAccountCommand command) {
         if (provisionedAccountPortOut.existsByUsername(command.account().getUsername())) {
-            throw new ConflictException("Username already exists");
+            throw new ConflictException("Tên đăng nhập đã tồn tại.");
         }
         if (provisionedAccountPortOut.existsByEmail(command.account().getEmail())) {
-            throw new ConflictException("Email already exists");
+            throw new ConflictException("Email đã tồn tại.");
         }
     }
 
