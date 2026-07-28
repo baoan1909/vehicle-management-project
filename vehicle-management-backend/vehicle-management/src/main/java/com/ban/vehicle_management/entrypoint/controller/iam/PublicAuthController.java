@@ -35,7 +35,7 @@ public class PublicAuthController {
             @RequestBody RegisterAccountRequest request
     ) {
         RegisterAccountResult result = publicAuthPortIn.register(publicAuthApiMapper.toCommand(request));
-        String message = "Please verify your email address.";
+        String message = "Vui lòng kiểm tra email để xác minh tài khoản.";
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(message, publicAuthApiMapper.toResponse(result)));
     }
@@ -46,7 +46,7 @@ public class PublicAuthController {
     ) {
         publicAuthPortIn.resendVerificationEmail(publicAuthApiMapper.toCommand(request));
         return ResponseEntity.ok(ApiResponse.ok(
-                "If the account exists and is not verified, a verification email will be sent."
+                "Nếu tài khoản tồn tại và chưa được xác minh, hệ thống sẽ gửi email xác minh."
         ));
     }
 
@@ -54,7 +54,7 @@ public class PublicAuthController {
     public ResponseEntity<ApiResponse<Void>> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         publicAuthPortIn.requestPasswordReset(publicAuthApiMapper.toCommand(request));
         return ResponseEntity.ok(ApiResponse.ok(
-                "If that email exists in the system, a password reset email will be sent."
+                "Nếu email tồn tại trong hệ thống, email đặt lại mật khẩu sẽ được gửi."
         ));
     }
 }

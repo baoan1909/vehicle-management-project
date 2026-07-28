@@ -125,7 +125,9 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
                 verificationEmailResendPolicy.evaluate(requestedAt, snapshot);
         if (!decision.allowed()) {
             throw new TooManyRequestsException(
-                    "Too many resend requests. Please retry after " + decision.retryAfterSeconds() + " seconds."
+                    "Bạn đã yêu cầu gửi lại email quá nhiều lần. Vui lòng thử lại sau "
+                            + decision.retryAfterSeconds()
+                            + " giây."
             );
         }
 
@@ -144,11 +146,11 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
 
     private void ensureRegisterNoConflict(RegisterAccountCommand command) {
         if (accountRegistrationPortOut.existsByUsername(command.username())) {
-            throw new ConflictException("Username already exists");
+            throw new ConflictException("Tên đăng nhập đã tồn tại.");
         }
 
         if (accountRegistrationPortOut.existsByEmail(command.email())) {
-            throw new ConflictException("Email already exists");
+            throw new ConflictException("Email đã tồn tại.");
         }
     }
 

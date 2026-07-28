@@ -15,14 +15,14 @@ class ShiftAssignmentPolicyTest {
             new ShiftAssignmentPolicy();
 
     @Test
-    void shouldInitializeActiveShiftAssignment() {
+    void shouldInitializeDraftShiftAssignment() {
         ShiftAssignment assignment = validAssignment();
         assignment.setStatus(null);
 
         policy.initializeNew(assignment);
 
         assertEquals(
-                ShiftAssignmentStatus.ACTIVE,
+                ShiftAssignmentStatus.DRAFT,
                 assignment.getStatus()
         );
     }

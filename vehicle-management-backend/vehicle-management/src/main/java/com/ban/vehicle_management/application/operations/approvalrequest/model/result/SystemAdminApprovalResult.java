@@ -40,5 +40,12 @@ public record SystemAdminApprovalResult(
             String address,
             String identifyCard
     ) {
+        public ProfileInfoResult(
+                UUID userProfileId,
+                String fullName,
+                String phoneNumber
+        ) {
+            this(userProfileId, fullName, phoneNumber, null, null, null, null);
+        }
     }
 }
