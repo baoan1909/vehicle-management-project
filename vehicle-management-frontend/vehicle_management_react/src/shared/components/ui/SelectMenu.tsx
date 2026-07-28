@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
 
@@ -17,6 +18,7 @@ type SelectMenuProps = {
   optionClassName?: string;
   options: SelectMenuOption[];
   placement?: "bottom" | "top";
+  portal?: boolean;
   triggerClassName?: string;
   triggerLabel?: string;
   value: string;
@@ -32,11 +34,14 @@ export function SelectMenu({
   optionClassName,
   options,
   placement = "bottom",
+  portal = false,
   triggerClassName,
   triggerLabel,
   value,
 }: SelectMenuProps) {
   const [open, setOpen] = useState(false);
+  const [portalPosition, setPortalPosition] = useState({ left: 0, top: 0, width: 0 });
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selected = options.find((option) => option.value === value) ?? options[0];
   const canClear = !disabled && value !== clearValue && options.some((option) => option.value === clearValue);
@@ -45,7 +50,11 @@ export function SelectMenu({
     if (!open) return undefined;
 
     const handlePointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        !rootRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setOpen(false);
       }
     };
@@ -64,6 +73,100 @@ export function SelectMenu({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open || !portal) return undefined;
+
+    const updatePosition = () => {
+      const trigger = rootRef.current;
+      if (!trigger) return;
+
+      const viewportPadding = 8;
+      const gap = 6;
+      const triggerRect = trigger.getBoundingClientRect();
+      const menuHeight =
+        menuRef.current?.offsetHeight ??
+        Math.min(240, options.length * 44 + 12);
+      const width = Math.min(triggerRect.width, window.innerWidth - viewportPadding * 2);
+      const left = Math.min(
+        Math.max(viewportPadding, triggerRect.left),
+        window.innerWidth - width - viewportPadding,
+      );
+      const bottomTop = triggerRect.bottom + gap;
+      const topTop = triggerRect.top - menuHeight - gap;
+      const hasBottomSpace = bottomTop + menuHeight <= window.innerHeight - viewportPadding;
+      const top =
+        placement === "top" || !hasBottomSpace
+          ? Math.max(viewportPadding, topTop)
+          : bottomTop;
+
+      setPortalPosition({ left, top, width });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, options.length, placement, portal]);
+
+  const menu = open ? (
+    <div
+      className={cn(
+        "tw-z-[2500] tw-max-h-60 tw-overflow-y-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-[0.35rem] tw-shadow-[0_10px_26px_rgba(15,23,42,0.14)] tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden",
+        portal
+          ? "tw-fixed"
+          : "tw-absolute tw-left-0 tw-w-full",
+        !portal && (placement === "top" ? "tw-bottom-[calc(100%+6px)]" : "tw-top-[calc(100%+6px)]"),
+        menuClassName,
+      )}
+      ref={menuRef}
+      style={
+        portal
+          ? {
+              left: portalPosition.left,
+              top: portalPosition.top,
+              width: portalPosition.width,
+            }
+          : undefined
+      }
+    >
+      {options.map((option) => {
+        const selectedOption = option.value === value;
+
+        return (
+          <button
+            className={cn(
+              "tw-flex tw-min-h-[38px] tw-w-full tw-items-center tw-gap-[0.65rem] tw-border-0 tw-bg-transparent tw-px-[0.85rem] tw-py-[0.55rem] tw-text-left tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 hover:tw-text-vm-primary",
+              selectedOption ? "tw-font-extrabold tw-text-[#111827]" : "",
+              optionClassName,
+            )}
+            key={option.value}
+            type="button"
+            onClick={() => {
+              onChange(option.value);
+              setOpen(false);
+            }}
+          >
+            <span
+              className={cn(
+                "tw-inline-flex tw-h-4 tw-w-4 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-border-2 tw-border-solid",
+                selectedOption
+                  ? "tw-border-vm-primary tw-bg-vm-primary"
+                  : "tw-border-vm-slate-400 tw-bg-white tw-shadow-[inset_0_0_0_2px_rgba(15,23,42,0.04)]",
+              )}
+            >
+              {selectedOption ? <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-white" /> : null}
+            </span>
+            <span className="tw-min-w-0 tw-flex-1 tw-truncate">{option.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  ) : null;
 
   return (
     <div className={cn("tw-relative tw-w-full", className)} ref={rootRef}>
@@ -111,47 +214,9 @@ export function SelectMenu({
         <i className={cn("fas fa-chevron-down tw-text-[0.78rem] tw-text-vm-slate-700 tw-transition", disabled ? "tw-text-vm-slate-400" : "", open ? "tw-rotate-180 tw-text-vm-primary" : "")} />
       </button>
 
-      {open ? (
-        <div
-          className={cn(
-            "tw-absolute tw-left-0 tw-z-[80] tw-max-h-60 tw-w-full tw-overflow-y-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-[0.35rem] tw-shadow-[0_10px_26px_rgba(15,23,42,0.14)] tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden",
-            placement === "top" ? "tw-bottom-[calc(100%+6px)]" : "tw-top-[calc(100%+6px)]",
-            menuClassName,
-          )}
-        >
-          {options.map((option) => {
-            const selectedOption = option.value === value;
-
-            return (
-              <button
-                className={cn(
-                  "tw-flex tw-min-h-[38px] tw-w-full tw-items-center tw-gap-[0.65rem] tw-border-0 tw-bg-transparent tw-px-[0.85rem] tw-py-[0.55rem] tw-text-left tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 hover:tw-text-vm-primary",
-                  selectedOption ? "tw-font-extrabold tw-text-[#111827]" : "",
-                  optionClassName,
-                )}
-                key={option.value}
-                type="button"
-                onClick={() => {
-                  onChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                <span
-                  className={cn(
-                    "tw-inline-flex tw-h-4 tw-w-4 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-border-2 tw-border-solid",
-                    selectedOption
-                      ? "tw-border-vm-primary tw-bg-vm-primary"
-                      : "tw-border-vm-slate-400 tw-bg-white tw-shadow-[inset_0_0_0_2px_rgba(15,23,42,0.04)]",
-                  )}
-                >
-                  {selectedOption ? <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-white" /> : null}
-                </span>
-                <span className="tw-min-w-0 tw-flex-1 tw-truncate">{option.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+      {portal && typeof document !== "undefined"
+        ? createPortal(menu, document.body)
+        : menu}
     </div>
   );
 }
