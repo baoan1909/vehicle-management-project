@@ -13,6 +13,9 @@ export const apiEndpoints = {
     },
   },
   dashboard: "/dashboard",
+  hardware: {
+    devices: "/hardware/devices",
+  },
   parking: {
     gates: "/parking/gates",
     lanes: "/parking/lanes",

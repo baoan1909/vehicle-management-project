@@ -30,11 +30,13 @@ export const adminNavigation: AdminSidebarEntry[] = [
     ],
   },
   {
-    kind: "link",
-    label: "Bãi xe",
-    to: "/admin/parking-lots",
-    matches: ["/admin/parking-lots"],
+    kind: "group",
+    label: "Bãi xe & thiết bị",
     icon: "parking",
+    items: [
+      { label: "Bãi xe", to: "/admin/parking-lots", matches: ["/admin/parking-lots"] },
+      { label: "Thiết bị", to: "/admin/devices", matches: ["/admin/devices"] },
+    ],
   },
   {
     kind: "group",

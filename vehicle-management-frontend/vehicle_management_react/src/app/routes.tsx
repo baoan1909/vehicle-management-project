@@ -20,6 +20,7 @@ import {
 import { CustomerListPage } from "@/features/customers";
 import { DashboardPage } from "@/features/dashboard";
 import { EmployeeListPage, ShiftSchedulePage } from "@/features/employees";
+import { DeviceManagementPage } from "@/features/hardware";
 import { AccountListPage, InternalProfilePage, RoleListPage } from "@/features/iam";
 import { ParkingOperationsPage, ParkingSessionPage, SwipeListPage } from "@/features/parking";
 import { PricePlanListPage, PriceRuleListPage } from "@/features/pricing";
@@ -57,6 +58,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/vehicle", title: "Quan ly phuong tien", layout: "admin", element: <VehicleListPage /> },
   { path: "/admin/vehicle/form", title: "Thong tin phuong tien", layout: "admin", element: blankPage },
   { path: "/admin/parking-lots", title: "Bãi xe & Sơ đồ vận hành", layout: "admin", element: <ParkingOperationsPage /> },
+  { path: "/admin/devices", title: "Quản lý thiết bị", layout: "admin", element: <DeviceManagementPage /> },
   { path: "/admin/price-plans", title: "Ke hoach gia", layout: "admin", element: <PricePlanListPage /> },
   { path: "/admin/price-rules", title: "Quy tac gia", layout: "admin", element: <PriceRuleListPage /> },
   { path: "/admin/visitorParkingFee", title: "Phi vang lai", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },

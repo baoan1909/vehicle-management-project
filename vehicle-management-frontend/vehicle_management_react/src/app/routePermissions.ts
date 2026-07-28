@@ -25,6 +25,7 @@ export const adminRoutePermissions = {
   "/admin/vehicle": ["VEHICLE_TYPE_READ_ALL"],
   "/admin/vehicle/form": ["VEHICLE_TYPE_CREATE_ALL", "VEHICLE_TYPE_UPDATE_ALL"],
   "/admin/parking-lots": ["PARKING_SESSION_READ_ALL", "PARKING_SESSION_CHECK_IN_ALL", "PARKING_SESSION_CHECK_OUT_ALL"],
+  "/admin/devices": ["DEVICE_READ_ALL"],
   "/admin/price-plans": ["PRICE_PLAN_READ_ALL"],
   "/admin/price-rules": ["PRICE_RULE_READ_ALL"],
   "/admin/visitorParkingFee": ["PRICE_RULE_READ_ALL"],
