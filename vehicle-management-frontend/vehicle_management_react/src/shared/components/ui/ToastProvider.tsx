@@ -32,25 +32,33 @@ function getToneClass(tone: ToastTone) {
       return {
         icon: "fas fa-check",
         iconClassName: "tw-bg-emerald-100 tw-text-emerald-600",
+        messageClassName: "tw-text-vm-slate-600",
         root: "tw-border-emerald-200",
+        titleClassName: "tw-text-vm-slate-900",
       };
     case "error":
       return {
         icon: "fas fa-exclamation",
-        iconClassName: "tw-bg-red-100 tw-text-red-600",
-        root: "tw-border-red-200",
+        iconClassName: "tw-bg-red-600 tw-text-white",
+        messageClassName: "tw-text-red-600",
+        root: "tw-border-red-200 tw-bg-red-50",
+        titleClassName: "tw-text-red-600",
       };
     case "warning":
       return {
         icon: "fas fa-exclamation-triangle",
         iconClassName: "tw-bg-amber-100 tw-text-amber-600",
+        messageClassName: "tw-text-vm-slate-600",
         root: "tw-border-amber-200",
+        titleClassName: "tw-text-vm-slate-900",
       };
     case "info":
       return {
         icon: "fas fa-info",
         iconClassName: "tw-bg-blue-100 tw-text-vm-primary",
+        messageClassName: "tw-text-vm-slate-600",
         root: "tw-border-blue-200",
+        titleClassName: "tw-text-vm-slate-900",
       };
   }
 }
@@ -70,8 +78,8 @@ function ToastItem({ onClose, toast }: { onClose: () => void; toast: Toast }) {
         <i className={toneClass.icon} />
       </span>
       <span className="tw-min-w-0">
-        {toast.title ? <strong className="tw-block tw-text-[0.92rem] tw-font-black tw-text-vm-slate-900">{toast.title}</strong> : null}
-        <span className="tw-mt-0.5 tw-block tw-text-[0.86rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-600">{toast.message}</span>
+        {toast.title ? <strong className={cn("tw-block tw-text-[0.92rem] tw-font-black", toneClass.titleClassName)}>{toast.title}</strong> : null}
+        <span className={cn("tw-mt-0.5 tw-block tw-text-[0.86rem] tw-font-semibold tw-leading-5", toneClass.messageClassName)}>{toast.message}</span>
       </span>
       <button
         aria-label="Đóng thông báo"

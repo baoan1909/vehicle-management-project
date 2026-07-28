@@ -21,6 +21,7 @@ import {
 } from "@/features/employees/api/employeesApi";
 import { openSupportCenterConversation } from "@/features/support";
 import { cn } from "@/lib/cn";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 
 type EmployeeRole = Exclude<EmployeeRoleCodeApi, "CUSTOMER"> | "UNKNOWN";
 type EmployeeStatus = EmployeeStatusApi;
@@ -33,6 +34,7 @@ type JobTitleOption = {
 };
 
 type Employee = {
+  accountId: string | null;
   accountStatus: AccountStatus;
   address: string;
   avatarTone: "blue" | "green" | "amber" | "red" | "violet";
@@ -80,6 +82,7 @@ const genderOptions = [
 ];
 
 const emptyEmployee: Employee = {
+  accountId: null,
   accountStatus: "UNLINKED",
   address: "-",
   avatarTone: "blue",
@@ -243,6 +246,7 @@ function mapEmployee(row: EmployeeApiResponse, index = 0): Employee {
   const roleCode = row.roleCode && row.roleCode !== "CUSTOMER" ? row.roleCode : "UNKNOWN";
 
   return {
+    accountId: row.accountId,
     accountStatus: row.accountStatus ?? "UNLINKED",
     address: row.userProfile?.address || "-",
     avatarTone: getAvatarTone(index),
@@ -274,6 +278,7 @@ function mergeEmployeeWithCurrent(updatedEmployee: Employee, currentEmployee?: E
 
   return {
     ...updatedEmployee,
+    accountId: updatedEmployee.accountId ?? currentEmployee.accountId,
     accountStatus: updatedEmployee.accountStatus === "UNLINKED" ? currentEmployee.accountStatus : updatedEmployee.accountStatus,
     avatarUrl: updatedEmployee.avatarUrl || currentEmployee.avatarUrl,
     email: updatedEmployee.email === "-" ? currentEmployee.email : updatedEmployee.email,
@@ -328,7 +333,21 @@ function EmployeeMetric({ icon, iconClassName, label, value }: { icon: string; i
   );
 }
 
-function EmployeeListItem({ employee, onContact, onSelect, selected }: { employee: Employee; onContact: () => void; onSelect: () => void; selected: boolean }) {
+function EmployeeListItem({
+  contactDisabledReason,
+  employee,
+  onContact,
+  onSelect,
+  selected,
+}: {
+  contactDisabledReason?: string;
+  employee: Employee;
+  onContact: () => void;
+  onSelect: () => void;
+  selected: boolean;
+}) {
+  const contactDisabled = Boolean(contactDisabledReason);
+
   return (
     <article
       className={cn(
@@ -350,10 +369,11 @@ function EmployeeListItem({ employee, onContact, onSelect, selected }: { employe
       </button>
       <button
         type="button"
-        className="tw-inline-flex tw-h-8 tw-w-8 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-text-vm-primary hover:tw-bg-brand-50"
+        className="tw-inline-flex tw-h-8 tw-w-8 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-text-vm-primary hover:tw-bg-brand-50 disabled:tw-cursor-not-allowed disabled:tw-border-vm-slate-100 disabled:tw-text-vm-slate-400 disabled:tw-opacity-70"
+        disabled={contactDisabled}
         onClick={onContact}
         aria-label={`Liên hệ ${employee.name}`}
-        title="Liên hệ"
+        title={contactDisabledReason ?? "Liên hệ"}
       >
         <i className="far fa-comment-dots tw-text-[0.9rem]" />
       </button>
@@ -751,6 +771,9 @@ export function EmployeeListPage() {
 
   const selectedEmployee = filteredEmployees.find((employee) => employee.id === selectedId) ?? filteredEmployees[0] ?? emptyEmployee;
   const canManageSelectedEmployee = canManageEmployeeForOperator(user?.role, selectedEmployee.role);
+  const canOpenSupportCenter = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
+  const canCreateChatConversation = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN"]);
+  const selectedEmployeeContactDisabledReason = getEmployeeContactDisabledReason(selectedEmployee);
 
   useEffect(() => {
     void loadEmployeeDetails(selectedEmployee.id);
@@ -779,6 +802,28 @@ export function EmployeeListPage() {
     }));
     setSelectedId(employee.id);
   };
+
+  function getEmployeeContactDisabledReason(employee: Employee) {
+    if (!employee.id) return "Chưa có nhân viên để mở chat.";
+    if (!employee.accountId) return "Nhân viên chưa có tài khoản để tạo chat.";
+    if (employee.accountId === user?.id) return "Không thể tạo hội thoại trực tiếp với chính mình.";
+    if (employee.accountStatus !== "ACTIVE") return "Chỉ có thể nhắn tin với tài khoản nhân viên đang ACTIVE.";
+    if (employee.role === "UNKNOWN") return "Chỉ có thể tạo chat với tài khoản nội bộ.";
+    if (!canOpenSupportCenter) return "Cần quyền CHAT_CONVERSATION_READ_OWN hoặc CHAT_CONVERSATION_READ_ALL.";
+    if (!canCreateChatConversation) return "Cần quyền CHAT_CONVERSATION_CREATE_OWN để tạo hội thoại nội bộ.";
+    return "";
+  }
+
+  function openEmployeeConversation(employee: Employee) {
+    if (getEmployeeContactDisabledReason(employee) || !employee.accountId) return;
+
+    openSupportCenterConversation({
+      mode: "internal-direct",
+      participantId: employee.accountId,
+      participantName: employee.name,
+      participantType: "employee",
+    });
+  }
 
   const openEditDrawer = () => {
     if (!selectedEmployee.id) {
@@ -907,8 +952,9 @@ export function EmployeeListPage() {
               {paginatedEmployees.map((employee) => (
                 <EmployeeListItem
                   key={employee.id}
+                  contactDisabledReason={getEmployeeContactDisabledReason(employee) || undefined}
                   employee={employee}
-                  onContact={() => openSupportCenterConversation({ participantId: employee.id, participantName: employee.name, participantType: "employee" })}
+                  onContact={() => openEmployeeConversation(employee)}
                   selected={employee.id === selectedEmployee.id}
                   onSelect={() => setSelectedId(employee.id)}
                 />
@@ -965,8 +1011,9 @@ export function EmployeeListPage() {
               <div className="tw-mt-5 tw-flex tw-flex-wrap tw-gap-3">
                 <Button
                   variant="primary"
-                  disabled={!selectedEmployee.id}
-                  onClick={() => openSupportCenterConversation({ participantId: selectedEmployee.id, participantName: selectedEmployee.name, participantType: "employee" })}
+                  disabled={Boolean(selectedEmployeeContactDisabledReason)}
+                  title={selectedEmployeeContactDisabledReason || "Liên hệ"}
+                  onClick={() => openEmployeeConversation(selectedEmployee)}
                 >
                   <i className="far fa-comment-dots" />
                   Liên hệ

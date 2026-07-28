@@ -19,6 +19,7 @@ public class EmployeeAdminResponse {
     private String jobTitle;
     private LocalDate hiredAt;
     private EmployeeStatus status;
+    private UUID accountId;
     private String accountEmail;
     private String accountUsername;
     private String accountStatus;

@@ -9,13 +9,13 @@ type CaptureResult = {
 };
 
 type OcrStatus = "idle" | "recognizing" | "success" | "review" | "error";
+type CameraStatus = "ACTIVE" | "OFFLINE" | "MAINTENANCE" | "RETIRED";
 
 const LANE_IMAGE_MAX_EDGE = 1280;
 const LANE_IMAGE_JPEG_QUALITY = 0.86;
 
 type CameraCaptureBoxProps = {
   compact?: boolean;
-  defaultCaptured?: boolean;
   label: string;
   onCaptureChange?: (capture: CaptureResult | null) => void;
   restoredImageUrl?: string;
@@ -50,7 +50,7 @@ function sceneIconClass(compact?: boolean) {
 }
 
 const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProps>(function CameraCaptureBox(
-  { compact, defaultCaptured, label, onCaptureChange, restoredImageUrl, scene },
+  { compact, label, onCaptureChange, restoredImageUrl, scene },
   ref,
 ) {
   const [capture, setCapture] = useState<CaptureResult | null>(null);
@@ -60,13 +60,6 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
   const [restoredImageDismissed, setRestoredImageDismissed] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    if (!defaultCaptured || scene !== "driver") return undefined;
-    setCapture(null);
-    onCaptureChange?.(null);
-    return undefined;
-  }, [defaultCaptured, scene]);
 
   useEffect(() => {
     setRestoredImageDismissed(false);
@@ -163,16 +156,14 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
   }
 
   const visibleRestoredImageUrl = restoredImageDismissed ? "" : restoredImageUrl;
-  const hasVisualCapture = capture || visibleRestoredImageUrl || defaultCaptured;
+  const hasVisualCapture = capture || visibleRestoredImageUrl;
   const captureStatusLabel = isCapturing
     ? "LIVE"
     : capture
       ? "Đã chụp"
       : visibleRestoredImageUrl
         ? "Đã lưu"
-        : defaultCaptured
-          ? "Ảnh mẫu"
-          : "Chưa chụp";
+        : "Chưa chụp";
 
   return (
     <div className={cn("tw-relative tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-bg-slate-950", compact ? "tw-h-[180px]" : "tw-h-[286px]", hasVisualCapture ? "tw-border-vm-slate-100" : "tw-border-vm-slate-200")}>
@@ -273,8 +264,12 @@ type ParkingCameraPanelProps = {
   autoCaptureKey?: number;
   autoStartLaneCamera?: boolean;
   canCaptureMedia?: boolean;
+  cameraLabel?: string;
+  cameraStatus?: CameraStatus;
+  licensePlateImageError?: string;
   ocrMessage?: string;
   ocrStatus?: OcrStatus;
+  personImageError?: string;
   resetKey?: number;
   restoredLicensePlateImageUrl?: string;
   restoredPersonImageUrl?: string;
@@ -283,6 +278,31 @@ type ParkingCameraPanelProps = {
   onPersonImageChange: (file: File | null) => void;
   onRequireCardBeforeCapture?: () => void;
 };
+
+function getCameraBadgeTone(status?: CameraStatus) {
+  if (status === "ACTIVE") return "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700";
+  if (status === "MAINTENANCE") return "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700";
+  if (status === "OFFLINE") return "tw-border-red-200 tw-bg-red-50 tw-text-red-600";
+  return "tw-border-vm-slate-200 tw-bg-vm-slate-25 tw-text-vm-slate-500";
+}
+
+function getCameraBadgeDot(status?: CameraStatus) {
+  if (status === "ACTIVE") return "tw-bg-emerald-500";
+  if (status === "MAINTENANCE") return "tw-bg-amber-500";
+  if (status === "OFFLINE") return "tw-bg-red-500";
+  return "tw-bg-vm-slate-400";
+}
+
+function CaptureFieldError({ message }: { message?: string }) {
+  if (!message) return null;
+
+  return (
+    <div className="tw-mt-2 tw-flex tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-px-3 tw-py-2 tw-text-[0.78rem] tw-font-bold tw-leading-snug tw-text-red-600">
+      <i className="fas fa-exclamation-circle tw-text-[0.76rem]" />
+      <span>{message}</span>
+    </div>
+  );
+}
 
 function OcrCameraStatus({ message, status }: { message?: string; status: OcrStatus }) {
   if (status === "idle" || !message) return null;
@@ -316,8 +336,12 @@ export function ParkingCameraPanel({
   autoCaptureKey = 0,
   autoStartLaneCamera = false,
   canCaptureMedia = true,
+  cameraLabel = "Chưa chọn camera",
+  cameraStatus,
+  licensePlateImageError,
   ocrMessage,
   ocrStatus = "idle",
+  personImageError,
   resetKey = 0,
   restoredLicensePlateImageUrl,
   restoredPersonImageUrl,
@@ -450,9 +474,12 @@ export function ParkingCameraPanel({
     <Card className="tw-flex tw-min-h-0 tw-flex-col tw-overflow-hidden">
       <CardHeader className="tw-flex tw-min-h-[50px] tw-items-center tw-justify-between tw-px-4 tw-py-0">
         <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-slate-900">Camera làn xe</h2>
-        <span className="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-border tw-border-solid tw-border-emerald-200 tw-bg-emerald-50 tw-px-2.5 tw-py-1 tw-text-[0.72rem] tw-font-extrabold tw-text-emerald-700">
-          <span className="tw-h-2 tw-w-2 tw-rounded-full tw-bg-emerald-500" />
-          CAM-A1-01
+        <span className={cn(
+          "tw-inline-flex tw-max-w-[220px] tw-items-center tw-gap-2 tw-rounded-full tw-border tw-border-solid tw-px-2.5 tw-py-1 tw-text-[0.72rem] tw-font-extrabold",
+          getCameraBadgeTone(cameraStatus),
+        )}>
+          <span className={cn("tw-h-2 tw-w-2 tw-flex-shrink-0 tw-rounded-full", getCameraBadgeDot(cameraStatus))} />
+          <span className="tw-min-w-0 tw-truncate">{cameraLabel}</span>
         </span>
       </CardHeader>
 
@@ -469,6 +496,7 @@ export function ParkingCameraPanel({
             scene="lane"
             onCaptureChange={(capture) => onLicensePlateImageChange(capture?.file ?? null)}
           />
+          <CaptureFieldError message={licensePlateImageError} />
         </div>
         <div className="tw-mt-2 tw-grid tw-grid-cols-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-3 tw-py-0">
           <CameraAction icon="fas fa-sync-alt" label="Load lại" onClick={handleReloadLaneCamera} />
@@ -527,6 +555,7 @@ export function ParkingCameraPanel({
               </button>
             </div>
           </div>
+          <CaptureFieldError message={personImageError} />
         </div>
       </CardContent>
     </Card>

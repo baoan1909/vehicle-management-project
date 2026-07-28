@@ -37,7 +37,11 @@
         <input id="rememberMe" name="rememberMe" type="checkbox" <#if (login.rememberMe)?? && login.rememberMe>checked</#if>>
         <span>Ghi nhớ đăng nhập</span>
       </label>
-      <a href="${layout.frontendForgotPasswordUrl}">Quên mật khẩu?</a>
+      <a
+        href="${layout.frontendForgotPasswordUrl}"
+        data-forgot-password-link
+        data-forgot-password-base-url="${layout.frontendForgotPasswordUrl}"
+      >Quên mật khẩu?</a>
     </div>
 
     <#if auth?? && auth.selectedCredential?? && auth.selectedCredential?has_content>

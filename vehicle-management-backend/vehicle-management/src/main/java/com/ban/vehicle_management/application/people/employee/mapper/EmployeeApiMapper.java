@@ -17,6 +17,7 @@ public interface EmployeeApiMapper {
 
     @Mapping(target = "employeeId", ignore = true)
     @Mapping(target = "userProfileId", ignore = true)
+    @Mapping(target = "accountId", ignore = true)
     @Mapping(target = "accountEmail", ignore = true)
     @Mapping(target = "accountStatus", ignore = true)
     @Mapping(target = "accountUsername", ignore = true)

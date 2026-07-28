@@ -21,6 +21,7 @@ public interface EmployeePersistenceMapper {
     @Mapping(target = "userProfile", ignore = true)
     void updateEntityFromDomain(Employee domain, @MappingTarget EmployeeEntity entity);
 
+    @Mapping(target = "accountId", source = "userProfile.account.accountId")
     @Mapping(target = "accountEmail", expression = "java(resolveAccountEmail(entity))")
     @Mapping(target = "accountUsername", expression = "java(resolveAccountUsername(entity))")
     @Mapping(target = "accountStatus", expression = "java(resolveAccountStatus(entity))")

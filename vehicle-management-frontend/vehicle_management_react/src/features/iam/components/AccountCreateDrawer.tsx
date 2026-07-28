@@ -5,8 +5,8 @@ import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import {
   createProvisionedAccount,
+  type AdminProvisionableAccountRoleCode,
   type ProvisionedAccountResponse,
-  type ProvisionedAccountRoleCode,
 } from "@/features/iam/api/provisionedAccountApi";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import type { CurrentUser } from "@/shared/types/common";
@@ -21,7 +21,7 @@ type AccountCreateDrawerProps = {
 
 const DRAWER_ANIMATION_MS = 280;
 
-const roleOptions: Array<{ code: ProvisionedAccountRoleCode; description: string; label: string }> = [
+const roleOptions: Array<{ code: AdminProvisionableAccountRoleCode; description: string; label: string }> = [
   { code: "SYSTEM_ADMIN", description: "Toàn quyền hệ thống", label: "Quản trị" },
   { code: "PARKING_MANAGER", description: "Quản lý vận hành bãi xe", label: "Quản lý" },
   { code: "EMPLOYEE", description: "Vận hành, thu ngân, hỗ trợ", label: "Nhân viên" },
@@ -46,7 +46,7 @@ function getManageableRoleOptions(currentRole: CurrentUser["role"]) {
   return [];
 }
 
-function getDefaultRole(availableRoles: typeof roleOptions): ProvisionedAccountRoleCode {
+function getDefaultRole(availableRoles: typeof roleOptions): AdminProvisionableAccountRoleCode {
   return availableRoles[0]?.code ?? "EMPLOYEE";
 }
 
@@ -57,7 +57,7 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
   const manageableRoleOptions = useMemo(() => getManageableRoleOptions(user?.role ?? "UNKNOWN"), [user?.role]);
   const [isRendered, setIsRendered] = useState(isOpen);
   const [phase, setPhase] = useState<DrawerPhase>(isOpen ? "open" : "closing");
-  const [selectedRole, setSelectedRole] = useState<ProvisionedAccountRoleCode>("EMPLOYEE");
+  const [selectedRole, setSelectedRole] = useState<AdminProvisionableAccountRoleCode>("EMPLOYEE");
   const [form, setForm] = useState(initialForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");

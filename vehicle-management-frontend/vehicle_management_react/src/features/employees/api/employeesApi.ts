@@ -10,7 +10,8 @@ type ApiResponse<T> = {
 
 export type EmployeeStatusApi = "ACTIVE" | "INACTIVE" | "SUSPENDED";
 export type EmployeeAccountStatusApi = "ACTIVE" | "LOCKED" | "DISABLED" | "PENDING";
-export type EmployeeRoleCodeApi = "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER";
+export type EmployeeBaseRoleCodeApi = "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER";
+export type EmployeeRoleCodeApi = EmployeeBaseRoleCodeApi | (string & {});
 export type EmployeeShiftTypeApi = "MORNING" | "AFTERNOON" | "NIGHT" | "FULL_DAY" | "CUSTOM";
 export type EmployeeShiftAssignmentStatusApi = "SCHEDULED" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "REMOVED";
 
@@ -52,6 +53,7 @@ export type UserProfileApiResponse = {
 };
 
 export type EmployeeApiResponse = {
+  accountId: string | null;
   accountEmail: string | null;
   accountStatus: EmployeeAccountStatusApi | null;
   accountUsername: string | null;

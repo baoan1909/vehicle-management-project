@@ -8,7 +8,8 @@ type ApiResponse<T> = {
   timestamp: string;
 };
 
-export type ProvisionedAccountRoleCode = "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER";
+export type AdminProvisionableAccountRoleCode = "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER";
+export type ProvisionedAccountRoleCode = AdminProvisionableAccountRoleCode | (string & {});
 export type ProvisionedAccountStatus = "ACTIVE" | "LOCKED" | "DISABLED" | "PENDING";
 
 export type ProvisionedAccountResponse = {
@@ -32,13 +33,13 @@ export type ProvisionedAccountResponse = {
 export type ProvisionedAccountFilterRequest = {
   accountStatus?: ProvisionedAccountStatus;
   keyword?: string;
-  roleCode?: ProvisionedAccountRoleCode;
+  roleCode?: AdminProvisionableAccountRoleCode;
 };
 
 export type CreateProvisionedAccountRequest = {
   email: string;
   fullName: string;
-  roleCode: ProvisionedAccountRoleCode;
+  roleCode: AdminProvisionableAccountRoleCode;
   username: string;
 };
 
@@ -48,7 +49,7 @@ export type UpdateProvisionedAccountStatusRequest = {
 };
 
 export type UpdateProvisionedAccountRoleRequest = {
-  roleCode: ProvisionedAccountRoleCode;
+  roleCode: AdminProvisionableAccountRoleCode;
 };
 
 export async function getProvisionedAccounts(filters: ProvisionedAccountFilterRequest = {}) {

@@ -1,7 +1,6 @@
 import { useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import { AdminPage } from "../../../shared/components/layout/AdminPage";
-import { cards } from "../../../shared/data/mockData";
 
 interface SwipeEntryPageProps {
   mode: "in" | "out";
@@ -63,12 +62,7 @@ export function SwipeEntryPage({ mode }: SwipeEntryPageProps) {
                 <div className="form-group">
                   <label>ID thẻ xe</label>
                   <select className="form-control select2" defaultValue="">
-                    <option value="">-- Chọn thẻ --</option>
-                    {cards.map((card) => (
-                      <option value={card.id} key={card.id}>
-                        (ID:{card.id}) {card.number}
-                      </option>
-                    ))}
+                    <option value="">-- Chưa có thẻ từ backend --</option>
                   </select>
                 </div>
                 <div className="form-group">
@@ -81,18 +75,18 @@ export function SwipeEntryPage({ mode }: SwipeEntryPageProps) {
                 </div>
                 <div className="form-group">
                   <label>Biển số</label>
-                  <input type="text" className="form-control" placeholder="80H-1826-127" />
+                  <input type="text" className="form-control" placeholder="Nhập biển số" />
                 </div>
                 {!isIn && (
                   <div className="form-group">
                     <label>Phí dịch vụ</label>
-                    <input type="text" className="form-control" placeholder="5.000đ" />
+                    <input type="text" className="form-control" placeholder="Chưa có phí checkout" />
                   </div>
                 )}
                 <div className="form-group">
                   <label>Thời gian {isIn ? "vào" : "ra"}:</label>
                   <div className="input-group date">
-                    <input type="text" className="form-control datetimepicker-input" placeholder="14/05/2026 08:00" />
+                    <input type="text" className="form-control datetimepicker-input" placeholder="Chưa có thời gian" />
                     <div className="input-group-append">
                       <div className="input-group-text bg-cyan">
                         <i className="fa fa-calendar" />

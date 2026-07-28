@@ -43,6 +43,7 @@ const initialRegisterForm: RegisterFormState = {
 const adminPostLoginRedirectPath = "/api/dashboard/overview";
 const customerPostLoginRedirectPath = "/customer/dashboard";
 const processedAuthorizationCodeKey = "vm_keycloak_processed_authorization_code";
+const forgotPasswordEmailStorageKey = "vm_forgot_password_email";
 let activeAuthorizationCode = "";
 
 function resolvePostLoginRedirectPath(user: CurrentUser | null) {
@@ -76,10 +77,58 @@ export function LoginPage({ mode = "login" }: AuthPageProps) {
     return <ForgotPasswordScreen />;
   }
 
+  if (returningFromLogout) {
+    return <LoggedOutScreen />;
+  }
+
   return (
-    <KeycloakRedirectScreen label={returningFromLogout ? "Đang hoàn tất đăng xuất..." : "Đang chuyển đến đăng nhập..."} />
+    <KeycloakRedirectScreen label="Đang chuyển đến đăng nhập..." />
   );
 }
+
+function LoggedOutScreen() {
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+
+  async function handleLoginAgain() {
+    setErrorMessage("");
+    setIsRedirecting(true);
+
+    try {
+      const loginUrl = await buildKeycloakLoginUrl({ prompt: "login" });
+      window.location.replace(loginUrl);
+    } catch (error) {
+      console.error(error);
+      setErrorMessage("Không thể chuyển đến trang đăng nhập. Vui lòng thử lại.");
+      setIsRedirecting(false);
+    }
+  }
+
+  if (isRedirecting) {
+    return <FullPageCarLoader label="Đang chuyển đến đăng nhập..." />;
+  }
+
+  return (
+    <div className="tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-items-center tw-justify-center tw-bg-slate-50/95 tw-px-5 tw-text-vm-slate-700">
+      <section className="tw-grid tw-w-full tw-max-w-[430px] tw-place-items-center tw-gap-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d9e2f2] tw-bg-white tw-px-8 tw-py-8 tw-text-center tw-shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+        <span className="tw-inline-flex tw-h-16 tw-w-16 tw-items-center tw-justify-center tw-rounded-full tw-bg-brand-50 tw-text-[1.45rem] tw-text-vm-primary">
+          <i className="fas fa-car-side" />
+        </span>
+        <div className="tw-grid tw-gap-2">
+          <h1 className="tw-m-0 tw-text-[1.32rem] tw-font-black tw-text-vm-slate-900">Đã đăng xuất</h1>
+          <p className="tw-m-0 tw-text-[0.9rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-500">
+            Phiên làm việc đã được đóng. Khi cần tiếp tục sử dụng hệ thống, vui lòng đăng nhập lại.
+          </p>
+        </div>
+        {errorMessage ? <AuthInlineNotice tone="error">{errorMessage}</AuthInlineNotice> : null}
+        <Button className="tw-h-10 tw-w-full tw-rounded-vm-md tw-text-[0.9rem] tw-font-extrabold" loading={isRedirecting} type="button" onClick={handleLoginAgain}>
+          Đăng nhập lại
+        </Button>
+      </section>
+    </div>
+  );
+}
+
 function KeycloakRedirectScreen({ label }: { label: string }) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -339,10 +388,28 @@ function RegisterScreenV2() {
   );
 }
 function ForgotPasswordScreen() {
-  const [email, setEmail] = useState("");
+  const location = useLocation();
+  const [email, setEmail] = useState(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const state = location.state as { email?: unknown } | null;
+    const stateEmail = typeof state?.email === "string" ? state.email : "";
+
+    return (searchParams.get("email") || stateEmail || sessionStorage.getItem(forgotPasswordEmailStorageKey) || "").trim();
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const state = location.state as { email?: unknown } | null;
+    const stateEmail = typeof state?.email === "string" ? state.email.trim() : "";
+    const nextEmail = (searchParams.get("email") || stateEmail).trim();
+
+    if (!nextEmail) return;
+    sessionStorage.setItem(forgotPasswordEmailStorageKey, nextEmail);
+    setEmail(nextEmail);
+  }, [location.search, location.state]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -353,6 +420,7 @@ function ForgotPasswordScreen() {
     try {
       const response = await requestPasswordReset({ email });
       setSuccessMessage(response.message);
+      sessionStorage.removeItem(forgotPasswordEmailStorageKey);
       setEmail("");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể gửi yêu cầu đặt lại mật khẩu.");

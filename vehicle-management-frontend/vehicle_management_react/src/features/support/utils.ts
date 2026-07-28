@@ -1,6 +1,9 @@
+export type SupportOpenMode = "internal-direct";
 export type SupportParticipantType = "customer" | "employee";
 
 interface OpenSupportCenterOptions {
+  conversationId?: string;
+  mode?: SupportOpenMode;
   participantId?: string;
   participantName?: string;
   participantType?: SupportParticipantType;
@@ -9,6 +12,8 @@ interface OpenSupportCenterOptions {
 export function openSupportCenterConversation(options: OpenSupportCenterOptions = {}) {
   const params = new URLSearchParams();
 
+  if (options.conversationId) params.set("conversationId", options.conversationId);
+  if (options.mode) params.set("mode", options.mode);
   if (options.participantType) params.set("participantType", options.participantType);
   if (options.participantId) params.set("participantId", options.participantId);
   if (options.participantName) params.set("participantName", options.participantName);

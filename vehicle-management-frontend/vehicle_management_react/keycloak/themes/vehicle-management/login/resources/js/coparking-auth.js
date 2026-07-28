@@ -24,4 +24,28 @@
       input.focus();
     });
   });
+
+  var forgotPasswordLink = document.querySelector("[data-forgot-password-link]");
+  var usernameInput = document.querySelector("#username");
+
+  if (forgotPasswordLink && usernameInput) {
+    var forgotPasswordBaseUrl = forgotPasswordLink.getAttribute("data-forgot-password-base-url") || forgotPasswordLink.href;
+
+    function syncForgotPasswordLinkEmail() {
+      var email = (usernameInput.value || "").trim();
+      var targetUrl = new URL(forgotPasswordBaseUrl, window.location.href);
+
+      if (email) {
+        targetUrl.searchParams.set("email", email);
+      } else {
+        targetUrl.searchParams.delete("email");
+      }
+
+      forgotPasswordLink.href = targetUrl.toString();
+    }
+
+    usernameInput.addEventListener("input", syncForgotPasswordLinkEmail);
+    forgotPasswordLink.addEventListener("click", syncForgotPasswordLinkEmail);
+    syncForgotPasswordLinkEmail();
+  }
 })();

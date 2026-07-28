@@ -80,6 +80,7 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   const { user, setUser } = useAuth();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
   const displayName = user?.fullName || user?.username || "Khách hàng";
@@ -104,6 +105,8 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   }, []);
 
   function handleLogout() {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     setProfileOpen(false);
     logoutCurrentUser(setUser);
   }
@@ -154,7 +157,9 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
               <div className="vm-customer-popover vm-customer-profile-menu">
                 <Link to="/customer/profile" onClick={() => setProfileOpen(false)}><i className="far fa-user" /> Hồ sơ cá nhân</Link>
                 <Link to="/customer/support" onClick={() => setProfileOpen(false)}><i className="far fa-question-circle" /> Hỗ trợ</Link>
-                <button type="button" onClick={handleLogout}><i className="fas fa-sign-out-alt" /> Đăng xuất</button>
+                <button type="button" disabled={isLoggingOut} aria-busy={isLoggingOut} onClick={handleLogout}>
+                  <i className={isLoggingOut ? "fas fa-spinner fa-spin" : "fas fa-sign-out-alt"} /> {isLoggingOut ? "Đang đăng xuất" : "Đăng xuất"}
+                </button>
               </div>
             ) : null}
           </div>
