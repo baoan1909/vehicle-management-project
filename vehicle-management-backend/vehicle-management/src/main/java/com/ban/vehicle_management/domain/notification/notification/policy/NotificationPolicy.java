@@ -1,0 +1,69 @@
+package com.ban.vehicle_management.domain.notification.notification.policy;
+
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.domain.notification.notification.model.Notification;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
+import java.time.Instant;
+import java.util.UUID;
+
+public class NotificationPolicy {
+
+    private static final int TITLE_MAX_LENGTH = 200;
+    private static final int RELATED_SCHEMA_MAX_LENGTH = 50;
+    private static final int RELATED_TABLE_MAX_LENGTH = 80;
+
+    public SendNotificationCommand normalizeCommand(SendNotificationCommand command) {
+        if (command == null) {
+            throw new BadRequestException("command must not be null");
+        }
+        if (command.accountId() == null) {
+            throw new BadRequestException("accountId must not be null");
+        }
+        return new SendNotificationCommand(
+                command.accountId(),
+                TextValidationUtils.normalizeRequiredText(command.title(), "title", TITLE_MAX_LENGTH),
+                TextValidationUtils.normalizeRequiredText(command.message(), "message", 0),
+                TextValidationUtils.normalizeNullableText(
+                        command.relatedSchema(),
+                        "relatedSchema",
+                        RELATED_SCHEMA_MAX_LENGTH
+                ),
+                TextValidationUtils.normalizeNullableText(
+                        command.relatedTable(),
+                        "relatedTable",
+                        RELATED_TABLE_MAX_LENGTH
+                ),
+                command.relatedId()
+        );
+    }
+
+    public void initializeWebNotification(Notification notification, UUID notificationId, Instant now) {
+        if (notification == null) {
+            throw new BadRequestException("notification must not be null");
+        }
+        if (notification.getAccountId() == null) {
+            throw new BadRequestException("accountId must not be null");
+        }
+        notification.setNotificationId(notificationId);
+        notification.setChannel(NotificationChannel.WEB);
+        notification.setStatus(NotificationStatus.SENT);
+        notification.setSentAt(now);
+        notification.setReadAt(null);
+        notification.setRealtimeDeliveredAt(null);
+    }
+
+    public void markRead(Notification notification, Instant readAt) {
+        if (notification == null) {
+            throw new BadRequestException("notification must not be null");
+        }
+        if (notification.getReadAt() != null || notification.getStatus() == NotificationStatus.READ) {
+            notification.setStatus(NotificationStatus.READ);
+            return;
+        }
+        notification.setStatus(NotificationStatus.READ);
+        notification.setReadAt(readAt);
+    }
+}

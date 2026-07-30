@@ -23,7 +23,8 @@ public class ChatRealtimeRabbitConfig {
     @Bean
     public MessageConverter chatRabbitMessageConverter() {
         return new JacksonJsonMessageConverter(
-                "com.ban.vehicle_management.application.operations.chatconversation.model"
+                "com.ban.vehicle_management.application.operations.chatconversation.model",
+                "com.ban.vehicle_management.application.notification.notification.model"
         );
     }
 

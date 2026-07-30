@@ -1,11 +1,8 @@
-package com.ban.vehicle_management.domain.notification.notification.model;
+package com.ban.vehicle_management.entrypoint.dto.notification.notification.response;
 
-import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
-import java.time.Instant;
 import java.util.UUID;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -13,20 +10,17 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
-public class Notification extends AuditableDomainModel {
+public class NotificationUserResponse {
 
     private UUID notificationId;
-    private UUID accountId;
     private NotificationChannel channel;
     private String title;
     private String message;
     private NotificationStatus status;
-    private Instant sentAt;
-    private Instant readAt;
-    private Instant realtimeDeliveredAt;
+    private String sentAt;
+    private String readAt;
     private String relatedSchema;
     private String relatedTable;
     private UUID relatedId;
+    private String createdAt;
 }
-

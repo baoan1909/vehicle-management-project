@@ -59,6 +59,9 @@ public class NotificationEntity extends AuditableEntity {
     @Column(name = "read_at")
     private Instant readAt;
 
+    @Column(name = "realtime_delivered_at")
+    private Instant realtimeDeliveredAt;
+
     @Column(name = "related_schema")
     private String relatedSchema;
 

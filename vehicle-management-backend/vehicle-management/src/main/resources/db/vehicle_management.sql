@@ -854,6 +854,7 @@ CREATE TABLE notification.notifications (
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     sent_at TIMESTAMPTZ,
     read_at TIMESTAMPTZ,
+    realtime_delivered_at TIMESTAMPTZ,
     related_schema VARCHAR(50),
     related_table VARCHAR(80),
     related_id UUID,
@@ -974,6 +975,9 @@ CREATE INDEX idx_chat_messages_related ON operations.chat_messages(related_schem
 CREATE INDEX idx_chat_attachments_message ON operations.chat_message_attachments(message_id);
 CREATE INDEX idx_chat_attachments_object_key ON operations.chat_message_attachments(object_key);
 CREATE INDEX idx_notifications_account_id ON notification.notifications(account_id);
+CREATE INDEX idx_notifications_realtime_pending
+    ON notification.notifications(account_id, created_at)
+    WHERE channel = 'WEB' AND status = 'SENT' AND read_at IS NULL AND realtime_delivered_at IS NULL;
 CREATE INDEX idx_approval_requests_request_type_status ON operations.approval_requests(request_type, status);
 CREATE INDEX idx_approval_requests_target_lookup ON operations.approval_requests(target_schema, target_table, target_id);
 CREATE INDEX idx_audit_logs_target ON audit.audit_logs(target_schema, target_table, target_id);
