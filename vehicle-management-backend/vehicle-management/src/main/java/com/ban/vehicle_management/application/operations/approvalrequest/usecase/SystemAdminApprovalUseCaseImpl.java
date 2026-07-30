@@ -7,6 +7,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.c
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.SystemAdminApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.in.SystemAdminApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.ApprovalRequestPolicy;
@@ -30,6 +31,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
     private final SystemAdminApprovalAccessGuard systemAdminApprovalAccessGuard;
     private final SystemAdminApprovalPortOut systemAdminApprovalPortOut;
     private final VehicleMailService vehicleMailService;
+    private final NotificationPortIn notificationPortIn;
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
     private final Clock clock;
 
@@ -37,12 +39,14 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
             CurrentAccountPortIn currentAccountPortIn,
             SystemAdminApprovalAccessGuard systemAdminApprovalAccessGuard,
             SystemAdminApprovalPortOut systemAdminApprovalPortOut,
-            VehicleMailService vehicleMailService
+            VehicleMailService vehicleMailService,
+            NotificationPortIn notificationPortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.systemAdminApprovalAccessGuard = systemAdminApprovalAccessGuard;
         this.systemAdminApprovalPortOut = systemAdminApprovalPortOut;
         this.vehicleMailService = vehicleMailService;
+        this.notificationPortIn = notificationPortIn;
         this.clock = Clock.systemUTC();
     }
 
@@ -94,6 +98,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
         sendOnboardingApprovedEmail(result);
+        notifySystemAdminResult(result, "Ho so quan tri da duoc duyet", "Ho so quan tri he thong cua ban da duoc duyet.");
         return result;
     }
 
@@ -117,6 +122,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
         sendOnboardingRejectedEmail(result);
+        notifySystemAdminResult(result, "Ho so quan tri bi tu choi", "Ho so quan tri he thong cua ban chua duoc duyet.");
         return result;
     }
 
@@ -138,8 +144,15 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
 
         ApprovalRequest approvalRequest = buildPendingApprovalRequest(accountId, accountId);
         systemAdminApprovalPortOut.saveSystemAdminApprovalRequest(approvalRequest);
-        return systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequest.getApprovalRequestId())
+        SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequest.getApprovalRequestId())
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
+        notifySystemAdminResult(result, "Ho so quan tri da gui lai", "Ho so cua ban da duoc gui lai de duyet.");
+        ApprovalNotificationSupport.notifyApprovers(
+                notificationPortIn,
+                approvalRequest,
+                "Co ho so quan tri gui lai can duyet"
+        );
+        return result;
     }
 
     public ApprovalRequest buildPendingApprovalRequest(UUID accountId, UUID requestedBy) {
@@ -183,6 +196,18 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
                 result.profile().fullName(),
                 "quản trị hệ thống",
                 result.request().note()
+        );
+    }
+
+    private void notifySystemAdminResult(SystemAdminApprovalResult result, String title, String message) {
+        ApprovalNotificationSupport.notifyAccount(
+                notificationPortIn,
+                result.account().accountId(),
+                title,
+                message,
+                "iam",
+                "accounts",
+                result.account().accountId()
         );
     }
 }

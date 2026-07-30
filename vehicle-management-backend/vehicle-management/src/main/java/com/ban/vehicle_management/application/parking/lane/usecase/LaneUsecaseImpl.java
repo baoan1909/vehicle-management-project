@@ -1,5 +1,8 @@
 package com.ban.vehicle_management.application.parking.lane.usecase;
 
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.lane.port.in.LanePortIn;
 import com.ban.vehicle_management.application.parking.lane.port.out.LanePortOut;
 import com.ban.vehicle_management.domain.parking.lane.model.Lane;
@@ -17,10 +20,15 @@ import java.util.UUID;
 @Service
 public class LaneUsecaseImpl implements LanePortIn {
     private final LanePortOut lanePortOut;
+    private final NotificationPortIn notificationPortIn;
     private final LanePolicy lanePolicy = new LanePolicy();
 
-    public  LaneUsecaseImpl(LanePortOut lanePortOut){
+    public  LaneUsecaseImpl(
+            LanePortOut lanePortOut,
+            NotificationPortIn notificationPortIn
+    ){
         this.lanePortOut = lanePortOut;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -97,7 +105,9 @@ public class LaneUsecaseImpl implements LanePortIn {
         Lane existingLane = getLaneById(laneId);
         ensureCanDisableActiveOutLane(existingLane);
         lanePolicy.markMaintenance(existingLane);
-        return lanePortOut.save(existingLane);
+        Lane savedLane = lanePortOut.save(existingLane);
+        notifyLaneMaintenance(savedLane);
+        return savedLane;
     }
 
     @Override
@@ -105,7 +115,9 @@ public class LaneUsecaseImpl implements LanePortIn {
     public Lane forceLaneMaintenance(UUID laneId){
         Lane existingLane = getLaneById(laneId);
         lanePolicy.markMaintenance(existingLane);
-        return  lanePortOut.save(existingLane);
+        Lane savedLane = lanePortOut.save(existingLane);
+        notifyLaneMaintenance(savedLane);
+        return savedLane;
     }
 
     @Override
@@ -155,5 +167,21 @@ public class LaneUsecaseImpl implements LanePortIn {
             return null;
         }
         return  keyword.trim();
+    }
+
+    private void notifyLaneMaintenance(Lane lane) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
+                false,
+                NotificationAudience.OPERATIONS,
+                null,
+                "Lane bảo trì",
+                "Lane " + lane.getName() + " đã chuyển sang trạng thái bảo trì.",
+                "parking",
+                "lanes",
+                lane.getLaneId()
+        ));
     }
 }

@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.notification.notification.usecase
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationCommandMapper;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationRealtimeMessageMapper;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.notification.notification.port.out.NotificationPortOut;
@@ -62,6 +63,35 @@ public class NotificationUseCaseImpl implements NotificationPortIn {
                 realtimeEventPublisher.publish(realtimeMessageMapper.toRealtimeMessage(savedNotification))
         );
         return savedNotification;
+    }
+
+    @Override
+    @Transactional
+    public List<Notification> sendBroadcastWebNotification(BroadcastNotificationCommand command) {
+        BroadcastNotificationCommand normalizedCommand = notificationPolicy.normalizeBroadcastCommand(command);
+        List<UUID> recipientAccountIds = notificationPortOut.findActiveAccountIdsForBroadcast(
+                normalizedCommand.allActiveAccounts(),
+                normalizedCommand.roleCodes().stream().toList(),
+                normalizedCommand.accountIds().stream().toList()
+        );
+        if (recipientAccountIds.isEmpty()) {
+            throw new BadRequestException("Broadcast notification has no eligible active recipients");
+        }
+
+        Instant now = Instant.now();
+        List<Notification> notifications = recipientAccountIds.stream()
+                .map(accountId -> {
+                    Notification notification = notificationCommandMapper.toDomain(normalizedCommand, accountId);
+                    notificationPolicy.initializeWebNotification(notification, UUID.randomUUID(), now);
+                    return notification;
+                })
+                .toList();
+        List<Notification> savedNotifications = notificationPortOut.saveAll(notifications);
+        TransactionalEvents.runAfterCommit(() -> savedNotifications.stream()
+                .map(realtimeMessageMapper::toRealtimeMessage)
+                .forEach(realtimeEventPublisher::publish)
+        );
+        return savedNotifications;
     }
 
     @Override

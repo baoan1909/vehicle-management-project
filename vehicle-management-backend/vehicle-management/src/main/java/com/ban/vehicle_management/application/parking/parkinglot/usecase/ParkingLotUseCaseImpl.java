@@ -1,5 +1,8 @@
 package com.ban.vehicle_management.application.parking.parkinglot.usecase;
 
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkinglot.port.in.ParkingLotPortIn;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
@@ -16,10 +19,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
 
     private final ParkingLotPortOut parkingLotPortOut;
+    private final NotificationPortIn notificationPortIn;
     private final ParkingLotPolicy parkingLotPolicy = new ParkingLotPolicy();
 
-    public ParkingLotUseCaseImpl(ParkingLotPortOut parkingLotPortOut) {
+    public ParkingLotUseCaseImpl(
+            ParkingLotPortOut parkingLotPortOut,
+            NotificationPortIn notificationPortIn
+    ) {
         this.parkingLotPortOut = parkingLotPortOut;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -97,7 +105,9 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
 
         parkingLotPolicy.markMaintenance(existingParkingLot);
-        return parkingLotPortOut.save(existingParkingLot);
+        ParkingLot savedParkingLot = parkingLotPortOut.save(existingParkingLot);
+        notifyParkingLotMaintenance(savedParkingLot);
+        return savedParkingLot;
     }
 
     @Override
@@ -119,6 +129,22 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         if (parkingLotPortOut.hasActiveZones(parkingLotId)) {
             throw new ConflictException("Parking lot has active zones");
         }
+    }
+
+    private void notifyParkingLotMaintenance(ParkingLot parkingLot) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
+                false,
+                NotificationAudience.OPERATIONS,
+                null,
+                "Bãi xe bảo trì",
+                "Bãi xe " + parkingLot.getName() + " đã chuyển sang trạng thái bảo trì.",
+                "parking",
+                "parking_lots",
+                parkingLot.getParkingLotId()
+        ));
     }
 
 }

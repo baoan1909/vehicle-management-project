@@ -48,4 +48,6 @@ public interface InvoicePortOut {
             UUID parkingSessionId,
             Collection<InvoiceStatus> statuses
     );
+
+    Optional<UUID> findCustomerAccountIdByInvoiceId(UUID invoiceId);
 }

@@ -8,6 +8,10 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.r
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.InternalEmployeeApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.in.InternalEmployeeApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.ApprovalRequestPolicy;
@@ -35,6 +39,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
     private final InternalEmployeeApprovalAccessGuard internalEmployeeApprovalAccessGuard;
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
     private final VehicleMailService vehicleMailService;
+    private final NotificationPortIn notificationPortIn;
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
     private final Clock clock;
@@ -44,13 +49,15 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
             CurrentAccountPortIn currentAccountPortIn,
             InternalEmployeeApprovalAccessGuard internalEmployeeApprovalAccessGuard,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
-            VehicleMailService vehicleMailService
+            VehicleMailService vehicleMailService,
+            NotificationPortIn notificationPortIn
     ) {
         this(
                 currentAccountPortIn,
                 internalEmployeeApprovalAccessGuard,
                 internalEmployeeApprovalPortOut,
                 vehicleMailService,
+                notificationPortIn,
                 Clock.systemUTC()
         );
     }
@@ -60,12 +67,14 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
             InternalEmployeeApprovalAccessGuard internalEmployeeApprovalAccessGuard,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
             VehicleMailService vehicleMailService,
+            NotificationPortIn notificationPortIn,
             Clock clock
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.internalEmployeeApprovalAccessGuard = internalEmployeeApprovalAccessGuard;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
         this.vehicleMailService = vehicleMailService;
+        this.notificationPortIn = notificationPortIn;
         this.clock = clock == null ? Clock.systemUTC() : clock;
     }
 
@@ -133,6 +142,15 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         InternalEmployeeApprovalResult result = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
         sendOnboardingApprovedEmail(result);
+        ApprovalNotificationSupport.notifyAccount(
+                notificationPortIn,
+                result.account().accountId(),
+                "Ho so nhan su da duoc duyet",
+                "Ho so nhan su cua ban da duoc duyet.",
+                "people",
+                "employees",
+                result.employee().employeeId()
+        );
         return result;
     }
 
@@ -158,6 +176,15 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         InternalEmployeeApprovalResult result = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
         sendOnboardingRejectedEmail(result);
+        ApprovalNotificationSupport.notifyAccount(
+                notificationPortIn,
+                result.account().accountId(),
+                "Ho so nhan su bi tu choi",
+                "Ho so nhan su cua ban chua duoc duyet.",
+                "people",
+                "employees",
+                result.employee().employeeId()
+        );
         return result;
     }
 
@@ -184,8 +211,23 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         ApprovalRequest approvalRequest = buildPendingApprovalRequest(candidate.employeeId(), currentAccount.accountId());
         internalEmployeeApprovalPortOut.saveInternalEmployeeApprovalRequest(approvalRequest);
 
-        return internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequest.getApprovalRequestId())
+        InternalEmployeeApprovalResult result = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequest.getApprovalRequestId())
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
+        ApprovalNotificationSupport.notifyAccount(
+                notificationPortIn,
+                result.account().accountId(),
+                "Ho so nhan su da gui lai",
+                "Ho so cua ban da duoc gui lai de duyet.",
+                "people",
+                "employees",
+                result.employee().employeeId()
+        );
+        ApprovalNotificationSupport.notifyApprovers(
+                notificationPortIn,
+                approvalRequest,
+                "Co ho so nhan su gui lai can duyet"
+        );
+        return result;
     }
 
     public ApprovalRequest buildPendingApprovalRequest(UUID employeeId, UUID requestedBy) {

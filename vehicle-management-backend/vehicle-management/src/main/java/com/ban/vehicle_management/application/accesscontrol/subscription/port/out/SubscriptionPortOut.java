@@ -40,4 +40,8 @@ public interface SubscriptionPortOut {
     Optional<Subscription> findActiveByLicensePlate(String licensePlate, LocalDate businessDate);
 
     int expireActiveSubscriptionsBefore(LocalDate businessDate);
+
+    List<Subscription> findActiveSubscriptionsExpiringOn(LocalDate effectiveTo);
+
+    List<Subscription> findActiveSubscriptionsExpiredBefore(LocalDate businessDate);
 }

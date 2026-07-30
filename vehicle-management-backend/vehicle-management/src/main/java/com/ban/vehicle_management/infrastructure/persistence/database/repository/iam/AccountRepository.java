@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam
 
 import java.util.Collection;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
@@ -41,6 +42,25 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID>, J
             @Param("accountId") UUID accountId,
             @Param("status") AccountStatus status,
             @Param("roleCodes") Collection<String> roleCodes
+    );
+
+    @Query("""
+        select distinct accountEntity.accountId
+        from AccountEntity accountEntity
+        join accountEntity.role roleEntity
+        where accountEntity.status = :status
+          and (
+                :allActiveAccounts = true
+                or accountEntity.accountId in :accountIds
+                or roleEntity.code in :roleCodes
+          )
+        order by accountEntity.accountId
+        """)
+    List<UUID> findActiveAccountIdsForBroadcast(
+            @Param("status") AccountStatus status,
+            @Param("allActiveAccounts") boolean allActiveAccounts,
+            @Param("roleCodes") Collection<String> roleCodes,
+            @Param("accountIds") Collection<UUID> accountIds
     );
 
 }

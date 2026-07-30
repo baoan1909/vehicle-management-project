@@ -89,6 +89,11 @@ public class EmployeePersistenceAdapter implements EmployeePortOut {
     }
 
     @Override
+    public Optional<UUID> findAccountIdByEmployeeId(UUID employeeId) {
+        return employeeRepository.findAccountIdByEmployeeId(employeeId);
+    }
+
+    @Override
     public boolean hasAccountRole(
             UUID employeeId,
             String roleCode

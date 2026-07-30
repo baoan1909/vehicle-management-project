@@ -1,12 +1,15 @@
 package com.ban.vehicle_management.domain.notification.notification.policy;
 
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.domain.notification.notification.model.Notification;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class NotificationPolicy {
@@ -24,6 +27,37 @@ public class NotificationPolicy {
         }
         return new SendNotificationCommand(
                 command.accountId(),
+                TextValidationUtils.normalizeRequiredText(command.title(), "title", TITLE_MAX_LENGTH),
+                TextValidationUtils.normalizeRequiredText(command.message(), "message", 0),
+                TextValidationUtils.normalizeNullableText(
+                        command.relatedSchema(),
+                        "relatedSchema",
+                        RELATED_SCHEMA_MAX_LENGTH
+                ),
+                TextValidationUtils.normalizeNullableText(
+                        command.relatedTable(),
+                        "relatedTable",
+                        RELATED_TABLE_MAX_LENGTH
+                ),
+                command.relatedId()
+        );
+    }
+
+    public BroadcastNotificationCommand normalizeBroadcastCommand(BroadcastNotificationCommand command) {
+        if (command == null) {
+            throw new BadRequestException("command must not be null");
+        }
+
+        Set<UUID> accountIds = normalizeAccountIds(command.accountIds());
+        Set<String> roleCodes = normalizeRoleCodes(command.roleCodes());
+        if (!command.allActiveAccounts() && accountIds.isEmpty() && roleCodes.isEmpty()) {
+            throw new BadRequestException("Broadcast notification requires at least one recipient target");
+        }
+
+        return new BroadcastNotificationCommand(
+                command.allActiveAccounts(),
+                roleCodes,
+                accountIds,
                 TextValidationUtils.normalizeRequiredText(command.title(), "title", TITLE_MAX_LENGTH),
                 TextValidationUtils.normalizeRequiredText(command.message(), "message", 0),
                 TextValidationUtils.normalizeNullableText(
@@ -65,5 +99,24 @@ public class NotificationPolicy {
         }
         notification.setStatus(NotificationStatus.READ);
         notification.setReadAt(readAt);
+    }
+
+    private Set<UUID> normalizeAccountIds(Set<UUID> accountIds) {
+        if (accountIds == null || accountIds.isEmpty()) {
+            return Set.of();
+        }
+        return new LinkedHashSet<>(accountIds);
+    }
+
+    private Set<String> normalizeRoleCodes(Set<String> roleCodes) {
+        if (roleCodes == null || roleCodes.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<String> normalizedRoleCodes = new LinkedHashSet<>();
+        roleCodes.forEach(roleCode -> normalizedRoleCodes.add(
+                TextValidationUtils.normalizeCode(roleCode, "roleCode", 50)
+        ));
+        return normalizedRoleCodes;
     }
 }

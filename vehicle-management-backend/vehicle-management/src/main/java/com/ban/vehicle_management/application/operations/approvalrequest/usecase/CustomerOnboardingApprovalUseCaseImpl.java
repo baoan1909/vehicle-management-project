@@ -7,6 +7,10 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.r
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.CustomerOnboardingApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.in.CustomerOnboardingApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.ApprovalRequestPolicy;
@@ -30,6 +34,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
     private final CustomerOnboardingApprovalAccessGuard customerOnboardingApprovalAccessGuard;
     private final CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
     private final VehicleMailService vehicleMailService;
+    private final NotificationPortIn notificationPortIn;
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
     private final CustomerPolicy customerPolicy = new CustomerPolicy();
     private final Clock clock;
@@ -37,11 +42,13 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
     public CustomerOnboardingApprovalUseCaseImpl(
             CustomerOnboardingApprovalAccessGuard customerOnboardingApprovalAccessGuard,
             CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut,
-            VehicleMailService vehicleMailService
+            VehicleMailService vehicleMailService,
+            NotificationPortIn notificationPortIn
     ) {
         this.customerOnboardingApprovalAccessGuard = customerOnboardingApprovalAccessGuard;
         this.customerOnboardingApprovalPortOut = customerOnboardingApprovalPortOut;
         this.vehicleMailService = vehicleMailService;
+        this.notificationPortIn = notificationPortIn;
         this.clock = Clock.systemUTC();
     }
 
@@ -100,6 +107,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
         sendOnboardingApprovedEmail(result);
+        notifyApprovalResult(result, "Ho so khach hang da duoc duyet", "Ho so khach hang cua ban da duoc duyet.");
         return result;
     }
 
@@ -126,6 +134,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
         sendOnboardingRejectedEmail(result);
+        notifyApprovalResult(result, "Ho so khach hang bi tu choi", "Ho so khach hang cua ban chua duoc duyet.");
         return result;
     }
 
@@ -153,9 +162,12 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         ApprovalRequest approvalRequest = buildPendingApprovalRequest(candidate.customerId(), currentAccount.accountId());
         customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalDecision(approvalRequest, customer);
 
-        return customerOnboardingApprovalPortOut
+        CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut
                 .findCustomerOnboardingApprovalResultById(approvalRequest.getApprovalRequestId())
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
+        notifyApprovalResult(result, "Ho so khach hang da gui lai", "Ho so cua ban da duoc gui lai de duyet.");
+        notifyApprovalReviewers(approvalRequest, "Co ho so khach hang gui lai can duyet");
+        return result;
     }
 
     public ApprovalRequest buildPendingApprovalRequest(UUID customerId, UUID requestedBy) {
@@ -207,5 +219,35 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
                 "khách hàng",
                 result.request().note()
         );
+    }
+
+    private void notifyApprovalResult(CustomerOnboardingApprovalResult result, String title, String message) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                result.account().accountId(),
+                title,
+                message,
+                "people",
+                "customers",
+                result.customer().customerId()
+        ));
+    }
+
+    private void notifyApprovalReviewers(ApprovalRequest approvalRequest, String title) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
+                false,
+                NotificationAudience.APPROVERS,
+                null,
+                title,
+                "Co yeu cau phe duyet moi can xu ly.",
+                approvalRequest.getTargetSchema(),
+                approvalRequest.getTargetTable(),
+                approvalRequest.getTargetId()
+        ));
     }
 }

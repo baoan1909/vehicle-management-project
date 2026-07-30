@@ -2,13 +2,17 @@ package com.ban.vehicle_management.application.notification.notification.usecase
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationCommandMapper;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationRealtimeMessageMapper;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.NotificationRealtimeMessage;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.out.NotificationPortOut;
@@ -17,7 +21,9 @@ import com.ban.vehicle_management.domain.notification.notification.model.Notific
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -141,5 +147,90 @@ class NotificationUseCaseImplTest {
         assertEquals(NotificationStatus.READ, result.getStatus());
         assertNotNull(result.getReadAt());
         verify(notificationPortOut).save(notification);
+    }
+
+    @Test
+    void sendBroadcastWebNotification_shouldFanOutToResolvedActiveRecipientsAndPublishEachNotification() {
+        UUID firstAccountId = UUID.randomUUID();
+        UUID secondAccountId = UUID.randomUUID();
+        UUID relatedId = UUID.randomUUID();
+        BroadcastNotificationCommand command = new BroadcastNotificationCommand(
+                false,
+                Set.of("customer"),
+                Set.of(firstAccountId),
+                " Maintenance notice ",
+                " Parking lot is under maintenance ",
+                "parking",
+                "parking_lots",
+                relatedId
+        );
+
+        Notification firstNotification = notification(firstAccountId, "Maintenance notice");
+        Notification secondNotification = notification(secondAccountId, "Maintenance notice");
+        Notification savedFirstNotification = notification(firstAccountId, "Maintenance notice");
+        savedFirstNotification.setNotificationId(UUID.randomUUID());
+        Notification savedSecondNotification = notification(secondAccountId, "Maintenance notice");
+        savedSecondNotification.setNotificationId(UUID.randomUUID());
+        NotificationRealtimeMessage firstRealtimeMessage = realtimeMessage(savedFirstNotification);
+        NotificationRealtimeMessage secondRealtimeMessage = realtimeMessage(savedSecondNotification);
+
+        when(notificationPortOut.findActiveAccountIdsForBroadcast(
+                false,
+                List.of("CUSTOMER"),
+                List.of(firstAccountId)
+        )).thenReturn(List.of(firstAccountId, secondAccountId));
+        when(notificationCommandMapper.toDomain(any(BroadcastNotificationCommand.class), eq(firstAccountId)))
+                .thenReturn(firstNotification);
+        when(notificationCommandMapper.toDomain(any(BroadcastNotificationCommand.class), eq(secondAccountId)))
+                .thenReturn(secondNotification);
+        when(notificationPortOut.saveAll(anyList()))
+                .thenReturn(List.of(savedFirstNotification, savedSecondNotification));
+        when(realtimeMessageMapper.toRealtimeMessage(savedFirstNotification)).thenReturn(firstRealtimeMessage);
+        when(realtimeMessageMapper.toRealtimeMessage(savedSecondNotification)).thenReturn(secondRealtimeMessage);
+
+        List<Notification> result = notificationUseCase.sendBroadcastWebNotification(command);
+
+        ArgumentCaptor<List<Notification>> notificationsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(notificationPortOut).saveAll(notificationsCaptor.capture());
+        List<Notification> notificationsToSave = notificationsCaptor.getValue();
+        assertEquals(2, notificationsToSave.size());
+        notificationsToSave.forEach(notification -> {
+            assertNotNull(notification.getNotificationId());
+            assertEquals(NotificationChannel.WEB, notification.getChannel());
+            assertEquals(NotificationStatus.SENT, notification.getStatus());
+            assertNotNull(notification.getSentAt());
+        });
+        verify(realtimeEventPublisher).publish(firstRealtimeMessage);
+        verify(realtimeEventPublisher).publish(secondRealtimeMessage);
+        verify(realtimeEventPublisher, times(2)).publish(any(NotificationRealtimeMessage.class));
+        assertEquals(List.of(savedFirstNotification, savedSecondNotification), result);
+    }
+
+    private Notification notification(UUID accountId, String title) {
+        Notification notification = new Notification();
+        notification.setAccountId(accountId);
+        notification.setTitle(title);
+        notification.setMessage("Parking lot is under maintenance");
+        notification.setRelatedSchema("parking");
+        notification.setRelatedTable("parking_lots");
+        notification.setRelatedId(UUID.randomUUID());
+        return notification;
+    }
+
+    private NotificationRealtimeMessage realtimeMessage(Notification notification) {
+        return new NotificationRealtimeMessage(
+                notification.getNotificationId(),
+                notification.getAccountId(),
+                NotificationChannel.WEB,
+                notification.getTitle(),
+                notification.getMessage(),
+                NotificationStatus.SENT,
+                "2026-07-30 10:00:00",
+                null,
+                notification.getRelatedSchema(),
+                notification.getRelatedTable(),
+                notification.getRelatedId(),
+                "2026-07-30 10:00:00"
+        );
     }
 }

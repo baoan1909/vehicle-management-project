@@ -93,4 +93,14 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
             @Param("activeStatus") SubscriptionStatus activeStatus,
             @Param("expiredStatus") SubscriptionStatus expiredStatus
     );
+
+    List<SubscriptionEntity> findByStatusAndEffectiveTo(
+            SubscriptionStatus status,
+            LocalDate effectiveTo
+    );
+
+    List<SubscriptionEntity> findByStatusAndEffectiveToBefore(
+            SubscriptionStatus status,
+            LocalDate businessDate
+    );
 }

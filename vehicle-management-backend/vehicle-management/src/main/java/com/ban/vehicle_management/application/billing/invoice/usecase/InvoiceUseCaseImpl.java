@@ -4,6 +4,8 @@ import com.ban.vehicle_management.application.billing.invoice.authorization.Invo
 import com.ban.vehicle_management.application.billing.invoice.port.in.InvoicePortIn;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
@@ -33,16 +35,19 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
     private final InvoicePortOut invoicePortOut;
     private final InvoiceAccessGuard invoiceAccessGuard;
     private final PaymentPortOut paymentPortOut;
+    private final NotificationPortIn notificationPortIn;
     private  final InvoicePolicy invoicePolicy = new InvoicePolicy();
 
     public  InvoiceUseCaseImpl(
             InvoicePortOut invoicePortOut,
             InvoiceAccessGuard invoiceAccessGuard,
-            PaymentPortOut paymentPortOut
+            PaymentPortOut paymentPortOut,
+            NotificationPortIn notificationPortIn
     ){
         this.invoicePortOut = invoicePortOut;
         this.invoiceAccessGuard = invoiceAccessGuard;
         this.paymentPortOut = paymentPortOut;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -57,7 +62,9 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
         Instant now = Instant.now();
         invoicePolicy.initializeNewInvoice(invoice, generateInvoiceNo(invoice.getInvoiceId(), now), now);
 
-        return  invoicePortOut.save(invoice);
+        Invoice savedInvoice = invoicePortOut.save(invoice);
+        notifyInvoiceCreated(savedInvoice);
+        return savedInvoice;
     }
 
     @Override
@@ -166,5 +173,20 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
 
     private String normalizeKeyword(String keyword){
         return keyword == null || keyword.isBlank() ? null : keyword.trim();
+    }
+
+    private void notifyInvoiceCreated(Invoice invoice) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        invoicePortOut.findCustomerAccountIdByInvoiceId(invoice.getInvoiceId())
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId,
+                        "Hóa đơn mới",
+                        "Hóa đơn " + invoice.getInvoiceNo() + " đã được tạo. Vui lòng kiểm tra và thanh toán đúng hạn.",
+                        "billing",
+                        "invoices",
+                        invoice.getInvoiceId()
+                )));
     }
 }

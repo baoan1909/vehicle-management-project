@@ -15,6 +15,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.c
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.InternalEmployeeApprovalCandidate;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.InternalEmployeeApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
@@ -53,6 +54,8 @@ class InternalEmployeeApprovalUseCaseImplTest {
 
     @Mock
     private VehicleMailService vehicleMailService;
+    @Mock
+    private NotificationPortIn notificationPortIn;
 
     private InternalEmployeeApprovalUseCaseImpl internalEmployeeApprovalUseCase;
 
@@ -63,6 +66,7 @@ class InternalEmployeeApprovalUseCaseImplTest {
                 internalEmployeeApprovalAccessGuard,
                 internalEmployeeApprovalPortOut,
                 vehicleMailService,
+                notificationPortIn,
                 Clock.fixed(Instant.parse("2026-06-20T16:29:30Z"), ZoneOffset.UTC)
         );
     }

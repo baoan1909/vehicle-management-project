@@ -4,6 +4,8 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.operations.shift.port.out.ShiftPortOut;
 import com.ban.vehicle_management.application.operations.shiftassignment.port.in.ShiftAssignmentPortIn;
 import com.ban.vehicle_management.application.operations.shiftassignment.port.out.ShiftAssignmentPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
@@ -66,6 +68,7 @@ public class ShiftAssignmentUseCaseImpl
     private final EmployeePortOut employeePortOut;
     private final GatePortOut gatePortOut;
     private final ZonePortOut zonePortOut;
+    private final NotificationPortIn notificationPortIn;
     private final ShiftAssignmentPolicy policy =
             new ShiftAssignmentPolicy();
 
@@ -75,7 +78,8 @@ public class ShiftAssignmentUseCaseImpl
             ShiftPortOut shiftPortOut,
             EmployeePortOut employeePortOut,
             GatePortOut gatePortOut,
-            ZonePortOut zonePortOut
+            ZonePortOut zonePortOut,
+            NotificationPortIn notificationPortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.assignmentPortOut = assignmentPortOut;
@@ -83,6 +87,7 @@ public class ShiftAssignmentUseCaseImpl
         this.employeePortOut = employeePortOut;
         this.gatePortOut = gatePortOut;
         this.zonePortOut = zonePortOut;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -206,6 +211,7 @@ public class ShiftAssignmentUseCaseImpl
         ShiftAssignment existing =
                 findAssignmentForUpdate(assignmentId);
         ensureEditableAssignment(existing);
+        UUID previousEmployeeId = existing.getEmployeeId();
 
         Shift shift = findShiftForUpdate(existing.getShiftId());
         ensureDraftAndNotStarted(shift);
@@ -216,7 +222,9 @@ public class ShiftAssignmentUseCaseImpl
 
         validateCandidate(existing, shift, Set.of(assignmentId));
 
-        return assignmentPortOut.save(existing);
+        ShiftAssignment savedAssignment = assignmentPortOut.save(existing);
+        notifyAssignmentChanged(previousEmployeeId, savedAssignment, shift);
+        return savedAssignment;
     }
 
     @Override
@@ -269,6 +277,8 @@ public class ShiftAssignmentUseCaseImpl
 
         ShiftAssignment saved =
                 assignmentPortOut.save(replacement);
+        notifyAssignmentRemoved(existing.getEmployeeId(), shift);
+        notifyAssignmentAdded(saved, shift);
 
         LOGGER.info(
                 "Shift assignment {} replaced by {}. Reason: {}",
@@ -387,6 +397,10 @@ public class ShiftAssignmentUseCaseImpl
                                 employeeFromSecond
                         )
                 );
+        notifyAssignmentRemoved(first.getEmployeeId(), firstShift);
+        notifyAssignmentRemoved(second.getEmployeeId(), secondShift);
+        notifyAssignmentAdded(employeeFromFirst, secondShift);
+        notifyAssignmentAdded(employeeFromSecond, firstShift);
 
         LOGGER.info(
                 "Assignments {} and {} swapped. Reason: {}",
@@ -416,6 +430,7 @@ public class ShiftAssignmentUseCaseImpl
 
         policy.remove(assignment);
         assignmentPortOut.save(assignment);
+        notifyAssignmentRemoved(assignment.getEmployeeId(), shift);
     }
 
     private void validateCandidate(
@@ -749,5 +764,44 @@ public class ShiftAssignmentUseCaseImpl
         if (shift.getStatus() == ShiftStatus.SCHEDULED) {
             policy.schedule(assignment);
         }
+    }
+
+    private void notifyAssignmentChanged(UUID previousEmployeeId, ShiftAssignment assignment, Shift shift) {
+        if (Objects.equals(previousEmployeeId, assignment.getEmployeeId())) {
+            notifyAssignmentAdded(assignment, shift);
+            return;
+        }
+        notifyAssignmentRemoved(previousEmployeeId, shift);
+        notifyAssignmentAdded(assignment, shift);
+    }
+
+    private void notifyAssignmentAdded(ShiftAssignment assignment, Shift shift) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        employeePortOut.findAccountIdByEmployeeId(assignment.getEmployeeId())
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId,
+                        "Bạn được phân ca",
+                        "Bạn được phân vào ca " + shift.getShiftCode() + " ngày " + shift.getShiftDate() + ".",
+                        "operations",
+                        "shift_assignments",
+                        assignment.getShiftAssignmentId()
+                )));
+    }
+
+    private void notifyAssignmentRemoved(UUID employeeId, Shift shift) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        employeePortOut.findAccountIdByEmployeeId(employeeId)
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId,
+                        "Phân ca đã thay đổi",
+                        "Bạn không còn được phân vào ca " + shift.getShiftCode() + " ngày " + shift.getShiftDate() + ".",
+                        "operations",
+                        "shifts",
+                        shift.getShiftId()
+                )));
     }
 }

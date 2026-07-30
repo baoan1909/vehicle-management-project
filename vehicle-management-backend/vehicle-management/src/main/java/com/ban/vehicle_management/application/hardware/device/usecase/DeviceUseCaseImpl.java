@@ -3,6 +3,9 @@ package com.ban.vehicle_management.application.hardware.device.usecase;
 import com.ban.vehicle_management.application.hardware.device.port.in.DevicePortIn;
 import com.ban.vehicle_management.application.hardware.device.port.out.DevicePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.hardware.device.model.Device;
 import com.ban.vehicle_management.domain.hardware.device.policy.DevicePolicy;
@@ -29,16 +32,19 @@ public class DeviceUseCaseImpl implements DevicePortIn {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final DevicePortOut devicePortOut;
     private final ParkingLotPortOut parkingLotPortOut;
+    private final NotificationPortIn notificationPortIn;
     private final DevicePolicy devicePolicy = new DevicePolicy();
 
     public DeviceUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             DevicePortOut devicePortOut,
-            ParkingLotPortOut parkingLotPortOut
+            ParkingLotPortOut parkingLotPortOut,
+            NotificationPortIn notificationPortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.devicePortOut = devicePortOut;
         this.parkingLotPortOut = parkingLotPortOut;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -142,7 +148,9 @@ public class DeviceUseCaseImpl implements DevicePortIn {
 
         devicePolicy.offline(existing);
 
-        return devicePortOut.save(existing);
+        Device savedDevice = devicePortOut.save(existing);
+        notifyDeviceAlert(savedDevice, "Thiết bị offline", "Thiết bị " + savedDevice.getName() + " đang offline.");
+        return savedDevice;
     }
 
     @Override
@@ -158,7 +166,9 @@ public class DeviceUseCaseImpl implements DevicePortIn {
 
         devicePolicy.maintenance(existing);
 
-        return devicePortOut.save(existing);
+        Device savedDevice = devicePortOut.save(existing);
+        notifyDeviceAlert(savedDevice, "Thiết bị bảo trì", "Thiết bị " + savedDevice.getName() + " đã chuyển sang trạng thái bảo trì.");
+        return savedDevice;
     }
 
     @Override
@@ -248,5 +258,21 @@ public class DeviceUseCaseImpl implements DevicePortIn {
         return keyword == null || keyword.isBlank()
                 ? null
                 : keyword.trim();
+    }
+
+    private void notifyDeviceAlert(Device device, String title, String message) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
+                false,
+                NotificationAudience.OPERATIONS,
+                null,
+                title,
+                message,
+                "hardware",
+                "devices",
+                device.getDeviceId()
+        ));
     }
 }

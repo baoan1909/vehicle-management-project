@@ -24,6 +24,8 @@ public interface EmployeePortOut {
 
     Optional<Employee> findByAccountId(UUID accountId);
 
+    Optional<UUID> findAccountIdByEmployeeId(UUID employeeId);
+
     boolean hasAccountRole(UUID employeeId, String roleCode);
 }
 

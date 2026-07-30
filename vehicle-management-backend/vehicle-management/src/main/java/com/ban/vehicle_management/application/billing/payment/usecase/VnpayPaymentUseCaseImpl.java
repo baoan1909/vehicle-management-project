@@ -14,6 +14,8 @@ import com.ban.vehicle_management.application.billing.payment.model.result.Vnpay
 import com.ban.vehicle_management.application.billing.payment.port.in.VnpayPaymentPortIn;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.VnpayGatewayPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
@@ -43,6 +45,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
     private final PaymentAccessGuard paymentAccessGuard;
     private final SubscriptionPortIn subscriptionPortIn;
     private final ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
+    private final NotificationPortIn notificationPortIn;
     private final BigDecimal vnpayMinimumAmount;
     private final PaymentPolicy paymentPolicy = new PaymentPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
@@ -54,6 +57,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
             PaymentAccessGuard paymentAccessGuard,
             SubscriptionPortIn subscriptionPortIn,
             ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn,
+            NotificationPortIn notificationPortIn,
             @Value("${app.payment.vnpay.minimum-amount:10000}") BigDecimal vnpayMinimumAmount
     ) {
         this.paymentPortOut = paymentPortOut;
@@ -62,6 +66,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
         this.paymentAccessGuard = paymentAccessGuard;
         this.subscriptionPortIn = subscriptionPortIn;
         this.parkingCheckoutCompletionPortIn = parkingCheckoutCompletionPortIn;
+        this.notificationPortIn = notificationPortIn;
         this.vnpayMinimumAmount = vnpayMinimumAmount;
     }
 
@@ -205,6 +210,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
                     callback.cardType()
             );
             paymentPortOut.save(payment);
+            notifyPaymentFailed(payment);
         }
 
         return new VnpayIpnResult("00", "Confirm Success");
@@ -235,6 +241,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
                         callback.cardType()
                 );
                 payment = paymentPortOut.save(payment);
+                notifyPaymentFailed(payment);
             }
         }
 
@@ -283,6 +290,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
             subscriptionPortIn.markSubscriptionPaymentCompleted(invoice.getSubscriptionId());
         }
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());
+        notifyPaymentSucceeded(invoice, payment);
     }
 
     private VnpayCallbackData verifyCallback(VnpayCallbackCommand command) {
@@ -329,5 +337,40 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
             throw new BadRequestException("bankCode is invalid");
         }
         return normalized;
+    }
+
+    private void notifyPaymentSucceeded(Invoice invoice, Payment payment) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        invoicePortOut.findCustomerAccountIdByInvoiceId(invoice.getInvoiceId())
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId,
+                        "Thanh toán thành công",
+                        "Thanh toán VNPAY cho hóa đơn " + invoice.getInvoiceNo() + " đã thành công.",
+                        "billing",
+                        "payments",
+                        payment.getPaymentId()
+                )));
+    }
+
+    private void notifyPaymentFailed(Payment payment) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        invoicePortOut.findById(payment.getInvoiceId())
+                .flatMap(invoice -> invoicePortOut.findCustomerAccountIdByInvoiceId(invoice.getInvoiceId())
+                        .map(accountId -> new PaymentFailureNotification(accountId, invoice)))
+                .ifPresent(notification -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        notification.accountId(),
+                        "Thanh toán thất bại",
+                        "Thanh toán VNPAY cho hóa đơn " + notification.invoice().getInvoiceNo() + " chưa thành công. Vui lòng thử lại.",
+                        "billing",
+                        "payments",
+                        payment.getPaymentId()
+                )));
+    }
+
+    private record PaymentFailureNotification(UUID accountId, Invoice invoice) {
     }
 }

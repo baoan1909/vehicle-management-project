@@ -20,6 +20,7 @@ import com.ban.vehicle_management.application.billing.payment.model.result.Vnpay
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayReturnResult;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.VnpayGatewayPortOut;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
@@ -53,6 +54,8 @@ class VnpayPaymentUseCaseImplTest {
     private SubscriptionPortIn subscriptionPortIn;
     @Mock
     private ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
+    @Mock
+    private NotificationPortIn notificationPortIn;
 
     private VnpayPaymentUseCaseImpl useCase;
 
@@ -65,6 +68,7 @@ class VnpayPaymentUseCaseImplTest {
                 paymentAccessGuard,
                 subscriptionPortIn,
                 parkingCheckoutCompletionPortIn,
+                notificationPortIn,
                 new BigDecimal("10000")
         );
     }

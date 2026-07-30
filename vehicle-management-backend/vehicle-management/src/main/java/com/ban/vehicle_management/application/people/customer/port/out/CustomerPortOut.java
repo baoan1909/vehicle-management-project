@@ -30,5 +30,7 @@ public interface CustomerPortOut {
     boolean existsByUserProfileIdAndCustomerIdNot(UUID userProfileId, UUID customerId);
 
     boolean existsUserProfileById(UUID userProfileId);
+
+    Optional<UUID> findAccountIdByCustomerId(UUID customerId);
 }
 

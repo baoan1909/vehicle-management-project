@@ -3,6 +3,8 @@ package com.ban.vehicle_management.application.catalog.pricerule.usecase;
 import com.ban.vehicle_management.application.catalog.priceplan.port.out.PricePlanPortOut;
 import com.ban.vehicle_management.application.catalog.pricerule.port.in.PriceRulePortIn;
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.pricerule.policy.PriceRulePolicy;
@@ -27,14 +29,17 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
 
     private final PriceRulePortOut priceRulePortOut;
     private final PricePlanPortOut pricePlanPortOut;
+    private final NotificationPortIn notificationPortIn;
     private final PriceRulePolicy priceRulePolicy = new PriceRulePolicy();
 
     public PriceRuleUseCaseImpl(
             PriceRulePortOut priceRulePortOut,
-            PricePlanPortOut pricePlanPortOut
+            PricePlanPortOut pricePlanPortOut,
+            NotificationPortIn notificationPortIn
     ) {
         this.priceRulePortOut = priceRulePortOut;
         this.pricePlanPortOut = pricePlanPortOut;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -104,7 +109,9 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
         TicketType ticketType = getActiveTicketType(existingPriceRule.getTicketTypeId());
         validateByPricePlanType(pricePlan, existingPriceRule, ticketType, priceRuleId);
 
-        return priceRulePortOut.save(existingPriceRule);
+        PriceRule savedPriceRule = priceRulePortOut.save(existingPriceRule);
+        notifyPriceRuleChanged(savedPriceRule, "Giá vé được cập nhật");
+        return savedPriceRule;
     }
 
     @Override
@@ -117,7 +124,8 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
         }
 
         priceRulePolicy.deactivate(existingPriceRule);
-        priceRulePortOut.save(existingPriceRule);
+        PriceRule savedPriceRule = priceRulePortOut.save(existingPriceRule);
+        notifyPriceRuleChanged(savedPriceRule, "Giá vé ngừng áp dụng");
     }
 
     @Override
@@ -133,7 +141,9 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
         TicketType ticketType = getActiveTicketType(existingPriceRule.getTicketTypeId());
         validateByPricePlanType(pricePlan, existingPriceRule, ticketType, priceRuleId);
 
-        return priceRulePortOut.save(existingPriceRule);
+        PriceRule savedPriceRule = priceRulePortOut.save(existingPriceRule);
+        notifyPriceRuleChanged(savedPriceRule, "Giá vé được kích hoạt");
+        return savedPriceRule;
     }
 
     private PricePlan getActivePricePlan(UUID pricePlanId) {
@@ -265,5 +275,21 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
             return null;
         }
         return keyword.trim();
+    }
+
+    private void notifyPriceRuleChanged(PriceRule priceRule, String title) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
+                true,
+                null,
+                null,
+                title,
+                "Quy tắc giá " + priceRule.getRuleName() + " vừa có thay đổi.",
+                "catalog",
+                "price_rules",
+                priceRule.getPriceRuleId()
+        ));
     }
 }

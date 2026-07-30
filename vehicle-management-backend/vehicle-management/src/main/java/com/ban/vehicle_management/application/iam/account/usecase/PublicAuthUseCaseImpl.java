@@ -8,6 +8,8 @@ import com.ban.vehicle_management.application.iam.account.port.in.PublicAuthPort
 import com.ban.vehicle_management.application.iam.account.port.out.AccountRegistrationPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.VerificationEmailRateLimitPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.policy.PublicAuthPolicy;
 import com.ban.vehicle_management.domain.iam.account.policy.VerificationEmailResendPolicy;
@@ -37,6 +39,7 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
     private final VerificationEmailRateLimitPortOut verificationEmailRateLimitPortOut;
     private final VerificationEmailResendPolicy verificationEmailResendPolicy;
     private final PublicAuthPolicy publicAuthPolicy;
+    private final NotificationPortIn notificationPortIn;
     private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
     private final Clock clock;
 
@@ -45,13 +48,15 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
             IdentityProviderAdminPortOut identityProviderAdminPortOut,
             VerificationEmailRateLimitPortOut verificationEmailRateLimitPortOut,
             VerificationEmailResendPolicy verificationEmailResendPolicy,
-            PublicAuthPolicy publicAuthPolicy
+            PublicAuthPolicy publicAuthPolicy,
+            NotificationPortIn notificationPortIn
     ) {
         this.accountRegistrationPortOut = accountRegistrationPortOut;
         this.identityProviderAdminPortOut = identityProviderAdminPortOut;
         this.verificationEmailRateLimitPortOut = verificationEmailRateLimitPortOut;
         this.verificationEmailResendPolicy = verificationEmailResendPolicy;
         this.publicAuthPolicy = publicAuthPolicy;
+        this.notificationPortIn = notificationPortIn;
         this.clock = Clock.systemUTC();
     }
 
@@ -71,12 +76,14 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
             );
             identityProviderAdminPortOut.updateAccountIdAttribute(keycloakUserId, registeredAccount.getAccountId());
             sendVerificationEmailSafely(keycloakUserId, registeredAccount.getAccountId());
-            return new RegisterAccountResult(
+            RegisterAccountResult result = new RegisterAccountResult(
                     registeredAccount.getAccountId(),
                     registeredAccount.getStatus().name(),
                     "VERIFY_EMAIL",
                     true
             );
+            notifyAccountRegistered(registeredAccount);
+            return result;
         } catch (RuntimeException exception) {
             identityProviderAdminPortOut.deleteUser(keycloakUserId);
             throw exception;
@@ -164,5 +171,19 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
                     exception
             );
         }
+    }
+
+    private void notifyAccountRegistered(Account account) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                account.getAccountId(),
+                "Đăng ký tài khoản thành công",
+                "Tài khoản của bạn đã được tạo. Vui lòng xác thực email và hoàn tất hồ sơ để gửi duyệt.",
+                "iam",
+                "accounts",
+                account.getAccountId()
+        ));
     }
 }

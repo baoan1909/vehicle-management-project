@@ -13,6 +13,10 @@ import com.ban.vehicle_management.application.operations.approvalrequest.authori
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
@@ -51,6 +55,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
     private final SystemAdminApprovalPortOut systemAdminApprovalPortOut;
     private final UserProfileAvatarPortIn userProfileAvatarPortIn;
     private final AccountProfileResultMapper accountProfileResultMapper;
+    private final NotificationPortIn notificationPortIn;
     private final AccountProfilePolicy accountProfilePolicy;
     private final AccountOnboardingPolicy accountOnboardingPolicy;
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
@@ -64,6 +69,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             SystemAdminApprovalPortOut systemAdminApprovalPortOut,
             UserProfileAvatarPortIn userProfileAvatarPortIn,
             AccountProfileResultMapper accountProfileResultMapper,
+            NotificationPortIn notificationPortIn,
             AccountProfilePolicy accountProfilePolicy,
             AccountOnboardingPolicy accountOnboardingPolicy
     ) {
@@ -74,6 +80,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         this.systemAdminApprovalPortOut = systemAdminApprovalPortOut;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
         this.accountProfileResultMapper = accountProfileResultMapper;
+        this.notificationPortIn = notificationPortIn;
         this.accountProfilePolicy = accountProfilePolicy;
         this.accountOnboardingPolicy = accountOnboardingPolicy;
     }
@@ -126,21 +133,24 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         if (accountOnboardingPolicy.requiresEmployeeRecord(roleCode)) {
             employee = buildOnboardingEmployee(userProfileId, roleCode);
             updatedAccount = accountProfilePortOut.completeInternalProfile(accountId, userProfile, employee);
-            internalEmployeeApprovalPortOut.saveInternalEmployeeApprovalRequest(
-                    buildInternalEmployeeApprovalRequest(employee.getEmployeeId(), accountId)
-            );
+            ApprovalRequest approvalRequest = buildInternalEmployeeApprovalRequest(employee.getEmployeeId(), accountId);
+            internalEmployeeApprovalPortOut.saveInternalEmployeeApprovalRequest(approvalRequest);
+            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Ho so nhan su da gui duyet");
+            notifyApprovalReviewers(approvalRequest, "Co ho so nhan su can duyet");
         } else if (AdminProvisionableAccountRoleCode.CUSTOMER.equals(roleCode)) {
             customer = buildOnboardingCustomer(userProfileId);
             updatedAccount = accountProfilePortOut.completeProfile(accountId, userProfile, customer);
-            customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalRequest(
-                    buildCustomerOnboardingApprovalRequest(customer.getCustomerId(), accountId)
-            );
+            ApprovalRequest approvalRequest = buildCustomerOnboardingApprovalRequest(customer.getCustomerId(), accountId);
+            customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalRequest(approvalRequest);
+            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Ho so khach hang da gui duyet");
+            notifyApprovalReviewers(approvalRequest, "Co ho so khach hang can duyet");
         } else {
             updatedAccount = accountProfilePortOut.completeProfileOnly(accountId, userProfile);
             if (accountOnboardingPolicy.shouldCreateSystemAdminApproval(state)) {
-                systemAdminApprovalPortOut.saveSystemAdminApprovalRequest(
-                        buildSystemAdminApprovalRequest(accountId, accountId)
-                );
+                ApprovalRequest approvalRequest = buildSystemAdminApprovalRequest(accountId, accountId);
+                systemAdminApprovalPortOut.saveSystemAdminApprovalRequest(approvalRequest);
+                notifyApprovalSubmitted(updatedAccount, approvalRequest, "Ho so quan tri he thong da gui duyet");
+                notifyApprovalReviewers(approvalRequest, "Co ho so quan tri he thong can duyet");
             }
         }
 
@@ -404,5 +414,35 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         if (value == null) {
             throw new BadRequestException(fieldName + " must not be null");
         }
+    }
+
+    private void notifyApprovalSubmitted(Account account, ApprovalRequest approvalRequest, String title) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                account.getAccountId(),
+                title,
+                "Ho so cua ban da duoc gui den nhom duyet.",
+                approvalRequest.getTargetSchema(),
+                approvalRequest.getTargetTable(),
+                approvalRequest.getTargetId()
+        ));
+    }
+
+    private void notifyApprovalReviewers(ApprovalRequest approvalRequest, String title) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
+                false,
+                NotificationAudience.APPROVERS,
+                null,
+                title,
+                "Co yeu cau phe duyet moi can xu ly.",
+                approvalRequest.getTargetSchema(),
+                approvalRequest.getTargetTable(),
+                approvalRequest.getTargetId()
+        ));
     }
 }
