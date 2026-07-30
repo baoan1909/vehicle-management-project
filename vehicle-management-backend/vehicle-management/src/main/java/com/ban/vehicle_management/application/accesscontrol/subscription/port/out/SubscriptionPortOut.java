@@ -38,4 +38,6 @@ public interface SubscriptionPortOut {
     long countReservedOrActiveByVehicleTypeId(UUID vehicleTypeId);
 
     Optional<Subscription> findActiveByLicensePlate(String licensePlate, LocalDate businessDate);
+
+    int expireActiveSubscriptionsBefore(LocalDate businessDate);
 }

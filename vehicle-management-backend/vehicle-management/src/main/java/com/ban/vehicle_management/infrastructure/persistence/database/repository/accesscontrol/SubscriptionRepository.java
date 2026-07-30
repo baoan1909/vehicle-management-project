@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -78,5 +79,18 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
             @Param("licensePlate") String licensePlate,
             @Param("status") SubscriptionStatus status,
             @Param("businessDate") LocalDate businessDate
+    );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update SubscriptionEntity subscription
+            set subscription.status = :expiredStatus
+            where subscription.status = :activeStatus
+              and subscription.effectiveTo < :businessDate
+            """)
+    int expireActiveSubscriptionsBefore(
+            @Param("businessDate") LocalDate businessDate,
+            @Param("activeStatus") SubscriptionStatus activeStatus,
+            @Param("expiredStatus") SubscriptionStatus expiredStatus
     );
 }

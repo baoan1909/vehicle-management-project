@@ -136,4 +136,13 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
                 .findFirst()
                 .map(subscriptionPersistenceMapper::toDomain);
     }
+
+    @Override
+    public int expireActiveSubscriptionsBefore(LocalDate businessDate) {
+        return subscriptionRepository.expireActiveSubscriptionsBefore(
+                businessDate,
+                SubscriptionStatus.ACTIVE,
+                SubscriptionStatus.EXPIRED
+        );
+    }
 }
