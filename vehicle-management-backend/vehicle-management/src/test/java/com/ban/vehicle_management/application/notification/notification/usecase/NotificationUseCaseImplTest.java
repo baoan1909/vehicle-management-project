@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.notification.notification.mapper.NotificationCommandMapper;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationRealtimeMessageMapper;
 import com.ban.vehicle_management.application.notification.notification.model.NotificationRealtimeMessage;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
@@ -40,6 +41,9 @@ class NotificationUseCaseImplTest {
     @Mock
     private NotificationRealtimeMessageMapper realtimeMessageMapper;
 
+    @Mock
+    private NotificationCommandMapper notificationCommandMapper;
+
     private NotificationUseCaseImpl notificationUseCase;
 
     @BeforeEach
@@ -48,7 +52,8 @@ class NotificationUseCaseImplTest {
                 currentAccountPortIn,
                 notificationPortOut,
                 realtimeEventPublisher,
-                realtimeMessageMapper
+                realtimeMessageMapper,
+                notificationCommandMapper
         );
     }
 
@@ -88,6 +93,17 @@ class NotificationUseCaseImplTest {
         );
 
         when(notificationPortOut.existsAccountById(accountId)).thenReturn(true);
+        when(notificationCommandMapper.toDomain(any(SendNotificationCommand.class))).thenAnswer(invocation -> {
+            SendNotificationCommand normalizedCommand = invocation.getArgument(0);
+            Notification notification = new Notification();
+            notification.setAccountId(normalizedCommand.accountId());
+            notification.setTitle(normalizedCommand.title());
+            notification.setMessage(normalizedCommand.message());
+            notification.setRelatedSchema(normalizedCommand.relatedSchema());
+            notification.setRelatedTable(normalizedCommand.relatedTable());
+            notification.setRelatedId(normalizedCommand.relatedId());
+            return notification;
+        });
         when(notificationPortOut.save(any(Notification.class))).thenReturn(savedNotification);
         when(realtimeMessageMapper.toRealtimeMessage(savedNotification)).thenReturn(realtimeMessage);
 

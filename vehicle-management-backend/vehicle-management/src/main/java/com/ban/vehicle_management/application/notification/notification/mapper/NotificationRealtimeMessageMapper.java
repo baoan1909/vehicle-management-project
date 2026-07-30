@@ -9,25 +9,7 @@ import org.mapstruct.Mapper;
 @Mapper(componentModel = "spring")
 public interface NotificationRealtimeMessageMapper {
 
-    default NotificationRealtimeMessage toRealtimeMessage(Notification notification) {
-        if (notification == null) {
-            return null;
-        }
-        return new NotificationRealtimeMessage(
-                notification.getNotificationId(),
-                notification.getAccountId(),
-                notification.getChannel(),
-                notification.getTitle(),
-                notification.getMessage(),
-                notification.getStatus(),
-                map(notification.getSentAt()),
-                map(notification.getReadAt()),
-                notification.getRelatedSchema(),
-                notification.getRelatedTable(),
-                notification.getRelatedId(),
-                map(notification.getCreatedAt())
-        );
-    }
+    NotificationRealtimeMessage toRealtimeMessage(Notification notification);
 
     default String map(Instant instant) {
         return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);

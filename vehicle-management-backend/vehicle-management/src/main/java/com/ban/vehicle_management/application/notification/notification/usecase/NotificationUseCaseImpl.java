@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.notification.notification.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.notification.notification.mapper.NotificationCommandMapper;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationRealtimeMessageMapper;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
@@ -27,18 +28,21 @@ public class NotificationUseCaseImpl implements NotificationPortIn {
     private final NotificationPortOut notificationPortOut;
     private final NotificationRealtimeEventPublisherPortOut realtimeEventPublisher;
     private final NotificationRealtimeMessageMapper realtimeMessageMapper;
+    private final NotificationCommandMapper notificationCommandMapper;
     private final NotificationPolicy notificationPolicy = new NotificationPolicy();
 
     public NotificationUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             NotificationPortOut notificationPortOut,
             NotificationRealtimeEventPublisherPortOut realtimeEventPublisher,
-            NotificationRealtimeMessageMapper realtimeMessageMapper
+            NotificationRealtimeMessageMapper realtimeMessageMapper,
+            NotificationCommandMapper notificationCommandMapper
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.notificationPortOut = notificationPortOut;
         this.realtimeEventPublisher = realtimeEventPublisher;
         this.realtimeMessageMapper = realtimeMessageMapper;
+        this.notificationCommandMapper = notificationCommandMapper;
     }
 
     @Override
@@ -50,13 +54,7 @@ public class NotificationUseCaseImpl implements NotificationPortIn {
         }
 
         Instant now = Instant.now();
-        Notification notification = new Notification();
-        notification.setAccountId(normalizedCommand.accountId());
-        notification.setTitle(normalizedCommand.title());
-        notification.setMessage(normalizedCommand.message());
-        notification.setRelatedSchema(normalizedCommand.relatedSchema());
-        notification.setRelatedTable(normalizedCommand.relatedTable());
-        notification.setRelatedId(normalizedCommand.relatedId());
+        Notification notification = notificationCommandMapper.toDomain(normalizedCommand);
         notificationPolicy.initializeWebNotification(notification, UUID.randomUUID(), now);
 
         Notification savedNotification = notificationPortOut.save(notification);
