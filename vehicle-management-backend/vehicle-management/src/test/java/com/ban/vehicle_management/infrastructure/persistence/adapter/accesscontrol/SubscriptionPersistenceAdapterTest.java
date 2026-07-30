@@ -178,4 +178,24 @@ class SubscriptionPersistenceAdapterTest {
                 List.copyOf(statusesCaptor.getValue())
         );
     }
+
+    @Test
+    void shouldDelegateExpireActiveSubscriptionsBeforeWithStatusBoundary() {
+        LocalDate businessDate = LocalDate.of(2026, 7, 30);
+
+        when(subscriptionRepository.expireActiveSubscriptionsBefore(
+                businessDate,
+                SubscriptionStatus.ACTIVE,
+                SubscriptionStatus.EXPIRED
+        )).thenReturn(5);
+
+        int expiredCount = subscriptionPersistenceAdapter.expireActiveSubscriptionsBefore(businessDate);
+
+        assertEquals(5, expiredCount);
+        verify(subscriptionRepository).expireActiveSubscriptionsBefore(
+                businessDate,
+                SubscriptionStatus.ACTIVE,
+                SubscriptionStatus.EXPIRED
+        );
+    }
 }
