@@ -97,7 +97,9 @@ app:
       order-type: ${VNPAY_ORDER_TYPE:other}
       timeout-minutes: ${VNPAY_TIMEOUT_MINUTES:15}
       minimum-amount: ${VNPAY_MINIMUM_AMOUNT:10000}
+  subscription:
+    payment-timeout-hours: ${SUBSCRIPTION_PAYMENT_TIMEOUT_HOURS:48}
   scheduler:
-    subscription-expiration:
-      fixed-delay-ms: ${SUBSCRIPTION_EXPIRATION_SCHEDULER_FIXED_DELAY_MS:3600000}
-      initial-delay-ms: ${SUBSCRIPTION_EXPIRATION_SCHEDULER_INITIAL_DELAY_MS:60000}
+    subscription-lifecycle:
+      fixed-delay-ms: ${SUBSCRIPTION_LIFECYCLE_SCHEDULER_FIXED_DELAY_MS:300000}
+      initial-delay-ms: ${SUBSCRIPTION_LIFECYCLE_SCHEDULER_INITIAL_DELAY_MS:60000}

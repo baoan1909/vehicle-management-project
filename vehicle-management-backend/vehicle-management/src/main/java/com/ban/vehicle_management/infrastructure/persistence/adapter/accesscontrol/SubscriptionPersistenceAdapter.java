@@ -7,6 +7,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.acc
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.SubscriptionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.accesscontrol.SubscriptionSpecifications;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -135,6 +136,21 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
                 .stream()
                 .findFirst()
                 .map(subscriptionPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public List<Subscription> findExpiredPendingPaymentsForUpdate(
+            Instant approvedAtCutoff,
+            LocalDate requestedEffectiveDateCutoff
+    ) {
+        return subscriptionRepository.findExpiredPendingPaymentsForUpdate(
+                        SubscriptionStatus.PENDING_PAYMENT,
+                        approvedAtCutoff,
+                        requestedEffectiveDateCutoff
+                )
+                .stream()
+                .map(subscriptionPersistenceMapper::toDomain)
+                .toList();
     }
 
     @Override

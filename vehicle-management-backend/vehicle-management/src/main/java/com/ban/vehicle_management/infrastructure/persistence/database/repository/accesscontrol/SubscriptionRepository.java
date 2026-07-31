@@ -2,6 +2,8 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.SubscriptionEntity;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -9,6 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -79,6 +82,23 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
             @Param("licensePlate") String licensePlate,
             @Param("status") SubscriptionStatus status,
             @Param("businessDate") LocalDate businessDate
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select subscription
+            from SubscriptionEntity subscription
+            where subscription.status = :status
+              and (
+                    subscription.approvedAt <= :approvedAtCutoff
+                    or subscription.requestedEffectiveFrom <= :requestedEffectiveDateCutoff
+              )
+            order by subscription.approvedAt asc
+            """)
+    List<SubscriptionEntity> findExpiredPendingPaymentsForUpdate(
+            @Param("status") SubscriptionStatus status,
+            @Param("approvedAtCutoff") Instant approvedAtCutoff,
+            @Param("requestedEffectiveDateCutoff") LocalDate requestedEffectiveDateCutoff
     );
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
