@@ -16,6 +16,8 @@ public interface NotificationCommandMapper {
     @Mapping(target = "sentAt", ignore = true)
     @Mapping(target = "readAt", ignore = true)
     @Mapping(target = "realtimeDeliveredAt", ignore = true)
+    @Mapping(target = "broadcastId", ignore = true)
+    @Mapping(target = "redirectUrl", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

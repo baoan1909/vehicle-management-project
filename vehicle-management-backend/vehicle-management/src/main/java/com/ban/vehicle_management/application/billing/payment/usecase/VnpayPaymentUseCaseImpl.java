@@ -23,6 +23,7 @@ import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.billing.payment.policy.PaymentPolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -346,6 +347,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
         invoicePortOut.findCustomerAccountIdByInvoiceId(invoice.getInvoiceId())
                 .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
                         accountId,
+                        NotificationType.PAYMENT_SUCCEEDED,
                         "Thanh toán thành công",
                         "Thanh toán VNPAY cho hóa đơn " + invoice.getInvoiceNo() + " đã thành công.",
                         "billing",
@@ -363,6 +365,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
                         .map(accountId -> new PaymentFailureNotification(accountId, invoice)))
                 .ifPresent(notification -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
                         notification.accountId(),
+                        NotificationType.PAYMENT_FAILED,
                         "Thanh toán thất bại",
                         "Thanh toán VNPAY cho hóa đơn " + notification.invoice().getInvoiceNo() + " chưa thành công. Vui lòng thử lại.",
                         "billing",

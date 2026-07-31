@@ -10,6 +10,7 @@ import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
@@ -182,6 +183,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
         invoicePortOut.findCustomerAccountIdByInvoiceId(invoice.getInvoiceId())
                 .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
                         accountId,
+                        NotificationType.INVOICE_CREATED,
                         "Hóa đơn mới",
                         "Hóa đơn " + invoice.getInvoiceNo() + " đã được tạo. Vui lòng kiểm tra và thanh toán đúng hạn.",
                         "billing",

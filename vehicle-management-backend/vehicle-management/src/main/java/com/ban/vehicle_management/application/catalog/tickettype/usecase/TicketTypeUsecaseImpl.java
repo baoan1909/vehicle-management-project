@@ -8,6 +8,7 @@ import com.ban.vehicle_management.application.notification.notification.port.in.
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
 import com.ban.vehicle_management.domain.catalog.tickettype.policy.TicketTypePolicy;
 import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -157,8 +158,11 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
                 true,
                 null,
                 null,
+                null,
+                NotificationType.TICKET_TYPE_CHANGED,
                 title,
                 "Loại vé " + ticketType.getName() + " vừa có thay đổi.",
+                null,
                 "catalog",
                 "ticket_types",
                 ticketType.getTicketTypeId()

@@ -32,6 +32,7 @@ import com.ban.vehicle_management.shared.enumeration.operations.ShiftType;
 import com.ban.vehicle_management.shared.enumeration.parking.GateStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -1045,6 +1046,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         employeePortOut.findAccountIdByEmployeeId(assignment.getEmployeeId())
                 .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
                         accountId,
+                        NotificationType.SHIFT_ASSIGNED,
                         "Bạn có ca trực mới",
                         "Bạn được phân vào ca " + shift.getShiftCode() + " ngày " + shift.getShiftDate() + ".",
                         "operations",
@@ -1060,6 +1062,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         employeePortOut.findAccountIdByEmployeeId(assignment.getEmployeeId())
                 .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
                         accountId,
+                        NotificationType.SHIFT_CANCELLED,
                         "Ca trực đã hủy",
                         "Ca " + shift.getShiftCode() + " ngày " + shift.getShiftDate() + " đã bị hủy.",
                         "operations",

@@ -17,6 +17,7 @@ import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import org.slf4j.Logger;
@@ -179,6 +180,7 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
         }
         notificationPortIn.sendWebNotification(new SendNotificationCommand(
                 account.getAccountId(),
+                NotificationType.ACCOUNT_REGISTERED,
                 "Đăng ký tài khoản thành công",
                 "Tài khoản của bạn đã được tạo. Vui lòng xác thực email và hoàn tất hồ sơ để gửi duyệt.",
                 "iam",

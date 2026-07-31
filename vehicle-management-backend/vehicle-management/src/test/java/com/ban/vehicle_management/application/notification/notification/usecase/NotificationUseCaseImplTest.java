@@ -20,6 +20,7 @@ import com.ban.vehicle_management.application.notification.notification.port.out
 import com.ban.vehicle_management.domain.notification.notification.model.Notification;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -68,6 +69,7 @@ class NotificationUseCaseImplTest {
         UUID accountId = UUID.randomUUID();
         SendNotificationCommand command = new SendNotificationCommand(
                 accountId,
+                NotificationType.SUBSCRIPTION_APPROVED,
                 " Subscription approved ",
                 " Your subscription is active ",
                 "access_control",
@@ -79,6 +81,7 @@ class NotificationUseCaseImplTest {
         savedNotification.setNotificationId(UUID.randomUUID());
         savedNotification.setAccountId(accountId);
         savedNotification.setChannel(NotificationChannel.WEB);
+        savedNotification.setNotificationType(NotificationType.SUBSCRIPTION_APPROVED);
         savedNotification.setTitle("Subscription approved");
         savedNotification.setMessage("Your subscription is active");
         savedNotification.setStatus(NotificationStatus.SENT);
@@ -86,11 +89,14 @@ class NotificationUseCaseImplTest {
         NotificationRealtimeMessage realtimeMessage = new NotificationRealtimeMessage(
                 savedNotification.getNotificationId(),
                 accountId,
+                null,
                 NotificationChannel.WEB,
+                NotificationType.SUBSCRIPTION_APPROVED,
                 savedNotification.getTitle(),
                 savedNotification.getMessage(),
                 NotificationStatus.SENT,
                 "2026-07-30 10:00:00",
+                null,
                 null,
                 "access_control",
                 "subscriptions",
@@ -103,6 +109,7 @@ class NotificationUseCaseImplTest {
             SendNotificationCommand normalizedCommand = invocation.getArgument(0);
             Notification notification = new Notification();
             notification.setAccountId(normalizedCommand.accountId());
+            notification.setNotificationType(normalizedCommand.notificationType());
             notification.setTitle(normalizedCommand.title());
             notification.setMessage(normalizedCommand.message());
             notification.setRelatedSchema(normalizedCommand.relatedSchema());
@@ -121,6 +128,7 @@ class NotificationUseCaseImplTest {
         assertNotNull(notificationToSave.getNotificationId());
         assertEquals(accountId, notificationToSave.getAccountId());
         assertEquals(NotificationChannel.WEB, notificationToSave.getChannel());
+        assertEquals(NotificationType.SUBSCRIPTION_APPROVED, notificationToSave.getNotificationType());
         assertEquals(NotificationStatus.SENT, notificationToSave.getStatus());
         assertEquals("Subscription approved", notificationToSave.getTitle());
         assertEquals("Your subscription is active", notificationToSave.getMessage());
@@ -158,8 +166,11 @@ class NotificationUseCaseImplTest {
                 false,
                 Set.of("customer"),
                 Set.of(firstAccountId),
+                null,
+                NotificationType.PARKING_LOT_MAINTENANCE,
                 " Maintenance notice ",
                 " Parking lot is under maintenance ",
+                null,
                 "parking",
                 "parking_lots",
                 relatedId
@@ -209,6 +220,7 @@ class NotificationUseCaseImplTest {
     private Notification notification(UUID accountId, String title) {
         Notification notification = new Notification();
         notification.setAccountId(accountId);
+        notification.setNotificationType(NotificationType.PARKING_LOT_MAINTENANCE);
         notification.setTitle(title);
         notification.setMessage("Parking lot is under maintenance");
         notification.setRelatedSchema("parking");
@@ -221,11 +233,14 @@ class NotificationUseCaseImplTest {
         return new NotificationRealtimeMessage(
                 notification.getNotificationId(),
                 notification.getAccountId(),
+                null,
                 NotificationChannel.WEB,
+                notification.getNotificationType(),
                 notification.getTitle(),
                 notification.getMessage(),
                 NotificationStatus.SENT,
                 "2026-07-30 10:00:00",
+                null,
                 null,
                 notification.getRelatedSchema(),
                 notification.getRelatedTable(),

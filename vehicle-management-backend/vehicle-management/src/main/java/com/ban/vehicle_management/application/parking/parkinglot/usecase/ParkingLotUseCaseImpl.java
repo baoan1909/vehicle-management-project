@@ -8,6 +8,7 @@ import com.ban.vehicle_management.application.parking.parkinglot.port.out.Parkin
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.domain.parking.parkinglot.policy.ParkingLotPolicy;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
@@ -139,8 +140,11 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
                 false,
                 NotificationAudience.OPERATIONS,
                 null,
+                null,
+                NotificationType.PARKING_LOT_MAINTENANCE,
                 "Bãi xe bảo trì",
                 "Bãi xe " + parkingLot.getName() + " đã chuyển sang trạng thái bảo trì.",
+                null,
                 "parking",
                 "parking_lots",
                 parkingLot.getParkingLotId()

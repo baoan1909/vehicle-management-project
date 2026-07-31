@@ -7,6 +7,7 @@ import com.ban.vehicle_management.application.notification.notification.port.in.
 import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
 import com.ban.vehicle_management.domain.catalog.priceplan.policy.PricePlanPolicy;
 import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.LocalDate;
@@ -144,8 +145,11 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
                 true,
                 null,
                 null,
+                null,
+                NotificationType.PRICE_PLAN_CHANGED,
                 title,
                 "Bảng giá " + pricePlan.getName() + " vừa có thay đổi.",
+                null,
                 "catalog",
                 "price_plans",
                 pricePlan.getPricePlanId()

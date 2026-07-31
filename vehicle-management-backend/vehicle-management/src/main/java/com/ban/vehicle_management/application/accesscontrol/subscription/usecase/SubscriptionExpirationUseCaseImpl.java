@@ -6,6 +6,7 @@ import com.ban.vehicle_management.application.notification.notification.model.Se
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.LocalDate;
@@ -58,6 +59,7 @@ public class SubscriptionExpirationUseCaseImpl implements SubscriptionExpiration
     private void notifyExpiringSoonSubscription(Subscription subscription) {
         sendCustomerNotification(
                 subscription,
+                NotificationType.SUBSCRIPTION_EXPIRING_SOON,
                 "Vé đăng ký sắp hết hạn",
                 "Vé đăng ký của bạn sẽ hết hạn vào " + subscription.getEffectiveTo() + ". Vui lòng gia hạn nếu cần."
         );
@@ -66,18 +68,25 @@ public class SubscriptionExpirationUseCaseImpl implements SubscriptionExpiration
     private void notifyExpiredSubscription(Subscription subscription) {
         sendCustomerNotification(
                 subscription,
+                NotificationType.SUBSCRIPTION_EXPIRED,
                 "Vé đăng ký đã hết hạn",
                 "Vé đăng ký của bạn đã hết hạn. Vui lòng gia hạn hoặc đăng ký vé mới nếu cần."
         );
     }
 
-    private void sendCustomerNotification(Subscription subscription, String title, String message) {
+    private void sendCustomerNotification(
+            Subscription subscription,
+            NotificationType notificationType,
+            String title,
+            String message
+    ) {
         if (notificationPortIn == null) {
             return;
         }
         customerPortOut.findAccountIdByCustomerId(subscription.getCustomerId())
                 .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
                         accountId,
+                        notificationType,
                         title,
                         message,
                         "access_control",

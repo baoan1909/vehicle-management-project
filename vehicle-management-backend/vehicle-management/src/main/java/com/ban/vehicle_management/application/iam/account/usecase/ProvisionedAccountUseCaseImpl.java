@@ -19,6 +19,7 @@ import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePo
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -88,7 +89,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             identityProviderAdminPortOut.sendUpdatePasswordEmail(keycloakUserId);
             ProvisionedAccountResult result = provisionedAccountPortOut.findProvisionedAccountById(accountId)
                     .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
-            notifyProvisionedAccount(result, "Tai khoan da duoc tao", "Tai khoan cua ban da duoc tao. Vui long kiem tra email de dat mat khau.");
+            notifyProvisionedAccount(result, NotificationType.ACCOUNT_PROVISIONED, "Tai khoan da duoc tao", "Tai khoan cua ban da duoc tao. Vui long kiem tra email de dat mat khau.");
             return result;
         } catch (RuntimeException exception) {
             identityProviderAdminPortOut.deleteUser(keycloakUserId);
@@ -147,7 +148,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
 
         ProvisionedAccountResult result = provisionedAccountPortOut.findProvisionedAccountById(accountId)
                 .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
-        notifyProvisionedAccount(result, "Trang thai tai khoan thay doi", "Trang thai tai khoan cua ban da duoc cap nhat thanh " + targetStatus.name() + ".");
+        notifyProvisionedAccount(result, NotificationType.ACCOUNT_STATUS_CHANGED, "Trang thai tai khoan thay doi", "Trang thai tai khoan cua ban da duoc cap nhat thanh " + targetStatus.name() + ".");
         return result;
     }
 
@@ -317,12 +318,18 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         }
     }
 
-    private void notifyProvisionedAccount(ProvisionedAccountResult result, String title, String message) {
+    private void notifyProvisionedAccount(
+            ProvisionedAccountResult result,
+            NotificationType notificationType,
+            String title,
+            String message
+    ) {
         if (notificationPortIn == null) {
             return;
         }
         notificationPortIn.sendWebNotification(new SendNotificationCommand(
                 result.account().accountId(),
+                notificationType,
                 title,
                 message,
                 "iam",

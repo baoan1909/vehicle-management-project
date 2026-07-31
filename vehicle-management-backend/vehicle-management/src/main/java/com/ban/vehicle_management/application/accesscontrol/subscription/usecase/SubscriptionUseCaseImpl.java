@@ -28,6 +28,7 @@ import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -478,6 +479,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private void notifySubscriptionCreated(Subscription subscription) {
         sendCustomerNotification(
                 subscription,
+                NotificationType.SUBSCRIPTION_REQUESTED,
                 "Đăng ký vé đã được gửi",
                 "Yêu cầu đăng ký vé của bạn đã được ghi nhận và đang chờ duyệt."
         );
@@ -486,6 +488,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private void notifySubscriptionApproved(Subscription subscription) {
         sendCustomerNotification(
                 subscription,
+                NotificationType.SUBSCRIPTION_APPROVED,
                 "Đăng ký vé được duyệt",
                 "Đăng ký vé của bạn đã được duyệt. Vui lòng thanh toán hóa đơn để hoàn tất kích hoạt."
         );
@@ -494,6 +497,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private void notifySubscriptionRejected(Subscription subscription) {
         sendCustomerNotification(
                 subscription,
+                NotificationType.SUBSCRIPTION_REJECTED,
                 "Đăng ký vé bị từ chối",
                 "Đăng ký vé của bạn chưa được duyệt. Vui lòng kiểm tra lý do và cập nhật lại nếu cần."
         );
@@ -502,6 +506,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private void notifySubscriptionPaymentCompleted(Subscription subscription) {
         sendCustomerNotification(
                 subscription,
+                NotificationType.SUBSCRIPTION_PAYMENT_COMPLETED,
                 "Đăng ký vé đã thanh toán",
                 "Thanh toán đăng ký vé đã hoàn tất. Vé của bạn sẽ được kích hoạt theo quy trình cấp thẻ."
         );
@@ -510,6 +515,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private void notifySubscriptionCancelled(Subscription subscription) {
         sendCustomerNotification(
                 subscription,
+                NotificationType.SUBSCRIPTION_CANCELLED,
                 "Đăng ký vé đã hủy",
                 "Đăng ký vé của bạn đã được hủy."
         );
@@ -518,6 +524,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private void notifySubscriptionExpired(Subscription subscription) {
         sendCustomerNotification(
                 subscription,
+                NotificationType.SUBSCRIPTION_EXPIRED,
                 "Vé đăng ký đã hết hạn",
                 "Vé đăng ký của bạn đã hết hạn. Vui lòng gia hạn hoặc đăng ký vé mới nếu cần."
         );
@@ -530,6 +537,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         invoicePortOut.findCustomerAccountIdByInvoiceId(invoice.getInvoiceId())
                 .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
                         accountId,
+                        NotificationType.INVOICE_CREATED,
                         "Hóa đơn đăng ký vé",
                         "Hóa đơn " + invoice.getInvoiceNo() + " cho đăng ký vé đã được tạo.",
                         "billing",
@@ -538,13 +546,19 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 )));
     }
 
-    private void sendCustomerNotification(Subscription subscription, String title, String message) {
+    private void sendCustomerNotification(
+            Subscription subscription,
+            NotificationType notificationType,
+            String title,
+            String message
+    ) {
         if (notificationPortIn == null) {
             return;
         }
         customerPortOut.findAccountIdByCustomerId(subscription.getCustomerId())
                 .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
                         accountId,
+                        notificationType,
                         title,
                         message,
                         "access_control",

@@ -18,6 +18,7 @@ import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customer.policy.CustomerPolicy;
 import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
@@ -107,7 +108,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
         sendOnboardingApprovedEmail(result);
-        notifyApprovalResult(result, "Ho so khach hang da duoc duyet", "Ho so khach hang cua ban da duoc duyet.");
+        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_APPROVED, "Ho so khach hang da duoc duyet", "Ho so khach hang cua ban da duoc duyet.");
         return result;
     }
 
@@ -134,7 +135,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
         sendOnboardingRejectedEmail(result);
-        notifyApprovalResult(result, "Ho so khach hang bi tu choi", "Ho so khach hang cua ban chua duoc duyet.");
+        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_REJECTED, "Ho so khach hang bi tu choi", "Ho so khach hang cua ban chua duoc duyet.");
         return result;
     }
 
@@ -165,8 +166,8 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut
                 .findCustomerOnboardingApprovalResultById(approvalRequest.getApprovalRequestId())
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
-        notifyApprovalResult(result, "Ho so khach hang da gui lai", "Ho so cua ban da duoc gui lai de duyet.");
-        notifyApprovalReviewers(approvalRequest, "Co ho so khach hang gui lai can duyet");
+        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_RESUBMITTED, "Ho so khach hang da gui lai", "Ho so cua ban da duoc gui lai de duyet.");
+        notifyApprovalReviewers(approvalRequest, NotificationType.CUSTOMER_ONBOARDING_RESUBMITTED, "Co ho so khach hang gui lai can duyet");
         return result;
     }
 
@@ -221,12 +222,18 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         );
     }
 
-    private void notifyApprovalResult(CustomerOnboardingApprovalResult result, String title, String message) {
+    private void notifyApprovalResult(
+            CustomerOnboardingApprovalResult result,
+            NotificationType notificationType,
+            String title,
+            String message
+    ) {
         if (notificationPortIn == null) {
             return;
         }
         notificationPortIn.sendWebNotification(new SendNotificationCommand(
                 result.account().accountId(),
+                notificationType,
                 title,
                 message,
                 "people",
@@ -235,7 +242,11 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         ));
     }
 
-    private void notifyApprovalReviewers(ApprovalRequest approvalRequest, String title) {
+    private void notifyApprovalReviewers(
+            ApprovalRequest approvalRequest,
+            NotificationType notificationType,
+            String title
+    ) {
         if (notificationPortIn == null) {
             return;
         }
@@ -243,8 +254,11 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
                 false,
                 NotificationAudience.APPROVERS,
                 null,
+                null,
+                notificationType,
                 title,
                 "Co yeu cau phe duyet moi can xu ly.",
+                null,
                 approvalRequest.getTargetSchema(),
                 approvalRequest.getTargetTable(),
                 approvalRequest.getTargetId()

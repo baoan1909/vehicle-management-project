@@ -35,6 +35,7 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -422,6 +423,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         }
         notificationPortIn.sendWebNotification(new SendNotificationCommand(
                 account.getAccountId(),
+                NotificationType.ACCOUNT_PROFILE_SUBMITTED,
                 title,
                 "Ho so cua ban da duoc gui den nhom duyet.",
                 approvalRequest.getTargetSchema(),
@@ -438,8 +440,11 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 false,
                 NotificationAudience.APPROVERS,
                 null,
+                null,
+                NotificationType.ACCOUNT_PROFILE_SUBMITTED,
                 title,
                 "Co yeu cau phe duyet moi can xu ly.",
+                null,
                 approvalRequest.getTargetSchema(),
                 approvalRequest.getTargetTable(),
                 approvalRequest.getTargetId()

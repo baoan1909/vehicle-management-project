@@ -19,6 +19,7 @@ import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.employee.policy.EmployeePolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
@@ -145,6 +146,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         ApprovalNotificationSupport.notifyAccount(
                 notificationPortIn,
                 result.account().accountId(),
+                NotificationType.INTERNAL_EMPLOYEE_APPROVED,
                 "Ho so nhan su da duoc duyet",
                 "Ho so nhan su cua ban da duoc duyet.",
                 "people",
@@ -179,6 +181,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         ApprovalNotificationSupport.notifyAccount(
                 notificationPortIn,
                 result.account().accountId(),
+                NotificationType.INTERNAL_EMPLOYEE_REJECTED,
                 "Ho so nhan su bi tu choi",
                 "Ho so nhan su cua ban chua duoc duyet.",
                 "people",
@@ -216,6 +219,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         ApprovalNotificationSupport.notifyAccount(
                 notificationPortIn,
                 result.account().accountId(),
+                NotificationType.INTERNAL_EMPLOYEE_RESUBMITTED,
                 "Ho so nhan su da gui lai",
                 "Ho so cua ban da duoc gui lai de duyet.",
                 "people",
@@ -225,6 +229,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         ApprovalNotificationSupport.notifyApprovers(
                 notificationPortIn,
                 approvalRequest,
+                NotificationType.INTERNAL_EMPLOYEE_RESUBMITTED,
                 "Co ho so nhan su gui lai can duyet"
         );
         return result;

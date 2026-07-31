@@ -845,16 +845,97 @@ CREATE TABLE hardware.devices (
 -- =========================================================
 
 -- Lưu thông báo gửi cho tài khoản.
+CREATE TABLE notification.broadcast_announcements (
+    broadcast_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    notification_type VARCHAR(80) NOT NULL,
+    title VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    audience_type VARCHAR(30) NOT NULL,
+    role_codes JSONB,
+    start_at TIMESTAMPTZ NOT NULL,
+    end_at TIMESTAMPTZ,
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    redirect_url VARCHAR(1000),
+    status VARCHAR(30) NOT NULL,
+    published_at TIMESTAMPTZ,
+    cancelled_at TIMESTAMPTZ,
+    related_schema VARCHAR(50),
+    related_table VARCHAR(80),
+    related_id UUID,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID,
+    updated_at TIMESTAMPTZ,
+    updated_by UUID,
+    CONSTRAINT fk_broadcast_announcements_created_by FOREIGN KEY (created_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_broadcast_announcements_updated_by FOREIGN KEY (updated_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT ck_broadcast_announcements_type CHECK (notification_type IN (
+        'SYSTEM_NOTICE',
+        'SUBSCRIPTION_REQUESTED',
+        'SUBSCRIPTION_APPROVED',
+        'SUBSCRIPTION_REJECTED',
+        'SUBSCRIPTION_EXPIRING_SOON',
+        'SUBSCRIPTION_EXPIRED',
+        'SUBSCRIPTION_CANCELLED',
+        'SUBSCRIPTION_PAYMENT_COMPLETED',
+        'INVOICE_CREATED',
+        'PAYMENT_SUCCEEDED',
+        'PAYMENT_FAILED',
+        'SUPPORT_TICKET_CREATED',
+        'SUPPORT_TICKET_ASSIGNED',
+        'SUPPORT_TICKET_IN_PROGRESS',
+        'SUPPORT_TICKET_RESPONDED',
+        'SUPPORT_TICKET_REOPENED',
+        'SUPPORT_TICKET_CLOSED',
+        'SHIFT_ASSIGNED',
+        'SHIFT_CHANGED',
+        'SHIFT_CANCELLED',
+        'DEVICE_OFFLINE',
+        'DEVICE_MAINTENANCE',
+        'LANE_MAINTENANCE',
+        'PARKING_LOT_MAINTENANCE',
+        'PRICE_PLAN_CHANGED',
+        'PRICE_RULE_CHANGED',
+        'TICKET_TYPE_CHANGED',
+        'ACCOUNT_REGISTERED',
+        'ACCOUNT_PROVISIONED',
+        'ACCOUNT_STATUS_CHANGED',
+        'ACCOUNT_PROFILE_SUBMITTED',
+        'CUSTOMER_ONBOARDING_APPROVED',
+        'CUSTOMER_ONBOARDING_REJECTED',
+        'CUSTOMER_ONBOARDING_RESUBMITTED',
+        'INTERNAL_EMPLOYEE_APPROVED',
+        'INTERNAL_EMPLOYEE_REJECTED',
+        'INTERNAL_EMPLOYEE_RESUBMITTED',
+        'SYSTEM_ADMIN_APPROVED',
+        'SYSTEM_ADMIN_REJECTED',
+        'SYSTEM_ADMIN_RESUBMITTED'
+    )),
+    CONSTRAINT ck_broadcast_announcements_audience_type CHECK (audience_type IN ('ALL_ACTIVE_ACCOUNTS', 'ROLE_CODES')),
+    CONSTRAINT ck_broadcast_announcements_status CHECK (status IN ('DRAFT', 'PUBLISHED', 'CANCELLED')),
+    CONSTRAINT ck_broadcast_announcements_period CHECK (end_at IS NULL OR end_at >= start_at),
+    CONSTRAINT ck_broadcast_announcements_role_codes_json CHECK (role_codes IS NULL OR jsonb_typeof(role_codes) = 'array'),
+    CONSTRAINT ck_broadcast_announcements_role_audience CHECK (
+        audience_type <> 'ROLE_CODES'
+        OR CASE
+            WHEN jsonb_typeof(role_codes) = 'array' THEN jsonb_array_length(role_codes) > 0
+            ELSE FALSE
+        END
+    )
+);
+
 CREATE TABLE notification.notifications (
     notification_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_id UUID,
+    broadcast_id UUID,
     channel VARCHAR(20) NOT NULL,
+    notification_type VARCHAR(80) NOT NULL DEFAULT 'SYSTEM_NOTICE',
     title VARCHAR(200) NOT NULL,
     message TEXT NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
     sent_at TIMESTAMPTZ,
     read_at TIMESTAMPTZ,
     realtime_delivered_at TIMESTAMPTZ,
+    redirect_url VARCHAR(1000),
     related_schema VARCHAR(50),
     related_table VARCHAR(80),
     related_id UUID,
@@ -863,9 +944,52 @@ CREATE TABLE notification.notifications (
     updated_at TIMESTAMPTZ,
     updated_by UUID,
     CONSTRAINT fk_notifications_account FOREIGN KEY (account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_notifications_broadcast_announcement FOREIGN KEY (broadcast_id) REFERENCES notification.broadcast_announcements(broadcast_id) ON DELETE SET NULL,
     CONSTRAINT fk_notifications_created_by FOREIGN KEY (created_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT fk_notifications_updated_by FOREIGN KEY (updated_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT ck_notifications_channel CHECK (channel IN ('WEB', 'EMAIL', 'PUSH', 'SMS')),
+    CONSTRAINT ck_notifications_type CHECK (notification_type IN (
+        'SYSTEM_NOTICE',
+        'SUBSCRIPTION_REQUESTED',
+        'SUBSCRIPTION_APPROVED',
+        'SUBSCRIPTION_REJECTED',
+        'SUBSCRIPTION_EXPIRING_SOON',
+        'SUBSCRIPTION_EXPIRED',
+        'SUBSCRIPTION_CANCELLED',
+        'SUBSCRIPTION_PAYMENT_COMPLETED',
+        'INVOICE_CREATED',
+        'PAYMENT_SUCCEEDED',
+        'PAYMENT_FAILED',
+        'SUPPORT_TICKET_CREATED',
+        'SUPPORT_TICKET_ASSIGNED',
+        'SUPPORT_TICKET_IN_PROGRESS',
+        'SUPPORT_TICKET_RESPONDED',
+        'SUPPORT_TICKET_REOPENED',
+        'SUPPORT_TICKET_CLOSED',
+        'SHIFT_ASSIGNED',
+        'SHIFT_CHANGED',
+        'SHIFT_CANCELLED',
+        'DEVICE_OFFLINE',
+        'DEVICE_MAINTENANCE',
+        'LANE_MAINTENANCE',
+        'PARKING_LOT_MAINTENANCE',
+        'PRICE_PLAN_CHANGED',
+        'PRICE_RULE_CHANGED',
+        'TICKET_TYPE_CHANGED',
+        'ACCOUNT_REGISTERED',
+        'ACCOUNT_PROVISIONED',
+        'ACCOUNT_STATUS_CHANGED',
+        'ACCOUNT_PROFILE_SUBMITTED',
+        'CUSTOMER_ONBOARDING_APPROVED',
+        'CUSTOMER_ONBOARDING_REJECTED',
+        'CUSTOMER_ONBOARDING_RESUBMITTED',
+        'INTERNAL_EMPLOYEE_APPROVED',
+        'INTERNAL_EMPLOYEE_REJECTED',
+        'INTERNAL_EMPLOYEE_RESUBMITTED',
+        'SYSTEM_ADMIN_APPROVED',
+        'SYSTEM_ADMIN_REJECTED',
+        'SYSTEM_ADMIN_RESUBMITTED'
+    )),
     CONSTRAINT ck_notifications_status CHECK (status IN ('PENDING', 'SENT', 'READ', 'FAILED'))
 );
 
@@ -930,6 +1054,7 @@ CREATE TRIGGER trg_chat_conversation_members_set_updated_at BEFORE UPDATE ON ope
 CREATE TRIGGER trg_chat_messages_set_updated_at BEFORE UPDATE ON operations.chat_messages FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_chat_message_attachments_set_updated_at BEFORE UPDATE ON operations.chat_message_attachments FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_devices_set_updated_at BEFORE UPDATE ON hardware.devices FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER trg_broadcast_announcements_set_updated_at BEFORE UPDATE ON notification.broadcast_announcements FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_notifications_set_updated_at BEFORE UPDATE ON notification.notifications FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_audit_logs_set_updated_at BEFORE UPDATE ON audit.audit_logs FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 
@@ -975,9 +1100,14 @@ CREATE INDEX idx_chat_messages_related ON operations.chat_messages(related_schem
 CREATE INDEX idx_chat_attachments_message ON operations.chat_message_attachments(message_id);
 CREATE INDEX idx_chat_attachments_object_key ON operations.chat_message_attachments(object_key);
 CREATE INDEX idx_notifications_account_id ON notification.notifications(account_id);
+CREATE INDEX idx_broadcast_announcements_status_created ON notification.broadcast_announcements(status, created_at DESC);
+CREATE INDEX idx_broadcast_announcements_active_window ON notification.broadcast_announcements(enabled, start_at, end_at);
+CREATE INDEX idx_broadcast_announcements_related ON notification.broadcast_announcements(related_schema, related_table, related_id);
+CREATE INDEX idx_notifications_broadcast_id ON notification.notifications(broadcast_id);
 CREATE INDEX idx_notifications_realtime_pending
     ON notification.notifications(account_id, created_at)
     WHERE channel = 'WEB' AND status = 'SENT' AND read_at IS NULL AND realtime_delivered_at IS NULL;
+CREATE INDEX idx_notifications_account_type_created ON notification.notifications(account_id, notification_type, created_at DESC);
 CREATE INDEX idx_approval_requests_request_type_status ON operations.approval_requests(request_type, status);
 CREATE INDEX idx_approval_requests_target_lookup ON operations.approval_requests(target_schema, target_table, target_id);
 CREATE INDEX idx_audit_logs_target ON audit.audit_logs(target_schema, target_table, target_id);
@@ -1171,9 +1301,9 @@ INSERT INTO operations.support_tickets (support_ticket_id, customer_id, category
 VALUES
     ('c0000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', 'c1000000-0000-0000-0000-000000000005', 'Hỏi về gia hạn vé tháng', 'Khách hàng muốn gia hạn vé tháng cho biển số 60K8-2301.', 'OPEN', '20000000-0000-0000-0000-000000000002', '20000000-0000-0000-0000-000000000003');
 
-INSERT INTO notification.notifications (notification_id, account_id, channel, title, message, status, sent_at, related_schema, related_table, related_id)
+INSERT INTO notification.notifications (notification_id, account_id, channel, notification_type, title, message, status, sent_at, related_schema, related_table, related_id)
 VALUES
-    ('d0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000003', 'WEB', 'Vé tháng sap het han', 'Vé tháng của biển số 60K8-2301 sẽ hết hạn vào ngày 2026-05-31.', 'SENT', '2026-05-25 08:00:00+07', 'access_control', 'subscriptions', '71000000-0000-0000-0000-000000000001');
+    ('d0000000-0000-0000-0000-000000000001', '20000000-0000-0000-0000-000000000003', 'WEB', 'SUBSCRIPTION_EXPIRING_SOON', 'Vé tháng sap het han', 'Vé tháng của biển số 60K8-2301 sẽ hết hạn vào ngày 2026-05-31.', 'SENT', '2026-05-25 08:00:00+07', 'access_control', 'subscriptions', '71000000-0000-0000-0000-000000000001');
 
 -- Dữ liệu mẫu: audit log cho hành động quan trọng.
 INSERT INTO audit.audit_logs (audit_log_id, actor_account_id, action, target_schema, target_table, target_id, new_data, ip_address)

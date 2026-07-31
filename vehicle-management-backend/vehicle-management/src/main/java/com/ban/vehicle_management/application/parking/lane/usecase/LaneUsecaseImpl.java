@@ -9,6 +9,7 @@ import com.ban.vehicle_management.domain.parking.lane.model.Lane;
 import com.ban.vehicle_management.domain.parking.lane.policy.LanePolicy;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
@@ -177,8 +178,11 @@ public class LaneUsecaseImpl implements LanePortIn {
                 false,
                 NotificationAudience.OPERATIONS,
                 null,
+                null,
+                NotificationType.LANE_MAINTENANCE,
                 "Lane bảo trì",
                 "Lane " + lane.getName() + " đã chuyển sang trạng thái bảo trì.",
+                null,
                 "parking",
                 "lanes",
                 lane.getLaneId()

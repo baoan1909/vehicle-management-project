@@ -14,6 +14,7 @@ import com.ban.vehicle_management.domain.operations.approvalrequest.policy.Appro
 import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
@@ -98,7 +99,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
         sendOnboardingApprovedEmail(result);
-        notifySystemAdminResult(result, "Ho so quan tri da duoc duyet", "Ho so quan tri he thong cua ban da duoc duyet.");
+        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_APPROVED, "Ho so quan tri da duoc duyet", "Ho so quan tri he thong cua ban da duoc duyet.");
         return result;
     }
 
@@ -122,7 +123,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
         sendOnboardingRejectedEmail(result);
-        notifySystemAdminResult(result, "Ho so quan tri bi tu choi", "Ho so quan tri he thong cua ban chua duoc duyet.");
+        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_REJECTED, "Ho so quan tri bi tu choi", "Ho so quan tri he thong cua ban chua duoc duyet.");
         return result;
     }
 
@@ -146,10 +147,11 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         systemAdminApprovalPortOut.saveSystemAdminApprovalRequest(approvalRequest);
         SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequest.getApprovalRequestId())
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
-        notifySystemAdminResult(result, "Ho so quan tri da gui lai", "Ho so cua ban da duoc gui lai de duyet.");
+        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_RESUBMITTED, "Ho so quan tri da gui lai", "Ho so cua ban da duoc gui lai de duyet.");
         ApprovalNotificationSupport.notifyApprovers(
                 notificationPortIn,
                 approvalRequest,
+                NotificationType.SYSTEM_ADMIN_RESUBMITTED,
                 "Co ho so quan tri gui lai can duyet"
         );
         return result;
@@ -199,10 +201,16 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         );
     }
 
-    private void notifySystemAdminResult(SystemAdminApprovalResult result, String title, String message) {
+    private void notifySystemAdminResult(
+            SystemAdminApprovalResult result,
+            NotificationType notificationType,
+            String title,
+            String message
+    ) {
         ApprovalNotificationSupport.notifyAccount(
                 notificationPortIn,
                 result.account().accountId(),
+                notificationType,
                 title,
                 message,
                 "iam",

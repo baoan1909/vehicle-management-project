@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.com
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
@@ -39,9 +40,20 @@ public class NotificationEntity extends AuditableEntity {
     @JoinColumn(name = "account_id", referencedColumnName = "account_id", insertable = false, updatable = false)
     private AccountEntity account;
 
+    @Column(name = "broadcast_id")
+    private UUID broadcastId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "broadcast_id", referencedColumnName = "broadcast_id", insertable = false, updatable = false)
+    private BroadcastAnnouncementEntity broadcastAnnouncement;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "channel", nullable = false)
     private NotificationChannel channel;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "notification_type", nullable = false)
+    private NotificationType notificationType;
 
     @Column(name = "title", nullable = false)
     private String title;
@@ -61,6 +73,9 @@ public class NotificationEntity extends AuditableEntity {
 
     @Column(name = "realtime_delivered_at")
     private Instant realtimeDeliveredAt;
+
+    @Column(name = "redirect_url")
+    private String redirectUrl;
 
     @Column(name = "related_schema")
     private String relatedSchema;

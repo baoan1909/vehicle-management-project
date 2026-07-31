@@ -13,6 +13,7 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceStatus;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
@@ -149,7 +150,7 @@ public class DeviceUseCaseImpl implements DevicePortIn {
         devicePolicy.offline(existing);
 
         Device savedDevice = devicePortOut.save(existing);
-        notifyDeviceAlert(savedDevice, "Thiết bị offline", "Thiết bị " + savedDevice.getName() + " đang offline.");
+        notifyDeviceAlert(savedDevice, NotificationType.DEVICE_OFFLINE, "Thiết bị offline", "Thiết bị " + savedDevice.getName() + " đang offline.");
         return savedDevice;
     }
 
@@ -167,7 +168,7 @@ public class DeviceUseCaseImpl implements DevicePortIn {
         devicePolicy.maintenance(existing);
 
         Device savedDevice = devicePortOut.save(existing);
-        notifyDeviceAlert(savedDevice, "Thiết bị bảo trì", "Thiết bị " + savedDevice.getName() + " đã chuyển sang trạng thái bảo trì.");
+        notifyDeviceAlert(savedDevice, NotificationType.DEVICE_MAINTENANCE, "Thiết bị bảo trì", "Thiết bị " + savedDevice.getName() + " đã chuyển sang trạng thái bảo trì.");
         return savedDevice;
     }
 
@@ -260,7 +261,12 @@ public class DeviceUseCaseImpl implements DevicePortIn {
                 : keyword.trim();
     }
 
-    private void notifyDeviceAlert(Device device, String title, String message) {
+    private void notifyDeviceAlert(
+            Device device,
+            NotificationType notificationType,
+            String title,
+            String message
+    ) {
         if (notificationPortIn == null) {
             return;
         }
@@ -268,8 +274,11 @@ public class DeviceUseCaseImpl implements DevicePortIn {
                 false,
                 NotificationAudience.OPERATIONS,
                 null,
+                null,
+                notificationType,
                 title,
                 message,
+                null,
                 "hardware",
                 "devices",
                 device.getDeviceId()

@@ -13,6 +13,7 @@ import com.ban.vehicle_management.application.notification.notification.port.out
 import com.ban.vehicle_management.domain.notification.notification.model.Notification;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -65,11 +66,14 @@ class NotificationSubscriptionSyncListenerTest {
         NotificationRealtimeMessage payload = new NotificationRealtimeMessage(
                 notificationId,
                 accountId,
+                null,
                 NotificationChannel.WEB,
+                NotificationType.SYSTEM_NOTICE,
                 "Title",
                 "Message",
                 NotificationStatus.SENT,
                 "2026-07-30 10:00:00",
+                null,
                 null,
                 "access_control",
                 "subscriptions",

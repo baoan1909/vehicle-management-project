@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.notification.notification.model.No
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import java.util.UUID;
 
 final class ApprovalNotificationSupport {
@@ -15,6 +16,7 @@ final class ApprovalNotificationSupport {
     static void notifyAccount(
             NotificationPortIn notificationPortIn,
             UUID accountId,
+            NotificationType notificationType,
             String title,
             String message,
             String relatedSchema,
@@ -26,6 +28,7 @@ final class ApprovalNotificationSupport {
         }
         notificationPortIn.sendWebNotification(new SendNotificationCommand(
                 accountId,
+                notificationType,
                 title,
                 message,
                 relatedSchema,
@@ -37,6 +40,7 @@ final class ApprovalNotificationSupport {
     static void notifyApprovers(
             NotificationPortIn notificationPortIn,
             ApprovalRequest approvalRequest,
+            NotificationType notificationType,
             String title
     ) {
         if (notificationPortIn == null) {
@@ -46,8 +50,11 @@ final class ApprovalNotificationSupport {
                 false,
                 NotificationAudience.APPROVERS,
                 null,
+                null,
+                notificationType,
                 title,
                 "Co yeu cau phe duyet moi can xu ly.",
+                null,
                 approvalRequest.getTargetSchema(),
                 approvalRequest.getTargetTable(),
                 approvalRequest.getTargetId()

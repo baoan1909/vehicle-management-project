@@ -11,6 +11,7 @@ import com.ban.vehicle_management.domain.catalog.pricerule.policy.PriceRulePolic
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
 import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
 import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -285,8 +286,11 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
                 true,
                 null,
                 null,
+                null,
+                NotificationType.PRICE_RULE_CHANGED,
                 title,
                 "Quy tắc giá " + priceRule.getRuleName() + " vừa có thay đổi.",
+                null,
                 "catalog",
                 "price_rules",
                 priceRule.getPriceRuleId()

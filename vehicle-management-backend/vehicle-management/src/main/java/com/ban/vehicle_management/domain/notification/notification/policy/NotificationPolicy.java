@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.notification.notification.model.Br
 import com.ban.vehicle_management.domain.notification.notification.model.Notification;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
@@ -15,6 +16,7 @@ import java.util.UUID;
 public class NotificationPolicy {
 
     private static final int TITLE_MAX_LENGTH = 200;
+    private static final int REDIRECT_URL_MAX_LENGTH = 1000;
     private static final int RELATED_SCHEMA_MAX_LENGTH = 50;
     private static final int RELATED_TABLE_MAX_LENGTH = 80;
 
@@ -25,8 +27,12 @@ public class NotificationPolicy {
         if (command.accountId() == null) {
             throw new BadRequestException("accountId must not be null");
         }
+        if (command.notificationType() == null) {
+            throw new BadRequestException("notificationType must not be null");
+        }
         return new SendNotificationCommand(
                 command.accountId(),
+                command.notificationType(),
                 TextValidationUtils.normalizeRequiredText(command.title(), "title", TITLE_MAX_LENGTH),
                 TextValidationUtils.normalizeRequiredText(command.message(), "message", 0),
                 TextValidationUtils.normalizeNullableText(
@@ -58,8 +64,15 @@ public class NotificationPolicy {
                 command.allActiveAccounts(),
                 roleCodes,
                 accountIds,
+                command.broadcastId(),
+                requireNotificationType(command.notificationType()),
                 TextValidationUtils.normalizeRequiredText(command.title(), "title", TITLE_MAX_LENGTH),
                 TextValidationUtils.normalizeRequiredText(command.message(), "message", 0),
+                TextValidationUtils.normalizeNullableText(
+                        command.redirectUrl(),
+                        "redirectUrl",
+                        REDIRECT_URL_MAX_LENGTH
+                ),
                 TextValidationUtils.normalizeNullableText(
                         command.relatedSchema(),
                         "relatedSchema",
@@ -83,6 +96,9 @@ public class NotificationPolicy {
         }
         notification.setNotificationId(notificationId);
         notification.setChannel(NotificationChannel.WEB);
+        if (notification.getNotificationType() == null) {
+            notification.setNotificationType(NotificationType.SYSTEM_NOTICE);
+        }
         notification.setStatus(NotificationStatus.SENT);
         notification.setSentAt(now);
         notification.setReadAt(null);
@@ -118,5 +134,12 @@ public class NotificationPolicy {
                 TextValidationUtils.normalizeCode(roleCode, "roleCode", 50)
         ));
         return normalizedRoleCodes;
+    }
+
+    private NotificationType requireNotificationType(NotificationType notificationType) {
+        if (notificationType == null) {
+            throw new BadRequestException("notificationType must not be null");
+        }
+        return notificationType;
     }
 }
