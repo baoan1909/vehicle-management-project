@@ -22,6 +22,7 @@ import { DashboardPage } from "@/features/dashboard";
 import { EmployeeListPage, ShiftSchedulePage } from "@/features/employees";
 import { DeviceManagementPage } from "@/features/hardware";
 import { AccountListPage, InternalProfilePage, RoleListPage } from "@/features/iam";
+import { AnnouncementManagementPage } from "@/features/notifications";
 import { ParkingOperationsPage, ParkingSessionPage, SwipeListPage } from "@/features/parking";
 import { PricePlanListPage, PriceRuleListPage } from "@/features/pricing";
 import { OperationsSupportCenterPage, SupportCategoryWorkflowPage } from "@/features/support";
@@ -75,6 +76,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/role", title: "Phan quyen vai tro", layout: "admin", element: <RoleListPage /> },
   { path: "/admin/role/form", title: "Thong tin vai tro", layout: "admin", element: blankPage },
   { path: "/admin/support-categories", title: "Danh muc ho tro va quy trinh ticket", layout: "admin", element: <SupportCategoryWorkflowPage /> },
+  { path: "/admin/announcements", title: "Quan ly thong bao phat rong", layout: "admin", element: <AnnouncementManagementPage /> },
   { path: "/admin/support-center", title: "Trung tam ho tro van hanh", layout: "fullscreen", element: <OperationsSupportCenterPage /> },
   { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },
   { path: "/guide", title: "Huong dan", layout: "client", element: <GuidePage /> },

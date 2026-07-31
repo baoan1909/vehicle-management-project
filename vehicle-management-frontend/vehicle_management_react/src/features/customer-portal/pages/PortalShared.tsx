@@ -2,6 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { logoutCurrentUser } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 
 export const publicContactItems = [
   { icon: "fas fa-phone-alt", title: "Hotline", value: "1900 1234", note: "Hỗ trợ 24/7" },
@@ -78,10 +79,8 @@ export function StatusPill({ children, tone = "green" }: { children: ReactNode; 
 export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { user, setUser } = useAuth();
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const notificationsRef = useRef<HTMLDivElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
   const displayName = user?.fullName || user?.username || "Khách hàng";
   const initials = displayName
@@ -96,7 +95,6 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
       const target = event.target as Node;
-      if (notificationsRef.current && !notificationsRef.current.contains(target)) setNotificationsOpen(false);
       if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
     }
 
@@ -117,37 +115,13 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
         <Link to="/customer/dashboard" className="vm-customer-logo">CoParking</Link>
         <button className="vm-customer-menu" type="button" aria-label="Menu"><i className="fas fa-bars" /></button>
         <div className="vm-customer-actions">
-          <div className="vm-customer-action-wrap" ref={notificationsRef}>
-            <button
-              className="vm-customer-bell"
-              type="button"
-              aria-expanded={notificationsOpen}
-              aria-label="Thông báo"
-              onClick={() => {
-                setNotificationsOpen((open) => !open);
-                setProfileOpen(false);
-              }}
-            >
-              <i className="far fa-bell" />
-              <b>3</b>
-            </button>
-            {notificationsOpen ? (
-              <div className="vm-customer-popover vm-customer-notifications">
-                <h3>Thông báo</h3>
-                <p>Chưa có thông báo mới từ hệ thống.</p>
-                <Link to="/customer/support" onClick={() => setNotificationsOpen(false)}>Mở trung tâm hỗ trợ</Link>
-              </div>
-            ) : null}
-          </div>
+          <NotificationBell variant="customer" />
           <div className="vm-customer-action-wrap" ref={profileRef}>
             <button
               className="vm-customer-user"
               type="button"
               aria-expanded={profileOpen}
-              onClick={() => {
-                setProfileOpen((open) => !open);
-                setNotificationsOpen(false);
-              }}
+              onClick={() => setProfileOpen((open) => !open)}
             >
               <span className="vm-customer-avatar">{initials}</span>
           <span>Xin chào,<strong>{displayName}</strong></span>

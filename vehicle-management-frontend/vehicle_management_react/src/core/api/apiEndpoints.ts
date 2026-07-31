@@ -16,6 +16,12 @@ export const apiEndpoints = {
   hardware: {
     devices: "/hardware/devices",
   },
+  notifications: {
+    broadcastAnnouncements: "/notifications/broadcast-announcements",
+    mine: "/notifications",
+    readAll: "/notifications/read-all",
+    unreadCount: "/notifications/unread/count",
+  },
   parking: {
     gates: "/parking/gates",
     lanes: "/parking/lanes",

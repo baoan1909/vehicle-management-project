@@ -38,7 +38,7 @@ export interface CurrentUser {
   roleLabel?: string;
 }
 
-export type AdminSidebarIcon = "dashboard" | "swipe" | "card" | "catalog" | "parking" | "pricing" | "members" | "role" | "settings" | "support";
+export type AdminSidebarIcon = "dashboard" | "swipe" | "card" | "catalog" | "parking" | "pricing" | "members" | "role" | "settings" | "support" | "notification";
 
 export interface AdminSidebarLeaf {
   label: string;

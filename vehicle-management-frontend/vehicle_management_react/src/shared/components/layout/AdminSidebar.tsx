@@ -36,6 +36,7 @@ function SidebarIcon({ icon }: { icon: AdminSidebarIcon }) {
     role: "fas fa-user-shield",
     settings: "fas fa-cog",
     support: "fas fa-headset",
+    notification: "far fa-bell",
   } satisfies Record<AdminSidebarIcon, string>;
 
   return <i className={cn("tw-text-[1rem]", iconClassName[icon])} aria-hidden="true" />;

@@ -32,13 +32,16 @@ public class JwtAuthenticationConverter implements Converter<Jwt, AbstractAuthen
         LinkedHashSet<GrantedAuthority> authorities = new LinkedHashSet<>(Optional
                 .ofNullable(jwtGrantedAuthoritiesConverter.convert(jwt))
                 .orElseGet(List::of));
-        resolveCurrentAccount(jwt)
+        Optional<CurrentAccountAccess> currentAccount = resolveCurrentAccount(jwt);
+        currentAccount
                 .filter(CurrentAccountAccess::canUseBusinessPermissions)
                 .ifPresent(account -> account.permissionCodes().forEach(permissionCode ->
                         authorities.add(new SimpleGrantedAuthority(permissionCode))
                 ));
         AuthenticatedAccountPrincipal principal = new AuthenticatedAccountPrincipal(
-                parseUuid(jwt.getClaim("account_id")).orElse(null),
+                currentAccount.map(CurrentAccountAccess::accountId)
+                        .or(() -> parseUuid(jwt.getClaim("account_id")))
+                        .orElse(null),
                 jwt.getSubject(),
                 resolvePreferredUsername(jwt),
                 jwt.getClaimAsString("email")

@@ -97,7 +97,13 @@ public class LaneUsecaseImpl implements LanePortIn {
         Lane existingLane = getLaneById(laneId);
         validateOperationalGate(existingLane.getGateId());
         lanePolicy.activate(existingLane);
-        return  lanePortOut.save(existingLane);
+        Lane savedLane = lanePortOut.save(existingLane);
+        notifyLaneStatusChanged(
+                savedLane,
+                "Lane kích hoạt",
+                "Lane " + savedLane.getName() + " đã chuyển sang trạng thái hoạt động."
+        );
+        return savedLane;
     }
 
     @Override
@@ -107,7 +113,11 @@ public class LaneUsecaseImpl implements LanePortIn {
         ensureCanDisableActiveOutLane(existingLane);
         lanePolicy.markMaintenance(existingLane);
         Lane savedLane = lanePortOut.save(existingLane);
-        notifyLaneMaintenance(savedLane);
+        notifyLaneStatusChanged(
+                savedLane,
+                "Lane bảo trì",
+                "Lane " + savedLane.getName() + " đã chuyển sang trạng thái bảo trì."
+        );
         return savedLane;
     }
 
@@ -117,7 +127,11 @@ public class LaneUsecaseImpl implements LanePortIn {
         Lane existingLane = getLaneById(laneId);
         lanePolicy.markMaintenance(existingLane);
         Lane savedLane = lanePortOut.save(existingLane);
-        notifyLaneMaintenance(savedLane);
+        notifyLaneStatusChanged(
+                savedLane,
+                "Lane bảo trì",
+                "Lane " + savedLane.getName() + " đã chuyển sang trạng thái bảo trì."
+        );
         return savedLane;
     }
 
@@ -131,7 +145,13 @@ public class LaneUsecaseImpl implements LanePortIn {
         }
         ensureCanDisableActiveOutLane(existingLane);
         lanePolicy.close(existingLane);
-        return lanePortOut.save(existingLane);
+        Lane savedLane = lanePortOut.save(existingLane);
+        notifyLaneStatusChanged(
+                savedLane,
+                "Lane đóng",
+                "Lane " + savedLane.getName() + " đã chuyển sang trạng thái đóng."
+        );
+        return savedLane;
     }
 
     private boolean isDisablingActiveOutLane(Lane existingLane, LaneDirection newDirection){
@@ -170,7 +190,7 @@ public class LaneUsecaseImpl implements LanePortIn {
         return  keyword.trim();
     }
 
-    private void notifyLaneMaintenance(Lane lane) {
+    private void notifyLaneStatusChanged(Lane lane, String title, String message) {
         if (notificationPortIn == null) {
             return;
         }
@@ -180,8 +200,8 @@ public class LaneUsecaseImpl implements LanePortIn {
                 null,
                 null,
                 NotificationType.LANE_MAINTENANCE,
-                "Lane bảo trì",
-                "Lane " + lane.getName() + " đã chuyển sang trạng thái bảo trì.",
+                title,
+                message,
                 null,
                 "parking",
                 "lanes",
