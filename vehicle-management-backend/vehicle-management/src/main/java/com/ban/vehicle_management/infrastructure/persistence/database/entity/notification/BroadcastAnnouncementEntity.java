@@ -56,6 +56,9 @@ public class BroadcastAnnouncementEntity extends AuditableEntity {
     @Column(name = "end_at")
     private Instant endAt;
 
+    @Column(name = "display_order", nullable = false)
+    private Integer displayOrder;
+
     @Column(name = "enabled", nullable = false)
     private Boolean enabled;
 

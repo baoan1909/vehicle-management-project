@@ -13,4 +13,8 @@ public interface BroadcastAnnouncementRepository extends JpaRepository<Broadcast
     );
 
     List<BroadcastAnnouncementEntity> findAllByOrderByCreatedAtDescBroadcastIdDesc();
+
+    boolean existsByTitleIgnoreCase(String title);
+
+    boolean existsByTitleIgnoreCaseAndBroadcastIdNot(String title, UUID broadcastId);
 }

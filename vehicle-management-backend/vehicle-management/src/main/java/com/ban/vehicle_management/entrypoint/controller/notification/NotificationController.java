@@ -1,15 +1,20 @@
 package com.ban.vehicle_management.entrypoint.controller.notification;
 
+import com.ban.vehicle_management.application.iam.role.port.in.RolePortIn;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationApiMapper;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.domain.iam.role.model.Role;
 import com.ban.vehicle_management.domain.notification.notification.model.Notification;
 import com.ban.vehicle_management.entrypoint.dto.notification.notification.request.NotificationFilterRequest;
+import com.ban.vehicle_management.entrypoint.dto.notification.notification.response.NotificationActiveRoleResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.notification.response.NotificationUnreadCountResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.notification.response.NotificationUserResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -23,13 +28,16 @@ public class NotificationController {
 
     private final NotificationPortIn notificationPortIn;
     private final NotificationApiMapper notificationApiMapper;
+    private final RolePortIn rolePortIn;
 
     public NotificationController(
             NotificationPortIn notificationPortIn,
-            NotificationApiMapper notificationApiMapper
+            NotificationApiMapper notificationApiMapper,
+            RolePortIn rolePortIn
     ) {
         this.notificationPortIn = notificationPortIn;
         this.notificationApiMapper = notificationApiMapper;
+        this.rolePortIn = rolePortIn;
     }
 
     @GetMapping
@@ -52,6 +60,28 @@ public class NotificationController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched unread notification count successfully",
                 new NotificationUnreadCountResponse(notificationPortIn.countMyUnread())
+        ));
+    }
+
+    @GetMapping("/active-roles")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission(" +
+            "'BROADCAST_NOTIFICATION_READ_ALL', " +
+            "'BROADCAST_NOTIFICATION_CREATE_ALL', " +
+            "'BROADCAST_NOTIFICATION_UPDATE_ALL', " +
+            "'BROADCAST_NOTIFICATION_PUBLISH_ALL')")
+    public ResponseEntity<ApiResponse<List<NotificationActiveRoleResponse>>> getActiveRolesForAnnouncements() {
+        List<NotificationActiveRoleResponse> response = rolePortIn.getRoles(true, null, null).stream()
+                .sorted(Comparator.comparing(Role::getCode))
+                .map(role -> new NotificationActiveRoleResponse(
+                        role.getRoleId(),
+                        role.getCode(),
+                        role.getName()
+                ))
+                .toList();
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched active notification roles successfully",
+                response
         ));
     }
 

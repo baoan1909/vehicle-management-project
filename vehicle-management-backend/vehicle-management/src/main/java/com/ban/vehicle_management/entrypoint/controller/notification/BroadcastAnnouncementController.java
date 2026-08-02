@@ -6,6 +6,7 @@ import com.ban.vehicle_management.domain.notification.broadcastannouncement.mode
 import com.ban.vehicle_management.entrypoint.dto.notification.broadcastannouncement.request.BroadcastAnnouncementFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.notification.broadcastannouncement.request.CreateBroadcastAnnouncementRequest;
 import com.ban.vehicle_management.entrypoint.dto.notification.broadcastannouncement.request.UpdateBroadcastAnnouncementRequest;
+import com.ban.vehicle_management.entrypoint.dto.notification.broadcastannouncement.request.UpdateBroadcastAnnouncementDisplayOrderRequest;
 import com.ban.vehicle_management.entrypoint.dto.notification.broadcastannouncement.response.BroadcastAnnouncementAdminResponse;
 import com.ban.vehicle_management.entrypoint.message.ControllerMessages;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
@@ -89,6 +90,22 @@ public class BroadcastAnnouncementController {
         BroadcastAnnouncement updated = broadcastAnnouncementPortIn.updateBroadcastAnnouncement(
                 broadcastId,
                 broadcastAnnouncementApiMapper.toDomain(request)
+        );
+        return ResponseEntity.ok(ApiResponse.ok(
+                ControllerMessages.UPDATE_SUCCESS,
+                broadcastAnnouncementApiMapper.toAdminResponse(updated)
+        ));
+    }
+
+    @PatchMapping("/{broadcastId}/display-order")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('BROADCAST_NOTIFICATION_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<BroadcastAnnouncementAdminResponse>> updateDisplayOrder(
+            @PathVariable UUID broadcastId,
+            @RequestBody UpdateBroadcastAnnouncementDisplayOrderRequest request
+    ) {
+        BroadcastAnnouncement updated = broadcastAnnouncementPortIn.updateBroadcastAnnouncementDisplayOrder(
+                broadcastId,
+                request.displayOrder()
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 ControllerMessages.UPDATE_SUCCESS,

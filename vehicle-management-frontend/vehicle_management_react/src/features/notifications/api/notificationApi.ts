@@ -74,6 +74,12 @@ export type NotificationUnreadCountResponse = {
   unreadCount: number;
 };
 
+export type NotificationActiveRoleResponse = {
+  code: string;
+  name: string;
+  roleId: string;
+};
+
 export type BroadcastAnnouncementAudienceType = "ALL_ACTIVE_ACCOUNTS" | "ROLE_CODES";
 export type BroadcastAnnouncementStatus = "DRAFT" | "PUBLISHED" | "CANCELLED";
 
@@ -86,6 +92,7 @@ export type BroadcastAnnouncementResponse = {
   roleCodes: string[] | null;
   startAt: string | null;
   endAt: string | null;
+  displayOrder: number | null;
   enabled: boolean | null;
   redirectUrl: string | null;
   status: BroadcastAnnouncementStatus;
@@ -108,6 +115,7 @@ export type BroadcastAnnouncementPayload = {
   roleCodes: string[];
   startAt: string;
   endAt?: string | null;
+  displayOrder?: number | null;
   enabled: boolean;
   redirectUrl?: string | null;
   relatedSchema?: string | null;
@@ -159,6 +167,10 @@ export function markAllNotificationsRead() {
   return apiClient<ApiResponse<void>>(apiEndpoints.notifications.readAll, { method: "PATCH" });
 }
 
+export function getNotificationActiveRoles() {
+  return apiClient<ApiResponse<NotificationActiveRoleResponse[]>>(apiEndpoints.notifications.activeRoles);
+}
+
 export function getBroadcastAnnouncements(filter: BroadcastAnnouncementFilter = {}) {
   return apiClient<ApiResponse<BroadcastAnnouncementResponse[]>>(
     `${apiEndpoints.notifications.broadcastAnnouncements}${buildQuery(filter)}`,
@@ -178,6 +190,16 @@ export function updateBroadcastAnnouncement(broadcastId: string, payload: Broadc
     {
       body: payload,
       method: "PUT",
+    },
+  );
+}
+
+export function updateBroadcastAnnouncementDisplayOrder(broadcastId: string, displayOrder: number) {
+  return apiClient<ApiResponse<BroadcastAnnouncementResponse>>(
+    `${apiEndpoints.notifications.broadcastAnnouncements}/${broadcastId}/display-order`,
+    {
+      body: { displayOrder },
+      method: "PATCH",
     },
   );
 }

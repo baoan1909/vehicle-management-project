@@ -14,5 +14,9 @@ public interface BroadcastAnnouncementPortOut {
 
     List<BroadcastAnnouncement> findAll(BroadcastAnnouncementStatus status);
 
+    boolean existsByTitle(String title);
+
+    boolean existsByTitleAndBroadcastIdNot(String title, UUID broadcastId);
+
     void deleteById(UUID broadcastId);
 }

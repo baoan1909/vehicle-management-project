@@ -854,6 +854,7 @@ CREATE TABLE notification.broadcast_announcements (
     role_codes JSONB,
     start_at TIMESTAMPTZ NOT NULL,
     end_at TIMESTAMPTZ,
+    display_order INTEGER NOT NULL DEFAULT 100,
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     redirect_url VARCHAR(1000),
     status VARCHAR(30) NOT NULL,
@@ -913,6 +914,7 @@ CREATE TABLE notification.broadcast_announcements (
     CONSTRAINT ck_broadcast_announcements_audience_type CHECK (audience_type IN ('ALL_ACTIVE_ACCOUNTS', 'ROLE_CODES')),
     CONSTRAINT ck_broadcast_announcements_status CHECK (status IN ('DRAFT', 'PUBLISHED', 'CANCELLED')),
     CONSTRAINT ck_broadcast_announcements_period CHECK (end_at IS NULL OR end_at >= start_at),
+    CONSTRAINT ck_broadcast_announcements_display_order CHECK (display_order >= 1),
     CONSTRAINT ck_broadcast_announcements_role_codes_json CHECK (role_codes IS NULL OR jsonb_typeof(role_codes) = 'array'),
     CONSTRAINT ck_broadcast_announcements_role_audience CHECK (
         audience_type <> 'ROLE_CODES'
@@ -1102,6 +1104,7 @@ CREATE INDEX idx_chat_attachments_object_key ON operations.chat_message_attachme
 CREATE INDEX idx_notifications_account_id ON notification.notifications(account_id);
 CREATE INDEX idx_broadcast_announcements_status_created ON notification.broadcast_announcements(status, created_at DESC);
 CREATE INDEX idx_broadcast_announcements_active_window ON notification.broadcast_announcements(enabled, start_at, end_at);
+CREATE INDEX idx_broadcast_announcements_ticker_order ON notification.broadcast_announcements(status, enabled, display_order, start_at, published_at);
 CREATE INDEX idx_broadcast_announcements_related ON notification.broadcast_announcements(related_schema, related_table, related_id);
 CREATE INDEX idx_notifications_broadcast_id ON notification.notifications(broadcast_id);
 CREATE INDEX idx_notifications_realtime_pending

@@ -19,6 +19,8 @@ type SelectMenuProps = {
   options: SelectMenuOption[];
   placement?: "bottom" | "top";
   portal?: boolean;
+  searchable?: boolean | "auto";
+  searchPlaceholder?: string;
   triggerClassName?: string;
   triggerLabel?: string;
   value: string;
@@ -35,16 +37,26 @@ export function SelectMenu({
   options,
   placement = "bottom",
   portal = false,
+  searchable = "auto",
+  searchPlaceholder = "Tìm kiếm...",
   triggerClassName,
   triggerLabel,
   value,
 }: SelectMenuProps) {
   const [open, setOpen] = useState(false);
   const [portalPosition, setPortalPosition] = useState({ left: 0, top: 0, width: 0 });
+  const [searchTerm, setSearchTerm] = useState("");
   const menuRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selected = options.find((option) => option.value === value) ?? options[0];
   const canClear = !disabled && value !== clearValue && options.some((option) => option.value === clearValue);
+  const shouldShowSearch = searchable === "auto" ? options.length >= 8 : searchable;
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const visibleOptions = normalizedSearch
+    ? options.filter((option) =>
+        [option.label, option.value].some((text) => text.toLowerCase().includes(normalizedSearch)),
+      )
+    : options;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -72,6 +84,12 @@ export function SelectMenu({
       window.removeEventListener("mousedown", handlePointerDown);
       window.removeEventListener("keydown", handleKeyDown);
     };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      setSearchTerm("");
+    }
   }, [open]);
 
   useLayoutEffect(() => {
@@ -116,7 +134,8 @@ export function SelectMenu({
   const menu = open ? (
     <div
       className={cn(
-        "tw-z-[2500] tw-max-h-60 tw-overflow-y-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-[0.35rem] tw-shadow-[0_10px_26px_rgba(15,23,42,0.14)] tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden",
+        "tw-z-[2500] tw-max-h-60 tw-overflow-y-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_10px_26px_rgba(15,23,42,0.14)] tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden",
+        shouldShowSearch ? "tw-pb-[0.35rem] tw-pt-0" : "tw-py-[0.35rem]",
         portal
           ? "tw-fixed"
           : "tw-absolute tw-left-0 tw-w-full",
@@ -134,7 +153,23 @@ export function SelectMenu({
           : undefined
       }
     >
-      {options.map((option) => {
+      {shouldShowSearch ? (
+        <div className="tw-sticky tw-top-0 tw-z-[1] tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-2">
+          <label className="tw-flex tw-h-9 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-2.5">
+            <i className="fas fa-search tw-text-[0.78rem] tw-text-vm-slate-500" />
+            <input
+              aria-label={`Tìm kiếm ${ariaLabel}`}
+              className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none placeholder:tw-text-vm-slate-400"
+              placeholder={searchPlaceholder}
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              onClick={(event) => event.stopPropagation()}
+            />
+          </label>
+        </div>
+      ) : null}
+
+      {visibleOptions.map((option) => {
         const selectedOption = option.value === value;
 
         return (
@@ -165,6 +200,12 @@ export function SelectMenu({
           </button>
         );
       })}
+
+      {visibleOptions.length === 0 ? (
+        <div className="tw-px-3 tw-py-4 tw-text-center tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-500">
+          Không có kết quả phù hợp
+        </div>
+      ) : null}
     </div>
   ) : null;
 

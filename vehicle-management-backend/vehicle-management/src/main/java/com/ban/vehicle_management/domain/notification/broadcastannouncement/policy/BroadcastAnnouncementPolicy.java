@@ -18,6 +18,9 @@ public class BroadcastAnnouncementPolicy {
     private static final int RELATED_SCHEMA_MAX_LENGTH = 50;
     private static final int RELATED_TABLE_MAX_LENGTH = 80;
     private static final int ROLE_CODE_MAX_LENGTH = 50;
+    private static final int DEFAULT_DISPLAY_ORDER = 100;
+    private static final String DEFAULT_RELATED_SCHEMA = "notification";
+    private static final String DEFAULT_RELATED_TABLE = "broadcast_announcements";
 
     public void initializeNew(BroadcastAnnouncement announcement) {
         requireAnnouncement(announcement);
@@ -25,6 +28,7 @@ public class BroadcastAnnouncementPolicy {
         announcement.setStatus(BroadcastAnnouncementStatus.DRAFT);
         announcement.setPublishedAt(null);
         announcement.setCancelledAt(null);
+        hydrateDefaultRelatedReference(announcement);
         normalizeEditableFields(announcement);
     }
 
@@ -36,6 +40,7 @@ public class BroadcastAnnouncementPolicy {
         if (announcement.getStatus() == BroadcastAnnouncementStatus.CANCELLED) {
             throw new ConflictException("Cannot update a cancelled broadcast announcement");
         }
+        hydrateDefaultRelatedReference(announcement);
         normalizeEditableFields(announcement);
     }
 
@@ -50,10 +55,19 @@ public class BroadcastAnnouncementPolicy {
         if (!Boolean.TRUE.equals(announcement.getEnabled())) {
             throw new ConflictException("Cannot publish a disabled broadcast announcement");
         }
+        hydrateDefaultRelatedReference(announcement);
         normalizeEditableFields(announcement);
         announcement.setStatus(BroadcastAnnouncementStatus.PUBLISHED);
         announcement.setPublishedAt(publishedAt);
         announcement.setCancelledAt(null);
+    }
+
+    public void updateDisplayOrder(BroadcastAnnouncement announcement, Integer displayOrder) {
+        requireAnnouncement(announcement);
+        if (announcement.getStatus() == BroadcastAnnouncementStatus.CANCELLED) {
+            throw new ConflictException("Cannot update display order of a cancelled broadcast announcement");
+        }
+        announcement.setDisplayOrder(normalizeDisplayOrder(displayOrder));
     }
 
     public void cancel(BroadcastAnnouncement announcement, Instant cancelledAt) {
@@ -89,6 +103,7 @@ public class BroadcastAnnouncementPolicy {
         if (announcement.getEndAt() != null && announcement.getEndAt().isBefore(announcement.getStartAt())) {
             throw new BadRequestException("endAt must be after or equal to startAt");
         }
+        announcement.setDisplayOrder(normalizeDisplayOrder(announcement.getDisplayOrder()));
 
         announcement.setTitle(TextValidationUtils.normalizeRequiredText(
                 announcement.getTitle(),
@@ -122,6 +137,32 @@ public class BroadcastAnnouncementPolicy {
         if (announcement.getEnabled() == null) {
             announcement.setEnabled(true);
         }
+    }
+
+    private void hydrateDefaultRelatedReference(BroadcastAnnouncement announcement) {
+        if (!hasText(announcement.getRelatedSchema())) {
+            announcement.setRelatedSchema(DEFAULT_RELATED_SCHEMA);
+        }
+        if (!hasText(announcement.getRelatedTable())) {
+            announcement.setRelatedTable(DEFAULT_RELATED_TABLE);
+        }
+        if (announcement.getRelatedId() == null) {
+            announcement.setRelatedId(announcement.getBroadcastId());
+        }
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private Integer normalizeDisplayOrder(Integer displayOrder) {
+        if (displayOrder == null) {
+            return DEFAULT_DISPLAY_ORDER;
+        }
+        if (displayOrder < 1) {
+            throw new BadRequestException("displayOrder must be greater than or equal to 1");
+        }
+        return displayOrder;
     }
 
     private Set<String> normalizeRoleCodes(

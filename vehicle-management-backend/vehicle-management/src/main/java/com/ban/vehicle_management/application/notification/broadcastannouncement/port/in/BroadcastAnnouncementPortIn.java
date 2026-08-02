@@ -15,6 +15,8 @@ public interface BroadcastAnnouncementPortIn {
 
     BroadcastAnnouncement updateBroadcastAnnouncement(UUID broadcastId, BroadcastAnnouncement request);
 
+    BroadcastAnnouncement updateBroadcastAnnouncementDisplayOrder(UUID broadcastId, Integer displayOrder);
+
     BroadcastAnnouncement publishBroadcastAnnouncement(UUID broadcastId);
 
     BroadcastAnnouncement cancelBroadcastAnnouncement(UUID broadcastId);

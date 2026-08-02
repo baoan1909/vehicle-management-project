@@ -17,6 +17,7 @@ export const apiEndpoints = {
     devices: "/hardware/devices",
   },
   notifications: {
+    activeRoles: "/notifications/active-roles",
     broadcastAnnouncements: "/notifications/broadcast-announcements",
     mine: "/notifications",
     readAll: "/notifications/read-all",

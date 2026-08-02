@@ -14,6 +14,7 @@ public record CreateBroadcastAnnouncementRequest(
         Set<String> roleCodes,
         Instant startAt,
         Instant endAt,
+        Integer displayOrder,
         Boolean enabled,
         String redirectUrl,
         String relatedSchema,

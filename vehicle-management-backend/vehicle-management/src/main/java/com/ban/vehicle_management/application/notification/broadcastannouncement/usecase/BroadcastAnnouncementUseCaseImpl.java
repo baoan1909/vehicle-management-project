@@ -9,6 +9,7 @@ import com.ban.vehicle_management.domain.notification.broadcastannouncement.mode
 import com.ban.vehicle_management.domain.notification.broadcastannouncement.policy.BroadcastAnnouncementPolicy;
 import com.ban.vehicle_management.shared.enumeration.notification.BroadcastAnnouncementAudienceType;
 import com.ban.vehicle_management.shared.enumeration.notification.BroadcastAnnouncementStatus;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
 import java.util.List;
@@ -49,6 +50,7 @@ public class BroadcastAnnouncementUseCaseImpl implements BroadcastAnnouncementPo
     public BroadcastAnnouncement createBroadcastAnnouncement(BroadcastAnnouncement announcement) {
         currentAccountPortIn.requirePermission(BROADCAST_NOTIFICATION_CREATE_ALL);
         broadcastAnnouncementPolicy.initializeNew(announcement);
+        ensureTitleUnique(announcement.getTitle(), announcement.getBroadcastId());
         return broadcastAnnouncementPortOut.save(announcement);
     }
 
@@ -74,6 +76,17 @@ public class BroadcastAnnouncementUseCaseImpl implements BroadcastAnnouncementPo
 
         broadcastAnnouncementDomainMapper.updateEditableFields(request, existing);
         broadcastAnnouncementPolicy.validateForUpdate(existing);
+        ensureTitleUnique(existing.getTitle(), existing.getBroadcastId());
+        return broadcastAnnouncementPortOut.save(existing);
+    }
+
+    @Override
+    @Transactional
+    public BroadcastAnnouncement updateBroadcastAnnouncementDisplayOrder(UUID broadcastId, Integer displayOrder) {
+        currentAccountPortIn.requirePermission(BROADCAST_NOTIFICATION_UPDATE_ALL);
+        BroadcastAnnouncement existing = findExistingBroadcastAnnouncement(broadcastId);
+
+        broadcastAnnouncementPolicy.updateDisplayOrder(existing, displayOrder);
         return broadcastAnnouncementPortOut.save(existing);
     }
 
@@ -84,6 +97,7 @@ public class BroadcastAnnouncementUseCaseImpl implements BroadcastAnnouncementPo
         BroadcastAnnouncement existing = findExistingBroadcastAnnouncement(broadcastId);
 
         broadcastAnnouncementPolicy.publish(existing, Instant.now());
+        ensureTitleUnique(existing.getTitle(), existing.getBroadcastId());
         notificationPortIn.sendBroadcastWebNotification(
                 broadcastAnnouncementDomainMapper.toBroadcastNotificationCommand(
                         existing,
@@ -115,6 +129,15 @@ public class BroadcastAnnouncementUseCaseImpl implements BroadcastAnnouncementPo
     private BroadcastAnnouncement findExistingBroadcastAnnouncement(UUID broadcastId) {
         return broadcastAnnouncementPortOut.findById(broadcastId)
                 .orElseThrow(() -> new NotFoundException("Broadcast announcement not found"));
+    }
+
+    private void ensureTitleUnique(String title, UUID broadcastId) {
+        boolean titleExists = broadcastId == null
+                ? broadcastAnnouncementPortOut.existsByTitle(title)
+                : broadcastAnnouncementPortOut.existsByTitleAndBroadcastIdNot(title, broadcastId);
+        if (titleExists) {
+            throw new ConflictException("Tiêu đề thông báo đã tồn tại.");
+        }
     }
 
 }

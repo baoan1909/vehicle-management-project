@@ -142,10 +142,11 @@ function SidebarGroup({
 
 interface AdminSidebarProps {
   collapsed: boolean;
+  offsetTop?: 72 | 112;
   onCollapsedChange: (collapsed: boolean) => void;
 }
 
-export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps) {
+export function AdminSidebar({ collapsed, offsetTop = 72, onCollapsedChange }: AdminSidebarProps) {
   const location = useLocation();
   const { isAccessLoading, user } = useAuth();
   const isPermissionLoading = Boolean(user && !hasResolvedPermissions(user) && isAccessLoading);
@@ -163,7 +164,8 @@ export function AdminSidebar({ collapsed, onCollapsedChange }: AdminSidebarProps
   return (
     <aside
       className={cn(
-        "tw-fixed tw-bottom-0 tw-left-0 tw-top-[72px] tw-z-[1040] tw-border-0 tw-border-r tw-border-solid tw-border-slate-200/95 tw-bg-white tw-shadow-[12px_0_28px_rgba(15,23,42,0.05)] tw-transition-[width] tw-duration-300 max-[992px]:tw-hidden",
+        "tw-fixed tw-bottom-0 tw-left-0 tw-z-[1040] tw-border-0 tw-border-r tw-border-solid tw-border-slate-200/95 tw-bg-white tw-shadow-[12px_0_28px_rgba(15,23,42,0.05)] tw-transition-[top,width] tw-duration-300 max-[992px]:tw-hidden",
+        offsetTop === 112 ? "tw-top-[112px]" : "tw-top-[72px]",
         collapsed ? "tw-w-[84px]" : "tw-w-[248px]",
       )}
       aria-label="CoParking admin sidebar"

@@ -26,6 +26,7 @@ public class BroadcastAnnouncement extends AuditableDomainModel {
     private Set<String> roleCodes;
     private Instant startAt;
     private Instant endAt;
+    private Integer displayOrder;
     private Boolean enabled;
     private String redirectUrl;
     private BroadcastAnnouncementStatus status;

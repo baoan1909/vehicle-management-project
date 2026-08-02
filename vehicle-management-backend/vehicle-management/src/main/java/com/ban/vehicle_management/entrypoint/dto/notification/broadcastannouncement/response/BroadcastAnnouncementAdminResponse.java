@@ -22,6 +22,7 @@ public class BroadcastAnnouncementAdminResponse {
     private Set<String> roleCodes;
     private String startAt;
     private String endAt;
+    private Integer displayOrder;
     private Boolean enabled;
     private String redirectUrl;
     private BroadcastAnnouncementStatus status;

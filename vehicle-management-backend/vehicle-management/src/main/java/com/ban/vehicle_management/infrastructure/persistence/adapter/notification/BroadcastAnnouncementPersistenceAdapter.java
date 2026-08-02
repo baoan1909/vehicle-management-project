@@ -48,6 +48,16 @@ public class BroadcastAnnouncementPersistenceAdapter implements BroadcastAnnounc
     }
 
     @Override
+    public boolean existsByTitle(String title) {
+        return broadcastAnnouncementRepository.existsByTitleIgnoreCase(title);
+    }
+
+    @Override
+    public boolean existsByTitleAndBroadcastIdNot(String title, UUID broadcastId) {
+        return broadcastAnnouncementRepository.existsByTitleIgnoreCaseAndBroadcastIdNot(title, broadcastId);
+    }
+
+    @Override
     public void deleteById(UUID broadcastId) {
         broadcastAnnouncementRepository.deleteById(broadcastId);
         broadcastAnnouncementRepository.flush();

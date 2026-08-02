@@ -1,17 +1,21 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Badge, Button, Card, Drawer, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Badge, Button, DateTimeScheduleField, Drawer, Modal, PaginationFooter, SelectMenu, nowLocalDateTime, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import {
   cancelBroadcastAnnouncement,
   createBroadcastAnnouncement,
   deleteBroadcastAnnouncement,
   getBroadcastAnnouncements,
+  getNotificationActiveRoles,
   publishBroadcastAnnouncement,
   updateBroadcastAnnouncement,
+  updateBroadcastAnnouncementDisplayOrder,
   type BroadcastAnnouncementAudienceType,
   type BroadcastAnnouncementPayload,
   type BroadcastAnnouncementResponse,
   type BroadcastAnnouncementStatus,
+  type NotificationActiveRoleResponse,
   type NotificationType,
 } from "@/features/notifications/api/notificationApi";
 import { cn } from "@/lib/cn";
@@ -19,10 +23,12 @@ import { hasAnyPermission } from "@/shared/auth/permissions";
 
 type AnnouncementFormState = {
   audienceType: BroadcastAnnouncementAudienceType;
+  displayOrder: string;
   enabled: boolean;
   endAt: string;
   message: string;
   notificationType: NotificationType;
+  publishTiming: "now" | "scheduled";
   redirectUrl: string;
   relatedId: string;
   relatedSchema: string;
@@ -37,50 +43,90 @@ type PendingAction = {
   announcement: BroadcastAnnouncementResponse;
 } | null;
 
-const pageSizeOptions = [5, 10, 20];
+type ActionMenuPosition = {
+  left: number;
+  top: number;
+};
 
-const roleOptions = [
-  { code: "SYSTEM_ADMIN", description: "Quan tri he thong, phan quyen va cau hinh cao nhat.", label: "System admin" },
-  { code: "PARKING_MANAGER", description: "Quan ly van hanh bai xe, nhan su, thiet bi va phe duyet.", label: "Parking manager" },
-  { code: "EMPLOYEE", description: "Nhan vien van hanh, ca truc, check-in/check-out va ho tro.", label: "Employee" },
-  { code: "CUSTOMER", description: "Khach hang su dung cong thong tin va dich vu ve thang.", label: "Customer" },
+type RoleOption = {
+  code: string;
+  label: string;
+};
+
+type AnnouncementFieldErrors = {
+  displayOrder?: string;
+  endAt?: string;
+  message?: string;
+  roleCodes?: string;
+  startAt?: string;
+  title?: string;
+};
+
+const pageSizeOptions = [8, 10, 20];
+
+const fallbackRoleOptions: RoleOption[] = [
+  { code: "SYSTEM_ADMIN", label: "Quản trị hệ thống" },
+  { code: "PARKING_MANAGER", label: "Quản lý bãi xe" },
+  { code: "EMPLOYEE", label: "Nhân viên vận hành" },
+  { code: "CUSTOMER", label: "Khách hàng" },
 ];
 
-const notificationTypeOptions: Array<{ group: string; label: string; value: NotificationType }> = [
-  { group: "He thong", label: "Thong bao he thong", value: "SYSTEM_NOTICE" },
-  { group: "Ve thang", label: "Dang ky ve thang", value: "SUBSCRIPTION_REQUESTED" },
-  { group: "Ve thang", label: "Ve thang sap het han", value: "SUBSCRIPTION_EXPIRING_SOON" },
-  { group: "Thanh toan", label: "Hoa don moi", value: "INVOICE_CREATED" },
-  { group: "Thanh toan", label: "Thanh toan thanh cong", value: "PAYMENT_SUCCEEDED" },
-  { group: "Thanh toan", label: "Thanh toan that bai", value: "PAYMENT_FAILED" },
-  { group: "Ho tro", label: "Ticket moi", value: "SUPPORT_TICKET_CREATED" },
-  { group: "Ho tro", label: "Ticket duoc phan cong", value: "SUPPORT_TICKET_ASSIGNED" },
-  { group: "Van hanh", label: "Phan ca moi", value: "SHIFT_ASSIGNED" },
-  { group: "Van hanh", label: "Thiet bi offline", value: "DEVICE_OFFLINE" },
-  { group: "Van hanh", label: "Bao tri thiet bi", value: "DEVICE_MAINTENANCE" },
-  { group: "Gia & danh muc", label: "Doi ke hoach gia", value: "PRICE_PLAN_CHANGED" },
-  { group: "Gia & danh muc", label: "Doi quy tac gia", value: "PRICE_RULE_CHANGED" },
-  { group: "Tai khoan", label: "Ho so can duyet", value: "ACCOUNT_PROFILE_SUBMITTED" },
-  { group: "Tai khoan", label: "Tai khoan thay doi trang thai", value: "ACCOUNT_STATUS_CHANGED" },
+const notificationTypeOptions: Array<{ badge: string; icon: string; label: string; tone: "primary" | "success" | "warning" | "danger" | "neutral"; value: NotificationType }> = [
+  { badge: "Hệ thống", icon: "fas fa-cog", label: "Thông báo hệ thống", tone: "primary", value: "SYSTEM_NOTICE" },
+  { badge: "Vé tháng", icon: "far fa-id-card", label: "Đăng ký vé tháng", tone: "primary", value: "SUBSCRIPTION_REQUESTED" },
+  { badge: "Vé tháng", icon: "far fa-clock", label: "Vé tháng sắp hết hạn", tone: "warning", value: "SUBSCRIPTION_EXPIRING_SOON" },
+  { badge: "Thanh toán", icon: "far fa-file-invoice", label: "Hóa đơn mới", tone: "warning", value: "INVOICE_CREATED" },
+  { badge: "Thanh toán", icon: "far fa-check-circle", label: "Thanh toán thành công", tone: "success", value: "PAYMENT_SUCCEEDED" },
+  { badge: "Thanh toán", icon: "far fa-times-circle", label: "Thanh toán thất bại", tone: "danger", value: "PAYMENT_FAILED" },
+  { badge: "Hỗ trợ", icon: "far fa-life-ring", label: "Ticket mới", tone: "primary", value: "SUPPORT_TICKET_CREATED" },
+  { badge: "Hỗ trợ", icon: "far fa-user", label: "Ticket được phân công", tone: "primary", value: "SUPPORT_TICKET_ASSIGNED" },
+  { badge: "Nội bộ", icon: "far fa-calendar-check", label: "Phân ca mới", tone: "neutral", value: "SHIFT_ASSIGNED" },
+  { badge: "Vận hành", icon: "fas fa-wifi", label: "Thiết bị offline", tone: "danger", value: "DEVICE_OFFLINE" },
+  { badge: "Vận hành", icon: "fas fa-tools", label: "Bảo trì thiết bị", tone: "warning", value: "DEVICE_MAINTENANCE" },
+  { badge: "Vận hành", icon: "fas fa-road", label: "Bảo trì lane", tone: "warning", value: "LANE_MAINTENANCE" },
+  { badge: "Giá", icon: "fas fa-tags", label: "Đổi kế hoạch giá", tone: "warning", value: "PRICE_PLAN_CHANGED" },
+  { badge: "Giá", icon: "fas fa-percent", label: "Đổi quy tắc giá", tone: "warning", value: "PRICE_RULE_CHANGED" },
+  { badge: "Tài khoản", icon: "far fa-user-circle", label: "Hồ sơ cần duyệt", tone: "primary", value: "ACCOUNT_PROFILE_SUBMITTED" },
+  { badge: "Tài khoản", icon: "fas fa-user-shield", label: "Tài khoản đổi trạng thái", tone: "neutral", value: "ACCOUNT_STATUS_CHANGED" },
 ];
 
 const statusTabs: Array<{ label: string; value: "all" | BroadcastAnnouncementStatus }> = [
-  { label: "Tat ca", value: "all" },
-  { label: "Nhap", value: "DRAFT" },
-  { label: "Da phat", value: "PUBLISHED" },
-  { label: "Da huy", value: "CANCELLED" },
+  { label: "Tất cả", value: "all" },
+  { label: "Nháp", value: "DRAFT" },
+  { label: "Đã phát", value: "PUBLISHED" },
+  { label: "Đã hủy", value: "CANCELLED" },
 ];
 
-const statusOptions = statusTabs.map((item) => ({ label: item.label, value: item.value }));
+function buildAudienceOptions(roleOptions: RoleOption[]) {
+  return [
+    { label: "Tất cả đối tượng", value: "all" },
+    { label: "Tất cả tài khoản đang hoạt động", value: "ALL_ACTIVE_ACCOUNTS" },
+    ...roleOptions.map((role) => ({ label: role.code, value: role.code })),
+  ];
+}
+
+const typeOptions = [
+  { label: "Loại thông báo", value: "all" },
+  ...notificationTypeOptions.map((option) => ({ label: option.label, value: option.value })),
+];
+
+const redirectTargetOptions = [
+  { label: "Không mở màn hình nào", value: "none" },
+  { label: "Bãi xe & sơ đồ vận hành", value: "/admin/parking-lots" },
+  { label: "Thiết bị", value: "/admin/devices" },
+  { label: "Bảng giá", value: "/admin/price-plans" },
+  { label: "Trung tâm hỗ trợ", value: "/admin/support-center" },
+  { label: "Tài khoản", value: "/admin/account" },
+  { label: "Vé tháng của khách hàng", value: "/customer/subscriptions" },
+  { label: "Hỗ trợ khách hàng", value: "/customer/support" },
+];
 
 const inputClassName =
   "tw-h-10 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none tw-transition placeholder:tw-text-vm-slate-400 focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] disabled:tw-cursor-not-allowed disabled:tw-bg-vm-slate-25 disabled:tw-text-vm-slate-500";
 
-function nowLocalDateTime() {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return now.toISOString().slice(0, 16);
-}
+const ACTION_MENU_WIDTH = 184;
+const ACTION_MENU_HEIGHT = 236;
+const ACTION_MENU_GAP = 8;
 
 function toLocalDateTimeInput(value: string | null | undefined) {
   if (!value) return "";
@@ -94,24 +140,38 @@ function toInstant(value: string) {
   return new Date(value).toISOString();
 }
 
-function formatDateTime(value: string | null | undefined) {
+function formatDate(value: string | null | undefined) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
   return new Intl.DateTimeFormat("vi-VN", {
-    dateStyle: "short",
-    timeStyle: "short",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+}
+
+function formatTime(value: string | null | undefined) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
   }).format(date);
 }
 
 function getInitialForm(announcement?: BroadcastAnnouncementResponse | null): AnnouncementFormState {
   return {
     audienceType: announcement?.audienceType ?? "ALL_ACTIVE_ACCOUNTS",
+    displayOrder: `${announcement?.displayOrder ?? 100}`,
     enabled: announcement?.enabled ?? true,
     endAt: toLocalDateTimeInput(announcement?.endAt),
     message: announcement?.message ?? "",
     notificationType: announcement?.notificationType ?? "SYSTEM_NOTICE",
+    publishTiming: announcement?.startAt && new Date(announcement.startAt).getTime() > Date.now() ? "scheduled" : "now",
     redirectUrl: announcement?.redirectUrl ?? "",
     relatedId: announcement?.relatedId ?? "",
     relatedSchema: announcement?.relatedSchema ?? "",
@@ -129,20 +189,28 @@ function getStatusTone(status: BroadcastAnnouncementStatus) {
 }
 
 function getStatusLabel(status: BroadcastAnnouncementStatus) {
-  if (status === "PUBLISHED") return "Da phat";
-  if (status === "CANCELLED") return "Da huy";
-  return "Nhap";
+  if (status === "PUBLISHED") return "Đã phát";
+  if (status === "CANCELLED") return "Đã hủy";
+  return "Nháp";
 }
 
-function getAudienceLabel(announcement: BroadcastAnnouncementResponse) {
+function getStatusDate(announcement: BroadcastAnnouncementResponse) {
+  return announcement.publishedAt ?? announcement.cancelledAt ?? announcement.startAt ?? announcement.createdAt;
+}
+
+function getTypeMeta(value: NotificationType) {
+  return notificationTypeOptions.find((option) => option.value === value) ?? notificationTypeOptions[0];
+}
+
+function getAudienceLabel(announcement: Pick<BroadcastAnnouncementResponse, "audienceType" | "roleCodes">) {
   if (announcement.audienceType === "ALL_ACTIVE_ACCOUNTS") {
-    return "Tat ca tai khoan dang ACTIVE";
+    return "Tất cả tài khoản đang hoạt động";
   }
-  return (announcement.roleCodes ?? []).join(", ");
+  return (announcement.roleCodes ?? []).join(", ") || "Chưa chọn role";
 }
 
-function getTypeLabel(value: NotificationType) {
-  return notificationTypeOptions.find((option) => option.value === value)?.label ?? value;
+function getAuthorLabel(authorId: string | null | undefined) {
+  return authorId ? `bởi ${authorId.slice(0, 8)}` : "bởi Admin";
 }
 
 function getPageItems<T>(rows: T[], currentPage: number, pageSize: number) {
@@ -161,290 +229,752 @@ function getPageItems<T>(rows: T[], currentPage: number, pageSize: number) {
 }
 
 function normalizePayload(form: AnnouncementFormState): BroadcastAnnouncementPayload {
-  return {
+  const startAt = form.publishTiming === "now" ? nowLocalDateTime() : form.startAt;
+  const relatedId = form.relatedId.trim();
+  const relatedSchema = form.relatedSchema.trim();
+  const relatedTable = form.relatedTable.trim();
+
+  const payload: BroadcastAnnouncementPayload = {
     audienceType: form.audienceType,
+    displayOrder: Math.max(1, Number(form.displayOrder) || 100),
     enabled: form.enabled,
     endAt: form.endAt ? toInstant(form.endAt) : null,
     message: form.message.trim(),
     notificationType: form.notificationType,
     redirectUrl: form.redirectUrl.trim() || null,
-    relatedId: form.relatedId.trim() || null,
-    relatedSchema: form.relatedSchema.trim() || null,
-    relatedTable: form.relatedTable.trim() || null,
     roleCodes: form.audienceType === "ROLE_CODES" ? form.roleCodes : [],
-    startAt: toInstant(form.startAt),
+    startAt: toInstant(startAt),
     title: form.title.trim(),
+  };
+
+  if (relatedId) payload.relatedId = relatedId;
+  if (relatedSchema) payload.relatedSchema = relatedSchema;
+  if (relatedTable) payload.relatedTable = relatedTable;
+
+  return payload;
+}
+
+function buildCopyForm(announcement: BroadcastAnnouncementResponse): AnnouncementFormState {
+  const copiedTitle = `Bản sao - ${announcement.title}`.slice(0, 200);
+  const copiedRoleCodes = announcement.roleCodes ?? [];
+  const copiedAudienceType =
+    announcement.audienceType === "ROLE_CODES" && copiedRoleCodes.length > 0
+      ? "ROLE_CODES"
+      : "ALL_ACTIVE_ACCOUNTS";
+
+  return {
+    audienceType: copiedAudienceType,
+    displayOrder: `${announcement.displayOrder ?? 100}`,
+    enabled: true,
+    endAt: toLocalDateTimeInput(announcement.endAt),
+    message: announcement.message,
+    notificationType: announcement.notificationType,
+    publishTiming: "now",
+    redirectUrl: announcement.redirectUrl ?? "",
+    relatedId: "",
+    relatedSchema: "",
+    relatedTable: "",
+    roleCodes: copiedAudienceType === "ROLE_CODES" ? copiedRoleCodes : [],
+    startAt: nowLocalDateTime(),
+    title: copiedTitle,
   };
 }
 
-function MetricCard({ icon, label, value }: { icon: string; label: string; value: number }) {
+function getExpectedRecipientText(form: AnnouncementFormState | BroadcastAnnouncementResponse) {
+  if (form.audienceType === "ALL_ACTIVE_ACCOUNTS") return "Tính theo toàn bộ account ACTIVE khi phát";
+  const roleCount = (form.roleCodes ?? []).length;
+  return roleCount ? `${roleCount} role được chọn, backend lọc account ACTIVE khi phát` : "Chưa chọn role nhận";
+}
+
+function getRedirectOptions(currentRedirectUrl: string) {
+  if (!currentRedirectUrl || redirectTargetOptions.some((option) => option.value === currentRedirectUrl)) {
+    return redirectTargetOptions;
+  }
+
+  return [
+    ...redirectTargetOptions,
+    { label: `Đường dẫn đang lưu: ${currentRedirectUrl}`, value: currentRedirectUrl },
+  ];
+}
+
+function mapRoleToOption(role: NotificationActiveRoleResponse): RoleOption | null {
+  const code = role.code?.trim();
+  if (!code) return null;
+  return {
+    code,
+    label: role.name?.trim() || code,
+  };
+}
+
+function validateForm(
+  form: AnnouncementFormState,
+  titleChangeRequirement?: { initialTitle: string; required: boolean },
+  titleExists?: (title: string) => boolean,
+): AnnouncementFieldErrors {
+  const errors: AnnouncementFieldErrors = {};
+  if (!form.title.trim()) errors.title = "Vui lòng nhập tiêu đề thông báo.";
+  if (
+    !errors.title &&
+    titleChangeRequirement?.required &&
+    form.title.trim() === titleChangeRequirement.initialTitle.trim()
+  ) {
+    errors.title = "Vui lòng thay đổi tiêu đề thông báo sau khi sao chép.";
+  }
+  if (!errors.title && titleExists?.(form.title)) {
+    errors.title = "Tiêu đề thông báo đã tồn tại. Vui lòng nhập tiêu đề khác.";
+  }
+  if (!form.message.trim()) errors.message = "Vui lòng nhập nội dung thông báo.";
+  if (!Number.isInteger(Number(form.displayOrder)) || Number(form.displayOrder) < 1) {
+    errors.displayOrder = "Thứ tự hiển thị phải là số nguyên từ 1 trở lên.";
+  }
+  if (!form.startAt) errors.startAt = "Vui lòng chọn thời điểm bắt đầu.";
+  if (form.endAt && form.startAt && new Date(form.endAt).getTime() < new Date(form.startAt).getTime()) {
+    errors.endAt = "Thời điểm kết thúc phải sau thời điểm bắt đầu.";
+  }
+  if (form.audienceType === "ROLE_CODES" && form.roleCodes.length === 0) {
+    errors.roleCodes = "Vui lòng chọn ít nhất một role nhận thông báo.";
+  }
+  return errors;
+}
+
+function getDuplicateTitleError(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  return message.toLowerCase().includes("title") && message.toLowerCase().includes("already exists")
+    ? "Tiêu đề thông báo đã tồn tại. Vui lòng nhập tiêu đề khác."
+    : message.includes("Tiêu đề thông báo đã tồn tại")
+      ? "Tiêu đề thông báo đã tồn tại. Vui lòng nhập tiêu đề khác."
+      : "";
+}
+
+function hasFieldErrors(errors: AnnouncementFieldErrors) {
+  return Object.values(errors).some(Boolean);
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+
   return (
-    <Card className="tw-flex tw-min-h-[96px] tw-items-center tw-gap-4 tw-p-4">
-      <span className="tw-inline-flex tw-h-11 tw-w-11 tw-items-center tw-justify-center tw-rounded-vm-md tw-bg-brand-50 tw-text-vm-primary">
-        <i className={icon} />
-      </span>
-      <span>
-        <span className="tw-block tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-500">{label}</span>
-        <strong className="tw-mt-1 tw-block tw-text-[1.55rem] tw-font-black tw-leading-none tw-text-vm-slate-900">
-          {value.toLocaleString("vi-VN")}
-        </strong>
-      </span>
-    </Card>
+    <span className="tw-flex tw-items-center tw-gap-1.5 tw-text-[0.76rem] tw-font-bold tw-leading-snug tw-text-red-600">
+      <i className="fas fa-exclamation-circle tw-text-[0.72rem]" />
+      {message}
+    </span>
+  );
+}
+
+function AnnouncementActionMenu({
+  announcement,
+  canCancel,
+  canCreate,
+  canDelete,
+  canPublish,
+  onCancel,
+  onCopy,
+  onDelete,
+  onPublish,
+  onView,
+}: {
+  announcement: BroadcastAnnouncementResponse;
+  canCancel: boolean;
+  canCreate: boolean;
+  canDelete: boolean;
+  canPublish: boolean;
+  onCancel: () => void;
+  onCopy: () => void;
+  onDelete: () => void;
+  onPublish: () => void;
+  onView: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<ActionMenuPosition | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const editable = announcement.status === "DRAFT";
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const closeMenu = () => {
+      setOpen(false);
+      setMenuPosition(null);
+    };
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (triggerRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      closeMenu();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeMenu();
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("resize", closeMenu);
+    window.addEventListener("scroll", closeMenu, true);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("resize", closeMenu);
+      window.removeEventListener("scroll", closeMenu, true);
+    };
+  }, [open]);
+
+  const openActionMenu = () => {
+    if (open) {
+      setOpen(false);
+      setMenuPosition(null);
+      return;
+    }
+
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const maxLeft = window.innerWidth - ACTION_MENU_WIDTH - 8;
+    const shouldOpenAbove = rect.bottom + ACTION_MENU_GAP + ACTION_MENU_HEIGHT > window.innerHeight - 8;
+
+    setMenuPosition({
+      left: Math.max(8, Math.min(rect.right - ACTION_MENU_WIDTH, maxLeft)),
+      top: shouldOpenAbove
+        ? Math.max(8, rect.top - ACTION_MENU_HEIGHT - ACTION_MENU_GAP)
+        : rect.bottom + ACTION_MENU_GAP,
+    });
+    setOpen(true);
+  };
+
+  const runAction = (action: () => void) => {
+    setOpen(false);
+    setMenuPosition(null);
+    action();
+  };
+
+  const actionMenu = open && menuPosition
+    ? createPortal(
+        <div
+          className="tw-fixed tw-z-[3200] tw-w-[184px] tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-1.5 tw-text-left tw-shadow-[0_18px_48px_rgba(15,23,42,0.2)]"
+          ref={menuRef}
+          style={{ left: menuPosition.left, top: menuPosition.top }}
+        >
+          <button
+            className="tw-flex tw-min-h-9 tw-w-full tw-items-center tw-gap-2.5 tw-border-0 tw-bg-white tw-px-3 tw-text-left tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 hover:tw-text-vm-primary"
+            type="button"
+            onClick={() => runAction(onView)}
+          >
+            <i className="far fa-eye tw-w-4 tw-text-center tw-text-[0.82rem]" />
+            <span>Xem</span>
+          </button>
+          {canCreate ? (
+            <button
+              className="tw-flex tw-min-h-9 tw-w-full tw-items-center tw-gap-2.5 tw-border-0 tw-bg-white tw-px-3 tw-text-left tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 hover:tw-text-vm-primary"
+              type="button"
+              onClick={() => runAction(onCopy)}
+            >
+              <i className="far fa-copy tw-w-4 tw-text-center tw-text-[0.82rem]" />
+              <span>Sao chép</span>
+            </button>
+          ) : null}
+          {editable && canPublish ? (
+            <button
+              className="tw-flex tw-min-h-9 tw-w-full tw-items-center tw-gap-2.5 tw-border-0 tw-bg-white tw-px-3 tw-text-left tw-text-[0.84rem] tw-font-bold tw-text-emerald-700 tw-transition hover:tw-bg-emerald-50"
+              type="button"
+              onClick={() => runAction(onPublish)}
+            >
+              <i className="far fa-paper-plane tw-w-4 tw-text-center tw-text-[0.82rem]" />
+              <span>Xuất bản</span>
+            </button>
+          ) : null}
+          {editable && canCancel ? (
+            <button
+              className="tw-flex tw-min-h-9 tw-w-full tw-items-center tw-gap-2.5 tw-border-0 tw-bg-white tw-px-3 tw-text-left tw-text-[0.84rem] tw-font-bold tw-text-amber-700 tw-transition hover:tw-bg-amber-50"
+              type="button"
+              onClick={() => runAction(onCancel)}
+            >
+              <i className="fas fa-ban tw-w-4 tw-text-center tw-text-[0.82rem]" />
+              <span>Hủy</span>
+            </button>
+          ) : null}
+          {announcement.status !== "PUBLISHED" && canDelete ? (
+            <button
+              className="tw-flex tw-min-h-9 tw-w-full tw-items-center tw-gap-2.5 tw-border-0 tw-bg-white tw-px-3 tw-text-left tw-text-[0.84rem] tw-font-bold tw-text-red-600 tw-transition hover:tw-bg-red-50"
+              type="button"
+              onClick={() => runAction(onDelete)}
+            >
+              <i className="far fa-trash-alt tw-w-4 tw-text-center tw-text-[0.82rem]" />
+              <span>Xóa</span>
+            </button>
+          ) : null}
+        </div>,
+        document.body,
+      )
+    : null;
+
+  return (
+    <>
+      <button
+        aria-expanded={open}
+        aria-label={`Mở menu thao tác ${announcement.title}`}
+        className={cn(
+          "tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-vm-slate-600 tw-transition hover:tw-bg-vm-slate-50 hover:tw-text-vm-slate-950 focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus",
+          open ? "tw-bg-vm-slate-50 tw-text-vm-primary" : "",
+        )}
+        ref={triggerRef}
+        type="button"
+        onClick={openActionMenu}
+      >
+        <i className="fas fa-ellipsis-v" />
+      </button>
+      {actionMenu}
+    </>
+  );
+}
+
+function AnnouncementTabs({
+  counts,
+  status,
+  onChange,
+}: {
+  counts: Record<"all" | BroadcastAnnouncementStatus, number>;
+  status: "all" | BroadcastAnnouncementStatus;
+  onChange: (status: "all" | BroadcastAnnouncementStatus) => void;
+}) {
+  return (
+    <div className="tw-flex tw-items-end tw-gap-8 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 max-[640px]:tw-gap-4">
+      {statusTabs.map((tab) => {
+        const active = status === tab.value;
+        return (
+          <button
+            className={cn(
+              "tw-relative tw-flex tw-h-11 tw-items-center tw-gap-2 tw-border-0 tw-bg-transparent tw-px-0 tw-text-[0.88rem] tw-font-black tw-text-vm-slate-600 tw-transition hover:tw-text-vm-primary",
+              active ? "tw-text-emerald-600" : "",
+            )}
+            key={tab.value}
+            type="button"
+            onClick={() => onChange(tab.value)}
+          >
+            <span>{tab.label}</span>
+            <span
+              className={cn(
+                "tw-inline-flex tw-min-w-7 tw-items-center tw-justify-center tw-rounded-full tw-px-2 tw-py-0.5 tw-text-[0.72rem] tw-font-black",
+                tab.value === "all" ? "tw-bg-blue-100 tw-text-blue-700" : "",
+                tab.value === "DRAFT" ? "tw-bg-vm-slate-100 tw-text-vm-slate-600" : "",
+                tab.value === "PUBLISHED" ? "tw-bg-emerald-100 tw-text-emerald-700" : "",
+                tab.value === "CANCELLED" ? "tw-bg-red-100 tw-text-red-600" : "",
+              )}
+            >
+              {counts[tab.value].toLocaleString("vi-VN")}
+            </span>
+            {active ? <span className="tw-absolute tw-inset-x-0 tw-bottom-[-1px] tw-h-[2px] tw-rounded-full tw-bg-emerald-500" /> : null}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
 function AnnouncementDrawer({
   announcement,
+  canPublish,
   canSave,
+  copiedInitialForm,
+  duplicateTitleExists,
   onClose,
-  onSubmit,
+  onPublish,
+  onSaveDraft,
+  onUpdateDisplayOrder,
   open,
+  roleLookupWarning,
+  roleOptions,
   saving,
+  titleChangeRequired,
 }: {
   announcement: BroadcastAnnouncementResponse | null;
+  canPublish: boolean;
   canSave: boolean;
+  copiedInitialForm: AnnouncementFormState | null;
+  duplicateTitleExists: (title: string) => boolean;
   onClose: () => void;
-  onSubmit: (payload: BroadcastAnnouncementPayload) => Promise<void>;
+  onPublish: (payload: BroadcastAnnouncementPayload, publishTiming: AnnouncementFormState["publishTiming"]) => Promise<void>;
+  onSaveDraft: (payload: BroadcastAnnouncementPayload) => Promise<void>;
+  onUpdateDisplayOrder: (broadcastId: string, displayOrder: number) => Promise<void>;
   open: boolean;
+  roleLookupWarning: string;
+  roleOptions: RoleOption[];
   saving: boolean;
+  titleChangeRequired: boolean;
 }) {
-  const [form, setForm] = useState<AnnouncementFormState>(() => getInitialForm(announcement));
-  const [formError, setFormError] = useState("");
+  const [form, setForm] = useState<AnnouncementFormState>(() => copiedInitialForm ?? getInitialForm(announcement));
+  const [fieldErrors, setFieldErrors] = useState<AnnouncementFieldErrors>({});
   const readOnly = Boolean(announcement && announcement.status !== "DRAFT") || !canSave;
+  const canEditPublishedDisplayOrder = Boolean(announcement && announcement.status === "PUBLISHED" && canSave);
+  const displayOrderReadOnly = readOnly && !canEditPublishedDisplayOrder;
+  const typeMeta = getTypeMeta(form.notificationType);
+  const characterCount = form.message.length;
 
   useEffect(() => {
-    setForm(getInitialForm(announcement));
-    setFormError("");
-  }, [announcement, open]);
+    setForm(copiedInitialForm ?? getInitialForm(announcement));
+    setFieldErrors(titleChangeRequired ? { title: "Vui lòng thay đổi tiêu đề thông báo sau khi sao chép." } : {});
+  }, [announcement, copiedInitialForm, open, titleChangeRequired]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  function clearFieldError(field: keyof AnnouncementFieldErrors) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      return { ...current, [field]: undefined };
+    });
+  }
+
+  async function submit(intent: "draft" | "publish") {
     if (readOnly) return;
-
-    if (!form.title.trim() || !form.message.trim() || !form.startAt) {
-      setFormError("Vui long nhap tieu de, noi dung va thoi diem bat dau.");
-      return;
-    }
-    if (form.audienceType === "ROLE_CODES" && form.roleCodes.length === 0) {
-      setFormError("Khi chon theo vai tro, can chon it nhat mot role.");
-      return;
-    }
-    if (form.endAt && new Date(form.endAt).getTime() < new Date(form.startAt).getTime()) {
-      setFormError("Thoi diem ket thuc phai lon hon hoac bang thoi diem bat dau.");
+    const errors = validateForm(form, {
+      initialTitle: copiedInitialForm?.title ?? announcement?.title ?? "",
+      required: titleChangeRequired,
+    }, duplicateTitleExists);
+    if (hasFieldErrors(errors)) {
+      setFieldErrors(errors);
       return;
     }
 
-    setFormError("");
-    await onSubmit(normalizePayload(form));
+    setFieldErrors({});
+    const payload = normalizePayload(form);
+    try {
+      if (intent === "publish") {
+        await onPublish(payload, form.publishTiming);
+        return;
+      }
+      await onSaveDraft(payload);
+    } catch (error) {
+      const duplicateTitleError = getDuplicateTitleError(error);
+      if (duplicateTitleError) {
+        setFieldErrors((current) => ({ ...current, title: duplicateTitleError }));
+      }
+    }
+  }
+
+  async function submitDisplayOrder() {
+    if (!announcement || !canEditPublishedDisplayOrder) return;
+    if (!Number.isInteger(Number(form.displayOrder)) || Number(form.displayOrder) < 1) {
+      setFieldErrors({ displayOrder: "Thứ tự hiển thị phải là số nguyên từ 1 trở lên." });
+      return;
+    }
+
+    setFieldErrors({});
+    try {
+      await onUpdateDisplayOrder(announcement.broadcastId, Math.max(1, Number(form.displayOrder) || 100));
+    } catch {
+      return;
+    }
   }
 
   return (
     <Drawer
       actions={
-        <div className={cn("tw-grid tw-gap-2", readOnly ? "tw-grid-cols-1" : "tw-grid-cols-2")}>
-          <Button variant="secondary" onClick={onClose}>
-            {readOnly ? "Dong" : "Huy"}
-          </Button>
-          {!readOnly ? (
-            <Button form="announcement-form" loading={saving} type="submit">
-              <i className="far fa-save" />
-              Luu nhap
+        canEditPublishedDisplayOrder ? (
+          <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+            <Button className="tw-h-12" disabled={saving} variant="secondary" onClick={onClose}>
+              Đóng
             </Button>
-          ) : null}
-        </div>
+            <Button className="tw-h-12" loading={saving} onClick={() => void submitDisplayOrder()}>
+              Lưu thứ tự
+            </Button>
+          </div>
+        ) : readOnly ? (
+          <Button className="tw-h-12 tw-w-full" disabled={saving} variant="secondary" onClick={onClose}>
+            Đóng
+          </Button>
+        ) : (
+          <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+            <Button className="tw-h-12" disabled={saving} variant="secondary" onClick={() => void submit("draft")}>
+              Lưu nháp
+            </Button>
+            <Button className="tw-h-12" disabled={!canPublish} loading={saving} onClick={() => void submit("publish")}>
+              Xuất bản
+            </Button>
+          </div>
+        )
       }
-      description={readOnly ? "Announcement da khoa theo trang thai hoac quyen hien tai." : "Soan noi dung, chon doi tuong nhan va luu ban nhap truoc khi phat."}
       onClose={onClose}
       open={open}
-      title={announcement ? "Chi tiet announcement" : "Tao announcement"}
-      width="xl"
+      title={announcement ? "Chi tiết thông báo" : "Tạo thông báo"}
+      width="lg"
     >
-      <form className="tw-grid tw-gap-5" id="announcement-form" onSubmit={(event) => void handleSubmit(event)}>
-        {announcement ? (
-          <div className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-3">
-            <span className="tw-min-w-0">
-              <strong className="tw-block tw-truncate tw-text-[0.9rem] tw-font-black tw-text-vm-slate-900">
-                {announcement.broadcastId}
-              </strong>
-              <small className="tw-mt-1 tw-block tw-text-[0.74rem] tw-font-semibold tw-text-vm-slate-500">
-                Tao luc {formatDateTime(announcement.createdAt)}
-              </small>
-            </span>
-            <Badge tone={getStatusTone(announcement.status)}>{getStatusLabel(announcement.status)}</Badge>
+      <div className="tw-grid tw-gap-6">
+        <section className="tw-grid tw-gap-3">
+          <label className="tw-grid tw-gap-2">
+            <span className={cn("tw-text-[0.82rem] tw-font-black", fieldErrors.title ? "tw-text-red-600" : "tw-text-vm-slate-900")}>Tiêu đề thông báo</span>
+            <input
+              className={cn(inputClassName, fieldErrors.title ? "tw-border-red-300 tw-shadow-[0_0_0_3px_rgba(239,68,68,0.12)] focus:tw-border-red-300 focus:tw-shadow-[0_0_0_3px_rgba(239,68,68,0.12)]" : "")}
+              disabled={readOnly}
+              maxLength={200}
+              placeholder="Nhập tiêu đề hiển thị trên chuông thông báo"
+              value={form.title}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, title: event.target.value }));
+                clearFieldError("title");
+              }}
+            />
+            <FieldError message={fieldErrors.title} />
+          </label>
+        </section>
+
+        <section className="tw-grid tw-gap-3">
+          <h4 className="tw-m-0 tw-text-[0.9rem] tw-font-black tw-text-vm-slate-900">Đối tượng nhận</h4>
+          <label className="tw-flex tw-items-center tw-gap-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-800">
+            <input
+              checked={form.audienceType === "ALL_ACTIVE_ACCOUNTS"}
+              disabled={readOnly}
+              name="audienceType"
+              type="radio"
+              onChange={() => {
+                setForm((current) => ({ ...current, audienceType: "ALL_ACTIVE_ACCOUNTS", roleCodes: [] }));
+                clearFieldError("roleCodes");
+              }}
+            />
+            <span>Tất cả tài khoản đang hoạt động</span>
+          </label>
+          <div className="tw-grid tw-gap-2">
+            <div className="tw-flex tw-items-center tw-justify-between tw-gap-2">
+              <span className="tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-700">Hoặc chọn theo vai trò</span>
+              <button
+                className="tw-border-0 tw-bg-transparent tw-text-[0.75rem] tw-font-bold tw-text-vm-primary"
+                disabled={readOnly}
+                type="button"
+                onClick={() => setForm((current) => ({ ...current, audienceType: "ROLE_CODES" }))}
+              >
+                Chọn role
+              </button>
+            </div>
+            <div className={cn(
+              "tw-flex tw-min-h-[72px] tw-flex-wrap tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-bg-white tw-p-3",
+              fieldErrors.roleCodes ? "tw-border-red-300 tw-shadow-[0_0_0_3px_rgba(239,68,68,0.12)]" : "tw-border-vm-slate-100",
+            )}>
+              {roleOptions.map((role) => {
+                const selected = form.roleCodes.includes(role.code);
+                return (
+                  <button
+                    className={cn(
+                      "tw-inline-flex tw-h-8 tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border tw-border-solid tw-px-2.5 tw-text-[0.78rem] tw-font-black tw-transition",
+                      selected ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary" : "tw-border-transparent tw-bg-vm-slate-50 tw-text-vm-slate-700",
+                    )}
+                    disabled={readOnly}
+                    key={role.code}
+                    title={role.label}
+                    type="button"
+                    onClick={() => {
+                      setForm((current) => {
+                        const nextRoles = selected
+                          ? current.roleCodes.filter((item) => item !== role.code)
+                          : [...current.roleCodes, role.code];
+                        return { ...current, audienceType: "ROLE_CODES", roleCodes: nextRoles };
+                      });
+                      if (!selected) clearFieldError("roleCodes");
+                    }}
+                  >
+                    <span>{role.code}</span>
+                    {selected ? <i className="fas fa-times tw-text-[0.68rem]" /> : null}
+                  </button>
+                );
+              })}
+            </div>
+            <FieldError message={fieldErrors.roleCodes} />
+            {roleLookupWarning ? (
+              <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-100 tw-bg-amber-50 tw-p-3 tw-text-[0.78rem] tw-font-semibold tw-leading-5 tw-text-amber-700">
+                {roleLookupWarning}
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        </section>
 
         <section className="tw-grid tw-gap-3">
           <label className="tw-grid tw-gap-2">
-            <span className="tw-text-[0.76rem] tw-font-black tw-text-vm-slate-700">Tieu de *</span>
-            <input
-              className={inputClassName}
-              disabled={readOnly}
-              maxLength={200}
-              value={form.title}
-              onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-            />
-          </label>
-          <label className="tw-grid tw-gap-2">
-            <span className="tw-text-[0.76rem] tw-font-black tw-text-vm-slate-700">Noi dung *</span>
-            <textarea
-              className="tw-min-h-[130px] tw-w-full tw-resize-y tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3 tw-text-[0.86rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 disabled:tw-cursor-not-allowed disabled:tw-bg-vm-slate-25"
-              disabled={readOnly}
-              value={form.message}
-              onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-            />
-          </label>
-          <label className="tw-grid tw-gap-2">
-            <span className="tw-text-[0.76rem] tw-font-black tw-text-vm-slate-700">Loai thong bao</span>
+            <span className="tw-text-[0.82rem] tw-font-black tw-text-vm-slate-900">Loại thông báo</span>
             <SelectMenu
-              ariaLabel="Loai thong bao"
+              ariaLabel="Loại thông báo"
               disabled={readOnly}
               menuClassName="tw-max-h-72"
-              options={notificationTypeOptions.map((option) => ({ label: `${option.group} - ${option.label}`, value: option.value }))}
+              options={notificationTypeOptions.map((option) => ({ label: option.label, value: option.value }))}
               portal
+              searchable
+              searchPlaceholder="Tìm loại thông báo..."
               value={form.notificationType}
               onChange={(value) => setForm((current) => ({ ...current, notificationType: value as NotificationType }))}
             />
           </label>
         </section>
 
-        <section className="tw-grid tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-pt-5">
-          <div>
-            <h4 className="tw-m-0 tw-text-[0.92rem] tw-font-black tw-text-vm-slate-900">Doi tuong nhan</h4>
-            <p className="tw-m-0 tw-mt-1 tw-text-[0.75rem] tw-font-semibold tw-text-vm-slate-500">
-              Backend chi tao notification cho account co status ACTIVE.
-            </p>
+        <section className="tw-grid tw-gap-2">
+          <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+            <h4 className={cn("tw-m-0 tw-text-[0.9rem] tw-font-black", fieldErrors.message ? "tw-text-red-600" : "tw-text-vm-slate-900")}>Nội dung thông báo</h4>
+            <span className="tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">{characterCount}/1000</span>
           </div>
-          <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[620px]:tw-grid-cols-1">
-            <button
-              className={cn(
-                "tw-rounded-vm-md tw-border tw-border-solid tw-p-3 tw-text-left tw-transition",
-                form.audienceType === "ALL_ACTIVE_ACCOUNTS" ? "tw-border-brand-200 tw-bg-brand-50" : "tw-border-vm-slate-100 tw-bg-white",
-              )}
+          <div className={cn(
+            "tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-bg-white",
+            fieldErrors.message ? "tw-border-red-300 tw-shadow-[0_0_0_3px_rgba(239,68,68,0.12)]" : "tw-border-vm-slate-100",
+          )}>
+            <textarea
+              className="tw-min-h-[168px] tw-w-full tw-resize-none tw-border-0 tw-bg-transparent tw-p-3 tw-text-[0.86rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-900 tw-outline-none placeholder:tw-text-vm-slate-400 disabled:tw-cursor-not-allowed disabled:tw-bg-vm-slate-25"
               disabled={readOnly}
-              type="button"
-              onClick={() => setForm((current) => ({ ...current, audienceType: "ALL_ACTIVE_ACCOUNTS", roleCodes: [] }))}
-            >
-              <strong className="tw-block tw-text-[0.86rem] tw-font-black tw-text-vm-slate-900">Tat ca account ACTIVE</strong>
-              <span className="tw-mt-1 tw-block tw-text-[0.74rem] tw-font-semibold tw-text-vm-slate-500">Khach hang va noi bo deu nhan.</span>
-            </button>
-            <button
-              className={cn(
-                "tw-rounded-vm-md tw-border tw-border-solid tw-p-3 tw-text-left tw-transition",
-                form.audienceType === "ROLE_CODES" ? "tw-border-brand-200 tw-bg-brand-50" : "tw-border-vm-slate-100 tw-bg-white",
-              )}
-              disabled={readOnly}
-              type="button"
-              onClick={() => setForm((current) => ({ ...current, audienceType: "ROLE_CODES" }))}
-            >
-              <strong className="tw-block tw-text-[0.86rem] tw-font-black tw-text-vm-slate-900">Theo role code</strong>
-              <span className="tw-mt-1 tw-block tw-text-[0.74rem] tw-font-semibold tw-text-vm-slate-500">Chi cac role duoc chon moi nhan.</span>
-            </button>
-          </div>
-
-          {form.audienceType === "ROLE_CODES" ? (
-            <div className="tw-grid tw-gap-2">
-              {roleOptions.map((role) => {
-                const selected = form.roleCodes.includes(role.code);
-                return (
-                  <button
-                    className={cn(
-                      "tw-grid tw-grid-cols-[22px_minmax(0,1fr)] tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-p-3 tw-text-left tw-transition",
-                      selected ? "tw-border-brand-200 tw-bg-brand-50" : "tw-border-vm-slate-100 tw-bg-white",
-                    )}
-                    disabled={readOnly}
-                    key={role.code}
-                    type="button"
-                    onClick={() =>
-                      setForm((current) => ({
-                        ...current,
-                        roleCodes: selected
-                          ? current.roleCodes.filter((item) => item !== role.code)
-                          : [...current.roleCodes, role.code],
-                      }))
-                    }
-                  >
-                    <span className={cn("tw-mt-0.5 tw-inline-flex tw-h-[18px] tw-w-[18px] tw-items-center tw-justify-center tw-rounded tw-border tw-border-solid", selected ? "tw-border-vm-primary tw-bg-vm-primary tw-text-white" : "tw-border-vm-slate-300")}>
-                      {selected ? <i className="fas fa-check tw-text-[0.62rem]" /> : null}
-                    </span>
-                    <span className="tw-min-w-0">
-                      <strong className="tw-block tw-text-[0.82rem] tw-font-black tw-text-vm-slate-900">{role.code}</strong>
-                      <small className="tw-mt-1 tw-block tw-text-[0.72rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">{role.description}</small>
-                    </span>
-                  </button>
-                );
-              })}
+              maxLength={1000}
+              placeholder="Nhập nội dung gửi tới người nhận..."
+              value={form.message}
+              onChange={(event) => {
+                setForm((current) => ({ ...current, message: event.target.value }));
+                clearFieldError("message");
+              }}
+            />
+            <div className="tw-flex tw-h-10 tw-items-center tw-gap-1 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-px-2">
+              {["fas fa-paperclip", "far fa-image", "far fa-smile"].map((icon) => (
+                <button
+                  className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-sm tw-border-0 tw-bg-transparent tw-text-vm-slate-500 hover:tw-bg-vm-slate-50 hover:tw-text-vm-slate-900"
+                  disabled
+                  key={icon}
+                  type="button"
+                >
+                  <i className={icon} />
+                </button>
+              ))}
             </div>
-          ) : null}
+          </div>
+          <FieldError message={fieldErrors.message} />
         </section>
 
-        <section className="tw-grid tw-grid-cols-2 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-pt-5 max-[620px]:tw-grid-cols-1">
-          <label className="tw-grid tw-gap-2">
-            <span className="tw-text-[0.76rem] tw-font-black tw-text-vm-slate-700">Bat dau *</span>
-            <input
-              className={inputClassName}
-              disabled={readOnly}
-              type="datetime-local"
+        <section className="tw-grid tw-gap-3">
+          <h4 className="tw-m-0 tw-text-[0.9rem] tw-font-black tw-text-vm-slate-900">Xuất bản</h4>
+          <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+            <label
+              className={cn(
+                "tw-flex tw-min-h-[46px] tw-cursor-pointer tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.86rem] tw-font-black tw-transition",
+                form.publishTiming === "now"
+                  ? "tw-border-brand-200 tw-bg-brand-50 tw-text-vm-primary tw-shadow-[0_0_0_3px_rgba(37,99,235,0.06)]"
+                  : "tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-700 hover:tw-border-vm-slate-200",
+                readOnly ? "tw-cursor-not-allowed tw-opacity-70" : "",
+              )}
+            >
+              <input
+                checked={form.publishTiming === "now"}
+                className="tw-accent-vm-primary"
+                disabled={readOnly}
+                name="publishTiming"
+                type="radio"
+                onChange={() => setForm((current) => ({ ...current, publishTiming: "now", startAt: nowLocalDateTime() }))}
+              />
+              <span>Xuất bản ngay</span>
+            </label>
+            <label
+              className={cn(
+                "tw-flex tw-min-h-[46px] tw-cursor-pointer tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.86rem] tw-font-black tw-transition",
+                form.publishTiming === "scheduled"
+                  ? "tw-border-brand-200 tw-bg-brand-50 tw-text-vm-primary tw-shadow-[0_0_0_3px_rgba(37,99,235,0.06)]"
+                  : "tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-700 hover:tw-border-vm-slate-200",
+                readOnly ? "tw-cursor-not-allowed tw-opacity-70" : "",
+              )}
+            >
+              <input
+                checked={form.publishTiming === "scheduled"}
+                className="tw-accent-vm-primary"
+                disabled={readOnly}
+                name="publishTiming"
+                type="radio"
+                onChange={() => setForm((current) => ({ ...current, publishTiming: "scheduled" }))}
+              />
+              <span>Lên lịch xuất bản</span>
+            </label>
+          </div>
+          <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[560px]:tw-grid-cols-1">
+            <DateTimeScheduleField
+              disabled={readOnly || form.publishTiming === "now"}
+              error={fieldErrors.startAt}
+              label="Bắt đầu hiển thị"
               value={form.startAt}
-              onChange={(event) => setForm((current) => ({ ...current, startAt: event.target.value }))}
+              onChange={(value) => {
+                setForm((current) => ({ ...current, startAt: value }));
+                clearFieldError("startAt");
+              }}
             />
-          </label>
-          <label className="tw-grid tw-gap-2">
-            <span className="tw-text-[0.76rem] tw-font-black tw-text-vm-slate-700">Ket thuc</span>
-            <input
-              className={inputClassName}
+            <DateTimeScheduleField
+              allowClear
               disabled={readOnly}
-              type="datetime-local"
+              error={fieldErrors.endAt}
+              fallbackValue={form.startAt}
+              label="Kết thúc hiển thị"
+              menuAlign="right"
               value={form.endAt}
-              onChange={(event) => setForm((current) => ({ ...current, endAt: event.target.value }))}
+              onChange={(value) => {
+                setForm((current) => ({ ...current, endAt: value }));
+                clearFieldError("endAt");
+              }}
             />
+          </div>
+          <label className="tw-grid tw-gap-2">
+            <span className={cn("tw-text-[0.78rem] tw-font-bold", fieldErrors.displayOrder ? "tw-text-red-600" : "tw-text-vm-slate-700")}>Thứ tự chạy trên thanh thông báo</span>
+            <div
+              className={cn(
+                "tw-grid tw-h-[46px] tw-grid-cols-[38px_minmax(0,1fr)] tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-bg-white tw-px-3 tw-shadow-[0_4px_12px_rgba(15,23,42,0.035)] focus-within:tw-border-brand-200 focus-within:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]",
+                fieldErrors.displayOrder ? "tw-border-red-300 tw-shadow-[0_0_0_3px_rgba(239,68,68,0.12)]" : "tw-border-vm-slate-100",
+              )}
+            >
+              <span className="tw-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-sm tw-bg-brand-50 tw-text-vm-primary">
+                <i className="fas fa-sort-numeric-down" />
+              </span>
+              <input
+                className="tw-h-full tw-min-w-0 tw-border-0 tw-bg-transparent tw-text-[0.88rem] tw-font-black tw-text-vm-slate-900 tw-outline-none placeholder:tw-text-vm-slate-400 disabled:tw-cursor-not-allowed disabled:tw-text-vm-slate-500"
+                disabled={displayOrderReadOnly}
+                min={1}
+                placeholder="Số nhỏ hiển thị trước"
+                type="number"
+                value={form.displayOrder}
+                onChange={(event) => {
+                  setForm((current) => ({ ...current, displayOrder: event.target.value }));
+                  clearFieldError("displayOrder");
+                }}
+              />
+            </div>
+            <FieldError message={fieldErrors.displayOrder} />
+            {canEditPublishedDisplayOrder ? (
+              <span className="tw-text-[0.74rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">
+                Thông báo đã phát chỉ cho phép đổi thứ tự chạy, các nội dung khác đang được khóa.
+              </span>
+            ) : null}
           </label>
-          <label className="tw-grid tw-gap-2 tw-col-span-2 max-[620px]:tw-col-span-1">
-            <span className="tw-text-[0.76rem] tw-font-black tw-text-vm-slate-700">Redirect URL</span>
-            <input
-              className={inputClassName}
-              disabled={readOnly}
-              placeholder="/admin/dashboard hoac /customer/support"
-              value={form.redirectUrl}
-              onChange={(event) => setForm((current) => ({ ...current, redirectUrl: event.target.value }))}
-            />
-          </label>
-          <label className="tw-flex tw-items-center tw-gap-3 tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-3">
-            <input
-              checked={form.enabled}
-              disabled={readOnly}
-              type="checkbox"
-              onChange={(event) => setForm((current) => ({ ...current, enabled: event.target.checked }))}
-            />
-            <span className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">Cho phep publish</span>
-          </label>
-        </section>
-
-        <section className="tw-grid tw-grid-cols-3 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-pt-5 max-[620px]:tw-grid-cols-1">
-          <input className={inputClassName} disabled={readOnly} placeholder="relatedSchema" value={form.relatedSchema} onChange={(event) => setForm((current) => ({ ...current, relatedSchema: event.target.value }))} />
-          <input className={inputClassName} disabled={readOnly} placeholder="relatedTable" value={form.relatedTable} onChange={(event) => setForm((current) => ({ ...current, relatedTable: event.target.value }))} />
-          <input className={inputClassName} disabled={readOnly} placeholder="relatedId UUID" value={form.relatedId} onChange={(event) => setForm((current) => ({ ...current, relatedId: event.target.value }))} />
-        </section>
-
-        <section className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
-          <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Preview chuong thong bao</span>
-          <div className="tw-mt-3 tw-grid tw-grid-cols-[40px_minmax(0,1fr)] tw-gap-3 tw-rounded-vm-md tw-bg-white tw-p-3">
-            <span className="tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-vm-md tw-bg-brand-50 tw-text-vm-primary">
-              <i className="fas fa-bullhorn" />
-            </span>
-            <span className="tw-min-w-0">
-              <strong className="tw-block tw-truncate tw-text-[0.84rem] tw-font-black tw-text-vm-slate-900">{form.title || "Tieu de thong bao"}</strong>
-              <small className="tw-mt-1 tw-line-clamp-2 tw-text-[0.75rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">{form.message || "Noi dung se hien thi trong popover notification cua nguoi nhan."}</small>
-            </span>
+          <div className="tw-grid tw-grid-cols-1">
+            <label className="tw-grid tw-gap-2">
+              <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-700">Màn hình mở khi nhấn</span>
+              <SelectMenu
+                ariaLabel="Màn hình mở khi nhấn thông báo"
+                disabled={readOnly}
+                options={getRedirectOptions(form.redirectUrl)}
+                portal
+                value={form.redirectUrl || "none"}
+                onChange={(value) => setForm((current) => ({ ...current, redirectUrl: value === "none" ? "" : value }))}
+              />
+            </label>
           </div>
         </section>
 
-        {formError ? (
-          <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">
-            {formError}
+        <section className="tw-grid tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50 tw-p-3">
+          <div className="tw-flex tw-items-center tw-gap-2 tw-text-vm-primary">
+            <i className="fas fa-info-circle" />
+            <span className="tw-text-[0.84rem] tw-font-black">Số người nhận dự kiến</span>
+            <strong className="tw-ml-auto tw-text-[0.9rem] tw-font-black tw-text-vm-slate-900">{getExpectedRecipientText(form)}</strong>
           </div>
-        ) : null}
-      </form>
+        </section>
+
+        <section className="tw-grid tw-grid-cols-[42px_minmax(0,1fr)] tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
+          <span className="tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-bg-white tw-text-vm-primary">
+            <i className={typeMeta.icon} />
+          </span>
+          <span className="tw-min-w-0">
+            <strong className="tw-flex tw-items-start tw-gap-2 tw-text-[0.9rem] tw-font-black tw-text-vm-slate-900">
+              <span className="tw-min-w-0 tw-flex-1 tw-truncate">{form.title || "Tiêu đề thông báo"}</span>
+              <span className="tw-mt-1 tw-h-2 tw-w-2 tw-flex-none tw-rounded-full tw-bg-blue-600" />
+            </strong>
+            <small className="tw-mt-1 tw-line-clamp-2 tw-text-[0.78rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">
+              {form.message || "Nội dung sẽ hiển thị trong menu thông báo và toast realtime."}
+            </small>
+          </span>
+        </section>
+
+      </div>
     </Drawer>
   );
 }
@@ -453,15 +983,20 @@ export function AnnouncementManagementPage() {
   const { user } = useAuth();
   const toast = useToast();
   const [announcements, setAnnouncements] = useState<BroadcastAnnouncementResponse[]>([]);
+  const [activeRoleOptions, setActiveRoleOptions] = useState<RoleOption[]>(fallbackRoleOptions);
+  const [audienceFilter, setAudienceFilter] = useState("all");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<BroadcastAnnouncementResponse | null>(null);
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(true);
-  const [pageSize, setPageSize] = useState(5);
+  const [pageSize, setPageSize] = useState(8);
   const [currentPage, setCurrentPage] = useState(1);
   const [saving, setSaving] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | BroadcastAnnouncementStatus>("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [roleLookupWarning, setRoleLookupWarning] = useState("");
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [copiedInitialForm, setCopiedInitialForm] = useState<AnnouncementFormState | null>(null);
 
   const canCreate = hasAnyPermission(user, ["BROADCAST_NOTIFICATION_CREATE_ALL"]);
   const canUpdate = hasAnyPermission(user, ["BROADCAST_NOTIFICATION_UPDATE_ALL"]);
@@ -472,29 +1007,84 @@ export function AnnouncementManagementPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await getBroadcastAnnouncements(statusFilter === "all" ? {} : { status: statusFilter });
-      setAnnouncements(response.data ?? []);
+      const [announcementResponse, roleResponse] = await Promise.allSettled([
+        getBroadcastAnnouncements(),
+        getNotificationActiveRoles(),
+      ]);
+
+      if (announcementResponse.status === "fulfilled") {
+        setAnnouncements(announcementResponse.value.data ?? []);
+      } else {
+        throw announcementResponse.reason;
+      }
+
+      if (roleResponse.status === "fulfilled") {
+        const nextRoleOptions = (roleResponse.value.data ?? [])
+          .map(mapRoleToOption)
+          .filter((role): role is RoleOption => Boolean(role));
+        setActiveRoleOptions(nextRoleOptions.length ? nextRoleOptions : fallbackRoleOptions);
+        setRoleLookupWarning(nextRoleOptions.length ? "" : "Không có role active nào từ backend, hệ thống đang dùng danh sách role mặc định.");
+      } else {
+        setActiveRoleOptions(fallbackRoleOptions);
+        setRoleLookupWarning("Không tải được danh sách role active từ backend. Tài khoản cần quyền announcement để dùng lookup role của màn thông báo.");
+      }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Khong the tai announcement.", "Tai du lieu that bai");
+      toast.error(error instanceof Error ? error.message : "Không thể tải danh sách thông báo.", "Tải dữ liệu thất bại");
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, toast]);
+  }, [toast]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
 
+  const counts = useMemo<Record<"all" | BroadcastAnnouncementStatus, number>>(
+    () => ({
+      all: announcements.length,
+      CANCELLED: announcements.filter((item) => item.status === "CANCELLED").length,
+      DRAFT: announcements.filter((item) => item.status === "DRAFT").length,
+      PUBLISHED: announcements.filter((item) => item.status === "PUBLISHED").length,
+    }),
+    [announcements],
+  );
+
   const filteredAnnouncements = useMemo(() => {
     const search = keyword.trim().toLowerCase();
-    if (!search) return announcements;
-    return announcements.filter((item) =>
-      [item.title, item.message, item.notificationType, getAudienceLabel(item)]
-        .some((value) => String(value ?? "").toLowerCase().includes(search)),
-    );
-  }, [announcements, keyword]);
+
+    return announcements.filter((item) => {
+      const audienceText = getAudienceLabel(item).toLowerCase();
+      const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+      const matchesType = typeFilter === "all" || item.notificationType === typeFilter;
+      const matchesAudience =
+        audienceFilter === "all" ||
+        item.audienceType === audienceFilter ||
+        (item.roleCodes ?? []).includes(audienceFilter);
+      const matchesSearch =
+        !search ||
+        [item.title, item.message, getTypeMeta(item.notificationType).label, audienceText]
+          .some((value) => String(value ?? "").toLowerCase().includes(search));
+
+      return matchesStatus && matchesType && matchesAudience && matchesSearch;
+    });
+  }, [announcements, audienceFilter, keyword, statusFilter, typeFilter]);
+
+  const audienceSelectOptions = useMemo(() => buildAudienceOptions(activeRoleOptions), [activeRoleOptions]);
 
   const page = getPageItems(filteredAnnouncements, currentPage, pageSize);
+
+  const duplicateTitleExists = useCallback(
+    (title: string) => {
+      const normalizedTitle = title.trim().toLowerCase();
+      if (!normalizedTitle) return false;
+
+      return announcements.some((item) => {
+        if (editingAnnouncement?.broadcastId && item.broadcastId === editingAnnouncement.broadcastId) return false;
+        return item.title.trim().toLowerCase() === normalizedTitle;
+      });
+    },
+    [announcements, editingAnnouncement?.broadcastId],
+  );
 
   useEffect(() => {
     if (currentPage !== page.safeCurrentPage) {
@@ -502,21 +1092,75 @@ export function AnnouncementManagementPage() {
     }
   }, [currentPage, page.safeCurrentPage]);
 
-  async function handleSubmit(payload: BroadcastAnnouncementPayload) {
+  function resetPage() {
+    setCurrentPage(1);
+  }
+
+  async function saveDraft(payload: BroadcastAnnouncementPayload) {
     setSaving(true);
     try {
       const response = editingAnnouncement
         ? await updateBroadcastAnnouncement(editingAnnouncement.broadcastId, payload)
         : await createBroadcastAnnouncement(payload);
-      toast.success(response.message || "Da luu announcement.", "Luu thanh cong");
+      toast.success(response.message || "Đã lưu bản nháp thông báo.", "Lưu thành công");
       setDrawerOpen(false);
       setEditingAnnouncement(null);
+      setCopiedInitialForm(null);
       await loadData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Khong the luu announcement.", "Luu that bai");
+      toast.error(error instanceof Error ? error.message : "Không thể lưu thông báo.", "Lưu thất bại");
+      throw error;
     } finally {
       setSaving(false);
     }
+  }
+
+  async function updateDisplayOrder(broadcastId: string, displayOrder: number) {
+    setSaving(true);
+    try {
+      const response = await updateBroadcastAnnouncementDisplayOrder(broadcastId, displayOrder);
+      toast.success(response.message || "Đã cập nhật thứ tự chạy trên thanh thông báo.", "Cập nhật thành công");
+      setDrawerOpen(false);
+      setEditingAnnouncement(null);
+      setCopiedInitialForm(null);
+      await loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể cập nhật thứ tự chạy.", "Cập nhật thất bại");
+      throw error;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function publishFromDrawer(payload: BroadcastAnnouncementPayload, publishTiming: AnnouncementFormState["publishTiming"]) {
+    setSaving(true);
+    try {
+      const saved = editingAnnouncement
+        ? await updateBroadcastAnnouncement(editingAnnouncement.broadcastId, payload)
+        : await createBroadcastAnnouncement(payload);
+      if (publishTiming === "scheduled" && new Date(payload.startAt).getTime() > Date.now()) {
+        toast.info("Backend hiện lưu thời điểm phát trên bản nháp; scheduler tự phát chưa có endpoint riêng.", "Đã lưu lịch dự kiến");
+      } else {
+        await publishBroadcastAnnouncement(saved.data.broadcastId);
+        toast.success("Thông báo đã được phát tới các tài khoản ACTIVE thuộc đối tượng nhận.", "Đã xuất bản");
+      }
+      setDrawerOpen(false);
+      setEditingAnnouncement(null);
+      setCopiedInitialForm(null);
+      await loadData();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể xuất bản thông báo.", "Xuất bản thất bại");
+      throw error;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function copyAnnouncement(announcement: BroadcastAnnouncementResponse) {
+    if (!canCreate) return;
+    setEditingAnnouncement(null);
+    setCopiedInitialForm(buildCopyForm(announcement));
+    setDrawerOpen(true);
   }
 
   async function handleConfirmAction() {
@@ -525,188 +1169,220 @@ export function AnnouncementManagementPage() {
     try {
       if (pendingAction.action === "publish") {
         await publishBroadcastAnnouncement(pendingAction.announcement.broadcastId);
-        toast.success("Announcement da duoc phat thanh notification cho nguoi nhan ACTIVE.", "Da phat");
+        toast.success("Thông báo đã được phát realtime tới người nhận.", "Đã xuất bản");
       }
       if (pendingAction.action === "cancel") {
         await cancelBroadcastAnnouncement(pendingAction.announcement.broadcastId);
-        toast.success("Announcement da duoc huy.", "Da huy");
+        toast.success("Thông báo đã được chuyển sang trạng thái đã hủy.", "Đã hủy");
       }
       if (pendingAction.action === "delete") {
         await deleteBroadcastAnnouncement(pendingAction.announcement.broadcastId);
-        toast.success("Announcement da duoc xoa.", "Da xoa");
+        toast.success("Thông báo đã được xóa khỏi hệ thống.", "Đã xóa");
       }
       setPendingAction(null);
       await loadData();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Khong the thuc hien thao tac.", "Thao tac that bai");
+      toast.error(error instanceof Error ? error.message : "Không thể thực hiện thao tác.", "Thao tác thất bại");
     } finally {
       setSaving(false);
     }
   }
 
-  const draftCount = announcements.filter((item) => item.status === "DRAFT").length;
-  const publishedCount = announcements.filter((item) => item.status === "PUBLISHED").length;
-  const cancelledCount = announcements.filter((item) => item.status === "CANCELLED").length;
-
   return (
     <div className="tw-px-4 tw-py-4 lg:tw-px-5">
       <section className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1560px)]">
-        <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 max-[720px]:tw-flex-col">
-          <div>
-            <h1 className="tw-m-0 tw-text-vm-page-title tw-text-vm-slate-900">Quan ly thong bao phat rong</h1>
-            <p className="tw-mb-0 tw-mt-2 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-500">
-              Tao announcement, chon audience theo role va publish thanh notification WEB cho tung tai khoan ACTIVE.
-            </p>
-          </div>
-          <div className="tw-flex tw-gap-2 max-[720px]:tw-w-full">
-            <Button className="max-[720px]:tw-flex-1" disabled={loading} variant="secondary" onClick={() => void loadData()}>
+        <header className="tw-flex tw-items-center tw-justify-between tw-gap-4 max-[720px]:tw-flex-col max-[720px]:tw-items-stretch">
+          <h1 className="tw-m-0 tw-text-[1.72rem] tw-font-black tw-tracking-normal tw-text-vm-slate-950 max-[640px]:tw-text-[1.35rem]">
+            Quản lý thông báo
+          </h1>
+          <div className="tw-flex tw-gap-2">
+            <Button disabled={loading} variant="secondary" onClick={() => void loadData()}>
               <i className="fas fa-sync-alt" />
-              Lam moi
+              Làm mới
             </Button>
             {canCreate ? (
               <Button
-                className="max-[720px]:tw-flex-1"
                 onClick={() => {
                   setEditingAnnouncement(null);
+                  setCopiedInitialForm(null);
                   setDrawerOpen(true);
                 }}
               >
                 <i className="fas fa-plus" />
-                Tao thong bao
+                Tạo thông báo
               </Button>
             ) : null}
           </div>
         </header>
 
-        <div className="tw-mt-6 tw-grid tw-grid-cols-4 tw-gap-3 max-[1180px]:tw-grid-cols-2 max-[620px]:tw-grid-cols-1">
-          <MetricCard icon="fas fa-bullhorn" label="Tong announcement" value={announcements.length} />
-          <MetricCard icon="far fa-edit" label="Ban nhap" value={draftCount} />
-          <MetricCard icon="far fa-paper-plane" label="Da phat" value={publishedCount} />
-          <MetricCard icon="fas fa-ban" label="Da huy" value={cancelledCount} />
+        <div className="tw-mt-5">
+          <AnnouncementTabs
+            counts={counts}
+            status={statusFilter}
+            onChange={(value) => {
+              setStatusFilter(value);
+              resetPage();
+            }}
+          />
         </div>
 
         <main className="tw-mt-5 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-vm-card">
-          <div className="tw-flex tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3 max-[860px]:tw-flex-col">
-            <label className="tw-flex tw-h-[42px] tw-min-w-[260px] tw-flex-1 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 max-[860px]:tw-w-full">
+          <div className="tw-grid tw-grid-cols-[minmax(260px,1fr)_180px_180px_42px] tw-gap-2 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3 max-[1120px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
+            <label className="tw-flex tw-h-[42px] tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3">
               <i className="fas fa-search tw-text-vm-slate-500" />
               <input
                 className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none placeholder:tw-text-vm-slate-400"
-                placeholder="Tim tieu de, noi dung, loai, audience..."
+                placeholder="Tìm kiếm tiêu đề, nội dung..."
                 value={keyword}
                 onChange={(event) => {
                   setKeyword(event.target.value);
-                  setCurrentPage(1);
+                  resetPage();
                 }}
               />
             </label>
-            <div className="tw-w-[190px] max-[860px]:tw-w-full">
-              <SelectMenu
-                ariaLabel="Trang thai announcement"
-                options={statusOptions}
-                portal
-                value={statusFilter}
-                onChange={(value) => {
-                  setStatusFilter(value as "all" | BroadcastAnnouncementStatus);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
+            <SelectMenu
+              ariaLabel="Loại thông báo"
+              options={typeOptions}
+              portal
+              searchable
+              searchPlaceholder="Tìm loại thông báo..."
+              value={typeFilter}
+              onChange={(value) => {
+                setTypeFilter(value);
+                resetPage();
+              }}
+            />
+            <SelectMenu
+              ariaLabel="Đối tượng nhận"
+              options={audienceSelectOptions}
+              portal
+              value={audienceFilter}
+              onChange={(value) => {
+                setAudienceFilter(value);
+                resetPage();
+              }}
+            />
+            <button
+              aria-label="Lọc theo ngày"
+              className="tw-inline-flex tw-h-[42px] tw-w-[42px] tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-600 hover:tw-border-vm-slate-200 hover:tw-bg-vm-slate-25 max-[640px]:tw-w-full"
+              disabled
+              title="Bộ lọc ngày sẽ dùng khi backend hỗ trợ query theo ngày."
+              type="button"
+            >
+              <i className="far fa-calendar" />
+            </button>
           </div>
 
-          <div className="tw-overflow-x-auto">
-            <table className="table tw-m-0 tw-w-full tw-min-w-[1180px] tw-table-fixed [&_td]:tw-border-0 [&_td]:tw-border-t [&_td]:tw-border-solid [&_td]:tw-border-vm-slate-100 [&_td]:tw-px-4 [&_td]:tw-py-3 [&_td]:tw-align-middle [&_thead_th]:tw-border-0 [&_thead_th]:tw-bg-white [&_thead_th]:tw-px-4 [&_thead_th]:tw-py-3.5 [&_thead_th]:tw-text-left [&_thead_th]:tw-text-[0.75rem] [&_thead_th]:tw-font-black [&_thead_th]:tw-text-vm-slate-700">
+          <div className="tw-overflow-visible">
+            <table className="table tw-m-0 tw-w-full tw-table-fixed [&_td]:tw-min-w-0 [&_td]:tw-border-0 [&_td]:tw-border-t [&_td]:tw-border-solid [&_td]:tw-border-vm-slate-100 [&_td]:tw-px-3 [&_td]:tw-py-3 [&_td]:tw-align-middle [&_thead_th]:tw-border-0 [&_thead_th]:tw-bg-vm-slate-25 [&_thead_th]:tw-px-3 [&_thead_th]:tw-py-3.5 [&_thead_th]:tw-text-left [&_thead_th]:tw-text-[0.74rem] [&_thead_th]:tw-font-black [&_thead_th]:tw-leading-4 [&_thead_th]:tw-text-vm-slate-700">
               <colgroup>
-                <col className="tw-w-[300px]" />
-                <col className="tw-w-[170px]" />
-                <col className="tw-w-[250px]" />
-                <col className="tw-w-[130px]" />
-                <col className="tw-w-[190px]" />
-                <col className="tw-w-[140px]" />
+                <col className="tw-w-[3.5%]" />
+                <col className="tw-w-[22%]" />
+                <col className="tw-w-[11%]" />
+                <col className="tw-w-[15%]" />
+                <col className="tw-w-[15%]" />
+                <col className="tw-w-[9%]" />
+                <col className="tw-w-[8%]" />
+                <col className="tw-w-[11.5%]" />
+                <col className="tw-w-[5%]" />
               </colgroup>
               <thead>
                 <tr>
-                  <th>Noi dung</th>
-                  <th>Loai</th>
-                  <th>Doi tuong nhan</th>
-                  <th>Trang thai</th>
-                  <th>Lich phat</th>
-                  <th className="tw-text-right">Thao tac</th>
+                  <th>
+                    <input aria-label="Chọn tất cả thông báo" type="checkbox" disabled />
+                  </th>
+                  <th>Tiêu đề</th>
+                  <th>Loại thông báo</th>
+                  <th>Đối tượng nhận</th>
+                  <th>Số người nhận dự kiến</th>
+                  <th>Trạng thái</th>
+                  <th>Thứ tự chạy</th>
+                  <th>Ngày tạo/đăng</th>
+                  <th className="tw-pr-6" />
                 </tr>
               </thead>
               <tbody>
                 {page.rows.map((announcement) => {
-                  const editable = announcement.status === "DRAFT";
+                  const typeMeta = getTypeMeta(announcement.notificationType);
+                  const statusDate = getStatusDate(announcement);
                   return (
                     <tr className="tw-transition hover:tw-bg-vm-slate-25" key={announcement.broadcastId}>
                       <td>
+                        <input aria-label={`Chọn ${announcement.title}`} type="checkbox" />
+                      </td>
+                      <td>
                         <button
-                          className="tw-w-full tw-border-0 tw-bg-transparent tw-p-0 tw-text-left"
+                          className="tw-w-full tw-min-w-0 tw-border-0 tw-bg-transparent tw-p-0 tw-text-left"
                           type="button"
                           onClick={() => {
                             setEditingAnnouncement(announcement);
+                            setCopiedInitialForm(null);
                             setDrawerOpen(true);
                           }}
                         >
-                          <strong className="tw-block tw-truncate tw-text-[0.84rem] tw-font-black tw-text-vm-slate-900">{announcement.title}</strong>
-                          <small className="tw-mt-1 tw-line-clamp-2 tw-text-[0.73rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">{announcement.message}</small>
+                          <strong className="tw-block tw-line-clamp-2 tw-text-[0.84rem] tw-font-black tw-leading-5 tw-text-vm-slate-950">
+                            {announcement.title}
+                          </strong>
+                          <small className="tw-mt-1 tw-block tw-line-clamp-2 tw-text-[0.74rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">
+                            {announcement.message}
+                          </small>
                         </button>
                       </td>
-                      <td className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">{getTypeLabel(announcement.notificationType)}</td>
                       <td>
-                        <strong className="tw-block tw-truncate tw-text-[0.8rem] tw-font-extrabold tw-text-vm-slate-800">{getAudienceLabel(announcement)}</strong>
-                        <small className="tw-mt-1 tw-block tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">
-                          So nguoi nhan du kien: tinh khi publish
-                        </small>
+                        <Badge tone={typeMeta.tone} className="tw-rounded-vm-sm tw-px-2.5">
+                          {typeMeta.badge}
+                        </Badge>
+                      </td>
+                      <td className="tw-text-[0.8rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-800">
+                        <span className="tw-block tw-line-clamp-2 tw-break-words">{getAudienceLabel(announcement)}</span>
+                      </td>
+                      <td className="tw-text-[0.8rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-600">
+                        <span className="tw-block tw-line-clamp-2 tw-break-words">{getExpectedRecipientText(announcement)}</span>
                       </td>
                       <td>
-                        <Badge tone={getStatusTone(announcement.status)}>{getStatusLabel(announcement.status)}</Badge>
-                      </td>
-                      <td className="tw-text-[0.74rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-600">
-                        <strong className="tw-block tw-text-vm-slate-800">{formatDateTime(announcement.startAt)}</strong>
-                        <span>{announcement.endAt ? `Den ${formatDateTime(announcement.endAt)}` : "Khong gioi han ket thuc"}</span>
+                        <Badge tone={getStatusTone(announcement.status)} className="tw-gap-2 tw-rounded-vm-sm tw-px-2.5">
+                          <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-current" />
+                          {getStatusLabel(announcement.status)}
+                        </Badge>
                       </td>
                       <td>
-                        <div className="tw-flex tw-justify-end tw-gap-1">
-                          <button
-                            aria-label="Xem hoac sua announcement"
-                            className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-vm-primary hover:tw-bg-brand-50"
-                            title={editable && canUpdate ? "Sua" : "Xem chi tiet"}
-                            type="button"
-                            onClick={() => {
-                              setEditingAnnouncement(announcement);
-                              setDrawerOpen(true);
-                            }}
-                          >
-                            <i className={editable && canUpdate ? "far fa-edit" : "far fa-eye"} />
-                          </button>
-                          {editable && canPublish ? (
-                            <button className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-emerald-600 hover:tw-bg-emerald-50" title="Xuat ban" type="button" onClick={() => setPendingAction({ action: "publish", announcement })}>
-                              <i className="far fa-paper-plane" />
-                            </button>
-                          ) : null}
-                          {editable && canCancel ? (
-                            <button className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-amber-600 hover:tw-bg-amber-50" title="Huy" type="button" onClick={() => setPendingAction({ action: "cancel", announcement })}>
-                              <i className="fas fa-ban" />
-                            </button>
-                          ) : null}
-                          {announcement.status !== "PUBLISHED" && canDelete ? (
-                            <button className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-red-600 hover:tw-bg-red-50" title="Xoa" type="button" onClick={() => setPendingAction({ action: "delete", announcement })}>
-                              <i className="far fa-trash-alt" />
-                            </button>
-                          ) : null}
-                        </div>
+                        <span className="tw-inline-flex tw-h-8 tw-min-w-10 tw-items-center tw-justify-center tw-rounded-full tw-bg-sky-50 tw-px-2.5 tw-text-[0.78rem] tw-font-black tw-text-sky-700 tw-ring-1 tw-ring-sky-100">
+                          #{announcement.displayOrder ?? 100}
+                        </span>
+                      </td>
+                      <td className="tw-text-[0.78rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-600">
+                        <strong className="tw-block tw-text-vm-slate-900">{formatDate(statusDate)} {formatTime(statusDate)}</strong>
+                        <span>{getAuthorLabel(announcement.createdBy)}</span>
+                      </td>
+                      <td className="tw-pr-6 tw-text-right">
+                        <AnnouncementActionMenu
+                          announcement={announcement}
+                          canCancel={canCancel}
+                          canCreate={canCreate}
+                          canDelete={canDelete}
+                          canPublish={canPublish}
+                          onCancel={() => setPendingAction({ action: "cancel", announcement })}
+                          onCopy={() => copyAnnouncement(announcement)}
+                          onDelete={() => setPendingAction({ action: "delete", announcement })}
+                          onPublish={() => setPendingAction({ action: "publish", announcement })}
+                          onView={() => {
+                            setEditingAnnouncement(announcement);
+                            setCopiedInitialForm(null);
+                            setDrawerOpen(true);
+                          }}
+                        />
                       </td>
                     </tr>
                   );
                 })}
                 {page.rows.length === 0 ? (
                   <tr>
-                    <td className="tw-py-12 tw-text-center" colSpan={6}>
+                    <td className="tw-py-12 tw-text-center" colSpan={9}>
                       <span className="tw-inline-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-full tw-bg-vm-slate-50 tw-text-vm-slate-400">
                         <i className={loading ? "fas fa-spinner fa-spin" : "far fa-bell"} />
                       </span>
                       <p className="tw-mb-0 tw-mt-3 tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-500">
-                        {loading ? "Dang tai announcement..." : "Chua co announcement phu hop."}
+                        {loading ? "Đang tải thông báo..." : "Chưa có thông báo phù hợp."}
                       </p>
                     </td>
                   </tr>
@@ -716,7 +1392,7 @@ export function AnnouncementManagementPage() {
           </div>
 
           <PaginationFooter
-            ariaLabel="Phan trang announcement"
+            ariaLabel="Phân trang thông báo"
             currentPage={page.safeCurrentPage}
             endIndex={page.endIndex}
             onPageChange={setCurrentPage}
@@ -735,35 +1411,46 @@ export function AnnouncementManagementPage() {
 
       <AnnouncementDrawer
         announcement={editingAnnouncement}
+        canPublish={canPublish}
         canSave={editingAnnouncement ? canUpdate : canCreate}
+        copiedInitialForm={copiedInitialForm}
+        duplicateTitleExists={duplicateTitleExists}
         onClose={() => {
           if (saving) return;
           setDrawerOpen(false);
           setEditingAnnouncement(null);
+          setCopiedInitialForm(null);
         }}
-        onSubmit={handleSubmit}
+        onPublish={publishFromDrawer}
+        onSaveDraft={saveDraft}
+        onUpdateDisplayOrder={updateDisplayOrder}
         open={drawerOpen}
+        roleLookupWarning={roleLookupWarning}
+        roleOptions={activeRoleOptions}
         saving={saving}
+        titleChangeRequired={Boolean(copiedInitialForm)}
       />
 
       <Modal
         actions={
           <div className="tw-grid tw-grid-cols-2 tw-gap-2">
-            <Button disabled={saving} variant="secondary" onClick={() => setPendingAction(null)}>Dong</Button>
+            <Button disabled={saving} variant="secondary" onClick={() => setPendingAction(null)}>
+              Đóng
+            </Button>
             <Button loading={saving} variant={pendingAction?.action === "delete" ? "danger" : "primary"} onClick={() => void handleConfirmAction()}>
-              {pendingAction?.action === "publish" ? "Xuat ban" : pendingAction?.action === "cancel" ? "Huy" : "Xoa"}
+              {pendingAction?.action === "publish" ? "Xuất bản" : pendingAction?.action === "cancel" ? "Hủy" : "Xóa"}
             </Button>
           </div>
         }
-        description="Thao tac nay se goi truc tiep API backend va ap dung rule trang thai hien co."
+        description="Thao tác sẽ gọi trực tiếp API announcements của backend và áp dụng rule trạng thái hiện có."
         onClose={() => {
           if (!saving) setPendingAction(null);
         }}
         open={Boolean(pendingAction)}
-        title="Xac nhan thao tac"
+        title="Xác nhận thao tác"
       >
         <p className="tw-m-0 tw-text-[0.9rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-600">
-          Ban muon {pendingAction?.action === "publish" ? "xuat ban" : pendingAction?.action === "cancel" ? "huy" : "xoa"} announcement
+          Bạn muốn {pendingAction?.action === "publish" ? "xuất bản" : pendingAction?.action === "cancel" ? "hủy" : "xóa"} thông báo
           <strong className="tw-text-vm-slate-900"> {pendingAction?.announcement.title}</strong>?
         </p>
       </Modal>
