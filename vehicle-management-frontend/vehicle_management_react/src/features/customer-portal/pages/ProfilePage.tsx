@@ -51,6 +51,29 @@ function compactCode(value?: string | null) {
   return value.length > 18 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value;
 }
 
+function accountStatusLabel(status?: string | null) {
+  if (status === "ACTIVE") return "Đang hoạt động";
+  if (status === "INACTIVE") return "Ngừng hoạt động";
+  if (status === "SUSPENDED") return "Tạm khóa";
+  if (status === "PENDING") return "Chờ kích hoạt";
+  return status || "--";
+}
+
+function approvalStatusLabel(status?: string | null) {
+  if (status === "APPROVED") return "Đã phê duyệt";
+  if (status === "PENDING") return "Chờ phê duyệt";
+  if (status === "REJECTED") return "Cần bổ sung";
+  return status || "--";
+}
+
+function profileStatusLabel(status?: string | null) {
+  if (status === "ACTIVE") return "Đã kích hoạt";
+  if (status === "INACTIVE") return "Ngừng hoạt động";
+  if (status === "SUSPENDED") return "Tạm khóa";
+  if (status === "PENDING") return "Chờ kích hoạt";
+  return status || "--";
+}
+
 function profileToForm(profile: CustomerPortalProfile): ProfileForm {
   return {
     address: profile.profile?.address ?? "",
@@ -112,6 +135,7 @@ export function ProfilePage() {
   const customerStatus = profile?.customer?.customerStatus ?? "--";
   const approvalStatus = profile?.customer?.customerApprovalStatus ?? "--";
   const accountStatus = profile?.account?.accountStatus ?? "--";
+  const profileStatus = profile?.profile?.userProfileStatus ?? "--";
   const isApproved = approvalStatus === "APPROVED";
   const formChanged = useMemo(() => {
     if (!profile) return false;
@@ -225,59 +249,86 @@ export function ProfilePage() {
         </div>
       ) : null}
 
-      <div className="vm-profile-top">
-        <article className="vm-customer-card vm-profile-summary">
+      <section className="vm-customer-card vm-profile-identity-strip">
+        <div className="vm-profile-identity-main">
           <div className="vm-large-avatar">{initials(displayName)}</div>
-          <div>
+          <div className="vm-profile-identity-copy">
             <h2>{loading ? "Đang tải..." : displayName}</h2>
             <div className="vm-pill-row">
               <StatusPill tone="blue">Khách hàng</StatusPill>
-              <StatusPill tone={customerStatus === "ACTIVE" ? "green" : "gray"}>{customerStatus}</StatusPill>
-              <StatusPill tone={isApproved ? "green" : "orange"}>{approvalStatus}</StatusPill>
+              <StatusPill tone={isApproved ? "green" : "orange"}>{approvalStatusLabel(approvalStatus)}</StatusPill>
+              <StatusPill tone={customerStatus === "ACTIVE" ? "green" : "gray"}>{accountStatusLabel(customerStatus)}</StatusPill>
             </div>
-            <dl className="vm-info-list vm-profile-info-list">
-              <dt><i className="far fa-id-card" /> Mã khách hàng:</dt><dd title={customerCode}>{displayCustomerCode}</dd>
-              <dt><i className="far fa-calendar-alt" /> Ngày sinh:</dt><dd>{formatDate(profile?.profile?.dateOfBirth)}</dd>
-              <dt><i className="fas fa-shield-alt" /> Trạng thái hồ sơ:</dt><dd>{profile?.profile?.userProfileStatus ?? "--"}</dd>
-            </dl>
           </div>
-        </article>
-
-        <article className="vm-customer-card">
-          <h2>Thông tin tài khoản</h2>
-          <dl className="vm-info-list vm-profile-info-list">
-            <dt><i className="far fa-envelope" /> Email đăng nhập:</dt><dd>{email}</dd>
-            <dt><i className="fas fa-phone-alt" /> Số điện thoại:</dt><dd>{form.phoneNumber || "--"}</dd>
-            <dt><i className="far fa-user" /> Tên đăng nhập:</dt><dd>{profile?.account?.username ?? "--"}</dd>
-            <dt><i className="fas fa-shield-alt" /> Trạng thái:</dt><dd className="vm-green-text">{accountStatus}</dd>
-          </dl>
-        </article>
-      </div>
-
-      <section className="vm-customer-card">
-        <h2>Cập nhật hồ sơ</h2>
-        <div className="vm-form-grid">
-          <Field label="Họ và tên"><input value={form.fullName} onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))} /></Field>
-          <Field label="Email"><input value={email} readOnly /></Field>
-          <Field label="Số điện thoại"><input value={form.phoneNumber} onChange={(event) => setForm((current) => ({ ...current, phoneNumber: event.target.value }))} /></Field>
-          <Field label="CCCD/CMND"><input value={form.identifyCard} onChange={(event) => setForm((current) => ({ ...current, identifyCard: event.target.value }))} /></Field>
-          <Field label="Ngày sinh"><input type="date" value={form.dateOfBirth} onChange={(event) => setForm((current) => ({ ...current, dateOfBirth: event.target.value }))} /></Field>
-          <Field label="Giới tính">
-            <select value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))}>
-              <option value="">Chưa chọn</option>
-              <option value="Nam">Nam</option>
-              <option value="Nữ">Nữ</option>
-              <option value="Khác">Khác</option>
-            </select>
-          </Field>
-          <Field label="Địa chỉ"><input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></Field>
-          <Field label="Ghi chú"><textarea placeholder="Thông tin bổ sung..." /></Field>
         </div>
-        <div className="vm-form-actions vm-profile-form-actions">
-          <button className="vm-outline-btn" type="button" disabled={!profile || saving || resubmitting} onClick={() => profile && setForm(profileToForm(profile))}>Hủy thay đổi</button>
-          <button type="button" disabled={!formChanged || saving || resubmitting} onClick={handleSave}>{saving ? "Đang lưu..." : "Lưu thay đổi"}</button>
+        <div className="vm-profile-identity-meta">
+          <div>
+            <span><i className="far fa-id-card" /> Mã khách hàng</span>
+            <strong title={customerCode}>{displayCustomerCode}</strong>
+          </div>
+          <div>
+            <span><i className="far fa-calendar-alt" /> Ngày sinh</span>
+            <strong>{formatDate(profile?.profile?.dateOfBirth)}</strong>
+          </div>
+          <div>
+            <span><i className="fas fa-shield-alt" /> Trạng thái hồ sơ</span>
+            <strong className={profileStatus === "ACTIVE" ? "vm-green-text" : undefined}>{profileStatusLabel(profileStatus)}</strong>
+          </div>
         </div>
       </section>
+
+      <div className="vm-profile-workspace">
+        <section className="vm-customer-card vm-profile-personal-card">
+          <h2>Thông tin cá nhân</h2>
+          <div className="vm-form-grid">
+            <Field label="Họ và tên"><input value={form.fullName} onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))} /></Field>
+            <Field label="Email"><input value={email} readOnly /></Field>
+            <Field label="Số điện thoại"><input value={form.phoneNumber} onChange={(event) => setForm((current) => ({ ...current, phoneNumber: event.target.value }))} /></Field>
+            <Field label="CCCD/CMND"><input value={form.identifyCard} onChange={(event) => setForm((current) => ({ ...current, identifyCard: event.target.value }))} /></Field>
+            <Field label="Ngày sinh"><input type="date" value={form.dateOfBirth} onChange={(event) => setForm((current) => ({ ...current, dateOfBirth: event.target.value }))} /></Field>
+            <Field label="Giới tính">
+              <select value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))}>
+                <option value="">Chưa chọn</option>
+                <option value="Nam">Nam</option>
+                <option value="Nữ">Nữ</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </Field>
+            <Field label="Địa chỉ"><input value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></Field>
+            <Field label="Ghi chú"><textarea placeholder="Thông tin bổ sung..." /></Field>
+          </div>
+          <div className="vm-form-actions vm-profile-form-actions">
+            <button className="vm-outline-btn" type="button" disabled={!profile || saving || resubmitting} onClick={() => profile && setForm(profileToForm(profile))}>Hủy thay đổi</button>
+            <button type="button" disabled={!formChanged || saving || resubmitting} onClick={handleSave}>{saving ? "Đang lưu..." : "Lưu thay đổi"}</button>
+          </div>
+        </section>
+
+        <aside className="vm-customer-card vm-profile-security-card">
+          <h2>Tài khoản &amp; bảo mật</h2>
+          <dl className="vm-profile-security-list">
+            <div>
+              <dt><i className="far fa-envelope" /> Email đăng nhập</dt>
+              <dd title={email}>{email}</dd>
+            </div>
+            <div>
+              <dt><i className="far fa-user" /> Tên đăng nhập</dt>
+              <dd title={profile?.account?.username}>{profile?.account?.username ?? "--"}</dd>
+            </div>
+            <div>
+              <dt><i className="fas fa-shield-alt" /> Trạng thái tài khoản</dt>
+              <dd className={accountStatus === "ACTIVE" ? "vm-green-text" : undefined}>{accountStatusLabel(accountStatus)}</dd>
+            </div>
+            <div>
+              <dt><i className="far fa-check-circle" /> Phê duyệt hồ sơ</dt>
+              <dd className={isApproved ? "vm-green-text" : undefined}>{approvalStatusLabel(approvalStatus)}</dd>
+            </div>
+          </dl>
+          <div className="vm-profile-security-note">
+            <i className="fas fa-shield-alt" />
+            <span>Tài khoản đang được bảo vệ</span>
+          </div>
+        </aside>
+      </div>
 
       <Modal
         open={passwordOpen}
