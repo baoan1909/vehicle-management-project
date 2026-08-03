@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import {
   getCustomerPortalLookups,
@@ -22,6 +22,19 @@ function formatDate(value?: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--";
   return new Intl.DateTimeFormat("vi-VN").format(date);
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "--";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--";
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
 }
 
 function statusLabel(status?: string | null) {
@@ -70,25 +83,19 @@ function vehicleLabel(vehicle?: CustomerPortalVehicle, vehicleTypeById?: Map<str
   return [vehicle.licensePlate, vehicle.brand, typeName].filter(Boolean).join(" - ");
 }
 
+function vehicleDescription(vehicle?: CustomerPortalVehicle, vehicleTypeById?: Map<string, CustomerPortalVehicleType>) {
+  if (!vehicle) return "--";
+  const typeName = vehicle.vehicleTypeId ? vehicleTypeById?.get(vehicle.vehicleTypeId)?.name : "";
+  return [vehicle.brand, typeName].filter(Boolean).join(" - ") || "--";
+}
+
 function shortCode(value?: string | null) {
   if (!value) return "--";
   return value.length > 14 ? `${value.slice(0, 8)}...${value.slice(-4)}` : value;
 }
 
-function DashboardMetric({ icon, label, value, note }: { icon: string; label: string; value: string; note?: string }) {
-  return (
-    <div className="vm-dashboard-metric">
-      <span><i className={icon} /></span>
-      <div>
-        <p>{label}</p>
-        <strong>{value}</strong>
-        {note ? <small>{note}</small> : null}
-      </div>
-    </div>
-  );
-}
-
 export function CustomerDashboardPage() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [vehicles, setVehicles] = useState<CustomerPortalVehicle[]>([]);
   const [subscriptions, setSubscriptions] = useState<CustomerPortalSubscription[]>([]);
@@ -147,19 +154,13 @@ export function CustomerDashboardPage() {
       {loading ? <div className="vm-info-note"><i className="fas fa-spinner fa-spin" /> Đang tải dữ liệu khách hàng...</div> : null}
 
       <section className="vm-customer-hero-card">
+        <span className="vm-customer-hero-avatar"><i className="far fa-user" /></span>
         <div className="vm-customer-hero-copy">
-          <span className="vm-customer-hero-eyebrow">Tổng quan tài khoản</span>
           <h1>Xin chào, {displayName}</h1>
-          <p>Theo dõi vé tháng, phương tiện và các yêu cầu hỗ trợ của bạn trong một màn hình.</p>
+          <p>Theo dõi vé tháng, phương tiện và các yêu cầu hỗ trợ của bạn.</p>
           <div className="vm-customer-hero-actions">
             <Link to="/customer/subscriptions"><i className="far fa-calendar-plus" /> Đăng ký vé</Link>
-            <Link className="secondary" to="/customer/parking-history"><i className="far fa-clock" /> Lịch sử gửi xe</Link>
           </div>
-        </div>
-        <div className="vm-dashboard-metric-grid">
-          <DashboardMetric icon="far fa-calendar-check" label="Vé hoạt động" value={activeSubscription ? "1" : "0"} note={statusLabel(activeSubscription?.status)} />
-          <DashboardMetric icon="fas fa-motorcycle" label="Phương tiện" value={String(vehicles.length)} note={`${activeVehicles} đang hoạt động`} />
-          <DashboardMetric icon="fas fa-hourglass-half" label="Chờ xử lý" value={String(pendingSubscriptions.length)} note="yêu cầu vé" />
         </div>
       </section>
 
@@ -182,7 +183,7 @@ export function CustomerDashboardPage() {
               <dt>Giá vé</dt><dd>{formatCurrency(activeSubscription?.price)}</dd>
             </dl>
           </div>
-          <Link className="vm-outline-btn" to="/customer/subscriptions">Xem chi tiết</Link>
+          <Link className="vm-outline-btn" to="/customer/subscriptions">Xem chi tiết <i className="fas fa-arrow-right" /></Link>
         </article>
 
         <article className="vm-customer-card vm-dashboard-summary-card">
@@ -201,7 +202,7 @@ export function CustomerDashboardPage() {
               <dt>Xe mặc định</dt><dd>{vehicleLabel(defaultVehicle, vehicleTypeById)}</dd>
             </dl>
           </div>
-          <Link className="vm-outline-btn" to="/customer/vehicles">Quản lý xe</Link>
+          <Link className="vm-outline-btn" to="/customer/vehicles">Quản lý xe <i className="fas fa-arrow-right" /></Link>
         </article>
 
         <article className="vm-customer-card vm-dashboard-summary-card">
@@ -222,74 +223,83 @@ export function CustomerDashboardPage() {
               <dt>Yêu cầu chờ xử lý</dt><dd>{pendingSubscriptions.length} vé</dd>
             </dl>
           </div>
-          <Link className="vm-outline-btn" to="/customer/profile">Cập nhật hồ sơ</Link>
+          <Link className="vm-outline-btn" to="/customer/profile">Cập nhật hồ sơ <i className="fas fa-arrow-right" /></Link>
         </article>
       </div>
 
       <section className="vm-customer-card vm-table-card vm-dashboard-table-card">
         <div className="vm-section-heading">
           <div>
-            <h2>Đăng ký vé gần đây</h2>
+            <h2><i className="fas fa-list-ul" /> Đăng ký vé gần đây</h2>
             <p>Các yêu cầu vé mới nhất của tài khoản này</p>
           </div>
           <Link className="vm-inline-action" to="/customer/subscriptions">Xem tất cả <i className="fas fa-arrow-right" /></Link>
         </div>
-        <table className="vm-customer-table">
-          <thead><tr><th>Mã vé</th><th>Biển số</th><th>Loại vé</th><th>Ngày yêu cầu</th><th>Giá</th><th>Trạng thái</th></tr></thead>
+        <table className="vm-customer-table vm-dashboard-subscription-table">
+          <thead><tr><th>Mã đăng ký</th><th>Gói vé</th><th>Biển số</th><th>Phương tiện</th><th>Hiệu lực</th><th>Giá vé</th><th>Trạng thái</th><th>Ngày đăng ký</th><th aria-label="Mở chi tiết" /></tr></thead>
           <tbody>
             {recentSubscriptions.map((subscription) => {
               const vehicle = vehicleById.get(subscription.customerVehicleId);
               const ticketType = ticketTypeById.get(subscription.ticketTypeId);
               return (
-                <tr key={subscription.subscriptionId}>
+                <tr
+                  key={subscription.subscriptionId}
+                  className="vm-interactive-row"
+                  role="link"
+                  tabIndex={0}
+                  title="Xem đăng ký vé"
+                  onClick={() => navigate(`/customer/subscriptions?subscriptionId=${encodeURIComponent(subscription.subscriptionId)}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      navigate(`/customer/subscriptions?subscriptionId=${encodeURIComponent(subscription.subscriptionId)}`);
+                    }
+                  }}
+                >
                   <td title={subscription.subscriptionId}>{shortCode(subscription.subscriptionId)}</td>
-                  <td>{vehicle?.licensePlate ?? "--"}</td>
                   <td>{ticketType?.name ?? "--"}</td>
-                  <td>{formatDate(subscription.requestedEffectiveFrom ?? subscription.createdAt)}</td>
+                  <td>{vehicle?.licensePlate ?? "--"}</td>
+                  <td>{vehicleDescription(vehicle, vehicleTypeById)}</td>
+                  <td>{formatDate(subscription.effectiveFrom ?? subscription.requestedEffectiveFrom)} - {formatDate(subscription.effectiveTo)}</td>
                   <td>{formatCurrency(subscription.price)}</td>
                   <td><StatusPill tone={subscription.status === "ACTIVE" ? "green" : subscription.status?.startsWith("PENDING") ? "orange" : "gray"}>{statusLabel(subscription.status)}</StatusPill></td>
+                  <td>{formatDateTime(subscription.createdAt)}</td>
+                  <td className="vm-row-chevron"><i className="fas fa-chevron-right" /></td>
                 </tr>
               );
             })}
-            {!loading && recentSubscriptions.length === 0 ? <tr><td colSpan={6}>Chưa có đăng ký vé nào.</td></tr> : null}
+            {!loading && recentSubscriptions.length === 0 ? <tr><td colSpan={9}>Chưa có đăng ký vé nào.</td></tr> : null}
           </tbody>
         </table>
       </section>
 
       <div className="vm-quick-forms vm-dashboard-actions-grid">
-        <article className="vm-customer-card vm-dashboard-action-card">
+        <Link className="vm-customer-card vm-dashboard-action-card" to="/customer/profile">
           <span><i className="far fa-id-card" /></span>
           <div>
-            <h2>Hồ sơ</h2>
-            <p>Cập nhật email, số điện thoại, CCCD/CMND và thông tin cá nhân.</p>
+            <h2>Quản lý hồ sơ</h2>
+            <p>Xem và cập nhật thông tin cá nhân, giấy tờ.</p>
           </div>
-          <Link className="vm-outline-btn" to="/customer/profile">Chỉnh sửa</Link>
-        </article>
-        <article className="vm-customer-card vm-dashboard-action-card">
+          <i className="fas fa-chevron-right" />
+        </Link>
+        <Link className="vm-customer-card vm-dashboard-action-card" to="/customer/vehicles">
           <span><i className="fas fa-car-side" /></span>
           <div>
-            <h2>Phương tiện</h2>
-            <p>Thêm xe, đổi xe mặc định hoặc kiểm tra trạng thái phương tiện.</p>
+            <h2>Quản lý phương tiện</h2>
+            <p>Thêm, cập nhật và quản lý xe của bạn.</p>
           </div>
-          <Link className="vm-outline-btn" to="/customer/vehicles">Cập nhật xe</Link>
-        </article>
-        <article className="vm-customer-card vm-dashboard-action-card">
+          <i className="fas fa-chevron-right" />
+        </Link>
+        <Link className="vm-customer-card vm-dashboard-action-card" to="/customer/support">
           <span><i className="far fa-question-circle" /></span>
           <div>
-            <h2>Hỗ trợ</h2>
-            <p>Gửi yêu cầu hỗ trợ và theo dõi trạng thái xử lý ticket.</p>
+            <h2>Trung tâm hỗ trợ</h2>
+            <p>Gửi yêu cầu và theo dõi phản hồi.</p>
           </div>
-          <Link className="vm-outline-btn" to="/customer/support">Mở hỗ trợ</Link>
-        </article>
+          <i className="fas fa-chevron-right" />
+        </Link>
       </div>
 
-      <section className="vm-customer-card vm-note-list vm-dashboard-note">
-        <h2>Lịch sử gửi xe</h2>
-        <ul>
-          <li><i className="fas fa-info-circle" /> Lịch sử gửi xe chi tiết chỉ lấy các phiên thuộc xe của tài khoản customer hiện tại.</li>
-          <li><i className="fas fa-info-circle" /> Truy cập mục Lịch sử gửi xe để lọc theo ngày, trạng thái hoặc biển số.</li>
-        </ul>
-      </section>
     </CustomerPortalLayout>
   );
 }

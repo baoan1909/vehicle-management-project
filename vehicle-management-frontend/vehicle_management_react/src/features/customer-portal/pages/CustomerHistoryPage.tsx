@@ -17,12 +17,23 @@ type HistoryFilters = {
   toDate: string;
 };
 
-const initialFilters: HistoryFilters = {
-  fromDate: "",
-  keyword: "",
-  status: "ALL",
-  toDate: "",
-};
+function formatDateInput(date: Date) {
+  const timezoneOffset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
+}
+
+function createInitialFilters(): HistoryFilters {
+  const currentDate = new Date();
+  const thirtyDaysAgo = new Date(currentDate);
+  thirtyDaysAgo.setDate(currentDate.getDate() - 30);
+
+  return {
+    fromDate: formatDateInput(thirtyDaysAgo),
+    keyword: "",
+    status: "ALL",
+    toDate: formatDateInput(currentDate),
+  };
+}
 
 function formatCurrency(value?: number | null) {
   const numberValue = Number(value ?? 0);
@@ -79,14 +90,14 @@ function buildRequestFilters(filters: HistoryFilters): ParkingSessionManagementF
 export function CustomerHistoryPage() {
   const [sessions, setSessions] = useState<CustomerPortalParkingSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState("");
-  const [filters, setFilters] = useState<HistoryFilters>(initialFilters);
+  const [filters, setFilters] = useState<HistoryFilters>(createInitialFilters);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const selectedSession = useMemo(
-    () => sessions.find((session) => session.parkingSessionId === selectedSessionId) ?? sessions[0],
+    () => sessions.find((session) => session.parkingSessionId === selectedSessionId),
     [selectedSessionId, sessions],
   );
 
@@ -107,7 +118,7 @@ export function CustomerHistoryPage() {
       setSelectedSessionId((current) => (
         nextSessions.some((session) => session.parkingSessionId === current)
           ? current
-          : nextSessions[0]?.parkingSessionId ?? ""
+          : ""
       ));
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Không thể tải lịch sử gửi xe.");
@@ -125,7 +136,7 @@ export function CustomerHistoryPage() {
   }, [filters]);
 
   const handleResetFilters = () => {
-    setFilters(initialFilters);
+    setFilters(createInitialFilters());
   };
 
   return (
@@ -147,7 +158,7 @@ export function CustomerHistoryPage() {
       <section className="vm-customer-card vm-filter-row-card">
         <Field label="Từ ngày"><input type="date" value={filters.fromDate} onChange={(event) => setFilters((current) => ({ ...current, fromDate: event.target.value }))} /></Field>
         <Field label="Đến ngày"><input type="date" value={filters.toDate} onChange={(event) => setFilters((current) => ({ ...current, toDate: event.target.value }))} /></Field>
-        <Field label="Từ khóa"><input value={filters.keyword} onChange={(event) => setFilters((current) => ({ ...current, keyword: event.target.value }))} placeholder="Biển số, mã phiên, thẻ..." /></Field>
+        <Field label="Tìm kiếm"><input value={filters.keyword} onChange={(event) => setFilters((current) => ({ ...current, keyword: event.target.value }))} placeholder="Biển số, mã phiên, thẻ..." /></Field>
         <Field label="Trạng thái">
           <select value={filters.status} onChange={(event) => setFilters((current) => ({ ...current, status: event.target.value as HistoryFilters["status"] }))}>
             <option value="ALL">Tất cả</option>
@@ -162,13 +173,29 @@ export function CustomerHistoryPage() {
       </section>
 
       <div className="vm-history-layout">
-        <section className="vm-customer-card vm-table-card">
+        <section className="vm-customer-card vm-table-card vm-history-table-card">
           <h2>Danh sách phiên gửi xe</h2>
           <table className="vm-customer-table">
             <thead><tr><th>Mã phiên</th><th>Biển số vào</th><th>Biển số ra</th><th>Thời gian vào</th><th>Thời gian ra</th><th>Trạng thái</th><th>Tổng phí</th><th>Thao tác</th></tr></thead>
             <tbody>
               {pagedSessions.map((session) => (
-                <tr key={session.parkingSessionId}>
+                <tr
+                  key={session.parkingSessionId}
+                  className={`vm-interactive-row${selectedSessionId === session.parkingSessionId ? " vm-selected-row" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Xem chi tiết phiên ${compactCode(session.parkingSessionId)}`}
+                  aria-pressed={selectedSessionId === session.parkingSessionId}
+                  title="Nhấn để xem chi tiết phiên gửi xe"
+                  onClick={() => setSelectedSessionId(session.parkingSessionId)}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedSessionId(session.parkingSessionId);
+                    }
+                  }}
+                >
                   <td title={session.parkingSessionId}>{compactCode(session.parkingSessionId)}</td>
                   <td>{session.licensePlateIn || "--"}</td>
                   <td>{session.licensePlateOut || "--"}</td>
@@ -176,7 +203,19 @@ export function CustomerHistoryPage() {
                   <td>{formatDateTime(session.checkOutTime)}</td>
                   <td><StatusPill tone={statusTone(session.status)}>{statusLabel(session.status)}</StatusPill></td>
                   <td>{formatCurrency(session.totalPrice)}</td>
-                  <td><button className="vm-mini-btn" type="button" onClick={() => setSelectedSessionId(session.parkingSessionId)}>Chi tiết</button></td>
+                  <td>
+                    <button
+                      className="vm-mini-btn"
+                      type="button"
+                      title="Xem chi tiết"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setSelectedSessionId(session.parkingSessionId);
+                      }}
+                    >
+                      <i className="far fa-eye" /> Chi tiết
+                    </button>
+                  </td>
                 </tr>
               ))}
               {!loading && sessions.length === 0 ? <tr><td colSpan={8}>Chưa có phiên gửi xe phù hợp.</td></tr> : null}
@@ -193,33 +232,43 @@ export function CustomerHistoryPage() {
         </section>
 
         <aside className="vm-customer-card vm-session-detail">
-          <h2>Chi tiết phiên {compactCode(selectedSession?.parkingSessionId)}</h2>
-          <dl className="vm-info-list">
-            <dt>Thẻ:</dt><dd>{selectedSession?.cardNumber ?? "--"}</dd>
-            <dt>Loại xe:</dt><dd>{selectedSession?.vehicleTypeName ?? selectedSession?.vehicleTypeCode ?? "--"}</dd>
-            <dt>Khu vực:</dt><dd>{selectedSession?.zoneName ?? selectedSession?.zoneCode ?? "--"}</dd>
-            <dt>Bãi xe:</dt><dd>{selectedSession?.parkingLotName ?? selectedSession?.parkingLotCode ?? "--"}</dd>
-            <dt>Tổng phí:</dt><dd className="vm-blue-text">{formatCurrency(selectedSession?.totalPrice)}</dd>
-          </dl>
-          <h3>Sự kiện vào/ra</h3>
-          <div className="vm-event-list">
-            {(selectedSession?.events ?? []).map((event) => (
-              <div key={event.parkingEventId}>
-                <span><i className={event.eventType === "CHECK_OUT" ? "fas fa-sign-out-alt" : "fas fa-sign-in-alt"} /></span>
-                <b>{eventLabel(event.eventType)}</b>
-                <em>{formatDateTime(event.eventTime)}<br />{event.licensePlateDetected || "--"}{event.laneName ? ` - ${event.laneName}` : ""}</em>
+          <h2>{selectedSession ? `Chi tiết phiên ${compactCode(selectedSession.parkingSessionId)}` : "Chi tiết phiên gửi xe"}</h2>
+          {selectedSession ? (
+            <>
+              <dl className="vm-info-list">
+                <dt>Thẻ:</dt><dd>{selectedSession.cardNumber ?? "--"}</dd>
+                <dt>Loại xe:</dt><dd>{selectedSession.vehicleTypeName ?? selectedSession.vehicleTypeCode ?? "--"}</dd>
+                <dt>Khu vực:</dt><dd>{selectedSession.zoneName ?? selectedSession.zoneCode ?? "--"}</dd>
+                <dt>Bãi xe:</dt><dd>{selectedSession.parkingLotName ?? selectedSession.parkingLotCode ?? "--"}</dd>
+                <dt>Tổng phí:</dt><dd className="vm-blue-text">{formatCurrency(selectedSession.totalPrice)}</dd>
+              </dl>
+              <h3>Sự kiện vào/ra</h3>
+              <div className="vm-event-list">
+                {(selectedSession.events ?? []).map((event) => (
+                  <div key={event.parkingEventId}>
+                    <span><i className={event.eventType === "CHECK_OUT" ? "fas fa-sign-out-alt" : "fas fa-sign-in-alt"} /></span>
+                    <b>{eventLabel(event.eventType)}</b>
+                    <em>{formatDateTime(event.eventTime)}<br />{event.licensePlateDetected || "--"}{event.laneName ? ` - ${event.laneName}` : ""}</em>
+                  </div>
+                ))}
+                {(selectedSession.events ?? []).length === 0 ? <div>Chưa có sự kiện vào/ra.</div> : null}
               </div>
-            ))}
-            {selectedSession && (selectedSession.events ?? []).length === 0 ? <div>Chưa có sự kiện vào/ra.</div> : null}
-          </div>
-          <div className="vm-image-row">
-            {(selectedSession?.events ?? []).slice(0, 2).map((event) => (
-              <div key={`${event.parkingEventId}-image`}>
-                <strong>{eventLabel(event.eventType)}</strong>
-                <span><i className="far fa-camera" />{event.licensePlateImagePath || "Chưa có ảnh"}</span>
+              <div className="vm-image-row">
+                {(selectedSession.events ?? []).slice(0, 2).map((event) => (
+                  <div key={`${event.parkingEventId}-image`}>
+                    <strong>{eventLabel(event.eventType)}</strong>
+                    <span><i className="far fa-camera" />{event.licensePlateImagePath || "Chưa có ảnh"}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          ) : (
+            <div className="vm-session-empty">
+              <i className="far fa-hand-pointer" />
+              <strong>Chưa chọn phiên gửi xe</strong>
+              <span>Chọn một dòng trong bảng hoặc nhấn nút chi tiết để xem dữ liệu.</span>
+            </div>
+          )}
         </aside>
       </div>
 

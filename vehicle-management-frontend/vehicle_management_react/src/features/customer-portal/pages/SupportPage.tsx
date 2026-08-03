@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { useToast } from "@/components/ui";
+import { Modal, useToast } from "@/components/ui";
 import {
   getCustomerPortalProfile,
   type CustomerPortalProfile,
@@ -107,6 +107,7 @@ export function SupportPage() {
   const [priorityFilter, setPriorityFilter] = useState<SupportTicketPriority | "ALL">("ALL");
   const [form, setForm] = useState(emptyForm);
   const [formError, setFormError] = useState("");
+  const [createFormOpen, setCreateFormOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -205,6 +206,7 @@ export function SupportPage() {
         title,
       });
       setForm(emptyForm);
+      setCreateFormOpen(false);
       toast.success("Đã gửi yêu cầu hỗ trợ.");
       await loadData(response.data.supportTicketId);
     } catch (error) {
@@ -212,6 +214,21 @@ export function SupportPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleOpenCreateForm = () => {
+    setForm(emptyForm);
+    setFormError("");
+    setCreateFormOpen(true);
+  };
+
+  const handleCloseCreateForm = () => {
+    if (saving) {
+      return;
+    }
+
+    setCreateFormOpen(false);
+    setFormError("");
   };
 
   const handleCloseTicket = async () => {
@@ -253,7 +270,7 @@ export function SupportPage() {
       <CustomerPageHeader
         title="Hỗ trợ"
         subtitle="Gửi yêu cầu và theo dõi tình trạng xử lý hỗ trợ."
-        action={<button type="button" onClick={() => setSelectedTicketId("")}><i className="fas fa-plus" /> Tạo yêu cầu mới</button>}
+        action={<button type="button" onClick={handleOpenCreateForm}><i className="fas fa-plus" /> Tạo yêu cầu mới</button>}
       />
 
       <div className="vm-support-layout">
@@ -263,7 +280,7 @@ export function SupportPage() {
             <StatCard icon="fas fa-headset" label="Đang xử lý" value={String(stats.inProgress)} note={<StatusPill tone="orange">Đang xử lý</StatusPill>} tone="orange" />
             <StatCard icon="far fa-check-circle" label="Đã giải quyết" value={String(stats.resolved)} note={<StatusPill>Đã giải quyết</StatusPill>} tone="green" />
           </div>
-          <section className="vm-customer-card vm-table-card">
+          <section className="vm-customer-card vm-table-card vm-support-table-card">
             <h2>Danh sách yêu cầu hỗ trợ</h2>
             <div className="vm-table-filters">
               <label>
@@ -290,12 +307,25 @@ export function SupportPage() {
                   <th>Người xử lý</th>
                   <th>Ngày tạo</th>
                   <th>Ngày xử lý</th>
-                  <th>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {pagedTickets.map((ticket) => (
-                  <tr key={ticket.supportTicketId}>
+                  <tr
+                    key={ticket.supportTicketId}
+                    className={`vm-interactive-row${selectedTicket?.supportTicketId === ticket.supportTicketId ? " vm-selected-row" : ""}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Xem chi tiết ${shortCode(ticket.supportTicketId)}`}
+                    aria-pressed={selectedTicket?.supportTicketId === ticket.supportTicketId}
+                    onClick={() => setSelectedTicketId(ticket.supportTicketId)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedTicketId(ticket.supportTicketId);
+                      }
+                    }}
+                  >
                     <td>{shortCode(ticket.supportTicketId)}</td>
                     <td>{ticket.title}</td>
                     <td>{ticket.categoryName ?? ticket.categoryCode ?? "--"}</td>
@@ -304,21 +334,16 @@ export function SupportPage() {
                     <td>{ticket.assignedTo ?? "--"}</td>
                     <td>{formatDateTime(ticket.createdAt)}</td>
                     <td>{formatDateTime(ticket.resolvedAt)}</td>
-                    <td>
-                      <button className="vm-mini-btn" type="button" onClick={() => setSelectedTicketId(ticket.supportTicketId)}>
-                        <i className="far fa-eye" /> Chi tiết
-                      </button>
-                    </td>
                   </tr>
                 ))}
                 {!loading && filteredTickets.length === 0 && (
                   <tr>
-                    <td colSpan={9}>Chưa có yêu cầu hỗ trợ phù hợp với bộ lọc.</td>
+                    <td colSpan={8}>Chưa có yêu cầu hỗ trợ phù hợp với bộ lọc.</td>
                   </tr>
                 )}
                 {loading && (
                   <tr>
-                    <td colSpan={9}>Đang tải dữ liệu hỗ trợ...</td>
+                    <td colSpan={8}>Đang tải dữ liệu hỗ trợ...</td>
                   </tr>
                 )}
               </tbody>
@@ -334,30 +359,6 @@ export function SupportPage() {
         </div>
 
         <aside className="vm-support-side">
-          <section className="vm-customer-card vm-side-form">
-            <h2>Tạo yêu cầu hỗ trợ</h2>
-            <Field label="Loại yêu cầu">
-              <select value={form.categoryId} onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value }))}>
-                <option value="">Chọn loại yêu cầu</option>
-                {categories.map((category) => (
-                  <option key={category.categoryId} value={category.categoryId}>{category.name}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Mức độ ưu tiên">
-              <input value={selectedCategory ? priorityLabels[selectedCategory.priority] : "Tự động theo loại yêu cầu"} readOnly />
-            </Field>
-            <Field label="Tiêu đề">
-              <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Nhập tiêu đề cần hỗ trợ" />
-            </Field>
-            <Field label="Nội dung">
-              <textarea value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder="Mô tả chi tiết vấn đề bạn cần hỗ trợ..." />
-            </Field>
-            {formError && <small className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-font-bold tw-text-red-600"><i className="fas fa-exclamation-circle" /> {formError}</small>}
-            <button type="button" disabled={saving} onClick={handleSubmit}>{saving ? "Đang gửi..." : "Gửi yêu cầu"}</button>
-            <small><i className="fas fa-info-circle" /> Yêu cầu mới sẽ ở trạng thái đang mở để nhân viên tiếp nhận.</small>
-          </section>
-
           <section className="vm-customer-card vm-ticket-detail">
             <h2>{selectedTicket ? `Chi tiết ${shortCode(selectedTicket.supportTicketId)}` : "Chi tiết yêu cầu"}</h2>
             {selectedTicket ? (
@@ -404,6 +405,63 @@ export function SupportPage() {
       </div>
 
       <div className="vm-info-note"><i className="fas fa-info-circle" /> Bạn có thể theo dõi tình trạng xử lý tại trang này. Khi yêu cầu được giải quyết, bạn có thể xác nhận và đóng yêu cầu.</div>
+
+      <Modal
+        actions={(
+          <div className="tw-flex tw-justify-end tw-gap-3">
+            <button
+              className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-font-bold tw-text-vm-slate-700"
+              type="button"
+              disabled={saving}
+              onClick={handleCloseCreateForm}
+            >
+              Hủy
+            </button>
+            <button
+              className="tw-h-10 tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-4 tw-font-bold tw-text-white disabled:tw-bg-vm-slate-200"
+              type="button"
+              disabled={saving}
+              onClick={() => void handleSubmit()}
+            >
+              {saving ? "Đang gửi..." : "Gửi yêu cầu"}
+            </button>
+          </div>
+        )}
+        description="Cung cấp đầy đủ thông tin để nhân viên có thể tiếp nhận và xử lý yêu cầu nhanh chóng."
+        onClose={handleCloseCreateForm}
+        open={createFormOpen}
+        title="Tạo yêu cầu hỗ trợ"
+        width="lg"
+      >
+        <div className="tw-grid tw-gap-4">
+          {formError ? (
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-600">
+              <i className="fas fa-exclamation-circle tw-mr-2" />
+              {formError}
+            </div>
+          ) : null}
+          <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2">
+            <Field label="Loại yêu cầu">
+              <select value={form.categoryId} onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value }))}>
+                <option value="">Chọn loại yêu cầu</option>
+                {categories.map((category) => (
+                  <option key={category.categoryId} value={category.categoryId}>{category.name}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Mức độ ưu tiên">
+              <input value={selectedCategory ? priorityLabels[selectedCategory.priority] : "Tự động theo loại yêu cầu"} readOnly />
+            </Field>
+          </div>
+          <Field label="Tiêu đề">
+            <input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Nhập tiêu đề cần hỗ trợ" />
+          </Field>
+          <Field label="Nội dung">
+            <textarea className="tw-min-h-32" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder="Mô tả chi tiết vấn đề bạn cần hỗ trợ..." />
+          </Field>
+          <small className="tw-font-semibold tw-text-vm-slate-500"><i className="fas fa-info-circle tw-mr-1" /> Yêu cầu mới sẽ ở trạng thái đang mở để nhân viên tiếp nhận.</small>
+        </div>
+      </Modal>
     </CustomerPortalLayout>
   );
 }

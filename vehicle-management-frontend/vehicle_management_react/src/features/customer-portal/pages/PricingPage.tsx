@@ -27,7 +27,7 @@ type DisplayRule = PriceRuleApiResponse & {
 const vehicleFilterOptions: Array<{ icon: string; label: string; value: VehicleFilterKey }> = [
   { icon: "fas fa-motorcycle", label: "Xe máy", value: "MOTORBIKE" },
   { icon: "fas fa-car", label: "Ô tô", value: "CAR" },
-  { icon: "far fa-ellipsis-h", label: "Xe khác", value: "OTHER" },
+  { icon: "fas fa-truck", label: "Xe khác", value: "OTHER" },
 ];
 
 function normalizeSearchText(value: string) {
@@ -103,6 +103,19 @@ function iconForRule(audience: PricingAudience, rule: DisplayRule) {
   return "far fa-sun";
 }
 
+function vehicleIcon(vehicleType?: VehicleTypeApiResponse) {
+  const category = vehicleCategory(vehicleType);
+  if (category === "MOTORBIKE") return "fas fa-motorcycle";
+  if (category === "CAR") return "fas fa-car";
+  return "fas fa-truck";
+}
+
+function toneForRule(audience: PricingAudience, rule: DisplayRule) {
+  if (audience === "CUSTOMER") return "subscription";
+  if (rule.timeFrom && rule.timeFrom >= "18:00") return "night";
+  return "day";
+}
+
 function buildRules(
   audience: PricingAudience,
   plans: PricePlanApiResponse[],
@@ -131,13 +144,13 @@ function PriceCard({ audience, rule }: { audience: PricingAudience; rule: Displa
   const vehicleName = rule.vehicleType?.name ?? "Tất cả loại xe";
   const ticketName = rule.ticketType?.name ?? (audience === "VISITOR" ? "Khách vãng lai" : "Vé đăng ký");
   const colorClass = audience === "CUSTOMER" ? "vm-price-green" : "vm-price-blue";
-  const iconClass = audience === "CUSTOMER" ? "vm-price-icon vm-price-icon-green" : "vm-price-icon";
   const description = audience === "CUSTOMER" ? "Gói gửi xe theo chu kỳ" : "Áp dụng theo lượt gửi xe";
+  const tone = toneForRule(audience, rule);
 
   return (
-    <article className={audience === "CUSTOMER" ? "vm-price-card vm-price-card-subscription" : "vm-price-card"}>
+    <article className={`vm-price-card vm-price-card-${tone}`}>
       <div className="vm-price-card-head">
-        <span className={iconClass}><i className={iconForRule(audience, rule)} /></span>
+        <span className="vm-price-icon"><i className={iconForRule(audience, rule)} /></span>
         <div>
           <h3>{rule.ruleName || ticketName}</h3>
           <p>{description}</p>
@@ -147,15 +160,18 @@ function PriceCard({ audience, rule }: { audience: PricingAudience; rule: Displa
         <strong className={colorClass}>{formatCurrency(rule.basePrice)}</strong>
         <span>{unitLabel(rule.unit, rule.ticketType)}</span>
       </div>
-      <div className="vm-price-tags">
-        <span><i /> {vehicleName}</span>
-        <span><i /> {ticketName}</span>
-        <span><i /> {timeRange(rule)}</span>
+      <div className="vm-price-facts">
+        <span><i className={vehicleIcon(rule.vehicleType)} /> {vehicleName}</span>
+        <span><i className={tone === "night" ? "fas fa-moon" : tone === "day" ? "far fa-sun" : "far fa-calendar-check"} /> {ticketName}</span>
+        <span><i className="far fa-clock" /> {timeRange(rule)}</span>
       </div>
-      <ul>
-        {rule.lostCardFee ? <li><i className="fas fa-check-circle" /> Phí mất thẻ: {formatCurrency(rule.lostCardFee)}</li> : null}
-        {rule.plan ? <li><i className="fas fa-check-circle" /> Bảng giá: {rule.plan.name}</li> : null}
-      </ul>
+      {rule.lostCardFee ? (
+        <div className="vm-price-fee">
+          <i className="fas fa-receipt" />
+          <span>Phí mất thẻ:</span>
+          <strong>{formatCurrency(rule.lostCardFee)}</strong>
+        </div>
+      ) : null}
       {audience === "CUSTOMER" ? <Link to="/customer/subscriptions">Đăng ký vé tháng</Link> : null}
     </article>
   );
@@ -163,7 +179,7 @@ function PriceCard({ audience, rule }: { audience: PricingAudience; rule: Displa
 
 function EmptyPricing({ label }: { label: string }) {
   return (
-    <article className="vm-price-card">
+    <article className="vm-price-card vm-price-card-empty">
       <div className="vm-price-card-head">
         <span className="vm-price-icon"><i className="fas fa-tags" /></span>
         <div>
@@ -174,11 +190,17 @@ function EmptyPricing({ label }: { label: string }) {
       <div className="vm-price-amount">
         <strong className="vm-price-blue">Chưa có dữ liệu</strong>
       </div>
-      <ul>
-        <li><i className="fas fa-info-circle" /> Kiểm tra kế hoạch giá đang hiệu lực</li>
-        <li><i className="fas fa-info-circle" /> Kiểm tra quy tắc giá đang hoạt động</li>
-      </ul>
+      <p className="vm-price-empty-note"><i className="fas fa-info-circle" /> Kiểm tra kế hoạch và quy tắc giá đang hiệu lực.</p>
     </article>
+  );
+}
+
+function PricingSectionHeading({ icon, planName, title }: { icon: string; planName?: string; title: string }) {
+  return (
+    <div className="vm-section-heading-lite">
+      <h2><i className={icon} /> {title}</h2>
+      {planName ? <span className="vm-price-plan-label"><i className="fas fa-receipt" /> {planName}</span> : null}
+    </div>
   );
 }
 
@@ -271,6 +293,10 @@ export function PricingPage() {
     ? `${formatDate(plans[0]?.effectiveFrom ?? null)} - ${formatDate(plans[0]?.effectiveTo ?? null)}`
     : "Theo bảng giá đang hiệu lực";
   const selectedVehicleLabel = vehicleFilterLabel(selectedVehicleFilter);
+  const visitorPlanName = filteredVisitorRules.find((rule) => rule.plan)?.plan?.name
+    ?? visitorRules.find((rule) => rule.plan)?.plan?.name;
+  const customerPlanName = filteredCustomerRules.find((rule) => rule.plan)?.plan?.name
+    ?? customerRules.find((rule) => rule.plan)?.plan?.name;
 
   return (
     <ClientPage>
@@ -281,7 +307,7 @@ export function PricingPage() {
             <p>Minh bạch - Tiện lợi - An toàn</p>
           </div>
           <aside className="vm-current-plan-card">
-            <span><i className="fas fa-tags" /> Bảng giá hiện hành</span>
+            <span><i className="far fa-calendar-alt" /> Bảng giá hiện hành</span>
             <strong>{loading ? "Đang tải dữ liệu bảng giá..." : planRange}</strong>
           </aside>
         </section>
@@ -292,9 +318,7 @@ export function PricingPage() {
         </section>
 
         <section className="vm-pricing-section">
-          <div className="vm-section-heading-lite">
-            <h2><i className="fas fa-user" /> Khách vãng lai</h2>
-          </div>
+          <PricingSectionHeading icon="fas fa-user-friends" planName={visitorPlanName} title="Khách vãng lai" />
           <div className="vm-price-grid">
             {filteredVisitorRules.length
               ? filteredVisitorRules.map((rule) => <PriceCard audience="VISITOR" key={rule.priceRuleId} rule={rule} />)
@@ -303,9 +327,7 @@ export function PricingPage() {
         </section>
 
         <section className="vm-pricing-section">
-          <div className="vm-section-heading-lite">
-            <h2><i className="fas fa-users" /> Khách đăng ký</h2>
-          </div>
+          <PricingSectionHeading icon="fas fa-users" planName={customerPlanName} title="Khách đăng ký" />
           <div className="vm-price-grid">
             {filteredCustomerRules.length
               ? filteredCustomerRules.map((rule) => <PriceCard audience="CUSTOMER" key={rule.priceRuleId} rule={rule} />)
