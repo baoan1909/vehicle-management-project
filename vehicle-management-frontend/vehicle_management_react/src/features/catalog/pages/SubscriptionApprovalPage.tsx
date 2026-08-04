@@ -248,7 +248,6 @@ function SubscriptionTableView({ activeId, items, onSelect }: { activeId?: strin
       <div className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-3 max-[720px]:tw-flex-col max-[720px]:tw-items-stretch">
         <div>
           <h2 className="tw-m-0 tw-text-[1rem] tw-font-black tw-text-vm-slate-900">Danh sách đăng ký vé tháng</h2>
-          <p className="tw-m-0 tw-mt-1 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500">Theo dõi trạng thái duyệt, thanh toán và gán thẻ theo dữ liệu subscription.</p>
         </div>
         <span className="tw-inline-flex tw-h-8 tw-items-center tw-rounded-full tw-bg-brand-50 tw-px-3 tw-text-[0.78rem] tw-font-black tw-text-vm-primary">
           {items.length} hồ sơ
@@ -660,7 +659,6 @@ export function SubscriptionApprovalPage() {
             <header className="tw-flex tw-items-start tw-justify-between tw-gap-3 max-[720px]:tw-flex-col">
               <div>
                 <h1 className="tw-m-0 tw-text-vm-page-title tw-font-black tw-text-vm-slate-900">Duyệt đăng ký vé tháng & Gán thẻ</h1>
-                <p className="tw-m-0 tw-mt-1 tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-500">Dữ liệu lấy từ subscription API, thẻ được giữ tự động khi duyệt.</p>
               </div>
               <Button variant="secondary" onClick={() => void loadData()} disabled={loading}>
                 <i className="fas fa-sync-alt tw-mr-2" />Làm mới

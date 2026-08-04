@@ -78,6 +78,35 @@ function eventLabel(eventType?: string | null) {
   return eventType || "--";
 }
 
+function EvidenceImage({ alt, src }: { alt: string; src?: string | null }) {
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  useEffect(() => {
+    setLoadFailed(false);
+  }, [src]);
+
+  if (!src || loadFailed) {
+    return (
+      <span className="vm-evidence-empty">
+        <i className="far fa-image" />
+        {loadFailed ? "Không thể tải ảnh" : "Chưa có ảnh"}
+      </span>
+    );
+  }
+
+  return (
+    <a
+      className="vm-evidence-image-link"
+      href={src}
+      target="_blank"
+      rel="noreferrer"
+      title="Mở ảnh kích thước đầy đủ"
+    >
+      <img src={src} alt={alt} loading="lazy" onError={() => setLoadFailed(true)} />
+    </a>
+  );
+}
+
 function buildRequestFilters(filters: HistoryFilters): ParkingSessionManagementFilters {
   return {
     fromDate: filters.fromDate || undefined,
@@ -176,7 +205,7 @@ export function CustomerHistoryPage() {
         <section className="vm-customer-card vm-table-card vm-history-table-card">
           <h2>Danh sách phiên gửi xe</h2>
           <table className="vm-customer-table">
-            <thead><tr><th>Mã phiên</th><th>Biển số vào</th><th>Biển số ra</th><th>Thời gian vào</th><th>Thời gian ra</th><th>Trạng thái</th><th>Tổng phí</th><th>Thao tác</th></tr></thead>
+            <thead><tr><th>Mã phiên</th><th>Biển số vào</th><th>Biển số ra</th><th>Thời gian vào</th><th>Thời gian ra</th><th>Trạng thái</th><th>Tổng phí</th></tr></thead>
             <tbody>
               {pagedSessions.map((session) => (
                 <tr
@@ -203,23 +232,10 @@ export function CustomerHistoryPage() {
                   <td>{formatDateTime(session.checkOutTime)}</td>
                   <td><StatusPill tone={statusTone(session.status)}>{statusLabel(session.status)}</StatusPill></td>
                   <td>{formatCurrency(session.totalPrice)}</td>
-                  <td>
-                    <button
-                      className="vm-mini-btn"
-                      type="button"
-                      title="Xem chi tiết"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setSelectedSessionId(session.parkingSessionId);
-                      }}
-                    >
-                      <i className="far fa-eye" /> Chi tiết
-                    </button>
-                  </td>
                 </tr>
               ))}
-              {!loading && sessions.length === 0 ? <tr><td colSpan={8}>Chưa có phiên gửi xe phù hợp.</td></tr> : null}
-              {loading ? <tr><td colSpan={8}>Đang tải dữ liệu...</td></tr> : null}
+              {!loading && sessions.length === 0 ? <tr><td colSpan={7}>Chưa có phiên gửi xe phù hợp.</td></tr> : null}
+              {loading ? <tr><td colSpan={7}>Đang tải dữ liệu...</td></tr> : null}
             </tbody>
           </table>
           <PaginationLite
@@ -254,10 +270,16 @@ export function CustomerHistoryPage() {
                 {(selectedSession.events ?? []).length === 0 ? <div>Chưa có sự kiện vào/ra.</div> : null}
               </div>
               <div className="vm-image-row">
-                {(selectedSession.events ?? []).slice(0, 2).map((event) => (
+                {(selectedSession.events ?? [])
+                  .filter((event) => event.eventType === "CHECK_IN" || event.eventType === "CHECK_OUT")
+                  .slice(0, 2)
+                  .map((event) => (
                   <div key={`${event.parkingEventId}-image`}>
                     <strong>{eventLabel(event.eventType)}</strong>
-                    <span><i className="far fa-camera" />{event.licensePlateImagePath || "Chưa có ảnh"}</span>
+                    <EvidenceImage
+                      alt={`Ảnh biển số khi ${eventLabel(event.eventType).toLocaleLowerCase("vi-VN")}`}
+                      src={event.licensePlateImagePath}
+                    />
                   </div>
                 ))}
               </div>

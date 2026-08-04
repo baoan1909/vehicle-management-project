@@ -375,10 +375,12 @@ function ProfileReadinessBanner({
         <strong className="tw-block tw-text-[0.98rem] tw-font-black tw-text-vm-slate-900">
           {isRejected ? "Hồ sơ cần bổ sung" : isRequired ? "Cần hoàn tất hồ sơ" : isPending ? "Hồ sơ đang chờ duyệt" : "Hồ sơ đã sẵn sàng"}
         </strong>
-        <p className="tw-mb-0 tw-mt-1.5 tw-text-[0.84rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-700">
-          {isRejected ? "Cập nhật thông tin theo góp ý rồi gửi lại để chờ duyệt." : isRequired ? "Vui lòng bổ sung thông tin để hoàn tất hồ sơ." : isPending ? "Thông tin đã được gửi và đang chờ người phụ trách duyệt." : "Thông tin cá nhân đã đủ để đồng bộ với tài khoản nội bộ."}
-        </p>
-        {rejectionNote ? <p className="tw-mb-0 tw-mt-1 tw-text-[0.84rem] tw-font-bold tw-leading-6 tw-text-amber-800">Lý do: {rejectionNote}</p> : null}
+        {isRejected || isRequired || isPending ? (
+          <p className="tw-mb-0 tw-mt-1.5 tw-text-[0.84rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-700">
+            {isRejected ? "Cập nhật thông tin theo góp ý rồi gửi lại để chờ duyệt." : isRequired ? "Vui lòng bổ sung thông tin để hoàn tất hồ sơ." : "Thông tin đã được gửi và đang chờ người phụ trách duyệt."}
+          </p>
+        ) : null}
+        {isRejected && rejectionNote ? <p className="tw-mb-0 tw-mt-1 tw-text-[0.84rem] tw-font-bold tw-leading-6 tw-text-amber-800">Lý do: {rejectionNote}</p> : null}
         </div>
         {isRejected ? (
           <Button className="tw-min-h-10 tw-whitespace-nowrap tw-font-extrabold" type="button" disabled={saving || resubmitting} loading={resubmitting} onClick={onResubmit}>
@@ -474,6 +476,7 @@ export function InternalProfilePage() {
   const avatarUrl = resolvePublicMediaUrl(profile.profile?.avatarUrl) || resolvePublicMediaUrl(user?.avatarUrl) || DEFAULT_USER_AVATAR_URL;
   const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(normalizeProfile(profile)), [form, profile]);
   const currentApprovalStatus = latestApproval?.request?.approvalRequestStatus ?? approvalStatusValue(profile);
+  const profileReady = !profile.onboardingRequired && currentApprovalStatus !== "PENDING" && currentApprovalStatus !== "REJECTED";
   const showSaveProfileButton = currentApprovalStatus === "APPROVED";
 
   const refreshLatestApproval = async (nextProfile: AccountProfileStatusResponse) => {
@@ -669,11 +672,14 @@ export function InternalProfilePage() {
         <div className="container-fluid tw-max-w-[1480px]">
           <div className="tw-grid tw-gap-4 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
             <header className="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-px-1 tw-pb-[0.65rem] tw-pt-[0.3rem] max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
-              <div>
+              <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3">
                 <h2 className="tw-m-0 tw-text-vm-page-title tw-font-extrabold tw-leading-none tw-text-[#111827]">Thông tin tài khoản</h2>
-                <p className="tw-mb-0 tw-mt-2 tw-max-w-[720px] tw-text-[0.92rem] tw-font-semibold tw-leading-[1.55] tw-text-vm-slate-500">
-                  Quản lý hồ sơ cá nhân, avatar và thông tin nhân sự nội bộ của tài khoản đang đăng nhập.
-                </p>
+                {profileReady ? (
+                  <span className="tw-inline-flex tw-min-h-8 tw-items-center tw-gap-2 tw-rounded-full tw-bg-green-50 tw-px-3 tw-text-[0.82rem] tw-font-extrabold tw-text-green-700">
+                    <i className="fas fa-check-circle" />
+                    Hồ sơ đã sẵn sàng
+                  </span>
+                ) : null}
               </div>
               <div className="tw-flex tw-items-center tw-gap-3 max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
                 <Button className="tw-min-h-11 tw-font-extrabold" variant="secondary" disabled={!dirty || saving || resubmitting} type="button" onClick={() => setForm(normalizeProfile(profile))}>
@@ -689,7 +695,9 @@ export function InternalProfilePage() {
               </div>
             </header>
 
-            <ProfileReadinessBanner dirty={dirty} latestApproval={latestApproval} onComplete={handleSave} onResubmit={handleResubmitApproval} profile={profile} resubmitting={resubmitting} saving={saving} />
+            {!profileReady ? (
+              <ProfileReadinessBanner dirty={dirty} latestApproval={latestApproval} onComplete={handleSave} onResubmit={handleResubmitApproval} profile={profile} resubmitting={resubmitting} saving={saving} />
+            ) : null}
 
             {notice ? (
               <div className="tw-flex tw-min-h-11 tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-brand-100 tw-bg-brand-50 tw-px-4 tw-text-[0.86rem] tw-font-bold tw-text-blue-900">

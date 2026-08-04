@@ -1010,7 +1010,7 @@ export function ShiftSchedulePage() {
             <ShiftMetricCard icon="far fa-calendar-alt" label="Ca tuần này" tone="blue" value={`${realShifts.length}`} />
             <ShiftMetricCard icon="fas fa-users" label="Đã phân công" tone="green" value={`${assignedCount}`} />
             <ShiftMetricCard icon="far fa-clock" label="Đang mở" tone="orange" value={`${realShifts.filter((shift) => shift.status === "OPEN").length}`} />
-            <ShiftMetricCard icon="far fa-exclamation-circle" label="Cần xử lý" tone="red" value={`${needsAttention}`} />
+            <ShiftMetricCard icon="fas fa-exclamation-triangle" label="Cần xử lý" tone="red" value={`${needsAttention}`} />
           </div>
 
           <WeekSummaryPanel shifts={shiftCells} />

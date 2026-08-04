@@ -76,7 +76,31 @@ function formatDate(value: string | null) {
   return new Intl.DateTimeFormat("vi-VN").format(new Date(value));
 }
 
-function unitLabel(unit: string | null, ticketType?: TicketTypeApiResponse) {
+function durationLabel(durationDays?: number | null) {
+  if (!durationDays) return null;
+  if (durationDays === 365) return "/ năm";
+  if (durationDays === 90) return "/ quý";
+  if (durationDays === 30) return "/ tháng";
+  if (durationDays % 30 === 0) return `/ ${durationDays / 30} tháng`;
+  return `/ ${durationDays} ngày`;
+}
+
+function subscriptionUnitLabel(ticketType?: TicketTypeApiResponse) {
+  const code = ticketType?.code?.trim().toUpperCase();
+
+  if (code === "MONTHLY") return "/ tháng";
+  if (code === "QUARTERLY") return "/ quý";
+  if (code === "YEARLY") return "/ năm";
+  if (code === "FREE") return durationLabel(ticketType?.durationDays) ?? "/ 6 tháng";
+  return durationLabel(ticketType?.durationDays);
+}
+
+function unitLabel(audience: PricingAudience, unit: string | null, ticketType?: TicketTypeApiResponse) {
+  if (audience === "CUSTOMER") {
+    const subscriptionLabel = subscriptionUnitLabel(ticketType);
+    if (subscriptionLabel) return subscriptionLabel;
+  }
+
   const normalized = unit?.trim().toUpperCase();
 
   if (normalized === "MONTH") return "/ tháng";
@@ -85,7 +109,7 @@ function unitLabel(unit: string | null, ticketType?: TicketTypeApiResponse) {
   if (normalized === "DAY") return "/ ngày";
   if (normalized === "HOUR") return "/ giờ";
   if (normalized === "TURN" || normalized === "SESSION") return "/ lượt";
-  if (ticketType?.durationDays) return `/ ${ticketType.durationDays} ngày`;
+  if (ticketType?.durationDays) return durationLabel(ticketType.durationDays) ?? "";
   if (unit) return `/ ${unit.toLowerCase()}`;
   return "";
 }
@@ -158,7 +182,7 @@ function PriceCard({ audience, rule }: { audience: PricingAudience; rule: Displa
       </div>
       <div className="vm-price-amount">
         <strong className={colorClass}>{formatCurrency(rule.basePrice)}</strong>
-        <span>{unitLabel(rule.unit, rule.ticketType)}</span>
+        <span>{unitLabel(audience, rule.unit, rule.ticketType)}</span>
       </div>
       <div className="vm-price-facts">
         <span><i className={vehicleIcon(rule.vehicleType)} /> {vehicleName}</span>
@@ -172,7 +196,9 @@ function PriceCard({ audience, rule }: { audience: PricingAudience; rule: Displa
           <strong>{formatCurrency(rule.lostCardFee)}</strong>
         </div>
       ) : null}
-      {audience === "CUSTOMER" ? <Link to="/customer/subscriptions">Đăng ký vé tháng</Link> : null}
+      {audience === "CUSTOMER" ? (
+        <Link to="/customer/subscriptions">Đăng ký {ticketName.toLocaleLowerCase("vi-VN")}</Link>
+      ) : null}
     </article>
   );
 }

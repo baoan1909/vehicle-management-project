@@ -203,6 +203,7 @@ function getCameraStatusDot(status?: DeviceStatusApi) {
 
 function FilterSelect({
   ariaLabel,
+  className,
   icon,
   label,
   onChange,
@@ -210,16 +211,25 @@ function FilterSelect({
   value,
 }: {
   ariaLabel: string;
+  className?: string;
   icon?: string;
   label: string;
   onChange: (value: string) => void;
   options: Array<{ label: string; value: string }>;
   value: string;
 }) {
+  const selectedLabel = options.find((option) => option.value === value)?.label ?? options[0]?.label;
+
   return (
-    <div className="tw-flex tw-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]">
+    <div
+      className={cn(
+        "tw-flex tw-h-10 tw-min-w-0 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]",
+        className,
+      )}
+      title={selectedLabel}
+    >
       <span className="tw-whitespace-nowrap tw-text-[0.8rem] tw-font-extrabold tw-text-vm-slate-700">{label}</span>
-      <div className="tw-flex tw-min-w-[168px] tw-items-center tw-gap-2">
+      <div className="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-2">
         {icon ? (
           <span className="tw-inline-flex tw-w-5 tw-flex-shrink-0 tw-items-center tw-justify-center tw-text-vm-slate-700">
             <i className={icon} />
@@ -396,8 +406,15 @@ export function SwipeListPage() {
     () => cameraDevices.find((device) => device.deviceId === cameraId),
     [cameraDevices, cameraId],
   );
-  const cameraStatusText = selectedCamera
+  const cameraStatusTitle = selectedCamera
     ? `${getCameraOptionLabel(selectedCamera)} • ${getCameraStatusLabel(selectedCamera.status)}`
+    : isLocalCamera(cameraId)
+      ? `${LOCAL_CAMERA_LABEL} • Sẵn sàng`
+      : cameraError
+        ? "Không tải được camera"
+        : "Chưa chọn camera";
+  const cameraStatusText = selectedCamera
+    ? `${selectedCamera.deviceCode} • ${getCameraStatusLabel(selectedCamera.status)}`
     : isLocalCamera(cameraId)
       ? `${LOCAL_CAMERA_LABEL} • Sẵn sàng`
       : cameraError
@@ -1094,25 +1111,25 @@ export function SwipeListPage() {
   return (
     <main className="tw-px-4 tw-pb-5 tw-pt-3 lg:tw-px-5">
       <section className="tw-mx-auto tw-grid tw-min-h-[calc(100vh-124px)] tw-w-[min(100%,1660px)] tw-grid-rows-[auto_minmax(0,1fr)] tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
-        <div className="tw-grid tw-grid-cols-[minmax(260px,470px)_minmax(320px,1fr)_auto] tw-items-end tw-gap-3 max-[1280px]:tw-grid-cols-1">
+        <div className="tw-grid tw-grid-cols-[minmax(260px,470px)_minmax(420px,1fr)_minmax(220px,300px)] tw-items-end tw-gap-3 max-[1280px]:tw-grid-cols-1">
           <div className="tw-grid tw-gap-2">
             <h1 className="tw-m-0 tw-text-[1.36rem] tw-font-black tw-leading-tight tw-text-slate-950">Vận hành vào / ra bãi</h1>
             <OperationModeTabs mode={mode} onChange={setMode} />
           </div>
 
-          <div className="tw-flex tw-flex-wrap tw-items-end tw-justify-end tw-gap-2.5 max-[1280px]:tw-justify-start">
-            <FilterSelect ariaLabel="Chọn làn xe" label="Làn xe" options={laneOptions} value={laneId} onChange={setLaneId} />
-            <FilterSelect ariaLabel="Chọn camera" icon="fas fa-video" label="Camera" options={cameraOptions} value={cameraId} onChange={setCameraId} />
+          <div className="tw-grid tw-min-w-0 tw-grid-cols-[minmax(180px,0.7fr)_minmax(240px,1.3fr)] tw-gap-2.5 max-[720px]:tw-grid-cols-1">
+            <FilterSelect className="tw-w-full" ariaLabel="Chọn làn xe" label="Làn xe" options={laneOptions} value={laneId} onChange={setLaneId} />
+            <FilterSelect className="tw-w-full" ariaLabel="Chọn camera" icon="fas fa-video" label="Camera" options={cameraOptions} value={cameraId} onChange={setCameraId} />
           </div>
 
           <div className={cn(
-            "tw-flex tw-h-10 tw-items-center tw-gap-2 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]",
+            "tw-flex tw-h-10 tw-min-w-0 tw-items-center tw-gap-2 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]",
             isLocalCamera(cameraId)
                 ? "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700"
                 : cameraError
                   ? "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700"
                   : getCameraStatusTone(selectedCamera?.status),
-          )}>
+          )} title={cameraStatusTitle}>
             <span className={cn(
               "tw-h-2 tw-w-2 tw-rounded-full",
               isLocalCamera(cameraId)
@@ -1121,7 +1138,7 @@ export function SwipeListPage() {
                     ? "tw-bg-amber-500"
                     : getCameraStatusDot(selectedCamera?.status),
             )} />
-            {cameraStatusText}
+            <span className="tw-min-w-0 tw-truncate">{cameraStatusText}</span>
           </div>
         </div>
 
