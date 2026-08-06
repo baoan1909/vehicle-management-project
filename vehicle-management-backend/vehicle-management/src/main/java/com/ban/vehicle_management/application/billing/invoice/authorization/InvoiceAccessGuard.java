@@ -38,6 +38,10 @@ public class InvoiceAccessGuard {
         currentAccountPortIn.requirePermission(CANCEL_PERMISSION);
     }
 
+    public void ensureCanReadAll(){
+        currentAccountPortIn.requirePermission(READ_ALL_PERMISSION);
+    }
+
     public void ensureCanRead(Invoice invoice){
         if (currentAccountPortIn.hasPermission(READ_ALL_PERMISSION)){
             return;
