@@ -37,7 +37,6 @@ export const apiEndpoints = {
     subscriptions: "/access-control/subscriptions",
   },
   billing: {
-    invoiceManagement: "/billing/invoice-management",
     invoices: "/billing/invoices",
     payments: "/billing/payments",
   },

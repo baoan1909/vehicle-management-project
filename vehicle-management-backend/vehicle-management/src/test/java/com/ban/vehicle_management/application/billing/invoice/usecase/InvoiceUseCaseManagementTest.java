@@ -32,7 +32,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class InvoiceManagementUseCaseImplTest {
+class InvoiceUseCaseManagementTest {
 
     @Mock private InvoicePortOut invoicePortOut;
     @Mock private PaymentPortOut paymentPortOut;
@@ -45,7 +45,7 @@ class InvoiceManagementUseCaseImplTest {
     @Mock private LostCardReportPortOut lostCardReportPortOut;
 
     @InjectMocks
-    private InvoiceManagementUseCaseImpl useCase;
+    private InvoiceUseCaseImpl useCase;
 
     @Test
     void shouldFilterInvoicesByDisplayPaymentMethod() {
@@ -59,7 +59,7 @@ class InvoiceManagementUseCaseImplTest {
         when(paymentPortOut.findByInvoiceId(cashInvoice.getInvoiceId()))
                 .thenReturn(List.of(payment(cashInvoice.getInvoiceId(), PaymentMethod.CASH)));
 
-        InvoiceManagementPageResult result = useCase.getInvoices(
+        InvoiceManagementPageResult result = useCase.getManagementInvoices(
                 null, PaymentMethod.VNPAY, null, null, null, 0, 10
         );
 
@@ -80,7 +80,7 @@ class InvoiceManagementUseCaseImplTest {
                         invoice("INV-5", InvoiceStatus.REFUNDED, "2026-08-06T05:00:00Z")
                 ));
 
-        InvoiceManagementSummaryResult result = useCase.getSummary();
+        InvoiceManagementSummaryResult result = useCase.getManagementSummary();
 
         assertEquals(5, result.total());
         assertEquals(1, result.unpaid());

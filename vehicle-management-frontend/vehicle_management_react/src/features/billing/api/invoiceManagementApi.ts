@@ -97,18 +97,18 @@ function buildQuery(filter: InvoiceManagementFilter) {
 
 export function getInvoiceManagementList(filter: InvoiceManagementFilter = {}) {
   return apiClient<ApiResponse<InvoiceManagementPage>>(
-    `${apiEndpoints.billing.invoiceManagement}${buildQuery(filter)}`,
+    `${apiEndpoints.billing.invoices}/management${buildQuery(filter)}`,
   );
 }
 
 export function getInvoiceManagementSummary() {
   return apiClient<ApiResponse<InvoiceManagementSummary>>(
-    `${apiEndpoints.billing.invoiceManagement}/summary`,
+    `${apiEndpoints.billing.invoices}/management/summary`,
   );
 }
 
 export function getInvoiceManagementDetail(invoiceId: string) {
   return apiClient<ApiResponse<InvoiceManagementDetail>>(
-    `${apiEndpoints.billing.invoiceManagement}/${invoiceId}`,
+    `${apiEndpoints.billing.invoices}/management/${invoiceId}`,
   );
 }
