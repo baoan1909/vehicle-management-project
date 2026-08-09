@@ -4,6 +4,7 @@ import { getRoutePermissions } from "@/app/routePermissions";
 import type { AppLayout } from "@/shared/types/common";
 import { LoginPage } from "@/features/auth";
 import { VnpayReturnPage } from "@/features/billing/pages/VnpayReturnPage";
+import { InvoiceManagementPage } from "@/features/billing/pages/InvoiceManagementPage";
 import { CardListPage, LostCardCreatePage, LostCardDetailPage, LostCardListPage } from "@/features/cards";
 import { SubscriptionApprovalPage, TicketListPage, VehicleListPage } from "@/features/catalog";
 import {
@@ -61,6 +62,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/devices", title: "Quản lý thiết bị", layout: "admin", element: <DeviceManagementPage /> },
   { path: "/admin/price-plans", title: "Ke hoach gia", layout: "admin", element: <PricePlanListPage /> },
   { path: "/admin/price-rules", title: "Quy tac gia", layout: "admin", element: <PriceRuleListPage /> },
+  { path: "/admin/invoices", title: "Quản lý hóa đơn", layout: "admin", element: <InvoiceManagementPage /> },
   { path: "/admin/visitorParkingFee", title: "Phi vang lai", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
   { path: "/admin/parkingFeeOfCustomer", title: "Phi dang ky", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
   { path: "/admin/employee", title: "Nhân viên", layout: "admin", element: <EmployeeListPage /> },

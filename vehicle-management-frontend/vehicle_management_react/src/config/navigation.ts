@@ -65,6 +65,7 @@ export const adminNavigation: AdminSidebarEntry[] = [
     items: [
       { label: "Kế hoạch giá", to: "/admin/price-plans", matches: ["/admin/price-plans"] },
       { label: "Quy tắc giá", to: "/admin/price-rules", matches: ["/admin/price-rules"] },
+      { label: "Hóa đơn", to: "/admin/invoices", matches: ["/admin/invoices"] },
     ],
   },
   {
