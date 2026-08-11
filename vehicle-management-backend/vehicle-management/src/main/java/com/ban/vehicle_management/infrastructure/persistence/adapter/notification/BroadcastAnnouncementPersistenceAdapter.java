@@ -5,7 +5,9 @@ import com.ban.vehicle_management.domain.notification.broadcastannouncement.mode
 import com.ban.vehicle_management.infrastructure.mapper.notification.BroadcastAnnouncementPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.notification.BroadcastAnnouncementEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.notification.BroadcastAnnouncementRepository;
+import com.ban.vehicle_management.shared.enumeration.notification.BroadcastAnnouncementAudienceType;
 import com.ban.vehicle_management.shared.enumeration.notification.BroadcastAnnouncementStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,6 +47,24 @@ public class BroadcastAnnouncementPersistenceAdapter implements BroadcastAnnounc
                 ? broadcastAnnouncementRepository.findAllByOrderByCreatedAtDescBroadcastIdDesc()
                 : broadcastAnnouncementRepository.findByStatusOrderByCreatedAtDescBroadcastIdDesc(status);
         return broadcastAnnouncementPersistenceMapper.toDomains(entities);
+    }
+
+    @Override
+    public List<BroadcastAnnouncement> findActivePublishedForRole(String roleCode, Instant now) {
+        List<BroadcastAnnouncementEntity> entities = broadcastAnnouncementRepository.findActivePublishedAnnouncements(now);
+        return entities.stream()
+                .filter(entity -> isVisibleToRole(entity, roleCode))
+                .map(broadcastAnnouncementPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    private boolean isVisibleToRole(BroadcastAnnouncementEntity entity, String roleCode) {
+        if (entity.getAudienceType() == BroadcastAnnouncementAudienceType.ALL_ACTIVE_ACCOUNTS) {
+            return true;
+        }
+        return roleCode != null
+                && entity.getRoleCodes() != null
+                && entity.getRoleCodes().contains(roleCode);
     }
 
     @Override

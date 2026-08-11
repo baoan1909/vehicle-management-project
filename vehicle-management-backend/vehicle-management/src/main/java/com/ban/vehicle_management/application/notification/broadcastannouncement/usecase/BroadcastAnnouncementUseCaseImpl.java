@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.notification.broadcastannouncement
 import com.ban.vehicle_management.application.notification.broadcastannouncement.port.in.BroadcastAnnouncementPortIn;
 import com.ban.vehicle_management.application.notification.broadcastannouncement.port.out.BroadcastAnnouncementPortOut;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.notification.broadcastannouncement.model.BroadcastAnnouncement;
 import com.ban.vehicle_management.domain.notification.broadcastannouncement.policy.BroadcastAnnouncementPolicy;
 import com.ban.vehicle_management.shared.enumeration.notification.BroadcastAnnouncementAudienceType;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class BroadcastAnnouncementUseCaseImpl implements BroadcastAnnouncementPortIn {
 
+    private static final String GUEST_ROLE_CODE = "GUEST";
     private static final String BROADCAST_NOTIFICATION_CREATE_ALL = "BROADCAST_NOTIFICATION_CREATE_ALL";
     private static final String BROADCAST_NOTIFICATION_READ_ALL = "BROADCAST_NOTIFICATION_READ_ALL";
     private static final String BROADCAST_NOTIFICATION_UPDATE_ALL = "BROADCAST_NOTIFICATION_UPDATE_ALL";
@@ -66,6 +68,20 @@ public class BroadcastAnnouncementUseCaseImpl implements BroadcastAnnouncementPo
     public List<BroadcastAnnouncement> getBroadcastAnnouncements(BroadcastAnnouncementStatus status) {
         currentAccountPortIn.requirePermission(BROADCAST_NOTIFICATION_READ_ALL);
         return broadcastAnnouncementPortOut.findAll(status);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BroadcastAnnouncement> getActiveBroadcastAnnouncementsForCurrentAccount() {
+        String roleCode = currentAccountPortIn.getCurrentAccount()
+                .map(CurrentAccountAccess::roleCode)
+                .filter(role -> role != null && !role.isBlank())
+                .orElse(GUEST_ROLE_CODE);
+
+        return broadcastAnnouncementPortOut.findActivePublishedForRole(
+                roleCode,
+                Instant.now()
+        );
     }
 
     @Override

@@ -81,6 +81,15 @@ public class BroadcastAnnouncementController {
         ));
     }
 
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<List<BroadcastAnnouncementAdminResponse>>> getActiveForCurrentAccount() {
+        List<BroadcastAnnouncement> announcements = broadcastAnnouncementPortIn.getActiveBroadcastAnnouncementsForCurrentAccount();
+        return ResponseEntity.ok(ApiResponse.ok(
+                ControllerMessages.FETCH_LIST_SUCCESS,
+                broadcastAnnouncementApiMapper.toAdminResponses(announcements)
+        ));
+    }
+
     @PutMapping("/{broadcastId}")
     @PreAuthorize("@permissionAuthorizer.hasPermission('BROADCAST_NOTIFICATION_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<BroadcastAnnouncementAdminResponse>> update(

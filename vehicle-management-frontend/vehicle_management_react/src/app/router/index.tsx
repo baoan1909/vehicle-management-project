@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { canAccessAdminRoute, getFirstAccessibleAdminPath, getRoutePermissions } from "@/app/routePermissions";
 import { routes } from "@/app/routes";
+import { consumeLogoutRedirectGuard, getLogoutRedirectPath, isLogoutRedirectGuardActive } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasResolvedPermissions } from "@/shared/auth/permissions";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
@@ -52,6 +53,10 @@ function AdminShell() {
   const { user } = useAuth();
 
   if (!user) {
+    if (isLogoutRedirectGuardActive()) {
+      return <Navigate to={getLogoutRedirectPath()} replace />;
+    }
+
     return <Navigate to="/login" replace />;
   }
 
@@ -78,6 +83,10 @@ function AdminIndexRedirect() {
   const { isAccessLoading, user } = useAuth();
 
   if (!user) {
+    if (isLogoutRedirectGuardActive()) {
+      return <Navigate to={getLogoutRedirectPath()} replace />;
+    }
+
     return <Navigate to="/login" replace />;
   }
 
@@ -93,6 +102,10 @@ function AdminRouteGate({ element, path }: { element: ReactNode; path: string })
   const permissions = getRoutePermissions(path);
 
   if (!user) {
+    if (isLogoutRedirectGuardActive()) {
+      return <Navigate to={getLogoutRedirectPath()} replace />;
+    }
+
     return <Navigate to="/login" replace />;
   }
 
@@ -108,6 +121,10 @@ function AdminRouteGate({ element, path }: { element: ReactNode; path: string })
 }
 
 function ClientShell() {
+  useEffect(() => {
+    consumeLogoutRedirectGuard();
+  }, []);
+
   return (
     <>
       <RouteDocument layout="client" />

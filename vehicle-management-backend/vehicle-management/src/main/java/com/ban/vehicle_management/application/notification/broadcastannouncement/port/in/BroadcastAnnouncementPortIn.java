@@ -13,6 +13,8 @@ public interface BroadcastAnnouncementPortIn {
 
     List<BroadcastAnnouncement> getBroadcastAnnouncements(BroadcastAnnouncementStatus status);
 
+    List<BroadcastAnnouncement> getActiveBroadcastAnnouncementsForCurrentAccount();
+
     BroadcastAnnouncement updateBroadcastAnnouncement(UUID broadcastId, BroadcastAnnouncement request);
 
     BroadcastAnnouncement updateBroadcastAnnouncementDisplayOrder(UUID broadcastId, Integer displayOrder);

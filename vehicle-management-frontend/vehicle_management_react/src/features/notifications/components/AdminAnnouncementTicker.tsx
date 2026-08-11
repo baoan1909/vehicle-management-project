@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getBroadcastAnnouncements, type BroadcastAnnouncementResponse } from "@/features/notifications/api/notificationApi";
+import { getActiveBroadcastAnnouncements, type BroadcastAnnouncementResponse } from "@/features/notifications/api/notificationApi";
+import { cn } from "@/lib/cn";
 
 type AdminAnnouncementTickerProps = {
   onVisibleChange: (visible: boolean) => void;
+  topClassName?: string;
 };
 
 function getTime(value: string | null | undefined) {
@@ -54,13 +56,13 @@ function TickerItems({ announcements }: { announcements: BroadcastAnnouncementRe
   );
 }
 
-export function AdminAnnouncementTicker({ onVisibleChange }: AdminAnnouncementTickerProps) {
+export function AdminAnnouncementTicker({ onVisibleChange, topClassName = "tw-top-[72px]" }: AdminAnnouncementTickerProps) {
   const [announcements, setAnnouncements] = useState<BroadcastAnnouncementResponse[]>([]);
   const [now, setNow] = useState(() => Date.now());
 
   const loadAnnouncements = useCallback(async () => {
     try {
-      const response = await getBroadcastAnnouncements();
+      const response = await getActiveBroadcastAnnouncements();
       setAnnouncements(response.data ?? []);
     } catch {
       setAnnouncements([]);
@@ -92,7 +94,7 @@ export function AdminAnnouncementTicker({ onVisibleChange }: AdminAnnouncementTi
   if (!visible) return null;
 
   return (
-    <div className="tw-fixed tw-inset-x-0 tw-top-[72px] tw-z-[1045] tw-h-10 tw-overflow-hidden tw-border-0 tw-border-y tw-border-solid tw-border-[#d3e3f4]/90 tw-bg-[linear-gradient(90deg,#eaf4ff_0%,#f6faff_42%,#edf7f4_100%)] tw-shadow-[0_8px_22px_rgba(31,78,121,0.09)]">
+    <div className={cn("tw-fixed tw-inset-x-0 tw-z-[1045] tw-h-10 tw-overflow-hidden tw-border-0 tw-border-y tw-border-solid tw-border-[#d3e3f4]/90 tw-bg-[linear-gradient(90deg,#eaf4ff_0%,#f6faff_42%,#edf7f4_100%)] tw-shadow-[0_8px_22px_rgba(31,78,121,0.09)]", topClassName)}>
       <style>
         {`
           @keyframes vm-admin-announcement-marquee {

@@ -18,6 +18,7 @@ export const apiEndpoints = {
   },
   notifications: {
     activeRoles: "/notifications/active-roles",
+    activeBroadcastAnnouncements: "/notifications/broadcast-announcements/active",
     broadcastAnnouncements: "/notifications/broadcast-announcements",
     mine: "/notifications",
     readAll: "/notifications/read-all",

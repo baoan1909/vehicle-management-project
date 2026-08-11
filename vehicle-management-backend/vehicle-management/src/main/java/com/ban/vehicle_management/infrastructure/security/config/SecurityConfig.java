@@ -84,7 +84,8 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/public/pricing/**",
-                                "/api/public/payments/vnpay/**"
+                                "/api/public/payments/vnpay/**",
+                                "/api/notifications/broadcast-announcements/active"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -177,6 +177,12 @@ export function getBroadcastAnnouncements(filter: BroadcastAnnouncementFilter = 
   );
 }
 
+export function getActiveBroadcastAnnouncements() {
+  return apiClient<ApiResponse<BroadcastAnnouncementResponse[]>>(
+    apiEndpoints.notifications.activeBroadcastAnnouncements,
+  );
+}
+
 export function createBroadcastAnnouncement(payload: BroadcastAnnouncementPayload) {
   return apiClient<ApiResponse<BroadcastAnnouncementResponse>>(apiEndpoints.notifications.broadcastAnnouncements, {
     body: payload,

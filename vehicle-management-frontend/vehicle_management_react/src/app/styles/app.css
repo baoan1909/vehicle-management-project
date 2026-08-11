@@ -1381,6 +1381,10 @@ body {
   background: #f8fbff;
 }
 
+.vm-client-shell .content-wrapper.vm-public-announcement-offset {
+  padding-top: 3.5rem;
+}
+
 .vm-client-shell .content {
   padding: 0;
 }

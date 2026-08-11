@@ -127,17 +127,26 @@ export async function exchangeKeycloakAuthorizationCode(code: string) {
   return responseBody;
 }
 
-export function buildKeycloakLogoutUrl(idToken?: string | null) {
+export function buildKeycloakLogoutUrl(idToken?: string | null, postLogoutRedirectPath = "/pricing") {
   const loginUrl = new URL(appConfig.keycloakLoginUrl);
   const logoutUrl = new URL(loginUrl.toString());
   logoutUrl.pathname = logoutUrl.pathname.replace(/\/auth$/, "/logout");
   logoutUrl.search = "";
   logoutUrl.searchParams.set("client_id", loginUrl.searchParams.get("client_id") ?? "vehicle-management-frontend");
-  logoutUrl.searchParams.set("post_logout_redirect_uri", `${window.location.origin}/login`);
+  logoutUrl.searchParams.set("post_logout_redirect_uri", buildFrontendRedirectUri(loginUrl, postLogoutRedirectPath));
   if (idToken) {
     logoutUrl.searchParams.set("id_token_hint", idToken);
   }
   return logoutUrl.toString();
+}
+
+function buildFrontendRedirectUri(loginUrl: URL, path: string) {
+  const configuredRedirectUri = loginUrl.searchParams.get("redirect_uri");
+  const redirectUrl = configuredRedirectUri ? new URL(configuredRedirectUri) : new URL(window.location.origin);
+  redirectUrl.pathname = path.startsWith("/") ? path : `/${path}`;
+  redirectUrl.search = "";
+  redirectUrl.hash = "";
+  return redirectUrl.toString();
 }
 
 function generateCodeVerifier() {
