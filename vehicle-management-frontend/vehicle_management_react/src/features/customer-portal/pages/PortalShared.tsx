@@ -1,8 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { logoutCurrentUser } from "@/core/auth/logout";
-import { useAuth } from "@/core/auth/useAuth";
-import { NotificationBell } from "@/features/notifications/components/NotificationBell";
+import type { ReactNode } from "react";
 
 export const publicContactItems = [
   { icon: "fas fa-phone-alt", title: "Hotline", value: "1900 1234", note: "Hỗ trợ 24/7" },
@@ -19,6 +16,10 @@ const customerNavItems = [
   { label: "Lịch sử gửi xe", to: "/customer/parking-history", icon: "far fa-clock" },
   { label: "Hỗ trợ", to: "/customer/support", icon: "far fa-question-circle" },
 ];
+
+function scrollToPageTop() {
+  window.scrollTo({ left: 0, top: 0 });
+}
 
 export function PublicHero({ title, subtitle }: { title: string; subtitle: string }) {
   return (
@@ -52,12 +53,54 @@ export function PublicContactStrip() {
 export function PublicFooter() {
   return (
     <footer className="vm-public-footer">
-      <span>© 2024 CoParking. All rights reserved.</span>
-      <nav>
-        <a href="#">Chính sách bảo mật</a>
-        <span>|</span>
-        <a href="#">Điều khoản sử dụng</a>
-      </nav>
+      <div className="vm-public-footer-pattern" aria-hidden="true" />
+      <div className="vm-public-footer-inner">
+        <section className="vm-public-footer-brand">
+          <img src="/assets/admin/dist/img/AdminLTELogo.png" alt="CoParking" />
+          <p>Quản lý bãi xe thông minh</p>
+          <span>Copyright © 2026 CoParking. All Rights Reserved</span>
+          <div>
+            <strong>Trụ sở</strong>
+            <p>10/5 Đường Tỉnh Lộ 19, Phường An Phú Đông, Thành phố Hồ Chí Minh</p>
+          </div>
+          <div>
+            <strong>Liên hệ</strong>
+            <p>0912345678<br />support@coparking.vn</p>
+          </div>
+        </section>
+
+        <section className="vm-public-footer-links">
+          <div>
+            <h3>Công ty</h3>
+            <Link to="/" onClick={scrollToPageTop}>Về chúng tôi</Link>
+            <Link to="/pricing" onClick={scrollToPageTop}>Bảng giá</Link>
+            <Link to="/contact" onClick={scrollToPageTop}>Liên hệ</Link>
+          </div>
+          <div>
+            <h3>Tính năng</h3>
+            <Link to="/guide" onClick={scrollToPageTop}>Quản lý bãi xe</Link>
+            <Link to="/guide" onClick={scrollToPageTop}>OCR biển số</Link>
+            <Link to="/customer/subscriptions" onClick={scrollToPageTop}>Vé tháng</Link>
+            <Link to="/pricing" onClick={scrollToPageTop}>Thanh toán</Link>
+          </div>
+          <div>
+            <h3>Thông tin</h3>
+            <Link to="/guide" onClick={scrollToPageTop}>Hướng dẫn sử dụng</Link>
+            <a href="#">Điều khoản sử dụng</a>
+            <a href="#">Quy định bảo mật</a>
+            <a href="#">Cơ chế giải quyết khiếu nại</a>
+            <a href="#">Yêu cầu xóa tài khoản</a>
+          </div>
+          <div>
+            <h3>Kết nối với chúng tôi</h3>
+            <div className="vm-public-footer-socials">
+              <a href="#" aria-label="Facebook"><i className="fab fa-facebook-f" /></a>
+              <a href="#" aria-label="TikTok"><i className="fab fa-tiktok" /></a>
+              <a href="#" aria-label="Email"><i className="fas fa-at" /></a>
+            </div>
+          </div>
+        </section>
+      </div>
     </footer>
   );
 }
@@ -78,67 +121,9 @@ export function StatusPill({ children, tone = "green" }: { children: ReactNode; 
 
 export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const { user, setUser } = useAuth();
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const profileRef = useRef<HTMLDivElement | null>(null);
-  const displayName = user?.fullName || user?.username || "Khách hàng";
-  const initials = displayName
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(-2)
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase() || "KH";
-
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      const target = event.target as Node;
-      if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
-  }, []);
-
-  function handleLogout() {
-    if (isLoggingOut) return;
-    setIsLoggingOut(true);
-    setProfileOpen(false);
-    logoutCurrentUser(setUser);
-  }
 
   return (
     <div className="vm-customer-shell">
-      <header className="vm-customer-topbar">
-        <Link to="/customer/dashboard" className="vm-customer-logo">CoParking</Link>
-        <button className="vm-customer-menu" type="button" aria-label="Menu"><i className="fas fa-bars" /></button>
-        <div className="vm-customer-actions">
-          <NotificationBell variant="customer" />
-          <div className="vm-customer-action-wrap" ref={profileRef}>
-            <button
-              className="vm-customer-user"
-              type="button"
-              aria-expanded={profileOpen}
-              onClick={() => setProfileOpen((open) => !open)}
-            >
-              <span className="vm-customer-avatar">{initials}</span>
-          <span>Xin chào,<strong>{displayName}</strong></span>
-              <i className="fas fa-chevron-down" />
-            </button>
-            {profileOpen ? (
-              <div className="vm-customer-popover vm-customer-profile-menu">
-                <Link to="/customer/profile" onClick={() => setProfileOpen(false)}><i className="far fa-user" /> Hồ sơ cá nhân</Link>
-                <Link to="/customer/support" onClick={() => setProfileOpen(false)}><i className="far fa-question-circle" /> Hỗ trợ</Link>
-                <button type="button" disabled={isLoggingOut} aria-busy={isLoggingOut} onClick={handleLogout}>
-                  <i className={isLoggingOut ? "fas fa-spinner fa-spin" : "fas fa-sign-out-alt"} /> {isLoggingOut ? "Đang đăng xuất" : "Đăng xuất"}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </header>
       <div className="vm-customer-body">
         <aside className="vm-customer-sidebar">
           {customerNavItems.map((item) => {

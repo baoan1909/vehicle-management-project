@@ -62,8 +62,8 @@ export function GuidePage() {
         </section>
 
         <PublicContactStrip />
-        <PublicFooter />
       </div>
+      <PublicFooter />
     </ClientPage>
   );
 }

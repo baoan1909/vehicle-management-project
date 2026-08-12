@@ -61,8 +61,8 @@ export function ContactPage() {
           </div>
         </section>
 
-        <PublicFooter />
       </div>
+      <PublicFooter />
     </ClientPage>
   );
 }
