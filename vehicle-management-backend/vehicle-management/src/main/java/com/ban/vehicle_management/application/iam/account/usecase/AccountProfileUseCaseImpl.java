@@ -136,22 +136,22 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             updatedAccount = accountProfilePortOut.completeInternalProfile(accountId, userProfile, employee);
             ApprovalRequest approvalRequest = buildInternalEmployeeApprovalRequest(employee.getEmployeeId(), accountId);
             internalEmployeeApprovalPortOut.saveInternalEmployeeApprovalRequest(approvalRequest);
-            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Ho so nhan su da gui duyet");
-            notifyApprovalReviewers(approvalRequest, "Co ho so nhan su can duyet");
+            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ nhân sự đã gửi duyệt");
+            notifyApprovalReviewers(approvalRequest, "Có hồ sơ nhân sự cần duyệt");
         } else if (AdminProvisionableAccountRoleCode.CUSTOMER.equals(roleCode)) {
             customer = buildOnboardingCustomer(userProfileId);
             updatedAccount = accountProfilePortOut.completeProfile(accountId, userProfile, customer);
             ApprovalRequest approvalRequest = buildCustomerOnboardingApprovalRequest(customer.getCustomerId(), accountId);
             customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalRequest(approvalRequest);
-            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Ho so khach hang da gui duyet");
-            notifyApprovalReviewers(approvalRequest, "Co ho so khach hang can duyet");
+            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ khách hàng đã gửi duyệt");
+            notifyApprovalReviewers(approvalRequest, "Có hồ sơ khách hàng cần duyệt");
         } else {
             updatedAccount = accountProfilePortOut.completeProfileOnly(accountId, userProfile);
             if (accountOnboardingPolicy.shouldCreateSystemAdminApproval(state)) {
                 ApprovalRequest approvalRequest = buildSystemAdminApprovalRequest(accountId, accountId);
                 systemAdminApprovalPortOut.saveSystemAdminApprovalRequest(approvalRequest);
-                notifyApprovalSubmitted(updatedAccount, approvalRequest, "Ho so quan tri he thong da gui duyet");
-                notifyApprovalReviewers(approvalRequest, "Co ho so quan tri he thong can duyet");
+                notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ quản trị hệ thống đã gửi duyệt");
+                notifyApprovalReviewers(approvalRequest, "Có hồ sơ quản trị hệ thống cần duyệt");
             }
         }
 
@@ -425,7 +425,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 account.getAccountId(),
                 NotificationType.ACCOUNT_PROFILE_SUBMITTED,
                 title,
-                "Ho so cua ban da duoc gui den nhom duyet.",
+                "Hồ sơ của bạn đã được gửi đến nhóm duyệt.",
                 approvalRequest.getTargetSchema(),
                 approvalRequest.getTargetTable(),
                 approvalRequest.getTargetId()
@@ -443,7 +443,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 null,
                 NotificationType.ACCOUNT_PROFILE_SUBMITTED,
                 title,
-                "Co yeu cau phe duyet moi can xu ly.",
+                "Có yêu cầu phê duyệt mới cần xử lý.",
                 null,
                 approvalRequest.getTargetSchema(),
                 approvalRequest.getTargetTable(),

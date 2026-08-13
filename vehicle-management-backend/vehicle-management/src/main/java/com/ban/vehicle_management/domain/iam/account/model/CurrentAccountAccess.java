@@ -2,6 +2,8 @@ package com.ban.vehicle_management.domain.iam.account.model;
 
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 
 import java.util.Set;
@@ -16,8 +18,24 @@ public record CurrentAccountAccess(
         String roleCode,
         AccountStatus status,
         EmployeeStatus employeeStatus,
+        CustomerStatus customerStatus,
+        CustomerApprovalStatus customerApprovalStatus,
         Set<String> permissionCodes
 ) {
+    public CurrentAccountAccess(
+            UUID accountId,
+            String subject,
+            String username,
+            String email,
+            UUID roleId,
+            String roleCode,
+            AccountStatus status,
+            EmployeeStatus employeeStatus,
+            Set<String> permissionCodes
+    ) {
+        this(accountId, subject, username, email, roleId, roleCode, status, employeeStatus, null, null, permissionCodes);
+    }
+
     public boolean canUseBusinessPermissions() {
         if (!AccountStatus.ACTIVE.equals(status)) {
             return false;

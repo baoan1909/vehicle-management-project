@@ -147,8 +147,8 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
                 notificationPortIn,
                 result.account().accountId(),
                 NotificationType.INTERNAL_EMPLOYEE_APPROVED,
-                "Ho so nhan su da duoc duyet",
-                "Ho so nhan su cua ban da duoc duyet.",
+                "Hồ sơ nhân sự đã được duyệt",
+                "Hồ sơ nhân sự của bạn đã được duyệt.",
                 "people",
                 "employees",
                 result.employee().employeeId()
@@ -182,8 +182,8 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
                 notificationPortIn,
                 result.account().accountId(),
                 NotificationType.INTERNAL_EMPLOYEE_REJECTED,
-                "Ho so nhan su bi tu choi",
-                "Ho so nhan su cua ban chua duoc duyet.",
+                "Hồ sơ nhân sự bị từ chối",
+                "Hồ sơ nhân sự của bạn chưa được duyệt.",
                 "people",
                 "employees",
                 result.employee().employeeId()
@@ -220,8 +220,8 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
                 notificationPortIn,
                 result.account().accountId(),
                 NotificationType.INTERNAL_EMPLOYEE_RESUBMITTED,
-                "Ho so nhan su da gui lai",
-                "Ho so cua ban da duoc gui lai de duyet.",
+                "Hồ sơ nhân sự đã gửi lại",
+                "Hồ sơ của bạn đã được gửi lại để duyệt.",
                 "people",
                 "employees",
                 result.employee().employeeId()
@@ -230,7 +230,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
                 notificationPortIn,
                 approvalRequest,
                 NotificationType.INTERNAL_EMPLOYEE_RESUBMITTED,
-                "Co ho so nhan su gui lai can duyet"
+                "Có hồ sơ nhân sự gửi lại cần duyệt"
         );
         return result;
     }

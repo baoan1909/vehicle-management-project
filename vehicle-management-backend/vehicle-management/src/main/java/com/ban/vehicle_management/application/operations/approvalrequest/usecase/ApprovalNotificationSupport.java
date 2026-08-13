@@ -53,7 +53,7 @@ final class ApprovalNotificationSupport {
                 null,
                 notificationType,
                 title,
-                "Co yeu cau phe duyet moi can xu ly.",
+                "Có yêu cầu phê duyệt mới cần xử lý.",
                 null,
                 approvalRequest.getTargetSchema(),
                 approvalRequest.getTargetTable(),

@@ -45,6 +45,8 @@ const PKCE_CODE_VERIFIER_KEY = "vm_pkce_code_verifier";
 type KeycloakLoginOptions = {
   prompt?: "login";
 };
+let preparedKeycloakLoginUrlPromise: Promise<string> | null = null;
+let keycloakPreconnectInitialized = false;
 
 export async function registerAccount(payload: RegisterAccountRequest) {
   return apiClient<ApiResponse<RegisterAccountResponse>>(apiEndpoints.auth.register, {
@@ -86,6 +88,42 @@ export async function buildKeycloakLoginUrl(options: KeycloakLoginOptions = {}) 
   }
 
   return loginUrl.toString();
+}
+
+export function prepareKeycloakLoginUrl() {
+  if (!preparedKeycloakLoginUrlPromise) {
+    preparedKeycloakLoginUrlPromise = buildKeycloakLoginUrl().catch((error) => {
+      preparedKeycloakLoginUrlPromise = null;
+      throw error;
+    });
+  }
+
+  return preparedKeycloakLoginUrlPromise;
+}
+
+export function preconnectKeycloakLoginOrigin() {
+  if (keycloakPreconnectInitialized) return;
+  keycloakPreconnectInitialized = true;
+
+  try {
+    const loginUrl = new URL(appConfig.keycloakLoginUrl);
+    if (loginUrl.origin === window.location.origin) return;
+
+    const addResourceHint = (rel: "dns-prefetch" | "preconnect") => {
+      const link = document.createElement("link");
+      link.rel = rel;
+      link.href = loginUrl.origin;
+      if (rel === "preconnect") {
+        link.crossOrigin = "anonymous";
+      }
+      document.head.appendChild(link);
+    };
+
+    addResourceHint("dns-prefetch");
+    addResourceHint("preconnect");
+  } catch {
+    keycloakPreconnectInitialized = false;
+  }
 }
 
 function normalizeLoginScopes(scope: string | null) {

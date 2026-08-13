@@ -105,6 +105,16 @@ export function CustomerDashboardPage() {
       setError("");
       try {
         const nextProfile = await getCustomerPortalProfile();
+        const needsOnboarding = nextProfile.onboardingRequired || !nextProfile.customer?.customerId;
+        if (needsOnboarding) {
+          if (ignore) return;
+          setProfile(nextProfile);
+          setVehicles([]);
+          setSubscriptions([]);
+          setTicketTypes([]);
+          setVehicleTypes([]);
+          return;
+        }
         const [nextVehicles, nextSubscriptions, lookups] = await Promise.all([
           getMyCustomerVehicles(nextProfile),
           getMySubscriptions(nextProfile),
@@ -138,6 +148,7 @@ export function CustomerDashboardPage() {
   const recentSubscriptions = subscriptions.slice(0, 5);
   const displayName = profile?.profile?.fullName ?? profile?.account?.username ?? "Khách hàng";
   const approvalStatus = profile?.customer?.customerApprovalStatus;
+  const needsOnboarding = Boolean(profile?.onboardingRequired || (profile && !profile.customer?.customerId));
   const activeVehicles = vehicles.filter((vehicle) => vehicle.status === "ACTIVE").length;
   const inactiveVehicles = vehicles.filter((vehicle) => vehicle.status !== "ACTIVE").length;
 
@@ -146,13 +157,30 @@ export function CustomerDashboardPage() {
       {error ? <div className="vm-info-note tw-bg-red-50 tw-text-red-600"><i className="fas fa-exclamation-circle" /> {error}</div> : null}
       {loading ? <div className="vm-info-note"><i className="fas fa-spinner fa-spin" /> Đang tải dữ liệu khách hàng...</div> : null}
 
+      {needsOnboarding ? (
+        <section className="vm-info-note tw-items-start tw-justify-between tw-gap-4 tw-bg-amber-50 tw-text-amber-800">
+          <div className="tw-flex tw-min-w-0 tw-gap-3">
+            <i className="fas fa-exclamation-circle tw-mt-1" />
+            <div>
+              <strong className="tw-block tw-text-vm-slate-900">Cần hoàn tất hồ sơ khách hàng</strong>
+              <span className="tw-mt-1 tw-block">Bổ sung thông tin cần thiết và gửi hồ sơ để nhân viên phê duyệt trước khi đăng ký vé.</span>
+            </div>
+          </div>
+          <Link className="vm-outline-action tw-flex-shrink-0 tw-bg-white hover:tw-no-underline" to="/customer/profile">
+            <i className="fas fa-paper-plane" /> Hoàn tất hồ sơ
+          </Link>
+        </section>
+      ) : null}
+
       <section className="vm-customer-hero-card">
         <div className="vm-customer-hero-copy">
           <span className="vm-customer-hero-eyebrow">Tổng quan tài khoản</span>
           <h1>Xin chào, {displayName}</h1>
           <p>Theo dõi vé tháng, phương tiện và các yêu cầu hỗ trợ của bạn trong một màn hình.</p>
           <div className="vm-customer-hero-actions">
-            <Link to="/customer/subscriptions"><i className="far fa-calendar-plus" /> Đăng ký vé</Link>
+            <Link to={needsOnboarding ? "/customer/profile" : "/customer/subscriptions"}>
+              <i className={needsOnboarding ? "fas fa-paper-plane" : "far fa-calendar-plus"} /> {needsOnboarding ? "Hoàn tất hồ sơ" : "Đăng ký vé"}
+            </Link>
             <Link className="secondary" to="/customer/parking-history"><i className="far fa-clock" /> Lịch sử gửi xe</Link>
           </div>
         </div>

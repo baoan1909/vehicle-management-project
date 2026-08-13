@@ -7,8 +7,8 @@ import { getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import type { CurrentUser } from "@/shared/types/common";
 import {
-  buildKeycloakLoginUrl,
   exchangeKeycloakAuthorizationCode,
+  prepareKeycloakLoginUrl,
   registerAccount,
   resendVerificationEmail,
   requestPasswordReset,
@@ -47,7 +47,10 @@ const forgotPasswordEmailStorageKey = "vm_forgot_password_email";
 let activeAuthorizationCode = "";
 
 function resolvePostLoginRedirectPath(user: CurrentUser | null) {
-  return user?.role === "CUSTOMER" ? customerPostLoginRedirectPath : adminPostLoginRedirectPath;
+  if (user?.role === "CUSTOMER") {
+    return user.onboardingRequired ? "/customer/profile" : customerPostLoginRedirectPath;
+  }
+  return adminPostLoginRedirectPath;
 }
 
 async function resolveLoggedInUser(accessToken: string) {
@@ -136,7 +139,7 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
 
     async function redirectToKeycloak() {
       try {
-        const loginUrl = await buildKeycloakLoginUrl();
+        const loginUrl = await prepareKeycloakLoginUrl();
         window.location.replace(loginUrl);
       } catch (error) {
         console.error(error);

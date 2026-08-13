@@ -5,11 +5,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.notification.broadcastannouncement.port.out.BroadcastAnnouncementPortOut;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationCommandMapper;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationRealtimeMessageMapper;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
@@ -17,7 +19,10 @@ import com.ban.vehicle_management.application.notification.notification.model.No
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.out.NotificationPortOut;
 import com.ban.vehicle_management.application.notification.notification.port.out.NotificationRealtimeEventPublisherPortOut;
+import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.domain.notification.broadcastannouncement.model.BroadcastAnnouncement;
 import com.ban.vehicle_management.domain.notification.notification.model.Notification;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
@@ -43,6 +48,9 @@ class NotificationUseCaseImplTest {
     private NotificationPortOut notificationPortOut;
 
     @Mock
+    private BroadcastAnnouncementPortOut broadcastAnnouncementPortOut;
+
+    @Mock
     private NotificationRealtimeEventPublisherPortOut realtimeEventPublisher;
 
     @Mock
@@ -58,6 +66,7 @@ class NotificationUseCaseImplTest {
         notificationUseCase = new NotificationUseCaseImpl(
                 currentAccountPortIn,
                 notificationPortOut,
+                broadcastAnnouncementPortOut,
                 realtimeEventPublisher,
                 realtimeMessageMapper,
                 notificationCommandMapper
@@ -215,6 +224,60 @@ class NotificationUseCaseImplTest {
         verify(realtimeEventPublisher).publish(secondRealtimeMessage);
         verify(realtimeEventPublisher, times(2)).publish(any(NotificationRealtimeMessage.class));
         assertEquals(List.of(savedFirstNotification, savedSecondNotification), result);
+    }
+
+    @Test
+    void getMyNotifications_shouldMaterializeMissingActiveBroadcastAnnouncementsForCurrentRole() {
+        UUID accountId = UUID.randomUUID();
+        UUID broadcastId = UUID.randomUUID();
+        CurrentAccountAccess currentAccount = new CurrentAccountAccess(
+                accountId,
+                "subject",
+                "customer01",
+                "customer@example.com",
+                UUID.randomUUID(),
+                "CUSTOMER",
+                AccountStatus.ACTIVE,
+                null,
+                null,
+                null,
+                Set.of()
+        );
+        BroadcastAnnouncement announcement = new BroadcastAnnouncement();
+        announcement.setBroadcastId(broadcastId);
+        announcement.setNotificationType(NotificationType.SYSTEM_NOTICE);
+        announcement.setTitle("Thông báo thay đổi giá");
+        announcement.setMessage("Giá xe được thay đổi, vui lòng theo dõi.");
+        announcement.setRedirectUrl("/pricing");
+
+        Notification listedNotification = new Notification();
+        listedNotification.setNotificationId(UUID.randomUUID());
+        listedNotification.setAccountId(accountId);
+        listedNotification.setBroadcastId(broadcastId);
+
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount);
+        when(broadcastAnnouncementPortOut.findActivePublishedForRole(eq("CUSTOMER"), any(Instant.class)))
+                .thenReturn(List.of(announcement));
+        when(notificationPortOut.findExistingBroadcastIdsForAccount(accountId, List.of(broadcastId)))
+                .thenReturn(List.of());
+        when(notificationPortOut.findByAccountId(eq(accountId), eq(false), any(Instant.class), eq(20)))
+                .thenReturn(List.of(listedNotification));
+
+        List<Notification> result = notificationUseCase.getMyNotifications(false, 20, null);
+
+        ArgumentCaptor<List<Notification>> notificationsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(notificationPortOut).saveAll(notificationsCaptor.capture());
+        Notification materializedNotification = notificationsCaptor.getValue().get(0);
+        assertEquals(accountId, materializedNotification.getAccountId());
+        assertEquals(broadcastId, materializedNotification.getBroadcastId());
+        assertEquals(NotificationType.SYSTEM_NOTICE, materializedNotification.getNotificationType());
+        assertEquals("Thông báo thay đổi giá", materializedNotification.getTitle());
+        assertEquals("Giá xe được thay đổi, vui lòng theo dõi.", materializedNotification.getMessage());
+        assertEquals("/pricing", materializedNotification.getRedirectUrl());
+        assertEquals(NotificationChannel.WEB, materializedNotification.getChannel());
+        assertEquals(NotificationStatus.SENT, materializedNotification.getStatus());
+        verify(realtimeEventPublisher, never()).publish(any(NotificationRealtimeMessage.class));
+        assertEquals(List.of(listedNotification), result);
     }
 
     private Notification notification(UUID accountId, String title) {

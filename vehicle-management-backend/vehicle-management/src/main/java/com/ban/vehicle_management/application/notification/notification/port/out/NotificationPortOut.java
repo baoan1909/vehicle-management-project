@@ -16,6 +16,8 @@ public interface NotificationPortOut {
 
     List<Notification> findByAccountId(UUID accountId, boolean unreadOnly, Instant beforeCreatedAt, int limit);
 
+    List<UUID> findExistingBroadcastIdsForAccount(UUID accountId, List<UUID> broadcastIds);
+
     long countUnreadByAccountId(UUID accountId);
 
     int markAllReadByAccountId(UUID accountId, Instant readAt);

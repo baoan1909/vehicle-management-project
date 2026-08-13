@@ -5,6 +5,7 @@ import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
 import org.springframework.stereotype.Component;
@@ -19,17 +20,20 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
     private final AccountRepository accountRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final RoleRepository roleRepository;
+    private final CustomerRepository customerRepository;
     private final EmployeeRepository employeeRepository;
 
     public AccountAuthorizationPersistenceAdapter(
             AccountRepository accountRepository,
             RolePermissionRepository rolePermissionRepository,
             RoleRepository roleRepository,
+            CustomerRepository customerRepository,
             EmployeeRepository employeeRepository
     ) {
         this.accountRepository = accountRepository;
         this.rolePermissionRepository = rolePermissionRepository;
         this.roleRepository = roleRepository;
+        this.customerRepository = customerRepository;
         this.employeeRepository = employeeRepository;
     }
 
@@ -69,6 +73,8 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
                 roleCode,
                 accountEntity.getStatus(),
                 resolveEmployeeStatus(accountEntity),
+                resolveCustomerStatus(accountEntity),
+                resolveCustomerApprovalStatus(accountEntity),
                 permissionCodes
         );
     }
@@ -79,6 +85,24 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
         }
         return employeeRepository.findByUserProfileId(accountEntity.getUserProfileId())
                 .map(employee -> employee.getStatus())
+                .orElse(null);
+    }
+
+    private com.ban.vehicle_management.shared.enumeration.people.CustomerStatus resolveCustomerStatus(AccountEntity accountEntity) {
+        if (accountEntity.getUserProfileId() == null) {
+            return null;
+        }
+        return customerRepository.findByUserProfileId(accountEntity.getUserProfileId())
+                .map(customer -> customer.getStatus())
+                .orElse(null);
+    }
+
+    private com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus resolveCustomerApprovalStatus(AccountEntity accountEntity) {
+        if (accountEntity.getUserProfileId() == null) {
+            return null;
+        }
+        return customerRepository.findByUserProfileId(accountEntity.getUserProfileId())
+                .map(customer -> customer.getApprovalStatus())
                 .orElse(null);
     }
 }

@@ -23,7 +23,7 @@ export function ClientLayout({ children }: PropsWithChildren) {
       <div
         className={cn(
           "content-wrapper tw-transition-[padding] tw-duration-300",
-          announcementTickerVisible && (isCustomerPortal ? "vm-client-announcement-offset-compact" : "vm-client-announcement-offset"),
+          announcementTickerVisible && (isCustomerPortal ? "!tw-pt-[39px]" : "!tw-pt-10"),
         )}
       >
         {children}

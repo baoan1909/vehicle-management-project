@@ -4,7 +4,7 @@ import { buildKeycloakLogoutUrl } from "@/features/auth/api/authApi";
 import type { CurrentUser } from "@/shared/types/common";
 
 const LOGOUT_REDIRECT_GUARD_KEY = "vm_logout_redirect_guard";
-const LOGOUT_REDIRECT_PATH = "/pricing";
+const LOGOUT_REDIRECT_PATH = "/";
 let logoutNavigationStarted = false;
 
 export function getLogoutRedirectPath() {

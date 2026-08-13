@@ -3,8 +3,10 @@ import { Link, useLocation } from "react-router-dom";
 
 import { logoutCurrentUser } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
+import { preconnectKeycloakLoginOrigin, prepareKeycloakLoginUrl } from "@/features/auth/api/authApi";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { cn } from "@/lib/cn";
+import { FullPageCarLoader } from "@/shared/components/ui/PageTransitionLoader";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta } from "@/shared/utils/accountStatus";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
@@ -89,7 +91,9 @@ export function ClientNavbar() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [isLoginRedirecting, setIsLoginRedirecting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const loginUrlPromiseRef = useRef<Promise<string> | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
   const usernameLabel = user?.username?.trim() || user?.email?.trim() || "";
   const displayName = user?.fullName?.trim() || usernameLabel || "Khách hàng";
@@ -110,6 +114,44 @@ export function ClientNavbar() {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, []);
 
+  function prepareLoginRedirect() {
+    preconnectKeycloakLoginOrigin();
+    if (!loginUrlPromiseRef.current) {
+      loginUrlPromiseRef.current = prepareKeycloakLoginUrl().catch((error) => {
+        loginUrlPromiseRef.current = null;
+        throw error;
+      });
+    }
+
+    return loginUrlPromiseRef.current;
+  }
+
+  useEffect(() => {
+    if (user) return;
+
+    const prepare = () => {
+      void prepareLoginRedirect();
+    };
+    const preloadTimerId = window.setTimeout(prepare, 300);
+
+    return () => {
+      window.clearTimeout(preloadTimerId);
+    };
+  }, [user]);
+
+  async function handleLoginRedirect() {
+    if (isLoginRedirecting) return;
+    setIsLoginRedirecting(true);
+
+    try {
+      const loginUrl = await prepareLoginRedirect();
+      window.location.assign(loginUrl);
+    } catch (error) {
+      console.error(error);
+      window.location.assign("/login");
+    }
+  }
+
   function handleLogout() {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
@@ -118,14 +160,15 @@ export function ClientNavbar() {
   }
 
   return (
-    <header className="vm-public-navbar">
-      <div className="vm-public-navbar-inner">
-        <Link to="/pricing" className="vm-public-brand" aria-label="CoParking">
-          <img src="/assets/admin/dist/img/AdminLTELogo.png" alt="CoParking" />
+    <header className="tw-sticky tw-top-0 tw-z-[1050] tw-block tw-min-h-[72px] tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white/95 tw-shadow-[0_8px_24px_rgba(15,23,42,0.04)] tw-backdrop-blur-[16px]">
+      {isLoginRedirecting ? <FullPageCarLoader label="Đang chuyển đến đăng nhập..." /> : null}
+      <div className="tw-grid tw-min-h-[72px] tw-w-full tw-grid-cols-[auto_minmax(0,1fr)_auto] tw-items-center tw-gap-[2.1rem] tw-px-[1.15rem] max-[992px]:tw-grid-cols-[auto_auto_1fr] max-[992px]:tw-gap-3 max-[992px]:tw-px-4 max-[640px]:tw-grid-cols-[112px_42px_1fr] max-[640px]:tw-px-3">
+        <Link to="/" className="tw-inline-flex tw-w-fit tw-items-center hover:tw-no-underline" aria-label="CoParking">
+          <img className="tw-block tw-h-[62px] tw-w-28 tw-object-contain max-[992px]:tw-w-24 max-[640px]:tw-w-[88px]" src="/assets/admin/dist/img/AdminLTELogo.png" alt="CoParking" />
         </Link>
 
         <button
-          className="vm-public-menu"
+          className="tw-hidden tw-h-[42px] tw-w-[42px] tw-place-items-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-slate-900 max-[992px]:tw-grid"
           type="button"
           onClick={() => setOpen((value) => !value)}
           aria-label="Mở menu điều hướng"
@@ -134,27 +177,41 @@ export function ClientNavbar() {
           <i className="fas fa-bars" />
         </button>
 
-        <nav className={`vm-public-navlinks ${open ? "show" : ""}`} aria-label="Điều hướng chính">
+        <nav
+          className={cn(
+            "tw-flex tw-min-w-0 tw-items-center tw-justify-start tw-gap-[2.35rem] max-[992px]:tw-absolute max-[992px]:tw-left-4 max-[992px]:tw-right-4 max-[992px]:tw-top-[calc(100%+8px)] max-[992px]:tw-hidden max-[992px]:tw-flex-col max-[992px]:tw-items-stretch max-[992px]:tw-gap-0 max-[992px]:tw-rounded-vm-md max-[992px]:tw-border max-[992px]:tw-border-solid max-[992px]:tw-border-vm-slate-100 max-[992px]:tw-bg-white max-[992px]:tw-p-2 max-[992px]:tw-shadow-soft",
+            open && "max-[992px]:tw-flex",
+          )}
+          aria-label="Điều hướng chính"
+        >
           {publicNavigation.map((item, index) => {
             const active = item.href === "/" ? location.pathname === "/" : location.pathname === item.href;
 
             return (
-              <Link key={`${item.label}-${item.href}-${index}`} to={item.href} className={active ? "active" : ""} onClick={() => setOpen(false)}>
+              <Link
+                key={`${item.label}-${item.href}-${index}`}
+                to={item.href}
+                className={cn(
+                  "tw-relative tw-inline-flex tw-min-h-[72px] tw-items-center tw-p-0 tw-text-[0.92rem] tw-font-extrabold tw-text-vm-slate-700 tw-transition hover:tw-text-vm-primary hover:tw-no-underline max-[992px]:tw-min-h-[42px] max-[992px]:tw-rounded-vm-sm max-[992px]:tw-px-3",
+                  active && "tw-text-vm-primary after:tw-absolute after:tw-bottom-[15px] after:tw-left-0 after:tw-right-0 after:tw-h-[3px] after:tw-rounded-full after:tw-bg-vm-primary max-[992px]:after:tw-hidden",
+                )}
+                onClick={() => setOpen(false)}
+              >
                 {item.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="vm-public-actions">
+        <div className="tw-flex tw-items-center tw-justify-end tw-gap-3 tw-justify-self-end max-[640px]:tw-gap-2">
           {user ? (
             <>
               <NotificationBell variant="admin" />
-              <div className="vm-public-profile" ref={profileRef}>
+              <div className="tw-relative" ref={profileRef}>
                 <button
                   type="button"
                   className={cn(
-                    "tw-flex tw-min-h-12 tw-w-auto tw-min-w-[238px] tw-items-center tw-gap-3 tw-rounded-full tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-px-3 tw-py-1 tw-text-left tw-transition hover:tw-bg-brand-50",
+                    "tw-flex tw-min-h-12 tw-w-auto tw-min-w-[238px] tw-items-center tw-gap-3 tw-rounded-full tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-px-3 tw-py-1 tw-text-left tw-transition hover:tw-bg-brand-50 max-[992px]:tw-min-w-0",
                     profileOpen ? "tw-bg-brand-50 tw-shadow-[0_8px_20px_rgba(37,99,235,0.08)]" : "",
                   )}
                   aria-label={`Mở hồ sơ ${displayName}`}
@@ -162,11 +219,11 @@ export function ClientNavbar() {
                   onClick={() => setProfileOpen((value) => !value)}
                 >
                   <UserAvatar src={avatarUrl} alt={displayName} status={approvalStatus} className="tw-h-9 tw-w-9" />
-                  <span className="tw-min-w-0 tw-flex-1">
+                  <span className="tw-min-w-0 tw-flex-1 max-[992px]:tw-hidden">
                     <strong className="tw-block tw-truncate tw-text-[0.92rem] tw-font-extrabold tw-leading-tight tw-text-slate-900">{displayName}</strong>
                     <small className="tw-mt-0.5 tw-block tw-truncate tw-text-[0.74rem] tw-font-bold tw-leading-tight tw-text-vm-slate-500">{roleLabel}</small>
                   </span>
-                  <i className="fas fa-chevron-down tw-text-[0.72rem] tw-text-vm-slate-500" />
+                  <i className="fas fa-chevron-down tw-text-[0.72rem] tw-text-vm-slate-500 max-[992px]:tw-hidden" />
                 </button>
 
                 {profileOpen ? (
@@ -225,8 +282,18 @@ export function ClientNavbar() {
             </>
           ) : (
             <>
-              <Link className="vm-public-login" to="/login">Đăng nhập</Link>
-              <Link className="vm-public-register" to="/register">Đăng ký</Link>
+              <button
+                className="tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-4 tw-text-[0.84rem] tw-font-black tw-text-slate-900 tw-transition hover:tw-border-brand-200 hover:tw-bg-brand-50 hover:tw-text-vm-primary hover:tw-no-underline disabled:tw-cursor-wait disabled:tw-opacity-75 max-[640px]:tw-min-h-9 max-[640px]:tw-px-3 max-[640px]:tw-text-[0.76rem]"
+                type="button"
+                disabled={isLoginRedirecting}
+                aria-busy={isLoginRedirecting}
+                onFocus={prepareLoginRedirect}
+                onPointerEnter={prepareLoginRedirect}
+                onClick={handleLoginRedirect}
+              >
+                Đăng nhập
+              </button>
+              <Link className="tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-slate-950 tw-bg-slate-950 tw-px-4 tw-text-[0.84rem] tw-font-black tw-text-white tw-transition hover:tw-border-brand-700 hover:tw-bg-brand-700 hover:tw-text-white hover:tw-no-underline max-[640px]:tw-min-h-9 max-[640px]:tw-px-3 max-[640px]:tw-text-[0.76rem]" to="/register">Đăng ký</Link>
             </>
           )}
         </div>

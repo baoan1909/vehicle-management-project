@@ -99,7 +99,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
         sendOnboardingApprovedEmail(result);
-        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_APPROVED, "Ho so quan tri da duoc duyet", "Ho so quan tri he thong cua ban da duoc duyet.");
+        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_APPROVED, "Hồ sơ quản trị đã được duyệt", "Hồ sơ quản trị hệ thống của bạn đã được duyệt.");
         return result;
     }
 
@@ -123,7 +123,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
         sendOnboardingRejectedEmail(result);
-        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_REJECTED, "Ho so quan tri bi tu choi", "Ho so quan tri he thong cua ban chua duoc duyet.");
+        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_REJECTED, "Hồ sơ quản trị bị từ chối", "Hồ sơ quản trị hệ thống của bạn chưa được duyệt.");
         return result;
     }
 
@@ -147,12 +147,12 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         systemAdminApprovalPortOut.saveSystemAdminApprovalRequest(approvalRequest);
         SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequest.getApprovalRequestId())
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
-        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_RESUBMITTED, "Ho so quan tri da gui lai", "Ho so cua ban da duoc gui lai de duyet.");
+        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_RESUBMITTED, "Hồ sơ quản trị đã gửi lại", "Hồ sơ của bạn đã được gửi lại để duyệt.");
         ApprovalNotificationSupport.notifyApprovers(
                 notificationPortIn,
                 approvalRequest,
                 NotificationType.SYSTEM_ADMIN_RESUBMITTED,
-                "Co ho so quan tri gui lai can duyet"
+                "Có hồ sơ quản trị gửi lại cần duyệt"
         );
         return result;
     }

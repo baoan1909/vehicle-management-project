@@ -108,7 +108,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
         sendOnboardingApprovedEmail(result);
-        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_APPROVED, "Ho so khach hang da duoc duyet", "Ho so khach hang cua ban da duoc duyet.");
+        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_APPROVED, "Hồ sơ khách hàng đã được duyệt", "Hồ sơ khách hàng của bạn đã được duyệt.");
         return result;
     }
 
@@ -135,7 +135,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
         sendOnboardingRejectedEmail(result);
-        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_REJECTED, "Ho so khach hang bi tu choi", "Ho so khach hang cua ban chua duoc duyet.");
+        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_REJECTED, "Hồ sơ khách hàng bị từ chối", "Hồ sơ khách hàng của bạn chưa được duyệt.");
         return result;
     }
 
@@ -166,8 +166,8 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut
                 .findCustomerOnboardingApprovalResultById(approvalRequest.getApprovalRequestId())
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
-        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_RESUBMITTED, "Ho so khach hang da gui lai", "Ho so cua ban da duoc gui lai de duyet.");
-        notifyApprovalReviewers(approvalRequest, NotificationType.CUSTOMER_ONBOARDING_RESUBMITTED, "Co ho so khach hang gui lai can duyet");
+        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_RESUBMITTED, "Hồ sơ khách hàng đã gửi lại", "Hồ sơ của bạn đã được gửi lại để duyệt.");
+        notifyApprovalReviewers(approvalRequest, NotificationType.CUSTOMER_ONBOARDING_RESUBMITTED, "Có hồ sơ khách hàng gửi lại cần duyệt");
         return result;
     }
 
@@ -257,7 +257,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
                 null,
                 notificationType,
                 title,
-                "Co yeu cau phe duyet moi can xu ly.",
+                "Có yêu cầu phê duyệt mới cần xử lý.",
                 null,
                 approvalRequest.getTargetSchema(),
                 approvalRequest.getTargetTable(),

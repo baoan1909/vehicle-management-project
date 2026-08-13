@@ -174,11 +174,19 @@ const apiAdminRoutes = routes
 
 const clientRoutes = routes
   .filter((route) => route.layout === "client")
-  .map((route) => ({
-    path: route.path.replace(/^\//, ""),
-    element: route.element,
-    handle: { title: route.title },
-  }));
+  .map((route) =>
+    route.path === "/"
+      ? {
+          index: true,
+          element: route.element,
+          handle: { title: route.title },
+        }
+      : {
+          path: route.path.replace(/^\//, ""),
+          element: route.element,
+          handle: { title: route.title },
+        },
+  );
 
 const authRoutes = routes
   .filter((route) => route.layout === "auth")
@@ -197,10 +205,6 @@ const fullscreenRoutes = routes
   }));
 
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <Navigate to="/pricing" replace />,
-  },
   {
     path: "/admin",
     element: <AdminShell />,
@@ -231,7 +235,7 @@ const router = createBrowserRouter([
   },
   {
     path: "*",
-    element: <Navigate to="/pricing" replace />,
+    element: <Navigate to="/" replace />,
   },
 ]);
 

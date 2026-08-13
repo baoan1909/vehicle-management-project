@@ -79,6 +79,14 @@ public class NotificationPersistenceAdapter implements NotificationPortOut {
     }
 
     @Override
+    public List<UUID> findExistingBroadcastIdsForAccount(UUID accountId, List<UUID> broadcastIds) {
+        if (broadcastIds == null || broadcastIds.isEmpty()) {
+            return List.of();
+        }
+        return notificationRepository.findBroadcastIdsByAccountIdAndBroadcastIdIn(accountId, broadcastIds);
+    }
+
+    @Override
     public long countUnreadByAccountId(UUID accountId) {
         return notificationRepository.countByAccountIdAndReadAtIsNullAndStatusNot(
                 accountId,

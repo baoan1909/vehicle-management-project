@@ -38,6 +38,8 @@ export function mergeCurrentUserWithCurrentAccess(currentUser: CurrentUser, acce
   return {
     ...currentUser,
     accountStatus: access.accountStatus ?? currentUser.accountStatus,
+    customerApprovalStatus: access.customerApprovalStatus ?? currentUser.customerApprovalStatus,
+    customerStatus: access.customerStatus ?? currentUser.customerStatus,
     email: access.email ?? currentUser.email,
     employeeStatus: access.employeeStatus ?? currentUser.employeeStatus,
     fullName: currentUser.fullName?.trim() || username,
