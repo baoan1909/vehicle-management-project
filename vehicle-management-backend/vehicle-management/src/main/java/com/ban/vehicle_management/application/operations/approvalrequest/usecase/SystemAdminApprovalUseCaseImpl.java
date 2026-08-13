@@ -7,12 +7,14 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.c
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.SystemAdminApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.in.SystemAdminApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.ApprovalRequestPolicy;
 import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
@@ -30,6 +32,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
     private final SystemAdminApprovalAccessGuard systemAdminApprovalAccessGuard;
     private final SystemAdminApprovalPortOut systemAdminApprovalPortOut;
     private final VehicleMailService vehicleMailService;
+    private final NotificationPortIn notificationPortIn;
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
     private final Clock clock;
 
@@ -37,12 +40,14 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
             CurrentAccountPortIn currentAccountPortIn,
             SystemAdminApprovalAccessGuard systemAdminApprovalAccessGuard,
             SystemAdminApprovalPortOut systemAdminApprovalPortOut,
-            VehicleMailService vehicleMailService
+            VehicleMailService vehicleMailService,
+            NotificationPortIn notificationPortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.systemAdminApprovalAccessGuard = systemAdminApprovalAccessGuard;
         this.systemAdminApprovalPortOut = systemAdminApprovalPortOut;
         this.vehicleMailService = vehicleMailService;
+        this.notificationPortIn = notificationPortIn;
         this.clock = Clock.systemUTC();
     }
 
@@ -94,6 +99,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
         sendOnboardingApprovedEmail(result);
+        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_APPROVED, "Hồ sơ quản trị đã được duyệt", "Hồ sơ quản trị hệ thống của bạn đã được duyệt.");
         return result;
     }
 
@@ -117,6 +123,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
         sendOnboardingRejectedEmail(result);
+        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_REJECTED, "Hồ sơ quản trị bị từ chối", "Hồ sơ quản trị hệ thống của bạn chưa được duyệt.");
         return result;
     }
 
@@ -138,8 +145,16 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
 
         ApprovalRequest approvalRequest = buildPendingApprovalRequest(accountId, accountId);
         systemAdminApprovalPortOut.saveSystemAdminApprovalRequest(approvalRequest);
-        return systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequest.getApprovalRequestId())
+        SystemAdminApprovalResult result = systemAdminApprovalPortOut.findSystemAdminApprovalResultById(approvalRequest.getApprovalRequestId())
                 .orElseThrow(() -> new NotFoundException("System admin approval request not found"));
+        notifySystemAdminResult(result, NotificationType.SYSTEM_ADMIN_RESUBMITTED, "Hồ sơ quản trị đã gửi lại", "Hồ sơ của bạn đã được gửi lại để duyệt.");
+        ApprovalNotificationSupport.notifyApprovers(
+                notificationPortIn,
+                approvalRequest,
+                NotificationType.SYSTEM_ADMIN_RESUBMITTED,
+                "Có hồ sơ quản trị gửi lại cần duyệt"
+        );
+        return result;
     }
 
     public ApprovalRequest buildPendingApprovalRequest(UUID accountId, UUID requestedBy) {
@@ -183,6 +198,24 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
                 result.profile().fullName(),
                 "quản trị hệ thống",
                 result.request().note()
+        );
+    }
+
+    private void notifySystemAdminResult(
+            SystemAdminApprovalResult result,
+            NotificationType notificationType,
+            String title,
+            String message
+    ) {
+        ApprovalNotificationSupport.notifyAccount(
+                notificationPortIn,
+                result.account().accountId(),
+                notificationType,
+                title,
+                message,
+                "iam",
+                "accounts",
+                result.account().accountId()
         );
     }
 }

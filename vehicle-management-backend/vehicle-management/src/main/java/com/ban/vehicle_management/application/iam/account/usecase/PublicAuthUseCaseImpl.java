@@ -8,6 +8,8 @@ import com.ban.vehicle_management.application.iam.account.port.in.PublicAuthPort
 import com.ban.vehicle_management.application.iam.account.port.out.AccountRegistrationPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.VerificationEmailRateLimitPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.policy.PublicAuthPolicy;
 import com.ban.vehicle_management.domain.iam.account.policy.VerificationEmailResendPolicy;
@@ -15,6 +17,7 @@ import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import org.slf4j.Logger;
@@ -37,6 +40,7 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
     private final VerificationEmailRateLimitPortOut verificationEmailRateLimitPortOut;
     private final VerificationEmailResendPolicy verificationEmailResendPolicy;
     private final PublicAuthPolicy publicAuthPolicy;
+    private final NotificationPortIn notificationPortIn;
     private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
     private final Clock clock;
 
@@ -45,13 +49,15 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
             IdentityProviderAdminPortOut identityProviderAdminPortOut,
             VerificationEmailRateLimitPortOut verificationEmailRateLimitPortOut,
             VerificationEmailResendPolicy verificationEmailResendPolicy,
-            PublicAuthPolicy publicAuthPolicy
+            PublicAuthPolicy publicAuthPolicy,
+            NotificationPortIn notificationPortIn
     ) {
         this.accountRegistrationPortOut = accountRegistrationPortOut;
         this.identityProviderAdminPortOut = identityProviderAdminPortOut;
         this.verificationEmailRateLimitPortOut = verificationEmailRateLimitPortOut;
         this.verificationEmailResendPolicy = verificationEmailResendPolicy;
         this.publicAuthPolicy = publicAuthPolicy;
+        this.notificationPortIn = notificationPortIn;
         this.clock = Clock.systemUTC();
     }
 
@@ -71,12 +77,14 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
             );
             identityProviderAdminPortOut.updateAccountIdAttribute(keycloakUserId, registeredAccount.getAccountId());
             sendVerificationEmailSafely(keycloakUserId, registeredAccount.getAccountId());
-            return new RegisterAccountResult(
+            RegisterAccountResult result = new RegisterAccountResult(
                     registeredAccount.getAccountId(),
                     registeredAccount.getStatus().name(),
                     "VERIFY_EMAIL",
                     true
             );
+            notifyAccountRegistered(registeredAccount);
+            return result;
         } catch (RuntimeException exception) {
             identityProviderAdminPortOut.deleteUser(keycloakUserId);
             throw exception;
@@ -164,5 +172,20 @@ public class PublicAuthUseCaseImpl implements PublicAuthPortIn {
                     exception
             );
         }
+    }
+
+    private void notifyAccountRegistered(Account account) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                account.getAccountId(),
+                NotificationType.ACCOUNT_REGISTERED,
+                "Đăng ký tài khoản thành công",
+                "Tài khoản của bạn đã được tạo. Vui lòng xác thực email và hoàn tất hồ sơ để gửi duyệt.",
+                "iam",
+                "accounts",
+                account.getAccountId()
+        ));
     }
 }

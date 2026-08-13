@@ -45,6 +45,8 @@ const PKCE_CODE_VERIFIER_KEY = "vm_pkce_code_verifier";
 type KeycloakLoginOptions = {
   prompt?: "login";
 };
+let preparedKeycloakLoginUrlPromise: Promise<string> | null = null;
+let keycloakPreconnectInitialized = false;
 
 export async function registerAccount(payload: RegisterAccountRequest) {
   return apiClient<ApiResponse<RegisterAccountResponse>>(apiEndpoints.auth.register, {
@@ -88,6 +90,42 @@ export async function buildKeycloakLoginUrl(options: KeycloakLoginOptions = {}) 
   return loginUrl.toString();
 }
 
+export function prepareKeycloakLoginUrl() {
+  if (!preparedKeycloakLoginUrlPromise) {
+    preparedKeycloakLoginUrlPromise = buildKeycloakLoginUrl().catch((error) => {
+      preparedKeycloakLoginUrlPromise = null;
+      throw error;
+    });
+  }
+
+  return preparedKeycloakLoginUrlPromise;
+}
+
+export function preconnectKeycloakLoginOrigin() {
+  if (keycloakPreconnectInitialized) return;
+  keycloakPreconnectInitialized = true;
+
+  try {
+    const loginUrl = new URL(appConfig.keycloakLoginUrl);
+    if (loginUrl.origin === window.location.origin) return;
+
+    const addResourceHint = (rel: "dns-prefetch" | "preconnect") => {
+      const link = document.createElement("link");
+      link.rel = rel;
+      link.href = loginUrl.origin;
+      if (rel === "preconnect") {
+        link.crossOrigin = "anonymous";
+      }
+      document.head.appendChild(link);
+    };
+
+    addResourceHint("dns-prefetch");
+    addResourceHint("preconnect");
+  } catch {
+    keycloakPreconnectInitialized = false;
+  }
+}
+
 function normalizeLoginScopes(scope: string | null) {
   const scopes = new Set((scope ?? "openid").split(/\s+/).filter(Boolean));
   ["openid", "profile", "email", "roles", "offline_access"].forEach((requiredScope) => scopes.add(requiredScope));
@@ -127,17 +165,26 @@ export async function exchangeKeycloakAuthorizationCode(code: string) {
   return responseBody;
 }
 
-export function buildKeycloakLogoutUrl(idToken?: string | null) {
+export function buildKeycloakLogoutUrl(idToken?: string | null, postLogoutRedirectPath = "/pricing") {
   const loginUrl = new URL(appConfig.keycloakLoginUrl);
   const logoutUrl = new URL(loginUrl.toString());
   logoutUrl.pathname = logoutUrl.pathname.replace(/\/auth$/, "/logout");
   logoutUrl.search = "";
   logoutUrl.searchParams.set("client_id", loginUrl.searchParams.get("client_id") ?? "vehicle-management-frontend");
-  logoutUrl.searchParams.set("post_logout_redirect_uri", `${window.location.origin}/login`);
+  logoutUrl.searchParams.set("post_logout_redirect_uri", buildFrontendRedirectUri(loginUrl, postLogoutRedirectPath));
   if (idToken) {
     logoutUrl.searchParams.set("id_token_hint", idToken);
   }
   return logoutUrl.toString();
+}
+
+function buildFrontendRedirectUri(loginUrl: URL, path: string) {
+  const configuredRedirectUri = loginUrl.searchParams.get("redirect_uri");
+  const redirectUrl = configuredRedirectUri ? new URL(configuredRedirectUri) : new URL(window.location.origin);
+  redirectUrl.pathname = path.startsWith("/") ? path : `/${path}`;
+  redirectUrl.search = "";
+  redirectUrl.hash = "";
+  return redirectUrl.toString();
 }
 
 function generateCodeVerifier() {

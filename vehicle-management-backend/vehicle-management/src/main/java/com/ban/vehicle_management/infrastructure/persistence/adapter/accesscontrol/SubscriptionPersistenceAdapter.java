@@ -161,4 +161,24 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
                 SubscriptionStatus.EXPIRED
         );
     }
+
+    @Override
+    public List<Subscription> findActiveSubscriptionsExpiringOn(LocalDate effectiveTo) {
+        return subscriptionPersistenceMapper.toDomains(
+                subscriptionRepository.findByStatusAndEffectiveTo(
+                        SubscriptionStatus.ACTIVE,
+                        effectiveTo
+                )
+        );
+    }
+
+    @Override
+    public List<Subscription> findActiveSubscriptionsExpiredBefore(LocalDate businessDate) {
+        return subscriptionPersistenceMapper.toDomains(
+                subscriptionRepository.findByStatusAndEffectiveToBefore(
+                        SubscriptionStatus.ACTIVE,
+                        businessDate
+                )
+        );
+    }
 }

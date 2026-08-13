@@ -43,6 +43,17 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
     );
 
     @Query("""
+        SELECT account.accountId
+        FROM EmployeeEntity employee
+        JOIN AccountEntity account
+          ON account.userProfileId = employee.userProfileId
+        WHERE employee.employeeId = :employeeId
+        """)
+    Optional<UUID> findAccountIdByEmployeeId(
+            @Param("employeeId") UUID employeeId
+    );
+
+    @Query("""
         SELECT CASE WHEN COUNT(employee) > 0
                     THEN TRUE ELSE FALSE END
         FROM EmployeeEntity employee

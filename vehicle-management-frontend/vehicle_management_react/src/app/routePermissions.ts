@@ -47,6 +47,7 @@ export const adminRoutePermissions = {
     "CHAT_CONVERSATION_READ_OWN",
     "CHAT_CONVERSATION_READ_ALL",
   ],
+  "/admin/announcements": ["BROADCAST_NOTIFICATION_READ_ALL"],
 } satisfies Record<string, string[]>;
 
 const adminFallbackRoute = "/admin/profile";

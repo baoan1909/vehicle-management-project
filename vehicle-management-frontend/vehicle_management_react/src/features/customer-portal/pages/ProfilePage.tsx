@@ -6,6 +6,9 @@ import {
   type CustomerPortalProfile,
 } from "@/features/customer-portal/api/customerPortalApi";
 import { requestPasswordReset } from "@/features/auth/api/authApi";
+import { useAuth } from "@/core/auth/useAuth";
+import { completeMyAccountProfile, type UpdateAccountProfileRequest } from "@/features/iam/api/accountProfileApi";
+import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import {
   fetchMyOnboardingApproval,
   resubmitMyOnboardingApproval,
@@ -85,7 +88,19 @@ function profileToForm(profile: CustomerPortalProfile): ProfileForm {
   };
 }
 
+function buildProfilePayload(form: ProfileForm): UpdateAccountProfileRequest {
+  return {
+    address: form.address.trim() || undefined,
+    dateOfBirth: form.dateOfBirth || undefined,
+    fullName: form.fullName.trim() || undefined,
+    gender: form.gender.trim() || undefined,
+    identifyCard: form.identifyCard.trim() || undefined,
+    phoneNumber: form.phoneNumber.trim() || undefined,
+  };
+}
+
 export function ProfilePage() {
+  const { setUser } = useAuth();
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [latestApproval, setLatestApproval] = useState<OnboardingApprovalResponse | null>(null);
   const [form, setForm] = useState<ProfileForm>(emptyForm);
@@ -109,6 +124,7 @@ export function ProfilePage() {
         if (ignore) return;
         setProfile(nextProfile);
         setForm(profileToForm(nextProfile));
+        setUser((currentUser) => (currentUser ? mergeCurrentUserWithAccountProfile(currentUser, nextProfile) : currentUser));
         try {
           const approval = await fetchMyOnboardingApproval("customer");
           if (!ignore) setLatestApproval(approval);
@@ -135,6 +151,7 @@ export function ProfilePage() {
   const customerStatus = profile?.customer?.customerStatus ?? "--";
   const approvalStatus = profile?.customer?.customerApprovalStatus ?? "--";
   const accountStatus = profile?.account?.accountStatus ?? "--";
+  const isOnboardingRequired = Boolean(profile?.onboardingRequired || (profile && !profile.profile?.userProfileId));
   const profileStatus = profile?.profile?.userProfileStatus ?? "--";
   const isApproved = approvalStatus === "APPROVED";
   const formChanged = useMemo(() => {
@@ -142,21 +159,33 @@ export function ProfilePage() {
     return JSON.stringify(form) !== JSON.stringify(profileToForm(profile));
   }, [form, profile]);
   const approvalRequestStatus = latestApproval?.request?.approvalRequestStatus;
+  const isPending = approvalRequestStatus === "PENDING" || approvalStatus === "PENDING";
   const isRejected = approvalRequestStatus === "REJECTED" || approvalStatus === "REJECTED";
+  const showPendingOrRequiredOnboardingBanner = isOnboardingRequired || (isPending && !isRejected);
   const rejectionNote = latestApproval?.request?.note?.trim();
+  const saveButtonDisabled = saving || resubmitting || !profile || (!isOnboardingRequired && !formChanged);
+  const currentApprovalStatus = approvalRequestStatus ?? approvalStatus;
+  const showSaveProfileButton = currentApprovalStatus === "APPROVED";
+  const showUndoButton = showSaveProfileButton || formChanged;
+  const saveButtonLabel = saving ? "Đang lưu..." : "Lưu thay đổi";
+
+  const applyProfile = (nextProfile: CustomerPortalProfile) => {
+    setProfile(nextProfile);
+    setForm(profileToForm(nextProfile));
+    setUser((currentUser) => (currentUser ? mergeCurrentUserWithAccountProfile(currentUser, nextProfile) : currentUser));
+  };
 
   const saveProfileChanges = async () => {
-    const updatedProfile = await updateCustomerPortalProfile({
-      address: form.address.trim() || undefined,
-      dateOfBirth: form.dateOfBirth || undefined,
-      fullName: form.fullName.trim() || undefined,
-      gender: form.gender.trim() || undefined,
-      identifyCard: form.identifyCard.trim() || undefined,
-      phoneNumber: form.phoneNumber.trim() || undefined,
-    });
-    setProfile(updatedProfile);
-    setForm(profileToForm(updatedProfile));
-    return updatedProfile;
+    const payload = buildProfilePayload(form);
+    const shouldCompleteOnboarding = Boolean(profile?.onboardingRequired || !profile?.profile?.userProfileId);
+    const updatedProfile = shouldCompleteOnboarding
+      ? (await completeMyAccountProfile(payload)).data
+      : await updateCustomerPortalProfile(payload);
+    applyProfile(updatedProfile);
+    return {
+      profile: updatedProfile,
+      shouldCompleteOnboarding,
+    };
   };
 
   const handleSave = async () => {
@@ -164,8 +193,16 @@ export function ProfilePage() {
     setError("");
     setNotice("");
     try {
-      await saveProfileChanges();
-      setNotice("Đã cập nhật hồ sơ.");
+      const result = await saveProfileChanges();
+      if (result.shouldCompleteOnboarding) {
+        try {
+          const approval = await fetchMyOnboardingApproval("customer");
+          setLatestApproval(approval);
+        } catch {
+          setLatestApproval(null);
+        }
+      }
+      setNotice(result.shouldCompleteOnboarding ? "Đã gửi hồ sơ để chờ duyệt." : "Đã cập nhật hồ sơ.");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Không thể cập nhật hồ sơ.");
     } finally {
@@ -184,8 +221,7 @@ export function ProfilePage() {
       const approval = await resubmitMyOnboardingApproval("customer");
       const nextProfile = await getCustomerPortalProfile();
       setLatestApproval(approval);
-      setProfile(nextProfile);
-      setForm(profileToForm(nextProfile));
+      applyProfile(nextProfile);
       setNotice("Đã gửi lại hồ sơ để chờ duyệt.");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Không thể gửi lại hồ sơ để duyệt.");
@@ -228,6 +264,33 @@ export function ProfilePage() {
 
       {error ? <div className="vm-info-note tw-bg-red-50 tw-text-red-600"><i className="fas fa-exclamation-circle" /> {error}</div> : null}
       {notice ? <div className="vm-info-note tw-bg-green-50 tw-text-green-700"><i className="fas fa-check-circle" /> {notice}</div> : null}
+      {showPendingOrRequiredOnboardingBanner ? (
+        <div className="vm-info-note tw-items-start tw-justify-between tw-gap-4 tw-bg-amber-50 tw-text-amber-800">
+          <div className="tw-flex tw-min-w-0 tw-gap-3">
+            <i className={`fas ${isOnboardingRequired ? "fa-exclamation-circle" : "fa-clock"} tw-mt-1`} />
+            <div>
+              <strong className="tw-block tw-text-vm-slate-900">
+                {isOnboardingRequired ? "Cần hoàn tất hồ sơ" : "Hồ sơ đang chờ duyệt"}
+              </strong>
+              <span className="tw-mt-1 tw-block">
+                {isOnboardingRequired
+                  ? "Bổ sung thông tin bắt buộc rồi gửi hồ sơ để nhân viên phê duyệt."
+                  : "Thông tin đã được gửi và đang chờ nhân viên phụ trách phê duyệt."}
+              </span>
+            </div>
+          </div>
+          {isOnboardingRequired ? (
+            <button
+              className="tw-inline-flex tw-min-h-10 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-4 tw-text-[0.88rem] tw-font-extrabold tw-text-white tw-shadow-[0_10px_18px_rgba(37,99,235,0.18)] disabled:tw-cursor-not-allowed disabled:tw-opacity-60"
+              type="button"
+              disabled={saveButtonDisabled}
+              onClick={handleSave}
+            >
+              {saving ? "Đang gửi..." : "Gửi hồ sơ"}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
       {isRejected ? (
         <div className="vm-info-note tw-items-start tw-justify-between tw-gap-4 tw-bg-amber-50 tw-text-amber-800">
           <div className="tw-flex tw-min-w-0 tw-gap-3">
@@ -298,8 +361,12 @@ export function ProfilePage() {
             <Field label="Ghi chú"><textarea placeholder="Thông tin bổ sung..." /></Field>
           </div>
           <div className="vm-form-actions vm-profile-form-actions">
-            <button className="vm-outline-btn" type="button" disabled={!profile || saving || resubmitting} onClick={() => profile && setForm(profileToForm(profile))}>Hủy thay đổi</button>
-            <button type="button" disabled={!formChanged || saving || resubmitting} onClick={handleSave}>{saving ? "Đang lưu..." : "Lưu thay đổi"}</button>
+            {showUndoButton ? (
+              <button className="vm-outline-btn" type="button" disabled={!profile || saving || resubmitting || !formChanged} onClick={() => profile && setForm(profileToForm(profile))}>Hủy thay đổi</button>
+            ) : null}
+            {showSaveProfileButton ? (
+              <button type="button" disabled={saveButtonDisabled} onClick={handleSave}>{saveButtonLabel}</button>
+            ) : null}
           </div>
         </section>
 

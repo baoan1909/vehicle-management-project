@@ -2,9 +2,12 @@ package com.ban.vehicle_management.application.catalog.priceplan.usecase;
 
 import com.ban.vehicle_management.application.catalog.priceplan.port.in.PricePlanPortIn;
 import com.ban.vehicle_management.application.catalog.priceplan.port.out.PricePlanPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
 import com.ban.vehicle_management.domain.catalog.priceplan.policy.PricePlanPolicy;
 import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.LocalDate;
@@ -17,10 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class PricePlanUseCaseImpl implements PricePlanPortIn {
 
     private final PricePlanPortOut pricePlanPortOut;
+    private final NotificationPortIn notificationPortIn;
     private final PricePlanPolicy pricePlanPolicy = new PricePlanPolicy();
 
-    public PricePlanUseCaseImpl(PricePlanPortOut pricePlanPortOut) {
+    public PricePlanUseCaseImpl(
+            PricePlanPortOut pricePlanPortOut,
+            NotificationPortIn notificationPortIn
+    ) {
         this.pricePlanPortOut = pricePlanPortOut;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -75,7 +83,9 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
 
         validateActiveOverlap(existingPricePlan, pricePlanId);
 
-        return pricePlanPortOut.save(existingPricePlan);
+        PricePlan savedPricePlan = pricePlanPortOut.save(existingPricePlan);
+        notifyPricePlanChanged(savedPricePlan, "Bảng giá được cập nhật");
+        return savedPricePlan;
     }
 
     @Override
@@ -88,7 +98,8 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
         }
 
         pricePlanPolicy.deactivate(existingPricePlan);
-        pricePlanPortOut.save(existingPricePlan);
+        PricePlan savedPricePlan = pricePlanPortOut.save(existingPricePlan);
+        notifyPricePlanChanged(savedPricePlan, "Bảng giá ngừng áp dụng");
     }
 
     @Override
@@ -99,7 +110,9 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
         pricePlanPolicy.activate(existingPricePlan);
         validateActiveOverlap(existingPricePlan, pricePlanId);
 
-        return pricePlanPortOut.save(existingPricePlan);
+        PricePlan savedPricePlan = pricePlanPortOut.save(existingPricePlan);
+        notifyPricePlanChanged(savedPricePlan, "Bảng giá được kích hoạt");
+        return savedPricePlan;
     }
 
     private void validateActiveOverlap(PricePlan pricePlan, UUID excludedPricePlanId) {
@@ -122,5 +135,24 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
             return null;
         }
         return keyword.trim();
+    }
+
+    private void notifyPricePlanChanged(PricePlan pricePlan, String title) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
+                true,
+                null,
+                null,
+                null,
+                NotificationType.PRICE_PLAN_CHANGED,
+                title,
+                "Bảng giá " + pricePlan.getName() + " vừa có thay đổi.",
+                null,
+                "catalog",
+                "price_plans",
+                pricePlan.getPricePlanId()
+        ));
     }
 }

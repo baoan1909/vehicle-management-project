@@ -1,11 +1,15 @@
 package com.ban.vehicle_management.application.parking.lane.usecase;
 
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.lane.port.in.LanePortIn;
 import com.ban.vehicle_management.application.parking.lane.port.out.LanePortOut;
 import com.ban.vehicle_management.domain.parking.lane.model.Lane;
 import com.ban.vehicle_management.domain.parking.lane.policy.LanePolicy;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
@@ -17,10 +21,15 @@ import java.util.UUID;
 @Service
 public class LaneUsecaseImpl implements LanePortIn {
     private final LanePortOut lanePortOut;
+    private final NotificationPortIn notificationPortIn;
     private final LanePolicy lanePolicy = new LanePolicy();
 
-    public  LaneUsecaseImpl(LanePortOut lanePortOut){
+    public  LaneUsecaseImpl(
+            LanePortOut lanePortOut,
+            NotificationPortIn notificationPortIn
+    ){
         this.lanePortOut = lanePortOut;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -88,7 +97,13 @@ public class LaneUsecaseImpl implements LanePortIn {
         Lane existingLane = getLaneById(laneId);
         validateOperationalGate(existingLane.getGateId());
         lanePolicy.activate(existingLane);
-        return  lanePortOut.save(existingLane);
+        Lane savedLane = lanePortOut.save(existingLane);
+        notifyLaneStatusChanged(
+                savedLane,
+                "Lane kích hoạt",
+                "Lane " + savedLane.getName() + " đã chuyển sang trạng thái hoạt động."
+        );
+        return savedLane;
     }
 
     @Override
@@ -97,7 +112,13 @@ public class LaneUsecaseImpl implements LanePortIn {
         Lane existingLane = getLaneById(laneId);
         ensureCanDisableActiveOutLane(existingLane);
         lanePolicy.markMaintenance(existingLane);
-        return lanePortOut.save(existingLane);
+        Lane savedLane = lanePortOut.save(existingLane);
+        notifyLaneStatusChanged(
+                savedLane,
+                "Lane bảo trì",
+                "Lane " + savedLane.getName() + " đã chuyển sang trạng thái bảo trì."
+        );
+        return savedLane;
     }
 
     @Override
@@ -105,7 +126,13 @@ public class LaneUsecaseImpl implements LanePortIn {
     public Lane forceLaneMaintenance(UUID laneId){
         Lane existingLane = getLaneById(laneId);
         lanePolicy.markMaintenance(existingLane);
-        return  lanePortOut.save(existingLane);
+        Lane savedLane = lanePortOut.save(existingLane);
+        notifyLaneStatusChanged(
+                savedLane,
+                "Lane bảo trì",
+                "Lane " + savedLane.getName() + " đã chuyển sang trạng thái bảo trì."
+        );
+        return savedLane;
     }
 
     @Override
@@ -118,7 +145,13 @@ public class LaneUsecaseImpl implements LanePortIn {
         }
         ensureCanDisableActiveOutLane(existingLane);
         lanePolicy.close(existingLane);
-        return lanePortOut.save(existingLane);
+        Lane savedLane = lanePortOut.save(existingLane);
+        notifyLaneStatusChanged(
+                savedLane,
+                "Lane đóng",
+                "Lane " + savedLane.getName() + " đã chuyển sang trạng thái đóng."
+        );
+        return savedLane;
     }
 
     private boolean isDisablingActiveOutLane(Lane existingLane, LaneDirection newDirection){
@@ -155,5 +188,24 @@ public class LaneUsecaseImpl implements LanePortIn {
             return null;
         }
         return  keyword.trim();
+    }
+
+    private void notifyLaneStatusChanged(Lane lane, String title, String message) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
+                false,
+                NotificationAudience.OPERATIONS,
+                null,
+                null,
+                NotificationType.LANE_MAINTENANCE,
+                title,
+                message,
+                null,
+                "parking",
+                "lanes",
+                lane.getLaneId()
+        ));
     }
 }

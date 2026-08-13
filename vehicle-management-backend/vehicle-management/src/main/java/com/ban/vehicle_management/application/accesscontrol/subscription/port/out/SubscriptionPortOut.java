@@ -46,4 +46,8 @@ public interface SubscriptionPortOut {
     );
 
     int expireActiveSubscriptionsBefore(LocalDate businessDate);
+
+    List<Subscription> findActiveSubscriptionsExpiringOn(LocalDate effectiveTo);
+
+    List<Subscription> findActiveSubscriptionsExpiredBefore(LocalDate businessDate);
 }

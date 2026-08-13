@@ -3,6 +3,7 @@ export { Badge } from "./Badge";
 export { Button } from "./Button";
 export { Card, CardContent, CardFooter, CardHeader } from "./Card";
 export { DatePicker } from "./DatePicker";
+export { DateTimePicker, DateTimeScheduleField, formatDateTimeLabel, nowLocalDateTime } from "./DateTimePicker";
 export { DateRangeInput } from "./DateRangeInput";
 export { DetailPanel } from "./DetailPanel";
 export { Drawer } from "./Drawer";

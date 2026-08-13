@@ -1,35 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { canAccessAdminRoute } from "@/app/routePermissions";
 import { useAuth } from "../../../core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import { logoutCurrentUser } from "@/core/auth/logout";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta } from "@/shared/utils/accountStatus";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
 const searchSuggestions = ["Tìm thẻ xe", "Tra cứu khách hàng", "Kiểm tra xe đang trong bãi"];
-
-const notifications = [
-  {
-    href: "/admin/support-center",
-    icon: "fas fa-envelope",
-    targetBlank: true,
-    title: "Tin nhắn mới",
-    meta: "4 cuộc trò chuyện cần phản hồi",
-  },
-  {
-    href: "/admin/customer",
-    icon: "fas fa-user-check",
-    title: "Yêu cầu đăng ký",
-    meta: "8 yêu cầu chờ xác nhận",
-  },
-  {
-    href: "/admin/dashboard",
-    icon: "fas fa-chart-line",
-    title: "Báo cáo mới",
-    meta: "3 báo cáo vừa được tạo",
-  },
-];
 
 const panelClassName =
   "tw-absolute tw-right-0 tw-top-[calc(100%+12px)] tw-z-[1080] tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-p-2 tw-shadow-[0_18px_42px_rgba(15,23,42,0.16)]";
@@ -69,7 +47,7 @@ function UserAvatar({
   alt,
   className,
   status,
-  src
+  src,
 }: {
   alt: string;
   className: string;
@@ -105,11 +83,9 @@ export function AdminHeader() {
   const { user, setUser } = useAuth();
   const [searchValue, setSearchValue] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const searchRef = useRef<HTMLDivElement | null>(null);
-  const notificationsRef = useRef<HTMLDivElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -117,7 +93,6 @@ export function AdminHeader() {
       const target = event.target as Node;
 
       if (searchRef.current && !searchRef.current.contains(target)) setSearchOpen(false);
-      if (notificationsRef.current && !notificationsRef.current.contains(target)) setNotificationsOpen(false);
       if (profileRef.current && !profileRef.current.contains(target)) setProfileOpen(false);
     }
 
@@ -143,7 +118,6 @@ export function AdminHeader() {
   const approvalStatus = getApprovalStatusValue(user);
   const accountStatus = user?.accountStatus;
   const avatarUrl = resolvePublicMediaUrl(user?.avatarUrl) || DEFAULT_USER_AVATAR_URL;
-  const visibleNotifications = notifications.filter((item) => !item.href.startsWith("/admin/") || canAccessAdminRoute(user, item.href));
 
   return (
     <header className="tw-fixed tw-inset-x-0 tw-top-0 tw-z-[1050] tw-border-0 tw-border-b tw-border-solid tw-border-slate-200/95 tw-bg-white/95 tw-shadow-[0_10px_28px_rgba(15,23,42,0.08)] tw-backdrop-blur-[14px]">
@@ -203,43 +177,7 @@ export function AdminHeader() {
         </div>
 
         <div className="tw-flex tw-items-center tw-justify-end tw-gap-[1.1rem]">
-          <div ref={notificationsRef} className="tw-relative">
-            <button
-              type="button"
-              className={cn(
-                "tw-relative tw-inline-flex tw-h-[54px] tw-w-[54px] tw-items-center tw-justify-center tw-rounded-vm-lg tw-border tw-border-solid tw-border-transparent tw-bg-transparent tw-text-[1.18rem] tw-text-slate-900 tw-transition hover:tw-border-slate-200 hover:tw-bg-white hover:tw-shadow-[0_10px_24px_rgba(15,23,42,0.08)]",
-                "hover:tw-bg-slate-100 hover:tw-shadow-none",
-                notificationsOpen ? "tw-border-slate-200 tw-bg-white tw-shadow-[0_8px_20px_rgba(15,23,42,0.06)]" : "",
-              )}
-              onClick={() => {
-                setNotificationsOpen((current) => !current);
-                setProfileOpen(false);
-              }}
-              aria-label="Thông báo"
-            >
-              <i className="far fa-bell tw-text-[1.3rem]" />
-              <span className="tw-absolute tw-right-2.5 tw-top-2.5 tw-inline-flex tw-h-[17px] tw-min-w-[17px] tw-items-center tw-justify-center tw-rounded-full tw-bg-red-500 tw-px-1 tw-text-[0.58rem] tw-font-extrabold tw-leading-none tw-text-white">{visibleNotifications.length}</span>
-            </button>
-
-            {notificationsOpen ? (
-              <div className={cn(panelClassName, "tw-w-[320px]")}>
-                <div className="tw-px-3 tw-py-2 tw-text-[0.78rem] tw-font-extrabold tw-uppercase tw-tracking-[0.04em] tw-text-vm-slate-500">Thông báo</div>
-                {visibleNotifications.map((item) => (
-                  <Link
-                    key={item.title}
-                    to={item.href}
-                    className={itemClassName}
-                    target={item.targetBlank ? "_blank" : undefined}
-                    rel={item.targetBlank ? "noreferrer" : undefined}
-                    onClick={() => setNotificationsOpen(false)}
-                  >
-                    <HeaderItemIcon icon={item.icon} />
-                    <HeaderItemCopy title={item.title} meta={item.meta} />
-                  </Link>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          <NotificationBell variant="admin" />
 
           <div ref={profileRef} className="tw-relative">
             <button
@@ -248,10 +186,7 @@ export function AdminHeader() {
                 "tw-flex tw-min-h-12 tw-w-auto tw-min-w-[238px] tw-items-center tw-gap-3 tw-rounded-full tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-px-3 tw-py-1 tw-text-left tw-transition hover:tw-bg-brand-50",
                 profileOpen ? "tw-bg-brand-50 tw-shadow-[0_8px_20px_rgba(37,99,235,0.08)]" : "",
               )}
-              onClick={() => {
-                setProfileOpen((current) => !current);
-                setNotificationsOpen(false);
-              }}
+              onClick={() => setProfileOpen((current) => !current)}
               aria-label={`Mở hồ sơ ${displayName}`}
             >
               <UserAvatar src={avatarUrl} alt={displayName} status={approvalStatus} className="tw-h-9 tw-w-9" />

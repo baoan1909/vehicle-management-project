@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import type { ReactNode } from "react";
 import { canAccessAdminRoute, getFirstAccessibleAdminPath, getRoutePermissions } from "@/app/routePermissions";
 import { routes } from "@/app/routes";
+import { consumeLogoutRedirectGuard, getLogoutRedirectPath, isLogoutRedirectGuardActive } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasResolvedPermissions } from "@/shared/auth/permissions";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
@@ -52,6 +53,10 @@ function AdminShell() {
   const { user } = useAuth();
 
   if (!user) {
+    if (isLogoutRedirectGuardActive()) {
+      return <Navigate to={getLogoutRedirectPath()} replace />;
+    }
+
     return <Navigate to="/login" replace />;
   }
 
@@ -78,6 +83,10 @@ function AdminIndexRedirect() {
   const { isAccessLoading, user } = useAuth();
 
   if (!user) {
+    if (isLogoutRedirectGuardActive()) {
+      return <Navigate to={getLogoutRedirectPath()} replace />;
+    }
+
     return <Navigate to="/login" replace />;
   }
 
@@ -93,6 +102,10 @@ function AdminRouteGate({ element, path }: { element: ReactNode; path: string })
   const permissions = getRoutePermissions(path);
 
   if (!user) {
+    if (isLogoutRedirectGuardActive()) {
+      return <Navigate to={getLogoutRedirectPath()} replace />;
+    }
+
     return <Navigate to="/login" replace />;
   }
 
@@ -108,6 +121,10 @@ function AdminRouteGate({ element, path }: { element: ReactNode; path: string })
 }
 
 function ClientShell() {
+  useEffect(() => {
+    consumeLogoutRedirectGuard();
+  }, []);
+
   return (
     <>
       <RouteDocument layout="client" />
@@ -157,11 +174,19 @@ const apiAdminRoutes = routes
 
 const clientRoutes = routes
   .filter((route) => route.layout === "client")
-  .map((route) => ({
-    path: route.path.replace(/^\//, ""),
-    element: route.element,
-    handle: { title: route.title },
-  }));
+  .map((route) =>
+    route.path === "/"
+      ? {
+          index: true,
+          element: route.element,
+          handle: { title: route.title },
+        }
+      : {
+          path: route.path.replace(/^\//, ""),
+          element: route.element,
+          handle: { title: route.title },
+        },
+  );
 
 const authRoutes = routes
   .filter((route) => route.layout === "auth")
@@ -180,10 +205,6 @@ const fullscreenRoutes = routes
   }));
 
 const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <Navigate to="/pricing" replace />,
-  },
   {
     path: "/admin",
     element: <AdminShell />,
@@ -214,7 +235,7 @@ const router = createBrowserRouter([
   },
   {
     path: "*",
-    element: <Navigate to="/pricing" replace />,
+    element: <Navigate to="/" replace />,
   },
 ]);
 

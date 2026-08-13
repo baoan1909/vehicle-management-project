@@ -7,6 +7,8 @@ import com.ban.vehicle_management.application.operations.shift.port.out.ShiftPor
 import com.ban.vehicle_management.application.operations.shiftassignment.port.in.ShiftAssignmentPortIn;
 import com.ban.vehicle_management.application.operations.shiftassignment.port.out.ShiftAssignmentPortOut;
 import com.ban.vehicle_management.application.operations.shifttemplate.port.out.ShiftTemplatePortOut;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
@@ -30,6 +32,7 @@ import com.ban.vehicle_management.shared.enumeration.operations.ShiftType;
 import com.ban.vehicle_management.shared.enumeration.parking.GateStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -71,6 +74,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
     private final EmployeePortOut employeePortOut;
     private final GatePortOut gatePortOut;
     private final ZonePortOut zonePortOut;
+    private final NotificationPortIn notificationPortIn;
 
     private final ShiftPolicy shiftPolicy = new ShiftPolicy();
     private final ShiftTemplatePolicy templatePolicy = new ShiftTemplatePolicy();
@@ -86,7 +90,8 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
             ParkingLotPortOut parkingLotPortOut,
             EmployeePortOut employeePortOut,
             GatePortOut gatePortOut,
-            ZonePortOut zonePortOut
+            ZonePortOut zonePortOut,
+            NotificationPortIn notificationPortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.shiftPortOut = shiftPortOut;
@@ -98,6 +103,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         this.employeePortOut = employeePortOut;
         this.gatePortOut = gatePortOut;
         this.zonePortOut = zonePortOut;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -234,7 +240,9 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
 
         assignmentPortOut.saveAll(assignments);
 
-        return shiftPortOut.saveAll(shifts);
+        List<Shift> savedShifts = shiftPortOut.saveAll(shifts);
+        assignments.forEach(assignment -> notifyEmployeeShiftScheduled(assignment, findFrom(savedShifts, assignment.getShiftId())));
+        return savedShifts;
     }
 
     @Override
@@ -329,7 +337,9 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
 
         assignmentPortOut.saveAll(assignments);
 
-        return shiftPortOut.save(shift);
+        Shift cancelledShift = shiftPortOut.save(shift);
+        assignments.forEach(assignment -> notifyEmployeeShiftCancelled(assignment, cancelledShift));
+        return cancelledShift;
     }
 
     @Override
@@ -1020,6 +1030,45 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
                 .orElseThrow(() ->
                         new NotFoundException("Shift not found")
                 );
+    }
+
+    private Shift findFrom(List<Shift> shifts, UUID shiftId) {
+        return shifts.stream()
+                .filter(shift -> Objects.equals(shift.getShiftId(), shiftId))
+                .findFirst()
+                .orElseThrow(() -> new NotFoundException("Shift not found"));
+    }
+
+    private void notifyEmployeeShiftScheduled(ShiftAssignment assignment, Shift shift) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        employeePortOut.findAccountIdByEmployeeId(assignment.getEmployeeId())
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId,
+                        NotificationType.SHIFT_ASSIGNED,
+                        "Bạn có ca trực mới",
+                        "Bạn được phân vào ca " + shift.getShiftCode() + " ngày " + shift.getShiftDate() + ".",
+                        "operations",
+                        "shifts",
+                        shift.getShiftId()
+                )));
+    }
+
+    private void notifyEmployeeShiftCancelled(ShiftAssignment assignment, Shift shift) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        employeePortOut.findAccountIdByEmployeeId(assignment.getEmployeeId())
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId,
+                        NotificationType.SHIFT_CANCELLED,
+                        "Ca trực đã hủy",
+                        "Ca " + shift.getShiftCode() + " ngày " + shift.getShiftDate() + " đã bị hủy.",
+                        "operations",
+                        "shifts",
+                        shift.getShiftId()
+                )));
     }
 
     private record PlannedAssignment(

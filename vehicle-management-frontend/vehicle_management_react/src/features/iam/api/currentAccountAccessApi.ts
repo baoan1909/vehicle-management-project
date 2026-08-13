@@ -11,6 +11,8 @@ type ApiResponse<T> = {
 export type CurrentAccountAccessResponse = {
   accountId?: string;
   accountStatus?: string;
+  customerApprovalStatus?: string;
+  customerStatus?: string;
   email?: string;
   employeeStatus?: string;
   permissionCodes?: string[];

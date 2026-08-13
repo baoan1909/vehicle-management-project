@@ -1381,6 +1381,14 @@ body {
   background: #f8fbff;
 }
 
+.vm-client-shell .content-wrapper.vm-client-announcement-offset {
+  padding-top: 3.5rem;
+}
+
+.vm-client-shell .content-wrapper.vm-client-announcement-offset-compact {
+  padding-top: 39px;
+}
+
 .vm-client-shell .content {
   padding: 0;
 }
@@ -2801,6 +2809,14 @@ body {
   max-width: 100%;
   padding: 1.8rem 1.8rem 2rem;
   overflow-x: hidden;
+}
+
+.vm-customer-content > .vm-info-note {
+  margin: 0 0 1.25rem;
+}
+
+.vm-customer-content > .vm-info-note + .vm-info-note {
+  margin-top: 0;
 }
 
 .vm-customer-page-header {

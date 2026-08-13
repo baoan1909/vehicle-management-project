@@ -5,6 +5,8 @@ import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePo
 import com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuard;
 import com.ban.vehicle_management.application.billing.payment.port.in.PaymentPortIn;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
@@ -13,6 +15,7 @@ import com.ban.vehicle_management.domain.billing.payment.policy.PaymentPolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -33,19 +36,22 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
     private final SubscriptionPortIn subscriptionPortIn;
     private final ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
+    private final NotificationPortIn notificationPortIn;
 
     public PaymentUseCaseImpl(
             PaymentPortOut paymentPortOut,
             InvoicePortOut invoicePortOut,
             PaymentAccessGuard paymentAccessGuard,
             SubscriptionPortIn subscriptionPortIn,
-            ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn
+            ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn,
+            NotificationPortIn notificationPortIn
     ) {
         this.paymentPortOut = paymentPortOut;
         this.invoicePortOut = invoicePortOut;
         this.paymentAccessGuard = paymentAccessGuard;
         this.subscriptionPortIn = subscriptionPortIn;
         this.parkingCheckoutCompletionPortIn = parkingCheckoutCompletionPortIn;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -77,6 +83,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
         }
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());
 
+        notifyPaymentSucceeded(invoice, savedPayment);
         return savedPayment;
     }
 
@@ -92,6 +99,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
                             null
                     );
                     paymentPortOut.save(pendingPayment);
+                    notifyPaymentFailed(invoiceId, pendingPayment);
                 });
     }
 
@@ -174,5 +182,42 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
 
     private String normalizeKeyword(String keyword) {
         return keyword == null || keyword.isBlank() ? null : keyword.trim();
+    }
+
+    private void notifyPaymentSucceeded(Invoice invoice, Payment payment) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        invoicePortOut.findCustomerAccountIdByInvoiceId(invoice.getInvoiceId())
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId,
+                        NotificationType.PAYMENT_SUCCEEDED,
+                        "Thanh toán thành công",
+                        "Thanh toán cho hóa đơn " + invoice.getInvoiceNo() + " đã được ghi nhận thành công.",
+                        "billing",
+                        "payments",
+                        payment.getPaymentId()
+                )));
+    }
+
+    private void notifyPaymentFailed(UUID invoiceId, Payment payment) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        invoicePortOut.findById(invoiceId)
+                .flatMap(invoice -> invoicePortOut.findCustomerAccountIdByInvoiceId(invoiceId)
+                        .map(accountId -> new PaymentFailureNotification(accountId, invoice)))
+                .ifPresent(notification -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        notification.accountId(),
+                        NotificationType.PAYMENT_FAILED,
+                        "Thanh toán thất bại",
+                        "Thanh toán cho hóa đơn " + notification.invoice().getInvoiceNo() + " chưa thành công. Vui lòng kiểm tra lại.",
+                        "billing",
+                        "payments",
+                        payment.getPaymentId()
+                )));
+    }
+
+    private record PaymentFailureNotification(UUID accountId, Invoice invoice) {
     }
 }

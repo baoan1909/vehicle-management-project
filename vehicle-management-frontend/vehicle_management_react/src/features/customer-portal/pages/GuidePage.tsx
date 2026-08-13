@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import { ClientPage } from "@/shared/components/layout/ClientPage";
-import { PublicContactStrip, PublicHero } from "./PortalShared";
+import { PublicContactStrip, PublicFooter, PublicHero } from "./PortalShared";
 
 const guideSteps = [
   ["Vào cổng", "Đưa xe vào làn gửi xe và chờ hệ thống ghi nhận.", "fas fa-sign-in-alt"],
@@ -100,6 +100,7 @@ export function GuidePage() {
 
         <PublicContactStrip />
       </div>
+      <PublicFooter />
     </ClientPage>
   );
 }

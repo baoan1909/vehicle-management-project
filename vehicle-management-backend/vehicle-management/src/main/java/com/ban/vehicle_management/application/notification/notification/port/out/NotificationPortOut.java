@@ -10,9 +10,13 @@ public interface NotificationPortOut {
 
     Notification save(Notification notification);
 
+    List<Notification> saveAll(List<Notification> notifications);
+
     Optional<Notification> findByIdAndAccountId(UUID notificationId, UUID accountId);
 
     List<Notification> findByAccountId(UUID accountId, boolean unreadOnly, Instant beforeCreatedAt, int limit);
+
+    List<UUID> findExistingBroadcastIdsForAccount(UUID accountId, List<UUID> broadcastIds);
 
     long countUnreadByAccountId(UUID accountId);
 
@@ -25,4 +29,10 @@ public interface NotificationPortOut {
     int markRealtimeDelivered(List<UUID> notificationIds, Instant deliveredAt);
 
     boolean existsAccountById(UUID accountId);
+
+    List<UUID> findActiveAccountIdsForBroadcast(
+            boolean allActiveAccounts,
+            List<String> roleCodes,
+            List<UUID> accountIds
+    );
 }

@@ -9,6 +9,8 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.iam.account.port.in.ProvisionedAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.iam.account.policy.ProvisionedAccountPolicy;
@@ -17,6 +19,7 @@ import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePo
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -40,18 +43,21 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     private final ProvisionedAccountPortOut provisionedAccountPortOut;
     private final IdentityProviderAdminPortOut identityProviderAdminPortOut;
     private final ProvisionedAccountPolicy provisionedAccountPolicy;
+    private final NotificationPortIn notificationPortIn;
     private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
 
     public ProvisionedAccountUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             ProvisionedAccountPortOut provisionedAccountPortOut,
             IdentityProviderAdminPortOut identityProviderAdminPortOut,
-            ProvisionedAccountPolicy provisionedAccountPolicy
+            ProvisionedAccountPolicy provisionedAccountPolicy,
+            NotificationPortIn notificationPortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.provisionedAccountPortOut = provisionedAccountPortOut;
         this.identityProviderAdminPortOut = identityProviderAdminPortOut;
         this.provisionedAccountPolicy = provisionedAccountPolicy;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -81,8 +87,10 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             );
             identityProviderAdminPortOut.updateAccountIdAttribute(keycloakUserId, accountId);
             identityProviderAdminPortOut.sendUpdatePasswordEmail(keycloakUserId);
-            return provisionedAccountPortOut.findProvisionedAccountById(accountId)
+            ProvisionedAccountResult result = provisionedAccountPortOut.findProvisionedAccountById(accountId)
                     .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
+            notifyProvisionedAccount(result, NotificationType.ACCOUNT_PROVISIONED, "Tai khoan da duoc tao", "Tai khoan cua ban da duoc tao. Vui long kiem tra email de dat mat khau.");
+            return result;
         } catch (RuntimeException exception) {
             identityProviderAdminPortOut.deleteUser(keycloakUserId);
             throw exception;
@@ -138,8 +146,10 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
                 AccountStatus.ACTIVE.equals(targetStatus)
         );
 
-        return provisionedAccountPortOut.findProvisionedAccountById(accountId)
+        ProvisionedAccountResult result = provisionedAccountPortOut.findProvisionedAccountById(accountId)
                 .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
+        notifyProvisionedAccount(result, NotificationType.ACCOUNT_STATUS_CHANGED, "Trang thai tai khoan thay doi", "Trang thai tai khoan cua ban da duoc cap nhat thanh " + targetStatus.name() + ".");
+        return result;
     }
 
     @Override
@@ -306,5 +316,25 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         if (value == null) {
             throw new BadRequestException(fieldName + " must not be null");
         }
+    }
+
+    private void notifyProvisionedAccount(
+            ProvisionedAccountResult result,
+            NotificationType notificationType,
+            String title,
+            String message
+    ) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                result.account().accountId(),
+                notificationType,
+                title,
+                message,
+                "iam",
+                "accounts",
+                result.account().accountId()
+        ));
     }
 }

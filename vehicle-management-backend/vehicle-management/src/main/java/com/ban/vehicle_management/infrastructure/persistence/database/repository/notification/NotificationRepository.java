@@ -31,6 +31,17 @@ public interface NotificationRepository extends JpaRepository<NotificationEntity
 
     long countByAccountIdAndReadAtIsNullAndStatusNot(UUID accountId, NotificationStatus status);
 
+    @Query("""
+            select notification.broadcastId
+            from NotificationEntity notification
+            where notification.accountId = :accountId
+              and notification.broadcastId in :broadcastIds
+            """)
+    List<UUID> findBroadcastIdsByAccountIdAndBroadcastIdIn(
+            @Param("accountId") UUID accountId,
+            @Param("broadcastIds") List<UUID> broadcastIds
+    );
+
     List<NotificationEntity>
     findByAccountIdAndChannelAndStatusAndReadAtIsNullAndRealtimeDeliveredAtIsNullAndCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
             UUID accountId,

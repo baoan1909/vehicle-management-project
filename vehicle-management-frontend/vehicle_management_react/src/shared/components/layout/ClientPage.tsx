@@ -7,7 +7,7 @@ interface ClientPageProps extends PropsWithChildren {
 
 export function ClientPage({ title, children }: ClientPageProps) {
   return (
-    <div className="content-header">
+    <div className="content-header !tw-p-0">
       {title && <PageHeader title={title} />}
       <section className="content">
         <div className="container-fluid">{children}</div>

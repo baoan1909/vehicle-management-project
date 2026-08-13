@@ -6,19 +6,24 @@ type ToastTone = "success" | "error" | "info" | "warning";
 type Toast = {
   id: number;
   message: string;
+  notificationTime?: string;
   title?: string;
   tone: ToastTone;
+  unread?: boolean;
 };
 
 type ToastInput = {
   message: string;
+  notificationTime?: string;
   title?: string;
   tone?: ToastTone;
+  unread?: boolean;
 };
 
 type ToastContextValue = {
   error: (message: string, title?: string) => void;
   info: (message: string, title?: string) => void;
+  notification: (message: string, title?: string, notificationTime?: string, unread?: boolean) => void;
   show: (toast: ToastInput) => void;
   success: (message: string, title?: string) => void;
   warning: (message: string, title?: string) => void;
@@ -78,8 +83,18 @@ function ToastItem({ onClose, toast }: { onClose: () => void; toast: Toast }) {
         <i className={toneClass.icon} />
       </span>
       <span className="tw-min-w-0">
-        {toast.title ? <strong className={cn("tw-block tw-text-[0.92rem] tw-font-black", toneClass.titleClassName)}>{toast.title}</strong> : null}
+        {toast.title ? (
+          <span className="tw-flex tw-items-start tw-gap-2">
+            <strong className={cn("tw-block tw-min-w-0 tw-flex-1 tw-line-clamp-1 tw-text-[0.92rem] tw-font-black", toneClass.titleClassName)}>{toast.title}</strong>
+            {toast.unread ? <span className="tw-mt-1.5 tw-h-2 tw-w-2 tw-flex-none tw-rounded-full tw-bg-blue-600" /> : null}
+          </span>
+        ) : null}
         <span className={cn("tw-mt-0.5 tw-block tw-text-[0.86rem] tw-font-semibold tw-leading-5", toneClass.messageClassName)}>{toast.message}</span>
+        {toast.notificationTime ? (
+          <span className="tw-mt-1.5 tw-block tw-text-[0.76rem] tw-font-black tw-text-vm-slate-900">
+            {toast.notificationTime}
+          </span>
+        ) : null}
       </span>
       <button
         aria-label="Đóng thông báo"
@@ -107,8 +122,10 @@ export function ToastProvider({ children }: PropsWithChildren) {
     const toast: Toast = {
       id,
       message: input.message,
+      notificationTime: input.notificationTime,
       title: input.title,
       tone: input.tone ?? "info",
+      unread: input.unread,
     };
 
     setToasts((current) => [toast, ...current].slice(0, 4));
@@ -118,6 +135,8 @@ export function ToastProvider({ children }: PropsWithChildren) {
   const value = useMemo<ToastContextValue>(() => ({
     error: (message, title) => show({ message, title, tone: "error" }),
     info: (message, title) => show({ message, title, tone: "info" }),
+    notification: (message, title, notificationTime, unread = true) =>
+      show({ message, notificationTime, title, tone: "info", unread }),
     show,
     success: (message, title) => show({ message, title, tone: "success" }),
     warning: (message, title) => show({ message, title, tone: "warning" }),

@@ -11,6 +11,8 @@ import com.ban.vehicle_management.application.billing.invoice.model.result.Invoi
 import com.ban.vehicle_management.application.billing.invoice.port.in.InvoicePortIn;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
@@ -27,6 +29,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.InvoiceSource;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
@@ -58,6 +61,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
     private final InvoicePortOut invoicePortOut;
     private final InvoiceAccessGuard invoiceAccessGuard;
     private final PaymentPortOut paymentPortOut;
+    private final NotificationPortIn notificationPortIn;
     private final CustomerPortOut customerPortOut;
     private final UserProfilePortOut userProfilePortOut;
     private final CustomerVehiclePortOut customerVehiclePortOut;
@@ -70,6 +74,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
             InvoicePortOut invoicePortOut,
             InvoiceAccessGuard invoiceAccessGuard,
             PaymentPortOut paymentPortOut,
+            NotificationPortIn notificationPortIn,
             CustomerPortOut customerPortOut,
             UserProfilePortOut userProfilePortOut,
             CustomerVehiclePortOut customerVehiclePortOut,
@@ -80,6 +85,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
         this.invoicePortOut = invoicePortOut;
         this.invoiceAccessGuard = invoiceAccessGuard;
         this.paymentPortOut = paymentPortOut;
+        this.notificationPortIn = notificationPortIn;
         this.customerPortOut = customerPortOut;
         this.userProfilePortOut = userProfilePortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
@@ -100,7 +106,9 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
         Instant now = Instant.now();
         invoicePolicy.initializeNewInvoice(invoice, generateInvoiceNo(invoice.getInvoiceId(), now), now);
 
-        return  invoicePortOut.save(invoice);
+        Invoice savedInvoice = invoicePortOut.save(invoice);
+        notifyInvoiceCreated(savedInvoice);
+        return savedInvoice;
     }
 
     @Override
@@ -496,5 +504,21 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
 
     private String normalizeKeyword(String keyword){
         return keyword == null || keyword.isBlank() ? null : keyword.trim();
+    }
+
+    private void notifyInvoiceCreated(Invoice invoice) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        invoicePortOut.findCustomerAccountIdByInvoiceId(invoice.getInvoiceId())
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId,
+                        NotificationType.INVOICE_CREATED,
+                        "Hóa đơn mới",
+                        "Hóa đơn " + invoice.getInvoiceNo() + " đã được tạo. Vui lòng kiểm tra và thanh toán đúng hạn.",
+                        "billing",
+                        "invoices",
+                        invoice.getInvoiceId()
+                )));
     }
 }

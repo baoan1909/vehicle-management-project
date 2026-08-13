@@ -77,6 +77,30 @@
       "clientRole" : false,
       "containerId" : "0ba2f058-f7a1-4903-923e-56b3d43a8bfd",
       "attributes" : { }
+    }, {
+      "id" : "7e13906e-07df-43ff-a33b-b71f0c542001",
+      "name" : "SYSTEM_ADMIN",
+      "description" : "Vehicle Management system administrator.",
+      "composite" : false,
+      "clientRole" : false,
+      "containerId" : "0ba2f058-f7a1-4903-923e-56b3d43a8bfd",
+      "attributes" : { }
+    }, {
+      "id" : "7e13906e-07df-43ff-a33b-b71f0c542002",
+      "name" : "PARKING_MANAGER",
+      "description" : "Vehicle Management parking manager.",
+      "composite" : false,
+      "clientRole" : false,
+      "containerId" : "0ba2f058-f7a1-4903-923e-56b3d43a8bfd",
+      "attributes" : { }
+    }, {
+      "id" : "7e13906e-07df-43ff-a33b-b71f0c542003",
+      "name" : "EMPLOYEE",
+      "description" : "Vehicle Management employee.",
+      "composite" : false,
+      "clientRole" : false,
+      "containerId" : "0ba2f058-f7a1-4903-923e-56b3d43a8bfd",
+      "attributes" : { }
     } ],
     "client" : {
       "vehicle-management-api" : [ ],
@@ -692,8 +716,8 @@
     "enabled" : true,
     "alwaysDisplayInConsole" : false,
     "clientAuthenticatorType" : "client-secret",
-    "redirectUris" : [ "http://localhost:5173/*" ],
-    "webOrigins" : [ "http://localhost:5173" ],
+    "redirectUris" : [ "http://localhost:5173/*", "http://127.0.0.1:5173/*" ],
+    "webOrigins" : [ "http://localhost:5173", "http://127.0.0.1:5173" ],
     "notBefore" : 0,
     "bearerOnly" : false,
     "consentRequired" : false,

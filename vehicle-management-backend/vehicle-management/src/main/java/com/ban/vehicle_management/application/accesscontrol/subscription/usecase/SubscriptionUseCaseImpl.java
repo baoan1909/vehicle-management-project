@@ -8,6 +8,8 @@ import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePo
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
@@ -26,6 +28,7 @@ import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -65,6 +68,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private final ZonePortOut zonePortOut;
     private final CurrentAccountPortIn currentAccountPortIn;
     private final SubscriptionAccessGuard subscriptionAccessGuard;
+    private final NotificationPortIn notificationPortIn;
     private final SubscriptionPolicy subscriptionPolicy = new SubscriptionPolicy();
     private final CardPolicy cardPolicy = new CardPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
@@ -79,7 +83,8 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             InvoicePortOut invoicePortOut,
             ZonePortOut zonePortOut,
             CurrentAccountPortIn currentAccountPortIn,
-            SubscriptionAccessGuard subscriptionAccessGuard
+            SubscriptionAccessGuard subscriptionAccessGuard,
+            NotificationPortIn notificationPortIn
     ) {
         this.subscriptionPortOut = subscriptionPortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
@@ -91,6 +96,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         this.zonePortOut = zonePortOut;
         this.currentAccountPortIn = currentAccountPortIn;
         this.subscriptionAccessGuard = subscriptionAccessGuard;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -183,7 +189,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                     currentAccountPortIn.getCurrentAccountIdOrThrow(),
                     now
             );
-            return subscriptionPortOut.save(subscription);
+            Subscription rejectedSubscription = subscriptionPortOut.save(subscription);
+            notifySubscriptionRejected(rejectedSubscription);
+            return rejectedSubscription;
         }
 
         SubscriptionPreparedData preparedData = prepareSubscriptionData(subscription);
@@ -211,7 +219,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         );
 
         Subscription approvedSubscription = subscriptionPortOut.save(subscription);
-        invoicePortOut.save(buildSubscriptionInvoice(approvedSubscription, now));
+        Invoice invoice = invoicePortOut.save(buildSubscriptionInvoice(approvedSubscription, now));
+        notifySubscriptionApproved(approvedSubscription);
+        notifySubscriptionInvoiceCreated(invoice);
 
         return approvedSubscription;
     }
@@ -229,7 +239,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 Instant.now()
         );
 
-        return subscriptionPortOut.save(subscription);
+        Subscription rejectedSubscription = subscriptionPortOut.save(subscription);
+        notifySubscriptionRejected(rejectedSubscription);
+        return rejectedSubscription;
     }
 
     @Override
@@ -241,7 +253,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription"));
 
         subscriptionPolicy.markPaymentCompleted(subscription);
-        return subscriptionPortOut.save(subscription);
+        Subscription savedSubscription = subscriptionPortOut.save(subscription);
+        notifySubscriptionPaymentCompleted(savedSubscription);
+        return savedSubscription;
     }
 
     @Override
@@ -289,7 +303,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         }
 
         subscriptionPolicy.cancelBeforeRefundWorkflow(subscription);
-        return subscriptionPortOut.save(subscription);
+        Subscription cancelledSubscription = subscriptionPortOut.save(subscription);
+        notifySubscriptionCancelled(cancelledSubscription);
+        return cancelledSubscription;
     }
 
     @Override
@@ -300,7 +316,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         Subscription subscription = findSubscriptionOrThrow(subscriptionId);
         subscriptionPolicy.expire(subscription, currentDate());
 
-        return subscriptionPortOut.save(subscription);
+        Subscription expiredSubscription = subscriptionPortOut.save(subscription);
+        notifySubscriptionExpired(expiredSubscription);
+        return expiredSubscription;
     }
 
     private Subscription createPendingSubscription(Subscription subscription) {
@@ -317,7 +335,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         );
 
         ensureNoOverlappingSubscription(subscription, null);
-        return subscriptionPortOut.save(subscription);
+        Subscription savedSubscription = subscriptionPortOut.save(subscription);
+        notifySubscriptionCreated(savedSubscription);
+        return savedSubscription;
     }
 
     private SubscriptionPreparedData prepareSubscriptionData(Subscription subscription) {
@@ -454,6 +474,97 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         if (value == null) {
             throw new BadRequestException(fieldName + " must not be null");
         }
+    }
+
+    private void notifySubscriptionCreated(Subscription subscription) {
+        sendCustomerNotification(
+                subscription,
+                NotificationType.SUBSCRIPTION_REQUESTED,
+                "Đăng ký vé đã được gửi",
+                "Yêu cầu đăng ký vé của bạn đã được ghi nhận và đang chờ duyệt."
+        );
+    }
+
+    private void notifySubscriptionApproved(Subscription subscription) {
+        sendCustomerNotification(
+                subscription,
+                NotificationType.SUBSCRIPTION_APPROVED,
+                "Đăng ký vé được duyệt",
+                "Đăng ký vé của bạn đã được duyệt. Vui lòng thanh toán hóa đơn để hoàn tất kích hoạt."
+        );
+    }
+
+    private void notifySubscriptionRejected(Subscription subscription) {
+        sendCustomerNotification(
+                subscription,
+                NotificationType.SUBSCRIPTION_REJECTED,
+                "Đăng ký vé bị từ chối",
+                "Đăng ký vé của bạn chưa được duyệt. Vui lòng kiểm tra lý do và cập nhật lại nếu cần."
+        );
+    }
+
+    private void notifySubscriptionPaymentCompleted(Subscription subscription) {
+        sendCustomerNotification(
+                subscription,
+                NotificationType.SUBSCRIPTION_PAYMENT_COMPLETED,
+                "Đăng ký vé đã thanh toán",
+                "Thanh toán đăng ký vé đã hoàn tất. Vé của bạn sẽ được kích hoạt theo quy trình cấp thẻ."
+        );
+    }
+
+    private void notifySubscriptionCancelled(Subscription subscription) {
+        sendCustomerNotification(
+                subscription,
+                NotificationType.SUBSCRIPTION_CANCELLED,
+                "Đăng ký vé đã hủy",
+                "Đăng ký vé của bạn đã được hủy."
+        );
+    }
+
+    private void notifySubscriptionExpired(Subscription subscription) {
+        sendCustomerNotification(
+                subscription,
+                NotificationType.SUBSCRIPTION_EXPIRED,
+                "Vé đăng ký đã hết hạn",
+                "Vé đăng ký của bạn đã hết hạn. Vui lòng gia hạn hoặc đăng ký vé mới nếu cần."
+        );
+    }
+
+    private void notifySubscriptionInvoiceCreated(Invoice invoice) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        invoicePortOut.findCustomerAccountIdByInvoiceId(invoice.getInvoiceId())
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId,
+                        NotificationType.INVOICE_CREATED,
+                        "Hóa đơn đăng ký vé",
+                        "Hóa đơn " + invoice.getInvoiceNo() + " cho đăng ký vé đã được tạo.",
+                        "billing",
+                        "invoices",
+                        invoice.getInvoiceId()
+                )));
+    }
+
+    private void sendCustomerNotification(
+            Subscription subscription,
+            NotificationType notificationType,
+            String title,
+            String message
+    ) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        customerPortOut.findAccountIdByCustomerId(subscription.getCustomerId())
+                .ifPresent(accountId -> notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                        accountId,
+                        notificationType,
+                        title,
+                        message,
+                        "access_control",
+                        "subscriptions",
+                        subscription.getSubscriptionId()
+                )));
     }
 
     private record SubscriptionPreparedData(

@@ -13,7 +13,7 @@ import {
   type VehicleTypeApiResponse,
 } from "@/features/pricing/api/pricingApi";
 
-import { PublicContactStrip } from "./PortalShared";
+import { PublicContactStrip, PublicFooter } from "./PortalShared";
 
 type PricingAudience = "VISITOR" | "CUSTOMER";
 type VehicleFilterKey = "MOTORBIKE" | "CAR" | "OTHER";
@@ -363,6 +363,7 @@ export function PricingPage() {
 
         <PublicContactStrip />
       </div>
+      <PublicFooter />
     </ClientPage>
   );
 }

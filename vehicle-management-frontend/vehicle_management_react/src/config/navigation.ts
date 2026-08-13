@@ -45,6 +45,7 @@ export const adminNavigation: AdminSidebarEntry[] = [
     items: [
       { label: "Khách hàng", to: "/admin/customer", matches: ["/admin/customer"] },
       { label: "Danh mục hỗ trợ", to: "/admin/support-categories", matches: ["/admin/support-categories"] },
+      { label: "Thông báo", to: "/admin/announcements", matches: ["/admin/announcements"] },
     ],
   },
   {

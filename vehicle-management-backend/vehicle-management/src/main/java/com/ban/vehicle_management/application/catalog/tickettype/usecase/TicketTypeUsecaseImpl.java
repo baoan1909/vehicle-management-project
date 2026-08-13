@@ -3,9 +3,12 @@ package com.ban.vehicle_management.application.catalog.tickettype.usecase;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.tickettype.port.in.TicketTypePortIn;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
 import com.ban.vehicle_management.domain.catalog.tickettype.policy.TicketTypePolicy;
 import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -24,11 +27,17 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
 
     private  final CurrentAccountPortIn currentAccountPortIn;
     private  final TicketTypePortOut ticketTypePortOut;
+    private final NotificationPortIn notificationPortIn;
     private  final TicketTypePolicy ticketTypePolicy = new TicketTypePolicy();
 
-    public TicketTypeUsecaseImpl (CurrentAccountPortIn currentAccountPortIn, TicketTypePortOut ticketTypePortOut){
+    public TicketTypeUsecaseImpl (
+            CurrentAccountPortIn currentAccountPortIn,
+            TicketTypePortOut ticketTypePortOut,
+            NotificationPortIn notificationPortIn
+    ){
         this.currentAccountPortIn = currentAccountPortIn;
         this.ticketTypePortOut = ticketTypePortOut;
+        this.notificationPortIn = notificationPortIn;
     }
 
     @Override
@@ -84,7 +93,9 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
             throw new ConflictException("Active ticket type code already exists");
         }
 
-        return ticketTypePortOut.save(existingTicketType);
+        TicketType savedTicketType = ticketTypePortOut.save(existingTicketType);
+        notifyTicketTypeChanged(savedTicketType, "Loại vé được cập nhật");
+        return savedTicketType;
     }
 
     @Override
@@ -105,7 +116,8 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
         }
 
         ticketTypePolicy.deactivate(existingTicketType);
-        ticketTypePortOut.save(existingTicketType);
+        TicketType savedTicketType = ticketTypePortOut.save(existingTicketType);
+        notifyTicketTypeChanged(savedTicketType, "Loại vé ngừng áp dụng");
     }
 
     @Override
@@ -124,7 +136,9 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
             throw new ConflictException("Active ticket type code already exists");
         }
 
-        return ticketTypePortOut.save(existingTicketType);
+        TicketType savedTicketType = ticketTypePortOut.save(existingTicketType);
+        notifyTicketTypeChanged(savedTicketType, "Loại vé được kích hoạt");
+        return savedTicketType;
     }
 
     private String normalizeKeyword(String keyword){
@@ -134,6 +148,25 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     private TicketType findExistingTicketType(UUID ticketTypeId) {
         return ticketTypePortOut.findById(ticketTypeId)
                 .orElseThrow(() -> new NotFoundException("Ticket type not found"));
+    }
+
+    private void notifyTicketTypeChanged(TicketType ticketType, String title) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
+                true,
+                null,
+                null,
+                null,
+                NotificationType.TICKET_TYPE_CHANGED,
+                title,
+                "Loại vé " + ticketType.getName() + " vừa có thay đổi.",
+                null,
+                "catalog",
+                "ticket_types",
+                ticketType.getTicketTypeId()
+        ));
     }
 
 }

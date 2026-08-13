@@ -6,6 +6,7 @@ import com.ban.vehicle_management.infrastructure.mapper.notification.Notificatio
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.notification.NotificationEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.notification.NotificationRepository;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
 import java.time.Instant;
@@ -41,6 +42,17 @@ public class NotificationPersistenceAdapter implements NotificationPortOut {
     }
 
     @Override
+    public List<Notification> saveAll(List<Notification> notifications) {
+        if (notifications == null || notifications.isEmpty()) {
+            return List.of();
+        }
+        List<NotificationEntity> savedEntities = notificationRepository.saveAllAndFlush(
+                notificationPersistenceMapper.toEntities(notifications)
+        );
+        return notificationPersistenceMapper.toDomains(savedEntities);
+    }
+
+    @Override
     public Optional<Notification> findByIdAndAccountId(UUID notificationId, UUID accountId) {
         return notificationRepository.findById(notificationId)
                 .filter(notification -> accountId.equals(notification.getAccountId()))
@@ -63,9 +75,15 @@ public class NotificationPersistenceAdapter implements NotificationPortOut {
                 NotificationStatus.FAILED,
                 pageRequest
         );
-        return notifications.stream()
-                .map(notificationPersistenceMapper::toDomain)
-                .toList();
+        return notificationPersistenceMapper.toDomains(notifications);
+    }
+
+    @Override
+    public List<UUID> findExistingBroadcastIdsForAccount(UUID accountId, List<UUID> broadcastIds) {
+        if (broadcastIds == null || broadcastIds.isEmpty()) {
+            return List.of();
+        }
+        return notificationRepository.findBroadcastIdsByAccountIdAndBroadcastIdIn(accountId, broadcastIds);
     }
 
     @Override
@@ -88,16 +106,14 @@ public class NotificationPersistenceAdapter implements NotificationPortOut {
 
     @Override
     public List<Notification> findPendingRealtimeNotifications(UUID accountId, Instant createdAtFrom) {
-        return notificationRepository
+        List<NotificationEntity> notifications = notificationRepository
                 .findByAccountIdAndChannelAndStatusAndReadAtIsNullAndRealtimeDeliveredAtIsNullAndCreatedAtGreaterThanEqualOrderByCreatedAtAsc(
                         accountId,
                         NotificationChannel.WEB,
                         NotificationStatus.SENT,
                         createdAtFrom
-                )
-                .stream()
-                .map(notificationPersistenceMapper::toDomain)
-                .toList();
+                );
+        return notificationPersistenceMapper.toDomains(notifications);
     }
 
     @Override
@@ -116,5 +132,23 @@ public class NotificationPersistenceAdapter implements NotificationPortOut {
     @Override
     public boolean existsAccountById(UUID accountId) {
         return accountRepository.existsById(accountId);
+    }
+
+    @Override
+    public List<UUID> findActiveAccountIdsForBroadcast(
+            boolean allActiveAccounts,
+            List<String> roleCodes,
+            List<UUID> accountIds
+    ) {
+        List<String> resolvedRoleCodes = roleCodes == null || roleCodes.isEmpty() ? List.of("") : roleCodes;
+        List<UUID> resolvedAccountIds = accountIds == null || accountIds.isEmpty()
+                ? List.of(new UUID(0L, 0L))
+                : accountIds;
+        return accountRepository.findActiveAccountIdsForBroadcast(
+                AccountStatus.ACTIVE,
+                allActiveAccounts,
+                resolvedRoleCodes,
+                resolvedAccountIds
+        );
     }
 }

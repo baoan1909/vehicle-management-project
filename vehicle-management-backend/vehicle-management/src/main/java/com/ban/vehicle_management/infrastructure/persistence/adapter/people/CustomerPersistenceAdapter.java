@@ -84,4 +84,9 @@ public class CustomerPersistenceAdapter implements CustomerPortOut {
     public boolean existsUserProfileById(UUID userProfileId) {
         return userProfileRepository.existsById(userProfileId);
     }
+
+    @Override
+    public Optional<UUID> findAccountIdByCustomerId(UUID customerId) {
+        return customerRepository.findAccountIdByCustomerId(customerId);
+    }
 }

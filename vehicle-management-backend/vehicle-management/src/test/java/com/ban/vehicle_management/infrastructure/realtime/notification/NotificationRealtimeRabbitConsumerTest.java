@@ -10,6 +10,7 @@ import com.ban.vehicle_management.application.notification.notification.model.No
 import com.ban.vehicle_management.application.notification.notification.port.out.NotificationPortOut;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
@@ -87,11 +88,14 @@ class NotificationRealtimeRabbitConsumerTest {
         return new NotificationRealtimeMessage(
                 notificationId,
                 accountId,
+                null,
                 NotificationChannel.WEB,
+                NotificationType.SYSTEM_NOTICE,
                 "Title",
                 "Message",
                 NotificationStatus.SENT,
                 "2026-07-30 10:00:00",
+                null,
                 null,
                 "access_control",
                 "subscriptions",

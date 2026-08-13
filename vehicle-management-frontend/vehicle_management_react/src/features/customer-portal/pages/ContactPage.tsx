@@ -1,5 +1,5 @@
 import { ClientPage } from "@/shared/components/layout/ClientPage";
-import { publicContactItems, PublicHero } from "./PortalShared";
+import { publicContactItems, PublicFooter, PublicHero } from "./PortalShared";
 
 const quickSupport = [
   ["fas fa-id-card", "Hỗ trợ mất thẻ", "Hướng dẫn khai báo và xử lý khi mất thẻ gửi xe."],
@@ -65,6 +65,7 @@ export function ContactPage() {
           </div>
         </section>
       </div>
+      <PublicFooter />
     </ClientPage>
   );
 }

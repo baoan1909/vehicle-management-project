@@ -7,6 +7,10 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.r
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.CustomerOnboardingApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.in.CustomerOnboardingApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
+import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.ApprovalRequestPolicy;
@@ -14,6 +18,7 @@ import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customer.policy.CustomerPolicy;
 import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
@@ -30,6 +35,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
     private final CustomerOnboardingApprovalAccessGuard customerOnboardingApprovalAccessGuard;
     private final CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
     private final VehicleMailService vehicleMailService;
+    private final NotificationPortIn notificationPortIn;
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
     private final CustomerPolicy customerPolicy = new CustomerPolicy();
     private final Clock clock;
@@ -37,11 +43,13 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
     public CustomerOnboardingApprovalUseCaseImpl(
             CustomerOnboardingApprovalAccessGuard customerOnboardingApprovalAccessGuard,
             CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut,
-            VehicleMailService vehicleMailService
+            VehicleMailService vehicleMailService,
+            NotificationPortIn notificationPortIn
     ) {
         this.customerOnboardingApprovalAccessGuard = customerOnboardingApprovalAccessGuard;
         this.customerOnboardingApprovalPortOut = customerOnboardingApprovalPortOut;
         this.vehicleMailService = vehicleMailService;
+        this.notificationPortIn = notificationPortIn;
         this.clock = Clock.systemUTC();
     }
 
@@ -100,6 +108,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
         sendOnboardingApprovedEmail(result);
+        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_APPROVED, "Hồ sơ khách hàng đã được duyệt", "Hồ sơ khách hàng của bạn đã được duyệt.");
         return result;
     }
 
@@ -126,6 +135,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
         sendOnboardingRejectedEmail(result);
+        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_REJECTED, "Hồ sơ khách hàng bị từ chối", "Hồ sơ khách hàng của bạn chưa được duyệt.");
         return result;
     }
 
@@ -153,9 +163,12 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         ApprovalRequest approvalRequest = buildPendingApprovalRequest(candidate.customerId(), currentAccount.accountId());
         customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalDecision(approvalRequest, customer);
 
-        return customerOnboardingApprovalPortOut
+        CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut
                 .findCustomerOnboardingApprovalResultById(approvalRequest.getApprovalRequestId())
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));
+        notifyApprovalResult(result, NotificationType.CUSTOMER_ONBOARDING_RESUBMITTED, "Hồ sơ khách hàng đã gửi lại", "Hồ sơ của bạn đã được gửi lại để duyệt.");
+        notifyApprovalReviewers(approvalRequest, NotificationType.CUSTOMER_ONBOARDING_RESUBMITTED, "Có hồ sơ khách hàng gửi lại cần duyệt");
+        return result;
     }
 
     public ApprovalRequest buildPendingApprovalRequest(UUID customerId, UUID requestedBy) {
@@ -207,5 +220,48 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
                 "khách hàng",
                 result.request().note()
         );
+    }
+
+    private void notifyApprovalResult(
+            CustomerOnboardingApprovalResult result,
+            NotificationType notificationType,
+            String title,
+            String message
+    ) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendWebNotification(new SendNotificationCommand(
+                result.account().accountId(),
+                notificationType,
+                title,
+                message,
+                "people",
+                "customers",
+                result.customer().customerId()
+        ));
+    }
+
+    private void notifyApprovalReviewers(
+            ApprovalRequest approvalRequest,
+            NotificationType notificationType,
+            String title
+    ) {
+        if (notificationPortIn == null) {
+            return;
+        }
+        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
+                false,
+                NotificationAudience.APPROVERS,
+                null,
+                null,
+                notificationType,
+                title,
+                "Có yêu cầu phê duyệt mới cần xử lý.",
+                null,
+                approvalRequest.getTargetSchema(),
+                approvalRequest.getTargetTable(),
+                approvalRequest.getTargetId()
+        ));
     }
 }

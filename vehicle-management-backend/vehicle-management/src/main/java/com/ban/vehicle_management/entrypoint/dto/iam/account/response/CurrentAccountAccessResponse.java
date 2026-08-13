@@ -11,6 +11,8 @@ public record CurrentAccountAccessResponse(
         String roleCode,
         String accountStatus,
         String employeeStatus,
+        String customerStatus,
+        String customerApprovalStatus,
         Set<String> permissionCodes
 ) {
 }
