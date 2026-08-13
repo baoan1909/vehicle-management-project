@@ -28,9 +28,13 @@ export function ContactPage() {
                 </div>
               ))}
             </div>
-            <div className="vm-map-placeholder">
-              <i className="fas fa-map-marker-alt" />
-              <span>Bản đồ vị trí bãi xe</span>
+            <div className="vm-contact-map">
+              <iframe
+                title="Bản đồ Số 1 Võ Văn Ngân, phường Thủ Đức, TP. Hồ Chí Minh"
+                src="https://www.google.com/maps?q=10.8499,106.7717&z=17&output=embed"
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              />
             </div>
           </article>
 
@@ -60,7 +64,6 @@ export function ContactPage() {
             ))}
           </div>
         </section>
-
       </div>
       <PublicFooter />
     </ClientPage>

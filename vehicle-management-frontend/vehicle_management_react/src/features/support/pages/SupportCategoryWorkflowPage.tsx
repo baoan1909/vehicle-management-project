@@ -62,13 +62,13 @@ function buildRows(categories: SupportTicketCategoryResponse[], tickets: Support
   }));
 }
 
-function MetricCard({ icon, iconClassName, label, meta, metaClassName, value }: { icon: string; iconClassName: string; label: string; meta: string; metaClassName: string; value: string }) {
+function MetricCard({ icon, iconClassName, label, meta, metaClassName, value }: { icon: string; iconClassName: string; label: string; meta?: string; metaClassName?: string; value: string }) {
   return (
     <Card className="tw-flex tw-min-h-[108px] tw-items-center tw-justify-between tw-p-4">
       <span className="tw-grid">
         <span className="tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-500">{label}</span>
         <strong className="tw-mt-2 tw-text-[1.7rem] tw-font-black tw-leading-none tw-text-vm-slate-900">{value}</strong>
-        <span className={cn("tw-mt-2 tw-text-[0.72rem] tw-font-black", metaClassName)}>{meta}</span>
+        {meta ? <span className={cn("tw-mt-2 tw-text-[0.72rem] tw-font-black", metaClassName)}>{meta}</span> : null}
       </span>
       <span className={cn("tw-inline-flex tw-h-11 tw-w-11 tw-items-center tw-justify-center tw-rounded-full tw-text-[1.2rem]", iconClassName)}>
         <i className={icon} />
@@ -112,7 +112,7 @@ function CategoryTable({
         <span>Mã danh mục</span>
         <span>Tên danh mục</span>
         <span>Ưu tiên</span>
-        <span>Ticket mở</span>
+        <span>Yêu cầu mở</span>
         <span>Trạng thái</span>
         <span className="tw-text-right">Thao tác</span>
       </div>
@@ -147,7 +147,7 @@ function CategoryTable({
 
       {rows.length === 0 ? (
         <div className="tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-8 tw-text-center tw-text-[0.86rem] tw-font-bold tw-text-vm-slate-500">
-          {loading ? "Đang tải danh mục ticket..." : "Chưa có danh mục ticket phù hợp với bộ lọc."}
+          {loading ? "Đang tải danh mục hỗ trợ..." : "Chưa có danh mục hỗ trợ phù hợp với bộ lọc."}
         </div>
       ) : null}
 
@@ -220,7 +220,7 @@ function CategoryDrawer({
           <Button loading={saving} onClick={(event) => void handleSubmit(event as unknown as FormEvent)}>{saving ? "Đang lưu" : "Lưu thay đổi"}</Button>
         </div>
       }
-      description="Dữ liệu được lưu qua API danh mục ticket"
+      description="Thiết lập thông tin cho danh mục hỗ trợ"
       onClose={onClose}
       open={open}
       title={category ? "Chỉnh sửa danh mục" : "Thêm danh mục"}
@@ -263,7 +263,7 @@ function DeactivateModal({ category, onClose, onConfirm, saving }: { category: S
           <Button variant="danger" disabled={category.openTickets > 0} loading={saving} onClick={() => void onConfirm()}>{saving ? "Đang xử lý" : "Ngưng sử dụng"}</Button>
         </div>
       }
-      description={category.openTickets > 0 ? "Không thể tắt khi còn ticket chưa hoàn tất." : "Danh mục sẽ không còn được chọn khi tạo ticket mới."}
+      description={category.openTickets > 0 ? "Không thể ngưng sử dụng khi còn yêu cầu chưa hoàn tất." : "Danh mục sẽ không còn được chọn khi tạo yêu cầu mới."}
       onClose={onClose}
       open={Boolean(category)}
       title="Ngưng sử dụng danh mục"
@@ -277,7 +277,7 @@ function DeactivateModal({ category, onClose, onConfirm, saving }: { category: S
           <p className="tw-mb-0 tw-mt-1 tw-text-[0.9rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-700">
             Bạn có chắc chắn muốn ngưng sử dụng danh mục "{category.name}"?
           </p>
-          {category.openTickets > 0 ? <p className="tw-mb-0 tw-mt-2 tw-text-[0.86rem] tw-font-black tw-text-red-600">Danh mục này còn {category.openTickets} ticket đang mở hoặc đang xử lý.</p> : null}
+          {category.openTickets > 0 ? <p className="tw-mb-0 tw-mt-2 tw-text-[0.86rem] tw-font-black tw-text-red-600">Danh mục này còn {category.openTickets} yêu cầu đang mở hoặc đang xử lý.</p> : null}
         </div>
       </div>
     </Modal>
@@ -431,8 +431,7 @@ export function SupportCategoryWorkflowPage() {
       <section className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1500px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
         <header className="tw-flex tw-items-start tw-justify-between tw-gap-4">
           <div>
-            <h1 className="tw-m-0 tw-text-vm-page-title tw-text-vm-slate-900">Danh mục hỗ trợ & Quy trình ticket</h1>
-            <p className="tw-mb-0 tw-mt-2 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-500">Quản lý danh mục ticket theo dữ liệu API thật</p>
+            <h1 className="tw-m-0 tw-text-vm-page-title tw-text-vm-slate-900">Danh mục hỗ trợ & Quy trình xử lý yêu cầu</h1>
           </div>
           <div className="tw-flex tw-gap-2">
             <Button variant="secondary" disabled={loading} onClick={() => void loadData()}>
@@ -447,10 +446,10 @@ export function SupportCategoryWorkflowPage() {
         </header>
 
         <div className="tw-mt-6 tw-grid tw-grid-cols-4 tw-gap-3 max-[1280px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">
-          <MetricCard icon="fas fa-list-ul" iconClassName="tw-bg-brand-50 tw-text-vm-primary" label="Tổng danh mục" meta="Theo API" metaClassName="tw-text-vm-slate-500" value={rows.length.toLocaleString("vi-VN")} />
-          <MetricCard icon="far fa-check-circle" iconClassName="tw-bg-green-50 tw-text-green-600" label="Đang hoạt động" meta="Có thể tạo ticket" metaClassName="tw-text-green-600" value={activeCount.toLocaleString("vi-VN")} />
-          <MetricCard icon="fas fa-user-slash" iconClassName="tw-bg-red-50 tw-text-red-500" label="Ngưng sử dụng" meta="Ẩn khỏi form tạo mới" metaClassName="tw-text-red-500" value={inactiveCount.toLocaleString("vi-VN")} />
-          <MetricCard icon="fas fa-ticket-alt" iconClassName="tw-bg-orange-50 tw-text-orange-500" label="Ticket đang mở" meta="OPEN / IN_PROGRESS" metaClassName="tw-text-vm-primary" value={openTicketCount.toLocaleString("vi-VN")} />
+          <MetricCard icon="fas fa-list-ul" iconClassName="tw-bg-brand-50 tw-text-vm-primary" label="Tổng danh mục" value={rows.length.toLocaleString("vi-VN")} />
+          <MetricCard icon="far fa-check-circle" iconClassName="tw-bg-green-50 tw-text-green-600" label="Đang hoạt động" meta="Có thể tạo yêu cầu" metaClassName="tw-text-green-600" value={activeCount.toLocaleString("vi-VN")} />
+          <MetricCard icon="fas fa-user-slash" iconClassName="tw-bg-red-50 tw-text-red-500" label="Ngưng sử dụng" meta="Ẩn khỏi biểu mẫu tạo mới" metaClassName="tw-text-red-500" value={inactiveCount.toLocaleString("vi-VN")} />
+          <MetricCard icon="fas fa-ticket-alt" iconClassName="tw-bg-orange-50 tw-text-orange-500" label="Yêu cầu đang mở" meta="Đang mở / Đang xử lý" metaClassName="tw-text-vm-primary" value={openTicketCount.toLocaleString("vi-VN")} />
         </div>
 
         <div className="tw-mt-5 tw-grid tw-grid-cols-[minmax(240px,1fr)_180px_190px_120px] tw-gap-3 max-[1180px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">

@@ -474,10 +474,13 @@ export function ParkingCameraPanel({
     <Card className="tw-flex tw-min-h-0 tw-flex-col tw-overflow-hidden">
       <CardHeader className="tw-flex tw-min-h-[50px] tw-items-center tw-justify-between tw-px-4 tw-py-0">
         <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-slate-900">Camera làn xe</h2>
-        <span className={cn(
-          "tw-inline-flex tw-max-w-[220px] tw-items-center tw-gap-2 tw-rounded-full tw-border tw-border-solid tw-px-2.5 tw-py-1 tw-text-[0.72rem] tw-font-extrabold",
-          getCameraBadgeTone(cameraStatus),
-        )}>
+        <span
+          className={cn(
+            "tw-inline-flex tw-max-w-[220px] tw-items-center tw-gap-2 tw-rounded-full tw-border tw-border-solid tw-px-2.5 tw-py-1 tw-text-[0.72rem] tw-font-extrabold",
+            getCameraBadgeTone(cameraStatus),
+          )}
+          title={cameraLabel}
+        >
           <span className={cn("tw-h-2 tw-w-2 tw-flex-shrink-0 tw-rounded-full", getCameraBadgeDot(cameraStatus))} />
           <span className="tw-min-w-0 tw-truncate">{cameraLabel}</span>
         </span>

@@ -4,6 +4,7 @@ import { getRoutePermissions } from "@/app/routePermissions";
 import type { AppLayout } from "@/shared/types/common";
 import { LoginPage } from "@/features/auth";
 import { VnpayReturnPage } from "@/features/billing/pages/VnpayReturnPage";
+import { InvoiceManagementPage } from "@/features/billing/pages/InvoiceManagementPage";
 import { CardListPage, LostCardCreatePage, LostCardDetailPage, LostCardListPage } from "@/features/cards";
 import { SubscriptionApprovalPage, TicketListPage, VehicleListPage } from "@/features/catalog";
 import {
@@ -63,6 +64,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/devices", title: "Quản lý thiết bị", layout: "admin", element: <DeviceManagementPage /> },
   { path: "/admin/price-plans", title: "Ke hoach gia", layout: "admin", element: <PricePlanListPage /> },
   { path: "/admin/price-rules", title: "Quy tac gia", layout: "admin", element: <PriceRuleListPage /> },
+  { path: "/admin/invoices", title: "Quản lý hóa đơn", layout: "admin", element: <InvoiceManagementPage /> },
   { path: "/admin/visitorParkingFee", title: "Phi vang lai", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
   { path: "/admin/parkingFeeOfCustomer", title: "Phi dang ky", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
   { path: "/admin/employee", title: "Nhân viên", layout: "admin", element: <EmployeeListPage /> },
@@ -76,7 +78,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/customer/form", title: "Thong tin khach hang", layout: "admin", element: blankPage },
   { path: "/admin/role", title: "Phan quyen vai tro", layout: "admin", element: <RoleListPage /> },
   { path: "/admin/role/form", title: "Thong tin vai tro", layout: "admin", element: blankPage },
-  { path: "/admin/support-categories", title: "Danh muc ho tro va quy trinh ticket", layout: "admin", element: <SupportCategoryWorkflowPage /> },
+  { path: "/admin/support-categories", title: "Danh muc ho tro va quy trinh xu ly yeu cau", layout: "admin", element: <SupportCategoryWorkflowPage /> },
   { path: "/admin/announcements", title: "Quản lý thông báo", layout: "admin", element: <AnnouncementManagementPage /> },
   { path: "/admin/support-center", title: "Trung tam ho tro van hanh", layout: "fullscreen", element: <OperationsSupportCenterPage /> },
   { path: "/", title: "Gioi thieu CoParking", layout: "client", element: <AboutPage /> },

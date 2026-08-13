@@ -162,6 +162,10 @@ export function VehiclePage() {
     setError("");
   };
 
+  const selectVehicleForEdit = (vehicle: CustomerPortalVehicle) => {
+    setForm(vehicleToForm(vehicle));
+  };
+
   const handleSave = async () => {
     if (!profile) return;
     setSaving(true);
@@ -254,7 +258,7 @@ export function VehiclePage() {
       </div>
 
       <div className="vm-two-column-main">
-        <section className="vm-customer-card vm-table-card">
+        <section className="vm-customer-card vm-table-card vm-vehicle-table-card">
           <h2>Danh sách xe đã đăng ký</h2>
           <div className="vm-table-filters">
             <label><i className="fas fa-search" /><input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm biển số, hãng xe..." /></label>
@@ -273,7 +277,23 @@ export function VehiclePage() {
             <thead><tr><th>Biển số</th><th>Loại xe</th><th>Hãng xe</th><th>Màu xe</th><th>Mặc định</th><th>Trạng thái</th><th>Cập nhật</th><th>Thao tác</th></tr></thead>
             <tbody>
               {pagedVehicles.map((vehicle) => (
-                <tr key={vehicle.customerVehicleId}>
+                <tr
+                  key={vehicle.customerVehicleId}
+                  className={`vm-interactive-row${form.customerVehicleId === vehicle.customerVehicleId ? " vm-selected-row" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Chỉnh sửa xe ${vehicle.licensePlate}`}
+                  aria-pressed={form.customerVehicleId === vehicle.customerVehicleId}
+                  title="Nhấn để cập nhật thông tin xe"
+                  onClick={() => selectVehicleForEdit(vehicle)}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      selectVehicleForEdit(vehicle);
+                    }
+                  }}
+                >
                   <td>{vehicle.licensePlate}</td>
                   <td>{vehicle.vehicleTypeId ? vehicleTypeById.get(vehicle.vehicleTypeId)?.name ?? "--" : "--"}</td>
                   <td>{vehicle.brand || "--"}</td>
@@ -282,9 +302,9 @@ export function VehiclePage() {
                   <td><StatusPill tone={statusTone(vehicle.status)}>{statusLabel(vehicle.status)}</StatusPill></td>
                   <td>{formatDate(vehicle.updatedAt ?? vehicle.createdAt)}</td>
                   <td className="vm-action-icons">
-                    <button className="vm-action-edit" type="button" title="Sửa xe" onClick={() => setForm(vehicleToForm(vehicle))}><i className="fas fa-pencil-alt" /></button>
-                    <button className="vm-action-favorite" type="button" title="Đặt mặc định" disabled={Boolean(vehicle.isDefault) || vehicle.status !== "ACTIVE" || saving} onClick={() => handleMarkDefault(vehicle)}><i className="far fa-star" /></button>
-                    <button className="vm-action-stop" type="button" title={vehicle.status === "ACTIVE" ? "Ngưng dùng" : "Kích hoạt"} disabled={vehicle.status === "BLOCKED" || saving} onClick={() => handleToggleStatus(vehicle)}><i className={vehicle.status === "ACTIVE" ? "fas fa-ban" : "far fa-check-circle"} /></button>
+                    <button className="vm-action-edit" type="button" title="Sửa xe" onClick={(event) => { event.stopPropagation(); selectVehicleForEdit(vehicle); }}><i className="fas fa-pencil-alt" /></button>
+                    <button className="vm-action-favorite" type="button" title="Đặt mặc định" disabled={Boolean(vehicle.isDefault) || vehicle.status !== "ACTIVE" || saving} onClick={(event) => { event.stopPropagation(); void handleMarkDefault(vehicle); }}><i className="far fa-star" /></button>
+                    <button className="vm-action-stop" type="button" title={vehicle.status === "ACTIVE" ? "Ngưng dùng" : "Kích hoạt"} disabled={vehicle.status === "BLOCKED" || saving} onClick={(event) => { event.stopPropagation(); void handleToggleStatus(vehicle); }}><i className={vehicle.status === "ACTIVE" ? "fas fa-ban" : "far fa-check-circle"} /></button>
                   </td>
                 </tr>
               ))}

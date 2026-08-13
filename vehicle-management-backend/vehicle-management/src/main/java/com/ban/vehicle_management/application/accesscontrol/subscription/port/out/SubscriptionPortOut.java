@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.accesscontrol.subscription.port.o
 
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -38,6 +39,11 @@ public interface SubscriptionPortOut {
     long countReservedOrActiveByVehicleTypeId(UUID vehicleTypeId);
 
     Optional<Subscription> findActiveByLicensePlate(String licensePlate, LocalDate businessDate);
+
+    List<Subscription> findExpiredPendingPaymentsForUpdate(
+            Instant approvedAtCutoff,
+            LocalDate requestedEffectiveDateCutoff
+    );
 
     int expireActiveSubscriptionsBefore(LocalDate businessDate);
 

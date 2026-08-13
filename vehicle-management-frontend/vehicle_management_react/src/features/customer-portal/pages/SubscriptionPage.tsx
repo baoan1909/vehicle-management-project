@@ -158,7 +158,8 @@ export function SubscriptionPage() {
   const [ticketTypes, setTicketTypes] = useState<CustomerPortalTicketType[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<CustomerPortalVehicleType[]>([]);
   const [statusFilter, setStatusFilter] = useState("ALL");
-  const [keyword, setKeyword] = useState("");
+  const [keyword, setKeyword] = useState(() => searchParams.get("subscriptionId") ?? "");
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState(() => searchParams.get("subscriptionId") ?? "");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [form, setForm] = useState<SubscriptionForm>({
@@ -183,6 +184,8 @@ export function SubscriptionPage() {
   const selectedVehicle = vehicleById.get(form.customerVehicleId);
   const selectedPriceRule = findMatchingPriceRule(selectedVehicle, form.ticketTypeId, priceRules);
   const activeSubscription = subscriptions.find((subscription) => subscription.status === "ACTIVE");
+  const selectedSubscription = subscriptions.find((subscription) => subscription.subscriptionId === selectedSubscriptionId);
+  const detailSubscription = selectedSubscription ?? activeSubscription;
   const pendingCount = subscriptions.filter((subscription) => subscription.status?.startsWith("PENDING")).length;
   const activeDaysLeft = daysUntil(activeSubscription?.effectiveTo);
   const activeTotal = subscriptions
@@ -205,6 +208,8 @@ export function SubscriptionPage() {
   const totalPages = Math.max(1, Math.ceil(filteredSubscriptions.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
   const pagedSubscriptions = filteredSubscriptions.slice((safeCurrentPage - 1) * pageSize, safeCurrentPage * pageSize);
+  const hasPaymentActions = filteredSubscriptions.some((subscription) => subscription.status === "PENDING_PAYMENT");
+  const historyColumnCount = hasPaymentActions ? 7 : 6;
 
   async function loadData() {
     setLoading(true);
@@ -352,12 +357,13 @@ export function SubscriptionPage() {
     }
   };
 
-  const currentVehicle = activeSubscription ? vehicleById.get(activeSubscription.customerVehicleId) : undefined;
-  const currentTicketType = activeSubscription ? ticketTypeById.get(activeSubscription.ticketTypeId) : undefined;
-  const currentPriceRule = activeSubscription?.priceRuleId ? priceRuleById.get(activeSubscription.priceRuleId) : undefined;
-  const currentEffectiveFrom = getDisplayEffectiveFrom(activeSubscription);
+  const currentVehicle = detailSubscription ? vehicleById.get(detailSubscription.customerVehicleId) : undefined;
+  const currentTicketType = detailSubscription ? ticketTypeById.get(detailSubscription.ticketTypeId) : undefined;
+  const currentPriceRule = detailSubscription?.priceRuleId ? priceRuleById.get(detailSubscription.priceRuleId) : undefined;
+  const currentEffectiveFrom = getDisplayEffectiveFrom(detailSubscription);
   const currentEffectiveFromValue = toDateInputValue(currentEffectiveFrom);
-  const activeRemainingPercent = remainingPercent(activeSubscription);
+  const detailDaysLeft = daysUntil(detailSubscription?.effectiveTo);
+  const detailRemainingPercent = remainingPercent(detailSubscription);
 
   return (
     <CustomerPortalLayout>
@@ -369,29 +375,35 @@ export function SubscriptionPage() {
 
       <div className="vm-stat-grid vm-stat-grid-four">
         <StatCard icon="far fa-calendar-check" label="Vé đang hoạt động" value={String(subscriptions.filter((item) => item.status === "ACTIVE").length)} note="vé" tone="green" />
-        <StatCard icon="far fa-clock" label="Sắp hết hạn" value={activeDaysLeft === null ? "--" : `${Math.max(activeDaysLeft, 0)} ngày`} note={activeSubscription?.effectiveTo ? formatDate(activeSubscription.effectiveTo) : "Chưa có vé"} tone="orange" />
+        <StatCard
+          icon="far fa-clock"
+          label="Sắp hết hạn"
+          value={activeDaysLeft === null ? "--" : <>{Math.max(activeDaysLeft, 0)}<span className="vm-stat-value-unit"> ngày</span></>}
+          note={activeSubscription?.effectiveTo ? formatDate(activeSubscription.effectiveTo) : "Chưa có vé"}
+          tone="orange"
+        />
         <StatCard icon="fas fa-hourglass-half" label="Chờ xử lý" value={String(pendingCount)} note="vé" tone="orange" />
         <StatCard icon="fas fa-wallet" label="Phí vé đang hiệu lực" value={formatCurrency(activeTotal)} />
       </div>
 
       <section className="vm-customer-card vm-subscription-current">
         <div className="vm-section-title-row">
-          <h2>Vé tháng hiện tại <StatusPill tone={statusTone(activeSubscription?.status)}>{statusLabel(activeSubscription?.status)}</StatusPill></h2>
-          <div className="vm-progress-inline"><span>Thời hạn còn lại</span><b>{activeDaysLeft === null ? "--" : `${Math.max(activeDaysLeft, 0)} ngày`}</b><em><i style={{ width: `${activeRemainingPercent}%` }} /></em><strong>{activeSubscription?.effectiveTo ? formatDate(activeSubscription.effectiveTo) : "--"}</strong></div>
+          <h2>{selectedSubscription ? "Chi tiết vé đã chọn" : "Vé tháng hiện tại"} <StatusPill tone={statusTone(detailSubscription?.status)}>{statusLabel(detailSubscription?.status)}</StatusPill></h2>
+          <div className="vm-progress-inline"><span>Thời hạn còn lại</span><b>{detailDaysLeft === null ? "--" : `${Math.max(detailDaysLeft, 0)} ngày`}</b><em><i style={{ width: `${detailRemainingPercent}%` }} /></em><strong>{detailSubscription?.effectiveTo ? formatDate(detailSubscription.effectiveTo) : "--"}</strong></div>
         </div>
         <div className="vm-subscription-detail">
           <dl className="vm-info-list">
             <dt><i className="fas fa-motorcycle" /> Xe đăng ký</dt><dd>{vehicleLabel(currentVehicle, vehicleTypeById)}</dd>
             <dt><i className="far fa-id-badge" /> Loại vé</dt><dd>{currentTicketType?.name ?? "--"}</dd>
             <dt><i className="fas fa-tags" /> Quy tắc giá</dt><dd>{currentPriceRule?.ruleName ?? "--"}</dd>
-            <dt><i className="far fa-credit-card" /> Thẻ sử dụng</dt><dd title={activeSubscription?.cardId ?? undefined}>{activeSubscription?.cardId ? compactCode(activeSubscription.cardId) : "Chưa gán thẻ"}</dd>
+            <dt><i className="far fa-credit-card" /> Thẻ sử dụng</dt><dd title={detailSubscription?.cardId ?? undefined}>{detailSubscription?.cardId ? compactCode(detailSubscription.cardId) : "Chưa gán thẻ"}</dd>
           </dl>
           <dl className="vm-info-list">
-            <dt><i className="far fa-calendar" /> Ngày nhận thẻ</dt><dd>{formatDate(activeSubscription?.cardReceiptDate)}</dd>
+            <dt><i className="far fa-calendar" /> Ngày nhận thẻ</dt><dd>{formatDate(detailSubscription?.cardReceiptDate)}</dd>
             <dt><i className="far fa-clock" /> Hiệu lực từ</dt><dd>{formatDate(currentEffectiveFromValue)}</dd>
-            <dt><i className="far fa-calendar-check" /> Hiệu lực đến</dt><dd>{formatDate(activeSubscription?.effectiveTo)}</dd>
-            <dt><i className="far fa-money-bill-alt" /> Giá vé</dt><dd>{formatCurrency(activeSubscription?.price)}</dd>
-            <dt><i className="far fa-question-circle" /> Ngày duyệt</dt><dd>{activeSubscription?.approvedAt ?? "--"}</dd>
+            <dt><i className="far fa-calendar-check" /> Hiệu lực đến</dt><dd>{formatDate(detailSubscription?.effectiveTo)}</dd>
+            <dt><i className="far fa-money-bill-alt" /> Giá vé</dt><dd>{formatCurrency(detailSubscription?.price)}</dd>
+            <dt><i className="far fa-question-circle" /> Ngày duyệt</dt><dd>{detailSubscription?.approvedAt ?? "--"}</dd>
           </dl>
         </div>
         {!activeSubscription ? <div className="vm-info-note"><i className="fas fa-info-circle" /> Chưa có vé tháng đang hoạt động.</div> : null}
@@ -414,35 +426,54 @@ export function SubscriptionPage() {
             <label><i className="fas fa-search" /><input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm biển số, mã vé..." /></label>
           </div>
           <table className="vm-customer-table">
-            <thead><tr><th>Mã vé</th><th>Biển số</th><th>Loại vé</th><th>Hiệu lực</th><th>Giá</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <thead><tr><th>Mã vé</th><th>Biển số</th><th>Loại vé</th><th>Hiệu lực</th><th>Giá</th><th>Trạng thái</th>{hasPaymentActions ? <th>Thao tác</th> : null}</tr></thead>
             <tbody>
               {pagedSubscriptions.map((subscription) => {
                 const vehicle = vehicleById.get(subscription.customerVehicleId);
                 const ticketType = ticketTypeById.get(subscription.ticketTypeId);
                 return (
-                  <tr key={subscription.subscriptionId}>
+                  <tr
+                    key={subscription.subscriptionId}
+                    className={`vm-interactive-row${selectedSubscriptionId === subscription.subscriptionId ? " vm-selected-row" : ""}`}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Xem chi tiết vé ${compactCode(subscription.subscriptionId)}`}
+                    aria-pressed={selectedSubscriptionId === subscription.subscriptionId}
+                    title="Nhấn để xem chi tiết vé"
+                    onClick={() => setSelectedSubscriptionId(subscription.subscriptionId)}
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget) return;
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setSelectedSubscriptionId(subscription.subscriptionId);
+                      }
+                    }}
+                  >
                     <td title={subscription.subscriptionId}>{compactCode(subscription.subscriptionId)}</td>
                     <td>{vehicle?.licensePlate ?? "--"}</td>
                     <td>{ticketType?.name ?? "--"}</td>
                     <td>{formatDateRange(toDateInputValue(getDisplayEffectiveFrom(subscription)) ?? subscription.requestedEffectiveFrom, subscription.effectiveTo)}</td>
                     <td>{formatCurrency(subscription.price)}</td>
                     <td><StatusPill tone={statusTone(subscription.status)}>{statusLabel(subscription.status)}</StatusPill></td>
-                    <td>
+                    {hasPaymentActions ? <td>
                       {subscription.status === "PENDING_PAYMENT" ? (
                         <button
                           className="tw-inline-flex tw-h-9 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-3 tw-text-[0.78rem] tw-font-extrabold tw-text-white"
                           type="button"
-                          onClick={() => void handleOpenPayment(subscription)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void handleOpenPayment(subscription);
+                          }}
                         >
                           <i className="far fa-credit-card" /> Thanh toán
                         </button>
                       ) : <span>--</span>}
-                    </td>
+                    </td> : null}
                   </tr>
                 );
               })}
-              {!loading && filteredSubscriptions.length === 0 ? <tr><td colSpan={7}>Chưa có vé phù hợp với bộ lọc.</td></tr> : null}
-              {loading ? <tr><td colSpan={7}>Đang tải dữ liệu...</td></tr> : null}
+              {!loading && filteredSubscriptions.length === 0 ? <tr><td colSpan={historyColumnCount}>Chưa có vé phù hợp với bộ lọc.</td></tr> : null}
+              {loading ? <tr><td colSpan={historyColumnCount}>Đang tải dữ liệu...</td></tr> : null}
             </tbody>
           </table>
           <PaginationLite

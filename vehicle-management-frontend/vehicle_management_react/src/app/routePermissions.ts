@@ -28,6 +28,7 @@ export const adminRoutePermissions = {
   "/admin/devices": ["DEVICE_READ_ALL"],
   "/admin/price-plans": ["PRICE_PLAN_READ_ALL"],
   "/admin/price-rules": ["PRICE_RULE_READ_ALL"],
+  "/admin/invoices": ["INVOICE_READ_ALL"],
   "/admin/visitorParkingFee": ["PRICE_RULE_READ_ALL"],
   "/admin/parkingFeeOfCustomer": ["PRICE_RULE_READ_ALL"],
   "/admin/employee": ["EMPLOYEE_READ_ALL"],

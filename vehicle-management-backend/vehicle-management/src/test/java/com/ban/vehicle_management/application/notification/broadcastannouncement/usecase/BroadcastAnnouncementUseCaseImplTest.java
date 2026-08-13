@@ -76,7 +76,22 @@ class BroadcastAnnouncementUseCaseImplTest {
     void publishBroadcastAnnouncement_shouldFanOutAndMarkPublished() {
         UUID broadcastId = UUID.randomUUID();
         announcement.setBroadcastId(broadcastId);
+        BroadcastNotificationCommand broadcastCommand = new BroadcastNotificationCommand(
+                true,
+                Set.of(),
+                Set.of(),
+                broadcastId,
+                announcement.getNotificationType(),
+                announcement.getTitle(),
+                announcement.getMessage(),
+                announcement.getRedirectUrl(),
+                "notification",
+                "broadcast_announcements",
+                broadcastId
+        );
         when(broadcastAnnouncementPortOut.findById(broadcastId)).thenReturn(Optional.of(announcement));
+        when(broadcastAnnouncementDomainMapper.toBroadcastNotificationCommand(announcement, true))
+                .thenReturn(broadcastCommand);
         when(notificationPortIn.sendBroadcastWebNotification(any(BroadcastNotificationCommand.class)))
                 .thenReturn(List.of(new Notification()));
         when(broadcastAnnouncementPortOut.save(any(BroadcastAnnouncement.class)))

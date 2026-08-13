@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { DatePicker } from "@/components/ui";
+import { DateRangeInput } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
@@ -185,6 +185,11 @@ function matchesDateRange(rowDate: string, fromDate: string, toDate: string) {
   return true;
 }
 
+function splitDateRange(value: string) {
+  const [fromDate = "", toDate = ""] = value.split("|");
+  return { fromDate, toDate };
+}
+
 function toStartOfDayInstant(date: string) {
   if (!date) return undefined;
   return new Date(`${date}T00:00:00+07:00`).toISOString();
@@ -250,8 +255,7 @@ const getDetailPaymentState = (row: LostCardReportRow) => {
 export function LostCardListPage() {
   const [searchValue, setSearchValue] = useState("");
   const [statusValue, setStatusValue] = useState("all");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
+  const [dateRange, setDateRange] = useState("");
   const [reports, setReports] = useState<LostCardReportResponse[]>([]);
   const [summary, setSummary] = useState<LostCardReportSummaryResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -268,6 +272,7 @@ export function LostCardListPage() {
 
   const rows = useMemo(() => reports.map(mapLostCardReportToRow), [reports]);
   const summaryMetrics = useMemo(() => buildSummaryMetrics(summary), [summary]);
+  const { fromDate, toDate } = useMemo(() => splitDateRange(dateRange), [dateRange]);
 
   const filteredRecords = useMemo(
     () =>
@@ -361,8 +366,7 @@ export function LostCardListPage() {
   const resetFilters = () => {
     setSearchValue("");
     setStatusValue("all");
-    setFromDate("");
-    setToDate("");
+    setDateRange("");
     setCurrentPage(1);
   };
 
@@ -405,7 +409,7 @@ export function LostCardListPage() {
             </div>
 
             <section className="tw-min-w-0 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
-              <div className="tw-grid tw-grid-cols-[minmax(260px,1fr)_170px_160px_160px_auto] tw-items-center tw-gap-3 tw-p-[1.1rem] max-[1200px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">
+              <div className="tw-grid tw-grid-cols-[minmax(260px,1fr)_170px_250px_auto] tw-items-center tw-gap-3 tw-p-[1.1rem] max-[1200px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">
                 <label className="tw-m-0 tw-flex tw-min-h-10 tw-min-w-0 tw-items-center tw-gap-[0.7rem] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-[0.95rem] tw-text-vm-slate-500">
                   <i className="fas fa-search" />
                   <input
@@ -436,31 +440,14 @@ export function LostCardListPage() {
                   ]}
                 />
 
-                <div className="tw-w-full">
-                  <DatePicker
-                    ariaLabel="Từ ngày"
-                    placeholder="Từ ngày"
-                    value={fromDate}
-                    max={toDate || undefined}
-                    onChange={(value) => {
-                      setFromDate(value);
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
-
-                <div className="tw-w-full">
-                  <DatePicker
-                    ariaLabel="Đến ngày"
-                    placeholder="Đến ngày"
-                    value={toDate}
-                    min={fromDate || undefined}
-                    onChange={(value) => {
-                      setToDate(value);
-                      setCurrentPage(1);
-                    }}
-                  />
-                </div>
+                <DateRangeInput
+                  ariaLabel="Khoảng ngày báo mất"
+                  value={dateRange}
+                  onChange={(value) => {
+                    setDateRange(value);
+                    setCurrentPage(1);
+                  }}
+                />
 
                 <button
                   className="tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-gap-[0.55rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-py-[0.7rem] tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-700 tw-transition-colors hover:tw-bg-vm-slate-25 max-[1200px]:tw-w-full"

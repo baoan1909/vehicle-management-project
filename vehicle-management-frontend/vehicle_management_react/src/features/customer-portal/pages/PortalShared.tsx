@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 export const publicContactItems = [
   { icon: "fas fa-phone-alt", title: "Hotline", value: "1900 1234", note: "Hỗ trợ 24/7" },
   { icon: "far fa-envelope", title: "Email", value: "support@coparking.vn", note: "Phản hồi trong 24h" },
-  { icon: "fas fa-map-marker-alt", title: "Địa chỉ", value: "123 Trần Hưng Đạo, Quận 1, TP. Hồ Chí Minh", note: "" },
+  { icon: "fas fa-map-marker-alt", title: "Địa chỉ", value: "Số 1 Võ Văn Ngân, phường Thủ Đức, TP. Hồ Chí Minh", note: "" },
   { icon: "far fa-clock", title: "Giờ hỗ trợ", value: "06:00 - 22:00", note: "Tất cả các ngày" },
 ];
 
@@ -204,7 +204,7 @@ export function StatCard({
 }: {
   icon: string;
   label: string;
-  value: string;
+  value: ReactNode;
   note?: ReactNode;
   tone?: "blue" | "green" | "orange" | "red" | "purple";
 }) {

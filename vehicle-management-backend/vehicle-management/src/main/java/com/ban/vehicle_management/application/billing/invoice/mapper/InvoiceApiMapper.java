@@ -3,9 +3,19 @@ package com.ban.vehicle_management.application.billing.invoice.mapper;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
+import com.ban.vehicle_management.application.billing.invoice.model.result.InvoiceLineItemResult;
+import com.ban.vehicle_management.application.billing.invoice.model.result.InvoiceManagementDetailResult;
+import com.ban.vehicle_management.application.billing.invoice.model.result.InvoiceManagementItemResult;
+import com.ban.vehicle_management.application.billing.invoice.model.result.InvoiceManagementPageResult;
+import com.ban.vehicle_management.application.billing.invoice.model.result.InvoiceManagementSummaryResult;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.request.CreateInvoiceRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceDetailResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceLineItemResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementDetailResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementItemResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementPageResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementSummaryResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.PaymentResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import org.mapstruct.Mapper;
@@ -62,6 +72,61 @@ public interface InvoiceApiMapper {
                 map(invoice.getUpdatedAt()),
                 invoice.getUpdatedBy(),
                 toPaymentResponses(detail.getPayments())
+        );
+    }
+
+    default InvoiceManagementItemResponse toManagementItemResponse(InvoiceManagementItemResult item) {
+        return new InvoiceManagementItemResponse(
+                item.invoiceId(),
+                item.invoiceNo(),
+                item.customerId(),
+                item.customerName(),
+                item.licensePlate(),
+                item.source(),
+                item.sourceId(),
+                item.amount(),
+                item.discountAmount(),
+                item.finalAmount(),
+                item.status(),
+                item.paymentMethod(),
+                item.paymentStatus(),
+                item.transactionRef(),
+                map(item.issuedAt()),
+                map(item.paidAt()),
+                map(item.createdAt()),
+                map(item.updatedAt())
+        );
+    }
+
+    default InvoiceManagementPageResponse toManagementPageResponse(InvoiceManagementPageResult result) {
+        return new InvoiceManagementPageResponse(
+                result.items().stream().map(this::toManagementItemResponse).toList(),
+                result.page(),
+                result.size(),
+                result.totalElements(),
+                result.totalPages()
+        );
+    }
+
+    default InvoiceManagementSummaryResponse toManagementSummaryResponse(InvoiceManagementSummaryResult result) {
+        return new InvoiceManagementSummaryResponse(
+                result.total(),
+                result.unpaid(),
+                result.paid(),
+                result.cancelled(),
+                result.refunded()
+        );
+    }
+
+    default InvoiceLineItemResponse toLineItemResponse(InvoiceLineItemResult item) {
+        return new InvoiceLineItemResponse(item.code(), item.description(), item.amount());
+    }
+
+    default InvoiceManagementDetailResponse toManagementDetailResponse(InvoiceManagementDetailResult result) {
+        return new InvoiceManagementDetailResponse(
+                toManagementItemResponse(result.invoice()),
+                result.lineItems().stream().map(this::toLineItemResponse).toList(),
+                toPaymentResponses(result.payments())
         );
     }
 }

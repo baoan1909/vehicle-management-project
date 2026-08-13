@@ -6,8 +6,12 @@ import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.request.CreateInvoiceRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.request.InvoiceFilterRequest;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.request.InvoiceManagementFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceDetailResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementDetailResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementPageResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementSummaryResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -72,6 +76,45 @@ public class InvoiceController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched invoices successfully",
                 invoiceApiMapper.toAdminResponses(invoices)
+        ));
+    }
+
+    @GetMapping("/management")
+    public ResponseEntity<ApiResponse<InvoiceManagementPageResponse>> getManagementInvoices(
+            @ModelAttribute InvoiceManagementFilterRequest request
+    ) {
+        int page = request.page() == null ? 0 : request.page();
+        int size = request.size() == null ? 10 : request.size();
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched invoice management list successfully",
+                invoiceApiMapper.toManagementPageResponse(invoicePortIn.getManagementInvoices(
+                        request.status(),
+                        request.paymentMethod(),
+                        request.fromDate(),
+                        request.toDate(),
+                        request.keyword(),
+                        page,
+                        size
+                ))
+        ));
+    }
+
+    @GetMapping("/management/summary")
+    public ResponseEntity<ApiResponse<InvoiceManagementSummaryResponse>> getManagementSummary() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched invoice management summary successfully",
+                invoiceApiMapper.toManagementSummaryResponse(invoicePortIn.getManagementSummary())
+        ));
+    }
+
+    @GetMapping("/management/{invoiceId}")
+    public ResponseEntity<ApiResponse<InvoiceManagementDetailResponse>> getManagementInvoiceDetail(
+            @PathVariable UUID invoiceId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched invoice management detail successfully",
+                invoiceApiMapper.toManagementDetailResponse(invoicePortIn.getManagementInvoiceDetail(invoiceId))
         ));
     }
 
