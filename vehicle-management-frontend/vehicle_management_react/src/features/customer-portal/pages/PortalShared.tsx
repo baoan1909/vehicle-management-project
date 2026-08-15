@@ -1,6 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 
+import { canAccessCustomerRoute } from "@/app/routePermissions";
+import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
 
 export const publicContactItems = [
@@ -145,12 +147,14 @@ export function StatusPill({ children, tone = "green" }: { children: ReactNode; 
 
 export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { user } = useAuth();
+  const visibleNavItems = customerNavItems.filter((item) => canAccessCustomerRoute(user, item.to));
 
   return (
     <div className="vm-customer-shell">
       <div className="vm-customer-body">
         <aside className="vm-customer-sidebar">
-          {customerNavItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const active = location.pathname === item.to;
             return (
               <Link className={`vm-customer-nav-item ${active ? "active" : ""}`} to={item.to} key={item.to}>

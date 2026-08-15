@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
+import { canAccessCustomerRoute } from "@/app/routePermissions";
 import { logoutCurrentUser } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
 import { preconnectKeycloakLoginOrigin, prepareKeycloakLoginUrl } from "@/features/auth/api/authApi";
@@ -251,20 +252,24 @@ export function ClientNavbar() {
                       </div>
                     </div>
 
-                    <Link to="/customer/dashboard" className={profileItemClassName} onClick={() => setProfileOpen(false)}>
-                      <HeaderItemIcon icon="fas fa-tachometer-alt" />
-                      <HeaderItemCopy title="Tổng quan" meta="Xem nhanh bãi xe và dịch vụ của bạn" />
-                    </Link>
+                    {canAccessCustomerRoute(user, "/customer/dashboard") ? (
+                      <Link to="/customer/dashboard" className={profileItemClassName} onClick={() => setProfileOpen(false)}>
+                        <HeaderItemIcon icon="fas fa-tachometer-alt" />
+                        <HeaderItemCopy title="Tổng quan" meta="Xem nhanh bãi xe và dịch vụ của bạn" />
+                      </Link>
+                    ) : null}
 
                     <Link to="/customer/profile" className={profileItemClassName} onClick={() => setProfileOpen(false)}>
                       <HeaderItemIcon icon="fas fa-user-circle" />
                       <HeaderItemCopy title="Hồ sơ cá nhân" meta="Cập nhật thông tin tài khoản" />
                     </Link>
 
-                    <Link to="/customer/support" className={profileItemClassName} onClick={() => setProfileOpen(false)}>
-                      <HeaderItemIcon icon="fas fa-question-circle" />
-                      <HeaderItemCopy title="Hỗ trợ" meta="Gửi yêu cầu và theo dõi phản hồi" />
-                    </Link>
+                    {canAccessCustomerRoute(user, "/customer/support") ? (
+                      <Link to="/customer/support" className={profileItemClassName} onClick={() => setProfileOpen(false)}>
+                        <HeaderItemIcon icon="fas fa-question-circle" />
+                        <HeaderItemCopy title="Hỗ trợ" meta="Gửi yêu cầu và theo dõi phản hồi" />
+                      </Link>
+                    ) : null}
 
                     <button
                       type="button"
