@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
+import { canAccessCustomerRoute } from "@/app/routePermissions";
+import { useAuth } from "@/core/auth/useAuth";
 import {
   getCustomerPortalLookups,
   getCustomerPortalProfile,
@@ -95,6 +97,7 @@ function shortCode(value?: string | null) {
 }
 
 export function CustomerDashboardPage() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [vehicles, setVehicles] = useState<CustomerPortalVehicle[]>([]);
@@ -158,6 +161,8 @@ export function CustomerDashboardPage() {
   const needsOnboarding = Boolean(profile?.onboardingRequired || (profile && !profile.customer?.customerId));
   const activeVehicles = vehicles.filter((vehicle) => vehicle.status === "ACTIVE").length;
   const inactiveVehicles = vehicles.filter((vehicle) => vehicle.status !== "ACTIVE").length;
+  const canViewParkingHistory = canAccessCustomerRoute(user, "/customer/parking-history");
+  const canViewSupport = canAccessCustomerRoute(user, "/customer/support");
 
   return (
     <CustomerPortalLayout>
@@ -188,7 +193,9 @@ export function CustomerDashboardPage() {
             <Link to={needsOnboarding ? "/customer/profile" : "/customer/subscriptions"}>
               <i className={needsOnboarding ? "fas fa-paper-plane" : "far fa-calendar-plus"} /> {needsOnboarding ? "Hoàn tất hồ sơ" : "Đăng ký vé"}
             </Link>
-            <Link className="secondary" to="/customer/parking-history"><i className="far fa-clock" /> Lịch sử gửi xe</Link>
+            {canViewParkingHistory ? (
+              <Link className="secondary" to="/customer/parking-history"><i className="far fa-clock" /> Lịch sử gửi xe</Link>
+            ) : null}
           </div>
         </div>
       </section>
@@ -319,14 +326,16 @@ export function CustomerDashboardPage() {
           </div>
           <i className="fas fa-chevron-right" />
         </Link>
-        <Link className="vm-customer-card vm-dashboard-action-card" to="/customer/support">
-          <span><i className="far fa-question-circle" /></span>
-          <div>
-            <h2>Trung tâm hỗ trợ</h2>
-            <p>Gửi yêu cầu và theo dõi phản hồi.</p>
-          </div>
-          <i className="fas fa-chevron-right" />
-        </Link>
+        {canViewSupport ? (
+          <Link className="vm-customer-card vm-dashboard-action-card" to="/customer/support">
+            <span><i className="far fa-question-circle" /></span>
+            <div>
+              <h2>Trung tâm hỗ trợ</h2>
+              <p>Gửi yêu cầu và theo dõi phản hồi.</p>
+            </div>
+            <i className="fas fa-chevron-right" />
+          </Link>
+        ) : null}
       </div>
 
     </CustomerPortalLayout>

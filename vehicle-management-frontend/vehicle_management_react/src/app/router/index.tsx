@@ -1,6 +1,14 @@
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { canAccessAdminRoute, getFirstAccessibleAdminPath, getRoutePermissions } from "@/app/routePermissions";
+import {
+  canAccessAdminRoute,
+  canAccessCustomerRoute,
+  customerFallbackRoute,
+  getCustomerRoutePermissionGroups,
+  getFirstAccessibleAdminPath,
+  getRoutePermissions,
+  isCustomerProtectedRoute,
+} from "@/app/routePermissions";
 import { routes } from "@/app/routes";
 import { consumeLogoutRedirectGuard, getLogoutRedirectPath, isLogoutRedirectGuardActive } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
@@ -120,6 +128,29 @@ function AdminRouteGate({ element, path }: { element: ReactNode; path: string })
   return <>{element}</>;
 }
 
+function CustomerRouteGate({ element, path }: { element: ReactNode; path: string }) {
+  const { isAccessLoading, user } = useAuth();
+  const permissionGroups = getCustomerRoutePermissionGroups(path);
+
+  if (!user) {
+    if (isLogoutRedirectGuardActive()) {
+      return <Navigate to={getLogoutRedirectPath()} replace />;
+    }
+
+    return <Navigate to="/login" replace />;
+  }
+
+  if (permissionGroups.length > 0 && !hasResolvedPermissions(user) && isAccessLoading) {
+    return <AdminPermissionLoading />;
+  }
+
+  if (!canAccessCustomerRoute(user, path)) {
+    return <Navigate to={customerFallbackRoute} replace />;
+  }
+
+  return <>{element}</>;
+}
+
 function ClientShell() {
   useEffect(() => {
     consumeLogoutRedirectGuard();
@@ -183,7 +214,9 @@ const clientRoutes = routes
         }
       : {
           path: route.path.replace(/^\//, ""),
-          element: route.element,
+          element: isCustomerProtectedRoute(route.path)
+            ? <CustomerRouteGate path={route.path} element={route.element} />
+            : route.element,
           handle: { title: route.title },
         },
   );

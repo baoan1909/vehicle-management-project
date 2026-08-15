@@ -53,14 +53,58 @@ export const adminRoutePermissions = {
 const adminFallbackRoute = "/admin/profile";
 const unmappedAdminRoutePermission = "__UNMAPPED_ADMIN_ROUTE__";
 
+export const customerFallbackRoute = "/customer/profile";
+const unmappedCustomerRoutePermission = "__UNMAPPED_CUSTOMER_ROUTE__";
+
+type CustomerRoutePermissionGroups = readonly (readonly string[])[];
+
+export const customerRoutePermissionGroups = {
+  "/customer/dashboard": [
+    ["USER_PROFILE_READ_OWN", "USER_PROFILE_READ_ALL"],
+    ["CUSTOMER_VEHICLE_READ_OWN", "CUSTOMER_VEHICLE_READ_ALL"],
+    ["SUBSCRIPTION_READ_OWN", "SUBSCRIPTION_READ_ALL"],
+  ],
+  "/customer/profile": [],
+  "/customer/vehicles": [["CUSTOMER_VEHICLE_READ_OWN", "CUSTOMER_VEHICLE_READ_ALL"]],
+  "/customer/subscriptions": [["SUBSCRIPTION_READ_OWN", "SUBSCRIPTION_READ_ALL"]],
+  "/customer/parking-history": [["PARKING_SESSION_READ_OWN", "PARKING_SESSION_READ_ALL"]],
+  "/customer/support": [["SUPPORT_TICKET_READ_OWN", "SUPPORT_TICKET_READ_ASSIGNED", "SUPPORT_TICKET_READ_ALL"]],
+  "/customerTicket/customer-infor": [["PARKING_SESSION_READ_OWN", "PARKING_SESSION_READ_ALL"]],
+  "/customerTicket/customer-infor-detail": [],
+} satisfies Record<string, CustomerRoutePermissionGroups>;
+
 export function getRoutePermissions(path: string) {
   const permissions = adminRoutePermissions[path as keyof typeof adminRoutePermissions];
   if (permissions) return permissions;
-  return path.startsWith("/admin/") || path.startsWith("/api/") ? [unmappedAdminRoutePermission] : [];
+
+  if (path.startsWith("/admin/") || path.startsWith("/api/")) {
+    return [unmappedAdminRoutePermission];
+  }
+
+  const customerPermissionGroups = customerRoutePermissionGroups[path as keyof typeof customerRoutePermissionGroups];
+  if (customerPermissionGroups) {
+    return Array.from(new Set(customerPermissionGroups.flat()));
+  }
+
+  return isCustomerProtectedRoute(path) ? [unmappedCustomerRoutePermission] : [];
 }
 
 export function canAccessAdminRoute(user: CurrentUser | null | undefined, path: string) {
   return hasAnyPermission(user, getRoutePermissions(path));
+}
+
+export function isCustomerProtectedRoute(path: string) {
+  return path.startsWith("/customer/") || path.startsWith("/customerTicket/");
+}
+
+export function getCustomerRoutePermissionGroups(path: string): CustomerRoutePermissionGroups {
+  const groups = customerRoutePermissionGroups[path as keyof typeof customerRoutePermissionGroups];
+  if (groups) return groups;
+  return isCustomerProtectedRoute(path) ? [[unmappedCustomerRoutePermission]] : [];
+}
+
+export function canAccessCustomerRoute(user: CurrentUser | null | undefined, path: string) {
+  return getCustomerRoutePermissionGroups(path).every((permissionGroup) => hasAnyPermission(user, permissionGroup));
 }
 
 export function getVisibleAdminNavigation(user: CurrentUser | null | undefined) {
