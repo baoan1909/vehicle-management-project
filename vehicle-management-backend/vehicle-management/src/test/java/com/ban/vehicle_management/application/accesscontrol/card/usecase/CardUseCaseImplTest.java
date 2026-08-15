@@ -104,6 +104,18 @@ class CardUseCaseImplTest {
     }
 
     @Test
+    void shouldRejectCardTypeChangeWhenCardIsNotAvailable() {
+        UUID cardId = UUID.randomUUID();
+        Card existingCard = existingCard(cardId, CardStatus.RESERVED);
+        Card requestCard = updateRequest(UUID.randomUUID());
+
+        when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
+
+        assertThrows(BadRequestException.class, () -> cardUseCase.updateCard(cardId, requestCard));
+        verify(cardPort, never()).save(any(Card.class));
+    }
+
+    @Test
     void shouldRejectSensitiveUpdateAfterOperationalHistoryExists() {
         UUID cardId = UUID.randomUUID();
         Card existingCard = existingCard(cardId, CardStatus.AVAILABLE);

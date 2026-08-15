@@ -111,6 +111,8 @@ function getDisplayEffectiveFrom(subscription?: CustomerPortalSubscription) {
 }
 
 function remainingPercent(subscription?: CustomerPortalSubscription) {
+  if (subscription?.status !== "ACTIVE") return 0;
+
   const start = getDisplayEffectiveFrom(subscription);
   const end = toDateOnly(subscription?.effectiveTo);
   if (!start || !end || end.getTime() <= start.getTime()) return 0;
@@ -362,7 +364,8 @@ export function SubscriptionPage() {
   const currentPriceRule = detailSubscription?.priceRuleId ? priceRuleById.get(detailSubscription.priceRuleId) : undefined;
   const currentEffectiveFrom = getDisplayEffectiveFrom(detailSubscription);
   const currentEffectiveFromValue = toDateInputValue(currentEffectiveFrom);
-  const detailDaysLeft = daysUntil(detailSubscription?.effectiveTo);
+  const isDetailSubscriptionActive = detailSubscription?.status === "ACTIVE";
+  const detailDaysLeft = isDetailSubscriptionActive ? daysUntil(detailSubscription?.effectiveTo) : null;
   const detailRemainingPercent = remainingPercent(detailSubscription);
 
   return (
@@ -389,7 +392,11 @@ export function SubscriptionPage() {
       <section className="vm-customer-card vm-subscription-current">
         <div className="vm-section-title-row">
           <h2>{selectedSubscription ? "Chi tiết vé đã chọn" : "Vé tháng hiện tại"} <StatusPill tone={statusTone(detailSubscription?.status)}>{statusLabel(detailSubscription?.status)}</StatusPill></h2>
-          <div className="vm-progress-inline"><span>Thời hạn còn lại</span><b>{detailDaysLeft === null ? "--" : `${Math.max(detailDaysLeft, 0)} ngày`}</b><em><i style={{ width: `${detailRemainingPercent}%` }} /></em><strong>{detailSubscription?.effectiveTo ? formatDate(detailSubscription.effectiveTo) : "--"}</strong></div>
+          {isDetailSubscriptionActive ? (
+            <div className="vm-progress-inline"><span>Thời hạn còn lại</span><b>{detailDaysLeft === null ? "--" : `${Math.max(detailDaysLeft, 0)} ngày`}</b><em><i style={{ width: `${detailRemainingPercent}%` }} /></em><strong>{detailSubscription?.effectiveTo ? formatDate(detailSubscription.effectiveTo) : "--"}</strong></div>
+          ) : (
+            <div className="vm-subscription-inactive-state"><i className="fas fa-ban" /> Vé này không còn hiệu lực sử dụng.</div>
+          )}
         </div>
         <div className="vm-subscription-detail">
           <dl className="vm-info-list">

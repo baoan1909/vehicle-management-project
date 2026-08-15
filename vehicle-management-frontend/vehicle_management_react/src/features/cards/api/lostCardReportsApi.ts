@@ -303,3 +303,13 @@ export async function resolveLostCardReport(lostCardReportId: string, newCardId?
     },
   );
 }
+
+export async function cancelLostCardReport(lostCardReportId: string, cancelReason: string) {
+  return apiClient<ApiResponse<LostCardReportWorkflowResponse>>(
+    `${apiEndpoints.accessControl.lostCardReports}/${lostCardReportId}/cancel`,
+    {
+      method: "PATCH",
+      body: { cancelReason },
+    },
+  );
+}

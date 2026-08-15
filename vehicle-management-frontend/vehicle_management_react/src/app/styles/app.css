@@ -2905,9 +2905,10 @@ body {
 }
 
 .vm-customer-hero-actions {
-  display: grid;
-  width: min(100%, 150px);
-  grid-template-columns: minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
   margin-top: 0.65rem;
 }
 
@@ -2932,6 +2933,21 @@ body {
 .vm-inline-action {
   color: var(--vm-blue);
   background: white;
+}
+
+.vm-customer-hero-actions a:hover,
+.vm-customer-hero-actions a:focus-visible {
+  color: white;
+  outline: none;
+  background: #0759d8;
+  text-decoration: none;
+}
+
+.vm-customer-hero-actions a.secondary:hover,
+.vm-customer-hero-actions a.secondary:focus-visible {
+  border-color: #1463e6;
+  color: #0759d8;
+  background: #eef5ff;
 }
 
 .vm-dashboard-metric-grid {
@@ -4298,6 +4314,18 @@ body {
   background: #11995f;
 }
 
+.vm-subscription-inactive-state {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  color: #a81f1f;
+  font-size: 0.9rem;
+  font-weight: 750;
+  text-align: right;
+}
+
 .vm-note-list {
   margin-top: 1rem;
 }
@@ -5227,6 +5255,20 @@ a.vm-auth-submit:hover {
 
   .vm-customer-hero-actions {
     width: 100%;
+  }
+
+  .vm-customer-hero-actions a {
+    flex: 1 1 170px;
+  }
+
+  .vm-section-title-row,
+  .vm-subscription-detail {
+    grid-template-columns: 1fr;
+  }
+
+  .vm-subscription-inactive-state {
+    justify-content: flex-start;
+    text-align: left;
   }
 
   .vm-dashboard-card-title {

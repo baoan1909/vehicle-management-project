@@ -30,6 +30,11 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
             SubscriptionStatus.ACTIVE
     );
 
+    private static final List<SubscriptionStatus> PENDING_CARD_ASSIGNMENT_STATUSES = List.of(
+            SubscriptionStatus.PENDING_PAYMENT,
+            SubscriptionStatus.PENDING_CARD
+    );
+
     private final SubscriptionRepository subscriptionRepository;
     private final SubscriptionPersistenceMapper subscriptionPersistenceMapper;
 
@@ -71,6 +76,13 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
     public Optional<Subscription> findLatestActiveByCardId(UUID cardId) {
         return subscriptionRepository
                 .findFirstByCardIdAndStatusOrderByEffectiveFromDesc(cardId, SubscriptionStatus.ACTIVE)
+                .map(subscriptionPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Subscription> findLatestPendingCardAssignmentByCardId(UUID cardId) {
+        return subscriptionRepository
+                .findFirstByCardIdAndStatusInOrderByApprovedAtDesc(cardId, PENDING_CARD_ASSIGNMENT_STATUSES)
                 .map(subscriptionPersistenceMapper::toDomain);
     }
 

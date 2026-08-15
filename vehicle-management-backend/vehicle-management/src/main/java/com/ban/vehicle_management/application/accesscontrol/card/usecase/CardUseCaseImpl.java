@@ -13,6 +13,7 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -82,6 +83,11 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
 
         if (existingCard.getStatus() == CardStatus.IN_USE) {
             throw new BadRequestException("Card in use cannot be updated");
+        }
+
+        if (existingCard.getStatus() != CardStatus.AVAILABLE
+                && !Objects.equals(existingCard.getCardTypeId(), card.getCardTypeId())) {
+            throw new BadRequestException("Card type can only be changed when card status is AVAILABLE");
         }
 
         if (cardPolicy.hasCoreIdentifierChanged(existingCard, card) && cardPort.hasOperationalHistory(cardId)) {

@@ -69,6 +69,8 @@ const subscriptionStatusLabels: Record<string, string> = {
   CANCELLED: "Đã hủy",
   EXPIRED: "Hết hạn",
   PENDING: "Chờ duyệt",
+  PENDING_CARD: "Chờ nhận thẻ",
+  PENDING_PAYMENT: "Chờ thanh toán",
   REJECTED: "Từ chối",
   RESERVED: "Đã giữ",
 };
@@ -126,7 +128,7 @@ function formatCurrency(value?: number | null) {
 function subscriptionState(status?: string | null): CardSubscriptionState {
   if (!status) return "none";
   if (status === "ACTIVE" || status === "APPROVED") return "active";
-  if (status === "PENDING" || status === "RESERVED") return "pending";
+  if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "PENDING_CARD" || status === "RESERVED") return "pending";
   if (status === "EXPIRED" || status === "CANCELLED" || status === "REJECTED") return "expired";
   return "active";
 }
@@ -303,6 +305,7 @@ function CardEditorModal({
 
   const title = editor?.mode === "edit" ? "Cập nhật thẻ" : "Cấp thẻ mới";
   const canSubmit = form.cardNumber.trim() && form.uid.trim() && form.cardTypeId.trim();
+  const canChangeCardType = editor?.mode !== "edit" || editor.row?.inventoryStatus === "available";
 
   return (
     <Modal
@@ -350,11 +353,12 @@ function CardEditorModal({
           <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Loại thẻ</span>
           <SelectMenu
             ariaLabel="Loại thẻ"
-            disabled={cardTypeOptions.length === 0}
+            disabled={cardTypeOptions.length === 0 || !canChangeCardType}
             options={cardTypeOptions.length > 0 ? cardTypeOptions : [{ label: "Chưa tải được loại thẻ", value: "" }]}
             value={form.cardTypeId}
             onChange={(value) => setForm((current) => ({ ...current, cardTypeId: value }))}
           />
+          {!canChangeCardType ? <span className="tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Chỉ có thể đổi loại thẻ khi thẻ ở trạng thái sẵn sàng.</span> : null}
         </label>
       </div>
     </Modal>

@@ -5,6 +5,7 @@ import {
   VNPAY_MINIMUM_AMOUNT,
 } from "@/features/billing/api/invoicePaymentsApi";
 import {
+  cancelLostCardReport,
   createLostCardReport,
   getAvailableReplacementCards,
   getLostCardReportById,
@@ -576,13 +577,13 @@ function LostCardResolvePanel({
   );
 }
 
-function LostCardCancelPanel({ hidden }: { hidden: boolean }) {
+function LostCardCancelPanel({ hidden, isCancelling, onCancel }: { hidden: boolean; isCancelling: boolean; onCancel: () => void }) {
   return (
     <section className={`${hidden ? "tw-hidden" : ""} tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-p-4 tw-shadow-[0_18px_40px_rgba(15,23,42,0.06)]`}>
-      <h2 className="tw-m-0 tw-text-[1.1rem] tw-font-extrabold tw-text-slate-900">Hủy phiếu</h2>
-      <p className="tw-mb-3 tw-mt-2 tw-text-[0.82rem] tw-font-semibold tw-leading-relaxed tw-text-vm-slate-500">Chỉ hủy khi phiếu đang mở và hóa đơn chưa thanh toán.</p>
-      <button className="tw-min-h-10 tw-rounded-vm-lg tw-border tw-border-solid tw-border-red-200 tw-bg-white tw-px-4 tw-text-[0.9rem] tw-font-extrabold tw-text-red-500" type="button">
-        Hủy phiếu
+      <h2 className="tw-m-0 tw-text-[1.1rem] tw-font-extrabold tw-text-slate-900">Đã tìm thấy thẻ</h2>
+      <p className="tw-mb-3 tw-mt-2 tw-text-[0.82rem] tw-font-semibold tw-leading-relaxed tw-text-vm-slate-500">Chỉ thực hiện khi phiếu đang mở và hóa đơn chưa thanh toán. Hệ thống sẽ hủy phiếu, hủy hóa đơn và khôi phục thẻ cũ về trạng thái sử dụng trước đó.</p>
+      <button className="tw-min-h-10 tw-rounded-vm-lg tw-border tw-border-solid tw-border-green-200 tw-bg-white tw-px-4 tw-text-[0.9rem] tw-font-extrabold tw-text-green-700 disabled:tw-cursor-not-allowed disabled:tw-opacity-60" disabled={isCancelling} type="button" onClick={onCancel}>
+        {isCancelling ? "Đang kích hoạt lại..." : "Kích hoạt lại thẻ"}
       </button>
     </section>
   );
@@ -1033,6 +1034,7 @@ export function LostCardDetailPage() {
   const [isCardsLoading, setIsCardsLoading] = useState(false);
   const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     if (!reportId) {
@@ -1248,6 +1250,24 @@ export function LostCardDetailPage() {
     }
   };
 
+  const handleCancelReport = async () => {
+    if (!report) return;
+    if (!window.confirm("Xác nhận đã tìm thấy thẻ? Phiếu báo mất và hóa đơn chưa thanh toán sẽ bị hủy, thẻ cũ được kích hoạt lại.")) return;
+
+    setIsCancelling(true);
+    setActionError("");
+    setActionMessage("");
+    try {
+      await cancelLostCardReport(report.lostCardReportId, "Đã tìm thấy thẻ");
+      await refreshDetail(report.lostCardReportId);
+      setActionMessage("Đã kích hoạt lại thẻ cũ và hủy phiếu báo mất.");
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Không thể kích hoạt lại thẻ.");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="content-header tw-px-0 tw-pb-4 tw-pt-3">
@@ -1429,7 +1449,7 @@ export function LostCardDetailPage() {
                 selectedNewCardId={selectedNewCardId}
                 state={paymentState}
               />
-              <LostCardCancelPanel hidden={isPaid || report.status !== "OPEN"} />
+              <LostCardCancelPanel hidden={isPaid || report.status !== "OPEN"} isCancelling={isCancelling} onCancel={handleCancelReport} />
             </aside>
           </div>
         </div>

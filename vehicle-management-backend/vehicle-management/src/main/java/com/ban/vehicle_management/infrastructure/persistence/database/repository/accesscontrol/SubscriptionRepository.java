@@ -39,6 +39,11 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
             SubscriptionStatus status
     );
 
+    Optional<SubscriptionEntity> findFirstByCardIdAndStatusInOrderByApprovedAtDesc(
+            UUID cardId,
+            Collection<SubscriptionStatus> statuses
+    );
+
     @Query("""
             select count(subscription) > 0
             from SubscriptionEntity subscription

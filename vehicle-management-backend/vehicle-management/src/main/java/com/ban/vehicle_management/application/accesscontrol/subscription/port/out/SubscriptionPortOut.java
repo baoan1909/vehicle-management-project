@@ -18,6 +18,8 @@ public interface SubscriptionPortOut {
 
     Optional<Subscription> findLatestActiveByCardId(UUID cardId);
 
+    Optional<Subscription> findLatestPendingCardAssignmentByCardId(UUID cardId);
+
     List<Subscription> findAll(
             UUID customerId,
             UUID customerVehicleId,
