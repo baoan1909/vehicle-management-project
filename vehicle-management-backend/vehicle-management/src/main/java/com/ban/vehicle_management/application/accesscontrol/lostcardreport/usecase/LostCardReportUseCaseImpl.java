@@ -247,6 +247,12 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
             context = LostCardReportContext.REGISTERED_OUTSIDE;
         }
 
+        if (session != null
+                && report.getTimeOfLost() != null
+                && report.getTimeOfLost().isBefore(session.getCheckInTime())) {
+            throw new BadRequestException("Thời gian mất thẻ không được trước thời gian check-in.");
+        }
+
         UUID cardId = context == LostCardReportContext.REGISTERED_OUTSIDE
                 ? subscription.getCardId()
                 : session.getCardId();

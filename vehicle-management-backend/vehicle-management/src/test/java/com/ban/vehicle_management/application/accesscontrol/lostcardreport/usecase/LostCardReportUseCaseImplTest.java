@@ -43,6 +43,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -190,6 +191,24 @@ class LostCardReportUseCaseImplTest {
         assertEquals("Open lost card report already exists for parking session", exception.getMessage());
         verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
         verify(cardPortOut, never()).save(any(Card.class));
+        verify(lostCardReportPortOut, never()).save(any(LostCardReport.class));
+    }
+
+    @Test
+    void shouldRejectLossTimeBeforeParkingCheckIn() {
+        ParkingSession session = visitorOpenSession();
+        LostCardReport request = createVisitorReportRequest();
+        request.setTimeOfLost(session.getCheckInTime().minusSeconds(1));
+
+        when(parkingSessionPortOut.findById(PARKING_SESSION_ID)).thenReturn(Optional.of(session));
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> lostCardReportUseCase.createReport(request)
+        );
+
+        assertEquals("Thời gian mất thẻ không được trước thời gian check-in.", exception.getMessage());
+        verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
         verify(lostCardReportPortOut, never()).save(any(LostCardReport.class));
     }
 

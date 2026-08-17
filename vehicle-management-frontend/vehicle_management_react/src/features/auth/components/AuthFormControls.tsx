@@ -4,6 +4,7 @@ import type { InputHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/cn";
 
 type AuthFormFieldProps = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange"> & {
+  error?: string;
   icon: string;
   label: string;
   onChange?: (value: string) => void;
@@ -35,7 +36,9 @@ export function AuthFormSectionTitle({ children }: { children: ReactNode }) {
   );
 }
 
-export function AuthFormField({ className, icon, id, label, onChange, value, ...props }: AuthFormFieldProps) {
+export function AuthFormField({ className, error, icon, id, label, onChange, value, ...props }: AuthFormFieldProps) {
+  const errorId = id ? `${id}-error` : undefined;
+
   return (
     <label className="tw-grid tw-gap-1" htmlFor={id}>
       <span className="tw-text-[0.8rem] tw-font-extrabold tw-text-vm-slate-900">{label}</span>
@@ -44,19 +47,23 @@ export function AuthFormField({ className, icon, id, label, onChange, value, ...
           <i className={cn(icon, "tw-text-[0.9rem] tw-leading-none")} />
         </span>
         <input
-          className={cn(inputClassName, className)}
+          {...props}
+          aria-describedby={error ? errorId : props["aria-describedby"]}
+          aria-invalid={error ? true : props["aria-invalid"]}
+          className={cn(inputClassName, error ? "tw-border-red-400 focus:tw-border-red-500 focus:tw-shadow-[0_0_0_4px_rgba(239,68,68,0.1)]" : "", className)}
           id={id}
           value={value}
           onChange={(event) => onChange?.(event.target.value)}
-          {...props}
         />
       </span>
+      {error ? <span id={errorId} className="tw-text-[0.75rem] tw-font-semibold tw-leading-4 tw-text-red-600">{error}</span> : null}
     </label>
   );
 }
 
-export function AuthPasswordInput({ className, id, label, onChange, placeholder = "Nhập mật khẩu", value, ...props }: AuthPasswordInputProps) {
+export function AuthPasswordInput({ className, error, id, label, onChange, placeholder = "Nhập mật khẩu", value, ...props }: AuthPasswordInputProps) {
   const [visible, setVisible] = useState(false);
+  const errorId = id ? `${id}-error` : undefined;
 
   return (
     <label className="tw-grid tw-gap-1" htmlFor={id}>
@@ -66,13 +73,15 @@ export function AuthPasswordInput({ className, id, label, onChange, placeholder 
           <i className="fas fa-lock tw-text-[0.9rem] tw-leading-none" />
         </span>
         <input
-          className={cn(inputClassName, "tw-pr-12", className)}
+          {...props}
+          aria-describedby={error ? errorId : props["aria-describedby"]}
+          aria-invalid={error ? true : props["aria-invalid"]}
+          className={cn(inputClassName, "tw-pr-12", error ? "tw-border-red-400 focus:tw-border-red-500 focus:tw-shadow-[0_0_0_4px_rgba(239,68,68,0.1)]" : "", className)}
           id={id}
           placeholder={placeholder}
           type={visible ? "text" : "password"}
           value={value}
           onChange={(event) => onChange?.(event.target.value)}
-          {...props}
         />
         <button
           aria-label={visible ? "Ẩn mật khẩu" : "Hiển thị mật khẩu"}
@@ -83,6 +92,7 @@ export function AuthPasswordInput({ className, id, label, onChange, placeholder 
           <i className={cn(visible ? "far fa-eye-slash" : "far fa-eye", "tw-leading-none")} />
         </button>
       </span>
+      {error ? <span id={errorId} className="tw-text-[0.75rem] tw-font-semibold tw-leading-4 tw-text-red-600">{error}</span> : null}
     </label>
   );
 }

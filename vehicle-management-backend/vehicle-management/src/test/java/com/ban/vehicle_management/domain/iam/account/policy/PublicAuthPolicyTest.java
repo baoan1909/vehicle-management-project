@@ -16,7 +16,7 @@ class PublicAuthPolicyTest {
         RegisterAccountCommand command = new RegisterAccountCommand(
                 "  baoan3236  ",
                 "  BaoAn3236@Gmail.Com  ",
-                " 12345678 ",
+                "MatKhau1!",
                 "  Nguyen Bao An  "
         );
 
@@ -24,7 +24,7 @@ class PublicAuthPolicyTest {
 
         assertEquals("baoan3236", normalized.username());
         assertEquals("baoan3236@gmail.com", normalized.email());
-        assertEquals("12345678", normalized.password());
+        assertEquals("MatKhau1!", normalized.password());
         assertEquals("Nguyen Bao An", normalized.fullName());
     }
 
@@ -33,7 +33,71 @@ class PublicAuthPolicyTest {
         RegisterAccountCommand command = new RegisterAccountCommand(
                 "baoan3236",
                 "baoan3236@gmail.com",
-                "1234567",
+                "Mk1!",
+                "Nguyen Bao An"
+        );
+
+        assertThrows(BadRequestException.class, () -> policy.normalizeRegisterCommand(command));
+    }
+
+    @Test
+    void shouldRejectInvalidUsername() {
+        RegisterAccountCommand command = new RegisterAccountCommand(
+                "1baoan",
+                "baoan3236@gmail.com",
+                "MatKhau1!",
+                "Nguyen Bao An"
+        );
+
+        assertThrows(BadRequestException.class, () -> policy.normalizeRegisterCommand(command));
+    }
+
+    @Test
+    void shouldRejectInvalidEmail() {
+        RegisterAccountCommand command = new RegisterAccountCommand(
+                "baoan3236",
+                "baoan3236@gmail",
+                "MatKhau1!",
+                "Nguyen Bao An"
+        );
+
+        assertThrows(BadRequestException.class, () -> policy.normalizeRegisterCommand(command));
+    }
+
+    @Test
+    void shouldRejectFullNameContainingDigits() {
+        RegisterAccountCommand command = new RegisterAccountCommand(
+                "baoan3236",
+                "baoan3236@gmail.com",
+                "MatKhau1!",
+                "Nguyen Bao An 1"
+        );
+
+        assertThrows(BadRequestException.class, () -> policy.normalizeRegisterCommand(command));
+    }
+
+    @Test
+    void shouldRejectPasswordWithoutRequiredCharacterGroups() {
+        String[] invalidPasswords = {"matkhau1!", "MATKHAU1!", "MatKhau!!", "MatKhau12"};
+
+        for (String password : invalidPasswords) {
+            RegisterAccountCommand command = new RegisterAccountCommand(
+                    "baoan3236",
+                    "baoan3236@gmail.com",
+                    password,
+                    "Nguyen Bao An"
+            );
+
+            assertThrows(BadRequestException.class, () -> policy.normalizeRegisterCommand(command));
+        }
+    }
+
+    @Test
+    void shouldNotTrimPassword() {
+        RegisterAccountCommand command = new RegisterAccountCommand(
+                "baoan3236",
+                "baoan3236@gmail.com",
+                " MatKhau1! ",
                 "Nguyen Bao An"
         );
 

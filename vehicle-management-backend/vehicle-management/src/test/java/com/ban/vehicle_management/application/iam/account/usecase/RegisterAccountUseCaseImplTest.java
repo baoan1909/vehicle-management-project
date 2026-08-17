@@ -55,7 +55,7 @@ class RegisterAccountUseCaseImplTest {
         RegisterAccountCommand command = new RegisterAccountCommand(
                 "new-user",
                 "user@example.com",
-                "12345678",
+                "MatKhau1!",
                 "Nguyen Bao An"
         );
         when(publicAuthPolicy.normalizeRegisterCommand(command)).thenReturn(command);
@@ -87,7 +87,7 @@ class RegisterAccountUseCaseImplTest {
         RegisterAccountCommand command = new RegisterAccountCommand(
                 "new-user",
                 "user@example.com",
-                "12345678",
+                "MatKhau1!",
                 "Nguyen Bao An"
         );
         when(publicAuthPolicy.normalizeRegisterCommand(command)).thenReturn(command);
@@ -109,7 +109,7 @@ class RegisterAccountUseCaseImplTest {
         RegisterAccountCommand command = new RegisterAccountCommand(
                 "new-user",
                 "user@example.com",
-                "12345678",
+                "MatKhau1!",
                 "Nguyen Bao An"
         );
         when(publicAuthPolicy.normalizeRegisterCommand(command)).thenReturn(command);

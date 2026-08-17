@@ -5,7 +5,7 @@
       <label for="password-new">Nhập mật khẩu mới</label>
       <div class="vm-auth-input-shell">
         <i class="fas fa-lock" aria-hidden="true"></i>
-        <input id="password-new" name="password-new" type="password" placeholder="••••••••" autocomplete="new-password" autofocus>
+        <input id="password-new" name="password-new" type="password" placeholder="••••••••" autocomplete="new-password" minlength="8" maxlength="64" required data-required-message="Vui lòng nhập mật khẩu mới." autofocus>
         <button class="vm-auth-eye" type="button" aria-label="Hiển thị mật khẩu" aria-pressed="false" data-password-toggle>
           <i class="far fa-eye" aria-hidden="true"></i>
         </button>
@@ -16,7 +16,7 @@
       <label for="password-confirm">Nhập lại mật khẩu mới</label>
       <div class="vm-auth-input-shell">
         <i class="fas fa-lock" aria-hidden="true"></i>
-        <input id="password-confirm" name="password-confirm" type="password" placeholder="••••••••" autocomplete="new-password">
+        <input id="password-confirm" name="password-confirm" type="password" placeholder="••••••••" autocomplete="new-password" minlength="8" maxlength="64" required data-required-message="Vui lòng xác nhận mật khẩu mới.">
         <button class="vm-auth-eye" type="button" aria-label="Hiển thị mật khẩu" aria-pressed="false" data-password-toggle>
           <i class="far fa-eye" aria-hidden="true"></i>
         </button>

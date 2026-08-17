@@ -25,6 +25,27 @@
     });
   });
 
+  document.querySelectorAll("[data-required-message]").forEach(function (input) {
+    input.addEventListener("invalid", function () {
+      if (input.validity.valueMissing) {
+        input.setCustomValidity(input.getAttribute("data-required-message") || "Vui lòng nhập trường này.");
+      }
+    });
+    input.addEventListener("input", function () {
+      input.setCustomValidity("");
+    });
+  });
+
+  var loginForm = document.querySelector("#kc-form-login");
+  if (loginForm) {
+    loginForm.addEventListener("submit", function () {
+      var loginIdentifier = loginForm.querySelector("#username");
+      if (loginIdentifier) {
+        loginIdentifier.value = (loginIdentifier.value || "").trim();
+      }
+    });
+  }
+
   var forgotPasswordLink = document.querySelector("[data-forgot-password-link]");
   var usernameInput = document.querySelector("#username");
 

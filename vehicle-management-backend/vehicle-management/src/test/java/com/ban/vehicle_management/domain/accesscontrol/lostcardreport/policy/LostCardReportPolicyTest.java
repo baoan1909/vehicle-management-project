@@ -83,7 +83,7 @@ class LostCardReportPolicyTest {
         LostCardReport report = validReport(LostCardReportStatus.OPEN);
         report.setReporterName("  Nguyen Van A  ");
         report.setReporterPhone(" 0901234567 ");
-        report.setIdentifyCard(" AB123456 ");
+        report.setIdentifyCard(" 080112345678 ");
         report.setRegistrationLicense(" 51A-12345 ");
         report.setNote(" Mat the o cong vao ");
 
@@ -91,7 +91,7 @@ class LostCardReportPolicyTest {
 
         assertEquals("Nguyen Van A", report.getReporterName());
         assertEquals("0901234567", report.getReporterPhone());
-        assertEquals("AB123456", report.getIdentifyCard());
+        assertEquals("080112345678", report.getIdentifyCard());
         assertEquals("51A-12345", report.getRegistrationLicense());
         assertEquals("Mat the o cong vao", report.getNote());
     }
@@ -108,6 +108,64 @@ class LostCardReportPolicyTest {
     void shouldRejectInvalidReporterPhoneFormat() {
         LostCardReport report = validReport(LostCardReportStatus.OPEN);
         report.setReporterPhone("0901-234-567");
+
+        assertThrows(BadRequestException.class, () -> lostCardReportPolicy.validateState(report));
+    }
+
+    @Test
+    void shouldAcceptVietnamPhoneWithCountryCode() {
+        LostCardReport report = validReport(LostCardReportStatus.OPEN);
+        report.setReporterPhone("+84901234567");
+
+        lostCardReportPolicy.validateState(report);
+
+        assertEquals("+84901234567", report.getReporterPhone());
+    }
+
+    @Test
+    void shouldRejectInvalidReporterName() {
+        LostCardReport report = validReport(LostCardReportStatus.OPEN);
+        report.setReporterName("Nguyen Van A 123");
+
+        assertThrows(BadRequestException.class, () -> lostCardReportPolicy.validateState(report));
+    }
+
+    @Test
+    void shouldRejectIdentifyCardOutsideAcceptedLength() {
+        String[] invalidIdentifyCards = {"12345678", "1234567890123", "ABC123456"};
+
+        for (String identifyCard : invalidIdentifyCards) {
+            LostCardReport report = validReport(LostCardReportStatus.OPEN);
+            report.setIdentifyCard(identifyCard);
+
+            assertThrows(BadRequestException.class, () -> lostCardReportPolicy.validateState(report));
+        }
+    }
+
+    @Test
+    void shouldAcceptNineDigitIdentifyCard() {
+        LostCardReport report = validReport(LostCardReportStatus.OPEN);
+        report.setIdentifyCard("123456789");
+
+        lostCardReportPolicy.validateState(report);
+
+        assertEquals("123456789", report.getIdentifyCard());
+    }
+
+    @Test
+    void shouldRejectInvalidRegistrationLicense() {
+        LostCardReport report = validReport(LostCardReportStatus.OPEN);
+        report.setIdentifyCard(null);
+        report.setRegistrationLicense("A<1>");
+
+        assertThrows(BadRequestException.class, () -> lostCardReportPolicy.validateState(report));
+    }
+
+    @Test
+    void shouldRequireIdentifyCardOrRegistrationLicense() {
+        LostCardReport report = validReport(LostCardReportStatus.OPEN);
+        report.setIdentifyCard(null);
+        report.setRegistrationLicense(" ");
 
         assertThrows(BadRequestException.class, () -> lostCardReportPolicy.validateState(report));
     }
