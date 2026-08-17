@@ -2,7 +2,9 @@ package com.ban.vehicle_management.entrypoint.controller.accesscontrol;
 
 import com.ban.vehicle_management.application.accesscontrol.card.mapper.CardApiMapper;
 import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardLifecyclePortIn;
+import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardBatchIssuancePortIn;
 import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardPortIn;
+import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardReclassificationPortIn;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
@@ -17,8 +19,10 @@ import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVe
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.CardFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.BlockCardRequest;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.CreateCardBatchRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.CreateCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.RecoverLostCardRequest;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.ReclassifyCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.RetireCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.UpdateCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.response.CardAdminResponse;
@@ -47,7 +51,9 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 public class CardController {
 
     private final CardPortIn cardPortIn;
+    private final CardBatchIssuancePortIn cardBatchIssuancePortIn;
     private final CardLifecyclePortIn cardLifecyclePortIn;
+    private final CardReclassificationPortIn cardReclassificationPortIn;
     private final CardApiMapper cardApiMapper;
     private final SubscriptionPortOut subscriptionPortOut;
     private final CustomerVehiclePortOut customerVehiclePortOut;
@@ -57,7 +63,9 @@ public class CardController {
 
     public CardController(
             CardPortIn cardPortIn,
+            CardBatchIssuancePortIn cardBatchIssuancePortIn,
             CardLifecyclePortIn cardLifecyclePortIn,
+            CardReclassificationPortIn cardReclassificationPortIn,
             CardApiMapper cardApiMapper,
             SubscriptionPortOut subscriptionPortOut,
             CustomerVehiclePortOut customerVehiclePortOut,
@@ -66,7 +74,9 @@ public class CardController {
             TicketTypePortOut ticketTypePortOut
     ) {
         this.cardPortIn = cardPortIn;
+        this.cardBatchIssuancePortIn = cardBatchIssuancePortIn;
         this.cardLifecyclePortIn = cardLifecyclePortIn;
+        this.cardReclassificationPortIn = cardReclassificationPortIn;
         this.cardApiMapper = cardApiMapper;
         this.subscriptionPortOut = subscriptionPortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
@@ -137,6 +147,31 @@ public class CardController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Khóa thẻ thành công",
                 cardApiMapper.toAdminResponse(updatedCard)
+        ));
+    }
+
+    @PatchMapping("/{cardId}/reclassify")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<CardAdminResponse>> reclassifyCard(
+            @PathVariable UUID cardId,
+            @RequestBody ReclassifyCardRequest request
+    ) {
+        Card updatedCard = cardReclassificationPortIn.reclassifyCard(cardId, request.targetCardTypeId(), request.reason());
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Phân loại lại thẻ thành công",
+                cardApiMapper.toAdminResponse(updatedCard)
+        ));
+    }
+
+    @PostMapping("/batch")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_CREATE_ALL')")
+    public ResponseEntity<ApiResponse<List<CardAdminResponse>>> createCardsBatch(
+            @RequestBody CreateCardBatchRequest request
+    ) {
+        List<Card> createdCards = cardBatchIssuancePortIn.createCards(request.cardTypeId(), request.quantity());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                "Cấp thẻ hàng loạt thành công",
+                cardApiMapper.toAdminResponses(createdCards)
         ));
     }
 

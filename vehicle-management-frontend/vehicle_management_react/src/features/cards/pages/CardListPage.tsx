@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import {
   blockCard,
   createCard,
+  createCardsBatch,
   fetchCards,
   fetchCardTypes,
+  reclassifyCard,
   retireCard,
   unblockCard,
-  updateCard,
-  type CardPayload,
   type CardResponse,
   type CardStatus,
   type CardTypeResponse,
@@ -36,13 +36,10 @@ import { Modal } from "@/shared/components/ui/Modal";
 import { SelectMenu, type SelectMenuOption } from "@/shared/components/ui/SelectMenu";
 import { useToast } from "@/shared/components/ui/ToastProvider";
 
-type EditorState = {
-  mode: "create" | "edit";
-  row: CardManageRecord | null;
-};
+type LifecycleCardTableAction = Exclude<CardTableAction, "reclassify">;
 
 type ActionDialogState = {
-  action: CardTableAction;
+  action: LifecycleCardTableAction;
   row: CardManageRecord;
 } | null;
 
@@ -89,7 +86,6 @@ const emptyCounts: Record<CardStatusTabValue, number> = {
   retired: 0,
 };
 
-const defaultSparkline = [12, 16, 14, 21, 18, 24, 20, 28, 23, 31, 27, 35];
 const LOST_CARD_REPORT_HISTORY_START = "2000-01-01T00:00:00.000Z";
 
 function formatCount(value: number) {
@@ -231,42 +227,29 @@ function buildSummaryMetrics(records: CardManageRecord[]): CardSummaryMetric[] {
   const inUseCount = records.filter((record) => record.inventoryStatus === "in_use").length;
   const assignedCount = records.filter((record) => record.inventoryStatus === "assigned" || record.inventoryStatus === "reserved").length;
   const issueCount = records.filter((record) => ["blocked", "lost"].includes(record.inventoryStatus)).length;
-
   return [
     {
       accent: "blue",
-      delta: "Từ dữ liệu hiện tại",
-      deltaTone: "green",
       icon: "card",
       label: "Thẻ sẵn sàng",
-      sparkline: defaultSparkline,
       value: formatCount(availableCount),
     },
     {
       accent: "green",
-      delta: "Đang có phiên vận hành",
-      deltaTone: "green",
       icon: "user",
       label: "Thẻ đang dùng",
-      sparkline: defaultSparkline,
       value: formatCount(inUseCount),
     },
     {
       accent: "amber",
-      delta: "Đã gán hoặc đã giữ",
-      deltaTone: "green",
       icon: "clock",
       label: "Thẻ đăng ký",
-      sparkline: defaultSparkline,
       value: formatCount(assignedCount),
     },
     {
       accent: "red",
-      delta: "Khóa hoặc mất",
-      deltaTone: issueCount > 0 ? "red" : "green",
       icon: "alert",
       label: "Cần xử lý",
-      sparkline: defaultSparkline,
       value: formatCount(issueCount),
     },
   ];
@@ -288,31 +271,94 @@ function filterRecords(
 
 function CardEditorModal({
   cardTypeOptions,
-  editor,
+  isOpen,
   isSaving,
   onClose,
   onSubmit,
 }: {
   cardTypeOptions: SelectMenuOption[];
-  editor: EditorState | null;
+  isOpen: boolean;
   isSaving: boolean;
   onClose: () => void;
-  onSubmit: (payload: CardPayload) => void;
+  onSubmit: (cardTypeId: string) => void;
 }) {
-  const [form, setForm] = useState<CardPayload>({ cardNumber: "", cardTypeId: "", uid: "" });
+  const [cardTypeId, setCardTypeId] = useState("");
 
   useEffect(() => {
-    if (!editor) return;
-    setForm({
-      cardNumber: editor.row?.cardCode ?? "",
-      cardTypeId: editor.row?.cardTypeId ?? cardTypeOptions[0]?.value ?? "",
-      uid: editor.row?.uid ?? "",
-    });
-  }, [cardTypeOptions, editor]);
+    if (isOpen) setCardTypeId(cardTypeOptions[0]?.value ?? "");
+  }, [cardTypeOptions, isOpen]);
 
-  const title = editor?.mode === "edit" ? "Cập nhật thẻ" : "Cấp thẻ mới";
-  const canSubmit = form.cardNumber.trim() && form.uid.trim() && form.cardTypeId.trim();
-  const canChangeCardType = editor?.mode !== "edit" || editor.row?.inventoryStatus === "available";
+  return (
+    <Modal
+      actions={
+        <div className="tw-flex tw-justify-end tw-gap-3">
+          <button className="tw-inline-flex tw-min-h-10 tw-items-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-font-bold tw-text-vm-slate-700" type="button" onClick={onClose}>
+            Hủy
+          </button>
+          <button
+            className="tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-font-bold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60"
+            disabled={isSaving || !cardTypeId}
+            type="button"
+            onClick={() => onSubmit(cardTypeId)}
+          >
+            {isSaving ? <i className="fas fa-spinner fa-spin" /> : null}
+            {isSaving ? "Đang lưu..." : "Lưu thẻ"}
+          </button>
+        </div>
+      }
+      description="Chọn loại thẻ. Hệ thống tự sinh mã thẻ theo dãy R001/V001 và UID/RFID dạng UUID."
+      onClose={onClose}
+      open={isOpen}
+      title="Cấp thẻ mới"
+    >
+      <div className="tw-grid tw-gap-4">
+        <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-600/20 tw-bg-brand-600/5 tw-p-3 tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-700">
+          <i className="fas fa-wand-magic-sparkles tw-mr-2 tw-text-vm-primary" />
+          Mã thẻ và UID/RFID sẽ được tự động tạo sau khi chọn loại thẻ.
+        </div>
+        <label className="tw-grid tw-gap-2">
+          <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Loại thẻ</span>
+          <SelectMenu
+            ariaLabel="Loại thẻ"
+            disabled={cardTypeOptions.length === 0}
+            options={cardTypeOptions.length > 0 ? cardTypeOptions : [{ label: "Chưa tải được loại thẻ", value: "" }]}
+            value={cardTypeId}
+            onChange={setCardTypeId}
+          />
+        </label>
+      </div>
+    </Modal>
+  );
+}
+
+function CardBatchCreateModal({
+  cardTypeOptions,
+  isOpen,
+  isSaving,
+  onClose,
+  onSubmit,
+}: {
+  cardTypeOptions: SelectMenuOption[];
+  isOpen: boolean;
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (cardTypeId: string, quantity: number) => void;
+}) {
+  const [cardTypeId, setCardTypeId] = useState("");
+  const [quantity, setQuantity] = useState("1");
+
+  useEffect(() => {
+    if (isOpen) {
+      setCardTypeId(cardTypeOptions[0]?.value ?? "");
+      setQuantity("1");
+    }
+  }, [cardTypeOptions, isOpen]);
+
+  const normalizedQuantity = Number(quantity);
+  const canSubmit = cardTypeId.length > 0
+    && Number.isInteger(normalizedQuantity)
+    && normalizedQuantity >= 1
+    && normalizedQuantity <= 100;
 
   return (
     <Modal
@@ -325,54 +371,48 @@ function CardEditorModal({
             className="tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-font-bold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60"
             disabled={isSaving || !canSubmit}
             type="button"
-            onClick={() => onSubmit({ cardNumber: form.cardNumber.trim(), cardTypeId: form.cardTypeId, uid: form.uid.trim() })}
+            onClick={() => onSubmit(cardTypeId, normalizedQuantity)}
           >
-            {isSaving ? <i className="fas fa-spinner fa-spin" /> : null}
-            {isSaving ? "Đang lưu..." : "Lưu thẻ"}
+            {isSaving ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-layer-group" />}
+            {isSaving ? "Đang cấp..." : "Cấp thẻ"}
           </button>
         </div>
       }
-      description="Nhập đúng mã thẻ vật lý, UID/RFID và loại thẻ để sử dụng trong luồng check-in/check-out."
+      description="Hệ thống sẽ cấp liên tiếp mã R... hoặc V... và UID/RFID UUID cho từng thẻ. Mỗi lần cấp tối đa 100 thẻ."
       onClose={onClose}
-      open={Boolean(editor)}
-      title={title}
+      open={isOpen}
+      title="Cấp thẻ hàng loạt"
     >
       <div className="tw-grid tw-gap-4">
         <label className="tw-grid tw-gap-2">
-          <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Mã thẻ</span>
-          <input
-            className="tw-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-px-3 tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-vm-focus"
-            placeholder="Ví dụ: V001"
-            value={form.cardNumber}
-            onChange={(event) => setForm((current) => ({ ...current, cardNumber: event.target.value }))}
-          />
-        </label>
-        <label className="tw-grid tw-gap-2">
-          <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">UID / RFID</span>
-          <input
-            className="tw-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-px-3 tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-vm-focus"
-            placeholder="Ví dụ: RFID-VISITOR-001"
-            value={form.uid}
-            onChange={(event) => setForm((current) => ({ ...current, uid: event.target.value }))}
-          />
-        </label>
-        <label className="tw-grid tw-gap-2">
           <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Loại thẻ</span>
           <SelectMenu
-            ariaLabel="Loại thẻ"
-            disabled={cardTypeOptions.length === 0 || !canChangeCardType}
+            ariaLabel="Loại thẻ cấp hàng loạt"
+            disabled={cardTypeOptions.length === 0}
             options={cardTypeOptions.length > 0 ? cardTypeOptions : [{ label: "Chưa tải được loại thẻ", value: "" }]}
-            value={form.cardTypeId}
-            onChange={(value) => setForm((current) => ({ ...current, cardTypeId: value }))}
+            value={cardTypeId}
+            onChange={setCardTypeId}
           />
-          {!canChangeCardType ? <span className="tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Chỉ có thể đổi loại thẻ khi thẻ ở trạng thái sẵn sàng.</span> : null}
+        </label>
+        <label className="tw-grid tw-gap-2">
+          <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Số lượng</span>
+          <input
+            className="tw-h-11 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-px-3 tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-vm-focus"
+            inputMode="numeric"
+            max={100}
+            min={1}
+            type="number"
+            value={quantity}
+            onChange={(event) => setQuantity(event.target.value)}
+          />
+          <span className="tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Từ 1 đến 100 thẻ mỗi lần cấp.</span>
         </label>
       </div>
     </Modal>
   );
 }
 
-const actionDialogMeta: Record<CardTableAction, { icon: string; title: string; description: string; confirmLabel: string; confirmClassName: string; requiresReason: boolean }> = {
+const actionDialogMeta: Record<LifecycleCardTableAction, { icon: string; title: string; description: string; confirmLabel: string; confirmClassName: string; requiresReason: boolean }> = {
   block: {
     confirmClassName: "tw-border-vm-primary tw-bg-vm-primary tw-text-white",
     confirmLabel: "Khóa thẻ",
@@ -467,6 +507,82 @@ function CardActionModal({
   );
 }
 
+function ReclassifyCardModal({
+  cardTypeOptions,
+  isSaving,
+  onClose,
+  onSubmit,
+  row,
+}: {
+  cardTypeOptions: SelectMenuOption[];
+  isSaving: boolean;
+  onClose: () => void;
+  onSubmit: (targetCardTypeId: string, reason: string) => void;
+  row: CardManageRecord | null;
+}) {
+  const [targetCardTypeId, setTargetCardTypeId] = useState("");
+  const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    if (!row) return;
+    setTargetCardTypeId(cardTypeOptions.find((option) => option.value !== row.cardTypeId)?.value ?? "");
+    setReason("");
+  }, [cardTypeOptions, row]);
+
+  const canSubmit = Boolean(targetCardTypeId) && targetCardTypeId !== row?.cardTypeId && reason.trim().length > 0;
+
+  return (
+    <Modal
+      actions={
+        <div className="tw-flex tw-justify-end tw-gap-3">
+          <button className="tw-inline-flex tw-min-h-10 tw-items-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-font-bold tw-text-vm-slate-700" type="button" onClick={onClose}>
+            Hủy
+          </button>
+          <button
+            className="tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-font-bold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60"
+            disabled={isSaving || !canSubmit}
+            type="button"
+            onClick={() => onSubmit(targetCardTypeId, reason.trim())}
+          >
+            {isSaving ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-right-left" />}
+            {isSaving ? "Đang phân loại..." : "Phân loại lại"}
+          </button>
+        </div>
+      }
+      description="Chỉ áp dụng cho thẻ sẵn sàng chưa phát sinh vé tháng, phiên gửi xe hoặc báo mất. Mã thẻ sẽ được sinh lại theo loại đích; UID/RFID giữ nguyên. Không cần phê duyệt."
+      onClose={onClose}
+      open={Boolean(row)}
+      title="Phân loại lại thẻ"
+    >
+      <div className="tw-grid tw-gap-4">
+        <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-700">
+          Thẻ: <strong>{row?.cardCode}</strong> · UID/RFID: <strong>{row?.uid}</strong>
+        </div>
+        <label className="tw-grid tw-gap-2">
+          <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Loại thẻ mới</span>
+          <SelectMenu
+            ariaLabel="Loại thẻ mới"
+            disabled={cardTypeOptions.length === 0}
+            options={cardTypeOptions.length > 0 ? cardTypeOptions : [{ label: "Chưa tải được loại thẻ", value: "" }]}
+            value={targetCardTypeId}
+            onChange={setTargetCardTypeId}
+          />
+        </label>
+        <label className="tw-grid tw-gap-2">
+          <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Lý do phân loại lại</span>
+          <textarea
+            className="tw-min-h-[110px] tw-resize-none tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-px-3 tw-py-2.5 tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-vm-focus"
+            maxLength={500}
+            placeholder="Ví dụ: Điều chỉnh lô thẻ chưa phát hành..."
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </label>
+      </div>
+    </Modal>
+  );
+}
+
 export function CardListPage() {
   const toast = useToast();
   const [activeStatus, setActiveStatus] = useState<CardStatusTabValue>("all");
@@ -479,14 +595,16 @@ export function CardListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
   const [isExportDrawerOpen, setIsExportDrawerOpen] = useState(false);
+  const [isBatchCreateOpen, setIsBatchCreateOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [isLostCardReportLoading, setIsLostCardReportLoading] = useState(false);
   const [cardTypes, setCardTypes] = useState<CardTypeResponse[]>([]);
   const [cards, setCards] = useState<CardResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [editor, setEditor] = useState<EditorState | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [actionDialog, setActionDialog] = useState<ActionDialogState>(null);
+  const [reclassificationRow, setReclassificationRow] = useState<CardManageRecord | null>(null);
   const [loadError, setLoadError] = useState("");
   const [selectedLostCardReport, setSelectedLostCardReport] = useState<LostCardReportResponse | null>(null);
   const [selectedLostCardReportError, setSelectedLostCardReportError] = useState<string | null>(null);
@@ -636,19 +754,13 @@ export function CardListPage() {
     setCheckedIds(allVisibleChecked ? [] : visibleIds);
   };
 
-  const handleEditorSubmit = async (payload: CardPayload) => {
-    if (!editor) return;
+  const handleEditorSubmit = async (cardTypeId: string) => {
     setIsSaving(true);
     setLoadError("");
     try {
-      if (editor.mode === "edit" && editor.row) {
-        await updateCard(editor.row.id, payload);
-        toast.success("Đã cập nhật thông tin thẻ.", "Cập nhật thành công");
-      } else {
-        await createCard(payload);
-        toast.success("Đã cấp thẻ mới.", "Thêm mới thành công");
-      }
-      setEditor(null);
+      const createdCard = await createCard({ cardTypeId });
+      toast.success(`Đã cấp thẻ ${createdCard.cardNumber}.`, "Thêm mới thành công");
+      setIsCreateModalOpen(false);
       reloadCards();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không lưu được thông tin thẻ.", "Thao tác thất bại");
@@ -665,6 +777,40 @@ export function CardListPage() {
       reloadCards();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không khóa được thẻ.", "Thao tác thất bại");
+    }
+  };
+
+  const handleReclassifyCard = async (targetCardTypeId: string, reason: string) => {
+    if (!reclassificationRow) return;
+    setIsSaving(true);
+    setLoadError("");
+    try {
+      const updatedCard = await reclassifyCard(reclassificationRow.id, { reason, targetCardTypeId });
+      toast.success(`Đã phân loại lại thẻ thành ${updatedCard.cardNumber}; UID/RFID được giữ nguyên.`, "Phân loại lại thành công");
+      setReclassificationRow(null);
+      reloadCards();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể phân loại lại thẻ.", "Thao tác thất bại");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleBatchCreate = async (cardTypeId: string, quantity: number) => {
+    setIsSaving(true);
+    setLoadError("");
+    try {
+      const createdCards = await createCardsBatch({ cardTypeId, quantity });
+      const firstCardNumber = createdCards[0]?.cardNumber;
+      const lastCardNumber = createdCards[createdCards.length - 1]?.cardNumber;
+      const cardRange = firstCardNumber && lastCardNumber ? ` (${firstCardNumber} – ${lastCardNumber})` : "";
+      toast.success(`Đã cấp ${createdCards.length} thẻ${cardRange}.`, "Cấp hàng loạt thành công");
+      setIsBatchCreateOpen(false);
+      reloadCards();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không cấp được thẻ hàng loạt.", "Thao tác thất bại");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -724,7 +870,10 @@ export function CardListPage() {
       <section className="content tw-pb-8">
         <div className="container-fluid tw-max-w-[1480px]">
           <div className="tw-flex tw-flex-col tw-gap-[1.1rem] tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/90 tw-bg-white tw-p-4 tw-pt-[0.85rem] tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
-            <CardManageHeader onCreate={() => setEditor({ mode: "create", row: null })} />
+            <CardManageHeader
+              onCreate={() => setIsCreateModalOpen(true)}
+              onCreateBatch={() => setIsBatchCreateOpen(true)}
+            />
             <CardSummaryGrid items={summaryMetrics} />
             <div className="tw-flex tw-items-center tw-gap-[0.7rem] max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
               <CardStatusTabs activeValue={activeStatus} counts={statusCounts} onChange={setActiveStatus} tabs={cardStatusTabs} />
@@ -765,13 +914,18 @@ export function CardListPage() {
                   checkedIds={checkedIds}
                   currentPage={safeCurrentPage}
                   isLoading={isLoading}
-                  onEditRow={(row) => setEditor({ mode: "edit", row })}
                   onPageChange={setCurrentPage}
                   onPageSizeChange={(value) => {
                     setPageSize(value);
                     setCurrentPage(1);
                   }}
-                  onRequestAction={(row, action) => setActionDialog({ action, row })}
+                  onRequestAction={(row, action) => {
+                    if (action === "reclassify") {
+                      setReclassificationRow(row);
+                      return;
+                    }
+                    setActionDialog({ action, row });
+                  }}
                   onSelectRow={(id) => {
                     setSelectedId(id);
                     setIsDetailDrawerOpen(true);
@@ -798,8 +952,22 @@ export function CardListPage() {
         onClose={() => setIsDetailDrawerOpen(false)}
       />
       <CardExportDrawer isOpen={isExportDrawerOpen} totalRecords={filteredRecords.length} onClose={() => setIsExportDrawerOpen(false)} />
-      <CardEditorModal cardTypeOptions={editorCardTypeOptions} editor={editor} isSaving={isSaving} onClose={() => setEditor(null)} onSubmit={handleEditorSubmit} />
+      <CardEditorModal cardTypeOptions={editorCardTypeOptions} isOpen={isCreateModalOpen} isSaving={isSaving} onClose={() => setIsCreateModalOpen(false)} onSubmit={handleEditorSubmit} />
+      <CardBatchCreateModal
+        cardTypeOptions={editorCardTypeOptions}
+        isOpen={isBatchCreateOpen}
+        isSaving={isSaving}
+        onClose={() => setIsBatchCreateOpen(false)}
+        onSubmit={handleBatchCreate}
+      />
       <CardActionModal actionDialog={actionDialog} isSaving={isSaving} onClose={() => setActionDialog(null)} onSubmit={handleActionDialogSubmit} />
+      <ReclassifyCardModal
+        cardTypeOptions={editorCardTypeOptions}
+        isSaving={isSaving}
+        row={reclassificationRow}
+        onClose={() => setReclassificationRow(null)}
+        onSubmit={handleReclassifyCard}
+      />
     </div>
   );
 }

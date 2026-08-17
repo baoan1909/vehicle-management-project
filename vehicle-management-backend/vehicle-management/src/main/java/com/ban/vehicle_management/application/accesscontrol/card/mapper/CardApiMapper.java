@@ -14,6 +14,8 @@ import org.mapstruct.Mapping;
 public interface CardApiMapper {
 
     @Mapping(target = "cardId", ignore = true)
+    @Mapping(target = "cardNumber", ignore = true)
+    @Mapping(target = "uid", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "issuedAt", ignore = true)
     @Mapping(target = "statusBeforeBlocked", ignore = true)

@@ -10,12 +10,14 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.accesscontrol.CardSpecifications;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardNumberSeries;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -26,6 +28,7 @@ public class CardPersistenceAdapter implements CardPortOut {
     private final LostCardReportRepository lostCardReportRepository;
     private final ParkingSessionRepository parkingSessionRepository;
     private final CardPersistenceMapper cardPersistenceMapper;
+    private final EntityManager entityManager;
     private static final String CARD_TYPE_REGISTERED = "REGISTERED";
 
     public CardPersistenceAdapter(
@@ -33,19 +36,28 @@ public class CardPersistenceAdapter implements CardPortOut {
             SubscriptionRepository subscriptionRepository,
             LostCardReportRepository lostCardReportRepository,
             ParkingSessionRepository parkingSessionRepository,
-            CardPersistenceMapper cardPersistenceMapper
+            CardPersistenceMapper cardPersistenceMapper,
+            EntityManager entityManager
     ) {
         this.cardRepository = cardRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.lostCardReportRepository = lostCardReportRepository;
         this.parkingSessionRepository = parkingSessionRepository;
         this.cardPersistenceMapper = cardPersistenceMapper;
+        this.entityManager = entityManager;
     }
 
     @Override
     public Card save(Card card) {
         CardEntity savedCardEntity = cardRepository.saveAndFlush(cardPersistenceMapper.toEntity(card));
         return cardPersistenceMapper.toDomain(savedCardEntity);
+    }
+
+    @Override
+    public List<Card> saveAll(List<Card> cards) {
+        List<CardEntity> savedCardEntities = cardRepository.saveAll(cardPersistenceMapper.toEntities(cards));
+        cardRepository.flush();
+        return cardPersistenceMapper.toDomains(savedCardEntities);
     }
 
     @Override
@@ -97,6 +109,19 @@ public class CardPersistenceAdapter implements CardPortOut {
     @Override
     public boolean existsByUidAndCardIdNot(String uid, UUID cardId) {
         return cardRepository.existsByUidAndCardIdNot(uid, cardId);
+    }
+
+    @Override
+    public long nextCardNumberSequence(CardNumberSeries series) {
+        String sequenceName = switch (series) {
+            case REGISTERED -> "access_control.registered_card_number_seq";
+            case VISITOR -> "access_control.visitor_card_number_seq";
+        };
+
+        return ((Number) entityManager
+                .createNativeQuery("SELECT nextval('" + sequenceName + "')")
+                .getSingleResult())
+                .longValue();
     }
 
     @Override

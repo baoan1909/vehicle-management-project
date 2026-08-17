@@ -65,10 +65,18 @@ export type CardFilters = {
   status?: CardStatus;
 };
 
-export type CardPayload = {
-  cardNumber: string;
+export type CreateCardPayload = {
   cardTypeId: string;
-  uid: string;
+};
+
+export type CreateCardBatchPayload = {
+  cardTypeId: string;
+  quantity: number;
+};
+
+export type ReclassifyCardPayload = {
+  reason: string;
+  targetCardTypeId: string;
 };
 
 function toQueryString(params: Record<string, string | undefined>) {
@@ -97,7 +105,7 @@ export async function fetchCardTypes() {
   return response.data ?? [];
 }
 
-export async function createCard(payload: CardPayload) {
+export async function createCard(payload: CreateCardPayload) {
   const response = await apiClient<ApiResponse<CardResponse>>(apiEndpoints.cards.cards, {
     body: payload,
     method: "POST",
@@ -105,10 +113,10 @@ export async function createCard(payload: CardPayload) {
   return response.data;
 }
 
-export async function updateCard(cardId: string, payload: CardPayload) {
-  const response = await apiClient<ApiResponse<CardResponse>>(`${apiEndpoints.cards.cards}/${cardId}`, {
+export async function reclassifyCard(cardId: string, payload: ReclassifyCardPayload) {
+  const response = await apiClient<ApiResponse<CardResponse>>(`${apiEndpoints.cards.cards}/${cardId}/reclassify`, {
     body: payload,
-    method: "PUT",
+    method: "PATCH",
   });
   return response.data;
 }
@@ -119,6 +127,14 @@ export async function blockCard(cardId: string, reason: string) {
     method: "PATCH",
   });
   return response.data;
+}
+
+export async function createCardsBatch(payload: CreateCardBatchPayload) {
+  const response = await apiClient<ApiResponse<CardResponse[]>>(`${apiEndpoints.cards.cards}/batch`, {
+    body: payload,
+    method: "POST",
+  });
+  return response.data ?? [];
 }
 
 export async function unblockCard(cardId: string) {
