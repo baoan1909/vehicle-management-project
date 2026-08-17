@@ -52,11 +52,8 @@ export interface CardManageRecord {
 export interface CardSummaryMetric {
   label: string;
   value: string;
-  delta: string;
-  deltaTone: "green" | "red";
   icon: "card" | "user" | "clock" | "alert";
   accent: "blue" | "green" | "amber" | "red";
-  sparkline: number[];
 }
 
 export const cardStatusTabs: Array<{ value: CardStatusTabValue; label: string }> = [
@@ -66,4 +63,5 @@ export const cardStatusTabs: Array<{ value: CardStatusTabValue; label: string }>
   { value: "in_use", label: "Trong bãi" },
   { value: "lost", label: "Mất thẻ" },
   { value: "blocked", label: "Khóa" },
+  { value: "retired", label: "Ngưng sử dụng" },
 ];

@@ -30,6 +30,15 @@ public class CardPolicy {
         validateState(card);
     }
 
+    public void reclassify(Card card, UUID targetCardTypeId, String nextCardNumber) {
+        requireStatus(card, CardStatus.AVAILABLE);
+        requireField(targetCardTypeId, "targetCardTypeId");
+        nextCardNumber = TextValidationUtils.normalizeRequiredText(nextCardNumber, "cardNumber", 50);
+
+        card.setCardTypeId(targetCardTypeId);
+        card.setCardNumber(nextCardNumber);
+    }
+
     public void assign(Card card, Instant issuedAt) {
         requireStatus(card, CardStatus.AVAILABLE);
         requireField(issuedAt, "issuedAt");

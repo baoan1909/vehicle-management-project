@@ -5,15 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
+import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPortOut;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardNumberSeries;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -39,6 +42,9 @@ class CardUseCaseImplTest {
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
 
+    @Mock
+    private AuditLogPortOut auditLogPortOut;
+
     @InjectMocks
     private CardUseCaseImpl cardUseCase;
 
@@ -46,21 +52,20 @@ class CardUseCaseImplTest {
     void shouldCreateCardWithDefaultAvailableStatus() {
         UUID cardTypeId = UUID.randomUUID();
         Card requestCard = new Card();
-        requestCard.setCardNumber(" C001 ");
-        requestCard.setUid(" UID-001 ");
         requestCard.setCardTypeId(cardTypeId);
 
-        when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(new CardType()));
-        when(cardPort.existsByCardNumber("C001")).thenReturn(false);
-        when(cardPort.existsByUid("UID-001")).thenReturn(false);
-        when(cardPort.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(cardType("VISITOR")));
+        when(cardPort.nextCardNumberSequence(CardNumberSeries.VISITOR)).thenReturn(1L);
+        when(cardPort.existsByCardNumber("V001")).thenReturn(false);
+        when(cardPort.existsByUid(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+        when(cardPort.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
         Card createdCard = cardUseCase.createCard(requestCard);
 
         verify(currentAccountPortIn).requirePermission("CARD_CREATE_ALL");
         assertNotNull(createdCard.getCardId());
-        assertEquals("C001", createdCard.getCardNumber());
-        assertEquals("UID-001", createdCard.getUid());
+        assertEquals("V001", createdCard.getCardNumber());
+        assertNotNull(UUID.fromString(createdCard.getUid()));
         assertEquals(CardStatus.AVAILABLE, createdCard.getStatus());
     }
 
@@ -68,8 +73,6 @@ class CardUseCaseImplTest {
     void shouldRejectCreateWhenCardTypeDoesNotExist() {
         UUID cardTypeId = UUID.randomUUID();
         Card requestCard = new Card();
-        requestCard.setCardNumber("C001");
-        requestCard.setUid("UID-001");
         requestCard.setCardTypeId(cardTypeId);
 
         when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.empty());
@@ -92,65 +95,60 @@ class CardUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectUpdateWhenCardIsInUse() {
+    void shouldRejectDirectCardUpdate() {
         UUID cardId = UUID.randomUUID();
-        Card existingCard = existingCard(cardId, CardStatus.IN_USE);
-        Card requestCard = updateRequest(existingCard.getCardTypeId());
-
-        when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
-
-        assertThrows(BadRequestException.class, () -> cardUseCase.updateCard(cardId, requestCard));
-        verify(cardPort, never()).save(any(Card.class));
-    }
-
-    @Test
-    void shouldRejectCardTypeChangeWhenCardIsNotAvailable() {
-        UUID cardId = UUID.randomUUID();
-        Card existingCard = existingCard(cardId, CardStatus.RESERVED);
         Card requestCard = updateRequest(UUID.randomUUID());
 
-        when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
+        BadRequestException exception = assertThrows(BadRequestException.class, () -> cardUseCase.updateCard(cardId, requestCard));
 
-        assertThrows(BadRequestException.class, () -> cardUseCase.updateCard(cardId, requestCard));
+        assertEquals(
+                "Không hỗ trợ cập nhật trực tiếp mã thẻ, UID/RFID hoặc loại thẻ. Hãy dùng chức năng phân loại lại hoặc tái cấp/thay thẻ",
+                exception.getMessage()
+        );
         verify(cardPort, never()).save(any(Card.class));
     }
 
     @Test
-    void shouldRejectSensitiveUpdateAfterOperationalHistoryExists() {
+    void shouldReclassifyAvailableCardWithoutOperationalHistory() {
         UUID cardId = UUID.randomUUID();
+        UUID targetCardTypeId = UUID.randomUUID();
         Card existingCard = existingCard(cardId, CardStatus.AVAILABLE);
-        Card requestCard = updateRequest(existingCard.getCardTypeId());
-        requestCard.setCardNumber("C999");
 
-        when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
-        when(cardPort.hasOperationalHistory(cardId)).thenReturn(true);
-
-        assertThrows(BadRequestException.class, () -> cardUseCase.updateCard(cardId, requestCard));
-        verify(cardPort, never()).save(any(Card.class));
-    }
-
-    @Test
-    void shouldUpdateCardWhenMaintenanceDataIsAllowed() {
-        UUID cardId = UUID.randomUUID();
-        UUID cardTypeId = UUID.randomUUID();
-        Card existingCard = existingCard(cardId, CardStatus.AVAILABLE);
-        Card requestCard = new Card();
-        requestCard.setCardNumber(" C001 ");
-        requestCard.setUid(" UID-001 ");
-        requestCard.setCardTypeId(cardTypeId);
-
-        when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
-        when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(new CardType()));
-        when(cardPort.existsByCardNumberAndCardIdNot("C001", cardId)).thenReturn(false);
-        when(cardPort.existsByUidAndCardIdNot("UID-001", cardId)).thenReturn(false);
+        when(cardPort.findByIdForUpdate(cardId)).thenReturn(Optional.of(existingCard));
+        when(cardPort.hasOperationalHistory(cardId)).thenReturn(false);
+        when(cardTypePort.findById(targetCardTypeId)).thenReturn(Optional.of(cardType("VISITOR")));
+        when(cardPort.nextCardNumberSequence(CardNumberSeries.VISITOR)).thenReturn(7L);
+        when(cardPort.existsByCardNumber("V007")).thenReturn(false);
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
         when(cardPort.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Card updatedCard = cardUseCase.updateCard(cardId, requestCard);
+        Card updatedCard = cardUseCase.reclassifyCard(cardId, targetCardTypeId, "Chuyển lô thẻ chưa phát hành");
 
         verify(currentAccountPortIn).requirePermission("CARD_UPDATE_ALL");
-        assertEquals("C001", updatedCard.getCardNumber());
+        assertEquals("V007", updatedCard.getCardNumber());
         assertEquals("UID-001", updatedCard.getUid());
-        assertEquals(cardTypeId, updatedCard.getCardTypeId());
+        assertEquals(targetCardTypeId, updatedCard.getCardTypeId());
+        verify(auditLogPortOut).save(any());
+    }
+
+    @Test
+    void shouldRejectReclassificationWhenCardAlreadyHasOperationalHistory() {
+        UUID cardId = UUID.randomUUID();
+        Card existingCard = existingCard(cardId, CardStatus.AVAILABLE);
+
+        when(cardPort.findByIdForUpdate(cardId)).thenReturn(Optional.of(existingCard));
+        when(cardPort.hasOperationalHistory(cardId)).thenReturn(true);
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> cardUseCase.reclassifyCard(cardId, UUID.randomUUID(), "Điều chỉnh lô thẻ")
+        );
+
+        assertEquals(
+                "Thẻ đã phát sinh nghiệp vụ không thể phân loại lại. Hãy thực hiện tái cấp hoặc thay thẻ để bảo toàn lịch sử",
+                exception.getMessage()
+        );
+        verify(cardPort, never()).save(any(Card.class));
     }
 
     @Test
@@ -239,6 +237,22 @@ class CardUseCaseImplTest {
     }
 
     @Test
+    void shouldCreateBatchOfCardsWithConsecutiveNumbers() {
+        UUID cardTypeId = UUID.randomUUID();
+
+        when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(cardType("VISITOR")));
+        when(cardPort.nextCardNumberSequence(CardNumberSeries.VISITOR)).thenReturn(1L, 2L, 3L);
+        when(cardPort.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<Card> createdCards = cardUseCase.createCards(cardTypeId, 3);
+
+        assertEquals(List.of("V001", "V002", "V003"), createdCards.stream().map(Card::getCardNumber).toList());
+        createdCards.forEach(card -> assertNotNull(UUID.fromString(card.getUid())));
+        verify(currentAccountPortIn).requirePermission("CARD_CREATE_ALL");
+        verify(cardPort).saveAll(anyList());
+    }
+
+    @Test
     void shouldThrowWhenCardDoesNotExist() {
         UUID cardId = UUID.randomUUID();
         when(cardPort.findById(cardId)).thenReturn(Optional.empty());
@@ -247,20 +261,18 @@ class CardUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectDuplicateUidOnCreate() {
+    void shouldRejectDuplicateGeneratedCardNumberOnCreate() {
         UUID cardTypeId = UUID.randomUUID();
         Card requestCard = new Card();
-        requestCard.setCardNumber("C001");
-        requestCard.setUid("UID-001");
         requestCard.setCardTypeId(cardTypeId);
 
-        when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(new CardType()));
-        when(cardPort.existsByCardNumber("C001")).thenReturn(false);
-        when(cardPort.existsByUid("UID-001")).thenReturn(true);
+        when(cardTypePort.findById(cardTypeId)).thenReturn(Optional.of(cardType("REGISTERED")));
+        when(cardPort.nextCardNumberSequence(CardNumberSeries.REGISTERED)).thenReturn(1L);
+        when(cardPort.existsByCardNumber("R001")).thenReturn(true);
 
         ConflictException exception = assertThrows(ConflictException.class, () -> cardUseCase.createCard(requestCard));
 
-        assertEquals("UID thẻ đã tồn tại", exception.getMessage());
+        assertEquals("Mã thẻ đã tồn tại", exception.getMessage());
         verify(cardPort, never()).save(any(Card.class));
     }
 
@@ -282,5 +294,11 @@ class CardUseCaseImplTest {
         requestCard.setUid("UID-001");
         requestCard.setCardTypeId(cardTypeId);
         return requestCard;
+    }
+
+    private CardType cardType(String code) {
+        CardType cardType = new CardType();
+        cardType.setCode(code);
+        return cardType;
     }
 }

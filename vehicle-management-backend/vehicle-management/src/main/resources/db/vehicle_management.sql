@@ -1251,7 +1251,7 @@ VALUES
 -- Dữ liệu mẫu: thẻ, vé tháng và phiếu phê duyệt.
 INSERT INTO access_control.cards (card_id, card_number, uid, card_type_id, status, issued_at)
 VALUES
-    ('70000000-0000-0000-0000-000000000001', 'C001', 'RFID-REGISTERED-001', '42000000-0000-0000-0000-000000000001', 'ASSIGNED', '2026-05-01 08:10:00+07'),
+    ('70000000-0000-0000-0000-000000000001', 'R001', 'RFID-REGISTERED-001', '42000000-0000-0000-0000-000000000001', 'ASSIGNED', '2026-05-01 08:10:00+07'),
     ('70000000-0000-0000-0000-000000000002', 'V001', 'RFID-VISITOR-001', '42000000-0000-0000-0000-000000000002', 'IN_USE', '2026-05-14 07:30:00+07');
 
 INSERT INTO access_control.subscriptions (subscription_id, customer_id, customer_vehicle_id, card_id, ticket_type_id, price_rule_id, effective_from, effective_to, price, status, approved_by, approved_at, card_receipt_date)

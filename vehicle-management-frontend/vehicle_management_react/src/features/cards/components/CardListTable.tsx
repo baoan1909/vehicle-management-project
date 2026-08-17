@@ -6,7 +6,7 @@ import type { CardManageRecord } from "@/features/cards/components/cardManageDat
 import { cn } from "@/lib/cn";
 import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 
-export type CardTableAction = "block" | "retire";
+export type CardTableAction = "block" | "retire" | "reclassify";
 
 type ActionMenuPosition = {
   left: number;
@@ -14,14 +14,12 @@ type ActionMenuPosition = {
 };
 
 const ACTION_MENU_WIDTH = 176;
-const ACTION_MENU_HEIGHT = 82;
 const ACTION_MENU_GAP = 6;
 
 interface CardListTableProps {
   checkedIds: string[];
   currentPage: number;
   isLoading?: boolean;
-  onEditRow: (row: CardManageRecord) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   onRequestAction: (row: CardManageRecord, action: CardTableAction) => void;
@@ -68,7 +66,6 @@ export function CardListTable({
   checkedIds,
   currentPage,
   isLoading = false,
-  onEditRow,
   onPageChange,
   onPageSizeChange,
   onRequestAction,
@@ -131,10 +128,11 @@ export function CardListTable({
 
     const rect = trigger.getBoundingClientRect();
     const maxLeft = window.innerWidth - ACTION_MENU_WIDTH - 8;
-    const shouldOpenAbove = rect.bottom + ACTION_MENU_GAP + ACTION_MENU_HEIGHT > window.innerHeight - 8;
+    const menuHeight = rows.find((row) => row.id === rowId)?.inventoryStatus === "available" ? 118 : 82;
+    const shouldOpenAbove = rect.bottom + ACTION_MENU_GAP + menuHeight > window.innerHeight - 8;
     setMenuPosition({
       left: Math.max(8, Math.min(rect.right - ACTION_MENU_WIDTH, maxLeft)),
-      top: shouldOpenAbove ? Math.max(8, rect.top - ACTION_MENU_HEIGHT - ACTION_MENU_GAP) : rect.bottom + ACTION_MENU_GAP,
+      top: shouldOpenAbove ? Math.max(8, rect.top - menuHeight - ACTION_MENU_GAP) : rect.bottom + ACTION_MENU_GAP,
     });
     setOpenMenuId(rowId);
   };
@@ -149,6 +147,9 @@ export function CardListTable({
           {[
             { action: "block" as const, icon: openMenuRow.inventoryStatus === "blocked" ? "fas fa-unlock" : "fas fa-lock", label: openMenuRow.inventoryStatus === "blocked" ? "Mở khóa thẻ" : "Khóa thẻ" },
             { action: "retire" as const, icon: "far fa-trash-alt", label: "Ngưng sử dụng" },
+            ...(openMenuRow.inventoryStatus === "available"
+              ? [{ action: "reclassify" as const, icon: "fas fa-right-left", label: "Phân loại lại" }]
+              : []),
           ].map((item) => (
             <button
               className="tw-flex tw-min-h-9 tw-w-full tw-items-center tw-gap-2.5 tw-border-0 tw-bg-transparent tw-px-3 tw-text-left tw-text-[0.86rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 hover:tw-text-vm-primary"
@@ -239,17 +240,6 @@ export function CardListTable({
                   </td>
                   <td className="tw-w-[96px]">
                     <div className="tw-flex tw-items-center tw-justify-center tw-gap-1.5">
-                      <button
-                        aria-label={`Cập nhật thẻ ${row.cardCode}`}
-                        className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-brand-50 tw-text-[0.82rem] tw-text-vm-primary tw-transition hover:tw-bg-brand-100"
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onEditRow(row);
-                        }}
-                      >
-                        <i className="far fa-edit" />
-                      </button>
                       <button
                         aria-expanded={openMenuId === row.id}
                         aria-label={`Mở menu thao tác thẻ ${row.cardCode}`}
