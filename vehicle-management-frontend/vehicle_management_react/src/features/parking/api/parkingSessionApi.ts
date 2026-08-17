@@ -12,7 +12,7 @@ type ApiResponse<T> = {
 
 export type LaneDirection = "IN" | "OUT";
 export type LaneStatus = "ACTIVE" | "MAINTENANCE" | "CLOSED";
-export type ParkingCardStatus = "AVAILABLE" | "ASSIGNED" | "IN_USE" | "BLOCKED" | "LOST" | "DAMAGED" | "RETIRED" | "RESERVED";
+export type ParkingCardStatus = "AVAILABLE" | "ASSIGNED" | "IN_USE" | "BLOCKED" | "LOST" | "RETIRED" | "RESERVED";
 export type ZoneStatus = "ACTIVE" | "MAINTENANCE" | "CLOSED";
 
 export type LaneResponse = {

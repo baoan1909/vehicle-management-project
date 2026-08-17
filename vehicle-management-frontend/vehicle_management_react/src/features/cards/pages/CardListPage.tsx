@@ -1,16 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  changeCardStatus,
+  blockCard,
   createCard,
   fetchCards,
   fetchCardTypes,
   retireCard,
+  unblockCard,
   updateCard,
   type CardPayload,
   type CardResponse,
   type CardStatus,
   type CardTypeResponse,
 } from "@/features/cards/api/cardApi";
+import {
+  getLostCardReports,
+  type LostCardReportResponse,
+} from "@/features/cards/api/lostCardReportsApi";
 import { CardDetailPanel } from "@/features/cards/components/CardDetailPanel";
 import { CardExportDrawer } from "@/features/cards/components/CardExportDrawer";
 import { CardListTable, type CardTableAction } from "@/features/cards/components/CardListTable";
@@ -45,7 +50,6 @@ const inventoryStatusByBackendStatus: Record<CardStatus, CardInventoryStatus> = 
   ASSIGNED: "assigned",
   AVAILABLE: "available",
   BLOCKED: "blocked",
-  DAMAGED: "damaged",
   IN_USE: "in_use",
   LOST: "lost",
   RESERVED: "reserved",
@@ -56,7 +60,6 @@ const inventoryStatusLabels: Record<CardInventoryStatus, string> = {
   assigned: "Đã gán",
   available: "Sẵn sàng",
   blocked: "Khóa",
-  damaged: "Hỏng",
   in_use: "Trong bãi",
   lost: "Mất thẻ",
   reserved: "Đã giữ",
@@ -80,7 +83,6 @@ const emptyCounts: Record<CardStatusTabValue, number> = {
   assigned: 0,
   available: 0,
   blocked: 0,
-  damaged: 0,
   in_use: 0,
   lost: 0,
   reserved: 0,
@@ -88,6 +90,7 @@ const emptyCounts: Record<CardStatusTabValue, number> = {
 };
 
 const defaultSparkline = [12, 16, 14, 21, 18, 24, 20, 28, 23, 31, 27, 35];
+const LOST_CARD_REPORT_HISTORY_START = "2000-01-01T00:00:00.000Z";
 
 function formatCount(value: number) {
   return new Intl.NumberFormat("vi-VN").format(value);
@@ -168,6 +171,10 @@ function mapCardToRecord(card: CardResponse, cardTypeLookup: Map<string, string>
 
   return {
     blockedReason: card.blockedReason ?? null,
+    blockedBy: card.blockedBy ?? null,
+    blockedPreviousStatus: card.statusBeforeBlocked
+      ? inventoryStatusLabels[inventoryStatusByBackendStatus[card.statusBeforeBlocked]]
+      : null,
     cardCode: card.cardNumber,
     cardReceiptDate: formatDate(card.cardReceiptDate),
     cardTypeId: card.cardTypeId ?? null,
@@ -223,7 +230,7 @@ function buildSummaryMetrics(records: CardManageRecord[]): CardSummaryMetric[] {
   const availableCount = records.filter((record) => record.inventoryStatus === "available").length;
   const inUseCount = records.filter((record) => record.inventoryStatus === "in_use").length;
   const assignedCount = records.filter((record) => record.inventoryStatus === "assigned" || record.inventoryStatus === "reserved").length;
-  const issueCount = records.filter((record) => ["blocked", "lost", "damaged"].includes(record.inventoryStatus)).length;
+  const issueCount = records.filter((record) => ["blocked", "lost"].includes(record.inventoryStatus)).length;
 
   return [
     {
@@ -255,7 +262,7 @@ function buildSummaryMetrics(records: CardManageRecord[]): CardSummaryMetric[] {
     },
     {
       accent: "red",
-      delta: "Khóa, mất hoặc hỏng",
+      delta: "Khóa hoặc mất",
       deltaTone: issueCount > 0 ? "red" : "green",
       icon: "alert",
       label: "Cần xử lý",
@@ -374,28 +381,12 @@ const actionDialogMeta: Record<CardTableAction, { icon: string; title: string; d
     requiresReason: true,
     title: "Khóa thẻ",
   },
-  damaged: {
-    confirmClassName: "tw-border-amber-500 tw-bg-amber-500 tw-text-white",
-    confirmLabel: "Báo hỏng",
-    description: "Thẻ sẽ được chuyển sang trạng thái hỏng để tách khỏi luồng vận hành.",
-    icon: "fas fa-tools",
-    requiresReason: false,
-    title: "Báo hỏng thẻ",
-  },
-  lost: {
-    confirmClassName: "tw-border-red-500 tw-bg-red-500 tw-text-white",
-    confirmLabel: "Báo mất thẻ",
-    description: "Thẻ sẽ được đánh dấu mất để không tiếp tục sử dụng cho các phiên gửi xe.",
-    icon: "far fa-exclamation-circle",
-    requiresReason: false,
-    title: "Báo mất thẻ",
-  },
   retire: {
     confirmClassName: "tw-border-slate-700 tw-bg-slate-700 tw-text-white",
     confirmLabel: "Ngưng sử dụng",
-    description: "Thẻ sẽ được xóa mềm khỏi danh sách thẻ đang vận hành.",
+    description: "Thẻ sẽ được ngưng sử dụng vĩnh viễn. Nhập lý do, ví dụ: Hỏng vật lý.",
     icon: "far fa-trash-alt",
-    requiresReason: false,
+    requiresReason: true,
     title: "Ngưng sử dụng thẻ",
   },
 };
@@ -420,7 +411,9 @@ function CardActionModal({
   if (!actionDialog) return null;
 
   const meta = actionDialogMeta[actionDialog.action];
-  const canSubmit = !meta.requiresReason || reason.trim().length > 0;
+  const isUnblocking = actionDialog.action === "block" && actionDialog.row.inventoryStatus === "blocked";
+  const requiresReason = meta.requiresReason && !isUnblocking;
+  const canSubmit = !requiresReason || reason.trim().length > 0;
 
   return (
     <Modal
@@ -440,10 +433,10 @@ function CardActionModal({
           </button>
         </div>
       }
-      description={meta.description}
+      description={isUnblocking ? "Thẻ sẽ trở về trạng thái trước khi khóa nếu các liên kết nghiệp vụ vẫn hợp lệ." : meta.description}
       onClose={onClose}
       open={Boolean(actionDialog)}
-      title={meta.title}
+      title={isUnblocking ? "Mở khóa thẻ" : meta.title}
     >
       <div className="tw-grid tw-gap-4">
         <div className="tw-flex tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
@@ -456,7 +449,7 @@ function CardActionModal({
           </div>
         </div>
 
-        {meta.requiresReason ? (
+        {requiresReason ? (
           <label className="tw-grid tw-gap-2">
             <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Lý do</span>
             <textarea
@@ -487,6 +480,7 @@ export function CardListPage() {
   const [pageSize, setPageSize] = useState(5);
   const [isExportDrawerOpen, setIsExportDrawerOpen] = useState(false);
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
+  const [isLostCardReportLoading, setIsLostCardReportLoading] = useState(false);
   const [cardTypes, setCardTypes] = useState<CardTypeResponse[]>([]);
   const [cards, setCards] = useState<CardResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -494,6 +488,8 @@ export function CardListPage() {
   const [editor, setEditor] = useState<EditorState | null>(null);
   const [actionDialog, setActionDialog] = useState<ActionDialogState>(null);
   const [loadError, setLoadError] = useState("");
+  const [selectedLostCardReport, setSelectedLostCardReport] = useState<LostCardReportResponse | null>(null);
+  const [selectedLostCardReportError, setSelectedLostCardReportError] = useState<string | null>(null);
   const [filterLoadError, setFilterLoadError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -573,6 +569,45 @@ export function CardListPage() {
   const selectedRecord = filteredRecords.find((row) => row.id === effectiveSelectedId) ?? null;
 
   useEffect(() => {
+    if (!isDetailDrawerOpen || !effectiveSelectedId) {
+      setIsLostCardReportLoading(false);
+      setSelectedLostCardReport(null);
+      setSelectedLostCardReportError(null);
+      return undefined;
+    }
+
+    let active = true;
+    setIsLostCardReportLoading(true);
+    setSelectedLostCardReport(null);
+    setSelectedLostCardReportError(null);
+
+    void getLostCardReports({
+      cardId: effectiveSelectedId,
+      fromDate: LOST_CARD_REPORT_HISTORY_START,
+      toDate: new Date().toISOString(),
+    })
+      .then((response) => {
+        if (active) {
+          setSelectedLostCardReport(response.data[0] ?? null);
+        }
+      })
+      .catch((error) => {
+        if (active) {
+          setSelectedLostCardReportError(error instanceof Error ? error.message : "Không tải được thông tin báo mất thẻ");
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setIsLostCardReportLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [effectiveSelectedId, isDetailDrawerOpen]);
+
+  useEffect(() => {
     if (currentPage !== safeCurrentPage) {
       setCurrentPage(safeCurrentPage);
     }
@@ -622,60 +657,45 @@ export function CardListPage() {
     }
   };
 
-  const handleStatusChange = async (row: CardManageRecord, status: CardStatus, blockedReason?: string) => {
+  const handleBlockCard = async (row: CardManageRecord, reason: string) => {
     setLoadError("");
     try {
-      await changeCardStatus(row.id, { blockedReason, status });
-      toast.success("Đã cập nhật trạng thái thẻ.", "Cập nhật thành công");
+      await blockCard(row.id, reason);
+      toast.success("Đã khóa thẻ và lưu trạng thái trước khóa.", "Cập nhật thành công");
       reloadCards();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không cập nhật được trạng thái thẻ.", "Thao tác thất bại");
+      toast.error(error instanceof Error ? error.message : "Không khóa được thẻ.", "Thao tác thất bại");
     }
   };
 
-  const handleBlockToggle = (row: CardManageRecord) => {
-    if (row.inventoryStatus === "blocked") {
-      if (window.confirm(`Mở khóa thẻ ${row.cardCode}?`)) {
-        void handleStatusChange(row, "AVAILABLE");
-      }
-      return;
-    }
-
-    const blockedReason = window.prompt(`Nhập lý do khóa thẻ ${row.cardCode}`, row.blockedReason ?? "");
-    if (blockedReason === null) return;
-    void handleStatusChange(row, "BLOCKED", blockedReason.trim() || "Khóa từ màn quản lý thẻ");
-  };
-
-  const handleRetire = async (row: CardManageRecord) => {
-    if (!window.confirm(`Ngừng dùng thẻ ${row.cardCode}?`)) return;
+  const handleUnblockCard = async (row: CardManageRecord) => {
     setLoadError("");
     try {
-      await retireCard(row.id);
-      toast.success("Đã chuyển thẻ sang trạng thái ngừng dùng.", "Xóa mềm thành công");
-      setIsDetailDrawerOpen(false);
+      await unblockCard(row.id);
+      toast.success("Đã khôi phục trạng thái trước khóa của thẻ.", "Mở khóa thành công");
       reloadCards();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không ngừng dùng được thẻ.", "Thao tác thất bại");
+      toast.error(error instanceof Error ? error.message : "Không thể mở khóa vì trạng thái nền không còn hợp lệ.", "Thao tác thất bại");
     }
   };
 
   const handleActionDialogSubmit = async (reason: string) => {
     if (!actionDialog) return;
 
-    const { action, row } = actionDialog;
-    setIsSaving(true);
-    try {
-      if (action === "block") {
-        await handleStatusChange(row, "BLOCKED", reason || "Khóa từ màn quản lý thẻ");
-      } else if (action === "damaged") {
-        await handleStatusChange(row, "DAMAGED");
-      } else if (action === "lost") {
-        await handleStatusChange(row, "LOST");
+      const { action, row } = actionDialog;
+      setIsSaving(true);
+      try {
+        if (action === "block") {
+        if (row.inventoryStatus === "blocked") {
+          await handleUnblockCard(row);
+        } else {
+          await handleBlockCard(row, reason);
+        }
       } else {
         setLoadError("");
         try {
-          await retireCard(row.id);
-          toast.success("Đã chuyển thẻ sang trạng thái ngưng dùng.", "Xóa mềm thành công");
+          await retireCard(row.id, reason);
+          toast.success("Đã chuyển thẻ sang trạng thái ngưng dùng.", "Cập nhật thành công");
           setIsDetailDrawerOpen(false);
           reloadCards();
         } catch (error) {
@@ -771,6 +791,9 @@ export function CardListPage() {
 
       <CardDetailPanel
         isOpen={isDetailDrawerOpen && Boolean(selectedRecord)}
+        isLostCardReportLoading={isLostCardReportLoading}
+        lostCardReport={selectedLostCardReport}
+        lostCardReportError={selectedLostCardReportError}
         row={selectedRecord}
         onClose={() => setIsDetailDrawerOpen(false)}
       />

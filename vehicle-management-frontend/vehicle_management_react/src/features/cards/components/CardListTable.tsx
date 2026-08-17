@@ -6,7 +6,7 @@ import type { CardManageRecord } from "@/features/cards/components/cardManageDat
 import { cn } from "@/lib/cn";
 import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 
-export type CardTableAction = "block" | "retire" | "damaged" | "lost";
+export type CardTableAction = "block" | "retire";
 
 type ActionMenuPosition = {
   left: number;
@@ -14,7 +14,7 @@ type ActionMenuPosition = {
 };
 
 const ACTION_MENU_WIDTH = 176;
-const ACTION_MENU_HEIGHT = 156;
+const ACTION_MENU_HEIGHT = 82;
 const ACTION_MENU_GAP = 6;
 
 interface CardListTableProps {
@@ -147,10 +147,8 @@ export function CardListTable({
           style={{ left: menuPosition.left, top: menuPosition.top }}
         >
           {[
-            { action: "block" as const, icon: "fas fa-lock", label: "Khóa thẻ" },
+            { action: "block" as const, icon: openMenuRow.inventoryStatus === "blocked" ? "fas fa-unlock" : "fas fa-lock", label: openMenuRow.inventoryStatus === "blocked" ? "Mở khóa thẻ" : "Khóa thẻ" },
             { action: "retire" as const, icon: "far fa-trash-alt", label: "Ngưng sử dụng" },
-            { action: "damaged" as const, icon: "fas fa-tools", label: "Báo hỏng" },
-            { action: "lost" as const, icon: "far fa-exclamation-circle", label: "Báo mất thẻ" },
           ].map((item) => (
             <button
               className="tw-flex tw-min-h-9 tw-w-full tw-items-center tw-gap-2.5 tw-border-0 tw-bg-transparent tw-px-3 tw-text-left tw-text-[0.86rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 hover:tw-text-vm-primary"

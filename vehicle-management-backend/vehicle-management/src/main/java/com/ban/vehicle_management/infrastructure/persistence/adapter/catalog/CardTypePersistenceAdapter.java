@@ -71,8 +71,7 @@ public class CardTypePersistenceAdapter implements CardTypePortOut {
                         CardStatus.ASSIGNED,
                         CardStatus.IN_USE,
                         CardStatus.BLOCKED,
-                        CardStatus.LOST,
-                        CardStatus.DAMAGED
+                        CardStatus.LOST
                 )
         );
     }

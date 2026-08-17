@@ -1,10 +1,12 @@
-export type CardInventoryStatus = "available" | "assigned" | "in_use" | "reserved" | "lost" | "blocked" | "damaged" | "retired";
+export type CardInventoryStatus = "available" | "assigned" | "in_use" | "reserved" | "lost" | "blocked" | "retired";
 export type CardSubscriptionState = "none" | "active" | "pending" | "expired";
 export type CardLostState = "none" | "open";
 export type CardStatusTabValue = "all" | CardInventoryStatus;
 
 export interface CardManageRecord {
   blockedReason: string | null;
+  blockedBy: string | null;
+  blockedPreviousStatus: string | null;
   cardCode: string;
   cardReceiptDate: string | null;
   cardTypeId: string | null;

@@ -1,8 +1,8 @@
 package com.ban.vehicle_management.entrypoint.controller.accesscontrol;
 
 import com.ban.vehicle_management.application.accesscontrol.card.mapper.CardApiMapper;
+import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardLifecyclePortIn;
 import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardPortIn;
-import com.ban.vehicle_management.application.accesscontrol.card.port.in.ChangeCardStatusPortIn;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
@@ -16,8 +16,10 @@ import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.CardFilterRequest;
-import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.ChangeCardStatusRequest;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.BlockCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.CreateCardRequest;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.RecoverLostCardRequest;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.RetireCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.UpdateCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.response.CardAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
@@ -45,7 +47,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 public class CardController {
 
     private final CardPortIn cardPortIn;
-    private final ChangeCardStatusPortIn changeCardStatusPortIn;
+    private final CardLifecyclePortIn cardLifecyclePortIn;
     private final CardApiMapper cardApiMapper;
     private final SubscriptionPortOut subscriptionPortOut;
     private final CustomerVehiclePortOut customerVehiclePortOut;
@@ -55,7 +57,7 @@ public class CardController {
 
     public CardController(
             CardPortIn cardPortIn,
-            ChangeCardStatusPortIn changeCardStatusPortIn,
+            CardLifecyclePortIn cardLifecyclePortIn,
             CardApiMapper cardApiMapper,
             SubscriptionPortOut subscriptionPortOut,
             CustomerVehiclePortOut customerVehiclePortOut,
@@ -64,7 +66,7 @@ public class CardController {
             TicketTypePortOut ticketTypePortOut
     ) {
         this.cardPortIn = cardPortIn;
-        this.changeCardStatusPortIn = changeCardStatusPortIn;
+        this.cardLifecyclePortIn = cardLifecyclePortIn;
         this.cardApiMapper = cardApiMapper;
         this.subscriptionPortOut = subscriptionPortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
@@ -78,7 +80,7 @@ public class CardController {
     public ResponseEntity<ApiResponse<CardAdminResponse>> createCard(@RequestBody CreateCardRequest request) {
         Card createdCard = cardPortIn.createCard(cardApiMapper.toDomain(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
-                "Card created successfully",
+                "Tạo thẻ thành công",
                 cardApiMapper.toAdminResponse(createdCard)
         ));
     }
@@ -90,7 +92,7 @@ public class CardController {
         CardAdminResponse response = cardApiMapper.toAdminResponse(card);
         enrichRegisteredVehicleType(card, response);
         return ResponseEntity.ok(ApiResponse.ok(
-                "Fetched card successfully",
+                "Lấy thông tin thẻ thành công",
                 response
         ));
     }
@@ -107,7 +109,7 @@ public class CardController {
         enrichRegisteredVehicleTypes(cards, response);
 
         return ResponseEntity.ok(ApiResponse.ok(
-                "Fetched cards successfully",
+                "Lấy danh sách thẻ thành công",
                 response
         ));
     }
@@ -120,24 +122,56 @@ public class CardController {
     ) {
         Card updatedCard = cardPortIn.updateCard(cardId, cardApiMapper.toDomain(request));
         return ResponseEntity.ok(ApiResponse.ok(
-                "Card updated successfully",
+                "Cập nhật thẻ thành công",
                 cardApiMapper.toAdminResponse(updatedCard)
         ));
     }
 
-    @PatchMapping("/{cardId}/status")
+    @PatchMapping("/{cardId}/block")
     @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_UPDATE_ALL')")
-    public ResponseEntity<ApiResponse<CardAdminResponse>> changeCardStatus(
+    public ResponseEntity<ApiResponse<CardAdminResponse>> blockCard(
             @PathVariable UUID cardId,
-            @RequestBody ChangeCardStatusRequest request
+            @RequestBody BlockCardRequest request
     ) {
-        Card updatedCard = changeCardStatusPortIn.changeCardStatus(
-                cardId,
-                request.status(),
-                request.blockedReason()
-        );
+        Card updatedCard = cardLifecyclePortIn.blockCard(cardId, request.reason());
         return ResponseEntity.ok(ApiResponse.ok(
-                "Card status updated successfully",
+                "Khóa thẻ thành công",
+                cardApiMapper.toAdminResponse(updatedCard)
+        ));
+    }
+
+    @PatchMapping("/{cardId}/unblock")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<CardAdminResponse>> unblockCard(@PathVariable UUID cardId) {
+        Card updatedCard = cardLifecyclePortIn.unblockCard(cardId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Mở khóa thẻ thành công",
+                cardApiMapper.toAdminResponse(updatedCard)
+        ));
+    }
+
+    @PatchMapping("/{cardId}/retire")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_DELETE_ALL')")
+    public ResponseEntity<ApiResponse<CardAdminResponse>> retireCard(
+            @PathVariable UUID cardId,
+            @RequestBody RetireCardRequest request
+    ) {
+        Card updatedCard = cardLifecyclePortIn.retireCard(cardId, request.reason());
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Chuyển thẻ sang trạng thái ngưng sử dụng thành công",
+                cardApiMapper.toAdminResponse(updatedCard)
+        ));
+    }
+
+    @PatchMapping("/{cardId}/recover")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<CardAdminResponse>> recoverLostCard(
+            @PathVariable UUID cardId,
+            @RequestBody RecoverLostCardRequest request
+    ) {
+        Card updatedCard = cardLifecyclePortIn.recoverLostCard(cardId, request.inspectionNote());
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Thu hồi thẻ mất thành công",
                 cardApiMapper.toAdminResponse(updatedCard)
         ));
     }
@@ -146,7 +180,7 @@ public class CardController {
     @PreAuthorize("@permissionAuthorizer.hasPermission('CARD_DELETE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteCard(@PathVariable UUID cardId) {
         cardPortIn.deleteCard(cardId);
-        return ResponseEntity.ok(ApiResponse.ok("Card retired successfully"));
+        return ResponseEntity.ok(ApiResponse.ok("Chuyển thẻ sang trạng thái ngưng sử dụng thành công"));
     }
 
     private void enrichRegisteredVehicleTypes(List<Card> cards, List<CardAdminResponse> responses) {

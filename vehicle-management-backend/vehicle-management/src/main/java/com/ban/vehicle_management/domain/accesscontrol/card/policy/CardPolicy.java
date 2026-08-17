@@ -6,6 +6,7 @@ import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.UUID;
 
 public class CardPolicy {
 
@@ -53,58 +54,74 @@ public class CardPolicy {
     }
 
 
-    public void block(Card card, Instant blockedAt, String blockedReason) {
+    public void block(Card card, UUID blockedBy, Instant blockedAt, String blockedReason) {
         requireCard(card);
-        if (card.getStatus() == CardStatus.RETIRED || card.getStatus() == CardStatus.LOST || card.getStatus() == CardStatus.DAMAGED) {
-            throw new BadRequestException("Card cannot be blocked from current status");
+        if (card.getStatus() != CardStatus.AVAILABLE
+                && card.getStatus() != CardStatus.RESERVED
+                && card.getStatus() != CardStatus.ASSIGNED
+                && card.getStatus() != CardStatus.IN_USE) {
+            throw new BadRequestException("Không thể khóa thẻ ở trạng thái hiện tại");
         }
 
+        requireField(blockedBy, "blockedBy");
         requireField(blockedAt, "blockedAt");
-        blockedReason = TextValidationUtils.normalizeRequiredText(blockedReason, "blockedReason", 0);
+        blockedReason = TextValidationUtils.normalizeRequiredText(blockedReason, "blockedReason", 500);
 
+        card.setStatusBeforeBlocked(card.getStatus());
         card.setStatus(CardStatus.BLOCKED);
         card.setBlockedAt(blockedAt);
+        card.setBlockedBy(blockedBy);
         card.setBlockedReason(blockedReason);
     }
 
     public void unblock(Card card) {
         requireStatus(card, CardStatus.BLOCKED);
+        CardStatus statusBeforeBlocked = card.getStatusBeforeBlocked();
+        if (statusBeforeBlocked == null) {
+            throw new BadRequestException("Thẻ bị khóa phải có trạng thái trước khi khóa");
+        }
 
-        card.setStatus(CardStatus.AVAILABLE);
+        card.setStatus(statusBeforeBlocked);
         clearBlockMetadata(card);
     }
 
     public void markLost(Card card) {
         requireCard(card);
-        if (card.getStatus() == CardStatus.LOST || card.getStatus() == CardStatus.DAMAGED || card.getStatus() == CardStatus.RETIRED) {
-            throw new BadRequestException("Card cannot be marked as lost from current status");
+        if (card.getStatus() == CardStatus.LOST || card.getStatus() == CardStatus.RETIRED) {
+            throw new BadRequestException("Không thể báo mất thẻ ở trạng thái hiện tại");
         }
 
         card.setStatus(CardStatus.LOST);
         clearBlockMetadata(card);
     }
 
-    public void markDamaged(Card card) {
-        requireCard(card);
-        if (card.getStatus() == CardStatus.LOST || card.getStatus() == CardStatus.DAMAGED || card.getStatus() == CardStatus.RETIRED) {
-            throw new BadRequestException("Card cannot be marked as damaged from current status");
-        }
-
-        card.setStatus(CardStatus.DAMAGED);
-        clearBlockMetadata(card);
-    }
-
-    public void retire(Card card) {
+    public void retire(Card card, UUID retiredBy, Instant retiredAt, String retiredReason) {
         requireCard(card);
         if (card.getStatus() == CardStatus.IN_USE) {
-            throw new BadRequestException("Card in use cannot be retired");
+            throw new BadRequestException("Không thể ngưng sử dụng thẻ đang được sử dụng");
         }
         if (card.getStatus() == CardStatus.RETIRED) {
             return;
         }
 
+        requireField(retiredBy, "retiredBy");
+        requireField(retiredAt, "retiredAt");
         card.setStatus(CardStatus.RETIRED);
         clearBlockMetadata(card);
+        card.setRetiredAt(retiredAt);
+        card.setRetiredBy(retiredBy);
+        card.setRetiredReason(TextValidationUtils.normalizeRequiredText(retiredReason, "retiredReason", 500));
+    }
+
+    public void recover(Card card, UUID recoveredBy, Instant recoveredAt, String recoveryNote) {
+        requireStatus(card, CardStatus.LOST);
+        requireField(recoveredBy, "recoveredBy");
+        requireField(recoveredAt, "recoveredAt");
+
+        card.setStatus(CardStatus.AVAILABLE);
+        card.setRecoveredAt(recoveredAt);
+        card.setRecoveredBy(recoveredBy);
+        card.setRecoveryNote(TextValidationUtils.normalizeRequiredText(recoveryNote, "recoveryNote", 500));
     }
 
     public void validateState(Card card) {
@@ -116,17 +133,18 @@ public class CardPolicy {
         requireField(card.getStatus(), "status");
 
         boolean hasBlockedAt = card.getBlockedAt() != null;
+        boolean hasBlockedBy = card.getBlockedBy() != null;
         boolean hasBlockedReason = !isBlank(card.getBlockedReason());
 
         if (card.getStatus() == CardStatus.BLOCKED) {
-            if (!hasBlockedAt || !hasBlockedReason) {
-                throw new BadRequestException("Blocked card must have blockedAt and blockedReason");
+            if (card.getStatusBeforeBlocked() == null || !hasBlockedAt || !hasBlockedBy || !hasBlockedReason) {
+                throw new BadRequestException("Thẻ bị khóa phải lưu trạng thái trước khi khóa và thông tin khóa");
             }
             return;
         }
 
-        if (hasBlockedAt || hasBlockedReason) {
-            throw new BadRequestException("Only blocked card can keep blockedAt and blockedReason");
+        if (card.getStatusBeforeBlocked() != null || hasBlockedAt || hasBlockedBy || hasBlockedReason) {
+            throw new BadRequestException("Chỉ thẻ ở trạng thái bị khóa mới được lưu thông tin khóa");
         }
     }
 
@@ -156,20 +174,24 @@ public class CardPolicy {
     }
 
     private void clearBlockMetadata(Card card) {
+        card.setStatusBeforeBlocked(null);
         card.setBlockedAt(null);
+        card.setBlockedBy(null);
         card.setBlockedReason(null);
     }
 
     private void normalizeCoreFields(Card card) {
         card.setCardNumber(TextValidationUtils.normalizeNullableText(card.getCardNumber(), "cardNumber", 50));
         card.setUid(TextValidationUtils.normalizeNullableText(card.getUid(), "uid", 100));
-        card.setBlockedReason(TextValidationUtils.normalizeNullableText(card.getBlockedReason(), "blockedReason", 0));
+        card.setBlockedReason(TextValidationUtils.normalizeNullableText(card.getBlockedReason(), "blockedReason", 500));
+        card.setRetiredReason(TextValidationUtils.normalizeNullableText(card.getRetiredReason(), "retiredReason", 500));
+        card.setRecoveryNote(TextValidationUtils.normalizeNullableText(card.getRecoveryNote(), "recoveryNote", 500));
     }
 
     private void requireStatus(Card card, CardStatus expectedStatus) {
         requireCard(card);
         if (card.getStatus() != expectedStatus) {
-            throw new BadRequestException("Card must be in " + expectedStatus + " status");
+            throw new BadRequestException("Thẻ phải ở trạng thái " + expectedStatus);
         }
     }
 
@@ -179,13 +201,13 @@ public class CardPolicy {
 
     private void requireField(Object value, String fieldName) {
         if (value == null) {
-            throw new BadRequestException(fieldName + " must not be null");
+            throw new BadRequestException("Trường " + fieldName + " không được để trống");
         }
     }
 
     private void requireText(String value, String fieldName) {
         if (isBlank(value)) {
-            throw new BadRequestException(fieldName + " must not be blank");
+            throw new BadRequestException("Trường " + fieldName + " không được để trống");
         }
     }
 
@@ -202,7 +224,7 @@ public class CardPolicy {
                 && card.getStatus() != CardStatus.ASSIGNED
                 && card.getStatus() != CardStatus.IN_USE
                 && card.getStatus() != CardStatus.BLOCKED) {
-            throw new BadRequestException("Card can only be released from RESERVED, ASSIGNED, IN_USE, or BLOCKED status");
+            throw new BadRequestException("Chỉ có thể giải phóng thẻ từ trạng thái RESERVED, ASSIGNED, IN_USE hoặc BLOCKED");
         }
 
         card.setStatus(CardStatus.AVAILABLE);

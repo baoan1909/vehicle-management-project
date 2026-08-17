@@ -353,18 +353,27 @@ CREATE TABLE access_control.cards (
     card_number VARCHAR(50) NOT NULL UNIQUE,
     uid VARCHAR(100) NOT NULL UNIQUE,
     card_type_id UUID NOT NULL,
-    vehicle_type_id UUID,
     status VARCHAR(20) NOT NULL DEFAULT 'AVAILABLE',
     issued_at TIMESTAMPTZ,
+    status_before_blocked VARCHAR(20),
     blocked_at TIMESTAMPTZ,
+    blocked_by UUID,
     blocked_reason TEXT,
+    retired_at TIMESTAMPTZ,
+    retired_by UUID,
+    retired_reason VARCHAR(500),
+    recovered_at TIMESTAMPTZ,
+    recovered_by UUID,
+    recovery_note VARCHAR(500),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by UUID,
     updated_at TIMESTAMPTZ,
     updated_by UUID,
     CONSTRAINT fk_cards_card_type FOREIGN KEY (card_type_id) REFERENCES catalog.card_types(card_type_id) ON DELETE RESTRICT,
-    CONSTRAINT fk_cards_vehicle_type FOREIGN KEY (vehicle_type_id) REFERENCES catalog.vehicle_types(vehicle_type_id) ON DELETE SET NULL,
-    CONSTRAINT ck_cards_status CHECK (status IN ('AVAILABLE', 'ASSIGNED', 'IN_USE', 'LOST', 'BLOCKED', 'DAMAGED', 'RETIRED'))
+    CONSTRAINT fk_cards_blocked_by FOREIGN KEY (blocked_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_cards_retired_by FOREIGN KEY (retired_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_cards_recovered_by FOREIGN KEY (recovered_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT ck_cards_status CHECK (status IN ('AVAILABLE', 'RESERVED', 'ASSIGNED', 'IN_USE', 'LOST', 'BLOCKED', 'RETIRED'))
 );
 
 -- Lưu vé tháng/vé đăng ký của khách hàng.
@@ -1240,10 +1249,10 @@ VALUES
     ('64000000-0000-0000-0000-000000000002', '60000000-0000-0000-0000-000000000001', '63000000-0000-0000-0000-000000000002', 'READER-OUT-01', 'CARD_READER', 'Đầu đọc làn ra 01', '192.168.1.21', 'ACTIVE', now(), '{"port":"COM3"}');
 
 -- Dữ liệu mẫu: thẻ, vé tháng và phiếu phê duyệt.
-INSERT INTO access_control.cards (card_id, card_number, uid, card_type_id, vehicle_type_id, status, issued_at)
+INSERT INTO access_control.cards (card_id, card_number, uid, card_type_id, status, issued_at)
 VALUES
-    ('70000000-0000-0000-0000-000000000001', 'C001', 'RFID-REGISTERED-001', '42000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000002', 'ASSIGNED', '2026-05-01 08:10:00+07'),
-    ('70000000-0000-0000-0000-000000000002', 'V001', 'RFID-VISITOR-001', '42000000-0000-0000-0000-000000000002', '40000000-0000-0000-0000-000000000002', 'IN_USE', '2026-05-14 07:30:00+07');
+    ('70000000-0000-0000-0000-000000000001', 'C001', 'RFID-REGISTERED-001', '42000000-0000-0000-0000-000000000001', 'ASSIGNED', '2026-05-01 08:10:00+07'),
+    ('70000000-0000-0000-0000-000000000002', 'V001', 'RFID-VISITOR-001', '42000000-0000-0000-0000-000000000002', 'IN_USE', '2026-05-14 07:30:00+07');
 
 INSERT INTO access_control.subscriptions (subscription_id, customer_id, customer_vehicle_id, card_id, ticket_type_id, price_rule_id, effective_from, effective_to, price, status, approved_by, approved_at, card_receipt_date)
 VALUES
