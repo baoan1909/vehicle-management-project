@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   createVnpayInvoicePayment,
@@ -20,6 +20,12 @@ import {
   type LostCardPreviewResponse,
   type LostCardReplacementCardResponse,
 } from "@/features/cards/api/lostCardReportsApi";
+import {
+  lostCardFieldLimits,
+  parseLostCardDateTime,
+  validateLostCardReportForm,
+  type LostCardReportFieldErrors,
+} from "@/features/cards/utils/lostCardReportValidation";
 import { Modal } from "@/shared/components/ui/Modal";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
@@ -49,7 +55,10 @@ function getPaymentMethodLabel(value: string | null | undefined) {
   return paymentMethodOptions.find((option) => option.value === value)?.label ?? value ?? "-";
 }
 
-function toDateTimeLocalValue(date: Date) {
+function toDateTimeLocalValue(value: string | Date | null | undefined) {
+  const date = parseLostCardDateTime(value);
+  if (!date) return undefined;
+
   const offsetMs = date.getTimezoneOffset() * 60_000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
 }
@@ -57,6 +66,21 @@ function toDateTimeLocalValue(date: Date) {
 function toOptionalValue(value: string) {
   const trimmed = value.trim();
   return trimmed ? trimmed : null;
+}
+
+const lostCardInputClassName = (hasError: boolean) => [
+  "tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-bg-white tw-px-3 tw-text-[0.95rem] tw-font-extrabold tw-text-slate-900 tw-outline-none tw-transition",
+  hasError
+    ? "tw-border-red-400 focus:tw-border-red-500 focus:tw-shadow-[0_0_0_3px_rgba(239,68,68,0.1)]"
+    : "tw-border-vm-slate-100 focus:tw-border-vm-primary focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.1)]",
+].join(" ");
+
+function LostCardFieldError({ id, message }: { id: string; message?: string }) {
+  return message ? (
+    <span className="tw-mt-1 tw-block tw-text-[0.76rem] tw-font-bold tw-leading-4 tw-text-red-600" id={id}>
+      {message}
+    </span>
+  ) : null;
 }
 
 function formatCurrency(value: number | null | undefined) {
@@ -783,9 +807,10 @@ function PaymentConfirmModal({
 
 export function LostCardCreatePage() {
   const navigate = useNavigate();
+  const previewRequestIdRef = useRef(0);
   const [licensePlate, setLicensePlate] = useState("");
   const [preview, setPreview] = useState<LostCardPreviewResponse | null>(null);
-  const [timeOfLost, setTimeOfLost] = useState(() => toDateTimeLocalValue(new Date()));
+  const [timeOfLost, setTimeOfLost] = useState(() => toDateTimeLocalValue(new Date()) ?? "");
   const [reporterName, setReporterName] = useState("");
   const [reporterPhone, setReporterPhone] = useState("");
   const [identifyCard, setIdentifyCard] = useState("");
@@ -794,6 +819,25 @@ export function LostCardCreatePage() {
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<LostCardReportFieldErrors>({});
+
+  const clearFieldErrors = (...fields: Array<keyof LostCardReportFieldErrors>) => {
+    setFieldErrors((currentErrors) => {
+      if (!fields.some((field) => currentErrors[field])) return currentErrors;
+      const nextErrors = { ...currentErrors };
+      fields.forEach((field) => delete nextErrors[field]);
+      return nextErrors;
+    });
+  };
+
+  const handleLicensePlateChange = (value: string) => {
+    previewRequestIdRef.current += 1;
+    setLicensePlate(value);
+    setPreview(null);
+    setIsPreviewLoading(false);
+    setFormError("");
+    setFieldErrors({});
+  };
 
   const handlePreview = async () => {
     const normalizedLicensePlate = licensePlate.trim();
@@ -802,18 +846,24 @@ export function LostCardCreatePage() {
       return;
     }
 
+    const requestId = previewRequestIdRef.current + 1;
+    previewRequestIdRef.current = requestId;
     setIsPreviewLoading(true);
     setFormError("");
     setPreview(null);
 
     try {
       const response = await previewLostCardReport(normalizedLicensePlate);
+      if (requestId !== previewRequestIdRef.current) return;
       setPreview(response.data);
       setReporterName((current) => current || response.data.customerName || "");
     } catch (error) {
+      if (requestId !== previewRequestIdRef.current) return;
       setFormError(error instanceof Error ? error.message : "Không tra cứu được dữ liệu mất thẻ.");
     } finally {
-      setIsPreviewLoading(false);
+      if (requestId === previewRequestIdRef.current) {
+        setIsPreviewLoading(false);
+      }
     }
   };
 
@@ -822,19 +872,16 @@ export function LostCardCreatePage() {
       setFormError("Vui lòng tra cứu biển số trước khi tạo phiếu.");
       return;
     }
-    if (!reporterName.trim() || !reporterPhone.trim()) {
-      setFormError("Vui lòng nhập người báo mất và số điện thoại.");
-      return;
-    }
-    if (!identifyCard.trim() && !registrationLicense.trim()) {
-      setFormError("Vui lòng nhập CCCD hoặc giấy tờ xe.");
+    const validationErrors = validateLostCardReportForm(
+      { identifyCard, note, registrationLicense, reporterName, reporterPhone, timeOfLost },
+      preview.parkingSession?.checkInTime,
+    );
+    setFieldErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      setFormError("Vui lòng kiểm tra lại thông tin phiếu báo mất thẻ.");
       return;
     }
     const lostAt = new Date(timeOfLost);
-    if (!timeOfLost || Number.isNaN(lostAt.getTime())) {
-      setFormError("Vui lòng nhập thời gian mất thẻ hợp lệ.");
-      return;
-    }
 
     const parkingSessionId = preview.parkingSession?.parkingSessionId ?? null;
     const subscriptionId = preview.subscription?.subscriptionId ?? null;
@@ -920,7 +967,7 @@ export function LostCardCreatePage() {
                       className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.95rem] tw-font-extrabold tw-text-slate-900 tw-outline-none"
                       placeholder="VD: 59A1-12345"
                       value={licensePlate}
-                      onChange={(event) => setLicensePlate(event.target.value)}
+                      onChange={(event) => handleLicensePlateChange(event.target.value)}
                     />
                   </label>
                   <button
@@ -957,27 +1004,110 @@ export function LostCardCreatePage() {
                 <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-md:tw-grid-cols-1">
                   <label>
                     <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Thời gian mất thẻ</span>
-                    <input className="tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.95rem] tw-font-extrabold tw-text-slate-900 tw-outline-none" type="datetime-local" value={timeOfLost} onChange={(event) => setTimeOfLost(event.target.value)} />
+                    <input
+                      aria-describedby={fieldErrors.timeOfLost ? "lost-card-time-error" : undefined}
+                      aria-invalid={Boolean(fieldErrors.timeOfLost)}
+                      className={lostCardInputClassName(Boolean(fieldErrors.timeOfLost))}
+                      max={toDateTimeLocalValue(new Date())}
+                      min={toDateTimeLocalValue(preview?.parkingSession?.checkInTime)}
+                      required
+                      type="datetime-local"
+                      value={timeOfLost}
+                      onChange={(event) => {
+                        setTimeOfLost(event.target.value);
+                        clearFieldErrors("timeOfLost");
+                      }}
+                    />
+                    <LostCardFieldError id="lost-card-time-error" message={fieldErrors.timeOfLost} />
                   </label>
                   <label>
                     <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Người báo mất</span>
-                    <input className="tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.95rem] tw-font-extrabold tw-text-slate-900 tw-outline-none" value={reporterName} onChange={(event) => setReporterName(event.target.value)} />
+                    <input
+                      aria-describedby={fieldErrors.reporterName ? "lost-card-reporter-name-error" : undefined}
+                      aria-invalid={Boolean(fieldErrors.reporterName)}
+                      className={lostCardInputClassName(Boolean(fieldErrors.reporterName))}
+                      maxLength={lostCardFieldLimits.reporterNameMaxLength}
+                      minLength={lostCardFieldLimits.reporterNameMinLength}
+                      required
+                      value={reporterName}
+                      onChange={(event) => {
+                        setReporterName(event.target.value);
+                        clearFieldErrors("reporterName");
+                      }}
+                    />
+                    <LostCardFieldError id="lost-card-reporter-name-error" message={fieldErrors.reporterName} />
                   </label>
                   <label>
                     <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Số điện thoại</span>
-                    <input className="tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.95rem] tw-font-extrabold tw-text-slate-900 tw-outline-none" value={reporterPhone} onChange={(event) => setReporterPhone(event.target.value)} />
+                    <input
+                      aria-describedby={fieldErrors.reporterPhone ? "lost-card-reporter-phone-error" : undefined}
+                      aria-invalid={Boolean(fieldErrors.reporterPhone)}
+                      className={lostCardInputClassName(Boolean(fieldErrors.reporterPhone))}
+                      inputMode="tel"
+                      maxLength={lostCardFieldLimits.reporterPhoneMaxLength}
+                      required
+                      value={reporterPhone}
+                      onChange={(event) => {
+                        setReporterPhone(event.target.value);
+                        clearFieldErrors("reporterPhone");
+                      }}
+                    />
+                    <LostCardFieldError id="lost-card-reporter-phone-error" message={fieldErrors.reporterPhone} />
                   </label>
                   <label>
-                    <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">CCCD</span>
-                    <input className="tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.95rem] tw-font-extrabold tw-text-slate-900 tw-outline-none" value={identifyCard} onChange={(event) => setIdentifyCard(event.target.value)} />
+                    <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">CCCD/CMND</span>
+                    <input
+                      aria-describedby={fieldErrors.identifyCard ? "lost-card-identify-error" : undefined}
+                      aria-invalid={Boolean(fieldErrors.identifyCard)}
+                      className={lostCardInputClassName(Boolean(fieldErrors.identifyCard))}
+                      inputMode="numeric"
+                      maxLength={lostCardFieldLimits.identifyCardMaxLength}
+                      minLength={lostCardFieldLimits.identifyCardMinLength}
+                      value={identifyCard}
+                      onChange={(event) => {
+                        setIdentifyCard(event.target.value);
+                        clearFieldErrors("identifyCard", "evidence");
+                      }}
+                    />
+                    <LostCardFieldError id="lost-card-identify-error" message={fieldErrors.identifyCard} />
                   </label>
                   <label>
                     <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Giấy đăng ký xe</span>
-                    <input className="tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.95rem] tw-font-extrabold tw-text-slate-900 tw-outline-none" value={registrationLicense} onChange={(event) => setRegistrationLicense(event.target.value)} />
+                    <input
+                      aria-describedby={fieldErrors.registrationLicense ? "lost-card-registration-error" : undefined}
+                      aria-invalid={Boolean(fieldErrors.registrationLicense)}
+                      className={lostCardInputClassName(Boolean(fieldErrors.registrationLicense))}
+                      maxLength={lostCardFieldLimits.registrationLicenseMaxLength}
+                      value={registrationLicense}
+                      onChange={(event) => {
+                        setRegistrationLicense(event.target.value);
+                        clearFieldErrors("registrationLicense", "evidence");
+                      }}
+                    />
+                    <LostCardFieldError id="lost-card-registration-error" message={fieldErrors.registrationLicense} />
                   </label>
+                  {fieldErrors.evidence ? (
+                    <div className="tw-col-span-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-px-3 tw-py-2 tw-text-[0.78rem] tw-font-bold tw-text-red-600 max-md:tw-col-span-1">
+                      {fieldErrors.evidence}
+                    </div>
+                  ) : null}
                   <label className="tw-col-span-2 max-md:tw-col-span-1">
                     <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Ghi chú</span>
-                    <textarea className="tw-min-h-[86px] tw-w-full tw-resize-none tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-py-3 tw-text-[0.92rem] tw-font-semibold tw-text-vm-slate-700 tw-outline-none" value={note} onChange={(event) => setNote(event.target.value)} />
+                    <textarea
+                      aria-describedby={fieldErrors.note ? "lost-card-note-error" : undefined}
+                      aria-invalid={Boolean(fieldErrors.note)}
+                      className={`tw-min-h-[86px] tw-w-full tw-resize-none tw-rounded-vm-lg tw-border tw-border-solid tw-bg-white tw-px-3 tw-py-3 tw-text-[0.92rem] tw-font-semibold tw-text-vm-slate-700 tw-outline-none tw-transition ${fieldErrors.note ? "tw-border-red-400 focus:tw-border-red-500" : "tw-border-vm-slate-100 focus:tw-border-vm-primary"}`}
+                      maxLength={lostCardFieldLimits.noteMaxLength}
+                      value={note}
+                      onChange={(event) => {
+                        setNote(event.target.value);
+                        clearFieldErrors("note");
+                      }}
+                    />
+                    <div className="tw-flex tw-items-start tw-justify-between tw-gap-3">
+                      <LostCardFieldError id="lost-card-note-error" message={fieldErrors.note} />
+                      <span className="tw-ml-auto tw-mt-1 tw-text-[0.74rem] tw-font-semibold tw-text-vm-slate-500">{note.length}/500</span>
+                    </div>
                   </label>
                 </div>
               </div>

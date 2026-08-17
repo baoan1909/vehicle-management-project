@@ -15,6 +15,12 @@ import {
   type RegisterAccountRequest,
 } from "@/features/auth/api/authApi";
 import { AuthBrandMark, AuthFormField, AuthFormSectionTitle, AuthInlineNotice, AuthPasswordInput } from "@/features/auth/components/AuthFormControls";
+import {
+  authFieldLimits,
+  validateEmail,
+  validateRegisterValues,
+  type RegisterFieldErrors,
+} from "@/features/auth/utils/authValidation";
 import { Button } from "@/components/ui";
 import { FullPageCarLoader } from "@/shared/components/ui/PageTransitionLoader";
 
@@ -160,10 +166,17 @@ function RegisterScreenV2() {
   const [lastVerificationEmail, setLastVerificationEmail] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>({});
   const resendTargetEmail = (lastVerificationEmail || form.email).trim();
 
   function updateField<Key extends keyof RegisterFormState>(field: Key, value: RegisterFormState[Key]) {
     setForm((currentValue) => ({ ...currentValue, [field]: value }));
+    setFieldErrors((currentErrors) => {
+      if (!currentErrors[field]) return currentErrors;
+      const nextErrors = { ...currentErrors };
+      delete nextErrors[field];
+      return nextErrors;
+    });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -171,13 +184,15 @@ function RegisterScreenV2() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    if (!acceptedTerms) {
-      setErrorMessage("Vui lòng đồng ý điều khoản sử dụng và chính sách bảo mật.");
+    const validationErrors = validateRegisterValues(form);
+    setFieldErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      setErrorMessage("Vui lòng kiểm tra lại các thông tin đăng ký.");
       return;
     }
 
-    if (form.password !== form.confirmPassword) {
-      setErrorMessage("Mật khẩu xác nhận không khớp.");
+    if (!acceptedTerms) {
+      setErrorMessage("Vui lòng đồng ý điều khoản sử dụng và chính sách bảo mật.");
       return;
     }
 
@@ -185,8 +200,8 @@ function RegisterScreenV2() {
 
     const verificationEmail = form.email.trim();
     const payload: RegisterAccountRequest = {
-      fullName: form.fullName,
-      username: form.username,
+      fullName: form.fullName.trim(),
+      username: form.username.trim(),
       email: verificationEmail,
       password: form.password,
     };
@@ -196,6 +211,7 @@ function RegisterScreenV2() {
       setSuccessMessage(response.message);
       setLastVerificationEmail(verificationEmail);
       setForm(initialRegisterForm);
+      setFieldErrors({});
       setAcceptedTerms(false);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể tạo tài khoản.");
@@ -208,8 +224,9 @@ function RegisterScreenV2() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    if (!resendTargetEmail) {
-      setErrorMessage("Vui lòng nhập email để gửi lại email xác thực.");
+    const validationError = validateEmail(resendTargetEmail);
+    if (validationError) {
+      setErrorMessage(validationError);
       return;
     }
 
@@ -227,7 +244,7 @@ function RegisterScreenV2() {
   }
 
   return (
-    <div className="tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-flex-col tw-overflow-hidden tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-px-5 tw-py-2 tw-text-vm-slate-700 max-[768px]:tw-overflow-y-auto">
+    <div className="tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-flex-col tw-overflow-y-auto tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-px-5 tw-py-2 tw-text-vm-slate-700">
       <main className="tw-mx-auto tw-flex tw-w-full tw-max-w-[920px] tw-flex-1 tw-flex-col tw-items-stretch tw-justify-center">
         <section className="tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d9e2f2] tw-bg-white tw-px-8 tw-pb-4 tw-pt-4 tw-shadow-[0_18px_45px_rgba(15,23,42,0.08)] max-[768px]:tw-px-5">
           <header className="tw-mx-auto tw-mb-4 tw-text-center">
@@ -238,7 +255,7 @@ function RegisterScreenV2() {
             </p>
           </header>
 
-          <form className="tw-grid tw-gap-3" onSubmit={handleSubmit}>
+          <form className="tw-grid tw-gap-3" noValidate onSubmit={handleSubmit}>
             {successMessage ? <AuthInlineNotice tone="success">{successMessage}</AuthInlineNotice> : null}
             {errorMessage ? <AuthInlineNotice tone="error">{errorMessage}</AuthInlineNotice> : null}
 
@@ -250,7 +267,11 @@ function RegisterScreenV2() {
                   id="fullName"
                   icon="far fa-user"
                   label="Họ và tên"
+                  error={fieldErrors.fullName}
+                  maxLength={authFieldLimits.fullNameMaxLength}
+                  minLength={authFieldLimits.fullNameMinLength}
                   placeholder="Nhập họ và tên"
+                  required
                   value={form.fullName}
                   onChange={(value) => updateField("fullName", value)}
                 />
@@ -263,7 +284,11 @@ function RegisterScreenV2() {
                   id="registerUsername"
                   icon="far fa-user"
                   label="Tên đăng nhập"
+                  error={fieldErrors.username}
+                  maxLength={authFieldLimits.usernameMaxLength}
+                  minLength={authFieldLimits.usernameMinLength}
                   placeholder="Nhập tên đăng nhập"
+                  required
                   value={form.username}
                   onChange={(value) => updateField("username", value)}
                 />
@@ -275,7 +300,10 @@ function RegisterScreenV2() {
                   id="email"
                   icon="far fa-envelope"
                   label="Email"
+                  error={fieldErrors.email}
+                  maxLength={authFieldLimits.emailMaxLength}
                   placeholder="Nhập email của bạn"
+                  required
                   type="email"
                   value={form.email}
                   onChange={(value) => updateField("email", value)}
@@ -284,7 +312,11 @@ function RegisterScreenV2() {
                   autoComplete="new-password"
                   id="registerPassword"
                   label="Mật khẩu"
+                  error={fieldErrors.password}
+                  maxLength={authFieldLimits.passwordMaxLength}
+                  minLength={authFieldLimits.passwordMinLength}
                   placeholder="Nhập mật khẩu"
+                  required
                   value={form.password}
                   onChange={(value) => updateField("password", value)}
                 />
@@ -292,7 +324,11 @@ function RegisterScreenV2() {
                   autoComplete="new-password"
                   id="confirmPassword"
                   label="Xác nhận mật khẩu"
+                  error={fieldErrors.confirmPassword}
+                  maxLength={authFieldLimits.passwordMaxLength}
+                  minLength={authFieldLimits.passwordMinLength}
                   placeholder="Nhập lại mật khẩu"
+                  required
                   value={form.confirmPassword}
                   onChange={(value) => updateField("confirmPassword", value)}
                 />
@@ -357,6 +393,7 @@ function ForgotPasswordScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [emailError, setEmailError] = useState("");
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
@@ -373,10 +410,14 @@ function ForgotPasswordScreen() {
     event.preventDefault();
     setErrorMessage("");
     setSuccessMessage("");
+    const normalizedEmail = email.trim();
+    const validationError = validateEmail(normalizedEmail);
+    setEmailError(validationError);
+    if (validationError) return;
     setIsSubmitting(true);
 
     try {
-      const response = await requestPasswordReset({ email });
+      const response = await requestPasswordReset({ email: normalizedEmail });
       setSuccessMessage(response.message);
       sessionStorage.removeItem(forgotPasswordEmailStorageKey);
       setEmail("");
@@ -388,7 +429,7 @@ function ForgotPasswordScreen() {
   }
 
   return (
-    <div className="tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-flex-col tw-overflow-hidden tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-px-5 tw-py-4 tw-text-vm-slate-700 max-[768px]:tw-overflow-y-auto">
+    <div className="tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-flex-col tw-overflow-y-auto tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-px-5 tw-py-4 tw-text-vm-slate-700">
       <main className="tw-mx-auto tw-flex tw-w-full tw-max-w-[520px] tw-flex-1 tw-flex-col tw-items-stretch tw-justify-center">
         <section className="tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d9e2f2] tw-bg-white tw-px-8 tw-pb-6 tw-pt-6 tw-shadow-[0_18px_45px_rgba(15,23,42,0.08)] max-[480px]:tw-px-5">
           <header className="tw-mx-auto tw-mb-5 tw-text-center">
@@ -396,7 +437,7 @@ function ForgotPasswordScreen() {
             <h1 className="tw-m-0 tw-mt-4 tw-text-[1.35rem] tw-font-black tw-leading-tight tw-text-vm-slate-900">Đặt lại mật khẩu</h1>
           </header>
 
-          <form className="tw-grid tw-gap-4" onSubmit={handleSubmit}>
+          <form className="tw-grid tw-gap-4" noValidate onSubmit={handleSubmit}>
             {successMessage ? <AuthInlineNotice tone="success">{successMessage}</AuthInlineNotice> : null}
             {errorMessage ? <AuthInlineNotice tone="error">{errorMessage}</AuthInlineNotice> : null}
 
@@ -405,10 +446,16 @@ function ForgotPasswordScreen() {
               id="forgotEmail"
               icon="far fa-envelope"
               label="Email"
+              error={emailError}
+              maxLength={authFieldLimits.emailMaxLength}
               placeholder="Nhập email của bạn"
+              required
               type="email"
               value={email}
-              onChange={setEmail}
+              onChange={(value) => {
+                setEmail(value);
+                setEmailError("");
+              }}
             />
 
             <AuthInlineNotice>

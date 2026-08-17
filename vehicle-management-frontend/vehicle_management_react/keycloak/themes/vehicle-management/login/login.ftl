@@ -2,7 +2,7 @@
 <@layout.authLayout title="Đăng nhập" split=true>
   <form id="kc-form-login" class="vm-auth-form" action="${url.loginAction}" method="post">
     <div class="vm-auth-field">
-      <label for="username">Email <span class="vm-auth-required">*</span></label>
+      <label for="username">Email hoặc tên đăng nhập <span class="vm-auth-required">*</span></label>
       <div class="vm-auth-input-shell">
         <i class="far fa-envelope" aria-hidden="true"></i>
         <input
@@ -10,8 +10,11 @@
           name="username"
           type="text"
           value="${((login.username)!'')}"
-          placeholder="Email"
+          placeholder="Email hoặc tên đăng nhập"
           autocomplete="username"
+          maxlength="255"
+          required
+          data-required-message="Vui lòng nhập email hoặc tên đăng nhập."
           autofocus
           <#if usernameEditDisabled?? && usernameEditDisabled>disabled</#if>
         >
@@ -25,7 +28,7 @@
       <label for="password">Mật khẩu <span class="vm-auth-required">*</span></label>
       <div class="vm-auth-input-shell">
         <i class="fas fa-lock" aria-hidden="true"></i>
-        <input id="password" name="password" type="password" placeholder="Mật khẩu" autocomplete="current-password">
+        <input id="password" name="password" type="password" placeholder="Mật khẩu" autocomplete="current-password" maxlength="255" required data-required-message="Vui lòng nhập mật khẩu.">
         <button class="vm-auth-eye" type="button" aria-label="Hiển thị mật khẩu" aria-pressed="false" data-password-toggle>
           <i class="far fa-eye" aria-hidden="true"></i>
         </button>
