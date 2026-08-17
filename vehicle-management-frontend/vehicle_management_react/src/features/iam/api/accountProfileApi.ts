@@ -1,6 +1,7 @@
 import { appConfig } from "@/config/env";
 import { apiClient } from "@/core/api/apiClient";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
+import { localizeApiMessage, localizeApiResponseBody } from "@/core/api/apiMessage";
 import { getValidAccessToken, refreshAccessToken } from "@/core/auth/tokenRefresh";
 
 type ApiResponse<T> = {
@@ -96,10 +97,10 @@ export async function uploadMyAccountAvatar(file: File) {
   const responseBody = await response.json();
 
   if (!response.ok) {
-    throw new Error(responseBody?.message ?? `API error ${response.status}`);
+    throw new Error(localizeApiMessage(responseBody?.message, response.status));
   }
 
-  return responseBody as ApiResponse<AccountProfileStatusResponse>;
+  return localizeApiResponseBody(responseBody, response.status) as ApiResponse<AccountProfileStatusResponse>;
 }
 
 function sendAvatarUploadRequest(formData: FormData, accessToken: string | null) {

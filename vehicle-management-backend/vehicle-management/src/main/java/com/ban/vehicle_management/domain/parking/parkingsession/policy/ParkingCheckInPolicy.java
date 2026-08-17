@@ -32,10 +32,10 @@ public class ParkingCheckInPolicy {
     public void validateLaneForCheckIn(Lane lane) {
         requireField(lane, "lane");
         if (lane.getStatus() != LaneStatus.ACTIVE) {
-            throw new ConflictException("Lane is not active");
+            throw new ConflictException("Làn xe hiện không hoạt động");
         }
         if (lane.getDirection() != LaneDirection.IN) {
-            throw new BadRequestException("Lane must be an IN lane for check-in");
+            throw new BadRequestException("Vui lòng chọn đúng làn xe vào");
         }
     }
 
@@ -47,13 +47,13 @@ public class ParkingCheckInPolicy {
 
         validateLaneForCheckIn(lane);
         if (gate.getStatus() != GateStatus.ACTIVE) {
-            throw new ConflictException("Gate is not active");
+            throw new ConflictException("Cổng xe hiện không hoạt động");
         }
         if (zone.getStatus() != ZoneStatus.ACTIVE) {
-            throw new ConflictException("Zone is not active");
+            throw new ConflictException("Khu vực đỗ xe hiện không hoạt động");
         }
         if (parkingLot.getStatus() != ParkingLotStatus.ACTIVE) {
-            throw new ConflictException("Parking lot is not active");
+            throw new ConflictException("Bãi xe hiện không hoạt động");
         }
     }
 
@@ -67,19 +67,19 @@ public class ParkingCheckInPolicy {
 
         if (isVisitorCard(cardType)) {
             if (card.getStatus() != CardStatus.AVAILABLE) {
-                throw new ConflictException("Visitor card must be AVAILABLE for parking check-in");
+                throw new ConflictException("Thẻ vãng lai phải ở trạng thái sẵn sàng để ghi nhận xe vào");
             }
             return;
         }
 
         if (isSubscriptionCard(cardType)) {
             if (card.getStatus() != CardStatus.ASSIGNED) {
-                throw new ConflictException("Registered card must be ASSIGNED for parking check-in");
+                throw new ConflictException("Thẻ đăng ký phải được gán trước khi ghi nhận xe vào");
             }
             return;
         }
 
-        throw new ConflictException("Card type is not eligible for parking check-in");
+        throw new ConflictException("Loại thẻ này không được phép sử dụng để ghi nhận xe vào");
     }
 
     public boolean isVisitorCard(CardType cardType) {
@@ -97,23 +97,23 @@ public class ParkingCheckInPolicy {
         requireField(zone, "zone");
 
         if (zone.getVehicleTypeId() != null && !zone.getVehicleTypeId().equals(vehicleTypeId)) {
-            throw new ConflictException("Vehicle type is not accepted by zone");
+            throw new ConflictException("Loại xe này không được phép vào khu vực đã chọn");
         }
     }
 
     public void ensureCardHasNoOpenSession(boolean hasOpenSession) {
         if (hasOpenSession) {
-            throw new ConflictException("Card already has an open parking session");
+            throw new ConflictException("Thẻ đang có một phiên gửi xe chưa kết thúc");
         }
     }
 
     public void validateZoneCapacity(Zone zone, long openSessionCount) {
         requireField(zone, "zone");
         if (zone.getCapacity() == null || zone.getCapacity() <= 0) {
-            throw new ConflictException("Zone has no available capacity");
+            throw new ConflictException("Khu vực đỗ xe không còn sức chứa khả dụng");
         }
         if (openSessionCount >= zone.getCapacity()) {
-            throw new ConflictException("Zone capacity is full");
+            throw new ConflictException("Khu vực đỗ xe đã hết chỗ");
         }
     }
 
@@ -130,28 +130,28 @@ public class ParkingCheckInPolicy {
         requireField(customerVehicle, "customerVehicle");
 
         if (customer.getStatus() != CustomerStatus.ACTIVE) {
-            throw new ConflictException("Customer is not active");
+            throw new ConflictException("Khách hàng hiện không hoạt động");
         }
         if (customer.getApprovalStatus() != CustomerApprovalStatus.APPROVED) {
-            throw new ConflictException("Customer is not approved");
+            throw new ConflictException("Khách hàng chưa được phê duyệt");
         }
         if (!subscription.getCustomerId().equals(customer.getCustomerId())) {
-            throw new ConflictException("Subscription customer does not match customer");
+            throw new ConflictException("Vé đăng ký không thuộc khách hàng này");
         }
         if (!subscription.getCustomerId().equals(customerVehicle.getCustomerId())) {
-            throw new ConflictException("Subscription customer does not match customer vehicle");
+            throw new ConflictException("Vé đăng ký không thuộc phương tiện này");
         }
         if (customerVehicle.getStatus() != CustomerVehicleStatus.ACTIVE) {
-            throw new ConflictException("Customer vehicle is not active");
+            throw new ConflictException("Phương tiện của khách hàng hiện không hoạt động");
         }
         if (!licensePlatePolicy.matches(customerVehicle.getLicensePlate(), detectedLicensePlate)) {
-            throw new ConflictException("Detected license plate does not match subscription vehicle");
+            throw new ConflictException("Biển số nhận diện không khớp với phương tiện đã đăng ký");
         }
     }
 
     private void requireField(Object value, String fieldName) {
         if (value == null) {
-            throw new BadRequestException(fieldName + " must not be null");
+            throw new BadRequestException("Thiếu thông tin bắt buộc: " + fieldName);
         }
     }
 }

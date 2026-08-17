@@ -49,7 +49,7 @@ class GlobalExceptionHandlerTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Malformed request body", response.getBody().getMessage());
+        assertEquals("Nội dung yêu cầu không đúng định dạng", response.getBody().getMessage());
     }
 
     @Test
@@ -84,7 +84,7 @@ class GlobalExceptionHandlerTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Request validation failed", response.getBody().getMessage());
+        assertEquals("Dữ liệu gửi lên không hợp lệ", response.getBody().getMessage());
     }
 
     @Test
@@ -115,7 +115,7 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertEquals(
-                "Request was rejected before permission checking. Send JSON in the request body with Content-Type: application/json instead of query or form parameters.",
+                "Yêu cầu bị từ chối do tham số không đúng định dạng. Vui lòng gửi dữ liệu JSON trong nội dung yêu cầu",
                 response.getBody().getMessage()
         );
     }

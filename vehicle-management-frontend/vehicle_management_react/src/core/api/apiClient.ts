@@ -1,4 +1,5 @@
 import { appConfig } from "@/config/env";
+import { localizeApiMessage, localizeApiResponseBody } from "@/core/api/apiMessage";
 import { getValidAccessToken, refreshAccessToken } from "@/core/auth/tokenRefresh";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
@@ -22,22 +23,22 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
   const responseBody = contentType.includes("application/json") ? await response.json() : null;
 
   if (!response.ok) {
-    const message =
+    const rawMessage =
       responseBody &&
       typeof responseBody === "object" &&
       "message" in responseBody &&
       typeof responseBody.message === "string"
         ? responseBody.message
-        : `API error ${response.status}`;
+        : null;
 
-    throw new Error(message);
+    throw new Error(localizeApiMessage(rawMessage, response.status));
   }
 
   if (responseBody === null) {
-    throw new Error(`API response is not JSON for ${path}`);
+    throw new Error("Máy chủ trả về dữ liệu không đúng định dạng.");
   }
 
-  return responseBody as T;
+  return localizeApiResponseBody(responseBody, response.status) as T;
 }
 
 function sendJsonRequest(path: string, options: RequestOptions, accessToken: string | null) {

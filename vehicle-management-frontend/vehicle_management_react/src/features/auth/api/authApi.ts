@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/api/apiClient";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
+import { localizeApiMessage } from "@/core/api/apiMessage";
 import { appConfig } from "@/config/env";
 
 type ApiResponse<T> = {
@@ -159,7 +160,7 @@ export async function exchangeKeycloakAuthorizationCode(code: string) {
   const responseBody = (await response.json()) as KeycloakTokenResponse & { error_description?: string };
 
   if (!response.ok) {
-    throw new Error(responseBody.error_description ?? `Keycloak token error ${response.status}`);
+    throw new Error(localizeApiMessage(responseBody.error_description, response.status));
   }
 
   return responseBody;

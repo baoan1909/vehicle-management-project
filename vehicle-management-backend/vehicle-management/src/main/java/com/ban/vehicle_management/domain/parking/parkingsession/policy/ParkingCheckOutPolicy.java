@@ -19,10 +19,10 @@ public class ParkingCheckOutPolicy {
     public void validateLaneForCheckOut(Lane lane) {
         requireField(lane, "lane");
         if (lane.getStatus() != LaneStatus.ACTIVE) {
-            throw new ConflictException("Lane is not active");
+            throw new ConflictException("Làn xe hiện không hoạt động");
         }
         if (lane.getDirection() != LaneDirection.OUT) {
-            throw new BadRequestException("Lane must be an OUT lane for check-out");
+            throw new BadRequestException("Vui lòng chọn đúng làn xe ra");
         }
     }
 
@@ -34,13 +34,13 @@ public class ParkingCheckOutPolicy {
 
         validateLaneForCheckOut(lane);
         if (gate.getStatus() != GateStatus.ACTIVE) {
-            throw new ConflictException("Gate is not active");
+            throw new ConflictException("Cổng xe hiện không hoạt động");
         }
         if (zone.getStatus() != ZoneStatus.ACTIVE) {
-            throw new ConflictException("Zone is not active");
+            throw new ConflictException("Khu vực đỗ xe hiện không hoạt động");
         }
         if (parkingLot.getStatus() != ParkingLotStatus.ACTIVE) {
-            throw new ConflictException("Parking lot is not active");
+            throw new ConflictException("Bãi xe hiện không hoạt động");
         }
     }
 
@@ -50,14 +50,14 @@ public class ParkingCheckOutPolicy {
         requireField(card.getStatus(), "cardStatus");
 
         if (card.getStatus() != CardStatus.IN_USE) {
-            throw new ConflictException("Card is not in use");
+            throw new ConflictException("Thẻ hiện không được sử dụng trong phiên gửi xe");
         }
     }
 
 
     private void requireField(Object value, String fieldName) {
         if (value == null) {
-            throw new BadRequestException(fieldName + " must not be null");
+            throw new BadRequestException("Thiếu thông tin bắt buộc: " + fieldName);
         }
     }
 }

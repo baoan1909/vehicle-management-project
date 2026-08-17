@@ -1,4 +1,5 @@
 import { appConfig } from "@/config/env";
+import { localizeApiMessage } from "@/core/api/apiMessage";
 import {
   clearAuthTokens,
   getAccessToken,
@@ -86,7 +87,7 @@ async function requestTokenRefresh(refreshToken: string) {
   const responseBody = (await response.json()) as KeycloakTokenResponse & { error_description?: string };
 
   if (!response.ok) {
-    throw new Error(responseBody.error_description ?? `Keycloak refresh token error ${response.status}`);
+    throw new Error(localizeApiMessage(responseBody.error_description, response.status));
   }
 
   return responseBody;

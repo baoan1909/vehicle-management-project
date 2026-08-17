@@ -75,7 +75,7 @@ public class GlobalExceptionHandler {
             Exception exception,
             HttpServletRequest request
     ) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Request validation failed", request.getRequestURI());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Dữ liệu gửi lên không hợp lệ", request.getRequestURI());
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -83,7 +83,7 @@ public class GlobalExceptionHandler {
             HttpMessageNotReadableException exception,
             HttpServletRequest request
     ) {
-        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Malformed request body", request.getRequestURI());
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, "Nội dung yêu cầu không đúng định dạng", request.getRequestURI());
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
@@ -91,7 +91,11 @@ public class GlobalExceptionHandler {
             HttpRequestMethodNotSupportedException exception,
             HttpServletRequest request
     ) {
-        return buildErrorResponse(HttpStatus.METHOD_NOT_ALLOWED, exception.getMessage(), request.getRequestURI());
+        return buildErrorResponse(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                "Phương thức HTTP không được hỗ trợ cho đường dẫn này",
+                request.getRequestURI()
+        );
     }
 
     @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
@@ -99,7 +103,11 @@ public class GlobalExceptionHandler {
             HttpMediaTypeNotSupportedException exception,
             HttpServletRequest request
     ) {
-        return buildErrorResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE, exception.getMessage(), request.getRequestURI());
+        return buildErrorResponse(
+                HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "Định dạng dữ liệu gửi lên không được hỗ trợ",
+                request.getRequestURI()
+        );
     }
 
     @ExceptionHandler(AuthenticationCredentialsNotFoundException.class)
@@ -107,7 +115,11 @@ public class GlobalExceptionHandler {
             AuthenticationCredentialsNotFoundException exception,
             HttpServletRequest request
     ) {
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, exception.getMessage(), request.getRequestURI());
+        return buildErrorResponse(
+                HttpStatus.UNAUTHORIZED,
+                "Bạn cần đăng nhập để thực hiện thao tác này",
+                request.getRequestURI()
+        );
     }
 
     @ExceptionHandler(AuthenticationException.class)
@@ -115,7 +127,11 @@ public class GlobalExceptionHandler {
             AuthenticationException exception,
             HttpServletRequest request
     ) {
-        return buildErrorResponse(HttpStatus.UNAUTHORIZED, exception.getMessage(), request.getRequestURI());
+        return buildErrorResponse(
+                HttpStatus.UNAUTHORIZED,
+                "Phiên đăng nhập không hợp lệ hoặc đã hết hạn",
+                request.getRequestURI()
+        );
     }
 
     @ExceptionHandler(AccessDeniedException.class)
@@ -123,7 +139,11 @@ public class GlobalExceptionHandler {
             AccessDeniedException exception,
             HttpServletRequest request
     ) {
-        return buildErrorResponse(HttpStatus.FORBIDDEN, exception.getMessage(), request.getRequestURI());
+        return buildErrorResponse(
+                HttpStatus.FORBIDDEN,
+                "Bạn không có quyền thực hiện thao tác này",
+                request.getRequestURI()
+        );
     }
 
     @ExceptionHandler(RequestRejectedException.class)
@@ -145,11 +165,11 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         LOGGER.error("Unhandled exception at {}: {}", request.getRequestURI(), exception.getMessage(), exception);
-        String debugMessage = "Internal server error: " + exception.getClass().getSimpleName()
-                + (exception.getMessage() == null || exception.getMessage().isBlank()
-                ? ""
-                : " - " + exception.getMessage());
-        return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, debugMessage, request.getRequestURI());
+        return buildErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Hệ thống đang gặp sự cố. Vui lòng thử lại sau",
+                request.getRequestURI()
+        );
     }
 
     private ResponseEntity<ApiResponse<Map<String, Object>>> buildErrorResponse(
@@ -171,9 +191,9 @@ public class GlobalExceptionHandler {
     private String buildRequestRejectedMessage(RequestRejectedException exception) {
         String message = exception.getMessage();
         if (message != null && message.contains("parameter name")) {
-            return "Request was rejected before permission checking. Send JSON in the request body with Content-Type: application/json instead of query or form parameters.";
+            return "Yêu cầu bị từ chối do tham số không đúng định dạng. Vui lòng gửi dữ liệu JSON trong nội dung yêu cầu";
         }
-        return "Request was rejected by security validation";
+        return "Yêu cầu bị từ chối bởi chính sách bảo mật";
     }
 }
 

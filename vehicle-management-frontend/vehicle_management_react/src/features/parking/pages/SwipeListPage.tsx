@@ -133,7 +133,7 @@ function getRegisteredCardAvailabilityError(card?: ParkingCardResponse) {
 
   const today = getLocalDateKey();
   if (card.effectiveFrom && today < card.effectiveFrom) {
-    return `Vé đăng ký chưa đến ngày hiệu lực. Có thể check-in từ ${formatDateOnly(card.effectiveFrom)}.`;
+    return `Vé đăng ký chưa đến ngày hiệu lực. Có thể ghi nhận xe vào từ ${formatDateOnly(card.effectiveFrom)}.`;
   }
   if (card.effectiveTo && today > card.effectiveTo) {
     return `Vé đăng ký đã hết hiệu lực từ ${formatDateOnly(card.effectiveTo)}.`;
@@ -351,7 +351,7 @@ export function SwipeListPage() {
 
     if (vnpayResult === "success") {
       toast.success(
-        "Thanh toán VNPAY thành công và phiên checkout đã được hoàn tất.",
+        "Thanh toán VNPAY thành công và đã hoàn tất ghi nhận xe ra.",
         "Thanh toán thành công",
       );
       clearPendingVnpayCheckOut();
@@ -952,7 +952,7 @@ export function SwipeListPage() {
     if (submitValidation.hasErrors) {
       toast.error(
         submitValidation.message,
-        mode === "check-in" ? "Thiếu thông tin check-in" : "Thiếu thông tin check-out",
+        mode === "check-in" ? "Thiếu thông tin xe vào" : "Thiếu thông tin xe ra",
       );
       return;
     }
@@ -1009,7 +1009,7 @@ export function SwipeListPage() {
     }
 
     if (mode === "check-out" && !checkOutPreview) {
-      setSubmitError("Chưa tải được thông tin phiên gửi xe. Vui lòng chọn lại thẻ trước khi checkout.");
+      setSubmitError("Chưa tải được thông tin phiên gửi xe. Vui lòng chọn lại thẻ trước khi ghi nhận xe ra.");
       return;
     }
 
@@ -1032,7 +1032,7 @@ export function SwipeListPage() {
           personImage,
         );
         setParkingSessionResult(response.data);
-        toast.success(response.message || "Check-in thành công.", "Check-in thành công");
+        toast.success(response.message || "Đã ghi nhận xe vào thành công.", "Ghi nhận xe vào thành công");
       } else {
         const response =
           checkOutPreview?.customerType === "VISITOR"
@@ -1045,7 +1045,7 @@ export function SwipeListPage() {
           const invoice = checkOutResult.invoice;
           const amount = invoice?.finalAmount;
           if (!invoice || typeof amount !== "number" || !Number.isFinite(amount)) {
-            throw new Error("Backend không trả về hóa đơn hợp lệ để tiếp tục thanh toán checkout.");
+            throw new Error("Máy chủ không trả về hóa đơn hợp lệ để tiếp tục thanh toán khi xe ra.");
           }
 
           if (checkOutPaymentMethod === "CASH") {
@@ -1053,13 +1053,13 @@ export function SwipeListPage() {
             const completedResult = await fetchParkingCheckOutByInvoice(invoice.invoiceId);
             setParkingSessionResult(completedResult);
             toast.success(
-              "Đã checkout và ghi nhận thanh toán tiền mặt thành công.",
+              "Đã ghi nhận xe ra và thanh toán tiền mặt thành công.",
               "Thanh toán thành công",
             );
           } else {
             const paymentResponse = await createParkingVnpayPayment(invoice.invoiceId);
             if (!paymentResponse.data.paymentUrl) {
-              throw new Error("Backend không trả về URL thanh toán VNPAY.");
+              throw new Error("Máy chủ không trả về đường dẫn thanh toán VNPAY.");
             }
             storePendingVnpayCheckOut(checkOutResult, {
               cardUid: request.cardUid,
@@ -1072,8 +1072,8 @@ export function SwipeListPage() {
           }
         } else {
           toast.success(
-            response.message || "Check-out thành công. Vé đăng ký không phát sinh thanh toán.",
-            "Check-out thành công",
+            response.message || "Đã ghi nhận xe ra thành công. Vé đăng ký không phát sinh thanh toán.",
+            "Ghi nhận xe ra thành công",
           );
         }
       }
@@ -1096,12 +1096,12 @@ export function SwipeListPage() {
         error instanceof Error
           ? error.message
           : mode === "check-in"
-            ? "Check-in thất bại."
-            : "Check-out hoặc thanh toán thất bại.";
+            ? "Ghi nhận xe vào thất bại."
+            : "Ghi nhận xe ra hoặc thanh toán thất bại.";
       setSubmitError(message);
       toast.error(
         message,
-        mode === "check-in" ? "Check-in thất bại" : "Không thể hoàn tất checkout",
+        mode === "check-in" ? "Ghi nhận xe vào thất bại" : "Không thể hoàn tất ghi nhận xe ra",
       );
     } finally {
       setIsSubmitting(false);

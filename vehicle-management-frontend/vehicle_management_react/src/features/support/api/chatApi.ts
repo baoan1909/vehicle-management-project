@@ -1,6 +1,7 @@
 import { appConfig } from "@/config/env";
 import { apiClient } from "@/core/api/apiClient";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
+import { localizeApiMessage, localizeApiResponseBody } from "@/core/api/apiMessage";
 import { getValidAccessToken, refreshAccessToken } from "@/core/auth/tokenRefresh";
 
 type ApiResponse<T> = {
@@ -192,18 +193,18 @@ async function postMultipart<T>(path: string, body: FormData): Promise<T> {
   const responseBody = contentType.includes("application/json") ? await response.json() : null;
 
   if (!response.ok) {
-    const message =
+    const rawMessage =
       responseBody &&
       typeof responseBody === "object" &&
       "message" in responseBody &&
       typeof responseBody.message === "string"
         ? responseBody.message
-        : `API error ${response.status}`;
+        : null;
 
-    throw new Error(message);
+    throw new Error(localizeApiMessage(rawMessage, response.status));
   }
 
-  return responseBody as T;
+  return localizeApiResponseBody(responseBody, response.status) as T;
 }
 
 function sendMultipartRequest(path: string, body: FormData, accessToken: string | null) {
