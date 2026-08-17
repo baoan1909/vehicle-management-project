@@ -57,11 +57,36 @@ public class CardEntity extends AuditableEntity {
     @Column(name = "issued_at")
     private Instant issuedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_before_blocked")
+    private CardStatus statusBeforeBlocked;
+
     @Column(name = "blocked_at")
     private Instant blockedAt;
 
+    @Column(name = "blocked_by")
+    private UUID blockedBy;
+
     @Column(name = "blocked_reason")
     private String blockedReason;
+
+    @Column(name = "retired_at")
+    private Instant retiredAt;
+
+    @Column(name = "retired_by")
+    private UUID retiredBy;
+
+    @Column(name = "retired_reason")
+    private String retiredReason;
+
+    @Column(name = "recovered_at")
+    private Instant recoveredAt;
+
+    @Column(name = "recovered_by")
+    private UUID recoveredBy;
+
+    @Column(name = "recovery_note")
+    private String recoveryNote;
 
     @OneToMany(mappedBy = "card")
     private Set<SubscriptionEntity> subscriptions = new HashSet<>();

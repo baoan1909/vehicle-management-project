@@ -316,7 +316,7 @@ Important current status sets include:
 - `people.customers.status`: `ACTIVE`, `INACTIVE`
 - `people.customers.approval_status`: `PENDING`, `APPROVED`, `REJECTED`, `SUSPENDED`
 - `people.employees.status`: `ACTIVE`, `INACTIVE`, `SUSPENDED`
-- `access_control.cards.status`: `AVAILABLE`, `ASSIGNED`, `IN_USE`, `LOST`, `BLOCKED`, `DAMAGED`, `RETIRED`
+- `access_control.cards.status`: `AVAILABLE`, `RESERVED`, `ASSIGNED`, `IN_USE`, `LOST`, `BLOCKED`, `RETIRED`
 - `access_control.subscriptions.status`: `PENDING`, `ACTIVE`, `EXPIRED`, `CANCELLED`, `REJECTED`
 - `parking.parking_sessions.status`: `OPEN`, `CLOSED`, `LOST_CARD`, `CANCELLED`
 - `billing.invoices.status`: `UNPAID`, `PAID`, `CANCELLED`, `REFUNDED`
@@ -338,8 +338,8 @@ For `access_control.cards.status`, keep the following transition intent consiste
 
 - `AVAILABLE -> ASSIGNED -> IN_USE` is the normal operational path.
 - `ASSIGNED`, `IN_USE`, and `BLOCKED` may return to `AVAILABLE` only through explicit lifecycle operations such as release or unblock.
-- `BLOCKED` is temporary and must stay distinct from `LOST`, `DAMAGED`, and `RETIRED`.
-- `DAMAGED` describes card condition, while `RETIRED` is the terminal lifecycle decision.
+- `BLOCKED` is temporary and must preserve the status that preceded blocking.
+- Physical damage is a retirement reason; `RETIRED` is the terminal lifecycle decision.
 - `delete` in API/use case should normally map to `RETIRED`, not physical delete.
 - `IN_USE -> RETIRED` must be rejected directly.
 

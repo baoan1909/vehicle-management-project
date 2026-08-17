@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.application.accesscontrol.card.usecase;
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardPortIn;
-import com.ban.vehicle_management.application.accesscontrol.card.port.in.ChangeCardStatusPortIn;
+import com.ban.vehicle_management.application.accesscontrol.card.port.in.CardLifecyclePortIn;
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
+public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn {
 
     private static final String CARD_CREATE_ALL = "CARD_CREATE_ALL";
     private static final String CARD_READ_ALL = "CARD_READ_ALL";
@@ -51,10 +51,10 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
         validateCardTypeExists(card.getCardTypeId());
 
         if (cardPort.existsByCardNumber(card.getCardNumber())) {
-            throw new ConflictException("Card number already exists");
+            throw new ConflictException("Mã thẻ đã tồn tại");
         }
         if (cardPort.existsByUid(card.getUid())) {
-            throw new ConflictException("Card uid already exists");
+            throw new ConflictException("UID thẻ đã tồn tại");
         }
 
         card.setCardId(UUID.randomUUID());
@@ -82,16 +82,16 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
         Card existingCard = findExistingCard(cardId);
 
         if (existingCard.getStatus() == CardStatus.IN_USE) {
-            throw new BadRequestException("Card in use cannot be updated");
+            throw new BadRequestException("Không thể cập nhật thẻ đang được sử dụng");
         }
 
         if (existingCard.getStatus() != CardStatus.AVAILABLE
                 && !Objects.equals(existingCard.getCardTypeId(), card.getCardTypeId())) {
-            throw new BadRequestException("Card type can only be changed when card status is AVAILABLE");
+            throw new BadRequestException("Chỉ có thể đổi loại thẻ khi thẻ ở trạng thái sẵn sàng");
         }
 
         if (cardPolicy.hasCoreIdentifierChanged(existingCard, card) && cardPort.hasOperationalHistory(cardId)) {
-            throw new BadRequestException("Card number and uid cannot be changed after the card has been used in operational flow");
+            throw new BadRequestException("Không thể thay đổi mã thẻ hoặc UID sau khi thẻ đã được sử dụng trong nghiệp vụ");
         }
 
         existingCard.setCardNumber(card.getCardNumber());
@@ -101,10 +101,10 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
         validateCardTypeExists(existingCard.getCardTypeId());
 
         if (cardPort.existsByCardNumberAndCardIdNot(existingCard.getCardNumber(), cardId)) {
-            throw new ConflictException("Card number already exists");
+            throw new ConflictException("Mã thẻ đã tồn tại");
         }
         if (cardPort.existsByUidAndCardIdNot(existingCard.getUid(), cardId)) {
-            throw new ConflictException("Card uid already exists");
+            throw new ConflictException("UID thẻ đã tồn tại");
         }
 
         return cardPort.save(existingCard);
@@ -115,52 +115,94 @@ public class CardUseCaseImpl implements CardPortIn, ChangeCardStatusPortIn {
     public void deleteCard(UUID cardId) {
         currentAccountPortIn.requirePermission(CARD_DELETE_ALL);
         Card existingCard = findExistingCard(cardId);
-        if (existingCard.getStatus() == CardStatus.RETIRED) {
-            return;
-        }
-        if (cardPort.hasActiveUsage(cardId)) {
-            throw new BadRequestException("Card is currently used in active business flow and cannot be retired");
-        }
-
-        cardPolicy.retire(existingCard);
-        cardPort.save(existingCard);
+        retireExistingCard(existingCard, "Ngừng sử dụng qua API cũ");
     }
 
     @Override
     @Transactional
-    public Card changeCardStatus(UUID cardId, CardStatus status, String blockedReason) {
+    public Card blockCard(UUID cardId, String reason) {
         currentAccountPortIn.requirePermission(CARD_UPDATE_ALL);
-        Card existingCard = findExistingCard(cardId);
-        if (status == null) {
-            throw new BadRequestException("status must not be null");
+        Card existingCard = findExistingCardForUpdate(cardId);
+        cardPolicy.block(
+                existingCard,
+                currentAccountPortIn.getCurrentAccountIdOrThrow(),
+                Instant.now(),
+                reason
+        );
+
+        return cardPort.save(existingCard);
+    }
+
+    @Override
+    @Transactional
+    public Card unblockCard(UUID cardId) {
+        currentAccountPortIn.requirePermission(CARD_UPDATE_ALL);
+        Card existingCard = findExistingCardForUpdate(cardId);
+        if (!cardPort.canRestoreBlockedStatus(cardId, existingCard.getStatusBeforeBlocked())) {
+            throw new ConflictException("Không thể mở khóa thẻ vì trạng thái nghiệp vụ trước khi khóa không còn hợp lệ");
+        }
+        cardPolicy.unblock(existingCard);
+
+        return cardPort.save(existingCard);
+    }
+
+    @Override
+    @Transactional
+    public Card retireCard(UUID cardId, String reason) {
+        currentAccountPortIn.requirePermission(CARD_DELETE_ALL);
+        Card existingCard = findExistingCardForUpdate(cardId);
+        return retireExistingCard(existingCard, reason);
+    }
+
+    @Override
+    @Transactional
+    public Card recoverLostCard(UUID cardId, String inspectionNote) {
+        currentAccountPortIn.requirePermission(CARD_UPDATE_ALL);
+        Card existingCard = findExistingCardForUpdate(cardId);
+        if (!cardPort.canRecoverLostCard(cardId)) {
+            throw new ConflictException("Không thể thu hồi thẻ mất khi vẫn còn liên kết nghiệp vụ đang hoạt động");
+        }
+        cardPolicy.recover(
+                existingCard,
+                currentAccountPortIn.getCurrentAccountIdOrThrow(),
+                Instant.now(),
+                inspectionNote
+        );
+
+        return cardPort.save(existingCard);
+    }
+
+    private Card retireExistingCard(Card existingCard, String reason) {
+        if (existingCard.getStatus() == CardStatus.RETIRED) {
+            return existingCard;
+        }
+        if (cardPort.hasActiveUsage(existingCard.getCardId())) {
+            throw new BadRequestException("Thẻ đang được sử dụng trong phiên gửi xe đang hoạt động nên không thể ngưng sử dụng. Hãy hoàn tất checkout trước");
         }
 
-        switch (status) {
-            case BLOCKED -> cardPolicy.block(existingCard, Instant.now(), blockedReason);
-            case AVAILABLE -> cardPolicy.unblock(existingCard);
-            case LOST -> cardPolicy.markLost(existingCard);
-            case DAMAGED -> cardPolicy.markDamaged(existingCard);
-            case RETIRED -> {
-                if (cardPort.hasActiveUsage(cardId)) {
-                    throw new BadRequestException("Card is currently used in active business flow and cannot be retired");
-                }
-                cardPolicy.retire(existingCard);
-            }
-            default -> throw new BadRequestException("Unsupported card status transition");
-        }
-
+        cardPolicy.retire(
+                existingCard,
+                currentAccountPortIn.getCurrentAccountIdOrThrow(),
+                Instant.now(),
+                reason
+        );
         return cardPort.save(existingCard);
     }
 
     private void validateCardTypeExists(UUID cardTypeId) {
         if (cardTypePort.findById(cardTypeId).isEmpty()) {
-            throw new BadRequestException("Card type does not exist");
+            throw new BadRequestException("Loại thẻ không tồn tại");
         }
     }
 
     private Card findExistingCard(UUID cardId) {
         return cardPort.findById(cardId)
-                .orElseThrow(() -> new NotFoundException("Card not found"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy thẻ"));
+    }
+
+    private Card findExistingCardForUpdate(UUID cardId) {
+        return cardPort.findByIdForUpdate(cardId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy thẻ"));
     }
 
     private void requireCardReadForOperation() {

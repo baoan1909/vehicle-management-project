@@ -32,6 +32,12 @@ public interface CardPortOut {
 
     boolean hasActiveUsage(UUID cardId);
 
+    boolean canRestoreBlockedStatus(UUID cardId, CardStatus statusBeforeBlocked);
+
+    boolean canRecoverLostCard(UUID cardId);
+
+    boolean hasOpenLostCardReport(UUID cardId);
+
     Optional<Card> findFirstAvailableRegistered();
 }
 

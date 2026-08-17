@@ -8,10 +8,11 @@ type ApiResponse<T> = {
   timestamp: string;
 };
 
-export type CardStatus = "AVAILABLE" | "ASSIGNED" | "IN_USE" | "RESERVED" | "BLOCKED" | "LOST" | "DAMAGED" | "RETIRED";
+export type CardStatus = "AVAILABLE" | "ASSIGNED" | "IN_USE" | "RESERVED" | "BLOCKED" | "LOST" | "RETIRED";
 
 export type CardResponse = {
   blockedAt?: string | null;
+  blockedBy?: string | null;
   blockedReason?: string | null;
   cardId: string;
   cardNumber: string;
@@ -36,6 +37,7 @@ export type CardResponse = {
   registeredVehicleTypeName?: string | null;
   requestedEffectiveFrom?: string | null;
   status: CardStatus;
+  statusBeforeBlocked?: CardStatus | null;
   subscriptionId?: string | null;
   subscriptionPrice?: number | null;
   subscriptionStatus?: string | null;
@@ -67,11 +69,6 @@ export type CardPayload = {
   cardNumber: string;
   cardTypeId: string;
   uid: string;
-};
-
-export type ChangeCardStatusPayload = {
-  blockedReason?: string;
-  status: CardStatus;
 };
 
 function toQueryString(params: Record<string, string | undefined>) {
@@ -116,16 +113,25 @@ export async function updateCard(cardId: string, payload: CardPayload) {
   return response.data;
 }
 
-export async function changeCardStatus(cardId: string, payload: ChangeCardStatusPayload) {
-  const response = await apiClient<ApiResponse<CardResponse>>(`${apiEndpoints.cards.cards}/${cardId}/status`, {
-    body: payload,
+export async function blockCard(cardId: string, reason: string) {
+  const response = await apiClient<ApiResponse<CardResponse>>(`${apiEndpoints.cards.cards}/${cardId}/block`, {
+    body: { reason },
     method: "PATCH",
   });
   return response.data;
 }
 
-export async function retireCard(cardId: string) {
-  await apiClient<ApiResponse<void>>(`${apiEndpoints.cards.cards}/${cardId}`, {
-    method: "DELETE",
+export async function unblockCard(cardId: string) {
+  const response = await apiClient<ApiResponse<CardResponse>>(`${apiEndpoints.cards.cards}/${cardId}/unblock`, {
+    method: "PATCH",
   });
+  return response.data;
+}
+
+export async function retireCard(cardId: string, reason: string) {
+  const response = await apiClient<ApiResponse<CardResponse>>(`${apiEndpoints.cards.cards}/${cardId}/retire`, {
+    body: { reason },
+    method: "PATCH",
+  });
+  return response.data;
 }

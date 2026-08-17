@@ -332,7 +332,6 @@ Its status values already imply lifecycle:
 - `IN_USE`
 - `LOST`
 - `BLOCKED`
-- `DAMAGED`
 - `RETIRED`
 
 Architecture implication:
@@ -354,7 +353,10 @@ stateDiagram-v2
 
     ASSIGNED --> AVAILABLE : release
     IN_USE --> AVAILABLE : release
-    BLOCKED --> AVAILABLE : unblock
+    BLOCKED --> AVAILABLE : unblock/restore
+    BLOCKED --> RESERVED : unblock/restore
+    BLOCKED --> ASSIGNED : unblock/restore
+    BLOCKED --> IN_USE : unblock/restore
 
     AVAILABLE --> BLOCKED : block
     ASSIGNED --> BLOCKED : block
@@ -365,16 +367,11 @@ stateDiagram-v2
     IN_USE --> LOST : markLost
     BLOCKED --> LOST : markLost
 
-    AVAILABLE --> DAMAGED : markDamaged
-    ASSIGNED --> DAMAGED : markDamaged
-    IN_USE --> DAMAGED : markDamaged
-    BLOCKED --> DAMAGED : markDamaged
-
     AVAILABLE --> RETIRED : retire
     ASSIGNED --> RETIRED : retire
     BLOCKED --> RETIRED : retire
     LOST --> RETIRED : retire
-    DAMAGED --> RETIRED : retire
+    LOST --> AVAILABLE : recover after inspection
 ```
 
 Practical interpretation:
@@ -382,9 +379,9 @@ Practical interpretation:
 - `AVAILABLE` means the card is ready to be assigned or reused.
 - `ASSIGNED` means the card has been issued but is not yet actively used in an operational parking flow.
 - `IN_USE` means the card is currently participating in an active operational flow and must not be retired directly.
-- `BLOCKED` is a temporary control state and can return to `AVAILABLE`.
-- `LOST` and `DAMAGED` describe problem states, while `RETIRED` is the terminal lifecycle state that permanently removes the card from normal operation.
-- `DAMAGED` and `RETIRED` must stay separate because `DAMAGED` explains the condition of the card, while `RETIRED` records the lifecycle decision to stop using it permanently.
+- `BLOCKED` is a temporary control state and returns to the status captured before it was blocked.
+- `LOST` describes an incident state and can return to `AVAILABLE` only through the explicit inspection-and-recovery workflow. `RETIRED` is the terminal lifecycle state that permanently removes the card from normal operation.
+- Physical damage is recorded as the retirement reason; it is not a separate card status.
 
 Implementation notes for the current codebase:
 

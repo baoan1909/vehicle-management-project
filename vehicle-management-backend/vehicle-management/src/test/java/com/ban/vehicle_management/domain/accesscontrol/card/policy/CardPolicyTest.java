@@ -45,18 +45,21 @@ class CardPolicyTest {
     void shouldRequireReasonWhenBlockingCard() {
         Card card = validCard(CardStatus.ASSIGNED);
 
-        assertThrows(BadRequestException.class, () -> cardPolicy.block(card, Instant.now(), " "));
+        assertThrows(BadRequestException.class, () -> cardPolicy.block(card, UUID.randomUUID(), Instant.now(), " "));
     }
 
     @Test
     void shouldClearBlockMetadataWhenUnblocking() {
         Card card = validCard(CardStatus.ASSIGNED);
-        cardPolicy.block(card, Instant.parse("2026-05-15T10:00:00Z"), "Security issue");
+        UUID blockedBy = UUID.randomUUID();
+        cardPolicy.block(card, blockedBy, Instant.parse("2026-05-15T10:00:00Z"), "Security issue");
 
         cardPolicy.unblock(card);
 
-        assertEquals(CardStatus.AVAILABLE, card.getStatus());
+        assertEquals(CardStatus.ASSIGNED, card.getStatus());
+        assertNull(card.getStatusBeforeBlocked());
         assertNull(card.getBlockedAt());
+        assertNull(card.getBlockedBy());
         assertNull(card.getBlockedReason());
     }
 
@@ -72,7 +75,24 @@ class CardPolicyTest {
     void shouldRejectRetireWhenCardIsInUse() {
         Card card = validCard(CardStatus.IN_USE);
 
-        assertThrows(BadRequestException.class, () -> cardPolicy.retire(card));
+        assertThrows(BadRequestException.class, () -> cardPolicy.retire(
+                card,
+                UUID.randomUUID(),
+                Instant.now(),
+                "Hỏng vật lý"
+        ));
+    }
+
+    @Test
+    void shouldRecoverLostCardAfterPassedInspection() {
+        Card card = validCard(CardStatus.LOST);
+        UUID recoveredBy = UUID.randomUUID();
+
+        cardPolicy.recover(card, recoveredBy, Instant.parse("2026-05-15T10:00:00Z"), "UID và khả năng quét đạt");
+
+        assertEquals(CardStatus.AVAILABLE, card.getStatus());
+        assertEquals(recoveredBy, card.getRecoveredBy());
+        assertEquals("UID và khả năng quét đạt", card.getRecoveryNote());
     }
 
     @Test

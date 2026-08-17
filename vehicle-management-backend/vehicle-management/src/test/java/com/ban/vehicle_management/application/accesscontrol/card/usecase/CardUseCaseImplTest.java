@@ -2,8 +2,8 @@ package com.ban.vehicle_management.application.accesscontrol.card.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -157,15 +157,18 @@ class CardUseCaseImplTest {
     void shouldRetireCardOnDeleteWhenSafe() {
         UUID cardId = UUID.randomUUID();
         Card existingCard = existingCard(cardId, CardStatus.AVAILABLE);
+        UUID currentAccountId = UUID.randomUUID();
 
         when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
         when(cardPort.hasActiveUsage(cardId)).thenReturn(false);
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(currentAccountId);
         when(cardPort.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         cardUseCase.deleteCard(cardId);
 
         verify(currentAccountPortIn).requirePermission("CARD_DELETE_ALL");
         assertEquals(CardStatus.RETIRED, existingCard.getStatus());
+        assertEquals(currentAccountId, existingCard.getRetiredBy());
         verify(cardPort).save(existingCard);
     }
 
@@ -177,32 +180,61 @@ class CardUseCaseImplTest {
         when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
         when(cardPort.hasActiveUsage(cardId)).thenReturn(true);
 
-        assertThrows(BadRequestException.class, () -> cardUseCase.deleteCard(cardId));
+        BadRequestException exception = assertThrows(BadRequestException.class, () -> cardUseCase.deleteCard(cardId));
+
+        assertEquals(
+                "Thẻ đang được sử dụng trong phiên gửi xe đang hoạt động nên không thể ngưng sử dụng. Hãy hoàn tất checkout trước",
+                exception.getMessage()
+        );
         verify(cardPort, never()).save(any(Card.class));
     }
 
     @Test
-    void shouldBlockCardThroughStatusUseCase() {
+    void shouldBlockCardAndRememberPreviousStatus() {
         UUID cardId = UUID.randomUUID();
-        Card existingCard = existingCard(cardId, CardStatus.AVAILABLE);
+        Card existingCard = existingCard(cardId, CardStatus.ASSIGNED);
+        UUID currentAccountId = UUID.randomUUID();
 
-        when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
+        when(cardPort.findByIdForUpdate(cardId)).thenReturn(Optional.of(existingCard));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(currentAccountId);
         when(cardPort.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        Card updatedCard = cardUseCase.changeCardStatus(cardId, CardStatus.BLOCKED, "Security review");
+        Card updatedCard = cardUseCase.blockCard(cardId, "Security review");
 
         assertEquals(CardStatus.BLOCKED, updatedCard.getStatus());
+        assertEquals(CardStatus.ASSIGNED, updatedCard.getStatusBeforeBlocked());
+        assertEquals(currentAccountId, updatedCard.getBlockedBy());
         assertEquals("Security review", updatedCard.getBlockedReason());
         assertNotNull(updatedCard.getBlockedAt());
     }
 
     @Test
-    void shouldRejectUnsupportedAvailableTransitionFromNonBlockedCard() {
+    void shouldRestorePreviousStatusWhenUnblocking() {
         UUID cardId = UUID.randomUUID();
-        Card existingCard = existingCard(cardId, CardStatus.AVAILABLE);
-        when(cardPort.findById(cardId)).thenReturn(Optional.of(existingCard));
+        Card existingCard = existingCard(cardId, CardStatus.BLOCKED);
+        existingCard.setStatusBeforeBlocked(CardStatus.RESERVED);
+        existingCard.setBlockedAt(java.time.Instant.now());
+        existingCard.setBlockedBy(UUID.randomUUID());
+        existingCard.setBlockedReason("Security review");
+        when(cardPort.findByIdForUpdate(cardId)).thenReturn(Optional.of(existingCard));
+        when(cardPort.canRestoreBlockedStatus(cardId, CardStatus.RESERVED)).thenReturn(true);
+        when(cardPort.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        assertThrows(BadRequestException.class, () -> cardUseCase.changeCardStatus(cardId, CardStatus.AVAILABLE, null));
+        Card updatedCard = cardUseCase.unblockCard(cardId);
+
+        assertEquals(CardStatus.RESERVED, updatedCard.getStatus());
+        assertNull(updatedCard.getStatusBeforeBlocked());
+    }
+
+    @Test
+    void shouldRejectUnblockWhenPreviousBusinessStateIsNoLongerValid() {
+        UUID cardId = UUID.randomUUID();
+        Card existingCard = existingCard(cardId, CardStatus.BLOCKED);
+        existingCard.setStatusBeforeBlocked(CardStatus.ASSIGNED);
+        when(cardPort.findByIdForUpdate(cardId)).thenReturn(Optional.of(existingCard));
+        when(cardPort.canRestoreBlockedStatus(cardId, CardStatus.ASSIGNED)).thenReturn(false);
+
+        assertThrows(ConflictException.class, () -> cardUseCase.unblockCard(cardId));
         verify(cardPort, never()).save(any(Card.class));
     }
 
@@ -228,7 +260,7 @@ class CardUseCaseImplTest {
 
         ConflictException exception = assertThrows(ConflictException.class, () -> cardUseCase.createCard(requestCard));
 
-        assertTrue(exception.getMessage().contains("uid"));
+        assertEquals("UID thẻ đã tồn tại", exception.getMessage());
         verify(cardPort, never()).save(any(Card.class));
     }
 

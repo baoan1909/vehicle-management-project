@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { LostCardReportResponse } from "@/features/cards/api/lostCardReportsApi";
 import { CardStateBadge } from "@/features/cards/components/CardStateBadge";
 import { cn } from "@/lib/cn";
 import type { CardManageRecord } from "@/features/cards/components/cardManageData";
@@ -36,14 +37,22 @@ function enumLabel(value?: string | null) {
   return labels[value] ?? value;
 }
 
+function lostCardReportStatusLabel(status?: LostCardReportResponse["status"] | null) {
+  const labels: Record<LostCardReportResponse["status"], string> = {
+    CANCELLED: "Đã hủy",
+    OPEN: "Mở",
+    RESOLVED: "Đã xử lý",
+  };
+
+  return status ? labels[status] : "Không có";
+}
+
 interface CardDetailPanelProps {
   isOpen: boolean;
-  onBlockToggle?: (row: CardManageRecord) => void;
+  isLostCardReportLoading: boolean;
+  lostCardReport: LostCardReportResponse | null;
+  lostCardReportError: string | null;
   onClose: () => void;
-  onEdit?: (row: CardManageRecord) => void;
-  onMarkDamaged?: (row: CardManageRecord) => void;
-  onMarkLost?: (row: CardManageRecord) => void;
-  onRetire?: (row: CardManageRecord) => void;
   row: CardManageRecord | null;
 }
 
@@ -64,7 +73,14 @@ function CardPreview() {
   );
 }
 
-export function CardDetailPanel({ isOpen, onBlockToggle, onClose, onEdit, onMarkDamaged, onMarkLost, onRetire, row }: CardDetailPanelProps) {
+export function CardDetailPanel({
+  isOpen,
+  isLostCardReportLoading,
+  lostCardReport,
+  lostCardReportError,
+  onClose,
+  row,
+}: CardDetailPanelProps) {
   const [isRendered, setIsRendered] = useState(isOpen);
   const [phase, setPhase] = useState<DrawerPhase>(isOpen ? "open" : "closing");
 
@@ -172,10 +188,20 @@ export function CardDetailPanel({ isOpen, onBlockToggle, onClose, onEdit, onMark
                 <CardStateBadge kind="inventory" label={row.inventoryStatusLabel} value={row.inventoryStatus} />
               </div>
               {row.blockedReason ? (
-                <div className="tw-grid tw-grid-cols-[76px_1fr] tw-items-start tw-gap-[0.65rem]">
-                  <span className="tw-text-[0.88rem] tw-font-medium tw-text-vm-slate-500">Lý do khóa</span>
-                  <strong className="tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{row.blockedReason}</strong>
-                </div>
+                <>
+                  <div className="tw-grid tw-grid-cols-[76px_1fr] tw-items-start tw-gap-[0.65rem]">
+                    <span className="tw-text-[0.88rem] tw-font-medium tw-text-vm-slate-500">Lý do khóa</span>
+                    <strong className="tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{row.blockedReason}</strong>
+                  </div>
+                  <div className="tw-grid tw-grid-cols-[76px_1fr] tw-items-start tw-gap-[0.65rem]">
+                    <span className="tw-text-[0.88rem] tw-font-medium tw-text-vm-slate-500">Trước khóa</span>
+                    <strong className="tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.blockedPreviousStatus)}</strong>
+                  </div>
+                  <div className="tw-grid tw-grid-cols-[76px_1fr] tw-items-start tw-gap-[0.65rem]">
+                    <span className="tw-text-[0.88rem] tw-font-medium tw-text-vm-slate-500">Người khóa</span>
+                    <strong className="tw-break-all tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{fallback(row.blockedBy)}</strong>
+                  </div>
+                </>
               ) : null}
             </div>
 
@@ -271,37 +297,18 @@ export function CardDetailPanel({ isOpen, onBlockToggle, onClose, onEdit, onMark
               <h4 className="tw-m-0 tw-mb-[0.9rem] tw-text-[0.98rem] tw-font-extrabold tw-text-slate-900">Báo mất</h4>
               <div className="tw-mb-[0.8rem] tw-flex tw-items-center tw-justify-between tw-gap-3">
                 <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Trạng thái</span>
-                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{row.lostCardState === "open" ? "Mở" : "Không"}</strong>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">
+                  {isLostCardReportLoading ? "Đang tải..." : lostCardReportError ?? lostCardReportStatusLabel(lostCardReport?.status)}
+                </strong>
               </div>
               <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
                 <span className="tw-text-[0.9rem] tw-text-vm-slate-700">Phí mất thẻ</span>
-                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{row.lostCardState === "open" ? "100.000đ" : "0đ"}</strong>
+                <strong className="tw-text-right tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">
+                  {isLostCardReportLoading ? "Đang tải..." : formatCurrency(lostCardReport?.lostCardFee)}
+                </strong>
               </div>
             </div>
 
-            <div className="tw-hidden">
-              <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-600/25 tw-bg-brand-600/10 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-vm-primary" type="button" onClick={() => onEdit?.(row)}>
-                <i className="far fa-edit" />
-                <span>Cập nhật</span>
-              </button>
-              <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-600/25 tw-bg-white tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-vm-primary" type="button" onClick={() => onBlockToggle?.(row)}>
-                <i className="fas fa-lock" />
-                <span>{row.inventoryStatus === "blocked" ? "Mở khóa" : "Khóa thẻ"}</span>
-              </button>
-              <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-500/25 tw-bg-amber-500/5 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-amber-600" type="button" onClick={() => onMarkDamaged?.(row)}>
-                <i className="fas fa-tools" />
-                <span>Báo hỏng</span>
-              </button>
-              <button className="tw-inline-flex tw-min-h-10 tw-flex-1 tw-items-center tw-justify-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-400/25 tw-bg-slate-500/5 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-[0.88rem] tw-font-bold tw-text-slate-600" type="button" onClick={() => onRetire?.(row)}>
-                <i className="far fa-trash-alt" />
-                <span>Ngừng dùng</span>
-              </button>
-              <button className="tw-col-span-full tw-grid tw-min-h-10 tw-w-full tw-grid-cols-[14px_1fr_14px] tw-items-center tw-gap-[0.45rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-red-500/25 tw-bg-red-500/5 tw-px-[0.7rem] tw-py-[0.65rem] tw-text-center tw-text-[0.88rem] tw-font-bold tw-text-red-500" type="button" onClick={() => onMarkLost?.(row)}>
-                <i className="far fa-exclamation-circle tw-justify-self-start" />
-                <span className="tw-col-start-2 tw-justify-self-center">Báo mất thẻ</span>
-                <span aria-hidden="true" />
-              </button>
-            </div>
           </>
         )}
       </aside>

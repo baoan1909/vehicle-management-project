@@ -48,8 +48,16 @@ public class CardAdminResponse {
     private String customerPhoneNumber;
     private CardStatus status;
     private String issuedAt;
+    private CardStatus statusBeforeBlocked;
     private String blockedAt;
+    private UUID blockedBy;
     private String blockedReason;
+    private String retiredAt;
+    private UUID retiredBy;
+    private String retiredReason;
+    private String recoveredAt;
+    private UUID recoveredBy;
+    private String recoveryNote;
     private String createdAt;
     private UUID createdBy;
     private String updatedAt;

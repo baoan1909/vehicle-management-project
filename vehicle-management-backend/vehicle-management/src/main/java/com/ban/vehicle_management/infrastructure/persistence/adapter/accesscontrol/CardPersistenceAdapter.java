@@ -124,6 +124,39 @@ public class CardPersistenceAdapter implements CardPortOut {
     }
 
     @Override
+    public boolean canRestoreBlockedStatus(UUID cardId, CardStatus statusBeforeBlocked) {
+        if (statusBeforeBlocked == null) {
+            return false;
+        }
+
+        return switch (statusBeforeBlocked) {
+            case AVAILABLE -> !hasActiveUsage(cardId);
+            case RESERVED -> subscriptionRepository.existsByCardIdAndStatusIn(
+                    cardId,
+                    List.of(SubscriptionStatus.PENDING_PAYMENT, SubscriptionStatus.PENDING_CARD)
+            );
+            case ASSIGNED -> subscriptionRepository.existsByCardIdAndStatusIn(
+                    cardId,
+                    List.of(SubscriptionStatus.ACTIVE)
+            )
+                    && !parkingSessionRepository.existsByCardIdAndStatus(cardId, ParkingSessionStatus.OPEN);
+            case IN_USE -> parkingSessionRepository.existsByCardIdAndStatus(cardId, ParkingSessionStatus.OPEN);
+            case LOST, BLOCKED, RETIRED -> false;
+        };
+    }
+
+    @Override
+    public boolean canRecoverLostCard(UUID cardId) {
+        return lostCardReportRepository.existsByCardIdAndStatus(cardId, LostCardReportStatus.RESOLVED)
+                && !hasActiveUsage(cardId);
+    }
+
+    @Override
+    public boolean hasOpenLostCardReport(UUID cardId) {
+        return lostCardReportRepository.existsByCardIdAndStatus(cardId, LostCardReportStatus.OPEN);
+    }
+
+    @Override
     public Optional<Card> findFirstAvailableRegistered() {
         return cardRepository.findAvailableByCardTypeCodeForUpdate(
                         CardStatus.AVAILABLE,

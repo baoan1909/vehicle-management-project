@@ -21,7 +21,15 @@ public class Card extends AuditableDomainModel {
     private UUID cardTypeId;
     private CardStatus status;
     private Instant issuedAt;
+    private CardStatus statusBeforeBlocked;
     private Instant blockedAt;
+    private UUID blockedBy;
     private String blockedReason;
+    private Instant retiredAt;
+    private UUID retiredBy;
+    private String retiredReason;
+    private Instant recoveredAt;
+    private UUID recoveredBy;
+    private String recoveryNote;
 }
 
