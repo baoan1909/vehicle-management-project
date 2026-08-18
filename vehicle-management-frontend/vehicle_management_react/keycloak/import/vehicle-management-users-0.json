@@ -37,45 +37,5 @@
     },
     "notBefore" : 0,
     "groups" : [ ]
-  }, {
-    "id" : "54fd8e18-9f9d-4d93-8f63-f4f0374da002",
-    "username" : "dob946899",
-    "email" : "dob946899@gmail.com",
-    "emailVerified" : true,
-    "enabled" : true,
-    "totp" : false,
-    "credentials" : [ {
-      "type" : "password",
-      "value" : "12345678",
-      "temporary" : false
-    } ],
-    "disableableCredentialTypes" : [ ],
-    "requiredActions" : [ ],
-    "realmRoles" : [ "default-roles-vehicle-management", "EMPLOYEE" ],
-    "attributes" : {
-      "account_id" : [ "20000000-0000-0000-0000-00000000a003" ]
-    },
-    "notBefore" : 0,
-    "groups" : [ ]
-  }, {
-    "id" : "54fd8e18-9f9d-4d93-8f63-f4f0374da003",
-    "username" : "baoan3236",
-    "email" : "baoan3236@gmail.com",
-    "emailVerified" : true,
-    "enabled" : true,
-    "totp" : false,
-    "credentials" : [ {
-      "type" : "password",
-      "value" : "12345678",
-      "temporary" : false
-    } ],
-    "disableableCredentialTypes" : [ ],
-    "requiredActions" : [ ],
-    "realmRoles" : [ "default-roles-vehicle-management", "PARKING_MANAGER" ],
-    "attributes" : {
-      "account_id" : [ "20000000-0000-0000-0000-00000000a004" ]
-    },
-    "notBefore" : 0,
-    "groups" : [ ]
   } ]
 }
