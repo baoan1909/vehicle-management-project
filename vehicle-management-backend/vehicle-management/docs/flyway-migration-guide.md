@@ -13,6 +13,22 @@ The initial cut-over consists of:
 
 The pre-Flyway scripts were removed from the working tree after the consolidated baseline was verified. Use Git history when an old script is needed for audit or investigation; do not restore it into the active Flyway location.
 
+## Flyway schema history
+
+Flyway automatically creates and owns `public.flyway_schema_history` before it applies the first versioned migration. The table records the installed rank, version, description, script, checksum, installer, install time, execution time and success state for every migration, matching the table structure used by Job24.
+
+Do not create this table in `V...sql` or in the schema baseline: Flyway needs the table before it can record that migration. The active configuration explicitly uses `public` and the table name `flyway_schema_history`.
+
+For an empty business database, starting the backend creates the table and inserts four successful rows for the current cut-over migrations. Check it with:
+
+```sql
+SELECT installed_rank, version, description, script, success
+FROM public.flyway_schema_history
+ORDER BY installed_rank;
+```
+
+`docker-compose.keycloak.yml` owns the separate Keycloak database only. Query `vehicle_management_db` at the configured `DB_HOST` and `DB_PORT` to see the Flyway history; do not look for it in the Keycloak database.
+
 ## Empty database
 
 Create an empty PostgreSQL database and start the backend with Flyway enabled. Flyway applies all four active migrations, after which Hibernate validates the final schema through `ddl-auto=validate`.
