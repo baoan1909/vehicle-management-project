@@ -21,6 +21,10 @@ spring:
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
     locations: classpath:db/migration
+    # Flyway owns this table and creates it before applying the first migration.
+    default-schema: public
+    schemas: public
+    table: flyway_schema_history
     validate-on-migrate: true
     validate-migration-naming: true
     clean-disabled: true
