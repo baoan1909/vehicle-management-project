@@ -72,6 +72,7 @@ export const apiEndpoints = {
       onboarding: "/iam/accounts/onboarding",
       profile: "/iam/accounts/profile",
       avatar: "/iam/accounts/profile/avatar",
+      socialBootstrap: "/iam/accounts/social-bootstrap",
     },
     permissions: "/permissions",
     rolePermissions: (roleId: string) => `/roles/${roleId}/permissions`,

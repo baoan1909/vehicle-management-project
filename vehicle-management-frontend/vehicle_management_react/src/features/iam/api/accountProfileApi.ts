@@ -62,8 +62,23 @@ export type UpdateAccountProfileRequest = {
 
 export type CompleteAccountProfileRequest = UpdateAccountProfileRequest;
 
+export type SocialAccountBootstrapResponse = {
+  accountId: string;
+  accountStatus: string;
+  roleCode: "CUSTOMER";
+  provider: "GOOGLE";
+  created: boolean;
+};
+
 export async function getMyAccountProfile() {
   return apiClient<ApiResponse<AccountProfileStatusResponse>>(apiEndpoints.iam.accountProfile.onboarding);
+}
+
+export async function bootstrapSocialAccount() {
+  return apiClient<ApiResponse<SocialAccountBootstrapResponse>>(
+    apiEndpoints.iam.accountProfile.socialBootstrap,
+    { method: "POST" },
+  );
 }
 
 export async function completeMyAccountProfile(payload: CompleteAccountProfileRequest) {

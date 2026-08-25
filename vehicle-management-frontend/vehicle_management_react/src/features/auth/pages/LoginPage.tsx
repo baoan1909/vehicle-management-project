@@ -1,12 +1,19 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { getLogoutRedirectPath, isLogoutRedirectGuardActive } from "@/core/auth/logout";
-import { getCurrentUserFromAccessToken, saveAuthTokens } from "@/core/auth/session";
+import {
+  clearAuthTokens,
+  getCurrentUserFromAccessToken,
+  getIdentityProviderFromAccessToken,
+  saveAuthTokens,
+} from "@/core/auth/session";
 import { useAuth } from "@/core/auth/useAuth";
-import { getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
+import { bootstrapSocialAccount, getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import type { CurrentUser } from "@/shared/types/common";
 import {
+  buildKeycloakLoginUrl,
+  buildKeycloakLogoutUrl,
   exchangeKeycloakAuthorizationCode,
   prepareKeycloakLoginUrl,
   registerAccount,
@@ -50,6 +57,7 @@ const adminPostLoginRedirectPath = "/api/dashboard/overview";
 const customerPostLoginRedirectPath = "/customer/dashboard";
 const processedAuthorizationCodeKey = "vm_keycloak_processed_authorization_code";
 const forgotPasswordEmailStorageKey = "vm_forgot_password_email";
+const socialLoginErrorStorageKey = "vm_social_login_error";
 let activeAuthorizationCode = "";
 
 function resolvePostLoginRedirectPath(user: CurrentUser | null) {
@@ -62,6 +70,12 @@ function resolvePostLoginRedirectPath(user: CurrentUser | null) {
 async function resolveLoggedInUser(accessToken: string) {
   const tokenUser = getCurrentUserFromAccessToken(accessToken);
   if (!tokenUser) return null;
+
+  if (getIdentityProviderFromAccessToken(accessToken) === "google") {
+    await bootstrapSocialAccount();
+    const response = await getMyAccountProfile();
+    return mergeCurrentUserWithAccountProfile(tokenUser, response.data);
+  }
 
   try {
     const response = await getMyAccountProfile();
@@ -98,10 +112,14 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const [isExchangingCode, setIsExchangingCode] = useState(false);
+  const [loginError, setLoginError] = useState(
+    () => sessionStorage.getItem(socialLoginErrorStorageKey) ?? "",
+  );
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get("code");
+    const returnedState = searchParams.get("state");
     if (!code || isExchangingCode) return;
     if (activeAuthorizationCode === code) return;
     if (sessionStorage.getItem(processedAuthorizationCodeKey) === code) {
@@ -114,9 +132,11 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
 
     async function exchangeCode() {
       setIsExchangingCode(true);
+      let idToken: string | undefined;
 
       try {
-        const tokenResponse = await exchangeKeycloakAuthorizationCode(authorizationCode);
+        const tokenResponse = await exchangeKeycloakAuthorizationCode(authorizationCode, returnedState);
+        idToken = tokenResponse.id_token;
         saveAuthTokens({
           accessToken: tokenResponse.access_token,
           refreshToken: tokenResponse.refresh_token,
@@ -129,6 +149,14 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
       } catch (error) {
         console.error(error);
         activeAuthorizationCode = "";
+        const message = error instanceof Error ? error.message : "Không thể hoàn tất đăng nhập Google.";
+        sessionStorage.setItem(socialLoginErrorStorageKey, message);
+        clearAuthTokens();
+        if (idToken) {
+          window.location.replace(buildKeycloakLogoutUrl(idToken, "/login"));
+          return;
+        }
+        setLoginError(message);
         navigate("/login", { replace: true });
       } finally {
         setIsExchangingCode(false);
@@ -141,7 +169,7 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get("code");
-    if (code) return;
+    if (code || loginError) return;
 
     async function redirectToKeycloak() {
       try {
@@ -153,7 +181,28 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
     }
 
     void redirectToKeycloak();
-  }, [location.search]);
+  }, [location.search, loginError]);
+
+  async function retryLogin() {
+    sessionStorage.removeItem(socialLoginErrorStorageKey);
+    setLoginError("");
+    const loginUrl = await buildKeycloakLoginUrl({ prompt: "login" });
+    window.location.replace(loginUrl);
+  }
+
+  if (loginError) {
+    return (
+      <div className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-p-5">
+        <section className="tw-w-full tw-max-w-[520px] tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d9e2f2] tw-bg-white tw-p-8 tw-shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
+          <div className="tw-mb-5 tw-text-center"><AuthBrandMark /></div>
+          <AuthInlineNotice tone="error">{loginError}</AuthInlineNotice>
+          <Button className="tw-mt-5 tw-w-full" type="button" variant="primary" onClick={() => void retryLogin()}>
+            Thử lại với tài khoản Google khác
+          </Button>
+        </section>
+      </div>
+    );
+  }
 
   return <FullPageCarLoader label={label} />;
 }

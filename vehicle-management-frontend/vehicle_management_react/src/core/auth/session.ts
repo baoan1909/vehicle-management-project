@@ -22,6 +22,7 @@ type JwtPayload = {
   family_name?: string;
   given_name?: string;
   groups?: string[];
+  identity_provider?: string;
   name?: string;
   preferred_username?: string;
   role?: string;
@@ -38,6 +39,10 @@ type JwtPayload = {
     }
   >;
 };
+
+export function getIdentityProviderFromAccessToken(accessToken: string) {
+  return decodeJwtPayload(accessToken)?.identity_provider?.trim().toLowerCase() ?? null;
+}
 
 export function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY) ?? sessionStorage.getItem(ACCESS_TOKEN_KEY);
