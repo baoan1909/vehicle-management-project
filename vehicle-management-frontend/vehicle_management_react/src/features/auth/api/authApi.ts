@@ -43,6 +43,7 @@ type KeycloakTokenResponse = {
 };
 
 const PKCE_CODE_VERIFIER_KEY = "vm_pkce_code_verifier";
+const OAUTH_STATE_KEY = "vm_oauth_state";
 type KeycloakLoginOptions = {
   prompt?: "login";
 };
@@ -77,11 +78,14 @@ export async function buildKeycloakLoginUrl(options: KeycloakLoginOptions = {}) 
   const loginUrl = new URL(appConfig.keycloakLoginUrl);
   const codeVerifier = generateCodeVerifier();
   const codeChallenge = await buildCodeChallenge(codeVerifier);
+  const state = generateRandomUrlSafeValue(32);
 
   sessionStorage.setItem(PKCE_CODE_VERIFIER_KEY, codeVerifier);
+  sessionStorage.setItem(OAUTH_STATE_KEY, state);
   loginUrl.searchParams.set("code_challenge", codeChallenge);
   loginUrl.searchParams.set("code_challenge_method", "S256");
   loginUrl.searchParams.set("scope", normalizeLoginScopes(loginUrl.searchParams.get("scope")));
+  loginUrl.searchParams.set("state", state);
   if (options.prompt) {
     loginUrl.searchParams.set("prompt", options.prompt);
   } else {
@@ -133,7 +137,14 @@ function normalizeLoginScopes(scope: string | null) {
   return Array.from(scopes).join(" ");
 }
 
-export async function exchangeKeycloakAuthorizationCode(code: string) {
+export async function exchangeKeycloakAuthorizationCode(code: string, returnedState: string | null) {
+  const expectedState = sessionStorage.getItem(OAUTH_STATE_KEY);
+  if (!expectedState || !returnedState || expectedState !== returnedState) {
+    sessionStorage.removeItem(PKCE_CODE_VERIFIER_KEY);
+    sessionStorage.removeItem(OAUTH_STATE_KEY);
+    throw new Error("Phiên đăng nhập không hợp lệ. Vui lòng thử lại.");
+  }
+
   const loginUrl = new URL(appConfig.keycloakLoginUrl);
   const tokenUrl = new URL(loginUrl.toString());
   tokenUrl.pathname = tokenUrl.pathname.replace(/\/auth$/, "/token");
@@ -148,6 +159,8 @@ export async function exchangeKeycloakAuthorizationCode(code: string) {
   if (codeVerifier) {
     formData.set("code_verifier", codeVerifier);
   }
+  sessionStorage.removeItem(PKCE_CODE_VERIFIER_KEY);
+  sessionStorage.removeItem(OAUTH_STATE_KEY);
 
   const response = await fetch(tokenUrl.toString(), {
     body: formData,
@@ -189,7 +202,11 @@ function buildFrontendRedirectUri(loginUrl: URL, path: string) {
 }
 
 function generateCodeVerifier() {
-  const randomValues = new Uint8Array(64);
+  return generateRandomUrlSafeValue(64);
+}
+
+function generateRandomUrlSafeValue(length: number) {
+  const randomValues = new Uint8Array(length);
   crypto.getRandomValues(randomValues);
   return base64UrlEncode(randomValues);
 }
