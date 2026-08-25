@@ -63,6 +63,67 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
             ApprovalRequestStatus status
     );
 
+    long countByRequestTypeAndTargetSchemaAndTargetTableAndStatus(
+            String requestType,
+            String targetSchema,
+            String targetTable,
+            ApprovalRequestStatus status
+    );
+
+    long countByRequestTypeAndTargetSchemaAndTargetTableAndStatusAndTargetIdNot(
+            String requestType,
+            String targetSchema,
+            String targetTable,
+            ApprovalRequestStatus status,
+            UUID excludedTargetId
+    );
+
+    @Query("""
+            SELECT COUNT(approval)
+            FROM ApprovalRequestEntity approval,
+                 EmployeeEntity employee,
+                 AccountEntity account,
+                 RoleEntity role
+            WHERE approval.requestType = :requestType
+              AND approval.targetSchema = :targetSchema
+              AND approval.targetTable = :targetTable
+              AND approval.status = :status
+              AND approval.targetId = employee.employeeId
+              AND employee.userProfileId = account.userProfileId
+              AND account.roleId = role.roleId
+              AND role.code = :targetRoleCode
+            """)
+    long countPendingInternalEmployeeApprovalsByTargetRole(
+            @Param("requestType") String requestType,
+            @Param("targetSchema") String targetSchema,
+            @Param("targetTable") String targetTable,
+            @Param("status") ApprovalRequestStatus status,
+            @Param("targetRoleCode") String targetRoleCode
+    );
+
+    @Query("""
+            SELECT COUNT(approval)
+            FROM ApprovalRequestEntity approval,
+                 EmployeeEntity employee,
+                 AccountEntity account,
+                 RoleEntity role
+            WHERE approval.requestType = :requestType
+              AND approval.targetSchema = :targetSchema
+              AND approval.targetTable = :targetTable
+              AND approval.status = :status
+              AND approval.targetId = employee.employeeId
+              AND employee.userProfileId = account.userProfileId
+              AND account.roleId = role.roleId
+              AND role.code <> :excludedTargetRoleCode
+            """)
+    long countPendingInternalEmployeeApprovalsByTargetRoleNot(
+            @Param("requestType") String requestType,
+            @Param("targetSchema") String targetSchema,
+            @Param("targetTable") String targetTable,
+            @Param("status") ApprovalRequestStatus status,
+            @Param("excludedTargetRoleCode") String excludedTargetRoleCode
+    );
+
     @Query("""
             SELECT approval.approvalRequestId AS eventId,
                    COALESCE(approval.approvedAt, approval.createdAt) AS eventTime,

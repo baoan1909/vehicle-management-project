@@ -229,7 +229,7 @@ public class InternalEmployeeApprovalPersistenceAdapter implements InternalEmplo
             InternalEmployeeApprovalFilterCommand command,
             InternalEmployeeApprovalResult result
     ) {
-        return command.roleCode() == null || command.roleCode().name().equals(result.account().roleCode());
+        return command.roleCode() == null || command.roleCode().equals(result.account().roleCode());
     }
 
     private boolean matchesKeyword(

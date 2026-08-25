@@ -87,6 +87,7 @@ export const apiEndpoints = {
     approveWorkScheduleWeek: "/operations/work-schedules/approve-week",
     customerOnboardingApprovals: "/operations/approval-requests/customer-onboarding",
     internalEmployeeOnboardingApprovals: "/operations/approval-requests/internal-employee-onboarding",
+    onboardingApprovalSummary: "/operations/approval-requests/onboarding-summary",
     systemAdminOnboardingApprovals: "/operations/approval-requests/system-admin-onboarding",
     employeeRosterRules: "/operations/employee-roster-rules",
     generateWorkScheduleWeek: "/operations/work-schedules/generate-week",

@@ -36,7 +36,7 @@ public class SystemAdminApprovalController {
     }
 
     @GetMapping
-    @PreAuthorize("@permissionAuthorizer.hasPermission('ACCOUNT_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL')")
     public ResponseEntity<ApiResponse<List<SystemAdminApprovalAdminResponse>>> getSystemAdminApprovals(
             @ModelAttribute SystemAdminApprovalFilterRequest request
     ) {
@@ -50,7 +50,7 @@ public class SystemAdminApprovalController {
     }
 
     @GetMapping("/{approvalRequestId}")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('ACCOUNT_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL')")
     public ResponseEntity<ApiResponse<SystemAdminApprovalAdminResponse>> getSystemAdminApprovalById(
             @PathVariable UUID approvalRequestId
     ) {
@@ -71,7 +71,7 @@ public class SystemAdminApprovalController {
     }
 
     @PatchMapping("/{approvalRequestId}/approve")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('ACCOUNT_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL')")
     public ResponseEntity<ApiResponse<SystemAdminApprovalAdminResponse>> approveSystemAdminApproval(
             @PathVariable UUID approvalRequestId,
             @RequestBody(required = false) ReviewInternalEmployeeApprovalRequest request
@@ -89,7 +89,7 @@ public class SystemAdminApprovalController {
     }
 
     @PatchMapping("/{approvalRequestId}/reject")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('ACCOUNT_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL')")
     public ResponseEntity<ApiResponse<SystemAdminApprovalAdminResponse>> rejectSystemAdminApproval(
             @PathVariable UUID approvalRequestId,
             @RequestBody(required = false) ReviewInternalEmployeeApprovalRequest request

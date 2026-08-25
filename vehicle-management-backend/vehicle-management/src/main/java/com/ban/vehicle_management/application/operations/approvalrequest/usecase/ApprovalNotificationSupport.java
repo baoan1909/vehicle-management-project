@@ -1,24 +1,29 @@
 package com.ban.vehicle_management.application.operations.approvalrequest.usecase;
 
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
-import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationRecipientCriteria;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
+import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
+import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy.OnboardingApprovalKind;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import java.util.UUID;
 
-final class ApprovalNotificationSupport {
+public final class ApprovalNotificationSupport {
+
+    private static final OnboardingApprovalPolicy ONBOARDING_APPROVAL_POLICY = new OnboardingApprovalPolicy();
 
     private ApprovalNotificationSupport() {
     }
 
-    static void notifyAccount(
+    public static void notifyAccount(
             NotificationPortIn notificationPortIn,
             UUID accountId,
             NotificationType notificationType,
             String title,
             String message,
+            String redirectUrl,
             String relatedSchema,
             String relatedTable,
             UUID relatedId
@@ -31,33 +36,54 @@ final class ApprovalNotificationSupport {
                 notificationType,
                 title,
                 message,
+                redirectUrl,
                 relatedSchema,
                 relatedTable,
                 relatedId
         ));
     }
 
-    static void notifyApprovers(
+    public static void notifyApprovers(
             NotificationPortIn notificationPortIn,
             ApprovalRequest approvalRequest,
+            String targetRoleCode,
             NotificationType notificationType,
             String title
     ) {
         if (notificationPortIn == null) {
             return;
         }
+        OnboardingApprovalPolicy.ReviewerAudience audience = ONBOARDING_APPROVAL_POLICY.resolveReviewerAudience(
+                approvalRequest.getRequestType(),
+                targetRoleCode,
+                approvalRequest.getRequestedBy()
+        );
         notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
-                false,
-                NotificationAudience.APPROVERS,
+                true,
+                null,
                 null,
                 null,
                 notificationType,
                 title,
                 "Có yêu cầu phê duyệt mới cần xử lý.",
-                null,
+                redirectUrl(audience.kind()),
                 approvalRequest.getTargetSchema(),
                 approvalRequest.getTargetTable(),
-                approvalRequest.getTargetId()
+                approvalRequest.getTargetId(),
+                new NotificationRecipientCriteria(
+                        true,
+                        audience.requiredPermissionCodes(),
+                        audience.excludedAccountIds(),
+                        true
+                )
         ));
+    }
+
+    private static String redirectUrl(OnboardingApprovalKind kind) {
+        return switch (kind) {
+            case SYSTEM_ADMIN -> "/admin/account?tab=onboarding&kind=system-admin";
+            case INTERNAL_EMPLOYEE -> "/admin/account?tab=onboarding&kind=internal-employee";
+            case CUSTOMER -> "/admin/account?tab=onboarding&kind=customer";
+        };
     }
 }

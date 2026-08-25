@@ -6,6 +6,8 @@ import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import { AccountCreateDrawer } from "../components/AccountCreateDrawer";
 import { OnboardingApprovalWorkspace } from "./OnboardingApprovalPage";
+import { fetchOnboardingApprovalSummary } from "@/features/iam/api/onboardingApprovalApi";
+import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { openSupportCenterConversation } from "@/features/support/utils";
 import {
   getProvisionedAccounts,
@@ -598,10 +600,14 @@ export function AccountListPage() {
   const [permissionModal, setPermissionModal] = useState<AccountPermissionModalState>(null);
   const [isActionSaving, setIsActionSaving] = useState(false);
   const [actionErrorMessage, setActionErrorMessage] = useState("");
+  const [onboardingPendingCount, setOnboardingPendingCount] = useState(0);
   const canReadProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_READ_ALL"]);
-  const canReadOnboardingApprovals =
-    (user?.role === "SYSTEM_ADMIN" && hasAnyPermission(user, ["ACCOUNT_READ_ALL", "EMPLOYEE_READ_ALL"])) ||
-    (user?.role === "PARKING_MANAGER" && hasAnyPermission(user, ["ACCOUNT_READ_ALL", "EMPLOYEE_READ_ALL", "CUSTOMER_READ_ALL"]));
+  const canReadOnboardingApprovals = hasAnyPermission(user, [
+    "ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL",
+    "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL",
+    "ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL",
+    "ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL",
+  ]);
   const canCreateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_CREATE_ALL"]);
   const canUpdateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_UPDATE_ALL"]);
   const canOpenSupportCenter = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
@@ -616,9 +622,33 @@ export function AccountListPage() {
       nextSearchParams.set("tab", "onboarding");
     } else {
       nextSearchParams.delete("tab");
+      nextSearchParams.delete("kind");
     }
     setSearchParams(nextSearchParams, { replace: true });
   }
+
+  async function loadOnboardingPendingCount() {
+    if (!canReadOnboardingApprovals) {
+      setOnboardingPendingCount(0);
+      return;
+    }
+    try {
+      const summary = await fetchOnboardingApprovalSummary();
+      setOnboardingPendingCount(summary.totalPending);
+    } catch {
+      setOnboardingPendingCount(0);
+    }
+  }
+
+  useEffect(() => {
+    void loadOnboardingPendingCount();
+  }, [canReadOnboardingApprovals, user?.id, user?.permissionCodes]);
+
+  useEffect(() => subscribeNotificationReceived((notification) => {
+    if (notification.redirectUrl?.includes("tab=onboarding")) {
+      void loadOnboardingPendingCount();
+    }
+  }), [canReadOnboardingApprovals, user?.id]);
 
   async function loadAccounts() {
     if (!canReadProvisionedAccount) return;
@@ -825,6 +855,11 @@ export function AccountListPage() {
               >
                 <i className="fas fa-user-check" />
                 Duyệt onboarding
+                {onboardingPendingCount > 0 ? (
+                  <span className="tw-inline-flex tw-min-w-5 tw-items-center tw-justify-center tw-rounded-full tw-bg-red-500 tw-px-1.5 tw-py-0.5 tw-text-[0.68rem] tw-font-black tw-leading-none tw-text-white">
+                    {onboardingPendingCount > 99 ? "99+" : onboardingPendingCount}
+                  </span>
+                ) : null}
               </button>
             ) : null}
           </div>
@@ -1006,7 +1041,10 @@ export function AccountListPage() {
           />
             </>
           ) : (
-            <OnboardingApprovalWorkspace embedded />
+            <OnboardingApprovalWorkspace
+              embedded
+              onPendingSummaryChange={(summary) => setOnboardingPendingCount(summary.totalPending)}
+            />
           )}
         </section>
       </div>

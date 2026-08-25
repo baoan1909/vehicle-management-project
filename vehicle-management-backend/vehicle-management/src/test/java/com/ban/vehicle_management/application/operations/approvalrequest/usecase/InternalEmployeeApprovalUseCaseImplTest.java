@@ -1,10 +1,9 @@
 package com.ban.vehicle_management.application.operations.approvalrequest.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,7 +37,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class InternalEmployeeApprovalUseCaseImplTest {
@@ -112,7 +110,7 @@ class InternalEmployeeApprovalUseCaseImplTest {
         assertEquals(ApprovalRequestStatus.APPROVED, approvalCaptor.getValue().getStatus());
         assertEquals(EmployeeStatus.ACTIVE, employeeCaptor.getValue().getStatus());
         assertEquals("APPROVED", result.request().approvalRequestStatus());
-        verify(vehicleMailService).sendOnboardingApprovedEmail("internal.user@example.com", "Internal User", "nhân sự nội bộ");
+        verify(vehicleMailService).sendOnboardingApprovedEmail("internal.user@example.com", "Internal User", "EMPLOYEE");
     }
 
     @Test
@@ -155,32 +153,6 @@ class InternalEmployeeApprovalUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectApprovalWhenParkingManagerTriesToReviewParkingManagerRequest() {
-        UUID approvalRequestId = UUID.randomUUID();
-        UUID accountId = UUID.randomUUID();
-        UUID employeeId = UUID.randomUUID();
-        UUID userProfileId = UUID.randomUUID();
-
-        CurrentAccountAccess currentAccount = currentParkingManager(accountId);
-        when(internalEmployeeApprovalAccessGuard.requireWriteAccess()).thenReturn(currentAccount);
-        when(internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequestById(approvalRequestId))
-                .thenReturn(Optional.of(pendingApprovalRequest(approvalRequestId, employeeId, accountId)));
-        when(internalEmployeeApprovalPortOut.findCandidateByEmployeeId(employeeId))
-                .thenReturn(Optional.of(candidate(accountId, userProfileId, employeeId, "PARKING_MANAGER")));
-        doThrow(new AccessDeniedException("Access is denied"))
-                .when(internalEmployeeApprovalAccessGuard)
-                .ensureCanReviewTarget(currentAccount, "PARKING_MANAGER");
-
-        assertThrows(
-                AccessDeniedException.class,
-                () -> internalEmployeeApprovalUseCase.approveInternalEmployeeApproval(
-                        approvalRequestId,
-                        new ReviewInternalEmployeeApprovalCommand("Not allowed")
-                )
-        );
-    }
-
-    @Test
     void shouldRejectEmployeeApprovalRequestAndKeepEmployeeInactive() {
         UUID approvalRequestId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
@@ -219,7 +191,7 @@ class InternalEmployeeApprovalUseCaseImplTest {
         verify(vehicleMailService).sendOnboardingRejectedEmail(
                 "internal.user@example.com",
                 "Internal User",
-                "nhân sự nội bộ",
+                "EMPLOYEE",
                 "Missing documents"
         );
     }
@@ -231,8 +203,6 @@ class InternalEmployeeApprovalUseCaseImplTest {
         UUID employeeId = UUID.randomUUID();
 
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentEmployee(accountId));
-        when(internalEmployeeApprovalAccessGuard.requireProvisionableRole("EMPLOYEE"))
-                .thenReturn(com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode.EMPLOYEE);
         when(internalEmployeeApprovalPortOut.findCandidateByAccountId(accountId))
                 .thenReturn(Optional.of(candidate(accountId, userProfileId, employeeId, "EMPLOYEE")));
         when(internalEmployeeApprovalPortOut.existsPendingInternalEmployeeApprovalForEmployee(employeeId)).thenReturn(true);
@@ -241,23 +211,36 @@ class InternalEmployeeApprovalUseCaseImplTest {
     }
 
     @Test
-    void shouldFilterParkingManagerListToEmployeeTargetsOnly() {
+    void shouldReturnOnlyInternalTargetRolesAllowedByReviewerScope() {
         UUID accountId = UUID.randomUUID();
         CurrentAccountAccess currentAccount = currentParkingManager(accountId);
         when(internalEmployeeApprovalAccessGuard.requireReadAccess()).thenReturn(currentAccount);
-        when(internalEmployeeApprovalAccessGuard.canAccessTargetRole(currentAccount, "EMPLOYEE")).thenReturn(true);
-        when(internalEmployeeApprovalAccessGuard.canAccessTargetRole(currentAccount, "PARKING_MANAGER")).thenReturn(false);
+        when(internalEmployeeApprovalAccessGuard.canAccessTargetRole(currentAccount, "PARKING_MANAGER"))
+                .thenReturn(false);
+        when(internalEmployeeApprovalAccessGuard.canAccessTargetRole(currentAccount, "EMPLOYEE"))
+                .thenReturn(true);
+        when(internalEmployeeApprovalAccessGuard.canAccessTargetRole(currentAccount, "CUSTOM_OPERATIONS"))
+                .thenReturn(true);
         when(internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequests(any())).thenReturn(List.of(
+                approvalResult(
+                        UUID.randomUUID(),
+                        "PARKING_MANAGER",
+                        "PENDING",
+                        null,
+                        UUID.randomUUID(),
+                        EmployeeStatus.INACTIVE
+                ),
                 approvalResult(UUID.randomUUID(), "EMPLOYEE", "PENDING", null, UUID.randomUUID(), EmployeeStatus.INACTIVE),
-                approvalResult(UUID.randomUUID(), "PARKING_MANAGER", "PENDING", null, UUID.randomUUID(), EmployeeStatus.INACTIVE)
+                approvalResult(UUID.randomUUID(), "CUSTOM_OPERATIONS", "PENDING", null, UUID.randomUUID(), EmployeeStatus.INACTIVE)
         ));
 
         List<InternalEmployeeApprovalResult> results = internalEmployeeApprovalUseCase.getInternalEmployeeApprovals(
                 new InternalEmployeeApprovalFilterCommand(null, null, null)
         );
 
-        assertEquals(1, results.size());
+        assertEquals(2, results.size());
         assertEquals("EMPLOYEE", results.get(0).account().roleCode());
+        assertEquals("CUSTOM_OPERATIONS", results.get(1).account().roleCode());
     }
 
     @Test
@@ -297,29 +280,62 @@ class InternalEmployeeApprovalUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectWhenSystemAdminTriesToReviewEmployeeRequest() {
+    void shouldAllowPermissionQualifiedReviewerToApproveCustomRoleRequest() {
         UUID approvalRequestId = UUID.randomUUID();
-        UUID accountId = UUID.randomUUID();
+        UUID reviewerAccountId = UUID.randomUUID();
+        UUID targetAccountId = UUID.randomUUID();
         UUID employeeId = UUID.randomUUID();
         UUID userProfileId = UUID.randomUUID();
-
-        CurrentAccountAccess currentAccount = currentSystemAdmin(accountId);
-        when(internalEmployeeApprovalAccessGuard.requireWriteAccess()).thenReturn(currentAccount);
-        when(internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequestById(approvalRequestId))
-                .thenReturn(Optional.of(pendingApprovalRequest(approvalRequestId, employeeId, accountId)));
-        when(internalEmployeeApprovalPortOut.findCandidateByEmployeeId(employeeId))
-                .thenReturn(Optional.of(candidate(accountId, userProfileId, employeeId, "EMPLOYEE")));
-        doThrow(new AccessDeniedException("Access is denied"))
-                .when(internalEmployeeApprovalAccessGuard)
-                .ensureCanReviewTarget(eq(currentAccount), eq("EMPLOYEE"));
-
-        assertThrows(
-                AccessDeniedException.class,
-                () -> internalEmployeeApprovalUseCase.approveInternalEmployeeApproval(
-                        approvalRequestId,
-                        new ReviewInternalEmployeeApprovalCommand("Not allowed")
-                )
+        ApprovalRequest approvalRequest = pendingApprovalRequest(approvalRequestId, employeeId, targetAccountId);
+        Employee employee = pendingEmployee(employeeId, userProfileId);
+        InternalEmployeeApprovalResult expectedResult = approvalResult(
+                approvalRequestId,
+                "CUSTOM_OPERATIONS",
+                "APPROVED",
+                "Permission-based approval",
+                employeeId,
+                EmployeeStatus.ACTIVE
         );
+
+        when(internalEmployeeApprovalAccessGuard.requireWriteAccess())
+                .thenReturn(currentParkingManager(reviewerAccountId));
+        when(internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequestById(approvalRequestId))
+                .thenReturn(Optional.of(approvalRequest));
+        when(internalEmployeeApprovalPortOut.findCandidateByEmployeeId(employeeId))
+                .thenReturn(Optional.of(candidate(targetAccountId, userProfileId, employeeId, "CUSTOM_OPERATIONS")));
+        when(internalEmployeeApprovalPortOut.findEmployeeById(employeeId)).thenReturn(Optional.of(employee));
+        when(internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId))
+                .thenReturn(Optional.of(expectedResult));
+
+        InternalEmployeeApprovalResult result = internalEmployeeApprovalUseCase.approveInternalEmployeeApproval(
+                approvalRequestId,
+                new ReviewInternalEmployeeApprovalCommand("Permission-based approval")
+        );
+
+        assertEquals("CUSTOM_OPERATIONS", result.account().roleCode());
+        verify(internalEmployeeApprovalPortOut).saveInternalEmployeeApprovalDecision(any(), any());
+    }
+
+    @Test
+    void shouldReturnCustomRoleApprovalDetailWithoutRoleMatrixFiltering() {
+        UUID approvalRequestId = UUID.randomUUID();
+        InternalEmployeeApprovalResult expectedResult = approvalResult(
+                approvalRequestId,
+                "CUSTOM_SECURITY_OPERATOR",
+                "PENDING",
+                null,
+                UUID.randomUUID(),
+                EmployeeStatus.INACTIVE
+        );
+        when(internalEmployeeApprovalAccessGuard.requireReadAccess())
+                .thenReturn(currentParkingManager(UUID.randomUUID()));
+        when(internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId))
+                .thenReturn(Optional.of(expectedResult));
+
+        InternalEmployeeApprovalResult result =
+                internalEmployeeApprovalUseCase.getInternalEmployeeApprovalById(approvalRequestId);
+
+        assertSame(expectedResult, result);
     }
 
     private CurrentAccountAccess currentSystemAdmin(UUID accountId) {

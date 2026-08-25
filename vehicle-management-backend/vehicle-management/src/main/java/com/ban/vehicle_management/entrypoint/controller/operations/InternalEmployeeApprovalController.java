@@ -36,7 +36,7 @@ public class InternalEmployeeApprovalController {
     }
 
     @GetMapping
-    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('ACCOUNT_READ_ALL', 'EMPLOYEE_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL', 'ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL')")
     public ResponseEntity<ApiResponse<List<InternalEmployeeApprovalAdminResponse>>> getInternalEmployeeApprovals(
             @ModelAttribute InternalEmployeeApprovalFilterRequest request
     ) {
@@ -50,7 +50,7 @@ public class InternalEmployeeApprovalController {
     }
 
     @GetMapping("/{approvalRequestId}")
-    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('ACCOUNT_READ_ALL', 'EMPLOYEE_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL', 'ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL')")
     public ResponseEntity<ApiResponse<InternalEmployeeApprovalAdminResponse>> getInternalEmployeeApprovalById(
             @PathVariable UUID approvalRequestId
     ) {
@@ -71,7 +71,7 @@ public class InternalEmployeeApprovalController {
     }
 
     @PatchMapping("/{approvalRequestId}/approve")
-    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('ACCOUNT_UPDATE_ALL', 'EMPLOYEE_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL', 'ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL')")
     public ResponseEntity<ApiResponse<InternalEmployeeApprovalAdminResponse>> approveInternalEmployeeApproval(
             @PathVariable UUID approvalRequestId,
             @RequestBody(required = false) ReviewInternalEmployeeApprovalRequest request
@@ -89,7 +89,7 @@ public class InternalEmployeeApprovalController {
     }
 
     @PatchMapping("/{approvalRequestId}/reject")
-    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('ACCOUNT_UPDATE_ALL', 'EMPLOYEE_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL', 'ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL')")
     public ResponseEntity<ApiResponse<InternalEmployeeApprovalAdminResponse>> rejectInternalEmployeeApproval(
             @PathVariable UUID approvalRequestId,
             @RequestBody(required = false) ReviewInternalEmployeeApprovalRequest request

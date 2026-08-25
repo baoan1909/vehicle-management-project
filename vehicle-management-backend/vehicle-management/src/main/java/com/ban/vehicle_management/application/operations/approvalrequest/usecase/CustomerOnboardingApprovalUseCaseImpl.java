@@ -7,8 +7,6 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.r
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.CustomerOnboardingApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.in.CustomerOnboardingApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
-import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
-import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
@@ -236,6 +234,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
                 notificationType,
                 title,
                 message,
+                "/customer/profile",
                 "people",
                 "customers",
                 result.customer().customerId()
@@ -247,21 +246,12 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
             NotificationType notificationType,
             String title
     ) {
-        if (notificationPortIn == null) {
-            return;
-        }
-        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
-                false,
-                NotificationAudience.APPROVERS,
-                null,
+        ApprovalNotificationSupport.notifyApprovers(
+                notificationPortIn,
+                approvalRequest,
                 null,
                 notificationType,
-                title,
-                "Có yêu cầu phê duyệt mới cần xử lý.",
-                null,
-                approvalRequest.getTargetSchema(),
-                approvalRequest.getTargetTable(),
-                approvalRequest.getTargetId()
-        ));
+                title
+        );
     }
 }

@@ -6,7 +6,9 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -29,7 +31,8 @@ class CustomerOnboardingApprovalAccessGuardTest {
     void shouldAllowReadWhenCurrentUserIsParkingManagerWithCustomerReadPermission() {
         CurrentAccountAccess currentAccount = currentParkingManager();
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount);
-        when(currentAccountPortIn.hasPermission("CUSTOMER_READ_ALL")).thenReturn(true);
+        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_CUSTOMER_PERMISSION))
+                .thenReturn(true);
 
         CurrentAccountAccess result = customerOnboardingApprovalAccessGuard.requireReadAccess();
 
@@ -40,7 +43,8 @@ class CustomerOnboardingApprovalAccessGuardTest {
     void shouldAllowWriteWhenCurrentUserIsParkingManagerWithCustomerUpdatePermission() {
         CurrentAccountAccess currentAccount = currentParkingManager();
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount);
-        when(currentAccountPortIn.hasPermission("CUSTOMER_UPDATE_ALL")).thenReturn(true);
+        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_CUSTOMER_PERMISSION))
+                .thenReturn(true);
 
         CurrentAccountAccess result = customerOnboardingApprovalAccessGuard.requireWriteAccess();
 
@@ -48,16 +52,20 @@ class CustomerOnboardingApprovalAccessGuardTest {
     }
 
     @Test
-    void shouldRejectReadWhenCurrentUserIsSystemAdmin() {
-        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentSystemAdmin());
+    void shouldAllowReadForCustomRoleWithCustomerPermission() {
+        CurrentAccountAccess currentAccount = currentCustomReviewer();
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount);
+        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_CUSTOMER_PERMISSION))
+                .thenReturn(true);
 
-        assertThrows(AccessDeniedException.class, () -> customerOnboardingApprovalAccessGuard.requireReadAccess());
+        assertEquals(currentAccount, customerOnboardingApprovalAccessGuard.requireReadAccess());
     }
 
     @Test
     void shouldRejectWriteWhenParkingManagerHasNoCustomerUpdatePermission() {
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentParkingManager());
-        when(currentAccountPortIn.hasPermission("CUSTOMER_UPDATE_ALL")).thenReturn(false);
+        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_CUSTOMER_PERMISSION))
+                .thenReturn(false);
 
         assertThrows(AccessDeniedException.class, () -> customerOnboardingApprovalAccessGuard.requireWriteAccess());
     }
@@ -81,22 +89,22 @@ class CustomerOnboardingApprovalAccessGuardTest {
                 UUID.randomUUID(),
                 "PARKING_MANAGER",
                 AccountStatus.ACTIVE,
-                null,
-                Set.of("CUSTOMER_READ_ALL", "CUSTOMER_UPDATE_ALL")
+                EmployeeStatus.ACTIVE,
+                Set.of(OnboardingApprovalPolicy.REVIEW_CUSTOMER_PERMISSION)
         );
     }
 
-    private CurrentAccountAccess currentSystemAdmin() {
+    private CurrentAccountAccess currentCustomReviewer() {
         return new CurrentAccountAccess(
                 UUID.randomUUID(),
                 "sub-system-admin",
                 "system.admin",
                 "system.admin@example.com",
                 UUID.randomUUID(),
-                "SYSTEM_ADMIN",
+                "CUSTOM_APPROVER",
                 AccountStatus.ACTIVE,
                 null,
-                Set.of("CUSTOMER_READ_ALL", "CUSTOMER_UPDATE_ALL")
+                Set.of(OnboardingApprovalPolicy.REVIEW_CUSTOMER_PERMISSION)
         );
     }
 
