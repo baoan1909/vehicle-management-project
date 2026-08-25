@@ -13,10 +13,9 @@ import com.ban.vehicle_management.application.operations.approvalrequest.authori
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
-import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
-import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.application.operations.approvalrequest.usecase.ApprovalNotificationSupport;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
@@ -136,22 +135,22 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             updatedAccount = accountProfilePortOut.completeInternalProfile(accountId, userProfile, employee);
             ApprovalRequest approvalRequest = buildInternalEmployeeApprovalRequest(employee.getEmployeeId(), accountId);
             internalEmployeeApprovalPortOut.saveInternalEmployeeApprovalRequest(approvalRequest);
-            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ nhân sự đã gửi duyệt");
-            notifyApprovalReviewers(approvalRequest, "Có hồ sơ nhân sự cần duyệt");
+            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ nhân sự đã gửi duyệt", "/admin/profile");
+            notifyApprovalReviewers(approvalRequest, roleCode.name(), "Có hồ sơ nhân sự cần duyệt");
         } else if (AdminProvisionableAccountRoleCode.CUSTOMER.equals(roleCode)) {
             customer = buildOnboardingCustomer(userProfileId);
             updatedAccount = accountProfilePortOut.completeProfile(accountId, userProfile, customer);
             ApprovalRequest approvalRequest = buildCustomerOnboardingApprovalRequest(customer.getCustomerId(), accountId);
             customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalRequest(approvalRequest);
-            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ khách hàng đã gửi duyệt");
-            notifyApprovalReviewers(approvalRequest, "Có hồ sơ khách hàng cần duyệt");
+            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ khách hàng đã gửi duyệt", "/customer/profile");
+            notifyApprovalReviewers(approvalRequest, null, "Có hồ sơ khách hàng cần duyệt");
         } else {
             updatedAccount = accountProfilePortOut.completeProfileOnly(accountId, userProfile);
             if (accountOnboardingPolicy.shouldCreateSystemAdminApproval(state)) {
                 ApprovalRequest approvalRequest = buildSystemAdminApprovalRequest(accountId, accountId);
                 systemAdminApprovalPortOut.saveSystemAdminApprovalRequest(approvalRequest);
-                notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ quản trị hệ thống đã gửi duyệt");
-                notifyApprovalReviewers(approvalRequest, "Có hồ sơ quản trị hệ thống cần duyệt");
+                notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ quản trị hệ thống đã gửi duyệt", "/admin/profile");
+                notifyApprovalReviewers(approvalRequest, null, "Có hồ sơ quản trị hệ thống cần duyệt");
             }
         }
 
@@ -417,7 +416,12 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         }
     }
 
-    private void notifyApprovalSubmitted(Account account, ApprovalRequest approvalRequest, String title) {
+    private void notifyApprovalSubmitted(
+            Account account,
+            ApprovalRequest approvalRequest,
+            String title,
+            String redirectUrl
+    ) {
         if (notificationPortIn == null) {
             return;
         }
@@ -426,28 +430,20 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 NotificationType.ACCOUNT_PROFILE_SUBMITTED,
                 title,
                 "Hồ sơ của bạn đã được gửi đến nhóm duyệt.",
+                redirectUrl,
                 approvalRequest.getTargetSchema(),
                 approvalRequest.getTargetTable(),
                 approvalRequest.getTargetId()
         ));
     }
 
-    private void notifyApprovalReviewers(ApprovalRequest approvalRequest, String title) {
-        if (notificationPortIn == null) {
-            return;
-        }
-        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
-                false,
-                NotificationAudience.APPROVERS,
-                null,
-                null,
+    private void notifyApprovalReviewers(ApprovalRequest approvalRequest, String targetRoleCode, String title) {
+        ApprovalNotificationSupport.notifyApprovers(
+                notificationPortIn,
+                approvalRequest,
+                targetRoleCode,
                 NotificationType.ACCOUNT_PROFILE_SUBMITTED,
-                title,
-                "Có yêu cầu phê duyệt mới cần xử lý.",
-                null,
-                approvalRequest.getTargetSchema(),
-                approvalRequest.getTargetTable(),
-                approvalRequest.getTargetId()
-        ));
+                title
+        );
     }
 }

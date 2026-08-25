@@ -177,7 +177,7 @@ class SystemAdminApprovalUseCaseImplTest {
     void shouldRejectResubmitWhenPendingRequestAlreadyExists() {
         UUID accountId = UUID.randomUUID();
 
-        when(systemAdminApprovalAccessGuard.requireCurrentSystemAdmin()).thenReturn(currentSystemAdmin(accountId));
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentSystemAdmin(accountId));
         when(systemAdminApprovalPortOut.existsPendingSystemAdminApprovalForAccount(accountId)).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> systemAdminApprovalUseCase.resubmitMySystemAdminApproval());

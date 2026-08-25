@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.operations.approvalrequest.author
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
@@ -9,12 +10,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class CustomerOnboardingApprovalAccessGuard {
 
-    public static final String REQUEST_TYPE = "CUSTOMER_ONBOARDING";
+    public static final String REQUEST_TYPE = OnboardingApprovalPolicy.CUSTOMER_REQUEST_TYPE;
     public static final String TARGET_SCHEMA = "people";
     public static final String TARGET_TABLE = "customers";
-
-    private static final String CUSTOMER_READ_ALL = "CUSTOMER_READ_ALL";
-    private static final String CUSTOMER_UPDATE_ALL = "CUSTOMER_UPDATE_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
 
@@ -23,16 +21,16 @@ public class CustomerOnboardingApprovalAccessGuard {
     }
 
     public CurrentAccountAccess requireReadAccess() {
-        CurrentAccountAccess currentAccount = requireCurrentParkingManager();
-        if (!currentAccountPortIn.hasPermission(CUSTOMER_READ_ALL)) {
+        CurrentAccountAccess currentAccount = requireActiveReviewer();
+        if (!currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_CUSTOMER_PERMISSION)) {
             throw new AccessDeniedException("Access is denied");
         }
         return currentAccount;
     }
 
     public CurrentAccountAccess requireWriteAccess() {
-        CurrentAccountAccess currentAccount = requireCurrentParkingManager();
-        if (!currentAccountPortIn.hasPermission(CUSTOMER_UPDATE_ALL)) {
+        CurrentAccountAccess currentAccount = requireActiveReviewer();
+        if (!currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_CUSTOMER_PERMISSION)) {
             throw new AccessDeniedException("Access is denied");
         }
         return currentAccount;
@@ -46,9 +44,9 @@ public class CustomerOnboardingApprovalAccessGuard {
         return currentAccount;
     }
 
-    private CurrentAccountAccess requireCurrentParkingManager() {
+    private CurrentAccountAccess requireActiveReviewer() {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (!AdminProvisionableAccountRoleCode.PARKING_MANAGER.name().equals(currentAccount.roleCode())) {
+        if (!currentAccount.canUseBusinessPermissions()) {
             throw new AccessDeniedException("Access is denied");
         }
         return currentAccount;

@@ -130,7 +130,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
     @Override
     @Transactional
     public SystemAdminApprovalResult resubmitMySystemAdminApproval() {
-        CurrentAccountAccess currentAccount = systemAdminApprovalAccessGuard.requireCurrentSystemAdmin();
+        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
 
         UUID accountId = currentAccount.accountId();
         if (systemAdminApprovalPortOut.existsPendingSystemAdminApprovalForAccount(accountId)) {
@@ -139,7 +139,10 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
 
         ApprovalRequest latestApprovalRequest = systemAdminApprovalPortOut.findLatestSystemAdminApprovalRequest(accountId)
                 .orElse(null);
-        if (latestApprovalRequest != null && ApprovalRequestStatus.APPROVED.equals(latestApprovalRequest.getStatus())) {
+        if (latestApprovalRequest == null) {
+            throw new ConflictException("Current account has no system admin approval request to resubmit");
+        }
+        if (ApprovalRequestStatus.APPROVED.equals(latestApprovalRequest.getStatus())) {
             throw new ConflictException("System admin approval has already been approved");
         }
 
@@ -151,6 +154,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
         ApprovalNotificationSupport.notifyApprovers(
                 notificationPortIn,
                 approvalRequest,
+                null,
                 NotificationType.SYSTEM_ADMIN_RESUBMITTED,
                 "Có hồ sơ quản trị gửi lại cần duyệt"
         );
@@ -213,6 +217,7 @@ public class SystemAdminApprovalUseCaseImpl implements SystemAdminApprovalPortIn
                 notificationType,
                 title,
                 message,
+                "/admin/profile",
                 "iam",
                 "accounts",
                 result.account().accountId()

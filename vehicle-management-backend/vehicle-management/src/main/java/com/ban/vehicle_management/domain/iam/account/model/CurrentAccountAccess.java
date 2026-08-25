@@ -41,6 +41,15 @@ public record CurrentAccountAccess(
             return false;
         }
 
+        if (employeeStatus != null && !EmployeeStatus.ACTIVE.equals(employeeStatus)) {
+            return false;
+        }
+        if ((customerStatus != null || customerApprovalStatus != null)
+                && (!CustomerStatus.ACTIVE.equals(customerStatus)
+                || !CustomerApprovalStatus.APPROVED.equals(customerApprovalStatus))) {
+            return false;
+        }
+
         AdminProvisionableAccountRoleCode provisionableRole = resolveProvisionableRole(roleCode);
         if (provisionableRole == null || !provisionableRole.requiresEmployeeRecord()) {
             return true;

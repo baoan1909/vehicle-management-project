@@ -11,21 +11,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.application.notification.broadcastannouncement.port.out.BroadcastAnnouncementPortOut;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationCommandMapper;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationRealtimeMessageMapper;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.NotificationRealtimeMessage;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationRecipientCriteria;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.out.NotificationPortOut;
 import com.ban.vehicle_management.application.notification.notification.port.out.NotificationRealtimeEventPublisherPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.notification.broadcastannouncement.model.BroadcastAnnouncement;
 import com.ban.vehicle_management.domain.notification.notification.model.Notification;
+import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +47,9 @@ class NotificationUseCaseImplTest {
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
+
+    @Mock
+    private AccountAuthorizationPortOut accountAuthorizationPortOut;
 
     @Mock
     private NotificationPortOut notificationPortOut;
@@ -65,6 +72,7 @@ class NotificationUseCaseImplTest {
     void setUp() {
         notificationUseCase = new NotificationUseCaseImpl(
                 currentAccountPortIn,
+                accountAuthorizationPortOut,
                 notificationPortOut,
                 broadcastAnnouncementPortOut,
                 realtimeEventPublisher,
@@ -227,6 +235,49 @@ class NotificationUseCaseImplTest {
     }
 
     @Test
+    void sendBroadcastWebNotification_shouldExcludePendingReviewerAndRequester() {
+        UUID requesterId = UUID.randomUUID();
+        UUID pendingManagerId = UUID.randomUUID();
+        UUID approvedManagerId = UUID.randomUUID();
+        BroadcastNotificationCommand command = new BroadcastNotificationCommand(
+                true,
+                Set.of(),
+                Set.of(),
+                null,
+                NotificationType.ACCOUNT_PROFILE_SUBMITTED,
+                "Có hồ sơ nhân sự cần duyệt",
+                "Có yêu cầu phê duyệt mới cần xử lý.",
+                "/admin/account?tab=onboarding&kind=internal-employee",
+                "people",
+                "employees",
+                UUID.randomUUID(),
+                new NotificationRecipientCriteria(
+                        true,
+                        Set.of(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION),
+                        Set.of(requesterId),
+                        true
+                )
+        );
+        Notification notification = notification(approvedManagerId, "Có hồ sơ nhân sự cần duyệt");
+
+        when(notificationPortOut.findActiveAccountIdsForBroadcast(true, List.of(), List.of()))
+                .thenReturn(List.of(requesterId, pendingManagerId, approvedManagerId));
+        when(accountAuthorizationPortOut.findByAccountId(pendingManagerId))
+                .thenReturn(Optional.of(reviewerAccess(pendingManagerId, EmployeeStatus.INACTIVE)));
+        when(accountAuthorizationPortOut.findByAccountId(approvedManagerId))
+                .thenReturn(Optional.of(reviewerAccess(approvedManagerId, EmployeeStatus.ACTIVE)));
+        when(notificationCommandMapper.toDomain(any(BroadcastNotificationCommand.class), eq(approvedManagerId)))
+                .thenReturn(notification);
+        when(notificationPortOut.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<Notification> result = notificationUseCase.sendBroadcastWebNotification(command);
+
+        assertEquals(1, result.size());
+        assertEquals(approvedManagerId, result.get(0).getAccountId());
+        verify(accountAuthorizationPortOut, never()).findByAccountId(requesterId);
+    }
+
+    @Test
     void getMyNotifications_shouldMaterializeMissingActiveBroadcastAnnouncementsForCurrentRole() {
         UUID accountId = UUID.randomUUID();
         UUID broadcastId = UUID.randomUUID();
@@ -290,6 +341,22 @@ class NotificationUseCaseImplTest {
         notification.setRelatedTable("parking_lots");
         notification.setRelatedId(UUID.randomUUID());
         return notification;
+    }
+
+    private CurrentAccountAccess reviewerAccess(UUID accountId, EmployeeStatus employeeStatus) {
+        return new CurrentAccountAccess(
+                accountId,
+                "subject",
+                "manager",
+                "manager@example.com",
+                UUID.randomUUID(),
+                "CUSTOM_APPROVER",
+                AccountStatus.ACTIVE,
+                employeeStatus,
+                null,
+                null,
+                Set.of(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION)
+        );
     }
 
     private NotificationRealtimeMessage realtimeMessage(Notification notification) {
