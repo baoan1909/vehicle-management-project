@@ -899,7 +899,7 @@ export function EmployeeListPage() {
   const canManageSelectedEmployee = canManageEmployeeForOperator(user?.role, selectedEmployee.role);
   const canReadProvisionedAccounts = hasAnyPermission(user, ["ACCOUNT_READ_ALL"]);
   const canOpenSupportCenter = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
-  const canCreateChatConversation = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN"]);
+  const canCreateChatConversation = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN", "CHAT_CONVERSATION_CREATE_ALL"]);
   const selectedEmployeeContactDisabledReason = getEmployeeContactDisabledReason(selectedEmployee);
 
   useEffect(() => {
@@ -937,7 +937,7 @@ export function EmployeeListPage() {
     if (employee.accountStatus !== "ACTIVE") return "Chỉ có thể nhắn tin với tài khoản nhân viên đang ACTIVE.";
     if (employee.role === "UNKNOWN") return "Chỉ có thể tạo chat với tài khoản nội bộ.";
     if (!canOpenSupportCenter) return "Cần quyền CHAT_CONVERSATION_READ_OWN hoặc CHAT_CONVERSATION_READ_ALL.";
-    if (!canCreateChatConversation) return "Cần quyền CHAT_CONVERSATION_CREATE_OWN để tạo hội thoại nội bộ.";
+    if (!canCreateChatConversation) return "Cần quyền CHAT_CONVERSATION_CREATE_OWN hoặc CHAT_CONVERSATION_CREATE_ALL để tạo hội thoại nội bộ.";
     return "";
   }
 

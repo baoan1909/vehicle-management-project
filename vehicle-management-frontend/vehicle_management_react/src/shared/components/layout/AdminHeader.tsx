@@ -4,6 +4,7 @@ import { useAuth } from "../../../core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import { logoutCurrentUser } from "@/core/auth/logout";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
+import { ChatInboxButton } from "@/features/support/components/ChatInboxButton";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta } from "@/shared/utils/accountStatus";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
@@ -177,6 +178,7 @@ export function AdminHeader() {
         </div>
 
         <div className="tw-flex tw-items-center tw-justify-end tw-gap-[1.1rem]">
+          <ChatInboxButton />
           <NotificationBell variant="admin" />
 
           <div ref={profileRef} className="tw-relative">

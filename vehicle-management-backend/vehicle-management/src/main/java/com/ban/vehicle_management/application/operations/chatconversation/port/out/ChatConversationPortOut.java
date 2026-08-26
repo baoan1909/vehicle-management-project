@@ -23,6 +23,10 @@ public interface ChatConversationPortOut {
 
     Optional<ChatConversation> findActiveCustomerSupportConversation(UUID customerId);
 
+    Optional<ChatConversation> findActiveSupportTicketConversation(UUID supportTicketId);
+
+    List<ChatConversation> findActiveSupportTicketConversations();
+
     ChatConversationMember saveMember(ChatConversationMember member);
 
     Optional<ChatConversationMember> findMember(UUID conversationId, UUID accountId);
@@ -56,6 +60,8 @@ public interface ChatConversationPortOut {
     boolean existsActiveInternalAccount(UUID accountId);
 
     Optional<UUID> findCustomerIdByAccountId(UUID accountId);
+
+    Optional<UUID> findAccountIdByCustomerId(UUID customerId);
 
     boolean existsCustomer(UUID customerId);
 }

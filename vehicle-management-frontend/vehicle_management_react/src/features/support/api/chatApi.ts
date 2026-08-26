@@ -32,6 +32,7 @@ export type ChatConversationParticipantResponse = {
   email: string | null;
   fullName: string | null;
   memberRole: ChatMemberRole;
+  accountRoleCode: string | null;
   username: string | null;
 };
 

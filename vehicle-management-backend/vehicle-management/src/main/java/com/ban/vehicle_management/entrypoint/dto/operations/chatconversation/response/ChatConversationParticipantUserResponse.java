@@ -17,4 +17,5 @@ public class ChatConversationParticipantUserResponse {
     private String email;
     private String fullName;
     private String avatarUrl;
+    private String accountRoleCode;
 }

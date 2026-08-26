@@ -18,4 +18,6 @@ public interface ChatConversationParticipantProjection {
     String getFullName();
 
     String getAvatarObjectKey();
+
+    String getAccountRoleCode();
 }

@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.operations.supportticket.usecase;
 import com.ban.vehicle_management.application.operations.supportticket.authorization.SupportTicketAccessGuard;
 import com.ban.vehicle_management.application.operations.supportticket.port.in.SupportTicketPortIn;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketPortOut;
+import com.ban.vehicle_management.application.operations.supportticket.service.SupportTicketConversationService;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
@@ -28,18 +29,21 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     private final SupportTicketAccessGuard accessGuard;
     private final CustomerPortOut customerPortOut;
     private final NotificationPortIn notificationPortIn;
+    private final SupportTicketConversationService ticketConversationService;
     private final SupportTicketPolicy supportTicketPolicy = new SupportTicketPolicy();
 
     public SupportTicketUseCaseImpl(
             SupportTicketPortOut supportTicketPortOut,
             SupportTicketAccessGuard accessGuard,
             CustomerPortOut customerPortOut,
-            NotificationPortIn notificationPortIn
+            NotificationPortIn notificationPortIn,
+            SupportTicketConversationService ticketConversationService
     ) {
         this.supportTicketPortOut = supportTicketPortOut;
         this.accessGuard = accessGuard;
         this.customerPortOut = customerPortOut;
         this.notificationPortIn = notificationPortIn;
+        this.ticketConversationService = ticketConversationService;
     }
 
     @Override
@@ -61,6 +65,9 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
         supportTicket.setSupportTicketId(UUID.randomUUID());
 
         SupportTicket savedTicket = supportTicketPortOut.save(supportTicket);
+        if (ticketConversationService != null) {
+            ticketConversationService.createForTicket(savedTicket);
+        }
         notifyTicketCreated(savedTicket);
         return savedTicket;
     }
@@ -129,6 +136,9 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
 
         supportTicketPolicy.assign(existingTicket, assignedTo);
         SupportTicket savedTicket = supportTicketPortOut.save(existingTicket);
+        if (ticketConversationService != null) {
+            ticketConversationService.syncAssignment(savedTicket);
+        }
         notifyTicketAssigned(savedTicket);
         return savedTicket;
     }
@@ -141,6 +151,9 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
 
         supportTicketPolicy.startProgress(existingTicket);
         SupportTicket savedTicket = supportTicketPortOut.save(existingTicket);
+        if (ticketConversationService != null) {
+            ticketConversationService.syncStatus(savedTicket);
+        }
         notifyTicketStatusChanged(savedTicket, NotificationType.SUPPORT_TICKET_IN_PROGRESS, "Ticket đang được xử lý", "Ticket hỗ trợ của bạn đang được xử lý.");
         return savedTicket;
     }
@@ -153,6 +166,9 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
 
         supportTicketPolicy.resolve(existingTicket, resolutionNote, Instant.now());
         SupportTicket savedTicket = supportTicketPortOut.save(existingTicket);
+        if (ticketConversationService != null) {
+            ticketConversationService.syncStatus(savedTicket);
+        }
         notifyTicketStatusChanged(savedTicket, NotificationType.SUPPORT_TICKET_RESPONDED, "Ticket đã có phản hồi", "Ticket hỗ trợ của bạn đã được phản hồi và đánh dấu đã xử lý.");
         return savedTicket;
     }
@@ -165,6 +181,9 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
 
         supportTicketPolicy.reopen(existingTicket, Instant.now());
         SupportTicket savedTicket = supportTicketPortOut.save(existingTicket);
+        if (ticketConversationService != null) {
+            ticketConversationService.syncStatus(savedTicket);
+        }
         notifyTicketStatusChanged(savedTicket, NotificationType.SUPPORT_TICKET_REOPENED, "Ticket được mở lại", "Ticket hỗ trợ của bạn đã được mở lại để tiếp tục xử lý.");
         return savedTicket;
     }
@@ -177,6 +196,9 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
 
         supportTicketPolicy.close(existingTicket, closedBy, Instant.now());
         SupportTicket savedTicket = supportTicketPortOut.save(existingTicket);
+        if (ticketConversationService != null) {
+            ticketConversationService.syncStatus(savedTicket);
+        }
         notifyTicketStatusChanged(savedTicket, NotificationType.SUPPORT_TICKET_CLOSED, "Ticket đã đóng", "Ticket hỗ trợ của bạn đã được đóng.");
         return savedTicket;
     }

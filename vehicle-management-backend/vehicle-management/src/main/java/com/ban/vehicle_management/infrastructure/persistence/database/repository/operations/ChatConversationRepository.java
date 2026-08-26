@@ -55,4 +55,15 @@ public interface ChatConversationRepository extends JpaRepository<ChatConversati
             ChatConversationType conversationType,
             ChatConversationStatus status
     );
+
+    Optional<ChatConversationEntity> findFirstBySupportTicketIdAndConversationTypeAndStatus(
+            UUID supportTicketId,
+            ChatConversationType conversationType,
+            ChatConversationStatus status
+    );
+
+    List<ChatConversationEntity> findByConversationTypeAndStatusOrderByCreatedAtDesc(
+            ChatConversationType conversationType,
+            ChatConversationStatus status
+    );
 }

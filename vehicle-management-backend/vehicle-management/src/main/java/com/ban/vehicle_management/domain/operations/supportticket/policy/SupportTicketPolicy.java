@@ -94,8 +94,8 @@ public class SupportTicketPolicy {
     public void close(SupportTicket ticket, UUID closedBy, Instant closedAt) {
         requireTicket(ticket);
 
-        if (ticket.getStatus() == SupportTicketStatus.CLOSED) {
-            throw new BadRequestException("Support ticket is already closed");
+        if (ticket.getStatus() != SupportTicketStatus.RESOLVED) {
+            throw new BadRequestException("Only resolved support ticket can be closed");
         }
 
         requireField(closedBy, "closedBy");

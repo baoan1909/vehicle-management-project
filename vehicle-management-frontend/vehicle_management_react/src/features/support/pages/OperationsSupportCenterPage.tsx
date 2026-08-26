@@ -4,7 +4,9 @@ import { useSearchParams } from "react-router-dom";
 
 import { Badge, Button, EntityAvatar, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
+import { getEmployees, type EmployeeApiResponse } from "@/features/employees/api/employeesApi";
 import {
+  createCustomerSupportConversation,
   createInternalDirectConversation,
   deleteChatMessage,
   getChatAttachmentReadUrl,
@@ -23,7 +25,17 @@ import {
   type ChatRealtimeEvent,
 } from "@/features/support/api/chatApi";
 import { subscribeChatRealtime } from "@/features/support/api/chatRealtime";
-import { getSupportTicketById, type SupportTicketPriority, type SupportTicketResponse, type SupportTicketStatus } from "@/features/support/api/supportApi";
+import {
+  assignSupportTicket,
+  closeSupportTicket,
+  getSupportTicketById,
+  reopenSupportTicket,
+  resolveSupportTicket,
+  startSupportTicketProgress,
+  type SupportTicketPriority,
+  type SupportTicketResponse,
+  type SupportTicketStatus,
+} from "@/features/support/api/supportApi";
 import { cn } from "@/lib/cn";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 
@@ -67,6 +79,27 @@ interface InfoLine {
 
 type LoadInboxOptions = {
   showLoading?: boolean;
+};
+
+const emptyConversation: Conversation = {
+  channel: "--",
+  customerLevel: "Chưa chọn hội thoại",
+  email: "--",
+  id: "",
+  initials: "--",
+  lastMessage: "",
+  participantId: "",
+  participantType: "customer",
+  phone: "--",
+  priority: "low",
+  priorityLabel: "--",
+  sla: "",
+  status: "waiting",
+  ticketCode: "--",
+  ticketTitle: "Hội thoại",
+  time: "",
+  tone: "blue",
+  userName: "Chưa chọn hội thoại",
 };
 
 const conversations: Conversation[] = [
@@ -379,15 +412,31 @@ function getParticipantDisplayName(participant: ChatConversationParticipantRespo
 
 function resolvePrimaryParticipant(conversation: ChatConversationResponse, currentAccountId?: string | null) {
   const participants = conversation.participants ?? [];
-  if (conversation.conversationType === "INTERNAL_DIRECT") {
-    return participants.find((participant) => participant.accountId !== currentAccountId) ?? participants[0] ?? null;
-  }
-
-  if (conversation.conversationType === "CUSTOMER_DIRECT") {
-    return participants.find((participant) => participant.memberRole === "CUSTOMER") ?? participants[0] ?? null;
+  if (conversation.conversationType === "INTERNAL_DIRECT"
+    || conversation.conversationType === "CUSTOMER_DIRECT"
+    || conversation.conversationType === "SUPPORT_TICKET") {
+    // A direct-chat item always represents the other person. Selecting by role made a
+    // customer see themselves while the staff member saw the customer.
+    return participants.find((participant) => participant.accountId !== currentAccountId) ?? null;
   }
 
   return null;
+}
+
+function getParticipantType(participant: ChatConversationParticipantResponse | null) {
+  return participant?.accountRoleCode === "CUSTOMER" || participant?.memberRole === "CUSTOMER"
+    ? "customer"
+    : "employee";
+}
+
+function getParticipantRoleLabel(participant: ChatConversationParticipantResponse | null, fallback: string) {
+  switch (participant?.accountRoleCode) {
+    case "CUSTOMER": return "Khách hàng";
+    case "PARKING_MANAGER": return "Quản lý bãi xe";
+    case "SYSTEM_ADMIN": return "Quản trị viên";
+    case "EMPLOYEE": return "Nhân viên";
+    default: return participant?.memberRole === "CUSTOMER" ? "Khách hàng" : fallback;
+  }
 }
 
 function resolveConversationTitle(conversation: ChatConversationResponse, currentAccountId?: string | null) {
@@ -483,27 +532,28 @@ function mapChatConversation(
 ): Conversation {
   const primaryParticipant = resolvePrimaryParticipant(conversation, currentAccountId);
   const title = conversation.title?.trim() || chatConversationTypeLabel[conversation.conversationType] || "Hội thoại";
-  const fallback = conversations[index % conversations.length];
   const resolvedTitle = resolveConversationTitle(conversation, currentAccountId) || title;
   const isCustomerFlow = Boolean(conversation.customerId || conversation.supportTicketId || conversation.conversationType === "CUSTOMER_DIRECT");
-  const priority = fallback?.priority ?? "medium";
+  const participantType = getParticipantType(primaryParticipant);
+  const participantRoleLabel = getParticipantRoleLabel(primaryParticipant, isCustomerFlow ? "Khách hàng" : "Nội bộ");
+  const priority: Priority = "medium";
 
   return {
     channel: chatConversationTypeLabel[conversation.conversationType] ?? "Chat",
     avatarUrl: primaryParticipant?.avatarUrl,
     conversation,
     conversationType: conversation.conversationType,
-    customerLevel: isCustomerFlow ? "Khách hàng" : "Nội bộ",
-    email: primaryParticipant?.email ?? fallback?.email ?? "--",
+    customerLevel: participantRoleLabel,
+    email: primaryParticipant?.email ?? "--",
     id: conversation.conversationId,
     initials: getInitials(resolvedTitle),
     lastMessage: lastMessage?.deleted ? "Tin nhắn đã bị xóa" : lastMessage?.content?.trim() || "Chưa có tin nhắn",
     lastMessageId: lastMessage?.messageId ?? conversation.lastMessageId,
     participantId: primaryParticipant?.accountId ?? conversation.customerId ?? conversation.assignedTo ?? conversation.ownerAccountId ?? conversation.conversationId,
-    participantType: isCustomerFlow ? "customer" : "employee",
-    phone: fallback?.phone ?? "--",
+    participantType,
+    phone: "--",
     priority,
-    priorityLabel: fallback?.priorityLabel ?? "Trung bình",
+    priorityLabel: "Trung bình",
     sla: conversation.status === "CLOSED" ? "Đã đóng" : "Đang theo dõi",
     status: mapChatStatus(conversation.status),
     supportTicketId: conversation.supportTicketId,
@@ -1483,17 +1533,45 @@ function ChatWorkspace({
   );
 }
 
-function RightPanel({ className, conversation, ticket }: { className?: string; conversation: Conversation; ticket: SupportTicketResponse | null }) {
+function RightPanel({
+  assignees,
+  canAssign,
+  canClose,
+  canProcess,
+  canReopen,
+  className,
+  conversation,
+  isUpdatingTicket,
+  onAssign,
+  onClose,
+  onResolve,
+  onReopen,
+  onStartProgress,
+  ticket,
+}: {
+  assignees: EmployeeApiResponse[];
+  canAssign: boolean;
+  canClose: boolean;
+  canProcess: boolean;
+  canReopen: boolean;
+  className?: string;
+  conversation: Conversation;
+  isUpdatingTicket: boolean;
+  onAssign: (accountId: string) => void;
+  onClose: () => void;
+  onResolve: () => void;
+  onReopen: () => void;
+  onStartProgress: () => void;
+  ticket: SupportTicketResponse | null;
+}) {
+  const [assigneeId, setAssigneeId] = useState("");
   const participantLabel = conversation.participantType === "employee" ? "Thông tin nhân viên" : "Thông tin khách hàng";
-  const dynamicInfo =
-    conversation.participantType === "employee"
-      ? [
-          { icon: "fas fa-id-badge", label: "Mã nhân viên", value: conversation.participantId },
-          { icon: "fas fa-user-shield", label: "Vai trò", value: conversation.customerLevel },
-          { icon: "fas fa-phone", label: "Số điện thoại", value: conversation.phone },
-          { icon: "far fa-envelope", label: "Email", value: conversation.email },
-        ]
-      : customerInfo;
+  const dynamicInfo: InfoLine[] = [
+    { icon: "far fa-user", label: conversation.participantType === "employee" ? "Nhân viên" : "Khách hàng", value: conversation.userName },
+    { icon: "fas fa-id-badge", label: "Mã định danh", value: conversation.participantId || "--" },
+    { icon: "fas fa-phone", label: "Số điện thoại", value: conversation.phone },
+    { icon: "far fa-envelope", label: "Email", value: conversation.email },
+  ];
   const resolvedTicketInfo: InfoLine[] = ticket
     ? [
         { icon: "far fa-folder", label: "Danh mục hỗ trợ", value: ticket.categoryName ?? ticket.categoryCode ?? "--", tone: "danger" },
@@ -1505,7 +1583,15 @@ function RightPanel({ className, conversation, ticket }: { className?: string; c
         { icon: "far fa-calendar", label: "Thời gian tạo", value: formatDateTime(ticket.createdAt) },
         { icon: "far fa-calendar-check", label: "Cập nhật cuối", value: formatDateTime(ticket.updatedAt) },
       ]
-    : ticketInfo;
+    : [
+        { icon: "far fa-folder", label: "Ticket", value: "Chưa gắn ticket" },
+        { icon: "far fa-dot-circle", label: "Trạng thái", value: conversation.conversation?.status === "CLOSED" ? "Đã đóng" : "Đang mở", tone: "primary" },
+        { icon: "far fa-paper-plane", label: "Kênh", value: conversation.channel },
+        { icon: "far fa-clock", label: "Cập nhật cuối", value: formatDateTime(conversation.conversation?.lastMessageAt) },
+      ];
+  const resolvedRelatedInfo: InfoLine[] = ticket
+    ? [{ icon: "far fa-link", label: "Liên kết", value: "Theo ticket hỗ trợ", tone: "primary" }]
+    : [{ icon: "far fa-link", label: "Liên kết", value: "Chưa gắn tài sản nghiệp vụ" }];
 
   return (
     <aside className={cn("tw-flex tw-min-h-0 tw-flex-col tw-gap-2.5 tw-overflow-y-auto tw-border-0 tw-border-l tw-border-solid tw-border-vm-slate-100 tw-bg-[#fbfdff] tw-p-3", className)}>
@@ -1516,10 +1602,54 @@ function RightPanel({ className, conversation, ticket }: { className?: string; c
         {dynamicInfo.map((item) => <InfoLineView item={item} key={item.label} />)}
       </SectionCard>
       <SectionCard title="Thông tin liên quan">
-        {relatedInfo.map((item) => <InfoLineView item={item} key={item.label} />)}
+        {resolvedRelatedInfo.map((item) => <InfoLineView item={item} key={item.label} />)}
       </SectionCard>
       <div className="tw-grid tw-gap-3 tw-p-2">
-        <Button className="tw-h-11 tw-w-full" disabled={!ticket} title={ticket ? undefined : "Backend chat chưa trả ticket hoặc hội thoại này không gắn ticket"}>
+        {ticket && canAssign && ticket.status !== "CLOSED" ? (
+          <div className="tw-grid tw-gap-2">
+            <select
+              className="tw-h-10 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-3 tw-text-sm"
+              value={assigneeId}
+              onChange={(event) => setAssigneeId(event.target.value)}
+              disabled={isUpdatingTicket}
+            >
+              <option value="">Chọn nhân viên phụ trách</option>
+              {assignees.map((employee) => employee.accountId ? (
+                <option key={employee.accountId} value={employee.accountId}>
+                  {employee.userProfile?.fullName ?? employee.accountUsername ?? employee.employeeCode ?? employee.accountId}
+                </option>
+              ) : null)}
+            </select>
+            <Button className="tw-h-10 tw-w-full" variant="secondary" disabled={!assigneeId || isUpdatingTicket} onClick={() => onAssign(assigneeId)}>
+              <i className="fas fa-user-check" />
+              Phân công
+            </Button>
+          </div>
+        ) : null}
+        {ticket?.status === "OPEN" && canProcess ? (
+          <Button className="tw-h-11 tw-w-full" variant="secondary" disabled={!ticket.assignedTo || isUpdatingTicket} onClick={onStartProgress}>
+            <i className="fas fa-play" />
+            Nhận xử lý
+          </Button>
+        ) : null}
+        {ticket && (ticket.status === "OPEN" || ticket.status === "IN_PROGRESS") && canProcess ? (
+          <Button className="tw-h-11 tw-w-full" disabled={isUpdatingTicket} onClick={onResolve}>
+            <i className="far fa-check-circle" />
+            Giải quyết ticket
+          </Button>
+        ) : null}
+        {ticket?.status === "RESOLVED" && canReopen ? (
+          <Button className="tw-h-11 tw-w-full" variant="secondary" disabled={isUpdatingTicket} onClick={onReopen}>
+            <i className="fas fa-undo" />
+            Mở lại ticket
+          </Button>
+        ) : null}
+        <Button
+          className="tw-h-11 tw-w-full"
+          disabled={!ticket || ticket.status !== "RESOLVED" || !canClose || isUpdatingTicket}
+          onClick={onClose}
+          title={ticket?.status !== "RESOLVED" ? "Ticket chỉ được đóng sau khi đã giải quyết." : undefined}
+        >
           <i className="far fa-check-square" />
           Đóng ticket
         </Button>
@@ -1555,6 +1685,8 @@ export function OperationsSupportCenterPage() {
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicketResponse | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [isUpdatingTicket, setIsUpdatingTicket] = useState(false);
+  const [assignees, setAssignees] = useState<EmployeeApiResponse[]>([]);
   const selectedConversationIdRef = useRef("");
   const inboxLoadedRef = useRef(false);
   const lastMarkedReadKeyRef = useRef<string | null>(null);
@@ -1564,12 +1696,23 @@ export function OperationsSupportCenterPage() {
   const realtimeSyncTimerIdRef = useRef<number | undefined>(undefined);
   const realtimeSyncVersionRef = useRef(0);
   const canReadChat = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
-  const canCreateChat = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN"]);
+  const canCreateChat = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN", "CHAT_CONVERSATION_CREATE_ALL"]);
   const canSendChat = hasAnyPermission(user, ["CHAT_MESSAGE_SEND_OWN"]);
   const canDeleteOwnMessage = hasAnyPermission(user, ["CHAT_MESSAGE_DELETE_OWN"]);
   const canModerateMessages = hasAnyPermission(user, ["CHAT_MESSAGE_MODERATE_ALL"]);
   const canAttachChat = canSendChat && hasAnyPermission(user, ["CHAT_ATTACHMENT_CREATE_OWN"]);
   const canReadAttachment = hasAnyPermission(user, ["CHAT_ATTACHMENT_READ_OWN"]);
+  const canAssignTicket = hasAnyPermission(user, ["SUPPORT_TICKET_ASSIGN"]);
+  const canProcessTicket = hasAnyPermission(user, ["SUPPORT_TICKET_PROCESS_ALL", "SUPPORT_TICKET_PROCESS_ASSIGNED"]);
+  const canCloseTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CLOSE_ALL"]);
+  const canReopenTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_ALL"]);
+
+  useEffect(() => {
+    if (!canAssignTicket) return;
+    void getEmployees({ status: "ACTIVE" })
+      .then((response) => setAssignees((response.data ?? []).filter((employee) => Boolean(employee.accountId))))
+      .catch(() => setAssignees([]));
+  }, [canAssignTicket]);
 
   const resolvePreferredConversationId = useCallback((sourceConversations: Conversation[]) => {
     if (requestedConversationId) {
@@ -1630,7 +1773,7 @@ export function OperationsSupportCenterPage() {
           return currentSelectedId;
         }
 
-        return resolvePreferredConversationId(nextConversations.length ? nextConversations : conversations);
+        return resolvePreferredConversationId(nextConversations);
       });
     } catch (error) {
       if (!shouldShowLoading && inboxLoadedRef.current) {
@@ -1640,7 +1783,7 @@ export function OperationsSupportCenterPage() {
         setApiConversations([]);
       }
       setInboxError(error instanceof Error ? error.message : "Không tải được hội thoại từ backend.");
-      setSelectedId((currentSelectedId) => currentSelectedId || resolvePreferredConversationId(conversations));
+      setSelectedId((currentSelectedId) => currentSelectedId || resolvePreferredConversationId([]));
     } finally {
       inboxLoadedRef.current = true;
       if (shouldShowLoading) setIsInboxLoading(false);
@@ -1648,7 +1791,9 @@ export function OperationsSupportCenterPage() {
   }, [canReadChat, resolvePreferredConversationId, user?.id]);
 
   useEffect(() => {
-    if (requestedChatMode !== "internal-direct" || requestedParticipantType !== "employee") return;
+    const isInternalDirect = requestedChatMode === "internal-direct" && requestedParticipantType === "employee";
+    const isCustomerDirect = requestedChatMode === "customer-direct" && requestedParticipantType === "customer";
+    if (!isInternalDirect && !isCustomerDirect) return;
     if (!requestedParticipantId || !isUuid(requestedParticipantId)) return;
     if (!user) return;
 
@@ -1657,21 +1802,23 @@ export function OperationsSupportCenterPage() {
 
     if (!canReadChat || !canCreateChat) {
       ensuredDirectConversationKeyRef.current = directConversationKey;
-      toast.error(
-        "Tài khoản hiện tại cần quyền CHAT_CONVERSATION_READ_OWN/READ_ALL và CHAT_CONVERSATION_CREATE_OWN để mở chat nội bộ.",
-        "Không thể mở chat",
-      );
+      toast.error("Tài khoản hiện tại cần quyền đọc và tạo hội thoại để mở chat.", "Không thể mở chat");
       return;
     }
 
     let cancelled = false;
     ensuredDirectConversationKeyRef.current = directConversationKey;
     const currentUserId = user.id;
-    const targetAccountId = requestedParticipantId;
+    const targetId = requestedParticipantId;
 
     async function ensureInternalDirectConversation() {
       try {
-        const response = await createInternalDirectConversation(targetAccountId);
+        const response = isInternalDirect
+          ? await createInternalDirectConversation(targetId)
+          : await createCustomerSupportConversation({
+              customerId: targetId,
+              title: requestedParticipantName ? `Hỗ trợ khách hàng ${requestedParticipantName}` : undefined,
+            });
         if (cancelled) return;
 
         const conversation = response.data;
@@ -1695,12 +1842,10 @@ export function OperationsSupportCenterPage() {
         nextSearchParams.set("conversationId", conversation.conversationId);
         nextSearchParams.delete("mode");
         setSearchParams(nextSearchParams, { replace: true });
-
-        void loadInbox({ showLoading: false });
       } catch (error) {
         if (cancelled) return;
         ensuredDirectConversationKeyRef.current = null;
-        toast.error(error instanceof Error ? error.message : "Không thể tạo hoặc mở hội thoại nội bộ.", "Không thể mở chat");
+        toast.error(error instanceof Error ? error.message : "Không thể tạo hoặc mở hội thoại.", "Không thể mở chat");
       }
     }
 
@@ -1712,9 +1857,9 @@ export function OperationsSupportCenterPage() {
   }, [
     canCreateChat,
     canReadChat,
-    loadInbox,
     requestedChatMode,
     requestedParticipantId,
+    requestedParticipantName,
     requestedParticipantType,
     searchParams,
     setSearchParams,
@@ -1743,8 +1888,8 @@ export function OperationsSupportCenterPage() {
     void loadInbox({ showLoading: true });
   }, [loadInbox]);
 
-  const sourceConversations = apiConversations.length ? apiConversations : conversations;
-  const usingMockData = apiConversations.length === 0;
+  const sourceConversations = apiConversations;
+  const usingMockData = false;
   const filteredConversations = useMemo(() => {
     const normalizedKeyword = searchValue.trim().toLowerCase();
     if (!normalizedKeyword) return sourceConversations;
@@ -1776,7 +1921,7 @@ export function OperationsSupportCenterPage() {
   const selectedBaseConversation = filteredConversations.find((conversation) => conversation.id === selectedId)
     ?? filteredConversations[0]
     ?? sourceConversations[0]
-    ?? conversations[0];
+    ?? emptyConversation;
   const effectiveSelectedTicket = selectedTicket && selectedTicket.supportTicketId === selectedBaseConversation.supportTicketId ? selectedTicket : null;
   const selectedConversation = mergeTicketIntoConversation(selectedBaseConversation, effectiveSelectedTicket);
   selectedConversationIdRef.current = selectedBaseConversation.id;
@@ -2132,7 +2277,92 @@ export function OperationsSupportCenterPage() {
     }
   }
 
-  const composerDisabledReason = selectedConversation.conversation?.status === "CLOSED"
+  function applyTicketUpdate(ticket: SupportTicketResponse) {
+    setSelectedTicket(ticket);
+    setApiConversations((currentConversations) => currentConversations.map((conversation) => (
+      conversation.supportTicketId === ticket.supportTicketId
+        ? mergeTicketIntoConversation(conversation, ticket)
+        : conversation
+    )));
+  }
+
+  async function handleAssignTicket(accountId: string) {
+    if (!effectiveSelectedTicket) return;
+    setIsUpdatingTicket(true);
+    try {
+      const response = await assignSupportTicket(effectiveSelectedTicket.supportTicketId, accountId);
+      applyTicketUpdate(response.data);
+      toast.success("Đã phân công ticket và cấp quyền vào hội thoại cho người phụ trách.");
+      await loadInbox({ showLoading: false });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể phân công ticket.", "Phân công thất bại");
+    } finally {
+      setIsUpdatingTicket(false);
+    }
+  }
+
+  async function handleStartTicketProgress() {
+    if (!effectiveSelectedTicket) return;
+    setIsUpdatingTicket(true);
+    try {
+      const response = await startSupportTicketProgress(effectiveSelectedTicket.supportTicketId);
+      applyTicketUpdate(response.data);
+      toast.success("Ticket đã được tiếp nhận xử lý.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể tiếp nhận ticket.", "Cập nhật thất bại");
+    } finally {
+      setIsUpdatingTicket(false);
+    }
+  }
+
+  async function handleResolveTicket() {
+    if (!effectiveSelectedTicket) return;
+    const resolutionNote = window.prompt("Nhập kết quả xử lý gửi đến khách hàng:");
+    if (!resolutionNote?.trim()) return;
+    setIsUpdatingTicket(true);
+    try {
+      const response = await resolveSupportTicket(effectiveSelectedTicket.supportTicketId, resolutionNote.trim());
+      applyTicketUpdate(response.data);
+      toast.success("Ticket đã được đánh dấu giải quyết; khách hàng đã nhận thông báo.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể giải quyết ticket.", "Cập nhật thất bại");
+    } finally {
+      setIsUpdatingTicket(false);
+    }
+  }
+
+  async function handleReopenTicket() {
+    if (!effectiveSelectedTicket) return;
+    setIsUpdatingTicket(true);
+    try {
+      const response = await reopenSupportTicket(effectiveSelectedTicket.supportTicketId);
+      applyTicketUpdate(response.data);
+      toast.success("Ticket đã được mở lại để tiếp tục xử lý.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể mở lại ticket.", "Cập nhật thất bại");
+    } finally {
+      setIsUpdatingTicket(false);
+    }
+  }
+
+  async function handleCloseTicket() {
+    if (!effectiveSelectedTicket) return;
+    setIsUpdatingTicket(true);
+    try {
+      const response = await closeSupportTicket(effectiveSelectedTicket.supportTicketId);
+      applyTicketUpdate(response.data);
+      toast.success("Ticket đã đóng và hội thoại được chuyển sang chỉ đọc.");
+      await loadInbox({ showLoading: false });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể đóng ticket.", "Cập nhật thất bại");
+    } finally {
+      setIsUpdatingTicket(false);
+    }
+  }
+
+  const composerDisabledReason = !selectedConversation.conversation
+    ? "Chọn hoặc tạo một hội thoại để bắt đầu nhắn tin."
+    : selectedConversation.conversation.status === "CLOSED"
     ? "Hội thoại đã đóng."
     : !canSendChat
       ? "Bạn chưa có quyền gửi tin nhắn."
@@ -2176,7 +2406,22 @@ export function OperationsSupportCenterPage() {
             resolveAttachmentUrl={resolveAttachmentUrl}
             usingMockData={usingMockData}
           />
-          <RightPanel className="max-[1280px]:tw-hidden" conversation={selectedConversation} ticket={effectiveSelectedTicket} />
+          <RightPanel
+            assignees={assignees}
+            canAssign={canAssignTicket}
+            canClose={canCloseTicket}
+            canProcess={canProcessTicket}
+            canReopen={canReopenTicket}
+            className="max-[1280px]:tw-hidden"
+            conversation={selectedConversation}
+            isUpdatingTicket={isUpdatingTicket}
+            onAssign={(accountId) => void handleAssignTicket(accountId)}
+            onClose={() => void handleCloseTicket()}
+            onReopen={() => void handleReopenTicket()}
+            onResolve={() => void handleResolveTicket()}
+            onStartProgress={() => void handleStartTicketProgress()}
+            ticket={effectiveSelectedTicket}
+          />
         </div>
       </div>
     </div>

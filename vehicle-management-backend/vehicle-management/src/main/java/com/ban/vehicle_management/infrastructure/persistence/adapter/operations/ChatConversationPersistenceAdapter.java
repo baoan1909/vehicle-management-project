@@ -108,7 +108,8 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
                         firstAccountId,
                         secondAccountId
                 )
-                .map(conversationMapper::toDomain);
+                .map(conversationMapper::toDomain)
+                .map(this::attachParticipants);
     }
 
     @Override
@@ -118,7 +119,33 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
                         ChatConversationType.CUSTOMER_DIRECT,
                         ChatConversationStatus.ACTIVE
                 )
-                .map(conversationMapper::toDomain);
+                .map(conversationMapper::toDomain)
+                .map(this::attachParticipants);
+    }
+
+    @Override
+    public Optional<ChatConversation> findActiveSupportTicketConversation(UUID supportTicketId) {
+        return conversationRepository.findFirstBySupportTicketIdAndConversationTypeAndStatus(
+                        supportTicketId,
+                        ChatConversationType.SUPPORT_TICKET,
+                        ChatConversationStatus.ACTIVE
+                )
+                .map(conversationMapper::toDomain)
+                .map(this::attachParticipants);
+    }
+
+    @Override
+    public List<ChatConversation> findActiveSupportTicketConversations() {
+        List<ChatConversation> conversations = conversationRepository
+                .findByConversationTypeAndStatusOrderByCreatedAtDesc(
+                        ChatConversationType.SUPPORT_TICKET,
+                        ChatConversationStatus.ACTIVE
+                )
+                .stream()
+                .map(conversationMapper::toDomain)
+                .toList();
+        attachParticipants(conversations);
+        return conversations;
     }
 
     @Override
@@ -247,6 +274,11 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
                 .map(account -> account.getUserProfileId())
                 .flatMap(customerRepository::findByUserProfileId)
                 .map(customer -> customer.getCustomerId());
+    }
+
+    @Override
+    public Optional<UUID> findAccountIdByCustomerId(UUID customerId) {
+        return customerRepository.findAccountIdByCustomerId(customerId);
     }
 
     @Override

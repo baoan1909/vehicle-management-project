@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { Modal, useToast } from "@/components/ui";
 import {
@@ -16,6 +17,7 @@ import {
   type SupportTicketResponse,
   type SupportTicketStatus,
 } from "@/features/support/api/supportApi";
+import { getChatInbox } from "@/features/support/api/chatApi";
 
 import { CustomerPageHeader, CustomerPortalLayout, Field, PaginationLite, StatCard, StatusPill } from "./PortalShared";
 
@@ -96,6 +98,7 @@ function activeStepClass(ticket: SupportTicketResponse, step: SupportTicketStatu
 
 export function SupportPage() {
   const toast = useToast();
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [tickets, setTickets] = useState<SupportTicketResponse[]>([]);
   const [categories, setCategories] = useState<SupportTicketCategoryResponse[]>([]);
@@ -265,6 +268,22 @@ export function SupportPage() {
     }
   };
 
+  const handleOpenConversation = async () => {
+    if (!selectedTicket) return;
+    try {
+      const response = await getChatInbox();
+      const conversation = (response.data ?? []).find(
+        (item) => item.conversation.supportTicketId === selectedTicket.supportTicketId,
+      )?.conversation;
+      if (!conversation) {
+        throw new Error("Hội thoại hỗ trợ đang được khởi tạo. Vui lòng thử lại sau ít phút.");
+      }
+      navigate(`/customer/support/chat?conversationId=${encodeURIComponent(conversation.conversationId)}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể mở hội thoại hỗ trợ.");
+    }
+  };
+
   return (
     <CustomerPortalLayout>
       <CustomerPageHeader
@@ -389,6 +408,9 @@ export function SupportPage() {
                   ))}
                 </div>
                 <div className="vm-form-actions">
+                  <button className="vm-outline-btn" type="button" disabled={saving || selectedTicket.status === "CLOSED"} onClick={() => void handleOpenConversation()}>
+                    Mở hội thoại
+                  </button>
                   <button className="vm-outline-btn" type="button" disabled={saving || selectedTicket.status !== "RESOLVED"} onClick={handleReopenTicket}>
                     Mở lại yêu cầu
                   </button>

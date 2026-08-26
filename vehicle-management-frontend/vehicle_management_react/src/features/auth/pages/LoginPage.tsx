@@ -12,7 +12,6 @@ import { bootstrapSocialAccount, getMyAccountProfile } from "@/features/iam/api/
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import type { CurrentUser } from "@/shared/types/common";
 import {
-  buildKeycloakLoginUrl,
   buildKeycloakLogoutUrl,
   exchangeKeycloakAuthorizationCode,
   prepareKeycloakLoginUrl,
@@ -28,7 +27,7 @@ import {
   validateRegisterValues,
   type RegisterFieldErrors,
 } from "@/features/auth/utils/authValidation";
-import { Button } from "@/components/ui";
+import { Button, useToast } from "@/components/ui";
 import { FullPageCarLoader } from "@/shared/components/ui/PageTransitionLoader";
 
 type AuthMode = "login" | "register" | "forgot" | "otp" | "recover";
@@ -57,7 +56,6 @@ const adminPostLoginRedirectPath = "/api/dashboard/overview";
 const customerPostLoginRedirectPath = "/customer/dashboard";
 const processedAuthorizationCodeKey = "vm_keycloak_processed_authorization_code";
 const forgotPasswordEmailStorageKey = "vm_forgot_password_email";
-const socialLoginErrorStorageKey = "vm_social_login_error";
 let activeAuthorizationCode = "";
 
 function resolvePostLoginRedirectPath(user: CurrentUser | null) {
@@ -111,16 +109,15 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { setUser } = useAuth();
+  const toast = useToast();
   const [isExchangingCode, setIsExchangingCode] = useState(false);
-  const [loginError, setLoginError] = useState(
-    () => sessionStorage.getItem(socialLoginErrorStorageKey) ?? "",
-  );
+  const [isReturningToLogin, setIsReturningToLogin] = useState(false);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get("code");
     const returnedState = searchParams.get("state");
-    if (!code || isExchangingCode) return;
+    if (!code || isExchangingCode || isReturningToLogin) return;
     if (activeAuthorizationCode === code) return;
     if (sessionStorage.getItem(processedAuthorizationCodeKey) === code) {
       navigate("/login", { replace: true });
@@ -150,26 +147,29 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
         console.error(error);
         activeAuthorizationCode = "";
         const message = error instanceof Error ? error.message : "Không thể hoàn tất đăng nhập Google.";
-        sessionStorage.setItem(socialLoginErrorStorageKey, message);
         clearAuthTokens();
-        if (idToken) {
-          window.location.replace(buildKeycloakLogoutUrl(idToken, "/login"));
-          return;
-        }
-        setLoginError(message);
-        navigate("/login", { replace: true });
+        toast.error(message, "Đăng nhập không thành công");
+        setIsReturningToLogin(true);
+
+        window.setTimeout(() => {
+          if (idToken) {
+            window.location.replace(buildKeycloakLogoutUrl(idToken, "/login"));
+            return;
+          }
+          navigate("/login", { replace: true });
+        }, 900);
       } finally {
         setIsExchangingCode(false);
       }
     }
 
     void exchangeCode();
-  }, [isExchangingCode, location.search, navigate, setUser]);
+  }, [isExchangingCode, isReturningToLogin, location.search, navigate, setUser, toast]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get("code");
-    if (code || loginError) return;
+    if (code || isReturningToLogin) return;
 
     async function redirectToKeycloak() {
       try {
@@ -181,28 +181,7 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
     }
 
     void redirectToKeycloak();
-  }, [location.search, loginError]);
-
-  async function retryLogin() {
-    sessionStorage.removeItem(socialLoginErrorStorageKey);
-    setLoginError("");
-    const loginUrl = await buildKeycloakLoginUrl({ prompt: "login" });
-    window.location.replace(loginUrl);
-  }
-
-  if (loginError) {
-    return (
-      <div className="tw-fixed tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-p-5">
-        <section className="tw-w-full tw-max-w-[520px] tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d9e2f2] tw-bg-white tw-p-8 tw-shadow-[0_18px_45px_rgba(15,23,42,0.08)]">
-          <div className="tw-mb-5 tw-text-center"><AuthBrandMark /></div>
-          <AuthInlineNotice tone="error">{loginError}</AuthInlineNotice>
-          <Button className="tw-mt-5 tw-w-full" type="button" variant="primary" onClick={() => void retryLogin()}>
-            Thử lại với tài khoản Google khác
-          </Button>
-        </section>
-      </div>
-    );
-  }
+  }, [isReturningToLogin, location.search]);
 
   return <FullPageCarLoader label={label} />;
 }

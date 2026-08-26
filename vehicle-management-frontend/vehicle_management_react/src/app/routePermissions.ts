@@ -69,6 +69,7 @@ export const customerRoutePermissionGroups = {
   "/customer/subscriptions": [["SUBSCRIPTION_READ_OWN", "SUBSCRIPTION_READ_ALL"]],
   "/customer/parking-history": [["PARKING_SESSION_READ_OWN", "PARKING_SESSION_READ_ALL"]],
   "/customer/support": [["SUPPORT_TICKET_READ_OWN", "SUPPORT_TICKET_READ_ASSIGNED", "SUPPORT_TICKET_READ_ALL"]],
+  "/customer/support/chat": [["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]],
   "/customerTicket/customer-infor": [["PARKING_SESSION_READ_OWN", "PARKING_SESSION_READ_ALL"]],
   "/customerTicket/customer-infor-detail": [],
 } satisfies Record<string, CustomerRoutePermissionGroups>;

@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.domain.operations.supportticket.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -59,21 +58,15 @@ class SupportTicketPolicyTest {
     }
 
     @Test
-    void shouldCloseOpenTicketWhenCustomerNoLongerNeedsSupport() {
+    void shouldRejectClosingOpenTicketBeforeItIsResolved() {
         SupportTicket supportTicket = validSupportTicket();
         UUID closedBy = UUID.randomUUID();
 
-        supportTicketPolicy.close(
+        assertThrows(BadRequestException.class, () -> supportTicketPolicy.close(
                 supportTicket,
                 closedBy,
                 Instant.parse("2026-05-15T04:00:00Z")
-        );
-
-        assertEquals(SupportTicketStatus.CLOSED, supportTicket.getStatus());
-        assertEquals(closedBy, supportTicket.getClosedBy());
-        assertNotNull(supportTicket.getClosedAt());
-        assertNull(supportTicket.getResolvedAt());
-        assertNull(supportTicket.getResolutionNote());
+        ));
     }
 
     @Test
