@@ -97,5 +97,7 @@ export const apiEndpoints = {
     chat: "/operations/chat",
     supportTicketCategories: "/operations/support-ticket-categories",
     supportTickets: "/operations/support-tickets",
+    supportTicketCustomerConversation: (ticketId: string) => `/operations/support-tickets/${ticketId}/customer-conversation`,
+    supportTicketsFromConversation: (conversationId: string) => `/operations/support-tickets/from-conversations/${conversationId}`,
   },
 } as const;

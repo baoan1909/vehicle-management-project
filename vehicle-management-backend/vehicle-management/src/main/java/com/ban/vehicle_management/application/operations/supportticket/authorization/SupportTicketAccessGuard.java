@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 public class SupportTicketAccessGuard {
 
     private static final String CREATE_OWN_PERMISSION = "SUPPORT_TICKET_CREATE_OWN";
+    private static final String CREATE_FROM_CHAT_OWN_PERMISSION = "SUPPORT_TICKET_CREATE_FROM_CHAT_OWN";
     private static final String READ_ALL_PERMISSION = "SUPPORT_TICKET_READ_ALL";
     private static final String READ_OWN_PERMISSION = "SUPPORT_TICKET_READ_OWN";
     private static final String READ_ASSIGNED_PERMISSION = "SUPPORT_TICKET_READ_ASSIGNED";
@@ -22,6 +23,7 @@ public class SupportTicketAccessGuard {
     private static final String ASSIGN_PERMISSION = "SUPPORT_TICKET_ASSIGN";
     private static final String PROCESS_ALL_PERMISSION = "SUPPORT_TICKET_PROCESS_ALL";
     private static final String PROCESS_ASSIGNED_PERMISSION = "SUPPORT_TICKET_PROCESS_ASSIGNED";
+    private static final String RESPOND_ASSIGNED_PERMISSION = "SUPPORT_TICKET_RESPOND_ASSIGNED";
     private static final String REOPEN_ALL_PERMISSION = "SUPPORT_TICKET_REOPEN_ALL";
     private static final String REOPEN_OWN_PERMISSION = "SUPPORT_TICKET_REOPEN_OWN";
     private static final String CLOSE_ALL_PERMISSION = "SUPPORT_TICKET_CLOSE_ALL";
@@ -40,6 +42,11 @@ public class SupportTicketAccessGuard {
 
     public UUID resolveCustomerIdForCreate() {
         currentAccountPortIn.requirePermission(CREATE_OWN_PERMISSION);
+        return resolveCurrentApprovedCustomerId();
+    }
+
+    public UUID resolveCustomerIdForCreateFromChat() {
+        currentAccountPortIn.requirePermission(CREATE_FROM_CHAT_OWN_PERMISSION);
         return resolveCurrentApprovedCustomerId();
     }
 
@@ -88,6 +95,19 @@ public class SupportTicketAccessGuard {
         if (!accountId.equals(ticket.getAssignedTo())) {
             throw new AccessDeniedException("Access is denied");
         }
+    }
+
+    /** A customer-facing reply is issued only by the employee currently assigned to the ticket. */
+    public UUID ensureCanReplyAsAssignee(SupportTicket ticket) {
+        UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
+        if (!accountId.equals(ticket.getAssignedTo())) {
+            throw new AccessDeniedException("Access is denied");
+        }
+        if (currentAccountPortIn.hasPermission(RESPOND_ASSIGNED_PERMISSION)) {
+            return accountId;
+        }
+        currentAccountPortIn.requirePermission(RESPOND_ASSIGNED_PERMISSION);
+        return accountId;
     }
 
     public void ensureCanReopen(SupportTicket ticket) {

@@ -21,7 +21,7 @@ public interface ChatConversationPortOut {
 
     Optional<ChatConversation> findInternalDirectConversation(UUID firstAccountId, UUID secondAccountId);
 
-    Optional<ChatConversation> findActiveCustomerSupportConversation(UUID customerId);
+    Optional<ChatConversation> findActiveCustomerSupportConversation(UUID customerId, UUID staffAccountId);
 
     Optional<ChatConversation> findActiveSupportTicketConversation(UUID supportTicketId);
 
@@ -41,6 +41,8 @@ public interface ChatConversationPortOut {
 
     ChatMessage saveMessage(ChatMessage message);
 
+    boolean existsSupportTicketCard(UUID conversationId, UUID supportTicketId);
+
     Optional<ChatMessage> findMessageById(UUID messageId);
 
     List<ChatMessage> findMessageHistory(UUID conversationId, Instant beforeCreatedAt, int limit);
@@ -57,7 +59,10 @@ public interface ChatConversationPortOut {
 
     boolean existsActiveAccount(UUID accountId);
 
-    boolean existsActiveInternalAccount(UUID accountId);
+    /**
+     * Resolves an active business account by granted permissions instead of a fixed role list.
+     */
+    boolean existsActiveAccountWithPermissions(UUID accountId, Set<String> requiredPermissionCodes);
 
     Optional<UUID> findCustomerIdByAccountId(UUID accountId);
 

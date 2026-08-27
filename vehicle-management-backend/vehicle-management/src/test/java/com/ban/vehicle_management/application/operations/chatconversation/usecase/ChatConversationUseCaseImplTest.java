@@ -66,7 +66,7 @@ class ChatConversationUseCaseImplTest {
                 "CHAT_CONVERSATION_CREATE_ALL".equals(invocation.getArgument(0))
         );
         when(chatPortOut.existsCustomer(customerId)).thenReturn(true);
-        when(chatPortOut.findActiveCustomerSupportConversation(customerId)).thenReturn(Optional.empty());
+        when(chatPortOut.findActiveCustomerSupportConversation(customerId, employeeAccountId)).thenReturn(Optional.empty());
         when(chatPortOut.saveConversation(any(ChatConversation.class))).thenAnswer(invocation -> {
             ChatConversation conversation = invocation.getArgument(0);
             savedConversation.set(conversation);

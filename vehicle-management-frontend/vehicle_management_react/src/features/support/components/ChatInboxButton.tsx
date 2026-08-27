@@ -50,6 +50,9 @@ export function ChatInboxButton() {
   if (!canReadChat) return null;
 
   const badgeValue = unreadCount > 99 ? "99+" : String(unreadCount);
+  const isApprovedCustomer = user?.accountStatus === "ACTIVE"
+    && user?.customerStatus === "ACTIVE"
+    && user?.customerApprovalStatus === "APPROVED";
 
   return (
     <button
@@ -57,7 +60,7 @@ export function ChatInboxButton() {
       className="tw-relative tw-inline-flex tw-h-[54px] tw-w-[54px] tw-items-center tw-justify-center tw-rounded-vm-lg tw-border tw-border-solid tw-border-transparent tw-bg-transparent tw-text-[1.18rem] tw-text-slate-900 tw-transition hover:tw-border-slate-200 hover:tw-bg-slate-100"
       aria-label={unreadCount > 0 ? `Hội thoại, ${unreadCount} tin nhắn chưa đọc` : "Hội thoại"}
       title={unreadCount > 0 ? `${unreadCount} tin nhắn chưa đọc` : "Hội thoại hỗ trợ"}
-      onClick={() => openSupportCenterConversation({ target: user?.role === "CUSTOMER" ? "customer" : "admin" })}
+      onClick={() => openSupportCenterConversation({ target: isApprovedCustomer ? "customer" : "admin" })}
     >
       <i className="far fa-comment-dots" aria-hidden="true" />
       {unreadCount > 0 ? (

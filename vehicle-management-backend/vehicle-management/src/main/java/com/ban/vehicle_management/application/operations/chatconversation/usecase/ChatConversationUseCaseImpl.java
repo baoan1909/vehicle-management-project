@@ -48,6 +48,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     private static final int DEFAULT_HISTORY_LIMIT = 30;
     private static final int MAX_HISTORY_LIMIT = 100;
     private static final int ATTACHMENT_READ_URL_EXPIRE_SECONDS = 900;
+    private static final Set<String> CHAT_PARTICIPANT_PERMISSIONS = Set.of("CHAT_CONVERSATION_READ_OWN");
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final ChatConversationPortOut chatPortOut;
@@ -82,15 +83,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         if (!currentAccountPortIn.hasPermission("CHAT_CONVERSATION_READ_ALL")) {
             currentAccountPortIn.requirePermission("CHAT_CONVERSATION_READ_OWN");
         }
-        List<ChatConversation> conversations = new java.util.ArrayList<>(chatPortOut.findInboxConversations(currentAccountId));
-        if (currentAccountPortIn.hasPermission("CHAT_CONVERSATION_READ_ALL")) {
-            chatPortOut.findActiveSupportTicketConversations().forEach(conversation -> {
-                if (conversations.stream().noneMatch(item -> item.getConversationId().equals(conversation.getConversationId()))) {
-                    conversations.add(conversation);
-                }
-            });
-        }
-        return conversations.stream()
+        return chatPortOut.findInboxConversations(currentAccountId).stream()
                 .map(conversation -> new ChatInboxItem(
                         conversation,
                         resolveLastMessage(conversation),
@@ -112,9 +105,9 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     public ChatConversation createOrGetInternalDirectConversation(UUID targetAccountId) {
         UUID currentAccountId = requireCurrentAccountId();
         requireConversationCreateAccess();
-        if (!chatPortOut.existsActiveInternalAccount(currentAccountId)
-                || !chatPortOut.existsActiveInternalAccount(targetAccountId)) {
-            throw new BadRequestException("Internal direct conversation requires active internal accounts");
+        if (!chatPortOut.existsActiveAccountWithPermissions(currentAccountId, CHAT_PARTICIPANT_PERMISSIONS)
+                || !chatPortOut.existsActiveAccountWithPermissions(targetAccountId, CHAT_PARTICIPANT_PERMISSIONS)) {
+            throw new BadRequestException("Internal direct conversation requires active chat participants");
         }
 
         ChatConversation conversation = chatPortOut.findInternalDirectConversation(currentAccountId, targetAccountId)
@@ -139,8 +132,8 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         conversationPolicy.initializeInternalGroup(conversation, currentAccountId, participantIds);
 
         for (UUID participantId : participantIds) {
-            if (!chatPortOut.existsActiveInternalAccount(participantId)) {
-                throw new BadRequestException("Internal group conversation requires active internal accounts");
+            if (!chatPortOut.existsActiveAccountWithPermissions(participantId, CHAT_PARTICIPANT_PERMISSIONS)) {
+                throw new BadRequestException("Internal group conversation requires active chat participants");
             }
         }
 
@@ -158,12 +151,12 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     @Transactional
     public ChatConversation createOrGetCustomerSupportConversation(UUID customerId, String title) {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        requireConversationCreateAccess();
+        requireCustomerDirectConversationCreateAccess();
         UUID resolvedCustomerId = resolveCustomerIdForSupportConversation(currentAccount, customerId);
 
-        ChatConversation conversation = chatPortOut.findActiveCustomerSupportConversation(resolvedCustomerId)
+        ChatConversation conversation = chatPortOut.findActiveCustomerSupportConversation(resolvedCustomerId, currentAccount.accountId())
                 .orElseGet(() -> createCustomerSupportConversation(currentAccount.accountId(), resolvedCustomerId, title));
-        ensureCustomerSupportMembers(conversation, currentAccount.accountId(), resolvedCustomerId);
+        ensureCustomerSupportMembers(conversation, resolvedCustomerId);
         return getConversationOrThrow(conversation.getConversationId());
     }
 
@@ -309,19 +302,16 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         conversation.setTitle(title);
         conversationPolicy.initializeCustomerSupport(conversation, currentAccountId, customerId);
         conversation.setConversationId(UUID.randomUUID());
-        ChatConversation savedConversation = chatPortOut.saveConversation(conversation);
-        return savedConversation;
+        return chatPortOut.saveConversation(conversation);
     }
 
     /**
      * A customer-support conversation is a two-sided direct conversation.  Keep the account
-     * attached to the customer as CUSTOMER and the opener as OWNER (or MEMBER when joining an
-     * existing conversation). This also repairs conversations created before both memberships
-     * were persisted.
+     * attached to the customer as CUSTOMER and the staff owner as OWNER. Customer support
+     * chats are strictly one-to-one; never add a later viewer as a member of an existing chat.
      */
     private void ensureCustomerSupportMembers(
             ChatConversation conversation,
-            UUID currentAccountId,
             UUID customerId
     ) {
         UUID customerAccountId = chatPortOut.findAccountIdByCustomerId(customerId)
@@ -337,10 +327,6 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
             saveMember(conversationId, customerAccountId, ChatMemberRole.CUSTOMER);
         }
 
-        if (!Objects.equals(currentAccountId, customerAccountId)
-                && !Objects.equals(currentAccountId, conversation.getOwnerAccountId())) {
-            saveMember(conversationId, currentAccountId, ChatMemberRole.MEMBER);
-        }
     }
 
     private ChatConversationMember saveMember(UUID conversationId, UUID accountId, ChatMemberRole role) {
@@ -434,6 +420,10 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
             return;
         }
         currentAccountPortIn.requirePermission("CHAT_CONVERSATION_CREATE_OWN");
+    }
+
+    private void requireCustomerDirectConversationCreateAccess() {
+        currentAccountPortIn.requirePermission("CHAT_CONVERSATION_CREATE_CUSTOMER_DIRECT");
     }
 
     private void requireSendAccess(UUID conversationId) {

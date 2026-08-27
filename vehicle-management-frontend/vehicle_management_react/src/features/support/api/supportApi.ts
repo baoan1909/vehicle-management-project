@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/api/apiClient";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
+import type { ChatConversationResponse } from "@/features/support/api/chatApi";
 
 type ApiResponse<T> = {
   data: T;
@@ -134,6 +135,19 @@ export function getSupportTicketById(ticketId: string) {
 export function createSupportTicket(payload: SaveSupportTicketRequest) {
   return apiClient<ApiResponse<SupportTicketResponse>>(apiEndpoints.operations.supportTickets, {
     body: payload,
+    method: "POST",
+  });
+}
+
+export function createSupportTicketFromConversation(conversationId: string, payload: SaveSupportTicketRequest) {
+  return apiClient<ApiResponse<SupportTicketResponse>>(apiEndpoints.operations.supportTicketsFromConversation(conversationId), {
+    body: payload,
+    method: "POST",
+  });
+}
+
+export function openSupportTicketCustomerConversation(ticketId: string) {
+  return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportTicketCustomerConversation(ticketId), {
     method: "POST",
   });
 }

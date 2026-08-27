@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.operations;
 
+import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversationMember;
@@ -21,10 +22,10 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ChatMessageAttachmentRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ChatMessageRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
-import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ChatMessageType;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -39,13 +40,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class ChatConversationPersistenceAdapter implements ChatConversationPortOut {
 
-    private static final Set<String> INTERNAL_ROLE_CODES = Set.of("EMPLOYEE", "PARKING_MANAGER", "SYSTEM_ADMIN");
-
     private final ChatConversationRepository conversationRepository;
     private final ChatConversationMemberRepository memberRepository;
     private final ChatMessageRepository messageRepository;
     private final ChatMessageAttachmentRepository attachmentRepository;
     private final AccountRepository accountRepository;
+    private final AccountAuthorizationPortOut accountAuthorizationPortOut;
     private final CustomerRepository customerRepository;
     private final ChatConversationPersistenceMapper conversationMapper;
     private final ChatConversationMemberPersistenceMapper memberMapper;
@@ -59,6 +59,7 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
             ChatMessageRepository messageRepository,
             ChatMessageAttachmentRepository attachmentRepository,
             AccountRepository accountRepository,
+            AccountAuthorizationPortOut accountAuthorizationPortOut,
             CustomerRepository customerRepository,
             ChatConversationPersistenceMapper conversationMapper,
             ChatConversationMemberPersistenceMapper memberMapper,
@@ -71,6 +72,7 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
         this.messageRepository = messageRepository;
         this.attachmentRepository = attachmentRepository;
         this.accountRepository = accountRepository;
+        this.accountAuthorizationPortOut = accountAuthorizationPortOut;
         this.customerRepository = customerRepository;
         this.conversationMapper = conversationMapper;
         this.memberMapper = memberMapper;
@@ -113,11 +115,11 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
     }
 
     @Override
-    public Optional<ChatConversation> findActiveCustomerSupportConversation(UUID customerId) {
-        return conversationRepository.findFirstByCustomerIdAndConversationTypeAndStatus(
-                        customerId,
+    public Optional<ChatConversation> findActiveCustomerSupportConversation(UUID customerId, UUID staffAccountId) {
+        return conversationRepository.findDirectConversation(
                         ChatConversationType.CUSTOMER_DIRECT,
-                        ChatConversationStatus.ACTIVE
+                        findAccountIdByCustomerId(customerId).orElse(null),
+                        staffAccountId
                 )
                 .map(conversationMapper::toDomain)
                 .map(this::attachParticipants);
@@ -253,18 +255,19 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
 
     @Override
     public boolean existsActiveAccount(UUID accountId) {
-        return accountRepository.findById(accountId)
-                .filter(account -> AccountStatus.ACTIVE.equals(account.getStatus()))
-                .isPresent();
+        return accountAuthorizationPortOut.findByAccountId(accountId)
+                .map(access -> access.canUseBusinessPermissions())
+                .orElse(false);
     }
 
     @Override
-    public boolean existsActiveInternalAccount(UUID accountId) {
-        return accountRepository.findById(accountId)
-                .filter(account -> AccountStatus.ACTIVE.equals(account.getStatus()))
-                .map(account -> account.getRole())
-                .filter(role -> role.getIsActive() == null || role.getIsActive())
-                .map(role -> INTERNAL_ROLE_CODES.contains(role.getCode()))
+    public boolean existsActiveAccountWithPermissions(UUID accountId, Set<String> requiredPermissionCodes) {
+        if (requiredPermissionCodes == null || requiredPermissionCodes.isEmpty()) {
+            return existsActiveAccount(accountId);
+        }
+        return accountAuthorizationPortOut.findByAccountId(accountId)
+                .filter(access -> access.canUseBusinessPermissions())
+                .map(access -> access.getEffectivePermissionCodes().containsAll(requiredPermissionCodes))
                 .orElse(false);
     }
 
@@ -274,6 +277,17 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
                 .map(account -> account.getUserProfileId())
                 .flatMap(customerRepository::findByUserProfileId)
                 .map(customer -> customer.getCustomerId());
+    }
+
+    @Override
+    public boolean existsSupportTicketCard(UUID conversationId, UUID supportTicketId) {
+        return messageRepository.existsByConversationIdAndRelatedSchemaAndRelatedTableAndRelatedIdAndMessageTypeAndDeletedFalse(
+                conversationId,
+                "operations",
+                "support_tickets",
+                supportTicketId,
+                ChatMessageType.SUPPORT_REQUEST
+        );
     }
 
     @Override

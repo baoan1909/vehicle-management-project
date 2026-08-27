@@ -21,4 +21,5 @@ public class ChatConversationParticipant {
     private String fullName;
     private String avatarUrl;
     private String accountRoleCode;
+    private String accountRoleName;
 }

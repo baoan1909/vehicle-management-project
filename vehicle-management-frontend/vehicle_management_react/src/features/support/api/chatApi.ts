@@ -24,7 +24,7 @@ export type ChatConversationType =
 export type ChatConversationStatus = "ACTIVE" | "ARCHIVED" | "CLOSED";
 export type ChatMessageType = "TEXT" | "IMAGE" | "FILE" | "SYSTEM" | "CONTEXT_CARD" | "ACTION_CARD" | "SUPPORT_REQUEST";
 export type ChatAttachmentType = "IMAGE" | "DOCUMENT" | "AUDIO" | "PARKING_EVIDENCE" | "PAYMENT_PROOF";
-export type ChatMemberRole = "OWNER" | "MEMBER" | "ASSIGNEE" | "OBSERVER" | "CUSTOMER";
+export type ChatMemberRole = "OWNER" | "MEMBER" | "ASSIGNEE" | "OBSERVER" | "CUSTOMER" | (string & {});
 
 export type ChatConversationParticipantResponse = {
   accountId: string;
@@ -33,6 +33,7 @@ export type ChatConversationParticipantResponse = {
   fullName: string | null;
   memberRole: ChatMemberRole;
   accountRoleCode: string | null;
+  accountRoleName: string | null;
   username: string | null;
 };
 
