@@ -43,6 +43,7 @@ export const adminRoutePermissions = {
   "/admin/role": ["ROLE_READ_ALL"],
   "/admin/role/form": ["ROLE_CREATE_ALL", "ROLE_UPDATE_ALL"],
   "/admin/support-categories": ["SUPPORT_TICKET_READ_ALL", "SUPPORT_TICKET_ASSIGN", "SUPPORT_TICKET_PROCESS_ALL"],
+  "/admin/support-tickets": ["SUPPORT_TICKET_READ_ALL", "SUPPORT_TICKET_READ_ASSIGNED"],
   "/admin/support-center": [
     "CHAT_CONVERSATION_READ_OWN",
     "CHAT_CONVERSATION_READ_ALL",

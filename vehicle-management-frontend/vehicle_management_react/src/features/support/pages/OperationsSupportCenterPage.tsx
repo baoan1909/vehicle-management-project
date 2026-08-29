@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { Badge, Button, EntityAvatar, Modal, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
+import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { getEmployees, type EmployeeApiResponse } from "@/features/employees/api/employeesApi";
 import {
   createCustomerSupportConversation,
@@ -42,6 +43,7 @@ import {
 } from "@/features/support/api/supportApi";
 import { cn } from "@/lib/cn";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import { AdminAccountMenu } from "@/shared/components/layout/AdminAccountMenu";
 
 type ConversationStatus = "processing" | "waiting" | "closed";
 type Priority = "high" | "medium" | "low";
@@ -653,21 +655,11 @@ function TopBar() {
           Ca làm việc: 08:00 - 17:00
           <i className="fas fa-chevron-down tw-text-[0.65rem]" />
         </button>
-        <button type="button" className="tw-relative tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" aria-label="Thông báo">
-          <i className="far fa-bell tw-text-[1.1rem]" />
-          <span className="tw-absolute tw-right-1 tw-top-1 tw-rounded-full tw-bg-red-500 tw-px-1.5 tw-text-[0.58rem] tw-font-extrabold tw-text-white">12</span>
-        </button>
+        <NotificationBell variant="admin" />
         <button type="button" className="tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" aria-label="Trợ giúp">
           <i className="far fa-question-circle tw-text-[1.1rem]" />
         </button>
-        <button type="button" className="tw-flex tw-items-center tw-gap-3 tw-rounded-vm-md tw-border-0 tw-bg-white tw-px-1 tw-py-1 tw-text-left hover:tw-bg-vm-slate-25">
-          <img src="/assets/admin/dist/img/user2-160x160.jpg" alt="Nguyễn Văn A" className="tw-h-10 tw-w-10 tw-rounded-full tw-object-cover" />
-          <span className="tw-grid tw-leading-tight">
-            <strong className="tw-text-[0.82rem] tw-text-vm-slate-900">Nguyễn Văn A</strong>
-            <small className="tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">Quản trị viên</small>
-          </span>
-          <i className="fas fa-chevron-down tw-text-[0.65rem] tw-text-vm-slate-500" />
-        </button>
+        <AdminAccountMenu />
       </div>
     </header>
   );
@@ -1682,9 +1674,18 @@ function RightPanel({
         { icon: "far fa-paper-plane", label: "Kênh", value: conversation.channel },
         { icon: "far fa-clock", label: "Cập nhật cuối", value: formatDateTime(conversation.conversation?.lastMessageAt) },
       ];
-  const resolvedRelatedInfo: InfoLine[] = ticket
-    ? [{ icon: "far fa-link", label: "Liên kết", value: "Theo ticket hỗ trợ", tone: "primary" }]
-    : [{ icon: "far fa-link", label: "Liên kết", value: "Chưa gắn tài sản nghiệp vụ" }];
+  const canAssignCurrentTicket = Boolean(ticket && canAssign && ticket.status !== "CLOSED");
+  const canStartCurrentTicket = Boolean(ticket?.status === "OPEN" && canProcess && ticket.assignedTo);
+  const canReplyCurrentTicket = Boolean(ticket?.status === "IN_PROGRESS" && canReply);
+  const canResolveCurrentTicket = Boolean(ticket?.status === "IN_PROGRESS" && canProcess);
+  const canReopenCurrentTicket = Boolean(ticket?.status === "RESOLVED" && canReopen);
+  const canCloseCurrentTicket = Boolean(ticket?.status === "RESOLVED" && canClose);
+  const hasTicketAction = canAssignCurrentTicket
+    || canStartCurrentTicket
+    || canReplyCurrentTicket
+    || canResolveCurrentTicket
+    || canReopenCurrentTicket
+    || canCloseCurrentTicket;
 
   return (
     <aside className={cn("tw-flex tw-min-h-0 tw-flex-col tw-gap-2.5 tw-overflow-y-auto tw-border-0 tw-border-l tw-border-solid tw-border-vm-slate-100 tw-bg-[#fbfdff] tw-p-3", className)}>
@@ -1694,11 +1695,8 @@ function RightPanel({
       <SectionCard title={participantLabel}>
         {dynamicInfo.map((item) => <InfoLineView item={item} key={item.label} />)}
       </SectionCard>
-      <SectionCard title="Thông tin liên quan">
-        {resolvedRelatedInfo.map((item) => <InfoLineView item={item} key={item.label} />)}
-      </SectionCard>
-      <div className="tw-grid tw-gap-3 tw-p-2">
-        {ticket && canAssign && ticket.status !== "CLOSED" ? (
+      {hasTicketAction ? <div className="tw-grid tw-gap-3 tw-p-2">
+        {canAssignCurrentTicket ? (
           <div className="tw-grid tw-gap-2">
             <select
               className="tw-h-10 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-3 tw-text-sm"
@@ -1719,48 +1717,32 @@ function RightPanel({
             </Button>
           </div>
         ) : null}
-        {ticket?.status === "OPEN" && canProcess ? (
-          <Button className="tw-h-11 tw-w-full" variant="secondary" disabled={!ticket.assignedTo || isUpdatingTicket} onClick={onStartProgress}>
+        {canStartCurrentTicket ? (
+          <Button className="tw-h-11 tw-w-full" disabled={isUpdatingTicket} onClick={onStartProgress}>
             <i className="fas fa-play" />
             Nhận xử lý
           </Button>
         ) : null}
-        {ticket && canReply && ticket.status !== "CLOSED" ? (
+        {canReplyCurrentTicket ? (
           <Button className="tw-h-11 tw-w-full" disabled={isUpdatingTicket} onClick={onReply}>
             <i className="far fa-comment-dots" />
             Phản hồi khách hàng
           </Button>
         ) : null}
-        {ticket && (ticket.status === "OPEN" || ticket.status === "IN_PROGRESS") && canProcess ? (
+        {canResolveCurrentTicket ? (
           <Button className="tw-h-11 tw-w-full" disabled={isUpdatingTicket} onClick={onResolve}>
             <i className="far fa-check-circle" />
             Giải quyết ticket
           </Button>
         ) : null}
-        {ticket?.status === "RESOLVED" && canReopen ? (
+        {canReopenCurrentTicket ? (
           <Button className="tw-h-11 tw-w-full" variant="secondary" disabled={isUpdatingTicket} onClick={onReopen}>
             <i className="fas fa-undo" />
             Mở lại ticket
           </Button>
         ) : null}
-        <Button
-          className="tw-h-11 tw-w-full"
-          disabled={!ticket || ticket.status !== "RESOLVED" || !canClose || isUpdatingTicket}
-          onClick={onClose}
-          title={ticket?.status !== "RESOLVED" ? "Ticket chỉ được đóng sau khi đã giải quyết." : undefined}
-        >
-          <i className="far fa-check-square" />
-          Đóng ticket
-        </Button>
-        <Button className="tw-h-11 tw-w-full" variant="secondary" title="API tạo hội thoại nội bộ đã có, UI chọn thành viên giữ lại cho phase sau">
-          <i className="fas fa-users" />
-          Tạo hội thoại nội bộ
-        </Button>
-        <Button className="tw-h-11 tw-w-full" variant="secondary" title="Backend chat chưa có API chuyển ticket trong màn này, giữ lại cho phase sau">
-          <i className="fas fa-share" />
-          Chuyển ticket
-        </Button>
-      </div>
+        {canCloseCurrentTicket ? <Button className="tw-h-11 tw-w-full" disabled={isUpdatingTicket} onClick={onClose}><i className="far fa-check-square" />Đóng ticket</Button> : null}
+      </div> : null}
     </aside>
   );
 }
@@ -1807,7 +1789,8 @@ export function OperationsSupportCenterPage() {
   const canAttachChat = canSendChat && hasAnyPermission(user, ["CHAT_ATTACHMENT_CREATE_OWN"]);
   const canReadAttachment = hasAnyPermission(user, ["CHAT_ATTACHMENT_READ_OWN"]);
   const canAssignTicket = hasAnyPermission(user, ["SUPPORT_TICKET_ASSIGN"]);
-  const canProcessTicket = hasAnyPermission(user, ["SUPPORT_TICKET_PROCESS_ALL", "SUPPORT_TICKET_PROCESS_ASSIGNED"]);
+  const canProcessAllTicket = hasAnyPermission(user, ["SUPPORT_TICKET_PROCESS_ALL"]);
+  const canProcessAssignedTicket = hasAnyPermission(user, ["SUPPORT_TICKET_PROCESS_ASSIGNED"]);
   const canReplyTicket = hasAnyPermission(user, ["SUPPORT_TICKET_RESPOND_ASSIGNED"]);
   const canCloseTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CLOSE_ALL"]);
   const canReopenTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_ALL"]);
@@ -2520,7 +2503,7 @@ export function OperationsSupportCenterPage() {
     try {
       const response = await closeSupportTicket(effectiveSelectedTicket.supportTicketId);
       applyTicketUpdate(response.data);
-      toast.success("Ticket đã đóng và hội thoại được chuyển sang chỉ đọc.");
+      toast.success("Ticket đã đóng. Hội thoại riêng vẫn được giữ độc lập để tra cứu lịch sử.");
       await loadInbox({ showLoading: false });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể đóng ticket.", "Cập nhật thất bại");
@@ -2544,7 +2527,7 @@ export function OperationsSupportCenterPage() {
     <div className="tw-h-screen tw-overflow-hidden tw-bg-white tw-text-vm-slate-700">
       <div className="tw-grid tw-h-full tw-min-h-0 tw-min-w-0 tw-grid-rows-[64px_minmax(0,1fr)]">
         <TopBar />
-        <div className="tw-grid tw-min-h-0 tw-grid-cols-[390px_minmax(520px,1fr)_330px] max-[1280px]:tw-grid-cols-[360px_minmax(460px,1fr)]">
+        <div className="tw-grid tw-min-h-0 tw-grid-cols-[390px_minmax(0,1fr)] max-[1280px]:tw-grid-cols-[360px_minmax(0,1fr)]">
           <ConversationList
             conversations={filteredConversations}
             errorMessage={inboxError}
@@ -2577,24 +2560,6 @@ export function OperationsSupportCenterPage() {
             onCreateTicket={handleOpenChatTicketModal}
             resolveAttachmentUrl={resolveAttachmentUrl}
             usingMockData={usingMockData}
-          />
-          <RightPanel
-            assignees={assignees}
-            canAssign={canAssignTicket}
-            canClose={canCloseTicket}
-            canProcess={canProcessTicket}
-            canReply={Boolean(effectiveSelectedTicket?.assignedTo && effectiveSelectedTicket.assignedTo === user?.id && canReplyTicket)}
-            canReopen={canReopenTicket}
-            className="max-[1280px]:tw-hidden"
-            conversation={selectedConversation}
-            isUpdatingTicket={isUpdatingTicket}
-            onAssign={(accountId) => void handleAssignTicket(accountId)}
-            onClose={() => void handleCloseTicket()}
-            onReopen={() => void handleReopenTicket()}
-            onReply={() => void handleReplyTicket()}
-            onResolve={() => void handleResolveTicket()}
-            onStartProgress={() => void handleStartTicketProgress()}
-            ticket={effectiveSelectedTicket}
           />
         </div>
       </div>

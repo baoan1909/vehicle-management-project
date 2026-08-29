@@ -19,6 +19,7 @@ type SelectMenuProps = {
   options: SelectMenuOption[];
   placement?: "bottom" | "top";
   portal?: boolean;
+  portalFitContent?: boolean;
   searchable?: boolean | "auto";
   searchPlaceholder?: string;
   triggerClassName?: string;
@@ -37,6 +38,7 @@ export function SelectMenu({
   options,
   placement = "bottom",
   portal = false,
+  portalFitContent = false,
   searchable = "auto",
   searchPlaceholder = "Tìm kiếm...",
   triggerClassName,
@@ -105,7 +107,11 @@ export function SelectMenu({
       const menuHeight =
         menuRef.current?.offsetHeight ??
         Math.min(240, options.length * 44 + 12);
-      const width = Math.min(triggerRect.width, window.innerWidth - viewportPadding * 2);
+      const longestOptionLabelLength = Math.max(0, ...options.map((option) => option.label.length));
+      const contentWidth = portalFitContent
+        ? Math.max(triggerRect.width, Math.min(360, longestOptionLabelLength * 8.4 + 68))
+        : triggerRect.width;
+      const width = Math.min(contentWidth, window.innerWidth - viewportPadding * 2);
       const left = Math.min(
         Math.max(viewportPadding, triggerRect.left),
         window.innerWidth - width - viewportPadding,
@@ -129,7 +135,7 @@ export function SelectMenu({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [open, options.length, placement, portal]);
+  }, [open, options, placement, portal, portalFitContent]);
 
   const menu = open ? (
     <div

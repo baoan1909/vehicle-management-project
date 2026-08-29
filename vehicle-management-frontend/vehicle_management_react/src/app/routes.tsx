@@ -27,7 +27,7 @@ import { AccountFormPage, AccountListPage, InternalProfilePage, RoleFormPage, Ro
 import { AnnouncementManagementPage } from "@/features/notifications";
 import { ParkingOperationsPage, ParkingSessionPage, SwipeEntryPage, SwipeListPage } from "@/features/parking";
 import { PricePlanListPage, PriceRuleListPage } from "@/features/pricing";
-import { OperationsSupportCenterPage, SupportCategoryWorkflowPage } from "@/features/support";
+import { OperationsSupportCenterPage, SupportCategoryWorkflowPage, SupportTicketManagementPage } from "@/features/support";
 
 export interface RouteDefinition {
   path: string;
@@ -73,6 +73,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/role", title: "Phan quyen vai tro", layout: "admin", element: <RoleListPage /> },
   { path: "/admin/role/form", title: "Thong tin vai tro", layout: "admin", element: <RoleFormPage /> },
   { path: "/admin/support-categories", title: "Danh muc ho tro va quy trinh xu ly yeu cau", layout: "admin", element: <SupportCategoryWorkflowPage /> },
+  { path: "/admin/support-tickets", title: "Yeu cau ho tro", layout: "admin", element: <SupportTicketManagementPage /> },
   { path: "/admin/announcements", title: "Quản lý thông báo", layout: "admin", element: <AnnouncementManagementPage /> },
   { path: "/admin/support-center", title: "Trung tam ho tro van hanh", layout: "fullscreen", element: <OperationsSupportCenterPage /> },
   { path: "/", title: "Gioi thieu CoParking", layout: "client", element: <AboutPage /> },

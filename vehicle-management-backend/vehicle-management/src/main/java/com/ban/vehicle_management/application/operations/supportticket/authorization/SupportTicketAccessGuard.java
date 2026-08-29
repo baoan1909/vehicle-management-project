@@ -6,6 +6,8 @@ import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
@@ -99,6 +101,9 @@ public class SupportTicketAccessGuard {
 
     /** A customer-facing reply is issued only by the employee currently assigned to the ticket. */
     public UUID ensureCanReplyAsAssignee(SupportTicket ticket) {
+        if (ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
+            throw new BadRequestException("Support ticket must be IN_PROGRESS before replying to the customer");
+        }
         UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         if (!accountId.equals(ticket.getAssignedTo())) {
             throw new AccessDeniedException("Access is denied");

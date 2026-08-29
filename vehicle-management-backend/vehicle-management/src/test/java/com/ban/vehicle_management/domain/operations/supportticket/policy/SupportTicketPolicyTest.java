@@ -70,6 +70,17 @@ class SupportTicketPolicyTest {
     }
 
     @Test
+    void shouldRejectResolvingOpenTicketBeforeItIsAccepted() {
+        SupportTicket supportTicket = validSupportTicket();
+
+        assertThrows(BadRequestException.class, () -> supportTicketPolicy.resolve(
+                supportTicket,
+                "Da xu ly",
+                Instant.parse("2026-05-15T04:00:00Z")
+        ));
+    }
+
+    @Test
     void shouldReopenResolvedTicketToOpenWhenTicketHasNoAssignee() {
         SupportTicket supportTicket = resolvedSupportTicket();
 

@@ -59,9 +59,8 @@ public class SupportTicketPolicy {
     public void resolve(SupportTicket ticket, String resolutionNote, Instant resolvedAt) {
         requireTicket(ticket);
 
-        if (ticket.getStatus() != SupportTicketStatus.OPEN
-                && ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
-            throw new BadRequestException("Support ticket can only be resolved from OPEN or IN_PROGRESS status");
+        if (ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
+            throw new BadRequestException("Support ticket must be IN_PROGRESS before it can be resolved");
         }
 
         ticket.setStatus(SupportTicketStatus.RESOLVED);

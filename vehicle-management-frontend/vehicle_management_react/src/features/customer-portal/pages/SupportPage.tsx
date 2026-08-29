@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Modal, useToast } from "@/components/ui";
+import { useAuth } from "@/core/auth/useAuth";
 import {
   getCustomerPortalProfile,
   type CustomerPortalProfile,
@@ -16,6 +17,7 @@ import {
   type SupportTicketResponse,
   type SupportTicketStatus,
 } from "@/features/support/api/supportApi";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 
 import { CustomerPageHeader, CustomerPortalLayout, Field, PaginationLite, StatCard, StatusPill } from "./PortalShared";
 
@@ -95,7 +97,10 @@ function activeStepClass(ticket: SupportTicketResponse, step: SupportTicketStatu
 }
 
 export function SupportPage() {
+  const { user } = useAuth();
   const toast = useToast();
+  const canCloseOwnTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CLOSE_OWN", "SUPPORT_TICKET_CLOSE_ALL"]);
+  const canReopenOwnTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_OWN", "SUPPORT_TICKET_REOPEN_ALL"]);
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [tickets, setTickets] = useState<SupportTicketResponse[]>([]);
   const [categories, setCategories] = useState<SupportTicketCategoryResponse[]>([]);
@@ -388,14 +393,12 @@ export function SupportPage() {
                     </span>
                   ))}
                 </div>
-                <div className="vm-form-actions">
-                  <button className="vm-outline-btn" type="button" disabled={saving || selectedTicket.status !== "RESOLVED"} onClick={handleReopenTicket}>
-                    Mở lại yêu cầu
-                  </button>
-                  <button type="button" disabled={saving || selectedTicket.status === "CLOSED"} onClick={handleCloseTicket}>
-                    Đóng yêu cầu
-                  </button>
-                </div>
+                {selectedTicket.status === "RESOLVED" && (canReopenOwnTicket || canCloseOwnTicket) ? (
+                  <div className="vm-form-actions">
+                    {canReopenOwnTicket ? <button className="vm-outline-btn" type="button" disabled={saving} onClick={handleReopenTicket}>Mở lại yêu cầu</button> : null}
+                    {canCloseOwnTicket ? <button type="button" disabled={saving} onClick={handleCloseTicket}>Đóng yêu cầu</button> : null}
+                  </div>
+                ) : null}
               </>
             ) : (
               <p>Chọn một yêu cầu trong bảng để xem chi tiết xử lý.</p>
