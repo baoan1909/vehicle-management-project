@@ -15,6 +15,7 @@ export type ChatConversationType =
   | "INTERNAL_DIRECT"
   | "INTERNAL_GROUP"
   | "CUSTOMER_DIRECT"
+  | "ASSISTANT_SUPPORT"
   | "SUPPORT_TICKET"
   | "PARKING_SESSION"
   | "BILLING"
@@ -78,6 +79,7 @@ export type ChatMessageResponse = {
   relatedId: string | null;
   relatedSchema: string | null;
   relatedTable: string | null;
+  contextTicketId: string | null;
   replyToMessageId: string | null;
   senderAccountId: string | null;
 };
@@ -143,18 +145,31 @@ export function getChatMessages(conversationId: string, options: { beforeCreated
   );
 }
 
-export function sendChatTextMessage(conversationId: string, content: string, replyToMessageId?: string | null) {
+export function sendChatTextMessage(
+  conversationId: string,
+  content: string,
+  replyToMessageId?: string | null,
+  contextTicketId?: string | null,
+) {
   return apiClient<ApiResponse<ChatMessageResponse>>(`${apiEndpoints.operations.chat}/conversations/${conversationId}/messages`, {
-    body: { content, replyToMessageId: replyToMessageId ?? null },
+    body: { content, replyToMessageId: replyToMessageId ?? null, contextTicketId: contextTicketId ?? null },
     method: "POST",
   });
 }
 
-export async function sendChatImageMessage(conversationId: string, content: string | null, files: File[]) {
+export async function sendChatImageMessage(
+  conversationId: string,
+  content: string | null,
+  files: File[],
+  contextTicketId?: string | null,
+) {
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file, file.name));
   if (content?.trim()) {
     formData.append("content", content.trim());
+  }
+  if (contextTicketId) {
+    formData.append("contextTicketId", contextTicketId);
   }
 
   return postMultipart<ApiResponse<ChatMessageResponse>>(

@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.entrypoint.controller.operations;
 
 import com.ban.vehicle_management.application.operations.supportticket.mapper.SupportTicketApiMapper;
+import com.ban.vehicle_management.application.operations.supportticket.mapper.SupportTicketChatIntakeApiMapper;
+import com.ban.vehicle_management.application.operations.supportticket.model.SupportTicketChatIntake;
 import com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatConversationApiMapper;
 import com.ban.vehicle_management.application.operations.supportticket.port.in.SupportTicketPortIn;
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
@@ -10,6 +12,7 @@ import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.reques
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.request.SupportTicketFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.request.UpdateSupportTicketRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.response.SupportTicketAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.response.SupportTicketChatIntakeResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatConversationUserResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
@@ -24,15 +27,18 @@ public class SupportTicketController {
 
     private final SupportTicketPortIn supportTicketPortIn;
     private final SupportTicketApiMapper supportTicketApiMapper;
+    private final SupportTicketChatIntakeApiMapper supportTicketChatIntakeApiMapper;
     private final ChatConversationApiMapper chatConversationApiMapper;
 
     public SupportTicketController(
             SupportTicketPortIn supportTicketPortIn,
             SupportTicketApiMapper supportTicketApiMapper,
+            SupportTicketChatIntakeApiMapper supportTicketChatIntakeApiMapper,
             ChatConversationApiMapper chatConversationApiMapper
     ) {
         this.supportTicketPortIn = supportTicketPortIn;
         this.supportTicketApiMapper = supportTicketApiMapper;
+        this.supportTicketChatIntakeApiMapper = supportTicketChatIntakeApiMapper;
         this.chatConversationApiMapper = chatConversationApiMapper;
     }
 
@@ -45,6 +51,29 @@ public class SupportTicketController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Support ticket created successfully",
                 supportTicketApiMapper.toAdminResponse(createdTicket)
+        ));
+    }
+
+    @PostMapping("/chat-intake")
+    public ResponseEntity<ApiResponse<SupportTicketChatIntakeResponse>> createChatIntake(
+            @RequestBody CreateSupportTicketRequest request
+    ) {
+        SupportTicketChatIntake intake = supportTicketPortIn.createChatIntake(
+                supportTicketApiMapper.toDomain(request)
+        );
+        return ResponseEntity.status(intake.reusedActiveTicket() ? HttpStatus.OK : HttpStatus.CREATED).body(ApiResponse.ok(
+                intake.reusedActiveTicket()
+                        ? "Active support conversation opened successfully"
+                        : "Support chat intake created successfully",
+                supportTicketChatIntakeApiMapper.toResponse(intake)
+        ));
+    }
+
+    @GetMapping("/assistant-conversation")
+    public ResponseEntity<ApiResponse<ChatConversationUserResponse>> openAssistantConversation() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Support assistant conversation opened successfully",
+                chatConversationApiMapper.toConversationUserResponse(supportTicketPortIn.openAssistantConversation())
         ));
     }
 
@@ -172,6 +201,17 @@ public class SupportTicketController {
         ));
     }
 
+    @PatchMapping("/{supportTicketId}/claim")
+    public ResponseEntity<ApiResponse<SupportTicketAdminResponse>> claimTicket(
+            @PathVariable UUID supportTicketId
+    ) {
+        SupportTicket claimedTicket = supportTicketPortIn.claimTicket(supportTicketId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Support ticket claimed successfully",
+                supportTicketApiMapper.toAdminResponse(claimedTicket)
+        ));
+    }
+
     @PostMapping("/{supportTicketId}/customer-conversation")
     public ResponseEntity<ApiResponse<ChatConversationUserResponse>> openCustomerConversationForReply(
             @PathVariable UUID supportTicketId
@@ -180,6 +220,18 @@ public class SupportTicketController {
                 "Customer conversation opened successfully",
                 chatConversationApiMapper.toConversationUserResponse(
                         supportTicketPortIn.openCustomerConversationForReply(supportTicketId)
+                )
+        ));
+    }
+
+    @GetMapping("/{supportTicketId}/customer-conversation")
+    public ResponseEntity<ApiResponse<ChatConversationUserResponse>> getActiveCustomerConversation(
+            @PathVariable UUID supportTicketId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Active customer conversation fetched successfully",
+                chatConversationApiMapper.toConversationUserResponse(
+                        supportTicketPortIn.getActiveCustomerConversation(supportTicketId)
                 )
         ));
     }

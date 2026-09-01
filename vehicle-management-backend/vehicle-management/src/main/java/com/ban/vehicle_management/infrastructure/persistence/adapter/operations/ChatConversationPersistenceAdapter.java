@@ -126,6 +126,17 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
     }
 
     @Override
+    public Optional<ChatConversation> findActiveAssistantSupportConversation(UUID customerId) {
+        return conversationRepository.findFirstByCustomerIdAndConversationTypeAndStatus(
+                        customerId,
+                        ChatConversationType.ASSISTANT_SUPPORT,
+                        ChatConversationStatus.ACTIVE
+                )
+                .map(conversationMapper::toDomain)
+                .map(this::attachParticipants);
+    }
+
+    @Override
     public Optional<ChatConversation> findActiveSupportTicketConversation(UUID supportTicketId) {
         return conversationRepository.findFirstBySupportTicketIdAndConversationTypeAndStatus(
                         supportTicketId,

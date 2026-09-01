@@ -70,6 +70,17 @@ class SupportTicketPolicyTest {
     }
 
     @Test
+    void shouldClaimOnlyUnassignedOpenTicket() {
+        SupportTicket supportTicket = validSupportTicket();
+        UUID claimant = UUID.randomUUID();
+
+        supportTicketPolicy.claim(supportTicket, claimant);
+
+        assertEquals(claimant, supportTicket.getAssignedTo());
+        assertThrows(BadRequestException.class, () -> supportTicketPolicy.claim(supportTicket, UUID.randomUUID()));
+    }
+
+    @Test
     void shouldRejectResolvingOpenTicketBeforeItIsAccepted() {
         SupportTicket supportTicket = validSupportTicket();
 

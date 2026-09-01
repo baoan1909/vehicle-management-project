@@ -47,4 +47,17 @@ public class ChatMessagePolicy {
         ));
         message.setDeleted(false);
     }
+
+    public void initializeSystem(ChatMessage message) {
+        if (message == null) {
+            throw new BadRequestException("message must not be null");
+        }
+        message.setMessageType(ChatMessageType.SYSTEM);
+        message.setContent(TextValidationUtils.normalizeRequiredText(
+                message.getContent(),
+                "content",
+                MAX_TEXT_CONTENT_LENGTH
+        ));
+        message.setDeleted(false);
+    }
 }

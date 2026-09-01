@@ -101,6 +101,16 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
         );
     }
 
+    @Override
+    public Optional<SupportTicket> findActiveWorkflowByCustomerIdAndCategoryId(UUID customerId, UUID categoryId) {
+        return supportTicketRepository.findFirstByCustomerIdAndCategoryIdAndStatusInOrderByCreatedAtDesc(
+                        customerId,
+                        categoryId,
+                        ACTIVE_WORKFLOW_STATUSES
+                )
+                .map(this::mapToDomain);
+    }
+
     private SupportTicket mapToDomain(SupportTicketEntity entity) {
         SupportTicket supportTicket = supportTicketPersistenceMapper.toDomain(entity);
         if (supportTicket.getCategoryId() == null || supportTicket.getCategoryCode() != null) {

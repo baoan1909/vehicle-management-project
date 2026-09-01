@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 public class SupportTicketAccessGuard {
 
     private static final String CREATE_OWN_PERMISSION = "SUPPORT_TICKET_CREATE_OWN";
+    private static final String ASSISTANT_ACCESS_OWN_PERMISSION = "SUPPORT_WIDGET_ACCESS_OWN";
     private static final String CREATE_FROM_CHAT_OWN_PERMISSION = "SUPPORT_TICKET_CREATE_FROM_CHAT_OWN";
     private static final String READ_ALL_PERMISSION = "SUPPORT_TICKET_READ_ALL";
     private static final String READ_OWN_PERMISSION = "SUPPORT_TICKET_READ_OWN";
@@ -23,6 +24,7 @@ public class SupportTicketAccessGuard {
     private static final String UPDATE_ALL_PERMISSION = "SUPPORT_TICKET_UPDATE_ALL";
     private static final String UPDATE_OWN_PERMISSION = "SUPPORT_TICKET_UPDATE_OWN";
     private static final String ASSIGN_PERMISSION = "SUPPORT_TICKET_ASSIGN";
+    private static final String CLAIM_OWN_PERMISSION = "SUPPORT_TICKET_CLAIM_OWN";
     private static final String PROCESS_ALL_PERMISSION = "SUPPORT_TICKET_PROCESS_ALL";
     private static final String PROCESS_ASSIGNED_PERMISSION = "SUPPORT_TICKET_PROCESS_ASSIGNED";
     private static final String RESPOND_ASSIGNED_PERMISSION = "SUPPORT_TICKET_RESPOND_ASSIGNED";
@@ -44,6 +46,11 @@ public class SupportTicketAccessGuard {
 
     public UUID resolveCustomerIdForCreate() {
         currentAccountPortIn.requirePermission(CREATE_OWN_PERMISSION);
+        return resolveCurrentApprovedCustomerId();
+    }
+
+    public UUID resolveCustomerIdForAssistant() {
+        currentAccountPortIn.requirePermission(ASSISTANT_ACCESS_OWN_PERMISSION);
         return resolveCurrentApprovedCustomerId();
     }
 
@@ -87,6 +94,11 @@ public class SupportTicketAccessGuard {
         currentAccountPortIn.requirePermission(ASSIGN_PERMISSION);
     }
 
+    public UUID resolveAccountIdForClaim() {
+        currentAccountPortIn.requirePermission(CLAIM_OWN_PERMISSION);
+        return currentAccountPortIn.getCurrentAccountIdOrThrow();
+    }
+
     public void ensureCanProcess(SupportTicket ticket) {
         if (currentAccountPortIn.hasPermission(PROCESS_ALL_PERMISSION)) {
             return;
@@ -101,17 +113,18 @@ public class SupportTicketAccessGuard {
 
     /** A customer-facing reply is issued only by the employee currently assigned to the ticket. */
     public UUID ensureCanReplyAsAssignee(SupportTicket ticket) {
-        if (ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
-            throw new BadRequestException("Support ticket must be IN_PROGRESS before replying to the customer");
+        if (ticket.getStatus() != SupportTicketStatus.OPEN && ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
+            throw new BadRequestException("Only open or in-progress support ticket can be replied to");
         }
         UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         if (!accountId.equals(ticket.getAssignedTo())) {
             throw new AccessDeniedException("Access is denied");
         }
-        if (currentAccountPortIn.hasPermission(RESPOND_ASSIGNED_PERMISSION)) {
-            return accountId;
+        if (!currentAccountPortIn.hasPermission(PROCESS_ALL_PERMISSION)) {
+            currentAccountPortIn.requirePermission(PROCESS_ASSIGNED_PERMISSION);
         }
         currentAccountPortIn.requirePermission(RESPOND_ASSIGNED_PERMISSION);
+        currentAccountPortIn.requirePermission("CHAT_CONVERSATION_CREATE_CUSTOMER_DIRECT");
         return accountId;
     }
 

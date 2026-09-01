@@ -19,7 +19,6 @@ public interface ChatConversationRepository extends JpaRepository<ChatConversati
                 ON member.conversationId = conversation.conversationId
             WHERE member.accountId = :accountId
               AND member.status = com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus.ACTIVE
-              AND conversation.conversationType <> com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType.SUPPORT_TICKET
             ORDER BY
                 CASE WHEN conversation.lastMessageAt IS NULL THEN 1 ELSE 0 END,
                 conversation.lastMessageAt DESC,

@@ -3,6 +3,8 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.SupportTicketEntity;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -16,5 +18,11 @@ public interface SupportTicketRepository
             UUID customerId,
             UUID categoryId,
             Collection<SupportTicketStatus> statuses
+    );
+
+    Optional<SupportTicketEntity> findFirstByCustomerIdAndCategoryIdAndStatusInOrderByCreatedAtDesc(
+            UUID customerId,
+            UUID categoryId,
+            List<SupportTicketStatus> statuses
     );
 }

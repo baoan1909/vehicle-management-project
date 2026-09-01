@@ -28,9 +28,9 @@ public interface ChatConversationPortIn {
 
     List<ChatMessage> getMessageHistory(UUID conversationId, Instant beforeCreatedAt, int limit);
 
-    ChatMessage sendTextMessage(UUID conversationId, String content, UUID replyToMessageId);
+    ChatMessage sendTextMessage(UUID conversationId, String content, UUID replyToMessageId, UUID contextTicketId);
 
-    ChatMessage sendImageMessage(UUID conversationId, String content, List<MultipartFile> files);
+    ChatMessage sendImageMessage(UUID conversationId, String content, List<MultipartFile> files, UUID contextTicketId);
 
     void deleteMessage(UUID messageId);
 

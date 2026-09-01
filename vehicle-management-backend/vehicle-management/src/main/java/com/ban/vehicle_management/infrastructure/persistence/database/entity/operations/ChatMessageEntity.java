@@ -54,6 +54,9 @@ public class ChatMessageEntity extends AuditableEntity {
     @Column(name = "related_id")
     private UUID relatedId;
 
+    @Column(name = "context_ticket_id")
+    private UUID contextTicketId;
+
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "metadata", columnDefinition = "jsonb")
     private String metadata;

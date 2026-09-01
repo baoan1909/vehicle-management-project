@@ -49,6 +49,12 @@ export type SupportTicketResponse = {
   updatedBy: string | null;
 };
 
+export type SupportTicketChatIntakeResponse = {
+  ticket: SupportTicketResponse;
+  conversation: ChatConversationResponse;
+  reusedActiveTicket: boolean;
+};
+
 export type SupportTicketCategoryFilter = {
   keyword?: string;
   priority?: SupportTicketPriority;
@@ -139,6 +145,17 @@ export function createSupportTicket(payload: SaveSupportTicketRequest) {
   });
 }
 
+export function createSupportTicketChatIntake(payload: SaveSupportTicketRequest) {
+  return apiClient<ApiResponse<SupportTicketChatIntakeResponse>>(`${apiEndpoints.operations.supportTickets}/chat-intake`, {
+    body: payload,
+    method: "POST",
+  });
+}
+
+export function getSupportAssistantConversation() {
+  return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportAssistantConversation);
+}
+
 export function createSupportTicketFromConversation(conversationId: string, payload: SaveSupportTicketRequest) {
   return apiClient<ApiResponse<SupportTicketResponse>>(apiEndpoints.operations.supportTicketsFromConversation(conversationId), {
     body: payload,
@@ -150,6 +167,10 @@ export function openSupportTicketCustomerConversation(ticketId: string) {
   return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportTicketCustomerConversation(ticketId), {
     method: "POST",
   });
+}
+
+export function getActiveSupportTicketCustomerConversation(ticketId: string) {
+  return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportTicketCustomerConversation(ticketId));
 }
 
 export function updateSupportTicket(ticketId: string, payload: SaveSupportTicketRequest) {

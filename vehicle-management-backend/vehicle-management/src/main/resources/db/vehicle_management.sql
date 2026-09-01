@@ -744,7 +744,7 @@ CREATE TABLE operations.chat_conversations (
     CONSTRAINT fk_chat_conversations_support_ticket FOREIGN KEY (support_ticket_id) REFERENCES operations.support_tickets(support_ticket_id) ON DELETE SET NULL,
     CONSTRAINT fk_chat_conversations_owner_account FOREIGN KEY (owner_account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT fk_chat_conversations_assigned_to FOREIGN KEY (assigned_to) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
-    CONSTRAINT ck_chat_conversations_type CHECK (conversation_type IN ('INTERNAL_DIRECT', 'INTERNAL_GROUP', 'CUSTOMER_DIRECT', 'SUPPORT_TICKET', 'PARKING_SESSION', 'BILLING', 'LOST_CARD', 'SYSTEM_DIRECT')),
+    CONSTRAINT ck_chat_conversations_type CHECK (conversation_type IN ('INTERNAL_DIRECT', 'INTERNAL_GROUP', 'CUSTOMER_DIRECT', 'ASSISTANT_SUPPORT', 'SUPPORT_TICKET', 'PARKING_SESSION', 'BILLING', 'LOST_CARD', 'SYSTEM_DIRECT')),
     CONSTRAINT ck_chat_conversations_status CHECK (status IN ('ACTIVE', 'ARCHIVED', 'CLOSED'))
 );
 
@@ -769,6 +769,24 @@ CREATE TABLE operations.chat_conversation_members (
     CONSTRAINT ck_chat_members_status CHECK (status IN ('ACTIVE', 'LEFT', 'REMOVED', 'BLOCKED'))
 );
 
+-- Lịch sử ticket được gắn vào chat riêng khách hàng - nhân viên.
+CREATE TABLE operations.support_ticket_conversation_links (
+    support_ticket_conversation_link_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    support_ticket_id UUID NOT NULL REFERENCES operations.support_tickets(support_ticket_id) ON DELETE CASCADE,
+    conversation_id UUID NOT NULL REFERENCES operations.chat_conversations(conversation_id) ON DELETE CASCADE,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+    link_reason VARCHAR(20) NOT NULL,
+    linked_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    linked_by_account_id UUID,
+    unlinked_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    created_by UUID,
+    updated_at TIMESTAMPTZ,
+    updated_by UUID,
+    CONSTRAINT ck_support_ticket_conversation_links_status CHECK (status IN ('ACTIVE', 'HISTORICAL')),
+    CONSTRAINT ck_support_ticket_conversation_links_reason CHECK (link_reason IN ('FIRST_REPLY', 'REASSIGNED', 'REOPENED'))
+);
+
 CREATE TABLE operations.chat_messages (
     message_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     conversation_id UUID NOT NULL,
@@ -779,6 +797,7 @@ CREATE TABLE operations.chat_messages (
     related_schema VARCHAR(50),
     related_table VARCHAR(80),
     related_id UUID,
+    context_ticket_id UUID,
     metadata JSONB,
     deleted BOOLEAN NOT NULL DEFAULT FALSE,
     deleted_at TIMESTAMPTZ,
@@ -790,6 +809,7 @@ CREATE TABLE operations.chat_messages (
     CONSTRAINT fk_chat_messages_conversation FOREIGN KEY (conversation_id) REFERENCES operations.chat_conversations(conversation_id) ON DELETE CASCADE,
     CONSTRAINT fk_chat_messages_sender FOREIGN KEY (sender_account_id) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT fk_chat_messages_reply_to FOREIGN KEY (reply_to_message_id) REFERENCES operations.chat_messages(message_id) ON DELETE SET NULL,
+    CONSTRAINT fk_chat_messages_context_ticket FOREIGN KEY (context_ticket_id) REFERENCES operations.support_tickets(support_ticket_id) ON DELETE SET NULL,
     CONSTRAINT ck_chat_messages_type CHECK (message_type IN ('TEXT', 'IMAGE', 'FILE', 'SYSTEM', 'CONTEXT_CARD', 'ACTION_CARD', 'SUPPORT_REQUEST'))
 );
 
@@ -1062,6 +1082,7 @@ CREATE TRIGGER trg_support_ticket_categories_set_updated_at BEFORE UPDATE ON ope
 CREATE TRIGGER trg_support_tickets_set_updated_at BEFORE UPDATE ON operations.support_tickets FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_chat_conversations_set_updated_at BEFORE UPDATE ON operations.chat_conversations FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_chat_conversation_members_set_updated_at BEFORE UPDATE ON operations.chat_conversation_members FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
+CREATE TRIGGER trg_support_ticket_conversation_links_set_updated_at BEFORE UPDATE ON operations.support_ticket_conversation_links FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_chat_messages_set_updated_at BEFORE UPDATE ON operations.chat_messages FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_chat_message_attachments_set_updated_at BEFORE UPDATE ON operations.chat_message_attachments FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
 CREATE TRIGGER trg_devices_set_updated_at BEFORE UPDATE ON hardware.devices FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
@@ -1103,6 +1124,8 @@ CREATE INDEX idx_chat_conversations_support_ticket ON operations.chat_conversati
 CREATE INDEX idx_chat_conversations_related ON operations.chat_conversations(related_schema, related_table, related_id);
 CREATE INDEX idx_chat_conversations_assigned_to_status ON operations.chat_conversations(assigned_to, status);
 CREATE INDEX idx_chat_members_account_status ON operations.chat_conversation_members(account_id, status);
+CREATE UNIQUE INDEX uq_support_ticket_conversation_links_active_ticket ON operations.support_ticket_conversation_links(support_ticket_id) WHERE status = 'ACTIVE';
+CREATE INDEX idx_support_ticket_conversation_links_conversation ON operations.support_ticket_conversation_links(conversation_id);
 CREATE INDEX idx_chat_members_conversation_status ON operations.chat_conversation_members(conversation_id, status);
 CREATE INDEX idx_chat_members_conversation_account_status ON operations.chat_conversation_members(conversation_id, account_id, status);
 CREATE INDEX idx_chat_messages_conversation_created_at ON operations.chat_messages(conversation_id, created_at DESC, message_id DESC);

@@ -6,6 +6,7 @@ import com.ban.vehicle_management.application.operations.chatconversation.model.
 import com.ban.vehicle_management.application.operations.chatconversation.port.in.ChatConversationPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatRealtimeEventPublisherPortOut;
+import com.ban.vehicle_management.application.operations.supportticket.service.SupportTicketChatMessageContextService;
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
 import com.ban.vehicle_management.application.storage.model.StoredFile;
 import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
@@ -54,6 +55,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     private final ChatConversationPortOut chatPortOut;
     private final ChatRealtimeEventPublisherPortOut realtimeEventPublisher;
     private final ChatRealtimeEventMapper realtimeEventMapper;
+    private final SupportTicketChatMessageContextService ticketMessageContextService;
     private final FileStoragePort fileStoragePort;
     private final FileAccessPort fileAccessPort;
     private final ChatConversationPolicy conversationPolicy = new ChatConversationPolicy();
@@ -65,6 +67,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
             ChatConversationPortOut chatPortOut,
             ChatRealtimeEventPublisherPortOut realtimeEventPublisher,
             ChatRealtimeEventMapper realtimeEventMapper,
+            SupportTicketChatMessageContextService ticketMessageContextService,
             FileStoragePort fileStoragePort,
             FileAccessPort fileAccessPort
     ) {
@@ -72,6 +75,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         this.chatPortOut = chatPortOut;
         this.realtimeEventPublisher = realtimeEventPublisher;
         this.realtimeEventMapper = realtimeEventMapper;
+        this.ticketMessageContextService = ticketMessageContextService;
         this.fileStoragePort = fileStoragePort;
         this.fileAccessPort = fileAccessPort;
     }
@@ -199,15 +203,18 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
 
     @Override
     @Transactional
-    public ChatMessage sendTextMessage(UUID conversationId, String content, UUID replyToMessageId) {
+    public ChatMessage sendTextMessage(UUID conversationId, String content, UUID replyToMessageId, UUID contextTicketId) {
         UUID currentAccountId = requireCurrentAccountId();
         requireSendAccess(conversationId);
+        ChatConversation conversation = getConversationOrThrow(conversationId);
+        ticketMessageContextService.ensureCanSend(conversation, contextTicketId, currentAccountId);
 
         ChatMessage message = new ChatMessage();
         message.setConversationId(conversationId);
         message.setSenderAccountId(currentAccountId);
         message.setContent(content);
         message.setReplyToMessageId(resolveReplyMessageId(conversationId, replyToMessageId));
+        message.setContextTicketId(contextTicketId);
         messagePolicy.initializeText(message);
 
         return saveMessageAndPublish(message);
@@ -215,16 +222,19 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
 
     @Override
     @Transactional
-    public ChatMessage sendImageMessage(UUID conversationId, String content, List<MultipartFile> files) {
+    public ChatMessage sendImageMessage(UUID conversationId, String content, List<MultipartFile> files, UUID contextTicketId) {
         UUID currentAccountId = requireCurrentAccountId();
         currentAccountPortIn.requirePermission("CHAT_ATTACHMENT_CREATE_OWN");
         requireSendAccess(conversationId);
+        ChatConversation conversation = getConversationOrThrow(conversationId);
+        ticketMessageContextService.ensureCanSend(conversation, contextTicketId, currentAccountId);
         attachmentPolicy.validateImageFiles(files);
 
         ChatMessage message = new ChatMessage();
         message.setConversationId(conversationId);
         message.setSenderAccountId(currentAccountId);
         message.setContent(content);
+        message.setContextTicketId(contextTicketId);
         messagePolicy.initializeImage(message);
         ChatMessage savedMessage = saveMessageWithoutRealtime(message);
 
@@ -434,6 +444,11 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     }
 
     private void requireReadAccess(ChatConversation conversation) {
+        if (conversation.getConversationType() == com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType.ASSISTANT_SUPPORT) {
+            currentAccountPortIn.requirePermission("CHAT_CONVERSATION_READ_OWN");
+            requireActiveMember(conversation.getConversationId(), requireCurrentAccountId());
+            return;
+        }
         if (currentAccountPortIn.hasPermission("CHAT_CONVERSATION_READ_ALL")) {
             return;
         }

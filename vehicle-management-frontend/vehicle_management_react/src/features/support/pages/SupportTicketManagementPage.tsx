@@ -262,7 +262,7 @@ export function SupportTicketManagementPage() {
     setActionError("");
     try {
       const response = await openSupportTicketCustomerConversation(selectedTicket.supportTicketId);
-      const supportCenterUrl = `/admin/support-center?conversationId=${encodeURIComponent(response.data.conversationId)}`;
+      const supportCenterUrl = `/admin/support-center?conversationId=${encodeURIComponent(response.data.conversationId)}&ticketId=${encodeURIComponent(selectedTicket.supportTicketId)}`;
       if (supportCenterTab) {
         supportCenterTab.location.assign(supportCenterUrl);
         toast.success("Đã mở hội thoại riêng với khách hàng ở tab mới.");

@@ -43,6 +43,16 @@ public class SupportTicketPolicy {
         validateState(ticket);
     }
 
+    public void claim(SupportTicket ticket, UUID accountId) {
+        requireTicket(ticket);
+        requireField(accountId, "accountId");
+        if (ticket.getStatus() != SupportTicketStatus.OPEN || ticket.getAssignedTo() != null) {
+            throw new BadRequestException("Only an unassigned open support ticket can be claimed");
+        }
+        ticket.setAssignedTo(accountId);
+        validateState(ticket);
+    }
+
     public void startProgress(SupportTicket ticket) {
         requireTicket(ticket);
 

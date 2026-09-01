@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.operations.supportticket.port.in;
 
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
+import com.ban.vehicle_management.application.operations.supportticket.model.SupportTicketChatIntake;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import java.util.List;
@@ -9,6 +10,8 @@ import java.util.UUID;
 
 public interface SupportTicketPortIn {
     SupportTicket createTicket(SupportTicket supportTicket);
+    SupportTicketChatIntake createChatIntake(SupportTicket supportTicket);
+    ChatConversation openAssistantConversation();
     SupportTicket createTicketFromConversation(SupportTicket supportTicket, UUID conversationId);
     SupportTicket getTicketById(UUID supportTicketId);
 
@@ -23,9 +26,11 @@ public interface SupportTicketPortIn {
 
     SupportTicket updateTicket(UUID supportTicketId, SupportTicket supportTicket);
     SupportTicket assignTicket(UUID supportTicketId, UUID assignedTo);
+    SupportTicket claimTicket(UUID supportTicketId);
     SupportTicket startProgress(UUID supportTicketId);
     SupportTicket resolveTicket(UUID supportTicketId, String resolutionNote);
     SupportTicket reopenTicket(UUID supportTicketId);
     SupportTicket closeTicket(UUID supportTicketId);
     ChatConversation openCustomerConversationForReply(UUID supportTicketId);
+    ChatConversation getActiveCustomerConversation(UUID supportTicketId);
 }
