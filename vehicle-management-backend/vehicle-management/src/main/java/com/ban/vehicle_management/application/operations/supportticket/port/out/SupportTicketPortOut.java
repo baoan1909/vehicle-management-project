@@ -10,6 +10,8 @@ import java.util.UUID;
 public interface SupportTicketPortOut {
     SupportTicket save(SupportTicket supportTicket);
     Optional<SupportTicket> findById(UUID supportTicketId);
+    Optional<SupportTicket> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
+    void lockCustomerSupport(UUID customerId);
 
     List<SupportTicket> findAll(
             UUID customerId,
@@ -23,4 +25,5 @@ public interface SupportTicketPortOut {
     boolean existsActiveCategoryById(UUID categoryId);
     boolean existsAssignableAccountById(UUID accountId);
     boolean existsActiveWorkflowByCustomerIdAndCategoryId(UUID customerId, UUID categoryId);
+    Optional<SupportTicket> findActiveWorkflowByCustomerIdAndCategoryId(UUID customerId, UUID categoryId);
 }

@@ -611,7 +611,7 @@ export function AccountListPage() {
   const canCreateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_CREATE_ALL"]);
   const canUpdateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_UPDATE_ALL"]);
   const canOpenSupportCenter = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
-  const canCreateChatConversation = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN"]);
+  const canCreateChatConversation = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN", "CHAT_CONVERSATION_CREATE_ALL"]);
   const requestedWorkspaceTab = searchParams.get("tab") === "onboarding" ? "onboarding" : "accounts";
   const activeWorkspaceTab: AccountWorkspaceTab =
     requestedWorkspaceTab === "onboarding" && canReadOnboardingApprovals ? "onboarding" : canReadProvisionedAccount ? "accounts" : "onboarding";
@@ -754,7 +754,7 @@ export function AccountListPage() {
     if (account.status !== "ACTIVE") return "Chỉ có thể nhắn tin với tài khoản đang ACTIVE.";
     if (!isInternalRole(account.roleCode)) return "Từ màn Tài khoản hiện chỉ tạo chat trực tiếp cho tài khoản nội bộ.";
     if (!canOpenSupportCenter) return "Cần quyền CHAT_CONVERSATION_READ_OWN hoặc CHAT_CONVERSATION_READ_ALL.";
-    if (!canCreateChatConversation) return "Cần quyền CHAT_CONVERSATION_CREATE_OWN để tạo hội thoại nội bộ.";
+    if (!canCreateChatConversation) return "Cần quyền CHAT_CONVERSATION_CREATE_OWN hoặc CHAT_CONVERSATION_CREATE_ALL để tạo hội thoại nội bộ.";
     return "";
   }
 

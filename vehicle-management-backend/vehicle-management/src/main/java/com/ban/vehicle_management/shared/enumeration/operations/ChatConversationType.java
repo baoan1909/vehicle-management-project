@@ -4,6 +4,7 @@ public enum ChatConversationType {
     INTERNAL_DIRECT,
     INTERNAL_GROUP,
     CUSTOMER_DIRECT,
+    ASSISTANT_SUPPORT,
     SUPPORT_TICKET,
     PARKING_SESSION,
     BILLING,

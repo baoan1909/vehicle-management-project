@@ -2,6 +2,7 @@ package com.ban.vehicle_management.entrypoint.dto.operations.supportticket.respo
 
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketSource;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -31,4 +32,8 @@ public class SupportTicketAdminResponse {
     private UUID createdBy;
     private String updatedAt;
     private UUID updatedBy;
+    private SupportTicketSource source;
+    private UUID sourceConversationId;
+    private UUID sourceMessageId;
+    private String firstRespondedAt;
 }

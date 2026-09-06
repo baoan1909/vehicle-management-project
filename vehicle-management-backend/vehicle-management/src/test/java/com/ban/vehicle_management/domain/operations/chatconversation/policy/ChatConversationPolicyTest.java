@@ -38,4 +38,18 @@ class ChatConversationPolicyTest {
         assertEquals(ownerId, conversation.getOwnerAccountId());
         assertEquals("Ca toi", conversation.getTitle());
     }
+
+    @Test
+    void initializeAssistantSupportKeepsCustomerOwnedAssistantSeparateFromHumanChat() {
+        UUID customerAccountId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        ChatConversation conversation = new ChatConversation();
+
+        policy.initializeAssistantSupport(conversation, customerAccountId, customerId);
+
+        assertEquals(ChatConversationType.ASSISTANT_SUPPORT, conversation.getConversationType());
+        assertEquals(ChatConversationStatus.ACTIVE, conversation.getStatus());
+        assertEquals(customerAccountId, conversation.getOwnerAccountId());
+        assertEquals(customerId, conversation.getCustomerId());
+    }
 }

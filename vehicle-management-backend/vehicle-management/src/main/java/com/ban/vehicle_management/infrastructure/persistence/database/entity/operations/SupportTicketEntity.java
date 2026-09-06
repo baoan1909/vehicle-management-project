@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.com
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketSource;
 import jakarta.persistence.*;
 import java.time.Instant;
 import java.util.UUID;
@@ -76,4 +77,20 @@ public class SupportTicketEntity extends AuditableEntity {
 
     @Column(name = "last_reopened_at")
     private Instant lastReopenedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "source", nullable = false, length = 30)
+    private SupportTicketSource source;
+
+    @Column(name = "source_conversation_id")
+    private UUID sourceConversationId;
+
+    @Column(name = "source_message_id")
+    private UUID sourceMessageId;
+
+    @Column(name = "idempotency_key", length = 100)
+    private String idempotencyKey;
+
+    @Column(name = "first_responded_at")
+    private Instant firstRespondedAt;
 }
