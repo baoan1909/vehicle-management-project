@@ -8,7 +8,6 @@ import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatC
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
 import com.ban.vehicle_management.domain.operations.supportticket.policy.SupportTicketPolicy;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
-import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketConversationLinkReason;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -67,15 +66,30 @@ public class SupportTicketChatMessageContextService {
             throw new BadRequestException("Resolved or closed support ticket is read-only");
         }
 
-        if (ticket.getStatus() == SupportTicketStatus.OPEN) {
-            if (!isCurrentAssignee) {
-                throw new BadRequestException("Customer can reply after the assigned employee starts the ticket");
+        boolean linkedToConversation = linkPortOut.findActiveBySupportTicketId(ticket.getSupportTicketId())
+                .map(link -> conversation.getConversationId().equals(link.getConversationId()))
+                .orElse(false);
+        if (!linkedToConversation) {
+            throw new AccessDeniedException("Access is denied");
+        }
+
+        if (isCurrentAssignee) {
+            currentAccountPortIn.requirePermission("SUPPORT_TICKET_READ_ASSIGNED");
+            if (!currentAccountPortIn.hasPermission("SUPPORT_TICKET_PROCESS_ALL")) {
+                currentAccountPortIn.requirePermission("SUPPORT_TICKET_PROCESS_ASSIGNED");
             }
-            currentAccountPortIn.requirePermission("SUPPORT_TICKET_PROCESS_ASSIGNED");
             currentAccountPortIn.requirePermission("SUPPORT_TICKET_RESPOND_ASSIGNED");
+        }
+
+        if (ticket.getStatus() == SupportTicketStatus.OPEN) {
+            if (isCustomer) {
+                return;
+            }
             ticketPolicy.startProgress(ticket);
+            if (ticket.getFirstRespondedAt() == null) {
+                ticket.setFirstRespondedAt(Instant.now());
+            }
             ticket = supportTicketPortOut.save(ticket);
-            activateReplyLink(ticket, conversation, senderAccountId);
             publishFirstReplyUpdate(ticket);
             return;
         }
@@ -84,30 +98,6 @@ public class SupportTicketChatMessageContextService {
             throw new BadRequestException("Support ticket is not available for messaging");
         }
 
-        boolean linkedToConversation = linkPortOut.findActiveBySupportTicketId(ticket.getSupportTicketId())
-                .map(link -> conversation.getConversationId().equals(link.getConversationId()))
-                .orElse(false);
-        if (!linkedToConversation) {
-            if (!isCurrentAssignee) {
-                throw new AccessDeniedException("Access is denied");
-            }
-            currentAccountPortIn.requirePermission("SUPPORT_TICKET_RESPOND_ASSIGNED");
-            activateReplyLink(ticket, conversation, senderAccountId);
-            publishFirstReplyUpdate(ticket);
-        }
-    }
-
-    private void activateReplyLink(SupportTicket ticket, ChatConversation conversation, UUID senderAccountId) {
-        Instant lastLinkAt = linkPortOut.findMostRecentBySupportTicketId(ticket.getSupportTicketId())
-                .map(link -> link.getLinkedAt())
-                .orElse(null);
-        SupportTicketConversationLinkReason reason = ticket.getLastReopenedAt() != null
-                && (lastLinkAt == null || ticket.getLastReopenedAt().isAfter(lastLinkAt))
-                ? SupportTicketConversationLinkReason.REOPENED
-                : linkPortOut.existsBySupportTicketId(ticket.getSupportTicketId())
-                        ? SupportTicketConversationLinkReason.REASSIGNED
-                        : SupportTicketConversationLinkReason.FIRST_REPLY;
-        linkPortOut.activate(ticket.getSupportTicketId(), conversation.getConversationId(), reason, senderAccountId);
     }
 
     private void publishFirstReplyUpdate(SupportTicket ticket) {

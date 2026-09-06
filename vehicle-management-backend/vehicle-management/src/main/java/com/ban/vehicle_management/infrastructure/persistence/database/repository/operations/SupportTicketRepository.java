@@ -8,6 +8,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface SupportTicketRepository
         extends JpaRepository<SupportTicketEntity, UUID>, JpaSpecificationExecutor<SupportTicketEntity> {
@@ -25,4 +27,9 @@ public interface SupportTicketRepository
             UUID categoryId,
             List<SupportTicketStatus> statuses
     );
+
+    Optional<SupportTicketEntity> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
+
+    @Query(value = "SELECT 1::bigint FROM pg_advisory_xact_lock(hashtextextended(CAST(:customerId AS text), 0))", nativeQuery = true)
+    Long lockCustomerSupport(@Param("customerId") UUID customerId);
 }

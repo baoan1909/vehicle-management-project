@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.application.operations.supportticket.service;
 
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
+import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatRealtimeEventPublisherPortOut;
+import com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatRealtimeEventMapper;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketConversationLinkPortOut;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversationMember;
@@ -9,10 +11,13 @@ import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessag
 import com.ban.vehicle_management.domain.operations.chatmessage.policy.ChatMessagePolicy;
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
+import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberRole;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketConversationLinkReason;
+import com.ban.vehicle_management.shared.transaction.TransactionalEvents;
 import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
@@ -33,36 +38,59 @@ public class SupportTicketConversationService {
 
     private final ChatConversationPortOut chatPortOut;
     private final SupportTicketConversationLinkPortOut ticketConversationLinkPortOut;
+    private final ChatRealtimeEventPublisherPortOut realtimeEventPublisher;
+    private final ChatRealtimeEventMapper realtimeEventMapper;
     private final ChatConversationPolicy conversationPolicy = new ChatConversationPolicy();
     private final ChatMessagePolicy messagePolicy = new ChatMessagePolicy();
 
     public SupportTicketConversationService(
             ChatConversationPortOut chatPortOut,
-            SupportTicketConversationLinkPortOut ticketConversationLinkPortOut
+            SupportTicketConversationLinkPortOut ticketConversationLinkPortOut,
+            ChatRealtimeEventPublisherPortOut realtimeEventPublisher,
+            ChatRealtimeEventMapper realtimeEventMapper
     ) {
         this.chatPortOut = chatPortOut;
         this.ticketConversationLinkPortOut = ticketConversationLinkPortOut;
+        this.realtimeEventPublisher = realtimeEventPublisher;
+        this.realtimeEventMapper = realtimeEventMapper;
     }
 
     public ChatConversation openPrivateConversationForReply(SupportTicket ticket, UUID assignedAccountId) {
+        chatPortOut.lockCustomerSupport(ticket.getCustomerId());
         ChatConversation conversation = chatPortOut.findActiveCustomerSupportConversation(ticket.getCustomerId(), assignedAccountId)
                 .orElseGet(() -> createPrivateConversation(ticket.getCustomerId(), assignedAccountId));
+        ticketConversationLinkPortOut.activate(
+                ticket.getSupportTicketId(),
+                conversation.getConversationId(),
+                resolveLinkReason(ticket),
+                assignedAccountId
+        );
         postTicketCardIfMissing(conversation, ticket, assignedAccountId);
         return chatPortOut.findConversationById(conversation.getConversationId())
                 .orElseThrow(() -> new NotFoundException("Chat conversation not found"));
     }
 
-    public ChatConversation getActivePrivateConversation(SupportTicket ticket) {
+    public ChatConversation getActivePrivateConversation(SupportTicket ticket, UUID customerAccountId) {
         UUID conversationId = ticketConversationLinkPortOut.findActiveBySupportTicketId(ticket.getSupportTicketId())
                 .map(link -> link.getConversationId())
                 .orElseThrow(() -> new NotFoundException("Customer support conversation has not started"));
+        if (!chatPortOut.existsActiveMember(conversationId, customerAccountId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Access is denied");
+        }
         return chatPortOut.findConversationById(conversationId)
                 .orElseThrow(() -> new NotFoundException("Chat conversation not found"));
     }
 
     public ChatConversation openOrCreateAssistantConversation(UUID customerId, UUID customerAccountId) {
-        ChatConversation conversation = chatPortOut.findActiveAssistantSupportConversation(customerId)
+        chatPortOut.lockCustomerSupport(customerId);
+        ChatConversation conversation = chatPortOut.findAssistantSupportConversation(customerId)
                 .orElseGet(() -> createAssistantConversation(customerId, customerAccountId));
+        if (conversation.getStatus() != ChatConversationStatus.ACTIVE
+                || !"Tr\u1ee3 l\u00fd h\u1ed7 tr\u1ee3 CoParking".equals(conversation.getTitle())) {
+            conversation.setStatus(ChatConversationStatus.ACTIVE);
+            conversation.setTitle("Tr\u1ee3 l\u00fd h\u1ed7 tr\u1ee3 CoParking");
+            conversation = chatPortOut.saveConversation(conversation);
+        }
         saveActiveMember(conversation.getConversationId(), customerAccountId, ChatMemberRole.CUSTOMER);
         return chatPortOut.findConversationById(conversation.getConversationId())
                 .orElseThrow(() -> new NotFoundException("Chat conversation not found"));
@@ -89,6 +117,11 @@ public class SupportTicketConversationService {
             throw new BadRequestException("Support ticket must be created from an active customer conversation");
         }
         postTicketCardIfMissing(conversation, ticket, customerAccountId);
+    }
+
+    public ChatConversation getConversationForHistory(UUID conversationId) {
+        return chatPortOut.findConversationById(conversationId)
+                .orElseThrow(() -> new NotFoundException("Chat conversation not found"));
     }
 
     public ChatConversation getCustomerTicketOriginConversation(UUID conversationId, UUID customerAccountId) {
@@ -134,7 +167,7 @@ public class SupportTicketConversationService {
     private ChatConversation createAssistantConversation(UUID customerId, UUID customerAccountId) {
         ChatConversation conversation = new ChatConversation();
         conversation.setConversationId(UUID.randomUUID());
-        conversation.setTitle("Trợ lý hỗ trợ CoParking");
+        conversation.setTitle("Tr\u1ee3 l\u00fd h\u1ed7 tr\u1ee3 CoParking");
         conversationPolicy.initializeAssistantSupport(conversation, customerAccountId, customerId);
         ChatConversation savedConversation = chatPortOut.saveConversation(conversation);
         saveActiveMember(savedConversation.getConversationId(), customerAccountId, ChatMemberRole.CUSTOMER);
@@ -160,6 +193,7 @@ public class SupportTicketConversationService {
         conversation.setLastMessageId(savedCard.getMessageId());
         conversation.setLastMessageAt(savedCard.getCreatedAt() == null ? Instant.now() : savedCard.getCreatedAt());
         chatPortOut.saveConversation(conversation);
+        publishAfterCommit(savedCard);
     }
 
     public void postAssistantTicketUpdate(SupportTicket ticket, String content) {
@@ -176,7 +210,27 @@ public class SupportTicketConversationService {
             conversation.setLastMessageId(savedMessage.getMessageId());
             conversation.setLastMessageAt(savedMessage.getCreatedAt() == null ? Instant.now() : savedMessage.getCreatedAt());
             chatPortOut.saveConversation(conversation);
+            publishAfterCommit(savedMessage);
         });
+    }
+
+    private SupportTicketConversationLinkReason resolveLinkReason(SupportTicket ticket) {
+        Instant lastLinkAt = ticketConversationLinkPortOut.findMostRecentBySupportTicketId(ticket.getSupportTicketId())
+                .map(link -> link.getLinkedAt())
+                .orElse(null);
+        if (ticket.getLastReopenedAt() != null
+                && (lastLinkAt == null || ticket.getLastReopenedAt().isAfter(lastLinkAt))) {
+            return SupportTicketConversationLinkReason.REOPENED;
+        }
+        return ticketConversationLinkPortOut.existsBySupportTicketId(ticket.getSupportTicketId())
+                ? SupportTicketConversationLinkReason.REASSIGNED
+                : SupportTicketConversationLinkReason.FIRST_REPLY;
+    }
+
+    private void publishAfterCommit(ChatMessage message) {
+        TransactionalEvents.runAfterCommit(() -> realtimeEventPublisher.publish(
+                realtimeEventMapper.toRealtimeEvent(message, Instant.now())
+        ));
     }
 
     private UUID customerAccountId(UUID customerId) {

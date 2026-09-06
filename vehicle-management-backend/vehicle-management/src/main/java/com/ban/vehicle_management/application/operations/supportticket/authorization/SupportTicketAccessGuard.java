@@ -32,6 +32,8 @@ public class SupportTicketAccessGuard {
     private static final String REOPEN_OWN_PERMISSION = "SUPPORT_TICKET_REOPEN_OWN";
     private static final String CLOSE_ALL_PERMISSION = "SUPPORT_TICKET_CLOSE_ALL";
     private static final String CLOSE_OWN_PERMISSION = "SUPPORT_TICKET_CLOSE_OWN";
+    private static final String ESCALATION_CREATE_OWN_PERMISSION = "SUPPORT_TICKET_ESCALATION_CREATE_OWN";
+    private static final String ESCALATION_REVIEW_ALL_PERMISSION = "SUPPORT_TICKET_ESCALATION_REVIEW_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final AccountProfilePortOut accountProfilePortOut;
@@ -56,6 +58,11 @@ public class SupportTicketAccessGuard {
 
     public UUID resolveCustomerIdForCreateFromChat() {
         currentAccountPortIn.requirePermission(CREATE_FROM_CHAT_OWN_PERMISSION);
+        return resolveCurrentApprovedCustomerId();
+    }
+
+    public UUID resolveCustomerIdForOwnTickets() {
+        currentAccountPortIn.requirePermission(READ_OWN_PERMISSION);
         return resolveCurrentApprovedCustomerId();
     }
 
@@ -94,6 +101,31 @@ public class SupportTicketAccessGuard {
         currentAccountPortIn.requirePermission(ASSIGN_PERMISSION);
     }
 
+    public UUID ensureCanCreateOrReadOwnEscalation(SupportTicket ticket) {
+        currentAccountPortIn.requirePermission(ESCALATION_CREATE_OWN_PERMISSION);
+        UUID customerId = resolveCurrentApprovedCustomerId();
+        if (!customerId.equals(ticket.getCustomerId())) {
+            throw new AccessDeniedException("Access is denied");
+        }
+        return currentAccountPortIn.getCurrentAccountIdOrThrow();
+    }
+
+    public UUID ensureCanReviewEscalation() {
+        currentAccountPortIn.requirePermission(ESCALATION_REVIEW_ALL_PERMISSION);
+        currentAccountPortIn.requirePermission(ASSIGN_PERMISSION);
+        currentAccountPortIn.requirePermission(READ_ALL_PERMISSION);
+        return currentAccountPortIn.getCurrentAccountIdOrThrow();
+    }
+
+    public UUID ensureCanReadOwnCustomerConversation(SupportTicket ticket) {
+        currentAccountPortIn.requirePermission(READ_OWN_PERMISSION);
+        UUID customerId = resolveCurrentApprovedCustomerId();
+        if (!customerId.equals(ticket.getCustomerId())) {
+            throw new AccessDeniedException("Access is denied");
+        }
+        return currentAccountPortIn.getCurrentAccountIdOrThrow();
+    }
+
     public UUID resolveAccountIdForClaim() {
         currentAccountPortIn.requirePermission(CLAIM_OWN_PERMISSION);
         return currentAccountPortIn.getCurrentAccountIdOrThrow();
@@ -120,6 +152,7 @@ public class SupportTicketAccessGuard {
         if (!accountId.equals(ticket.getAssignedTo())) {
             throw new AccessDeniedException("Access is denied");
         }
+        currentAccountPortIn.requirePermission(READ_ASSIGNED_PERMISSION);
         if (!currentAccountPortIn.hasPermission(PROCESS_ALL_PERMISSION)) {
             currentAccountPortIn.requirePermission(PROCESS_ASSIGNED_PERMISSION);
         }

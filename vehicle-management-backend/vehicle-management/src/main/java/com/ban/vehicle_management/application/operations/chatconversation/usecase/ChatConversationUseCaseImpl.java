@@ -22,6 +22,7 @@ import com.ban.vehicle_management.domain.operations.chatmessage.policy.ChatAttac
 import com.ban.vehicle_management.domain.operations.chatmessage.policy.ChatMessagePolicy;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatAttachmentType;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberRole;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMessageType;
@@ -311,6 +312,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         ChatConversation conversation = new ChatConversation();
         conversation.setTitle(title);
         conversationPolicy.initializeCustomerSupport(conversation, currentAccountId, customerId);
+        conversation.setAssignedTo(currentAccountId);
         conversation.setConversationId(UUID.randomUUID());
         return chatPortOut.saveConversation(conversation);
     }
@@ -457,6 +459,10 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     }
 
     private void requireManageMembersAccess(ChatConversation conversation) {
+        if (conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT
+                || conversation.getConversationType() == ChatConversationType.CUSTOMER_DIRECT) {
+            throw new BadRequestException("Membership of private support conversations is managed by the support workflow");
+        }
         UUID currentAccountId = requireCurrentAccountId();
         if (currentAccountPortIn.hasPermission("CHAT_CONVERSATION_UPDATE_ALL")) {
             return;

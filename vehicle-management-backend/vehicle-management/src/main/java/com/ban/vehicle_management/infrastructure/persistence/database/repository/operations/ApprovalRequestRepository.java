@@ -9,7 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequestEntity, UUID> {
     interface EmployeeApprovalTimelineProjection {
@@ -61,6 +63,42 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
             String targetSchema,
             String targetTable,
             ApprovalRequestStatus status
+    );
+
+    Optional<ApprovalRequestEntity> findByRequestedByAndRequestTypeAndIdempotencyKey(
+            UUID requestedBy,
+            String requestType,
+            String idempotencyKey
+    );
+
+    Optional<ApprovalRequestEntity> findTopByRequestTypeAndTargetSchemaAndTargetTableAndTargetIdAndStatusOrderByCreatedAtDesc(
+            String requestType,
+            String targetSchema,
+            String targetTable,
+            UUID targetId,
+            ApprovalRequestStatus status
+    );
+
+    long countByRequestTypeAndRequestedByAndCreatedAtGreaterThanEqual(
+            String requestType,
+            UUID requestedBy,
+            Instant createdAt
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT approval
+            FROM ApprovalRequestEntity approval
+            WHERE approval.approvalRequestId = :approvalRequestId
+              AND approval.requestType = :requestType
+              AND approval.targetSchema = :targetSchema
+              AND approval.targetTable = :targetTable
+            """)
+    Optional<ApprovalRequestEntity> findSupportEscalationForUpdate(
+            @Param("approvalRequestId") UUID approvalRequestId,
+            @Param("requestType") String requestType,
+            @Param("targetSchema") String targetSchema,
+            @Param("targetTable") String targetTable
     );
 
     long countByRequestTypeAndTargetSchemaAndTargetTableAndStatus(

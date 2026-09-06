@@ -99,6 +99,8 @@ export const apiEndpoints = {
     supportTickets: "/operations/support-tickets",
     supportAssistantConversation: "/operations/support-tickets/assistant-conversation",
     supportTicketCustomerConversation: (ticketId: string) => `/operations/support-tickets/${ticketId}/customer-conversation`,
+    supportTicketEscalations: "/operations/support-ticket-escalations",
+    supportTicketEscalationForTicket: (ticketId: string) => `/operations/support-tickets/${ticketId}/escalations`,
     supportTicketsFromConversation: (conversationId: string) => `/operations/support-tickets/from-conversations/${conversationId}`,
   },
 } as const;

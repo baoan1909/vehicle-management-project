@@ -10,6 +10,8 @@ import java.util.UUID;
 public interface SupportTicketPortOut {
     SupportTicket save(SupportTicket supportTicket);
     Optional<SupportTicket> findById(UUID supportTicketId);
+    Optional<SupportTicket> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
+    void lockCustomerSupport(UUID customerId);
 
     List<SupportTicket> findAll(
             UUID customerId,

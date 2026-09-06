@@ -44,9 +44,12 @@ public class SupportTicketController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<SupportTicketAdminResponse>> createTicket(
-            @RequestBody CreateSupportTicketRequest request
+            @RequestBody CreateSupportTicketRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
-        SupportTicket createdTicket = supportTicketPortIn.createTicket(supportTicketApiMapper.toDomain(request));
+        SupportTicket createdTicket = supportTicketPortIn.createTicket(
+                supportTicketApiMapper.toDomain(request), idempotencyKey
+        );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Support ticket created successfully",
@@ -56,10 +59,11 @@ public class SupportTicketController {
 
     @PostMapping("/chat-intake")
     public ResponseEntity<ApiResponse<SupportTicketChatIntakeResponse>> createChatIntake(
-            @RequestBody CreateSupportTicketRequest request
+            @RequestBody CreateSupportTicketRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
         SupportTicketChatIntake intake = supportTicketPortIn.createChatIntake(
-                supportTicketApiMapper.toDomain(request)
+                supportTicketApiMapper.toDomain(request), idempotencyKey
         );
         return ResponseEntity.status(intake.reusedActiveTicket() ? HttpStatus.OK : HttpStatus.CREATED).body(ApiResponse.ok(
                 intake.reusedActiveTicket()
@@ -80,15 +84,52 @@ public class SupportTicketController {
     @PostMapping("/from-conversations/{conversationId}")
     public ResponseEntity<ApiResponse<SupportTicketAdminResponse>> createTicketFromConversation(
             @PathVariable UUID conversationId,
-            @RequestBody CreateSupportTicketRequest request
+            @RequestBody CreateSupportTicketRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
         SupportTicket createdTicket = supportTicketPortIn.createTicketFromConversation(
                 supportTicketApiMapper.toDomain(request),
-                conversationId
+                conversationId,
+                idempotencyKey
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Support ticket created from conversation successfully",
                 supportTicketApiMapper.toAdminResponse(createdTicket)
+        ));
+    }
+
+    @GetMapping("/mine")
+    public ResponseEntity<ApiResponse<List<SupportTicketAdminResponse>>> getMyTickets(
+            @RequestParam(required = false) com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus status,
+            @RequestParam(required = false) String keyword
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched current customer support tickets successfully",
+                supportTicketApiMapper.toAdminResponses(supportTicketPortIn.getMyTickets(status, keyword))
+        ));
+    }
+
+    @GetMapping("/conversations/{conversationId}/history")
+    public ResponseEntity<ApiResponse<List<SupportTicketAdminResponse>>> getConversationTicketHistory(
+            @PathVariable UUID conversationId,
+            @RequestParam(required = false) com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus status,
+            @RequestParam(required = false) String keyword
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched conversation support ticket history successfully",
+                supportTicketApiMapper.toAdminResponses(
+                        supportTicketPortIn.getConversationTicketHistory(conversationId, status, keyword)
+                )
+        ));
+    }
+
+    @PostMapping("/assistant-conversation/tickets/{supportTicketId}")
+    public ResponseEntity<ApiResponse<SupportTicketAdminResponse>> shareTicketWithAssistant(
+            @PathVariable UUID supportTicketId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Support ticket attached to assistant conversation successfully",
+                supportTicketApiMapper.toAdminResponse(supportTicketPortIn.shareTicketWithAssistant(supportTicketId))
         ));
     }
 

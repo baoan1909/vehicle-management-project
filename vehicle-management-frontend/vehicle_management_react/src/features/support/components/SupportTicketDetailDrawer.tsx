@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, Drawer, EntityAvatar, SelectMenu } from "@/components/ui";
 import type { EmployeeApiResponse } from "@/features/employees/api/employeesApi";
-import type { SupportTicketPriority, SupportTicketResponse, SupportTicketStatus } from "@/features/support/api/supportApi";
+import type { SupportTicketEscalationDecision, SupportTicketEscalationResponse, SupportTicketPriority, SupportTicketResponse, SupportTicketStatus } from "@/features/support/api/supportApi";
 import { cn } from "@/lib/cn";
 
 type SupportTicketDetailDrawerProps = {
@@ -11,13 +11,16 @@ type SupportTicketDetailDrawerProps = {
   canAssign: boolean;
   canReply: boolean;
   canResolve: boolean;
-  canStartProgress: boolean;
+  canReviewEscalation: boolean;
   employees: EmployeeApiResponse[];
+  escalation?: SupportTicketEscalationResponse | null;
+  reviewerAccountId?: string;
   onAssign: (assignedTo: string) => void;
   onClose: () => void;
   onReply: () => void;
   onRequestResolve: () => void;
-  onStartProgress: () => void;
+  onReviewEscalation: (decision: SupportTicketEscalationDecision, assignedTo: string | undefined, note: string) => void;
+  onRejectEscalation: (note: string) => void;
   open: boolean;
   ticket: SupportTicketResponse | null;
 };
@@ -94,20 +97,25 @@ export function SupportTicketDetailDrawer({
   canAssign,
   canReply,
   canResolve,
-  canStartProgress,
+  canReviewEscalation,
   employees,
+  escalation,
+  reviewerAccountId,
   onAssign,
   onClose,
   onReply,
   onRequestResolve,
-  onStartProgress,
+  onReviewEscalation,
+  onRejectEscalation,
   open,
   ticket,
 }: SupportTicketDetailDrawerProps) {
   const [selectedAssignee, setSelectedAssignee] = useState("");
+  const [escalationNote, setEscalationNote] = useState("");
 
   useEffect(() => {
     setSelectedAssignee(ticket?.assignedTo ?? "");
+    setEscalationNote("");
   }, [ticket?.assignedTo, ticket?.supportTicketId]);
 
   const employeeOptions = useMemo(
@@ -124,37 +132,28 @@ export function SupportTicketDetailDrawer({
 
   const assignedEmployee = employees.find((employee) => employee.accountId === ticket.assignedTo);
   const canSubmitAssignment = canAssign && Boolean(selectedAssignee) && selectedAssignee !== ticket.assignedTo;
+  const canSubmitEscalationDecision = canReviewEscalation && Boolean(escalationNote.trim());
 
   return (
     <Drawer
       actions={
         <div className="tw-grid tw-gap-2">
           {actionError ? <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{actionError}</div> : null}
-          {canStartProgress && !canReply && !canResolve && !canAssign ? (
-            <div className="tw-grid tw-grid-cols-2 tw-gap-2">
-              <Button className="tw-w-full" disabled={actionLoading} onClick={onStartProgress}><i className="fas fa-play" />Nhận xử lý</Button>
-              <Button className="tw-w-full" disabled={actionLoading} variant="secondary" onClick={onClose}>Đóng</Button>
+          {canReply || canResolve ? (
+            <div className="tw-grid tw-gap-2">
+              {canReply ? <Button disabled={actionLoading} variant="secondary" onClick={onReply}><i className="far fa-comment-dots" />Phản hồi khách hàng</Button> : null}
+              {canResolve ? <Button disabled={actionLoading} onClick={onRequestResolve}><i className="far fa-check-circle" />Giải quyết ticket</Button> : null}
             </div>
-          ) : (
-            <>
-              {canStartProgress || canReply || canResolve ? (
-                <div className="tw-grid tw-gap-2">
-                  {canStartProgress ? <Button disabled={actionLoading} onClick={onStartProgress}><i className="fas fa-play" />Nhận xử lý</Button> : null}
-                  {canReply ? <Button disabled={actionLoading} variant="secondary" onClick={onReply}><i className="far fa-comment-dots" />Phản hồi khách hàng</Button> : null}
-                  {canResolve ? <Button disabled={actionLoading} onClick={onRequestResolve}><i className="far fa-check-circle" />Giải quyết ticket</Button> : null}
-                </div>
-              ) : null}
-              <div className={cn("tw-grid tw-gap-2", canAssign ? "tw-grid-cols-[1fr_1.15fr]" : "tw-grid-cols-1")}>
-                <Button disabled={actionLoading} variant="secondary" onClick={onClose}>Đóng</Button>
-                {canAssign ? (
-                  <Button disabled={!canSubmitAssignment} loading={actionLoading} onClick={() => onAssign(selectedAssignee)}>
-                    <i className="fas fa-user-check" />
-                    {ticket.assignedTo ? "Cập nhật phân công" : "Phân công"}
-                  </Button>
-                ) : null}
-              </div>
-            </>
-          )}
+          ) : null}
+          <div className={cn("tw-grid tw-gap-2", canAssign ? "tw-grid-cols-[1fr_1.15fr]" : "tw-grid-cols-1")}>
+            <Button disabled={actionLoading} variant="secondary" onClick={onClose}>Đóng</Button>
+            {canAssign ? (
+              <Button disabled={!canSubmitAssignment} loading={actionLoading} onClick={() => onAssign(selectedAssignee)}>
+                <i className="fas fa-user-check" />
+                {ticket.assignedTo ? "Cập nhật phân công" : "Phân công"}
+              </Button>
+            ) : null}
+          </div>
         </div>
       }
       description="Theo dõi nội dung yêu cầu và điều phối nhân viên phụ trách"
@@ -230,6 +229,31 @@ export function SupportTicketDetailDrawer({
               />
             </label>
             {employeeOptions.length === 0 ? <p className="tw-m-0 tw-text-[0.78rem] tw-font-semibold tw-text-amber-700">Chưa tải được nhân viên đang hoạt động hoặc danh sách trống.</p> : null}
+          </section>
+        ) : null}
+
+        {escalation ? (
+          <section className="tw-grid tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-p-4">
+            <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+              <h4 className="tw-m-0 tw-text-[0.82rem] tw-font-black tw-uppercase tw-tracking-[0.06em] tw-text-amber-900">Khách hàng yêu cầu quản lý xem xét</h4>
+              <Badge tone="warning">Đang chờ xử lý</Badge>
+            </div>
+            <p className="tw-m-0 tw-whitespace-pre-wrap tw-text-[0.84rem] tw-font-semibold tw-leading-6 tw-text-amber-950">{escalation.description}</p>
+            {!canReviewEscalation ? <p className="tw-m-0 tw-text-xs tw-font-bold tw-text-red-700">Người đang phụ trách không được tự duyệt phản ánh liên quan đến chính mình.</p> : null}
+            {canReviewEscalation ? (
+              <>
+                <label className="tw-grid tw-gap-2">
+                  <span className="tw-text-[0.78rem] tw-font-black tw-text-amber-950">Lý do quyết định <span className="tw-text-vm-danger">*</span></span>
+                  <textarea className="tw-min-h-24 tw-w-full tw-resize-y tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-white tw-p-3 tw-text-sm tw-text-slate-800 tw-outline-none focus:tw-border-amber-400" maxLength={500} placeholder="Nhập kết quả xem xét để thông báo cho khách hàng..." value={escalationNote} onChange={(event) => setEscalationNote(event.target.value)} />
+                </label>
+                <div className="tw-grid tw-gap-2 min-[560px]:tw-grid-cols-2">
+                  <Button disabled={!canSubmitEscalationDecision || !ticket.assignedTo} variant="secondary" onClick={() => onReviewEscalation("KEEP_ASSIGNEE", undefined, escalationNote.trim())}>Giữ người hiện tại</Button>
+                  <Button disabled={!canSubmitEscalationDecision || !reviewerAccountId} onClick={() => onReviewEscalation("REASSIGN", reviewerAccountId, escalationNote.trim())}>Tôi trực tiếp xử lý</Button>
+                  <Button disabled={!canSubmitEscalationDecision || !selectedAssignee || selectedAssignee === ticket.assignedTo} onClick={() => onReviewEscalation("REASSIGN", selectedAssignee, escalationNote.trim())}>Chuyển người đã chọn</Button>
+                  <Button disabled={!canSubmitEscalationDecision} variant="danger" onClick={() => onRejectEscalation(escalationNote.trim())}>Từ chối yêu cầu</Button>
+                </div>
+              </>
+            ) : null}
           </section>
         ) : null}
       </div>

@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.operations.chatconversation.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -18,6 +19,8 @@ import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversationMember;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberRole;
+import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -88,6 +91,34 @@ class ChatConversationUseCaseImplTest {
         assertTrue(savedMembers.stream().anyMatch(member -> customerAccountId.equals(member.getAccountId())
                 && member.getMemberRole() == ChatMemberRole.CUSTOMER));
         verify(currentAccountPortIn, never()).requirePermission("CHAT_CONVERSATION_CREATE_OWN");
+    }
+
+    @Test
+    void shouldRejectAddingMemberToAssistantSupportConversation() {
+        UUID conversationId = UUID.randomUUID();
+        ChatConversation conversation = new ChatConversation();
+        conversation.setConversationId(conversationId);
+        conversation.setConversationType(ChatConversationType.ASSISTANT_SUPPORT);
+        when(chatPortOut.findConversationById(conversationId)).thenReturn(Optional.of(conversation));
+
+        assertThrows(BadRequestException.class,
+                () -> chatConversationUseCase.addMember(conversationId, UUID.randomUUID()));
+
+        verify(chatPortOut, never()).saveMember(any(ChatConversationMember.class));
+    }
+
+    @Test
+    void shouldRejectRemovingMemberFromCustomerDirectConversation() {
+        UUID conversationId = UUID.randomUUID();
+        ChatConversation conversation = new ChatConversation();
+        conversation.setConversationId(conversationId);
+        conversation.setConversationType(ChatConversationType.CUSTOMER_DIRECT);
+        when(chatPortOut.findConversationById(conversationId)).thenReturn(Optional.of(conversation));
+
+        assertThrows(BadRequestException.class,
+                () -> chatConversationUseCase.removeMember(conversationId, UUID.randomUUID()));
+
+        verify(chatPortOut, never()).removeMember(any(), any(), any());
     }
 
     private CurrentAccountAccess currentAccount(UUID accountId) {

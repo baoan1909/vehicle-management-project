@@ -24,6 +24,9 @@ public interface ChatConversationPortOut {
     Optional<ChatConversation> findActiveCustomerSupportConversation(UUID customerId, UUID staffAccountId);
 
     Optional<ChatConversation> findActiveAssistantSupportConversation(UUID customerId);
+    Optional<ChatConversation> findAssistantSupportConversation(UUID customerId);
+
+    void lockCustomerSupport(UUID customerId);
 
     Optional<ChatConversation> findActiveSupportTicketConversation(UUID supportTicketId);
 

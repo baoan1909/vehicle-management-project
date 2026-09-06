@@ -12,6 +12,25 @@ type ApiResponse<T> = {
 export type SupportTicketPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
 export type SupportTicketStatus = "OPEN" | "IN_PROGRESS" | "RESOLVED" | "CLOSED";
 export type SupportTicketCategoryStatus = "ACTIVE" | "INACTIVE";
+export type ApprovalRequestStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+export type SupportTicketEscalationReason = "RESPONSE_DELAY" | "UNRESOLVED" | "INAPPROPRIATE_COMMUNICATION" | "REQUEST_DIFFERENT_ASSIGNEE" | "OTHER";
+export type SupportTicketEscalationDecision = "KEEP_ASSIGNEE" | "REASSIGN";
+
+export type SupportTicketEscalationResponse = {
+  escalationId: string;
+  supportTicketId: string;
+  status: ApprovalRequestStatus;
+  reasonCode: SupportTicketEscalationReason;
+  description: string;
+  requestedBy: string;
+  currentAssigneeId: string | null;
+  requestedAt: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  decision: SupportTicketEscalationDecision | null;
+  reassignedTo: string | null;
+  decisionNote: string | null;
+};
 
 export type SupportTicketCategoryResponse = {
   categoryId: string;
@@ -47,6 +66,10 @@ export type SupportTicketResponse = {
   title: string;
   updatedAt: string | null;
   updatedBy: string | null;
+  source: "ASSISTANT_CHAT" | "CUSTOMER_PORTAL" | "EMPLOYEE_CHAT" | "OTHER";
+  sourceConversationId: string | null;
+  sourceMessageId: string | null;
+  firstRespondedAt: string | null;
 };
 
 export type SupportTicketChatIntakeResponse = {
@@ -138,16 +161,18 @@ export function getSupportTicketById(ticketId: string) {
   return apiClient<ApiResponse<SupportTicketResponse>>(`${apiEndpoints.operations.supportTickets}/${ticketId}`);
 }
 
-export function createSupportTicket(payload: SaveSupportTicketRequest) {
+export function createSupportTicket(payload: SaveSupportTicketRequest, idempotencyKey?: string) {
   return apiClient<ApiResponse<SupportTicketResponse>>(apiEndpoints.operations.supportTickets, {
     body: payload,
+    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
     method: "POST",
   });
 }
 
-export function createSupportTicketChatIntake(payload: SaveSupportTicketRequest) {
+export function createSupportTicketChatIntake(payload: SaveSupportTicketRequest, idempotencyKey: string) {
   return apiClient<ApiResponse<SupportTicketChatIntakeResponse>>(`${apiEndpoints.operations.supportTickets}/chat-intake`, {
     body: payload,
+    headers: { "Idempotency-Key": idempotencyKey },
     method: "POST",
   });
 }
@@ -156,11 +181,34 @@ export function getSupportAssistantConversation() {
   return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportAssistantConversation);
 }
 
-export function createSupportTicketFromConversation(conversationId: string, payload: SaveSupportTicketRequest) {
+export function createSupportTicketFromConversation(conversationId: string, payload: SaveSupportTicketRequest, idempotencyKey?: string) {
   return apiClient<ApiResponse<SupportTicketResponse>>(apiEndpoints.operations.supportTicketsFromConversation(conversationId), {
     body: payload,
+    headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
     method: "POST",
   });
+}
+
+export function getMySupportTickets(filter: Pick<SupportTicketFilter, "keyword" | "status"> = {}) {
+  return apiClient<ApiResponse<SupportTicketResponse[]>>(
+    `${apiEndpoints.operations.supportTickets}/mine${buildQuery(filter)}`,
+  );
+}
+
+export function getConversationSupportTicketHistory(
+  conversationId: string,
+  filter: Pick<SupportTicketFilter, "keyword" | "status"> = {},
+) {
+  return apiClient<ApiResponse<SupportTicketResponse[]>>(
+    `${apiEndpoints.operations.supportTickets}/conversations/${conversationId}/history${buildQuery(filter)}`,
+  );
+}
+
+export function shareSupportTicketWithAssistant(ticketId: string) {
+  return apiClient<ApiResponse<SupportTicketResponse>>(
+    `${apiEndpoints.operations.supportTickets}/assistant-conversation/tickets/${ticketId}`,
+    { method: "POST" },
+  );
 }
 
 export function openSupportTicketCustomerConversation(ticketId: string) {
@@ -171,6 +219,46 @@ export function openSupportTicketCustomerConversation(ticketId: string) {
 
 export function getActiveSupportTicketCustomerConversation(ticketId: string) {
   return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportTicketCustomerConversation(ticketId));
+}
+
+export function createSupportTicketEscalation(
+  ticketId: string,
+  payload: { reasonCode: SupportTicketEscalationReason; description: string },
+  idempotencyKey: string,
+) {
+  return apiClient<ApiResponse<SupportTicketEscalationResponse>>(
+    apiEndpoints.operations.supportTicketEscalationForTicket(ticketId),
+    { body: payload, headers: { "Idempotency-Key": idempotencyKey }, method: "POST" },
+  );
+}
+
+export function getMyCurrentSupportTicketEscalation(ticketId: string) {
+  return apiClient<ApiResponse<SupportTicketEscalationResponse | null>>(
+    `${apiEndpoints.operations.supportTicketEscalationForTicket(ticketId)}/mine/current`,
+  );
+}
+
+export function getSupportTicketEscalations(status?: ApprovalRequestStatus) {
+  return apiClient<ApiResponse<SupportTicketEscalationResponse[]>>(
+    `${apiEndpoints.operations.supportTicketEscalations}${buildQuery({ status })}`,
+  );
+}
+
+export function approveSupportTicketEscalation(
+  escalationId: string,
+  payload: { decision: SupportTicketEscalationDecision; assignedTo?: string; note: string },
+) {
+  return apiClient<ApiResponse<SupportTicketEscalationResponse>>(
+    `${apiEndpoints.operations.supportTicketEscalations}/${escalationId}/approve`,
+    { body: payload, method: "PATCH" },
+  );
+}
+
+export function rejectSupportTicketEscalation(escalationId: string, note: string) {
+  return apiClient<ApiResponse<SupportTicketEscalationResponse>>(
+    `${apiEndpoints.operations.supportTicketEscalations}/${escalationId}/reject`,
+    { body: { note }, method: "PATCH" },
+  );
 }
 
 export function updateSupportTicket(ticketId: string, payload: SaveSupportTicketRequest) {

@@ -93,6 +93,17 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
     }
 
     @Override
+    public Optional<SupportTicket> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey) {
+        return supportTicketRepository.findByCustomerIdAndIdempotencyKey(customerId, idempotencyKey)
+                .map(this::mapToDomain);
+    }
+
+    @Override
+    public void lockCustomerSupport(UUID customerId) {
+        supportTicketRepository.lockCustomerSupport(customerId);
+    }
+
+    @Override
     public boolean existsActiveWorkflowByCustomerIdAndCategoryId(UUID customerId, UUID categoryId) {
         return supportTicketRepository.existsByCustomerIdAndCategoryIdAndStatusIn(
                 customerId,

@@ -137,6 +137,21 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
     }
 
     @Override
+    public Optional<ChatConversation> findAssistantSupportConversation(UUID customerId) {
+        return conversationRepository.findFirstByCustomerIdAndConversationType(
+                        customerId,
+                        ChatConversationType.ASSISTANT_SUPPORT
+                )
+                .map(conversationMapper::toDomain)
+                .map(this::attachParticipants);
+    }
+
+    @Override
+    public void lockCustomerSupport(UUID customerId) {
+        conversationRepository.lockCustomerSupport(customerId);
+    }
+
+    @Override
     public Optional<ChatConversation> findActiveSupportTicketConversation(UUID supportTicketId) {
         return conversationRepository.findFirstBySupportTicketIdAndConversationTypeAndStatus(
                         supportTicketId,

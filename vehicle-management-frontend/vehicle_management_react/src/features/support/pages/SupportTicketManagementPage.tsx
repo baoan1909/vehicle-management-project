@@ -6,13 +6,17 @@ import { useAuth } from "@/core/auth/useAuth";
 import { getEmployees, type EmployeeApiResponse } from "@/features/employees/api/employeesApi";
 import { SupportTicketDetailDrawer } from "@/features/support/components/SupportTicketDetailDrawer";
 import {
+  approveSupportTicketEscalation,
   assignSupportTicket,
   getSupportTicketById,
   getSupportTicketCategories,
   getSupportTickets,
+  getSupportTicketEscalations,
   openSupportTicketCustomerConversation,
   resolveSupportTicket,
-  startSupportTicketProgress,
+  rejectSupportTicketEscalation,
+  type SupportTicketEscalationDecision,
+  type SupportTicketEscalationResponse,
   type SupportTicketCategoryResponse,
   type SupportTicketPriority,
   type SupportTicketResponse,
@@ -109,10 +113,14 @@ export function SupportTicketManagementPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const canAssign = hasAnyPermission(user, ["SUPPORT_TICKET_ASSIGN"]);
+  const canReviewEscalations = canAssign && hasAnyPermission(user, ["SUPPORT_TICKET_ESCALATION_REVIEW_ALL"]);
   const canProcessAll = hasAnyPermission(user, ["SUPPORT_TICKET_PROCESS_ALL"]);
   const canProcessAssigned = hasAnyPermission(user, ["SUPPORT_TICKET_PROCESS_ASSIGNED"]);
+  const canReadAssigned = hasAnyPermission(user, ["SUPPORT_TICKET_READ_ASSIGNED"]);
   const canRespondAssigned = hasAnyPermission(user, ["SUPPORT_TICKET_RESPOND_ASSIGNED"]);
+  const canCreateCustomerDirect = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_CUSTOMER_DIRECT"]);
   const [tickets, setTickets] = useState<SupportTicketResponse[]>([]);
+  const [escalations, setEscalations] = useState<SupportTicketEscalationResponse[]>([]);
   const [categories, setCategories] = useState<SupportTicketCategoryResponse[]>([]);
   const [employees, setEmployees] = useState<EmployeeApiResponse[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<SupportTicketResponse | null>(null);
@@ -134,10 +142,11 @@ export function SupportTicketManagementPage() {
     setLoading(true);
     setError("");
     try {
-      const [ticketResult, categoryResult, employeeResult] = await Promise.allSettled([
+      const [ticketResult, categoryResult, employeeResult, escalationResult] = await Promise.allSettled([
         getSupportTickets(),
         getSupportTicketCategories(),
         getEmployees({ status: "ACTIVE" }),
+        canReviewEscalations ? getSupportTicketEscalations("PENDING") : Promise.resolve(null),
       ]);
 
       if (ticketResult.status === "rejected") {
@@ -147,12 +156,13 @@ export function SupportTicketManagementPage() {
       setTickets(ticketResult.value.data);
       setCategories(categoryResult.status === "fulfilled" ? categoryResult.value.data : []);
       setEmployees(employeeResult.status === "fulfilled" ? employeeResult.value?.data ?? [] : []);
+      setEscalations(escalationResult.status === "fulfilled" && escalationResult.value ? escalationResult.value.data ?? [] : []);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Không thể tải danh sách yêu cầu hỗ trợ.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canReviewEscalations]);
 
   useEffect(() => { void loadQueue(); }, [loadQueue]);
   useEffect(() => { setCurrentPage(1); }, [keyword, statusFilter, priorityFilter, assigneeFilter, pageSize]);
@@ -192,16 +202,19 @@ export function SupportTicketManagementPage() {
     open: tickets.filter((ticket) => ticket.status === "OPEN").length,
     unassigned: tickets.filter((ticket) => !ticket.assignedTo && ticket.status !== "CLOSED").length,
     inProgress: tickets.filter((ticket) => ticket.status === "IN_PROGRESS").length,
-    attention: tickets.filter((ticket) => (ticket.priority === "URGENT" || ticket.priority === "HIGH") && ticket.status !== "CLOSED").length,
-  }), [tickets]);
+    attention: tickets.filter((ticket) => ((ticket.priority === "URGENT" || ticket.priority === "HIGH") || escalations.some((item) => item.supportTicketId === ticket.supportTicketId)) && ticket.status !== "CLOSED").length,
+  }), [escalations, tickets]);
+  const escalationByTicketId = useMemo(() => new Map(escalations.map((item) => [item.supportTicketId, item])), [escalations]);
   const canProcessSelectedTicket = Boolean(selectedTicket && (
     canProcessAll || (canProcessAssigned && selectedTicket.assignedTo === user?.id)
   ));
-  const canStartSelectedTicket = canProcessSelectedTicket && selectedTicket?.status === "OPEN";
   const canReplySelectedTicket = Boolean(
-    selectedTicket?.status === "IN_PROGRESS"
+    (selectedTicket?.status === "OPEN" || selectedTicket?.status === "IN_PROGRESS")
       && selectedTicket.assignedTo === user?.id
-      && canRespondAssigned,
+      && canProcessSelectedTicket
+      && canReadAssigned
+      && canRespondAssigned
+      && canCreateCustomerDirect,
   );
   const canResolveSelectedTicket = canProcessSelectedTicket && selectedTicket?.status === "IN_PROGRESS";
 
@@ -233,24 +246,49 @@ export function SupportTicketManagementPage() {
     }
   }
 
-  function applyTicketUpdate(ticket: SupportTicketResponse) {
-    setSelectedTicket(ticket);
-    setTickets((current) => current.map((currentTicket) => currentTicket.supportTicketId === ticket.supportTicketId ? ticket : currentTicket));
-  }
-
-  async function handleStartProgress() {
+  async function handleReviewEscalation(
+    decision: SupportTicketEscalationDecision,
+    assignedTo: string | undefined,
+    note: string,
+  ) {
     if (!selectedTicket) return;
+    const escalation = escalationByTicketId.get(selectedTicket.supportTicketId);
+    if (!escalation) return;
     setActionLoading(true);
     setActionError("");
     try {
-      const response = await startSupportTicketProgress(selectedTicket.supportTicketId);
-      applyTicketUpdate(response.data);
-      toast.success("Đã nhận xử lý ticket.");
-    } catch (startError) {
-      setActionError(startError instanceof Error ? startError.message : "Không thể nhận xử lý ticket này.");
+      await approveSupportTicketEscalation(escalation.escalationId, { decision, assignedTo, note });
+      const refreshedTicket = await getSupportTicketById(selectedTicket.supportTicketId);
+      applyTicketUpdate(refreshedTicket.data);
+      setEscalations((current) => current.filter((item) => item.escalationId !== escalation.escalationId));
+      toast.success(decision === "REASSIGN" ? "Đã chuyển phiếu cho người phụ trách mới." : "Đã ghi nhận quyết định giữ người phụ trách hiện tại.");
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : "Không thể xử lý yêu cầu xem xét.");
     } finally {
       setActionLoading(false);
     }
+  }
+
+  async function handleRejectEscalation(note: string) {
+    if (!selectedTicket) return;
+    const escalation = escalationByTicketId.get(selectedTicket.supportTicketId);
+    if (!escalation) return;
+    setActionLoading(true);
+    setActionError("");
+    try {
+      await rejectSupportTicketEscalation(escalation.escalationId, note);
+      setEscalations((current) => current.filter((item) => item.escalationId !== escalation.escalationId));
+      toast.success("Đã ghi nhận quyết định từ chối và thông báo cho khách hàng.");
+    } catch (caught) {
+      setActionError(caught instanceof Error ? caught.message : "Không thể từ chối yêu cầu xem xét.");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  function applyTicketUpdate(ticket: SupportTicketResponse) {
+    setSelectedTicket(ticket);
+    setTickets((current) => current.map((currentTicket) => currentTicket.supportTicketId === ticket.supportTicketId ? ticket : currentTicket));
   }
 
   async function handleReplyCustomer() {
@@ -344,7 +382,7 @@ export function SupportTicketManagementPage() {
                 return (
                   <button className="tw-grid tw-min-h-[67px] tw-w-full tw-grid-cols-[150px_150px_minmax(160px,1fr)_110px_130px_175px_42px] tw-items-center tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-left tw-transition hover:tw-bg-brand-50/45 focus-visible:tw-relative focus-visible:tw-z-[1] focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus" key={ticket.supportTicketId} type="button" onClick={() => void openTicket(ticket)}>
                     <span className="tw-grid tw-gap-1"><strong className="tw-text-[0.75rem] tw-font-black tw-text-vm-primary">{shortTicketCode(ticket.supportTicketId)}</strong><small className="tw-text-[0.68rem] tw-font-semibold tw-text-vm-slate-500">{formatDate(ticket.createdAt)}</small></span>
-                    <span className="tw-min-w-0 tw-pr-3"><strong className="tw-block tw-truncate tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-900">Khách hàng</strong><small className="tw-block tw-truncate tw-text-[0.67rem] tw-font-semibold tw-text-vm-slate-500">{ticket.customerId}</small></span>
+                    <span className="tw-min-w-0 tw-pr-3"><strong className="tw-block tw-truncate tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-900">Khách hàng</strong><small className="tw-block tw-truncate tw-text-[0.67rem] tw-font-semibold tw-text-vm-slate-500">{ticket.customerId}</small>{escalationByTicketId.has(ticket.supportTicketId) ? <small className="tw-mt-1 tw-block tw-font-black tw-text-amber-700"><i className="fas fa-user-shield tw-mr-1" />Yêu cầu xem xét</small> : null}</span>
                     <span className="tw-min-w-0 tw-pr-3"><strong className="tw-block tw-truncate tw-text-[0.77rem] tw-font-bold tw-text-vm-slate-900">{ticket.categoryName || ticket.categoryCode || "Khác"}</strong><small className="tw-mt-1 tw-block tw-truncate tw-text-[0.7rem] tw-font-semibold tw-text-vm-slate-500">{ticket.title}</small></span>
                     <Badge tone={priorityTone(ticket.priority)} className="tw-w-fit tw-rounded-vm-sm tw-px-2">{priorityLabel(ticket.priority)}</Badge>
                     <Badge tone={statusTone(ticket.status)} className="tw-w-fit tw-rounded-vm-sm tw-px-2">{statusLabel(ticket.status)}</Badge>
@@ -369,13 +407,16 @@ export function SupportTicketManagementPage() {
         canAssign={canAssign}
         canReply={canReplySelectedTicket}
         canResolve={canResolveSelectedTicket}
-        canStartProgress={canStartSelectedTicket}
+        canReviewEscalation={Boolean(canReviewEscalations && selectedTicket?.assignedTo !== user?.id)}
         employees={employees}
+        escalation={selectedTicket ? escalationByTicketId.get(selectedTicket.supportTicketId) : null}
+        reviewerAccountId={user?.id}
         onAssign={(assignedTo) => void handleAssign(assignedTo)}
         onClose={() => { setDrawerOpen(false); setActionError(""); }}
         onReply={() => void handleReplyCustomer()}
         onRequestResolve={() => { setActionError(""); setResolutionNote(""); setResolutionOpen(true); }}
-        onStartProgress={() => void handleStartProgress()}
+        onReviewEscalation={(decision, assignedTo, note) => void handleReviewEscalation(decision, assignedTo, note)}
+        onRejectEscalation={(note) => void handleRejectEscalation(note)}
         open={drawerOpen}
         ticket={selectedTicket}
       />
