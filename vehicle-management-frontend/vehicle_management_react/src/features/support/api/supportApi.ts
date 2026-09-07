@@ -78,6 +78,17 @@ export type SupportTicketChatIntakeResponse = {
   reusedActiveTicket: boolean;
 };
 
+export type AssistantStatusResponse = {
+  enabled: boolean;
+};
+
+export type AssistantMessageStatusResponse = {
+  inputMessageId: string;
+  status: "PENDING" | "PROCESSING" | "RETRYING" | "COMPLETED" | "FAILED" | "DISABLED";
+  errorCode: string | null;
+  terminal: boolean;
+};
+
 export type SupportTicketCategoryFilter = {
   keyword?: string;
   priority?: SupportTicketPriority;
@@ -179,6 +190,14 @@ export function createSupportTicketChatIntake(payload: SaveSupportTicketRequest,
 
 export function getSupportAssistantConversation() {
   return apiClient<ApiResponse<ChatConversationResponse>>(apiEndpoints.operations.supportAssistantConversation);
+}
+
+export function getAssistantStatus() {
+  return apiClient<ApiResponse<AssistantStatusResponse>>(apiEndpoints.ai.assistantStatus);
+}
+
+export function getAssistantMessageStatus(inputMessageId: string) {
+  return apiClient<ApiResponse<AssistantMessageStatusResponse>>(apiEndpoints.ai.assistantMessageStatus(inputMessageId));
 }
 
 export function createSupportTicketFromConversation(conversationId: string, payload: SaveSupportTicketRequest, idempotencyKey?: string) {

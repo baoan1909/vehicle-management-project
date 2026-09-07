@@ -116,3 +116,19 @@ app:
     subscription-lifecycle:
       fixed-delay-ms: ${SUBSCRIPTION_LIFECYCLE_SCHEDULER_FIXED_DELAY_MS:300000}
       initial-delay-ms: ${SUBSCRIPTION_LIFECYCLE_SCHEDULER_INITIAL_DELAY_MS:60000}
+  ai:
+    assistant-enabled: ${AI_ASSISTANT_ENABLED:false}
+    data-mode: ${AI_GEMINI_DATA_MODE:UNPAID}
+    allow-unpaid-support-data: ${AI_ALLOW_UNPAID_SUPPORT_DATA:false}
+    recent-message-limit: ${AI_ASSISTANT_RECENT_MESSAGE_LIMIT:8}
+    max-attempts: ${AI_ASSISTANT_MAX_ATTEMPTS:3}
+    retry-initial-delay: ${AI_ASSISTANT_RETRY_INITIAL_DELAY:20s}
+    request-timeout: ${AI_ASSISTANT_REQUEST_TIMEOUT:20s}
+    prompt-version: ${AI_ASSISTANT_PROMPT_VERSION:support-assistant-v1}
+    assistant-job-fixed-delay-ms: ${AI_ASSISTANT_JOB_FIXED_DELAY_MS:2500}
+    assistant-job-initial-delay-ms: ${AI_ASSISTANT_JOB_INITIAL_DELAY_MS:5000}
+    model-catalog-sync-fixed-delay-ms: ${AI_MODEL_CATALOG_SYNC_FIXED_DELAY_MS:86400000}
+    model-catalog-sync-initial-delay-ms: ${AI_MODEL_CATALOG_SYNC_INITIAL_DELAY_MS:60000}
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}

@@ -13,6 +13,10 @@ export const apiEndpoints = {
     },
   },
   dashboard: "/dashboard",
+  ai: {
+    assistantStatus: "/ai/assistant/status",
+    assistantMessageStatus: (inputMessageId: string) => `/ai/assistant/messages/${inputMessageId}/status`,
+  },
   hardware: {
     devices: "/hardware/devices",
   },

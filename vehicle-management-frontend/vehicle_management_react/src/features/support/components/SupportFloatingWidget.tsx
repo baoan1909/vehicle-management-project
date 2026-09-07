@@ -11,6 +11,8 @@ import {
 import { subscribeChatRealtime } from "@/features/support/api/chatRealtime";
 import {
   createSupportTicketChatIntake,
+  getAssistantMessageStatus,
+  getAssistantStatus,
   getMySupportTickets,
   getSupportAssistantConversation,
   getSupportTicketById,
@@ -28,6 +30,7 @@ type Position = { x: number; y: number };
 type DragOffset = { x: number; y: number };
 
 const WIDGET_CONFIG = { marginX: 24, marginY: 40, size: 56 };
+const ASSISTANT_RESPONSE_TIMEOUT_MS = 90000;
 
 function getDefaultPosition(): Position {
   if (typeof window === "undefined") return { x: 0, y: 0 };
@@ -88,6 +91,10 @@ function getSharedTicketNotice(ticket: SupportTicketResponse) {
   return "Đã đưa phiếu vào hội thoại. Người phụ trách hiện tại của phiếu không thay đổi.";
 }
 
+function isAssistantAiMessage(message: ChatMessageResponse) {
+  return message.senderAccountId === null && message.relatedSchema === "ai" && message.relatedTable === "assistant_jobs";
+}
+
 export function SupportFloatingWidget() {
   const { user } = useAuth();
   const toast = useToast();
@@ -99,6 +106,11 @@ export function SupportFloatingWidget() {
   const [isOpeningAssistant, setIsOpeningAssistant] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [assistantEnabled, setAssistantEnabled] = useState(true);
+  const [assistantProcessingInputMessageId, setAssistantProcessingInputMessageId] = useState<string | null>(null);
+  const [assistantProcessingStartedAt, setAssistantProcessingStartedAt] = useState<number | null>(null);
+  const [assistantProcessingError, setAssistantProcessingError] = useState("");
+  const [lastAssistantPrompt, setLastAssistantPrompt] = useState("");
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [panelError, setPanelError] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -113,6 +125,7 @@ export function SupportFloatingWidget() {
   const hasMovedRef = useRef(false);
   const openTimerRef = useRef<number | undefined>(undefined);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
+  const assistantProcessing = assistantProcessingInputMessageId !== null;
 
   const refreshMessages = useCallback(async (targetConversationId = conversationId) => {
     if (!targetConversationId) return;
@@ -168,10 +181,54 @@ export function SupportFloatingWidget() {
         if (event.conversationId !== conversationId || !event.message) return;
         setPanelError("");
         setMessages((current) => mergeMessage(current, event.message!));
+        if (isAssistantAiMessage(event.message) && (!assistantProcessingInputMessageId || event.message.replyToMessageId === assistantProcessingInputMessageId)) {
+          setAssistantProcessingInputMessageId(null);
+          setAssistantProcessingStartedAt(null);
+          setAssistantProcessingError("");
+        }
         void markChatConversationRead(conversationId, event.message.messageId).catch(() => undefined);
       },
     });
-  }, [conversationId, isPanelOpen]);
+  }, [assistantProcessingInputMessageId, conversationId, isPanelOpen]);
+
+  useEffect(() => {
+    if (!isPanelOpen || !assistantProcessingInputMessageId) return undefined;
+    const startedAt = assistantProcessingStartedAt ?? Date.now();
+    const pollStatus = async () => {
+      if (Date.now() - startedAt > ASSISTANT_RESPONSE_TIMEOUT_MS) {
+        setAssistantProcessingInputMessageId(null);
+        setAssistantProcessingStartedAt(null);
+        setAssistantProcessingError("Tro ly chua phan hoi. Ban co the thu lai hoac tao phieu ho tro.");
+        return;
+      }
+      try {
+        const response = await getAssistantMessageStatus(assistantProcessingInputMessageId);
+        const status = response.data;
+        if (status.status === "COMPLETED") {
+          setAssistantProcessingInputMessageId(null);
+          setAssistantProcessingStartedAt(null);
+          setAssistantProcessingError("");
+          void refreshMessages();
+          return;
+        }
+        if (status.status === "FAILED" || status.status === "DISABLED" || status.terminal) {
+          setAssistantProcessingInputMessageId(null);
+          setAssistantProcessingStartedAt(null);
+          if (status.status === "DISABLED") setAssistantEnabled(false);
+          setAssistantProcessingError("Tro ly hien chua xu ly duoc tin nhan nay. Ban co the thu lai hoac tao phieu ho tro.");
+        }
+      } catch {
+        if (Date.now() - startedAt > ASSISTANT_RESPONSE_TIMEOUT_MS) {
+          setAssistantProcessingInputMessageId(null);
+          setAssistantProcessingStartedAt(null);
+          setAssistantProcessingError("Mat ket noi trang thai tro ly. Ban co the thu lai hoac tao phieu ho tro.");
+        }
+      }
+    };
+    void pollStatus();
+    const timer = window.setInterval(() => { void pollStatus(); }, 3000);
+    return () => window.clearInterval(timer);
+  }, [assistantProcessingInputMessageId, assistantProcessingStartedAt, isPanelOpen, refreshMessages]);
 
   useEffect(() => {
     if (isPanelOpen) messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -206,6 +263,8 @@ export function SupportFloatingWidget() {
     setIsPanelOpen(true);
     try {
       const conversationResponse = await getSupportAssistantConversation();
+      const assistantStatusResponse = await getAssistantStatus().catch(() => null);
+      setAssistantEnabled(Boolean(assistantStatusResponse?.data.enabled));
       const nextConversationId = conversationResponse.data.conversationId;
       setConversationId(nextConversationId);
       await refreshMessages(nextConversationId);
@@ -232,10 +291,35 @@ export function SupportFloatingWidget() {
         ? await sendChatImageMessage(conversationId, content || null, selectedFiles)
         : await sendChatTextMessage(conversationId, content);
       setMessages((current) => mergeMessage(current, response.data));
+      if (assistantEnabled && response.data.messageType === "TEXT") {
+        setAssistantProcessingInputMessageId(response.data.messageId);
+        setAssistantProcessingStartedAt(Date.now());
+        setAssistantProcessingError("");
+        setLastAssistantPrompt(content);
+      }
       setDraft("");
       setSelectedFiles([]);
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "Không thể gửi tin nhắn.");
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  async function retryAssistantResponse() {
+    const content = lastAssistantPrompt.trim();
+    if (!conversationId || !content || isSending) return;
+    setIsSending(true);
+    setAssistantProcessingError("");
+    try {
+      const response = await sendChatTextMessage(conversationId, content);
+      setMessages((current) => mergeMessage(current, response.data));
+      if (assistantEnabled && response.data.messageType === "TEXT") {
+        setAssistantProcessingInputMessageId(response.data.messageId);
+        setAssistantProcessingStartedAt(Date.now());
+      }
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : "Khong the thu lai tin nhan.");
     } finally {
       setIsSending(false);
     }
@@ -274,14 +358,18 @@ export function SupportFloatingWidget() {
           <div aria-live="polite" className="tw-flex-1 tw-space-y-3 tw-overflow-y-auto tw-bg-slate-50 tw-p-4">
             {messagesLoading ? <div className="tw-py-10 tw-text-center tw-text-sm tw-font-semibold tw-text-slate-500"><i className="fas fa-spinner fa-spin tw-mr-2" />Đang tải lịch sử trò chuyện...</div> : null}
             {panelError ? <div role="alert" className="tw-rounded-lg tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-700">{panelError}</div> : null}
+            {!assistantEnabled ? <div role="status" className="tw-rounded-lg tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-p-3 tw-text-sm tw-font-bold tw-text-amber-800">Tro ly AI dang tam khong kha dung. Ban van co the tao phieu ho tro hoac xem phieu cua minh.</div> : null}
             {!messagesLoading && !panelError && messages.length === 0 ? <div className="tw-mx-auto tw-mt-8 tw-max-w-[260px] tw-text-center tw-text-sm tw-text-slate-500"><span className="tw-mx-auto tw-mb-3 tw-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-full tw-bg-cyan-50 tw-p-3"><SupportSparkleIcon /></span>Xin chào! Bạn cần CoParking hỗ trợ vấn đề gì?</div> : null}
             {messages.filter((message) => !message.deleted).map((message) => {
               const ticket = message.relatedId ? ticketsById[message.relatedId] : undefined;
               if (message.messageType === "SUPPORT_REQUEST" && ticket) return <SupportTicketCard actions={<SupportTicketCustomerActions ticket={ticket} />} key={message.messageId} ticket={ticket} />;
+              if (isAssistantAiMessage(message)) return <div className="tw-flex tw-justify-start" key={message.messageId}><div className="tw-max-w-[82%] tw-rounded-2xl tw-rounded-bl-md tw-bg-white tw-px-3 tw-py-2 tw-text-sm tw-text-slate-700 tw-shadow-sm"><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><time className="tw-mt-1 tw-block tw-text-right tw-text-[10px] tw-text-slate-400">{formatMessageTime(message.createdAt)}</time></div></div>;
               if (["SYSTEM", "CONTEXT_CARD", "ACTION_CARD", "SUPPORT_REQUEST"].includes(message.messageType)) return <div className="tw-rounded-xl tw-border tw-border-solid tw-border-sky-100 tw-bg-white tw-p-3 tw-text-sm tw-text-slate-700 tw-shadow-sm" key={message.messageId}><div className="tw-mb-1 tw-flex tw-items-center tw-gap-2 tw-font-bold tw-text-sky-700"><i className="fas fa-info-circle" />Cập nhật hỗ trợ</div><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><time className="tw-mt-1 tw-block tw-text-right tw-text-[10px] tw-text-slate-400">{formatMessageTime(message.createdAt)}</time></div>;
               const own = message.senderAccountId === user?.id;
               return <div className={`tw-flex ${own ? "tw-justify-end" : "tw-justify-start"}`} key={message.messageId}><div className={`tw-max-w-[82%] tw-rounded-2xl tw-px-3 tw-py-2 tw-text-sm tw-shadow-sm ${own ? "tw-rounded-br-md tw-bg-sky-700 tw-text-white" : "tw-rounded-bl-md tw-bg-white tw-text-slate-700"}`}><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><time className={`tw-mt-1 tw-block tw-text-right tw-text-[10px] ${own ? "tw-text-sky-100" : "tw-text-slate-400"}`}>{formatMessageTime(message.createdAt)}</time></div></div>;
             })}
+            {assistantProcessing ? <div role="status" className="tw-flex tw-justify-start"><div className="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-2xl tw-rounded-bl-md tw-bg-white tw-px-3 tw-py-2 tw-text-sm tw-font-semibold tw-text-slate-500 tw-shadow-sm"><i className="fas fa-spinner fa-spin" />Tro ly dang xu ly...</div></div> : null}
+            {assistantProcessingError ? <div role="alert" className="tw-rounded-lg tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-p-3 tw-text-sm tw-font-bold tw-text-amber-800"><span>{assistantProcessingError}</span><button className="tw-ml-2 tw-rounded-md tw-border tw-border-solid tw-border-amber-300 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-extrabold tw-text-amber-800 disabled:tw-opacity-60" disabled={isSending || !lastAssistantPrompt.trim()} onClick={retryAssistantResponse} type="button">Thu lai</button></div> : null}
             <div ref={messageEndRef} />
           </div>
           <footer className="tw-border-0 tw-border-t tw-border-solid tw-border-slate-200 tw-bg-white">

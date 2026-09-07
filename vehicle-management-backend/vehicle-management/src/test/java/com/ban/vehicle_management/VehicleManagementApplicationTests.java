@@ -151,13 +151,19 @@ class VehicleManagementApplicationTests {
 					.load();
 			flyway.migrate();
 			org.junit.jupiter.api.Assertions.assertEquals(
-					"20260906110000",
+					"20260907102000",
 					flyway.info().current().getVersion().toString()
 			);
 			UUID ticketId = UUID.randomUUID();
 			try (Connection fresh = DriverManager.getConnection(
 					freshUrl, hikariDataSource.getUsername(), hikariDataSource.getPassword());
 				 Statement statement = fresh.createStatement()) {
+				try (var resultSet = statement.executeQuery(
+						"SELECT COUNT(*) FROM ai.ai_model_configurations WHERE use_case = 'SUPPORT_CHAT' AND status = 'ACTIVE'"
+				)) {
+					org.junit.jupiter.api.Assertions.assertTrue(resultSet.next());
+					org.junit.jupiter.api.Assertions.assertEquals(1, resultSet.getInt(1));
+				}
 				statement.executeUpdate("""
 						INSERT INTO operations.approval_requests
 						(approval_request_id, request_type, target_schema, target_table, target_id, status, request_data)

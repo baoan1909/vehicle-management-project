@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.ai.port.in.AssistantJobPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatRealtimeEventMapper;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatRealtimeEventPublisherPortOut;
@@ -44,6 +45,9 @@ class ChatConversationUseCaseImplTest {
 
     @Mock
     private ChatRealtimeEventPublisherPortOut realtimeEventPublisher;
+
+    @Mock
+    private AssistantJobPortIn assistantJobPortIn;
 
     @Mock
     private ChatRealtimeEventMapper realtimeEventMapper;
