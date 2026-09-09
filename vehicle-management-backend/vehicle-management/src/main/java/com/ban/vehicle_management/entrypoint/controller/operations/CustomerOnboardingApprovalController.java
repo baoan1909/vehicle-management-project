@@ -36,7 +36,7 @@ public class CustomerOnboardingApprovalController {
     }
 
     @GetMapping
-    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL')")
     public ResponseEntity<ApiResponse<List<CustomerOnboardingApprovalAdminResponse>>> getCustomerOnboardingApprovals(
             @ModelAttribute CustomerOnboardingApprovalFilterRequest request
     ) {
@@ -49,7 +49,7 @@ public class CustomerOnboardingApprovalController {
     }
 
     @GetMapping("/{approvalRequestId}")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL')")
     public ResponseEntity<ApiResponse<CustomerOnboardingApprovalAdminResponse>> getCustomerOnboardingApprovalById(
             @PathVariable UUID approvalRequestId
     ) {
@@ -72,7 +72,7 @@ public class CustomerOnboardingApprovalController {
     }
 
     @PatchMapping("/{approvalRequestId}/approve")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL')")
     public ResponseEntity<ApiResponse<CustomerOnboardingApprovalAdminResponse>> approveCustomerOnboardingApproval(
             @PathVariable UUID approvalRequestId,
             @RequestBody(required = false) ReviewInternalEmployeeApprovalRequest request
@@ -90,7 +90,7 @@ public class CustomerOnboardingApprovalController {
     }
 
     @PatchMapping("/{approvalRequestId}/reject")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('CUSTOMER_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL')")
     public ResponseEntity<ApiResponse<CustomerOnboardingApprovalAdminResponse>> rejectCustomerOnboardingApproval(
             @PathVariable UUID approvalRequestId,
             @RequestBody(required = false) ReviewInternalEmployeeApprovalRequest request

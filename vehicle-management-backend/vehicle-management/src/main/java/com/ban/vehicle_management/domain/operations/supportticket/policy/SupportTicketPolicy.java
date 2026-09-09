@@ -43,6 +43,16 @@ public class SupportTicketPolicy {
         validateState(ticket);
     }
 
+    public void claim(SupportTicket ticket, UUID accountId) {
+        requireTicket(ticket);
+        requireField(accountId, "accountId");
+        if (ticket.getStatus() != SupportTicketStatus.OPEN || ticket.getAssignedTo() != null) {
+            throw new BadRequestException("Only an unassigned open support ticket can be claimed");
+        }
+        ticket.setAssignedTo(accountId);
+        validateState(ticket);
+    }
+
     public void startProgress(SupportTicket ticket) {
         requireTicket(ticket);
 
@@ -59,9 +69,8 @@ public class SupportTicketPolicy {
     public void resolve(SupportTicket ticket, String resolutionNote, Instant resolvedAt) {
         requireTicket(ticket);
 
-        if (ticket.getStatus() != SupportTicketStatus.OPEN
-                && ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
-            throw new BadRequestException("Support ticket can only be resolved from OPEN or IN_PROGRESS status");
+        if (ticket.getStatus() != SupportTicketStatus.IN_PROGRESS) {
+            throw new BadRequestException("Support ticket must be IN_PROGRESS before it can be resolved");
         }
 
         ticket.setStatus(SupportTicketStatus.RESOLVED);
@@ -94,8 +103,8 @@ public class SupportTicketPolicy {
     public void close(SupportTicket ticket, UUID closedBy, Instant closedAt) {
         requireTicket(ticket);
 
-        if (ticket.getStatus() == SupportTicketStatus.CLOSED) {
-            throw new BadRequestException("Support ticket is already closed");
+        if (ticket.getStatus() != SupportTicketStatus.RESOLVED) {
+            throw new BadRequestException("Only resolved support ticket can be closed");
         }
 
         requireField(closedBy, "closedBy");

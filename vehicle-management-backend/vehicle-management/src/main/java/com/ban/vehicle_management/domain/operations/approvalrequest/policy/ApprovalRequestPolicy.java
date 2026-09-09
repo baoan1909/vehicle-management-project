@@ -5,6 +5,7 @@ import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestS
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 
 public class ApprovalRequestPolicy {
@@ -16,6 +17,12 @@ public class ApprovalRequestPolicy {
         approvalRequest.setTargetTable(TextValidationUtils.normalizeRequiredText(approvalRequest.getTargetTable(), "targetTable", 80));
         requireField(approvalRequest.getTargetId(), "targetId");
         approvalRequest.setNote(TextValidationUtils.normalizeNullableText(approvalRequest.getNote(), "note", 0));
+        approvalRequest.setIdempotencyKey(TextValidationUtils.normalizeNullableText(
+                approvalRequest.getIdempotencyKey(), "idempotencyKey", 100
+        ));
+        if (approvalRequest.getRequestData() == null) {
+            approvalRequest.setRequestData(Map.of());
+        }
         if (approvalRequest.getStatus() == null) {
             approvalRequest.setStatus(ApprovalRequestStatus.PENDING);
         }
@@ -66,6 +73,12 @@ public class ApprovalRequestPolicy {
         requireField(approvalRequest.getTargetId(), "targetId");
         requireField(approvalRequest.getStatus(), "status");
         approvalRequest.setNote(TextValidationUtils.normalizeNullableText(approvalRequest.getNote(), "note", 0));
+        approvalRequest.setIdempotencyKey(TextValidationUtils.normalizeNullableText(
+                approvalRequest.getIdempotencyKey(), "idempotencyKey", 100
+        ));
+        if (approvalRequest.getRequestData() == null) {
+            approvalRequest.setRequestData(Map.of());
+        }
 
         boolean hasApprovalMetadata = approvalRequest.getApprovedBy() != null || approvalRequest.getApprovedAt() != null;
         boolean hasFullApprovalMetadata = approvalRequest.getApprovedBy() != null && approvalRequest.getApprovedAt() != null;

@@ -43,6 +43,7 @@ export const adminNavigation: AdminSidebarEntry[] = [
     label: "Hỗ trợ & CSKH",
     icon: "support",
     items: [
+      { label: "Yêu cầu hỗ trợ", to: "/admin/support-tickets", matches: ["/admin/support-tickets"] },
       { label: "Khách hàng", to: "/admin/customer", matches: ["/admin/customer"] },
       { label: "Danh mục hỗ trợ", to: "/admin/support-categories", matches: ["/admin/support-categories"] },
       { label: "Thông báo", to: "/admin/announcements", matches: ["/admin/announcements"] },

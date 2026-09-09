@@ -245,6 +245,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
                 notificationType,
                 title,
                 message,
+                "/customer/profile",
                 "people",
                 "customers",
                 result.customer().customerId()
@@ -256,21 +257,12 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
             NotificationType notificationType,
             String title
     ) {
-        if (notificationPortIn == null) {
-            return;
-        }
-        notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(
-                false,
-                NotificationAudience.APPROVERS,
-                null,
+        ApprovalNotificationSupport.notifyApprovers(
+                notificationPortIn,
+                approvalRequest,
                 null,
                 notificationType,
-                title,
-                "Có yêu cầu phê duyệt mới cần xử lý.",
-                null,
-                approvalRequest.getTargetSchema(),
-                approvalRequest.getTargetTable(),
-                approvalRequest.getTargetId()
-        ));
+                title
+        );
     }
 }

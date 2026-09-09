@@ -30,11 +30,14 @@ public interface ChatConversationMemberRepository extends JpaRepository<ChatConv
                    member.memberRole AS memberRole,
                    account.username AS username,
                    account.email AS email,
+                   role.code AS accountRoleCode,
+                   role.name AS accountRoleName,
                    profile.fullName AS fullName,
                    avatar.objectKey AS avatarObjectKey
             FROM ChatConversationMemberEntity member
             JOIN AccountEntity account
                 ON account.accountId = member.accountId
+            JOIN account.role role
             LEFT JOIN UserProfileEntity profile
                 ON profile.userProfileId = account.userProfileId
             LEFT JOIN UserProfileAvatarEntity avatar

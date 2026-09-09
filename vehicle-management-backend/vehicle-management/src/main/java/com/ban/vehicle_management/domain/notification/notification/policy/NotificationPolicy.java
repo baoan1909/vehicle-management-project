@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.notification.notification.policy;
 
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationRecipientCriteria;
 import com.ban.vehicle_management.domain.notification.notification.model.Notification;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
@@ -35,6 +36,11 @@ public class NotificationPolicy {
                 command.notificationType(),
                 TextValidationUtils.normalizeRequiredText(command.title(), "title", TITLE_MAX_LENGTH),
                 TextValidationUtils.normalizeRequiredText(command.message(), "message", 0),
+                TextValidationUtils.normalizeNullableText(
+                        command.redirectUrl(),
+                        "redirectUrl",
+                        REDIRECT_URL_MAX_LENGTH
+                ),
                 TextValidationUtils.normalizeNullableText(
                         command.relatedSchema(),
                         "relatedSchema",
@@ -83,7 +89,8 @@ public class NotificationPolicy {
                         "relatedTable",
                         RELATED_TABLE_MAX_LENGTH
                 ),
-                command.relatedId()
+                command.relatedId(),
+                normalizeRecipientCriteria(command.recipientCriteria())
         );
     }
 
@@ -134,6 +141,29 @@ public class NotificationPolicy {
                 TextValidationUtils.normalizeCode(roleCode, "roleCode", 50)
         ));
         return normalizedRoleCodes;
+    }
+
+    private NotificationRecipientCriteria normalizeRecipientCriteria(NotificationRecipientCriteria criteria) {
+        if (criteria == null) {
+            return null;
+        }
+        return new NotificationRecipientCriteria(
+                criteria.requireBusinessAccess(),
+                normalizePermissionCodes(criteria.requiredAnyPermissionCodes()),
+                normalizeAccountIds(criteria.excludedAccountIds()),
+                criteria.allowNoRecipients()
+        );
+    }
+
+    private Set<String> normalizePermissionCodes(Set<String> permissionCodes) {
+        if (permissionCodes == null || permissionCodes.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> normalizedPermissionCodes = new LinkedHashSet<>();
+        permissionCodes.forEach(permissionCode -> normalizedPermissionCodes.add(
+                TextValidationUtils.normalizeCode(permissionCode, "permissionCode", 100)
+        ));
+        return normalizedPermissionCodes;
     }
 
     private NotificationType requireNotificationType(NotificationType notificationType) {

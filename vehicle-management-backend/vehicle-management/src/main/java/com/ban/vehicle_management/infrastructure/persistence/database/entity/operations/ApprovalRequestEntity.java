@@ -13,11 +13,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "approval_requests", schema = "operations")
@@ -66,6 +69,17 @@ public class ApprovalRequestEntity extends AuditableEntity {
 
     @Column(name = "note")
     private String note;
+
+    @Column(name = "idempotency_key", length = 100)
+    private String idempotencyKey;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "request_data", nullable = false, columnDefinition = "jsonb")
+    private Map<String, String> requestData;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "decision_data", columnDefinition = "jsonb")
+    private Map<String, String> decisionData;
 
 }
 

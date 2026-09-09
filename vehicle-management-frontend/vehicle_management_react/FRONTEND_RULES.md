@@ -40,6 +40,15 @@
 5. Sidebar items must preserve icon alignment, text truncation, and consistent `6px-10px` corner radius across desktop breakpoints.
 6. At tablet and mobile widths where no drawer behavior exists, the fixed sidebar should be hidden and admin content should reclaim the full width.
 
+## Phase 6 - Permission-first Feature Visibility Rules
+
+1. UI components and routes must not branch on role codes such as `CUSTOMER`, `EMPLOYEE`, `PARKING_MANAGER`, or `SYSTEM_ADMIN` to decide whether a business feature is available.
+2. For an authenticated user, visibility and enabled actions must derive from permission codes supplied by the current-account access response, using the shared permission-check utility.
+3. The Support Widget requires `SUPPORT_WIDGET_ACCESS_OWN` for an authenticated account. Giving this permission to a default role is IAM configuration, never a frontend code condition.
+4. An unauthenticated visitor is a public session, not a `CUSTOMER` role. Public UI may be shown only through the explicit unauthenticated-session path and must not fabricate `CHAT_*` or `SUPPORT_TICKET_*` permissions.
+5. Widget visibility is not authorization for data operations. Conversation read/send, attachments, and ticket actions must keep their respective permission checks and backend enforcement.
+6. A new role must be able to access a feature solely by receiving the required permissions, without a frontend release or role-specific conditional code.
+
 ## Phase 5 - Card Management Rules
 
 1. The admin card page redesign applies only to the `main content` canvas of `/admin/card`; it must not redefine the shared admin header or sidebar shell.

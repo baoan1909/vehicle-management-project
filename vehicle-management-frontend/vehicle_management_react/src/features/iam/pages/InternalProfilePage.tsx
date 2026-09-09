@@ -18,6 +18,7 @@ import {
 } from "@/features/iam/api/onboardingApprovalApi";
 import { AddressPicker, Badge, Button, Card, DatePicker, Input, Modal, SelectMenu } from "@/components/ui";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
+import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta, type StatusTone } from "@/shared/utils/accountStatus";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
@@ -521,6 +522,24 @@ export function InternalProfilePage() {
       mounted = false;
     };
   }, [user]);
+
+  useEffect(() => subscribeNotificationReceived((notification) => {
+    if (![
+      "INTERNAL_EMPLOYEE_APPROVED",
+      "INTERNAL_EMPLOYEE_REJECTED",
+      "SYSTEM_ADMIN_APPROVED",
+      "SYSTEM_ADMIN_REJECTED",
+    ].includes(notification.notificationType)) return;
+
+    void getMyAccountProfile().then((response) => {
+      setProfile(response.data);
+      setForm(normalizeProfile(response.data));
+      setUser((currentUser) => currentUser
+        ? mergeCurrentUserWithAccountProfile(currentUser, response.data)
+        : currentUser);
+      void refreshLatestApproval(response.data);
+    });
+  }), [setUser]);
 
   useEffect(() => {
     if (searchParams.get("action") === "change-password") {

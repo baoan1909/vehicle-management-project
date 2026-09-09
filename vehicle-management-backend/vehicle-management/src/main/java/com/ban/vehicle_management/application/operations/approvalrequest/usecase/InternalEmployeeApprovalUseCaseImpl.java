@@ -17,7 +17,6 @@ import com.ban.vehicle_management.domain.operations.approvalrequest.model.Approv
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.ApprovalRequestPolicy;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.employee.policy.EmployeePolicy;
-import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -83,11 +82,9 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
     @Transactional(readOnly = true)
     public List<InternalEmployeeApprovalResult> getInternalEmployeeApprovals(InternalEmployeeApprovalFilterCommand command) {
         CurrentAccountAccess currentAccount = internalEmployeeApprovalAccessGuard.requireReadAccess();
-
-        List<InternalEmployeeApprovalResult> results = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequests(
+        return internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequests(
                 normalizeFilterCommand(command)
-        );
-        return results.stream()
+        ).stream()
                 .filter(result -> internalEmployeeApprovalAccessGuard.canAccessTargetRole(
                         currentAccount,
                         result.account().roleCode()
@@ -127,7 +124,6 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         InternalEmployeeApprovalCandidate candidate = internalEmployeeApprovalPortOut.findCandidateByEmployeeId(approvalRequest.getTargetId())
                 .orElseThrow(() -> new NotFoundException("Internal employee approval target not found"));
         internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(currentAccount, candidate.roleCode());
-
         Employee employee = loadEmployee(candidate.employeeId());
         String note = normalizeNote(command);
         Instant approvedAt = Instant.now(clock);
@@ -149,6 +145,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
                 NotificationType.INTERNAL_EMPLOYEE_APPROVED,
                 "Hồ sơ nhân sự đã được duyệt",
                 "Hồ sơ nhân sự của bạn đã được duyệt.",
+                "/admin/profile",
                 "people",
                 "employees",
                 result.employee().employeeId()
@@ -169,7 +166,6 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         InternalEmployeeApprovalCandidate candidate = internalEmployeeApprovalPortOut.findCandidateByEmployeeId(approvalRequest.getTargetId())
                 .orElseThrow(() -> new NotFoundException("Internal employee approval target not found"));
         internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(currentAccount, candidate.roleCode());
-
         Employee employee = loadEmployee(candidate.employeeId());
         approvalRequestPolicy.reject(approvalRequest, normalizeNote(command));
         employeePolicy.inactivate(employee);
@@ -184,6 +180,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
                 NotificationType.INTERNAL_EMPLOYEE_REJECTED,
                 "Hồ sơ nhân sự bị từ chối",
                 "Hồ sơ nhân sự của bạn chưa được duyệt.",
+                "/admin/profile",
                 "people",
                 "employees",
                 result.employee().employeeId()
@@ -197,10 +194,6 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
         InternalEmployeeApprovalCandidate candidate = internalEmployeeApprovalPortOut.findCandidateByAccountId(currentAccount.accountId())
                 .orElseThrow(() -> new NotFoundException("Internal employee approval target not found"));
-        AdminProvisionableAccountRoleCode roleCode = internalEmployeeApprovalAccessGuard.requireProvisionableRole(candidate.roleCode());
-        if (!roleCode.requiresEmployeeRecord()) {
-            throw new ConflictException("Current account does not require internal employee approval");
-        }
         if (internalEmployeeApprovalPortOut.existsPendingInternalEmployeeApprovalForEmployee(candidate.employeeId())) {
             throw new ConflictException("An internal employee approval request is already pending");
         }
@@ -222,6 +215,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
                 NotificationType.INTERNAL_EMPLOYEE_RESUBMITTED,
                 "Hồ sơ nhân sự đã gửi lại",
                 "Hồ sơ của bạn đã được gửi lại để duyệt.",
+                "/admin/profile",
                 "people",
                 "employees",
                 result.employee().employeeId()
@@ -229,6 +223,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         ApprovalNotificationSupport.notifyApprovers(
                 notificationPortIn,
                 approvalRequest,
+                candidate.roleCode(),
                 NotificationType.INTERNAL_EMPLOYEE_RESUBMITTED,
                 "Có hồ sơ nhân sự gửi lại cần duyệt"
         );
@@ -254,7 +249,7 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         }
         return new InternalEmployeeApprovalFilterCommand(
                 TextValidationUtils.normalizeNullableText(command.keyword(), "keyword", 100),
-                command.roleCode(),
+                command.roleCode() == null ? null : TextValidationUtils.normalizeCode(command.roleCode(), "roleCode", 50),
                 command.status()
         );
     }
@@ -286,12 +281,6 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
     }
 
     private String resolveRoleLabel(String roleCode) {
-        if ("PARKING_MANAGER".equals(roleCode)) {
-            return "quản lý bãi xe";
-        }
-        if ("PARKING_ATTENDANT".equals(roleCode)) {
-            return "nhân viên vận hành";
-        }
-        return "nhân sự nội bộ";
+        return roleCode == null || roleCode.isBlank() ? "nhân sự nội bộ" : roleCode;
     }
 }

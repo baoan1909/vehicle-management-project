@@ -24,6 +24,7 @@ public interface BroadcastAnnouncementDomainMapper {
 
     @Mapping(target = "allActiveAccounts", source = "allActiveAccounts")
     @Mapping(target = "accountIds", ignore = true)
+    @Mapping(target = "recipientCriteria", ignore = true)
     BroadcastNotificationCommand toBroadcastNotificationCommand(
             BroadcastAnnouncement announcement,
             boolean allActiveAccounts

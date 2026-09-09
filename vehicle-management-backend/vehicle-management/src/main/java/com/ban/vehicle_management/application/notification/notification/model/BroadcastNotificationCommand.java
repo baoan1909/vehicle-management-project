@@ -15,6 +15,35 @@ public record BroadcastNotificationCommand(
         String redirectUrl,
         String relatedSchema,
         String relatedTable,
-        UUID relatedId
+        UUID relatedId,
+        NotificationRecipientCriteria recipientCriteria
 ) {
+    public BroadcastNotificationCommand(
+            boolean allActiveAccounts,
+            Set<String> roleCodes,
+            Set<UUID> accountIds,
+            UUID broadcastId,
+            NotificationType notificationType,
+            String title,
+            String message,
+            String redirectUrl,
+            String relatedSchema,
+            String relatedTable,
+            UUID relatedId
+    ) {
+        this(
+                allActiveAccounts,
+                roleCodes,
+                accountIds,
+                broadcastId,
+                notificationType,
+                title,
+                message,
+                redirectUrl,
+                relatedSchema,
+                relatedTable,
+                relatedId,
+                null
+        );
+    }
 }

@@ -11,6 +11,14 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessageEntity, UUID> {
 
+    boolean existsByConversationIdAndRelatedSchemaAndRelatedTableAndRelatedIdAndMessageTypeAndDeletedFalse(
+            UUID conversationId,
+            String relatedSchema,
+            String relatedTable,
+            UUID relatedId,
+            com.ban.vehicle_management.shared.enumeration.operations.ChatMessageType messageType
+    );
+
     List<ChatMessageEntity> findByConversationIdAndDeletedFalseOrderByCreatedAtDescMessageIdDesc(
             UUID conversationId,
             Pageable pageable

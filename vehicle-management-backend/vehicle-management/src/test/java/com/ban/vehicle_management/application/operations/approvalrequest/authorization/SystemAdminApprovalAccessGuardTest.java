@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.util.Set;
@@ -32,7 +33,8 @@ class SystemAdminApprovalAccessGuardTest {
         CurrentAccountAccess currentAccount = currentSystemAdmin(accountId);
 
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount);
-        when(currentAccountPortIn.hasPermission("ACCOUNT_READ_ALL")).thenReturn(true);
+        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_SYSTEM_ADMIN_PERMISSION))
+                .thenReturn(true);
 
         CurrentAccountAccess result = systemAdminApprovalAccessGuard.requireReadAccess();
 
@@ -40,16 +42,20 @@ class SystemAdminApprovalAccessGuardTest {
     }
 
     @Test
-    void shouldRejectReadWhenCurrentUserIsNotSystemAdmin() {
-        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentParkingManager(UUID.randomUUID()));
+    void shouldAllowReadForCustomRoleWithPermission() {
+        CurrentAccountAccess currentAccount = currentCustomReviewer(UUID.randomUUID());
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount);
+        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_SYSTEM_ADMIN_PERMISSION))
+                .thenReturn(true);
 
-        assertThrows(AccessDeniedException.class, () -> systemAdminApprovalAccessGuard.requireReadAccess());
+        assertEquals(currentAccount, systemAdminApprovalAccessGuard.requireReadAccess());
     }
 
     @Test
     void shouldRejectWriteWhenCurrentSystemAdminHasNoAccountUpdatePermission() {
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentSystemAdmin(UUID.randomUUID()));
-        when(currentAccountPortIn.hasPermission("ACCOUNT_UPDATE_ALL")).thenReturn(false);
+        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_SYSTEM_ADMIN_PERMISSION))
+                .thenReturn(false);
 
         assertThrows(AccessDeniedException.class, () -> systemAdminApprovalAccessGuard.requireWriteAccess());
     }
@@ -74,21 +80,21 @@ class SystemAdminApprovalAccessGuardTest {
                 "SYSTEM_ADMIN",
                 AccountStatus.ACTIVE,
                 null,
-                Set.of("ACCOUNT_READ_ALL", "ACCOUNT_UPDATE_ALL")
+                Set.of(OnboardingApprovalPolicy.REVIEW_SYSTEM_ADMIN_PERMISSION)
         );
     }
 
-    private CurrentAccountAccess currentParkingManager(UUID accountId) {
+    private CurrentAccountAccess currentCustomReviewer(UUID accountId) {
         return new CurrentAccountAccess(
                 accountId,
                 "sub-manager",
                 "parking.manager",
                 "parking.manager@example.com",
                 UUID.randomUUID(),
-                "PARKING_MANAGER",
+                "CUSTOM_APPROVER",
                 AccountStatus.ACTIVE,
                 null,
-                Set.of("ACCOUNT_READ_ALL", "ACCOUNT_UPDATE_ALL")
+                Set.of(OnboardingApprovalPolicy.REVIEW_SYSTEM_ADMIN_PERMISSION)
         );
     }
 }

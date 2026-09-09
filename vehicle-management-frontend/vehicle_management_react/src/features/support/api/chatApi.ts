@@ -15,6 +15,7 @@ export type ChatConversationType =
   | "INTERNAL_DIRECT"
   | "INTERNAL_GROUP"
   | "CUSTOMER_DIRECT"
+  | "ASSISTANT_SUPPORT"
   | "SUPPORT_TICKET"
   | "PARKING_SESSION"
   | "BILLING"
@@ -24,7 +25,7 @@ export type ChatConversationType =
 export type ChatConversationStatus = "ACTIVE" | "ARCHIVED" | "CLOSED";
 export type ChatMessageType = "TEXT" | "IMAGE" | "FILE" | "SYSTEM" | "CONTEXT_CARD" | "ACTION_CARD" | "SUPPORT_REQUEST";
 export type ChatAttachmentType = "IMAGE" | "DOCUMENT" | "AUDIO" | "PARKING_EVIDENCE" | "PAYMENT_PROOF";
-export type ChatMemberRole = "OWNER" | "MEMBER" | "ASSIGNEE" | "OBSERVER" | "CUSTOMER";
+export type ChatMemberRole = "OWNER" | "MEMBER" | "ASSIGNEE" | "OBSERVER" | "CUSTOMER" | (string & {});
 
 export type ChatConversationParticipantResponse = {
   accountId: string;
@@ -32,6 +33,8 @@ export type ChatConversationParticipantResponse = {
   email: string | null;
   fullName: string | null;
   memberRole: ChatMemberRole;
+  accountRoleCode: string | null;
+  accountRoleName: string | null;
   username: string | null;
 };
 
@@ -76,6 +79,7 @@ export type ChatMessageResponse = {
   relatedId: string | null;
   relatedSchema: string | null;
   relatedTable: string | null;
+  contextTicketId: string | null;
   replyToMessageId: string | null;
   senderAccountId: string | null;
 };
@@ -141,18 +145,31 @@ export function getChatMessages(conversationId: string, options: { beforeCreated
   );
 }
 
-export function sendChatTextMessage(conversationId: string, content: string, replyToMessageId?: string | null) {
+export function sendChatTextMessage(
+  conversationId: string,
+  content: string,
+  replyToMessageId?: string | null,
+  contextTicketId?: string | null,
+) {
   return apiClient<ApiResponse<ChatMessageResponse>>(`${apiEndpoints.operations.chat}/conversations/${conversationId}/messages`, {
-    body: { content, replyToMessageId: replyToMessageId ?? null },
+    body: { content, replyToMessageId: replyToMessageId ?? null, contextTicketId: contextTicketId ?? null },
     method: "POST",
   });
 }
 
-export async function sendChatImageMessage(conversationId: string, content: string | null, files: File[]) {
+export async function sendChatImageMessage(
+  conversationId: string,
+  content: string | null,
+  files: File[],
+  contextTicketId?: string | null,
+) {
   const formData = new FormData();
   files.forEach((file) => formData.append("files", file, file.name));
   if (content?.trim()) {
     formData.append("content", content.trim());
+  }
+  if (contextTicketId) {
+    formData.append("contextTicketId", contextTicketId);
   }
 
   return postMultipart<ApiResponse<ChatMessageResponse>>(

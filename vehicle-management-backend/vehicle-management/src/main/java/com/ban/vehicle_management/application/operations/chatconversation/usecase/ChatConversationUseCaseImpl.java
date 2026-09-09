@@ -6,6 +6,7 @@ import com.ban.vehicle_management.application.operations.chatconversation.model.
 import com.ban.vehicle_management.application.operations.chatconversation.port.in.ChatConversationPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatRealtimeEventPublisherPortOut;
+import com.ban.vehicle_management.application.operations.supportticket.service.SupportTicketChatMessageContextService;
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
 import com.ban.vehicle_management.application.storage.model.StoredFile;
 import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
@@ -21,6 +22,7 @@ import com.ban.vehicle_management.domain.operations.chatmessage.policy.ChatAttac
 import com.ban.vehicle_management.domain.operations.chatmessage.policy.ChatMessagePolicy;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatAttachmentType;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberRole;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMessageType;
@@ -48,11 +50,13 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     private static final int DEFAULT_HISTORY_LIMIT = 30;
     private static final int MAX_HISTORY_LIMIT = 100;
     private static final int ATTACHMENT_READ_URL_EXPIRE_SECONDS = 900;
+    private static final Set<String> CHAT_PARTICIPANT_PERMISSIONS = Set.of("CHAT_CONVERSATION_READ_OWN");
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final ChatConversationPortOut chatPortOut;
     private final ChatRealtimeEventPublisherPortOut realtimeEventPublisher;
     private final ChatRealtimeEventMapper realtimeEventMapper;
+    private final SupportTicketChatMessageContextService ticketMessageContextService;
     private final FileStoragePort fileStoragePort;
     private final FileAccessPort fileAccessPort;
     private final ChatConversationPolicy conversationPolicy = new ChatConversationPolicy();
@@ -64,6 +68,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
             ChatConversationPortOut chatPortOut,
             ChatRealtimeEventPublisherPortOut realtimeEventPublisher,
             ChatRealtimeEventMapper realtimeEventMapper,
+            SupportTicketChatMessageContextService ticketMessageContextService,
             FileStoragePort fileStoragePort,
             FileAccessPort fileAccessPort
     ) {
@@ -71,6 +76,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         this.chatPortOut = chatPortOut;
         this.realtimeEventPublisher = realtimeEventPublisher;
         this.realtimeEventMapper = realtimeEventMapper;
+        this.ticketMessageContextService = ticketMessageContextService;
         this.fileStoragePort = fileStoragePort;
         this.fileAccessPort = fileAccessPort;
     }
@@ -79,7 +85,9 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     @Transactional(readOnly = true)
     public List<ChatInboxItem> getInbox() {
         UUID currentAccountId = requireCurrentAccountId();
-        currentAccountPortIn.requirePermission("CHAT_CONVERSATION_READ_OWN");
+        if (!currentAccountPortIn.hasPermission("CHAT_CONVERSATION_READ_ALL")) {
+            currentAccountPortIn.requirePermission("CHAT_CONVERSATION_READ_OWN");
+        }
         return chatPortOut.findInboxConversations(currentAccountId).stream()
                 .map(conversation -> new ChatInboxItem(
                         conversation,
@@ -101,21 +109,22 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     @Transactional
     public ChatConversation createOrGetInternalDirectConversation(UUID targetAccountId) {
         UUID currentAccountId = requireCurrentAccountId();
-        currentAccountPortIn.requirePermission("CHAT_CONVERSATION_CREATE_OWN");
-        if (!chatPortOut.existsActiveInternalAccount(currentAccountId)
-                || !chatPortOut.existsActiveInternalAccount(targetAccountId)) {
-            throw new BadRequestException("Internal direct conversation requires active internal accounts");
+        requireConversationCreateAccess();
+        if (!chatPortOut.existsActiveAccountWithPermissions(currentAccountId, CHAT_PARTICIPANT_PERMISSIONS)
+                || !chatPortOut.existsActiveAccountWithPermissions(targetAccountId, CHAT_PARTICIPANT_PERMISSIONS)) {
+            throw new BadRequestException("Internal direct conversation requires active chat participants");
         }
 
-        return chatPortOut.findInternalDirectConversation(currentAccountId, targetAccountId)
+        ChatConversation conversation = chatPortOut.findInternalDirectConversation(currentAccountId, targetAccountId)
                 .orElseGet(() -> createInternalDirectConversation(currentAccountId, targetAccountId));
+        return getConversationOrThrow(conversation.getConversationId());
     }
 
     @Override
     @Transactional
     public ChatConversation createInternalGroupConversation(String title, Set<UUID> memberAccountIds) {
         UUID currentAccountId = requireCurrentAccountId();
-        currentAccountPortIn.requirePermission("CHAT_CONVERSATION_CREATE_OWN");
+        requireConversationCreateAccess();
 
         Set<UUID> participantIds = new LinkedHashSet<>();
         if (memberAccountIds != null) {
@@ -128,8 +137,8 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         conversationPolicy.initializeInternalGroup(conversation, currentAccountId, participantIds);
 
         for (UUID participantId : participantIds) {
-            if (!chatPortOut.existsActiveInternalAccount(participantId)) {
-                throw new BadRequestException("Internal group conversation requires active internal accounts");
+            if (!chatPortOut.existsActiveAccountWithPermissions(participantId, CHAT_PARTICIPANT_PERMISSIONS)) {
+                throw new BadRequestException("Internal group conversation requires active chat participants");
             }
         }
 
@@ -147,11 +156,13 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     @Transactional
     public ChatConversation createOrGetCustomerSupportConversation(UUID customerId, String title) {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        currentAccountPortIn.requirePermission("CHAT_CONVERSATION_CREATE_OWN");
+        requireCustomerDirectConversationCreateAccess();
         UUID resolvedCustomerId = resolveCustomerIdForSupportConversation(currentAccount, customerId);
 
-        return chatPortOut.findActiveCustomerSupportConversation(resolvedCustomerId)
+        ChatConversation conversation = chatPortOut.findActiveCustomerSupportConversation(resolvedCustomerId, currentAccount.accountId())
                 .orElseGet(() -> createCustomerSupportConversation(currentAccount.accountId(), resolvedCustomerId, title));
+        ensureCustomerSupportMembers(conversation, resolvedCustomerId);
+        return getConversationOrThrow(conversation.getConversationId());
     }
 
     @Override
@@ -193,15 +204,18 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
 
     @Override
     @Transactional
-    public ChatMessage sendTextMessage(UUID conversationId, String content, UUID replyToMessageId) {
+    public ChatMessage sendTextMessage(UUID conversationId, String content, UUID replyToMessageId, UUID contextTicketId) {
         UUID currentAccountId = requireCurrentAccountId();
         requireSendAccess(conversationId);
+        ChatConversation conversation = getConversationOrThrow(conversationId);
+        ticketMessageContextService.ensureCanSend(conversation, contextTicketId, currentAccountId);
 
         ChatMessage message = new ChatMessage();
         message.setConversationId(conversationId);
         message.setSenderAccountId(currentAccountId);
         message.setContent(content);
         message.setReplyToMessageId(resolveReplyMessageId(conversationId, replyToMessageId));
+        message.setContextTicketId(contextTicketId);
         messagePolicy.initializeText(message);
 
         return saveMessageAndPublish(message);
@@ -209,16 +223,19 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
 
     @Override
     @Transactional
-    public ChatMessage sendImageMessage(UUID conversationId, String content, List<MultipartFile> files) {
+    public ChatMessage sendImageMessage(UUID conversationId, String content, List<MultipartFile> files, UUID contextTicketId) {
         UUID currentAccountId = requireCurrentAccountId();
         currentAccountPortIn.requirePermission("CHAT_ATTACHMENT_CREATE_OWN");
         requireSendAccess(conversationId);
+        ChatConversation conversation = getConversationOrThrow(conversationId);
+        ticketMessageContextService.ensureCanSend(conversation, contextTicketId, currentAccountId);
         attachmentPolicy.validateImageFiles(files);
 
         ChatMessage message = new ChatMessage();
         message.setConversationId(conversationId);
         message.setSenderAccountId(currentAccountId);
         message.setContent(content);
+        message.setContextTicketId(contextTicketId);
         messagePolicy.initializeImage(message);
         ChatMessage savedMessage = saveMessageWithoutRealtime(message);
 
@@ -295,10 +312,33 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         ChatConversation conversation = new ChatConversation();
         conversation.setTitle(title);
         conversationPolicy.initializeCustomerSupport(conversation, currentAccountId, customerId);
+        conversation.setAssignedTo(currentAccountId);
         conversation.setConversationId(UUID.randomUUID());
-        ChatConversation savedConversation = chatPortOut.saveConversation(conversation);
-        saveMember(savedConversation.getConversationId(), currentAccountId, ChatMemberRole.CUSTOMER);
-        return getConversationOrThrow(savedConversation.getConversationId());
+        return chatPortOut.saveConversation(conversation);
+    }
+
+    /**
+     * A customer-support conversation is a two-sided direct conversation.  Keep the account
+     * attached to the customer as CUSTOMER and the staff owner as OWNER. Customer support
+     * chats are strictly one-to-one; never add a later viewer as a member of an existing chat.
+     */
+    private void ensureCustomerSupportMembers(
+            ChatConversation conversation,
+            UUID customerId
+    ) {
+        UUID customerAccountId = chatPortOut.findAccountIdByCustomerId(customerId)
+                .orElseThrow(() -> new NotFoundException("Customer account not found"));
+        UUID conversationId = conversation.getConversationId();
+
+        if (Objects.equals(conversation.getOwnerAccountId(), customerAccountId)) {
+            saveMember(conversationId, customerAccountId, ChatMemberRole.CUSTOMER);
+        } else {
+            if (conversation.getOwnerAccountId() != null) {
+                saveMember(conversationId, conversation.getOwnerAccountId(), ChatMemberRole.OWNER);
+            }
+            saveMember(conversationId, customerAccountId, ChatMemberRole.CUSTOMER);
+        }
+
     }
 
     private ChatConversationMember saveMember(UUID conversationId, UUID accountId, ChatMemberRole role) {
@@ -385,6 +425,19 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
                 .orElseThrow(() -> new AccessDeniedException("Access is denied"));
     }
 
+    /** CREATE_ALL includes the ability to start a conversation; some legacy manager roles only expose this scope. */
+    private void requireConversationCreateAccess() {
+        if (currentAccountPortIn.hasPermission("CHAT_CONVERSATION_CREATE_OWN")
+                || currentAccountPortIn.hasPermission("CHAT_CONVERSATION_CREATE_ALL")) {
+            return;
+        }
+        currentAccountPortIn.requirePermission("CHAT_CONVERSATION_CREATE_OWN");
+    }
+
+    private void requireCustomerDirectConversationCreateAccess() {
+        currentAccountPortIn.requirePermission("CHAT_CONVERSATION_CREATE_CUSTOMER_DIRECT");
+    }
+
     private void requireSendAccess(UUID conversationId) {
         currentAccountPortIn.requirePermission("CHAT_MESSAGE_SEND_OWN");
         ChatConversation conversation = getConversationOrThrow(conversationId);
@@ -393,6 +446,11 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     }
 
     private void requireReadAccess(ChatConversation conversation) {
+        if (conversation.getConversationType() == com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType.ASSISTANT_SUPPORT) {
+            currentAccountPortIn.requirePermission("CHAT_CONVERSATION_READ_OWN");
+            requireActiveMember(conversation.getConversationId(), requireCurrentAccountId());
+            return;
+        }
         if (currentAccountPortIn.hasPermission("CHAT_CONVERSATION_READ_ALL")) {
             return;
         }
@@ -401,6 +459,10 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     }
 
     private void requireManageMembersAccess(ChatConversation conversation) {
+        if (conversation.getConversationType() == ChatConversationType.ASSISTANT_SUPPORT
+                || conversation.getConversationType() == ChatConversationType.CUSTOMER_DIRECT) {
+            throw new BadRequestException("Membership of private support conversations is managed by the support workflow");
+        }
         UUID currentAccountId = requireCurrentAccountId();
         if (currentAccountPortIn.hasPermission("CHAT_CONVERSATION_UPDATE_ALL")) {
             return;

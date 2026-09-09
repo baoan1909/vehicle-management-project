@@ -68,6 +68,13 @@ export type OnboardingApprovalFilters = {
   status?: OnboardingApprovalStatus;
 };
 
+export type OnboardingApprovalSummaryResponse = {
+  totalPending: number;
+  systemAdminPending: number;
+  internalEmployeePending: number;
+  customerPending: number;
+};
+
 const endpointByKind: Record<OnboardingApprovalKind, string> = {
   customer: apiEndpoints.operations.customerOnboardingApprovals,
   "internal-employee": apiEndpoints.operations.internalEmployeeOnboardingApprovals,
@@ -87,6 +94,13 @@ export async function fetchOnboardingApprovals(kind: OnboardingApprovalKind, fil
     `${endpointByKind[kind]}${toQueryString(filters)}`,
   );
   return response.data ?? [];
+}
+
+export async function fetchOnboardingApprovalSummary() {
+  const response = await apiClient<ApiResponse<OnboardingApprovalSummaryResponse>>(
+    apiEndpoints.operations.onboardingApprovalSummary,
+  );
+  return response.data;
 }
 
 export async function reviewOnboardingApproval(

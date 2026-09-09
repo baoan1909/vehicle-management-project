@@ -1,10 +1,12 @@
 package com.ban.vehicle_management.application.notification.notification.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.application.notification.broadcastannouncement.port.out.BroadcastAnnouncementPortOut;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationCommandMapper;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationRealtimeMessageMapper;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationRecipientCriteria;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.notification.notification.port.out.NotificationPortOut;
@@ -32,6 +34,7 @@ public class NotificationUseCaseImpl implements NotificationPortIn {
     private static final int MAX_LIMIT = 100;
 
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final AccountAuthorizationPortOut accountAuthorizationPortOut;
     private final NotificationPortOut notificationPortOut;
     private final BroadcastAnnouncementPortOut broadcastAnnouncementPortOut;
     private final NotificationRealtimeEventPublisherPortOut realtimeEventPublisher;
@@ -41,6 +44,7 @@ public class NotificationUseCaseImpl implements NotificationPortIn {
 
     public NotificationUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
+            AccountAuthorizationPortOut accountAuthorizationPortOut,
             NotificationPortOut notificationPortOut,
             BroadcastAnnouncementPortOut broadcastAnnouncementPortOut,
             NotificationRealtimeEventPublisherPortOut realtimeEventPublisher,
@@ -48,6 +52,7 @@ public class NotificationUseCaseImpl implements NotificationPortIn {
             NotificationCommandMapper notificationCommandMapper
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
+        this.accountAuthorizationPortOut = accountAuthorizationPortOut;
         this.notificationPortOut = notificationPortOut;
         this.broadcastAnnouncementPortOut = broadcastAnnouncementPortOut;
         this.realtimeEventPublisher = realtimeEventPublisher;
@@ -78,12 +83,20 @@ public class NotificationUseCaseImpl implements NotificationPortIn {
     @Transactional
     public List<Notification> sendBroadcastWebNotification(BroadcastNotificationCommand command) {
         BroadcastNotificationCommand normalizedCommand = notificationPolicy.normalizeBroadcastCommand(command);
-        List<UUID> recipientAccountIds = notificationPortOut.findActiveAccountIdsForBroadcast(
+        List<UUID> candidateAccountIds = notificationPortOut.findActiveAccountIdsForBroadcast(
                 normalizedCommand.allActiveAccounts(),
                 normalizedCommand.roleCodes().stream().toList(),
                 normalizedCommand.accountIds().stream().toList()
         );
+        List<UUID> recipientAccountIds = filterEligibleRecipients(
+                candidateAccountIds,
+                normalizedCommand.recipientCriteria()
+        );
         if (recipientAccountIds.isEmpty()) {
+            if (normalizedCommand.recipientCriteria() != null
+                    && normalizedCommand.recipientCriteria().allowNoRecipients()) {
+                return List.of();
+            }
             throw new BadRequestException("Broadcast notification has no eligible active recipients");
         }
 
@@ -101,6 +114,28 @@ public class NotificationUseCaseImpl implements NotificationPortIn {
                 .forEach(realtimeEventPublisher::publish)
         );
         return savedNotifications;
+    }
+
+    private List<UUID> filterEligibleRecipients(
+            List<UUID> candidateAccountIds,
+            NotificationRecipientCriteria criteria
+    ) {
+        if (criteria == null) {
+            return candidateAccountIds;
+        }
+        return candidateAccountIds.stream()
+                .distinct()
+                .filter(accountId -> !criteria.excludedAccountIds().contains(accountId))
+                .filter(accountId -> accountAuthorizationPortOut.findByAccountId(accountId)
+                        .filter(access -> !criteria.requireBusinessAccess() || access.canUseBusinessPermissions())
+                        .filter(access -> hasAnyPermission(access, criteria.requiredAnyPermissionCodes()))
+                        .isPresent())
+                .toList();
+    }
+
+    private boolean hasAnyPermission(CurrentAccountAccess access, Set<String> requiredPermissionCodes) {
+        return requiredPermissionCodes.isEmpty()
+                || requiredPermissionCodes.stream().anyMatch(access.getEffectivePermissionCodes()::contains);
     }
 
     @Override

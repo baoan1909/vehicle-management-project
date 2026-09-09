@@ -12,6 +12,7 @@ import {
   type NotificationUserResponse,
 } from "@/features/notifications/api/notificationApi";
 import { subscribeNotificationRealtime } from "@/features/notifications/api/notificationRealtime";
+import { publishNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { cn } from "@/lib/cn";
 
 type NotificationBellProps = {
@@ -154,10 +155,18 @@ function normalizeNotificationTarget(notification: NotificationUserResponse, rol
     return "/admin/price-plans";
   }
   if (notification.notificationType.includes("ONBOARDING") || notification.notificationType.includes("EMPLOYEE") || notification.notificationType.includes("SYSTEM_ADMIN")) {
-    return role === "CUSTOMER" ? "/customer/profile" : "/admin/account";
+    if (role === "CUSTOMER") return "/customer/profile";
+    if (notification.relatedTable === "accounts") return "/admin/account?tab=onboarding&kind=system-admin";
+    if (notification.relatedTable === "employees") return "/admin/account?tab=onboarding&kind=internal-employee";
+    if (notification.relatedTable === "customers") return "/admin/account?tab=onboarding&kind=customer";
+    return "/admin/profile";
   }
   if (notification.notificationType.startsWith("ACCOUNT")) {
-    return role === "CUSTOMER" ? "/customer/profile" : "/admin/account";
+    if (role === "CUSTOMER") return "/customer/profile";
+    if (notification.relatedTable === "accounts") return "/admin/account?tab=onboarding&kind=system-admin";
+    if (notification.relatedTable === "employees") return "/admin/account?tab=onboarding&kind=internal-employee";
+    if (notification.relatedTable === "customers") return "/admin/account?tab=onboarding&kind=customer";
+    return "/admin/profile";
   }
 
   return null;
@@ -198,6 +207,7 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
 
     return subscribeNotificationRealtime({
       onNotification: (notification) => {
+        publishNotificationReceived(notification);
         toast.notification(
           notification.message || "Bạn có thông báo mới.",
           notification.title || "Thông báo mới",

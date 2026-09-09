@@ -6,6 +6,7 @@ import { logoutCurrentUser } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
 import { preconnectKeycloakLoginOrigin, prepareKeycloakLoginUrl } from "@/features/auth/api/authApi";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
+import { ChatInboxButton } from "@/features/support/components/ChatInboxButton";
 import { cn } from "@/lib/cn";
 import { FullPageCarLoader } from "@/shared/components/ui/PageTransitionLoader";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta } from "@/shared/utils/accountStatus";
@@ -207,6 +208,7 @@ export function ClientNavbar() {
         <div className="tw-flex tw-items-center tw-justify-end tw-gap-3 tw-justify-self-end max-[640px]:tw-gap-2">
           {user ? (
             <>
+              <ChatInboxButton />
               <NotificationBell variant="admin" />
               <div className="tw-relative" ref={profileRef}>
                 <button

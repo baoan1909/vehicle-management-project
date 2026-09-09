@@ -8,8 +8,20 @@ public record SendNotificationCommand(
         NotificationType notificationType,
         String title,
         String message,
+        String redirectUrl,
         String relatedSchema,
         String relatedTable,
         UUID relatedId
 ) {
+    public SendNotificationCommand(
+            UUID accountId,
+            NotificationType notificationType,
+            String title,
+            String message,
+            String relatedSchema,
+            String relatedTable,
+            UUID relatedId
+    ) {
+        this(accountId, notificationType, title, message, null, relatedSchema, relatedTable, relatedId);
+    }
 }

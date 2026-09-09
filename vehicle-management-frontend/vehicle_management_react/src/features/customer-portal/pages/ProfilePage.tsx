@@ -20,6 +20,7 @@ import { requestPasswordReset } from "@/features/auth/api/authApi";
 import { useAuth } from "@/core/auth/useAuth";
 import { completeMyAccountProfile, uploadMyAccountAvatar, type UpdateAccountProfileRequest } from "@/features/iam/api/accountProfileApi";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
+import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import {
   fetchMyOnboardingApproval,
   resubmitMyOnboardingApproval,
@@ -174,6 +175,23 @@ export function ProfilePage() {
       ignore = true;
     };
   }, []);
+
+  useEffect(() => subscribeNotificationReceived((notification) => {
+    if (!["CUSTOMER_ONBOARDING_APPROVED", "CUSTOMER_ONBOARDING_REJECTED"].includes(notification.notificationType)) return;
+
+    void getCustomerPortalProfile().then(async (nextProfile) => {
+      setProfile(nextProfile);
+      setForm(profileToForm(nextProfile));
+      setUser((currentUser) => currentUser
+        ? mergeCurrentUserWithAccountProfile(currentUser, nextProfile)
+        : currentUser);
+      try {
+        setLatestApproval(await fetchMyOnboardingApproval("customer"));
+      } catch {
+        setLatestApproval(null);
+      }
+    });
+  }), [setUser]);
 
   const displayName = form.fullName || profile?.account?.username || "Khách hàng";
   const avatarUrl = profile?.profile?.avatarUrl?.trim();

@@ -1,12 +1,18 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { getLogoutRedirectPath, isLogoutRedirectGuardActive } from "@/core/auth/logout";
-import { getCurrentUserFromAccessToken, saveAuthTokens } from "@/core/auth/session";
+import {
+  clearAuthTokens,
+  getCurrentUserFromAccessToken,
+  getIdentityProviderFromAccessToken,
+  saveAuthTokens,
+} from "@/core/auth/session";
 import { useAuth } from "@/core/auth/useAuth";
-import { getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
+import { bootstrapSocialAccount, getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import type { CurrentUser } from "@/shared/types/common";
 import {
+  buildKeycloakLogoutUrl,
   exchangeKeycloakAuthorizationCode,
   prepareKeycloakLoginUrl,
   registerAccount,
@@ -21,7 +27,7 @@ import {
   validateRegisterValues,
   type RegisterFieldErrors,
 } from "@/features/auth/utils/authValidation";
-import { Button } from "@/components/ui";
+import { Button, useToast } from "@/components/ui";
 import { FullPageCarLoader } from "@/shared/components/ui/PageTransitionLoader";
 
 type AuthMode = "login" | "register" | "forgot" | "otp" | "recover";
@@ -63,6 +69,12 @@ async function resolveLoggedInUser(accessToken: string) {
   const tokenUser = getCurrentUserFromAccessToken(accessToken);
   if (!tokenUser) return null;
 
+  if (getIdentityProviderFromAccessToken(accessToken) === "google") {
+    await bootstrapSocialAccount();
+    const response = await getMyAccountProfile();
+    return mergeCurrentUserWithAccountProfile(tokenUser, response.data);
+  }
+
   try {
     const response = await getMyAccountProfile();
     return mergeCurrentUserWithAccountProfile(tokenUser, response.data);
@@ -97,12 +109,15 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { setUser } = useAuth();
+  const toast = useToast();
   const [isExchangingCode, setIsExchangingCode] = useState(false);
+  const [isReturningToLogin, setIsReturningToLogin] = useState(false);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get("code");
-    if (!code || isExchangingCode) return;
+    const returnedState = searchParams.get("state");
+    if (!code || isExchangingCode || isReturningToLogin) return;
     if (activeAuthorizationCode === code) return;
     if (sessionStorage.getItem(processedAuthorizationCodeKey) === code) {
       navigate("/login", { replace: true });
@@ -114,9 +129,11 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
 
     async function exchangeCode() {
       setIsExchangingCode(true);
+      let idToken: string | undefined;
 
       try {
-        const tokenResponse = await exchangeKeycloakAuthorizationCode(authorizationCode);
+        const tokenResponse = await exchangeKeycloakAuthorizationCode(authorizationCode, returnedState);
+        idToken = tokenResponse.id_token;
         saveAuthTokens({
           accessToken: tokenResponse.access_token,
           refreshToken: tokenResponse.refresh_token,
@@ -129,19 +146,30 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
       } catch (error) {
         console.error(error);
         activeAuthorizationCode = "";
-        navigate("/login", { replace: true });
+        const message = error instanceof Error ? error.message : "Không thể hoàn tất đăng nhập Google.";
+        clearAuthTokens();
+        toast.error(message, "Đăng nhập không thành công");
+        setIsReturningToLogin(true);
+
+        window.setTimeout(() => {
+          if (idToken) {
+            window.location.replace(buildKeycloakLogoutUrl(idToken, "/login"));
+            return;
+          }
+          navigate("/login", { replace: true });
+        }, 900);
       } finally {
         setIsExchangingCode(false);
       }
     }
 
     void exchangeCode();
-  }, [isExchangingCode, location.search, navigate, setUser]);
+  }, [isExchangingCode, isReturningToLogin, location.search, navigate, setUser, toast]);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get("code");
-    if (code) return;
+    if (code || isReturningToLogin) return;
 
     async function redirectToKeycloak() {
       try {
@@ -153,7 +181,7 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
     }
 
     void redirectToKeycloak();
-  }, [location.search]);
+  }, [isReturningToLogin, location.search]);
 
   return <FullPageCarLoader label={label} />;
 }

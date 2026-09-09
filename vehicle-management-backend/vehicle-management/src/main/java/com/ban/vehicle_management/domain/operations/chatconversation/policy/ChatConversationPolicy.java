@@ -35,6 +35,30 @@ public class ChatConversationPolicy {
         conversation.setCustomerId(customerId);
     }
 
+    /**
+     * Personal, long-lived support-assistant conversation. Staff never become participants
+     * of this conversation; human assistance uses a separate CUSTOMER_DIRECT conversation.
+     */
+    public void initializeAssistantSupport(ChatConversation conversation, UUID customerAccountId, UUID customerId) {
+        if (customerId == null || customerAccountId == null) {
+            throw new BadRequestException("customerId and customerAccountId must not be null");
+        }
+        initialize(conversation, ChatConversationType.ASSISTANT_SUPPORT, customerAccountId);
+        conversation.setCustomerId(customerId);
+    }
+
+    public void initializeSupportTicket(ChatConversation conversation, UUID ownerAccountId, UUID customerId, UUID supportTicketId) {
+        if (customerId == null || supportTicketId == null) {
+            throw new BadRequestException("customerId and supportTicketId must not be null");
+        }
+        initialize(conversation, ChatConversationType.SUPPORT_TICKET, ownerAccountId);
+        conversation.setCustomerId(customerId);
+        conversation.setSupportTicketId(supportTicketId);
+        conversation.setRelatedSchema("operations");
+        conversation.setRelatedTable("support_tickets");
+        conversation.setRelatedId(supportTicketId);
+    }
+
     public void ensureCanReceiveUserMessage(ChatConversation conversation) {
         if (conversation == null) {
             throw new BadRequestException("conversation must not be null");

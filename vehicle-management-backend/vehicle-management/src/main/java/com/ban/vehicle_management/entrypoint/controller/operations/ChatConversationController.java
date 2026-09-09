@@ -154,7 +154,8 @@ public class ChatConversationController {
         ChatMessage message = chatConversationPortIn.sendTextMessage(
                 conversationId,
                 request.content(),
-                request.replyToMessageId()
+                request.replyToMessageId(),
+                request.contextTicketId()
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Chat message sent successfully",
@@ -169,9 +170,10 @@ public class ChatConversationController {
     public ResponseEntity<ApiResponse<ChatMessageUserResponse>> sendImageMessage(
             @PathVariable UUID conversationId,
             @RequestPart("files") List<MultipartFile> files,
-            @RequestParam(required = false) String content
+            @RequestParam(required = false) String content,
+            @RequestParam(required = false) UUID contextTicketId
     ) {
-        ChatMessage message = chatConversationPortIn.sendImageMessage(conversationId, content, files);
+        ChatMessage message = chatConversationPortIn.sendImageMessage(conversationId, content, files, contextTicketId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Chat image message sent successfully",
                 chatConversationApiMapper.toMessageUserResponse(message)

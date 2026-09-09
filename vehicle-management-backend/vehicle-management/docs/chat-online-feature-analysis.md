@@ -1142,6 +1142,15 @@ Phase đầu nên làm nhỏ nhưng chắc:
 - `operations.chat_messages`
 - `operations.chat_message_attachments`
 - REST API cho inbox/history/send/read/upload
+
+### Permission-first rule for Support Widget
+
+- Do not check role codes in business or UI logic. Conditions such as `role == CUSTOMER`, `EMPLOYEE`, `PARKING_MANAGER`, or `SYSTEM_ADMIN` are prohibited for this feature.
+- For an authenticated account, display/access is controlled only by `SUPPORT_WIDGET_ACCESS_OWN`. Default role assignment is configuration in `iam.role_permissions`, not a code condition.
+- The default customer role may receive this permission; staff roles do not. A future role can use the widget by receiving the same permission without code changes.
+- An unauthenticated visitor is a public session, not a customer role. Public access must use a dedicated visitor-session endpoint/configuration and must never grant or simulate `CHAT_*_OWN` permissions.
+- A public widget that sends messages requires visitor-session tokens, rate limiting, CAPTCHA/anti-spam, and audit. It cannot call an API that requires `CurrentAccountAccess` directly.
+- Widget access does not replace chat/ticket authorization. Reading, sending, attachments, and ticket operations continue to require their existing `CHAT_*` and `SUPPORT_TICKET_*` permissions.
 - WebSocket/STOMP cho realtime
 - RabbitMQ fanout cho multi-instance
 - MinIO private cho ảnh

@@ -21,6 +21,7 @@ public class ChatMessageUserResponse {
     private String relatedSchema;
     private String relatedTable;
     private UUID relatedId;
+    private UUID contextTicketId;
     private boolean deleted;
     private String deletedAt;
     private String editedAt;

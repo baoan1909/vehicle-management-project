@@ -3,6 +3,7 @@ package com.ban.vehicle_management.infrastructure.security.keycloak.adapter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.ban.vehicle_management.application.iam.account.model.command.CreateProvisionedAccountCommand;
 import com.ban.vehicle_management.application.iam.account.model.command.RegisterAccountCommand;
+import com.ban.vehicle_management.application.iam.account.model.security.FederatedIdentityInfo;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -257,6 +258,22 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
             return false;
         } catch (HttpClientErrorException exception) {
             throw new BadRequestException("Failed to read Keycloak user verification state");
+        }
+    }
+
+    @Override
+    public List<FederatedIdentityInfo> findFederatedIdentities(String keycloakUserId) {
+        try {
+            FederatedIdentityInfo[] identities = restClient.get()
+                    .uri(baseUrl + "/admin/realms/" + realm + "/users/" + keycloakUserId + "/federated-identity")
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + getAdminAccessToken())
+                    .retrieve()
+                    .body(FederatedIdentityInfo[].class);
+            return identities == null ? List.of() : List.of(identities);
+        } catch (HttpClientErrorException.NotFound exception) {
+            return List.of();
+        } catch (HttpClientErrorException exception) {
+            throw new BadRequestException("Failed to read Keycloak federated identities");
         }
     }
 

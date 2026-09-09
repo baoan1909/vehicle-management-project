@@ -501,7 +501,7 @@
     "consentRequired" : false,
     "standardFlowEnabled" : false,
     "implicitFlowEnabled" : false,
-    "directAccessGrantsEnabled" : true,
+    "directAccessGrantsEnabled" : false,
     "serviceAccountsEnabled" : false,
     "publicClient" : true,
     "frontchannelLogout" : false,
@@ -724,7 +724,7 @@
     "consentRequired" : false,
     "standardFlowEnabled" : true,
     "implicitFlowEnabled" : false,
-    "directAccessGrantsEnabled" : true,
+    "directAccessGrantsEnabled" : false,
     "serviceAccountsEnabled" : false,
     "publicClient" : true,
     "frontchannelLogout" : true,
@@ -775,6 +775,22 @@
         "lightweight.claim" : "false",
         "access.token.claim" : "true",
         "claim.name" : "account_id",
+        "jsonType.label" : "String"
+      }
+    }, {
+      "id" : "e0195409-40aa-4c61-bf65-4b7e8d61ed5f",
+      "name" : "identity-provider",
+      "protocol" : "openid-connect",
+      "protocolMapper" : "oidc-usersessionmodel-note-mapper",
+      "consentRequired" : false,
+      "config" : {
+        "user.session.note" : "identity_provider",
+        "introspection.token.claim" : "true",
+        "userinfo.token.claim" : "true",
+        "id.token.claim" : "true",
+        "lightweight.claim" : "false",
+        "access.token.claim" : "true",
+        "claim.name" : "identity_provider",
         "jsonType.label" : "String"
       }
     } ],
@@ -1446,7 +1462,30 @@
   "enabledEventTypes" : [ ],
   "adminEventsEnabled" : false,
   "adminEventsDetailsEnabled" : false,
-  "identityProviders" : [ ],
+  "identityProviders" : [ {
+    "alias" : "google",
+    "displayName" : "Google",
+    "internalId" : "db34de1b-f17e-4e1f-a809-5a04acb8ed17",
+    "providerId" : "google",
+    "enabled" : true,
+    "updateProfileFirstLoginMode" : "on",
+    "trustEmail" : true,
+    "storeToken" : false,
+    "addReadTokenRoleOnCreate" : false,
+    "authenticateByDefault" : false,
+    "linkOnly" : false,
+    "firstBrokerLoginFlowAlias" : "social customer first broker login",
+    "config" : {
+      "clientId" : "${GOOGLE_CLIENT_ID}",
+      "clientSecret" : "${GOOGLE_CLIENT_SECRET}",
+      "defaultScope" : "openid profile email",
+      "prompt" : "select_account",
+      "syncMode" : "IMPORT",
+      "hideOnLoginPage" : "false",
+      "trustEmail" : "true",
+      "storeToken" : "false"
+    }
+  } ],
   "identityProviderMappers" : [ ],
   "components" : {
     "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy" : [ {
@@ -1998,6 +2037,30 @@
       "userSetupAllowed" : false
     } ]
   }, {
+    "id" : "07d8d14d-61de-40d1-9b14-eb252f6b527e",
+    "alias" : "social customer first broker login",
+    "description" : "Creates a unique broker user for CUSTOMER self-registration. Existing accounts are never linked.",
+    "providerId" : "basic-flow",
+    "topLevel" : true,
+    "builtIn" : false,
+    "authenticationExecutions" : [ {
+      "authenticatorConfig" : "review profile config",
+      "authenticator" : "idp-review-profile",
+      "authenticatorFlow" : false,
+      "requirement" : "REQUIRED",
+      "priority" : 10,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    }, {
+      "authenticatorConfig" : "create unique user config",
+      "authenticator" : "idp-create-user-if-unique",
+      "authenticatorFlow" : false,
+      "requirement" : "REQUIRED",
+      "priority" : 20,
+      "autheticatorFlow" : false,
+      "userSetupAllowed" : false
+    } ]
+  }, {
     "id" : "4af7bdd3-f4a1-4336-977d-a1185a55d8a7",
     "alias" : "first broker login",
     "description" : "Actions taken after first broker login with identity provider account, which is not yet linked to any Keycloak account",
@@ -2270,7 +2333,7 @@
     "alias" : "idp_link",
     "name" : "Linking Identity Provider",
     "providerId" : "idp_link",
-    "enabled" : true,
+    "enabled" : false,
     "defaultAction" : false,
     "priority" : 120,
     "config" : { }

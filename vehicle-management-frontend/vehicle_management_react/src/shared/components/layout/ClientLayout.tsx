@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { AdminAnnouncementTicker } from "@/features/notifications/components/AdminAnnouncementTicker";
 import { cn } from "@/lib/cn";
 import { ClientNavbar } from "./ClientNavbar";
+import { SupportFloatingWidget } from "@/features/support/components/SupportFloatingWidget";
 
 export function ClientLayout({ children }: PropsWithChildren) {
   const location = useLocation();
@@ -28,6 +29,7 @@ export function ClientLayout({ children }: PropsWithChildren) {
       >
         {children}
       </div>
+      <SupportFloatingWidget />
     </div>
   );
 }

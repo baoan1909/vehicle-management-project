@@ -1,26 +1,30 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.operations;
 
+import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketPortOut;
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
 import com.ban.vehicle_management.infrastructure.mapper.operations.SupportTicketPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.SupportTicketEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.SupportTicketCategoryRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.SupportTicketRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.operations.SupportTicketSpecifications;
-import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
 public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
 
-    private static final List<String> ASSIGNABLE_ROLE_CODES = List.of("EMPLOYEE", "PARKING_MANAGER");
+    private static final Set<String> ASSIGNABLE_ACCOUNT_PERMISSIONS = Set.of(
+            "SUPPORT_TICKET_READ_ASSIGNED",
+            "SUPPORT_TICKET_PROCESS_ASSIGNED",
+            "SUPPORT_TICKET_RESPOND_ASSIGNED"
+    );
     private static final List<SupportTicketStatus> ACTIVE_WORKFLOW_STATUSES = List.of(
             SupportTicketStatus.OPEN,
             SupportTicketStatus.IN_PROGRESS,
@@ -29,18 +33,18 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
 
     private final SupportTicketRepository supportTicketRepository;
     private final SupportTicketCategoryRepository categoryRepository;
-    private final AccountRepository accountRepository;
+    private final AccountAuthorizationPortOut accountAuthorizationPortOut;
     private final SupportTicketPersistenceMapper supportTicketPersistenceMapper;
 
     public SupportTicketPersistenceAdapter(
             SupportTicketRepository supportTicketRepository,
             SupportTicketCategoryRepository categoryRepository,
-            AccountRepository accountRepository,
+            AccountAuthorizationPortOut accountAuthorizationPortOut,
             SupportTicketPersistenceMapper supportTicketPersistenceMapper
     ) {
         this.supportTicketRepository = supportTicketRepository;
         this.categoryRepository = categoryRepository;
-        this.accountRepository = accountRepository;
+        this.accountAuthorizationPortOut = accountAuthorizationPortOut;
         this.supportTicketPersistenceMapper = supportTicketPersistenceMapper;
     }
 
@@ -82,11 +86,21 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
 
     @Override
     public boolean existsAssignableAccountById(UUID accountId) {
-        return accountRepository.existsAssignableSupportTicketAccount(
-                accountId,
-                AccountStatus.ACTIVE,
-                ASSIGNABLE_ROLE_CODES
-        );
+        return accountAuthorizationPortOut.findByAccountId(accountId)
+                .filter(access -> access.canUseBusinessPermissions())
+                .map(access -> access.getEffectivePermissionCodes().containsAll(ASSIGNABLE_ACCOUNT_PERMISSIONS))
+                .orElse(false);
+    }
+
+    @Override
+    public Optional<SupportTicket> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey) {
+        return supportTicketRepository.findByCustomerIdAndIdempotencyKey(customerId, idempotencyKey)
+                .map(this::mapToDomain);
+    }
+
+    @Override
+    public void lockCustomerSupport(UUID customerId) {
+        supportTicketRepository.lockCustomerSupport(customerId);
     }
 
     @Override
@@ -96,6 +110,16 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
                 categoryId,
                 ACTIVE_WORKFLOW_STATUSES
         );
+    }
+
+    @Override
+    public Optional<SupportTicket> findActiveWorkflowByCustomerIdAndCategoryId(UUID customerId, UUID categoryId) {
+        return supportTicketRepository.findFirstByCustomerIdAndCategoryIdAndStatusInOrderByCreatedAtDesc(
+                        customerId,
+                        categoryId,
+                        ACTIVE_WORKFLOW_STATUSES
+                )
+                .map(this::mapToDomain);
     }
 
     private SupportTicket mapToDomain(SupportTicketEntity entity) {

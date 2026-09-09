@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Badge, Button, Card, DatePicker, EntityAvatar, InfoBanner, Input, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
-import { openSupportCenterConversation } from "@/features/support";
+import { createAndOpenCustomerSupportConversation } from "@/features/support";
 import { cn } from "@/lib/cn";
 
 import {
@@ -408,6 +408,18 @@ function Field({ children, label }: { children: ReactNode; label: string }) {
 
 export function CustomerListPage() {
   const toast = useToast();
+
+  async function handleContactCustomer(customer: CustomerAdminResponse) {
+    try {
+      await createAndOpenCustomerSupportConversation({
+        customerId: customer.customerId,
+        customerName: getCustomerName(customer),
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể tạo hội thoại với khách hàng.", "Liên hệ thất bại");
+    }
+  }
+
   const [activeSegment, setActiveSegment] = useState<SegmentValue>("all");
   const [customers, setCustomers] = useState<CustomerAdminResponse[]>([]);
   const [subscriptionCards, setSubscriptionCards] = useState<CustomerSubscriptionCardResponse[]>([]);
@@ -820,13 +832,7 @@ export function CustomerListPage() {
                   <CustomerListItem
                     key={customer.customerId}
                     customer={customer}
-                    onContact={() =>
-                      openSupportCenterConversation({
-                        participantId: getCustomerCode(customer),
-                        participantName: getCustomerName(customer),
-                        participantType: "customer",
-                      })
-                    }
+                    onContact={() => void handleContactCustomer(customer)}
                     selected={customer.customerId === selectedCustomer?.customerId}
                     onSelect={() => setSelectedCustomerId(customer.customerId)}
                   />
@@ -898,13 +904,7 @@ export function CustomerListPage() {
                     <Button
                       size="sm"
                       variant="primary"
-                      onClick={() =>
-                        openSupportCenterConversation({
-                          participantId: selectedCode,
-                          participantName: selectedName,
-                          participantType: "customer",
-                        })
-                      }
+                      onClick={() => void handleContactCustomer(selectedCustomer)}
                     >
                       <i className="far fa-comment-dots" />
                       Liên hệ

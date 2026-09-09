@@ -1,15 +1,19 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { Badge, Button, Card, InfoBanner, SearchInput, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import {
   fetchOnboardingApprovals,
+  fetchOnboardingApprovalSummary,
   reviewOnboardingApproval,
   type OnboardingApprovalKind,
   type OnboardingApprovalResponse,
   type OnboardingApprovalStatus,
+  type OnboardingApprovalSummaryResponse,
 } from "@/features/iam/api/onboardingApprovalApi";
+import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { cn } from "@/lib/cn";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 
@@ -17,8 +21,7 @@ type ApprovalTab = {
   icon: string;
   kind: OnboardingApprovalKind;
   label: string;
-  readPermissions: string[];
-  writePermissions: string[];
+  permissions: string[];
 };
 
 type ReviewModalState = {
@@ -30,6 +33,7 @@ type BadgeTone = "primary" | "success" | "warning" | "danger" | "neutral";
 
 type OnboardingApprovalWorkspaceProps = {
   embedded?: boolean;
+  onPendingSummaryChange?: (summary: OnboardingApprovalSummaryResponse) => void;
 };
 
 const approvalTabs: ApprovalTab[] = [
@@ -37,22 +41,22 @@ const approvalTabs: ApprovalTab[] = [
     icon: "fas fa-user-shield",
     kind: "system-admin",
     label: "System Admin",
-    readPermissions: ["ACCOUNT_READ_ALL"],
-    writePermissions: ["ACCOUNT_UPDATE_ALL"],
+    permissions: ["ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL"],
   },
   {
     icon: "fas fa-id-badge",
     kind: "internal-employee",
     label: "Nhân sự nội bộ",
-    readPermissions: ["ACCOUNT_READ_ALL", "EMPLOYEE_READ_ALL"],
-    writePermissions: ["ACCOUNT_UPDATE_ALL", "EMPLOYEE_UPDATE_ALL"],
+    permissions: [
+      "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL",
+      "ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL",
+    ],
   },
   {
     icon: "fas fa-user-check",
     kind: "customer",
     label: "Khách hàng",
-    readPermissions: ["CUSTOMER_READ_ALL"],
-    writePermissions: ["CUSTOMER_UPDATE_ALL"],
+    permissions: ["ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL"],
   },
 ];
 
@@ -63,6 +67,23 @@ const statusOptions: Array<{ label: string; value: OnboardingApprovalStatus | "a
   { label: "Từ chối", value: "REJECTED" },
   { label: "Đã hủy", value: "CANCELLED" },
 ];
+
+const emptyPendingSummary: OnboardingApprovalSummaryResponse = {
+  totalPending: 0,
+  systemAdminPending: 0,
+  internalEmployeePending: 0,
+  customerPending: 0,
+};
+
+function isOnboardingApprovalKind(value: string | null): value is OnboardingApprovalKind {
+  return value === "system-admin" || value === "internal-employee" || value === "customer";
+}
+
+function pendingCountForKind(summary: OnboardingApprovalSummaryResponse, kind: OnboardingApprovalKind) {
+  if (kind === "system-admin") return summary.systemAdminPending;
+  if (kind === "customer") return summary.customerPending;
+  return summary.internalEmployeePending;
+}
 
 function approvalStatusTone(status?: string | null): BadgeTone {
   if (status === "APPROVED") return "success";
@@ -114,23 +135,17 @@ function getBusinessStatus(item: OnboardingApprovalResponse, kind: OnboardingApp
   };
 }
 
-function canOperatorSeeTab(tab: ApprovalTab, role?: string) {
-  if (tab.kind === "customer") return role === "PARKING_MANAGER";
-  if (tab.kind === "system-admin") return role === "SYSTEM_ADMIN";
-  if (tab.kind === "internal-employee") return role === "SYSTEM_ADMIN" || role === "PARKING_MANAGER";
-  return false;
-}
-
-function canReviewItem(item: OnboardingApprovalResponse, tab: ApprovalTab, role?: string, currentAccountId?: string) {
+function canReviewItem(item: OnboardingApprovalResponse, tab: ApprovalTab, currentAccountId?: string) {
   if (item.request?.approvalRequestStatus !== "PENDING") return false;
   if (tab.kind === "system-admin" && item.account?.accountId && item.account.accountId === currentAccountId) return false;
-  if (tab.kind === "customer") return role === "PARKING_MANAGER";
-  if (tab.kind === "system-admin") return role === "SYSTEM_ADMIN";
-  if (tab.kind === "internal-employee") {
-    if (role === "SYSTEM_ADMIN") return item.account?.roleCode === "PARKING_MANAGER";
-    if (role === "PARKING_MANAGER") return item.account?.roleCode === "EMPLOYEE";
-  }
-  return false;
+  return true;
+}
+
+function reviewPermissionsForItem(item: OnboardingApprovalResponse, tab: ApprovalTab) {
+  if (tab.kind !== "internal-employee") return tab.permissions;
+  return item.account?.roleCode === "PARKING_MANAGER"
+    ? ["ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL"]
+    : ["ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL"];
 }
 
 function Metric({ icon, label, value }: { icon: string; label: string; value: number }) {
@@ -368,11 +383,15 @@ function ReviewModal({
   );
 }
 
-export function OnboardingApprovalWorkspace({ embedded = false }: OnboardingApprovalWorkspaceProps = {}) {
+export function OnboardingApprovalWorkspace({ embedded = false, onPendingSummaryChange }: OnboardingApprovalWorkspaceProps = {}) {
   const { user } = useAuth();
   const toast = useToast();
-  const visibleTabs = useMemo(() => approvalTabs.filter((tab) => canOperatorSeeTab(tab, user?.role) && hasAnyPermission(user, tab.readPermissions)), [user]);
-  const [activeKind, setActiveKind] = useState<OnboardingApprovalKind>(() => visibleTabs[0]?.kind ?? "internal-employee");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const visibleTabs = useMemo(() => approvalTabs.filter((tab) => hasAnyPermission(user, tab.permissions)), [user]);
+  const requestedKind = isOnboardingApprovalKind(searchParams.get("kind")) ? searchParams.get("kind") as OnboardingApprovalKind : null;
+  const [activeKind, setActiveKind] = useState<OnboardingApprovalKind>(() =>
+    (requestedKind && visibleTabs.some((tab) => tab.kind === requestedKind) ? requestedKind : visibleTabs[0]?.kind) ?? "internal-employee",
+  );
   const [keyword, setKeyword] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<OnboardingApprovalStatus | "all">("PENDING");
   const [items, setItems] = useState<OnboardingApprovalResponse[]>([]);
@@ -382,14 +401,38 @@ export function OnboardingApprovalWorkspace({ embedded = false }: OnboardingAppr
   const [reviewNote, setReviewNote] = useState("");
   const [isReviewSaving, setIsReviewSaving] = useState(false);
   const [reviewError, setReviewError] = useState("");
+  const [pendingSummary, setPendingSummary] = useState<OnboardingApprovalSummaryResponse>(emptyPendingSummary);
 
   const activeTab = visibleTabs.find((tab) => tab.kind === activeKind) ?? visibleTabs[0];
 
   useEffect(() => {
+    if (requestedKind && visibleTabs.some((tab) => tab.kind === requestedKind) && requestedKind !== activeKind) {
+      setActiveKind(requestedKind);
+      return;
+    }
     if (visibleTabs.length > 0 && !visibleTabs.some((tab) => tab.kind === activeKind)) {
       setActiveKind(visibleTabs[0].kind);
     }
-  }, [activeKind, visibleTabs]);
+  }, [activeKind, requestedKind, visibleTabs]);
+
+  function selectApprovalKind(kind: OnboardingApprovalKind) {
+    setActiveKind(kind);
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.set("tab", "onboarding");
+    nextSearchParams.set("kind", kind);
+    setSearchParams(nextSearchParams, { replace: true });
+  }
+
+  async function loadPendingSummary() {
+    try {
+      const nextSummary = await fetchOnboardingApprovalSummary();
+      setPendingSummary(nextSummary);
+      onPendingSummaryChange?.(nextSummary);
+    } catch {
+      setPendingSummary(emptyPendingSummary);
+      onPendingSummaryChange?.(emptyPendingSummary);
+    }
+  }
 
   async function loadApprovals() {
     if (!activeTab) return;
@@ -417,6 +460,18 @@ export function OnboardingApprovalWorkspace({ embedded = false }: OnboardingAppr
     return () => window.clearTimeout(timer);
   }, [activeTab?.kind, keyword, selectedStatus]);
 
+  useEffect(() => {
+    void loadPendingSummary();
+  }, [user?.id, user?.permissionCodes]);
+
+  useEffect(() => subscribeNotificationReceived((notification) => {
+    if (!notification.redirectUrl?.includes("tab=onboarding")) return;
+    void loadPendingSummary();
+    if (notification.redirectUrl.includes(`kind=${activeTab?.kind}`)) {
+      void loadApprovals();
+    }
+  }), [activeTab?.kind, keyword, selectedStatus]);
+
   const metrics = useMemo(() => ({
     approved: items.filter((item) => item.request?.approvalRequestStatus === "APPROVED").length,
     pending: items.filter((item) => item.request?.approvalRequestStatus === "PENDING").length,
@@ -440,7 +495,7 @@ export function OnboardingApprovalWorkspace({ embedded = false }: OnboardingAppr
       toast.success(decision === "approve" ? "Đã duyệt hồ sơ." : "Đã từ chối hồ sơ.", "Cập nhật thành công");
       setReviewModal(null);
       setReviewNote("");
-      void loadApprovals();
+      await Promise.all([loadApprovals(), loadPendingSummary()]);
     } catch (error) {
       setReviewError(error instanceof Error ? error.message : "Không thể cập nhật hồ sơ.");
     } finally {
@@ -497,11 +552,16 @@ export function OnboardingApprovalWorkspace({ embedded = false }: OnboardingAppr
                       selected ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary" : "tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-700 hover:tw-border-brand-100",
                     )}
                     key={tab.kind}
-                    onClick={() => setActiveKind(tab.kind)}
+                    onClick={() => selectApprovalKind(tab.kind)}
                     type="button"
                   >
                     <i className={tab.icon} />
                     {tab.label}
+                    {pendingCountForKind(pendingSummary, tab.kind) > 0 ? (
+                      <span className="tw-inline-flex tw-min-w-5 tw-items-center tw-justify-center tw-rounded-full tw-bg-red-500 tw-px-1.5 tw-py-0.5 tw-text-[0.68rem] tw-font-black tw-leading-none tw-text-white">
+                        {pendingCountForKind(pendingSummary, tab.kind) > 99 ? "99+" : pendingCountForKind(pendingSummary, tab.kind)}
+                      </span>
+                    ) : null}
                   </button>
                 );
               })}
@@ -555,7 +615,8 @@ export function OnboardingApprovalWorkspace({ embedded = false }: OnboardingAppr
             ) : null}
             {!isLoading && !errorMessage && activeTab
               ? items.map((item) => {
-                  const canReview = canReviewItem(item, activeTab, user?.role, user?.id) && hasAnyPermission(user, activeTab.writePermissions);
+                  const canReview = canReviewItem(item, activeTab, user?.id)
+                    && hasAnyPermission(user, reviewPermissionsForItem(item, activeTab));
                   return (
                     <ApprovalRow
                       key={item.request?.approvalRequestId ?? `${item.account?.accountId}-${item.profile?.userProfileId}`}

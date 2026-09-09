@@ -2,7 +2,9 @@ package com.ban.vehicle_management.application.iam.account.port.out;
 
 import com.ban.vehicle_management.application.iam.account.model.command.CreateProvisionedAccountCommand;
 import com.ban.vehicle_management.application.iam.account.model.command.RegisterAccountCommand;
+import com.ban.vehicle_management.application.iam.account.model.security.FederatedIdentityInfo;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface IdentityProviderAdminPortOut {
@@ -20,6 +22,8 @@ public interface IdentityProviderAdminPortOut {
     void sendUpdatePasswordEmail(String keycloakUserId);
 
     boolean isEmailVerified(String keycloakUserId);
+
+    List<FederatedIdentityInfo> findFederatedIdentities(String keycloakUserId);
 
     void deleteUser(String keycloakUserId);
 }
