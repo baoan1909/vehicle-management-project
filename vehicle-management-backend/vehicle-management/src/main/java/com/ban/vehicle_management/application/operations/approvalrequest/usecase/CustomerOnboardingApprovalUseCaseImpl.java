@@ -7,6 +7,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.r
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.CustomerOnboardingApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.in.CustomerOnboardingApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
+import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
@@ -34,6 +35,7 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
 
     private final CustomerOnboardingApprovalAccessGuard customerOnboardingApprovalAccessGuard;
     private final CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
+    private final IdentityProviderAdminPortOut identityProviderAdminPortOut;
     private final VehicleMailService vehicleMailService;
     private final NotificationPortIn notificationPortIn;
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
@@ -43,11 +45,13 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
     public CustomerOnboardingApprovalUseCaseImpl(
             CustomerOnboardingApprovalAccessGuard customerOnboardingApprovalAccessGuard,
             CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut,
+            IdentityProviderAdminPortOut identityProviderAdminPortOut,
             VehicleMailService vehicleMailService,
             NotificationPortIn notificationPortIn
     ) {
         this.customerOnboardingApprovalAccessGuard = customerOnboardingApprovalAccessGuard;
         this.customerOnboardingApprovalPortOut = customerOnboardingApprovalPortOut;
+        this.identityProviderAdminPortOut = identityProviderAdminPortOut;
         this.vehicleMailService = vehicleMailService;
         this.notificationPortIn = notificationPortIn;
         this.clock = Clock.systemUTC();
@@ -104,6 +108,11 @@ public class CustomerOnboardingApprovalUseCaseImpl implements CustomerOnboarding
         );
         customerPolicy.approve(customer, currentAccount.accountId(), approvalRequest.getApprovedAt());
         customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalDecision(approvalRequest, customer);
+        String keycloakUserId = customerOnboardingApprovalPortOut.activateCustomerAccount(
+                candidate.accountId(),
+                currentAccount.accountId()
+        );
+        identityProviderAdminPortOut.updateUserEnabled(keycloakUserId, true);
 
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Customer onboarding approval request not found"));

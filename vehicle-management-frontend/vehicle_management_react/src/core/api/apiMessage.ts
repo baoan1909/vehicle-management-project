@@ -60,11 +60,31 @@ function containsVietnamese(message: string) {
   return VIETNAMESE_CHARACTER_PATTERN.test(message);
 }
 
+function localizeValidationMessage(message: string) {
+  const effectiveFromRange = message.match(
+    /^requestedEffectiveFrom must be between (\d{4}-\d{2}-\d{2}) and (\d{4}-\d{2}-\d{2})$/,
+  );
+
+  if (effectiveFromRange) {
+    const [, minimumDate, maximumDate] = effectiveFromRange;
+    return `Ngày bắt đầu phải nằm trong khoảng từ ${minimumDate} đến ${maximumDate}.`;
+  }
+
+  return null;
+}
+
 export function localizeApiMessage(message: unknown, status: number): string {
   const normalizedMessage = typeof message === "string" ? message.trim() : "";
 
   if (normalizedMessage && MESSAGE_TRANSLATIONS[normalizedMessage]) {
     return MESSAGE_TRANSLATIONS[normalizedMessage];
+  }
+
+  const localizedValidationMessage = normalizedMessage
+    ? localizeValidationMessage(normalizedMessage)
+    : null;
+  if (localizedValidationMessage) {
+    return localizedValidationMessage;
   }
 
   if (normalizedMessage && containsVietnamese(normalizedMessage)) {

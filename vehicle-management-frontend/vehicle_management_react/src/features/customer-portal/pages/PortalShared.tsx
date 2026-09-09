@@ -149,22 +149,31 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { user } = useAuth();
   const visibleNavItems = customerNavItems.filter((item) => canAccessCustomerRoute(user, item.to));
+  const isReferencePage = ["/customer/dashboard", "/customer/profile", "/customer/vehicles", "/customer/subscriptions", "/customer/parking-history", "/customerTicket/customer-infor", "/customerTicket/customer-infor-detail"].includes(location.pathname);
+  const displayName = user?.fullName?.trim() || user?.username?.trim() || "Khách hàng";
 
   return (
-    <div className="vm-customer-shell">
-      <div className="vm-customer-body">
-        <aside className="vm-customer-sidebar">
+    <div className={cn("vm-customer-shell", isReferencePage && "[&_h1]:!tw-font-[Cambria,Georgia,serif] [&_input]:tw-min-w-0 [&_select]:tw-min-w-0 [&_label]:tw-mb-0 [&_button]:tw-cursor-pointer [&_button:disabled]:tw-cursor-not-allowed")}>
+      <div className={cn("vm-customer-body", isReferencePage && "!tw-grid-cols-[212px_minmax(0,1fr)] max-[1100px]:!tw-grid-cols-[184px_minmax(0,1fr)] max-[760px]:!tw-grid-cols-1")}>
+        <aside className={cn("vm-customer-sidebar", isReferencePage && "!tw-px-3 !tw-py-5 max-[760px]:!tw-min-h-0 max-[760px]:tw-flex max-[760px]:tw-overflow-x-auto max-[760px]:!tw-py-2")}>
+          <div className={`${isReferencePage && location.pathname !== "/customer/vehicles" ? "tw-hidden" : "tw-grid"} max-[760px]:tw-hidden tw-mx-1 tw-mb-5 tw-grid-cols-[48px_minmax(0,1fr)] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-slate-100 tw-px-1 tw-pb-5`}>
+            <span aria-hidden="true" className="tw-grid tw-h-12 tw-w-12 tw-place-items-center tw-rounded-full tw-bg-[linear-gradient(135deg,#1d75f5,#0759d8)] tw-text-[1.25rem] tw-text-white tw-shadow-[0_8px_18px_rgba(20,99,230,0.2)]"><i className="far fa-user" /></span>
+            <div>
+              <strong className="tw-block tw-truncate tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900">{displayName}</strong>
+              <small className="tw-mt-1 tw-block tw-truncate tw-text-[0.75rem] tw-font-bold tw-text-vm-primary">Khách hàng</small>
+            </div>
+          </div>
           {visibleNavItems.map((item) => {
             const active = location.pathname === item.to;
             return (
-              <Link className={`vm-customer-nav-item ${active ? "active" : ""}`} to={item.to} key={item.to}>
+              <Link aria-current={active ? "page" : undefined} className={`vm-customer-nav-item ${isReferencePage ? "!tw-min-h-[52px] !tw-text-[0.9rem] !tw-font-medium !tw-gap-3 hover:tw-bg-blue-50 hover:tw-no-underline max-[760px]:tw-shrink-0 max-[760px]:!tw-mb-0 [&>i]:!tw-text-xl" : ""} ${active ? "active" : ""}`} to={item.to} key={item.to}>
                 <i className={item.icon} />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </aside>
-        <main className="vm-customer-content">{children}</main>
+        <main className={cn("vm-customer-content", isReferencePage && "!tw-overflow-x-visible !tw-p-5 max-[1100px]:!tw-p-4 max-[760px]:!tw-p-3")}>{children}</main>
       </div>
     </div>
   );
@@ -174,16 +183,19 @@ export function CustomerPageHeader({
   title,
   subtitle,
   action,
+  eyebrow = "DỊCH VỤ CỦA TÔI",
 }: {
   title: string;
   subtitle: string;
   action?: ReactNode;
+  eyebrow?: string;
 }) {
   return (
-    <div className="vm-customer-page-header">
+    <div className="vm-customer-page-header tw-mb-5 tw-items-end">
       <div>
-        <h1>{title}</h1>
-        <p>{subtitle}</p>
+        <span className="tw-mb-1 tw-block tw-text-[0.72rem] tw-font-black tw-tracking-[0.08em] tw-text-vm-primary">{eyebrow}</span>
+        <h1 className="!tw-font-[Cambria,Georgia,serif] !tw-text-[clamp(2rem,3.25vw,3.1rem)] !tw-font-bold !tw-leading-none !tw-text-[#071738]">{title}</h1>
+        <p className="!tw-mt-2 !tw-text-[0.96rem] !tw-font-normal !tw-text-vm-slate-500">{subtitle}</p>
       </div>
       {action}
     </div>
@@ -287,5 +299,43 @@ export function PaginationLite({
         </div>
       </div>
     </div>
+  );
+}
+
+/** Numbered pagination shared by the customer history workspaces. */
+export function PortalPagination({
+  currentPage,
+  pageSize,
+  totalRecords,
+  onPageChange,
+  onPageSizeChange,
+}: Required<PaginationLiteProps>) {
+  const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
+  const page = Math.min(Math.max(1, currentPage), totalPages);
+  const visiblePages = Array.from(new Set([1, page - 1, page, page + 1, totalPages]))
+    .filter((value) => value >= 1 && value <= totalPages)
+    .sort((a, b) => a - b);
+  const buttonClass = "tw-grid tw-h-9 tw-min-w-9 tw-place-items-center tw-rounded-md tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-2 tw-text-sm tw-text-slate-600 hover:tw-border-blue-500 hover:tw-text-blue-600 disabled:tw-cursor-not-allowed disabled:tw-opacity-40";
+
+  return (
+    <footer className="tw-mt-4 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-slate-100 tw-pt-4">
+      <label className="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-font-normal tw-text-slate-600">
+        Hiển thị
+        <select aria-label="Số dòng mỗi trang" className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-2" value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
+          {[5, 10, 20].map((size) => <option key={size} value={size}>{size}</option>)}
+        </select>
+        trên mỗi trang
+      </label>
+      <nav aria-label="Phân trang" className="tw-flex tw-items-center tw-gap-2">
+        <button aria-label="Trang trước" className={buttonClass} disabled={page === 1} type="button" onClick={() => onPageChange(page - 1)}><i className="fas fa-chevron-left tw-text-xs" /></button>
+        {visiblePages.map((value, index) => (
+          <span className="tw-flex tw-items-center tw-gap-2" key={value}>
+            {index > 0 && value - visiblePages[index - 1] > 1 ? <span aria-hidden="true" className="tw-px-1 tw-text-slate-400">…</span> : null}
+            <button aria-label={`Trang ${value}`} aria-current={value === page ? "page" : undefined} className={cn(buttonClass, value === page && "!tw-border-blue-600 !tw-bg-blue-600 !tw-text-white")} type="button" onClick={() => onPageChange(value)}>{value}</button>
+          </span>
+        ))}
+        <button aria-label="Trang sau" className={buttonClass} disabled={page === totalPages} type="button" onClick={() => onPageChange(page + 1)}><i className="fas fa-chevron-right tw-text-xs" /></button>
+      </nav>
+    </footer>
   );
 }
