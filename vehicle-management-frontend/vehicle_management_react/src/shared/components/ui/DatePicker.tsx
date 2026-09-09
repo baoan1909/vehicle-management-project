@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
 
 type DatePickerProps = {
+  ariaDescribedBy?: string;
+  ariaInvalid?: boolean;
   ariaLabel: string;
   className?: string;
   iconVariant?: "leading" | "trailingButton";
@@ -11,6 +13,7 @@ type DatePickerProps = {
   min?: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  size?: "default" | "compact";
   triggerClassName?: string;
   value: string;
 };
@@ -91,6 +94,8 @@ function isYearDisabled(year: number, min?: string, max?: string) {
 }
 
 export function DatePicker({
+  ariaDescribedBy,
+  ariaInvalid = false,
   ariaLabel,
   className,
   iconVariant = "leading",
@@ -99,6 +104,7 @@ export function DatePicker({
   min,
   onChange,
   placeholder = "Chọn ngày",
+  size = "default",
   triggerClassName,
   value,
 }: DatePickerProps) {
@@ -178,11 +184,13 @@ export function DatePicker({
         className={cn(
           iconVariant === "trailingButton"
             ? "tw-group tw-grid tw-h-[54px] tw-w-full tw-grid-cols-[minmax(0,1fr)_56px] tw-items-stretch tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-p-0 tw-text-left tw-text-[1.02rem] tw-font-bold tw-text-slate-900 tw-shadow-[0_8px_18px_rgba(15,23,42,0.03)] tw-transition hover:tw-border-brand-200 hover:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] focus-visible:tw-border-vm-primary focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus"
-            : "tw-group tw-flex tw-h-[42px] tw-w-full tw-items-center tw-gap-2.5 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-left tw-text-[0.88rem] tw-font-semibold tw-text-vm-slate-900 tw-transition hover:tw-border-vm-slate-200 hover:tw-shadow-[0_0_0_3px_rgba(148,163,184,0.08)] focus-visible:tw-border-vm-primary focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus",
+            : `tw-group tw-flex tw-w-full tw-items-center tw-gap-2.5 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-left tw-font-semibold tw-text-vm-slate-900 tw-transition hover:tw-border-vm-slate-200 hover:tw-shadow-[0_0_0_3px_rgba(148,163,184,0.08)] focus-visible:tw-border-vm-primary focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus ${size === "compact" ? "tw-h-9 tw-text-[0.78rem]" : "tw-h-[42px] tw-text-[0.88rem]"}`,
           open ? "tw-border-vm-primary tw-shadow-vm-focus" : "",
           triggerClassName,
         )}
         type="button"
+        aria-describedby={ariaDescribedBy}
+        aria-invalid={ariaInvalid || undefined}
         aria-label={ariaLabel}
         onClick={() => setOpen((current) => !current)}
       >

@@ -11,6 +11,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.c
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.CustomerOnboardingApprovalCandidate;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.CustomerOnboardingApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
+import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
@@ -43,6 +44,9 @@ class CustomerOnboardingApprovalUseCaseImplTest {
     private CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
 
     @Mock
+    private IdentityProviderAdminPortOut identityProviderAdminPortOut;
+
+    @Mock
     private VehicleMailService vehicleMailService;
 
     @InjectMocks
@@ -72,6 +76,8 @@ class CustomerOnboardingApprovalUseCaseImplTest {
         when(customerOnboardingApprovalPortOut.findCandidateByCustomerId(customerId))
                 .thenReturn(Optional.of(candidate(accountId, userProfileId, customerId)));
         when(customerOnboardingApprovalPortOut.findCustomerById(customerId)).thenReturn(Optional.of(customer));
+        when(customerOnboardingApprovalPortOut.activateCustomerAccount(accountId, managerId))
+                .thenReturn("keycloak-customer-id");
         when(customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId))
                 .thenReturn(Optional.of(expectedResult));
 
@@ -90,6 +96,8 @@ class CustomerOnboardingApprovalUseCaseImplTest {
         assertEquals(CustomerApprovalStatus.APPROVED, customerCaptor.getValue().getApprovalStatus());
         assertEquals(CustomerStatus.ACTIVE, customerCaptor.getValue().getStatus());
         assertEquals("APPROVED", result.request().approvalRequestStatus());
+        verify(customerOnboardingApprovalPortOut).activateCustomerAccount(accountId, managerId);
+        verify(identityProviderAdminPortOut).updateUserEnabled("keycloak-customer-id", true);
         verify(vehicleMailService).sendOnboardingApprovedEmail("customer@example.com", "Customer User", "khách hàng");
     }
 

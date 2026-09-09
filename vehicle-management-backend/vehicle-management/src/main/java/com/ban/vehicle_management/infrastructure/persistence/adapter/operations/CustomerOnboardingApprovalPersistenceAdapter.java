@@ -6,11 +6,14 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.r
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.CustomerOnboardingApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
+import com.ban.vehicle_management.domain.iam.account.model.AccountStatusHistory;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
+import com.ban.vehicle_management.infrastructure.mapper.iam.AccountStatusHistoryPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.operations.ApprovalRequestPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.operations.OnboardingApprovalReadModelMapper;
 import com.ban.vehicle_management.infrastructure.mapper.people.CustomerPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountStatusHistoryRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RoleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ApprovalRequestEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
@@ -21,6 +24,9 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.exception.NotFoundException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -34,9 +40,11 @@ public class CustomerOnboardingApprovalPersistenceAdapter implements CustomerOnb
     private final CustomerRepository customerRepository;
     private final UserProfileRepository userProfileRepository;
     private final AccountRepository accountRepository;
+    private final AccountStatusHistoryRepository accountStatusHistoryRepository;
     private final RoleRepository roleRepository;
     private final ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper;
     private final CustomerPersistenceMapper customerPersistenceMapper;
+    private final AccountStatusHistoryPersistenceMapper accountStatusHistoryPersistenceMapper;
     private final OnboardingApprovalReadModelMapper onboardingApprovalReadModelMapper;
 
     public CustomerOnboardingApprovalPersistenceAdapter(
@@ -44,18 +52,22 @@ public class CustomerOnboardingApprovalPersistenceAdapter implements CustomerOnb
             CustomerRepository customerRepository,
             UserProfileRepository userProfileRepository,
             AccountRepository accountRepository,
+            AccountStatusHistoryRepository accountStatusHistoryRepository,
             RoleRepository roleRepository,
             ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper,
             CustomerPersistenceMapper customerPersistenceMapper,
+            AccountStatusHistoryPersistenceMapper accountStatusHistoryPersistenceMapper,
             OnboardingApprovalReadModelMapper onboardingApprovalReadModelMapper
     ) {
         this.approvalRequestRepository = approvalRequestRepository;
         this.customerRepository = customerRepository;
         this.userProfileRepository = userProfileRepository;
         this.accountRepository = accountRepository;
+        this.accountStatusHistoryRepository = accountStatusHistoryRepository;
         this.roleRepository = roleRepository;
         this.approvalRequestPersistenceMapper = approvalRequestPersistenceMapper;
         this.customerPersistenceMapper = customerPersistenceMapper;
+        this.accountStatusHistoryPersistenceMapper = accountStatusHistoryPersistenceMapper;
         this.onboardingApprovalReadModelMapper = onboardingApprovalReadModelMapper;
     }
 
@@ -68,6 +80,32 @@ public class CustomerOnboardingApprovalPersistenceAdapter implements CustomerOnb
     public void saveCustomerOnboardingApprovalDecision(ApprovalRequest approvalRequest, Customer customer) {
         approvalRequestRepository.save(approvalRequestPersistenceMapper.toEntity(approvalRequest));
         customerRepository.saveAndFlush(customerPersistenceMapper.toEntity(customer));
+    }
+
+    @Override
+    public String activateCustomerAccount(UUID accountId, UUID changedBy) {
+        AccountEntity accountEntity = accountRepository.findById(accountId)
+                .orElseThrow(() -> new NotFoundException("Customer account not found"));
+        AccountStatus previousStatus = accountEntity.getStatus();
+        accountEntity.setStatus(AccountStatus.ACTIVE);
+
+        if (!AccountStatus.ACTIVE.equals(previousStatus)) {
+            AccountStatusHistory statusHistory = new AccountStatusHistory(
+                    UUID.randomUUID(),
+                    accountId,
+                    previousStatus,
+                    AccountStatus.ACTIVE,
+                    "Customer onboarding approved",
+                    Instant.now(),
+                    changedBy
+            );
+            accountStatusHistoryRepository.save(
+                    accountStatusHistoryPersistenceMapper.toEntity(statusHistory)
+            );
+        }
+
+        accountRepository.saveAndFlush(accountEntity);
+        return accountEntity.getKeycloakUserId();
     }
 
     @Override

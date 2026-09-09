@@ -15,6 +15,13 @@ public interface CustomerOnboardingApprovalPortOut {
 
     void saveCustomerOnboardingApprovalDecision(ApprovalRequest approvalRequest, Customer customer);
 
+    /**
+     * Activates the login account after its customer onboarding request is approved.
+     *
+     * @return the external identity-provider user id associated with the account
+     */
+    String activateCustomerAccount(UUID accountId, UUID changedBy);
+
     boolean existsPendingCustomerOnboardingApprovalForCustomer(UUID customerId);
 
     Optional<ApprovalRequest> findCustomerOnboardingApprovalRequestById(UUID approvalRequestId);
