@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.accesscontrol.subscription.port.in;
 
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import java.time.LocalDate;
@@ -9,6 +10,8 @@ import java.util.UUID;
 public interface SubscriptionPortIn {
 
     Subscription createOwnSubscription(Subscription subscription);
+
+    SubscriptionVoucherQuote quoteOwnSubscriptionVoucher(Subscription subscription);
 
     Subscription createSubscriptionForCustomer(Subscription subscription);
 

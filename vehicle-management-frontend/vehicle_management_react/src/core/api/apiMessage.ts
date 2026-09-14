@@ -43,6 +43,20 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Active invoice already exists for lost card report": "Phiếu báo mất thẻ đã có hóa đơn đang hoạt động.",
   "Invalid user credentials": "Tên đăng nhập hoặc mật khẩu không đúng.",
   "Account is not fully set up": "Tài khoản chưa hoàn tất thiết lập.",
+  "Voucher code already exists": "Mã voucher này đã tồn tại. Vui lòng chọn một mã khác.",
+  "Voucher code not found": "Mã ưu đãi không tồn tại. Vui lòng kiểm tra lại mã.",
+  "Voucher is not active": "Mã ưu đãi này hiện đang tạm dừng.",
+  "Voucher is not valid at this time": "Mã ưu đãi chưa có hiệu lực hoặc đã hết hạn.",
+  "Subscription amount does not meet voucher minimum amount": "Tổng phí vé chưa đạt giá trị tối thiểu để dùng mã ưu đãi này.",
+  "Voucher usage limit has been reached": "Mã ưu đãi đã dùng hết số lượt cho phép.",
+  "Customer has reached the voucher usage limit": "Bạn đã dùng hết số lượt được phép với mã ưu đãi này.",
+  "Voucher validTo must be after validFrom": "Thời điểm kết thúc hiệu lực phải sau thời điểm bắt đầu.",
+  "Percentage voucher discountValue must not exceed 100": "Mức giảm theo phần trăm không được vượt quá 100%.",
+  "discountValue must be positive": "Mức giảm phải lớn hơn 0.",
+  "minimumSubscriptionAmount must not be negative": "Đơn tối thiểu không được nhỏ hơn 0.",
+  "maxDiscountAmount must not be negative": "Giảm tối đa không được nhỏ hơn 0.",
+  "maxRedemptions must be positive": "Tổng lượt dùng phải lớn hơn 0.",
+  "maxRedemptionsPerCustomer must be positive": "Lượt dùng tối đa mỗi khách phải lớn hơn 0.",
 };
 
 const STATUS_MESSAGES: Record<number, string> = {

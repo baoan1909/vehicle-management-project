@@ -13,7 +13,7 @@ import java.util.UUID;
 
 public class SubscriptionPolicy {
 
-    private static final int MIN_EFFECTIVE_LEAD_DAYS = 2;
+    private static final int MIN_EFFECTIVE_LEAD_DAYS = 0;
     private static final int MAX_EFFECTIVE_LEAD_DAYS = 7;
 
     public void initializeNewSubscription(Subscription subscription, int durationDays, LocalDate currentDate) {
@@ -52,7 +52,7 @@ public class SubscriptionPolicy {
         requireField(reservedCardId, "reservedCardId");
         requireField(invoiceFinalAmount, "invoiceFinalAmount");
 
-        if (!approvalDate.isBefore(subscription.getRequestedEffectiveFrom())) {
+        if (approvalDate.isAfter(subscription.getRequestedEffectiveFrom())) {
             throw new ConflictException("Subscription approval deadline has expired");
         }
 

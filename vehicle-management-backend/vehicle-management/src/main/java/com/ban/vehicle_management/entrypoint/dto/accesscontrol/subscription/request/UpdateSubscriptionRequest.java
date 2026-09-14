@@ -6,6 +6,7 @@ import java.util.UUID;
 public record UpdateSubscriptionRequest(
         UUID customerVehicleId,
         UUID ticketTypeId,
-        LocalDate requestedEffectiveFrom
+        LocalDate requestedEffectiveFrom,
+        String voucherCode
 ) {
 }
