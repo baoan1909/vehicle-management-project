@@ -84,9 +84,24 @@ export type AssistantStatusResponse = {
 
 export type AssistantMessageStatusResponse = {
   inputMessageId: string;
-  status: "PENDING" | "PROCESSING" | "RETRYING" | "COMPLETED" | "FAILED" | "DISABLED";
+  status: "QUEUED" | "PENDING" | "PROCESSING" | "WAITING_CONFIRMATION" | "RETRYING" | "COMPLETED" | "FAILED" | "DISABLED" | "EXPIRED";
   errorCode: string | null;
   terminal: boolean;
+};
+
+export type AiToolCallStatus = "REQUESTED" | "VALIDATED" | "AWAITING_CONFIRMATION" | "EXECUTING" | "SUCCEEDED" | "FAILED" | "DENIED" | "EXPIRED";
+
+export type AiToolCallResponse = {
+  toolCallId: string;
+  conversationId: string | null;
+  inputMessageId: string | null;
+  toolName: string;
+  toolType: "READ_ONLY" | "WRITE";
+  status: AiToolCallStatus;
+  requestPayloadRedacted: string;
+  responsePayloadRedacted: string;
+  expiresAt: string | null;
+  failureCode: string | null;
 };
 
 export type SupportTicketCategoryFilter = {
@@ -198,6 +213,18 @@ export function getAssistantStatus() {
 
 export function getAssistantMessageStatus(inputMessageId: string) {
   return apiClient<ApiResponse<AssistantMessageStatusResponse>>(apiEndpoints.ai.assistantMessageStatus(inputMessageId));
+}
+
+export function getAiToolCall(toolCallId: string) {
+  return apiClient<ApiResponse<AiToolCallResponse>>(apiEndpoints.ai.toolCall(toolCallId));
+}
+
+export function confirmAiToolCall(toolCallId: string) {
+  return apiClient<ApiResponse<AiToolCallResponse>>(apiEndpoints.ai.confirmToolCall(toolCallId), { method: "POST" });
+}
+
+export function denyAiToolCall(toolCallId: string) {
+  return apiClient<ApiResponse<AiToolCallResponse>>(apiEndpoints.ai.denyToolCall(toolCallId), { method: "POST" });
 }
 
 export function createSupportTicketFromConversation(conversationId: string, payload: SaveSupportTicketRequest, idempotencyKey?: string) {

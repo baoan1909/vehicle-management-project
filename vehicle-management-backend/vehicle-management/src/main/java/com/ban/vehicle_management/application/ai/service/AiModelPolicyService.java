@@ -18,9 +18,6 @@ public class AiModelPolicyService {
         if (configuration == null || configuration.getStatus() == AiModelStatus.DISABLED) {
             return false;
         }
-        if (configuration.isRequiresFunctionCalling()) {
-            return false;
-        }
         return properties.getDataMode() != AiDataMode.UNPAID || configuration.isFreeTierApproved();
     }
 
@@ -30,7 +27,6 @@ public class AiModelPolicyService {
                 || "HTTP_5XX".equals(failureCode)
                 || "MODEL_NOT_FOUND".equals(failureCode)
                 || "INVALID_RESPONSE_SCHEMA".equals(failureCode)
-                || "INVALID_FUNCTION_CALL".equals(failureCode)
                 || "PROVIDER_EXCEPTION".equals(failureCode);
     }
 }

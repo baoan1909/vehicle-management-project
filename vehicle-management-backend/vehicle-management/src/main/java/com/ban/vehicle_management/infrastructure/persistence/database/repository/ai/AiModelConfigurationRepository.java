@@ -14,4 +14,6 @@ public interface AiModelConfigurationRepository extends JpaRepository<AiModelCon
             AiUseCase useCase,
             Collection<AiModelStatus> statuses
     );
+
+    List<AiModelConfigurationEntity> findByUseCaseAndStatusOrderByPriorityAscCreatedAtAsc(AiUseCase useCase, AiModelStatus status);
 }

@@ -8,4 +8,6 @@ import org.mapstruct.Mapper;
 public interface AiModelConfigurationPersistenceMapper {
 
     AiModelConfiguration toDomain(AiModelConfigurationEntity entity);
+
+    AiModelConfigurationEntity toEntity(AiModelConfiguration domain);
 }

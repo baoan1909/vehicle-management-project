@@ -47,11 +47,37 @@ public class AiModelCatalogPersistenceAdapter implements AiModelCatalogPortOut {
         }
     }
 
+    @Override
+    public List<AiProviderModel> findAll() {
+        return repository.findAll().stream()
+                .map(entity -> new AiProviderModel(
+                        entity.getProvider(),
+                        entity.getModelId(),
+                        entity.getDisplayName(),
+                        entity.getModelVersion(),
+                        entity.getInputTokenLimit(),
+                        entity.getOutputTokenLimit(),
+                        fromJson(entity.getSupportedActions())
+                ))
+                .toList();
+    }
+
     private String toJson(List<String> values) {
         try {
             return objectMapper.writeValueAsString(values == null ? List.of() : values);
         } catch (JsonProcessingException exception) {
             return "[]";
+        }
+    }
+
+    private List<String> fromJson(String value) {
+        try {
+            return objectMapper.readValue(
+                    value == null || value.isBlank() ? "[]" : value,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, String.class)
+            );
+        } catch (Exception exception) {
+            return List.of();
         }
     }
 }

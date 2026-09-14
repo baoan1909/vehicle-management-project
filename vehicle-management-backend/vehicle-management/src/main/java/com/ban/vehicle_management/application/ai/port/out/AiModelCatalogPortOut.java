@@ -6,4 +6,6 @@ import java.util.List;
 public interface AiModelCatalogPortOut {
 
     void upsertGeminiModels(List<AiProviderModel> models);
+
+    List<AiProviderModel> findAll();
 }

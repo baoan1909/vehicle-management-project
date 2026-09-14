@@ -151,7 +151,7 @@ class VehicleManagementApplicationTests {
 					.load();
 			flyway.migrate();
 			org.junit.jupiter.api.Assertions.assertEquals(
-					"20260907102000",
+					"20260912100000",
 					flyway.info().current().getVersion().toString()
 			);
 			UUID ticketId = UUID.randomUUID();

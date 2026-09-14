@@ -8,9 +8,12 @@ import com.ban.vehicle_management.domain.ai.model.AiRequest;
 import com.ban.vehicle_management.domain.ai.model.AiResponse;
 import com.ban.vehicle_management.shared.enumeration.ai.AiProvider;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import org.springframework.stereotype.Component;
 
@@ -75,24 +78,32 @@ public class GeminiAiProviderAdapter implements AiProviderPortOut {
     @Override
     public List<AiProviderModel> listModels() {
         if (geminiProperties.getApiKey() == null || geminiProperties.getApiKey().isBlank()) {
-            return List.of();
+            throw new IllegalStateException("GEMINI_API_KEY_MISSING");
         }
         try {
-            HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(normalizedBaseUrl() + "/v1beta/models?pageSize=1000"))
-                    .timeout(assistantProperties.getRequestTimeout())
-                    .header("x-goog-api-key", geminiProperties.getApiKey())
-                    .GET()
-                    .build();
-            HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                return List.of();
-            }
-            return responseMapper.toProviderModels(response.body());
+            List<AiProviderModel> models = new ArrayList<>();
+            String pageToken = null;
+            do {
+                String endpoint = normalizedBaseUrl() + "/v1beta/models?pageSize=1000"
+                        + (pageToken == null ? "" : "&pageToken=" + URLEncoder.encode(pageToken, StandardCharsets.UTF_8));
+                HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(endpoint))
+                        .timeout(assistantProperties.getRequestTimeout())
+                        .header("x-goog-api-key", geminiProperties.getApiKey())
+                        .GET()
+                        .build();
+                HttpResponse<String> response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                    throw new IllegalStateException("GEMINI_LIST_MODELS_HTTP_" + response.statusCode());
+                }
+                models.addAll(responseMapper.toProviderModels(response.body()));
+                pageToken = responseMapper.nextPageToken(response.body());
+            } while (pageToken != null && !pageToken.isBlank());
+            return models;
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            return List.of();
+            throw new IllegalStateException("GEMINI_LIST_MODELS_INTERRUPTED");
         } catch (Exception exception) {
-            return List.of();
+            throw new IllegalStateException("GEMINI_LIST_MODELS_FAILED", exception);
         }
     }
 

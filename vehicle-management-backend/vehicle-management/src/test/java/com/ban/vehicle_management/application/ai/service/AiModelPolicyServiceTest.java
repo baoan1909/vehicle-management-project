@@ -25,7 +25,7 @@ class AiModelPolicyServiceTest {
         assertTrue(service.canUse(configuration));
 
         configuration.setRequiresFunctionCalling(true);
-        assertFalse(service.canUse(configuration));
+        assertTrue(service.canUse(configuration));
     }
 
     @Test

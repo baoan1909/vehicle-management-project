@@ -60,4 +60,38 @@ public class ChatMessagePolicy {
         ));
         message.setDeleted(false);
     }
+
+    public void initializeAssistantText(ChatMessage message) {
+        if (message == null) {
+            throw new BadRequestException("message must not be null");
+        }
+        message.setMessageType(ChatMessageType.ASSISTANT_TEXT);
+        message.setContent(TextValidationUtils.normalizeRequiredText(
+                message.getContent(),
+                "content",
+                MAX_TEXT_CONTENT_LENGTH
+        ));
+        message.setDeleted(false);
+    }
+
+    public void initializeActionCard(ChatMessage message) {
+        initializeStructuredAiMessage(message, ChatMessageType.ACTION_CARD);
+    }
+
+    public void initializeToolResult(ChatMessage message) {
+        initializeStructuredAiMessage(message, ChatMessageType.TOOL_RESULT);
+    }
+
+    private void initializeStructuredAiMessage(ChatMessage message, ChatMessageType messageType) {
+        if (message == null) {
+            throw new BadRequestException("message must not be null");
+        }
+        message.setMessageType(messageType);
+        message.setContent(TextValidationUtils.normalizeRequiredText(
+                message.getContent(),
+                "content",
+                MAX_TEXT_CONTENT_LENGTH
+        ));
+        message.setDeleted(false);
+    }
 }

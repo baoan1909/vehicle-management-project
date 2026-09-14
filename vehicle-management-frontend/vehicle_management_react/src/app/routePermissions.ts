@@ -49,6 +49,7 @@ export const adminRoutePermissions = {
     "CHAT_CONVERSATION_READ_ALL",
   ],
   "/admin/announcements": ["BROADCAST_NOTIFICATION_READ_ALL"],
+  "/admin/ai-models": ["AI_MODEL_READ_ALL"],
 } satisfies Record<string, string[]>;
 
 const adminFallbackRoute = "/admin/profile";

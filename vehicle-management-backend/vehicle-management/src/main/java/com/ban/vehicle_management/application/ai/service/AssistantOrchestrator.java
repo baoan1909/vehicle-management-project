@@ -2,21 +2,34 @@ package com.ban.vehicle_management.application.ai.service;
 
 import com.ban.vehicle_management.application.ai.port.out.AiProviderPortOut;
 import com.ban.vehicle_management.application.ai.port.out.AiRunPortOut;
+import com.ban.vehicle_management.application.ai.port.out.AiModelWarningPortOut;
+import com.ban.vehicle_management.application.ai.port.out.AiToolCallPortOut;
 import com.ban.vehicle_management.application.ai.port.out.AssistantJobPortOut;
 import com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatRealtimeEventMapper;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatRealtimeEventPublisherPortOut;
+import com.ban.vehicle_management.domain.ai.model.AiFunctionCall;
+import com.ban.vehicle_management.domain.ai.model.AiFunctionResponse;
 import com.ban.vehicle_management.domain.ai.model.AiModelConfiguration;
+import com.ban.vehicle_management.domain.ai.model.AiModelWarning;
+import com.ban.vehicle_management.domain.ai.model.AiProviderErrorDetail;
 import com.ban.vehicle_management.domain.ai.model.AiRequest;
 import com.ban.vehicle_management.domain.ai.model.AiRequestMessage;
 import com.ban.vehicle_management.domain.ai.model.AiResponse;
 import com.ban.vehicle_management.domain.ai.model.AiRun;
+import com.ban.vehicle_management.domain.ai.model.AiToolCall;
 import com.ban.vehicle_management.domain.ai.model.AssistantJob;
+import com.ban.vehicle_management.domain.ai.policy.AiToolDefinition;
+import com.ban.vehicle_management.domain.ai.policy.AiToolRegistry;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
 import com.ban.vehicle_management.domain.operations.chatmessage.model.ChatMessage;
 import com.ban.vehicle_management.domain.operations.chatmessage.policy.ChatMessagePolicy;
 import com.ban.vehicle_management.shared.enumeration.ai.AiProvider;
+import com.ban.vehicle_management.shared.enumeration.ai.AiModelWarningSeverity;
+import com.ban.vehicle_management.shared.enumeration.ai.AiModelWarningStatus;
 import com.ban.vehicle_management.shared.enumeration.ai.AiRunStatus;
+import com.ban.vehicle_management.shared.enumeration.ai.AiToolCallStatus;
+import com.ban.vehicle_management.shared.enumeration.ai.AiToolType;
 import com.ban.vehicle_management.shared.enumeration.ai.AiUseCase;
 import com.ban.vehicle_management.shared.enumeration.ai.AssistantJobStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatMessageType;
@@ -51,6 +64,10 @@ public class AssistantOrchestrator {
     private final AiModelPolicyService modelPolicyService;
     private final Map<AiProvider, AiProviderPortOut> providerPorts;
     private final AiRunPortOut aiRunPortOut;
+    private final AiModelWarningPortOut aiModelWarningPortOut;
+    private final AiToolCallPortOut aiToolCallPortOut;
+    private final AiToolExecutionService toolExecutionService;
+    private final AiToolRegistry toolRegistry;
     private final ChatRealtimeEventPublisherPortOut realtimeEventPublisher;
     private final ChatRealtimeEventMapper realtimeEventMapper;
     private final PiiRedactionService redactionService;
@@ -66,6 +83,10 @@ public class AssistantOrchestrator {
             AiModelPolicyService modelPolicyService,
             List<AiProviderPortOut> aiProviderPorts,
             AiRunPortOut aiRunPortOut,
+            AiModelWarningPortOut aiModelWarningPortOut,
+            AiToolCallPortOut aiToolCallPortOut,
+            AiToolExecutionService toolExecutionService,
+            AiToolRegistry toolRegistry,
             ChatRealtimeEventPublisherPortOut realtimeEventPublisher,
             ChatRealtimeEventMapper realtimeEventMapper,
             PiiRedactionService redactionService,
@@ -82,6 +103,10 @@ public class AssistantOrchestrator {
             this.providerPorts.put(providerPort.provider(), providerPort);
         }
         this.aiRunPortOut = aiRunPortOut;
+        this.aiModelWarningPortOut = aiModelWarningPortOut;
+        this.aiToolCallPortOut = aiToolCallPortOut;
+        this.toolExecutionService = toolExecutionService;
+        this.toolRegistry = toolRegistry;
         this.realtimeEventPublisher = realtimeEventPublisher;
         this.realtimeEventMapper = realtimeEventMapper;
         this.redactionService = redactionService;
@@ -104,7 +129,8 @@ public class AssistantOrchestrator {
             processJob(job);
         } catch (RuntimeException exception) {
             LOGGER.warn("AI assistant job failed jobId={} conversationId={} inputMessageId={} error={}",
-                    job.getJobId(), job.getConversationId(), job.getInputMessageId(), exception.getClass().getSimpleName());
+                    job.getJobId(), job.getConversationId(), job.getInputMessageId(),
+                    exception.getClass().getSimpleName(), exception);
             transactionTemplate.executeWithoutResult(status -> failOrRetry(job, "UNEXPECTED_ERROR", true));
         }
     }
@@ -118,18 +144,25 @@ public class AssistantOrchestrator {
         PiiRedactionService.RedactionResult inputRedaction = redactionService.redact(context.inputMessage().getContent());
         if (inputRedaction.sensitivePayment()) {
             transactionTemplate.executeWithoutResult(status -> {
-                saveAssistantMessage(context.conversation(), job, "Tro ly dang tam thoi chuyen yeu cau nay sang nhan vien vi noi dung co du lieu nhay cam.");
+                saveAssistantMessage(context.conversation(), job, "Vì lý do bảo mật, trợ lý không xử lý nội dung chứa dữ liệu thanh toán hoặc thông tin nhạy cảm. Vui lòng xóa dữ liệu nhạy cảm và gửi lại.");
                 failOrRetry(job, "SENSITIVE_DATA_BLOCKED", false);
             });
             return;
         }
 
-        List<AiModelConfiguration> candidates = modelRouter.resolveCandidates(AiUseCase.SUPPORT_CHAT);
+        List<AiModelConfiguration> candidates = modelRouter.resolveCandidates(
+                AiUseCase.SUPPORT_CHAT,
+                context.conversation().getConversationId(),
+                context.inputMessage().getSenderAccountId(),
+                1
+        );
         String lastFailureCode = null;
+        boolean lastFailureRetryable = false;
         for (AiModelConfiguration configuration : candidates) {
             AiProviderPortOut providerPort = providerPorts.get(resolveProvider(configuration));
             if (providerPort == null) {
                 lastFailureCode = "PROVIDER_NOT_CONFIGURED";
+                lastFailureRetryable = false;
                 continue;
             }
             AiRun run = transactionTemplate.execute(status -> createRunningRun(context.conversation(), context.inputMessage(), configuration));
@@ -139,6 +172,7 @@ public class AssistantOrchestrator {
                 response = providerPort.generate(buildAiRequest(context.conversation()), configuration);
             } catch (RuntimeException exception) {
                 lastFailureCode = "PROVIDER_EXCEPTION";
+                lastFailureRetryable = true;
                 String failureCode = lastFailureCode;
                 transactionTemplate.executeWithoutResult(status -> markRunFailed(run, failureCode));
                 continue;
@@ -147,9 +181,20 @@ public class AssistantOrchestrator {
             run.setInputTokens(response.inputTokens());
             run.setOutputTokens(response.outputTokens());
             if (response.success()) {
+                if (response.functionCall() != null) {
+                    if (handleFunctionCall(context, job, run, configuration, response.functionCall())) {
+                        return;
+                    }
+                    lastFailureCode = "INVALID_FUNCTION_CALL";
+                    lastFailureRetryable = false;
+                    String failureCode = lastFailureCode;
+                    transactionTemplate.executeWithoutResult(status -> markRunFailed(run, failureCode));
+                    break;
+                }
                 String answer = extractAssistantText(response.text());
                 if (answer == null || answer.isBlank()) {
                     lastFailureCode = "INVALID_RESPONSE_SCHEMA";
+                    lastFailureRetryable = true;
                     String failureCode = lastFailureCode;
                     transactionTemplate.executeWithoutResult(status -> markRunFailed(run, failureCode));
                     if (modelPolicyService.canFallbackFor(lastFailureCode)) {
@@ -162,15 +207,21 @@ public class AssistantOrchestrator {
             }
 
             lastFailureCode = response.failureCode();
-            String failureCode = lastFailureCode;
-            transactionTemplate.executeWithoutResult(status -> markRunFailed(run, failureCode));
-            if (!response.retryable() && !modelPolicyService.canFallbackFor(lastFailureCode)) {
+            lastFailureRetryable = response.retryable();
+            transactionTemplate.executeWithoutResult(status -> {
+                markRunFailed(run, response);
+                if ("MODEL_NOT_FOUND".equals(response.failureCode())) {
+                    openModelWarning(configuration, response);
+                }
+            });
+            if (!modelPolicyService.canFallbackFor(lastFailureCode)) {
                 break;
             }
         }
 
         String failureCode = lastFailureCode == null ? "AI_PROVIDER_FAILED" : lastFailureCode;
-        transactionTemplate.executeWithoutResult(status -> failOrRetry(job, failureCode, true));
+        boolean retryable = lastFailureRetryable;
+        transactionTemplate.executeWithoutResult(status -> failOrRetry(job, failureCode, retryable));
     }
 
     private JobContext loadJobContext(AssistantJob job) {
@@ -208,7 +259,19 @@ public class AssistantOrchestrator {
             String content = redactionService.redact(message.getContent()).value();
             messages.add(new AiRequestMessage(role, content));
         }
-        return new AiRequest(systemInstruction(), messages, true);
+        return new AiRequest(
+                systemInstruction(),
+                messages,
+                true,
+                toolRegistry.all().stream().map(AiToolDefinition::declaration).toList(),
+                List.of()
+        );
+    }
+
+    private AiRequest buildAiRequestWithFunctionResponse(ChatConversation conversation, AiFunctionResponse functionResponse) {
+        List<AiRequestMessage> messages = new ArrayList<>(buildAiRequest(conversation).messages());
+        messages.add(new AiRequestMessage("user", "Hãy tạo câu trả lời cuối cùng ngắn gọn dựa trên kết quả của công cụ. Nói rõ nếu không có đủ nguồn thông tin."));
+        return new AiRequest(systemInstruction(), messages, true, List.of(), List.of(functionResponse));
     }
 
     private AiProvider resolveProvider(AiModelConfiguration configuration) {
@@ -261,12 +324,198 @@ public class AssistantOrchestrator {
         run.setRunId(UUID.randomUUID());
         run.setConversationId(conversation.getConversationId());
         run.setInputMessageId(inputMessage.getMessageId());
+        run.setConfigurationId(configuration.getConfigurationId());
         run.setProvider(resolveProvider(configuration));
         run.setModelId(configuration.getModelId());
         run.setPromptVersion(properties.getPromptVersion());
+        run.setRolloutVersion(1);
+        run.setAttemptNumber(1);
         run.setStatus(AiRunStatus.RUNNING);
         run.setCreatedAt(Instant.now());
         return aiRunPortOut.save(run);
+    }
+
+    private boolean handleFunctionCall(
+            JobContext context,
+            AssistantJob job,
+            AiRun run,
+            AiModelConfiguration configuration,
+            AiFunctionCall functionCall
+    ) {
+        if (functionCall.malformed()) {
+            transactionTemplate.executeWithoutResult(status -> markRunFailed(run, functionCall.failureCode()));
+            return false;
+        }
+        JsonNode arguments;
+        try {
+            arguments = objectMapper.readTree(functionCall.argumentsJson());
+        } catch (Exception exception) {
+            transactionTemplate.executeWithoutResult(status -> markRunFailed(run, "MALFORMED_FUNCTION_CALL"));
+            return false;
+        }
+
+        AiToolDefinition definition;
+        try {
+            definition = toolRegistry.require(functionCall.name());
+            definition.validate(arguments);
+        } catch (RuntimeException exception) {
+            transactionTemplate.executeWithoutResult(status -> {
+                AiToolCall denied = newToolCall(run, context, functionCall.name(), AiToolType.READ_ONLY, functionCall.argumentsJson());
+                denied.setStatus(AiToolCallStatus.FAILED);
+                denied.setFailureCode(exception.getClass().getSimpleName());
+                aiToolCallPortOut.save(denied);
+            });
+            return false;
+        }
+
+        if (definition.requiresConfirmation()) {
+            transactionTemplate.executeWithoutResult(status -> createPendingActionCard(context, job, run, definition, functionCall.argumentsJson()));
+            return true;
+        }
+
+        AiToolExecutionService.ToolExecutionResult toolResult;
+        AiToolCall toolCall = transactionTemplate.execute(status -> {
+            AiToolCall requested = newToolCall(run, context, definition.name(), definition.toolType(), functionCall.argumentsJson());
+            requested.setStatus(AiToolCallStatus.EXECUTING);
+            return aiToolCallPortOut.save(requested);
+        });
+        try {
+            toolResult = toolExecutionService.executeFromAssistantWorker(definition.name(), arguments);
+            AiToolCall savedToolCall = toolCall;
+            transactionTemplate.executeWithoutResult(status -> {
+                savedToolCall.setStatus(AiToolCallStatus.SUCCEEDED);
+                savedToolCall.setExecutedAt(Instant.now());
+                savedToolCall.setResponsePayloadRedacted(toolResult.responseJson());
+                aiToolCallPortOut.save(savedToolCall);
+            });
+        } catch (RuntimeException exception) {
+            AiToolCall failedToolCall = toolCall;
+            transactionTemplate.executeWithoutResult(status -> {
+                failedToolCall.setStatus(AiToolCallStatus.FAILED);
+                failedToolCall.setFailureCode(exception.getClass().getSimpleName());
+                aiToolCallPortOut.save(failedToolCall);
+            });
+            return false;
+        }
+
+        AiProviderPortOut providerPort = providerPorts.get(resolveProvider(configuration));
+        AiResponse finalResponse = providerPort.generate(
+                buildAiRequestWithFunctionResponse(context.conversation(), new AiFunctionResponse(definition.name(), toolResult.responseJson())),
+                configuration
+        );
+        String answer = finalResponse.success() ? extractAssistantText(finalResponse.text()) : null;
+        if (answer == null || answer.isBlank()) {
+            answer = summarizeToolResponse(toolResult.responseJson());
+        }
+        String finalAnswer = answer;
+        transactionTemplate.executeWithoutResult(status -> storeSuccessfulResponse(context.conversation(), job, run, finalAnswer));
+        return true;
+    }
+
+    private void createPendingActionCard(
+            JobContext context,
+            AssistantJob job,
+            AiRun run,
+            AiToolDefinition definition,
+            String argumentsJson
+    ) {
+        AiToolCall toolCall = newToolCall(run, context, definition.name(), definition.toolType(), argumentsJson);
+        toolCall.setStatus(AiToolCallStatus.AWAITING_CONFIRMATION);
+        toolCall.setExpiresAt(Instant.now().plus(definition.timeout()));
+        toolCall = aiToolCallPortOut.save(toolCall);
+        ChatMessage actionCard = saveActionCardMessage(context.conversation(), job, toolCall, definition);
+        run.setOutputMessageId(actionCard.getMessageId());
+        run.setStatus(AiRunStatus.SUCCEEDED);
+        aiRunPortOut.save(run);
+        job.setStatus(AssistantJobStatus.WAITING_CONFIRMATION);
+        clearLock(job);
+        assistantJobPortOut.save(job);
+    }
+
+    private AiToolCall newToolCall(AiRun run, JobContext context, String toolName, AiToolType toolType, String argumentsJson) {
+        AiToolCall toolCall = new AiToolCall();
+        toolCall.setToolCallId(UUID.randomUUID());
+        toolCall.setRunId(run.getRunId());
+        toolCall.setConversationId(context.conversation().getConversationId());
+        toolCall.setInputMessageId(context.inputMessage().getMessageId());
+        toolCall.setRequestedBy(context.inputMessage().getSenderAccountId());
+        toolCall.setToolName(toolName);
+        toolCall.setToolType(toolType);
+        toolCall.setRequestPayloadRedacted(toObjectJson(Map.of("toolName", toolName)));
+        toolCall.setArgumentPayloadRedacted(argumentsJson == null || argumentsJson.isBlank() ? "{}" : argumentsJson);
+        toolCall.setResponsePayloadRedacted("{}");
+        toolCall.setStatus(AiToolCallStatus.REQUESTED);
+        toolCall.setIdempotencyKey("ai-tool:" + context.inputMessage().getMessageId() + ":" + toolName);
+        toolCall.setCreatedAt(Instant.now());
+        toolCall.setVersion(0);
+        return toolCall;
+    }
+
+    private ChatMessage saveActionCardMessage(
+            ChatConversation conversation,
+            AssistantJob job,
+            AiToolCall toolCall,
+            AiToolDefinition definition
+    ) {
+        ChatMessage message = new ChatMessage();
+        message.setMessageId(UUID.randomUUID());
+        message.setConversationId(conversation.getConversationId());
+        message.setSenderAccountId(null);
+        message.setReplyToMessageId(job.getInputMessageId());
+        message.setRelatedSchema("ai");
+        message.setRelatedTable("ai_tool_calls");
+        message.setRelatedId(toolCall.getToolCallId());
+        message.setContent(toObjectJson(Map.of(
+                "toolCallId", toolCall.getToolCallId().toString(),
+                "toolName", toolCall.getToolName(),
+                "title", actionTitle(definition.name()),
+                "description", actionDescription(definition.name()),
+                "expiresAt", toolCall.getExpiresAt() == null ? "" : toolCall.getExpiresAt().toString()
+        )));
+        messagePolicy.initializeActionCard(message);
+        ChatMessage savedMessage = chatPortOut.saveMessage(message);
+        conversation.setLastMessageId(savedMessage.getMessageId());
+        conversation.setLastMessageAt(savedMessage.getCreatedAt() == null ? Instant.now() : savedMessage.getCreatedAt());
+        chatPortOut.saveConversation(conversation);
+        TransactionalEvents.runAfterCommit(() -> realtimeEventPublisher.publish(
+                realtimeEventMapper.toRealtimeEvent(savedMessage, Instant.now())
+        ));
+        return savedMessage;
+    }
+
+    private String actionTitle(String toolName) {
+        return switch (toolName) {
+            case "create_support_ticket" -> "Xác nhận tạo phiếu hỗ trợ";
+            default -> "Xác nhận hành động";
+        };
+    }
+
+    private String actionDescription(String toolName) {
+        return switch (toolName) {
+            case "create_support_ticket" -> "Hệ thống sẽ tạo phiếu hỗ trợ với nội dung đã hiển thị sau khi bạn xác nhận.";
+            default -> "Hệ thống chỉ thực hiện hành động sau khi bạn xác nhận.";
+        };
+    }
+
+    private String summarizeToolResponse(String responseJson) {
+        try {
+            JsonNode root = objectMapper.readTree(responseJson);
+            JsonNode responseText = root.get("responseText");
+            if (responseText != null && responseText.isTextual()) {
+                return sanitizeAssistantOutput(responseText.asText());
+            }
+        } catch (Exception ignored) {
+            return "Đã xử lý yêu cầu.";
+        }
+        return "Đã xử lý yêu cầu.";
+    }
+
+    private String toObjectJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (Exception exception) {
+            return "{}";
+        }
     }
 
     private void storeSuccessfulResponse(ChatConversation conversation, AssistantJob job, AiRun run, String answer) {
@@ -287,6 +536,49 @@ public class AssistantOrchestrator {
         aiRunPortOut.save(run);
     }
 
+    private void markRunFailed(AiRun run, AiResponse response) {
+        run.setStatus(AiRunStatus.FAILED);
+        run.setFailureCode(response.failureCode());
+        run.setFailureRetryable(response.retryable());
+        AiProviderErrorDetail detail = response.providerErrorDetail();
+        if (detail != null) {
+            run.setProviderStatus(detail.providerStatus());
+            run.setProviderErrorCode(detail.providerErrorCode());
+            run.setProviderErrorMessageRedacted(detail.providerErrorMessageRedacted());
+            run.setFieldViolationsRedacted(detail.fieldViolationsRedacted());
+        }
+        aiRunPortOut.save(run);
+    }
+
+    private void openModelWarning(AiModelConfiguration configuration, AiResponse response) {
+        if (configuration == null) {
+            return;
+        }
+        boolean exists = aiModelWarningPortOut.findOpen(
+                resolveProvider(configuration).name(),
+                configuration.getModelId(),
+                configuration.getConfigurationId(),
+                "MODEL_NOT_FOUND"
+        ).isPresent();
+        if (exists) {
+            return;
+        }
+        AiModelWarning warning = new AiModelWarning();
+        warning.setWarningId(UUID.randomUUID());
+        warning.setProvider(resolveProvider(configuration));
+        warning.setModelId(configuration.getModelId());
+        warning.setConfigurationId(configuration.getConfigurationId());
+        warning.setWarningCode("MODEL_NOT_FOUND");
+        warning.setSeverity(AiModelWarningSeverity.CRITICAL);
+        warning.setStatus(AiModelWarningStatus.OPEN);
+        warning.setDetail(response.providerErrorDetail() == null
+                ? "Configured Gemini model was not found"
+                : response.providerErrorDetail().providerErrorMessageRedacted());
+        warning.setDetectedAt(Instant.now());
+        warning.setCreatedAt(Instant.now());
+        aiModelWarningPortOut.save(warning);
+    }
+
     private ChatMessage saveAssistantMessage(ChatConversation conversation, AssistantJob job, String content) {
         ChatMessage message = new ChatMessage();
         message.setMessageId(UUID.randomUUID());
@@ -297,7 +589,7 @@ public class AssistantOrchestrator {
         message.setRelatedSchema("ai");
         message.setRelatedTable("assistant_jobs");
         message.setRelatedId(job.getJobId());
-        messagePolicy.initializeSystem(message);
+        messagePolicy.initializeAssistantText(message);
         ChatMessage savedMessage = chatPortOut.saveMessage(message);
         conversation.setLastMessageId(savedMessage.getMessageId());
         conversation.setLastMessageAt(savedMessage.getCreatedAt() == null ? Instant.now() : savedMessage.getCreatedAt());

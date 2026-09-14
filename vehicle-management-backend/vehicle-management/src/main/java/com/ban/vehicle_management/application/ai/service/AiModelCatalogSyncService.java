@@ -34,18 +34,15 @@ public class AiModelCatalogSyncService {
         if (!properties.isAssistantEnabled()) {
             return;
         }
-        try {
-            AiProviderPortOut providerPortOut = providerPorts.stream()
-                    .filter(provider -> provider.provider() == AiProvider.GEMINI)
-                    .findFirst()
-                    .orElse(null);
-            if (providerPortOut == null) {
-                return;
-            }
-            List<AiProviderModel> models = providerPortOut.listModels();
-            catalogPortOut.upsertGeminiModels(models);
-        } catch (RuntimeException exception) {
-            LOGGER.warn("Failed to sync Gemini model catalog: {}", exception.getClass().getSimpleName());
+        AiProviderPortOut providerPortOut = providerPorts.stream()
+                .filter(provider -> provider.provider() == AiProvider.GEMINI)
+                .findFirst()
+                .orElse(null);
+        if (providerPortOut == null) {
+            return;
         }
+        List<AiProviderModel> models = providerPortOut.listModels();
+        catalogPortOut.upsertGeminiModels(models);
+        LOGGER.info("Synced Gemini model catalog count={}", models.size());
     }
 }
