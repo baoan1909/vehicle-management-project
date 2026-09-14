@@ -2,9 +2,12 @@ package com.ban.vehicle_management.application.accesscontrol.subscription.usecas
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.authorization.SubscriptionAccessGuard;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
+import com.ban.vehicle_management.application.catalog.voucher.model.result.VoucherQuote;
+import com.ban.vehicle_management.application.catalog.voucher.port.in.VoucherPortIn;
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
@@ -65,6 +68,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private final PriceRulePortOut priceRulePortOut;
     private final CardPortOut cardPortOut;
     private final InvoicePortOut invoicePortOut;
+    private final VoucherPortIn voucherPortIn;
     private final ZonePortOut zonePortOut;
     private final CurrentAccountPortIn currentAccountPortIn;
     private final SubscriptionAccessGuard subscriptionAccessGuard;
@@ -81,6 +85,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             PriceRulePortOut priceRulePortOut,
             CardPortOut cardPortOut,
             InvoicePortOut invoicePortOut,
+            VoucherPortIn voucherPortIn,
             ZonePortOut zonePortOut,
             CurrentAccountPortIn currentAccountPortIn,
             SubscriptionAccessGuard subscriptionAccessGuard,
@@ -93,6 +98,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         this.priceRulePortOut = priceRulePortOut;
         this.cardPortOut = cardPortOut;
         this.invoicePortOut = invoicePortOut;
+        this.voucherPortIn = voucherPortIn;
         this.zonePortOut = zonePortOut;
         this.currentAccountPortIn = currentAccountPortIn;
         this.subscriptionAccessGuard = subscriptionAccessGuard;
@@ -106,6 +112,31 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         UUID customerId = subscriptionAccessGuard.resolveCurrentApprovedCustomerId();
         subscription.setCustomerId(customerId);
         return createPendingSubscription(subscription);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SubscriptionVoucherQuote quoteOwnSubscriptionVoucher(Subscription subscription) {
+        subscriptionAccessGuard.ensureCanCreateOwn();
+        subscription.setCustomerId(subscriptionAccessGuard.resolveCurrentApprovedCustomerId());
+        subscription.setSubscriptionId(UUID.randomUUID());
+
+        SubscriptionPreparedData preparedData = prepareSubscriptionData(subscription);
+        subscription.setPriceRuleId(preparedData.priceRule().getPriceRuleId());
+        subscription.setPrice(preparedData.priceRule().getBasePrice());
+        subscriptionPolicy.initializeNewSubscription(
+                subscription,
+                preparedData.ticketType().getDurationDays(),
+                currentDate()
+        );
+
+        VoucherQuote voucherQuote = applyVoucherQuote(subscription, preparedData, Instant.now());
+        return new SubscriptionVoucherQuote(
+                voucherQuote.voucherCode(),
+                subscription.getPrice(),
+                voucherQuote.discountAmount(),
+                voucherQuote.finalAmount()
+        );
     }
 
     @Override
@@ -158,10 +189,12 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         existingSubscription.setCustomerVehicleId(requestedSubscription.getCustomerVehicleId());
         existingSubscription.setTicketTypeId(requestedSubscription.getTicketTypeId());
         existingSubscription.setRequestedEffectiveFrom(requestedSubscription.getRequestedEffectiveFrom());
+        existingSubscription.setRequestedVoucherCode(requestedSubscription.getRequestedVoucherCode());
 
         SubscriptionPreparedData preparedData = prepareSubscriptionData(existingSubscription);
         existingSubscription.setPriceRuleId(preparedData.priceRule().getPriceRuleId());
         existingSubscription.setPrice(preparedData.priceRule().getBasePrice());
+        applyVoucherQuote(existingSubscription, preparedData, Instant.now());
 
         subscriptionPolicy.preparePendingUpdate(
                 existingSubscription,
@@ -182,7 +215,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         Instant now = Instant.now();
         LocalDate today = currentDate();
 
-        if (!today.isBefore(subscription.getRequestedEffectiveFrom())) {
+        if (today.isAfter(subscription.getRequestedEffectiveFrom())) {
             subscriptionPolicy.reject(
                     subscription,
                     "Approval deadline expired",
@@ -208,7 +241,8 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         cardPolicy.reserve(reservedCard);
         Card savedReservedCard = cardPortOut.save(reservedCard);
 
-        BigDecimal invoiceFinalAmount = subscription.getPrice();
+        VoucherQuote voucherQuote = applyVoucherQuote(subscription, preparedData, now);
+        BigDecimal invoiceFinalAmount = voucherQuote.finalAmount();
         subscriptionPolicy.approve(
                 subscription,
                 currentAccountPortIn.getCurrentAccountIdOrThrow(),
@@ -219,7 +253,21 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         );
 
         Subscription approvedSubscription = subscriptionPortOut.save(subscription);
-        Invoice invoice = invoicePortOut.save(buildSubscriptionInvoice(approvedSubscription, now));
+        Invoice invoice = invoicePortOut.save(buildSubscriptionInvoice(approvedSubscription, voucherQuote.discountAmount(), now));
+        if (voucherQuote.voucherId() != null) {
+            voucherPortIn.reserveSubscriptionVoucher(
+                    voucherQuote.voucherCode(),
+                    approvedSubscription.getCustomerId(),
+                    approvedSubscription.getTicketTypeId(),
+                    approvedSubscription.getPrice(),
+                    approvedSubscription.getSubscriptionId(),
+                    invoice.getInvoiceId(),
+                    now
+            );
+            if (invoice.getStatus() == InvoiceStatus.PAID) {
+                voucherPortIn.redeemSubscriptionVoucher(approvedSubscription.getSubscriptionId(), now);
+            }
+        }
         notifySubscriptionApproved(approvedSubscription);
         notifySubscriptionInvoiceCreated(invoice);
 
@@ -252,6 +300,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         invoicePortOut.findFirstBySubscriptionIdAndStatus(subscriptionId, InvoiceStatus.PAID)
                 .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription"));
 
+        voucherPortIn.redeemSubscriptionVoucher(subscriptionId, Instant.now());
         subscriptionPolicy.markPaymentCompleted(subscription);
         Subscription savedSubscription = subscriptionPortOut.save(subscription);
         notifySubscriptionPaymentCompleted(savedSubscription);
@@ -292,6 +341,11 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
 
             invoicePolicy.cancel(unpaidInvoice);
             invoicePortOut.save(unpaidInvoice);
+            voucherPortIn.releaseSubscriptionVoucher(
+                    subscriptionId,
+                    "Subscription payment was cancelled",
+                    Instant.now()
+            );
 
             if (subscription.getCardId() != null) {
                 Card reservedCard = cardPortOut.findById(subscription.getCardId())
@@ -327,6 +381,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         SubscriptionPreparedData preparedData = prepareSubscriptionData(subscription);
         subscription.setPriceRuleId(preparedData.priceRule().getPriceRuleId());
         subscription.setPrice(preparedData.priceRule().getBasePrice());
+        applyVoucherQuote(subscription, preparedData, Instant.now());
 
         subscriptionPolicy.initializeNewSubscription(
                 subscription,
@@ -431,13 +486,33 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         }
     }
 
-    private Invoice buildSubscriptionInvoice(Subscription subscription, Instant now) {
+    private VoucherQuote applyVoucherQuote(
+            Subscription subscription,
+            SubscriptionPreparedData preparedData,
+            Instant now
+    ) {
+        if (subscription.getRequestedVoucherCode() == null || subscription.getRequestedVoucherCode().isBlank()) {
+            subscription.setRequestedVoucherCode(null);
+            return VoucherQuote.withoutVoucher(subscription.getPrice());
+        }
+        VoucherQuote quote = voucherPortIn.quoteSubscriptionVoucher(
+                subscription.getRequestedVoucherCode(),
+                subscription.getCustomerId(),
+                preparedData.ticketType().getTicketTypeId(),
+                subscription.getPrice(),
+                now
+        );
+        subscription.setRequestedVoucherCode(quote.voucherCode());
+        return quote;
+    }
+
+    private Invoice buildSubscriptionInvoice(Subscription subscription, BigDecimal discountAmount, Instant now) {
         Invoice invoice = new Invoice();
         invoice.setInvoiceId(UUID.randomUUID());
         invoice.setCustomerId(subscription.getCustomerId());
         invoice.setSubscriptionId(subscription.getSubscriptionId());
         invoice.setAmount(subscription.getPrice());
-        invoice.setDiscountAmount(BigDecimal.ZERO);
+        invoice.setDiscountAmount(discountAmount);
 
         invoicePolicy.initializeNewInvoice(
                 invoice,

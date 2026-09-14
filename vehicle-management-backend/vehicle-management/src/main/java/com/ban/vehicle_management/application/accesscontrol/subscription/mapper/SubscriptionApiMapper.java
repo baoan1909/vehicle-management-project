@@ -1,10 +1,12 @@
 package com.ban.vehicle_management.application.accesscontrol.subscription.mapper;
 
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.CreateSubscriptionAdminRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.CreateSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.UpdateSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionVoucherQuoteResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
@@ -21,6 +23,7 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "effectiveFrom", ignore = true)
     @Mapping(target = "effectiveTo", ignore = true)
     @Mapping(target = "price", ignore = true)
+    @Mapping(target = "requestedVoucherCode", source = "voucherCode")
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
     @Mapping(target = "approvedAt", ignore = true)
@@ -40,6 +43,7 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "effectiveFrom", ignore = true)
     @Mapping(target = "effectiveTo", ignore = true)
     @Mapping(target = "price", ignore = true)
+    @Mapping(target = "requestedVoucherCode", source = "voucherCode")
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
     @Mapping(target = "approvedAt", ignore = true)
@@ -60,6 +64,7 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "effectiveFrom", ignore = true)
     @Mapping(target = "effectiveTo", ignore = true)
     @Mapping(target = "price", ignore = true)
+    @Mapping(target = "requestedVoucherCode", source = "voucherCode")
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
     @Mapping(target = "approvedAt", ignore = true)
@@ -74,6 +79,8 @@ public interface SubscriptionApiMapper {
     Subscription toDomain(UpdateSubscriptionRequest request);
 
     SubscriptionAdminResponse toAdminResponse(Subscription subscription);
+
+    SubscriptionVoucherQuoteResponse toVoucherQuoteResponse(SubscriptionVoucherQuote quote);
 
     List<SubscriptionAdminResponse> toAdminResponses(List<Subscription> subscriptions);
 

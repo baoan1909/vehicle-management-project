@@ -23,6 +23,7 @@ public class SubscriptionAdminResponse {
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
     private BigDecimal price;
+    private String requestedVoucherCode;
     private SubscriptionStatus status;
     private UUID approvedBy;
     private String approvedAt;

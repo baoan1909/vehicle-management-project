@@ -4,19 +4,26 @@ import { Link, useNavigate } from "react-router-dom";
 import { canAccessCustomerRoute } from "@/app/routePermissions";
 import { useAuth } from "@/core/auth/useAuth";
 import {
+  getSubscriptionInvoice,
+  type InvoiceSummaryResponse,
+} from "@/features/billing/api/invoicePaymentsApi";
+import {
   getCustomerPortalLookups,
   getCustomerPortalProfile,
+  getCustomerPortalVoucherBanners,
   getMyCustomerVehicles,
   getMySubscriptions,
   type CustomerPortalProfile,
   type CustomerPortalSubscription,
   type CustomerPortalTicketType,
   type CustomerPortalVehicle,
+  type CustomerPortalVoucherBanner,
   type CustomerPortalVehicleType,
 } from "@/features/customer-portal/api/customerPortalApi";
 import { PortalTicketArtwork } from "@/features/customer-portal/components/PortalTicketArtwork";
 import { PortalTicketFrame } from "@/features/customer-portal/components/PortalTicketFrame";
 import { VehicleVisual } from "@/features/customer-portal/components/VehicleVisual";
+import { VoucherPromotionBanner } from "@/features/customer-portal/components/VoucherPromotionBanner";
 import { parsePortalDate } from "@/features/customer-portal/utils/portalDate";
 
 import { CustomerPortalLayout, StatusPill } from "./PortalShared";
@@ -113,6 +120,8 @@ export function CustomerDashboardPage() {
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [vehicles, setVehicles] = useState<CustomerPortalVehicle[]>([]);
   const [subscriptions, setSubscriptions] = useState<CustomerPortalSubscription[]>([]);
+  const [invoiceBySubscriptionId, setInvoiceBySubscriptionId] = useState<Record<string, InvoiceSummaryResponse>>({});
+  const [voucherBanners, setVoucherBanners] = useState<CustomerPortalVoucherBanner[]>([]);
   const [ticketTypes, setTicketTypes] = useState<CustomerPortalTicketType[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<CustomerPortalVehicleType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -132,19 +141,34 @@ export function CustomerDashboardPage() {
           setProfile(nextProfile);
           setVehicles([]);
           setSubscriptions([]);
+          setInvoiceBySubscriptionId({});
+          setVoucherBanners([]);
           setTicketTypes([]);
           setVehicleTypes([]);
           return;
         }
-        const [nextVehicles, nextSubscriptions, lookups] = await Promise.all([
+        const [nextVehicles, nextSubscriptions, lookups, nextVoucherBanners] = await Promise.all([
           getMyCustomerVehicles(nextProfile),
           getMySubscriptions(nextProfile),
           getCustomerPortalLookups(),
+          getCustomerPortalVoucherBanners().catch(() => []),
         ]);
+        const invoiceEntries = await Promise.all(nextSubscriptions.map(async (subscription) => {
+          try {
+            const invoice = await getSubscriptionInvoice(subscription.subscriptionId);
+            return invoice ? [subscription.subscriptionId, invoice] as const : null;
+          } catch {
+            return null;
+          }
+        }));
         if (ignore) return;
         setProfile(nextProfile);
         setVehicles(nextVehicles);
         setSubscriptions(nextSubscriptions);
+        setInvoiceBySubscriptionId(Object.fromEntries(
+          invoiceEntries.filter((entry): entry is readonly [string, InvoiceSummaryResponse] => entry !== null),
+        ));
+        setVoucherBanners(nextVoucherBanners);
         setTicketTypes(lookups.ticketTypes);
         setVehicleTypes(lookups.vehicleTypes);
       } catch (requestError) {
@@ -163,6 +187,10 @@ export function CustomerDashboardPage() {
   const vehicleById = useMemo(() => new Map(vehicles.map((vehicle) => [vehicle.customerVehicleId, vehicle])), [vehicles]);
   const ticketTypeById = useMemo(() => new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType])), [ticketTypes]);
   const vehicleTypeById = useMemo(() => new Map(vehicleTypes.map((type) => [type.vehicleTypeId, type])), [vehicleTypes]);
+  const getSubscriptionTotal = (subscription?: CustomerPortalSubscription | null) => (
+    subscription ? invoiceBySubscriptionId[subscription.subscriptionId]?.finalAmount ?? subscription.price : null
+  );
+  const dashboardVoucherBanners = voucherBanners.filter((banner) => banner.showOnDashboard);
   const activeSubscription = subscriptions.find((subscription) => subscription.status === "ACTIVE");
   const pendingSubscriptions = subscriptions.filter((subscription) => subscription.status?.startsWith("PENDING"));
   const defaultVehicle = vehicles.find((vehicle) => vehicle.isDefault);
@@ -199,6 +227,8 @@ export function CustomerDashboardPage() {
           </Link>
         </section>
       ) : null}
+
+      {dashboardVoucherBanners.length > 0 ? <div className="tw-mb-4"><VoucherPromotionBanner vouchers={dashboardVoucherBanners} /></div> : null}
 
       <section className="tw-relative tw-min-h-[374px] max-[1100px]:tw-min-h-[370px] tw-overflow-hidden tw-rounded-[14px] tw-bg-[#031632] tw-px-10 tw-py-8 tw-pb-[7.5rem] max-[1100px]:tw-px-6 max-[640px]:tw-px-4 max-[640px]:tw-pb-8 tw-text-white tw-shadow-sm">
         <img alt="" aria-hidden="true" src="/assets/customer/portal/smart-parking-hero-full-car-v2.png" className="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-object-[center_60%] max-[640px]:tw-opacity-40" />
@@ -273,7 +303,7 @@ export function CustomerDashboardPage() {
                       ) : <span className="tw-text-[0.68rem] tw-text-[#71819a]" title="Ngày đăng ký chưa được cung cấp hoặc không hợp lệ">Chưa có ngày đăng ký</span>}
                       <span className="tw-grid tw-min-w-0 tw-gap-1"><span className="tw-text-[#223554]">{ticket?.name ?? "Vé tháng CoParking"}</span><small className="tw-text-[0.68rem] tw-text-[#71819a]">{vehicle?.licensePlate ?? "Chưa gán xe"}</small></span>
                       <span className="max-[640px]:tw-col-start-2 max-[640px]:tw-row-start-2">{formatDate(subscription.effectiveFrom ?? subscription.requestedEffectiveFrom)} – {formatDate(subscription.effectiveTo)}</span>
-                      <span className="tw-whitespace-nowrap tw-text-[#172c4b]">{formatCurrency(subscription.price)}</span>
+                      <span className="tw-whitespace-nowrap tw-text-[#172c4b]">{formatCurrency(getSubscriptionTotal(subscription))}</span>
                       <span className={`tw-inline-flex tw-items-center tw-justify-self-end tw-gap-1 tw-whitespace-nowrap tw-rounded-md tw-border tw-border-solid tw-px-2 tw-py-1.5 tw-text-[0.64rem] max-[640px]:tw-col-start-3 max-[640px]:tw-row-start-2 ${active ? "tw-border-[#ccebd8] tw-bg-[#effaf3] tw-text-[#17824f]" : subscription.status?.startsWith("PENDING") ? "tw-border-[#f5dfb9] tw-bg-[#fff8ed] tw-text-[#b77516]" : "tw-border-[#e3e7ee] tw-bg-[#f8fafc] tw-text-[#64748b]"}`}>
                         <span aria-hidden="true" className="tw-h-1.5 tw-w-1.5 tw-shrink-0 tw-rounded-full tw-bg-current" />{statusLabel(subscription.status)}
                       </span>

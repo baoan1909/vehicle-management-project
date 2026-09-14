@@ -65,6 +65,7 @@ export type CustomerPortalSubscription = {
   rejectedBy?: string | null;
   rejectionReason?: string | null;
   requestedEffectiveFrom?: string | null;
+  requestedVoucherCode?: string | null;
   status: CustomerPortalSubscriptionStatus;
   subscriptionId: string;
   ticketTypeId: string;
@@ -76,6 +77,23 @@ export type CreateMySubscriptionRequest = {
   customerVehicleId: string;
   requestedEffectiveFrom: string;
   ticketTypeId: string;
+  voucherCode?: string;
+};
+
+export type CustomerPortalSubscriptionVoucherQuote = {
+  voucherCode: string | null;
+  baseAmount: number | string;
+  discountAmount: number | string;
+  finalAmount: number | string;
+};
+
+export type CustomerPortalVoucherBanner = {
+  code: string;
+  bannerTitle: string;
+  bannerDescription: string | null;
+  bannerPriority: number;
+  showOnDashboard: boolean;
+  showOnSubscriptionPage: boolean;
 };
 
 export type CustomerPortalParkingSession = ParkingSessionManagementResponse;
@@ -204,4 +222,22 @@ export async function getMyParkingSessions(filters: ParkingSessionManagementFilt
     `${apiEndpoints.parking.parkingSessions}/me${buildQuery(filters)}`,
   );
   return (response.data ?? []).map(normalizeParkingSession);
+}
+
+export async function quoteMySubscriptionVoucher(payload: CreateMySubscriptionRequest) {
+  const response = await apiClient<ApiResponse<CustomerPortalSubscriptionVoucherQuote>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/voucher-quote`,
+    {
+      body: payload,
+      method: "POST",
+    },
+  );
+  return response.data;
+}
+
+export async function getCustomerPortalVoucherBanners() {
+  const response = await apiClient<ApiResponse<CustomerPortalVoucherBanner[]>>(
+    apiEndpoints.catalog.customerVoucherBanners,
+  );
+  return response.data ?? [];
 }

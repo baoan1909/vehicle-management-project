@@ -11,6 +11,7 @@ import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPo
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.catalog.voucher.port.in.VoucherPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
@@ -47,6 +48,9 @@ class SubscriptionPaymentTimeoutUseCaseImplTest {
     @Mock
     private CardPortOut cardPortOut;
 
+    @Mock
+    private VoucherPortIn voucherPortIn;
+
     private SubscriptionPaymentTimeoutUseCaseImpl useCase;
 
     @BeforeEach
@@ -56,6 +60,7 @@ class SubscriptionPaymentTimeoutUseCaseImplTest {
                 invoicePortOut,
                 paymentPortOut,
                 cardPortOut,
+                voucherPortIn,
                 48
         );
     }
@@ -97,6 +102,11 @@ class SubscriptionPaymentTimeoutUseCaseImplTest {
         verify(invoicePortOut).save(invoice);
         verify(cardPortOut).save(card);
         verify(subscriptionPortOut).save(subscription);
+        verify(voucherPortIn).releaseSubscriptionVoucher(
+                subscription.getSubscriptionId(),
+                "Subscription payment timed out",
+                now
+        );
     }
 
     @Test
@@ -119,6 +129,7 @@ class SubscriptionPaymentTimeoutUseCaseImplTest {
         assertEquals(0, cancelledCount);
         assertEquals(SubscriptionStatus.PENDING_CARD, subscription.getStatus());
         verify(subscriptionPortOut).save(subscription);
+        verify(voucherPortIn).redeemSubscriptionVoucher(subscription.getSubscriptionId(), now);
         verify(invoicePortOut, never()).save(any());
         verify(paymentPortOut, never()).save(any());
         verify(cardPortOut, never()).save(any());

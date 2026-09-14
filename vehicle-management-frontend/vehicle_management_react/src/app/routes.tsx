@@ -26,7 +26,7 @@ import { DeviceManagementPage } from "@/features/hardware";
 import { AccountFormPage, AccountListPage, InternalProfilePage, RoleFormPage, RoleListPage } from "@/features/iam";
 import { AnnouncementManagementPage } from "@/features/notifications";
 import { ParkingOperationsPage, ParkingSessionPage, SwipeEntryPage, SwipeListPage } from "@/features/parking";
-import { PricePlanListPage, PriceRuleListPage } from "@/features/pricing";
+import { PricePlanListPage, PriceRuleListPage, VoucherManagementPage } from "@/features/pricing";
 import { OperationsSupportCenterPage, SupportCategoryWorkflowPage, SupportTicketManagementPage } from "@/features/support";
 
 export interface RouteDefinition {
@@ -58,6 +58,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/devices", title: "Quản lý thiết bị", layout: "admin", element: <DeviceManagementPage /> },
   { path: "/admin/price-plans", title: "Ke hoach gia", layout: "admin", element: <PricePlanListPage /> },
   { path: "/admin/price-rules", title: "Quy tac gia", layout: "admin", element: <PriceRuleListPage /> },
+  { path: "/admin/vouchers", title: "Quan ly voucher", layout: "admin", element: <VoucherManagementPage /> },
   { path: "/admin/invoices", title: "Quản lý hóa đơn", layout: "admin", element: <InvoiceManagementPage /> },
   { path: "/admin/visitorParkingFee", title: "Phi vang lai", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
   { path: "/admin/parkingFeeOfCustomer", title: "Phi dang ky", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },

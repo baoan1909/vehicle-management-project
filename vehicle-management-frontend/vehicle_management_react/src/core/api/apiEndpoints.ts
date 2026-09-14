@@ -52,6 +52,8 @@ export const apiEndpoints = {
     cardTypes: "/catalog/card-types",
     pricePlans: "/catalog/price-plans",
     priceRules: "/catalog/price-rules",
+    vouchers: "/catalog/vouchers",
+    customerVoucherBanners: "/catalog/vouchers/promotions",
     ticketTypes: "/catalog/ticket-types",
     vehicleTypes: "/catalog/vehicle-types",
     tickets: "/tickets",

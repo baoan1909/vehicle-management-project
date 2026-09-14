@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.accesscontrol.subscription.port.in
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.catalog.voucher.port.in.VoucherPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
@@ -34,6 +35,7 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
     private final InvoicePortOut invoicePortOut;
     private final PaymentPortOut paymentPortOut;
     private final CardPortOut cardPortOut;
+    private final VoucherPortIn voucherPortIn;
     private final Duration paymentTimeout;
     private final SubscriptionPolicy subscriptionPolicy = new SubscriptionPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
@@ -45,6 +47,7 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
             InvoicePortOut invoicePortOut,
             PaymentPortOut paymentPortOut,
             CardPortOut cardPortOut,
+            VoucherPortIn voucherPortIn,
             @Value("${app.subscription.payment-timeout-hours:48}") long paymentTimeoutHours
     ) {
         if (paymentTimeoutHours <= 0) {
@@ -54,6 +57,7 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
         this.invoicePortOut = invoicePortOut;
         this.paymentPortOut = paymentPortOut;
         this.cardPortOut = cardPortOut;
+        this.voucherPortIn = voucherPortIn;
         this.paymentTimeout = Duration.ofHours(paymentTimeoutHours);
     }
 
@@ -73,11 +77,16 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
 
         int cancelledCount = 0;
         for (Subscription subscription : expiredSubscriptions) {
-            if (completeWhenInvoiceWasPaid(subscription)) {
+            if (completeWhenInvoiceWasPaid(subscription, now)) {
                 continue;
             }
 
             cancelInvoiceAndPendingPayments(subscription);
+            voucherPortIn.releaseSubscriptionVoucher(
+                    subscription.getSubscriptionId(),
+                    "Subscription payment timed out",
+                    now
+            );
             releaseReservedCard(subscription);
             subscriptionPolicy.cancelBeforeRefundWorkflow(subscription);
             subscriptionPortOut.save(subscription);
@@ -86,12 +95,13 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
         return cancelledCount;
     }
 
-    private boolean completeWhenInvoiceWasPaid(Subscription subscription) {
+    private boolean completeWhenInvoiceWasPaid(Subscription subscription, Instant now) {
         return invoicePortOut.findFirstBySubscriptionIdAndStatus(
                         subscription.getSubscriptionId(),
                         InvoiceStatus.PAID
                 )
                 .map(invoice -> {
+                    voucherPortIn.redeemSubscriptionVoucher(subscription.getSubscriptionId(), now);
                     subscriptionPolicy.markPaymentCompleted(subscription);
                     subscriptionPortOut.save(subscription);
                     return true;
