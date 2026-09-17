@@ -132,7 +132,7 @@ class KnowledgeIndexVersionUseCaseImplTest {
         when(configurationPortOut.findById(draft.getModelConfigurationId()))
                 .thenReturn(Optional.of(embeddingConfiguration(true)));
 
-        KnowledgeIndexVersion building = useCase.startBuild(draft.getIndexVersionId());
+        KnowledgeIndexVersion building = useCase.startBuild(draft.getIndexVersionId(), null);
 
         assertEquals(KnowledgeIndexVersionStatus.BUILDING, building.getStatus());
         assertEquals(14, building.getExpectedChunkCount());

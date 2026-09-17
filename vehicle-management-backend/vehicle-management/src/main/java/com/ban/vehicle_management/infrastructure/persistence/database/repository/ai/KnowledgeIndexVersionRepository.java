@@ -27,6 +27,10 @@ public interface KnowledgeIndexVersionRepository extends JpaRepository<Knowledge
 
     boolean existsByModelConfigurationId(UUID modelConfigurationId);
 
+    long countByStatusIn(List<KnowledgeIndexVersionStatus> statuses);
+
+    Optional<KnowledgeIndexVersionEntity> findFirstByStatusInOrderByCreatedAtAsc(List<KnowledgeIndexVersionStatus> statuses);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select version from KnowledgeIndexVersionEntity version where version.indexVersionId = :indexVersionId")
     Optional<KnowledgeIndexVersionEntity> findByIdForUpdate(@Param("indexVersionId") UUID indexVersionId);

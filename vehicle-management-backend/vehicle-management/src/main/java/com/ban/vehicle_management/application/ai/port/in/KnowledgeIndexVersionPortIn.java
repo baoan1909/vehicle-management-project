@@ -11,7 +11,7 @@ public interface KnowledgeIndexVersionPortIn {
 
     KnowledgeIndexVersion createDraft(CreateKnowledgeIndexVersionCommand command);
 
-    KnowledgeIndexVersion startBuild(UUID indexVersionId);
+    KnowledgeIndexVersion startBuild(UUID indexVersionId, String idempotencyKey);
 
     KnowledgeIndexVersion activate(UUID indexVersionId);
 

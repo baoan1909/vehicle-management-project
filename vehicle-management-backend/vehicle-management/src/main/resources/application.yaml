@@ -26,6 +26,11 @@ spring:
       ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: ${JPA_SHOW_SQL:true}
 
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_MULTIPART_MAX_FILE_SIZE:50MB}
+      max-request-size: ${SPRING_MULTIPART_MAX_REQUEST_SIZE:60MB}
+
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
     locations: classpath:db/migration
@@ -151,6 +156,15 @@ app:
       build-initial-delay-ms: ${AI_EMBEDDING_BUILD_INITIAL_DELAY_MS:10000}
       build-lease-duration: ${AI_EMBEDDING_BUILD_LEASE_DURATION:10m}
       pgvector-required: ${AI_PGVECTOR_REQUIRED:false}
+    ingestion:
+      enabled: ${AI_INGESTION_ENABLED:true}
+      poll-fixed-delay-ms: ${AI_INGESTION_POLL_FIXED_DELAY_MS:5000}
+      poll-initial-delay-ms: ${AI_INGESTION_POLL_INITIAL_DELAY_MS:15000}
+      claim-limit: ${AI_INGESTION_CLAIM_LIMIT:3}
+      worker-id-prefix: ${AI_INGESTION_WORKER_ID_PREFIX:kd-worker}
+      lock-duration: ${AI_INGESTION_LOCK_DURATION:5m}
+      retry-initial-delay: ${AI_INGESTION_RETRY_INITIAL_DELAY:1m}
+      max-attempts: ${AI_INGESTION_MAX_ATTEMPTS:3}
     gemini:
       api-key: ${GEMINI_API_KEY:}
       base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}

@@ -18,8 +18,14 @@ public class KnowledgeRetrievalPersistenceAdapter implements KnowledgeRetrievalP
     }
 
     @Override
-    public List<KnowledgeSearchResult> search(UUID tenantId, String query, List<String> accessScopes, int limit) {
-        return repository.hybridSearch(tenantId, query, accessScopes, limit);
+    public List<KnowledgeSearchResult> search(
+            UUID tenantId,
+            String query,
+            List<String> accessScopes,
+            UUID indexVersionId,
+            int limit
+    ) {
+        return repository.hybridSearch(tenantId, query, accessScopes, indexVersionId, limit);
     }
 
     @Override

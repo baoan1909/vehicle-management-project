@@ -7,7 +7,17 @@ import java.util.UUID;
 
 public interface KnowledgeRetrievalPortOut {
 
-    List<KnowledgeSearchResult> search(UUID tenantId, String query, List<String> accessScopes, int limit);
+    /**
+     * Lexical (FTS) search bounded to an index version: only chunks that are members
+     * of that version (embedding exists) can match.
+     */
+    List<KnowledgeSearchResult> search(
+            UUID tenantId,
+            String query,
+            List<String> accessScopes,
+            UUID indexVersionId,
+            int limit
+    );
 
     List<KnowledgeSearchResult> searchVector(
             UUID tenantId,

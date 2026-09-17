@@ -98,7 +98,7 @@ public class KnowledgeIndexVersionUseCaseImpl implements KnowledgeIndexVersionPo
 
     @Override
     @Transactional
-    public KnowledgeIndexVersion startBuild(UUID indexVersionId) {
+    public KnowledgeIndexVersion startBuild(UUID indexVersionId, String idempotencyKey) {
         currentAccountPortIn.requirePermission("AI_KNOWLEDGE_REINDEX_ALL");
         if (!embeddingProperties.isEnabled()) {
             throw new BadRequestException("Tính năng embedding đang tắt, không thể bắt đầu lập chỉ mục");

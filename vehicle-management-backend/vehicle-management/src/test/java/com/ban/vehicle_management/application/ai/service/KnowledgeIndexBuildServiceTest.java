@@ -11,6 +11,7 @@ import com.ban.vehicle_management.application.ai.port.out.AiModelConfigurationPo
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeChunkPortOut;
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeEmbeddingPortOut;
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeIndexVersionPortOut;
+import com.ban.vehicle_management.application.ai.port.out.KnowledgeStagedEmbeddingPortOut;
 import com.ban.vehicle_management.domain.ai.model.AiModelConfiguration;
 import com.ban.vehicle_management.domain.ai.model.KnowledgeIndexVersion;
 import com.ban.vehicle_management.shared.enumeration.ai.AiModelStatus;
@@ -35,6 +36,7 @@ class KnowledgeIndexBuildServiceTest {
     @Mock private AiModelConfigurationPortOut configurationPortOut;
     @Mock private KnowledgeChunkPortOut chunkPortOut;
     @Mock private KnowledgeEmbeddingPortOut embeddingPortOut;
+    @Mock private KnowledgeStagedEmbeddingPortOut stagedEmbeddingPortOut;
     @Mock private EmbeddingService embeddingService;
     @Mock private EmbeddingPromptFormatter promptFormatter;
     @Mock private PiiRedactionService piiRedactionService;
@@ -50,6 +52,7 @@ class KnowledgeIndexBuildServiceTest {
                 configurationPortOut,
                 chunkPortOut,
                 embeddingPortOut,
+                stagedEmbeddingPortOut,
                 embeddingService,
                 promptFormatter,
                 piiRedactionService,

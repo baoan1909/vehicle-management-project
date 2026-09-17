@@ -9,8 +9,11 @@ import java.util.List;
 import java.util.UUID;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -33,6 +36,7 @@ public class KnowledgeIndexVersionController {
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_KNOWLEDGE_READ_ALL')")
     public ResponseEntity<ApiResponse<List<KnowledgeIndexVersionResponse>>> listIndexVersions() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Lấy danh sách phiên bản chỉ mục tri thức thành công",
@@ -41,6 +45,7 @@ public class KnowledgeIndexVersionController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_KNOWLEDGE_MANAGE_ALL')")
     public ResponseEntity<ApiResponse<KnowledgeIndexVersionResponse>> createDraft(
             @Valid @RequestBody CreateKnowledgeIndexVersionRequest request
     ) {
@@ -54,14 +59,18 @@ public class KnowledgeIndexVersionController {
     }
 
     @PostMapping("/{indexVersionId}/build")
-    public ResponseEntity<ApiResponse<KnowledgeIndexVersionResponse>> startBuild(@PathVariable UUID indexVersionId) {
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Đã bắt đầu xây dựng chỉ mục tri thức",
-                mapper.toResponse(indexVersionPortIn.startBuild(indexVersionId))
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_KNOWLEDGE_MANAGE_ALL')")
+    public ResponseEntity<ApiResponse<KnowledgeIndexVersionResponse>> startBuild(
+            @PathVariable UUID indexVersionId,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(
+                "Yêu cầu xây dựng chỉ mục đã được chấp nhận",
+                mapper.toResponse(indexVersionPortIn.startBuild(indexVersionId, idempotencyKey))
         ));
     }
 
     @PostMapping("/{indexVersionId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_KNOWLEDGE_APPROVE_ALL')")
     public ResponseEntity<ApiResponse<KnowledgeIndexVersionResponse>> activate(@PathVariable UUID indexVersionId) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Kích hoạt phiên bản chỉ mục tri thức thành công",
@@ -70,6 +79,7 @@ public class KnowledgeIndexVersionController {
     }
 
     @PostMapping("/{indexVersionId}/rollback")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_KNOWLEDGE_APPROVE_ALL')")
     public ResponseEntity<ApiResponse<KnowledgeIndexVersionResponse>> rollback(@PathVariable UUID indexVersionId) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Quay lại phiên bản chỉ mục tri thức thành công",

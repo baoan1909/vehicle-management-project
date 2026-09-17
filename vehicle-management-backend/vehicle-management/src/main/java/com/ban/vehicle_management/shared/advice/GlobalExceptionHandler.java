@@ -2,6 +2,7 @@ package com.ban.vehicle_management.shared.advice;
 
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.KnowledgeFileValidationException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
@@ -41,6 +42,23 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(KnowledgeFileValidationException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleKnowledgeFileValidationException(
+            KnowledgeFileValidationException exception,
+            HttpServletRequest request
+    ) {
+        ApiResponse<Map<String, Object>> response = ApiResponse.fail(
+                exception.getMessage(),
+                Map.of(
+                        "status", HttpStatus.BAD_REQUEST.value(),
+                        "error", HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                        "path", request.getRequestURI(),
+                        "code", exception.code()
+                )
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(ConflictException.class)

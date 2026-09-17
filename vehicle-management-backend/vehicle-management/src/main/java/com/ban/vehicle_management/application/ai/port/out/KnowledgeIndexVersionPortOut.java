@@ -21,6 +21,12 @@ public interface KnowledgeIndexVersionPortOut {
 
     List<KnowledgeIndexVersion> findByStatus(KnowledgeIndexVersionStatus status);
 
+    Optional<KnowledgeIndexVersion> findFirstPendingCandidate();
+
+    long countPendingCandidates();
+
+    void lockCandidateAdvisory();
+
     boolean tryAcquireBuildLease(UUID indexVersionId, UUID leaseId, Instant leaseUntil);
 
     void releaseBuildLease(UUID indexVersionId, UUID leaseId);

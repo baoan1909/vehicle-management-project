@@ -4,6 +4,8 @@ import com.ban.vehicle_management.application.ai.port.out.AiModelConfigurationPo
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeChunkPortOut;
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeEmbeddingPortOut;
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeIndexVersionPortOut;
+import com.ban.vehicle_management.application.ai.port.out.KnowledgeStagedEmbeddingPortOut;
+import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeStagedEmbedding;
 import com.ban.vehicle_management.domain.ai.model.AiModelConfiguration;
 import com.ban.vehicle_management.domain.ai.model.EmbeddingRequest;
 import com.ban.vehicle_management.domain.ai.model.EmbeddingResult;
@@ -34,6 +36,7 @@ public class KnowledgeIndexBuildService {
     private final AiModelConfigurationPortOut configurationPortOut;
     private final KnowledgeChunkPortOut chunkPortOut;
     private final KnowledgeEmbeddingPortOut embeddingPortOut;
+    private final KnowledgeStagedEmbeddingPortOut stagedEmbeddingPortOut;
     private final EmbeddingService embeddingService;
     private final EmbeddingPromptFormatter promptFormatter;
     private final PiiRedactionService piiRedactionService;
@@ -44,6 +47,7 @@ public class KnowledgeIndexBuildService {
             AiModelConfigurationPortOut configurationPortOut,
             KnowledgeChunkPortOut chunkPortOut,
             KnowledgeEmbeddingPortOut embeddingPortOut,
+            KnowledgeStagedEmbeddingPortOut stagedEmbeddingPortOut,
             EmbeddingService embeddingService,
             EmbeddingPromptFormatter promptFormatter,
             PiiRedactionService piiRedactionService,
@@ -53,6 +57,7 @@ public class KnowledgeIndexBuildService {
         this.configurationPortOut = configurationPortOut;
         this.chunkPortOut = chunkPortOut;
         this.embeddingPortOut = embeddingPortOut;
+        this.stagedEmbeddingPortOut = stagedEmbeddingPortOut;
         this.embeddingService = embeddingService;
         this.promptFormatter = promptFormatter;
         this.piiRedactionService = piiRedactionService;
@@ -109,6 +114,9 @@ public class KnowledgeIndexBuildService {
             KnowledgeChunk chunk,
             Instant now
     ) {
+        if (reuseStagedEmbedding(version, configuration, chunk, now)) {
+            return true;
+        }
         String title = piiRedactionService.redact(chunk.title() == null ? "" : chunk.title()).value();
         String content = piiRedactionService.redact(chunk.content() == null ? "" : chunk.content()).value();
         String documentText = promptFormatter.formatDocument(version.getEmbeddingPromptVersion(), title, content);
@@ -135,6 +143,50 @@ public class KnowledgeIndexBuildService {
                 now
         );
         return true;
+    }
+
+    /**
+     * Reuses a vector staged during document review when its fingerprint matches the
+     * current chunk text and the candidate's model snapshot, so approved documents are
+     * never re-sent to the provider. Fingerprints are chunker-versioned, so a candidate
+     * built with a different chunker cannot reuse stale vectors.
+     */
+    private boolean reuseStagedEmbedding(
+            KnowledgeIndexVersion version,
+            AiModelConfiguration configuration,
+            KnowledgeChunk chunk,
+            Instant now
+    ) {
+        String contentHash = KnowledgeStagedEmbedding.sha256Hex(chunk.content() == null ? "" : chunk.content());
+        List<KnowledgeStagedEmbedding> staged = stagedEmbeddingPortOut.findByChunkIds(List.of(chunk.chunkId()));
+        for (KnowledgeStagedEmbedding candidate : staged) {
+            if (candidate.getEmbedding() == null
+                    || !configuration.getModelId().equals(candidate.getModelId())
+                    || configuration.getOutputDimension() != candidate.getEmbeddingDimension()
+                    || !version.getEmbeddingPromptVersion().equals(candidate.getEmbeddingPromptVersion())
+                    || !contentHash.equals(candidate.getContentHash())) {
+                continue;
+            }
+            String expectedFingerprint = KnowledgeStagedEmbedding.fingerprint(
+                    contentHash,
+                    candidate.getModelId(),
+                    candidate.getEmbeddingPromptVersion(),
+                    candidate.getChunkerVersion());
+            if (!expectedFingerprint.equals(candidate.getEmbeddingFingerprint())) {
+                continue;
+            }
+            embeddingPortOut.insertEmbedding(
+                    chunk.chunkId(),
+                    version.getIndexVersionId(),
+                    candidate.getEmbedding(),
+                    candidate.getModelId(),
+                    candidate.getEmbeddingDimension(),
+                    chunk.documentVersion() == null ? 1 : chunk.documentVersion(),
+                    now
+            );
+            return true;
+        }
+        return false;
     }
 
     private String configurationFailure(

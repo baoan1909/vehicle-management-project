@@ -4,7 +4,7 @@ import com.ban.vehicle_management.application.accesscontrol.subscription.port.in
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.operations.supportticket.port.in.SupportTicketPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
-import com.ban.vehicle_management.domain.ai.model.KnowledgeSearchResult;
+import com.ban.vehicle_management.domain.ai.model.KnowledgeRetrievalResult;
 import com.ban.vehicle_management.domain.ai.policy.AiToolDefinition;
 import com.ban.vehicle_management.domain.ai.policy.AiToolRegistry;
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
@@ -26,6 +26,7 @@ public class AiToolExecutionService {
     private final SupportTicketPortIn supportTicketPortIn;
     private final SubscriptionPortIn subscriptionPortIn;
     private final KnowledgeRetrievalService knowledgeRetrievalService;
+    private final KnowledgeAccessContextResolver accessContextResolver;
     private final ObjectMapper objectMapper;
 
     public AiToolExecutionService(
@@ -34,6 +35,7 @@ public class AiToolExecutionService {
             SupportTicketPortIn supportTicketPortIn,
             SubscriptionPortIn subscriptionPortIn,
             KnowledgeRetrievalService knowledgeRetrievalService,
+            KnowledgeAccessContextResolver accessContextResolver,
             ObjectMapper objectMapper
     ) {
         this.toolRegistry = toolRegistry;
@@ -41,6 +43,7 @@ public class AiToolExecutionService {
         this.supportTicketPortIn = supportTicketPortIn;
         this.subscriptionPortIn = subscriptionPortIn;
         this.knowledgeRetrievalService = knowledgeRetrievalService;
+        this.accessContextResolver = accessContextResolver;
         this.objectMapper = objectMapper;
     }
 
@@ -76,19 +79,21 @@ public class AiToolExecutionService {
 
     private Object searchKnowledge(JsonNode arguments) {
         String query = requiredText(arguments, "query");
-        List<KnowledgeSearchResult> results = knowledgeRetrievalService.searchKnowledge(
+        KnowledgeRetrievalResult result = knowledgeRetrievalService.search(
                 null,
                 query,
-                List.of("PUBLIC", "CUSTOMER"),
+                accessContextResolver.resolveScopes(),
                 5
         );
         return Map.of(
                 "responseText",
-                results.isEmpty()
-                        ? "Chưa có tài liệu hỗ trợ đủ để trả lời. Bạn có thể tạo phiếu hỗ trợ để nhân viên xử lý."
-                        : "Đã tìm thấy " + results.size() + " tài liệu hỗ trợ phù hợp.",
+                result.hasResults()
+                        ? "Đã tìm thấy " + result.results().size() + " tài liệu hỗ trợ phù hợp."
+                        : "Chưa có tài liệu hỗ trợ đủ để trả lời. Bạn có thể tạo phiếu hỗ trợ để nhân viên xử lý.",
                 "citations",
-                results
+                result.results(),
+                "diagnosticCode",
+                result.diagnosticCode()
         );
     }
 

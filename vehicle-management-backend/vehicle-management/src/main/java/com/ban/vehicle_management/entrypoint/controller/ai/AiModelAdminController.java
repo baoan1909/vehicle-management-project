@@ -11,6 +11,7 @@ import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +33,7 @@ public class AiModelAdminController {
     }
 
     @GetMapping("/configurations")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_MODEL_READ_ALL')")
     public ResponseEntity<ApiResponse<List<AiModelConfigurationAdminResponse>>> listConfigurations() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched AI model configurations successfully",
@@ -40,6 +42,7 @@ public class AiModelAdminController {
     }
 
     @PatchMapping("/configurations/{configurationId}/status")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_MODEL_MANAGE_ALL')")
     public ResponseEntity<ApiResponse<AiModelConfigurationAdminResponse>> updateStatus(
             @PathVariable UUID configurationId,
             @RequestBody UpdateAiModelStatusRequest request
@@ -51,6 +54,7 @@ public class AiModelAdminController {
     }
 
     @PatchMapping("/configurations/{configurationId}/rollout")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_MODEL_MANAGE_ALL')")
     public ResponseEntity<ApiResponse<AiModelConfigurationAdminResponse>> updateRollout(
             @PathVariable UUID configurationId,
             @RequestBody UpdateAiModelRolloutRequest request
@@ -62,6 +66,7 @@ public class AiModelAdminController {
     }
 
     @GetMapping("/catalog")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_MODEL_READ_ALL')")
     public ResponseEntity<ApiResponse<List<AiModelCatalogResponse>>> listCatalog() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched AI model catalog successfully",
@@ -70,6 +75,7 @@ public class AiModelAdminController {
     }
 
     @PostMapping("/catalog/sync")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_CATALOG_SYNC_ALL')")
     public ResponseEntity<ApiResponse<List<AiModelCatalogResponse>>> syncCatalog() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "AI model catalog synced successfully",
@@ -78,6 +84,7 @@ public class AiModelAdminController {
     }
 
     @GetMapping("/warnings")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('AI_MODEL_READ_ALL')")
     public ResponseEntity<ApiResponse<List<AiModelWarningResponse>>> listWarnings() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched AI model warnings successfully",

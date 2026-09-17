@@ -5,6 +5,13 @@ import com.ban.vehicle_management.application.operations.chatconversation.port.o
 import com.ban.vehicle_management.application.operations.supportticket.service.SupportTicketConversationService;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketPortOut;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeDocumentRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeIngestionJobRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeQualityMetricsRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeSourceRepository;
+import com.ban.vehicle_management.infrastructure.persistence.specification.ai.KnowledgeDocumentSpecifications;
+import com.ban.vehicle_management.infrastructure.persistence.specification.ai.KnowledgeIngestionJobSpecifications;
+import com.ban.vehicle_management.infrastructure.persistence.specification.ai.KnowledgeSourceSpecifications;
 import com.ban.vehicle_management.shared.enumeration.iam.SocialIdentityProvider;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ChatConversationType;
@@ -13,6 +20,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Instant;
 import java.util.UUID;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -20,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.test.context.ActiveProfiles;
@@ -50,8 +59,43 @@ class VehicleManagementApplicationTests {
 	@Autowired
 	private DataSource dataSource;
 
+	@Autowired
+	private KnowledgeSourceRepository knowledgeSourceRepository;
+
+	@Autowired
+	private KnowledgeDocumentRepository knowledgeDocumentRepository;
+
+	@Autowired
+	private KnowledgeIngestionJobRepository knowledgeIngestionJobRepository;
+
+	@Autowired
+	private KnowledgeQualityMetricsRepository knowledgeQualityMetricsRepository;
+
 	@Test
 	void contextLoads() {
+	}
+
+	@Test
+	@Transactional(readOnly = true)
+	void knowledgeFiltersAndDashboardAggregatesExecuteOnPostgres() {
+		var page = PageRequest.of(0, 10);
+		org.junit.jupiter.api.Assertions.assertNotNull(knowledgeSourceRepository.findAll(
+				KnowledgeSourceSpecifications.keyword("hỗ trợ"), page));
+		org.junit.jupiter.api.Assertions.assertNotNull(knowledgeDocumentRepository.findAll(
+				KnowledgeDocumentSpecifications.keyword("hỗ trợ"), page));
+		org.junit.jupiter.api.Assertions.assertNotNull(knowledgeIngestionJobRepository.findAll(
+				KnowledgeIngestionJobSpecifications.keyword("hỗ trợ"), page));
+		org.junit.jupiter.api.Assertions.assertNotNull(knowledgeQualityMetricsRepository.countSourcesByStatus());
+		org.junit.jupiter.api.Assertions.assertNotNull(knowledgeQualityMetricsRepository.countDocumentsByStatus());
+		org.junit.jupiter.api.Assertions.assertNotNull(knowledgeQualityMetricsRepository.countJobsByStatus());
+		org.junit.jupiter.api.Assertions.assertNotNull(knowledgeQualityMetricsRepository.countIndexVersionsByStatus());
+		var now = Instant.now();
+		org.junit.jupiter.api.Assertions.assertTrue(knowledgeQualityMetricsRepository.countStuckJobs(now) >= 0);
+		org.junit.jupiter.api.Assertions.assertTrue(knowledgeQualityMetricsRepository.countStaleCandidates(now) >= 0);
+		org.junit.jupiter.api.Assertions.assertTrue(knowledgeQualityMetricsRepository.countExpiredDocuments(now) >= 0);
+		org.junit.jupiter.api.Assertions.assertTrue(knowledgeQualityMetricsRepository.countMissingEmbeddings() >= 0);
+		org.junit.jupiter.api.Assertions.assertTrue(knowledgeQualityMetricsRepository.countIncompleteActiveIndexes() >= 0);
+		org.junit.jupiter.api.Assertions.assertNotNull(knowledgeQualityMetricsRepository.findActiveModelConfigurationIds());
 	}
 
 	@Test
@@ -151,7 +195,7 @@ class VehicleManagementApplicationTests {
 					.load();
 			flyway.migrate();
 			org.junit.jupiter.api.Assertions.assertEquals(
-					"20260912100000",
+					"20260918100040",
 					flyway.info().current().getVersion().toString()
 			);
 			UUID ticketId = UUID.randomUUID();

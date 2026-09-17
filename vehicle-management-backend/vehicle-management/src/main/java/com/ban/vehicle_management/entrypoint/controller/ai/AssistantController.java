@@ -7,6 +7,7 @@ import com.ban.vehicle_management.entrypoint.dto.ai.assistant.response.Assistant
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,6 +29,7 @@ public class AssistantController {
     }
 
     @GetMapping("/status")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_WIDGET_ACCESS_OWN')")
     public ResponseEntity<ApiResponse<AssistantStatusResponse>> getStatus() {
         currentAccountPortIn.requirePermission("SUPPORT_WIDGET_ACCESS_OWN");
         return ResponseEntity.ok(ApiResponse.ok(
@@ -37,6 +39,7 @@ public class AssistantController {
     }
 
     @GetMapping("/messages/{inputMessageId}/status")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_WIDGET_ACCESS_OWN')")
     public ResponseEntity<ApiResponse<AssistantMessageStatusResponse>> getMessageStatus(@PathVariable UUID inputMessageId) {
         currentAccountPortIn.requirePermission("SUPPORT_WIDGET_ACCESS_OWN");
         AssistantStatusPortIn.MessageStatus status = assistantStatusPortIn.getMessageStatus(inputMessageId);

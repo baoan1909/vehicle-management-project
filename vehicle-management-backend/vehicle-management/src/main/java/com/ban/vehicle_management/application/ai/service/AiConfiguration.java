@@ -6,6 +6,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration
 @EnableScheduling
-@EnableConfigurationProperties({AiAssistantProperties.class, EmbeddingProperties.class})
+@EnableConfigurationProperties({AiAssistantProperties.class, EmbeddingProperties.class, KnowledgeIngestionProperties.class})
 public class AiConfiguration {
 }
