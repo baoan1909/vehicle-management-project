@@ -3,6 +3,14 @@ server:
   servlet:
     context-path: /vehicle-management
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
 spring:
   config:
     import: optional:file:.env[.properties]
@@ -58,6 +66,7 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/vehicle-management}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:}
+
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
@@ -129,6 +138,19 @@ app:
     assistant-job-initial-delay-ms: ${AI_ASSISTANT_JOB_INITIAL_DELAY_MS:5000}
     model-catalog-sync-fixed-delay-ms: ${AI_MODEL_CATALOG_SYNC_FIXED_DELAY_MS:86400000}
     model-catalog-sync-initial-delay-ms: ${AI_MODEL_CATALOG_SYNC_INITIAL_DELAY_MS:60000}
+    embedding:
+      enabled: ${AI_EMBEDDING_ENABLED:false}
+      vector-search-enabled: ${AI_EMBEDDING_VECTOR_SEARCH_ENABLED:true}
+      lexical-fallback-enabled: ${AI_EMBEDDING_LEXICAL_FALLBACK_ENABLED:true}
+      retry-max-attempts: ${AI_EMBEDDING_RETRY_MAX_ATTEMPTS:3}
+      retry-initial-delay: ${AI_EMBEDDING_RETRY_INITIAL_DELAY:1s}
+      retry-max-delay: ${AI_EMBEDDING_RETRY_MAX_DELAY:10s}
+      retry-jitter-enabled: ${AI_EMBEDDING_RETRY_JITTER_ENABLED:true}
+      build-batch-size: ${AI_EMBEDDING_BUILD_BATCH_SIZE:5}
+      build-fixed-delay-ms: ${AI_EMBEDDING_BUILD_FIXED_DELAY_MS:5000}
+      build-initial-delay-ms: ${AI_EMBEDDING_BUILD_INITIAL_DELAY_MS:10000}
+      build-lease-duration: ${AI_EMBEDDING_BUILD_LEASE_DURATION:10m}
+      pgvector-required: ${AI_PGVECTOR_REQUIRED:false}
     gemini:
       api-key: ${GEMINI_API_KEY:}
       base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}

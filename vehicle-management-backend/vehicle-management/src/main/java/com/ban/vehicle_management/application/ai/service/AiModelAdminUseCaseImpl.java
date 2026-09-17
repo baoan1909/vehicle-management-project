@@ -13,6 +13,7 @@ import com.ban.vehicle_management.shared.enumeration.ai.AiModelStatus;
 import com.ban.vehicle_management.shared.enumeration.ai.AiModelWarningSeverity;
 import com.ban.vehicle_management.shared.enumeration.ai.AiModelWarningStatus;
 import com.ban.vehicle_management.shared.enumeration.ai.AiProvider;
+import com.ban.vehicle_management.shared.enumeration.ai.AiUseCase;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
@@ -70,7 +71,7 @@ public class AiModelAdminUseCaseImpl implements AiModelAdminPortIn {
     public AiModelConfiguration updateRollout(UUID configurationId, int rolloutPercentage) {
         currentAccountPortIn.requirePermission("AI_MODEL_MANAGE_ALL");
         if (rolloutPercentage < 0 || rolloutPercentage > 100) {
-            throw new BadRequestException("rolloutPercentage must be between 0 and 100");
+            throw new BadRequestException("Tỷ lệ rollout phải nằm trong khoảng từ 0 đến 100");
         }
         AiModelConfiguration configuration = findConfiguration(configurationId);
         configuration.setRolloutPercentage(rolloutPercentage);
@@ -93,7 +94,7 @@ public class AiModelAdminUseCaseImpl implements AiModelAdminPortIn {
         AiProviderPortOut gemini = providerPorts.stream()
                 .filter(port -> port.provider() == AiProvider.GEMINI)
                 .findFirst()
-                .orElseThrow(() -> new BadRequestException("Gemini provider is not configured"));
+                .orElseThrow(() -> new BadRequestException("Chưa cấu hình nhà cung cấp Gemini"));
         List<AiProviderModel> models = gemini.listModels();
         if (models.isEmpty()) {
             openWarning(AiProvider.GEMINI, null, null, "CATALOG_SYNC_FAILED", AiModelWarningSeverity.CRITICAL, "Gemini catalog sync returned no models");
@@ -112,17 +113,32 @@ public class AiModelAdminUseCaseImpl implements AiModelAdminPortIn {
 
     private AiModelConfiguration findConfiguration(UUID configurationId) {
         return configurationPortOut.findById(configurationId)
-                .orElseThrow(() -> new NotFoundException("AI model configuration not found"));
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy cấu hình model AI"));
     }
 
     private void validateActivation(AiModelConfiguration configuration) {
-        boolean inCatalog = catalogPortOut.findAll().stream()
-                .anyMatch(model -> model.provider() == configuration.getProvider()
-                        && model.modelId().equals(configuration.getModelId()));
-        if (!inCatalog) {
+        AiProviderModel catalogModel = catalogPortOut.findAll().stream()
+                .filter(model -> model.provider() == configuration.getProvider()
+                        && model.modelId().equals(configuration.getModelId()))
+                .findFirst()
+                .orElse(null);
+        if (catalogModel == null) {
             openWarning(configuration.getProvider(), configuration.getModelId(), configuration.getConfigurationId(),
                     "MODEL_NOT_FOUND", AiModelWarningSeverity.CRITICAL, "Model is not present in catalog");
-            throw new BadRequestException("Cannot activate model that is not present in catalog");
+            throw new BadRequestException("Không thể kích hoạt model không có trong catalog");
+        }
+        String requiredAction = configuration.getUseCase() == AiUseCase.EMBEDDING
+                ? "embedContent"
+                : "generateContent";
+        if (!catalogModel.supportedActions().contains(requiredAction)) {
+            openWarning(configuration.getProvider(), configuration.getModelId(), configuration.getConfigurationId(),
+                    "CAPABILITY_MISMATCH", AiModelWarningSeverity.CRITICAL,
+                    "Model does not support " + requiredAction);
+            throw new BadRequestException("Model không hỗ trợ chức năng " + requiredAction);
+        }
+        if (configuration.getUseCase() == AiUseCase.EMBEDDING
+                && (configuration.getOutputDimension() == null || configuration.getOutputDimension() != 768)) {
+            throw new BadRequestException("Output dimension của model embedding phải là 768");
         }
     }
 
@@ -132,7 +148,7 @@ public class AiModelAdminUseCaseImpl implements AiModelAdminPortIn {
         if (total != 100) {
             openWarning(changed.getProvider(), changed.getModelId(), changed.getConfigurationId(),
                     "CAPABILITY_MISMATCH", AiModelWarningSeverity.WARNING, "ACTIVE rollout percentage total is " + total);
-            throw new BadRequestException("ACTIVE rollout percentage must sum to 100");
+            throw new BadRequestException("Tổng tỷ lệ rollout của các model đang hoạt động phải bằng 100");
         }
     }
 
@@ -148,13 +164,24 @@ public class AiModelAdminUseCaseImpl implements AiModelAdminPortIn {
                         "MODEL_NOT_FOUND", AiModelWarningSeverity.CRITICAL, "Configured model was not found in latest catalog");
                 continue;
             }
-            if (!model.supportedActions().contains("generateContent") && configuration.getUseCase() != com.ban.vehicle_management.shared.enumeration.ai.AiUseCase.EMBEDDING) {
-                openWarning(configuration.getProvider(), configuration.getModelId(), configuration.getConfigurationId(),
-                        "CAPABILITY_MISMATCH", AiModelWarningSeverity.CRITICAL, "Configured model does not support generateContent");
-            }
-            if (configuration.getStatus() == AiModelStatus.ACTIVE && !model.supportedActions().contains("generateContent")) {
-                openWarning(configuration.getProvider(), configuration.getModelId(), configuration.getConfigurationId(),
-                        "ACTIVE_MODEL_UNAVAILABLE", AiModelWarningSeverity.CRITICAL, "ACTIVE model is unavailable for generation");
+            if (configuration.getUseCase() == com.ban.vehicle_management.shared.enumeration.ai.AiUseCase.EMBEDDING) {
+                if (!model.supportedActions().contains("embedContent")) {
+                    openWarning(configuration.getProvider(), configuration.getModelId(), configuration.getConfigurationId(),
+                            "CAPABILITY_MISMATCH", AiModelWarningSeverity.CRITICAL, "Configured model does not support embedContent");
+                }
+                if (configuration.getStatus() == AiModelStatus.ACTIVE && !model.supportedActions().contains("embedContent")) {
+                    openWarning(configuration.getProvider(), configuration.getModelId(), configuration.getConfigurationId(),
+                            "ACTIVE_MODEL_UNAVAILABLE", AiModelWarningSeverity.CRITICAL, "ACTIVE model is unavailable for embedding");
+                }
+            } else {
+                if (!model.supportedActions().contains("generateContent")) {
+                    openWarning(configuration.getProvider(), configuration.getModelId(), configuration.getConfigurationId(),
+                            "CAPABILITY_MISMATCH", AiModelWarningSeverity.CRITICAL, "Configured model does not support generateContent");
+                }
+                if (configuration.getStatus() == AiModelStatus.ACTIVE && !model.supportedActions().contains("generateContent")) {
+                    openWarning(configuration.getProvider(), configuration.getModelId(), configuration.getConfigurationId(),
+                            "ACTIVE_MODEL_UNAVAILABLE", AiModelWarningSeverity.CRITICAL, "ACTIVE model is unavailable for generation");
+                }
             }
         }
     }

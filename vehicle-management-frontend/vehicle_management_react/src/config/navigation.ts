@@ -88,6 +88,7 @@ export const adminNavigation: AdminSidebarEntry[] = [
       { label: "Tài khoản", to: "/admin/account", matches: ["/admin/account"] },
       { label: "Vai trò & Quyền", to: "/admin/role", matches: ["/admin/role"] },
       { label: "Model AI", to: "/admin/ai-models", matches: ["/admin/ai-models"] },
+      { label: "Knowledge index", to: "/admin/ai-knowledge-index", matches: ["/admin/ai-knowledge-index"] },
     ],
   },
 ];

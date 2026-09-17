@@ -24,7 +24,7 @@ import { DashboardPage } from "@/features/dashboard";
 import { EmployeeListPage, ShiftSchedulePage } from "@/features/employees";
 import { DeviceManagementPage } from "@/features/hardware";
 import { AccountFormPage, AccountListPage, InternalProfilePage, RoleFormPage, RoleListPage } from "@/features/iam";
-import { AiModelManagementPage } from "@/features/ai";
+import { AiKnowledgeIndexPage, AiModelManagementPage } from "@/features/ai";
 import { AnnouncementManagementPage } from "@/features/notifications";
 import { ParkingOperationsPage, ParkingSessionPage, SwipeEntryPage, SwipeListPage } from "@/features/parking";
 import { PricePlanListPage, PriceRuleListPage } from "@/features/pricing";
@@ -77,6 +77,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/support-tickets", title: "Yeu cau ho tro", layout: "admin", element: <SupportTicketManagementPage /> },
   { path: "/admin/announcements", title: "Quản lý thông báo", layout: "admin", element: <AnnouncementManagementPage /> },
   { path: "/admin/ai-models", title: "Quan tri model AI", layout: "admin", element: <AiModelManagementPage /> },
+  { path: "/admin/ai-knowledge-index", title: "Quan ly knowledge index", layout: "admin", element: <AiKnowledgeIndexPage /> },
   { path: "/admin/support-center", title: "Trung tam ho tro van hanh", layout: "fullscreen", element: <OperationsSupportCenterPage /> },
   { path: "/", title: "Gioi thieu CoParking", layout: "client", element: <AboutPage /> },
   { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },

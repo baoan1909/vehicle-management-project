@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.application.ai.service;
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
-import com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.operations.supportticket.port.in.SupportTicketPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
@@ -26,7 +25,7 @@ public class AiToolExecutionService {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final SupportTicketPortIn supportTicketPortIn;
     private final SubscriptionPortIn subscriptionPortIn;
-    private final KnowledgeRetrievalPortOut knowledgeRetrievalPortOut;
+    private final KnowledgeRetrievalService knowledgeRetrievalService;
     private final ObjectMapper objectMapper;
 
     public AiToolExecutionService(
@@ -34,14 +33,14 @@ public class AiToolExecutionService {
             CurrentAccountPortIn currentAccountPortIn,
             SupportTicketPortIn supportTicketPortIn,
             SubscriptionPortIn subscriptionPortIn,
-            KnowledgeRetrievalPortOut knowledgeRetrievalPortOut,
+            KnowledgeRetrievalService knowledgeRetrievalService,
             ObjectMapper objectMapper
     ) {
         this.toolRegistry = toolRegistry;
         this.currentAccountPortIn = currentAccountPortIn;
         this.supportTicketPortIn = supportTicketPortIn;
         this.subscriptionPortIn = subscriptionPortIn;
-        this.knowledgeRetrievalPortOut = knowledgeRetrievalPortOut;
+        this.knowledgeRetrievalService = knowledgeRetrievalService;
         this.objectMapper = objectMapper;
     }
 
@@ -77,7 +76,7 @@ public class AiToolExecutionService {
 
     private Object searchKnowledge(JsonNode arguments) {
         String query = requiredText(arguments, "query");
-        List<KnowledgeSearchResult> results = knowledgeRetrievalPortOut.search(
+        List<KnowledgeSearchResult> results = knowledgeRetrievalService.searchKnowledge(
                 null,
                 query,
                 List.of("PUBLIC", "CUSTOMER"),

@@ -45,6 +45,9 @@ public class AiModelConfigurationEntity {
     @Column(name = "max_output_tokens", nullable = false)
     private Integer maxOutputTokens;
 
+    @Column(name = "output_dimension")
+    private Integer outputDimension;
+
     @Column(name = "priority", nullable = false)
     private Integer priority;
 

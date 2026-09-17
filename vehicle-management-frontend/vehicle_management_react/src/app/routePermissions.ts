@@ -50,6 +50,7 @@ export const adminRoutePermissions = {
   ],
   "/admin/announcements": ["BROADCAST_NOTIFICATION_READ_ALL"],
   "/admin/ai-models": ["AI_MODEL_READ_ALL"],
+  "/admin/ai-knowledge-index": ["AI_KNOWLEDGE_READ_ALL"],
 } satisfies Record<string, string[]>;
 
 const adminFallbackRoute = "/admin/profile";

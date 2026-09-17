@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.repository.ai;
 
+import com.ban.vehicle_management.domain.ai.model.EmbeddingVector;
+import com.ban.vehicle_management.domain.ai.model.KnowledgeChunk;
 import com.ban.vehicle_management.domain.ai.model.KnowledgeSearchResult;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -53,6 +55,128 @@ public class KnowledgeChunkRepository {
                         (Integer) row[5],
                         (String) row[6],
                         row[7] instanceof BigDecimal value ? value : BigDecimal.ZERO
+                ))
+                .toList();
+    }
+
+    public List<KnowledgeSearchResult> vectorSearch(
+            UUID tenantId,
+            EmbeddingVector queryVector,
+            List<String> accessScopes,
+            UUID indexVersionId,
+            int limit
+    ) {
+        String queryLiteral = KnowledgeEmbeddingRepository.toVectorLiteral(queryVector);
+        String sql = """
+                SELECT document.document_id,
+                       chunk.chunk_id,
+                       chunk.title,
+                       chunk.content,
+                       chunk.summary,
+                       chunk.source_page,
+                       chunk.source_section,
+                       (1 - (embedding.embedding <=> CAST(:queryVector AS vector)))::numeric(8,5) AS score
+                FROM ai.knowledge_embeddings embedding
+                JOIN ai.knowledge_chunks chunk ON chunk.chunk_id = embedding.chunk_id
+                JOIN ai.knowledge_documents document ON document.document_id = chunk.document_id
+                JOIN ai.knowledge_sources source ON source.source_id = document.source_id
+                WHERE embedding.index_version_id = :indexVersionId
+                  AND chunk.status = 'READY'
+                  AND document.status = 'READY'
+                  AND source.status = 'ACTIVE'
+                  AND chunk.access_scope IN (:accessScopes)
+                  AND (:tenantId IS NULL OR chunk.tenant_id IS NULL OR chunk.tenant_id = :tenantId)
+                ORDER BY embedding.embedding <=> CAST(:queryVector AS vector)
+                LIMIT :limit
+                """;
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(sql)
+                .setParameter("tenantId", tenantId)
+                .setParameter("queryVector", queryLiteral)
+                .setParameter("accessScopes", accessScopes)
+                .setParameter("indexVersionId", indexVersionId)
+                .setParameter("limit", limit)
+                .getResultList();
+        return rows.stream()
+                .map(row -> new KnowledgeSearchResult(
+                        (UUID) row[0],
+                        (UUID) row[1],
+                        (String) row[2],
+                        (String) row[3],
+                        (String) row[4],
+                        (Integer) row[5],
+                        (String) row[6],
+                        row[7] instanceof BigDecimal value ? value : BigDecimal.ZERO
+                ))
+                .toList();
+    }
+
+    public long countEligibleChunks() {
+        Object result = entityManager.createNativeQuery("""
+                SELECT COUNT(*)
+                FROM ai.knowledge_chunks chunk
+                JOIN ai.knowledge_documents document ON document.document_id = chunk.document_id
+                JOIN ai.knowledge_sources source ON source.source_id = document.source_id
+                WHERE chunk.status = 'READY'
+                  AND document.status = 'READY'
+                  AND source.status = 'ACTIVE'
+                  AND chunk.access_scope <> 'TENANT_PRIVATE'
+                """).getSingleResult();
+        return ((Number) result).longValue();
+    }
+
+    public String calculateEligibleCorpusChecksum() {
+        Object result = entityManager.createNativeQuery("""
+                SELECT md5(COALESCE(string_agg(
+                    chunk.chunk_id::text || ':' || chunk.document_version::text || ':' || md5(chunk.content),
+                    '|' ORDER BY chunk.chunk_id
+                ), ''))
+                FROM ai.knowledge_chunks chunk
+                JOIN ai.knowledge_documents document ON document.document_id = chunk.document_id
+                JOIN ai.knowledge_sources source ON source.source_id = document.source_id
+                WHERE chunk.status = 'READY'
+                  AND document.status = 'READY'
+                  AND source.status = 'ACTIVE'
+                  AND chunk.access_scope <> 'TENANT_PRIVATE'
+                """).getSingleResult();
+        return (String) result;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<KnowledgeChunk> findEligibleChunks(UUID indexVersionId, int limit) {
+        String sql = """
+                SELECT chunk.chunk_id,
+                       chunk.title,
+                       chunk.content,
+                       chunk.summary,
+                       chunk.document_version
+                FROM ai.knowledge_chunks chunk
+                JOIN ai.knowledge_documents document ON document.document_id = chunk.document_id
+                JOIN ai.knowledge_sources source ON source.source_id = document.source_id
+                WHERE chunk.status = 'READY'
+                  AND document.status = 'READY'
+                  AND source.status = 'ACTIVE'
+                  AND chunk.access_scope <> 'TENANT_PRIVATE'
+                  AND NOT EXISTS (
+                      SELECT 1
+                      FROM ai.knowledge_embeddings embedding
+                      WHERE embedding.chunk_id = chunk.chunk_id
+                        AND embedding.index_version_id = :indexVersionId
+                  )
+                ORDER BY chunk.created_at
+                LIMIT :limit
+                """;
+        List<Object[]> rows = entityManager.createNativeQuery(sql)
+                .setParameter("indexVersionId", indexVersionId)
+                .setParameter("limit", limit)
+                .getResultList();
+        return rows.stream()
+                .map(row -> new KnowledgeChunk(
+                        (UUID) row[0],
+                        (String) row[1],
+                        (String) row[2],
+                        (String) row[3],
+                        row[4] == null ? 1 : ((Number) row[4]).intValue()
                 ))
                 .toList();
     }

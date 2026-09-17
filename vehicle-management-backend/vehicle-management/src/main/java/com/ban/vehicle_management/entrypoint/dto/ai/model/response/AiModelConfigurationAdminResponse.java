@@ -18,6 +18,7 @@ public class AiModelConfigurationAdminResponse {
     private String apiVersion;
     private BigDecimal temperature;
     private Integer maxOutputTokens;
+    private Integer outputDimension;
     private Integer priority;
     private Integer rolloutPercentage;
     private AiModelStatus status;

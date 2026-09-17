@@ -43,3 +43,6 @@ dist/
 
 .env
 .env.local
+
+# Local analysis and design artifacts at the repository root
+/docs/

@@ -17,6 +17,7 @@ export type AiModelConfigurationResponse = {
   freeTierApproved: boolean;
   maxOutputTokens: number | null;
   modelId: string;
+  outputDimension: number | null;
   priority: number | null;
   provider: "GEMINI";
   requiresFunctionCalling: boolean;
