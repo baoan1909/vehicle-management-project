@@ -11,10 +11,17 @@ import {
 import { subscribeChatRealtime } from "@/features/support/api/chatRealtime";
 import {
   createSupportTicketChatIntake,
+  confirmAiToolCall,
+  denyAiToolCall,
+  getAssistantMessageStatus,
+  getAssistantStatus,
+  getMessageCitations,
   getMySupportTickets,
   getSupportAssistantConversation,
   getSupportTicketById,
   shareSupportTicketWithAssistant,
+  type AiToolCallStatus,
+  type MessageCitationsResponse,
   type SupportTicketResponse,
 } from "@/features/support/api/supportApi";
 import { CreateSupportTicketDialog } from "@/features/support/components/CreateSupportTicketDialog";
@@ -28,6 +35,22 @@ type Position = { x: number; y: number };
 type DragOffset = { x: number; y: number };
 
 const WIDGET_CONFIG = { marginX: 24, marginY: 40, size: 56 };
+const ASSISTANT_RESPONSE_TIMEOUT_MS = 90000;
+
+type AssistantProcessingState = {
+  error: string;
+  inputMessageId: string | null;
+  startedAt: number | null;
+  status: "QUEUED" | "PENDING" | "PROCESSING" | "WAITING_CONFIRMATION" | "RETRYING" | "COMPLETED" | "FAILED" | "DISABLED" | "EXPIRED" | null;
+};
+
+type ActionCardPayload = {
+  description?: string;
+  expiresAt?: string;
+  title?: string;
+  toolCallId?: string;
+  toolName?: string;
+};
 
 function getDefaultPosition(): Position {
   if (typeof window === "undefined") return { x: 0, y: 0 };
@@ -88,6 +111,70 @@ function getSharedTicketNotice(ticket: SupportTicketResponse) {
   return "Đã đưa phiếu vào hội thoại. Người phụ trách hiện tại của phiếu không thay đổi.";
 }
 
+function isAssistantAiMessage(message: ChatMessageResponse) {
+  return message.messageType === "ASSISTANT_TEXT" || (message.senderAccountId === null && message.relatedSchema === "ai" && message.relatedTable === "assistant_jobs");
+}
+
+function AssistantCitations({ messageId }: { messageId: string }) {
+  const [citations, setCitations] = useState<MessageCitationsResponse | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void getMessageCitations(messageId)
+      .then((response) => {
+        if (!cancelled) setCitations(response.data);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [messageId]);
+  if (!citations || citations.citations.length === 0) return null;
+  return (
+    <div className="tw-mt-2 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-p-2">
+      <div className="tw-mb-1 tw-flex tw-items-center tw-justify-between tw-gap-2">
+        <span className="tw-text-[11px] tw-font-extrabold tw-uppercase tw-text-slate-500">Nguồn tham khảo</span>
+        {citations.handoffRecommended ? (
+          <span className="tw-rounded-full tw-bg-amber-100 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-extrabold tw-text-amber-800">Cần nhân viên hỗ trợ</span>
+        ) : null}
+      </div>
+      <ul className="tw-m-0 tw-grid tw-list-none tw-gap-1 tw-pl-0">
+        {citations.citations.map((citation, index) => (
+          <li className="tw-text-xs tw-text-slate-600" key={citation.citationId}>
+            <b className="tw-mr-1 tw-text-slate-800">[C{index + 1}]</b>
+            {citation.title}
+            {citation.sourcePage ? ` · trang ${citation.sourcePage}` : ""}
+            {citation.sourceSection ? ` · ${citation.sourceSection}` : ""}
+          </li>
+        ))}
+      </ul>
+      {typeof citations.groundedConfidence === "number" ? (
+        <div className="tw-mt-1 tw-text-[10px] tw-font-semibold tw-text-slate-400">
+          Độ tin cậy: {(citations.groundedConfidence * 100).toFixed(0)}%
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function parseActionCardPayload(content: string | null): ActionCardPayload {
+  if (!content) return {};
+  try {
+    const parsed = JSON.parse(content) as ActionCardPayload;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return { description: content };
+  }
+}
+
+function getActionCardState(status?: AiToolCallStatus | null) {
+  if (status === "SUCCEEDED") return { disabled: true, label: "Đã thực hiện", tone: "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700" };
+  if (status === "DENIED") return { disabled: true, label: "Đã hủy", tone: "tw-border-slate-200 tw-bg-slate-50 tw-text-slate-600" };
+  if (status === "FAILED") return { disabled: false, label: "Thất bại", tone: "tw-border-red-200 tw-bg-red-50 tw-text-red-700" };
+  if (status === "EXPIRED") return { disabled: true, label: "Hết hạn", tone: "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700" };
+  if (status === "EXECUTING") return { disabled: true, label: "Đang thực hiện", tone: "tw-border-sky-200 tw-bg-sky-50 tw-text-sky-700" };
+  return { disabled: false, label: "Chờ xác nhận", tone: "tw-border-cyan-200 tw-bg-cyan-50 tw-text-cyan-700" };
+}
+
 export function SupportFloatingWidget() {
   const { user } = useAuth();
   const toast = useToast();
@@ -99,6 +186,11 @@ export function SupportFloatingWidget() {
   const [isOpeningAssistant, setIsOpeningAssistant] = useState(false);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [assistantEnabled, setAssistantEnabled] = useState(true);
+  const [assistantProcessingState, setAssistantProcessingState] = useState<AssistantProcessingState>({ error: "", inputMessageId: null, startedAt: null, status: null });
+  const [toolCallStatuses, setToolCallStatuses] = useState<Record<string, AiToolCallStatus>>({});
+  const [pendingToolCallId, setPendingToolCallId] = useState<string | null>(null);
+  const [lastAssistantPrompt, setLastAssistantPrompt] = useState("");
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [panelError, setPanelError] = useState("");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -113,6 +205,7 @@ export function SupportFloatingWidget() {
   const hasMovedRef = useRef(false);
   const openTimerRef = useRef<number | undefined>(undefined);
   const messageEndRef = useRef<HTMLDivElement | null>(null);
+  const assistantProcessing = assistantProcessingState.inputMessageId !== null && assistantProcessingState.status !== "WAITING_CONFIRMATION";
 
   const refreshMessages = useCallback(async (targetConversationId = conversationId) => {
     if (!targetConversationId) return;
@@ -168,10 +261,50 @@ export function SupportFloatingWidget() {
         if (event.conversationId !== conversationId || !event.message) return;
         setPanelError("");
         setMessages((current) => mergeMessage(current, event.message!));
+        if (isAssistantAiMessage(event.message) && (!assistantProcessingState.inputMessageId || event.message.replyToMessageId === assistantProcessingState.inputMessageId)) {
+          setAssistantProcessingState({ error: "", inputMessageId: null, startedAt: null, status: "COMPLETED" });
+        }
         void markChatConversationRead(conversationId, event.message.messageId).catch(() => undefined);
       },
     });
-  }, [conversationId, isPanelOpen]);
+  }, [assistantProcessingState.inputMessageId, conversationId, isPanelOpen]);
+
+  useEffect(() => {
+    if (!isPanelOpen || !assistantProcessingState.inputMessageId) return undefined;
+    const inputMessageId = assistantProcessingState.inputMessageId;
+    const startedAt = assistantProcessingState.startedAt ?? Date.now();
+    const pollStatus = async () => {
+      if (Date.now() - startedAt > ASSISTANT_RESPONSE_TIMEOUT_MS) {
+        setAssistantProcessingState({ error: "Trợ lý chưa phản hồi. Bạn có thể thử lại hoặc tạo phiếu hỗ trợ.", inputMessageId: null, startedAt: null, status: "EXPIRED" });
+        return;
+      }
+      try {
+        const response = await getAssistantMessageStatus(inputMessageId);
+        const status = response.data;
+        if (status.status === "WAITING_CONFIRMATION") {
+          setAssistantProcessingState((current) => ({ ...current, error: "", status: "WAITING_CONFIRMATION" }));
+          void refreshMessages();
+          return;
+        }
+        if (status.status === "COMPLETED") {
+          setAssistantProcessingState({ error: "", inputMessageId: null, startedAt: null, status: "COMPLETED" });
+          void refreshMessages();
+          return;
+        }
+        if (status.status === "FAILED" || status.status === "DISABLED" || status.terminal) {
+          if (status.status === "DISABLED") setAssistantEnabled(false);
+          setAssistantProcessingState({ error: "Trợ lý hiện chưa xử lý được tin nhắn này. Bạn có thể thử lại hoặc tạo phiếu hỗ trợ.", inputMessageId: null, startedAt: null, status: status.status });
+        }
+      } catch {
+        if (Date.now() - startedAt > ASSISTANT_RESPONSE_TIMEOUT_MS) {
+          setAssistantProcessingState({ error: "Mất kết nối trạng thái trợ lý. Bạn có thể thử lại hoặc tạo phiếu hỗ trợ.", inputMessageId: null, startedAt: null, status: "FAILED" });
+        }
+      }
+    };
+    void pollStatus();
+    const timer = window.setInterval(() => { void pollStatus(); }, 3000);
+    return () => window.clearInterval(timer);
+  }, [assistantProcessingState.inputMessageId, assistantProcessingState.startedAt, isPanelOpen, refreshMessages]);
 
   useEffect(() => {
     if (isPanelOpen) messageEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -206,6 +339,8 @@ export function SupportFloatingWidget() {
     setIsPanelOpen(true);
     try {
       const conversationResponse = await getSupportAssistantConversation();
+      const assistantStatusResponse = await getAssistantStatus().catch(() => null);
+      setAssistantEnabled(Boolean(assistantStatusResponse?.data.enabled));
       const nextConversationId = conversationResponse.data.conversationId;
       setConversationId(nextConversationId);
       await refreshMessages(nextConversationId);
@@ -232,10 +367,32 @@ export function SupportFloatingWidget() {
         ? await sendChatImageMessage(conversationId, content || null, selectedFiles)
         : await sendChatTextMessage(conversationId, content);
       setMessages((current) => mergeMessage(current, response.data));
+      if (assistantEnabled && response.data.messageType === "TEXT") {
+        setAssistantProcessingState({ error: "", inputMessageId: response.data.messageId, startedAt: Date.now(), status: "QUEUED" });
+        setLastAssistantPrompt(content);
+      }
       setDraft("");
       setSelectedFiles([]);
     } catch (caught) {
       toast.error(caught instanceof Error ? caught.message : "Không thể gửi tin nhắn.");
+    } finally {
+      setIsSending(false);
+    }
+  }
+
+  async function retryAssistantResponse() {
+    const content = lastAssistantPrompt.trim();
+    if (!conversationId || !content || isSending) return;
+    setIsSending(true);
+    setAssistantProcessingState((current) => ({ ...current, error: "" }));
+    try {
+      const response = await sendChatTextMessage(conversationId, content);
+      setMessages((current) => mergeMessage(current, response.data));
+      if (assistantEnabled && response.data.messageType === "TEXT") {
+        setAssistantProcessingState({ error: "", inputMessageId: response.data.messageId, startedAt: Date.now(), status: "QUEUED" });
+      }
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : "Không thể thử lại tin nhắn.");
     } finally {
       setIsSending(false);
     }
@@ -262,6 +419,20 @@ export function SupportFloatingWidget() {
     void openAssistant();
   };
 
+  async function handleActionCard(toolCallId: string, decision: "confirm" | "deny") {
+    if (pendingToolCallId) return;
+    setPendingToolCallId(toolCallId);
+    try {
+      const response = decision === "confirm" ? await confirmAiToolCall(toolCallId) : await denyAiToolCall(toolCallId);
+      setToolCallStatuses((current) => ({ ...current, [toolCallId]: response.data.status }));
+      await refreshMessages();
+    } catch (caught) {
+      toast.error(caught instanceof Error ? caught.message : "Không thể cập nhật hành động.");
+    } finally {
+      setPendingToolCallId(null);
+    }
+  }
+
   return (
     <>
       {isPanelOpen ? (
@@ -274,14 +445,25 @@ export function SupportFloatingWidget() {
           <div aria-live="polite" className="tw-flex-1 tw-space-y-3 tw-overflow-y-auto tw-bg-slate-50 tw-p-4">
             {messagesLoading ? <div className="tw-py-10 tw-text-center tw-text-sm tw-font-semibold tw-text-slate-500"><i className="fas fa-spinner fa-spin tw-mr-2" />Đang tải lịch sử trò chuyện...</div> : null}
             {panelError ? <div role="alert" className="tw-rounded-lg tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-700">{panelError}</div> : null}
+            {!assistantEnabled ? <div role="status" className="tw-rounded-lg tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-p-3 tw-text-sm tw-font-bold tw-text-amber-800">Trợ lý AI đang tạm không khả dụng. Bạn vẫn có thể tạo phiếu hỗ trợ hoặc xem phiếu của mình.</div> : null}
             {!messagesLoading && !panelError && messages.length === 0 ? <div className="tw-mx-auto tw-mt-8 tw-max-w-[260px] tw-text-center tw-text-sm tw-text-slate-500"><span className="tw-mx-auto tw-mb-3 tw-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-full tw-bg-cyan-50 tw-p-3"><SupportSparkleIcon /></span>Xin chào! Bạn cần CoParking hỗ trợ vấn đề gì?</div> : null}
             {messages.filter((message) => !message.deleted).map((message) => {
               const ticket = message.relatedId ? ticketsById[message.relatedId] : undefined;
               if (message.messageType === "SUPPORT_REQUEST" && ticket) return <SupportTicketCard actions={<SupportTicketCustomerActions ticket={ticket} />} key={message.messageId} ticket={ticket} />;
-              if (["SYSTEM", "CONTEXT_CARD", "ACTION_CARD", "SUPPORT_REQUEST"].includes(message.messageType)) return <div className="tw-rounded-xl tw-border tw-border-solid tw-border-sky-100 tw-bg-white tw-p-3 tw-text-sm tw-text-slate-700 tw-shadow-sm" key={message.messageId}><div className="tw-mb-1 tw-flex tw-items-center tw-gap-2 tw-font-bold tw-text-sky-700"><i className="fas fa-info-circle" />Cập nhật hỗ trợ</div><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><time className="tw-mt-1 tw-block tw-text-right tw-text-[10px] tw-text-slate-400">{formatMessageTime(message.createdAt)}</time></div>;
+              if (message.messageType === "ACTION_CARD") {
+                const payload = parseActionCardPayload(message.content);
+                const toolCallId = payload.toolCallId ?? message.relatedId ?? "";
+                const state = getActionCardState(toolCallStatuses[toolCallId]);
+                const busy = pendingToolCallId === toolCallId;
+                return <div className={`tw-rounded-xl tw-border tw-border-solid tw-p-3 tw-text-sm tw-shadow-sm ${state.tone}`} key={message.messageId}><div className="tw-mb-1 tw-flex tw-items-center tw-justify-between tw-gap-2 tw-font-bold"><span><i className="fas fa-check-circle tw-mr-2" />{payload.title ?? "Xác nhận hành động"}</span><span className="tw-text-[10px] tw-font-black tw-uppercase">{state.label}</span></div><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{payload.description ?? "Hệ thống chỉ thực hiện sau khi bạn xác nhận."}</p><div className="tw-mt-3 tw-flex tw-gap-2"><button className="tw-rounded-md tw-border tw-border-solid tw-border-cyan-200 tw-bg-cyan-600 tw-px-3 tw-py-1.5 tw-text-xs tw-font-extrabold tw-text-white disabled:tw-opacity-60" disabled={!toolCallId || state.disabled || busy} onClick={() => void handleActionCard(toolCallId, "confirm")} type="button">{busy ? "Đang xử lý..." : "Xác nhận"}</button><button className="tw-rounded-md tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-3 tw-py-1.5 tw-text-xs tw-font-extrabold tw-text-slate-600 disabled:tw-opacity-60" disabled={!toolCallId || state.disabled || busy} onClick={() => void handleActionCard(toolCallId, "deny")} type="button">Hủy</button></div><time className="tw-mt-2 tw-block tw-text-right tw-text-[10px] tw-text-slate-400">{formatMessageTime(message.createdAt)}</time></div>;
+              }
+              if (isAssistantAiMessage(message)) return <div className="tw-flex tw-justify-start" key={message.messageId}><div className="tw-max-w-[82%] tw-rounded-2xl tw-rounded-bl-md tw-bg-white tw-px-3 tw-py-2 tw-text-sm tw-text-slate-700 tw-shadow-sm"><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><AssistantCitations messageId={message.messageId} /><time className="tw-mt-1 tw-block tw-text-right tw-text-[10px] tw-text-slate-400">{formatMessageTime(message.createdAt)}</time></div></div>;
+              if (["SYSTEM", "CONTEXT_CARD", "TOOL_RESULT", "SUPPORT_REQUEST"].includes(message.messageType)) return <div className="tw-rounded-xl tw-border tw-border-solid tw-border-sky-100 tw-bg-white tw-p-3 tw-text-sm tw-text-slate-700 tw-shadow-sm" key={message.messageId}><div className="tw-mb-1 tw-flex tw-items-center tw-gap-2 tw-font-bold tw-text-sky-700"><i className="fas fa-info-circle" />Cập nhật hỗ trợ</div><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><time className="tw-mt-1 tw-block tw-text-right tw-text-[10px] tw-text-slate-400">{formatMessageTime(message.createdAt)}</time></div>;
               const own = message.senderAccountId === user?.id;
               return <div className={`tw-flex ${own ? "tw-justify-end" : "tw-justify-start"}`} key={message.messageId}><div className={`tw-max-w-[82%] tw-rounded-2xl tw-px-3 tw-py-2 tw-text-sm tw-shadow-sm ${own ? "tw-rounded-br-md tw-bg-sky-700 tw-text-white" : "tw-rounded-bl-md tw-bg-white tw-text-slate-700"}`}><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><time className={`tw-mt-1 tw-block tw-text-right tw-text-[10px] ${own ? "tw-text-sky-100" : "tw-text-slate-400"}`}>{formatMessageTime(message.createdAt)}</time></div></div>;
             })}
+            {assistantProcessing ? <div role="status" className="tw-flex tw-justify-start"><div className="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-2xl tw-rounded-bl-md tw-bg-white tw-px-3 tw-py-2 tw-text-sm tw-font-semibold tw-text-slate-500 tw-shadow-sm"><i className="fas fa-spinner fa-spin" />Trợ lý đang xử lý...</div></div> : null}
+            {assistantProcessingState.error ? <div role="alert" className="tw-rounded-lg tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-p-3 tw-text-sm tw-font-bold tw-text-amber-800"><span>{assistantProcessingState.error}</span><button className="tw-ml-2 tw-rounded-md tw-border tw-border-solid tw-border-amber-300 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-extrabold tw-text-amber-800 disabled:tw-opacity-60" disabled={isSending || !lastAssistantPrompt.trim()} onClick={retryAssistantResponse} type="button">Thử lại</button></div> : null}
             <div ref={messageEndRef} />
           </div>
           <footer className="tw-border-0 tw-border-t tw-border-solid tw-border-slate-200 tw-bg-white">
