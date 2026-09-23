@@ -52,7 +52,7 @@ class KnowledgeSourceUseCaseImplTest {
     @Test
     void createSourceShouldDefaultToPublicScope() {
         KnowledgeSource created = useCase.createSource(
-                new CreateKnowledgeSourceCommand("Hướng dẫn sử dụng", "Mô tả", null));
+                new CreateKnowledgeSourceCommand("Hướng dẫn sử dụng", "Mô tả", null, null));
 
         assertEquals(KnowledgeAccessScope.PUBLIC, created.getAccessScope());
         assertEquals(KnowledgeSourceStatus.ACTIVE, created.getStatus());
@@ -60,13 +60,25 @@ class KnowledgeSourceUseCaseImplTest {
     }
 
     @Test
-    void createSourceShouldRejectTenantPrivateScope() {
+    void createSourceShouldRequireTenantForTenantPrivateScope() {
         assertThrows(
                 BadRequestException.class,
                 () -> useCase.createSource(
-                        new CreateKnowledgeSourceCommand("Tên", null, KnowledgeAccessScope.TENANT_PRIVATE))
+                        new CreateKnowledgeSourceCommand("Tên", null, KnowledgeAccessScope.TENANT_PRIVATE, null))
         );
         verify(sourcePortOut, never()).save(any(KnowledgeSource.class));
+    }
+
+    @Test
+    void createSourceShouldAcceptTenantPrivateWithTrustedTenant() {
+        UUID tenantId = UUID.randomUUID();
+
+        KnowledgeSource created = useCase.createSource(
+                new CreateKnowledgeSourceCommand(
+                        "Nội bộ đơn vị", null, KnowledgeAccessScope.TENANT_PRIVATE, tenantId));
+
+        assertEquals(tenantId, created.getTenantId());
+        assertEquals(KnowledgeAccessScope.TENANT_PRIVATE, created.getAccessScope());
     }
 
     @Test
@@ -76,7 +88,7 @@ class KnowledgeSourceUseCaseImplTest {
         assertThrows(
                 ConflictException.class,
                 () -> useCase.createSource(
-                        new CreateKnowledgeSourceCommand("Trùng tên", null, KnowledgeAccessScope.PUBLIC))
+                        new CreateKnowledgeSourceCommand("Trùng tên", null, KnowledgeAccessScope.PUBLIC, null))
         );
     }
 
@@ -88,7 +100,7 @@ class KnowledgeSourceUseCaseImplTest {
                 NotFoundException.class,
                 () -> useCase.updateSource(
                         UUID.randomUUID(),
-                        new UpdateKnowledgeSourceCommand("Tên mới", null, KnowledgeAccessScope.PUBLIC))
+                        new UpdateKnowledgeSourceCommand("Tên mới", null, KnowledgeAccessScope.PUBLIC, null))
         );
     }
 
@@ -101,7 +113,7 @@ class KnowledgeSourceUseCaseImplTest {
 
         KnowledgeSource updated = useCase.updateSource(
                 source.getSourceId(),
-                new UpdateKnowledgeSourceCommand("Mới", "mô tả", null));
+                new UpdateKnowledgeSourceCommand("Mới", "mô tả", null, null));
 
         assertEquals("Mới", updated.getTitle());
         assertEquals(KnowledgeAccessScope.PUBLIC, updated.getAccessScope());

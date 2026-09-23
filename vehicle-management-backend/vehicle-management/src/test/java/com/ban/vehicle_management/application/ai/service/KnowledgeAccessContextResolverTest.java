@@ -30,7 +30,7 @@ class KnowledgeAccessContextResolverTest {
 
         List<String> scopes = new KnowledgeAccessContextResolver(currentAccountPortIn).resolveScopes();
 
-        assertEquals(List.of("PUBLIC", "ADMIN"), scopes);
+        assertEquals(List.of("PUBLIC", "CUSTOMER", "EMPLOYEE", "ADMIN"), scopes);
     }
 
     @Test
@@ -75,14 +75,28 @@ class KnowledgeAccessContextResolverTest {
     @Test
     void staticScopesFromPermissionsMirrorResolution() {
         KnowledgeAccessContextResolver resolver = new KnowledgeAccessContextResolver(currentAccountPortIn);
-        assertEquals(List.of("PUBLIC", "ADMIN"),
+        assertEquals(List.of("PUBLIC", "CUSTOMER", "EMPLOYEE", "ADMIN"),
                 resolver.scopesForPermissions(Set.of("AI_KNOWLEDGE_REINDEX_ALL")));
+        assertEquals(List.of("PUBLIC", "CUSTOMER"),
+                resolver.scopesForPermissions(Set.of("AI_KNOWLEDGE_READ_CUSTOMER")));
+        assertEquals(List.of("PUBLIC", "EMPLOYEE"),
+                resolver.scopesForPermissions(Set.of("AI_KNOWLEDGE_READ_EMPLOYEE")));
         assertEquals(List.of("PUBLIC"),
                 resolver.scopesForPermissions(Set.of("HR_EMPLOYEE_VIEW")));
         assertEquals(List.of("PUBLIC"),
                 resolver.scopesForPermissions(null));
         assertEquals(List.of("PUBLIC"),
                 resolver.scopesForPermissions(Set.of()));
+    }
+
+    @Test
+    void tenantPrivateRequiresBothPermissionAndTrustedTenantContext() {
+        KnowledgeAccessContextResolver resolver = new KnowledgeAccessContextResolver(currentAccountPortIn);
+        Set<String> permissions = Set.of("AI_KNOWLEDGE_READ_TENANT_PRIVATE");
+
+        assertEquals(List.of("PUBLIC"), resolver.scopesForPermissions(permissions));
+        assertEquals(List.of("PUBLIC", "TENANT_PRIVATE"),
+                resolver.scopesForPermissions(permissions, UUID.randomUUID()));
     }
 
     private CurrentAccountAccess account(String roleCode, Set<String> permissions) {

@@ -41,7 +41,7 @@ public class GeminiResponseMapper {
                     }
                     JsonNode functionCallNode = part.get("functionCall");
                     if (functionCallNode != null && functionCallNode.isObject()) {
-                        functionCall = toFunctionCall(functionCallNode);
+                        functionCall = toFunctionCall(functionCallNode, textOrNull(part.get("thoughtSignature")));
                     }
                 }
             }
@@ -50,9 +50,9 @@ public class GeminiResponseMapper {
             if (functionCall != null) {
                 return AiResponse.functionCall(functionCall, body, inputTokens, outputTokens, finishReason);
             }
-            return AiResponse.success(text.toString(), null, inputTokens, outputTokens);
+            return AiResponse.success(text.toString(), body, inputTokens, outputTokens);
         } catch (Exception exception) {
-            return AiResponse.failure("INVALID_RESPONSE_SCHEMA", true, null);
+            return AiResponse.failure("INVALID_RESPONSE_SCHEMA", true, body);
         }
     }
 
@@ -138,16 +138,21 @@ public class GeminiResponseMapper {
         return sanitized.length() <= maxLength ? sanitized : sanitized.substring(0, maxLength);
     }
 
-    private AiFunctionCall toFunctionCall(JsonNode node) {
+    private AiFunctionCall toFunctionCall(JsonNode node, String partThoughtSignature) {
         String name = textOrNull(node.path("name"));
         JsonNode argsNode = node.path("args");
+        String thoughtSignature = textOrNull(node.path("thoughtSignature"));
+        if (thoughtSignature == null) {
+            thoughtSignature = partThoughtSignature;
+        }
         if (name == null || name.isBlank() || !argsNode.isObject()) {
-            return new AiFunctionCall(name, "{}", true, "MALFORMED_FUNCTION_CALL");
+            return new AiFunctionCall(name, "{}", true, "MALFORMED_FUNCTION_CALL", null, thoughtSignature);
         }
         try {
-            return new AiFunctionCall(name, objectMapper.writeValueAsString(argsNode), false, null);
+            return new AiFunctionCall(
+                    name, objectMapper.writeValueAsString(argsNode), false, null, null, thoughtSignature);
         } catch (Exception exception) {
-            return new AiFunctionCall(name, "{}", true, "MALFORMED_FUNCTION_CALL");
+            return new AiFunctionCall(name, "{}", true, "MALFORMED_FUNCTION_CALL", null, thoughtSignature);
         }
     }
 

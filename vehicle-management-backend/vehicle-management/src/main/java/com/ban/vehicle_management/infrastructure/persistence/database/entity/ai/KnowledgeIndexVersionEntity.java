@@ -13,12 +13,13 @@ import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.domain.Persistable;
 
 @Entity
 @Table(name = "knowledge_index_versions", schema = "ai")
 @Getter
 @Setter
-public class KnowledgeIndexVersionEntity {
+public class KnowledgeIndexVersionEntity implements Persistable<UUID> {
 
     @Id
     @Column(name = "index_version_id", nullable = false)
@@ -98,4 +99,14 @@ public class KnowledgeIndexVersionEntity {
     @Version
     @Column(name = "version")
     private Integer version;
+
+    @Override
+    public UUID getId() {
+        return indexVersionId;
+    }
+
+    @Override
+    public boolean isNew() {
+        return version == null;
+    }
 }

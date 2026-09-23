@@ -20,6 +20,7 @@ const scopeOptions: Array<{ label: string; value: KnowledgeAccessScope }> = [
   { label: "Khách hàng", value: "CUSTOMER" },
   { label: "Nhân viên", value: "EMPLOYEE" },
   { label: "Quản trị", value: "ADMIN" },
+  { label: "Riêng theo đơn vị", value: "TENANT_PRIVATE" },
 ];
 
 const scopeLabel: Record<KnowledgeAccessScope, string> = {
@@ -27,12 +28,14 @@ const scopeLabel: Record<KnowledgeAccessScope, string> = {
   CUSTOMER: "Khách hàng",
   EMPLOYEE: "Nhân viên",
   ADMIN: "Quản trị",
+  TENANT_PRIVATE: "Riêng theo đơn vị",
 };
 
 type SourceDraft = {
   title: string;
   description: string;
   accessScope: KnowledgeAccessScope;
+  tenantId: string;
 };
 
 export function KnowledgeSourcesTab() {
@@ -49,7 +52,7 @@ export function KnowledgeSourcesTab() {
 
   const [editorOpen, setEditorOpen] = useState(false);
   const [editing, setEditing] = useState<KnowledgeSourceResponse | null>(null);
-  const [draft, setDraft] = useState<SourceDraft>({ title: "", description: "", accessScope: "PUBLIC" });
+  const [draft, setDraft] = useState<SourceDraft>({ title: "", description: "", accessScope: "PUBLIC", tenantId: "" });
   const [saving, setSaving] = useState(false);
 
   const [confirmTarget, setConfirmTarget] = useState<KnowledgeSourceResponse | null>(null);
@@ -84,13 +87,18 @@ export function KnowledgeSourcesTab() {
 
   function openCreate() {
     setEditing(null);
-    setDraft({ title: "", description: "", accessScope: "PUBLIC" });
+    setDraft({ title: "", description: "", accessScope: "PUBLIC", tenantId: "" });
     setEditorOpen(true);
   }
 
   function openEdit(source: KnowledgeSourceResponse) {
     setEditing(source);
-    setDraft({ title: source.title, description: source.description ?? "", accessScope: source.accessScope });
+    setDraft({
+      title: source.title,
+      description: source.description ?? "",
+      accessScope: source.accessScope,
+      tenantId: source.tenantId ?? "",
+    });
     setEditorOpen(true);
   }
 
@@ -102,6 +110,7 @@ export function KnowledgeSourcesTab() {
         title: draft.title.trim(),
         description: draft.description.trim() ? draft.description.trim() : null,
         accessScope: draft.accessScope,
+        tenantId: draft.accessScope === "TENANT_PRIVATE" ? draft.tenantId.trim() : null,
       };
       const response = editing
         ? await updateKnowledgeSource(editing.sourceId, request)
@@ -259,7 +268,7 @@ export function KnowledgeSourcesTab() {
         actions={(
           <div className="tw-flex tw-flex-wrap tw-justify-end tw-gap-2.5">
             <Button disabled={saving} onClick={() => setEditorOpen(false)} variant="secondary">Hủy</Button>
-            <Button disabled={!draft.title.trim() || saving} loading={saving} onClick={() => void save()} variant="primary">
+            <Button disabled={!draft.title.trim() || (draft.accessScope === "TENANT_PRIVATE" && !draft.tenantId.trim()) || saving} loading={saving} onClick={() => void save()} variant="primary">
               {editing ? "Lưu thay đổi" : "Tạo nguồn"}
             </Button>
           </div>
@@ -283,7 +292,11 @@ export function KnowledgeSourcesTab() {
             <SelectMenu
               ariaLabel="Phạm vi truy cập"
               className="tw-w-full"
-              onChange={(value) => setDraft((prev) => ({ ...prev, accessScope: value as KnowledgeAccessScope }))}
+              onChange={(value) => setDraft((prev) => ({
+                ...prev,
+                accessScope: value as KnowledgeAccessScope,
+                tenantId: value === "TENANT_PRIVATE" ? prev.tenantId : "",
+              }))}
               options={scopeOptions}
               portal
               searchable={false}
@@ -291,6 +304,18 @@ export function KnowledgeSourcesTab() {
             />
             <span className="tw-text-xs tw-font-semibold tw-text-slate-400">Xác định nhóm người dùng được phép truy vấn kiến thức từ nguồn này.</span>
           </label>
+          {draft.accessScope === "TENANT_PRIVATE" ? (
+            <label className="tw-grid tw-gap-1.5">
+              <span className="tw-text-sm tw-font-black tw-text-slate-700">Mã đơn vị (UUID)</span>
+              <Input
+                className="tw-w-full"
+                onChange={(event) => setDraft((prev) => ({ ...prev, tenantId: event.target.value }))}
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                value={draft.tenantId}
+              />
+              <span className="tw-text-xs tw-font-semibold tw-text-slate-400">Tài liệu chỉ được truy xuất khi backend xác định đúng đơn vị này.</span>
+            </label>
+          ) : null}
         </div>
       </Modal>
 

@@ -9,6 +9,7 @@ import com.ban.vehicle_management.infrastructure.mapper.ai.KnowledgeIngestionJob
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeIngestionJobEventRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeIngestionJobRepository;
 import com.ban.vehicle_management.infrastructure.persistence.specification.ai.KnowledgeIngestionJobSpecifications;
+import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeIngestionJobStatus;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -74,7 +75,11 @@ public class KnowledgeIngestionJobPersistenceAdapter implements KnowledgeIngesti
 
     @Override
     public List<KnowledgeIngestionJob> findOpenByDocumentId(UUID documentId) {
-        List<String> openStatuses = List.of("PENDING", "PROCESSING", "RETRYING", "REVIEW");
+        List<KnowledgeIngestionJobStatus> openStatuses = List.of(
+                KnowledgeIngestionJobStatus.PENDING,
+                KnowledgeIngestionJobStatus.PROCESSING,
+                KnowledgeIngestionJobStatus.RETRYING,
+                KnowledgeIngestionJobStatus.REVIEW);
         return repository.findByDocumentIdAndStatusInOrderByCreatedAtDesc(documentId, openStatuses).stream()
                 .map(mapper::toDomain)
                 .toList();
@@ -96,7 +101,7 @@ public class KnowledgeIngestionJobPersistenceAdapter implements KnowledgeIngesti
     }
 
     @Override
-    public List<KnowledgeIngestionJob> findByStatus(String status) {
+    public List<KnowledgeIngestionJob> findByStatus(KnowledgeIngestionJobStatus status) {
         return repository.findByStatusOrderByCreatedAtAsc(status).stream()
                 .map(mapper::toDomain)
                 .toList();

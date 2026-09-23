@@ -15,11 +15,13 @@ import {
   denyAiToolCall,
   getAssistantMessageStatus,
   getAssistantStatus,
+  getMessageCitations,
   getMySupportTickets,
   getSupportAssistantConversation,
   getSupportTicketById,
   shareSupportTicketWithAssistant,
   type AiToolCallStatus,
+  type MessageCitationsResponse,
   type SupportTicketResponse,
 } from "@/features/support/api/supportApi";
 import { CreateSupportTicketDialog } from "@/features/support/components/CreateSupportTicketDialog";
@@ -111,6 +113,47 @@ function getSharedTicketNotice(ticket: SupportTicketResponse) {
 
 function isAssistantAiMessage(message: ChatMessageResponse) {
   return message.messageType === "ASSISTANT_TEXT" || (message.senderAccountId === null && message.relatedSchema === "ai" && message.relatedTable === "assistant_jobs");
+}
+
+function AssistantCitations({ messageId }: { messageId: string }) {
+  const [citations, setCitations] = useState<MessageCitationsResponse | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    void getMessageCitations(messageId)
+      .then((response) => {
+        if (!cancelled) setCitations(response.data);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [messageId]);
+  if (!citations || citations.citations.length === 0) return null;
+  return (
+    <div className="tw-mt-2 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-p-2">
+      <div className="tw-mb-1 tw-flex tw-items-center tw-justify-between tw-gap-2">
+        <span className="tw-text-[11px] tw-font-extrabold tw-uppercase tw-text-slate-500">Nguồn tham khảo</span>
+        {citations.handoffRecommended ? (
+          <span className="tw-rounded-full tw-bg-amber-100 tw-px-2 tw-py-0.5 tw-text-[10px] tw-font-extrabold tw-text-amber-800">Cần nhân viên hỗ trợ</span>
+        ) : null}
+      </div>
+      <ul className="tw-m-0 tw-grid tw-list-none tw-gap-1 tw-pl-0">
+        {citations.citations.map((citation, index) => (
+          <li className="tw-text-xs tw-text-slate-600" key={citation.citationId}>
+            <b className="tw-mr-1 tw-text-slate-800">[C{index + 1}]</b>
+            {citation.title}
+            {citation.sourcePage ? ` · trang ${citation.sourcePage}` : ""}
+            {citation.sourceSection ? ` · ${citation.sourceSection}` : ""}
+          </li>
+        ))}
+      </ul>
+      {typeof citations.groundedConfidence === "number" ? (
+        <div className="tw-mt-1 tw-text-[10px] tw-font-semibold tw-text-slate-400">
+          Độ tin cậy: {(citations.groundedConfidence * 100).toFixed(0)}%
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 function parseActionCardPayload(content: string | null): ActionCardPayload {
@@ -414,7 +457,7 @@ export function SupportFloatingWidget() {
                 const busy = pendingToolCallId === toolCallId;
                 return <div className={`tw-rounded-xl tw-border tw-border-solid tw-p-3 tw-text-sm tw-shadow-sm ${state.tone}`} key={message.messageId}><div className="tw-mb-1 tw-flex tw-items-center tw-justify-between tw-gap-2 tw-font-bold"><span><i className="fas fa-check-circle tw-mr-2" />{payload.title ?? "Xác nhận hành động"}</span><span className="tw-text-[10px] tw-font-black tw-uppercase">{state.label}</span></div><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{payload.description ?? "Hệ thống chỉ thực hiện sau khi bạn xác nhận."}</p><div className="tw-mt-3 tw-flex tw-gap-2"><button className="tw-rounded-md tw-border tw-border-solid tw-border-cyan-200 tw-bg-cyan-600 tw-px-3 tw-py-1.5 tw-text-xs tw-font-extrabold tw-text-white disabled:tw-opacity-60" disabled={!toolCallId || state.disabled || busy} onClick={() => void handleActionCard(toolCallId, "confirm")} type="button">{busy ? "Đang xử lý..." : "Xác nhận"}</button><button className="tw-rounded-md tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-3 tw-py-1.5 tw-text-xs tw-font-extrabold tw-text-slate-600 disabled:tw-opacity-60" disabled={!toolCallId || state.disabled || busy} onClick={() => void handleActionCard(toolCallId, "deny")} type="button">Hủy</button></div><time className="tw-mt-2 tw-block tw-text-right tw-text-[10px] tw-text-slate-400">{formatMessageTime(message.createdAt)}</time></div>;
               }
-              if (isAssistantAiMessage(message)) return <div className="tw-flex tw-justify-start" key={message.messageId}><div className="tw-max-w-[82%] tw-rounded-2xl tw-rounded-bl-md tw-bg-white tw-px-3 tw-py-2 tw-text-sm tw-text-slate-700 tw-shadow-sm"><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><time className="tw-mt-1 tw-block tw-text-right tw-text-[10px] tw-text-slate-400">{formatMessageTime(message.createdAt)}</time></div></div>;
+              if (isAssistantAiMessage(message)) return <div className="tw-flex tw-justify-start" key={message.messageId}><div className="tw-max-w-[82%] tw-rounded-2xl tw-rounded-bl-md tw-bg-white tw-px-3 tw-py-2 tw-text-sm tw-text-slate-700 tw-shadow-sm"><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><AssistantCitations messageId={message.messageId} /><time className="tw-mt-1 tw-block tw-text-right tw-text-[10px] tw-text-slate-400">{formatMessageTime(message.createdAt)}</time></div></div>;
               if (["SYSTEM", "CONTEXT_CARD", "TOOL_RESULT", "SUPPORT_REQUEST"].includes(message.messageType)) return <div className="tw-rounded-xl tw-border tw-border-solid tw-border-sky-100 tw-bg-white tw-p-3 tw-text-sm tw-text-slate-700 tw-shadow-sm" key={message.messageId}><div className="tw-mb-1 tw-flex tw-items-center tw-gap-2 tw-font-bold tw-text-sky-700"><i className="fas fa-info-circle" />Cập nhật hỗ trợ</div><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><time className="tw-mt-1 tw-block tw-text-right tw-text-[10px] tw-text-slate-400">{formatMessageTime(message.createdAt)}</time></div>;
               const own = message.senderAccountId === user?.id;
               return <div className={`tw-flex ${own ? "tw-justify-end" : "tw-justify-start"}`} key={message.messageId}><div className={`tw-max-w-[82%] tw-rounded-2xl tw-px-3 tw-py-2 tw-text-sm tw-shadow-sm ${own ? "tw-rounded-br-md tw-bg-sky-700 tw-text-white" : "tw-rounded-bl-md tw-bg-white tw-text-slate-700"}`}><p className="tw-m-0 tw-whitespace-pre-wrap tw-break-words">{message.content}</p><time className={`tw-mt-1 tw-block tw-text-right tw-text-[10px] ${own ? "tw-text-sky-100" : "tw-text-slate-400"}`}>{formatMessageTime(message.createdAt)}</time></div></div>;

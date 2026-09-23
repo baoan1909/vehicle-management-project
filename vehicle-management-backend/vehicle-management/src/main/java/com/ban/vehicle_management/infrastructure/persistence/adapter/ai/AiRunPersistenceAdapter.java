@@ -28,4 +28,14 @@ public class AiRunPersistenceAdapter implements AiRunPortOut {
     public boolean existsSuccessfulRunForInputMessage(UUID inputMessageId) {
         return repository.existsByInputMessageIdAndStatus(inputMessageId, AiRunStatus.SUCCEEDED);
     }
+
+    @Override
+    public int failRunningForInputMessage(UUID inputMessageId, String failureCode, boolean retryable) {
+        return repository.failRunningForInputMessage(
+                inputMessageId,
+                failureCode,
+                retryable,
+                AiRunStatus.RUNNING,
+                AiRunStatus.FAILED);
+    }
 }

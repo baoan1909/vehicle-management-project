@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.infrastructure.ai.gemini;
 
+import com.ban.vehicle_management.domain.ai.model.AiFunctionCall;
 import com.ban.vehicle_management.domain.ai.model.AiModelConfiguration;
 import com.ban.vehicle_management.domain.ai.model.AiFunctionResponse;
 import com.ban.vehicle_management.domain.ai.model.AiRequest;
@@ -29,7 +30,7 @@ public class GeminiRequestMapper {
             body.put("systemInstruction", Map.of("parts", List.of(Map.of("text", request.systemInstruction()))));
         }
         body.put("contents", toContents(request.messages()));
-        appendFunctionResponses(body, request.functionResponses());
+        appendProtocolTurns(body, request.precedingFunctionCalls(), request.functionResponses());
         boolean usesToolProtocol = hasItems(request.tools()) || hasItems(request.functionResponses());
         if (hasItems(request.tools())) {
             body.put("tools", List.of(Map.of("functionDeclarations", toFunctionDeclarations(request.tools()))));
@@ -44,6 +45,9 @@ public class GeminiRequestMapper {
         }
         if (!usesToolProtocol && (request.structuredOutput() || configuration.isRequiresStructuredOutput())) {
             generationConfig.put("responseMimeType", "application/json");
+            if (request.responseJsonSchema() != null && !request.responseJsonSchema().isBlank()) {
+                generationConfig.put("responseJsonSchema", readObject(request.responseJsonSchema()));
+            }
         }
         body.put("generationConfig", generationConfig);
         try {
@@ -83,11 +87,32 @@ public class GeminiRequestMapper {
 
     @SuppressWarnings("unchecked")
     private void appendFunctionResponses(Map<String, Object> body, List<AiFunctionResponse> functionResponses) {
+        appendProtocolTurns(body, List.of(), functionResponses);
+    }
+
+    /**
+     * Appends typed protocol turns in order: each preceding model function-call
+     * turn first, then its user function-response turn. The model turn is what
+     * the provider originally returned; replaying it is required for the
+     * function-response to be accepted instead of a malformed-sequence 400.
+     */
+    @SuppressWarnings("unchecked")
+    void appendProtocolTurns(
+            Map<String, Object> body,
+            List<AiFunctionCall> precedingFunctionCalls,
+            List<AiFunctionResponse> functionResponses) {
         if (functionResponses == null || functionResponses.isEmpty()) {
             return;
         }
         List<Map<String, Object>> contents = (List<Map<String, Object>>) body.get("contents");
-        for (AiFunctionResponse response : functionResponses) {
+        List<AiFunctionCall> preceding = precedingFunctionCalls == null ? List.of() : precedingFunctionCalls;
+        for (int index = 0; index < functionResponses.size(); index++) {
+            AiFunctionResponse response = functionResponses.get(index);
+            if (index < preceding.size() && preceding.get(index) != null
+                    && preceding.get(index).name() != null
+                    && preceding.get(index).name().equals(response.name())) {
+                contents.add(toModelFunctionCallTurn(preceding.get(index)));
+            }
             contents.add(Map.of(
                     "role", "user",
                     "parts", List.of(Map.of(
@@ -98,6 +123,21 @@ public class GeminiRequestMapper {
                     ))
             ));
         }
+    }
+
+    private Map<String, Object> toModelFunctionCallTurn(AiFunctionCall functionCall) {
+        Map<String, Object> call = new LinkedHashMap<>();
+        call.put("name", functionCall.name());
+        call.put("args", readObject(functionCall.argumentsJson()));
+        if (functionCall.thoughtSignature() != null && !functionCall.thoughtSignature().isBlank()) {
+            call.put("thoughtSignature", functionCall.thoughtSignature());
+        }
+        Map<String, Object> part = new LinkedHashMap<>();
+        part.put("functionCall", call);
+        if (functionCall.thoughtSignature() != null && !functionCall.thoughtSignature().isBlank()) {
+            part.put("thoughtSignature", functionCall.thoughtSignature());
+        }
+        return Map.of("role", "model", "parts", List.of(part));
     }
 
     private List<Map<String, Object>> toFunctionDeclarations(List<AiToolDeclaration> declarations) {

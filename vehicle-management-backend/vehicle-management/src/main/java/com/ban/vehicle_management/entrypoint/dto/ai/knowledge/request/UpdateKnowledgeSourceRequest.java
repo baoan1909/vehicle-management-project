@@ -3,6 +3,7 @@ package com.ban.vehicle_management.entrypoint.dto.ai.knowledge.request;
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeAccessScope;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import java.util.UUID;
 
 public record UpdateKnowledgeSourceRequest(
         @NotBlank(message = "Tên nguồn kiến thức không được để trống")
@@ -10,6 +11,7 @@ public record UpdateKnowledgeSourceRequest(
         String title,
         @Size(max = 255, message = "Mô tả tối đa 255 ký tự")
         String description,
-        KnowledgeAccessScope accessScope
+        KnowledgeAccessScope accessScope,
+        UUID tenantId
 ) {
 }

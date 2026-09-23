@@ -215,6 +215,33 @@ export function getAssistantMessageStatus(inputMessageId: string) {
   return apiClient<ApiResponse<AssistantMessageStatusResponse>>(apiEndpoints.ai.assistantMessageStatus(inputMessageId));
 }
 
+export type MessageCitationResponse = {
+  citationId: string;
+  messageId: string;
+  documentId: string;
+  chunkId: string;
+  label: string | null;
+  title: string;
+  sourcePage: number | null;
+  sourceSection: string | null;
+  retrievalScore: number | null;
+  retrievalAuditId: string | null;
+  indexVersionId: string | null;
+  citationOrder: number;
+};
+
+export type MessageCitationsResponse = {
+  messageId: string;
+  citations: MessageCitationResponse[];
+  groundedConfidence: number | null;
+  handoffRecommended: boolean;
+  diagnosticCode: string | null;
+};
+
+export function getMessageCitations(messageId: string) {
+  return apiClient<ApiResponse<MessageCitationsResponse>>(apiEndpoints.ai.messageCitations(messageId));
+}
+
 export function getAiToolCall(toolCallId: string) {
   return apiClient<ApiResponse<AiToolCallResponse>>(apiEndpoints.ai.toolCall(toolCallId));
 }

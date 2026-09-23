@@ -8,4 +8,6 @@ public interface AiRunPortOut {
     AiRun save(AiRun run);
 
     boolean existsSuccessfulRunForInputMessage(UUID inputMessageId);
+
+    int failRunningForInputMessage(UUID inputMessageId, String failureCode, boolean retryable);
 }

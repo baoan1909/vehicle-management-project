@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.operations.supportticket.port.in.SupportTicketPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.ai.model.KnowledgeRetrievalResult;
+import com.ban.vehicle_management.domain.ai.model.KnowledgeRetrievalContext;
 import com.ban.vehicle_management.domain.ai.policy.AiToolDefinition;
 import com.ban.vehicle_management.domain.ai.policy.AiToolRegistry;
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
@@ -64,23 +65,27 @@ public class AiToolExecutionService {
             case "create_support_ticket" -> createSupportTicket(arguments, conversationId, idempotencyKey);
             default -> throw new BadRequestException("AI tool is not executable");
         };
-        return new ToolExecutionResult(definition.name(), toJson(result), false);
+        return new ToolExecutionResult(
+                definition.name(), toJson(result), !"search_support_knowledge".equals(definition.name()));
     }
 
     public ToolExecutionResult executeFromAssistantWorker(String toolName, JsonNode arguments) {
-        AiToolDefinition definition = toolRegistry.require(toolName);
-        definition.validate(arguments);
+        AiToolDefinition definition = validateToolCall(toolName, arguments);
         Object result = switch (definition.name()) {
             case "search_support_knowledge" -> searchKnowledge(arguments);
+            case "get_my_support_ticket" -> getMySupportTicket(arguments);
+            case "list_my_support_tickets" -> listMySupportTickets(arguments);
+            case "get_my_subscription_status" -> listMySubscriptions(arguments);
             default -> throw new BadRequestException("AI tool requires user confirmation or request-time authorization");
         };
-        return new ToolExecutionResult(definition.name(), toJson(result), false);
+        return new ToolExecutionResult(
+                definition.name(), toJson(result), !"search_support_knowledge".equals(definition.name()));
     }
 
     private Object searchKnowledge(JsonNode arguments) {
         String query = requiredText(arguments, "query");
         KnowledgeRetrievalResult result = knowledgeRetrievalService.search(
-                null,
+                KnowledgeRetrievalContext.global(),
                 query,
                 accessContextResolver.resolveScopes(),
                 5

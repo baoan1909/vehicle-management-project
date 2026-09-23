@@ -2,8 +2,10 @@ package com.ban.vehicle_management.infrastructure.persistence.adapter.ai;
 
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalPortOut;
 import com.ban.vehicle_management.domain.ai.model.EmbeddingVector;
+import com.ban.vehicle_management.domain.ai.model.HybridSearchRow;
 import com.ban.vehicle_management.domain.ai.model.KnowledgeSearchResult;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeChunkRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeEmbeddingRepository;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,40 @@ public class KnowledgeRetrievalPersistenceAdapter implements KnowledgeRetrievalP
 
     public KnowledgeRetrievalPersistenceAdapter(KnowledgeChunkRepository repository) {
         this.repository = repository;
+    }
+
+    @Override
+    public List<HybridSearchRow> hybridSearch(
+            UUID tenantId,
+            UUID indexVersionId,
+            EmbeddingVector queryVector,
+            String normalizedQuery,
+            List<String> accessScopes,
+            int vectorCandidateLimit,
+            int lexicalCandidateLimit,
+            double minimumVectorScore,
+            double minimumLexicalScore,
+            int rrfRankConstant,
+            double weightVector,
+            double weightLexical,
+            int maxChunksPerDocument,
+            int finalTopK
+    ) {
+        return repository.hybridSearch(
+                tenantId,
+                indexVersionId,
+                KnowledgeEmbeddingRepository.toVectorLiteral(queryVector),
+                normalizedQuery,
+                accessScopes,
+                vectorCandidateLimit,
+                lexicalCandidateLimit,
+                minimumVectorScore,
+                minimumLexicalScore,
+                rrfRankConstant,
+                weightVector,
+                weightLexical,
+                maxChunksPerDocument,
+                finalTopK);
     }
 
     @Override

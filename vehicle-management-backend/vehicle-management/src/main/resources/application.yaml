@@ -156,6 +156,21 @@ app:
       build-initial-delay-ms: ${AI_EMBEDDING_BUILD_INITIAL_DELAY_MS:10000}
       build-lease-duration: ${AI_EMBEDDING_BUILD_LEASE_DURATION:10m}
       pgvector-required: ${AI_PGVECTOR_REQUIRED:false}
+    retrieval:
+      final-top-k: ${AI_RETRIEVAL_FINAL_TOP_K:5}
+      vector-candidate-limit: ${AI_RETRIEVAL_VECTOR_CANDIDATE_LIMIT:20}
+      lexical-candidate-limit: ${AI_RETRIEVAL_LEXICAL_CANDIDATE_LIMIT:20}
+      max-chunks-per-document: ${AI_RETRIEVAL_MAX_CHUNKS_PER_DOCUMENT:3}
+      rrf-rank-constant: ${AI_RETRIEVAL_RRF_RANK_CONSTANT:60}
+      weight-vector: ${AI_RETRIEVAL_WEIGHT_VECTOR:0.6}
+      weight-lexical: ${AI_RETRIEVAL_WEIGHT_LEXICAL:0.4}
+      minimum-vector-score: ${AI_RETRIEVAL_MINIMUM_VECTOR_SCORE:0.15}
+      minimum-lexical-score: ${AI_RETRIEVAL_MINIMUM_LEXICAL_SCORE:0.01}
+      grounded-confidence-threshold: ${AI_RETRIEVAL_GROUNDED_CONFIDENCE_THRESHOLD:0.80}
+      caution-confidence-threshold: ${AI_RETRIEVAL_CAUTION_CONFIDENCE_THRESHOLD:0.55}
+      policy-version: ${AI_RETRIEVAL_POLICY_VERSION:retrieval-policy-v1}
+      threshold-version: ${AI_RETRIEVAL_THRESHOLD_VERSION:retrieval-threshold-v1}
+      unaccent-required: ${AI_RETRIEVAL_UNACCENT_REQUIRED:false}
     ingestion:
       enabled: ${AI_INGESTION_ENABLED:true}
       poll-fixed-delay-ms: ${AI_INGESTION_POLL_FIXED_DELAY_MS:5000}

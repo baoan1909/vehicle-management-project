@@ -92,7 +92,10 @@ public class KnowledgeIndexVersion {
         indexVersion.contentChecksum = contentChecksum;
         indexVersion.createdAt = createdAt;
         indexVersion.createdBy = actor;
-        indexVersion.version = 0;
+        // Keep the boxed @Version value null for a brand-new aggregate. Spring Data
+        // uses a null version to choose EntityManager.persist even when the UUID is
+        // assigned by the domain. Hibernate initializes it to 0 during insertion.
+        indexVersion.version = null;
         return indexVersion;
     }
 

@@ -12,4 +12,9 @@ public class KnowledgeRetrievalTestResponse {
     private String diagnosticCode;
     private UUID activeIndexVersionId;
     private List<KnowledgeSearchHit> results;
+    private UUID retrievalAuditId;
+    private java.math.BigDecimal groundedConfidence;
+    private boolean evidenceSufficient;
+    private String normalizedQuery;
+    private String retrievalPolicyVersion;
 }

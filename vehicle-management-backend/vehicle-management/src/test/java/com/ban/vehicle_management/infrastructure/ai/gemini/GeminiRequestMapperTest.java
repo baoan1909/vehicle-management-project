@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.ban.vehicle_management.domain.ai.model.AiFunctionCall;
 import com.ban.vehicle_management.domain.ai.model.AiModelConfiguration;
 import com.ban.vehicle_management.domain.ai.model.AiFunctionResponse;
 import com.ban.vehicle_management.domain.ai.model.AiRequest;
@@ -30,6 +31,9 @@ class GeminiRequestMapperTest {
         assertFalse(body.get("generationConfig").has("temperature"));
         assertEquals(1024, body.get("generationConfig").get("maxOutputTokens").asInt());
         assertEquals("application/json", body.get("generationConfig").get("responseMimeType").asText());
+        JsonNode responseSchema = body.get("generationConfig").get("responseJsonSchema");
+        assertEquals("object", responseSchema.get("type").asText());
+        assertEquals("responseText", responseSchema.get("required").get(0).asText());
     }
 
     @Test
@@ -67,6 +71,14 @@ class GeminiRequestMapperTest {
                 List.of(new AiFunctionResponse(
                         "search_support_knowledge",
                         "{\"results\":[{\"title\":\"Dang ky ve thang\"}]}"
+                )),
+                List.of(new AiFunctionCall(
+                        "search_support_knowledge",
+                        "{\"query\":\"ve thang\"}",
+                        false,
+                        null,
+                        null,
+                        "thought-signature-1"
                 ))
         );
 
@@ -81,8 +93,14 @@ class GeminiRequestMapperTest {
         assertEquals("query", parametersJsonSchema.get("required").get(0).asText());
         JsonNode optionalSchema = body.get("tools").get(0).get("functionDeclarations").get(1).get("parametersJsonSchema");
         assertFalse(optionalSchema.has("required"));
-        JsonNode functionResponse = body.get("contents").get(1).get("parts").get(0).get("functionResponse");
-        assertEquals("user", body.get("contents").get(1).get("role").asText());
+        // Protocol order: preceding model function-call turn first, then the user function-response turn.
+        assertEquals("model", body.get("contents").get(1).get("role").asText());
+        JsonNode replayedCall = body.get("contents").get(1).get("parts").get(0).get("functionCall");
+        assertEquals("search_support_knowledge", replayedCall.get("name").asText());
+        assertEquals("ve thang", replayedCall.get("args").get("query").asText());
+        assertEquals("thought-signature-1", body.get("contents").get(1).get("parts").get(0).get("thoughtSignature").asText());
+        JsonNode functionResponse = body.get("contents").get(2).get("parts").get(0).get("functionResponse");
+        assertEquals("user", body.get("contents").get(2).get("role").asText());
         assertEquals("search_support_knowledge", functionResponse.get("name").asText());
         assertTrue(functionResponse.get("response").get("results").isArray());
         assertFalse(body.get("generationConfig").has("responseMimeType"));
@@ -92,7 +110,17 @@ class GeminiRequestMapperTest {
         return new AiRequest(
                 "Answer in Vietnamese",
                 List.of(new AiRequestMessage("user", "Xin chao")),
-                true
+                true,
+                """
+                        {
+                          "type": "object",
+                          "properties": {"responseText": {"type": "string"}},
+                          "required": ["responseText"]
+                        }
+                        """,
+                List.of(),
+                List.of(),
+                List.of()
         );
     }
 

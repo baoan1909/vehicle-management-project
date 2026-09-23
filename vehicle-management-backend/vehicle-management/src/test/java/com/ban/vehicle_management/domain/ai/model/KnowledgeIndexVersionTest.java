@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.ai.model;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.shared.enumeration.ai.AiProvider;
@@ -38,6 +39,7 @@ class KnowledgeIndexVersionTest {
         KnowledgeIndexVersion version = draft();
         assertEquals(KnowledgeIndexVersionStatus.DRAFT, version.getStatus());
         assertEquals(0, version.getExpectedChunkCount());
+        assertNull(version.getVersion());
     }
 
     @Test

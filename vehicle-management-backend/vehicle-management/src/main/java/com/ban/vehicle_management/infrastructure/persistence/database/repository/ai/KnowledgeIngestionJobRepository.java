@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.repository.ai;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.ai.KnowledgeIngestionJobEntity;
+import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeIngestionJobStatus;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
@@ -22,9 +23,9 @@ public interface KnowledgeIngestionJobRepository extends JpaRepository<Knowledge
     Optional<KnowledgeIngestionJobEntity> findByRequestedByAndIdempotencyKey(UUID requestedBy, String idempotencyKey);
 
     List<KnowledgeIngestionJobEntity> findByDocumentIdAndStatusInOrderByCreatedAtDesc(
-            UUID documentId, List<String> statuses);
+            UUID documentId, List<KnowledgeIngestionJobStatus> statuses);
 
-    List<KnowledgeIngestionJobEntity> findByStatusOrderByCreatedAtAsc(String status);
+    List<KnowledgeIngestionJobEntity> findByStatusOrderByCreatedAtAsc(KnowledgeIngestionJobStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT job FROM KnowledgeIngestionJobEntity job WHERE job.ingestionJobId = :ingestionJobId")

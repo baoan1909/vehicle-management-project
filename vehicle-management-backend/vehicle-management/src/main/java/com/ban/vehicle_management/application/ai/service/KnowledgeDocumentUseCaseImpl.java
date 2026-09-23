@@ -101,7 +101,6 @@ public class KnowledgeDocumentUseCaseImpl implements KnowledgeDocumentPortIn {
                 command.idempotencyKey(), "idempotencyKey", 120);
         KnowledgeSource source = sourcePortOut.findById(command.sourceId())
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy nguồn kiến thức"));
-        assertSupportedScope(source.getAccessScope());
         if (KnowledgeSourceStatus.INACTIVE.equals(source.getStatus())) {
             throw new BadRequestException("Nguồn kiến thức đang ở trạng thái ngừng hoạt động");
         }
@@ -544,10 +543,4 @@ public class KnowledgeDocumentUseCaseImpl implements KnowledgeDocumentPortIn {
         }
     }
 
-    private void assertSupportedScope(KnowledgeAccessScope scope) {
-        if (scope == KnowledgeAccessScope.TENANT_PRIVATE) {
-            throw new BadRequestException(
-                    "TENANT_CONTEXT_NOT_SUPPORTED: Phạm vi riêng tư theo khách hàng chưa được hỗ trợ");
-        }
-    }
 }

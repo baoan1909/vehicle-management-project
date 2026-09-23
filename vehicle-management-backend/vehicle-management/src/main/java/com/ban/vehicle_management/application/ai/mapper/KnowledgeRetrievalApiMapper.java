@@ -13,6 +13,11 @@ public interface KnowledgeRetrievalApiMapper {
         response.setDiagnosticCode(result.diagnosticCode());
         response.setActiveIndexVersionId(result.activeIndexVersionId());
         response.setResults(KnowledgeSearchHit.fromAll(result.results()));
+        response.setRetrievalAuditId(result.retrievalAuditId());
+        response.setGroundedConfidence(result.groundedConfidence());
+        response.setEvidenceSufficient(result.evidenceSufficient());
+        response.setNormalizedQuery(result.normalizedQuery());
+        response.setRetrievalPolicyVersion(result.retrievalPolicyVersion());
         return response;
     }
 }

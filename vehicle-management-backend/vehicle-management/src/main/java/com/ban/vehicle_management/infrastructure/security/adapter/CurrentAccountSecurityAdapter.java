@@ -3,6 +3,7 @@ package com.ban.vehicle_management.infrastructure.security.adapter;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.infrastructure.security.assistant.AssistantActorScope;
 import com.ban.vehicle_management.infrastructure.security.principal.AuthenticatedAccountPrincipal;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
@@ -22,16 +23,28 @@ import java.util.UUID;
 public class CurrentAccountSecurityAdapter implements CurrentAccountPortIn {
 
     private final AccountAuthorizationPortOut accountAuthorizationPortOut;
+    private final AssistantActorScope assistantActorScope;
 
-    public CurrentAccountSecurityAdapter(AccountAuthorizationPortOut accountAuthorizationPortOut) {
+    public CurrentAccountSecurityAdapter(
+            AccountAuthorizationPortOut accountAuthorizationPortOut,
+            AssistantActorScope assistantActorScope) {
         this.accountAuthorizationPortOut = accountAuthorizationPortOut;
+        this.assistantActorScope = assistantActorScope;
     }
 
     @Override
     public Optional<CurrentAccountAccess> getCurrentAccount() {
-        return Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
-                .filter(Authentication::isAuthenticated)
-                .flatMap(this::resolveCurrentAccount);
+        Optional<CurrentAccountAccess> fromSecurityContext =
+                Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
+                        .filter(Authentication::isAuthenticated)
+                        .flatMap(this::resolveCurrentAccount);
+        if (fromSecurityContext.isPresent()) {
+            return fromSecurityContext;
+        }
+        // Scheduler threads (assistant/ingestion workers) have no SecurityContext:
+        // fall back to the job-bound actor, resolved from persisted data only.
+        return assistantActorScope.currentActorAccountId()
+                .flatMap(accountAuthorizationPortOut::findByAccountId);
     }
 
     @Override

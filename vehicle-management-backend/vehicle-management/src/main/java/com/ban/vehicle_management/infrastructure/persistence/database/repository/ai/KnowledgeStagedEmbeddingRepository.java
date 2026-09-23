@@ -99,7 +99,7 @@ public class KnowledgeStagedEmbeddingRepository {
                                staged.chunker_version,
                                staged.content_hash,
                                staged.embedding_fingerprint,
-                               staged.embedding::float8[],
+                               staged.embedding::text,
                                staged.created_at
                         FROM ai.knowledge_staged_embeddings staged
                         WHERE staged.chunk_id IN (:chunkIds)
@@ -119,7 +119,7 @@ public class KnowledgeStagedEmbeddingRepository {
             staged.setChunkerVersion((String) row[7]);
             staged.setContentHash((String) row[8]);
             staged.setEmbeddingFingerprint((String) row[9]);
-            staged.setEmbedding(toEmbeddingVector((Object[]) row[10], staged.getEmbeddingDimension()));
+            staged.setEmbedding(fromVectorLiteral((String) row[10], staged.getEmbeddingDimension()));
             staged.setCreatedAt(toInstant(row[11]));
             result.add(staged);
         }
@@ -137,12 +137,22 @@ public class KnowledgeStagedEmbeddingRepository {
         return ((Number) result).longValue();
     }
 
-    private EmbeddingVector toEmbeddingVector(Object[] values, int dimension) {
-        double[] vector = new double[values.length];
-        for (int index = 0; index < values.length; index++) {
-            vector[index] = ((Number) values[index]).doubleValue();
+    static EmbeddingVector fromVectorLiteral(String literal, int dimension) {
+        if (literal == null || literal.length() < 2
+                || literal.charAt(0) != '['
+                || literal.charAt(literal.length() - 1) != ']') {
+            throw new IllegalArgumentException("Invalid pgvector literal");
         }
-        return EmbeddingVector.of(vector, Math.max(dimension, vector.length));
+        String content = literal.substring(1, literal.length() - 1).trim();
+        if (content.isEmpty()) {
+            return EmbeddingVector.of(new double[0], dimension);
+        }
+        String[] encodedValues = content.split(",");
+        double[] values = new double[encodedValues.length];
+        for (int index = 0; index < encodedValues.length; index++) {
+            values[index] = Double.parseDouble(encodedValues[index].trim());
+        }
+        return EmbeddingVector.of(values, dimension);
     }
 
     private java.time.Instant toInstant(Object value) {

@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.ai.port.out;
 import com.ban.vehicle_management.application.ai.query.KnowledgeIngestionJobQuery;
 import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeIngestionJob;
 import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeIngestionJobEvent;
+import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeIngestionJobStatus;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -35,7 +36,7 @@ public interface KnowledgeIngestionJobPortOut {
 
     Page<KnowledgeIngestionJob> findAll(KnowledgeIngestionJobQuery query, Pageable pageable);
 
-    List<KnowledgeIngestionJob> findByStatus(String status);
+    List<KnowledgeIngestionJob> findByStatus(KnowledgeIngestionJobStatus status);
 
     /**
      * Atomically claims due jobs for a worker. Updating happens inside the same

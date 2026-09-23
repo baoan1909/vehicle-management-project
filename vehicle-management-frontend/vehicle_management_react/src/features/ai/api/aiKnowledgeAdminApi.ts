@@ -26,7 +26,7 @@ function pageUrl(path: string, page = 0, size = 20) {
   return `${path}${separator}page=${page}&size=${size}`;
 }
 
-export type KnowledgeAccessScope = "PUBLIC" | "CUSTOMER" | "EMPLOYEE" | "ADMIN";
+export type KnowledgeAccessScope = "PUBLIC" | "CUSTOMER" | "EMPLOYEE" | "ADMIN" | "TENANT_PRIVATE";
 export type KnowledgeSourceStatus = "ACTIVE" | "INACTIVE";
 export type KnowledgeDocumentStatus = "PENDING" | "PROCESSING" | "REVIEW" | "READY" | "FAILED" | "ARCHIVED";
 export type KnowledgeIngestionJobStatus = "PENDING" | "PROCESSING" | "REVIEW" | "READY" | "RETRYING" | "FAILED";
@@ -39,7 +39,7 @@ export type KnowledgeSourceResponse = {
   description: string | null;
   sourceId: string;
   status: KnowledgeSourceStatus;
-  tenantId: string;
+  tenantId: string | null;
   title: string;
   updatedAt: string | null;
 };
@@ -62,7 +62,7 @@ export type KnowledgeDocumentResponse = {
   reviewedAt: string | null;
   sourceId: string;
   status: KnowledgeDocumentStatus;
-  tenantId: string;
+  tenantId: string | null;
   title: string;
   updatedAt: string | null;
 };
@@ -155,12 +155,14 @@ export type KnowledgeQualityDashboardResponse = {
 export type CreateKnowledgeSourceRequest = {
   accessScope: KnowledgeAccessScope;
   description?: string | null;
+  tenantId?: string | null;
   title: string;
 };
 
 export type UpdateKnowledgeSourceRequest = {
   accessScope: KnowledgeAccessScope;
   description?: string | null;
+  tenantId?: string | null;
   title: string;
 };
 

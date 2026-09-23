@@ -9,7 +9,6 @@ import lombok.Setter;
 
 /**
  * Aggregates documents that belong together (for example a manual or a tag group).
- * TENANT_PRIVATE is not exposed in this phase: creation rejects that scope.
  */
 @Getter
 @Setter
@@ -54,8 +53,10 @@ public class KnowledgeSource {
         this.updatedAt = now;
     }
 
-    public void changeScope(KnowledgeAccessScope accessScope, UUID actor, Instant now) {
+    public void changeScopeAndTenant(
+            KnowledgeAccessScope accessScope, UUID tenantId, UUID actor, Instant now) {
         this.accessScope = accessScope;
+        this.tenantId = tenantId;
         this.updatedByAccountId = actor;
         this.updatedAt = now;
     }

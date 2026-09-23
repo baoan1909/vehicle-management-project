@@ -17,6 +17,7 @@ export const apiEndpoints = {
     assistantStatus: "/ai/assistant/status",
     assistantMessageStatus: (inputMessageId: string) => `/ai/assistant/messages/${inputMessageId}/status`,
     toolCall: (toolCallId: string) => `/ai/tool-calls/${toolCallId}`,
+    messageCitations: (messageId: string) => `/ai/messages/${messageId}/citations`,
     confirmToolCall: (toolCallId: string) => `/ai/tool-calls/${toolCallId}/confirm`,
     denyToolCall: (toolCallId: string) => `/ai/tool-calls/${toolCallId}/deny`,
 modelConfigurations: "/ai/models/configurations",

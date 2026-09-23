@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.infrastructure.mapper.ai;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.ban.vehicle_management.domain.ai.model.KnowledgeIndexVersion;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.ai.KnowledgeIndexVersionEntity;
@@ -51,5 +53,28 @@ class KnowledgeIndexVersionPersistenceMapperTest {
         assertEquals(12, domain.getExpectedChunkCount());
         assertEquals(entity.getActivatedAt(), domain.getActivatedAt());
         assertEquals(3, domain.getVersion());
+    }
+
+    @Test
+    void shouldTreatAssignedUuidAsNewUntilHibernateInitializesVersion() {
+        KnowledgeIndexVersion draft = KnowledgeIndexVersion.draft(
+                "IDX-GEMINI-NEW",
+                UUID.randomUUID(),
+                AiProvider.GEMINI,
+                "gemini-embedding-2",
+                768,
+                "chunker-v1",
+                "rag-qa-v1",
+                "COSINE",
+                "NONE",
+                "checksum",
+                UUID.randomUUID(),
+                Instant.parse("2026-09-23T08:00:00Z"));
+
+        KnowledgeIndexVersionEntity entity = mapper.toEntity(draft);
+
+        assertTrue(entity.isNew());
+        entity.setVersion(0);
+        assertFalse(entity.isNew());
     }
 }

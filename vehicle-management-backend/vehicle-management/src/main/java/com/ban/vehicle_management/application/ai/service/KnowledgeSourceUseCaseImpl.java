@@ -63,12 +63,12 @@ public class KnowledgeSourceUseCaseImpl implements KnowledgeSourcePortIn {
         if (scope == null) {
             scope = KnowledgeAccessScope.PUBLIC;
         }
-        assertSupportedScope(scope);
+        validateScopeAndTenant(scope, command.tenantId());
         if (sourcePortOut.existsByTitle(title)) {
             throw new ConflictException("Nguồn kiến thức đã tồn tại với tên '" + title + "'");
         }
         return sourcePortOut.save(KnowledgeSource.create(
-                null,
+                command.tenantId(),
                 title,
                 description,
                 scope,
@@ -90,10 +90,15 @@ public class KnowledgeSourceUseCaseImpl implements KnowledgeSourcePortIn {
         KnowledgeAccessScope scope = command.accessScope() == null
                 ? source.getAccessScope()
                 : command.accessScope();
-        assertSupportedScope(scope);
+        UUID tenantId = command.accessScope() == null && command.tenantId() == null
+                ? source.getTenantId()
+                : command.tenantId();
+        validateScopeAndTenant(scope, tenantId);
         source.rename(title, description, currentAccountPortIn.getCurrentAccountIdOrThrow(), Instant.now());
-        if (command.accessScope() != null && !command.accessScope().equals(source.getAccessScope())) {
-            source.changeScope(scope, currentAccountPortIn.getCurrentAccountIdOrThrow(), Instant.now());
+        if (!scope.equals(source.getAccessScope())
+                || !java.util.Objects.equals(tenantId, source.getTenantId())) {
+            source.changeScopeAndTenant(
+                    scope, tenantId, currentAccountPortIn.getCurrentAccountIdOrThrow(), Instant.now());
         }
         return sourcePortOut.save(source);
     }
@@ -137,10 +142,12 @@ public class KnowledgeSourceUseCaseImpl implements KnowledgeSourcePortIn {
         return documentPortOut.findAll(query, KnowledgePagePolicy.normalize(pageable));
     }
 
-    private void assertSupportedScope(KnowledgeAccessScope scope) {
-        if (scope == KnowledgeAccessScope.TENANT_PRIVATE) {
-            throw new BadRequestException(
-                    "TENANT_CONTEXT_NOT_SUPPORTED: Phạm vi riêng tư theo khách hàng chưa được hỗ trợ");
+    private void validateScopeAndTenant(KnowledgeAccessScope scope, UUID tenantId) {
+        if (scope == KnowledgeAccessScope.TENANT_PRIVATE && tenantId == null) {
+            throw new BadRequestException("TENANT_ID_REQUIRED: Phạm vi riêng tư cần mã đơn vị");
+        }
+        if (scope != KnowledgeAccessScope.TENANT_PRIVATE && tenantId != null) {
+            throw new BadRequestException("TENANT_ID_NOT_ALLOWED: Chỉ phạm vi riêng tư mới được gắn mã đơn vị");
         }
     }
 }
