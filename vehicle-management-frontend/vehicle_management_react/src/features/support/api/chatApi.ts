@@ -23,7 +23,7 @@ export type ChatConversationType =
   | "SYSTEM_DIRECT";
 
 export type ChatConversationStatus = "ACTIVE" | "ARCHIVED" | "CLOSED";
-export type ChatMessageType = "TEXT" | "IMAGE" | "FILE" | "SYSTEM" | "CONTEXT_CARD" | "ACTION_CARD" | "SUPPORT_REQUEST";
+export type ChatMessageType = "TEXT" | "IMAGE" | "FILE" | "SYSTEM" | "CONTEXT_CARD" | "ACTION_CARD" | "SUPPORT_REQUEST" | "ASSISTANT_TEXT" | "TOOL_RESULT";
 export type ChatAttachmentType = "IMAGE" | "DOCUMENT" | "AUDIO" | "PARKING_EVIDENCE" | "PAYMENT_PROOF";
 export type ChatMemberRole = "OWNER" | "MEMBER" | "ASSIGNEE" | "OBSERVER" | "CUSTOMER" | (string & {});
 

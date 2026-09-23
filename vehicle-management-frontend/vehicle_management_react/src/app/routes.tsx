@@ -24,6 +24,7 @@ import { DashboardPage } from "@/features/dashboard";
 import { EmployeeListPage, ShiftSchedulePage } from "@/features/employees";
 import { DeviceManagementPage } from "@/features/hardware";
 import { AccountFormPage, AccountListPage, InternalProfilePage, RoleFormPage, RoleListPage } from "@/features/iam";
+import { AiKnowledgeAdminPage, AiModelManagementPage } from "@/features/ai";
 import { AnnouncementManagementPage } from "@/features/notifications";
 import { ParkingOperationsPage, ParkingSessionPage, SwipeEntryPage, SwipeListPage } from "@/features/parking";
 import { PricePlanListPage, PriceRuleListPage, VoucherManagementPage } from "@/features/pricing";
@@ -76,6 +77,9 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/support-categories", title: "Danh muc ho tro va quy trinh xu ly yeu cau", layout: "admin", element: <SupportCategoryWorkflowPage /> },
   { path: "/admin/support-tickets", title: "Yeu cau ho tro", layout: "admin", element: <SupportTicketManagementPage /> },
   { path: "/admin/announcements", title: "Quản lý thông báo", layout: "admin", element: <AnnouncementManagementPage /> },
+  { path: "/admin/ai-models", title: "Quan tri model AI", layout: "admin", element: <AiModelManagementPage /> },
+  { path: "/admin/ai-knowledge", title: "Quan ly tri thuc AI", layout: "admin", element: <AiKnowledgeAdminPage /> },
+  { path: "/admin/ai-knowledge-index", title: "Quan ly tri thuc AI", layout: "admin", element: <Navigate to="/admin/ai-knowledge" replace /> },
   { path: "/admin/support-center", title: "Trung tam ho tro van hanh", layout: "fullscreen", element: <OperationsSupportCenterPage /> },
   { path: "/", title: "Gioi thieu CoParking", layout: "client", element: <AboutPage /> },
   { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },

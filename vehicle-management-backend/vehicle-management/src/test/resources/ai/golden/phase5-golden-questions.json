@@ -1,0 +1,18 @@
+{
+  "version": "phase5-golden-v1",
+  "description": "Starter golden set for Vietnamese hybrid retrieval: diacritic pairs, natural phrasing, scope isolation.",
+  "questions": [
+    {"id": "G01", "question": "Quy trình đăng ký thẻ xe như thế nào?", "questionNoAccent": "quy trinh dang ky the xe nhu the nao?", "expectedKeywords": ["đăng ký", "thẻ xe"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G02", "question": "quy trinh dang ky the xe nhu the nao?", "questionNoAccent": "quy trinh dang ky the xe nhu the nao?", "expectedKeywords": ["đăng ký", "thẻ xe"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G03", "question": "Phí gửi xe máy là bao nhiêu?", "questionNoAccent": "phi gui xe may la bao nhieu?", "expectedKeywords": ["phí", "xe máy"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G04", "question": "phi gui xe may la bao nhieu?", "questionNoAccent": "phi gui xe may la bao nhieu?", "expectedKeywords": ["phí", "xe máy"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G05", "question": "Mất thẻ xe thì phải làm gì?", "questionNoAccent": "mat the xe thi phai lam gi?", "expectedKeywords": ["mất thẻ", "thẻ xe"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G06", "question": "mat the xe thi phai lam gi?", "questionNoAccent": "mat the xe thi phai lam gi?", "expectedKeywords": ["mất thẻ", "thẻ xe"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G07", "question": "Vé tháng có những loại nào?", "questionNoAccent": "ve thang co nhung loai nao?", "expectedKeywords": ["vé tháng"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G08", "question": "ve thang co nhung loai nao?", "questionNoAccent": "ve thang co nhung loai nao?", "expectedKeywords": ["vé tháng"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G09", "question": "Thủ tục cấp lại thẻ xe bị mất?", "questionNoAccent": "thu tuc cap lai the xe bi mat?", "expectedKeywords": ["cấp lại", "thẻ xe"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G10", "question": "thu tuc cap lai the xe bi mat?", "questionNoAccent": "thu tuc cap lai the xe bi mat?", "expectedKeywords": ["cấp lại", "thẻ xe"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G11", "question": "Giờ mở cửa bãi xe?", "questionNoAccent": "gio mo cua bai xe?", "expectedKeywords": ["giờ", "bãi xe"], "expectedScope": "PUBLIC", "minCitations": 1},
+    {"id": "G12", "question": "Quy định về xe điện trong bãi?", "questionNoAccent": "quy dinh ve xe dien trong bai?", "expectedKeywords": ["xe điện", "bãi"], "expectedScope": "PUBLIC", "minCitations": 1}
+  ]
+}

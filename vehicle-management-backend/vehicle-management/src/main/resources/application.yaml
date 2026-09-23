@@ -3,6 +3,14 @@ server:
   servlet:
     context-path: /vehicle-management
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: when_authorized
 spring:
   config:
     import: optional:file:.env[.properties]
@@ -17,6 +25,11 @@ spring:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:validate}
     show-sql: ${JPA_SHOW_SQL:true}
+
+  servlet:
+    multipart:
+      max-file-size: ${SPRING_MULTIPART_MAX_FILE_SIZE:50MB}
+      max-request-size: ${SPRING_MULTIPART_MAX_REQUEST_SIZE:60MB}
 
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
@@ -58,6 +71,7 @@ spring:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/vehicle-management}
           jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:}
+
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
@@ -116,3 +130,56 @@ app:
     subscription-lifecycle:
       fixed-delay-ms: ${SUBSCRIPTION_LIFECYCLE_SCHEDULER_FIXED_DELAY_MS:300000}
       initial-delay-ms: ${SUBSCRIPTION_LIFECYCLE_SCHEDULER_INITIAL_DELAY_MS:60000}
+  ai:
+    assistant-enabled: ${AI_ASSISTANT_ENABLED:false}
+    data-mode: ${AI_GEMINI_DATA_MODE:UNPAID}
+    allow-unpaid-support-data: ${AI_ALLOW_UNPAID_SUPPORT_DATA:false}
+    recent-message-limit: ${AI_ASSISTANT_RECENT_MESSAGE_LIMIT:8}
+    max-attempts: ${AI_ASSISTANT_MAX_ATTEMPTS:3}
+    retry-initial-delay: ${AI_ASSISTANT_RETRY_INITIAL_DELAY:20s}
+    request-timeout: ${AI_ASSISTANT_REQUEST_TIMEOUT:20s}
+    prompt-version: ${AI_ASSISTANT_PROMPT_VERSION:support-assistant-v1}
+    assistant-job-fixed-delay-ms: ${AI_ASSISTANT_JOB_FIXED_DELAY_MS:2500}
+    assistant-job-initial-delay-ms: ${AI_ASSISTANT_JOB_INITIAL_DELAY_MS:5000}
+    model-catalog-sync-fixed-delay-ms: ${AI_MODEL_CATALOG_SYNC_FIXED_DELAY_MS:86400000}
+    model-catalog-sync-initial-delay-ms: ${AI_MODEL_CATALOG_SYNC_INITIAL_DELAY_MS:60000}
+    embedding:
+      enabled: ${AI_EMBEDDING_ENABLED:false}
+      vector-search-enabled: ${AI_EMBEDDING_VECTOR_SEARCH_ENABLED:true}
+      lexical-fallback-enabled: ${AI_EMBEDDING_LEXICAL_FALLBACK_ENABLED:true}
+      retry-max-attempts: ${AI_EMBEDDING_RETRY_MAX_ATTEMPTS:3}
+      retry-initial-delay: ${AI_EMBEDDING_RETRY_INITIAL_DELAY:1s}
+      retry-max-delay: ${AI_EMBEDDING_RETRY_MAX_DELAY:10s}
+      retry-jitter-enabled: ${AI_EMBEDDING_RETRY_JITTER_ENABLED:true}
+      build-batch-size: ${AI_EMBEDDING_BUILD_BATCH_SIZE:5}
+      build-fixed-delay-ms: ${AI_EMBEDDING_BUILD_FIXED_DELAY_MS:5000}
+      build-initial-delay-ms: ${AI_EMBEDDING_BUILD_INITIAL_DELAY_MS:10000}
+      build-lease-duration: ${AI_EMBEDDING_BUILD_LEASE_DURATION:10m}
+      pgvector-required: ${AI_PGVECTOR_REQUIRED:false}
+    retrieval:
+      final-top-k: ${AI_RETRIEVAL_FINAL_TOP_K:5}
+      vector-candidate-limit: ${AI_RETRIEVAL_VECTOR_CANDIDATE_LIMIT:20}
+      lexical-candidate-limit: ${AI_RETRIEVAL_LEXICAL_CANDIDATE_LIMIT:20}
+      max-chunks-per-document: ${AI_RETRIEVAL_MAX_CHUNKS_PER_DOCUMENT:3}
+      rrf-rank-constant: ${AI_RETRIEVAL_RRF_RANK_CONSTANT:60}
+      weight-vector: ${AI_RETRIEVAL_WEIGHT_VECTOR:0.6}
+      weight-lexical: ${AI_RETRIEVAL_WEIGHT_LEXICAL:0.4}
+      minimum-vector-score: ${AI_RETRIEVAL_MINIMUM_VECTOR_SCORE:0.15}
+      minimum-lexical-score: ${AI_RETRIEVAL_MINIMUM_LEXICAL_SCORE:0.01}
+      grounded-confidence-threshold: ${AI_RETRIEVAL_GROUNDED_CONFIDENCE_THRESHOLD:0.80}
+      caution-confidence-threshold: ${AI_RETRIEVAL_CAUTION_CONFIDENCE_THRESHOLD:0.55}
+      policy-version: ${AI_RETRIEVAL_POLICY_VERSION:retrieval-policy-v1}
+      threshold-version: ${AI_RETRIEVAL_THRESHOLD_VERSION:retrieval-threshold-v1}
+      unaccent-required: ${AI_RETRIEVAL_UNACCENT_REQUIRED:false}
+    ingestion:
+      enabled: ${AI_INGESTION_ENABLED:true}
+      poll-fixed-delay-ms: ${AI_INGESTION_POLL_FIXED_DELAY_MS:5000}
+      poll-initial-delay-ms: ${AI_INGESTION_POLL_INITIAL_DELAY_MS:15000}
+      claim-limit: ${AI_INGESTION_CLAIM_LIMIT:3}
+      worker-id-prefix: ${AI_INGESTION_WORKER_ID_PREFIX:kd-worker}
+      lock-duration: ${AI_INGESTION_LOCK_DURATION:5m}
+      retry-initial-delay: ${AI_INGESTION_RETRY_INITIAL_DELAY:1m}
+      max-attempts: ${AI_INGESTION_MAX_ATTEMPTS:3}
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}

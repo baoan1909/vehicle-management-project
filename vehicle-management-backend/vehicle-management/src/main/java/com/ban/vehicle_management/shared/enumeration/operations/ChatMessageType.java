@@ -7,5 +7,7 @@ public enum ChatMessageType {
     SYSTEM,
     CONTEXT_CARD,
     ACTION_CARD,
-    SUPPORT_REQUEST
+    SUPPORT_REQUEST,
+    ASSISTANT_TEXT,
+    TOOL_RESULT
 }

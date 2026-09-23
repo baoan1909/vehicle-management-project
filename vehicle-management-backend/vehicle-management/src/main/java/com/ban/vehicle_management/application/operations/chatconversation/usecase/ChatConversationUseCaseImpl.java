@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.operations.chatconversation.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.ai.port.in.AssistantJobPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatRealtimeEventMapper;
 import com.ban.vehicle_management.application.operations.chatconversation.model.ChatAttachmentReadUrl;
 import com.ban.vehicle_management.application.operations.chatconversation.port.in.ChatConversationPortIn;
@@ -55,6 +56,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final ChatConversationPortOut chatPortOut;
     private final ChatRealtimeEventPublisherPortOut realtimeEventPublisher;
+    private final AssistantJobPortIn assistantJobPortIn;
     private final ChatRealtimeEventMapper realtimeEventMapper;
     private final SupportTicketChatMessageContextService ticketMessageContextService;
     private final FileStoragePort fileStoragePort;
@@ -67,6 +69,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
             CurrentAccountPortIn currentAccountPortIn,
             ChatConversationPortOut chatPortOut,
             ChatRealtimeEventPublisherPortOut realtimeEventPublisher,
+            AssistantJobPortIn assistantJobPortIn,
             ChatRealtimeEventMapper realtimeEventMapper,
             SupportTicketChatMessageContextService ticketMessageContextService,
             FileStoragePort fileStoragePort,
@@ -75,6 +78,7 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         this.currentAccountPortIn = currentAccountPortIn;
         this.chatPortOut = chatPortOut;
         this.realtimeEventPublisher = realtimeEventPublisher;
+        this.assistantJobPortIn = assistantJobPortIn;
         this.realtimeEventMapper = realtimeEventMapper;
         this.ticketMessageContextService = ticketMessageContextService;
         this.fileStoragePort = fileStoragePort;
@@ -218,7 +222,9 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         message.setContextTicketId(contextTicketId);
         messagePolicy.initializeText(message);
 
-        return saveMessageAndPublish(message);
+        ChatMessage savedMessage = saveMessageAndPublish(message);
+        assistantJobPortIn.enqueueAssistantReply(conversation, savedMessage);
+        return savedMessage;
     }
 
     @Override

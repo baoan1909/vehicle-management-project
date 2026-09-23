@@ -5,7 +5,8 @@ public enum StorageFolder {
     CHAT_ATTACHMENT("ca", "chat-attachment"),
     PARKING_EVENT("pe", "parking-event"),
     SUPPORT_TICKET("st", "support-ticket"),
-    LOST_CARD_REPORT("lcr", "lost-card-report");
+    LOST_CARD_REPORT("lcr", "lost-card-report"),
+    KNOWLEDGE_DOCUMENT("kd", "knowledge-document");
 
     private final String pathSegment;
     private final String fileRole;

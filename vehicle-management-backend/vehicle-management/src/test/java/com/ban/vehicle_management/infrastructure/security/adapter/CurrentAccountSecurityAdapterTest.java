@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.infrastructure.security.assistant.AssistantActorScope;
 import com.ban.vehicle_management.infrastructure.security.principal.AuthenticatedAccountPrincipal;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
@@ -28,6 +29,9 @@ class CurrentAccountSecurityAdapterTest {
 
     @Mock
     private AccountAuthorizationPortOut accountAuthorizationPortOut;
+
+    @Mock
+    private AssistantActorScope assistantActorScope;
 
     @InjectMocks
     private CurrentAccountSecurityAdapter currentAccountSecurityAdapter;
@@ -110,6 +114,56 @@ class CurrentAccountSecurityAdapterTest {
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
         assertFalse(currentAccountSecurityAdapter.hasPermission("EMPLOYEE_READ_ALL"));
+    }
+
+    @Test
+    void shouldResolveSchedulerActorFromAssistantScopeWhenSecurityContextIsEmpty() {
+        UUID accountId = UUID.randomUUID();
+        CurrentAccountAccess currentAccountAccess = new CurrentAccountAccess(
+                accountId,
+                "keycloak-sub",
+                "assistant.customer",
+                "assistant.customer@example.com",
+                UUID.randomUUID(),
+                "CUSTOMER",
+                AccountStatus.ACTIVE,
+                null,
+                Set.of("SUPPORT_TICKET_READ_OWN"));
+        SecurityContextHolder.clearContext();
+        when(assistantActorScope.currentActorAccountId()).thenReturn(Optional.of(accountId));
+        when(accountAuthorizationPortOut.findByAccountId(accountId)).thenReturn(Optional.of(currentAccountAccess));
+
+        assertEquals(accountId, currentAccountSecurityAdapter.getCurrentAccountIdOrThrow());
+    }
+
+    @Test
+    void shouldPreferSecurityContextOverAssistantScope() {
+        UUID httpAccountId = UUID.randomUUID();
+        UUID schedulerAccountId = UUID.randomUUID();
+        CurrentAccountAccess httpAccess = new CurrentAccountAccess(
+                httpAccountId,
+                "keycloak-sub",
+                "http.user",
+                "http.user@example.com",
+                UUID.randomUUID(),
+                "CUSTOMER",
+                AccountStatus.ACTIVE,
+                null,
+                Set.of("SUPPORT_TICKET_READ_OWN"));
+        when(accountAuthorizationPortOut.findByKeycloakUserId("keycloak-sub"))
+                .thenReturn(Optional.of(httpAccess));
+        org.mockito.Mockito.lenient()
+                .when(assistantActorScope.currentActorAccountId()).thenReturn(Optional.of(schedulerAccountId));
+
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                "user",
+                "pass",
+                java.util.List.of(new SimpleGrantedAuthority("ROLE_USER")));
+        authenticationToken.setDetails(new AuthenticatedAccountPrincipal(
+                null, "keycloak-sub", "http.user", "http.user@example.com"));
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+        assertEquals(httpAccountId, currentAccountSecurityAdapter.getCurrentAccountIdOrThrow());
     }
 }
 
