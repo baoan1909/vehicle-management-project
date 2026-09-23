@@ -65,6 +65,7 @@ export type CustomerPortalSubscription = {
   rejectedBy?: string | null;
   rejectionReason?: string | null;
   requestedEffectiveFrom?: string | null;
+  requestedVoucherCode?: string | null;
   status: CustomerPortalSubscriptionStatus;
   subscriptionId: string;
   ticketTypeId: string;
@@ -76,9 +77,39 @@ export type CreateMySubscriptionRequest = {
   customerVehicleId: string;
   requestedEffectiveFrom: string;
   ticketTypeId: string;
+  voucherCode?: string;
+};
+
+export type CustomerPortalSubscriptionVoucherQuote = {
+  voucherCode: string | null;
+  baseAmount: number | string;
+  discountAmount: number | string;
+  finalAmount: number | string;
+};
+
+export type CustomerPortalVoucherBanner = {
+  code: string;
+  bannerTitle: string;
+  bannerDescription: string | null;
+  bannerPriority: number;
+  showOnDashboard: boolean;
+  showOnSubscriptionPage: boolean;
 };
 
 export type CustomerPortalParkingSession = ParkingSessionManagementResponse;
+
+function normalizeParkingSession(session: CustomerPortalParkingSession): CustomerPortalParkingSession {
+  const checkInEvent = session.events?.find((event) => event.eventType === "CHECK_IN");
+  const checkOutEvent = session.events?.find((event) => event.eventType === "CHECK_OUT");
+
+  return {
+    ...session,
+    checkInTime: session.checkInTime || checkInEvent?.eventTime,
+    checkOutTime: session.checkOutTime || checkOutEvent?.eventTime,
+    licensePlateIn: session.licensePlateIn || checkInEvent?.licensePlateDetected,
+    licensePlateOut: session.licensePlateOut || checkOutEvent?.licensePlateDetected,
+  };
+}
 
 function buildQuery(filter: Record<string, string | number | boolean | null | undefined>) {
   const params = new URLSearchParams();
@@ -189,6 +220,24 @@ export async function getCustomerPortalLookups() {
 export async function getMyParkingSessions(filters: ParkingSessionManagementFilters = {}) {
   const response = await apiClient<ApiResponse<CustomerPortalParkingSession[]>>(
     `${apiEndpoints.parking.parkingSessions}/me${buildQuery(filters)}`,
+  );
+  return (response.data ?? []).map(normalizeParkingSession);
+}
+
+export async function quoteMySubscriptionVoucher(payload: CreateMySubscriptionRequest) {
+  const response = await apiClient<ApiResponse<CustomerPortalSubscriptionVoucherQuote>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/voucher-quote`,
+    {
+      body: payload,
+      method: "POST",
+    },
+  );
+  return response.data;
+}
+
+export async function getCustomerPortalVoucherBanners() {
+  const response = await apiClient<ApiResponse<CustomerPortalVoucherBanner[]>>(
+    apiEndpoints.catalog.customerVoucherBanners,
   );
   return response.data ?? [];
 }

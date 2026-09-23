@@ -34,6 +34,18 @@ class SubscriptionPolicyTest {
     }
 
     @Test
+    void shouldAllowSubscriptionToStartToday() {
+        LocalDate currentDate = LocalDate.of(2026, 6, 16);
+        Subscription subscription = baseSubscription();
+        subscription.setRequestedEffectiveFrom(currentDate);
+
+        subscriptionPolicy.initializeNewSubscription(subscription, 30, currentDate);
+
+        assertEquals(currentDate, subscription.getEffectiveFrom());
+        assertEquals(SubscriptionStatus.PENDING, subscription.getStatus());
+    }
+
+    @Test
     void shouldApprovePaidSubscriptionWithPendingPaymentStatus() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
         Subscription subscription = initializedPendingSubscription(currentDate);
@@ -75,7 +87,24 @@ class SubscriptionPolicyTest {
     }
 
     @Test
-    void shouldRejectApprovalWhenDeadlineExpired() {
+    void shouldAllowApprovalOnRequestedEffectiveDate() {
+        LocalDate currentDate = LocalDate.of(2026, 6, 16);
+        Subscription subscription = initializedPendingSubscription(currentDate);
+
+        subscriptionPolicy.approve(
+                subscription,
+                UUID.randomUUID(),
+                Instant.parse("2026-05-15T10:00:00Z"),
+                subscription.getRequestedEffectiveFrom(),
+                UUID.randomUUID(),
+                new BigDecimal("140000")
+        );
+
+        assertEquals(SubscriptionStatus.PENDING_PAYMENT, subscription.getStatus());
+    }
+
+    @Test
+    void shouldRejectApprovalAfterRequestedEffectiveDate() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
         Subscription subscription = initializedPendingSubscription(currentDate);
 
@@ -83,7 +112,7 @@ class SubscriptionPolicyTest {
                 subscription,
                 UUID.randomUUID(),
                 Instant.parse("2026-05-15T10:00:00Z"),
-                subscription.getRequestedEffectiveFrom(),
+                subscription.getRequestedEffectiveFrom().plusDays(1),
                 UUID.randomUUID(),
                 new BigDecimal("140000")
         ));

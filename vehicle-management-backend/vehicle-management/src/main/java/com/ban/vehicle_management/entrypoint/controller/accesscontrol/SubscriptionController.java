@@ -9,6 +9,7 @@ import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.requ
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.SubscriptionFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.UpdateSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionVoucherQuoteResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
@@ -52,6 +53,16 @@ public class SubscriptionController {
                 "Subscription created successfully",
                 subscriptionApiMapper.toAdminResponse(createdSubscription)
         ));
+    }
+
+    @PostMapping("/me/voucher-quote")
+    public ResponseEntity<ApiResponse<SubscriptionVoucherQuoteResponse>> quoteOwnSubscriptionVoucher(
+            @RequestBody CreateSubscriptionRequest request
+    ) {
+        SubscriptionVoucherQuoteResponse quote = subscriptionApiMapper.toVoucherQuoteResponse(
+                subscriptionPortIn.quoteOwnSubscriptionVoucher(subscriptionApiMapper.toDomain(request))
+        );
+        return ResponseEntity.ok(ApiResponse.ok("Subscription voucher quoted successfully", quote));
     }
 
     @PostMapping

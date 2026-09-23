@@ -1,6 +1,15 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  // Some customer portal layouts use exact grid tracks. Keep those utilities in
+  // the generated stylesheet even when Vite's content scanner sees the JSX as
+  // a long expression.
+  safelist: [
+    "tw-grid-cols-[minmax(0,1.22fr)_minmax(410px,0.88fr)]",
+    "tw-grid-cols-[1.15fr_.85fr_.85fr_auto]",
+    "tw-grid-cols-[minmax(0,1.55fr)_minmax(335px,.8fr)]",
+    "tw-grid-cols-[198px_minmax(0,1fr)_auto]",
+  ],
   prefix: "tw-",
   corePlugins: {
     preflight: false,

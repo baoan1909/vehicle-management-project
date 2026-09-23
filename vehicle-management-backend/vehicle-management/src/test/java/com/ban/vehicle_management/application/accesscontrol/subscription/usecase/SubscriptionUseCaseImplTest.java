@@ -12,8 +12,11 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.authorization.SubscriptionAccessGuard;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
+import com.ban.vehicle_management.application.catalog.voucher.port.in.VoucherPortIn;
+import com.ban.vehicle_management.application.catalog.voucher.model.result.VoucherQuote;
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
@@ -75,6 +78,9 @@ class SubscriptionUseCaseImplTest {
     private InvoicePortOut invoicePortOut;
 
     @Mock
+    private VoucherPortIn voucherPortIn;
+
+    @Mock
     private ZonePortOut zonePortOut;
 
     @Mock
@@ -107,6 +113,37 @@ class SubscriptionUseCaseImplTest {
         assertEquals(SubscriptionStatus.PENDING, createdSubscription.getStatus());
         assertEquals(request.getRequestedEffectiveFrom(), createdSubscription.getEffectiveFrom());
         assertEquals(request.getRequestedEffectiveFrom().plusDays(29), createdSubscription.getEffectiveTo());
+    }
+
+    @Test
+    void shouldQuoteOwnSubscriptionVoucherUsingSubscriptionPrice() {
+        TestData data = validTestData();
+        Subscription request = createRequest(data.customerVehicleId(), data.ticketTypeId());
+        request.setRequestedVoucherCode("WELCOME10");
+
+        when(subscriptionAccessGuard.resolveCurrentApprovedCustomerId()).thenReturn(data.customerId());
+        mockValidSubscriptionPreparation(data);
+        when(voucherPortIn.quoteSubscriptionVoucher(
+                eq("WELCOME10"),
+                eq(data.customerId()),
+                eq(data.ticketTypeId()),
+                eq(new BigDecimal("140000")),
+                any(Instant.class)
+        )).thenReturn(new VoucherQuote(
+                UUID.randomUUID(),
+                "WELCOME10",
+                new BigDecimal("14000"),
+                new BigDecimal("126000")
+        ));
+
+        SubscriptionVoucherQuote quote = subscriptionUseCase.quoteOwnSubscriptionVoucher(request);
+
+        assertEquals("WELCOME10", quote.voucherCode());
+        assertEquals(new BigDecimal("140000"), quote.baseAmount());
+        assertEquals(new BigDecimal("14000"), quote.discountAmount());
+        assertEquals(new BigDecimal("126000"), quote.finalAmount());
+        verify(subscriptionAccessGuard).ensureCanCreateOwn();
+        verify(subscriptionPortOut, never()).save(any());
     }
 
     @Test

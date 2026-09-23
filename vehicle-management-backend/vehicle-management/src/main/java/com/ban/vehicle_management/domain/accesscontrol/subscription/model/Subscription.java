@@ -27,6 +27,7 @@ public class Subscription extends AuditableDomainModel {
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
     private BigDecimal price;
+    private String requestedVoucherCode;
     private SubscriptionStatus status;
     private UUID approvedBy;
     private Instant approvedAt;

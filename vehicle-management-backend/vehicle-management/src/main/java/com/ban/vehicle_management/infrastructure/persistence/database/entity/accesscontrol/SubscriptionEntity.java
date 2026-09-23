@@ -89,6 +89,9 @@ public class SubscriptionEntity extends AuditableEntity {
     @Column(name = "price", nullable = false, precision = 12, scale = 2)
     private BigDecimal price;
 
+    @Column(name = "requested_voucher_code", length = 50)
+    private String requestedVoucherCode;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private SubscriptionStatus status;
