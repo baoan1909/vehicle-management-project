@@ -1,12 +1,21 @@
 package com.ban.vehicle_management.application.ai.service;
 
 import com.ban.vehicle_management.application.ai.port.out.AiMessageCitationPortOut;
+import com.ban.vehicle_management.application.ai.port.out.AiModelCircuitBreakerPortOut;
 import com.ban.vehicle_management.application.ai.port.out.AiProviderPortOut;
 import com.ban.vehicle_management.application.ai.port.out.AiRunPortOut;
 import com.ban.vehicle_management.application.ai.port.out.AiModelWarningPortOut;
 import com.ban.vehicle_management.application.ai.port.out.AiToolCallPortOut;
 import com.ban.vehicle_management.application.ai.port.out.AssistantJobPortOut;
+import com.ban.vehicle_management.application.ai.port.out.GroundedAnswerCachePortOut;
+import com.ban.vehicle_management.application.ai.port.out.KnowledgeIndexVersionPortOut;
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalAuditPortOut;
+import com.ban.vehicle_management.application.ai.cache.model.CachedCitation;
+import com.ban.vehicle_management.application.ai.cache.model.CachedGroundedAnswer;
+import com.ban.vehicle_management.application.ai.cache.model.CircuitBreakerDecision;
+import com.ban.vehicle_management.application.ai.mapper.AiCacheMapper;
+import com.ban.vehicle_management.infrastructure.cache.AiCacheKeyFactory;
+import com.ban.vehicle_management.infrastructure.cache.AiCacheMetrics;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.mapper.ChatRealtimeEventMapper;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
@@ -132,6 +141,15 @@ public class AssistantOrchestrator {
     private final ObjectMapper objectMapper;
     private final TransactionTemplate transactionTemplate;
     private final ChatMessagePolicy messagePolicy = new ChatMessagePolicy();
+    private final GroundedAnswerCachePortOut groundedAnswerCache;
+    private final AiModelCircuitBreakerPortOut circuitBreaker;
+    private final AiSingleFlightService singleFlight;
+    private final AiCacheKeyFactory cacheKeyFactory;
+    private final SensitiveQueryGuard sensitiveGuard;
+    private final AiCacheProperties cacheProperties;
+    private final AiCacheMapper cacheMapper;
+    private final KnowledgeIndexVersionPortOut indexVersionPortOut;
+    private final AiCacheMetrics cacheMetrics;
 
     public AssistantOrchestrator(
             AiAssistantProperties properties,
@@ -157,6 +175,49 @@ public class AssistantOrchestrator {
             AssistantActorScope actorScope,
             ObjectMapper objectMapper,
             TransactionTemplate transactionTemplate
+    ) {
+        this(properties, assistantJobPortOut, chatPortOut, modelRouter, modelPolicyService,
+                aiProviderPorts, aiRunPortOut, aiModelWarningPortOut, aiToolCallPortOut,
+                toolExecutionService, toolRegistry, realtimeEventPublisher, realtimeEventMapper,
+                redactionService, accessContextResolver, retrievalService, retrievalProperties,
+                retrievalAuditPortOut, citationPortOut, currentAccountPortIn, actorScope,
+                objectMapper, transactionTemplate, null, null, null, null, null, null, null, null, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public AssistantOrchestrator(
+            AiAssistantProperties properties,
+            AssistantJobPortOut assistantJobPortOut,
+            ChatConversationPortOut chatPortOut,
+            AiModelRouter modelRouter,
+            AiModelPolicyService modelPolicyService,
+            List<AiProviderPortOut> aiProviderPorts,
+            AiRunPortOut aiRunPortOut,
+            AiModelWarningPortOut aiModelWarningPortOut,
+            AiToolCallPortOut aiToolCallPortOut,
+            AiToolExecutionService toolExecutionService,
+            AiToolRegistry toolRegistry,
+            ChatRealtimeEventPublisherPortOut realtimeEventPublisher,
+            ChatRealtimeEventMapper realtimeEventMapper,
+            PiiRedactionService redactionService,
+            KnowledgeAccessContextResolver accessContextResolver,
+            KnowledgeRetrievalService retrievalService,
+            RetrievalProperties retrievalProperties,
+            KnowledgeRetrievalAuditPortOut retrievalAuditPortOut,
+            AiMessageCitationPortOut citationPortOut,
+            CurrentAccountPortIn currentAccountPortIn,
+            AssistantActorScope actorScope,
+            ObjectMapper objectMapper,
+            TransactionTemplate transactionTemplate,
+            GroundedAnswerCachePortOut groundedAnswerCache,
+            AiModelCircuitBreakerPortOut circuitBreaker,
+            AiSingleFlightService singleFlight,
+            AiCacheKeyFactory cacheKeyFactory,
+            SensitiveQueryGuard sensitiveGuard,
+            AiCacheProperties cacheProperties,
+            AiCacheMapper cacheMapper,
+            KnowledgeIndexVersionPortOut indexVersionPortOut,
+            AiCacheMetrics cacheMetrics
     ) {
         this.properties = properties;
         this.assistantJobPortOut = assistantJobPortOut;
@@ -184,6 +245,15 @@ public class AssistantOrchestrator {
         this.actorScope = actorScope;
         this.objectMapper = objectMapper;
         this.transactionTemplate = transactionTemplate;
+        this.groundedAnswerCache = groundedAnswerCache;
+        this.circuitBreaker = circuitBreaker;
+        this.singleFlight = singleFlight;
+        this.cacheKeyFactory = cacheKeyFactory;
+        this.sensitiveGuard = sensitiveGuard;
+        this.cacheProperties = cacheProperties;
+        this.cacheMapper = cacheMapper;
+        this.indexVersionPortOut = indexVersionPortOut;
+        this.cacheMetrics = cacheMetrics;
     }
 
     @Scheduled(fixedDelayString = "${app.ai.assistant-job-fixed-delay-ms:2500}", initialDelayString = "${app.ai.assistant-job-initial-delay-ms:5000}")
@@ -344,44 +414,73 @@ public class AssistantOrchestrator {
                         GroundedContextPack.PackChunk::label,
                         (first, second) -> first,
                         java.util.LinkedHashMap::new));
+        // Safe grounded-answer cache: hit still persists fresh message/citations/audit.
+        if (tryServeGroundedAnswerCache(context, job, redactedInput, scopes, retrieval, safeEvidence, pack, allowlist)) {
+            return;
+        }
         List<AiModelConfiguration> candidates = modelRouter.resolveCandidates(
                 AiUseCase.SUPPORT_CHAT,
                 context.conversation().getConversationId(),
                 context.inputMessage().getSenderAccountId(),
                 1);
-        String lastFailureCode = "AI_PROVIDER_FAILED";
-        boolean lastRetryable = false;
-        for (AiModelConfiguration configuration : candidates) {
-            AiProviderPortOut providerPort = providerPorts.get(resolveProvider(configuration));
-            if (providerPort == null) {
-                lastFailureCode = "PROVIDER_NOT_CONFIGURED";
-                continue;
+        candidates = applyCircuitFilterAndWindow(job, candidates);
+        if (candidates.isEmpty()) {
+            String failureCode = "ALL_CIRCUITS_OPEN";
+            transactionTemplate.executeWithoutResult(status -> failOrRetry(job, failureCode, true));
+            return;
+        }
+        AiSingleFlightService.Flight flight = acquireSingleFlight(context, redactedInput, scopes, retrieval);
+        try {
+            // A contender may have populated the cache while we resolved candidates.
+            if (flight != null && !flight.owner()
+                    && tryServeGroundedAnswerCache(context, job, redactedInput, scopes,
+                            retrieval, safeEvidence, pack, allowlist)) {
+                return;
             }
-            AiRun run = transactionTemplate.execute(
-                    status -> createRunningRun(context.conversation(), context.inputMessage(), configuration));
-            AiResponse response;
-            Instant startedAt = Instant.now();
-            try {
-                response = providerPort.generate(groundedRequest(context.conversation(), pack), configuration);
-            } catch (RuntimeException exception) {
-                lastFailureCode = "PROVIDER_EXCEPTION";
-                lastRetryable = true;
-                String failureCode = lastFailureCode;
-                transactionTemplate.executeWithoutResult(status -> markRunFailed(run, failureCode));
-                continue;
-            }
-            run.setLatencyMs(Duration.between(startedAt, Instant.now()).toMillis());
-            run.setInputTokens(response.inputTokens());
-            run.setOutputTokens(response.outputTokens());
-            if (!response.success()) {
-                lastFailureCode = response.failureCode();
-                lastRetryable = response.retryable();
-                transactionTemplate.executeWithoutResult(status -> markRunFailed(run, response));
-                if (!modelPolicyService.canFallbackFor(lastFailureCode)) {
-                    break;
+            String lastFailureCode = "AI_PROVIDER_FAILED";
+            boolean lastRetryable = false;
+            for (AiModelConfiguration configuration : candidates) {
+                String circuitKeyForConfig = circuitKeyFor(configuration);
+                AiProviderPortOut providerPort = providerPorts.get(resolveProvider(configuration));
+                if (providerPort == null) {
+                    lastFailureCode = "PROVIDER_NOT_CONFIGURED";
+                    continue;
                 }
-                continue;
-            }
+                AiRun run = transactionTemplate.execute(
+                        status -> createRunningRun(context.conversation(), context.inputMessage(), configuration));
+                AiResponse response;
+                Instant startedAt = Instant.now();
+                try {
+                    response = providerPort.generate(groundedRequest(context.conversation(), pack), configuration);
+                } catch (RuntimeException exception) {
+                    lastFailureCode = "PROVIDER_EXCEPTION";
+                    lastRetryable = true;
+                    String failureCode = lastFailureCode;
+                    recordProviderOutcome(circuitKeyForConfig, false, true, null, failureCode);
+                    transactionTemplate.executeWithoutResult(status -> markRunFailed(run, failureCode));
+                    if (cacheMetrics != null) {
+                        cacheMetrics.fallbackAttempt();
+                    }
+                    continue;
+                }
+                run.setLatencyMs(Duration.between(startedAt, Instant.now()).toMillis());
+                run.setInputTokens(response.inputTokens());
+                run.setOutputTokens(response.outputTokens());
+                if (!response.success()) {
+                    lastFailureCode = response.failureCode();
+                    lastRetryable = response.retryable();
+                    recordProviderOutcome(circuitKeyForConfig, false, response.retryable(),
+                            retryAfterOf(response), response.failureCode());
+                    transactionTemplate.executeWithoutResult(status -> markRunFailed(run, response));
+                    if (!modelPolicyService.canFallbackFor(lastFailureCode)) {
+                        break;
+                    }
+                    if (cacheMetrics != null) {
+                        cacheMetrics.fallbackAttempt();
+                    }
+                    continue;
+                }
+                recordProviderOutcome(circuitKeyForConfig, true, false, null, null);
             GroundedAnswer parsed = parseGroundedAnswer(response.text());
             if (parsed.text() == null || parsed.text().isBlank()) {
                 lastFailureCode = "INVALID_RESPONSE_SCHEMA";
@@ -448,11 +547,17 @@ public class AssistantOrchestrator {
                         withMessage(toPersist, persisted.getMessageId()));
                 completeJob(job);
             });
+            // Cache only after PostgreSQL commit succeeded (transaction block above completed).
+            storeGroundedAnswerCache(context, redactedInput, scopes, retrieval,
+                    parsed.text(), toPersist, retrieval.groundedConfidence());
             return;
+            }
+            String failureCode = lastFailureCode;
+            boolean retryable = lastRetryable;
+            transactionTemplate.executeWithoutResult(status -> failOrRetry(job, failureCode, retryable));
+        } finally {
+            releaseSingleFlight(flight);
         }
-        String failureCode = lastFailureCode;
-        boolean retryable = lastRetryable;
-        transactionTemplate.executeWithoutResult(status -> failOrRetry(job, failureCode, retryable));
     }
 
     private void finalizeRetrievalAudit(
@@ -463,6 +568,326 @@ public class AssistantOrchestrator {
         if (retrieval != null && retrieval.retrievalAuditId() != null) {
             retrievalAuditPortOut.finalizeForAnswer(
                     retrieval.retrievalAuditId(), runId, outputMessageId, selectedChunkIds);
+        }
+    }
+
+    private boolean cacheInfraReady() {
+        return groundedAnswerCache != null && cacheKeyFactory != null && sensitiveGuard != null
+                && cacheProperties != null && cacheProperties.isEnabled() && cacheKeyFactory.hmacReady();
+    }
+
+    private String groundedAnswerTier(List<String> scopes) {
+        if (scopes != null && scopes.contains("TENANT_PRIVATE")) {
+            return "TENANT_PRIVATE";
+        }
+        if (scopes != null && scopes.contains("CUSTOMER")) {
+            return "CUSTOMER";
+        }
+        return "PUBLIC";
+    }
+
+    private String generationPolicyFingerprint(List<AiModelConfiguration> candidates) {
+        try {
+            String activeIds = candidates == null ? "" : candidates.stream()
+                    .map(config -> String.valueOf(config.getConfigurationId()))
+                    .sorted().collect(java.util.stream.Collectors.joining(","));
+            String raw = properties.getPromptVersion() + "|" + retrievalProperties.getPolicyVersion()
+                    + "|" + retrievalProperties.getThresholdVersion() + "|citation-v1|safety-v1|"
+                    + activeIds;
+            return AiCacheKeyFactory.sha256Hex(raw).substring(0, 16);
+        } catch (Exception exception) {
+            return "generation-v1";
+        }
+    }
+
+    private String buildGroundedAnswerKey(JobContext context, String redactedInput, List<String> scopes,
+            KnowledgeRetrievalResult retrieval, List<AiModelConfiguration> candidates) {
+        String normalized = com.ban.vehicle_management.domain.ai.model.VietnameseQueryNormalizer
+                .normalize(redactedInput).normalized();
+        UUID tenantId = null;
+        String checksum = "na";
+        try {
+            if (indexVersionPortOut != null && retrieval.activeIndexVersionId() != null) {
+                var active = indexVersionPortOut.findActive().orElse(null);
+                if (active != null && retrieval.activeIndexVersionId().equals(active.getIndexVersionId())) {
+                    checksum = active.getContentChecksum() == null ? "na" : active.getContentChecksum();
+                    if (active.getContentChecksum() != null && !active.getContentChecksum().isBlank()) {
+                        checksum = active.getContentChecksum();
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // fail open: checksum mismatch forces miss below
+        }
+        String fingerprint = generationPolicyFingerprint(candidates);
+        return cacheKeyFactory.groundedAnswerKey(retrieval.activeIndexVersionId(), checksum,
+                properties.getPromptVersion(), fingerprint, scopes, tenantId, "vi", normalized);
+    }
+
+    private String buildGroundedAnswerKeyForRetrieval(JobContext context, String redactedInput,
+            List<String> scopes, KnowledgeRetrievalResult retrieval) {
+        try {
+            List<AiModelConfiguration> candidates = modelRouter.resolveCandidates(
+                    AiUseCase.SUPPORT_CHAT, context.conversation().getConversationId(),
+                    context.inputMessage().getSenderAccountId(), 1);
+            return buildGroundedAnswerKey(context, redactedInput, scopes, retrieval, candidates);
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private boolean tryServeGroundedAnswerCache(JobContext context, AssistantJob job, String redactedInput,
+            List<String> scopes, KnowledgeRetrievalResult retrieval,
+            List<KnowledgeSearchResult> safeEvidence,
+            GroundedContextPack.ContextPack pack, Map<UUID, String> allowlist) {
+        if (!cacheInfraReady() || !sensitiveGuard.isCacheable(redactedInput)) {
+            return false;
+        }
+        String key;
+        try {
+            key = buildGroundedAnswerKeyForRetrieval(context, redactedInput, scopes, retrieval);
+        } catch (Exception exception) {
+            return false;
+        }
+        if (key == null) {
+            return false;
+        }
+        java.util.Optional<CachedGroundedAnswer> cached = groundedAnswerCache.get(key);
+        if (cached.isEmpty()) {
+            return false;
+        }
+        CachedGroundedAnswer answer = cached.get();
+        try {
+            // Re-validate against current retrieval: index, scope/tenant fingerprints and chunk membership.
+            if (!retrieval.activeIndexVersionId().equals(answer.activeIndexVersionId())) {
+                return false;
+            }
+            if (!cacheKeyFactory.scopeFingerprint(scopes).equals(answer.scopeFingerprint())) {
+                return false;
+            }
+            Set<UUID> currentChunks = safeEvidence.stream().map(KnowledgeSearchResult::chunkId)
+                    .collect(java.util.stream.Collectors.toSet());
+            Set<UUID> cachedChunks = answer.citations() == null ? Set.of() : answer.citations().stream()
+                    .map(CachedCitation::chunkId).collect(java.util.stream.Collectors.toSet());
+            if (cachedChunks.isEmpty() || !currentChunks.containsAll(cachedChunks)) {
+                return false;
+            }
+            // Re-run output validation on cached text.
+            List<AssistantResponseEnvelope.AssistantCitation> envelopeCitations = answer.citations().stream()
+                    .map(citation -> new AssistantResponseEnvelope.AssistantCitation(
+                            citation.label(), citation.chunkId(), citation.documentId(), citation.title(),
+                            citation.sourcePage(), citation.sourceSection()))
+                    .toList();
+            AssistantResponseEnvelope envelope = new AssistantResponseEnvelope(
+                    answer.responseText(), envelopeCitations, List.of(),
+                    answer.groundedConfidence(), answer.handoffRecommended());
+            AssistantOutputValidator.ValidationResult validation = AssistantOutputValidator.validate(envelope,
+                    new AssistantOutputValidator.ValidationContext(
+                            allowlist.values().stream().collect(java.util.stream.Collectors.toSet()),
+                            allowlist.keySet(), redactedInput,
+                            pack.chunks().stream().map(GroundedContextPack.PackChunk::content).toList(),
+                            List.of(), false, true));
+            if (!validation.valid()) {
+                return false;
+            }
+            List<AiMessageCitation> citations = answer.citations().stream().map(citation -> new AiMessageCitation(
+                    UUID.randomUUID(), null, citation.documentId(), citation.chunkId(), citation.label(),
+                    citation.title(), citation.sourcePage(), citation.sourceSection(),
+                    citation.retrievalScore(), retrieval.retrievalAuditId(),
+                    retrieval.activeIndexVersionId(),
+                    0)).toList();
+            // Fresh message/citations/audit, never reuse old identifiers. No provider run is faked.
+            transactionTemplate.executeWithoutResult(status -> {
+                ChatMessage persisted = saveAssistantMessage(context.conversation(), job, answer.responseText());
+                retrievalAuditPortOut.finalizeForAnswer(retrieval.retrievalAuditId(), null,
+                        persisted.getMessageId(), cachedChunks);
+                citationPortOut.saveAll(persisted.getMessageId(),
+                        withMessage(citations, persisted.getMessageId()));
+                completeJob(job);
+            });
+            return true;
+        } catch (Exception exception) {
+            LOGGER.debug("Grounded answer cache hit rejected error={}",
+                    exception.getClass().getSimpleName());
+            return false;
+        }
+    }
+
+    private void storeGroundedAnswerCache(JobContext context, String redactedInput, List<String> scopes,
+            KnowledgeRetrievalResult retrieval, String responseText,
+            List<AiMessageCitation> citations, java.math.BigDecimal groundedConfidence) {
+        try {
+            if (!cacheInfraReady() || !sensitiveGuard.isCacheable(redactedInput)) {
+                return;
+            }
+            if (responseText == null || responseText.isBlank()
+                    || responseText.length() > cacheProperties.getMaxCachedAnswerChars()) {
+                return;
+            }
+            String key = buildGroundedAnswerKeyForRetrieval(context, redactedInput, scopes, retrieval);
+            if (key == null) {
+                return;
+            }
+            List<CachedCitation> cachedCitations = citations == null ? List.of() : citations.stream()
+                    .limit(cacheProperties.getMaxCachedCitations())
+                    .map(citation -> new CachedCitation(citation.documentId(), citation.chunkId(),
+                            citation.label(), citation.title(), citation.sourcePage(),
+                            citation.sourceSection(), citation.retrievalScore()))
+                    .toList();
+            String checksum = "na";
+            try {
+                if (indexVersionPortOut != null) {
+                    var active = indexVersionPortOut.findActive().orElse(null);
+                    if (active != null) {
+                        checksum = active.getContentChecksum() == null ? "na" : active.getContentChecksum();
+                    }
+                }
+            } catch (Exception ignored) {
+                // keep default
+            }
+            List<AiModelConfiguration> candidates = List.of();
+            try {
+                candidates = modelRouter.resolveCandidates(AiUseCase.SUPPORT_CHAT,
+                        context.conversation().getConversationId(),
+                        context.inputMessage().getSenderAccountId(), 1);
+            } catch (Exception ignored) {
+                // keep empty
+            }
+            CachedGroundedAnswer payload = new CachedGroundedAnswer(1, Instant.now(),
+                    responseText, List.copyOf(cachedCitations), retrieval.activeIndexVersionId(),
+                    checksum, properties.getPromptVersion(), generationPolicyFingerprint(candidates),
+                    cacheKeyFactory.scopeFingerprint(scopes),
+                    cacheKeyFactory.tenantFingerprint(null), "vi",
+                    groundedConfidence == null ? 0.0 : groundedConfidence.doubleValue(), false);
+            if (groundedAnswerCache instanceof GroundedAnswerCacheAdapter adapter) {
+                adapter.put(key, payload, groundedAnswerTier(scopes));
+            } else {
+                groundedAnswerCache.put(key, payload);
+            }
+        } catch (Exception ignored) {
+            // cache must never break chat flow
+        }
+    }
+
+    private AiSingleFlightService.Flight acquireSingleFlight(JobContext context, String redactedInput,
+            List<String> scopes, KnowledgeRetrievalResult retrieval) {
+        try {
+            if (singleFlight == null || !cacheInfraReady() || !sensitiveGuard.isCacheable(redactedInput)) {
+                return null;
+            }
+            String key = buildGroundedAnswerKeyForRetrieval(context, redactedInput, scopes, retrieval);
+            if (key == null) {
+                return null;
+            }
+            return singleFlight.acquire(key);
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private void releaseSingleFlight(AiSingleFlightService.Flight flight) {
+        try {
+            if (singleFlight != null && flight != null) {
+                singleFlight.release(flight);
+            }
+        } catch (Exception ignored) {
+            // never break chat flow
+        }
+    }
+
+    private String circuitKeyFor(AiModelConfiguration configuration) {
+        try {
+            if (circuitBreaker == null || cacheKeyFactory == null || configuration == null
+                    || configuration.getConfigurationId() == null) {
+                return null;
+            }
+            String provider = configuration.getProvider() == null ? "GEMINI"
+                    : configuration.getProvider().name();
+            return cacheKeyFactory.circuitKey(provider, AiUseCase.SUPPORT_CHAT.name(),
+                    configuration.getConfigurationId());
+        } catch (Exception exception) {
+            return null;
+        }
+    }
+
+    private List<AiModelConfiguration> applyCircuitFilterAndWindow(AssistantJob job,
+            List<AiModelConfiguration> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return List.of();
+        }
+        List<AiModelConfiguration> allowed = new ArrayList<>(candidates);
+        if (circuitBreaker != null) {
+            List<AiModelConfiguration> filtered = new ArrayList<>();
+            for (AiModelConfiguration candidate : candidates) {
+                String key = circuitKeyFor(candidate);
+                if (key == null) {
+                    filtered.add(candidate);
+                    continue;
+                }
+                try {
+                    CircuitBreakerDecision decision = circuitBreaker.shouldAllow(key);
+                    if (decision.allowed()) {
+                        filtered.add(candidate);
+                    } else if (cacheMetrics != null) {
+                        cacheMetrics.candidateSkipped("open_circuit");
+                    }
+                } catch (Exception exception) {
+                    filtered.add(candidate);
+                }
+            }
+            allowed = filtered;
+        }
+        if (allowed.isEmpty()) {
+            return List.of();
+        }
+        int perAttempt = cacheProperties == null ? 3
+                : Math.max(1, cacheProperties.getMaxModelsPerJobAttempt());
+        if (allowed.size() <= perAttempt) {
+            return allowed;
+        }
+        int attempt = job == null || job.getAttemptCount() == null ? 1 : Math.max(1, job.getAttemptCount());
+        int start = ((attempt - 1) * perAttempt) % allowed.size();
+        List<AiModelConfiguration> window = new ArrayList<>();
+        for (int index = 0; index < perAttempt; index++) {
+            window.add(allowed.get((start + index) % allowed.size()));
+        }
+        return window;
+    }
+
+    private void recordProviderOutcome(String circuitKey, boolean success, boolean retryable,
+            java.time.Duration retryAfter, String failureCode) {
+        if (circuitBreaker == null || circuitKey == null) {
+            return;
+        }
+        try {
+            if (success) {
+                circuitBreaker.recordSuccess(circuitKey);
+                return;
+            }
+            if (failureCode != null && (failureCode.equals("HTTP_401") || failureCode.equals("HTTP_403")
+                    || failureCode.equals("MODEL_NOT_FOUND") || failureCode.equals("GEMINI_API_KEY_MISSING"))) {
+                if (circuitBreaker instanceof AiModelCircuitBreakerService service) {
+                    service.recordAuthFailure(circuitKey);
+                } else {
+                    circuitBreaker.recordFailure(circuitKey, true, null);
+                }
+                return;
+            }
+            circuitBreaker.recordFailure(circuitKey, retryable, retryAfter);
+        } catch (Exception ignored) {
+            // never break chat flow
+        }
+    }
+
+    private java.time.Duration retryAfterOf(AiResponse response) {
+        try {
+            if (response != null && response.providerErrorDetail() != null
+                    && response.providerErrorDetail().providerErrorMessageRedacted() != null) {
+                return null;
+            }
+            return null;
+        } catch (Exception exception) {
+            return null;
         }
     }
 
@@ -629,9 +1054,15 @@ public class AssistantOrchestrator {
                 context.inputMessage().getSenderAccountId(),
                 1
         );
+        candidates = applyCircuitFilterAndWindow(job, candidates);
+        if (candidates.isEmpty()) {
+            transactionTemplate.executeWithoutResult(status -> failOrRetry(job, "ALL_CIRCUITS_OPEN", true));
+            return;
+        }
         String lastFailureCode = null;
         boolean lastFailureRetryable = false;
         for (AiModelConfiguration configuration : candidates) {
+            String circuitKeyForConfig = circuitKeyFor(configuration);
             AiProviderPortOut providerPort = providerPorts.get(resolveProvider(configuration));
             if (providerPort == null) {
                 lastFailureCode = "PROVIDER_NOT_CONFIGURED";
@@ -647,6 +1078,7 @@ public class AssistantOrchestrator {
                 lastFailureCode = "PROVIDER_EXCEPTION";
                 lastFailureRetryable = true;
                 String failureCode = lastFailureCode;
+                recordProviderOutcome(circuitKeyForConfig, false, true, null, failureCode);
                 transactionTemplate.executeWithoutResult(status -> markRunFailed(run, failureCode));
                 continue;
             }
@@ -654,6 +1086,7 @@ public class AssistantOrchestrator {
             run.setInputTokens(response.inputTokens());
             run.setOutputTokens(response.outputTokens());
             if (response.success()) {
+                recordProviderOutcome(circuitKeyForConfig, true, false, null, null);
                 if (response.functionCall() != null) {
                     if (handleFunctionCall(context, job, run, configuration, response.functionCall(), intent, round)) {
                         return;
@@ -679,6 +1112,8 @@ public class AssistantOrchestrator {
 
             lastFailureCode = response.failureCode();
             lastFailureRetryable = response.retryable();
+            recordProviderOutcome(circuitKeyForConfig, false, response.retryable(),
+                    retryAfterOf(response), response.failureCode());
             transactionTemplate.executeWithoutResult(status -> {
                 markRunFailed(run, response);
                 if ("MODEL_NOT_FOUND".equals(response.failureCode())) {
@@ -687,6 +1122,9 @@ public class AssistantOrchestrator {
             });
             if (!modelPolicyService.canFallbackFor(lastFailureCode)) {
                 break;
+            }
+            if (cacheMetrics != null) {
+                cacheMetrics.fallbackAttempt();
             }
         }
 

@@ -1,0 +1,25 @@
+services:
+  redis-cache:
+    image: ${REDIS_IMAGE:-redis:7.4.1-alpine}
+    container_name: ${REDIS_CONTAINER_NAME:-vehicle-redis-cache}
+    command: ["redis-server", "--maxmemory", "${REDIS_MAXMEMORY:-256mb}", "--maxmemory-policy", "allkeys-lru"]
+    ports:
+      - "${REDIS_HOST_PORT:-6379}:6379"
+    networks:
+      - vehicle-net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 384M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  vehicle-net:
+    name: ${VEHICLE_NETWORK_NAME:-vehicle-net}
+    driver: bridge
