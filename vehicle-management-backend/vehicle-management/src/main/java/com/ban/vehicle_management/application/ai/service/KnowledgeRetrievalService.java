@@ -4,7 +4,12 @@ import com.ban.vehicle_management.application.ai.port.in.KnowledgeRetrievalPortI
 import com.ban.vehicle_management.application.ai.port.out.AiModelConfigurationPortOut;
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeIndexVersionPortOut;
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalAuditPortOut;
+import com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalCachePortOut;
 import com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalPortOut;
+import com.ban.vehicle_management.application.ai.cache.model.CachedHybridRow;
+import com.ban.vehicle_management.application.ai.cache.model.CachedRetrievalPayload;
+import com.ban.vehicle_management.application.ai.mapper.AiCacheMapper;
+import com.ban.vehicle_management.infrastructure.cache.AiCacheKeyFactory;
 import com.ban.vehicle_management.domain.ai.model.AiModelConfiguration;
 import com.ban.vehicle_management.domain.ai.model.EmbeddingRequest;
 import com.ban.vehicle_management.domain.ai.model.EmbeddingResult;
@@ -65,6 +70,12 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
     private final EmbeddingProperties properties;
     private final RetrievalProperties retrievalProperties;
     private final KnowledgeAccessContextResolver accessContextResolver;
+    private final ResolveQueryEmbeddingService queryEmbeddingService;
+    private final KnowledgeRetrievalCachePortOut retrievalCache;
+    private final AiCacheKeyFactory cacheKeyFactory;
+    private final SensitiveQueryGuard sensitiveGuard;
+    private final AiCacheProperties cacheProperties;
+    private final AiCacheMapper cacheMapper;
 
     public KnowledgeRetrievalService(
             KnowledgeRetrievalPortOut retrievalPortOut,
@@ -78,6 +89,30 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
             RetrievalProperties retrievalProperties,
             KnowledgeAccessContextResolver accessContextResolver
     ) {
+        this(retrievalPortOut, indexVersionPortOut, configurationPortOut, auditPortOut,
+                embeddingService, promptFormatter, piiRedactionService, properties,
+                retrievalProperties, accessContextResolver, null, null, null, null, null, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public KnowledgeRetrievalService(
+            KnowledgeRetrievalPortOut retrievalPortOut,
+            KnowledgeIndexVersionPortOut indexVersionPortOut,
+            AiModelConfigurationPortOut configurationPortOut,
+            KnowledgeRetrievalAuditPortOut auditPortOut,
+            EmbeddingService embeddingService,
+            EmbeddingPromptFormatter promptFormatter,
+            PiiRedactionService piiRedactionService,
+            EmbeddingProperties properties,
+            RetrievalProperties retrievalProperties,
+            KnowledgeAccessContextResolver accessContextResolver,
+            ResolveQueryEmbeddingService queryEmbeddingService,
+            KnowledgeRetrievalCachePortOut retrievalCache,
+            AiCacheKeyFactory cacheKeyFactory,
+            SensitiveQueryGuard sensitiveGuard,
+            AiCacheProperties cacheProperties,
+            AiCacheMapper cacheMapper
+    ) {
         this.retrievalPortOut = retrievalPortOut;
         this.indexVersionPortOut = indexVersionPortOut;
         this.configurationPortOut = configurationPortOut;
@@ -88,6 +123,12 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
         this.properties = properties;
         this.retrievalProperties = retrievalProperties;
         this.accessContextResolver = accessContextResolver;
+        this.queryEmbeddingService = queryEmbeddingService;
+        this.retrievalCache = retrievalCache;
+        this.cacheKeyFactory = cacheKeyFactory;
+        this.sensitiveGuard = sensitiveGuard;
+        this.cacheProperties = cacheProperties;
+        this.cacheMapper = cacheMapper;
     }
 
     @Override
@@ -132,7 +173,20 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
         EmbeddingResult result;
         try {
             String formatted = promptFormatter.formatQuery(active.getEmbeddingPromptVersion(), redactedQuery);
-            result = embeddingService.embed(new EmbeddingRequest(formatted, null), configuration);
+            int effectiveTopKForKey = Math.min(Math.max(1, limit), retrievalProperties.getFinalTopK());
+            // Retrieval cache first: key carries index/checksum/policy/scope/tenant/topK/query.
+            CachedRetrievalPayload cachedHit = readRetrievalCache(
+                    context, active, scopes, normalized.normalized(), effectiveTopKForKey);
+            if (cachedHit != null) {
+                return materializeCachedHit(context, redactedQuery, normalized.normalized(),
+                        active, scopes, cachedHit, effectiveTopKForKey, startedAt);
+            }
+            if (queryEmbeddingService != null) {
+                result = queryEmbeddingService.embedQuery(formatted, redactedQuery, configuration,
+                        active.getDimension(), active.getEmbeddingPromptVersion());
+            } else {
+                result = embeddingService.embed(new EmbeddingRequest(formatted, null), configuration);
+            }
             if (!result.isSuccess() || result.getVector() == null
                     || result.getVector().dimension() != active.getDimension()) {
                 return auditedEmpty(context, active.getIndexVersionId(), redactedQuery, scopes, limit,
@@ -175,6 +229,8 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
             RetrievalAudit audit = persistAudit(context, redactedQuery, normalized.normalized(),
                     active.getIndexVersionId(), scopes, rows, fused.size(), effectiveTopK,
                     confidence, diagnostic, startedAt);
+            writeRetrievalCache(context, active, scopes, normalized.normalized(), effectiveTopK,
+                    rows, confidence, sufficient, diagnostic);
             return new KnowledgeRetrievalResult(diagnostic, active.getIndexVersionId(), fused,
                     audit.retrievalAuditId(),
                     BigDecimal.valueOf(confidence).setScale(3, RoundingMode.HALF_UP),
@@ -273,6 +329,118 @@ public class KnowledgeRetrievalService implements KnowledgeRetrievalPortIn {
             return null;
         }
         return configuration;
+    }
+
+    private boolean retrievalCacheReady(String redactedQuery) {
+        return retrievalCache != null && cacheKeyFactory != null && sensitiveGuard != null
+                && cacheProperties != null && cacheProperties.isEnabled() && cacheKeyFactory.hmacReady()
+                && sensitiveGuard.isCacheable(redactedQuery);
+    }
+
+    private String retrievalTier(List<String> scopes) {
+        if (scopes != null && scopes.contains("TENANT_PRIVATE")) {
+            return "TENANT_PRIVATE";
+        }
+        if (scopes != null && scopes.contains("CUSTOMER")) {
+            return "CUSTOMER";
+        }
+        return "PUBLIC";
+    }
+
+    private String buildRetrievalKey(KnowledgeRetrievalContext context, KnowledgeIndexVersion active,
+            List<String> scopes, String normalizedQuery, int topK) {
+        return cacheKeyFactory.retrievalKey(active.getIndexVersionId(), active.getContentChecksum(),
+                retrievalProperties.getPolicyVersion(), retrievalProperties.getThresholdVersion(),
+                scopes, context.tenantId(), topK, normalizedQuery);
+    }
+
+    private CachedRetrievalPayload readRetrievalCache(KnowledgeRetrievalContext context,
+            KnowledgeIndexVersion active, List<String> scopes, String normalizedQuery, int topK) {
+        try {
+            String redactedForGuard = normalizedQuery;
+            if (!retrievalCacheReady(redactedForGuard) && !retrievalCacheReady(normalizedQuery)) {
+                return null;
+            }
+            String key = buildRetrievalKey(context, active, scopes, normalizedQuery, topK);
+            return retrievalCache.get(key).filter(payload ->
+                    active.getIndexVersionId().equals(payload.activeIndexVersionId())
+                            && java.util.Objects.equals(
+                                    active.getContentChecksum() == null ? "na" : active.getContentChecksum(),
+                                    payload.contentChecksum() == null ? "na" : payload.contentChecksum())
+                            && retrievalProperties.getPolicyVersion().equals(payload.retrievalPolicyVersion())
+                            && retrievalProperties.getThresholdVersion().equals(payload.thresholdVersion())
+                            && cacheKeyFactory.scopeFingerprint(scopes).equals(payload.scopeFingerprint())
+                            && cacheKeyFactory.tenantFingerprint(context.tenantId()).equals(payload.tenantFingerprint())
+                            && payload.topK() == topK).orElse(null);
+        } catch (Exception exception) {
+            log.debug("Retrieval cache read skipped error={}", exception.getClass().getSimpleName());
+            return null;
+        }
+    }
+
+    private KnowledgeRetrievalResult materializeCachedHit(KnowledgeRetrievalContext context,
+            String redactedQuery, String normalizedQuery, KnowledgeIndexVersion active,
+            List<String> scopes, CachedRetrievalPayload cached, int topK, Instant startedAt) {
+        List<HybridSearchRow> rows;
+        try {
+            if (cacheMapper != null && cached.rows() != null) {
+                rows = cacheMapper.toDomainRows(cached.rows());
+            } else if (cached.rows() != null) {
+                rows = cached.rows().stream().map(row -> new HybridSearchRow(
+                        row.documentId(), row.chunkId(), row.title(), row.content(), row.summary(),
+                        row.sourcePage(), row.sourceSection(), row.vectorRank(), row.lexicalRank(),
+                        row.vectorScore(), row.lexicalScore(), row.fusedScore(), row.finalRank())).toList();
+            } else {
+                rows = List.of();
+            }
+        } catch (Exception exception) {
+            log.debug("Cached retrieval mapping failed error={}", exception.getClass().getSimpleName());
+            return null;
+        }
+        List<KnowledgeSearchResult> fused = rows.stream()
+                .map(row -> new KnowledgeSearchResult(
+                        row.documentId(), row.chunkId(), row.title(), row.content(), row.summary(),
+                        row.sourcePage(), row.sourceSection(), row.fusedScore()))
+                .toList();
+        // Fresh audit row for every request, even on cache hit.
+        RetrievalAudit audit = persistAudit(context, redactedQuery, normalizedQuery,
+                active.getIndexVersionId(), scopes, rows, fused.size(), topK,
+                cached.groundedConfidence(), cached.diagnosticCode(), startedAt);
+        return new KnowledgeRetrievalResult(cached.diagnosticCode(), active.getIndexVersionId(), fused,
+                audit.retrievalAuditId(),
+                BigDecimal.valueOf(cached.groundedConfidence()).setScale(3, RoundingMode.HALF_UP),
+                cached.evidenceSufficient(), normalizedQuery, retrievalProperties.getPolicyVersion());
+    }
+
+    private void writeRetrievalCache(KnowledgeRetrievalContext context, KnowledgeIndexVersion active,
+            List<String> scopes, String normalizedQuery, int topK,
+            List<HybridSearchRow> rows, double confidence, boolean sufficient, String diagnostic) {
+        try {
+            if (!retrievalCacheReady(normalizedQuery)) {
+                return;
+            }
+            List<CachedHybridRow> cachedRows;
+            if (cacheMapper != null) {
+                cachedRows = cacheMapper.toCachedRows(rows);
+            } else {
+                cachedRows = rows.stream().map(row -> new CachedHybridRow(
+                        row.documentId(), row.chunkId(), row.title(), row.content(), row.summary(),
+                        row.sourcePage(), row.sourceSection(), row.vectorRank(), row.lexicalRank(),
+                        row.vectorScore(), row.lexicalScore(), row.fusedScore(), row.finalRank())).toList();
+            }
+            String key = buildRetrievalKey(context, active, scopes, normalizedQuery, topK);
+            CachedRetrievalPayload payload = new CachedRetrievalPayload(1, Instant.now(),
+                    active.getIndexVersionId(), active.getContentChecksum(),
+                    retrievalProperties.getPolicyVersion(), retrievalProperties.getThresholdVersion(),
+                    cacheKeyFactory.scopeFingerprint(scopes),
+                    cacheKeyFactory.tenantFingerprint(context.tenantId()), topK,
+                    List.copyOf(cachedRows), confidence, sufficient, !sufficient, diagnostic);
+            boolean negative = !sufficient;
+            // Negative cache only for successful retrieval with insufficient evidence.
+            retrievalCache.put(key, payload, negative, retrievalTier(scopes));
+        } catch (Exception exception) {
+            log.debug("Retrieval cache write skipped error={}", exception.getClass().getSimpleName());
+        }
     }
 
     private static String sha256Hex(String input) {
