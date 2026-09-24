@@ -37,6 +37,7 @@ export const adminRoutePermissions = {
   "/admin/shifts": ["SHIFT_READ_ALL", "SHIFT_ASSIGNMENT_READ_ALL"],
   "/admin/account": ["ACCOUNT_READ_ALL"],
   "/admin/account/form": ["ACCOUNT_CREATE_ALL", "ACCOUNT_UPDATE_ALL"],
+  "/admin/partner-registrations": ["ORGANIZATION_READ_ALL"],
   "/admin/onboarding-approvals": ["ACCOUNT_READ_ALL"],
   "/admin/profile": [],
   "/admin/customer": ["CUSTOMER_READ_ALL"],

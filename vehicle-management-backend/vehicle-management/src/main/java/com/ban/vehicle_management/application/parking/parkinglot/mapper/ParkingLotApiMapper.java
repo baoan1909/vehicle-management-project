@@ -22,6 +22,7 @@ public interface ParkingLotApiMapper {
     ParkingLot toDomain(CreateParkingLotRequest request);
 
     @Mapping(target = "parkingLotId", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)

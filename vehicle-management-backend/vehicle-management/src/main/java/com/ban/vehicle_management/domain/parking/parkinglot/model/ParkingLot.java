@@ -15,6 +15,7 @@ import lombok.Setter;
 public class ParkingLot extends AuditableDomainModel {
 
     private UUID parkingLotId;
+    private UUID organizationId;
     private String code;
     private String name;
     private String address;

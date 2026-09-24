@@ -10,6 +10,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.specificat
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
@@ -47,9 +48,14 @@ public class ParkingLotPersistenceAdapter implements ParkingLotPortOut {
     }
 
     @Override
-    public List<ParkingLot> findAll(ParkingLotStatus status, String keyword) {
+    public List<ParkingLot> findAll(
+            ParkingLotStatus status,
+            String keyword,
+            Set<UUID> organizationIds,
+            Set<UUID> parkingLotIds
+    ) {
         return parkingLotRepository.findAll(
-                        ParkingLotSpecifications.withFilters(status, keyword)
+                        ParkingLotSpecifications.withFilters(status, keyword, organizationIds, parkingLotIds)
                 )
                 .stream()
                 .map(parkingLotPersistenceMapper::toDomain)
@@ -57,13 +63,21 @@ public class ParkingLotPersistenceAdapter implements ParkingLotPortOut {
     }
 
     @Override
-    public boolean existsByCode(String code) {
-        return parkingLotRepository.existsByCode(code);
+    public boolean existsByOrganizationIdAndCode(UUID organizationId, String code) {
+        return parkingLotRepository.existsByOrganizationIdAndCode(organizationId, code);
     }
 
     @Override
-    public boolean existsByCodeAndParkingLotIdNot(String code, UUID parkingLotId) {
-        return parkingLotRepository.existsByCodeAndParkingLotIdNot(code, parkingLotId);
+    public boolean existsByOrganizationIdAndCodeAndParkingLotIdNot(
+            UUID organizationId,
+            String code,
+            UUID parkingLotId
+    ) {
+        return parkingLotRepository.existsByOrganizationIdAndCodeAndParkingLotIdNot(
+                organizationId,
+                code,
+                parkingLotId
+        );
     }
 
     @Override

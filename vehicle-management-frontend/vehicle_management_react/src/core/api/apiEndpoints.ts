@@ -104,6 +104,7 @@ modelConfigurations: "/ai/models/configurations",
   },
   iam: {
     accounts: "/accounts",
+    partnerRegistrations: "/iam/partner-registrations",
     provisionedAccounts: "/iam/accounts/provisioned",
     accountProfile: {
       currentAccess: "/iam/accounts/current-access",

@@ -52,7 +52,7 @@ public class AccountOnboardingPolicy {
         return switch (requireSupportedOnboardingRole(roleCode)) {
             case EMPLOYEE -> "Parking Staff";
             case PARKING_MANAGER -> "Parking Manager";
-            case CUSTOMER, SYSTEM_ADMIN -> null;
+            case CUSTOMER, SYSTEM_ADMIN, PARTNER_ADMIN -> null;
         };
     }
 

@@ -23,6 +23,7 @@ const DRAWER_ANIMATION_MS = 280;
 
 const roleOptions: Array<{ code: AdminProvisionableAccountRoleCode; description: string; label: string }> = [
   { code: "SYSTEM_ADMIN", description: "Toàn quyền hệ thống", label: "Quản trị" },
+  { code: "PARTNER_ADMIN", description: "Quản lý bãi xe và nhân sự thuộc một đối tác", label: "Quản trị đối tác" },
   { code: "PARKING_MANAGER", description: "Quản lý vận hành bãi xe", label: "Quản lý" },
   { code: "EMPLOYEE", description: "Vận hành, thu ngân, hỗ trợ", label: "Nhân viên" },
   { code: "CUSTOMER", description: "Tài khoản cổng khách hàng", label: "Khách hàng" },
@@ -36,7 +37,11 @@ const initialForm = {
 
 function getManageableRoleOptions(currentRole: CurrentUser["role"]) {
   if (currentRole === "SYSTEM_ADMIN") {
-    return roleOptions.filter((role) => role.code === "SYSTEM_ADMIN" || role.code === "PARKING_MANAGER");
+    return roleOptions.filter((role) => role.code === "SYSTEM_ADMIN" || role.code === "PARTNER_ADMIN");
+  }
+
+  if (currentRole === "PARTNER_ADMIN") {
+    return roleOptions.filter((role) => role.code === "PARKING_MANAGER");
   }
 
   if (currentRole === "PARKING_MANAGER") {

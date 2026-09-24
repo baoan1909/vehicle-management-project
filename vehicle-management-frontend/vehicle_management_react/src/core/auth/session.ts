@@ -199,6 +199,7 @@ function resolveAppRole(roles: string[]): CurrentUser["role"] {
   const normalizedRoles = new Set(roles.map((role) => role.replace(/^ROLE_/, "").trim().toUpperCase()));
 
   if (normalizedRoles.has("SYSTEM_ADMIN")) return "SYSTEM_ADMIN";
+  if (normalizedRoles.has("PARTNER_ADMIN")) return "PARTNER_ADMIN";
   if (normalizedRoles.has("PARKING_MANAGER")) return "PARKING_MANAGER";
   if (normalizedRoles.has("EMPLOYEE")) return "EMPLOYEE";
   if (normalizedRoles.has("CUSTOMER")) return "CUSTOMER";

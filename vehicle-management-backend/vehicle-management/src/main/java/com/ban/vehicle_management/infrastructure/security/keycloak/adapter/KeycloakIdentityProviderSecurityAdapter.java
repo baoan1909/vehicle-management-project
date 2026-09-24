@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
@@ -298,6 +299,13 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
                     .body(actions)
                     .retrieve()
                     .toBodilessEntity();
+        } catch (HttpServerErrorException exception) {
+            LOGGER.error(
+                    "Keycloak could not send account action email. Configure the realm SMTP settings. Status: {}, body: {}",
+                    exception.getStatusCode().value(),
+                    exception.getResponseBodyAsString()
+            );
+            throw new BadRequestException("Keycloak could not send password setup email. Configure Keycloak SMTP settings.");
         } catch (HttpClientErrorException exception) {
             String errorBody = exception.getResponseBodyAsString();
             if (errorBody == null || errorBody.isBlank()) {

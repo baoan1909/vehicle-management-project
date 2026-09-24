@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 public enum InternalAccountRoleCode {
     SYSTEM_ADMIN,
+    PARTNER_ADMIN,
     PARKING_MANAGER,
     EMPLOYEE;
 

@@ -3,6 +3,9 @@ package com.ban.vehicle_management.application.parking.parkinglot.usecase;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
 import com.ban.vehicle_management.application.parking.parkinglot.port.in.ParkingLotPortIn;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
@@ -19,24 +22,38 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
 
+    private static final String PARKING_LOT_CREATE_ALL = "PARKING_LOT_CREATE_ALL";
+    private static final String PARKING_LOT_READ_ALL = "PARKING_LOT_READ_ALL";
+    private static final String PARKING_LOT_UPDATE_ALL = "PARKING_LOT_UPDATE_ALL";
+
     private final ParkingLotPortOut parkingLotPortOut;
     private final NotificationPortIn notificationPortIn;
+    private final CurrentAccountPortIn currentAccountPortIn;
+    private final OrganizationAccessGuard organizationAccessGuard;
     private final ParkingLotPolicy parkingLotPolicy = new ParkingLotPolicy();
 
     public ParkingLotUseCaseImpl(
             ParkingLotPortOut parkingLotPortOut,
-            NotificationPortIn notificationPortIn
+            NotificationPortIn notificationPortIn,
+            CurrentAccountPortIn currentAccountPortIn,
+            OrganizationAccessGuard organizationAccessGuard
     ) {
         this.parkingLotPortOut = parkingLotPortOut;
         this.notificationPortIn = notificationPortIn;
+        this.currentAccountPortIn = currentAccountPortIn;
+        this.organizationAccessGuard = organizationAccessGuard;
     }
 
     @Override
     @Transactional
     public ParkingLot createParkingLot(ParkingLot parkingLot) {
+        currentAccountPortIn.requirePermission(PARKING_LOT_CREATE_ALL);
+        parkingLot.setOrganizationId(
+                organizationAccessGuard.resolveOrganizationIdForParkingLotCreation(parkingLot.getOrganizationId())
+        );
         parkingLotPolicy.initialize(parkingLot);
 
-        if (parkingLotPortOut.existsByCode(parkingLot.getCode())) {
+        if (parkingLotPortOut.existsByOrganizationIdAndCode(parkingLot.getOrganizationId(), parkingLot.getCode())) {
             throw new ConflictException("Parking lot code already exists");
         }
 
@@ -47,20 +64,32 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     @Override
     @Transactional(readOnly = true)
     public ParkingLot getParkingLotById(UUID parkingLotId) {
-        return parkingLotPortOut.findById(parkingLotId)
+        currentAccountPortIn.requirePermission(PARKING_LOT_READ_ALL);
+        ParkingLot parkingLot = parkingLotPortOut.findById(parkingLotId)
                 .orElseThrow(() -> new NotFoundException("Parking lot not found"));
+        organizationAccessGuard.ensureCanAccessParkingLot(parkingLot);
+        return parkingLot;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<ParkingLot> getParkingLots(ParkingLotStatus status, String keyword) {
-        return parkingLotPortOut.findAll(status, normalizeKeyword(keyword));
+        currentAccountPortIn.requirePermission(PARKING_LOT_READ_ALL);
+        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
+        return parkingLotPortOut.findAll(
+                status,
+                normalizeKeyword(keyword),
+                scope.unrestricted() || scope.organizationIds().isEmpty() ? null : scope.organizationIds(),
+                scope.unrestricted() || !scope.organizationIds().isEmpty() ? null : scope.parkingLotIds()
+        );
     }
 
     @Override
     @Transactional
     public ParkingLot updateParkingLot(UUID parkingLotId, ParkingLot parkingLot) {
+        currentAccountPortIn.requirePermission(PARKING_LOT_UPDATE_ALL);
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
+        organizationAccessGuard.ensureCanManageParkingLot(existingParkingLot);
 
         existingParkingLot.setCode(parkingLot.getCode());
         existingParkingLot.setName(parkingLot.getName());
@@ -69,7 +98,11 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
 
         parkingLotPolicy.initialize(existingParkingLot);
 
-        if (parkingLotPortOut.existsByCodeAndParkingLotIdNot(existingParkingLot.getCode(), parkingLotId)) {
+        if (parkingLotPortOut.existsByOrganizationIdAndCodeAndParkingLotIdNot(
+                existingParkingLot.getOrganizationId(),
+                existingParkingLot.getCode(),
+                parkingLotId
+        )) {
             throw new ConflictException("Parking lot code already exists");
         }
 
@@ -79,7 +112,9 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     @Override
     @Transactional
     public void deleteParkingLot(UUID parkingLotId) {
+        currentAccountPortIn.requirePermission(PARKING_LOT_UPDATE_ALL);
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
+        organizationAccessGuard.ensureCanManageParkingLot(existingParkingLot);
 
         if (existingParkingLot.getStatus() == ParkingLotStatus.CLOSED) {
             return;
@@ -94,7 +129,9 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     @Override
     @Transactional
     public ParkingLot activateParkingLot(UUID parkingLotId) {
+        currentAccountPortIn.requirePermission(PARKING_LOT_UPDATE_ALL);
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
+        organizationAccessGuard.ensureCanManageParkingLot(existingParkingLot);
 
         parkingLotPolicy.activate(existingParkingLot);
         return parkingLotPortOut.save(existingParkingLot);
@@ -103,7 +140,9 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     @Override
     @Transactional
     public ParkingLot markParkingLotMaintenance(UUID parkingLotId) {
+        currentAccountPortIn.requirePermission(PARKING_LOT_UPDATE_ALL);
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
+        organizationAccessGuard.ensureCanManageParkingLot(existingParkingLot);
 
         parkingLotPolicy.markMaintenance(existingParkingLot);
         ParkingLot savedParkingLot = parkingLotPortOut.save(existingParkingLot);
@@ -114,7 +153,9 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     @Override
     @Transactional
     public ParkingLot closeParkingLot(UUID parkingLotId) {
+        currentAccountPortIn.requirePermission(PARKING_LOT_UPDATE_ALL);
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
+        organizationAccessGuard.ensureCanManageParkingLot(existingParkingLot);
         ensureNoActiveZones(parkingLotId);
         parkingLotPolicy.close(existingParkingLot);
         return parkingLotPortOut.save(existingParkingLot);

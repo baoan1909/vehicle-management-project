@@ -17,6 +17,7 @@ import com.ban.vehicle_management.application.iam.account.model.result.Provision
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
+import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.iam.account.policy.ProvisionedAccountPolicy;
@@ -49,6 +50,9 @@ class ProvisionedAccountUseCaseImplTest {
 
     @Mock
     private IdentityProviderAdminPortOut identityProviderAdminPortOut;
+
+    @Mock
+    private OrganizationPortOut organizationPortOut;
 
     @Spy
     private ProvisionedAccountPolicy provisionedAccountPolicy = new ProvisionedAccountPolicy();
@@ -123,23 +127,23 @@ class ProvisionedAccountUseCaseImplTest {
     }
 
     @Test
-    void shouldAllowSystemAdminProvisioningParkingManagerAccount() {
+    void shouldAllowSystemAdminProvisioningPartnerAdminAccount() {
         UUID roleId = UUID.randomUUID();
-        String keycloakUserId = "kc-manager-id";
+        String keycloakUserId = "kc-partner-admin-id";
         Account account = new Account();
-        account.setUsername("manager.01");
-        account.setEmail("manager01@example.com");
+        account.setUsername("partner.admin.01");
+        account.setEmail("partner.admin01@example.com");
         CreateProvisionedAccountCommand command = new CreateProvisionedAccountCommand(
                 account,
                 "TemporaryPassword1!",
-                AdminProvisionableAccountRoleCode.PARKING_MANAGER,
-                "Tran Manager"
+                AdminProvisionableAccountRoleCode.PARTNER_ADMIN,
+                "Tran Partner Admin"
         );
 
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount("SYSTEM_ADMIN"));
-        when(provisionedAccountPortOut.existsByUsername("manager.01")).thenReturn(false);
-        when(provisionedAccountPortOut.existsByEmail("manager01@example.com")).thenReturn(false);
-        when(provisionedAccountPortOut.findActiveRoleIdByCode(AdminProvisionableAccountRoleCode.PARKING_MANAGER))
+        when(provisionedAccountPortOut.existsByUsername("partner.admin.01")).thenReturn(false);
+        when(provisionedAccountPortOut.existsByEmail("partner.admin01@example.com")).thenReturn(false);
+        when(provisionedAccountPortOut.findActiveRoleIdByCode(AdminProvisionableAccountRoleCode.PARTNER_ADMIN))
                 .thenReturn(roleId);
         when(identityProviderAdminPortOut.createProvisionedAccountUser(any(CreateProvisionedAccountCommand.class)))
                 .thenReturn(keycloakUserId);
@@ -147,15 +151,57 @@ class ProvisionedAccountUseCaseImplTest {
                 .thenAnswer(invocation -> Optional.of(buildResult(
                         invocation.getArgument(0),
                         roleId,
-                        AdminProvisionableAccountRoleCode.PARKING_MANAGER,
-                        "manager.01",
-                        "manager01@example.com"
+                        AdminProvisionableAccountRoleCode.PARTNER_ADMIN,
+                        "partner.admin.01",
+                        "partner.admin01@example.com"
                 )));
 
         ProvisionedAccountResult result = provisionedAccountUseCase.createProvisionedAccount(command);
 
-        assertEquals(AdminProvisionableAccountRoleCode.PARKING_MANAGER.name(), result.role().roleCode());
+        assertEquals(AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name(), result.role().roleCode());
         verify(identityProviderAdminPortOut).sendUpdatePasswordEmail(keycloakUserId);
+    }
+
+    @Test
+    void shouldAddParkingManagerCreatedByPartnerAdminToPartnerOrganization() {
+        UUID partnerAdminId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
+        UUID roleId = UUID.randomUUID();
+        Account account = new Account();
+        account.setUsername("partner.manager.01");
+        account.setEmail("partner.manager01@example.com");
+        CreateProvisionedAccountCommand command = new CreateProvisionedAccountCommand(
+                account,
+                "TemporaryPassword1!",
+                AdminProvisionableAccountRoleCode.PARKING_MANAGER,
+                "Partner Manager"
+        );
+
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount(
+                partnerAdminId,
+                AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name()
+        ));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(partnerAdminId);
+        when(provisionedAccountPortOut.existsByUsername("partner.manager.01")).thenReturn(false);
+        when(provisionedAccountPortOut.existsByEmail("partner.manager01@example.com")).thenReturn(false);
+        when(provisionedAccountPortOut.findActiveRoleIdByCode(AdminProvisionableAccountRoleCode.PARKING_MANAGER))
+                .thenReturn(roleId);
+        when(identityProviderAdminPortOut.createProvisionedAccountUser(any(CreateProvisionedAccountCommand.class)))
+                .thenReturn("kc-partner-manager-id");
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(partnerAdminId))
+                .thenReturn(Set.of(organizationId));
+        when(provisionedAccountPortOut.findProvisionedAccountById(any(UUID.class)))
+                .thenAnswer(invocation -> Optional.of(buildResult(
+                        invocation.getArgument(0),
+                        roleId,
+                        AdminProvisionableAccountRoleCode.PARKING_MANAGER,
+                        "partner.manager.01",
+                        "partner.manager01@example.com"
+                )));
+
+        ProvisionedAccountResult result = provisionedAccountUseCase.createProvisionedAccount(command);
+
+        verify(organizationPortOut).createActiveMembership(organizationId, result.account().accountId());
     }
 
     @Test
@@ -279,7 +325,7 @@ class ProvisionedAccountUseCaseImplTest {
         assertEquals(
                 Set.of(
                         AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
-                        AdminProvisionableAccountRoleCode.PARKING_MANAGER
+                        AdminProvisionableAccountRoleCode.PARTNER_ADMIN
                 ),
                 commandCaptor.getValue().managedRoleCodes()
         );
@@ -310,6 +356,35 @@ class ProvisionedAccountUseCaseImplTest {
                 ),
                 commandCaptor.getValue().managedRoleCodes()
         );
+    }
+
+    @Test
+    void shouldHideParkingManagersOutsidePartnerOrganization() {
+        UUID currentPartnerId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
+        UUID ownManagerId = UUID.randomUUID();
+        UUID otherManagerId = UUID.randomUUID();
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount(
+                currentPartnerId,
+                AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name()
+        ));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(currentPartnerId);
+        when(provisionedAccountPortOut.findProvisionedAccounts(any(ProvisionedAccountFilterCommand.class))).thenReturn(List.of(
+                buildResult(ownManagerId, UUID.randomUUID(), AdminProvisionableAccountRoleCode.PARKING_MANAGER, "own.manager", "own@example.com"),
+                buildResult(otherManagerId, UUID.randomUUID(), AdminProvisionableAccountRoleCode.PARKING_MANAGER, "other.manager", "other@example.com")
+        ));
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(currentPartnerId))
+                .thenReturn(Set.of(organizationId));
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(ownManagerId))
+                .thenReturn(Set.of(organizationId));
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(otherManagerId))
+                .thenReturn(Set.of(UUID.randomUUID()));
+
+        List<ProvisionedAccountResult> accounts = provisionedAccountUseCase.getProvisionedAccounts(
+                new ProvisionedAccountFilterCommand(null, null, null, null)
+        );
+
+        assertEquals(List.of(ownManagerId), accounts.stream().map(result -> result.account().accountId()).toList());
     }
 
     @Test
@@ -508,8 +583,12 @@ class ProvisionedAccountUseCaseImplTest {
     }
 
     private CurrentAccountAccess currentAccount(String roleCode) {
+        return currentAccount(UUID.randomUUID(), roleCode);
+    }
+
+    private CurrentAccountAccess currentAccount(UUID accountId, String roleCode) {
         return new CurrentAccountAccess(
-                UUID.randomUUID(),
+                accountId,
                 "subject",
                 "current.user",
                 "current@example.com",

@@ -11,6 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ParkingLotAdminResponse {
     private UUID parkingLotId;
+    private UUID organizationId;
     private String code;
     private String name;
     private String address;

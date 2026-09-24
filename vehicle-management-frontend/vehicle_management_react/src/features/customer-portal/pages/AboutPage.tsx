@@ -539,7 +539,7 @@ export function AboutPage() {
           <Reveal>
             <Eyebrow>Triển khai linh hoạt</Eyebrow><h2 className="tw-m-0 tw-mt-3 tw-font-[Cambria] !tw-text-[clamp(2rem,3.5vw,3.35rem)] tw-font-bold tw-leading-[1.06] tw-text-[#0a1f3c]">Sẵn sàng triển khai theo quy mô của bạn</h2>
             <ul className="tw-m-0 tw-mt-6 tw-grid tw-list-none tw-gap-3 tw-p-0">{["Triển khai nhanh chóng từ 1–3 ngày", "Hỗ trợ thiết bị đa dạng, dễ mở rộng", "Đội ngũ đồng hành 24/7"].map((item) => <li className="tw-flex tw-gap-3 tw-text-[0.94rem] tw-font-bold tw-text-[#617690]" key={item}><i className="fas fa-check tw-mt-1 tw-text-[#2478ff]" />{item}</li>)}</ul>
-            <Link className="tw-mt-7 tw-inline-flex tw-min-h-11 tw-items-center tw-gap-4 tw-rounded-[7px] tw-bg-[#176fff] tw-px-6 tw-text-[0.88rem] tw-font-black tw-text-white tw-shadow-[0_12px_24px_rgba(23,111,255,.22)] hover:tw-bg-[#2a7cff] hover:tw-text-white hover:tw-no-underline" to="/contact">Liên hệ tư vấn <i className="fas fa-arrow-right tw-text-[0.76rem]" /></Link>
+            <Link className="tw-mt-7 tw-inline-flex tw-min-h-11 tw-items-center tw-gap-4 tw-rounded-[7px] tw-bg-[#176fff] tw-px-6 tw-text-[0.88rem] tw-font-black tw-text-white tw-shadow-[0_12px_24px_rgba(23,111,255,.22)] hover:tw-bg-[#2a7cff] hover:tw-text-white hover:tw-no-underline" to="/become-a-partner">Trở thành đối tác <i className="fas fa-arrow-right tw-text-[0.76rem]" /></Link>
           </Reveal>
           <Reveal delay={90}>
             <Eyebrow>Câu hỏi thường gặp</Eyebrow>
@@ -558,7 +558,7 @@ export function AboutPage() {
           <section className="tw-relative tw-flex tw-min-h-[132px] tw-flex-wrap tw-items-center tw-justify-center tw-gap-x-16 tw-gap-y-5 tw-overflow-hidden tw-rounded-[20px] tw-bg-[linear-gradient(110deg,#061b3a,#082d5e)] tw-px-7 tw-py-7 tw-text-center tw-text-white tw-shadow-[0_20px_42px_rgba(5,30,67,.18)]">
             <span className="tw-pointer-events-none tw-absolute -tw-bottom-24 -tw-left-16 tw-h-44 tw-w-[440px] tw-rounded-[50%] tw-border tw-border-solid tw-border-[#c2903f]/55" /><span className="tw-pointer-events-none tw-absolute -tw-right-20 -tw-top-24 tw-h-48 tw-w-[380px] tw-rounded-[50%] tw-border tw-border-solid tw-border-[#c2903f]/35" />
             <div className="tw-relative tw-z-[1]"><h2 className="tw-m-0 tw-font-[Cambria] !tw-text-[clamp(1.75rem,2.9vw,2.8rem)] tw-font-bold">Sẵn sàng nâng cấp trải nghiệm bãi xe?</h2><p className="tw-m-0 tw-mt-2 tw-text-[0.84rem] tw-font-semibold tw-text-[#b8cae3]">CoParking đồng hành cùng bạn xây dựng hệ thống bãi xe thông minh, minh bạch và hiệu quả.</p></div>
-            <Link className="tw-relative tw-z-[1] tw-inline-flex tw-min-h-11 tw-items-center tw-gap-4 tw-rounded-[7px] tw-bg-[#176fff] tw-px-6 tw-text-[0.88rem] tw-font-black tw-text-white tw-shadow-[0_12px_24px_rgba(23,111,255,.24)] hover:-tw-translate-y-0.5 hover:tw-bg-[#2a7cff] hover:tw-text-white hover:tw-no-underline" to="/contact">Liên hệ tư vấn <i className="fas fa-arrow-right tw-text-[0.76rem]" /></Link>
+            <Link className="tw-relative tw-z-[1] tw-inline-flex tw-min-h-11 tw-items-center tw-gap-4 tw-rounded-[7px] tw-bg-[#176fff] tw-px-6 tw-text-[0.88rem] tw-font-black tw-text-white tw-shadow-[0_12px_24px_rgba(23,111,255,.24)] hover:-tw-translate-y-0.5 hover:tw-bg-[#2a7cff] hover:tw-text-white hover:tw-no-underline" to="/become-a-partner">Trở thành đối tác <i className="fas fa-arrow-right tw-text-[0.76rem]" /></Link>
           </section>
         </Reveal>
       </main>

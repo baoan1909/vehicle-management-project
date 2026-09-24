@@ -31,7 +31,10 @@ public class ParkingLotEntity extends AuditableEntity {
     @Column(name = "parking_lot_id", nullable = false)
     private UUID parkingLotId;
 
-    @Column(name = "code", nullable = false, unique = true)
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
+    @Column(name = "code", nullable = false)
     private String code;
 
     @Column(name = "name", nullable = false)

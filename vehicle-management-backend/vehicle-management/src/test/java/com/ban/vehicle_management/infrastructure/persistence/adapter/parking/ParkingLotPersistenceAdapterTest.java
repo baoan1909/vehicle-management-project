@@ -83,7 +83,7 @@ class ParkingLotPersistenceAdapterTest {
         when(parkingLotPersistenceMapper.toDomain(firstEntity)).thenReturn(firstParkingLot);
         when(parkingLotPersistenceMapper.toDomain(secondEntity)).thenReturn(secondParkingLot);
 
-        List<ParkingLot> result = parkingLotPersistenceAdapter.findAll(ParkingLotStatus.ACTIVE, "HCMUTE");
+        List<ParkingLot> result = parkingLotPersistenceAdapter.findAll(ParkingLotStatus.ACTIVE, "HCMUTE", null, null);
 
         assertEquals(2, result.size());
         assertEquals(firstParkingLot, result.get(0));
@@ -91,25 +91,39 @@ class ParkingLotPersistenceAdapterTest {
     }
 
     @Test
-    void shouldDelegateExistsByCode() {
-        when(parkingLotRepository.existsByCode("HCMUTE")).thenReturn(true);
+    void shouldDelegateExistsByOrganizationIdAndCode() {
+        UUID organizationId = UUID.randomUUID();
+        when(parkingLotRepository.existsByOrganizationIdAndCode(organizationId, "HCMUTE")).thenReturn(true);
 
-        boolean exists = parkingLotPersistenceAdapter.existsByCode("HCMUTE");
+        boolean exists = parkingLotPersistenceAdapter.existsByOrganizationIdAndCode(organizationId, "HCMUTE");
 
         assertTrue(exists);
-        verify(parkingLotRepository).existsByCode("HCMUTE");
+        verify(parkingLotRepository).existsByOrganizationIdAndCode(organizationId, "HCMUTE");
     }
 
     @Test
-    void shouldDelegateExistsByCodeAndParkingLotIdNot() {
+    void shouldDelegateExistsByOrganizationIdAndCodeAndParkingLotIdNot() {
+        UUID organizationId = UUID.randomUUID();
         UUID parkingLotId = UUID.randomUUID();
 
-        when(parkingLotRepository.existsByCodeAndParkingLotIdNot("HCMUTE", parkingLotId)).thenReturn(true);
+        when(parkingLotRepository.existsByOrganizationIdAndCodeAndParkingLotIdNot(
+                organizationId,
+                "HCMUTE",
+                parkingLotId
+        )).thenReturn(true);
 
-        boolean exists = parkingLotPersistenceAdapter.existsByCodeAndParkingLotIdNot("HCMUTE", parkingLotId);
+        boolean exists = parkingLotPersistenceAdapter.existsByOrganizationIdAndCodeAndParkingLotIdNot(
+                organizationId,
+                "HCMUTE",
+                parkingLotId
+        );
 
         assertTrue(exists);
-        verify(parkingLotRepository).existsByCodeAndParkingLotIdNot("HCMUTE", parkingLotId);
+        verify(parkingLotRepository).existsByOrganizationIdAndCodeAndParkingLotIdNot(
+                organizationId,
+                "HCMUTE",
+                parkingLotId
+        );
     }
 
     @Test

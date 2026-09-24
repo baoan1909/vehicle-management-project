@@ -31,7 +31,7 @@ import { hasAnyPermission } from "@/shared/auth/permissions";
 type EmployeeRole = Exclude<EmployeeRoleCodeApi, "CUSTOMER"> | "UNKNOWN";
 type EmployeeStatus = EmployeeStatusApi;
 type AccountStatus = EmployeeAccountStatusApi | "UNLINKED";
-type CurrentOperatorRole = "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER" | "UNKNOWN";
+type CurrentOperatorRole = "SYSTEM_ADMIN" | "PARTNER_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER" | "UNKNOWN";
 type JobTitleOption = {
   label: string;
   role: EmployeeRole;

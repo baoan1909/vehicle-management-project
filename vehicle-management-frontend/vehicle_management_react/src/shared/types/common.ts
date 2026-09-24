@@ -24,7 +24,7 @@ export interface CurrentUser {
   id: string;
   username: string;
   fullName: string;
-  role: "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER" | "UNKNOWN";
+  role: "SYSTEM_ADMIN" | "PARTNER_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER" | "UNKNOWN";
   avatarUrl: string;
   accountStatus?: string;
   customerApprovalStatus?: string;

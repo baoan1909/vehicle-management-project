@@ -1,4 +1,5 @@
 export { AboutPage } from "./pages/AboutPage";
+export { PartnerRegistrationPage } from "./pages/PartnerRegistrationPage";
 export { PricingPage } from "./pages/PricingPage";
 export { GuidePage } from "./pages/GuidePage";
 export { ContactPage } from "./pages/ContactPage";

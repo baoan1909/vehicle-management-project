@@ -84,6 +84,8 @@ export function getRoleLabel(role?: string, roleLabel?: string) {
   switch (role) {
     case "SYSTEM_ADMIN":
       return "Quản trị hệ thống";
+    case "PARTNER_ADMIN":
+      return "Quản trị đối tác";
     case "PARKING_MANAGER":
       return "Quản lý";
     case "EMPLOYEE":
@@ -133,7 +135,7 @@ export function getApprovalStatusValue(
     return "PENDING";
   }
 
-  if (user.role === "SYSTEM_ADMIN") {
+  if (user.role === "SYSTEM_ADMIN" || user.role === "PARTNER_ADMIN") {
     if (user.accountStatus === "ACTIVE") return "APPROVED";
     return user.accountStatus;
   }

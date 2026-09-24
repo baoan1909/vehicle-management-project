@@ -50,6 +50,20 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Subscription amount does not meet voucher minimum amount": "Tổng phí vé chưa đạt giá trị tối thiểu để dùng mã ưu đãi này.",
   "Voucher usage limit has been reached": "Mã ưu đãi đã dùng hết số lượt cho phép.",
   "Customer has reached the voucher usage limit": "Bạn đã dùng hết số lượt được phép với mã ưu đãi này.",
+  "A partner registration with this email is already pending":
+    "Email này đã có hồ sơ đăng ký đối tác đang chờ duyệt. Vui lòng dùng email khác hoặc chờ CoParking phản hồi.",
+  "A partner registration with this organization code is already pending":
+    "Mã đơn vị này đã có hồ sơ đăng ký đang chờ duyệt. Vui lòng dùng một mã đơn vị khác.",
+  "expectedParkingLotCount must be between 1 and 1000":
+    "Số bãi dự kiến quản lý phải nằm trong khoảng từ 1 đến 1.000.",
+  "email is invalid": "Email liên hệ không đúng định dạng.",
+  "phoneNumber must not be blank": "Vui lòng nhập số điện thoại liên hệ.",
+  "phoneNumber must contain only digits and an optional leading plus sign":
+    "Số điện thoại chỉ được chứa chữ số và có thể bắt đầu bằng dấu +.",
+  "organizationCode must contain only uppercase letters, digits, underscore, or hyphen":
+    "Mã đơn vị chỉ được chứa chữ in hoa, chữ số, dấu gạch dưới hoặc dấu gạch ngang.",
+  "Keycloak could not send password setup email. Configure Keycloak SMTP settings.":
+    "Không thể gửi email thiết lập mật khẩu cho Partner Admin. Vui lòng kiểm tra cấu hình SMTP của Keycloak rồi duyệt lại.",
   "Voucher validTo must be after validFrom": "Thời điểm kết thúc hiệu lực phải sau thời điểm bắt đầu.",
   "Percentage voucher discountValue must not exceed 100": "Mức giảm theo phần trăm không được vượt quá 100%.",
   "discountValue must be positive": "Mức giảm phải lớn hơn 0.",
