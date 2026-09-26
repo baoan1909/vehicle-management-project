@@ -14,7 +14,9 @@ import {
   type PaymentMethod,
 } from "@/features/billing/api/invoiceManagementApi";
 import { cn } from "@/lib/cn";
-import { endOfApplicationDayIso, startOfApplicationDayIso } from "@/shared/time/applicationTime";
+import { endOfApplicationDayIso, startOfApplicationDayIso, todayApplicationIsoDate } from "@/shared/time/applicationTime";
+import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
+import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
 
 const emptySummary: InvoiceManagementSummary = {
   total: 0,
@@ -122,7 +124,7 @@ function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
   return <Badge tone={meta.tone}>{meta.label}</Badge>;
 }
 
-function InvoiceDetailPanel({ detail, loading, onPrint }: { detail: InvoiceManagementDetail | null; loading: boolean; onPrint: () => void }) {
+function InvoiceDetailPanel({ detail, loading, lotName, onPrint }: { detail: InvoiceManagementDetail | null; loading: boolean; lotName: string; onPrint: () => void }) {
   if (loading) {
     return (
       <Card className="tw-flex tw-min-h-[520px] tw-items-center tw-justify-center tw-text-vm-slate-500">
@@ -157,6 +159,8 @@ function InvoiceDetailPanel({ detail, loading, onPrint }: { detail: InvoiceManag
 
       <div className="tw-grid tw-gap-4 tw-p-4">
         <dl className="tw-m-0 tw-grid tw-grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] tw-gap-x-4 tw-gap-y-2 tw-text-[0.8rem]">
+          <dt className="tw-font-semibold tw-text-vm-slate-500">Bãi xe</dt>
+          <dd className="tw-m-0 tw-text-right tw-font-bold tw-text-vm-slate-900">{lotName}</dd>
           <dt className="tw-font-semibold tw-text-vm-slate-500">Khách hàng</dt>
           <dd className="tw-m-0 tw-text-right tw-font-bold tw-text-vm-slate-900">{invoice.customerName}</dd>
           <dt className="tw-font-semibold tw-text-vm-slate-500">Biển số xe</dt>
@@ -226,6 +230,9 @@ function InvoiceDetailPanel({ detail, loading, onPrint }: { detail: InvoiceManag
 
 export function InvoiceManagementPage() {
   const toast = useToast();
+  const { scope, permittedLotIds } = usePlatformMonitoringScope();
+  const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
+  const [selectedLotId, setSelectedLotId] = useState("all");
   const [summary, setSummary] = useState(emptySummary);
   const [items, setItems] = useState<InvoiceManagementItem[]>([]);
   const [detail, setDetail] = useState<InvoiceManagementDetail | null>(null);
@@ -244,6 +251,31 @@ export function InvoiceManagementPage() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    let active = true;
+    void getParkingLots()
+      .then((response) => { if (active) setParkingLots(response.data ?? []); })
+      .catch(() => { if (active) setParkingLots([]); });
+    return () => { active = false; };
+  }, [refreshKey]);
+
+  useEffect(() => {
+    setSelectedLotId("all");
+    setPage(1);
+  }, [scope]);
+
+  const visibleLots = useMemo(() => parkingLots.filter((lot) =>
+    permittedLotIds === null || permittedLotIds.has(lot.parkingLotId)
+  ), [parkingLots, permittedLotIds]);
+
+  const lotNames = useMemo(() => new Map(parkingLots.map((lot) => [lot.parkingLotId, lot.name])), [parkingLots]);
+  const selectedScope = useMemo(() => ({
+    organizationId: scope.level === "ALL" ? undefined : scope.organizationId,
+    parkingLotId: selectedLotId === "all" || !visibleLots.some((lot) => lot.parkingLotId === selectedLotId)
+      ? scope.level === "PARKING_LOT" ? scope.parkingLotId : undefined
+      : selectedLotId,
+  }), [scope, selectedLotId, visibleLots]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       setKeyword(keywordInput.trim());
       setPage(1);
@@ -255,6 +287,7 @@ export function InvoiceManagementPage() {
     const { fromDate, toDate } = splitDateRange(dateRange);
 
     return {
+      ...selectedScope,
       fromDate: toBoundaryInstant(fromDate),
       keyword: keyword || undefined,
       page: page - 1,
@@ -263,7 +296,7 @@ export function InvoiceManagementPage() {
       status: status === "all" ? undefined : status as InvoiceStatus,
       toDate: toBoundaryInstant(toDate, true),
     };
-  }, [dateRange, keyword, page, pageSize, paymentMethod, status]);
+  }, [dateRange, keyword, page, pageSize, paymentMethod, selectedScope, status]);
 
   const loadList = useCallback(async () => {
     setLoading(true);
@@ -287,10 +320,10 @@ export function InvoiceManagementPage() {
   }, [loadList, refreshKey]);
 
   useEffect(() => {
-    void getInvoiceManagementSummary()
+    void getInvoiceManagementSummary(selectedScope)
       .then((response) => setSummary(response.data))
       .catch((error) => toast.error(getErrorMessage(error), "Không thể tải thống kê"));
-  }, [refreshKey, toast]);
+  }, [refreshKey, selectedScope, toast]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -319,9 +352,10 @@ export function InvoiceManagementPage() {
   const exportData = async () => {
     try {
       const response = await getInvoiceManagementList({ ...filter, page: 0, size: 5000 });
-      const headers = ["Mã hóa đơn", "Khách hàng", "Biển số", "Nguồn phát sinh", "Ngày tạo", "Tổng tiền", "Hình thức", "Trạng thái"];
+      const headers = ["Mã hóa đơn", "Bãi xe", "Khách hàng", "Biển số", "Nguồn phát sinh", "Ngày tạo", "Tổng tiền", "Hình thức", "Trạng thái"];
       const rows = response.data.items.map((item) => [
         item.invoiceNo,
+        item.parkingLotId ? lotNames.get(item.parkingLotId) ?? "Bãi không còn hoạt động" : "Chưa xác định",
         item.customerName,
         item.licensePlate ?? "",
         sourceLabels[item.source],
@@ -334,7 +368,7 @@ export function InvoiceManagementPage() {
       const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `hoa-don-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `hoa-don-${todayApplicationIsoDate()}.csv`;
       link.click();
       URL.revokeObjectURL(url);
       toast.success(`Đã xuất ${rows.length} hóa đơn.`, "Xuất dữ liệu thành công");
@@ -352,7 +386,7 @@ export function InvoiceManagementPage() {
     }
     const invoice = detail.invoice;
     const rows = detail.lineItems.map((item) => `<tr><td>${escapeHtml(item.description)}</td><td>${escapeHtml(formatMoney(item.amount))}</td></tr>`).join("");
-    popup.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${escapeHtml(invoice.invoiceNo)}</title><style>body{font-family:Arial,sans-serif;color:#0f172a;padding:32px}h1{font-size:24px;margin:0 0 8px}.meta{color:#64748b;margin-bottom:24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0}.grid div:nth-child(even){text-align:right;font-weight:700}table{border-collapse:collapse;width:100%;margin-top:20px}td{border-bottom:1px solid #e2e8f0;padding:10px 0}td:last-child{text-align:right;font-weight:700}.total{font-size:20px;color:#2563eb;text-align:right;margin-top:20px;font-weight:800}@media print{button{display:none}}</style></head><body><h1>HÓA ĐƠN</h1><div class="meta">${escapeHtml(invoice.invoiceNo)}</div><div class="grid"><div>Khách hàng</div><div>${escapeHtml(invoice.customerName)}</div><div>Biển số</div><div>${escapeHtml(invoice.licensePlate || "Không áp dụng")}</div><div>Ngày tạo</div><div>${escapeHtml(formatDisplayDate(invoice.createdAt))}</div><div>Trạng thái</div><div>${escapeHtml(statusMeta[invoice.status].label)}</div></div><table>${rows}</table><div class="total">Tổng tiền: ${escapeHtml(formatMoney(invoice.finalAmount))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
+    popup.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${escapeHtml(invoice.invoiceNo)}</title><style>body{font-family:Arial,sans-serif;color:#0f172a;padding:32px}h1{font-size:24px;margin:0 0 8px}.meta{color:#64748b;margin-bottom:24px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0}.grid div:nth-child(even){text-align:right;font-weight:700}table{border-collapse:collapse;width:100%;margin-top:20px}td{border-bottom:1px solid #e2e8f0;padding:10px 0}td:last-child{text-align:right;font-weight:700}.total{font-size:20px;color:#2563eb;text-align:right;margin-top:20px;font-weight:800}@media print{button{display:none}}</style></head><body><h1>HÓA ĐƠN</h1><div class="meta">${escapeHtml(invoice.invoiceNo)}</div><div class="grid"><div>Bãi xe</div><div>${escapeHtml(invoice.parkingLotId ? lotNames.get(invoice.parkingLotId) ?? "Bãi không còn hoạt động" : "Chưa xác định")}</div><div>Khách hàng</div><div>${escapeHtml(invoice.customerName)}</div><div>Biển số</div><div>${escapeHtml(invoice.licensePlate || "Không áp dụng")}</div><div>Ngày tạo</div><div>${escapeHtml(formatDisplayDate(invoice.createdAt))}</div><div>Trạng thái</div><div>${escapeHtml(statusMeta[invoice.status].label)}</div></div><table>${rows}</table><div class="total">Tổng tiền: ${escapeHtml(formatMoney(invoice.finalAmount))}</div><script>window.onload=()=>window.print();<\/script></body></html>`);
     popup.document.close();
   };
 
@@ -376,7 +410,13 @@ export function InvoiceManagementPage() {
         <SummaryCard accent="tw-bg-red-50 tw-text-red-500" count={summary.cancelled} icon="far fa-times-circle" label="Đã hủy" />
       </section>
 
-      <Card className="tw-grid tw-grid-cols-[minmax(260px,1.6fr)_minmax(170px,0.7fr)_minmax(170px,0.7fr)_minmax(230px,0.9fr)_auto] tw-items-end tw-gap-3 tw-p-3 max-[1200px]:tw-grid-cols-3 max-[700px]:tw-grid-cols-1">
+      <Card className="tw-grid tw-grid-cols-[minmax(170px,0.8fr)_minmax(260px,1.6fr)_minmax(150px,0.7fr)_minmax(150px,0.7fr)_minmax(220px,0.9fr)_auto] tw-items-end tw-gap-3 tw-p-3 max-[1200px]:tw-grid-cols-3 max-[700px]:tw-grid-cols-1">
+        <label className="tw-m-0 tw-grid tw-gap-1.5 tw-text-[0.74rem] tw-font-bold tw-text-vm-slate-600">Bãi xe
+          <SelectMenu ariaLabel="Lọc hóa đơn theo bãi xe" options={[
+            { label: "Tất cả bãi xe", value: "all" },
+            ...visibleLots.map((lot) => ({ label: lot.name, value: lot.parkingLotId })),
+          ]} portal value={selectedLotId} onChange={(value) => { setSelectedLotId(value); setPage(1); }} />
+        </label>
         <label className="tw-m-0 tw-grid tw-gap-1.5 tw-text-[0.74rem] tw-font-bold tw-text-vm-slate-600">
           Tìm kiếm
           <span className="tw-relative">
@@ -399,7 +439,7 @@ export function InvoiceManagementPage() {
           <div className="tw-overflow-x-auto">
             <table className="tw-w-full tw-min-w-[840px] tw-border-collapse tw-text-left tw-text-[0.78rem]">
               <thead className="tw-bg-vm-slate-25 tw-text-vm-slate-600">
-                <tr>{["Mã hóa đơn", "Khách hàng", "Nguồn phát sinh", "Ngày tạo", "Tổng tiền", "Hình thức", "Trạng thái"].map((label) => <th className="tw-px-3 tw-py-3 tw-font-black" key={label}>{label}</th>)}</tr>
+                <tr>{["Mã hóa đơn", "Bãi xe", "Khách hàng", "Nguồn phát sinh", "Ngày tạo", "Tổng tiền", "Hình thức", "Trạng thái"].map((label) => <th className="tw-px-3 tw-py-3 tw-font-black" key={label}>{label}</th>)}</tr>
               </thead>
               <tbody>
                 {items.map((item) => (
@@ -411,6 +451,7 @@ export function InvoiceManagementPage() {
                     onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") setSelectedId(item.invoiceId); }}
                   >
                     <td className={cn("tw-max-w-[180px] tw-truncate tw-px-3 tw-py-3 tw-font-black tw-text-vm-primary", selectedId === item.invoiceId ? "tw-border-0 tw-border-l-4 tw-border-solid tw-border-vm-primary" : "") } title={item.invoiceNo}>{item.invoiceNo}</td>
+                    <td className="tw-px-3 tw-py-3 tw-font-semibold tw-text-vm-slate-700">{item.parkingLotId ? lotNames.get(item.parkingLotId) ?? "Bãi không còn hoạt động" : "Chưa xác định"}</td>
                     <td className="tw-px-3 tw-py-3"><strong className="tw-block tw-text-vm-slate-900">{item.customerName}</strong><span className="tw-mt-0.5 tw-block tw-text-[0.7rem] tw-text-vm-slate-500">{item.licensePlate || "Không có biển số"}</span></td>
                     <td className="tw-px-3 tw-py-3 tw-font-semibold tw-text-vm-slate-700">{sourceLabels[item.source]}</td>
                     <td className="tw-whitespace-nowrap tw-px-3 tw-py-3 tw-text-vm-slate-600">{formatDisplayDate(item.createdAt)}</td>
@@ -419,7 +460,7 @@ export function InvoiceManagementPage() {
                     <td className="tw-whitespace-nowrap tw-px-3 tw-py-3"><InvoiceStatusBadge status={item.status} /></td>
                   </tr>
                 ))}
-                {!loading && items.length === 0 ? <tr><td className="tw-p-8 tw-text-center tw-font-semibold tw-text-vm-slate-500" colSpan={7}>Không có hóa đơn phù hợp</td></tr> : null}
+                {!loading && items.length === 0 ? <tr><td className="tw-p-8 tw-text-center tw-font-semibold tw-text-vm-slate-500" colSpan={8}>Không có hóa đơn phù hợp</td></tr> : null}
               </tbody>
             </table>
           </div>
@@ -435,7 +476,7 @@ export function InvoiceManagementPage() {
             totalRecords={totalRecords}
           />
         </Card>
-        <InvoiceDetailPanel detail={detail} loading={detailLoading} onPrint={printInvoice} />
+        <InvoiceDetailPanel detail={detail} loading={detailLoading} lotName={detail?.invoice.parkingLotId ? lotNames.get(detail.invoice.parkingLotId) ?? "Bãi không còn hoạt động" : "Chưa xác định"} onPrint={printInvoice} />
       </section>
     </main>
   );

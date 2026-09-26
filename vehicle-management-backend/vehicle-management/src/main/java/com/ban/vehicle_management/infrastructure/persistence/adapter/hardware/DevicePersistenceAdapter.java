@@ -12,6 +12,7 @@ import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -52,15 +53,20 @@ public class DevicePersistenceAdapter implements DevicePortOut {
             UUID laneId,
             DeviceType deviceType,
             DeviceStatus status,
-            String keyword
+            String keyword,
+            Set<UUID> accessibleParkingLotIds
     ) {
+        if (accessibleParkingLotIds != null && accessibleParkingLotIds.isEmpty()) {
+            return List.of();
+        }
         return deviceRepository.findAll(
                         DeviceSpecifications.withFilters(
                                 parkingLotId,
                                 laneId,
                                 deviceType,
                                 status,
-                                keyword
+                                keyword,
+                                accessibleParkingLotIds
                         )
                 )
                 .stream()

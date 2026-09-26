@@ -9,7 +9,6 @@ import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPo
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
-import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
@@ -333,16 +332,7 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
         if (organizationAccessGuard == null || parkingLotPortOut == null) {
             return null;
         }
-        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
-        if (scope.unrestricted()) {
-            return null;
-        }
-        if (!scope.parkingLotIds().isEmpty()) {
-            return scope.parkingLotIds();
-        }
-        return parkingLotPortOut.findAll(null, null, scope.organizationIds(), null).stream()
-                .map(ParkingLot::getParkingLotId)
-                .collect(java.util.stream.Collectors.toSet());
+        return organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut);
     }
 
     private UUID resolveParkingLotForIssuance(UUID requestedParkingLotId) {
@@ -357,7 +347,9 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
             return requestedParkingLotId;
         }
         if (requestedParkingLotId == null) {
-            if (accessibleParkingLotIds.size() == 1) {
+            if (currentAccountPortIn.hasPermission(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)
+                    && !currentAccountPortIn.hasPermission(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
+                    && accessibleParkingLotIds.size() == 1) {
                 return accessibleParkingLotIds.iterator().next();
             }
             throw new BadRequestException("Vui lòng chọn bãi xe cấp thẻ");

@@ -196,6 +196,7 @@ class ParkingCheckOutUseCaseImplTest {
         CheckOutResult result = parkingCheckOutUseCase.checkOut(command(data.laneId(), "51A-12345"));
 
         assertEquals(ParkingSessionStatus.CLOSED, result.parkingSession().getStatus());
+        assertEquals(data.parkingLotId(), result.parkingSession().getParkingLotId());
         assertEquals(BigDecimal.ZERO, result.parkingSession().getTotalPrice());
         assertEquals(CardStatus.ASSIGNED, card.getStatus());
         assertEquals("SUBSCRIPTION", result.customerType());
@@ -203,6 +204,22 @@ class ParkingCheckOutUseCaseImplTest {
         assertNull(result.invoice());
         verify(priceRulePortOut, never()).findActiveVisitorRuleByTime(any(), any(), any());
         verify(invoicePortOut, never()).save(any(Invoice.class));
+    }
+
+    @Test
+    void shouldRejectCheckOutThroughAnotherParkingLot() {
+        TestData data = validTestData();
+        Card card = card(data.cardId(), data.vehicleTypeId(), CardStatus.IN_USE);
+        ParkingSession openSession = subscriptionOpenSession(data);
+        openSession.setParkingLotId(UUID.randomUUID());
+
+        mockOperationalTopology(data);
+        when(cardPortOut.findByUidForUpdate("UID-001")).thenReturn(Optional.of(card));
+        when(parkingSessionPortOut.findOpenByCardId(data.cardId())).thenReturn(Optional.of(openSession));
+
+        assertThrows(ConflictException.class,
+                () -> parkingCheckOutUseCase.checkOut(command(data.laneId(), "51A-12345")));
+        verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
     }
 
     @Test

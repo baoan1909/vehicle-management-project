@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.iam.organization.authorization;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
@@ -139,11 +140,36 @@ class OrganizationAccessGuardTest {
                 OrganizationAccessGuard.PARKING_MANAGER,
                 AccountStatus.ACTIVE,
                 EmployeeStatus.ACTIVE,
-                Set.of(OrganizationAccessGuard.PARKING_TOPOLOGY_CONFIGURE_ALL)
+                Set.of(OrganizationAccessGuard.PARKING_TOPOLOGY_CONFIGURE_ALL,
+                        OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)
         ));
         when(organizationPortOut.findScopedParkingLotIdsByAccountId(accountId)).thenReturn(Set.of(parkingLotId));
 
         assertDoesNotThrow(() -> organizationAccessGuard.ensureCanConfigureParkingLot(parkingLot(parkingLotId)));
+    }
+
+    @Test
+    void partnerRoleWithoutScopePermissionCannotSeeParkingData() {
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(new CurrentAccountAccess(
+                UUID.randomUUID(), "subject", "partner", "partner@example.com", UUID.randomUUID(),
+                OrganizationAccessGuard.PARTNER_ADMIN, AccountStatus.ACTIVE, null, Set.of()
+        ));
+
+        assertThrows(AccessDeniedException.class, organizationAccessGuard::resolveParkingLotAccessScope);
+    }
+
+    @Test
+    void partnerScopePermissionUsesActiveMembershipRatherThanHardCodedRole() {
+        UUID accountId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(new CurrentAccountAccess(
+                accountId, "subject", "operator", "operator@example.com", UUID.randomUUID(),
+                "CUSTOM_OPERATOR", AccountStatus.ACTIVE, null,
+                Set.of(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
+        ));
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(accountId)).thenReturn(Set.of(organizationId));
+
+        assertEquals(Set.of(organizationId), organizationAccessGuard.resolveParkingLotAccessScope().organizationIds());
     }
 
     private ParkingLot parkingLot(UUID parkingLotId) {
@@ -163,7 +189,11 @@ class OrganizationAccessGuardTest {
                 roleCode,
                 AccountStatus.ACTIVE,
                 OrganizationAccessGuard.PARKING_MANAGER.equals(roleCode) ? EmployeeStatus.ACTIVE : null,
-                Set.of()
+                Set.of(OrganizationAccessGuard.SYSTEM_ADMIN.equals(roleCode)
+                        ? OrganizationAccessGuard.PARKING_SCOPE_PLATFORM
+                        : OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
+                        ? OrganizationAccessGuard.PARKING_SCOPE_PARTNER
+                        : OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)
         );
     }
 }

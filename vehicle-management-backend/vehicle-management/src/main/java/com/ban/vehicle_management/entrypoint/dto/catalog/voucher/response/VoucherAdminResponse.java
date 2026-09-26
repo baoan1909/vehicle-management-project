@@ -24,8 +24,8 @@ public class VoucherAdminResponse {
     private BigDecimal minimumSubscriptionAmount;
     private Integer maxRedemptions;
     private Integer maxRedemptionsPerCustomer;
-    private String validFrom;
-    private String validTo;
+    private Instant validFrom;
+    private Instant validTo;
     private boolean showOnDashboard;
     private boolean showOnSubscriptionPage;
     private String bannerTitle;

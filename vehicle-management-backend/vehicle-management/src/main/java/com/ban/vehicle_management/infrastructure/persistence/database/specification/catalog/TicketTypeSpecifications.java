@@ -3,15 +3,24 @@ package com.ban.vehicle_management.infrastructure.persistence.database.specifica
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.TicketTypeEntity;
 import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import org.springframework.data.jpa.domain.Specification;
+import java.util.Set;
+import java.util.UUID;
 
 public class TicketTypeSpecifications {
     private  TicketTypeSpecifications(){
     }
 
     public static Specification<TicketTypeEntity> withFilters(TicketTypeStatus status, String keyword){
+        return withFilters(status, keyword, null);
+    }
+
+    public static Specification<TicketTypeEntity> withFilters(TicketTypeStatus status, String keyword,
+                                                               Set<UUID> organizationIds){
         return  Specification
                 .where(hasStatus(status))
-                .and(containsKeyword(keyword));
+                .and(containsKeyword(keyword))
+                .and((root, query, criteriaBuilder) -> organizationIds == null
+                        ? null : root.get("organizationId").in(organizationIds));
     }
 
     private static  Specification<TicketTypeEntity> hasStatus(TicketTypeStatus status){

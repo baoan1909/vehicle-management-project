@@ -21,6 +21,16 @@ public interface ShiftAssignmentRepository
         extends JpaRepository<ShiftAssignmentEntity, UUID>,
         JpaSpecificationExecutor<ShiftAssignmentEntity> {
 
+    @Query("""
+            SELECT DISTINCT assignment.shift.parkingLotId
+            FROM ShiftAssignmentEntity assignment, AccountEntity account
+            WHERE account.accountId = :accountId
+              AND assignment.employee.userProfileId = account.userProfileId
+              AND assignment.status = com.ban.vehicle_management.shared.enumeration.operations.ShiftAssignmentStatus.ACTIVE
+              AND assignment.shift.status = com.ban.vehicle_management.shared.enumeration.operations.ShiftStatus.OPEN
+            """)
+    List<UUID> findOpenShiftParkingLotIdsByAccountId(@Param("accountId") UUID accountId);
+
     interface RecentEmployeeShiftProjection {
         UUID getAssignmentId();
 

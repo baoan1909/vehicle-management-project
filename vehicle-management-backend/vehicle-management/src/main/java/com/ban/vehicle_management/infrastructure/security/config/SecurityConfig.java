@@ -84,6 +84,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET,
+                                "/api/public/parking-lots",
                                 "/api/public/pricing/**",
                                 "/api/public/payments/vnpay/**",
                                 "/api/notifications/broadcast-announcements/active"

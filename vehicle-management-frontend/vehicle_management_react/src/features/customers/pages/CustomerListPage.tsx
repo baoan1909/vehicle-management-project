@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 import { Badge, Button, Card, DatePicker, EntityAvatar, InfoBanner, Input, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
 import { createAndOpenCustomerSupportConversation } from "@/features/support";
 import { cn } from "@/lib/cn";
-import { getApplicationTimeZone } from "@/shared/time/applicationTime";
+import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
+import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 
 import {
   activateCustomer,
@@ -410,6 +414,18 @@ function Field({ children, label }: { children: ReactNode; label: string }) {
 
 export function CustomerListPage() {
   const toast = useToast();
+  const { user } = useAuth();
+  const canManageCustomer = hasAnyPermission(user, ["CUSTOMER_UPDATE_ALL"])
+    && hasAnyPermission(user, ["PARKING_SCOPE_PLATFORM"]);
+  const canApproveCustomer = hasAnyPermission(user, ["ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL"])
+    && hasAnyPermission(user, ["PARKING_SCOPE_PLATFORM"]);
+  const canReviewSubscriptions = hasAnyPermission(user, ["SUBSCRIPTION_APPROVE_ALL", "SUBSCRIPTION_REJECT_ALL"])
+    && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER", "PARKING_SCOPE_ASSIGNED"]);
+  const hasParkingLotScope = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER", "PARKING_SCOPE_ASSIGNED"]);
+  const hasPlatformScope = hasAnyPermission(user, ["PARKING_SCOPE_PLATFORM"]);
+  const canCreateVehicle = hasPlatformScope && hasAnyPermission(user, ["CUSTOMER_VEHICLE_CREATE_ALL"]);
+  const canUpdateVehicle = hasPlatformScope && hasAnyPermission(user, ["CUSTOMER_VEHICLE_UPDATE_ALL"]);
+  const canDeleteVehicle = hasPlatformScope && hasAnyPermission(user, ["CUSTOMER_VEHICLE_DELETE_ALL"]);
 
   async function handleContactCustomer(customer: CustomerAdminResponse) {
     try {
@@ -424,6 +440,8 @@ export function CustomerListPage() {
 
   const [activeSegment, setActiveSegment] = useState<SegmentValue>("all");
   const [customers, setCustomers] = useState<CustomerAdminResponse[]>([]);
+  const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
+  const [parkingLotId, setParkingLotId] = useState("all");
   const [subscriptionCards, setSubscriptionCards] = useState<CustomerSubscriptionCardResponse[]>([]);
   const [vehicles, setVehicles] = useState<CustomerVehicleAdminResponse[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeResponse[]>([]);
@@ -442,7 +460,10 @@ export function CustomerListPage() {
   const loadCustomers = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await fetchCustomers({ keyword: keyword.trim() || undefined });
+      const data = await fetchCustomers({
+        keyword: keyword.trim() || undefined,
+        parkingLotId: hasParkingLotScope && parkingLotId !== "all" ? parkingLotId : undefined,
+      });
       setCustomers(data);
       setSelectedCustomerId((current) => (current && data.some((item) => item.customerId === current) ? current : data[0]?.customerId ?? null));
     } catch (error) {
@@ -450,7 +471,14 @@ export function CustomerListPage() {
     } finally {
       setLoading(false);
     }
-  }, [keyword, toast]);
+  }, [hasParkingLotScope, keyword, parkingLotId, toast]);
+
+  useEffect(() => {
+    if (!hasParkingLotScope) return;
+    getParkingLots()
+      .then((response) => setParkingLots(response.data ?? []))
+      .catch(() => setParkingLots([]));
+  }, [hasParkingLotScope]);
 
   useEffect(() => {
     const timeout = window.setTimeout(loadCustomers, 300);
@@ -761,10 +789,13 @@ export function CustomerListPage() {
             </a>
           </div>
           <div className="tw-flex tw-flex-shrink-0 tw-items-center tw-gap-3">
-            <Button size="lg" variant="primary" onClick={() => setActiveSegment("pending")}>
+            {canApproveCustomer ? <Button size="lg" variant="primary" onClick={() => setActiveSegment("pending")}>
               <i className="fas fa-check" />
-              Duyệt đăng ký
-            </Button>
+              Duyệt tài khoản
+            </Button> : null}
+            {canReviewSubscriptions ? <Link className="tw-inline-flex tw-h-11 tw-items-center tw-gap-2 tw-rounded-vm-md tw-bg-vm-primary tw-px-4 tw-font-bold tw-text-white hover:tw-bg-vm-primary-hover hover:tw-text-white hover:tw-no-underline" to="/admin/subscription-approvals">
+              <i className="fas fa-ticket-alt" />Duyệt đơn vé
+            </Link> : null}
             <Button size="lg" variant="secondary" onClick={loadCustomers} disabled={loading}>
               <i className="fas fa-download" />
               Xuất dữ liệu
@@ -773,7 +804,7 @@ export function CustomerListPage() {
           </div>
         </div>
 
-        <InfoBanner
+        {canApproveCustomer ? <InfoBanner
           tone="warning"
           title="Chờ duyệt đăng ký mới"
           description={`Hiện có ${metrics.pending} đăng ký khách hàng đang chờ duyệt.`}
@@ -783,10 +814,12 @@ export function CustomerListPage() {
               Xem danh sách <i className="fas fa-chevron-right tw-ml-2 tw-text-[0.68rem]" />
             </button>
           }
-        />
+        /> : null}
 
         <div className="tw-mt-4 tw-grid tw-grid-cols-4 tw-gap-4 max-[1180px]:tw-grid-cols-2">
-          <CustomerMetric icon="far fa-clock" iconClassName="tw-bg-amber-50 tw-text-amber-500" label="Chờ duyệt" value={metrics.pending} />
+          {canApproveCustomer
+            ? <CustomerMetric icon="far fa-clock" iconClassName="tw-bg-amber-50 tw-text-amber-500" label="Tài khoản chờ duyệt" value={metrics.pending} />
+            : <CustomerMetric icon="fas fa-users" iconClassName="tw-bg-amber-50 tw-text-amber-500" label="Khách hàng trong phạm vi" value={formatNumber(customers.length)} />}
           <CustomerMetric icon="fas fa-crown" iconClassName="tw-bg-violet-50 tw-text-violet-600" label="VIP" value={metrics.vip} />
           <CustomerMetric icon="fas fa-car" iconClassName="tw-bg-brand-100 tw-text-vm-primary" label="Xe liên kết" value={metrics.linkedVehicles} />
           <CustomerMetric icon="far fa-credit-card" iconClassName="tw-bg-green-50 tw-text-green-600" label="Vé đang hiệu lực" value={metrics.activeTickets} />
@@ -796,6 +829,14 @@ export function CustomerListPage() {
           <Card className="tw-flex tw-h-full tw-min-h-0 tw-flex-col tw-overflow-hidden">
             <div className="tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-4">
               <h2 className="tw-m-0 tw-text-[0.95rem] tw-font-extrabold tw-text-vm-slate-900">Danh sách khách hàng</h2>
+              {hasParkingLotScope ? <div className="tw-mt-3">
+                <SelectMenu
+                  ariaLabel="Lọc khách hàng theo bãi xe"
+                  options={[{ label: "Tất cả bãi được quản lý", value: "all" }, ...parkingLots.map((lot) => ({ label: lot.name, value: lot.parkingLotId }))]}
+                  value={parkingLotId}
+                  onChange={(value) => { setParkingLotId(value); setCustomerPage(1); }}
+                />
+              </div> : null}
               <label className="tw-mt-3 tw-flex tw-h-[38px] tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3">
                 <i className="fas fa-search tw-text-[0.82rem] tw-text-vm-slate-500" />
                 <input
@@ -806,7 +847,7 @@ export function CustomerListPage() {
                 />
               </label>
               <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
-                {segmentTabs.map((tab) => (
+                {segmentTabs.filter((tab) => canApproveCustomer || (tab.value !== "approved" && tab.value !== "pending")).map((tab) => (
                   <button
                     key={tab.value}
                     type="button"
@@ -911,18 +952,21 @@ export function CustomerListPage() {
                       <i className="far fa-comment-dots" />
                       Liên hệ
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={openEditModal}>
+                    {canManageCustomer ? <Button size="sm" variant="secondary" onClick={openEditModal}>
                       <i className="fas fa-pen" />
                       Cập nhật
-                    </Button>
-                    <Button size="sm" variant="secondary" onClick={handleApproveSelectedCustomer} disabled={submitting}>
+                    </Button> : null}
+                    {canApproveCustomer ? <Button size="sm" variant="secondary" onClick={handleApproveSelectedCustomer} disabled={submitting}>
                       <i className="fas fa-check" />
-                      Duyệt
-                    </Button>
-                    <Button size="sm" variant={selectedCustomer.status === "ACTIVE" ? "danger" : "primary"} onClick={handleToggleCustomerStatus} disabled={submitting}>
+                      Duyệt tài khoản
+                    </Button> : null}
+                    {canReviewSubscriptions ? <Link className="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-px-3 tw-py-2 tw-text-[0.75rem] tw-font-bold tw-text-vm-primary hover:tw-border-vm-primary hover:tw-no-underline" to={`/admin/subscription-approvals?customerId=${encodeURIComponent(selectedCustomer.customerId)}`}>
+                      <i className="fas fa-ticket-alt" /> Đơn đăng ký vé
+                    </Link> : null}
+                    {canManageCustomer ? <Button size="sm" variant={selectedCustomer.status === "ACTIVE" ? "danger" : "primary"} onClick={handleToggleCustomerStatus} disabled={submitting}>
                       <i className={selectedCustomer.status === "ACTIVE" ? "fas fa-pause" : "fas fa-play"} />
                       {selectedCustomer.status === "ACTIVE" ? "Tạm khóa" : "Kích hoạt"}
-                    </Button>
+                    </Button> : null}
                   </div>
                 </>
               ) : (
@@ -1060,7 +1104,7 @@ export function CustomerListPage() {
             <Field label="Ngày sinh">
               <DatePicker
                 ariaLabel="Ngày sinh"
-                max={new Date().toISOString().slice(0, 10)}
+                max={todayApplicationIsoDate()}
                 value={form.dateOfBirth}
                 onChange={(value) => setForm((current) => (current ? { ...current, dateOfBirth: value } : current))}
               />
@@ -1089,7 +1133,7 @@ export function CustomerListPage() {
       <Modal
         open={vehicleManagerOpen}
         onClose={() => setVehicleManagerOpen(false)}
-        title="Quản lý xe liên kết"
+        title={canCreateVehicle || canUpdateVehicle || canDeleteVehicle ? "Quản lý xe liên kết" : "Xe liên kết"}
         description={selectedCustomer ? `${selectedCode} · ${selectedName}` : undefined}
         width="lg"
         actions={
@@ -1101,7 +1145,7 @@ export function CustomerListPage() {
         }
       >
         <div className="tw-grid tw-gap-4">
-          <Card className="tw-p-4">
+          {canCreateVehicle || (canUpdateVehicle && editingVehicle) ? <Card className="tw-p-4">
             <h3 className="tw-m-0 tw-text-[0.96rem] tw-font-black tw-text-vm-slate-900">{editingVehicle ? "Cập nhật xe" : "Thêm xe"}</h3>
             <div className="tw-mt-3 tw-grid tw-grid-cols-2 tw-gap-3 max-[640px]:tw-grid-cols-1">
               <Field label="Biển số">
@@ -1133,18 +1177,18 @@ export function CustomerListPage() {
                 Đặt làm xe mặc định
               </label>
               <div className="tw-flex tw-gap-2">
-                {editingVehicle ? (
+                {editingVehicle && canUpdateVehicle ? (
                   <Button size="sm" variant="secondary" onClick={resetVehicleEditor} disabled={submitting}>
                     Hủy sửa
                   </Button>
                 ) : null}
-                <Button size="sm" onClick={handleSaveVehicle} loading={submitting}>
+                {(editingVehicle ? canUpdateVehicle : canCreateVehicle) ? <Button size="sm" onClick={handleSaveVehicle} loading={submitting}>
                   {!submitting ? <i className="fas fa-save" /> : null}
                   {submitting ? "Đang lưu..." : editingVehicle ? "Lưu xe" : "Thêm xe"}
-                </Button>
+                </Button> : null}
               </div>
             </div>
-          </Card>
+          </Card> : null}
 
           <div className="tw-grid tw-gap-2">
             {vehicles.length === 0 ? (
@@ -1163,26 +1207,26 @@ export function CustomerListPage() {
                         {getVehicleTypeName(vehicleTypes, vehicle.vehicleTypeId)} · {vehicle.brand || "--"} · {vehicle.color || "--"}
                       </p>
                     </div>
-                    <div className="tw-flex tw-flex-wrap tw-gap-2">
-                      <Button size="sm" variant="secondary" onClick={() => editVehicle(vehicle)} disabled={submitting}>
+                    {canUpdateVehicle || canDeleteVehicle ? <div className="tw-flex tw-flex-wrap tw-gap-2">
+                      {canUpdateVehicle ? <Button size="sm" variant="secondary" onClick={() => editVehicle(vehicle)} disabled={submitting}>
                         <i className="fas fa-pen" />
                         Sửa
-                      </Button>
-                      {!vehicle.isDefault ? (
+                      </Button> : null}
+                      {canUpdateVehicle && !vehicle.isDefault ? (
                         <Button size="sm" variant="secondary" onClick={() => handleMarkDefaultVehicle(vehicle)} disabled={submitting}>
                           <i className="fas fa-star" />
                           Mặc định
                         </Button>
                       ) : null}
-                      <Button size="sm" variant={vehicle.status === "ACTIVE" ? "danger" : "primary"} onClick={() => handleToggleVehicle(vehicle)} disabled={submitting}>
+                      {canUpdateVehicle ? <Button size="sm" variant={vehicle.status === "ACTIVE" ? "danger" : "primary"} onClick={() => handleToggleVehicle(vehicle)} disabled={submitting}>
                         <i className={vehicle.status === "ACTIVE" ? "fas fa-pause" : "fas fa-play"} />
                         {vehicle.status === "ACTIVE" ? "Ngưng" : "Kích hoạt"}
-                      </Button>
-                      <Button size="sm" variant="danger" onClick={() => handleDeleteVehicle(vehicle)} disabled={submitting}>
+                      </Button> : null}
+                      {canDeleteVehicle ? <Button size="sm" variant="danger" onClick={() => handleDeleteVehicle(vehicle)} disabled={submitting}>
                         <i className="fas fa-trash" />
                         Xóa
-                      </Button>
-                    </div>
+                      </Button> : null}
+                    </div> : null}
                   </div>
                 </article>
               ))

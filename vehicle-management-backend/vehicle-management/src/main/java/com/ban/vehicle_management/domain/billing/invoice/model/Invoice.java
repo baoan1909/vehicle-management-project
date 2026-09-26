@@ -17,6 +17,7 @@ import lombok.Setter;
 public class Invoice extends AuditableDomainModel {
 
     private UUID invoiceId;
+    private UUID parkingLotId;
     private String invoiceNo;
     private UUID customerId;
     private UUID parkingSessionId;

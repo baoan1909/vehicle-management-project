@@ -17,6 +17,7 @@ export type LostCardReportContext =
 
 export type LostCardReportResponse = {
   lostCardReportId: string;
+  parkingLotId: string | null;
   reportCode: string;
   cardId: string | null;
   customerId: string | null;
@@ -45,6 +46,7 @@ export type LostCardReportResponse = {
 
 export type LostCardReportFilter = {
   status?: LostCardReportStatus;
+  parkingLotId?: string;
   context?: LostCardReportContext;
   customerId?: string;
   cardId?: string;
@@ -64,6 +66,7 @@ export type LostCardReportSummaryResponse = {
 
 export type LostCardPreviewResponse = {
   context: LostCardReportContext;
+  parkingLotId: string | null;
   parkingSession: LostCardParkingSessionResponse | null;
   subscription: LostCardSubscriptionResponse | null;
   cardId: string | null;
@@ -92,6 +95,7 @@ export type CreateLostCardReportRequest = {
 
 export type LostCardReportDetailReportResponse = {
   lostCardReportId: string;
+  parkingLotId: string | null;
   cardId: string | null;
   customerId: string | null;
   parkingSessionId: string | null;
@@ -240,7 +244,7 @@ export async function getLostCardReports(filter: LostCardReportFilter = {}) {
   );
 }
 
-export async function getLostCardReportSummary(filter: Pick<LostCardReportFilter, "fromDate" | "toDate"> = {}) {
+export async function getLostCardReportSummary(filter: Pick<LostCardReportFilter, "fromDate" | "toDate" | "parkingLotId"> = {}) {
   const params = new URLSearchParams();
 
   Object.entries(filter).forEach(([key, value]) => {

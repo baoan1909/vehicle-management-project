@@ -15,6 +15,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class PriceRuleAdminResponse {
     private UUID priceRuleId;
+    private UUID organizationId;
     private UUID pricePlanId;
     private UUID vehicleTypeId;
     private UUID ticketTypeId;

@@ -9,6 +9,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface LostCardReportPortOut {
@@ -30,7 +31,8 @@ public interface LostCardReportPortOut {
             UUID subscriptionId,
             Instant fromDate,
             Instant toDate,
-            String keyword
+            String keyword,
+            Set<UUID> parkingLotIds
     );
 
     List<LostCardReportListItemResult> findListItems(
@@ -42,14 +44,15 @@ public interface LostCardReportPortOut {
             UUID subscriptionId,
             Instant fromDate,
             Instant toDate,
-            String keyword
+            String keyword,
+            Set<UUID> parkingLotIds
     );
 
-    long countByStatus(LostCardReportStatus status);
+    long countByStatus(LostCardReportStatus status, Set<UUID> parkingLotIds);
 
-    long countByStatusAndResolvedAtBetween(LostCardReportStatus status, Instant fromDate, Instant toDate);
+    long countByStatusAndResolvedAtBetween(LostCardReportStatus status, Instant fromDate, Instant toDate, Set<UUID> parkingLotIds);
 
-    long countOpenByInvoiceStatus(InvoiceStatus invoiceStatus);
+    long countOpenByInvoiceStatus(InvoiceStatus invoiceStatus, Set<UUID> parkingLotIds);
 
-    long countDistinctCardsByCardStatus(CardStatus cardStatus);
+    long countDistinctCardsByCardStatus(CardStatus cardStatus, Set<UUID> parkingLotIds);
 }

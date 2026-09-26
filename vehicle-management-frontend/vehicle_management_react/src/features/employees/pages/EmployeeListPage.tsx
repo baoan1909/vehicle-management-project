@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { Badge, Button, Card, DatePicker, Drawer, EntityAvatar, InfoBanner, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
-import { getApplicationTimeZone } from "@/shared/time/applicationTime";
+import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import {
   activateEmployee,
   getEmployeeActivityTimeline,
@@ -324,7 +324,7 @@ function exportEmployees(rows: Employee[]) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `nhan-vien-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `nhan-vien-${todayApplicationIsoDate()}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();

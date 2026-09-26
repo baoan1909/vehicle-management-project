@@ -9,6 +9,8 @@ import java.util.UUID;
 public interface TicketTypePortIn {
     TicketType createTicketType(TicketType ticketType);
 
+    TicketType createTicketType(TicketType ticketType, UUID parkingLotId);
+
     TicketType getTicketTypeById(UUID ticketTypeId);
 
     List<TicketType> getTicketTypes(TicketTypeStatus status, String keywork);

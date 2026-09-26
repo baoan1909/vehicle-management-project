@@ -19,6 +19,7 @@ public class LostCardReport extends AuditableDomainModel {
 
     private UUID lostCardReportId;
     private UUID cardId;
+    private UUID parkingLotId;
     private UUID customerId;
     private UUID parkingSessionId;
     private UUID subscriptionId;

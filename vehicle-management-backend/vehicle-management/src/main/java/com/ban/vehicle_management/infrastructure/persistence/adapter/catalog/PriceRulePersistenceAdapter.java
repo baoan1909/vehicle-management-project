@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
@@ -69,8 +70,15 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
             Boolean isActive,
             String keyword
     ) {
+        return findAll(pricePlanId, vehicleTypeId, ticketTypeId, isActive, keyword, null);
+    }
+
+    @Override
+    public List<PriceRule> findAll(UUID pricePlanId, UUID vehicleTypeId, UUID ticketTypeId,
+            Boolean isActive, String keyword, Set<UUID> organizationIds) {
         return priceRuleRepository.findAll(
-                        PriceRuleSpecifications.withFilters(pricePlanId, vehicleTypeId, ticketTypeId, isActive, keyword)
+                        PriceRuleSpecifications.withFilters(pricePlanId, vehicleTypeId, ticketTypeId,
+                                isActive, keyword, organizationIds)
                 )
                 .stream()
                 .map(priceRulePersistenceMapper::toDomain)
@@ -179,6 +187,14 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
             LocalDate effectiveDate
     ) {
         return priceRuleRepository.findActiveSubscriptionRule(vehicleTypeId, ticketTypeId, effectiveDate)
+                .map(priceRulePersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<PriceRule> findActiveSubscriptionRuleInOrganization(
+            UUID canonicalVehicleTypeId, UUID ticketTypeId, UUID organizationId, LocalDate effectiveDate) {
+        return priceRuleRepository.findActiveSubscriptionRuleInOrganization(
+                canonicalVehicleTypeId, ticketTypeId, organizationId, effectiveDate)
                 .map(priceRulePersistenceMapper::toDomain);
     }
 

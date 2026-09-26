@@ -15,6 +15,8 @@ import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePo
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.parking.parkingevent.port.out.ParkingEventPortOut;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
@@ -59,9 +61,11 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
-import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -94,6 +98,8 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
     private final CustomerVehiclePortOut customerVehiclePortOut;
     private final FileAccessPort fileAccessPort;
     private int parkingImageReadUrlExpirySeconds = 900;
+    private final OrganizationAccessGuard organizationAccessGuard;
+    private final ParkingLotPortOut parkingLotPortOut;
 
     private final LostCardReportPolicy lostCardReportPolicy = new LostCardReportPolicy();
     private final ParkingSessionPolicy parkingSessionPolicy = new ParkingSessionPolicy();
@@ -115,7 +121,9 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
             PaymentPortOut paymentPortOut,
             CustomerPortOut customerPortOut,
             CustomerVehiclePortOut customerVehiclePortOut,
-            FileAccessPort fileAccessPort
+            FileAccessPort fileAccessPort,
+            OrganizationAccessGuard organizationAccessGuard,
+            ParkingLotPortOut parkingLotPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.lostCardReportAccessGuard = lostCardReportAccessGuard;
@@ -130,6 +138,8 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         this.customerPortOut = customerPortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
         this.fileAccessPort = fileAccessPort;
+        this.organizationAccessGuard = organizationAccessGuard;
+        this.parkingLotPortOut = parkingLotPortOut;
     }
 
     @Autowired
@@ -146,7 +156,14 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         Instant now = Instant.now();
         LocalDate businessDate = DateTimeUtils.toVietnamLocalDate(now);
 
-        List<ParkingSession> openSessions = parkingSessionPortOut.findOpenByLicensePlateIn(normalizedLicensePlate);
+        Set<UUID> accessibleLotIds = accessibleParkingLotIds();
+        List<ParkingSession> openSessions = parkingSessionPortOut.findOpenByLicensePlateIn(normalizedLicensePlate)
+                .stream()
+                .filter(session -> canAccessParkingLot(session.getParkingLotId(), accessibleLotIds))
+                .filter(session -> accessibleLotIds == null || cardPortOut.findById(session.getCardId())
+                        .map(card -> Objects.equals(card.getParkingLotId(), session.getParkingLotId()))
+                        .orElse(false))
+                .toList();
         if (openSessions.size() > 1) {
             throw new ConflictException("Multiple open parking sessions found for license plate");
         }
@@ -171,6 +188,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
 
             return new LostCardPreviewResult(
                     context,
+                    session.getParkingLotId(),
                     session,
                     subscription,
                     session.getCardId(),
@@ -189,7 +207,9 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
             );
         }
 
-        Subscription subscription = subscriptionPortOut.findActiveByLicensePlate(normalizedLicensePlate, businessDate)
+        Subscription subscription = (accessibleLotIds == null
+                        ? subscriptionPortOut.findActiveByLicensePlate(normalizedLicensePlate, businessDate)
+                        : subscriptionPortOut.findActiveByLicensePlate(normalizedLicensePlate, businessDate, accessibleLotIds))
                 .orElseThrow(() -> new NotFoundException("Open parking session or active subscription not found"));
 
         ParkingSession session = null;
@@ -197,6 +217,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
 
         return new LostCardPreviewResult(
                 LostCardReportContext.REGISTERED_OUTSIDE,
+                findCard(subscription.getCardId()).getParkingLotId(),
                 null,
                 subscription,
                 subscription.getCardId(),
@@ -265,6 +286,11 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 ? subscription.getCardId()
                 : session.getCardId();
         Card oldCard = findCard(cardId);
+        ensureCanAccessCard(oldCard);
+        requireField(oldCard.getParkingLotId(), "parkingLotId");
+        if (session != null && !Objects.equals(session.getParkingLotId(), oldCard.getParkingLotId())) {
+            throw new ConflictException("Thẻ không thuộc bãi xe của lượt gửi này");
+        }
 
         if (lostCardReportPortOut.existsOpenByCardId(cardId)) {
             throw new ConflictException("Open lost card report already exists for card");
@@ -280,6 +306,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
 
         report.setLostCardReportId(UUID.randomUUID());
         report.setCardId(cardId);
+        report.setParkingLotId(session == null ? oldCard.getParkingLotId() : session.getParkingLotId());
         report.setCustomerId(context == LostCardReportContext.VISITOR_IN_PARKING ? null : subscription.getCustomerId());
         report.setParkingSessionId(session == null ? null : session.getParkingSessionId());
         report.setSubscriptionId(subscription == null ? null : subscription.getSubscriptionId());
@@ -347,11 +374,15 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
             requireField(subscription, "subscription");
 
             Card newCard = findCard(newCardId);
+            ensureCanAccessCard(newCard);
             if (newCard.getStatus() != CardStatus.AVAILABLE) {
                 throw new ConflictException("New card must be AVAILABLE");
             }
 
             Card oldCard = findCard(report.getCardId());
+            if (!Objects.equals(report.getParkingLotId(), newCard.getParkingLotId())) {
+                throw new ConflictException("Thẻ thay thế phải thuộc cùng bãi xe với thẻ bị mất");
+            }
             if (!Objects.equals(oldCard.getCardTypeId(), newCard.getCardTypeId())) {
                 throw new ConflictException("New card must have the same card type as the lost card");
             }
@@ -393,8 +424,9 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         }
 
         Card oldCard = findCard(report.getCardId());
-        return cardPortOut.findAll(CardStatus.AVAILABLE, oldCard.getCardTypeId(), null)
+        return cardPortOut.findAll(CardStatus.AVAILABLE, oldCard.getCardTypeId(), null, accessibleParkingLotIds())
                 .stream()
+                .filter(card -> Objects.equals(card.getParkingLotId(), report.getParkingLotId()))
                 .map(card -> new LostCardReplacementCardResult(
                         card.getCardId(),
                         card.getCardNumber(),
@@ -516,7 +548,8 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 subscriptionId,
                 fromDate,
                 toDate,
-                normalizeKeyword(keyword)
+                normalizeKeyword(keyword),
+                accessibleParkingLotIds()
         );
     }
 
@@ -529,6 +562,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
             UUID cardId,
             UUID parkingSessionId,
             UUID subscriptionId,
+            UUID parkingLotId,
             Instant fromDate,
             Instant toDate,
             String keyword
@@ -544,20 +578,22 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 subscriptionId,
                 fromDate,
                 toDate,
-                normalizeKeyword(keyword)
+                normalizeKeyword(keyword),
+                resolveReportParkingLotScope(parkingLotId)
         );
     }
 
     @Override
     @Transactional(readOnly = true)
-    public LostCardReportSummaryResult getSummary(Instant fromDate, Instant toDate) {
+    public LostCardReportSummaryResult getSummary(Instant fromDate, Instant toDate, UUID parkingLotId) {
         lostCardReportAccessGuard.ensureCanRead();
+        Set<UUID> parkingLotIds = resolveReportParkingLotScope(parkingLotId);
 
         return new LostCardReportSummaryResult(
-                lostCardReportPortOut.countByStatus(LostCardReportStatus.OPEN),
-                lostCardReportPortOut.countOpenByInvoiceStatus(InvoiceStatus.UNPAID),
-                lostCardReportPortOut.countByStatusAndResolvedAtBetween(LostCardReportStatus.RESOLVED, fromDate, toDate),
-                lostCardReportPortOut.countDistinctCardsByCardStatus(CardStatus.LOST)
+                lostCardReportPortOut.countByStatus(LostCardReportStatus.OPEN, parkingLotIds),
+                lostCardReportPortOut.countOpenByInvoiceStatus(InvoiceStatus.UNPAID, parkingLotIds),
+                lostCardReportPortOut.countByStatusAndResolvedAtBetween(LostCardReportStatus.RESOLVED, fromDate, toDate, parkingLotIds),
+                lostCardReportPortOut.countDistinctCardsByCardStatus(CardStatus.LOST, parkingLotIds)
         );
     }
 
@@ -629,6 +665,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         invoice.setInvoiceId(UUID.randomUUID());
         invoice.setCustomerId(report.getCustomerId());
         invoice.setLostCardReportId(report.getLostCardReportId());
+        invoice.setParkingLotId(report.getParkingLotId());
         invoice.setAmount(totalAmount);
         invoice.setDiscountAmount(BigDecimal.ZERO);
         LicensePlateResolution plate = new LicensePlatePolicy().resolve(licensePlate, null);
@@ -696,8 +733,37 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
     }
 
     private LostCardReport findReport(UUID lostCardReportId) {
-        return lostCardReportPortOut.findById(lostCardReportId)
+        LostCardReport report = lostCardReportPortOut.findById(lostCardReportId)
                 .orElseThrow(() -> new NotFoundException("Lost card report not found"));
+        if (!canAccessParkingLot(report.getParkingLotId(), accessibleParkingLotIds())) {
+            throw new AccessDeniedException("Không có quyền truy cập phiếu báo mất của bãi xe này");
+        }
+        return report;
+    }
+
+    private Set<UUID> accessibleParkingLotIds() {
+        return organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut);
+    }
+
+    private Set<UUID> resolveReportParkingLotScope(UUID requestedParkingLotId) {
+        Set<UUID> accessibleLotIds = accessibleParkingLotIds();
+        if (requestedParkingLotId == null) {
+            return accessibleLotIds;
+        }
+        if (!canAccessParkingLot(requestedParkingLotId, accessibleLotIds)) {
+            throw new AccessDeniedException("Không có quyền truy cập phiếu báo mất của bãi xe này");
+        }
+        return Set.of(requestedParkingLotId);
+    }
+
+    private boolean canAccessParkingLot(UUID parkingLotId, Set<UUID> accessibleLotIds) {
+        return accessibleLotIds == null || parkingLotId != null && accessibleLotIds.contains(parkingLotId);
+    }
+
+    private void ensureCanAccessCard(Card card) {
+        if (!canAccessParkingLot(card.getParkingLotId(), accessibleParkingLotIds())) {
+            throw new AccessDeniedException("Không có quyền truy cập thẻ của bãi xe này");
+        }
     }
 
     private Invoice findInvoiceForReport(UUID lostCardReportId) {

@@ -15,6 +15,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -24,6 +25,7 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
 
     private static final Instant MIN_FILTER_INSTANT = Instant.parse("1900-01-01T00:00:00Z");
     private static final Instant MAX_FILTER_INSTANT = Instant.parse("9999-12-31T23:59:59Z");
+    private static final Set<UUID> UNRESTRICTED_QUERY_IDS = Set.of(new UUID(0L, 0L));
 
     private final LostCardReportRepository lostCardReportRepository;
     private final LostCardReportPersistenceMapper lostCardReportPersistenceMapper;
@@ -71,8 +73,12 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
             UUID subscriptionId,
             Instant fromDate,
             Instant toDate,
-            String keyword
+            String keyword,
+            Set<UUID> parkingLotIds
     ) {
+        if (parkingLotIds != null && parkingLotIds.isEmpty()) {
+            return List.of();
+        }
         return lostCardReportRepository.findAll(buildSpecification(
                 status,
                 context,
@@ -82,7 +88,8 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
                 subscriptionId,
                 fromDate,
                 toDate,
-                normalizeKeyword(keyword)
+                normalizeKeyword(keyword),
+                parkingLotIds
         )).stream().map(lostCardReportPersistenceMapper::toDomain).toList();
     }
 
@@ -96,8 +103,12 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
             UUID subscriptionId,
             Instant fromDate,
             Instant toDate,
-            String keyword
+            String keyword,
+            Set<UUID> parkingLotIds
     ) {
+        if (parkingLotIds != null && parkingLotIds.isEmpty()) {
+            return List.of();
+        }
         return lostCardReportRepository.findListItems(
                 status,
                 context,
@@ -107,39 +118,59 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
                 subscriptionId,
                 fromDateOrDefault(fromDate),
                 toDateOrDefault(toDate),
-                toKeywordPattern(keyword)
+                toKeywordPattern(keyword),
+                parkingLotIds != null,
+                queryIds(parkingLotIds)
         );
     }
 
     @Override
-    public long countByStatus(LostCardReportStatus status) {
-        return lostCardReportRepository.countByStatus(status);
+    public long countByStatus(LostCardReportStatus status, Set<UUID> parkingLotIds) {
+        if (isEmptyScope(parkingLotIds)) {
+            return 0;
+        }
+        return lostCardReportRepository.countByStatusInParkingLots(status, parkingLotIds != null, queryIds(parkingLotIds));
     }
 
     @Override
     public long countByStatusAndResolvedAtBetween(
             LostCardReportStatus status,
             Instant fromDate,
-            Instant toDate
+            Instant toDate,
+            Set<UUID> parkingLotIds
     ) {
+        if (isEmptyScope(parkingLotIds)) {
+            return 0;
+        }
         return lostCardReportRepository.countByStatusAndResolvedAtBetween(
                 status,
                 fromDateOrDefault(fromDate),
-                toDateOrDefault(toDate)
+                toDateOrDefault(toDate),
+                parkingLotIds != null,
+                queryIds(parkingLotIds)
         );
     }
 
     @Override
-    public long countOpenByInvoiceStatus(InvoiceStatus invoiceStatus) {
+    public long countOpenByInvoiceStatus(InvoiceStatus invoiceStatus, Set<UUID> parkingLotIds) {
+        if (isEmptyScope(parkingLotIds)) {
+            return 0;
+        }
         return lostCardReportRepository.countByReportStatusAndInvoiceStatus(
                 LostCardReportStatus.OPEN,
-                invoiceStatus
+                invoiceStatus,
+                parkingLotIds != null,
+                queryIds(parkingLotIds)
         );
     }
 
     @Override
-    public long countDistinctCardsByCardStatus(CardStatus cardStatus) {
-        return lostCardReportRepository.countDistinctCardsByCardStatus(cardStatus);
+    public long countDistinctCardsByCardStatus(CardStatus cardStatus, Set<UUID> parkingLotIds) {
+        if (isEmptyScope(parkingLotIds)) {
+            return 0;
+        }
+        return lostCardReportRepository.countDistinctCardsByCardStatus(
+                cardStatus, parkingLotIds != null, queryIds(parkingLotIds));
     }
 
     private Specification<LostCardReportEntity> buildSpecification(
@@ -151,10 +182,15 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
             UUID subscriptionId,
             Instant fromDate,
             Instant toDate,
-            String keyword
+            String keyword,
+            Set<UUID> parkingLotIds
     ) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            if (parkingLotIds != null) {
+                predicates.add(root.get("parkingLotId").in(parkingLotIds));
+            }
 
             if (status != null) {
                 predicates.add(cb.equal(root.get("status"), status));
@@ -197,6 +233,14 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
 
     private String normalizeKeyword(String keyword) {
         return keyword == null || keyword.isBlank() ? null : keyword.trim();
+    }
+
+    private boolean isEmptyScope(Set<UUID> parkingLotIds) {
+        return parkingLotIds != null && parkingLotIds.isEmpty();
+    }
+
+    private Set<UUID> queryIds(Set<UUID> parkingLotIds) {
+        return parkingLotIds == null ? UNRESTRICTED_QUERY_IDS : parkingLotIds;
     }
 
     private String toKeywordPattern(String keyword) {

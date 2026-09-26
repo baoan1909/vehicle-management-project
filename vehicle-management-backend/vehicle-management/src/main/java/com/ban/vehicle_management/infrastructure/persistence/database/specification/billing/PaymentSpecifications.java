@@ -5,6 +5,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.Set;
 import org.springframework.data.jpa.domain.Specification;
 
 public final class PaymentSpecifications {
@@ -21,14 +22,33 @@ public final class PaymentSpecifications {
             Instant toDate,
             String keyword
     ) {
+        return withFilters(invoiceId, paymentMethod, status, receivedBy, fromDate, toDate, keyword, null);
+    }
+
+    public static Specification<PaymentEntity> withFilters(
+            UUID invoiceId,
+            PaymentMethod paymentMethod,
+            PaymentStatus status,
+            UUID receivedBy,
+            Instant fromDate,
+            Instant toDate,
+            String keyword,
+            Set<UUID> parkingLotIds
+    ) {
         return Specification
-                .where(hasInvoiceId(invoiceId))
+                .where(inParkingLots(parkingLotIds))
+                .and(hasInvoiceId(invoiceId))
                 .and(hasPaymentMethod(paymentMethod))
                 .and(hasStatus(status))
                 .and(hasReceivedBy(receivedBy))
                 .and(paidAtFrom(fromDate))
                 .and(paidAtTo(toDate))
                 .and(containsKeyword(keyword));
+    }
+
+    private static Specification<PaymentEntity> inParkingLots(Set<UUID> parkingLotIds) {
+        return (root, query, cb) -> parkingLotIds == null
+                ? null : root.join("invoice").get("parkingLotId").in(parkingLotIds);
     }
 
     private static Specification<PaymentEntity> hasInvoiceId(UUID invoiceId) {

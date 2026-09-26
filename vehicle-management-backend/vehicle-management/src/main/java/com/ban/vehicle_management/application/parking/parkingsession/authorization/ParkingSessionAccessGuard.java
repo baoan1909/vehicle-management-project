@@ -54,11 +54,7 @@ public class ParkingSessionAccessGuard {
     }
 
     public void ensureCanUseCardInParkingLot(Card card, ParkingLot parkingLot) {
-        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
-        if ((OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
-                || OrganizationAccessGuard.PARKING_MANAGER.equals(roleCode)
-                || "EMPLOYEE".equals(roleCode))
-                && !parkingLot.getParkingLotId().equals(card.getParkingLotId())) {
+        if (!parkingLot.getParkingLotId().equals(card.getParkingLotId())) {
             throw new AccessDeniedException("Card is not assigned to this parking lot");
         }
     }

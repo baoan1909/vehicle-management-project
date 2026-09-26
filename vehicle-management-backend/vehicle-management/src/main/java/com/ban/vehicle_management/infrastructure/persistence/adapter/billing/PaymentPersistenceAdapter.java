@@ -11,6 +11,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -52,6 +53,20 @@ public class PaymentPersistenceAdapter implements PaymentPortOut {
             Instant toDate,
             String keyword
     ) {
+        return findAll(invoiceId, paymentMethod, status, receivedBy, fromDate, toDate, keyword, null);
+    }
+
+    @Override
+    public List<Payment> findAll(
+            UUID invoiceId,
+            PaymentMethod paymentMethod,
+            PaymentStatus status,
+            UUID receivedBy,
+            Instant fromDate,
+            Instant toDate,
+            String keyword,
+            Set<UUID> parkingLotIds
+    ) {
         return paymentRepository.findAll(PaymentSpecifications.withFilters(
                         invoiceId,
                         paymentMethod,
@@ -59,7 +74,8 @@ public class PaymentPersistenceAdapter implements PaymentPortOut {
                         receivedBy,
                         fromDate,
                         toDate,
-                        keyword
+                        keyword,
+                        parkingLotIds
                 )).stream()
                 .map(paymentPersistenceMapper::toDomain)
                 .toList();

@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record LostCardPreviewResult(
         LostCardReportContext context,
+        UUID parkingLotId,
         ParkingSession parkingSession,
         Subscription subscription,
         UUID cardId,

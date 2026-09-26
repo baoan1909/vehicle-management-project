@@ -11,9 +11,14 @@ public interface TicketTypeRepository
 
     boolean existsByCodeAndStatus(String code, TicketTypeStatus status);
 
+    boolean existsByCodeAndStatusAndOrganizationId(String code, TicketTypeStatus status, UUID organizationId);
+
     boolean existsByCodeAndStatusAndTicketTypeIdNot(
             String code,
             TicketTypeStatus status,
             UUID ticketTypeId
     );
+
+    boolean existsByCodeAndStatusAndOrganizationIdAndTicketTypeIdNot(
+            String code, TicketTypeStatus status, UUID organizationId, UUID ticketTypeId);
 }

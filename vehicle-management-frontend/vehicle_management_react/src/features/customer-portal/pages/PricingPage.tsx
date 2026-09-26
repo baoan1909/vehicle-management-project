@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import { ClientPage } from "@/shared/components/layout/ClientPage";
-import { getApplicationTimeZone } from "@/shared/time/applicationTime";
+import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import {
   getPublicPricePlans,
   getPublicPriceRules,
@@ -374,7 +374,7 @@ export function PricingPage() {
 
       try {
         const [planResponse, ruleResponse, vehicleTypeResponse, ticketTypeResponse] = await Promise.all([
-          getPublicPricePlans({ effectiveDate: new Date().toISOString().slice(0, 10), isActive: true }),
+          getPublicPricePlans({ effectiveDate: todayApplicationIsoDate(), isActive: true }),
           getPublicPriceRules({ isActive: true }),
           getPublicPricingVehicleTypes(),
           getPublicPricingTicketTypes(),

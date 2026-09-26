@@ -184,6 +184,10 @@ export function CardDetailPanel({
                 <strong className="tw-inline-flex tw-items-center tw-gap-2 tw-break-all tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{row.cardTypeLabel}</strong>
               </div>
               <div className="tw-grid tw-grid-cols-[76px_1fr] tw-items-center tw-gap-[0.65rem]">
+                <span className="tw-text-[0.88rem] tw-font-medium tw-text-vm-slate-500">Bãi xe</span>
+                <strong className="tw-break-words tw-text-[0.9rem] tw-font-semibold tw-text-slate-900">{row.parkingLotLabel}</strong>
+              </div>
+              <div className="tw-grid tw-grid-cols-[76px_1fr] tw-items-center tw-gap-[0.65rem]">
                 <span className="tw-text-[0.88rem] tw-font-medium tw-text-vm-slate-500">Trạng thái</span>
                 <CardStateBadge kind="inventory" label={row.inventoryStatusLabel} value={row.inventoryStatus} />
               </div>

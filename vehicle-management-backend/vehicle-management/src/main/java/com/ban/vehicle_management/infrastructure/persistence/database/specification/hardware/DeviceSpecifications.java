@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.har
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceStatus;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -17,14 +18,24 @@ public final class DeviceSpecifications {
             UUID laneId,
             DeviceType deviceType,
             DeviceStatus status,
-            String keyword
+            String keyword,
+            Set<UUID> accessibleParkingLotIds
     ) {
         return Specification
                 .where(hasParkingLotId(parkingLotId))
                 .and(hasLaneId(laneId))
                 .and(hasDeviceType(deviceType))
                 .and(hasStatus(status))
-                .and(containsKeyword(keyword));
+                .and(containsKeyword(keyword))
+                .and(isInAccessibleParkingLots(accessibleParkingLotIds));
+    }
+
+    private static Specification<DeviceEntity> isInAccessibleParkingLots(Set<UUID> accessibleParkingLotIds) {
+        return (root, query, criteriaBuilder) -> {
+            if (accessibleParkingLotIds == null) return null;
+            if (accessibleParkingLotIds.isEmpty()) return criteriaBuilder.disjunction();
+            return root.get("parkingLotId").in(accessibleParkingLotIds);
+        };
     }
 
     private static Specification<DeviceEntity> hasParkingLotId(UUID parkingLotId) {

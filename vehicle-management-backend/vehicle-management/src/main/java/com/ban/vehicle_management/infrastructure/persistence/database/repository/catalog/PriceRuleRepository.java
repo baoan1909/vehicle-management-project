@@ -75,6 +75,25 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
     );
 
     @Query("""
+        select priceRule from PriceRuleEntity priceRule
+        join priceRule.pricePlan pricePlan
+        join priceRule.vehicleType vehicleType
+        where priceRule.isActive = true
+          and priceRule.organizationId = :organizationId
+          and vehicleType.canonicalVehicleTypeId = :canonicalVehicleTypeId
+          and priceRule.ticketTypeId = :ticketTypeId
+          and priceRule.timeFrom is null and priceRule.timeTo is null
+          and pricePlan.isActive = true
+          and pricePlan.appliesTo = com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo.CUSTOMER
+          and pricePlan.effectiveFrom <= :effectiveDate
+          and (pricePlan.effectiveTo is null or pricePlan.effectiveTo >= :effectiveDate)
+        order by priceRule.priority asc, priceRule.createdAt desc
+        limit 1
+        """)
+    Optional<PriceRuleEntity> findActiveSubscriptionRuleInOrganization(
+            UUID canonicalVehicleTypeId, UUID ticketTypeId, UUID organizationId, LocalDate effectiveDate);
+
+    @Query("""
         select priceRule
         from PriceRuleEntity priceRule
         join priceRule.pricePlan pricePlan

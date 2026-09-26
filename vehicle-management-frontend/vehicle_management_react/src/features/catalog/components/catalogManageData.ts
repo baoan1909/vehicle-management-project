@@ -3,6 +3,7 @@ export type CatalogStatusTabValue = "all" | CatalogStatus;
 
 export type TicketCatalogRecord = {
   id: string;
+  organizationId?: string;
   code: string;
   name: string;
   duration: string;
@@ -19,6 +20,7 @@ export type TicketCatalogRecord = {
 
 export type VehicleCatalogRecord = {
   id: string;
+  organizationId?: string;
   code: string;
   name: string;
   description: string;

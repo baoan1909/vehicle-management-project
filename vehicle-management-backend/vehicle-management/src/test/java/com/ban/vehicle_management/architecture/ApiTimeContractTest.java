@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 class ApiTimeContractTest {
 
     private static final Pattern STRING_TIME_FIELD = Pattern.compile(
-            "\\bString\\s+[A-Za-z0-9_]*(?:At|Time)\\b"
+            "\\bString\\s+(?:[A-Za-z0-9_]*(?:At|Time|Timestamp)|(?:valid|effective)(?:From|To))\\b"
     );
 
     @Test

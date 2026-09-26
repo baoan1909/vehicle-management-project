@@ -18,6 +18,7 @@ import lombok.Setter;
 public class Subscription extends AuditableDomainModel {
 
     private UUID subscriptionId;
+    private UUID parkingLotId;
     private UUID customerId;
     private UUID customerVehicleId;
     private UUID cardId;

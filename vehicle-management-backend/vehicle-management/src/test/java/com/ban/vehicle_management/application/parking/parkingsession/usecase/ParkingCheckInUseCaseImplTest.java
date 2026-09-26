@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -12,6 +13,7 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
+import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
 import com.ban.vehicle_management.application.parking.lane.port.out.LanePortOut;
@@ -101,6 +103,9 @@ class ParkingCheckInUseCaseImplTest {
     private ParkingLotPortOut parkingLotPortOut;
 
     @Mock
+    private ParkingLotCatalogAvailabilityPortOut catalogAvailabilityPortOut;
+
+    @Mock
     private ParkingSessionPortOut parkingSessionPortOut;
 
     @Mock
@@ -125,11 +130,14 @@ class ParkingCheckInUseCaseImplTest {
                 gatePortOut,
                 zonePortOut,
                 parkingLotPortOut,
+                catalogAvailabilityPortOut,
                 parkingSessionPortOut,
                 parkingEventPortOut,
                 Mappers.getMapper(ParkingCheckInMapper.class),
                 fileStoragePort
         );
+        lenient().when(catalogAvailabilityPortOut.isVehicleTypeEnabled(any(UUID.class), any(UUID.class)))
+                .thenReturn(true);
     }
 
     @Test
@@ -173,6 +181,7 @@ class ParkingCheckInUseCaseImplTest {
         assertNull(result.parkingSession().getCustomerId());
         assertEquals(data.cardId(), result.parkingSession().getCardId());
         assertEquals(data.zoneId(), result.parkingSession().getZoneId());
+        assertEquals(data.parkingLotId(), result.parkingSession().getParkingLotId());
         assertEquals("51A12345", result.parkingSession().getLicensePlateIn());
         assertEquals(ParkingEventType.CHECK_IN, result.parkingEvent().getEventType());
         assertEquals(data.laneId(), result.parkingEvent().getLaneId());
@@ -254,6 +263,25 @@ class ParkingCheckInUseCaseImplTest {
         assertEquals(data.customerVehicleId(), result.parkingSession().getCustomerVehicleId());
         assertEquals(data.vehicleTypeId(), result.parkingSession().getVehicleTypeId());
         assertEquals("51A12345", result.parkingSession().getLicensePlateIn());
+    }
+
+    @Test
+    void shouldRejectCheckInWhenVehicleTypeIsNotAcceptedAtLot() {
+        TestData data = validTestData();
+        Card visitorCard = card(data.cardId(), data.vehicleTypeId(), CardStatus.AVAILABLE);
+        mockOperationalTopology(data);
+        when(cardPortOut.findByUidForUpdate("UID-001")).thenReturn(Optional.of(visitorCard));
+        when(cardTypePortOut.findById(visitorCard.getCardTypeId()))
+                .thenReturn(Optional.of(cardType(visitorCard.getCardTypeId(), "VISITOR")));
+        when(parkingSessionPortOut.existsOpenByCardId(data.cardId())).thenReturn(false);
+        when(parkingSessionPortOut.countOpenByZoneId(data.zoneId())).thenReturn(3L);
+        when(catalogAvailabilityPortOut.isVehicleTypeEnabled(data.parkingLotId(), data.vehicleTypeId()))
+                .thenReturn(false);
+
+        assertThrows(ConflictException.class, () -> parkingCheckInUseCase.checkIn(
+                new CheckInCommand("UID-001", data.laneId(), data.vehicleTypeId(), "51A-12345",
+                        licensePlateImage(), personImage(), null)));
+        verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
     }
 
     @Test

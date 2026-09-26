@@ -184,6 +184,7 @@ export function CardListTable({
               </th>
               <th>Mã thẻ <HeaderSort /></th>
               <th>Loại thẻ <HeaderSort /></th>
+              <th>Bãi xe</th>
               <th>Khách hàng</th>
               <th>Biển số</th>
               <th>Trạng thái</th>
@@ -195,14 +196,14 @@ export function CardListTable({
           <tbody>
             {isLoading ? (
               <tr>
-                <td className="tw-py-10 tw-text-center tw-font-bold tw-text-vm-slate-500" colSpan={9}>
+                <td className="tw-py-10 tw-text-center tw-font-bold tw-text-vm-slate-500" colSpan={10}>
                   Đang tải danh sách thẻ...
                 </td>
               </tr>
             ) : null}
             {!isLoading && rows.length === 0 ? (
               <tr>
-                <td className="tw-py-10 tw-text-center tw-font-bold tw-text-vm-slate-500" colSpan={9}>
+                <td className="tw-py-10 tw-text-center tw-font-bold tw-text-vm-slate-500" colSpan={10}>
                   Không có thẻ phù hợp với bộ lọc hiện tại.
                 </td>
               </tr>
@@ -225,6 +226,7 @@ export function CardListTable({
                   </td>
                   <td className="tw-font-bold tw-text-vm-primary">{row.cardCode}</td>
                   <td>{row.cardTypeLabel}</td>
+                  <td>{row.parkingLotLabel}</td>
                   <td>{row.customerName ?? "-"}</td>
                   <td>{row.licensePlate ?? "-"}</td>
                   <td>

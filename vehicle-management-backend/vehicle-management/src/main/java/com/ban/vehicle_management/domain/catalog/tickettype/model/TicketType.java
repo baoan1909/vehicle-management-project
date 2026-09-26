@@ -16,6 +16,7 @@ import lombok.Setter;
 public class TicketType extends AuditableDomainModel {
 
     private UUID ticketTypeId;
+    private UUID organizationId;
     private String code;
     private String name;
     private String description;

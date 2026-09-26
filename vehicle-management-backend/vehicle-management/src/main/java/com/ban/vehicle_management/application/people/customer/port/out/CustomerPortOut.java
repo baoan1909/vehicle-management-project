@@ -6,6 +6,7 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface CustomerPortOut {
@@ -20,6 +21,13 @@ public interface CustomerPortOut {
             CustomerType customerType,
             String keyword
     );
+
+    List<Customer> findAll(
+            CustomerStatus status, CustomerApprovalStatus approvalStatus,
+            CustomerType customerType, String keyword, Set<UUID> parkingLotIds
+    );
+
+    boolean existsInParkingLots(UUID customerId, Set<UUID> parkingLotIds);
 
     boolean existsByCustomerCode(String customerCode);
 

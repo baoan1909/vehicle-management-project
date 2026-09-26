@@ -749,6 +749,12 @@ export function DeviceManagementPage() {
     () => new Map(lanes.map((lane) => [lane.laneId, lane])),
     [lanes],
   );
+  // Parking lots are already scoped by the backend. Never render a device whose
+  // lot is absent from that authorized list, even if an older device API leaks it.
+  const scopedDevices = useMemo(
+    () => devices.filter((device) => parkingLotMap.has(device.parkingLotId)),
+    [devices, parkingLotMap],
+  );
   const filterLanes = useMemo(
     () =>
       parkingLotFilter === "all"
@@ -759,7 +765,7 @@ export function DeviceManagementPage() {
 
   const visibleDevices = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
-    return devices.filter((device) => {
+    return scopedDevices.filter((device) => {
       const parkingLot = parkingLotMap.get(device.parkingLotId);
       const lane = device.laneId ? laneMap.get(device.laneId) : null;
       const matchKeyword =
@@ -779,7 +785,7 @@ export function DeviceManagementPage() {
       );
     });
   }, [
-    devices,
+    scopedDevices,
     keyword,
     laneFilter,
     laneMap,
@@ -801,10 +807,10 @@ export function DeviceManagementPage() {
 
   const startOffset = (currentPage - 1) * pageSize;
   const paginatedDevices = visibleDevices.slice(startOffset, startOffset + pageSize);
-  const activeCount = devices.filter((device) => device.status === "ACTIVE").length;
-  const maintenanceCount = devices.filter((device) => device.status === "MAINTENANCE").length;
-  const offlineCount = devices.filter((device) => device.status === "OFFLINE").length;
-  const retiredCount = devices.filter((device) => device.status === "RETIRED").length;
+  const activeCount = scopedDevices.filter((device) => device.status === "ACTIVE").length;
+  const maintenanceCount = scopedDevices.filter((device) => device.status === "MAINTENANCE").length;
+  const offlineCount = scopedDevices.filter((device) => device.status === "OFFLINE").length;
+  const retiredCount = scopedDevices.filter((device) => device.status === "RETIRED").length;
 
   const handleOpenCreate = () => {
     setEditingDevice(null);
@@ -940,7 +946,7 @@ export function DeviceManagementPage() {
             iconClassName="tw-bg-brand-50 tw-text-vm-primary"
             label="Tổng thiết bị"
             meta={`${retiredCount.toLocaleString("vi-VN")} đã ngưng sử dụng`}
-            value={devices.length}
+            value={scopedDevices.length}
           />
           <DeviceMetric
             icon="fas fa-check-circle"

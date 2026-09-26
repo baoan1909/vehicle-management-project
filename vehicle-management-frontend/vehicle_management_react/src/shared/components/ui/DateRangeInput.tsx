@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
 import { SelectMenu, type SelectMenuOption } from "@/shared/components/ui/SelectMenu";
+import { currentApplicationCalendarDate } from "@/shared/time/applicationTime";
 
 type DateRangeInputProps = {
   ariaLabel?: string;
@@ -92,11 +93,11 @@ function isSameDay(left: Date | null, right: Date | null) {
 }
 
 function isFutureDate(date: Date) {
-  return startOfDay(date).getTime() > startOfDay(new Date()).getTime();
+  return startOfDay(date).getTime() > startOfDay(currentApplicationCalendarDate()).getTime();
 }
 
 function getRollingRange(days: number) {
-  const today = startOfDay(new Date());
+  const today = startOfDay(currentApplicationCalendarDate());
   const start = new Date(today);
   start.setDate(today.getDate() - (days - 1));
 
@@ -104,7 +105,7 @@ function getRollingRange(days: number) {
 }
 
 function getShortcutRange(key: ShortcutKey) {
-  const today = startOfDay(new Date());
+  const today = startOfDay(currentApplicationCalendarDate());
 
   switch (key) {
     case "today":
@@ -143,7 +144,7 @@ function buildCalendarDays(baseMonth: Date) {
 }
 
 function buildYearOptions(...dates: Array<Date | null>) {
-  const currentYear = new Date().getFullYear();
+  const currentYear = currentApplicationCalendarDate().getFullYear();
   const years = new Set(Array.from({ length: 11 }, (_, index) => currentYear - 10 + index));
 
   dates.forEach((date) => {
@@ -160,12 +161,12 @@ export function DateRangeInput({ ariaLabel = "Khoảng ngày", className, label,
   const panelRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<PickerPosition>({ left: 0, top: 0 });
-  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(new Date()));
+  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(currentApplicationCalendarDate()));
 
   const parsedRange = useMemo(() => splitRange(value), [value]);
   const displayStart = parsedRange.start ? formatDisplayDate(parsedRange.start) : "Từ ngày";
   const displayEnd = parsedRange.end ? formatDisplayDate(parsedRange.end) : "Đến ngày";
-  const currentMonthStart = startOfMonth(new Date());
+  const currentMonthStart = startOfMonth(currentApplicationCalendarDate());
   const calendars = [buildCalendarDays(visibleMonth), buildCalendarDays(addMonths(visibleMonth, 1))];
   const canGoNext = addMonths(visibleMonth, 1).getTime() <= currentMonthStart.getTime();
   const yearOptions = useMemo(() => buildYearOptions(visibleMonth, parsedRange.start, parsedRange.end), [parsedRange.end, parsedRange.start, visibleMonth]);
@@ -183,7 +184,7 @@ export function DateRangeInput({ ariaLabel = "Khoảng ngày", className, label,
   useEffect(() => {
     if (!open) return;
 
-    setVisibleMonth(startOfMonth(parsedRange.start ?? new Date()));
+    setVisibleMonth(startOfMonth(parsedRange.start ?? currentApplicationCalendarDate()));
   }, [open, parsedRange.start]);
 
   useEffect(() => {
@@ -252,7 +253,7 @@ export function DateRangeInput({ ariaLabel = "Khoảng ngày", className, label,
 
   const clearRange = () => {
     onChange("");
-    setVisibleMonth(startOfMonth(new Date()));
+    setVisibleMonth(startOfMonth(currentApplicationCalendarDate()));
     setOpen(false);
   };
 

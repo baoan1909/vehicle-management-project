@@ -61,6 +61,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
 
         Invoice invoice = invoicePortOut.findById(invoiceId)
                 .orElseThrow(() -> new NotFoundException("Invoice not found"));
+        paymentAccessGuard.ensureCanRecordPayment(invoice);
 
         validatePayableInvoice(invoice);
         validatePaymentAmount(payment, invoice);
@@ -122,7 +123,8 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
                 receivedBy,
                 fromDate,
                 toDate,
-                normalizeKeyword(keyword)
+                normalizeKeyword(keyword),
+                paymentAccessGuard.visibleParkingLotIdsForList()
         );
     }
 

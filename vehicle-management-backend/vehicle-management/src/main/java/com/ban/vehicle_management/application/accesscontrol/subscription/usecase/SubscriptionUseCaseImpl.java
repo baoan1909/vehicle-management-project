@@ -7,6 +7,7 @@ import com.ban.vehicle_management.application.accesscontrol.subscription.port.in
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.catalog.voucher.model.result.VoucherQuote;
+import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
 import com.ban.vehicle_management.application.catalog.voucher.port.in.VoucherPortIn;
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
@@ -14,6 +15,7 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
@@ -26,6 +28,7 @@ import com.ban.vehicle_management.domain.common.licenseplate.LicensePlateResolut
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
@@ -34,6 +37,7 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStat
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -71,6 +75,8 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private final InvoicePortOut invoicePortOut;
     private final VoucherPortIn voucherPortIn;
     private final ZonePortOut zonePortOut;
+    private final ParkingLotPortOut parkingLotPortOut;
+    private final ParkingLotCatalogAvailabilityPortOut catalogAvailabilityPortOut;
     private final CurrentAccountPortIn currentAccountPortIn;
     private final SubscriptionAccessGuard subscriptionAccessGuard;
     private final NotificationPortIn notificationPortIn;
@@ -88,6 +94,8 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             InvoicePortOut invoicePortOut,
             VoucherPortIn voucherPortIn,
             ZonePortOut zonePortOut,
+            ParkingLotPortOut parkingLotPortOut,
+            ParkingLotCatalogAvailabilityPortOut catalogAvailabilityPortOut,
             CurrentAccountPortIn currentAccountPortIn,
             SubscriptionAccessGuard subscriptionAccessGuard,
             NotificationPortIn notificationPortIn
@@ -101,6 +109,8 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         this.invoicePortOut = invoicePortOut;
         this.voucherPortIn = voucherPortIn;
         this.zonePortOut = zonePortOut;
+        this.parkingLotPortOut = parkingLotPortOut;
+        this.catalogAvailabilityPortOut = catalogAvailabilityPortOut;
         this.currentAccountPortIn = currentAccountPortIn;
         this.subscriptionAccessGuard = subscriptionAccessGuard;
         this.notificationPortIn = notificationPortIn;
@@ -144,6 +154,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     @Transactional
     public Subscription createSubscriptionForCustomer(Subscription subscription) {
         subscriptionAccessGuard.ensureCanCreateAll();
+        subscriptionAccessGuard.ensureCanCreateAtParkingLot(subscription.getParkingLotId());
         requireField(subscription.getCustomerId(), "customerId");
         return createPendingSubscription(subscription);
     }
@@ -177,7 +188,8 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 status,
                 effectiveFrom,
                 effectiveTo,
-                normalizeKeyword(keyword)
+                normalizeKeyword(keyword),
+                subscriptionAccessGuard.visibleParkingLotIdsForList()
         );
     }
 
@@ -213,6 +225,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         subscriptionAccessGuard.ensureCanApprove();
 
         Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        subscriptionAccessGuard.ensureCanOperate(subscription);
         Instant now = Instant.now();
         LocalDate today = currentDate();
 
@@ -230,13 +243,15 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
 
         SubscriptionPreparedData preparedData = prepareSubscriptionData(subscription);
         ensureNoOverlappingSubscription(subscription, subscriptionId);
-        ensureCapacityAvailable(preparedData.customerVehicle().getVehicleTypeId());
+        ensureCapacityAvailable(subscription.getParkingLotId(),
+                preparedData.priceRule().getVehicleTypeId(),
+                preparedData.customerVehicle().getVehicleTypeId());
 
         if (invoicePortOut.existsBySubscriptionIdAndStatusIn(subscriptionId, ACTIVE_INVOICE_STATUSES)) {
             throw new ConflictException("Active invoice already exists for subscription");
         }
 
-        Card reservedCard = cardPortOut.findFirstAvailableRegistered()
+        Card reservedCard = cardPortOut.findFirstAvailableRegisteredInParkingLot(subscription.getParkingLotId())
                 .orElseThrow(() -> new ConflictException("No available registered card"));
 
         cardPolicy.reserve(reservedCard);
@@ -286,6 +301,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         subscriptionAccessGuard.ensureCanReject();
 
         Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        subscriptionAccessGuard.ensureCanOperate(subscription);
         subscriptionPolicy.reject(
                 subscription,
                 reason,
@@ -319,6 +335,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         subscriptionAccessGuard.ensureCanAssignCard();
 
         Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        subscriptionAccessGuard.ensureCanOperate(subscription);
         TicketType ticketType = findActiveSubscriptionTicketType(subscription.getTicketTypeId());
 
         invoicePortOut.findFirstBySubscriptionIdAndStatus(subscriptionId, InvoiceStatus.PAID)
@@ -326,6 +343,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
 
         Card reservedCard = cardPortOut.findById(subscription.getCardId())
                 .orElseThrow(() -> new NotFoundException("Reserved card not found"));
+        ensureCardBelongsToSubscriptionLot(reservedCard, subscription);
 
         Instant now = Instant.now();
         cardPolicy.assignReserved(reservedCard, now);
@@ -356,6 +374,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             if (subscription.getCardId() != null) {
                 Card reservedCard = cardPortOut.findById(subscription.getCardId())
                         .orElseThrow(() -> new NotFoundException("Reserved card not found"));
+                ensureCardBelongsToSubscriptionLot(reservedCard, subscription);
                 cardPolicy.release(reservedCard);
                 cardPortOut.save(reservedCard);
                 subscription.setCardId(null);
@@ -374,6 +393,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         subscriptionAccessGuard.ensureCanExpire();
 
         Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        subscriptionAccessGuard.ensureCanOperate(subscription);
         subscriptionPolicy.expire(subscription, currentDate());
 
         Subscription expiredSubscription = subscriptionPortOut.save(subscription);
@@ -402,6 +422,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     }
 
     private SubscriptionPreparedData prepareSubscriptionData(Subscription subscription) {
+        ParkingLot parkingLot = requireActiveParkingLot(subscription.getParkingLotId());
         Customer customer = findActiveApprovedCustomer(subscription.getCustomerId());
 
         CustomerVehicle customerVehicle = customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
@@ -416,10 +437,20 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         }
 
         TicketType ticketType = findActiveSubscriptionTicketType(subscription.getTicketTypeId());
+        if (!parkingLot.getOrganizationId().equals(ticketType.getOrganizationId())) {
+            throw new BadRequestException("Ticket type does not belong to the selected parking lot Partner");
+        }
+        if (!catalogAvailabilityPortOut.isTicketTypeEnabled(parkingLot.getParkingLotId(), ticketType.getTicketTypeId())) {
+            throw new ConflictException("Ticket type is not offered at this parking lot");
+        }
+        if (!catalogAvailabilityPortOut.isVehicleTypeEnabled(parkingLot.getParkingLotId(), customerVehicle.getVehicleTypeId())) {
+            throw new ConflictException("Vehicle type is not accepted at this parking lot");
+        }
 
-        PriceRule priceRule = priceRulePortOut.findActiveSubscriptionRule(
+        PriceRule priceRule = priceRulePortOut.findActiveSubscriptionRuleInOrganization(
                         customerVehicle.getVehicleTypeId(),
                         ticketType.getTicketTypeId(),
+                        parkingLot.getOrganizationId(),
                         subscription.getRequestedEffectiveFrom()
                 )
                 .orElseThrow(() -> new NotFoundException("Active subscription price rule not found"));
@@ -429,6 +460,23 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         }
 
         return new SubscriptionPreparedData(customer, customerVehicle, ticketType, priceRule);
+    }
+
+    private ParkingLot requireActiveParkingLot(UUID parkingLotId) {
+        requireField(parkingLotId, "parkingLotId");
+        ParkingLot parkingLot = parkingLotPortOut.findById(parkingLotId)
+                .orElseThrow(() -> new NotFoundException("Parking lot not found"));
+        if (parkingLot.getStatus() != ParkingLotStatus.ACTIVE) {
+            throw new ConflictException("Parking lot is not active");
+        }
+        return parkingLot;
+    }
+
+    private void ensureCardBelongsToSubscriptionLot(Card card, Subscription subscription) {
+        if (subscription.getParkingLotId() == null
+                || !subscription.getParkingLotId().equals(card.getParkingLotId())) {
+            throw new ConflictException("Reserved card does not belong to the subscription parking lot");
+        }
     }
 
     private Customer findActiveApprovedCustomer(UUID customerId) {
@@ -470,8 +518,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     }
 
     private void ensureNoOverlappingSubscription(Subscription subscription, UUID excludedSubscriptionId) {
-        if (subscriptionPortOut.existsOverlappingSubscription(
+        if (subscriptionPortOut.existsOverlappingSubscriptionInParkingLot(
                 subscription.getCustomerVehicleId(),
+                subscription.getParkingLotId(),
                 subscription.getEffectiveFrom(),
                 subscription.getEffectiveTo(),
                 excludedSubscriptionId
@@ -480,13 +529,15 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         }
     }
 
-    private void ensureCapacityAvailable(UUID vehicleTypeId) {
-        long activeCapacity = zonePortOut.sumActiveCapacityByVehicleTypeId(vehicleTypeId);
+    private void ensureCapacityAvailable(UUID parkingLotId, UUID partnerVehicleTypeId, UUID canonicalVehicleTypeId) {
+        long activeCapacity = zonePortOut.sumActiveCapacityByVehicleTypeIdAndParkingLotId(
+                partnerVehicleTypeId, parkingLotId);
         if (activeCapacity <= 0) {
             throw new ConflictException("No active zone capacity available for vehicle type");
         }
 
-        long usedCapacity = subscriptionPortOut.countReservedOrActiveByVehicleTypeId(vehicleTypeId);
+        long usedCapacity = subscriptionPortOut.countReservedOrActiveByVehicleTypeIdInParkingLot(
+                canonicalVehicleTypeId, parkingLotId);
         if (usedCapacity >= activeCapacity) {
             throw new ConflictException("No available subscription capacity for vehicle type");
         }
@@ -522,6 +573,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         invoice.setInvoiceId(UUID.randomUUID());
         invoice.setCustomerId(subscription.getCustomerId());
         invoice.setSubscriptionId(subscription.getSubscriptionId());
+        invoice.setParkingLotId(subscription.getParkingLotId());
         invoice.setAmount(subscription.getPrice());
         invoice.setDiscountAmount(discountAmount);
         LicensePlateResolution plate = new LicensePlatePolicy().resolve(customerVehicle.getLicensePlate(), null);

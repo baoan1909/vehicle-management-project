@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -97,6 +98,14 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
             LocalDate effectiveTo,
             String keyword
     ) {
+        return findAll(customerId, customerVehicleId, cardId, ticketTypeId,
+                status, effectiveFrom, effectiveTo, keyword, null);
+    }
+
+    @Override
+    public List<Subscription> findAll(UUID customerId, UUID customerVehicleId, UUID cardId,
+            UUID ticketTypeId, SubscriptionStatus status, LocalDate effectiveFrom,
+            LocalDate effectiveTo, String keyword, Set<UUID> parkingLotIds) {
         return subscriptionRepository.findAll(
                         SubscriptionSpecifications.withFilters(
                                 customerId,
@@ -106,7 +115,8 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
                                 status,
                                 effectiveFrom,
                                 effectiveTo,
-                                keyword
+                                keyword,
+                                parkingLotIds
                         )
                 )
                 .stream()
@@ -131,11 +141,25 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
     }
 
     @Override
+    public boolean existsOverlappingSubscriptionInParkingLot(UUID customerVehicleId, UUID parkingLotId,
+            LocalDate effectiveFrom, LocalDate effectiveTo, UUID excludedSubscriptionId) {
+        return subscriptionRepository.existsOverlappingSubscriptionInParkingLot(
+                customerVehicleId, parkingLotId, effectiveFrom, effectiveTo,
+                OVERLAP_BLOCKING_STATUSES, excludedSubscriptionId);
+    }
+
+    @Override
     public long countReservedOrActiveByVehicleTypeId(UUID vehicleTypeId) {
         return subscriptionRepository.countByVehicleTypeIdAndStatusIn(
                 vehicleTypeId,
                 CAPACITY_HOLDING_STATUSES
         );
+    }
+
+    @Override
+    public long countReservedOrActiveByVehicleTypeIdInParkingLot(UUID canonicalVehicleTypeId, UUID parkingLotId) {
+        return subscriptionRepository.countByCanonicalVehicleTypeIdAndParkingLotIdAndStatusIn(
+                canonicalVehicleTypeId, parkingLotId, CAPACITY_HOLDING_STATUSES);
     }
 
     @Override
@@ -148,6 +172,21 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
                 .stream()
                 .findFirst()
                 .map(subscriptionPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Subscription> findActiveByLicensePlate(
+            String licensePlate, LocalDate businessDate, Set<UUID> parkingLotIds
+    ) {
+        if (parkingLotIds == null) {
+            return findActiveByLicensePlate(licensePlate, businessDate);
+        }
+        if (parkingLotIds.isEmpty()) {
+            return Optional.empty();
+        }
+        return subscriptionRepository.findActiveByLicensePlateInParkingLots(
+                        licensePlate, SubscriptionStatus.ACTIVE, businessDate, parkingLotIds)
+                .stream().findFirst().map(subscriptionPersistenceMapper::toDomain);
     }
 
     @Override

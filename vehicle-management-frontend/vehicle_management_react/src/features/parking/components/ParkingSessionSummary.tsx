@@ -33,9 +33,7 @@ function fallback(value?: string | null) {
 }
 
 function formatCurrentCheckOutTime() {
-  const now = new Date();
-  const pad = (value: number) => value.toString().padStart(2, "0");
-  return `${pad(now.getHours())}:${pad(now.getMinutes())} ${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
+  return formatApplicationDateTime(new Date());
 }
 
 function DetailRow({ icon, label, tone, value }: { icon: string; label: string; tone?: "success" | "warning"; value: string }) {

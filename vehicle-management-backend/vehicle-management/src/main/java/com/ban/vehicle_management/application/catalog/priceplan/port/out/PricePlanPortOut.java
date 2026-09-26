@@ -5,12 +5,19 @@ import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface PricePlanPortOut {
     PricePlan save(PricePlan pricePlan);
     Optional<PricePlan> findById(UUID pricePlanId);
     List<PricePlan> findAll(Boolean isActive, PricePlanAppliesTo appliesTo, LocalDate effectiveDate, String keyword);
+    List<PricePlan> findAll(Boolean isActive, PricePlanAppliesTo appliesTo, LocalDate effectiveDate, String keyword,
+                            Set<UUID> organizationIds);
+    boolean existsByCodeInOrganization(String code, UUID organizationId);
+    boolean existsByCodeInOrganizationExcludingId(String code, UUID organizationId, UUID pricePlanId);
+    boolean existsActiveOverlapInOrganization(UUID organizationId, PricePlanAppliesTo appliesTo,
+            LocalDate effectiveFrom, LocalDate effectiveTo, UUID excludedPricePlanId);
     boolean existsByCode(String code);
     boolean existsByCodeAndPricePlanIdNot(String code, UUID pricePlanId);
     boolean existsActiveOverlap(PricePlanAppliesTo appliesTo, LocalDate effectiveFrom, LocalDate effectiveTo, UUID excludedPricePlanId);

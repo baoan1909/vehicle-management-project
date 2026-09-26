@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 public record CreateInvoiceRequest (
+        UUID parkingLotId,
         UUID customerId,
         UUID parkingSessionId,
         UUID subscriptionId,

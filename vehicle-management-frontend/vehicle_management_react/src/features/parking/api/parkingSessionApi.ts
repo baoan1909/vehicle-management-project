@@ -107,6 +107,7 @@ export type ParkingSessionResponse = {
   licensePlateOutValidFormat?: boolean;
   licensePlateOutNeedsReview?: boolean;
   parkingSessionId: string;
+  parkingLotId?: string;
   status: "OPEN" | "CLOSED" | "LOST_CARD";
   totalPrice?: number;
   vehicleTypeId?: string;
@@ -232,6 +233,7 @@ export type ParkingSessionManagementResponse = {
 export type ParkingSessionManagementFilters = {
   fromDate?: string;
   keyword?: string;
+  parkingLotId?: string;
   status?: ParkingSessionResponse["status"];
   toDate?: string;
   vehicleTypeId?: string;
@@ -361,6 +363,7 @@ export async function fetchOpenParkingSessionByCardUid(cardUid: string) {
 
 export async function fetchParkingSessions(filters: ParkingSessionManagementFilters = {}) {
   const query = new URLSearchParams();
+  if (filters.parkingLotId) query.set("parkingLotId", filters.parkingLotId);
   if (filters.status) query.set("status", filters.status);
   if (filters.fromDate) query.set("fromDate", filters.fromDate);
   if (filters.toDate) query.set("toDate", filters.toDate);

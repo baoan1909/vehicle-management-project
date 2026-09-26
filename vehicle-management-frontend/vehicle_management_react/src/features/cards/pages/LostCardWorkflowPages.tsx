@@ -29,6 +29,9 @@ import {
 import { Modal } from "@/shared/components/ui/Modal";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 import { formatApplicationDateTime, toApplicationLocalDateTimeInput } from "@/shared/time/applicationTime";
+import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 
 type WorkflowStep = {
   number: number;
@@ -806,10 +809,13 @@ function PaymentConfirmModal({
 }
 
 export function LostCardCreatePage() {
+  const { user } = useAuth();
+  const canReadParkingLots = hasAnyPermission(user, ["PARKING_LOT_READ_ALL"]);
   const navigate = useNavigate();
   const previewRequestIdRef = useRef(0);
   const [licensePlate, setLicensePlate] = useState("");
   const [preview, setPreview] = useState<LostCardPreviewResponse | null>(null);
+  const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
   const [timeOfLost, setTimeOfLost] = useState(() => toDateTimeLocalValue(new Date()) ?? "");
   const [reporterName, setReporterName] = useState("");
   const [reporterPhone, setReporterPhone] = useState("");
@@ -820,6 +826,17 @@ export function LostCardCreatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<LostCardReportFieldErrors>({});
+
+  useEffect(() => {
+    if (!canReadParkingLots) return undefined;
+    let active = true;
+    void getParkingLots().then((response) => {
+      if (active) setParkingLots(response.data ?? []);
+    }).catch(() => {
+      if (active) setParkingLots([]);
+    });
+    return () => { active = false; };
+  }, [canReadParkingLots]);
 
   const clearFieldErrors = (...fields: Array<keyof LostCardReportFieldErrors>) => {
     setFieldErrors((currentErrors) => {
@@ -985,6 +1002,12 @@ export function LostCardCreatePage() {
                   <InfoBox label="Thẻ cũ" value={preview?.oldCardNumber || "-"} />
                   <InfoBox label="Khách hàng" value={preview?.customerName || (preview?.customerId ? "Khách hàng đã liên kết" : "Không liên kết")} />
                 </div>
+                <InfoBox
+                  label="Bãi xe báo mất (tự xác định từ phiên gửi xe hoặc thẻ)"
+                  value={preview?.parkingLotId
+                    ? parkingLots.find((lot) => lot.parkingLotId === preview.parkingLotId)?.name ?? "Bãi xe đã liên kết"
+                    : "Tra cứu biển số để xác định bãi xe"}
+                />
 
                 <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-md:tw-grid-cols-1">
                   <LostCardEvidenceImage

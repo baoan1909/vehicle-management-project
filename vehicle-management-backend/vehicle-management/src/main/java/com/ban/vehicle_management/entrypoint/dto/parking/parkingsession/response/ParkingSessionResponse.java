@@ -18,6 +18,7 @@ public class ParkingSessionResponse {
     private UUID customerVehicleId;
     private UUID vehicleTypeId;
     private UUID zoneId;
+    private UUID parkingLotId;
     private String licensePlateIn;
     private String licensePlateOut;
     private String licensePlateInNormalized;

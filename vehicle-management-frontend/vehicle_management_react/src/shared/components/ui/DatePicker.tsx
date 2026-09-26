@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { cn } from "@/lib/cn";
+import { currentApplicationCalendarDate } from "@/shared/time/applicationTime";
 
 type DatePickerProps = {
   ariaDescribedBy?: string;
@@ -112,7 +113,7 @@ export function DatePicker({
   const selectedDate = useMemo(() => parseIsoDate(value), [value]);
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<CalendarView>("day");
-  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(selectedDate ?? new Date()));
+  const [visibleMonth, setVisibleMonth] = useState(() => startOfMonth(selectedDate ?? currentApplicationCalendarDate()));
   const [yearPageStart, setYearPageStart] = useState(() => visibleMonth.getFullYear() - 5);
   const [yearInput, setYearInput] = useState(() => `${visibleMonth.getFullYear()}`);
   const monthDays = useMemo(() => buildMonthDays(visibleMonth), [visibleMonth]);

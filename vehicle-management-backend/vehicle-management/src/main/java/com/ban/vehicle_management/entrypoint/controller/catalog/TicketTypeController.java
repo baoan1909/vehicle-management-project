@@ -29,8 +29,9 @@ public class TicketTypeController {
 
     @PostMapping
     @PreAuthorize("@permissionAuthorizer.hasPermission('TICKET_TYPE_CREATE_ALL')")
-    public ResponseEntity<ApiResponse<TicketTypeAdminResponse>> createTicketType(@RequestBody CreateTicketTypeRequest request){
-        TicketType createdTicketType = ticketTypePortIn.createTicketType(ticketTypeApiMapper.toDomain(request));
+    public ResponseEntity<ApiResponse<TicketTypeAdminResponse>> createTicketType(
+            @RequestBody CreateTicketTypeRequest request, @RequestParam(required = false) UUID parkingLotId){
+        TicketType createdTicketType = ticketTypePortIn.createTicketType(ticketTypeApiMapper.toDomain(request), parkingLotId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok("Ticket type created successfully", ticketTypeApiMapper.toAdminResponse(createdTicketType)));
     }

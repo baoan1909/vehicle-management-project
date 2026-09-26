@@ -11,6 +11,8 @@ public interface OrganizationPortOut {
 
     Optional<Organization> findById(UUID organizationId);
 
+    Optional<Organization> findByCode(String code);
+
     List<Organization> findAllByIds(Set<UUID> organizationIds);
 
     List<Organization> findAll();

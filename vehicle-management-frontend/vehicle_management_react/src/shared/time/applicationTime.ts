@@ -64,6 +64,22 @@ export function nowApplicationLocalDateTime(): string {
   return toApplicationLocalDateTimeInput(new Date())!;
 }
 
+export function todayApplicationIsoDate(): string {
+  return nowApplicationLocalDateTime().slice(0, 10);
+}
+
+/** Calendar-only UI date whose numeric fields represent the configured application timezone. */
+export function currentApplicationCalendarDate(): Date {
+  const [datePart, timePart] = nowApplicationLocalDateTime().split("T");
+  const [year, month, day] = datePart.split("-").map(Number);
+  const [hour, minute] = timePart.split(":").map(Number);
+  return new Date(year, month - 1, day, hour, minute);
+}
+
+export function addApplicationCalendarDays(date: string, days: number): string | undefined {
+  return addCalendarDays(date, days);
+}
+
 export function startOfApplicationDayIso(date: string): string | undefined {
   return applicationLocalDateTimeToIso(date, "00:00:00.000");
 }

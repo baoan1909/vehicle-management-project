@@ -15,7 +15,8 @@ public interface CustomerPortIn {
             CustomerStatus status,
             CustomerApprovalStatus approvalStatus,
             CustomerType customerType,
-            String keyword
+            String keyword,
+            UUID parkingLotId
     );
 
     Customer activateCustomer(UUID customerId);

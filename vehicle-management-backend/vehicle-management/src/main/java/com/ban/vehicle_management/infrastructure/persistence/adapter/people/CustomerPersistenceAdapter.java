@@ -12,6 +12,7 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -53,11 +54,27 @@ public class CustomerPersistenceAdapter implements CustomerPortOut {
             CustomerType customerType,
             String keyword
     ) {
+        return findAll(status, approvalStatus, customerType, keyword, null);
+    }
+
+    @Override
+    public List<Customer> findAll(
+            CustomerStatus status, CustomerApprovalStatus approvalStatus,
+            CustomerType customerType, String keyword, Set<UUID> parkingLotIds
+    ) {
         Specification<CustomerEntity> specification =
-                CustomerSpecifications.withFilters(status, approvalStatus, customerType, keyword);
+                CustomerSpecifications.withFilters(status, approvalStatus, customerType, keyword)
+                        .and(CustomerSpecifications.inParkingLots(parkingLotIds));
         return customerRepository.findAll(specification).stream()
                 .map(customerPersistenceMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public boolean existsInParkingLots(UUID customerId, Set<UUID> parkingLotIds) {
+        return customerRepository.exists(Specification.<CustomerEntity>where(
+                (root, query, cb) -> cb.equal(root.get("customerId"), customerId))
+                .and(CustomerSpecifications.inParkingLots(parkingLotIds)));
     }
 
     @Override

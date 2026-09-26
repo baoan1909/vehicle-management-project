@@ -25,8 +25,8 @@ public class KnowledgeDocumentResponse {
     private KnowledgeAccessScope accessScope;
     private KnowledgeDocumentStatus status;
     private String failureCode;
-    private String effectiveFrom;
-    private String effectiveTo;
+    private Instant effectiveFrom;
+    private Instant effectiveTo;
     private Instant reviewedAt;
     private Instant archivedAt;
     private Instant createdAt;

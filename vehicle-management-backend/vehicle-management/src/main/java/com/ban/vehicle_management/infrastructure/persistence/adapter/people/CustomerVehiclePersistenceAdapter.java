@@ -12,6 +12,7 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatu
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -85,16 +86,31 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
             Boolean isDefault,
             String keyword
     ) {
+        return findAll(customerId, status, vehicleTypeId, isDefault, keyword, null);
+    }
+
+    @Override
+    public List<CustomerVehicle> findAll(
+            UUID customerId, CustomerVehicleStatus status, UUID vehicleTypeId,
+            Boolean isDefault, String keyword, Set<UUID> parkingLotIds
+    ) {
         Specification<CustomerVehicleEntity> specification = CustomerVehicleSpecifications.withFilters(
                 customerId,
                 status,
                 vehicleTypeId,
                 isDefault,
                 keyword
-        );
+        ).and(CustomerVehicleSpecifications.inParkingLots(parkingLotIds));
         return customerVehicleRepository.findAll(specification).stream()
                 .map(customerVehiclePersistenceMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public boolean existsInParkingLots(UUID customerVehicleId, Set<UUID> parkingLotIds) {
+        return customerVehicleRepository.exists(Specification.<CustomerVehicleEntity>where(
+                (root, query, cb) -> cb.equal(root.get("customerVehicleId"), customerVehicleId))
+                .and(CustomerVehicleSpecifications.inParkingLots(parkingLotIds)));
     }
 
     @Override

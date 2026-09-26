@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Set;
 
 @Component
 public class InvoicePersistenceAdapter implements InvoicePortOut {
@@ -71,6 +72,16 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
             Instant toDate,
             String keyword
     ){
+        return findAll(customerId, parkingSessionId, subcriptionId, lostCardReportId,
+                status, fromDate, toDate, keyword, null);
+    }
+
+    @Override
+    public List<Invoice> findAll(
+            UUID customerId, UUID parkingSessionId, UUID subcriptionId, UUID lostCardReportId,
+            InvoiceStatus status, Instant fromDate, Instant toDate, String keyword,
+            Set<UUID> parkingLotIds
+    ){
         return invoiceRepository.findAll(InvoiceSpecifications.withFilters(
                 customerId,
                 parkingSessionId,
@@ -79,7 +90,8 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
                 status,
                 fromDate,
                 toDate,
-                keyword
+                keyword,
+                parkingLotIds
             )
         ).stream()
                 .map(invoicePersistenceMapper::toDomain)

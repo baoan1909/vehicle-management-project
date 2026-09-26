@@ -7,6 +7,7 @@ public record CreateSubscriptionRequest(
         UUID customerVehicleId,
         UUID ticketTypeId,
         LocalDate requestedEffectiveFrom,
-        String voucherCode
+        String voucherCode,
+        UUID parkingLotId
 ) {
 }

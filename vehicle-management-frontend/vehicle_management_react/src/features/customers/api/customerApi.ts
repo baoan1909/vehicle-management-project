@@ -136,6 +136,7 @@ export type CustomerFilters = {
   approvalStatus?: CustomerApprovalStatus;
   customerType?: CustomerType;
   keyword?: string;
+  parkingLotId?: string;
   status?: CustomerStatus;
 };
 
@@ -185,6 +186,7 @@ export async function fetchCustomers(filters: CustomerFilters = {}) {
     approvalStatus: filters.approvalStatus,
     customerType: filters.customerType,
     keyword: filters.keyword,
+    parkingLotId: filters.parkingLotId,
     status: filters.status,
   });
   const response = await apiClient<ApiResponse<CustomerAdminResponse[]>>(

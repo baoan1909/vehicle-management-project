@@ -2,11 +2,14 @@ package com.ban.vehicle_management.application.accesscontrol.subscription.author
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import java.util.UUID;
+import java.util.Set;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -28,13 +31,19 @@ public class SubscriptionAccessGuard {
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final AccountProfilePortOut accountProfilePortOut;
+    private final OrganizationAccessGuard organizationAccessGuard;
+    private final ParkingLotPortOut parkingLotPortOut;
 
     public SubscriptionAccessGuard(
             CurrentAccountPortIn currentAccountPortIn,
-            AccountProfilePortOut accountProfilePortOut
+            AccountProfilePortOut accountProfilePortOut,
+            OrganizationAccessGuard organizationAccessGuard,
+            ParkingLotPortOut parkingLotPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.accountProfilePortOut = accountProfilePortOut;
+        this.organizationAccessGuard = organizationAccessGuard;
+        this.parkingLotPortOut = parkingLotPortOut;
     }
 
     public UUID resolveCurrentApprovedCustomerId() {
@@ -78,6 +87,7 @@ public class SubscriptionAccessGuard {
 
     public void ensureCanRead(Subscription subscription) {
         if (currentAccountPortIn.hasPermission(READ_ALL)) {
+            ensureLotVisible(subscription.getParkingLotId());
             return;
         }
 
@@ -104,8 +114,17 @@ public class SubscriptionAccessGuard {
         return currentCustomerId;
     }
 
+    /** Null is unrestricted only for platform scope or an own-customer query. */
+    public Set<UUID> visibleParkingLotIdsForList() {
+        if (!currentAccountPortIn.hasPermission(READ_ALL)) {
+            return null;
+        }
+        return organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut);
+    }
+
     public void ensureCanUpdate(Subscription subscription) {
         if (currentAccountPortIn.hasPermission(UPDATE_ALL)) {
+            ensureCanOperate(subscription);
             return;
         }
 
@@ -119,6 +138,7 @@ public class SubscriptionAccessGuard {
 
     public void ensureCanCancel(Subscription subscription) {
         if (currentAccountPortIn.hasPermission(CANCEL_ALL)) {
+            ensureCanOperate(subscription);
             return;
         }
 
@@ -127,6 +147,36 @@ public class SubscriptionAccessGuard {
 
         if (!customerId.equals(subscription.getCustomerId())) {
             throw new AccessDeniedException("Access is denied");
+        }
+    }
+
+    public void ensureCanCreateAtParkingLot(UUID parkingLotId) {
+        ensureLotOperable(parkingLotId);
+    }
+
+    public void ensureCanOperate(Subscription subscription) {
+        ensureLotOperable(subscription.getParkingLotId());
+    }
+
+    private void ensureLotVisible(UUID parkingLotId) {
+        Set<UUID> allowed = organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut);
+        if (allowed != null && (parkingLotId == null || !allowed.contains(parkingLotId))) {
+            throw new AccessDeniedException("Current account cannot access this parking lot subscription");
+        }
+    }
+
+    private void ensureLotOperable(UUID parkingLotId) {
+        Set<String> permissions = currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes();
+        if (!permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
+                && !permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
+            throw new AccessDeniedException("Current account cannot operate parking lot subscriptions");
+        }
+        if (parkingLotId == null) {
+            throw new AccessDeniedException("Subscription has no parking lot scope");
+        }
+        Set<UUID> allowed = organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut);
+        if (allowed == null || !allowed.contains(parkingLotId)) {
+            throw new AccessDeniedException("Current account cannot operate this parking lot subscription");
         }
     }
 }

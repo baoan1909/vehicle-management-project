@@ -33,6 +33,7 @@ import org.mapstruct.Mapping;
 public interface LostCardReportApiMapper {
 
     @Mapping(target = "lostCardReportId", ignore = true)
+    @Mapping(target = "parkingLotId", ignore = true)
     @Mapping(target = "cardId", ignore = true)
     @Mapping(target = "customerId", ignore = true)
     @Mapping(target = "notificationTime", ignore = true)
@@ -62,6 +63,7 @@ public interface LostCardReportApiMapper {
 
         return new LostCardReportListItemResponse(
                 item.lostCardReportId(),
+                item.parkingLotId(),
                 buildReportCode(item),
                 item.cardId(),
                 item.customerId(),
@@ -194,6 +196,7 @@ public interface LostCardReportApiMapper {
 
         return new InvoiceDetailResponse(
                 detail.getInvoice().getInvoiceId(),
+                detail.getInvoice().getParkingLotId(),
                 detail.getInvoice().getInvoiceNo(),
                 detail.getInvoice().getCustomerId(),
                 detail.getInvoice().getParkingSessionId(),

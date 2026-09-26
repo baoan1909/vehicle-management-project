@@ -12,6 +12,7 @@ public record LostCardReportFilterRequest(
         UUID cardId,
         UUID parkingSessionId,
         UUID subscriptionId,
+        UUID parkingLotId,
         Instant fromDate,
         Instant toDate,
         String keyword

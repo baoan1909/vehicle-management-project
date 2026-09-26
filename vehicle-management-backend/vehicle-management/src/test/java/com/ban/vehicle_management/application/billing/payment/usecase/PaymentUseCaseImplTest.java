@@ -206,7 +206,8 @@ class PaymentUseCaseImplTest {
                 receivedBy,
                 fromDate,
                 toDate,
-                "VCB"
+                "VCB",
+                java.util.Set.of()
         )).thenReturn(expectedPayments);
 
         List<Payment> result = paymentUseCase.getPayments(

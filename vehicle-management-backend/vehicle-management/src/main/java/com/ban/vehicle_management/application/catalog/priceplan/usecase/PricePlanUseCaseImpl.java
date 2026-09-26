@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.application.catalog.priceplan.usecase;
 
 import com.ban.vehicle_management.application.catalog.priceplan.port.in.PricePlanPortIn;
+import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.priceplan.port.out.PricePlanPortOut;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
@@ -19,24 +21,37 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PricePlanUseCaseImpl implements PricePlanPortIn {
 
+    private static final String CREATE = "PRICE_PLAN_CREATE_ALL";
+    private static final String READ = "PRICE_PLAN_READ_ALL";
+    private static final String UPDATE = "PRICE_PLAN_UPDATE_ALL";
+    private static final String DELETE = "PRICE_PLAN_DELETE_ALL";
+
     private final PricePlanPortOut pricePlanPortOut;
+    private final CurrentAccountPortIn currentAccountPortIn;
+    private final CatalogAccessGuard catalogAccessGuard;
     private final NotificationPortIn notificationPortIn;
     private final PricePlanPolicy pricePlanPolicy = new PricePlanPolicy();
 
     public PricePlanUseCaseImpl(
             PricePlanPortOut pricePlanPortOut,
-            NotificationPortIn notificationPortIn
+            NotificationPortIn notificationPortIn,
+            CurrentAccountPortIn currentAccountPortIn,
+            CatalogAccessGuard catalogAccessGuard
     ) {
         this.pricePlanPortOut = pricePlanPortOut;
         this.notificationPortIn = notificationPortIn;
+        this.currentAccountPortIn = currentAccountPortIn;
+        this.catalogAccessGuard = catalogAccessGuard;
     }
 
     @Override
     @Transactional
     public PricePlan createPricePlan(PricePlan pricePlan) {
+        currentAccountPortIn.requirePermission(CREATE);
         pricePlanPolicy.initialize(pricePlan);
+        pricePlan.setOrganizationId(catalogAccessGuard.writableOrganizationId());
 
-        if (pricePlanPortOut.existsByCode(pricePlan.getCode())) {
+        if (pricePlanPortOut.existsByCodeInOrganization(pricePlan.getCode(), pricePlan.getOrganizationId())) {
             throw new ConflictException("Price plan code already exists");
         }
 
@@ -49,8 +64,11 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
     @Override
     @Transactional(readOnly = true)
     public PricePlan getPricePlanById(UUID pricePlanId) {
-        return pricePlanPortOut.findById(pricePlanId)
+        currentAccountPortIn.requirePermission(READ);
+        PricePlan pricePlan = pricePlanPortOut.findById(pricePlanId)
                 .orElseThrow(() -> new NotFoundException("Price plan not found"));
+        catalogAccessGuard.ensureReadable(pricePlan.getOrganizationId());
+        return pricePlan;
     }
 
     @Override
@@ -61,13 +79,17 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
             LocalDate effectiveDate,
             String keyword
     ) {
-        return pricePlanPortOut.findAll(isActive, appliesTo, effectiveDate, normalizeKeyword(keyword));
+        currentAccountPortIn.requirePermission(READ);
+        return pricePlanPortOut.findAll(isActive, appliesTo, effectiveDate, normalizeKeyword(keyword),
+                catalogAccessGuard.visibleOrganizationIds());
     }
 
     @Override
     @Transactional
     public PricePlan updatePricePlan(UUID pricePlanId, PricePlan pricePlan) {
+        currentAccountPortIn.requirePermission(UPDATE);
         PricePlan existingPricePlan = getPricePlanById(pricePlanId);
+        catalogAccessGuard.ensureWritable(existingPricePlan.getOrganizationId());
 
         existingPricePlan.setCode(pricePlan.getCode());
         existingPricePlan.setName(pricePlan.getName());
@@ -77,7 +99,8 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
 
         pricePlanPolicy.initialize(existingPricePlan);
 
-        if (pricePlanPortOut.existsByCodeAndPricePlanIdNot(existingPricePlan.getCode(), pricePlanId)) {
+        if (pricePlanPortOut.existsByCodeInOrganizationExcludingId(existingPricePlan.getCode(),
+                existingPricePlan.getOrganizationId(), pricePlanId)) {
             throw new ConflictException("Price plan code already exists");
         }
 
@@ -91,7 +114,9 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
     @Override
     @Transactional
     public void deletePricePlan(UUID pricePlanId) {
+        currentAccountPortIn.requirePermission(DELETE);
         PricePlan existingPricePlan = getPricePlanById(pricePlanId);
+        catalogAccessGuard.ensureWritable(existingPricePlan.getOrganizationId());
 
         if (Boolean.FALSE.equals(existingPricePlan.getIsActive())) {
             return;
@@ -105,7 +130,9 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
     @Override
     @Transactional
     public PricePlan activatePricePlan(UUID pricePlanId) {
+        currentAccountPortIn.requirePermission(UPDATE);
         PricePlan existingPricePlan = getPricePlanById(pricePlanId);
+        catalogAccessGuard.ensureWritable(existingPricePlan.getOrganizationId());
 
         pricePlanPolicy.activate(existingPricePlan);
         validateActiveOverlap(existingPricePlan, pricePlanId);
@@ -120,7 +147,8 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
             return;
         }
 
-        if (pricePlanPortOut.existsActiveOverlap(
+        if (pricePlanPortOut.existsActiveOverlapInOrganization(
+                pricePlan.getOrganizationId(),
                 pricePlan.getAppliesTo(),
                 pricePlan.getEffectiveFrom(),
                 pricePlan.getEffectiveTo(),

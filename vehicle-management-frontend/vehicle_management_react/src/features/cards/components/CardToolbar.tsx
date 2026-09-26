@@ -6,9 +6,13 @@ interface CardToolbarProps {
   cardTypeValue: string;
   subscriptionStatusValue: string;
   lostStatusValue: string;
+  parkingLotOptions: SelectMenuOption[];
+  parkingLotValue: string;
+  showParkingLotFilter: boolean;
   searchValue: string;
   onCardTypeChange: (value: string) => void;
   onLostStatusChange: (value: string) => void;
+  onParkingLotChange: (value: string) => void;
   onReset: () => void;
   onSearchChange: (value: string) => void;
   onSubscriptionStatusChange: (value: string) => void;
@@ -19,9 +23,13 @@ export function CardToolbar({
   cardTypeValue,
   subscriptionStatusValue,
   lostStatusValue,
+  parkingLotOptions,
+  parkingLotValue,
+  showParkingLotFilter,
   searchValue,
   onCardTypeChange,
   onLostStatusChange,
+  onParkingLotChange,
   onReset,
   onSearchChange,
   onSubscriptionStatusChange
@@ -34,12 +42,12 @@ export function CardToolbar({
       searchPlaceholder="Mã thẻ, UID, biển số, khách hàng..."
       searchValue={searchValue}
     >
-      <label className="tw-m-0 tw-grid tw-gap-[0.35rem]">
+      <label className="tw-m-0 tw-grid tw-min-w-0 tw-gap-[0.35rem]">
         <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">Loại thẻ</span>
         <SelectMenu ariaLabel="Loại thẻ" value={cardTypeValue} onChange={onCardTypeChange} options={cardTypeOptions} />
       </label>
 
-      <label className="tw-m-0 tw-grid tw-gap-[0.35rem]">
+      <label className="tw-m-0 tw-grid tw-min-w-0 tw-gap-[0.35rem]">
         <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">Vé tháng</span>
         <SelectMenu
           ariaLabel="Vé tháng"
@@ -55,19 +63,31 @@ export function CardToolbar({
         />
       </label>
 
-      <label className="tw-m-0 tw-grid tw-gap-[0.35rem]">
-        <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">Báo mất</span>
-        <SelectMenu
-          ariaLabel="Báo mất"
-          value={lostStatusValue}
-          onChange={onLostStatusChange}
-          options={[
-            { label: "Tất cả", value: "all" },
-            { label: "Mở", value: "open" },
-            { label: "Không", value: "none" },
-          ]}
-        />
-      </label>
+      {showParkingLotFilter ? (
+        <label className="tw-m-0 tw-grid tw-min-w-0 tw-gap-[0.35rem]">
+          <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">Bãi xe</span>
+          <SelectMenu
+            ariaLabel="Lọc thẻ theo bãi xe"
+            value={parkingLotValue}
+            onChange={onParkingLotChange}
+            options={[{ label: "Tất cả bãi xe", value: "all" }, ...parkingLotOptions]}
+          />
+        </label>
+      ) : (
+        <label className="tw-m-0 tw-grid tw-min-w-0 tw-gap-[0.35rem]">
+          <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">Báo mất</span>
+          <SelectMenu
+            ariaLabel="Báo mất"
+            value={lostStatusValue}
+            onChange={onLostStatusChange}
+            options={[
+              { label: "Tất cả", value: "all" },
+              { label: "Mở", value: "open" },
+              { label: "Không", value: "none" },
+            ]}
+          />
+        </label>
+      )}
     </FilterToolbar>
   );
 }

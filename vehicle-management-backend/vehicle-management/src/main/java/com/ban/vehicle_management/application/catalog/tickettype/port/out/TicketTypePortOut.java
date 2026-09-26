@@ -6,6 +6,7 @@ import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface TicketTypePortOut {
@@ -15,6 +16,12 @@ public interface TicketTypePortOut {
     Optional<TicketType> findById(UUID ticketTypeId);
 
     List<TicketType> findAll(TicketTypeStatus status, String keyword);
+
+    List<TicketType> findAll(TicketTypeStatus status, String keyword, Set<UUID> organizationIds);
+
+    boolean existsActiveByCodeInOrganization(String code, UUID organizationId);
+
+    boolean existsActiveByCodeInOrganizationExcludingId(String code, UUID organizationId, UUID ticketTypeId);
 
     boolean existsActiveByCode(String code);
 

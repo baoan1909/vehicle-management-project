@@ -36,10 +36,12 @@ public interface InvoicePortIn {
             Instant toDate,
             String keyword,
             int page,
-            int size
+            int size,
+            UUID organizationId,
+            UUID parkingLotId
     );
 
-    InvoiceManagementSummaryResult getManagementSummary();
+    InvoiceManagementSummaryResult getManagementSummary(UUID organizationId, UUID parkingLotId);
 
     InvoiceManagementDetailResult getManagementInvoiceDetail(UUID invoiceId);
 

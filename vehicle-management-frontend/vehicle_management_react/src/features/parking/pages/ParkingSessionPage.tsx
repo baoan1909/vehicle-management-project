@@ -12,8 +12,11 @@ import {
 } from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
-import { formatApplicationDateTime } from "@/shared/time/applicationTime";
+import { addApplicationCalendarDays, formatApplicationDateTime, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import { displayLicensePlate } from "@/shared/utils/licensePlate";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
+import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 
 type SessionTab = "all" | "open" | "closed" | "missing_evidence";
 type BadgeTone = "primary" | "success" | "warning" | "danger" | "neutral";
@@ -26,21 +29,11 @@ const tabItems: Array<{ label: string; value: SessionTab }> = [
 ];
 
 function todayIso() {
-  const today = new Date();
-  return toIsoDate(today);
+  return todayApplicationIsoDate();
 }
 
 function daysAgoIso(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return toIsoDate(date);
-}
-
-function toIsoDate(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return addApplicationCalendarDays(todayApplicationIsoDate(), -days) ?? todayApplicationIsoDate();
 }
 
 function splitDateRange(value: string) {
@@ -270,6 +263,8 @@ function SessionDetailDrawer({
 }
 
 export function ParkingSessionPage() {
+  const { user } = useAuth();
+  const showParkingLotFilter = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const { permittedLotIds } = usePlatformMonitoringScope();
   const defaultDateRange = `${daysAgoIso(6)}|${todayIso()}`;
   const [activeTab, setActiveTab] = useState<SessionTab>("all");
@@ -284,6 +279,9 @@ export function ParkingSessionPage() {
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState("all");
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeResponse[]>([]);
   const [zoneFilter, setZoneFilter] = useState("all");
+  const [parkingLotFilter, setParkingLotFilter] = useState("all");
+  const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
+  const [parkingLotError, setParkingLotError] = useState("");
   const [zones, setZones] = useState<ZoneResponse[]>([]);
   const [loadError, setLoadError] = useState("");
   const [filterLoadError, setFilterLoadError] = useState("");
@@ -291,6 +289,23 @@ export function ParkingSessionPage() {
   useEffect(() => {
     setZoneFilter("all");
   }, [permittedLotIds]);
+
+  useEffect(() => {
+    if (!showParkingLotFilter) return undefined;
+    let active = true;
+    void getParkingLots()
+      .then((response) => {
+        if (!active) return;
+        setParkingLots(response.data ?? []);
+        setParkingLotError("");
+      })
+      .catch((error) => {
+        if (!active) return;
+        setParkingLots([]);
+        setParkingLotError(error instanceof Error ? error.message : "Không tải được danh sách bãi xe.");
+      });
+    return () => { active = false; };
+  }, [showParkingLotFilter]);
 
   useEffect(() => {
     let active = true;
@@ -333,6 +348,7 @@ export function ParkingSessionPage() {
         const nextSessions = await fetchParkingSessions({
           fromDate,
           keyword: searchValue,
+          parkingLotId: showParkingLotFilter && parkingLotFilter !== "all" ? parkingLotFilter : undefined,
           toDate,
           vehicleTypeId: vehicleTypeFilter === "all" ? undefined : vehicleTypeFilter,
           zoneId: zoneFilter === "all" ? undefined : zoneFilter,
@@ -364,17 +380,21 @@ export function ParkingSessionPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [dateRange, permittedLotIds, searchValue, vehicleTypeFilter, zoneFilter]);
+  }, [dateRange, permittedLotIds, searchValue, vehicleTypeFilter, zoneFilter, parkingLotFilter, showParkingLotFilter]);
 
   const vehicleTypeOptions = useMemo(() => buildVehicleTypeOptions(vehicleTypes), [vehicleTypes]);
+  const parkingLotOptions = useMemo(() => [
+    { label: "Tất cả bãi xe", value: "all" },
+    ...parkingLots.map((lot) => ({ label: lot.name, value: lot.parkingLotId })),
+  ], [parkingLots]);
 
   const filteredZoneOptions = useMemo(() => {
-    const matchedZones = vehicleTypeFilter === "all"
-      ? zones
-      : zones.filter((zone) => zone.vehicleTypeId === vehicleTypeFilter);
+    const matchedZones = zones.filter((zone) =>
+      (vehicleTypeFilter === "all" || zone.vehicleTypeId === vehicleTypeFilter)
+      && (!showParkingLotFilter || parkingLotFilter === "all" || zone.parkingLotId === parkingLotFilter));
 
     return buildZoneOptions(matchedZones);
-  }, [vehicleTypeFilter, zones]);
+  }, [vehicleTypeFilter, zones, parkingLotFilter, showParkingLotFilter]);
 
   useEffect(() => {
     if (zoneFilter === "all") return;
@@ -398,7 +418,7 @@ export function ParkingSessionPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [activeTab, dateRange, searchValue, vehicleTypeFilter, zoneFilter]);
+  }, [activeTab, dateRange, searchValue, vehicleTypeFilter, zoneFilter, parkingLotFilter]);
 
   const totalRecords = filteredSessions.length;
   const totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
@@ -424,6 +444,7 @@ export function ParkingSessionPage() {
     setSearchValue("");
     setVehicleTypeFilter("all");
     setZoneFilter("all");
+    setParkingLotFilter("all");
     setPage(1);
   };
 
@@ -448,26 +469,45 @@ export function ParkingSessionPage() {
               <SessionTabs activeTab={activeTab} counts={counts} onChange={setActiveTab} />
 
               <FilterToolbar
-                className="tw-grid tw-grid-cols-[minmax(260px,1fr)_190px_190px_248px_auto] tw-items-end tw-gap-3 tw-px-6 tw-py-5 max-[1180px]:tw-grid-cols-3 max-[820px]:tw-grid-cols-2 max-[620px]:tw-grid-cols-1"
+                className={cn("tw-grid tw-items-end tw-gap-3 tw-px-6 tw-py-5 max-[820px]:tw-grid-cols-2 max-[620px]:tw-grid-cols-1", showParkingLotFilter ? "tw-grid-cols-3 min-[1800px]:tw-grid-cols-[minmax(220px,1fr)_170px_170px_280px_200px_auto]" : "tw-grid-cols-[minmax(260px,1fr)_190px_190px_248px_auto] max-[1180px]:tw-grid-cols-3")}
                 onReset={resetFilters}
                 onSearchChange={setSearchValue}
                 searchPlaceholder="Tìm theo biển số, mã phiên, mã thẻ, UID..."
                 searchValue={searchValue}
               >
-                <label className="tw-m-0 tw-grid tw-gap-[0.35rem]">
+                <label className="tw-m-0 tw-grid tw-min-w-0 tw-gap-[0.35rem]">
                   <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">Loại xe</span>
                   <SelectMenu ariaLabel="Loại xe" options={vehicleTypeOptions} value={vehicleTypeFilter} onChange={handleVehicleTypeFilterChange} />
                 </label>
-                <label className="tw-m-0 tw-grid tw-gap-[0.35rem]">
+                <label className="tw-m-0 tw-grid tw-min-w-0 tw-gap-[0.35rem]">
                   <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">Khu vực</span>
                   <SelectMenu ariaLabel="Khu vực" options={filteredZoneOptions} value={zoneFilter} onChange={setZoneFilter} />
                 </label>
-                <DateRangeInput label="Khoảng ngày" value={dateRange} onChange={setDateRange} />
+                <DateRangeInput className="tw-min-w-0" label="Khoảng ngày" value={dateRange} onChange={setDateRange} />
+                {showParkingLotFilter ? (
+                  <label className="tw-m-0 tw-grid tw-min-w-0 tw-gap-[0.35rem]">
+                    <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">Bãi xe</span>
+                    <SelectMenu
+                      ariaLabel="Lọc phiên gửi xe theo bãi xe"
+                      options={parkingLotOptions}
+                      value={parkingLotFilter}
+                      onChange={(value) => {
+                        setParkingLotFilter(value);
+                        setZoneFilter("all");
+                      }}
+                    />
+                  </label>
+                ) : null}
               </FilterToolbar>
 
               {filterLoadError ? (
                 <div className="tw-mx-6 tw-mb-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-3 tw-text-[0.86rem] tw-font-bold tw-text-amber-800">
                   {filterLoadError}
+                </div>
+              ) : null}
+              {parkingLotError ? (
+                <div className="tw-mx-6 tw-mb-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-3 tw-text-[0.86rem] tw-font-bold tw-text-amber-800">
+                  {parkingLotError}
                 </div>
               ) : null}
 

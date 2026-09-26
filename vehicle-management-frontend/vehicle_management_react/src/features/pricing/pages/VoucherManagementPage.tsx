@@ -9,7 +9,7 @@ import {
   type VoucherPayload,
   type VoucherResponse,
 } from "@/features/pricing/api/voucherApi";
-import { endOfApplicationDayIso, getApplicationTimeZone, startOfApplicationDayIso } from "@/shared/time/applicationTime";
+import { endOfApplicationDayIso, getApplicationTimeZone, startOfApplicationDayIso, toApplicationLocalDateTimeInput, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 type VoucherForm = {
   code: string;
@@ -40,7 +40,7 @@ const emptyForm = (): VoucherForm => ({
   minimumSubscriptionAmount: "0",
   maxRedemptions: "",
   maxRedemptionsPerCustomer: "1",
-  validFrom: toDateInputValue(new Date()),
+  validFrom: todayApplicationIsoDate(),
   validTo: "",
   showOnDashboard: false,
   showOnSubscriptionPage: false,
@@ -63,10 +63,7 @@ function normalizeCurrencyInput(value: string) {
 }
 
 function toDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return toApplicationLocalDateTimeInput(date)?.slice(0, 10) ?? "";
 }
 
 function formatDate(value: string) {

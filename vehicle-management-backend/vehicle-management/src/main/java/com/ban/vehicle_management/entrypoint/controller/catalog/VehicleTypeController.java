@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -41,8 +42,9 @@ public class VehicleTypeController {
 
     @PostMapping
     @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_CREATE_ALL')")
-    public ResponseEntity<ApiResponse<VehicleTypeAdminResponse>> createVehicleType(@RequestBody CreateVehicleTypeRequest request) {
-        VehicleType createdVehicleType = vehicleTypePortIn.createVehicleType(vehicleTypeApiMapper.toDomain(request));
+    public ResponseEntity<ApiResponse<VehicleTypeAdminResponse>> createVehicleType(
+            @RequestBody CreateVehicleTypeRequest request, @RequestParam(required = false) UUID parkingLotId) {
+        VehicleType createdVehicleType = vehicleTypePortIn.createVehicleType(vehicleTypeApiMapper.toDomain(request), parkingLotId);
         VehicleTypeAdminResponse response = vehicleTypeApiMapper.toAdminResponse(createdVehicleType);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Vehicle type created successfully", response));

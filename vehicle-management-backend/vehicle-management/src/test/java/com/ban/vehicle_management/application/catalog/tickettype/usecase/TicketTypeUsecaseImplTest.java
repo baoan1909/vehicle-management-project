@@ -6,7 +6,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
+import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
@@ -16,8 +18,10 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -25,6 +29,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class TicketTypeUsecaseImplTest {
+
+    private static final UUID ORGANIZATION_ID = UUID.fromString("00000000-0000-0000-0000-000000009011");
+
+    @Mock
+    private CatalogAccessGuard catalogAccessGuard;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(catalogAccessGuard.writableOrganizationId((UUID) null)).thenReturn(ORGANIZATION_ID);
+        lenient().when(catalogAccessGuard.visibleOrganizationIds()).thenReturn(Set.of(ORGANIZATION_ID));
+    }
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
@@ -42,7 +57,6 @@ class TicketTypeUsecaseImplTest {
         requestTicketType.setName(" Monthly ticket ");
         requestTicketType.setDescription(" Valid monthly ");
 
-        when(ticketTypePortOut.existsActiveByCode("MONTHLY")).thenReturn(false);
         when(ticketTypePortOut.save(any(TicketType.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         TicketType createdTicketType = ticketTypeUseCase.createTicketType(requestTicketType);
@@ -52,6 +66,7 @@ class TicketTypeUsecaseImplTest {
         assertEquals("Monthly ticket", createdTicketType.getName());
         assertEquals(30, createdTicketType.getDurationDays());
         assertEquals(TicketTypeStatus.ACTIVE, createdTicketType.getStatus());
+        assertEquals(ORGANIZATION_ID, createdTicketType.getOrganizationId());
     }
 
     @Test
@@ -60,7 +75,7 @@ class TicketTypeUsecaseImplTest {
         requestTicketType.setCode("DAILY");
         requestTicketType.setName("Daily ticket");
 
-        when(ticketTypePortOut.existsActiveByCode("DAILY")).thenReturn(true);
+        when(ticketTypePortOut.existsActiveByCodeInOrganization("DAILY", ORGANIZATION_ID)).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> ticketTypeUseCase.createTicketType(requestTicketType));
         verify(ticketTypePortOut, never()).save(any(TicketType.class));
@@ -68,14 +83,14 @@ class TicketTypeUsecaseImplTest {
 
     @Test
     void shouldReturnFilteredTicketTypes() {
-        when(ticketTypePortOut.findAll(TicketTypeStatus.ACTIVE, "daily"))
+        when(ticketTypePortOut.findAll(TicketTypeStatus.ACTIVE, "daily", Set.of(ORGANIZATION_ID)))
                 .thenReturn(List.of(new TicketType(), new TicketType()));
 
         List<TicketType> ticketTypes = ticketTypeUseCase.getTicketTypes(TicketTypeStatus.ACTIVE, " daily ");
 
         verify(currentAccountPortIn).requirePermission("TICKET_TYPE_READ_ALL");
         assertEquals(2, ticketTypes.size());
-        verify(ticketTypePortOut).findAll(TicketTypeStatus.ACTIVE, "daily");
+        verify(ticketTypePortOut).findAll(TicketTypeStatus.ACTIVE, "daily", Set.of(ORGANIZATION_ID));
     }
 
     @Test
@@ -89,7 +104,6 @@ class TicketTypeUsecaseImplTest {
 
         when(ticketTypePortOut.findById(ticketTypeId)).thenReturn(Optional.of(existingTicketType));
         when(ticketTypePortOut.hasActivePriceRules(ticketTypeId)).thenReturn(false);
-        when(ticketTypePortOut.existsActiveByCodeAndTicketTypeIdNot("MONTHLY", ticketTypeId)).thenReturn(false);
         when(ticketTypePortOut.save(any(TicketType.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         TicketType updatedTicketType = ticketTypeUseCase.updateTicketType(ticketTypeId, requestTicketType);
@@ -148,7 +162,6 @@ class TicketTypeUsecaseImplTest {
         TicketType existingTicketType = ticketType(ticketTypeId, "YEARLY", TicketTypeStatus.INACTIVE);
 
         when(ticketTypePortOut.findById(ticketTypeId)).thenReturn(Optional.of(existingTicketType));
-        when(ticketTypePortOut.existsActiveByCodeAndTicketTypeIdNot("YEARLY", ticketTypeId)).thenReturn(false);
         when(ticketTypePortOut.save(any(TicketType.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         TicketType activatedTicketType = ticketTypeUseCase.activateTicketType(ticketTypeId);

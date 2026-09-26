@@ -26,6 +26,9 @@ public class TicketTypeEntity extends AuditableEntity {
     @Column(name = "ticket_type_id", nullable = false)
     private UUID ticketTypeId;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "code", nullable = false)
     private String code;
 

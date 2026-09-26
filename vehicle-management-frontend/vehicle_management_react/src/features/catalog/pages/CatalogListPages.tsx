@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { Drawer } from "@/shared/components/ui/Drawer";
-import { getApplicationTimeZone } from "@/shared/time/applicationTime";
+import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
+import { ParkingLotCatalogControls } from "@/features/catalog/components/ParkingLotCatalogControls";
+import { useParkingLotCatalogScope } from "@/features/catalog/hooks/useParkingLotCatalogScope";
 import {
   CatalogFilterSelect,
   CatalogHeader,
@@ -119,6 +121,7 @@ function mapTicketType(row: TicketTypeApiResponse, priceRuleCounts: Map<string, 
 
   return {
     id: row.ticketTypeId,
+    organizationId: row.organizationId,
     code: row.code,
     createdAt: row.createdAt ?? "",
     createdBy: row.createdBy,
@@ -162,7 +165,7 @@ function exportTicketTypes(rows: TicketCatalogRecord[]) {
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = `loai-ve-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `loai-ve-${todayApplicationIsoDate()}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -185,6 +188,7 @@ function mapVehicleType(row: VehicleTypeApiResponse, priceRuleCounts: Map<string
 
   return {
     id: row.vehicleTypeId,
+    organizationId: row.organizationId,
     code: row.code,
     createdAt: row.createdAt ?? "",
     createdBy: row.createdBy,
@@ -225,7 +229,7 @@ function exportVehicleTypes(rows: VehicleCatalogRecord[]) {
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = `loai-phuong-tien-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `loai-phuong-tien-${todayApplicationIsoDate()}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -525,8 +529,10 @@ function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Veh
 
 export function TicketListPage() {
   const { user } = useAuth();
-  const canCreate = hasAnyPermission(user, ["TICKET_TYPE_CREATE_ALL"]);
-  const canUpdate = hasAnyPermission(user, ["TICKET_TYPE_UPDATE_ALL"]);
+  const canManagePartnerCatalog = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
+  const canCreate = canManagePartnerCatalog && hasAnyPermission(user, ["TICKET_TYPE_CREATE_ALL"]);
+  const canUpdate = canManagePartnerCatalog && hasAnyPermission(user, ["TICKET_TYPE_UPDATE_ALL"]);
+  const lotScope = useParkingLotCatalogScope();
   const [records, setRecords] = useState<TicketCatalogRecord[]>([]);
   const [activeStatus, setActiveStatus] = useState<CatalogStatusTabValue>("all");
   const [statusValue, setStatusValue] = useState("all");
@@ -541,7 +547,11 @@ export function TicketListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const filteredRecords = records.filter((row) => {
+  const lotRecords = lotScope.selectedLot && lotScope.availability
+    ? records.filter((row) => row.organizationId === lotScope.selectedLot?.organizationId
+      && !lotScope.availability?.excludedTicketTypeIds.includes(row.id))
+    : [];
+  const filteredRecords = lotRecords.filter((row) => {
     const matchesTab = activeStatus === "all" ? true : row.status === activeStatus;
     const matchesStatus = statusValue === "all" ? true : row.status === (statusValue as CatalogStatus);
     const matchesPrice =
@@ -623,7 +633,7 @@ export function TicketListPage() {
   };
 
   const handleCreateTicketType = async (payload: CreateTicketTypeRequest) => {
-    const response = await createTicketType(payload);
+    const response = await createTicketType(payload, lotScope.selectedLotId);
     upsertRecord(mapSingleTicketType(response.data));
     setSuccessMessage(response.message || "Thêm loại vé thành công.");
     setCurrentPage(1);
@@ -659,9 +669,22 @@ export function TicketListPage() {
 
   return (
     <CatalogPageShell>
-      <CatalogHeader createLabel="Thêm loại vé" title="Loại vé" onCreateClick={canCreate ? handleOpenCreate : undefined} onExportClick={() => exportTicketTypes(filteredRecords)} />
-      <CatalogMetricGrid items={buildTicketMetrics(records)} />
-      <CatalogStatusTabs activeValue={activeStatus} counts={getStatusCounts(records)} onChange={(value) => {
+      <CatalogHeader createLabel="Thêm loại vé" title="Loại vé" onCreateClick={canCreate && lotScope.selectedLot ? handleOpenCreate : undefined} onExportClick={() => exportTicketTypes(filteredRecords)} />
+      <ParkingLotCatalogControls
+        canConfigure={canUpdate}
+        excludedIds={lotScope.availability?.excludedTicketTypeIds ?? []}
+        items={records.filter((row) => row.organizationId === lotScope.selectedLot?.organizationId)}
+        kind="ticket"
+        lots={lotScope.lots}
+        onLotChange={(id) => { lotScope.setSelectedLotId(id); setCurrentPage(1); setSelectedId(null); }}
+        onSetEnabled={(id, enabled) => lotScope.updateAvailability("ticket", id, enabled)}
+        selectedLot={lotScope.selectedLot}
+      />
+      {lotScope.error ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-red-700" role="alert">{lotScope.error}</p> : null}
+      {!lotScope.loading && lotScope.lots.length === 0 ? <p className="tw-m-0 tw-text-vm-slate-600">Chưa có bãi xe nào trong phạm vi được cấp.</p> : null}
+      {records.some((row) => !row.organizationId) ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-800" role="alert">Backend chưa trả thông tin Partner của loại vé. Vui lòng khởi động lại backend phiên bản mới.</p> : null}
+      <CatalogMetricGrid items={buildTicketMetrics(lotRecords)} />
+      <CatalogStatusTabs activeValue={activeStatus} counts={getStatusCounts(lotRecords)} onChange={(value) => {
         setActiveStatus(value);
         setCurrentPage(1);
       }} />
@@ -742,8 +765,10 @@ export function TicketListPage() {
 
 export function VehicleListPage() {
   const { user } = useAuth();
-  const canCreate = hasAnyPermission(user, ["VEHICLE_TYPE_CREATE_ALL"]);
-  const canUpdate = hasAnyPermission(user, ["VEHICLE_TYPE_UPDATE_ALL"]);
+  const canManagePartnerCatalog = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
+  const canCreate = canManagePartnerCatalog && hasAnyPermission(user, ["VEHICLE_TYPE_CREATE_ALL"]);
+  const canUpdate = canManagePartnerCatalog && hasAnyPermission(user, ["VEHICLE_TYPE_UPDATE_ALL"]);
+  const lotScope = useParkingLotCatalogScope();
   const [records, setRecords] = useState<VehicleCatalogRecord[]>([]);
   const [statusValue, setStatusValue] = useState("all");
   const [searchValue, setSearchValue] = useState("");
@@ -756,7 +781,11 @@ export function VehicleListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const filteredRecords = records.filter((row) => {
+  const lotRecords = lotScope.selectedLot && lotScope.availability
+    ? records.filter((row) => row.organizationId === lotScope.selectedLot?.organizationId
+      && !lotScope.availability?.excludedVehicleTypeIds.includes(row.id))
+    : [];
+  const filteredRecords = lotRecords.filter((row) => {
     const matchesStatus = statusValue === "all" ? true : row.status === (statusValue as CatalogStatus);
 
     return matchesStatus && matchesText([row.code, row.name, row.description], searchValue);
@@ -833,7 +862,7 @@ export function VehicleListPage() {
   };
 
   const handleCreateVehicleType = async (payload: CreateVehicleTypeRequest) => {
-    const response = await createVehicleType(payload);
+    const response = await createVehicleType(payload, lotScope.selectedLotId);
     upsertRecord(mapSingleVehicleType(response.data));
     setSuccessMessage(response.message || "Thêm loại phương tiện thành công.");
     setCurrentPage(1);
@@ -869,8 +898,21 @@ export function VehicleListPage() {
 
   return (
     <CatalogPageShell>
-      <CatalogHeader createLabel="Thêm loại xe" title="Loại phương tiện" onCreateClick={canCreate ? handleOpenCreate : undefined} onExportClick={() => exportVehicleTypes(filteredRecords)} />
-      <CatalogMetricGrid items={buildVehicleMetrics(records)} />
+      <CatalogHeader createLabel="Thêm loại xe" title="Loại phương tiện" onCreateClick={canCreate && lotScope.selectedLot ? handleOpenCreate : undefined} onExportClick={() => exportVehicleTypes(filteredRecords)} />
+      <ParkingLotCatalogControls
+        canConfigure={canUpdate}
+        excludedIds={lotScope.availability?.excludedVehicleTypeIds ?? []}
+        items={records.filter((row) => row.organizationId === lotScope.selectedLot?.organizationId)}
+        kind="vehicle"
+        lots={lotScope.lots}
+        onLotChange={(id) => { lotScope.setSelectedLotId(id); setCurrentPage(1); setSelectedId(null); }}
+        onSetEnabled={(id, enabled) => lotScope.updateAvailability("vehicle", id, enabled)}
+        selectedLot={lotScope.selectedLot}
+      />
+      {lotScope.error ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-red-700" role="alert">{lotScope.error}</p> : null}
+      {!lotScope.loading && lotScope.lots.length === 0 ? <p className="tw-m-0 tw-text-vm-slate-600">Chưa có bãi xe nào trong phạm vi được cấp.</p> : null}
+      {records.some((row) => !row.organizationId) ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-800" role="alert">Backend chưa trả thông tin Partner của loại xe. Vui lòng khởi động lại backend phiên bản mới.</p> : null}
+      <CatalogMetricGrid items={buildVehicleMetrics(lotRecords)} />
 
       <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_minmax(300px,0.32fr)] tw-items-start tw-gap-[0.9rem] max-[1360px]:tw-grid-cols-1">
         <main className="tw-min-w-0 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">

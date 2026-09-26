@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import { nowApplicationLocalDateTime } from "@/shared/time/applicationTime";
+import { currentApplicationCalendarDate, nowApplicationLocalDateTime } from "@/shared/time/applicationTime";
 
 type DateTimePickerProps = {
   allowClear?: boolean;
@@ -50,7 +50,7 @@ function toIsoDate(date: Date) {
 }
 
 function parseLocalDateTime(value: string) {
-  const fallback = new Date();
+  const fallback = currentApplicationCalendarDate();
   if (!value) return fallback;
 
   const [datePart, timePart = "00:00"] = value.split("T");
@@ -231,7 +231,7 @@ export function DateTimePicker({
                 {calendarCells.map((date) => {
                   const selected = isSameDate(date, selectedDateTime);
                   const outsideMonth = date.getMonth() !== visibleMonth.getMonth();
-                  const today = isSameDate(date, new Date());
+                  const today = isSameDate(date, currentApplicationCalendarDate());
                   return (
                     <button
                       className={cn(
