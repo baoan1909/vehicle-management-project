@@ -50,6 +50,48 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Subscription amount does not meet voucher minimum amount": "Tổng phí vé chưa đạt giá trị tối thiểu để dùng mã ưu đãi này.",
   "Voucher usage limit has been reached": "Mã ưu đãi đã dùng hết số lượt cho phép.",
   "Customer has reached the voucher usage limit": "Bạn đã dùng hết số lượt được phép với mã ưu đãi này.",
+  "A partner registration with this email is already pending":
+    "Email này đã có hồ sơ đăng ký đối tác đang chờ duyệt. Vui lòng dùng email khác hoặc chờ CoParking phản hồi.",
+  "A partner registration with this organization code is already pending":
+    "Mã đơn vị này đã có hồ sơ đăng ký đang chờ duyệt. Vui lòng dùng một mã đơn vị khác.",
+  "expectedParkingLotCount must be between 1 and 1000":
+    "Số bãi dự kiến quản lý phải nằm trong khoảng từ 1 đến 1.000.",
+  "email is invalid": "Email liên hệ không đúng định dạng.",
+  "phoneNumber must not be blank": "Vui lòng nhập số điện thoại liên hệ.",
+  "phoneNumber must contain only digits and an optional leading plus sign":
+    "Số điện thoại chỉ được chứa chữ số và có thể bắt đầu bằng dấu +.",
+  "organizationCode must contain only uppercase letters, digits, underscore, or hyphen":
+    "Mã đơn vị chỉ được chứa chữ in hoa, chữ số, dấu gạch dưới hoặc dấu gạch ngang.",
+  "Keycloak could not send password setup email. Configure Keycloak SMTP settings.":
+    "Không thể gửi email thiết lập mật khẩu cho Partner Admin. Vui lòng kiểm tra cấu hình SMTP của Keycloak rồi duyệt lại.",
+  "Parking manager has not been assigned to a parking lot. Please contact the Partner Admin.":
+    "Bạn chưa được phân công quản lý bãi xe nào. Vui lòng liên hệ Partner Admin.",
+  "Parking manager must select an assigned parking lot":
+    "Bạn cần chọn một bãi xe đã được phân công.",
+  "Parking manager must select a zone in an assigned parking lot":
+    "Bạn cần chọn khu vực thuộc bãi xe đã được phân công.",
+  "Parking manager must select a gate in an assigned parking lot":
+    "Bạn cần chọn cổng thuộc bãi xe đã được phân công.",
+  "Parking lot must have an address, a positive capacity, and be in setup or active status before assigning a parking manager":
+    "Hãy hoàn tất địa chỉ, vị trí tọa độ, sức chứa lớn hơn 0 và để bãi ở trạng thái thiết lập hoặc hoạt động trước khi phân công Parking Manager.",
+  "latitude and longitude must be provided together":
+    "Vui lòng nhập đủ cả vĩ độ và kinh độ của bãi xe.",
+  "latitude must be between -90 and 90": "Vĩ độ phải nằm trong khoảng từ -90 đến 90.",
+  "longitude must be between -180 and 180": "Kinh độ phải nằm trong khoảng từ -180 đến 180.",
+  "location query must contain at least 3 characters": "Vui lòng nhập ít nhất 3 ký tự để tìm vị trí.",
+  "parking location coordinates are invalid": "Vị trí đã chọn không hợp lệ.",
+  "Parking location search service is unavailable":
+    "Không thể tìm địa điểm vào lúc này. Bạn vẫn có thể đặt ghim trực tiếp trên bản đồ.",
+  "Parking lot needs at least one active zone, gate, IN lane, and OUT lane before activation":
+    "Bãi xe cần có tối thiểu một khu vực, một cổng, một làn vào và một làn ra đang hoạt động trước khi kích hoạt.",
+  "Parking lot needs at least one active zone, gate, IN lane, and OUT lane before requesting activation":
+    "Bãi xe cần có tối thiểu một khu vực, một cổng, một làn vào và một làn ra đang hoạt động trước khi gửi yêu cầu kích hoạt.",
+  "Only the assigned Parking Manager can request parking lot activation":
+    "Chỉ Parking Manager được phân công mới có thể gửi yêu cầu kích hoạt bãi xe.",
+  "Only a parking lot in setup status can request activation":
+    "Chỉ bãi xe ở trạng thái thiết lập mới có thể gửi yêu cầu kích hoạt.",
+  "Parking manager must request activation before the Partner Admin can activate this parking lot":
+    "Parking Manager cần gửi yêu cầu kích hoạt trước khi Partner Admin có thể kích hoạt bãi xe.",
   "Voucher validTo must be after validFrom": "Thời điểm kết thúc hiệu lực phải sau thời điểm bắt đầu.",
   "Percentage voucher discountValue must not exceed 100": "Mức giảm theo phần trăm không được vượt quá 100%.",
   "discountValue must be positive": "Mức giảm phải lớn hơn 0.",

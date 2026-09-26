@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface ParkingLotPortOut {
@@ -11,11 +12,22 @@ public interface ParkingLotPortOut {
 
     Optional<ParkingLot> findById(UUID parkingLotId);
 
-    List<ParkingLot> findAll(ParkingLotStatus status, String keyword);
+    List<ParkingLot> findAll(
+            ParkingLotStatus status,
+            String keyword,
+            Set<UUID> organizationIds,
+            Set<UUID> parkingLotIds
+    );
 
-    boolean existsByCode(String code);
+    boolean existsByOrganizationIdAndCode(UUID organizationId, String code);
 
-    boolean existsByCodeAndParkingLotIdNot(String code, UUID parkingLotId);
+    boolean existsByOrganizationIdAndCodeAndParkingLotIdNot(
+            UUID organizationId,
+            String code,
+            UUID parkingLotId
+    );
 
     boolean hasActiveZones(UUID parkingLotId);
+
+    boolean isReadyForActivation(UUID parkingLotId);
 }

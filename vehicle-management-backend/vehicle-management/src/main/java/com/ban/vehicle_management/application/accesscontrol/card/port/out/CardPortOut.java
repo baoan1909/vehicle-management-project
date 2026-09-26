@@ -5,6 +5,7 @@ import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardNumberSer
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface CardPortOut {
@@ -22,6 +23,15 @@ public interface CardPortOut {
     Optional<Card> findByUidForUpdate(String uid);
 
     List<Card> findAll(CardStatus status, UUID cardTypeId, String keyword);
+
+    default List<Card> findAll(
+            CardStatus status,
+            UUID cardTypeId,
+            String keyword,
+            Set<UUID> parkingLotIds
+    ) {
+        return findAll(status, cardTypeId, keyword);
+    }
 
     boolean existsByCardNumber(String cardNumber);
 

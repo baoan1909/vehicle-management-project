@@ -7,6 +7,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatu
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface ParkingSessionPortOut {
@@ -32,6 +33,7 @@ public interface ParkingSessionPortOut {
             Instant checkInFrom,
             Instant checkInTo,
             String keyword,
-            List<UUID> customerVehicleIds
+            List<UUID> customerVehicleIds,
+            Set<UUID> parkingLotIds
     );
 }

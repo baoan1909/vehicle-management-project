@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record CreateCardBatchRequest(
         UUID cardTypeId,
-        Integer quantity
+        Integer quantity,
+        UUID parkingLotId
 ) {
 }

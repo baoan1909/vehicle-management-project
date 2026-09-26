@@ -96,7 +96,13 @@ public class ParkingCheckInPolicy {
         requireField(vehicleTypeId, "vehicleTypeId");
         requireField(zone, "zone");
 
-        if (zone.getVehicleTypeId() != null && !zone.getVehicleTypeId().equals(vehicleTypeId)) {
+        java.util.Set<UUID> acceptedVehicleTypeIds = zone.getVehicleTypeIds();
+        if (acceptedVehicleTypeIds == null || acceptedVehicleTypeIds.isEmpty()) {
+            acceptedVehicleTypeIds = zone.getVehicleTypeId() == null
+                    ? java.util.Set.of()
+                    : java.util.Set.of(zone.getVehicleTypeId());
+        }
+        if (!acceptedVehicleTypeIds.contains(vehicleTypeId)) {
             throw new ConflictException("Loại xe này không được phép vào khu vực đã chọn");
         }
     }

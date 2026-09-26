@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.application.parking.zone.usecase;
 
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.in.ZonePortIn;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
@@ -9,7 +11,10 @@ import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,18 +22,33 @@ import org.springframework.transaction.annotation.Transactional;
 public class ZoneUseCaseImpl implements ZonePortIn {
 
     private final ZonePortOut zonePortOut;
+    private final ParkingLotPortOut parkingLotPortOut;
+    private final OrganizationAccessGuard organizationAccessGuard;
     private final ZonePolicy zonePolicy = new ZonePolicy();
 
-    public ZoneUseCaseImpl(ZonePortOut zonePortOut) {
+    @Autowired
+    public ZoneUseCaseImpl(
+            ZonePortOut zonePortOut,
+            ParkingLotPortOut parkingLotPortOut,
+            OrganizationAccessGuard organizationAccessGuard
+    ) {
         this.zonePortOut = zonePortOut;
+        this.parkingLotPortOut = parkingLotPortOut;
+        this.organizationAccessGuard = organizationAccessGuard;
+    }
+
+    // Kept for focused legacy unit tests that exercise only the domain policy.
+    public ZoneUseCaseImpl(ZonePortOut zonePortOut) {
+        this(zonePortOut, null, null);
     }
 
     @Override
     @Transactional
     public Zone createZone(Zone zone) {
+        ensureCanConfigureParkingLot(zone.getParkingLotId());
         zonePolicy.initialize(zone);
-        validateActiveParkingLot(zone.getParkingLotId());
-        validateVehicleType(zone.getVehicleTypeId());
+        validateConfigurableParkingLot(zone.getParkingLotId());
+        normalizeAndValidateVehicleTypes(zone);
 
         if (zonePortOut.existsByParkingLotIdAndCode(zone.getParkingLotId(), zone.getCode())) {
             throw new ConflictException("Zone code already exists in this parking lot");
@@ -41,13 +61,13 @@ public class ZoneUseCaseImpl implements ZonePortIn {
     @Override
     @Transactional(readOnly = true)
     public Zone getZoneById(UUID zoneId) {
-        return zonePortOut.findById(zoneId)
-                .orElseThrow(() -> new NotFoundException("Zone not found"));
+        return findExistingZone(zoneId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Zone> getZones(UUID parkingLotId, UUID vehicleTypeId, ZoneStatus status, String keyword) {
+        ensureCanListParkingLotResources(parkingLotId);
         return zonePortOut.findAll(parkingLotId, vehicleTypeId, status, normalizeKeyword(keyword));
     }
 
@@ -55,14 +75,16 @@ public class ZoneUseCaseImpl implements ZonePortIn {
     @Transactional
     public Zone updateZone(UUID zoneId, Zone zone) {
         Zone existingZone = getZoneById(zoneId);
+        ensureCanConfigureParkingLot(existingZone.getParkingLotId());
 
         existingZone.setCode(zone.getCode());
         existingZone.setName(zone.getName());
         existingZone.setVehicleTypeId(zone.getVehicleTypeId());
+        existingZone.setVehicleTypeIds(zone.getVehicleTypeIds());
         existingZone.setCapacity(zone.getCapacity());
 
         zonePolicy.initialize(existingZone);
-        validateVehicleType(existingZone.getVehicleTypeId());
+        normalizeAndValidateVehicleTypes(existingZone);
         validateCapacity(existingZone);
 
         if (zonePortOut.existsByParkingLotIdAndCodeAndZoneIdNot(
@@ -80,6 +102,7 @@ public class ZoneUseCaseImpl implements ZonePortIn {
     @Transactional
     public void deleteZone(UUID zoneId) {
         Zone existingZone = getZoneById(zoneId);
+        ensureCanConfigureParkingLot(existingZone.getParkingLotId());
 
         if (existingZone.getStatus() == ZoneStatus.CLOSED) {
             return;
@@ -95,9 +118,10 @@ public class ZoneUseCaseImpl implements ZonePortIn {
     @Transactional
     public Zone activateZone(UUID zoneId) {
         Zone existingZone = getZoneById(zoneId);
+        ensureCanConfigureParkingLot(existingZone.getParkingLotId());
 
-        validateActiveParkingLot(existingZone.getParkingLotId());
-        validateVehicleType(existingZone.getVehicleTypeId());
+        validateConfigurableParkingLot(existingZone.getParkingLotId());
+        normalizeAndValidateVehicleTypes(existingZone);
 
         zonePolicy.activate(existingZone);
         return zonePortOut.save(existingZone);
@@ -107,6 +131,7 @@ public class ZoneUseCaseImpl implements ZonePortIn {
     @Transactional
     public Zone markZoneMaintenance(UUID zoneId) {
         Zone existingZone = getZoneById(zoneId);
+        ensureCanConfigureParkingLot(existingZone.getParkingLotId());
 
         zonePolicy.markMaintenance(existingZone);
         return zonePortOut.save(existingZone);
@@ -116,6 +141,7 @@ public class ZoneUseCaseImpl implements ZonePortIn {
     @Transactional
     public Zone closeZone(UUID zoneId) {
         Zone existingZone = getZoneById(zoneId);
+        ensureCanConfigureParkingLot(existingZone.getParkingLotId());
 
         ensureNoActiveGates(zoneId);
         ensureNoOpenSessions(zoneId);
@@ -124,9 +150,10 @@ public class ZoneUseCaseImpl implements ZonePortIn {
         return zonePortOut.save(existingZone);
     }
 
-    private void validateActiveParkingLot(UUID parkingLotId) {
-        if (!zonePortOut.existsActiveParkingLotById(parkingLotId)) {
-            throw new NotFoundException("Active parking lot not found");
+    private void validateConfigurableParkingLot(UUID parkingLotId) {
+        if (!zonePortOut.existsConfigurableParkingLotById(parkingLotId)
+                && !zonePortOut.existsActiveParkingLotById(parkingLotId)) {
+            throw new NotFoundException("Configurable parking lot not found");
         }
     }
 
@@ -160,5 +187,74 @@ public class ZoneUseCaseImpl implements ZonePortIn {
         if (zonePortOut.hasActiveGates(zoneId)) {
             throw new ConflictException("Zone has active gates");
         }
+    }
+
+    /**
+     * vehicleTypeId is retained temporarily for backward-compatible clients;
+     * vehicleTypeIds is the authoritative list used for zoning and check-in.
+     */
+    private void normalizeAndValidateVehicleTypes(Zone zone) {
+        Set<UUID> vehicleTypeIds = zone.getVehicleTypeIds() == null
+                ? new LinkedHashSet<>()
+                : new LinkedHashSet<>(zone.getVehicleTypeIds());
+        vehicleTypeIds.remove(null);
+        if (vehicleTypeIds.isEmpty() && zone.getVehicleTypeId() != null) {
+            vehicleTypeIds.add(zone.getVehicleTypeId());
+        }
+        if (vehicleTypeIds.isEmpty()) {
+            throw new BadRequestException("Khu vực phải chọn ít nhất một loại xe được phép đỗ");
+        }
+        for (UUID vehicleTypeId : vehicleTypeIds) {
+            validateVehicleType(vehicleTypeId);
+        }
+        zone.setVehicleTypeIds(vehicleTypeIds);
+        zone.setVehicleTypeId(vehicleTypeIds.iterator().next());
+    }
+
+    private Zone findExistingZone(UUID zoneId) {
+        Zone zone = zonePortOut.findById(zoneId)
+                .orElseThrow(() -> new NotFoundException("Zone not found"));
+        ensureCanAccessParkingLot(zone.getParkingLotId());
+        return zone;
+    }
+
+    private void ensureCanListParkingLotResources(UUID parkingLotId) {
+        if (organizationAccessGuard == null) {
+            return;
+        }
+        if (parkingLotId == null && organizationAccessGuard.isCurrentParkingManager()) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Parking manager must select an assigned parking lot"
+            );
+        }
+        if (parkingLotId != null) {
+            ensureCanAccessParkingLot(parkingLotId);
+        }
+    }
+
+    private void ensureCanAccessParkingLot(UUID parkingLotId) {
+        if (organizationAccessGuard == null || parkingLotPortOut == null) {
+            return;
+        }
+        if (parkingLotId == null) {
+            throw new NotFoundException("Parking lot not found");
+        }
+        organizationAccessGuard.ensureCanAccessParkingLot(
+                parkingLotPortOut.findById(parkingLotId)
+                        .orElseThrow(() -> new NotFoundException("Parking lot not found"))
+        );
+    }
+
+    private void ensureCanConfigureParkingLot(UUID parkingLotId) {
+        if (organizationAccessGuard == null || parkingLotPortOut == null) {
+            return;
+        }
+        if (parkingLotId == null) {
+            throw new NotFoundException("Parking lot not found");
+        }
+        organizationAccessGuard.ensureCanConfigureParkingLot(
+                parkingLotPortOut.findById(parkingLotId)
+                        .orElseThrow(() -> new NotFoundException("Parking lot not found"))
+        );
     }
 }

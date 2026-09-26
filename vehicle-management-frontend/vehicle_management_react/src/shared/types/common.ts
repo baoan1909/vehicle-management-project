@@ -24,7 +24,7 @@ export interface CurrentUser {
   id: string;
   username: string;
   fullName: string;
-  role: "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER" | "UNKNOWN";
+  role: "SYSTEM_ADMIN" | "PARTNER_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER" | "UNKNOWN";
   avatarUrl: string;
   accountStatus?: string;
   customerApprovalStatus?: string;
@@ -53,6 +53,7 @@ export type AdminSidebarEntry =
       to: string;
       matches: string[];
       icon: AdminSidebarIcon;
+      monitoring?: boolean;
     }
   | {
       kind: "group";
@@ -63,4 +64,12 @@ export type AdminSidebarEntry =
     }
   | {
       kind: "divider";
+    }
+  | {
+      kind: "section";
+      label: string;
+    }
+  | {
+      kind: "planned";
+      label: string;
     };

@@ -11,6 +11,7 @@ import {
   type ZoneResponse,
 } from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
+import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
 
 type SessionTab = "all" | "open" | "closed" | "missing_evidence";
 type BadgeTone = "primary" | "success" | "warning" | "danger" | "neutral";
@@ -264,6 +265,7 @@ function SessionDetailDrawer({
 }
 
 export function ParkingSessionPage() {
+  const { permittedLotIds } = usePlatformMonitoringScope();
   const defaultDateRange = `${daysAgoIso(6)}|${todayIso()}`;
   const [activeTab, setActiveTab] = useState<SessionTab>("all");
   const [dateRange, setDateRange] = useState(defaultDateRange);
@@ -282,6 +284,10 @@ export function ParkingSessionPage() {
   const [filterLoadError, setFilterLoadError] = useState("");
 
   useEffect(() => {
+    setZoneFilter("all");
+  }, [permittedLotIds]);
+
+  useEffect(() => {
     let active = true;
 
     async function loadFilters() {
@@ -293,7 +299,9 @@ export function ParkingSessionPage() {
         ]);
         if (!active) return;
         setVehicleTypes(nextVehicleTypes);
-        setZones(nextZones);
+        setZones(permittedLotIds
+          ? nextZones.filter((zone) => zone.parkingLotId != null && permittedLotIds.has(zone.parkingLotId))
+          : nextZones);
       } catch (error) {
         if (!active) return;
         setVehicleTypes([]);
@@ -307,7 +315,7 @@ export function ParkingSessionPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [permittedLotIds]);
 
   useEffect(() => {
     let active = true;
@@ -325,10 +333,13 @@ export function ParkingSessionPage() {
           zoneId: zoneFilter === "all" ? undefined : zoneFilter,
         });
         if (!active) return;
-        setSessions(nextSessions);
+        const visibleSessions = permittedLotIds
+          ? nextSessions.filter((session) => session.parkingLotId != null && permittedLotIds.has(session.parkingLotId))
+          : nextSessions;
+        setSessions(visibleSessions);
         setSelectedSession((current) => {
-          if (!current) return nextSessions[0] ?? null;
-          return nextSessions.find((session) => session.parkingSessionId === current.parkingSessionId) ?? nextSessions[0] ?? null;
+          if (!current) return visibleSessions[0] ?? null;
+          return visibleSessions.find((session) => session.parkingSessionId === current.parkingSessionId) ?? visibleSessions[0] ?? null;
         });
       } catch (error) {
         if (!active) return;
@@ -348,7 +359,7 @@ export function ParkingSessionPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [dateRange, searchValue, vehicleTypeFilter, zoneFilter]);
+  }, [dateRange, permittedLotIds, searchValue, vehicleTypeFilter, zoneFilter]);
 
   const vehicleTypeOptions = useMemo(() => buildVehicleTypeOptions(vehicleTypes), [vehicleTypes]);
 

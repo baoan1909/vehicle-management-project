@@ -12,6 +12,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.util.HashSet;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
@@ -31,7 +33,10 @@ public class ParkingLotEntity extends AuditableEntity {
     @Column(name = "parking_lot_id", nullable = false)
     private UUID parkingLotId;
 
-    @Column(name = "code", nullable = false, unique = true)
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
+    @Column(name = "code", nullable = false)
     private String code;
 
     @Column(name = "name", nullable = false)
@@ -40,12 +45,24 @@ public class ParkingLotEntity extends AuditableEntity {
     @Column(name = "address")
     private String address;
 
+    @Column(name = "latitude", precision = 9, scale = 6)
+    private BigDecimal latitude;
+
+    @Column(name = "longitude", precision = 9, scale = 6)
+    private BigDecimal longitude;
+
     @Column(name = "total_capacity", nullable = false)
     private Integer totalCapacity;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private ParkingLotStatus status;
+
+    @Column(name = "activation_requested_at")
+    private Instant activationRequestedAt;
+
+    @Column(name = "activation_requested_by")
+    private UUID activationRequestedBy;
 
     @OneToMany(mappedBy = "parkingLot")
     private Set<ZoneEntity> zones = new HashSet<>();

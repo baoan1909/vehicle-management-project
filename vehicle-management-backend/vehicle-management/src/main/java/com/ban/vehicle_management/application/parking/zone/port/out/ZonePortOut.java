@@ -17,6 +17,8 @@ public interface ZonePortOut {
 
     boolean existsByParkingLotIdAndCodeAndZoneIdNot(UUID parkingLotId, String code, UUID zoneId);
 
+    boolean existsConfigurableParkingLotById(UUID parkingLotId);
+
     boolean existsActiveParkingLotById(UUID parkingLotId);
 
     boolean existsActiveVehicleTypeById(UUID vehicleTypeId);

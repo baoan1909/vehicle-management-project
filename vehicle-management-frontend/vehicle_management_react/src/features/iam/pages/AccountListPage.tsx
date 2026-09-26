@@ -57,6 +57,7 @@ type AccountWorkspaceTab = "accounts" | "onboarding";
 const roleOptions: Array<{ label: string; value: ProvisionableRoleCode | "all" }> = [
   { label: "Tất cả vai trò", value: "all" },
   { label: "SYSTEM_ADMIN", value: "SYSTEM_ADMIN" },
+  { label: "PARTNER_ADMIN", value: "PARTNER_ADMIN" },
   { label: "PARKING_MANAGER", value: "PARKING_MANAGER" },
   { label: "EMPLOYEE", value: "EMPLOYEE" },
   { label: "CUSTOMER", value: "CUSTOMER" },
@@ -85,7 +86,7 @@ function isInternalRole(roleCode: RoleCode) {
 }
 
 function isAdminProvisionableRole(roleCode: RoleCode): roleCode is ProvisionableRoleCode {
-  return roleCode === "SYSTEM_ADMIN" || roleCode === "PARKING_MANAGER" || roleCode === "EMPLOYEE" || roleCode === "CUSTOMER";
+  return roleCode === "SYSTEM_ADMIN" || roleCode === "PARTNER_ADMIN" || roleCode === "PARKING_MANAGER" || roleCode === "EMPLOYEE" || roleCode === "CUSTOMER";
 }
 
 function getProvisionableRoleFallback(roleCode: RoleCode): ProvisionableRoleCode {
@@ -207,6 +208,7 @@ function statusBadgeTone(status: AccountStatus) {
 
 function roleBadgeTone(roleCode: RoleCode) {
   if (roleCode === "SYSTEM_ADMIN") return "danger";
+  if (roleCode === "PARTNER_ADMIN") return "primary";
   if (roleCode === "PARKING_MANAGER") return "primary";
   if (roleCode === "EMPLOYEE") return "success";
   return "neutral";

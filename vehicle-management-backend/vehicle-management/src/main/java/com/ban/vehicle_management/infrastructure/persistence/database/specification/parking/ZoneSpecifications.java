@@ -30,7 +30,7 @@ public final class ZoneSpecifications {
 
     private static Specification<ZoneEntity> hasVehicleTypeId(UUID vehicleTypeId) {
         return (root, query, criteriaBuilder) ->
-                vehicleTypeId == null ? null : criteriaBuilder.equal(root.get("vehicleTypeId"), vehicleTypeId);
+                vehicleTypeId == null ? null : criteriaBuilder.isMember(vehicleTypeId, root.get("vehicleTypeIds"));
     }
 
     private static Specification<ZoneEntity> hasStatus(ZoneStatus status) {

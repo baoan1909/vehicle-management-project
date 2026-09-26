@@ -78,6 +78,9 @@ function resolveProfileRole(roleCode?: string): CurrentUser["role"] | null {
     case "QUAN_TRI":
     case "QUAN_TRI_HE_THONG":
       return "SYSTEM_ADMIN";
+    case "PARTNER_ADMIN":
+    case "QUAN_TRI_DOI_TAC":
+      return "PARTNER_ADMIN";
     case "PARKING_MANAGER":
     case "QUAN_LY":
       return "PARKING_MANAGER";

@@ -101,7 +101,7 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
 
     @Override
     public boolean hasActiveZones(UUID vehicleTypeId) {
-        return zoneRepository.existsByVehicleTypeIdAndStatus(vehicleTypeId, ZoneStatus.ACTIVE);
+        return zoneRepository.existsByVehicleTypeIdsContainsAndStatus(vehicleTypeId, ZoneStatus.ACTIVE);
     }
 }
 

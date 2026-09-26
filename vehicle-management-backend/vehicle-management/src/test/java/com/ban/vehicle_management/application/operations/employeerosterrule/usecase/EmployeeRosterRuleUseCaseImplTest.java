@@ -8,14 +8,18 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.doThrow;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.operations.employeerosterrule.port.out.EmployeeRosterRulePortOut;
 import com.ban.vehicle_management.application.operations.shifttemplate.port.out.ShiftTemplatePortOut;
 import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
+import com.ban.vehicle_management.application.people.employee.authorization.EmployeeOrganizationAccessGuard;
 import com.ban.vehicle_management.domain.operations.employeerosterrule.model.EmployeeRosterRule;
 import com.ban.vehicle_management.domain.parking.gate.model.Gate;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
@@ -34,17 +38,22 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class EmployeeRosterRuleUseCaseImplTest {
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
+
+    @Mock
+    private OrganizationAccessGuard organizationAccessGuard;
 
     @Mock
     private EmployeeRosterRulePortOut rosterRulePortOut;
@@ -54,6 +63,9 @@ class EmployeeRosterRuleUseCaseImplTest {
 
     @Mock
     private EmployeePortOut employeePortOut;
+
+    @Mock
+    private EmployeeOrganizationAccessGuard employeeOrganizationAccessGuard;
 
     @Mock
     private GatePortOut gatePortOut;
@@ -66,6 +78,17 @@ class EmployeeRosterRuleUseCaseImplTest {
 
     @InjectMocks
     private EmployeeRosterRuleUseCaseImpl useCase;
+
+    @BeforeEach
+    void stubParkingLotForScopeChecks() {
+        lenient().when(parkingLotPortOut.findById(any(UUID.class))).thenAnswer(invocation -> {
+            ParkingLot lot = new ParkingLot();
+            lot.setParkingLotId(invocation.getArgument(0));
+            lot.setOrganizationId(UUID.randomUUID());
+            lot.setStatus(ParkingLotStatus.ACTIVE);
+            return Optional.of(lot);
+        });
+    }
 
     @Test
     void shouldCreateFixedRuleWhenReferencesAndScheduleAreValid() {
@@ -82,6 +105,16 @@ class EmployeeRosterRuleUseCaseImplTest {
         assertNotNull(result.getRosterRuleId());
         assertEquals(RosterRuleStatus.ACTIVE, result.getStatus());
         verify(rosterRulePortOut).save(rule);
+    }
+
+    @Test
+    void cannotCreateRosterRuleForAnotherPartnersLot() {
+        EmployeeRosterRule rule = fixedRule();
+        doThrow(new AccessDeniedException("other lot"))
+                .when(organizationAccessGuard).ensureCanOperateParkingLot(any(ParkingLot.class));
+
+        assertThrows(AccessDeniedException.class, () -> useCase.createRule(rule));
+        verify(rosterRulePortOut, never()).save(any(EmployeeRosterRule.class));
     }
 
     @Test

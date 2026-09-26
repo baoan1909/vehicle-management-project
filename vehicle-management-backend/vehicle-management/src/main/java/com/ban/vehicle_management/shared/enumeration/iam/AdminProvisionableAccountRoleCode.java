@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 public enum AdminProvisionableAccountRoleCode {
     CUSTOMER,
     SYSTEM_ADMIN,
+    PARTNER_ADMIN,
     PARKING_MANAGER,
     EMPLOYEE;
 
@@ -18,7 +19,7 @@ public enum AdminProvisionableAccountRoleCode {
 
     public boolean isInternalRole() {
         return switch (this) {
-            case SYSTEM_ADMIN, PARKING_MANAGER, EMPLOYEE -> true;
+            case SYSTEM_ADMIN, PARTNER_ADMIN, PARKING_MANAGER, EMPLOYEE -> true;
             case CUSTOMER -> false;
         };
     }
@@ -26,7 +27,7 @@ public enum AdminProvisionableAccountRoleCode {
     public boolean requiresEmployeeRecord() {
         return switch (this) {
             case PARKING_MANAGER, EMPLOYEE -> true;
-            case CUSTOMER, SYSTEM_ADMIN -> false;
+            case CUSTOMER, SYSTEM_ADMIN, PARTNER_ADMIN -> false;
         };
     }
 }

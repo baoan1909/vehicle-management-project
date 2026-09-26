@@ -24,6 +24,7 @@ export type ZoneApiResponse = {
   updatedAt?: string | null;
   updatedBy?: string | null;
   vehicleTypeId: string | null;
+  vehicleTypeIds?: string[];
   zoneId: string;
 };
 
@@ -77,6 +78,7 @@ export type UpdateZoneRequest = {
   code: string;
   name: string;
   vehicleTypeId: string | null;
+  vehicleTypeIds: string[];
 };
 
 export type CreateZoneRequest = UpdateZoneRequest & {

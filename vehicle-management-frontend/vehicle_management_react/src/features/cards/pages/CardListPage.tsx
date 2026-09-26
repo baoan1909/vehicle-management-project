@@ -35,6 +35,9 @@ import {
 import { Modal } from "@/shared/components/ui/Modal";
 import { SelectMenu, type SelectMenuOption } from "@/shared/components/ui/SelectMenu";
 import { useToast } from "@/shared/components/ui/ToastProvider";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
+import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
 
 type LifecycleCardTableAction = Exclude<CardTableAction, "reclassify">;
 
@@ -585,6 +588,10 @@ function ReclassifyCardModal({
 
 export function CardListPage() {
   const toast = useToast();
+  const { user } = useAuth();
+  const { permittedLotIds } = usePlatformMonitoringScope();
+  const canCreateCards = hasAnyPermission(user, ["CARD_CREATE_ALL"]);
+  const canManageCards = hasAnyPermission(user, ["CARD_UPDATE_ALL", "CARD_DELETE_ALL"]);
   const [activeStatus, setActiveStatus] = useState<CardStatusTabValue>("all");
   const [searchValue, setSearchValue] = useState("");
   const [cardTypeValue, setCardTypeValue] = useState("all");
@@ -646,7 +653,9 @@ export function CardListPage() {
           keyword: searchValue,
         });
         if (!active) return;
-        setCards(nextCards);
+        setCards(permittedLotIds
+          ? nextCards.filter((card) => card.parkingLotId != null && permittedLotIds.has(card.parkingLotId))
+          : nextCards);
       } catch (error) {
         if (!active) return;
         setCards([]);
@@ -664,7 +673,7 @@ export function CardListPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [cardTypeValue, reloadKey, searchValue]);
+  }, [cardTypeValue, permittedLotIds, reloadKey, searchValue]);
 
   const cardTypeOptions = useMemo(() => buildCardTypeOptions(cardTypes), [cardTypes]);
   const editorCardTypeOptions = useMemo(() => buildEditorCardTypeOptions(cardTypes), [cardTypes]);
@@ -871,6 +880,7 @@ export function CardListPage() {
         <div className="container-fluid tw-max-w-[1480px]">
           <div className="tw-flex tw-flex-col tw-gap-[1.1rem] tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/90 tw-bg-white tw-p-4 tw-pt-[0.85rem] tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
             <CardManageHeader
+              canCreate={canCreateCards}
               onCreate={() => setIsCreateModalOpen(true)}
               onCreateBatch={() => setIsBatchCreateOpen(true)}
             />
@@ -911,6 +921,7 @@ export function CardListPage() {
                 ) : null}
 
                 <CardListTable
+                  canManage={canManageCards}
                   checkedIds={checkedIds}
                   currentPage={safeCurrentPage}
                   isLoading={isLoading}

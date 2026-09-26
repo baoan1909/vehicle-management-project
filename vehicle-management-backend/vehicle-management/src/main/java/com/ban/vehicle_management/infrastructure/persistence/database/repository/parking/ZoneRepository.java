@@ -19,12 +19,13 @@ public interface ZoneRepository extends JpaRepository<ZoneEntity, UUID>, JpaSpec
 
     boolean existsByZoneIdAndStatus(UUID zoneId, ZoneStatus status);
 
-    boolean existsByVehicleTypeIdAndStatus(UUID vehicleTypeId, ZoneStatus status);
+    boolean existsByVehicleTypeIdsContainsAndStatus(UUID vehicleTypeId, ZoneStatus status);
 
     @Query("""
         select coalesce(sum(zone.capacity), 0)
         from ZoneEntity zone
-        where zone.vehicleTypeId = :vehicleTypeId
+        join zone.vehicleTypeIds allowedVehicleTypeId
+        where allowedVehicleTypeId = :vehicleTypeId
           and zone.status = com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus.ACTIVE
         """)
     long sumActiveCapacityByVehicleTypeId(@Param("vehicleTypeId") UUID vehicleTypeId);

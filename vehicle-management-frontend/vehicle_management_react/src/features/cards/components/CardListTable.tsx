@@ -17,6 +17,7 @@ const ACTION_MENU_WIDTH = 176;
 const ACTION_MENU_GAP = 6;
 
 interface CardListTableProps {
+  canManage: boolean;
   checkedIds: string[];
   currentPage: number;
   isLoading?: boolean;
@@ -63,6 +64,7 @@ function CheckButton({
 }
 
 export function CardListTable({
+  canManage,
   checkedIds,
   currentPage,
   isLoading = false,
@@ -243,8 +245,10 @@ export function CardListTable({
                       <button
                         aria-expanded={openMenuId === row.id}
                         aria-label={`Mở menu thao tác thẻ ${row.cardCode}`}
-                        className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-[0.86rem] tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25"
+                        className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-[0.86rem] tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 disabled:tw-cursor-not-allowed disabled:tw-bg-slate-50 disabled:tw-text-slate-300"
+                        disabled={!canManage}
                         type="button"
+                        title={canManage ? undefined : "Bạn chỉ có quyền xem thẻ."}
                         onClick={(event) => {
                           event.stopPropagation();
                           openActionMenu(row.id, event.currentTarget);

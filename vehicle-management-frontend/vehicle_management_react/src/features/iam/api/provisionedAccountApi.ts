@@ -8,7 +8,7 @@ type ApiResponse<T> = {
   timestamp: string;
 };
 
-export type AdminProvisionableAccountRoleCode = "SYSTEM_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER";
+export type AdminProvisionableAccountRoleCode = "SYSTEM_ADMIN" | "PARTNER_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER";
 export type ProvisionedAccountRoleCode = AdminProvisionableAccountRoleCode | (string & {});
 export type ProvisionedAccountStatus = "ACTIVE" | "LOCKED" | "DISABLED" | "PENDING";
 

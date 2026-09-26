@@ -3,8 +3,12 @@ import { NavLink, useLocation } from "react-router-dom";
 import { getVisibleAdminNavigation } from "@/app/routePermissions";
 import { useAuth } from "@/core/auth/useAuth";
 import type { AdminSidebarEntry, AdminSidebarIcon, AdminSidebarLeaf } from "../../types/common";
-import { hasResolvedPermissions } from "@/shared/auth/permissions";
+import { hasAnyPermission, hasResolvedPermissions } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
+import { PlatformMonitoringScopePicker } from "./PlatformMonitoringScopePicker";
+import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
+
+const scopedMonitoringPaths = new Set(["/admin/parking-lots", "/admin/swipe/sessions", "/admin/card"]);
 
 function isPathMatch(pathname: string, matches: string[]) {
   return matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));
@@ -149,7 +153,12 @@ interface AdminSidebarProps {
 export function AdminSidebar({ collapsed, offsetTop = 72, onCollapsedChange }: AdminSidebarProps) {
   const location = useLocation();
   const { isAccessLoading, user } = useAuth();
+  const { scope } = usePlatformMonitoringScope();
   const isPermissionLoading = Boolean(user && !hasResolvedPermissions(user) && isAccessLoading);
+  const canUsePlatformNavigation = hasAnyPermission(user, ["ORGANIZATION_CREATE_ALL"]);
+  const canSelectMonitoringScope = canUsePlatformNavigation
+    && hasAnyPermission(user, ["ORGANIZATION_READ_ALL"])
+    && hasAnyPermission(user, ["PARKING_LOT_READ_ALL"]);
   const visibleNavigation = useMemo(() => getVisibleAdminNavigation(user), [user]);
   const [expandedGroupLabel, setExpandedGroupLabel] = useState<string | null>(() => getActiveGroupLabel(visibleNavigation, location.pathname));
 
@@ -172,6 +181,13 @@ export function AdminSidebar({ collapsed, offsetTop = 72, onCollapsedChange }: A
     >
       <div className={cn("tw-flex tw-h-full tw-flex-col", collapsed ? "tw-px-3" : "tw-px-4")}>
         <div className="tw-min-h-0 tw-flex-1 tw-overflow-y-auto tw-pb-4 tw-pt-7 [scrollbar-width:none] [&::-webkit-scrollbar]:tw-hidden">
+        {!collapsed && canUsePlatformNavigation && !isPermissionLoading ? (
+          <div className="tw-mb-5 tw-px-2">
+            <p className="tw-m-0 tw-text-[0.68rem] tw-font-black tw-uppercase tw-tracking-[0.12em] tw-text-vm-slate-500">CoParking Platform</p>
+            <p className="tw-m-0 tw-mt-1 tw-text-sm tw-font-extrabold tw-text-vm-slate-900">Quản trị toàn hệ thống</p>
+          </div>
+        ) : null}
+        {!collapsed && canSelectMonitoringScope && !isPermissionLoading ? <PlatformMonitoringScopePicker /> : null}
         <nav className="tw-grid tw-gap-2" role="menu" aria-label="CoParking admin navigation">
           {isPermissionLoading ? (
             <div className={cn("tw-flex tw-min-h-[48px] tw-items-center tw-gap-3 tw-rounded-vm-sm tw-bg-brand-50 tw-px-3 tw-text-[0.9rem] tw-font-extrabold tw-text-vm-primary", collapsed ? "tw-justify-center" : "")}>
@@ -184,6 +200,23 @@ export function AdminSidebar({ collapsed, offsetTop = 72, onCollapsedChange }: A
           {!isPermissionLoading && visibleNavigation.map((entry, index) => {
             if (entry.kind === "divider") {
               return <div key={`divider-${index}`} className={cn("tw-my-2 tw-h-px tw-bg-slate-100", collapsed ? "tw-mx-2" : "")} />;
+            }
+
+            if (entry.kind === "section") {
+              return collapsed ? null : (
+                <div key={`section-${entry.label}`} className="tw-mt-2 tw-px-3 tw-text-[0.68rem] tw-font-black tw-uppercase tw-tracking-[0.11em] tw-text-vm-slate-500">
+                  {entry.label}
+                </div>
+              );
+            }
+
+            if (entry.kind === "planned") {
+              return collapsed ? null : (
+                <div key={`planned-${entry.label}`} className="tw-flex tw-min-h-9 tw-items-center tw-justify-between tw-gap-2 tw-rounded-vm-sm tw-px-3 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500" title="Chức năng chưa được triển khai">
+                  <span className="tw-truncate">{entry.label}</span>
+                  <span className="tw-shrink-0 tw-text-[0.62rem] tw-font-bold tw-text-slate-400">Sắp có</span>
+                </div>
+              );
             }
 
             if (entry.kind === "group") {
@@ -200,6 +233,16 @@ export function AdminSidebar({ collapsed, offsetTop = 72, onCollapsedChange }: A
             }
 
             const active = isPathMatch(location.pathname, entry.matches);
+
+            if (entry.monitoring && scope.level !== "ALL" && !scopedMonitoringPaths.has(entry.to)) {
+              return collapsed ? null : (
+                <div key={entry.label} className="tw-flex tw-min-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-sm tw-px-3 tw-text-[0.82rem] tw-font-semibold tw-text-slate-400" title="Trang này chưa hỗ trợ lọc theo đối tác hoặc bãi xe. Chọn Toàn sàn để xem.">
+                  <span className="tw-inline-flex tw-h-9 tw-w-9 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-sm tw-bg-slate-50"><SidebarIcon icon={entry.icon} /></span>
+                  <span className="tw-min-w-0 tw-truncate">{entry.label}</span>
+                  <span className="tw-ml-auto tw-shrink-0 tw-text-[0.6rem]">Chưa lọc</span>
+                </div>
+              );
+            }
 
             return (
               <NavLink

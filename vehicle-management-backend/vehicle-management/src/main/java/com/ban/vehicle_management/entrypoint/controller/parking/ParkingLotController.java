@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -39,6 +40,7 @@ public class ParkingLotController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_CREATE_ALL')")
     public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> createParkingLot(
             @RequestBody CreateParkingLotRequest request
     ) {
@@ -53,6 +55,7 @@ public class ParkingLotController {
     }
 
     @GetMapping("/{parkingLotId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_READ_ALL')")
     public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> getParkingLotById(
             @PathVariable UUID parkingLotId
     ) {
@@ -65,6 +68,7 @@ public class ParkingLotController {
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_READ_ALL')")
     public ResponseEntity<ApiResponse<List<ParkingLotAdminResponse>>> getParkingLots(
             @ModelAttribute ParkingLotFilterRequest request
     ) {
@@ -80,6 +84,7 @@ public class ParkingLotController {
     }
 
     @PutMapping("/{parkingLotId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> updateParkingLot(
             @PathVariable UUID parkingLotId,
             @RequestBody UpdateParkingLotRequest request
@@ -96,6 +101,7 @@ public class ParkingLotController {
     }
 
     @DeleteMapping("/{parkingLotId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteParkingLot(
             @PathVariable UUID parkingLotId
     ) {
@@ -105,6 +111,7 @@ public class ParkingLotController {
     }
 
     @PatchMapping("/{parkingLotId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> activateParkingLot(
             @PathVariable UUID parkingLotId
     ) {
@@ -116,7 +123,20 @@ public class ParkingLotController {
         ));
     }
 
+    @PostMapping("/{parkingLotId}/activation-request")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_READ_ALL')")
+    public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> requestParkingLotActivation(
+            @PathVariable UUID parkingLotId
+    ) {
+        ParkingLot parkingLot = parkingLotPortIn.requestParkingLotActivation(parkingLotId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Parking lot activation requested successfully",
+                parkingLotApiMapper.toAdminResponse(parkingLot)
+        ));
+    }
+
     @PatchMapping("/{parkingLotId}/maintenance")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> markParkingLotMaintenance(
             @PathVariable UUID parkingLotId
     ) {
@@ -129,6 +149,7 @@ public class ParkingLotController {
     }
 
     @PatchMapping("/{parkingLotId}/close")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> closeParkingLot(
             @PathVariable UUID parkingLotId
     ) {

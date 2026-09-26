@@ -15,6 +15,8 @@ public interface ParkingLotApiMapper {
 
     @Mapping(target = "parkingLotId", ignore = true)
     @Mapping(target = "status", ignore = true)
+    @Mapping(target = "activationRequestedAt", ignore = true)
+    @Mapping(target = "activationRequestedBy", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -22,17 +24,22 @@ public interface ParkingLotApiMapper {
     ParkingLot toDomain(CreateParkingLotRequest request);
 
     @Mapping(target = "parkingLotId", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "status", ignore = true)
+    @Mapping(target = "activationRequestedAt", ignore = true)
+    @Mapping(target = "activationRequestedBy", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     ParkingLot toDomain(UpdateParkingLotRequest request);
 
+    @Mapping(target = "activationRequestedAt", source = "activationRequestedAt", qualifiedByName = "formatInstant")
     ParkingLotAdminResponse toAdminResponse(ParkingLot parkingLot);
 
     List<ParkingLotAdminResponse> toAdminResponses(List<ParkingLot> parkingLots);
 
+    @org.mapstruct.Named("formatInstant")
     default String map(Instant instant) {
         return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
     }

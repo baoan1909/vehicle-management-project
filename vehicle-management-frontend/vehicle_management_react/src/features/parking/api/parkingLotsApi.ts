@@ -8,14 +8,19 @@ type ApiResponse<T> = {
   timestamp: string;
 };
 
-export type ParkingLotStatusApi = "ACTIVE" | "MAINTENANCE" | "CLOSED";
+export type ParkingLotStatusApi = "SETUP" | "ACTIVE" | "MAINTENANCE" | "CLOSED";
 
 export type ParkingLotApiResponse = {
   address: string | null;
+  activationRequestedAt?: string | null;
+  activationRequestedBy?: string | null;
+  latitude: number | null;
+  longitude: number | null;
   code: string;
   createdAt?: string | null;
   createdBy?: string | null;
   name: string;
+  organizationId: string;
   parkingLotId: string;
   status: ParkingLotStatusApi;
   totalCapacity: number | null;
@@ -31,6 +36,8 @@ export type ParkingLotFilter = {
 export type UpsertParkingLotRequest = {
   address: string;
   code: string;
+  latitude: number | null;
+  longitude: number | null;
   name: string;
   totalCapacity: number;
 };
@@ -71,6 +78,12 @@ export function updateParkingLot(parkingLotId: string, payload: UpsertParkingLot
 export function activateParkingLot(parkingLotId: string) {
   return apiClient<ApiResponse<ParkingLotApiResponse>>(`${apiEndpoints.parking.parkingLots}/${parkingLotId}/activate`, {
     method: "PATCH",
+  });
+}
+
+export function requestParkingLotActivation(parkingLotId: string) {
+  return apiClient<ApiResponse<ParkingLotApiResponse>>(apiEndpoints.parking.parkingLotActivationRequest(parkingLotId), {
+    method: "POST",
   });
 }
 

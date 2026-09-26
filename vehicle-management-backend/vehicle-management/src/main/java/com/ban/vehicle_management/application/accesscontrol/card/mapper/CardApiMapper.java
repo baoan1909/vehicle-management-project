@@ -47,6 +47,7 @@ public interface CardApiMapper {
     @Mapping(target = "recoveredAt", ignore = true)
     @Mapping(target = "recoveredBy", ignore = true)
     @Mapping(target = "recoveryNote", ignore = true)
+    @Mapping(target = "parkingLotId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

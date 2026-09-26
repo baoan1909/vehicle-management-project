@@ -8,6 +8,8 @@ import com.ban.vehicle_management.application.iam.account.model.result.Provision
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.in.ProvisionedAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
@@ -44,6 +46,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     private final IdentityProviderAdminPortOut identityProviderAdminPortOut;
     private final ProvisionedAccountPolicy provisionedAccountPolicy;
     private final NotificationPortIn notificationPortIn;
+    private final OrganizationPortOut organizationPortOut;
     private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
 
     public ProvisionedAccountUseCaseImpl(
@@ -51,13 +54,15 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             ProvisionedAccountPortOut provisionedAccountPortOut,
             IdentityProviderAdminPortOut identityProviderAdminPortOut,
             ProvisionedAccountPolicy provisionedAccountPolicy,
-            NotificationPortIn notificationPortIn
+            NotificationPortIn notificationPortIn,
+            OrganizationPortOut organizationPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.provisionedAccountPortOut = provisionedAccountPortOut;
         this.identityProviderAdminPortOut = identityProviderAdminPortOut;
         this.provisionedAccountPolicy = provisionedAccountPolicy;
         this.notificationPortIn = notificationPortIn;
+        this.organizationPortOut = organizationPortOut;
     }
 
     @Override
@@ -85,6 +90,8 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
                     account,
                     buildMinimalUserProfile(account.getUserProfileId(), normalizedCommand.fullName())
             );
+            addParkingManagerToCurrentPartner(accountId, normalizedCommand.roleCode());
+            addEmployeeToCurrentPartner(accountId, normalizedCommand.roleCode());
             identityProviderAdminPortOut.updateAccountIdAttribute(keycloakUserId, accountId);
             identityProviderAdminPortOut.sendUpdatePasswordEmail(keycloakUserId);
             ProvisionedAccountResult result = provisionedAccountPortOut.findProvisionedAccountById(accountId)
@@ -101,10 +108,12 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     @Transactional(readOnly = true)
     public List<ProvisionedAccountResult> getProvisionedAccounts(ProvisionedAccountFilterCommand command) {
         currentAccountPortIn.requirePermission(ACCOUNT_READ_ALL);
-        return provisionedAccountPortOut.findProvisionedAccounts(normalizeFilterCommand(
-                command,
-                managedTargetRolesForCurrentAccount()
-        ));
+        List<ProvisionedAccountResult> accounts = provisionedAccountPortOut.findProvisionedAccounts(
+                normalizeFilterCommand(command, managedTargetRolesForCurrentAccount())
+        );
+        return isPartnerAdmin()
+                ? accounts.stream().filter(this::isWithinCurrentPartnerScope).toList()
+                : accounts;
     }
 
     @Override
@@ -276,6 +285,9 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             throw new NotFoundException("Provisioned account not found");
         }
         ensureCanManageTargetRole(result.role().roleCode());
+        if (isPartnerAdmin() && !isWithinCurrentPartnerScope(result)) {
+            throw new AccessDeniedException("Current partner administrator cannot manage this account");
+        }
     }
 
     private AdminProvisionableAccountRoleCode requireProvisionableRole(AdminProvisionableAccountRoleCode roleCode) {
@@ -305,6 +317,58 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         if (!provisionedAccountPolicy.canManageTargetRole(currentRoleCode, targetRoleCode)) {
             throw new AccessDeniedException("Current account is not allowed to manage target role");
         }
+    }
+
+    private boolean isPartnerAdmin() {
+        return OrganizationAccessGuard.PARTNER_ADMIN.equals(
+                currentAccountPortIn.getCurrentAccountOrThrow().roleCode()
+        );
+    }
+
+    /**
+     * A Parking Manager created by a Partner Admin belongs to that partner immediately.
+     * Parking-lot scopes remain empty until the Partner Admin assigns one or more lots.
+     */
+    private void addParkingManagerToCurrentPartner(UUID accountId, AdminProvisionableAccountRoleCode roleCode) {
+        if (!isPartnerAdmin() || !AdminProvisionableAccountRoleCode.PARKING_MANAGER.equals(roleCode)) {
+            return;
+        }
+
+        Set<UUID> organizationIds = organizationPortOut.findActiveOrganizationIdsByAccountId(
+                currentAccountPortIn.getCurrentAccountIdOrThrow()
+        );
+        if (organizationIds.isEmpty()) {
+            throw new BadRequestException("Partner Admin chưa được gán vào đơn vị đối tác nào.");
+        }
+        organizationIds.forEach(organizationId -> organizationPortOut.createActiveMembership(organizationId, accountId));
+    }
+
+    private void addEmployeeToCurrentPartner(UUID accountId, AdminProvisionableAccountRoleCode roleCode) {
+        if (!AdminProvisionableAccountRoleCode.EMPLOYEE.equals(roleCode)) {
+            return;
+        }
+        String creatorRole = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
+        if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(creatorRole)
+                && !OrganizationAccessGuard.PARKING_MANAGER.equals(creatorRole)) {
+            return;
+        }
+        Set<UUID> organizationIds = organizationPortOut.findActiveOrganizationIdsByAccountId(
+                currentAccountPortIn.getCurrentAccountIdOrThrow());
+        if (organizationIds.size() != 1) {
+            throw new BadRequestException("Employee account requires exactly one Partner organization");
+        }
+        organizationPortOut.createActiveMembership(organizationIds.iterator().next(), accountId);
+    }
+
+    private boolean isWithinCurrentPartnerScope(ProvisionedAccountResult account) {
+        Set<UUID> currentOrganizationIds = organizationPortOut.findActiveOrganizationIdsByAccountId(
+                currentAccountPortIn.getCurrentAccountIdOrThrow()
+        );
+        if (currentOrganizationIds.isEmpty()) {
+            return false;
+        }
+        return organizationPortOut.findActiveOrganizationIdsByAccountId(account.account().accountId()).stream()
+                .anyMatch(currentOrganizationIds::contains);
     }
 
     private String normalizeRequiredEmail(String email) {

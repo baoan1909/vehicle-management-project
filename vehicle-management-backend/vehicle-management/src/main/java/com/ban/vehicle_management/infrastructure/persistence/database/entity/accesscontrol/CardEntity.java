@@ -46,6 +46,9 @@ public class CardEntity extends AuditableEntity {
     @Column(name = "card_type_id", nullable = false)
     private UUID cardTypeId;
 
+    @Column(name = "parking_lot_id")
+    private UUID parkingLotId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "card_type_id", referencedColumnName = "card_type_id", insertable = false, updatable = false)
     private CardTypeEntity cardType;

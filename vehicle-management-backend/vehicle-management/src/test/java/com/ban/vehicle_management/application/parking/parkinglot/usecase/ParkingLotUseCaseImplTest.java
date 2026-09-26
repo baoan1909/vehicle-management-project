@@ -5,17 +5,23 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,28 +34,42 @@ class ParkingLotUseCaseImplTest {
     @Mock
     private ParkingLotPortOut parkingLotPortOut;
 
+    @Mock
+    private CurrentAccountPortIn currentAccountPortIn;
+
+    @Mock
+    private OrganizationAccessGuard organizationAccessGuard;
+
     @InjectMocks
     private ParkingLotUseCaseImpl parkingLotUseCase;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(organizationAccessGuard.resolveOrganizationIdForParkingLotCreation(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        lenient().when(organizationAccessGuard.resolveParkingLotAccessScope())
+                .thenReturn(ParkingLotAccessScope.unrestrictedScope());
+    }
 
     @Test
     void shouldCreateParkingLotWhenValid() {
         ParkingLot request = validParkingLot();
 
-        when(parkingLotPortOut.existsByCode("HCMUTE")).thenReturn(false);
+        when(parkingLotPortOut.existsByOrganizationIdAndCode(request.getOrganizationId(), "HCMUTE")).thenReturn(false);
         when(parkingLotPortOut.save(any(ParkingLot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ParkingLot createdParkingLot = parkingLotUseCase.createParkingLot(request);
 
         assertNotNull(createdParkingLot.getParkingLotId());
         assertEquals("HCMUTE", createdParkingLot.getCode());
-        assertEquals(ParkingLotStatus.ACTIVE, createdParkingLot.getStatus());
+        assertEquals(ParkingLotStatus.SETUP, createdParkingLot.getStatus());
     }
 
     @Test
     void shouldRejectCreateWhenCodeAlreadyExists() {
         ParkingLot request = validParkingLot();
 
-        when(parkingLotPortOut.existsByCode("HCMUTE")).thenReturn(true);
+        when(parkingLotPortOut.existsByOrganizationIdAndCode(request.getOrganizationId(), "HCMUTE")).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> parkingLotUseCase.createParkingLot(request));
         verify(parkingLotPortOut, never()).save(any(ParkingLot.class));
@@ -79,7 +99,7 @@ class ParkingLotUseCaseImplTest {
 
     @Test
     void shouldReturnFilteredParkingLotsWithTrimmedKeyword() {
-        when(parkingLotPortOut.findAll(ParkingLotStatus.ACTIVE, "HCMUTE"))
+        when(parkingLotPortOut.findAll(ParkingLotStatus.ACTIVE, "HCMUTE", null, null))
                 .thenReturn(List.of(new ParkingLot(), new ParkingLot()));
 
         List<ParkingLot> parkingLots = parkingLotUseCase.getParkingLots(
@@ -88,7 +108,20 @@ class ParkingLotUseCaseImplTest {
         );
 
         assertEquals(2, parkingLots.size());
-        verify(parkingLotPortOut).findAll(ParkingLotStatus.ACTIVE, "HCMUTE");
+        verify(parkingLotPortOut).findAll(ParkingLotStatus.ACTIVE, "HCMUTE", null, null);
+    }
+
+    @Test
+    void shouldReturnNoParkingLotsWhenManagerHasNoAssignedScope() {
+        when(organizationAccessGuard.resolveParkingLotAccessScope())
+                .thenReturn(new ParkingLotAccessScope(false, java.util.Set.of(), java.util.Set.of()));
+        when(parkingLotPortOut.findAll(ParkingLotStatus.ACTIVE, null, null, java.util.Set.of()))
+                .thenReturn(List.of());
+
+        List<ParkingLot> parkingLots = parkingLotUseCase.getParkingLots(ParkingLotStatus.ACTIVE, null);
+
+        assertEquals(List.of(), parkingLots);
+        verify(parkingLotPortOut).findAll(ParkingLotStatus.ACTIVE, null, null, java.util.Set.of());
     }
 
     @Test
@@ -105,7 +138,11 @@ class ParkingLotUseCaseImplTest {
         request.setTotalCapacity(1200);
 
         when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
-        when(parkingLotPortOut.existsByCodeAndParkingLotIdNot("HCMUTE-MAIN", parkingLotId)).thenReturn(false);
+        when(parkingLotPortOut.existsByOrganizationIdAndCodeAndParkingLotIdNot(
+                existingParkingLot.getOrganizationId(),
+                "HCMUTE-MAIN",
+                parkingLotId
+        )).thenReturn(false);
         when(parkingLotPortOut.save(any(ParkingLot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ParkingLot updatedParkingLot = parkingLotUseCase.updateParkingLot(parkingLotId, request);
@@ -127,7 +164,11 @@ class ParkingLotUseCaseImplTest {
         request.setCode("OTHER");
 
         when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
-        when(parkingLotPortOut.existsByCodeAndParkingLotIdNot("OTHER", parkingLotId)).thenReturn(true);
+        when(parkingLotPortOut.existsByOrganizationIdAndCodeAndParkingLotIdNot(
+                existingParkingLot.getOrganizationId(),
+                "OTHER",
+                parkingLotId
+        )).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> parkingLotUseCase.updateParkingLot(parkingLotId, request));
         verify(parkingLotPortOut, never()).save(any(ParkingLot.class));
@@ -168,9 +209,11 @@ class ParkingLotUseCaseImplTest {
         UUID parkingLotId = UUID.randomUUID();
         ParkingLot existingParkingLot = validParkingLot();
         existingParkingLot.setParkingLotId(parkingLotId);
-        existingParkingLot.setStatus(ParkingLotStatus.CLOSED);
+        existingParkingLot.setStatus(ParkingLotStatus.SETUP);
+        existingParkingLot.setActivationRequestedAt(Instant.now());
 
         when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
+        when(parkingLotPortOut.isReadyForActivation(parkingLotId)).thenReturn(true);
         when(parkingLotPortOut.save(any(ParkingLot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ParkingLot activatedParkingLot = parkingLotUseCase.activateParkingLot(parkingLotId);
@@ -208,6 +251,7 @@ class ParkingLotUseCaseImplTest {
 
     private ParkingLot validParkingLot() {
         ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setOrganizationId(UUID.randomUUID());
         parkingLot.setCode("HCMUTE");
         parkingLot.setName("Bai xe HCMUTE");
         parkingLot.setAddress("So 1 Vo Van Ngan");

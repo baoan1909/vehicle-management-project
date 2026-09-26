@@ -18,6 +18,8 @@ public interface ParkingLotPortIn {
 
     ParkingLot activateParkingLot(UUID parkingLotId);
 
+    ParkingLot requestParkingLotActivation(UUID parkingLotId);
+
     ParkingLot markParkingLotMaintenance(UUID parkingLotId);
 
     ParkingLot closeParkingLot(UUID parkingLotId);

@@ -168,7 +168,8 @@ public class CardController {
     public ResponseEntity<ApiResponse<List<CardAdminResponse>>> createCardsBatch(
             @RequestBody CreateCardBatchRequest request
     ) {
-        List<Card> createdCards = cardBatchIssuancePortIn.createCards(request.cardTypeId(), request.quantity());
+        List<Card> createdCards = cardBatchIssuancePortIn.createCards(
+                request.cardTypeId(), request.quantity(), request.parkingLotId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Cấp thẻ hàng loạt thành công",
                 cardApiMapper.toAdminResponses(createdCards)

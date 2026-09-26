@@ -3,8 +3,12 @@ package com.ban.vehicle_management.application.parking.lane.usecase;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.NotificationAudience;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.parking.lane.port.in.LanePortIn;
 import com.ban.vehicle_management.application.parking.lane.port.out.LanePortOut;
+import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
+import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.parking.lane.model.Lane;
 import com.ban.vehicle_management.domain.parking.lane.policy.LanePolicy;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
@@ -17,24 +21,47 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class LaneUsecaseImpl implements LanePortIn {
     private final LanePortOut lanePortOut;
     private final NotificationPortIn notificationPortIn;
+    private final GatePortOut gatePortOut;
+    private final ZonePortOut zonePortOut;
+    private final ParkingLotPortOut parkingLotPortOut;
+    private final OrganizationAccessGuard organizationAccessGuard;
     private final LanePolicy lanePolicy = new LanePolicy();
 
+    @Autowired
     public  LaneUsecaseImpl(
             LanePortOut lanePortOut,
-            NotificationPortIn notificationPortIn
+            NotificationPortIn notificationPortIn,
+            GatePortOut gatePortOut,
+            ZonePortOut zonePortOut,
+            ParkingLotPortOut parkingLotPortOut,
+            OrganizationAccessGuard organizationAccessGuard
     ){
         this.lanePortOut = lanePortOut;
         this.notificationPortIn = notificationPortIn;
+        this.gatePortOut = gatePortOut;
+        this.zonePortOut = zonePortOut;
+        this.parkingLotPortOut = parkingLotPortOut;
+        this.organizationAccessGuard = organizationAccessGuard;
+    }
+
+    // Kept for focused legacy unit tests that exercise only the domain policy.
+    public LaneUsecaseImpl(
+            LanePortOut lanePortOut,
+            NotificationPortIn notificationPortIn
+    ) {
+        this(lanePortOut, notificationPortIn, null, null, null, null);
     }
 
     @Override
     @Transactional
     public Lane createLane(Lane lane){
+        ensureCanConfigureGate(lane.getGateId());
         lanePolicy.initialize(lane);
         validateOperationalGate(lane.getGateId());
 
@@ -49,12 +76,13 @@ public class LaneUsecaseImpl implements LanePortIn {
     @Override
     @Transactional(readOnly = true)
     public Lane getLaneById(UUID laneId){
-        return lanePortOut.findById(laneId).orElseThrow(() -> new NotFoundException("Lane not found"));
+        return findExistingLane(laneId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<Lane> getLanes(UUID gateId, LaneDirection direction, LaneStatus status, String keyword){
+        ensureCanListGateResources(gateId);
         return lanePortOut.findAll(gateId, direction, status,normalizeKeyword(keyword));
     }
 
@@ -62,6 +90,7 @@ public class LaneUsecaseImpl implements LanePortIn {
     @Transactional
     public Lane updateLane(UUID laneId, Lane lane){
         Lane existingLane = getLaneById(laneId);
+        ensureCanConfigureGate(existingLane.getGateId());
 
         if (isDisablingActiveOutLane(existingLane, lane.getDirection())){
             ensureCanDisableActiveOutLane(existingLane);
@@ -82,6 +111,7 @@ public class LaneUsecaseImpl implements LanePortIn {
     @Transactional
     public void deleteLane(UUID laneId){
         Lane existingLane = getLaneById(laneId);
+        ensureCanConfigureGate(existingLane.getGateId());
         if (existingLane.getStatus() == LaneStatus.CLOSED){
             return;
         }
@@ -95,6 +125,7 @@ public class LaneUsecaseImpl implements LanePortIn {
     @Transactional
     public Lane activateLane(UUID laneId){
         Lane existingLane = getLaneById(laneId);
+        ensureCanConfigureGate(existingLane.getGateId());
         validateOperationalGate(existingLane.getGateId());
         lanePolicy.activate(existingLane);
         Lane savedLane = lanePortOut.save(existingLane);
@@ -110,6 +141,7 @@ public class LaneUsecaseImpl implements LanePortIn {
     @Transactional
     public Lane markLaneMaintenance(UUID laneId){
         Lane existingLane = getLaneById(laneId);
+        ensureCanConfigureGate(existingLane.getGateId());
         ensureCanDisableActiveOutLane(existingLane);
         lanePolicy.markMaintenance(existingLane);
         Lane savedLane = lanePortOut.save(existingLane);
@@ -125,6 +157,7 @@ public class LaneUsecaseImpl implements LanePortIn {
     @Transactional
     public Lane forceLaneMaintenance(UUID laneId){
         Lane existingLane = getLaneById(laneId);
+        ensureCanConfigureGate(existingLane.getGateId());
         lanePolicy.markMaintenance(existingLane);
         Lane savedLane = lanePortOut.save(existingLane);
         notifyLaneStatusChanged(
@@ -139,6 +172,7 @@ public class LaneUsecaseImpl implements LanePortIn {
     @Transactional
     public  Lane closeLane(UUID laneId){
         Lane existingLane = getLaneById(laneId);
+        ensureCanConfigureGate(existingLane.getGateId());
 
         if (existingLane.getStatus() == LaneStatus.CLOSED){
             return existingLane;
@@ -207,5 +241,70 @@ public class LaneUsecaseImpl implements LanePortIn {
                 "lanes",
                 lane.getLaneId()
         ));
+    }
+
+    private Lane findExistingLane(UUID laneId) {
+        Lane lane = lanePortOut.findById(laneId)
+                .orElseThrow(() -> new NotFoundException("Lane not found"));
+        ensureCanAccessGate(lane.getGateId());
+        return lane;
+    }
+
+    private void ensureCanListGateResources(UUID gateId) {
+        if (organizationAccessGuard == null) {
+            return;
+        }
+        if (gateId == null && organizationAccessGuard.isCurrentParkingManager()) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Parking manager must select a gate in an assigned parking lot"
+            );
+        }
+        if (gateId != null) {
+            ensureCanAccessGate(gateId);
+        }
+    }
+
+    private void ensureCanAccessGate(UUID gateId) {
+        if (organizationAccessGuard == null
+                || gatePortOut == null
+                || zonePortOut == null
+                || parkingLotPortOut == null) {
+            return;
+        }
+        if (gateId == null) {
+            throw new NotFoundException("Gate not found");
+        }
+        UUID zoneId = gatePortOut.findById(gateId)
+                .orElseThrow(() -> new NotFoundException("Gate not found"))
+                .getZoneId();
+        UUID parkingLotId = zonePortOut.findById(zoneId)
+                .orElseThrow(() -> new NotFoundException("Zone not found"))
+                .getParkingLotId();
+        organizationAccessGuard.ensureCanAccessParkingLot(
+                parkingLotPortOut.findById(parkingLotId)
+                        .orElseThrow(() -> new NotFoundException("Parking lot not found"))
+        );
+    }
+
+    private void ensureCanConfigureGate(UUID gateId) {
+        if (organizationAccessGuard == null
+                || gatePortOut == null
+                || zonePortOut == null
+                || parkingLotPortOut == null) {
+            return;
+        }
+        if (gateId == null) {
+            throw new NotFoundException("Gate not found");
+        }
+        UUID zoneId = gatePortOut.findById(gateId)
+                .orElseThrow(() -> new NotFoundException("Gate not found"))
+                .getZoneId();
+        UUID parkingLotId = zonePortOut.findById(zoneId)
+                .orElseThrow(() -> new NotFoundException("Zone not found"))
+                .getParkingLotId();
+        organizationAccessGuard.ensureCanConfigureParkingLot(
+                parkingLotPortOut.findById(parkingLotId)
+                        .orElseThrow(() -> new NotFoundException("Parking lot not found"))
+        );
     }
 }

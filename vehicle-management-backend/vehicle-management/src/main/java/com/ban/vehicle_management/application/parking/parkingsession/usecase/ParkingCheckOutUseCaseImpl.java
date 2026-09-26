@@ -160,6 +160,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
 
         ParkingSession parkingSession = parkingSessionPortOut.findOpenByCardId(card.getCardId())
                 .orElseThrow(() -> new ConflictException("Open parking session not found for card"));
+        ensureSessionBelongsToParkingLot(parkingSession, parkingLot);
         if (!licensePlatePolicy.matches(parkingSession.getLicensePlateIn(), licensePlate)) {
             throw new ConflictException("Detected license plate does not match check-in license plate");
         }
@@ -260,6 +261,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
 
         ParkingSession parkingSession = parkingSessionPortOut.findOpenByCardId(card.getCardId())
                 .orElseThrow(() -> new ConflictException("Open parking session not found for card"));
+        ensureSessionBelongsToParkingLot(parkingSession, parkingLot);
         if (!licensePlatePolicy.matches(parkingSession.getLicensePlateIn(), licensePlate)) {
             throw new ConflictException("Detected license plate does not match check-in license plate");
         }
@@ -348,6 +350,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
 
         ParkingSession parkingSession = parkingSessionPortOut.findById(invoice.getParkingSessionId())
                 .orElseThrow(() -> new NotFoundException("Parking session not found"));
+        findParkingLot(resolveSessionParkingLotId(parkingSession));
         ParkingEvent parkingEvent = findCheckOutEvent(parkingSession);
         resolveParkingEventImageUrls(parkingEvent);
 
@@ -414,6 +417,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
 
         ParkingSession parkingSession = parkingSessionPortOut.findOpenByCardId(card.getCardId())
                 .orElseThrow(() -> new ConflictException("Open parking session not found for card"));
+        findParkingLot(resolveSessionParkingLotId(parkingSession));
         ParkingEvent checkInEvent = parkingEventPortOut
                 .findLatestBySessionIdAndEventType(parkingSession.getParkingSessionId(), ParkingEventType.CHECK_IN)
                 .orElse(null);
@@ -620,8 +624,25 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         if (parkingLotId == null) {
             throw new ConflictException("Zone is not linked to a parking lot");
         }
-        return parkingLotPortOut.findById(parkingLotId)
+        ParkingLot parkingLot = parkingLotPortOut.findById(parkingLotId)
                 .orElseThrow(() -> new NotFoundException("Parking lot not found"));
+        parkingSessionAccessGuard.ensureCanOperateParkingLot(parkingLot);
+        return parkingLot;
+    }
+
+    private void ensureSessionBelongsToParkingLot(ParkingSession session, ParkingLot exitParkingLot) {
+        if (!exitParkingLot.getParkingLotId().equals(resolveSessionParkingLotId(session))) {
+            throw new ConflictException("Parking session belongs to another parking lot");
+        }
+    }
+
+    private UUID resolveSessionParkingLotId(ParkingSession session) {
+        if (session.getParkingLotId() != null) {
+            return session.getParkingLotId();
+        }
+        // Only pre-migration sessions may lack an ownership key. Do not infer
+        // ownership from a card that might have been reassigned.
+        return findZone(session.getZoneId()).getParkingLotId();
     }
 
     private String generateInvoiceNo(UUID invoiceId, Instant now) {

@@ -6,5 +6,5 @@ import java.util.UUID;
 
 public interface CardBatchIssuancePortIn {
 
-    List<Card> createCards(UUID cardTypeId, Integer quantity);
+    List<Card> createCards(UUID cardTypeId, Integer quantity, UUID parkingLotId);
 }

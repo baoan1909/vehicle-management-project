@@ -23,6 +23,7 @@ public interface ParkingCheckInMapper {
     @Mapping(target = "customerVehicleId", source = "customerVehicle.customerVehicleId")
     @Mapping(target = "vehicleTypeId", source = "vehicleTypeId")
     @Mapping(target = "zoneId", source = "zone.zoneId")
+    @Mapping(target = "parkingLotId", source = "zone.parkingLotId")
     @Mapping(target = "licensePlateIn", source = "licensePlate")
     @Mapping(target = "checkInTime", source = "checkInTime")
     ParkingSession toOpenSession(

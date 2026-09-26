@@ -17,7 +17,11 @@ public class ProvisionedAccountPolicy {
         return switch (role) {
             case SYSTEM_ADMIN -> Set.of(
                     AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
-                    AdminProvisionableAccountRoleCode.PARKING_MANAGER
+                    AdminProvisionableAccountRoleCode.PARTNER_ADMIN
+            );
+            case PARTNER_ADMIN -> Set.of(
+                    AdminProvisionableAccountRoleCode.PARKING_MANAGER,
+                    AdminProvisionableAccountRoleCode.EMPLOYEE
             );
             case PARKING_MANAGER -> Set.of(
                     AdminProvisionableAccountRoleCode.EMPLOYEE,

@@ -28,7 +28,7 @@ class ParkingLotPolicyTest {
         assertEquals("Bai xe HCMUTE", parkingLot.getName());
         assertEquals("So 1 Vo Van Ngan", parkingLot.getAddress());
         assertEquals(0, parkingLot.getTotalCapacity());
-        assertEquals(ParkingLotStatus.ACTIVE, parkingLot.getStatus());
+        assertEquals(ParkingLotStatus.SETUP, parkingLot.getStatus());
     }
 
     @Test

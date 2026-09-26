@@ -2,6 +2,8 @@ package com.ban.vehicle_management.domain.parking.parkinglot.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,10 +17,15 @@ import lombok.Setter;
 public class ParkingLot extends AuditableDomainModel {
 
     private UUID parkingLotId;
+    private UUID organizationId;
     private String code;
     private String name;
     private String address;
+    private BigDecimal latitude;
+    private BigDecimal longitude;
     private Integer totalCapacity;
     private ParkingLotStatus status;
+    private Instant activationRequestedAt;
+    private UUID activationRequestedBy;
 }
 

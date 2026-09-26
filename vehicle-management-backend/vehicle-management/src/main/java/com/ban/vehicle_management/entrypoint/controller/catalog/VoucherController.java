@@ -35,14 +35,14 @@ public class VoucherController {
     }
 
     @PostMapping
-    @PreAuthorize("@permissionAuthorizer.hasPermission('PRICE_RULE_CREATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VOUCHER_CREATE_ALL')")
     public ResponseEntity<ApiResponse<VoucherAdminResponse>> createVoucher(@RequestBody CreateVoucherRequest request) {
         Voucher voucher = voucherPortIn.createVoucher(voucherApiMapper.toDomain(request));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok("Voucher created successfully", voucherApiMapper.toAdminResponse(voucher)));
     }
 
     @GetMapping
-    @PreAuthorize("@permissionAuthorizer.hasPermission('PRICE_RULE_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VOUCHER_READ_ALL')")
     public ResponseEntity<ApiResponse<List<VoucherAdminResponse>>> getVouchers() {
         return ResponseEntity.ok(ApiResponse.ok("Fetched vouchers successfully", voucherApiMapper.toAdminResponses(voucherPortIn.getVouchers())));
     }
@@ -56,25 +56,25 @@ public class VoucherController {
     }
 
     @GetMapping("/{voucherId}")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('PRICE_RULE_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VOUCHER_READ_ALL')")
     public ResponseEntity<ApiResponse<VoucherAdminResponse>> getVoucher(@PathVariable UUID voucherId) {
         return ResponseEntity.ok(ApiResponse.ok("Fetched voucher successfully", voucherApiMapper.toAdminResponse(voucherPortIn.getVoucherById(voucherId))));
     }
 
     @PutMapping("/{voucherId}")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('PRICE_RULE_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VOUCHER_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<VoucherAdminResponse>> updateVoucher(@PathVariable UUID voucherId, @RequestBody UpdateVoucherRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Voucher updated successfully", voucherApiMapper.toAdminResponse(voucherPortIn.updateVoucher(voucherId, voucherApiMapper.toDomain(request)))));
     }
 
     @PatchMapping("/{voucherId}/activate")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('PRICE_RULE_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VOUCHER_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<VoucherAdminResponse>> activateVoucher(@PathVariable UUID voucherId) {
         return ResponseEntity.ok(ApiResponse.ok("Voucher activated successfully", voucherApiMapper.toAdminResponse(voucherPortIn.activateVoucher(voucherId))));
     }
 
     @PatchMapping("/{voucherId}/pause")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('PRICE_RULE_UPDATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VOUCHER_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<VoucherAdminResponse>> pauseVoucher(@PathVariable UUID voucherId) {
         return ResponseEntity.ok(ApiResponse.ok("Voucher paused successfully", voucherApiMapper.toAdminResponse(voucherPortIn.pauseVoucher(voucherId))));
     }

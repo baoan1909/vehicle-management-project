@@ -13,6 +13,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatu
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -89,7 +90,8 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
             Instant checkInFrom,
             Instant checkInTo,
             String keyword,
-            List<UUID> customerVehicleIds
+            List<UUID> customerVehicleIds,
+            Set<UUID> parkingLotIds
     ) {
         List<ParkingSessionEntity> entities = parkingSessionRepository.findAll(
                 ParkingSessionSpecifications.withFilters(
@@ -99,7 +101,8 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
                         checkInFrom,
                         checkInTo,
                         keyword,
-                        customerVehicleIds
+                        customerVehicleIds,
+                        parkingLotIds
                 ),
                 Sort.by(Sort.Direction.DESC, "checkInTime")
         );

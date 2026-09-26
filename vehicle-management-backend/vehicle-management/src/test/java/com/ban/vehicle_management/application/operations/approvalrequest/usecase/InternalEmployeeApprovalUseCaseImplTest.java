@@ -215,12 +215,8 @@ class InternalEmployeeApprovalUseCaseImplTest {
         UUID accountId = UUID.randomUUID();
         CurrentAccountAccess currentAccount = currentParkingManager(accountId);
         when(internalEmployeeApprovalAccessGuard.requireReadAccess()).thenReturn(currentAccount);
-        when(internalEmployeeApprovalAccessGuard.canAccessTargetRole(currentAccount, "PARKING_MANAGER"))
-                .thenReturn(false);
-        when(internalEmployeeApprovalAccessGuard.canAccessTargetRole(currentAccount, "EMPLOYEE"))
-                .thenReturn(true);
-        when(internalEmployeeApprovalAccessGuard.canAccessTargetRole(currentAccount, "CUSTOM_OPERATIONS"))
-                .thenReturn(true);
+        when(internalEmployeeApprovalAccessGuard.canAccessTarget(any(), any(), any()))
+                .thenReturn(false, true, true);
         when(internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequests(any())).thenReturn(List.of(
                 approvalResult(
                         UUID.randomUUID(),

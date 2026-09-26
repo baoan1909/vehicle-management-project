@@ -32,6 +32,7 @@ export type CardResponse = {
   effectiveTo?: string | null;
   issuedAt?: string | null;
   licensePlate?: string | null;
+  parkingLotId?: string | null;
   registeredVehicleTypeCode?: string | null;
   registeredVehicleTypeId?: string | null;
   registeredVehicleTypeName?: string | null;

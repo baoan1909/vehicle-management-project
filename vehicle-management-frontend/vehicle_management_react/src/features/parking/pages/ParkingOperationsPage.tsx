@@ -1,18 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 
-import { Badge, Button, Card, SelectMenu, useToast } from "@/components/ui";
+import { AddressPicker, Badge, Button, Card, SelectMenu, useToast } from "@/components/ui";
+import { useAuth } from "@/core/auth/useAuth";
 import { getVehicleTypes, type VehicleTypeApiResponse } from "@/features/catalog/api/vehicleTypesApi";
+import { assignParkingManagerToParkingLot } from "@/features/iam/api/organizationsApi";
+import { getProvisionedAccounts, type ProvisionedAccountResponse } from "@/features/iam/api/provisionedAccountApi";
 import {
   activateParkingLot,
   closeParkingLot,
   createParkingLot,
   getParkingLots,
   markParkingLotMaintenance,
+  requestParkingLotActivation,
   updateParkingLot,
   type ParkingLotApiResponse,
   type ParkingLotStatusApi,
 } from "@/features/parking/api/parkingLotsApi";
+import { searchParkingLocations } from "@/features/parking/api/parkingLocationApi";
 import {
   activateGate,
   activateLane,
@@ -41,6 +47,8 @@ import {
   type ZoneStatusApi,
 } from "@/features/parking/api/parkingTopologyApi";
 import { cn } from "@/lib/cn";
+import { hasAnyPermission } from "@/shared/auth/permissions";
+import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
 
 type ParkingLotStatus = ParkingLotStatusApi;
 type ZoneStatus = ZoneStatusApi;
@@ -51,9 +59,14 @@ type DrawerPhase = "opening" | "open" | "closing";
 
 type ParkingLot = {
   address: string;
+  activationRequestedAt: string | null;
+  activationRequestedBy: string | null;
   code: string;
   id: string;
+  latitude: number | null;
+  longitude: number | null;
   name: string;
+  organizationId: string | null;
   source: "api" | "mock";
   sessions: number;
   status: ParkingLotStatus;
@@ -71,6 +84,7 @@ type Zone = {
   used: number;
   vehicleType: string;
   vehicleTypeId: string | null;
+  vehicleTypeIds: string[];
 };
 
 type Gate = {
@@ -116,10 +130,15 @@ function isUuid(value: string) {
 const mockParkingLots: ParkingLot[] = [
   {
     address: "12 Nguyễn Văn Linh, Quận 7, TP. HCM",
+    activationRequestedAt: null,
+    activationRequestedBy: null,
     code: "CP-LOT-A",
     id: "lot-a",
+    latitude: null,
+    longitude: null,
     source: "mock",
     name: "CP-Lot A - Trung tâm",
+    organizationId: null,
     sessions: 184,
     status: "ACTIVE",
     totalCapacity: 640,
@@ -127,10 +146,15 @@ const mockParkingLots: ParkingLot[] = [
   },
   {
     address: "88 Võ Chí Công, TP. Thủ Đức",
+    activationRequestedAt: null,
+    activationRequestedBy: null,
     code: "CP-LOT-B",
     id: "lot-b",
+    latitude: null,
+    longitude: null,
     source: "mock",
     name: "CP-Lot B - Thủ Đức",
+    organizationId: null,
     sessions: 97,
     status: "MAINTENANCE",
     totalCapacity: 420,
@@ -138,10 +162,15 @@ const mockParkingLots: ParkingLot[] = [
   },
   {
     address: "22 Cộng Hòa, Tân Bình",
+    activationRequestedAt: null,
+    activationRequestedBy: null,
     code: "CP-LOT-C",
     id: "lot-c",
+    latitude: null,
+    longitude: null,
     source: "mock",
     name: "CP-Lot C - Sân bay",
+    organizationId: null,
     sessions: 0,
     status: "CLOSED",
     totalCapacity: 260,
@@ -150,10 +179,10 @@ const mockParkingLots: ParkingLot[] = [
 ];
 
 const mockZones: Zone[] = [
-  { capacity: 500, code: "ZONE-A", id: "zone-a", name: "Khu A", parkingLotId: "lot-a", status: "ACTIVE", used: 342, vehicleType: "Xe máy", vehicleTypeId: null },
-  { capacity: 400, code: "ZONE-B", id: "zone-b", name: "Khu B", parkingLotId: "lot-a", status: "ACTIVE", used: 265, vehicleType: "Ô tô", vehicleTypeId: null },
-  { capacity: 300, code: "ZONE-C", id: "zone-c", name: "Khu C", parkingLotId: "lot-a", status: "MAINTENANCE", used: 120, vehicleType: "Hỗn hợp", vehicleTypeId: null },
-  { capacity: 200, code: "ZONE-D", id: "zone-d", name: "Khu D", parkingLotId: "lot-a", status: "CLOSED", used: 0, vehicleType: "Xe máy", vehicleTypeId: null },
+  { capacity: 500, code: "ZONE-A", id: "zone-a", name: "Khu A", parkingLotId: "lot-a", status: "ACTIVE", used: 342, vehicleType: "Xe máy", vehicleTypeId: null, vehicleTypeIds: [] },
+  { capacity: 400, code: "ZONE-B", id: "zone-b", name: "Khu B", parkingLotId: "lot-a", status: "ACTIVE", used: 265, vehicleType: "Ô tô", vehicleTypeId: null, vehicleTypeIds: [] },
+  { capacity: 300, code: "ZONE-C", id: "zone-c", name: "Khu C", parkingLotId: "lot-a", status: "MAINTENANCE", used: 120, vehicleType: "Hỗn hợp", vehicleTypeId: null, vehicleTypeIds: [] },
+  { capacity: 200, code: "ZONE-D", id: "zone-d", name: "Khu D", parkingLotId: "lot-a", status: "CLOSED", used: 0, vehicleType: "Xe máy", vehicleTypeId: null, vehicleTypeIds: [] },
 ];
 
 const mockGates: Gate[] = [
@@ -339,6 +368,7 @@ const mockLanes: Lane[] = [
 
 const statusOptions = [
   { label: "Tất cả trạng thái", value: "all" },
+  { label: "Đang thiết lập", value: "SETUP" },
   { label: "Đang hoạt động", value: "ACTIVE" },
   { label: "Bảo trì", value: "MAINTENANCE" },
   { label: "Đã đóng", value: "CLOSED" },
@@ -346,9 +376,14 @@ const statusOptions = [
 function toParkingLotView(lot: ParkingLotApiResponse): ParkingLot {
   return {
     address: lot.address ?? "",
+    activationRequestedAt: lot.activationRequestedAt ?? null,
+    activationRequestedBy: lot.activationRequestedBy ?? null,
     code: lot.code,
     id: lot.parkingLotId,
+    latitude: lot.latitude === null ? null : Number(lot.latitude),
+    longitude: lot.longitude === null ? null : Number(lot.longitude),
     name: lot.name,
+    organizationId: lot.organizationId,
     sessions: 0,
     source: "api",
     status: lot.status,
@@ -361,15 +396,19 @@ function toParkingLotPayload(lot: ParkingLot) {
   return {
     address: lot.address,
     code: lot.code,
+    latitude: lot.latitude,
+    longitude: lot.longitude,
     name: lot.name,
     totalCapacity: lot.totalCapacity,
   };
 }
 
-function getVehicleTypeLabel(vehicleTypeId: string | null, vehicleTypeLookup: Map<string, VehicleTypeApiResponse>) {
-  if (!vehicleTypeId) return "Hỗn hợp";
-  const vehicleType = vehicleTypeLookup.get(vehicleTypeId);
-  return vehicleType?.name || vehicleType?.code || "Hỗn hợp";
+function getVehicleTypeLabel(vehicleTypeIds: string[], vehicleTypeLookup: Map<string, VehicleTypeApiResponse>) {
+  if (!vehicleTypeIds.length) return "Chưa cấu hình";
+  return vehicleTypeIds.map((vehicleTypeId) => {
+    const vehicleType = vehicleTypeLookup.get(vehicleTypeId);
+    return vehicleType?.name || vehicleType?.code || "Không xác định";
+  }).join(", ");
 }
 
 function toZoneView(zone: ZoneApiResponse, vehicleTypeLookup: Map<string, VehicleTypeApiResponse>): Zone {
@@ -381,8 +420,9 @@ function toZoneView(zone: ZoneApiResponse, vehicleTypeLookup: Map<string, Vehicl
     parkingLotId: zone.parkingLotId,
     status: zone.status,
     used: 0,
-    vehicleType: getVehicleTypeLabel(zone.vehicleTypeId, vehicleTypeLookup),
+    vehicleType: getVehicleTypeLabel(zone.vehicleTypeIds?.length ? zone.vehicleTypeIds : (zone.vehicleTypeId ? [zone.vehicleTypeId] : []), vehicleTypeLookup),
     vehicleTypeId: zone.vehicleTypeId,
+    vehicleTypeIds: zone.vehicleTypeIds?.length ? zone.vehicleTypeIds : (zone.vehicleTypeId ? [zone.vehicleTypeId] : []),
   };
 }
 
@@ -427,7 +467,7 @@ function getVehicleTypeFilterValue(vehicleType: VehicleTypeApiResponse) {
 
 function zoneMatchesVehicleFilter(zone: Zone, selectedVehicleType: string) {
   if (selectedVehicleType === "all") return true;
-  if (zone.vehicleTypeId === selectedVehicleType) return true;
+  if (zone.vehicleTypeIds.includes(selectedVehicleType)) return true;
 
   const text = zone.vehicleType.toLowerCase();
   if (selectedVehicleType === "motorbike") return text.includes("moto") || text.includes("motor") || text.includes("xe máy") || text.includes("xe may");
@@ -438,11 +478,12 @@ function zoneMatchesVehicleFilter(zone: Zone, selectedVehicleType: string) {
 
 function statusTone(status: ParkingLotStatus | ZoneStatus | GateStatus | LaneStatus) {
   if (status === "ACTIVE") return "success";
-  if (status === "MAINTENANCE" || status === "OVERLOAD") return "warning";
+  if (status === "SETUP" || status === "MAINTENANCE" || status === "OVERLOAD") return "warning";
   return "neutral";
 }
 
 function statusLabel(status: ParkingLotStatus | ZoneStatus | GateStatus | LaneStatus) {
+  if (status === "SETUP") return "Đang thiết lập";
   if (status === "ACTIVE") return "Đang hoạt động";
   if (status === "MAINTENANCE") return "Bảo trì";
   if (status === "OVERLOAD") return "Quá tải";
@@ -451,7 +492,7 @@ function statusLabel(status: ParkingLotStatus | ZoneStatus | GateStatus | LaneSt
 
 function statusDotClassName(status: ParkingLotStatus | ZoneStatus | GateStatus | LaneStatus) {
   if (status === "ACTIVE") return "tw-bg-emerald-500";
-  if (status === "MAINTENANCE") return "tw-bg-amber-500";
+  if (status === "SETUP" || status === "MAINTENANCE") return "tw-bg-amber-500";
   if (status === "OVERLOAD") return "tw-bg-orange-500";
   return "tw-bg-red-500";
 }
@@ -476,6 +517,17 @@ function topologyTone(status: ParkingLotStatus | ZoneStatus | GateStatus | LaneS
       progress: "tw-bg-orange-400",
       soft: "tw-bg-amber-50",
       text: "tw-text-orange-500",
+    };
+  }
+
+  if (status === "SETUP") {
+    return {
+      border: "tw-border-amber-200",
+      dashed: "tw-border-amber-200",
+      icon: "tw-bg-amber-50 tw-text-amber-600",
+      progress: "tw-bg-amber-400",
+      soft: "tw-bg-amber-50",
+      text: "tw-text-amber-700",
     };
   }
 
@@ -969,30 +1021,43 @@ function ParkingLotDrawer({
 }) {
   const [form, setForm] = useState<ParkingLot>(() => lot ?? {
     address: "",
+    activationRequestedAt: null,
+    activationRequestedBy: null,
     code: "",
     id: "",
+    latitude: null,
+    longitude: null,
     name: "",
+    organizationId: null,
     sessions: 0,
     source: "api",
-    status: "ACTIVE",
+    status: "SETUP",
     totalCapacity: 0,
     used: 0,
   });
   const [formError, setFormError] = useState("");
+  const [locationSearchError, setLocationSearchError] = useState("");
+  const [searchingLocation, setSearchingLocation] = useState(false);
 
   useEffect(() => {
     setForm(lot ?? {
       address: "",
+      activationRequestedAt: null,
+      activationRequestedBy: null,
       code: "",
       id: "",
+      latitude: null,
+      longitude: null,
       name: "",
+      organizationId: null,
       sessions: 0,
       source: "api",
-      status: "ACTIVE",
+      status: "SETUP",
       totalCapacity: 0,
       used: 0,
     });
     setFormError("");
+    setLocationSearchError("");
   }, [lot, isOpen]);
 
   if (!isOpen) return null;
@@ -1001,8 +1066,30 @@ function ParkingLotDrawer({
     event.preventDefault();
     setFormError("");
 
-    if (!form.code.trim() || !form.name.trim() || form.totalCapacity <= 0) {
-      setFormError("Vui lòng nhập mã bãi, tên bãi và sức chứa hợp lệ.");
+    if (!form.code.trim() || !form.name.trim() || form.totalCapacity < 0) {
+      setFormError("Vui lòng nhập mã bãi, tên bãi và sức chứa không âm.");
+      return;
+    }
+
+    if (!form.address.trim()) {
+      setFormError("Vui lòng nhập địa chỉ và bấm “Xác định vị trí”.");
+      return;
+    }
+
+    if ((form.latitude === null) !== (form.longitude === null)) {
+      setFormError("Dữ liệu vị trí chưa hoàn chỉnh. Hãy tìm lại vị trí hoặc tạo bãi không kèm tọa độ.");
+      return;
+    }
+
+    if (form.latitude !== null && form.longitude !== null && (
+      !Number.isFinite(form.latitude)
+      || !Number.isFinite(form.longitude)
+      || form.latitude < -90
+      || form.latitude > 90
+      || form.longitude < -180
+      || form.longitude > 180
+    )) {
+      setFormError("Vĩ độ phải từ -90 đến 90 và kinh độ phải từ -180 đến 180.");
       return;
     }
 
@@ -1013,6 +1100,39 @@ function ParkingLotDrawer({
       name: form.name.trim(),
       totalCapacity: Number(form.totalCapacity),
     });
+  }
+
+  async function handleSearchLocation() {
+    const query = form.address.trim();
+    if (!query) {
+      setLocationSearchError("Vui lòng nhập địa chỉ trước khi xác định vị trí.");
+      return;
+    }
+
+    setSearchingLocation(true);
+    setLocationSearchError("");
+    try {
+      const response = await searchParkingLocations(query);
+      const result = response.data?.[0];
+      if (!result) {
+        setLocationSearchError("Không tìm thấy địa chỉ này. Hãy bổ sung số nhà, đường hoặc phường/xã rồi thử lại.");
+        return;
+      }
+
+      setForm((current) => ({
+        ...current,
+        address: result.displayName,
+        latitude: Number(result.latitude),
+        longitude: Number(result.longitude),
+      }));
+    } catch {
+      setLocationSearchError(
+        "Không thể tra tọa độ tự động vì mạng hiện tại không kết nối được dịch vụ định vị. "
+        + "Bạn vẫn có thể tạo bãi bằng địa chỉ này; bãi sẽ ở trạng thái chưa định vị và chưa thể tính khoảng cách cho khách hàng.",
+      );
+    } finally {
+      setSearchingLocation(false);
+    }
   }
 
   return (
@@ -1034,24 +1154,76 @@ function ParkingLotDrawer({
             {[
               ["Mã bãi xe", "code", "LOT-HCMUTE"],
               ["Tên bãi xe", "name", "Bãi xe HCMUTE"],
-              ["Địa chỉ", "address", "Số 1 Võ Văn Ngân"],
             ].map(([label, key, placeholder]) => (
               <label className="tw-m-0 tw-grid tw-gap-2" key={key}>
                 <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">{label}</span>
                 <input
                   className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]"
                   placeholder={placeholder}
-                  value={String(form[key as "code" | "name" | "address"])}
+                  value={String(form[key as "code" | "name"])}
                   onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
                 />
               </label>
             ))}
 
+            <section className="tw-grid tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-blue-100 tw-bg-blue-50 tw-p-4">
+              <div>
+                <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-700">Địa chỉ bãi xe</span>
+                <p className="tw-m-0 tw-mt-1 tw-text-[0.75rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">
+                  Nhập địa chỉ để lưu thông tin bãi. Việc tìm tọa độ tự động là tùy chọn.
+                </p>
+              </div>
+              <AddressPicker
+                value={form.address}
+                onChange={(address) => {
+                  setLocationSearchError("");
+                  setForm((current) => ({ ...current, address, latitude: null, longitude: null }));
+                }}
+              />
+              <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3">
+                <Button disabled={!form.address.trim() || searchingLocation} loading={searchingLocation} type="button" onClick={() => void handleSearchLocation()}>
+                  <i className="fas fa-location-arrow" />
+                  Tìm tọa độ tự động
+                </Button>
+                <a
+                  className="tw-inline-flex tw-items-center tw-gap-2 tw-text-[0.78rem] tw-font-extrabold tw-text-vm-primary hover:tw-text-vm-primary-hover hover:tw-no-underline"
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.address)}`}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  <i className="fas fa-external-link-alt" />
+                  Kiểm tra địa chỉ trên Google Maps
+                </a>
+                {form.latitude !== null && form.longitude !== null ? (
+                  <a
+                    className="tw-inline-flex tw-items-center tw-gap-2 tw-text-[0.78rem] tw-font-extrabold tw-text-vm-primary hover:tw-text-vm-primary-hover hover:tw-no-underline"
+                    href={`https://www.google.com/maps?q=${form.latitude},${form.longitude}`}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    <i className="fas fa-external-link-alt" />
+                    Kiểm tra vị trí đã tìm
+                  </a>
+                ) : null}
+              </div>
+              {locationSearchError ? <span className="tw-text-[0.75rem] tw-font-semibold tw-text-red-600">{locationSearchError}</span> : null}
+              {form.latitude !== null && form.longitude !== null ? (
+                <div className="tw-flex tw-items-start tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-100 tw-bg-emerald-50 tw-p-3 tw-text-[0.78rem] tw-font-semibold tw-leading-5 tw-text-emerald-800">
+                  <i className="fas fa-check-circle tw-mt-0.5" />
+                  <span>Đã xác định vị trí cho: {form.address}</span>
+                </div>
+              ) : (
+                <div className="tw-flex tw-items-start tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-100 tw-bg-amber-50 tw-p-3 tw-text-[0.78rem] tw-font-semibold tw-leading-5 tw-text-amber-800">
+                  <i className="fas fa-info-circle tw-mt-0.5" />
+                  <span>Chưa có tọa độ. Bạn vẫn có thể tạo bãi; chỉ chức năng tìm bãi gần và tính khoảng cách sẽ chờ định vị bổ sung.</span>
+                </div>
+              )}
+            </section>
             <label className="tw-m-0 tw-grid tw-gap-2">
-              <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Tổng sức chứa</span>
+              <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Tổng sức chứa ban đầu</span>
               <input
                 className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]"
-                min={1}
+                min={0}
                 type="number"
                 value={form.totalCapacity || ""}
                 onChange={(event) => setForm((current) => ({ ...current, totalCapacity: Number(event.target.value) }))}
@@ -1080,17 +1252,141 @@ function ParkingLotDrawer({
   );
 }
 
+function ParkingManagerAssignmentDrawer({
+  error,
+  isOpen,
+  lots,
+  managers,
+  onClose,
+  onSubmit,
+  saving,
+  selectedLotId,
+}: {
+  error: string;
+  isOpen: boolean;
+  lots: ParkingLot[];
+  managers: ProvisionedAccountResponse[];
+  onClose: () => void;
+  onSubmit: (parkingLotId: string, managerAccountId: string) => Promise<void> | void;
+  saving: boolean;
+  selectedLotId: string;
+}) {
+  const [parkingLotId, setParkingLotId] = useState("");
+  const [managerAccountId, setManagerAccountId] = useState("");
+  const selectedLot = lots.find((item) => item.id === parkingLotId);
+
+  useEffect(() => {
+    setParkingLotId(lots.some((item) => item.id === selectedLotId) ? selectedLotId : lots[0]?.id ?? "");
+    setManagerAccountId(managers[0]?.account.accountId ?? "");
+  }, [isOpen, lots, managers, selectedLotId]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="tw-fixed tw-inset-0 tw-z-[2350] tw-isolate tw-flex tw-justify-end" role="dialog" aria-modal="true" aria-labelledby="parking-manager-assignment-title">
+      <button className="tw-absolute tw-inset-0 tw-border-0 tw-bg-slate-900/30 tw-p-0" type="button" aria-label="Đóng phân công Manager" onClick={onClose} />
+      <aside className="tw-relative tw-z-[1] tw-flex tw-h-full tw-w-[min(100%,460px)] tw-flex-col tw-border-0 tw-border-l tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-vm-drawer">
+        <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-px-6 tw-py-5">
+          <div>
+            <h2 id="parking-manager-assignment-title" className="tw-m-0 tw-text-[1.22rem] tw-font-extrabold tw-text-vm-slate-900">Phân công Parking Manager</h2>
+            <p className="tw-m-0 tw-mt-1 tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-500">Manager chỉ xem và cấu hình được bãi xe đã được giao.</p>
+          </div>
+          <button className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-vm-slate-600 hover:tw-bg-vm-slate-100" type="button" aria-label="Đóng" onClick={onClose}>
+            <i className="fas fa-times" />
+          </button>
+        </header>
+
+        <form
+          className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (parkingLotId && managerAccountId) void onSubmit(parkingLotId, managerAccountId);
+          }}
+        >
+          <div className="tw-grid tw-gap-4 tw-overflow-y-auto tw-px-6 tw-pb-5">
+            <label className="tw-m-0 tw-grid tw-gap-2">
+              <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Chọn bãi xe</span>
+              <select
+                className="tw-h-[44px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]"
+                value={parkingLotId}
+                onChange={(event) => setParkingLotId(event.target.value)}
+              >
+                {lots.length === 0 ? <option value="">Chưa có bãi xe để phân công</option> : null}
+                {lots.map((parkingLot) => (
+                  <option key={parkingLot.id} value={parkingLot.id}>
+                    {parkingLot.name} · {parkingLot.code}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-blue-100 tw-bg-blue-50 tw-p-4">
+              <span className="tw-text-[0.72rem] tw-font-extrabold tw-uppercase tw-tracking-[0.08em] tw-text-vm-slate-500">Bãi xe được phân công</span>
+              <strong className="tw-mt-1 tw-block tw-text-[1rem] tw-font-extrabold tw-text-vm-slate-900">{selectedLot?.name ?? "Chưa chọn bãi xe"}</strong>
+              <span className="tw-mt-1 tw-block tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-600">{selectedLot?.address ?? "Chọn bãi xe trước khi phân công."}</span>
+              {selectedLot?.latitude != null && selectedLot?.longitude != null ? (
+                <span className="tw-mt-2 tw-inline-flex tw-items-center tw-gap-1 tw-text-[0.75rem] tw-font-bold tw-text-vm-primary">
+                  <i className="fas fa-map-marker-alt" /> Đã định vị
+                </span>
+              ) : (
+                <span className="tw-mt-2 tw-inline-flex tw-items-center tw-gap-1 tw-text-[0.75rem] tw-font-bold tw-text-amber-700">
+                  <i className="fas fa-map-marker-alt" /> Chưa có tọa độ; Manager có thể bổ sung sau
+                </span>
+              )}
+            </div>
+
+            <label className="tw-m-0 tw-grid tw-gap-2">
+              <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Chọn Parking Manager</span>
+              <select
+                className="tw-h-[44px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]"
+                value={managerAccountId}
+                onChange={(event) => setManagerAccountId(event.target.value)}
+              >
+                {managers.length === 0 ? <option value="">Chưa có Parking Manager hoạt động</option> : null}
+                {managers.map((manager) => (
+                  <option key={manager.account.accountId} value={manager.account.accountId}>
+                    {manager.account.username} · {manager.account.email}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {managers.length === 0 ? (
+              <p className="tw-m-0 tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-[0.8rem] tw-font-semibold tw-leading-5 tw-text-amber-800">
+                Chưa có tài khoản Parking Manager đang hoạt động. Hãy tạo hoặc duyệt tài khoản Manager trước khi phân công.
+              </p>
+            ) : null}
+            {lots.length === 0 ? (
+              <p className="tw-m-0 tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-[0.8rem] tw-font-semibold tw-leading-5 tw-text-amber-800">
+                Chưa có bãi xe thuộc Partner để phân công. Hãy tạo bãi xe trước.
+              </p>
+            ) : null}
+            <p className="tw-m-0 tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-3 tw-text-[0.8rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-600">
+              Sau khi được giao, Manager sẽ thiết lập topology, loại xe và loại vé. Khi hoàn tất, Manager gửi yêu cầu để Partner Admin kiểm tra và kích hoạt bãi.
+            </p>
+            {error ? <div className="tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{error}</div> : null}
+          </div>
+          <footer className="tw-grid tw-grid-cols-2 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6 tw-py-4">
+            <Button variant="secondary" onClick={onClose}>Hủy</Button>
+            <Button disabled={!parkingLotId || !managerAccountId || saving} loading={saving} type="submit">{saving ? "Đang phân công..." : "Phân công"}</Button>
+          </footer>
+        </form>
+      </aside>
+    </div>
+  );
+}
+
 type ParkingNodeFormPayload = {
   capacity: number;
   code: string;
   direction: LaneDirectionApi;
   name: string;
   vehicleTypeId: string | null;
+  vehicleTypeIds: string[];
 };
 
 type ParkingNodeStatusAction = "ACTIVE" | "MAINTENANCE" | "CLOSED";
 
 function ParkingNodeDrawer({
+  canConfigure,
   creatingNode,
   gate,
   gates,
@@ -1108,6 +1404,7 @@ function ParkingNodeDrawer({
   zone,
   zones,
 }: {
+  canConfigure: boolean;
   creatingNode: CreatingNode | null;
   gate?: Gate;
   gates: Gate[];
@@ -1134,6 +1431,7 @@ function ParkingNodeDrawer({
     direction: "IN",
     name: "",
     vehicleTypeId: null,
+    vehicleTypeIds: [],
   });
   const [confirmAction, setConfirmAction] = useState<ParkingNodeStatusAction | null>(null);
 
@@ -1177,6 +1475,7 @@ function ParkingNodeDrawer({
         direction: "IN",
         name: "",
         vehicleTypeId: null,
+        vehicleTypeIds: [],
       });
       setConfirmAction(null);
       return;
@@ -1188,6 +1487,7 @@ function ParkingNodeDrawer({
       direction: lane?.direction === "OUT" ? "OUT" : "IN",
       name: lane?.name ?? gate?.name ?? zone?.name ?? "",
       vehicleTypeId: zone?.vehicleTypeId ?? null,
+      vehicleTypeIds: zone?.vehicleTypeIds ?? (zone?.vehicleTypeId ? [zone.vehicleTypeId] : []),
     });
     setConfirmAction(null);
   }, [creatingNode, gate, lane, node, zone]);
@@ -1206,6 +1506,10 @@ function ParkingNodeDrawer({
 
     if (currentNode.kind === "zone" && form.capacity <= 0) {
       toast.error("Sức chứa khu phải lớn hơn 0.");
+      return;
+    }
+    if (currentNode.kind === "zone" && form.vehicleTypeIds.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một loại xe cho khu vực.");
       return;
     }
 
@@ -1236,7 +1540,7 @@ function ParkingNodeDrawer({
     : currentNode.kind === "lane" ? "Chi tiết làn" : currentNode.kind === "gate" ? "Chi tiết cổng" : "Chi tiết khu vực";
   const status = lane?.status ?? gate?.status ?? zone?.status ?? "ACTIVE";
   const code = isCreating ? "Mới" : lane?.code ?? gate?.code ?? zone?.code ?? "";
-  const canEdit = isCreating || (!currentNode.id.startsWith("zone-") && !currentNode.id.startsWith("gate-") && !currentNode.id.startsWith("lane-"));
+  const canEdit = canConfigure && (isCreating || (!currentNode.id.startsWith("zone-") && !currentNode.id.startsWith("gate-") && !currentNode.id.startsWith("lane-")));
   const nodeLabel = currentNode.kind === "lane" ? "làn" : currentNode.kind === "gate" ? "cổng" : "khu";
   const parentOptions = !creatingNode
     ? []
@@ -1313,7 +1617,7 @@ function ParkingNodeDrawer({
                   <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">{parentLabel}</span>
                   <select
                     className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] disabled:tw-bg-vm-slate-25"
-                    disabled={saving}
+                    disabled={!canConfigure || saving}
                     value={creatingNode?.parentId ?? ""}
                     onChange={(event) => onCreatingParentChange(event.target.value)}
                   >
@@ -1355,20 +1659,27 @@ function ParkingNodeDrawer({
                       onChange={(event) => setForm((current) => ({ ...current, capacity: Number(event.target.value) }))}
                     />
                   </label>
-                  <label className="tw-m-0 tw-grid tw-gap-2">
+                  <fieldset className="tw-m-0 tw-grid tw-gap-2 tw-border-0 tw-p-0">
                     <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Loại xe</span>
-                    <select
-                      className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)] disabled:tw-bg-vm-slate-25"
-                      disabled={!canEdit || saving}
-                      value={form.vehicleTypeId ?? ""}
-                      onChange={(event) => setForm((current) => ({ ...current, vehicleTypeId: event.target.value || null }))}
-                    >
-                      <option value="">Chưa chọn</option>
+                    <div className="tw-grid tw-max-h-28 tw-gap-1 tw-overflow-y-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-2">
                       {vehicleTypeOptions.filter((option) => option.value !== "all").map((option) => (
-                        <option key={option.value} value={option.value}>{option.label}</option>
+                        <label key={option.value} className="tw-flex tw-items-center tw-gap-2 tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-700">
+                          <input
+                            checked={form.vehicleTypeIds.includes(option.value)}
+                            disabled={!canEdit || saving}
+                            type="checkbox"
+                            onChange={(event) => setForm((current) => {
+                              const vehicleTypeIds = event.target.checked
+                                ? [...current.vehicleTypeIds, option.value]
+                                : current.vehicleTypeIds.filter((value) => value !== option.value);
+                              return { ...current, vehicleTypeIds, vehicleTypeId: vehicleTypeIds[0] ?? null };
+                            })}
+                          />
+                          {option.label}
+                        </label>
                       ))}
-                    </select>
-                  </label>
+                    </div>
+                  </fieldset>
                 </div>
               ) : null}
               {node.kind === "lane" ? (
@@ -1385,7 +1696,7 @@ function ParkingNodeDrawer({
                   </select>
                 </label>
               ) : null}
-              {!canEdit ? <div className="tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-[0.78rem] tw-font-bold tw-text-amber-700">Dữ liệu mẫu chỉ dùng để xem giao diện, không thể cập nhật.</div> : null}
+              {!canEdit ? <div className="tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-[0.78rem] tw-font-bold tw-text-amber-700">Bạn chỉ có quyền xem topology của bãi xe này, không thể cập nhật.</div> : null}
             </div>
           </section>
 
@@ -1504,8 +1815,12 @@ function ParkingNodeDrawer({
 
 export function ParkingOperationsPage() {
   const toast = useToast();
-  const [parkingLots, setParkingLots] = useState<ParkingLot[]>(mockParkingLots);
-  const [selectedLotId, setSelectedLotId] = useState(mockParkingLots[0].id);
+  const { user } = useAuth();
+  const { permittedLotIds } = usePlatformMonitoringScope();
+  const [searchParams] = useSearchParams();
+  const requestedLotId = searchParams.get("lot");
+  const [parkingLots, setParkingLots] = useState<ParkingLot[]>([]);
+  const [selectedLotId, setSelectedLotId] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedVehicleType, setSelectedVehicleType] = useState("all");
   const [selectedNode, setSelectedNode] = useState<SelectedNode | null>({ id: "lane-a1-in", kind: "lane", label: "Làn vào" });
@@ -1516,15 +1831,23 @@ export function ParkingOperationsPage() {
   const [loadingLots, setLoadingLots] = useState(false);
   const [savingLot, setSavingLot] = useState(false);
   const [lotError, setLotError] = useState("");
-  const [zones, setZones] = useState<Zone[]>(mockZones);
-  const [gates, setGates] = useState<Gate[]>(mockGates);
-  const [lanes, setLanes] = useState<Lane[]>(mockLanes);
+  const [zones, setZones] = useState<Zone[]>([]);
+  const [gates, setGates] = useState<Gate[]>([]);
+  const [lanes, setLanes] = useState<Lane[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeApiResponse[]>([]);
   const [loadingTopology, setLoadingTopology] = useState(false);
   const [savingNode, setSavingNode] = useState(false);
+  const [managerDrawerOpen, setManagerDrawerOpen] = useState(false);
+  const [managerCandidates, setManagerCandidates] = useState<ProvisionedAccountResponse[]>([]);
+  const [loadingManagers, setLoadingManagers] = useState(false);
+  const [savingManager, setSavingManager] = useState(false);
+  const [managerError, setManagerError] = useState("");
 
   const selectedParkingLot = parkingLots.find((lot) => lot.id === selectedLotId) ?? parkingLots[0];
   const selectedLotCanMutate = selectedParkingLot?.source === "api";
+  const isParkingManager = user?.role === "PARKING_MANAGER";
+  const canManageParkingLots = hasAnyPermission(user, ["PARKING_LOT_CREATE_ALL", "PARKING_LOT_UPDATE_ALL"]);
+  const canConfigureTopology = hasAnyPermission(user, ["PARKING_TOPOLOGY_CONFIGURE_ALL"]);
   const dynamicLotOptions = useMemo(() => parkingLots.map((lot) => ({ label: `Bãi xe: ${lot.name}`, value: lot.id })), [parkingLots]);
   const activeLotCount = parkingLots.filter((lot) => lot.status === "ACTIVE").length;
   const maintenanceLotCount = parkingLots.filter((lot) => lot.status === "MAINTENANCE").length;
@@ -1546,25 +1869,33 @@ export function ParkingOperationsPage() {
 
     try {
       const response = await getParkingLots();
-      const nextLots = (response.data ?? []).map(toParkingLotView);
-      setParkingLots(nextLots.length ? nextLots : mockParkingLots);
+      const nextLots = (response.data ?? [])
+        .filter((lot) => !permittedLotIds || permittedLotIds.has(lot.parkingLotId))
+        .map(toParkingLotView);
+      setParkingLots(nextLots);
       setSelectedLotId((current) => {
         const candidate = preferredLotId ?? current;
         if (nextLots.some((lot) => lot.id === candidate)) return candidate;
-        return nextLots[0]?.id ?? mockParkingLots[0].id;
+        return nextLots[0]?.id ?? "";
       });
     } catch (error) {
       setLotError(error instanceof Error ? error.message : "Không thể tải dữ liệu bãi xe.");
-      setParkingLots(mockParkingLots);
-      setSelectedLotId(mockParkingLots[0].id);
+      setParkingLots([]);
+      setSelectedLotId("");
     } finally {
       setLoadingLots(false);
     }
-  }, []);
+  }, [permittedLotIds]);
 
   useEffect(() => {
     void loadParkingLots();
   }, [loadParkingLots]);
+
+  useEffect(() => {
+    if (requestedLotId && parkingLots.some((lot) => lot.id === requestedLotId)) {
+      setSelectedLotId(requestedLotId);
+    }
+  }, [parkingLots, requestedLotId]);
 
   const loadParkingTopology = useCallback(async (parkingLotId: string) => {
     if (!isUuid(parkingLotId)) return;
@@ -1596,9 +1927,9 @@ export function ParkingOperationsPage() {
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể tải sơ đồ bãi xe.");
-      setZones(mockZones);
-      setGates(mockGates);
-      setLanes(mockLanes);
+      setZones([]);
+      setGates([]);
+      setLanes([]);
     } finally {
       setLoadingTopology(false);
     }
@@ -1657,7 +1988,75 @@ export function ParkingOperationsPage() {
     }
   }
 
+  async function handleRequestLotActivation() {
+    if (!selectedParkingLot || !selectedLotCanMutate) return;
+
+    setSavingLot(true);
+    setLotError("");
+    try {
+      await requestParkingLotActivation(selectedParkingLot.id);
+      toast.success("Đã gửi yêu cầu kích hoạt. Partner Admin sẽ kiểm tra cấu hình bãi xe trước khi phê duyệt.");
+      await loadParkingLots();
+    } catch (error) {
+      setLotError(error instanceof Error ? error.message : "Không thể gửi yêu cầu kích hoạt bãi xe.");
+    } finally {
+      setSavingLot(false);
+    }
+  }
+
+  async function openManagerAssignment() {
+    if (!parkingLots.some((parkingLot) => parkingLot.source === "api" && parkingLot.organizationId)) {
+      setManagerError("Chưa có bãi xe hợp lệ để phân công Parking Manager.");
+      return;
+    }
+
+    setManagerError("");
+    setManagerDrawerOpen(true);
+    setLoadingManagers(true);
+
+    try {
+      const response = await getProvisionedAccounts({
+        accountStatus: "ACTIVE",
+        roleCode: "PARKING_MANAGER",
+      });
+      setManagerCandidates(response.data ?? []);
+    } catch (error) {
+      setManagerCandidates([]);
+      setManagerError(error instanceof Error ? error.message : "Không thể tải danh sách Parking Manager.");
+    } finally {
+      setLoadingManagers(false);
+    }
+  }
+
+  async function handleAssignManager(parkingLotId: string, managerAccountId: string) {
+    const parkingLot = parkingLots.find((item) => item.id === parkingLotId);
+    if (!parkingLot?.organizationId) {
+      setManagerError("Bãi xe được chọn chưa thuộc Partner hợp lệ.");
+      return;
+    }
+
+    setSavingManager(true);
+    setManagerError("");
+    try {
+      await assignParkingManagerToParkingLot(
+        parkingLot.organizationId,
+        parkingLot.id,
+        managerAccountId,
+      );
+      toast.success("Đã phân công Parking Manager cho bãi xe.");
+      setManagerDrawerOpen(false);
+    } catch (error) {
+      setManagerError(error instanceof Error ? error.message : "Không thể phân công Parking Manager.");
+    } finally {
+      setSavingManager(false);
+    }
+  }
+
   async function handleSaveNode(node: SelectedNode, payload: ParkingNodeFormPayload) {
+    if (!canConfigureTopology) {
+      toast.error("Bạn chỉ có quyền giám sát topology bãi xe.");
+      return;
+    }
     setSavingNode(true);
 
     try {
@@ -1668,6 +2067,7 @@ export function ParkingOperationsPage() {
           name: payload.name,
           parkingLotId: creatingNode.parentId,
           vehicleTypeId: payload.vehicleTypeId,
+          vehicleTypeIds: payload.vehicleTypeIds,
         });
         toast.success("Đã thêm khu vực đỗ xe.");
         setCreatingNode(null);
@@ -1713,6 +2113,7 @@ export function ParkingOperationsPage() {
           code: payload.code,
           name: payload.name,
           vehicleTypeId: payload.vehicleTypeId,
+          vehicleTypeIds: payload.vehicleTypeIds,
         });
       } else if (node.kind === "gate") {
         await updateGate(node.id, {
@@ -1737,6 +2138,10 @@ export function ParkingOperationsPage() {
   }
 
   async function handleChangeNodeStatus(node: SelectedNode, action: ParkingNodeStatusAction) {
+    if (!canConfigureTopology) {
+      toast.error("Bạn chỉ có quyền giám sát topology bãi xe.");
+      return;
+    }
     setSavingNode(true);
 
     try {
@@ -1767,7 +2172,7 @@ export function ParkingOperationsPage() {
 
   const zonesForLot = useMemo(() => {
     return zones.filter((zone) => {
-      const matchesLot = zone.parkingLotId === selectedLotId || zone.parkingLotId === mockParkingLots[0].id;
+      const matchesLot = zone.parkingLotId === selectedLotId;
       const matchesVehicle = zoneMatchesVehicleFilter(zone, selectedVehicleType);
       const matchesStatus = selectedStatus === "all" || zone.status === selectedStatus;
       return matchesLot && matchesVehicle && matchesStatus;
@@ -1797,7 +2202,7 @@ export function ParkingOperationsPage() {
   const selectedZone = selectedNode?.kind === "zone" ? zones.find((zone) => zone.id === selectedNode.id) : selectedGate ? zones.find((zone) => zone.id === selectedGate.zoneId) : undefined;
 
   function handleCreateNode(kind: CreatingNode["kind"]) {
-    if (!selectedLotCanMutate || !selectedParkingLot) return;
+    if (!canConfigureTopology || !selectedLotCanMutate || !selectedParkingLot) return;
 
     if (kind === "zone") {
       setCreatingNode({ kind, parentId: selectedParkingLot.id });
@@ -1849,7 +2254,7 @@ export function ParkingOperationsPage() {
               </a>
             </div>
             <div className="tw-flex tw-flex-shrink-0 tw-items-center tw-gap-3">
-              <Button
+              {canManageParkingLots ? <Button
                 size="lg"
                 variant="primary"
                 onClick={() => {
@@ -1860,8 +2265,8 @@ export function ParkingOperationsPage() {
               >
                 <i className="fas fa-plus" />
                 Thêm bãi xe
-              </Button>
-              <Button
+              </Button> : null}
+              {canManageParkingLots ? <Button
                 size="lg"
                 variant="secondary"
                 disabled={!selectedLotCanMutate}
@@ -1873,7 +2278,16 @@ export function ParkingOperationsPage() {
               >
                 <i className="far fa-edit" />
                 Sửa bãi
-              </Button>
+              </Button> : null}
+              {canManageParkingLots ? <Button
+                size="lg"
+                variant="secondary"
+                disabled={loadingManagers || !parkingLots.some((parkingLot) => parkingLot.source === "api" && Boolean(parkingLot.organizationId))}
+                onClick={() => void openManagerAssignment()}
+              >
+                <i className="fas fa-user-check" />
+                {loadingManagers ? "Đang tải..." : "Phân công Manager"}
+              </Button> : null}
               <Button
                 size="lg"
                 variant="secondary"
@@ -1937,35 +2351,43 @@ export function ParkingOperationsPage() {
               </Button>
             </div>
             <div className="tw-mt-3 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
-              <Button
+              {isParkingManager ? <Button
                 size="sm"
                 variant="secondary"
-                disabled={!selectedLotCanMutate || savingLot || selectedParkingLot.status === "ACTIVE"}
+                disabled={!selectedLotCanMutate || savingLot || selectedParkingLot?.status !== "SETUP" || Boolean(selectedParkingLot?.activationRequestedAt)}
+                onClick={() => void handleRequestLotActivation()}
+              >
+                <i className="fas fa-paper-plane" />
+                {selectedParkingLot?.activationRequestedAt ? "Đã gửi yêu cầu kích hoạt" : "Yêu cầu kích hoạt"}
+              </Button> : canManageParkingLots ? <Button
+                size="sm"
+                variant="secondary"
+                disabled={!selectedLotCanMutate || savingLot || selectedParkingLot?.status === "ACTIVE" || !selectedParkingLot?.activationRequestedAt}
                 onClick={() => void handleChangeLotStatus("ACTIVE")}
               >
                 Kích hoạt
-              </Button>
-              <Button
+              </Button> : null}
+              {canManageParkingLots ? <Button
                 size="sm"
                 variant="secondary"
-                disabled={!selectedLotCanMutate || savingLot || selectedParkingLot.status === "MAINTENANCE"}
+                disabled={!selectedLotCanMutate || savingLot || selectedParkingLot?.status === "MAINTENANCE"}
                 onClick={() => void handleChangeLotStatus("MAINTENANCE")}
               >
                 Bảo trì
-              </Button>
-              <Button
+              </Button> : null}
+              {canManageParkingLots ? <Button
                 size="sm"
                 className="tw-border-red-200 tw-bg-white tw-text-red-600 hover:tw-bg-red-50"
                 variant="secondary"
-                disabled={!selectedLotCanMutate || savingLot || selectedParkingLot.status === "CLOSED"}
+                disabled={!selectedLotCanMutate || savingLot || selectedParkingLot?.status === "CLOSED"}
                 onClick={() => void handleChangeLotStatus("CLOSED")}
               >
                 Đóng bãi
-              </Button>
+              </Button> : null}
               <Button
                 size="sm"
                 variant="secondary"
-                disabled={!selectedLotCanMutate || savingNode}
+                disabled={!canConfigureTopology || !selectedLotCanMutate || savingNode}
                 onClick={() => handleCreateNode("zone")}
               >
                 <i className="fas fa-layer-group" />
@@ -1974,7 +2396,7 @@ export function ParkingOperationsPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                disabled={!selectedLotCanMutate || savingNode}
+                disabled={!canConfigureTopology || !selectedLotCanMutate || savingNode}
                 onClick={() => handleCreateNode("gate")}
               >
                 <i className="fas fa-archway" />
@@ -1983,7 +2405,7 @@ export function ParkingOperationsPage() {
               <Button
                 size="sm"
                 variant="secondary"
-                disabled={!selectedLotCanMutate || savingNode}
+                disabled={!canConfigureTopology || !selectedLotCanMutate || savingNode}
                 onClick={() => handleCreateNode("lane")}
               >
                 <i className="fas fa-road" />
@@ -1992,6 +2414,14 @@ export function ParkingOperationsPage() {
               {selectedLotCanMutate ? null : (
                 <span className="tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Dữ liệu mẫu chỉ dùng để xem giao diện, không thể cập nhật.</span>
               )}
+              {!canConfigureTopology ? (
+                <span className="tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Chế độ giám sát: System Admin chỉ xem topology và tình trạng vận hành.</span>
+              ) : null}
+              {selectedParkingLot?.activationRequestedAt ? (
+                <span className="tw-text-[0.78rem] tw-font-semibold tw-text-amber-700">
+                  <i className="fas fa-clock tw-mr-1" /> Manager đã gửi yêu cầu kích hoạt, chờ Partner Admin phê duyệt.
+                </span>
+              ) : null}
             </div>
             {lotError ? (
               <div className="tw-mt-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-px-3 tw-py-2 tw-text-[0.82rem] tw-font-semibold tw-text-red-700">
@@ -2000,21 +2430,32 @@ export function ParkingOperationsPage() {
             ) : null}
           </Card>
 
-          <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1fr)_330px] tw-gap-4 max-[1280px]:tw-grid-cols-1">
-            <ParkingTopologyMap
-              gatesByZone={gatesByZone}
-              lanesByGate={lanesByGate}
-              onSelect={handleSelectNode}
-              selectedNode={selectedNode}
-              selectedParkingLot={selectedParkingLot}
-              zonesForLot={zonesForLot}
-            />
-            <OperationSummary gates={gates} lanes={lanes} selectedParkingLot={selectedParkingLot} />
-          </div>
+          {selectedParkingLot ? (
+            <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1fr)_330px] tw-gap-4 max-[1280px]:tw-grid-cols-1">
+              <ParkingTopologyMap
+                gatesByZone={gatesByZone}
+                lanesByGate={lanesByGate}
+                onSelect={handleSelectNode}
+                selectedNode={selectedNode}
+                selectedParkingLot={selectedParkingLot}
+                zonesForLot={zonesForLot}
+              />
+              <OperationSummary gates={gates} lanes={lanes} selectedParkingLot={selectedParkingLot} />
+            </div>
+          ) : (
+            <Card className="tw-mt-4 tw-p-8 tw-text-center">
+              <i className="fas fa-parking tw-text-[2rem] tw-text-vm-primary" />
+              <h2 className="tw-m-0 tw-mt-3 tw-text-[1.15rem] tw-font-extrabold tw-text-vm-slate-900">Chưa có bãi xe trong phạm vi quản lý</h2>
+              <p className="tw-m-0 tw-mt-2 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-500">
+                Partner Admin hãy tạo bãi xe; Parking Manager cần được phân công vào một bãi trước khi có thể xem và cấu hình sơ đồ.
+              </p>
+            </Card>
+          )}
         </section>
       </div>
 
       <ParkingNodeDrawer
+        canConfigure={canConfigureTopology}
         creatingNode={creatingNode}
         gate={selectedGate}
         gates={gates}
@@ -2048,6 +2489,19 @@ export function ParkingOperationsPage() {
           setLotError("");
         }}
         onSubmit={handleSubmitParkingLot}
+      />
+      <ParkingManagerAssignmentDrawer
+        error={managerError}
+        isOpen={managerDrawerOpen}
+        lots={parkingLots.filter((parkingLot) => parkingLot.source === "api" && Boolean(parkingLot.organizationId))}
+        managers={managerCandidates}
+        saving={savingManager}
+        onClose={() => {
+          setManagerDrawerOpen(false);
+          setManagerError("");
+        }}
+        onSubmit={handleAssignManager}
+        selectedLotId={selectedParkingLot?.id ?? ""}
       />
     </>
   );

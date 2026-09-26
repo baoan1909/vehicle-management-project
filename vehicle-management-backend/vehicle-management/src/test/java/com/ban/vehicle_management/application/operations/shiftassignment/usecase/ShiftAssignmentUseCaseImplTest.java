@@ -8,19 +8,25 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.operations.shift.port.out.ShiftPortOut;
 import com.ban.vehicle_management.application.operations.shiftassignment.port.out.ShiftAssignmentPortOut;
 import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
+import com.ban.vehicle_management.application.people.employee.authorization.EmployeeOrganizationAccessGuard;
 import com.ban.vehicle_management.domain.operations.shift.model.Shift;
 import com.ban.vehicle_management.domain.operations.shiftassignment.model.ShiftAssignment;
 import com.ban.vehicle_management.domain.parking.gate.model.Gate;
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftAssignmentStatus;
@@ -40,11 +46,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class ShiftAssignmentUseCaseImplTest {
@@ -52,11 +60,17 @@ class ShiftAssignmentUseCaseImplTest {
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
     @Mock
+    private OrganizationAccessGuard organizationAccessGuard;
+    @Mock
+    private ParkingLotPortOut parkingLotPortOut;
+    @Mock
     private ShiftAssignmentPortOut assignmentPortOut;
     @Mock
     private ShiftPortOut shiftPortOut;
     @Mock
     private EmployeePortOut employeePortOut;
+    @Mock
+    private EmployeeOrganizationAccessGuard employeeOrganizationAccessGuard;
     @Mock
     private GatePortOut gatePortOut;
     @Mock
@@ -64,6 +78,16 @@ class ShiftAssignmentUseCaseImplTest {
 
     @InjectMocks
     private ShiftAssignmentUseCaseImpl useCase;
+
+    @BeforeEach
+    void stubParkingLotOwnership() {
+        lenient().when(parkingLotPortOut.findById(any(UUID.class))).thenAnswer(invocation -> {
+            ParkingLot lot = new ParkingLot();
+            lot.setParkingLotId(invocation.getArgument(0));
+            lot.setOrganizationId(UUID.randomUUID());
+            return Optional.of(lot);
+        });
+    }
 
     @Test
     void shouldCreateAssignmentWhenCandidateIsValid() {
@@ -92,6 +116,18 @@ class ShiftAssignmentUseCaseImplTest {
         assertNotNull(result.getShiftAssignmentId());
         assertEquals(shift.getShiftId(), result.getShiftId());
         assertEquals(ShiftAssignmentStatus.DRAFT, result.getStatus());
+    }
+
+    @Test
+    void crossLotAssignmentCreateIsRejectedBeforeSaving() {
+        Shift shift = futureShift(UUID.randomUUID(), nextMonday(), ShiftStatus.DRAFT);
+        when(shiftPortOut.findById(shift.getShiftId())).thenReturn(Optional.of(shift));
+        doThrow(new AccessDeniedException("other lot"))
+                .when(organizationAccessGuard).ensureCanOperateParkingLot(any(ParkingLot.class));
+
+        assertThrows(AccessDeniedException.class,
+                () -> useCase.createAssignment(shift.getShiftId(), requestAssignment()));
+        verify(assignmentPortOut, never()).save(any(ShiftAssignment.class));
     }
 
     @Test

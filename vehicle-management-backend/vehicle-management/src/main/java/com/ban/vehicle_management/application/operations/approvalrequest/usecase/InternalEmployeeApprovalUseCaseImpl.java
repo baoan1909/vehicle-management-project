@@ -85,8 +85,9 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
         return internalEmployeeApprovalPortOut.findInternalEmployeeApprovalRequests(
                 normalizeFilterCommand(command)
         ).stream()
-                .filter(result -> internalEmployeeApprovalAccessGuard.canAccessTargetRole(
+                .filter(result -> internalEmployeeApprovalAccessGuard.canAccessTarget(
                         currentAccount,
+                        result.account().accountId(),
                         result.account().roleCode()
                 ))
                 .toList();
@@ -99,7 +100,11 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
 
         InternalEmployeeApprovalResult result = internalEmployeeApprovalPortOut.findInternalEmployeeApprovalResultById(approvalRequestId)
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
-        internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(currentAccount, result.account().roleCode());
+        internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(
+                currentAccount,
+                result.account().accountId(),
+                result.account().roleCode()
+        );
         return result;
     }
 
@@ -123,7 +128,11 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
         InternalEmployeeApprovalCandidate candidate = internalEmployeeApprovalPortOut.findCandidateByEmployeeId(approvalRequest.getTargetId())
                 .orElseThrow(() -> new NotFoundException("Internal employee approval target not found"));
-        internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(currentAccount, candidate.roleCode());
+        internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(
+                currentAccount,
+                candidate.accountId(),
+                candidate.roleCode()
+        );
         Employee employee = loadEmployee(candidate.employeeId());
         String note = normalizeNote(command);
         Instant approvedAt = Instant.now(clock);
@@ -165,7 +174,11 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
                 .orElseThrow(() -> new NotFoundException("Internal employee approval request not found"));
         InternalEmployeeApprovalCandidate candidate = internalEmployeeApprovalPortOut.findCandidateByEmployeeId(approvalRequest.getTargetId())
                 .orElseThrow(() -> new NotFoundException("Internal employee approval target not found"));
-        internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(currentAccount, candidate.roleCode());
+        internalEmployeeApprovalAccessGuard.ensureCanReviewTarget(
+                currentAccount,
+                candidate.accountId(),
+                candidate.roleCode()
+        );
         Employee employee = loadEmployee(candidate.employeeId());
         approvalRequestPolicy.reject(approvalRequest, normalizeNote(command));
         employeePolicy.inactivate(employee);
