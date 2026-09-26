@@ -5,6 +5,7 @@ import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 import { Modal } from "@/shared/components/ui/Modal";
 import { SelectMenu, type SelectMenuOption } from "@/shared/components/ui/SelectMenu";
 import { cn } from "@/lib/cn";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
   activatePricePlan,
   activatePriceRule,
@@ -227,12 +228,14 @@ function getDateTimeParts(value: string | null | undefined) {
       date: new Intl.DateTimeFormat("vi-VN", {
         day: "2-digit",
         month: "2-digit",
-        year: "numeric"
+        year: "numeric",
+        timeZone: getApplicationTimeZone()
       }).format(parsed),
       time: new Intl.DateTimeFormat("vi-VN", {
         hour: "2-digit",
         hour12: false,
-        minute: "2-digit"
+        minute: "2-digit",
+        timeZone: getApplicationTimeZone()
       }).format(parsed)
     };
   }
@@ -1497,12 +1500,14 @@ function PricePlanDetailPanel({
     const updatedDate = new Intl.DateTimeFormat("vi-VN", {
       day: "2-digit",
       month: "2-digit",
-      year: "numeric"
+      year: "numeric",
+      timeZone: getApplicationTimeZone()
     }).format(now);
     const updatedTime = new Intl.DateTimeFormat("vi-VN", {
       hour: "2-digit",
       hour12: false,
-      minute: "2-digit"
+      minute: "2-digit",
+      timeZone: getApplicationTimeZone()
     }).format(now);
 
     onSave({

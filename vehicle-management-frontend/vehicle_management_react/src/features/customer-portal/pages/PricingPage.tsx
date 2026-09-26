@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import { ClientPage } from "@/shared/components/layout/ClientPage";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
   getPublicPricePlans,
   getPublicPriceRules,
@@ -73,7 +74,7 @@ function formatCurrency(value: number | null) {
 
 function formatDate(value: string | null) {
   if (!value) return "Không giới hạn";
-  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(value));
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: getApplicationTimeZone() }).format(new Date(value));
 }
 
 function durationLabel(durationDays?: number | null) {

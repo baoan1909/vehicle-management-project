@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type MouseEvent, type TouchEvent } from "react";
 import { useAuth } from "@/core/auth/useAuth";
 import { useToast } from "@/components/ui";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
   getChatMessages,
   markChatConversationRead,
@@ -86,7 +87,7 @@ function SupportSparkleIcon() {
 function formatMessageTime(value: string | null) {
   if (!value) return "";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(date);
+  return Number.isNaN(date.getTime()) ? "" : new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: getApplicationTimeZone() }).format(date);
 }
 
 function mergeMessage(current: ChatMessageResponse[], incoming: ChatMessageResponse) {

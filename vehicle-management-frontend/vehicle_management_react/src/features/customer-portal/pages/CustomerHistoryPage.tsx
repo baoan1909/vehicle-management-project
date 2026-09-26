@@ -6,6 +6,7 @@ import {
 } from "@/features/customer-portal/api/customerPortalApi";
 import type { ParkingSessionManagementFilters, ParkingSessionResponse } from "@/features/parking/api/parkingSessionApi";
 import { DateRangeInput } from "@/components/ui";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 
 import { CustomerPageHeader, CustomerPortalLayout, PortalPagination } from "./PortalShared";
 
@@ -32,13 +33,14 @@ function formatDate(value?: string | null) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: getApplicationTimeZone(),
   }).format(date);
 }
 
 function formatTime(value?: string | null) {
   if (!value) return "---";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "---" : new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(date);
+  return Number.isNaN(date.getTime()) ? "---" : new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: getApplicationTimeZone() }).format(date);
 }
 
 function formatDateTime(value?: string | null) {
@@ -49,6 +51,7 @@ function formatDateTime(value?: string | null) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: getApplicationTimeZone(),
     second: "2-digit",
     month: "2-digit",
     year: "numeric",

@@ -1,9 +1,11 @@
 package com.ban.vehicle_management.application.ai.service;
 
+import jakarta.validation.constraints.AssertTrue;
 import java.time.Duration;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 /**
  * TTL and safety policy for AI Redis caches. All TTLs are fixed (no sliding
@@ -11,6 +13,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  */
 @Getter
 @Setter
+@Validated
 @ConfigurationProperties(prefix = "app.ai.cache")
 public class AiCacheProperties {
 
@@ -34,4 +37,22 @@ public class AiCacheProperties {
     private int maxCachedEvidence = 10;
     private int maxVectorDimensions = 4096;
     private long maxPayloadBytes = 256 * 1024L;
+
+    @AssertTrue(message = "AI cache TTL/wait durations must be greater than zero")
+    public boolean areDurationsValid() {
+        return isPositive(queryEmbeddingTtl)
+                && isPositive(publicRetrievalTtl)
+                && isPositive(customerRetrievalTtl)
+                && isPositive(tenantRetrievalTtl)
+                && isPositive(negativeRetrievalTtl)
+                && isPositive(publicGroundedAnswerTtl)
+                && isPositive(customerGroundedAnswerTtl)
+                && isPositive(tenantGroundedAnswerTtl)
+                && isPositive(singleFlightLockTtl)
+                && isPositive(singleFlightWait);
+    }
+
+    private boolean isPositive(Duration value) {
+        return value != null && !value.isZero() && !value.isNegative();
+    }
 }

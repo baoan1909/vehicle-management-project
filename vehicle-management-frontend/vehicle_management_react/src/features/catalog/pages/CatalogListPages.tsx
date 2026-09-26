@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { Drawer } from "@/shared/components/ui/Drawer";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
   CatalogFilterSelect,
   CatalogHeader,
@@ -92,12 +93,14 @@ function formatDateTimeParts(value: string | null | undefined) {
     date: new Intl.DateTimeFormat("vi-VN", {
       day: "2-digit",
       month: "2-digit",
-      year: "numeric"
+      year: "numeric",
+      timeZone: getApplicationTimeZone()
     }).format(parsed),
     time: new Intl.DateTimeFormat("vi-VN", {
       hour: "2-digit",
       hour12: false,
-      minute: "2-digit"
+      minute: "2-digit",
+      timeZone: getApplicationTimeZone()
     }).format(parsed)
   };
 }

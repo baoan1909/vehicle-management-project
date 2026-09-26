@@ -21,6 +21,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -35,7 +36,7 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
     private final OrganizationAccessGuard organizationAccessGuard;
     private final ShiftTemplatePortOut shiftTemplatePortOut;
     private final ParkingLotPortOut parkingLotPortOut;
-    private final ShiftTemplatePolicy shiftTemplatePolicy =
+    private ShiftTemplatePolicy shiftTemplatePolicy =
             new ShiftTemplatePolicy();
 
     public ShiftTemplateUseCaseImpl(
@@ -48,6 +49,11 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
         this.organizationAccessGuard = organizationAccessGuard;
         this.shiftTemplatePortOut = shiftTemplatePortOut;
         this.parkingLotPortOut = parkingLotPortOut;
+    }
+
+    @Autowired
+    void configureShiftTemplatePolicy(ShiftTemplatePolicy shiftTemplatePolicy) {
+        this.shiftTemplatePolicy = shiftTemplatePolicy;
     }
 
     @Override

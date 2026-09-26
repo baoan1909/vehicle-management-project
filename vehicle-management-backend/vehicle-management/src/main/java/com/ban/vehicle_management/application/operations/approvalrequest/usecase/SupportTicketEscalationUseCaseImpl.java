@@ -10,6 +10,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.r
 import com.ban.vehicle_management.application.operations.approvalrequest.port.in.SupportTicketEscalationPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SupportTicketEscalationPortOut;
 import com.ban.vehicle_management.application.operations.supportticket.authorization.SupportTicketAccessGuard;
+import com.ban.vehicle_management.application.operations.supportticket.config.SupportTimeProperties;
 import com.ban.vehicle_management.application.operations.supportticket.port.in.SupportTicketPortIn;
 import com.ban.vehicle_management.application.operations.supportticket.port.out.SupportTicketPortOut;
 import com.ban.vehicle_management.application.operations.supportticket.service.SupportTicketConversationService;
@@ -26,8 +27,8 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +54,7 @@ public class SupportTicketEscalationUseCaseImpl implements SupportTicketEscalati
     private final ApprovalRequestPolicy approvalRequestPolicy = new ApprovalRequestPolicy();
     private final SupportTicketEscalationPolicy escalationPolicy = new SupportTicketEscalationPolicy();
     private final Clock clock;
+    private final Duration escalationRateWindow;
 
     @Autowired
     public SupportTicketEscalationUseCaseImpl(
@@ -61,10 +63,12 @@ public class SupportTicketEscalationUseCaseImpl implements SupportTicketEscalati
             SupportTicketPortIn supportTicketPortIn,
             SupportTicketAccessGuard accessGuard,
             SupportTicketConversationService conversationService,
-            NotificationPortIn notificationPortIn
+            NotificationPortIn notificationPortIn,
+            Clock clock,
+            SupportTimeProperties timeProperties
     ) {
         this(escalationPortOut, supportTicketPortOut, supportTicketPortIn, accessGuard,
-                conversationService, notificationPortIn, Clock.systemUTC());
+                conversationService, notificationPortIn, clock, timeProperties.getEscalationRateWindow());
     }
 
     SupportTicketEscalationUseCaseImpl(
@@ -76,6 +80,20 @@ public class SupportTicketEscalationUseCaseImpl implements SupportTicketEscalati
             NotificationPortIn notificationPortIn,
             Clock clock
     ) {
+        this(escalationPortOut, supportTicketPortOut, supportTicketPortIn, accessGuard,
+                conversationService, notificationPortIn, clock, Duration.ofHours(24));
+    }
+
+    private SupportTicketEscalationUseCaseImpl(
+            SupportTicketEscalationPortOut escalationPortOut,
+            SupportTicketPortOut supportTicketPortOut,
+            SupportTicketPortIn supportTicketPortIn,
+            SupportTicketAccessGuard accessGuard,
+            SupportTicketConversationService conversationService,
+            NotificationPortIn notificationPortIn,
+            Clock clock,
+            Duration escalationRateWindow
+    ) {
         this.escalationPortOut = escalationPortOut;
         this.supportTicketPortOut = supportTicketPortOut;
         this.supportTicketPortIn = supportTicketPortIn;
@@ -83,6 +101,7 @@ public class SupportTicketEscalationUseCaseImpl implements SupportTicketEscalati
         this.conversationService = conversationService;
         this.notificationPortIn = notificationPortIn;
         this.clock = clock;
+        this.escalationRateWindow = escalationRateWindow;
     }
 
     @Override
@@ -112,7 +131,7 @@ public class SupportTicketEscalationUseCaseImpl implements SupportTicketEscalati
             throw new ConflictException("A support ticket escalation is already pending");
         }
         if (escalationPortOut.countRecentByRequester(
-                requestedBy, Instant.now(clock).minus(24, ChronoUnit.HOURS)
+                requestedBy, Instant.now(clock).minus(escalationRateWindow)
         ) >= MAX_REQUESTS_PER_DAY) {
             throw new ConflictException("Too many support ticket escalation requests. Please try again later");
         }

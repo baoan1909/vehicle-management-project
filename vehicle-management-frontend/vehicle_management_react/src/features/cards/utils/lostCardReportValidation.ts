@@ -1,3 +1,5 @@
+import { applicationLocalDateTimeToIso } from "@/shared/time/applicationTime";
+
 export const lostCardFieldLimits = {
   identifyCardMaxLength: 12,
   identifyCardMinLength: 9,
@@ -35,31 +37,27 @@ export function parseLostCardDateTime(value: string | Date | null | undefined): 
 
   if (!value?.trim()) return null;
 
-  const directDate = new Date(value);
-  if (!Number.isNaN(directDate.getTime())) return directDate;
+  const text = value.trim();
+  if (/(?:Z|[+-]\d{2}:\d{2})$/.test(text)) {
+    const directDate = new Date(text);
+    return Number.isNaN(directDate.getTime()) ? null : directDate;
+  }
 
-  const match = backendDateTimePattern.exec(value.trim());
+  const localInput = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})(?::\d{2})?$/.exec(text);
+  if (localInput) {
+    const instant = applicationLocalDateTimeToIso(localInput[1], `${localInput[2]}:00`);
+    return instant ? new Date(instant) : null;
+  }
+
+  const match = backendDateTimePattern.exec(text);
   if (!match) return null;
 
   const [, hourText, minuteText, dayText, monthText, yearText] = match;
-  const hour = Number(hourText);
-  const minute = Number(minuteText);
-  const day = Number(dayText);
-  const month = Number(monthText);
-  const year = Number(yearText);
-  const parsedDate = new Date(year, month - 1, day, hour, minute);
-
-  if (
-    parsedDate.getFullYear() !== year
-    || parsedDate.getMonth() !== month - 1
-    || parsedDate.getDate() !== day
-    || parsedDate.getHours() !== hour
-    || parsedDate.getMinutes() !== minute
-  ) {
-    return null;
-  }
-
-  return parsedDate;
+  const instant = applicationLocalDateTimeToIso(
+    `${yearText}-${monthText}-${dayText}`,
+    `${hourText}:${minuteText}:00`,
+  );
+  return instant ? new Date(instant) : null;
 }
 
 export function validateLostCardReportForm(

@@ -20,6 +20,7 @@ import com.ban.vehicle_management.application.parking.parkingevent.port.out.Park
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
+import com.ban.vehicle_management.application.storage.config.StorageAccessTimeProperties;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
@@ -58,6 +59,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -65,7 +67,6 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
 
     private static final String BARRIER_ACTION_OPEN = "OPEN";
     private static final String BARRIER_ACTION_NONE = "NONE";
-    private static final int CHECK_IN_IMAGE_READ_URL_EXPIRE_SECONDS = 15 * 60;
     private static final LocalTime DAY_REFERENCE_TIME = LocalTime.NOON;
     private static final LocalTime NIGHT_REFERENCE_TIME = LocalTime.MIDNIGHT;
 
@@ -75,8 +76,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
     );
 
     private static final DateTimeFormatter INVOICE_NO_TIME_FORMATTER = DateTimeFormatter
-            .ofPattern("yyyyMMddHHmmss")
-            .withZone(DateTimeUtils.VIETNAM_ZONE);
+            .ofPattern("yyyyMMddHHmmss");
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final LostCardReportAccessGuard lostCardReportAccessGuard;
@@ -91,6 +91,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
     private final CustomerPortOut customerPortOut;
     private final CustomerVehiclePortOut customerVehiclePortOut;
     private final FileAccessPort fileAccessPort;
+    private int parkingImageReadUrlExpirySeconds = 900;
 
     private final LostCardReportPolicy lostCardReportPolicy = new LostCardReportPolicy();
     private final ParkingSessionPolicy parkingSessionPolicy = new ParkingSessionPolicy();
@@ -127,6 +128,11 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         this.customerPortOut = customerPortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
         this.fileAccessPort = fileAccessPort;
+    }
+
+    @Autowired
+    void configureStorageAccessTime(StorageAccessTimeProperties properties) {
+        this.parkingImageReadUrlExpirySeconds = properties.parkingImageReadUrlExpirySeconds();
     }
 
     @Override
@@ -707,7 +713,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         if (objectKey == null || objectKey.isBlank() || isBrowserReachableUrl(objectKey)) {
             return objectKey;
         }
-        return fileAccessPort.createReadUrl(objectKey, CHECK_IN_IMAGE_READ_URL_EXPIRE_SECONDS);
+        return fileAccessPort.createReadUrl(objectKey, parkingImageReadUrlExpirySeconds);
     }
 
     private boolean isBrowserReachableUrl(String value) {
@@ -773,7 +779,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 .replace("-", "")
                 .substring(0, 8)
                 .toUpperCase();
-        return "INV-" + INVOICE_NO_TIME_FORMATTER.format(now) + "-" + suffix;
+        return "INV-" + now.atZone(DateTimeUtils.getAppZone()).format(INVOICE_NO_TIME_FORMATTER) + "-" + suffix;
     }
 
     private String normalizeKeyword(String keyword) {

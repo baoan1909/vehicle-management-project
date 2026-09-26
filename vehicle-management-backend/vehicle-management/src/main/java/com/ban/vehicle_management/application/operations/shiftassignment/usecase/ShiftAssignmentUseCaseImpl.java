@@ -14,6 +14,7 @@ import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.application.people.employee.authorization.EmployeeOrganizationAccessGuard;
 import com.ban.vehicle_management.domain.operations.shift.model.Shift;
+import com.ban.vehicle_management.domain.operations.shift.policy.ShiftRestPolicy;
 import com.ban.vehicle_management.domain.operations.shiftassignment.model.ShiftAssignment;
 import com.ban.vehicle_management.domain.operations.shiftassignment.policy.ShiftAssignmentPolicy;
 import com.ban.vehicle_management.domain.parking.gate.model.Gate;
@@ -45,6 +46,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -67,8 +69,6 @@ public class ShiftAssignmentUseCaseImpl
 
     private static final String EMPLOYEE_ROLE = "EMPLOYEE";
     private static final int MAX_SHIFTS_PER_WEEK = 6;
-    private static final Duration MINIMUM_REST =
-            Duration.ofHours(8);
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final OrganizationAccessGuard organizationAccessGuard;
@@ -82,6 +82,7 @@ public class ShiftAssignmentUseCaseImpl
     private final NotificationPortIn notificationPortIn;
     private final ShiftAssignmentPolicy policy =
             new ShiftAssignmentPolicy();
+    private ShiftRestPolicy shiftRestPolicy = new ShiftRestPolicy(Duration.ofHours(8));
 
     public ShiftAssignmentUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
@@ -105,6 +106,11 @@ public class ShiftAssignmentUseCaseImpl
         this.gatePortOut = gatePortOut;
         this.zonePortOut = zonePortOut;
         this.notificationPortIn = notificationPortIn;
+    }
+
+    @Autowired
+    void configureShiftRestPolicy(ShiftRestPolicy shiftRestPolicy) {
+        this.shiftRestPolicy = shiftRestPolicy;
     }
 
     @Override
@@ -611,22 +617,22 @@ public class ShiftAssignmentUseCaseImpl
             Shift candidate,
             Shift existing
     ) {
-        Duration rest;
+        boolean restSatisfied;
 
         if (!candidate.getStartTime()
                 .isBefore(existing.getEndTime())) {
-            rest = Duration.between(
+            restSatisfied = shiftRestPolicy.isSatisfied(
                     existing.getEndTime(),
                     candidate.getStartTime()
             );
         } else {
-            rest = Duration.between(
+            restSatisfied = shiftRestPolicy.isSatisfied(
                     candidate.getEndTime(),
                     existing.getStartTime()
             );
         }
 
-        if (rest.compareTo(MINIMUM_REST) < 0) {
+        if (!restSatisfied) {
             throw new ConflictException(
                     "Employee must have at least eight hours of rest between shifts"
             );

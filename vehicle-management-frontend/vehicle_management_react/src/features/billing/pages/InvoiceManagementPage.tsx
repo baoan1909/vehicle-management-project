@@ -14,6 +14,7 @@ import {
   type PaymentMethod,
 } from "@/features/billing/api/invoiceManagementApi";
 import { cn } from "@/lib/cn";
+import { endOfApplicationDayIso, startOfApplicationDayIso } from "@/shared/time/applicationTime";
 
 const emptySummary: InvoiceManagementSummary = {
   total: 0,
@@ -76,9 +77,7 @@ function formatDisplayDate(value?: string | null) {
 
 function toBoundaryInstant(value: string, endOfDay = false) {
   if (!value) return undefined;
-  const suffix = endOfDay ? "T23:59:59.999+07:00" : "T00:00:00+07:00";
-  const date = new Date(`${value}${suffix}`);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+  return endOfDay ? endOfApplicationDayIso(value) : startOfApplicationDayIso(value);
 }
 
 function splitDateRange(value: string) {

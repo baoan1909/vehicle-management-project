@@ -4,6 +4,7 @@ import { Badge, Button, Drawer, EntityAvatar, SelectMenu } from "@/components/ui
 import type { EmployeeApiResponse } from "@/features/employees/api/employeesApi";
 import type { SupportTicketEscalationDecision, SupportTicketEscalationResponse, SupportTicketPriority, SupportTicketResponse, SupportTicketStatus } from "@/features/support/api/supportApi";
 import { cn } from "@/lib/cn";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 
 type SupportTicketDetailDrawerProps = {
   actionError: string;
@@ -35,6 +36,7 @@ function formatDateTime(value: string | null) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: getApplicationTimeZone(),
     month: "2-digit",
     year: "numeric",
   }).format(date);

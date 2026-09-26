@@ -9,7 +9,18 @@ import java.time.LocalTime;
 
 public class ShiftTemplatePolicy {
 
-    private static final Duration REQUIRED_DURATION = Duration.ofHours(8);
+    private final Duration requiredDuration;
+
+    public ShiftTemplatePolicy() {
+        this(Duration.ofHours(8));
+    }
+
+    public ShiftTemplatePolicy(Duration requiredDuration) {
+        if (requiredDuration == null || requiredDuration.isZero() || requiredDuration.isNegative()) {
+            throw new IllegalArgumentException("requiredDuration must be greater than zero");
+        }
+        this.requiredDuration = requiredDuration;
+    }
 
     public void initialize(ShiftTemplate shiftTemplate) {
         requireShiftTemplate(shiftTemplate);
@@ -69,9 +80,9 @@ public class ShiftTemplatePolicy {
             duration = duration.plusDays(1);
         }
 
-        if (!duration.equals(REQUIRED_DURATION)) {
+        if (!duration.equals(requiredDuration)) {
             throw new BadRequestException(
-                    "Shift template duration must be exactly 8 hours"
+                    "Shift template duration must be exactly " + requiredDuration.toHours() + " hours"
             );
         }
     }

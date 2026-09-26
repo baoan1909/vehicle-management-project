@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { Badge, Button, Card, DatePicker, EntityAvatar, InfoBanner, Input, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
 import { createAndOpenCustomerSupportConversation } from "@/features/support";
 import { cn } from "@/lib/cn";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 
 import {
   activateCustomer,
@@ -119,6 +120,7 @@ function formatDateTime(value?: string | null) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: getApplicationTimeZone(),
     month: "2-digit",
     year: "numeric",
   }).format(date);

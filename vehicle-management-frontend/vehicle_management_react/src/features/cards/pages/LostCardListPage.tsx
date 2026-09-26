@@ -4,6 +4,7 @@ import { DateRangeInput } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
+import { endOfApplicationDayIso, startOfApplicationDayIso } from "@/shared/time/applicationTime";
 
 import {
   getLostCardReports,
@@ -192,12 +193,12 @@ function splitDateRange(value: string) {
 
 function toStartOfDayInstant(date: string) {
   if (!date) return undefined;
-  return new Date(`${date}T00:00:00+07:00`).toISOString();
+  return startOfApplicationDayIso(date);
 }
 
 function toEndOfDayInstant(date: string) {
   if (!date) return undefined;
-  return new Date(`${date}T23:59:59.999+07:00`).toISOString();
+  return endOfApplicationDayIso(date);
 }
 
 function getDateTimeParts(value: string) {

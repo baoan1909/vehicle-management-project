@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Badge, Button, DateTimeScheduleField, Drawer, Modal, PaginationFooter, SelectMenu, nowLocalDateTime, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
+import { applicationLocalDateTimeToIso, getApplicationTimeZone, toApplicationLocalDateTimeInput } from "@/shared/time/applicationTime";
 import {
   cancelBroadcastAnnouncement,
   createBroadcastAnnouncement,
@@ -130,14 +131,14 @@ const ACTION_MENU_GAP = 8;
 
 function toLocalDateTimeInput(value: string | null | undefined) {
   if (!value) return "";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  date.setMinutes(date.getMinutes() - date.getTimezoneOffset());
-  return date.toISOString().slice(0, 16);
+  return toApplicationLocalDateTimeInput(value) ?? "";
 }
 
 function toInstant(value: string) {
-  return new Date(value).toISOString();
+  const [date, time] = value.split("T");
+  const instant = applicationLocalDateTimeToIso(date, time);
+  if (!instant) throw new Error("Thời gian thông báo không hợp lệ.");
+  return instant;
 }
 
 function formatDate(value: string | null | undefined) {
@@ -149,6 +150,7 @@ function formatDate(value: string | null | undefined) {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: getApplicationTimeZone(),
   }).format(date);
 }
 
@@ -160,6 +162,7 @@ function formatTime(value: string | null | undefined) {
   return new Intl.DateTimeFormat("vi-VN", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: getApplicationTimeZone(),
   }).format(date);
 }
 

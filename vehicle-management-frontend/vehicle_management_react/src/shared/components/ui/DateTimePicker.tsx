@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/cn";
+import { nowApplicationLocalDateTime } from "@/shared/time/applicationTime";
 
 type DateTimePickerProps = {
   allowClear?: boolean;
@@ -21,9 +22,7 @@ const timeHourValues = Array.from({ length: 24 }, (_, hour) => `${hour}`.padStar
 const timeMinuteValues = Array.from({ length: 60 }, (_, minute) => `${minute}`.padStart(2, "0"));
 
 export function nowLocalDateTime() {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  return now.toISOString().slice(0, 16);
+  return nowApplicationLocalDateTime();
 }
 
 function getDatePart(value: string) {

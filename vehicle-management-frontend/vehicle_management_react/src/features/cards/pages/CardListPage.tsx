@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
   blockCard,
   createCard,
@@ -106,8 +107,8 @@ function formatDateParts(value?: string | null) {
   }
 
   return {
-    date: new Intl.DateTimeFormat("vi-VN").format(parsed),
-    time: new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(parsed),
+    date: new Intl.DateTimeFormat("vi-VN", { timeZone: getApplicationTimeZone() }).format(parsed),
+    time: new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: getApplicationTimeZone() }).format(parsed),
   };
 }
 
@@ -115,7 +116,7 @@ function formatDate(value?: string | null) {
   if (!value) return null;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
-  return new Intl.DateTimeFormat("vi-VN").format(parsed);
+  return new Intl.DateTimeFormat("vi-VN", { timeZone: getApplicationTimeZone() }).format(parsed);
 }
 
 function formatCurrency(value?: number | null) {

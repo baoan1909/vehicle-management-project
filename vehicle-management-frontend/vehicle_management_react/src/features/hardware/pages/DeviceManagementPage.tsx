@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 
 import {
   Badge,
@@ -115,6 +116,7 @@ function formatDateTime(value: string | null) {
   return new Intl.DateTimeFormat("vi-VN", {
     dateStyle: "short",
     timeStyle: "short",
+    timeZone: getApplicationTimeZone(),
   }).format(date);
 }
 

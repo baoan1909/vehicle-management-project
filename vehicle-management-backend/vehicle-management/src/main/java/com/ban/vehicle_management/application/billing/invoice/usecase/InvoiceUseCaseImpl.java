@@ -55,8 +55,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
     );
 
     private static final DateTimeFormatter INVOICE_NO_TIME_FORMATTER = DateTimeFormatter
-            .ofPattern("yyyyMMddHHmmss")
-            .withZone(DateTimeUtils.VIETNAM_ZONE);
+            .ofPattern("yyyyMMddHHmmss");
 
     private final InvoicePortOut invoicePortOut;
     private final InvoiceAccessGuard invoiceAccessGuard;
@@ -498,7 +497,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
                 .replace("-", "")
                 .substring(0, 8)
                 .toUpperCase();
-        return "INV-" + INVOICE_NO_TIME_FORMATTER.format(now)+"-"+ suffix;
+        return "INV-" + now.atZone(DateTimeUtils.getAppZone()).format(INVOICE_NO_TIME_FORMATTER)+"-"+ suffix;
 
     }
 

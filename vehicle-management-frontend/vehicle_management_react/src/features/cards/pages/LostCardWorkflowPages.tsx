@@ -28,6 +28,7 @@ import {
 } from "@/features/cards/utils/lostCardReportValidation";
 import { Modal } from "@/shared/components/ui/Modal";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
+import { toApplicationLocalDateTimeInput } from "@/shared/time/applicationTime";
 
 type WorkflowStep = {
   number: number;
@@ -59,8 +60,7 @@ function toDateTimeLocalValue(value: string | Date | null | undefined) {
   const date = parseLostCardDateTime(value);
   if (!date) return undefined;
 
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
+  return toApplicationLocalDateTimeInput(date);
 }
 
 function toOptionalValue(value: string) {
@@ -881,7 +881,7 @@ export function LostCardCreatePage() {
       setFormError("Vui lòng kiểm tra lại thông tin phiếu báo mất thẻ.");
       return;
     }
-    const lostAt = new Date(timeOfLost);
+    const lostAt = parseLostCardDateTime(timeOfLost)!;
 
     const parkingSessionId = preview.parkingSession?.parkingSessionId ?? null;
     const subscriptionId = preview.subscription?.subscriptionId ?? null;

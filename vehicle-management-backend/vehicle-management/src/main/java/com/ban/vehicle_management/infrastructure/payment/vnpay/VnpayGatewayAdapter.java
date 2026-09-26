@@ -4,6 +4,7 @@ import com.ban.vehicle_management.application.billing.payment.model.VnpayPayment
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayCallbackData;
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayPaymentLink;
 import com.ban.vehicle_management.application.billing.payment.port.out.VnpayGatewayPortOut;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.net.URLEncoder;
@@ -11,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.HexFormat;
@@ -26,7 +26,6 @@ import org.springframework.util.StringUtils;
 public class VnpayGatewayAdapter implements VnpayGatewayPortOut {
 
     private static final String HMAC_SHA_512 = "HmacSHA512";
-    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final DateTimeFormatter VNPAY_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final VnpayProperties properties;
@@ -39,7 +38,7 @@ public class VnpayGatewayAdapter implements VnpayGatewayPortOut {
     public VnpayPaymentLink createPaymentLink(VnpayPaymentRequest request) {
         validateConfiguration();
 
-        Instant expiresAt = request.createdAt().plusSeconds(properties.getTimeoutMinutes() * 60L);
+        Instant expiresAt = request.createdAt().plus(properties.getTimeout());
         Map<String, String> parameters = new TreeMap<>();
         parameters.put("vnp_Version", properties.getVersion());
         parameters.put("vnp_Command", properties.getCommand());
@@ -145,7 +144,7 @@ public class VnpayGatewayAdapter implements VnpayGatewayPortOut {
         }
         try {
             return LocalDateTime.parse(value, VNPAY_DATE_FORMAT)
-                    .atZone(VIETNAM_ZONE)
+                    .atZone(DateTimeUtils.getAppZone())
                     .toInstant();
         } catch (DateTimeParseException exception) {
             return null;
@@ -153,7 +152,7 @@ public class VnpayGatewayAdapter implements VnpayGatewayPortOut {
     }
 
     private String formatDate(Instant instant) {
-        return VNPAY_DATE_FORMAT.format(instant.atZone(VIETNAM_ZONE));
+        return VNPAY_DATE_FORMAT.format(instant.atZone(DateTimeUtils.getAppZone()));
     }
 
     private String normalizeLocale(String locale) {
@@ -188,7 +187,9 @@ public class VnpayGatewayAdapter implements VnpayGatewayPortOut {
                 || !StringUtils.hasText(properties.getReturnUrl())) {
             throw new IllegalStateException("VNPAY configuration is incomplete");
         }
-        if (properties.getTimeoutMinutes() <= 0) {
+        if (properties.getTimeout() == null
+                || properties.getTimeout().isZero()
+                || properties.getTimeout().isNegative()) {
             throw new IllegalStateException("VNPAY timeout must be greater than zero");
         }
     }

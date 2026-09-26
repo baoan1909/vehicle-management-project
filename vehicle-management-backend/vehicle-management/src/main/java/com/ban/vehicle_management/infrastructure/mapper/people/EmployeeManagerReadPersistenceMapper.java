@@ -8,19 +8,14 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ShiftAssignmentRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
 @Mapper(componentModel = "spring")
 public interface EmployeeManagerReadPersistenceMapper {
-
-    ZoneId DISPLAY_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
-    DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm")
-            .withZone(DISPLAY_ZONE);
 
     @Mapping(target = "timeRange", expression = "java(formatTimeRange(projection.getStartTime(), projection.getEndTime()))")
     @Mapping(target = "locationName", source = "locationName", qualifiedByName = "defaultLocationName")
@@ -57,7 +52,7 @@ public interface EmployeeManagerReadPersistenceMapper {
         if (startTime == null || endTime == null) {
             return "-";
         }
-        return TIME_FORMATTER.format(startTime) + " - " + TIME_FORMATTER.format(endTime);
+        return DateTimeUtils.formatTimeRange(startTime, endTime);
     }
 
     @Named("defaultLocationName")

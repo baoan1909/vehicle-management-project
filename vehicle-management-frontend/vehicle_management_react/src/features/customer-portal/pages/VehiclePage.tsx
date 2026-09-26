@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 
 import {
   activateMyCustomerVehicle,
@@ -25,7 +26,7 @@ const emptyForm: VehicleForm = { brand: "", color: "", customerVehicleId: "", is
 function formatDate(value?: string | null) {
   if (!value) return "--";
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "--" : new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" }).format(date);
+  return Number.isNaN(date.getTime()) ? "--" : new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: getApplicationTimeZone() }).format(date);
 }
 
 function statusLabel(status?: string | null) {

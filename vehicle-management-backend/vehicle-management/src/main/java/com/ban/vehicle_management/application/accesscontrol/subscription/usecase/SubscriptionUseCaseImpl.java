@@ -53,8 +53,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             Set.of("MONTHLY", "QUARTERLY", "YEARLY", "FREE");
 
     private static final DateTimeFormatter INVOICE_NO_TIME_FORMATTER = DateTimeFormatter
-            .ofPattern("yyyyMMddHHmmss")
-            .withZone(DateTimeUtils.VIETNAM_ZONE);
+            .ofPattern("yyyyMMddHHmmss");
 
     private static final List<InvoiceStatus> ACTIVE_INVOICE_STATUSES = List.of(
             InvoiceStatus.UNPAID,
@@ -529,7 +528,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 .substring(0, 8)
                 .toUpperCase();
 
-        return "INV-" + INVOICE_NO_TIME_FORMATTER.format(now) + "-" + suffix;
+        return "INV-" + now.atZone(DateTimeUtils.getAppZone()).format(INVOICE_NO_TIME_FORMATTER) + "-" + suffix;
     }
 
     private Subscription findSubscriptionOrThrow(UUID subscriptionId) {

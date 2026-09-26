@@ -1,4 +1,6 @@
-/** Subscription audit dates use Vietnam time: HH:mm dd-MM-yyyy. */
+import { applicationLocalDateTimeToIso } from "@/shared/time/applicationTime";
+
+/** Subscription audit dates use the configured application time: HH:mm dd-MM-yyyy. */
 export function parsePortalDate(value?: string | null): Date | null {
   if (!value?.trim()) return null;
   const text = value.trim();
@@ -8,7 +10,7 @@ export function parsePortalDate(value?: string | null): Date | null {
     const [, hour, minute, day, month, year] = match;
     const daysInMonth = new Date(Date.UTC(Number(year), Number(month), 0)).getUTCDate();
     if (Number(year) < 1000 || Number(month) < 1 || Number(month) > 12 || Number(day) < 1 || Number(day) > daysInMonth || Number(hour) > 23 || Number(minute) > 59) return null;
-    normalized = `${year}-${month}-${day}T${hour}:${minute}:00+07:00`;
+    normalized = applicationLocalDateTimeToIso(`${year}-${month}-${day}`, `${hour}:${minute}:00`) ?? "";
   } else if (!/^\d{4}-\d{2}-\d{2}(?:T|$)/.test(text)) {
     return null;
   }

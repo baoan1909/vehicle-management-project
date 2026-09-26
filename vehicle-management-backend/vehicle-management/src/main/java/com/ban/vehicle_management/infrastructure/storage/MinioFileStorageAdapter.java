@@ -134,7 +134,7 @@ public class MinioFileStorageAdapter implements FileStoragePort, FileAccessPort 
 
         int resolvedExpireSeconds = expireSeconds > 0
                 ? expireSeconds
-                : properties.getPresignedUrlExpireSeconds();
+                : Math.toIntExact(properties.getPresignedUrlExpiry().toSeconds());
         try {
             return minioClient.getPresignedObjectUrl(GetPresignedObjectUrlArgs.builder()
                     .method(Method.GET)

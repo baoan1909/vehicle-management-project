@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, Card, InfoBanner, Modal, SearchInput, SelectMenu, useToast } from "@/components/ui";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
   fetchPartnerRegistrations,
   reviewPartnerRegistration,
@@ -42,6 +43,7 @@ function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("vi-VN", {
     dateStyle: "short",
     timeStyle: "short",
+    timeZone: getApplicationTimeZone(),
   }).format(date);
 }
 

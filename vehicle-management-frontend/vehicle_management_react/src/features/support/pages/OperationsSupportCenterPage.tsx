@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Badge, Button, EntityAvatar, Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { getEmployees, type EmployeeApiResponse } from "@/features/employees/api/employeesApi";
 import {
@@ -319,6 +320,7 @@ function formatClock(value: string | null | undefined) {
     return new Intl.DateTimeFormat("vi-VN", {
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: getApplicationTimeZone(),
     }).format(parsedDate);
   }
 
@@ -345,6 +347,7 @@ function formatDateTime(value: string | null | undefined) {
       day: "2-digit",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: getApplicationTimeZone(),
       month: "2-digit",
       year: "numeric",
     }).format(parsedDate);

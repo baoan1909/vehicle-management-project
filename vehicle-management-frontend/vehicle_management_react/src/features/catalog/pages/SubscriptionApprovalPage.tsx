@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, Card, DateRangeInput, Drawer, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
   getSubscriptionInvoice,
   recordCashInvoicePayment,
@@ -95,14 +96,14 @@ function formatDate(value?: string | null) {
   if (!value) return "Chưa có";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("vi-VN").format(date);
+  return new Intl.DateTimeFormat("vi-VN", { timeZone: getApplicationTimeZone() }).format(date);
 }
 
 function formatTime(value?: string | null) {
   if (!value) return "--:--";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--:--";
-  return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: getApplicationTimeZone() }).format(date);
 }
 
 function shortCode(prefix: string, id: string) {

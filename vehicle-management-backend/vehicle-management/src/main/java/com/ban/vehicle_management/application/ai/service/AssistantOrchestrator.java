@@ -1668,7 +1668,10 @@ public class AssistantOrchestrator {
 
     private Duration lockDuration() {
         Duration requestTimeout = properties.getRequestTimeout() == null ? Duration.ofSeconds(20) : properties.getRequestTimeout();
-        return requestTimeout.plusSeconds(90);
+        Duration safetyMargin = properties.getLockSafetyMargin() == null
+                ? Duration.ofSeconds(90)
+                : properties.getLockSafetyMargin();
+        return requestTimeout.plus(safetyMargin);
     }
 
     private record JobContext(ChatConversation conversation, ChatMessage inputMessage, boolean terminal) {

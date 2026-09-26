@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.accesscontrol.subscription.usecase;
 
+import com.ban.vehicle_management.application.accesscontrol.subscription.config.SubscriptionTimeProperties;
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPaymentTimeoutPortIn;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
@@ -21,7 +22,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -42,23 +43,48 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
     private final PaymentPolicy paymentPolicy = new PaymentPolicy();
     private final CardPolicy cardPolicy = new CardPolicy();
 
+    @Autowired
     public SubscriptionPaymentTimeoutUseCaseImpl(
             SubscriptionPortOut subscriptionPortOut,
             InvoicePortOut invoicePortOut,
             PaymentPortOut paymentPortOut,
             CardPortOut cardPortOut,
             VoucherPortIn voucherPortIn,
-            @Value("${app.subscription.payment-timeout-hours:48}") long paymentTimeoutHours
+            SubscriptionTimeProperties timeProperties
     ) {
-        if (paymentTimeoutHours <= 0) {
-            throw new IllegalArgumentException("app.subscription.payment-timeout-hours must be greater than zero");
+        this(subscriptionPortOut, invoicePortOut, paymentPortOut, cardPortOut, voucherPortIn,
+                timeProperties.getPaymentTimeout());
+    }
+
+    public SubscriptionPaymentTimeoutUseCaseImpl(
+            SubscriptionPortOut subscriptionPortOut,
+            InvoicePortOut invoicePortOut,
+            PaymentPortOut paymentPortOut,
+            CardPortOut cardPortOut,
+            VoucherPortIn voucherPortIn,
+            long paymentTimeoutHours
+    ) {
+        this(subscriptionPortOut, invoicePortOut, paymentPortOut, cardPortOut, voucherPortIn,
+                Duration.ofHours(paymentTimeoutHours));
+    }
+
+    private SubscriptionPaymentTimeoutUseCaseImpl(
+            SubscriptionPortOut subscriptionPortOut,
+            InvoicePortOut invoicePortOut,
+            PaymentPortOut paymentPortOut,
+            CardPortOut cardPortOut,
+            VoucherPortIn voucherPortIn,
+            Duration paymentTimeout
+    ) {
+        if (paymentTimeout == null || paymentTimeout.isZero() || paymentTimeout.isNegative()) {
+            throw new IllegalArgumentException("app.subscription.payment-timeout must be greater than zero");
         }
         this.subscriptionPortOut = subscriptionPortOut;
         this.invoicePortOut = invoicePortOut;
         this.paymentPortOut = paymentPortOut;
         this.cardPortOut = cardPortOut;
         this.voucherPortIn = voucherPortIn;
-        this.paymentTimeout = Duration.ofHours(paymentTimeoutHours);
+        this.paymentTimeout = paymentTimeout;
     }
 
     @Override
@@ -69,7 +95,7 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
         }
 
         Instant approvedAtCutoff = now.minus(paymentTimeout);
-        LocalDate requestedEffectiveDateCutoff = DateTimeUtils.toVietnamLocalDate(now);
+        LocalDate requestedEffectiveDateCutoff = DateTimeUtils.toAppLocalDate(now);
         List<Subscription> expiredSubscriptions = subscriptionPortOut.findExpiredPendingPaymentsForUpdate(
                 approvedAtCutoff,
                 requestedEffectiveDateCutoff

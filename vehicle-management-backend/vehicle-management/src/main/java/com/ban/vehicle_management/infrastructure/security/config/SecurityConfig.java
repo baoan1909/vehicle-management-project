@@ -49,8 +49,7 @@ public class SecurityConfig {
             @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}") String jwkSetUri,
             @Value("${app.security.oauth2.audience:}") String audience,
             @Value("${app.security.oauth2.accepted-authorized-parties:vehicle-management-frontend}") String acceptedAuthorizedParties,
-            @Value("${app.security.oauth2.jwk.connect-timeout-ms:3000}") int jwkConnectTimeoutMs,
-            @Value("${app.security.oauth2.jwk.read-timeout-ms:15000}") int jwkReadTimeoutMs,
+            SecurityTimeProperties timeProperties,
             @Value("${app.cors.allowed-origins:http://localhost:5173,http://127.0.0.1:5173}") String corsAllowedOrigins
     ) {
         this.jwtAuthenticationConverter = jwtAuthenticationConverter;
@@ -58,8 +57,8 @@ public class SecurityConfig {
         this.jwkSetUri = jwkSetUri;
         this.audience = audience;
         this.acceptedAuthorizedParties = acceptedAuthorizedParties;
-        this.jwkConnectTimeoutMs = jwkConnectTimeoutMs;
-        this.jwkReadTimeoutMs = jwkReadTimeoutMs;
+        this.jwkConnectTimeoutMs = Math.toIntExact(timeProperties.getConnectTimeout().toMillis());
+        this.jwkReadTimeoutMs = Math.toIntExact(timeProperties.getReadTimeout().toMillis());
         this.corsAllowedOrigins = corsAllowedOrigins;
     }
 
@@ -73,6 +72,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/error",
                                 "/api/public/auth/**",
+                                "/api/public/application-time",
                                 "/api/public/partner-registrations",
                                 "/api/dev/mail-preview/**",
                                 "/actuator/health/**",

@@ -1,16 +1,19 @@
 package com.ban.vehicle_management.infrastructure.realtime.notification;
 
+import com.ban.vehicle_management.application.notification.notification.config.NotificationTimeProperties;
 import com.ban.vehicle_management.application.notification.notification.mapper.NotificationRealtimeMessageMapper;
 import com.ban.vehicle_management.application.notification.notification.model.NotificationRealtimeMessage;
 import com.ban.vehicle_management.application.notification.notification.port.out.NotificationPortOut;
 import com.ban.vehicle_management.domain.notification.notification.model.Notification;
 import java.security.Principal;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
@@ -24,22 +27,48 @@ import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 @Component
 public class NotificationSubscriptionSyncListener {
 
-    private static final Duration PENDING_NOTIFICATION_REPLAY_WINDOW = Duration.ofHours(6);
     private static final String QUEUE_SEND_DESTINATION = "/queue/notifications";
     private static final Logger LOGGER = LoggerFactory.getLogger(NotificationSubscriptionSyncListener.class);
 
     private final NotificationPortOut notificationPortOut;
     private final NotificationRealtimeMessageMapper realtimeMessageMapper;
     private final SimpMessagingTemplate messagingTemplate;
+    private final Duration pendingReplayWindow;
+    private final Clock clock;
+
+    @Autowired
+    public NotificationSubscriptionSyncListener(
+            NotificationPortOut notificationPortOut,
+            NotificationRealtimeMessageMapper realtimeMessageMapper,
+            SimpMessagingTemplate messagingTemplate,
+            NotificationTimeProperties timeProperties,
+            Clock clock
+    ) {
+        this(notificationPortOut, realtimeMessageMapper, messagingTemplate,
+                timeProperties.getPendingReplayWindow(), clock);
+    }
 
     public NotificationSubscriptionSyncListener(
             NotificationPortOut notificationPortOut,
             NotificationRealtimeMessageMapper realtimeMessageMapper,
             SimpMessagingTemplate messagingTemplate
     ) {
+        this(notificationPortOut, realtimeMessageMapper, messagingTemplate,
+                Duration.ofHours(6), Clock.systemUTC());
+    }
+
+    private NotificationSubscriptionSyncListener(
+            NotificationPortOut notificationPortOut,
+            NotificationRealtimeMessageMapper realtimeMessageMapper,
+            SimpMessagingTemplate messagingTemplate,
+            Duration pendingReplayWindow,
+            Clock clock
+    ) {
         this.notificationPortOut = notificationPortOut;
         this.realtimeMessageMapper = realtimeMessageMapper;
         this.messagingTemplate = messagingTemplate;
+        this.pendingReplayWindow = pendingReplayWindow;
+        this.clock = clock;
     }
 
     @EventListener
@@ -61,7 +90,8 @@ public class NotificationSubscriptionSyncListener {
             return;
         }
 
-        Instant replayCutoff = Instant.now().minus(PENDING_NOTIFICATION_REPLAY_WINDOW);
+        Instant now = Instant.now(clock);
+        Instant replayCutoff = now.minus(pendingReplayWindow);
         List<Notification> pendingNotifications = notificationPortOut.findPendingRealtimeNotifications(
                 accountId,
                 replayCutoff
@@ -85,7 +115,7 @@ public class NotificationSubscriptionSyncListener {
                 pendingNotifications.stream()
                         .map(Notification::getNotificationId)
                         .toList(),
-                Instant.now()
+                now
         );
     }
 

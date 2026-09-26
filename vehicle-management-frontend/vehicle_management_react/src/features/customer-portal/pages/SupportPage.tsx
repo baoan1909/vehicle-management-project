@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Modal, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
   getCustomerPortalProfile,
   type CustomerPortalProfile,
@@ -72,6 +73,7 @@ function formatDateTime(value: string | null) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: getApplicationTimeZone(),
     month: "2-digit",
     year: "numeric",
   }).format(date);
