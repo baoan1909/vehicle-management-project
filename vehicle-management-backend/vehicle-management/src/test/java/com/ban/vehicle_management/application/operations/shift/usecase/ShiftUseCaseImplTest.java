@@ -7,11 +7,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
 import com.ban.vehicle_management.application.operations.employeerosterrule.port.out.EmployeeRosterRulePortOut;
 import com.ban.vehicle_management.application.operations.shift.port.out.ShiftPortOut;
 import com.ban.vehicle_management.application.operations.shiftassignment.port.in.ShiftAssignmentPortIn;
@@ -21,6 +24,7 @@ import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
+import com.ban.vehicle_management.application.people.employee.authorization.EmployeeOrganizationAccessGuard;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.employeerosterrule.model.EmployeeRosterRule;
 import com.ban.vehicle_management.domain.operations.shift.model.Shift;
@@ -60,12 +64,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class ShiftUseCaseImplTest {
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
+    @Mock
+    private OrganizationAccessGuard organizationAccessGuard;
     @Mock
     private ShiftPortOut shiftPortOut;
     @Mock
@@ -80,6 +87,8 @@ class ShiftUseCaseImplTest {
     private ParkingLotPortOut parkingLotPortOut;
     @Mock
     private EmployeePortOut employeePortOut;
+    @Mock
+    private EmployeeOrganizationAccessGuard employeeOrganizationAccessGuard;
     @Mock
     private GatePortOut gatePortOut;
     @Mock
@@ -286,6 +295,8 @@ class ShiftUseCaseImplTest {
 
         when(shiftPortOut.findByIdForUpdate(shift.getShiftId()))
                 .thenReturn(Optional.of(shift));
+        when(parkingLotPortOut.findById(shift.getParkingLotId()))
+                .thenReturn(Optional.of(parkingLot(shift.getParkingLotId(), ParkingLotStatus.ACTIVE)));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow())
                 .thenReturn(accountId);
         when(shiftPortOut.save(shift)).thenReturn(shift);
@@ -314,6 +325,8 @@ class ShiftUseCaseImplTest {
 
         when(shiftPortOut.findByIdForUpdate(shift.getShiftId()))
                 .thenReturn(Optional.of(shift));
+        when(parkingLotPortOut.findById(shift.getParkingLotId()))
+                .thenReturn(Optional.of(parkingLot(shift.getParkingLotId(), ParkingLotStatus.ACTIVE)));
         when(assignmentPortOut.findNotRemovedByShiftId(shift.getShiftId()))
                 .thenReturn(List.of(assignment));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow())
@@ -340,6 +353,9 @@ class ShiftUseCaseImplTest {
         LocalDate fromDate = LocalDate.of(2026, 7, 6);
         LocalDate toDate = fromDate.plusDays(6);
 
+        when(parkingLotPortOut.findById(parkingLotId))
+                .thenReturn(Optional.of(parkingLot(parkingLotId, ParkingLotStatus.ACTIVE)));
+
         when(shiftPortOut.findAll(
                 parkingLotId,
                 fromDate,
@@ -363,6 +379,35 @@ class ShiftUseCaseImplTest {
         assertEquals(1, result.size());
         verify(currentAccountPortIn)
                 .requirePermission("SHIFT_READ_ALL");
+    }
+
+    @Test
+    void managerListWithoutLotFilterReadsOnlyAssignedLots() {
+        UUID assignedLotId = UUID.randomUUID();
+        Shift shift = draftShift(assignedLotId);
+        when(currentAccountPortIn.getCurrentAccountOrThrow())
+                .thenReturn(managerAccess(UUID.randomUUID()));
+        when(organizationAccessGuard.resolveParkingLotAccessScope())
+                .thenReturn(new ParkingLotAccessScope(false, Set.of(), Set.of(assignedLotId)));
+        when(shiftPortOut.findAll(assignedLotId, null, null, null, null, null, null))
+                .thenReturn(List.of(shift));
+
+        assertEquals(List.of(shift), useCase.getShifts(null, null, null, null, null, null, null));
+        verify(shiftPortOut, never()).findAll(null, null, null, null, null, null, null);
+    }
+
+    @Test
+    void crossLotShiftUpdateIsRejectedBeforeSaving() {
+        Shift shift = draftShift(UUID.randomUUID());
+        ParkingLot lot = parkingLot(shift.getParkingLotId(), ParkingLotStatus.ACTIVE);
+        when(shiftPortOut.findByIdForUpdate(shift.getShiftId())).thenReturn(Optional.of(shift));
+        when(parkingLotPortOut.findById(shift.getParkingLotId())).thenReturn(Optional.of(lot));
+        doThrow(new AccessDeniedException("other lot"))
+                .when(organizationAccessGuard).ensureCanOperateParkingLot(lot);
+
+        assertThrows(AccessDeniedException.class,
+                () -> useCase.cancelShift(shift.getShiftId(), "not allowed"));
+        verify(shiftPortOut, never()).save(any(Shift.class));
     }
 
     @Test

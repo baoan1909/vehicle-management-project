@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 import { Drawer } from "@/shared/components/ui/Drawer";
 import {
   CatalogFilterSelect,
@@ -519,6 +521,9 @@ function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Veh
 }
 
 export function TicketListPage() {
+  const { user } = useAuth();
+  const canCreate = hasAnyPermission(user, ["TICKET_TYPE_CREATE_ALL"]);
+  const canUpdate = hasAnyPermission(user, ["TICKET_TYPE_UPDATE_ALL"]);
   const [records, setRecords] = useState<TicketCatalogRecord[]>([]);
   const [activeStatus, setActiveStatus] = useState<CatalogStatusTabValue>("all");
   const [statusValue, setStatusValue] = useState("all");
@@ -651,7 +656,7 @@ export function TicketListPage() {
 
   return (
     <CatalogPageShell>
-      <CatalogHeader createLabel="Thêm loại vé" title="Loại vé" onCreateClick={handleOpenCreate} onExportClick={() => exportTicketTypes(filteredRecords)} />
+      <CatalogHeader createLabel="Thêm loại vé" title="Loại vé" onCreateClick={canCreate ? handleOpenCreate : undefined} onExportClick={() => exportTicketTypes(filteredRecords)} />
       <CatalogMetricGrid items={buildTicketMetrics(records)} />
       <CatalogStatusTabs activeValue={activeStatus} counts={getStatusCounts(records)} onChange={(value) => {
         setActiveStatus(value);
@@ -719,7 +724,7 @@ export function TicketListPage() {
           />
         </main>
 
-        <TicketDetailPanel row={selectedRecord} onEdit={handleOpenEdit} onActivate={handleActivateTicketType} onDeactivate={handleDeactivateTicketType} />
+        <TicketDetailPanel row={selectedRecord} onEdit={canUpdate ? handleOpenEdit : undefined} onActivate={canUpdate ? handleActivateTicketType : undefined} onDeactivate={canUpdate ? handleDeactivateTicketType : undefined} />
       </div>
       <TicketTypeFormDrawer
         isOpen={isFormOpen}
@@ -733,6 +738,9 @@ export function TicketListPage() {
 }
 
 export function VehicleListPage() {
+  const { user } = useAuth();
+  const canCreate = hasAnyPermission(user, ["VEHICLE_TYPE_CREATE_ALL"]);
+  const canUpdate = hasAnyPermission(user, ["VEHICLE_TYPE_UPDATE_ALL"]);
   const [records, setRecords] = useState<VehicleCatalogRecord[]>([]);
   const [statusValue, setStatusValue] = useState("all");
   const [searchValue, setSearchValue] = useState("");
@@ -858,7 +866,7 @@ export function VehicleListPage() {
 
   return (
     <CatalogPageShell>
-      <CatalogHeader createLabel="Thêm loại xe" title="Loại phương tiện" onCreateClick={handleOpenCreate} onExportClick={() => exportVehicleTypes(filteredRecords)} />
+      <CatalogHeader createLabel="Thêm loại xe" title="Loại phương tiện" onCreateClick={canCreate ? handleOpenCreate : undefined} onExportClick={() => exportVehicleTypes(filteredRecords)} />
       <CatalogMetricGrid items={buildVehicleMetrics(records)} />
 
       <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_minmax(300px,0.32fr)] tw-items-start tw-gap-[0.9rem] max-[1360px]:tw-grid-cols-1">
@@ -913,7 +921,7 @@ export function VehicleListPage() {
           />
         </main>
 
-        <VehicleDetailPanel row={selectedRecord} onEdit={handleOpenEdit} onActivate={handleActivateVehicleType} onDeactivate={handleDeactivateVehicleType} />
+        <VehicleDetailPanel row={selectedRecord} onEdit={canUpdate ? handleOpenEdit : undefined} onActivate={canUpdate ? handleActivateVehicleType : undefined} onDeactivate={canUpdate ? handleDeactivateVehicleType : undefined} />
       </div>
       <VehicleTypeFormDrawer
         isOpen={isFormOpen}

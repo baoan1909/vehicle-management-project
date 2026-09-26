@@ -21,6 +21,7 @@ public class CardAdminResponse {
     private String cardNumber;
     private String uid;
     private UUID cardTypeId;
+    private UUID parkingLotId;
     private UUID registeredVehicleTypeId;
     private String registeredVehicleTypeCode;
     private String registeredVehicleTypeName;

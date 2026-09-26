@@ -26,4 +26,18 @@ public interface MemberParkingLotScopeRepository extends JpaRepository<MemberPar
             @Param("status") OrganizationMembershipStatus status
     );
 
+    @Query("""
+        select scope.parkingLotId
+        from MemberParkingLotScopeEntity scope, OrganizationMembershipEntity membership
+        where scope.organizationMembershipId = membership.organizationMembershipId
+          and membership.organizationId = :organizationId
+          and membership.accountId = :accountId
+          and membership.status = :status
+        """)
+    Set<UUID> findActiveParkingLotIdsByOrganizationIdAndAccountId(
+            @Param("organizationId") UUID organizationId,
+            @Param("accountId") UUID accountId,
+            @Param("status") OrganizationMembershipStatus status
+    );
+
 }

@@ -17,6 +17,20 @@ public interface LaneRepository extends JpaRepository<LaneEntity, UUID>, JpaSpec
 
     boolean existsByGateIdAndCodeAndLaneIdNot(UUID gateId, String code, UUID laneId);
 
+    @Query("""
+            select count(lane) > 0
+            from LaneEntity lane
+            join GateEntity gate on gate.gateId = lane.gateId
+            join ZoneEntity zone on zone.zoneId = gate.zoneId
+            where zone.parkingLotId = :parkingLotId
+              and lane.status = com.ban.vehicle_management.shared.enumeration.parking.LaneStatus.ACTIVE
+              and lane.direction = :direction
+            """)
+    boolean existsActiveByParkingLotIdAndDirection(
+            @Param("parkingLotId") UUID parkingLotId,
+            @Param("direction") LaneDirection direction
+    );
+
 
     @Query("""
         select count(lane) > 0

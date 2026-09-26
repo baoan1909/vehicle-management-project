@@ -138,6 +138,7 @@ public class ParkingCheckInUseCaseImpl {
 
         Card card = cardPortOut.findByUidForUpdate(cardUid)
                 .orElseThrow(() -> new NotFoundException("Card not found"));
+        parkingSessionAccessGuard.ensureCanUseCardInParkingLot(card, parkingLot);
         CardType cardType = cardTypePortOut.findById(card.getCardTypeId())
                 .orElseThrow(() -> new NotFoundException("Card type not found"));
         parkingCheckInPolicy.validateCardCanEnter(card, cardType);
@@ -337,8 +338,10 @@ public class ParkingCheckInUseCaseImpl {
         if (parkingLotId == null) {
             throw new ConflictException("Zone is not linked to a parking lot");
         }
-        return parkingLotPortOut.findById(parkingLotId)
+        ParkingLot parkingLot = parkingLotPortOut.findById(parkingLotId)
                 .orElseThrow(() -> new NotFoundException("Parking lot not found"));
+        parkingSessionAccessGuard.ensureCanOperateParkingLot(parkingLot);
+        return parkingLot;
     }
 
     private void requireCommand(CheckInCommand command) {

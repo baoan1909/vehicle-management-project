@@ -82,4 +82,15 @@ public class OrganizationController {
         );
         return ResponseEntity.ok(ApiResponse.ok("Parking manager scope updated successfully"));
     }
+
+    @PostMapping("/{organizationId}/parking-lots/{parkingLotId}/parking-managers/{parkingManagerAccountId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_MEMBERSHIP_MANAGE_ALL')")
+    public ResponseEntity<ApiResponse<Void>> assignParkingManagerToParkingLot(
+            @PathVariable UUID organizationId,
+            @PathVariable UUID parkingLotId,
+            @PathVariable UUID parkingManagerAccountId
+    ) {
+        organizationPortIn.assignParkingManagerToParkingLot(organizationId, parkingManagerAccountId, parkingLotId);
+        return ResponseEntity.ok(ApiResponse.ok("Parking manager assigned to parking lot successfully"));
+    }
 }

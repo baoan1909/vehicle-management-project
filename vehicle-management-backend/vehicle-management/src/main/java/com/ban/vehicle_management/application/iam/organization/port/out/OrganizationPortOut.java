@@ -25,9 +25,12 @@ public interface OrganizationPortOut {
 
     Set<UUID> findScopedParkingLotIdsByAccountId(UUID accountId);
 
+    Set<UUID> findScopedParkingLotIdsByOrganizationIdAndAccountId(UUID organizationId, UUID accountId);
+
     void createActiveMembership(UUID organizationId, UUID accountId);
 
     void replaceParkingLotScopes(UUID organizationMembershipId, Set<UUID> parkingLotIds);
 
     boolean allParkingLotsBelongToOrganization(UUID organizationId, Set<UUID> parkingLotIds);
+
 }

@@ -1,11 +1,15 @@
 package com.ban.vehicle_management.application.people.employee.authorization;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
+import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -14,26 +18,39 @@ public class EmployeeAccessGuard {
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
+    private final EmployeePortOut employeePortOut;
+    private final OrganizationPortOut organizationPortOut;
 
     public EmployeeAccessGuard(
             CurrentAccountPortIn currentAccountPortIn,
-            InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut
+            InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
+            EmployeePortOut employeePortOut,
+            OrganizationPortOut organizationPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
+        this.employeePortOut = employeePortOut;
+        this.organizationPortOut = organizationPortOut;
     }
 
     public void ensureCanRead(Employee employee) {
-        ensureParkingManagerTargetsEmployeeOnly(employee);
+        if (!canRead(currentAccountPortIn.getCurrentAccountOrThrow(), employee)) {
+            throw new AccessDeniedException("Access is denied");
+        }
     }
 
     public void ensureCanManage(Employee employee) {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
         String targetRole = resolveTargetRole(employee);
-        if (isSystemAdmin(currentAccount) && isSystemAdminManagedTarget(targetRole)) {
+        if (isPartnerAdmin(currentAccount)
+                && isPartnerManagedTarget(targetRole)
+                && sharesActiveOrganization(currentAccount, employee)) {
             return;
         }
-        if (isParkingManager(currentAccount) && AdminProvisionableAccountRoleCode.EMPLOYEE.name().equals(targetRole)) {
+        if (isParkingManager(currentAccount)
+                && AdminProvisionableAccountRoleCode.EMPLOYEE.name().equals(targetRole)
+                && hasParkingLotAssignment(currentAccount)
+                && sharesActiveOrganization(currentAccount, employee)) {
             return;
         }
         throw new AccessDeniedException("Access is denied");
@@ -41,19 +58,23 @@ public class EmployeeAccessGuard {
 
     public List<Employee> filterReadableEmployees(List<Employee> employees) {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (!isParkingManager(currentAccount)) {
-            return employees;
-        }
         return employees.stream()
-                .filter(this::isEmployeeTarget)
+                .filter(employee -> canRead(currentAccount, employee))
                 .toList();
     }
 
-    private void ensureParkingManagerTargetsEmployeeOnly(Employee employee) {
-        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (isParkingManager(currentAccount) && !isEmployeeTarget(employee)) {
-            throw new AccessDeniedException("Access is denied");
+    private boolean canRead(CurrentAccountAccess currentAccount, Employee employee) {
+        if (isSystemAdmin(currentAccount)) {
+            return true;
         }
+        if (isPartnerAdmin(currentAccount)) {
+            return isPartnerManagedTarget(resolveTargetRole(employee))
+                    && sharesActiveOrganization(currentAccount, employee);
+        }
+        return isParkingManager(currentAccount)
+                && hasParkingLotAssignment(currentAccount)
+                && isEmployeeTarget(employee)
+                && sharesActiveOrganization(currentAccount, employee);
     }
 
     private boolean isParkingManager(CurrentAccountAccess currentAccount) {
@@ -64,9 +85,30 @@ public class EmployeeAccessGuard {
         return AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name().equals(currentAccount.roleCode());
     }
 
-    private boolean isSystemAdminManagedTarget(String roleCode) {
-        return AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name().equals(roleCode)
-                || AdminProvisionableAccountRoleCode.PARKING_MANAGER.name().equals(roleCode);
+    private boolean isPartnerAdmin(CurrentAccountAccess currentAccount) {
+        return AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name().equals(currentAccount.roleCode());
+    }
+
+    private boolean isPartnerManagedTarget(String roleCode) {
+        return AdminProvisionableAccountRoleCode.PARKING_MANAGER.name().equals(roleCode)
+                || AdminProvisionableAccountRoleCode.EMPLOYEE.name().equals(roleCode);
+    }
+
+    private boolean hasParkingLotAssignment(CurrentAccountAccess currentAccount) {
+        return !organizationPortOut.findScopedParkingLotIdsByAccountId(currentAccount.accountId()).isEmpty();
+    }
+
+    private boolean sharesActiveOrganization(CurrentAccountAccess currentAccount, Employee employee) {
+        Set<UUID> actorOrganizations = organizationPortOut
+                .findActiveOrganizationIdsByAccountId(currentAccount.accountId());
+        if (actorOrganizations.isEmpty() || employee == null || employee.getEmployeeId() == null) {
+            return false;
+        }
+        return employeePortOut.findAccountIdByEmployeeId(employee.getEmployeeId())
+                .map(organizationPortOut::findActiveOrganizationIdsByAccountId)
+                .stream()
+                .flatMap(Set::stream)
+                .anyMatch(actorOrganizations::contains);
     }
 
     private boolean isEmployeeTarget(Employee employee) {

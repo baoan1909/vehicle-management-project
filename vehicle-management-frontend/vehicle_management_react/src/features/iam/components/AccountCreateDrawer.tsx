@@ -41,7 +41,7 @@ function getManageableRoleOptions(currentRole: CurrentUser["role"]) {
   }
 
   if (currentRole === "PARTNER_ADMIN") {
-    return roleOptions.filter((role) => role.code === "PARKING_MANAGER");
+    return roleOptions.filter((role) => role.code === "PARKING_MANAGER" || role.code === "EMPLOYEE");
   }
 
   if (currentRole === "PARKING_MANAGER") {

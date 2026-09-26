@@ -74,7 +74,12 @@ class ProvisionedAccountUseCaseImplTest {
                 " Nguyen Employee "
         );
 
-        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount("PARKING_MANAGER"));
+        CurrentAccountAccess manager = currentAccount("PARKING_MANAGER");
+        UUID organizationId = UUID.randomUUID();
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(manager);
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(manager.accountId());
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(manager.accountId()))
+                .thenReturn(Set.of(organizationId));
         when(provisionedAccountPortOut.existsByUsername("employee.01")).thenReturn(false);
         when(provisionedAccountPortOut.existsByEmail("employee01@example.com")).thenReturn(false);
         when(provisionedAccountPortOut.findActiveRoleIdByCode(AdminProvisionableAccountRoleCode.EMPLOYEE))
@@ -103,6 +108,7 @@ class ProvisionedAccountUseCaseImplTest {
         assertEquals(result.account().accountId(), persistedAccount.getAccountId());
         verify(identityProviderAdminPortOut).updateAccountIdAttribute(keycloakUserId, persistedAccount.getAccountId());
         verify(identityProviderAdminPortOut).sendUpdatePasswordEmail(keycloakUserId);
+        verify(organizationPortOut).createActiveMembership(organizationId, persistedAccount.getAccountId());
     }
 
     @Test

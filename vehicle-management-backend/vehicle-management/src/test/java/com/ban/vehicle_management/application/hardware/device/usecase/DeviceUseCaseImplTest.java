@@ -5,7 +5,9 @@ import static org.mockito.Mockito.*;
 
 import com.ban.vehicle_management.application.hardware.device.port.out.DevicePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.hardware.device.model.Device;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceStatus;
@@ -21,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class DeviceUseCaseImplTest {
@@ -33,6 +36,9 @@ class DeviceUseCaseImplTest {
 
     @Mock
     private ParkingLotPortOut parkingLotPortOut;
+
+    @Mock
+    private OrganizationAccessGuard organizationAccessGuard;
 
     @InjectMocks
     private DeviceUseCaseImpl useCase;
@@ -61,6 +67,79 @@ class DeviceUseCaseImplTest {
         assertEquals("CAM-MAIN-01", result.getDeviceCode());
         assertEquals(DeviceStatus.ACTIVE, result.getStatus());
         verify(devicePortOut).save(request);
+    }
+
+    @Test
+    void partnerAdminCannotCreateDeviceInAnotherPartnersLot() {
+        UUID parkingLotId = UUID.randomUUID();
+        Device request = validDevice(parkingLotId, null);
+        ParkingLot parkingLot = parkingLot(ParkingLotStatus.ACTIVE);
+        parkingLot.setParkingLotId(parkingLotId);
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.of(partnerAdmin()));
+        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(parkingLot));
+        doThrow(new AccessDeniedException("Other partner"))
+                .when(organizationAccessGuard).ensureCanConfigureParkingLot(parkingLot);
+
+        assertThrows(AccessDeniedException.class, () -> useCase.createDevice(request));
+        verify(devicePortOut, never()).save(any(Device.class));
+    }
+
+    @Test
+    void partnerAdminCannotReadDeviceInAnotherPartnersLot() {
+        UUID parkingLotId = UUID.randomUUID();
+        UUID deviceId = UUID.randomUUID();
+        Device device = validDevice(parkingLotId, null);
+        device.setDeviceId(deviceId);
+        ParkingLot parkingLot = parkingLot(ParkingLotStatus.ACTIVE);
+        parkingLot.setParkingLotId(parkingLotId);
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.of(partnerAdmin()));
+        when(devicePortOut.findById(deviceId)).thenReturn(Optional.of(device));
+        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(parkingLot));
+        doThrow(new AccessDeniedException("Other partner"))
+                .when(organizationAccessGuard).ensureCanAccessParkingLot(parkingLot);
+
+        assertThrows(AccessDeniedException.class, () -> useCase.getDeviceById(deviceId));
+    }
+
+    @Test
+    void partnerAdminCanCreateDeviceInOwnLot() {
+        UUID parkingLotId = UUID.randomUUID();
+        Device request = validDevice(parkingLotId, null);
+        ParkingLot parkingLot = parkingLot(ParkingLotStatus.ACTIVE);
+        parkingLot.setParkingLotId(parkingLotId);
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.of(partnerAdmin()));
+        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(parkingLot));
+        when(devicePortOut.save(request)).thenReturn(request);
+
+        Device created = useCase.createDevice(request);
+
+        assertEquals(request, created);
+        verify(organizationAccessGuard).ensureCanConfigureParkingLot(parkingLot);
+    }
+
+    @Test
+    void partnerAdminOnlyListsDevicesFromOwnLots() {
+        UUID ownLotId = UUID.randomUUID();
+        UUID foreignLotId = UUID.randomUUID();
+        Device ownDevice = validDevice(ownLotId, null);
+        Device foreignDevice = validDevice(foreignLotId, null);
+        ParkingLot ownLot = parkingLot(ParkingLotStatus.ACTIVE);
+        ownLot.setParkingLotId(ownLotId);
+        ParkingLot foreignLot = parkingLot(ParkingLotStatus.ACTIVE);
+        foreignLot.setParkingLotId(foreignLotId);
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.of(partnerAdmin()));
+        when(devicePortOut.findAll(null, null, null, null, null))
+                .thenReturn(List.of(ownDevice, foreignDevice));
+        when(parkingLotPortOut.findById(ownLotId)).thenReturn(Optional.of(ownLot));
+        when(parkingLotPortOut.findById(foreignLotId)).thenReturn(Optional.of(foreignLot));
+        doAnswer(invocation -> {
+            if (invocation.getArgument(0) == foreignLot) {
+                throw new AccessDeniedException("Other partner");
+            }
+            return null;
+        }).when(organizationAccessGuard).ensureCanAccessParkingLot(any(ParkingLot.class));
+
+        assertEquals(List.of(ownDevice), useCase.getDevices(null, null, null, null, null));
     }
 
     @Test
@@ -416,5 +495,13 @@ class DeviceUseCaseImplTest {
         parkingLot.setTotalCapacity(1000);
         parkingLot.setStatus(status);
         return parkingLot;
+    }
+
+    private CurrentAccountAccess partnerAdmin() {
+        return new CurrentAccountAccess(
+                UUID.randomUUID(), "partner", "partner", "partner@example.com", UUID.randomUUID(),
+                "PARTNER_ADMIN", com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.ACTIVE,
+                null, java.util.Set.of("DEVICE_CREATE_ALL", "DEVICE_READ_ALL")
+        );
     }
 }

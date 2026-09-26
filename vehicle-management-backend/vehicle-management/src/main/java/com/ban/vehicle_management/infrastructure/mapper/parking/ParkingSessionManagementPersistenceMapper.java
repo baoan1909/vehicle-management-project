@@ -23,9 +23,9 @@ public interface ParkingSessionManagementPersistenceMapper {
     @Mapping(target = "vehicleTypeName", source = "vehicleType.name")
     @Mapping(target = "zoneCode", source = "zone.code")
     @Mapping(target = "zoneName", source = "zone.name")
-    @Mapping(target = "parkingLotId", source = "zone.parkingLot.parkingLotId")
-    @Mapping(target = "parkingLotCode", source = "zone.parkingLot.code")
-    @Mapping(target = "parkingLotName", source = "zone.parkingLot.name")
+    @Mapping(target = "parkingLotId", source = "parkingLotId")
+    @Mapping(target = "parkingLotCode", source = "parkingLot.code")
+    @Mapping(target = "parkingLotName", source = "parkingLot.name")
     @Mapping(target = "events", source = "parkingEvents", qualifiedByName = "toSortedEventResults")
     ParkingSessionManagementResult toResult(ParkingSessionEntity entity);
 

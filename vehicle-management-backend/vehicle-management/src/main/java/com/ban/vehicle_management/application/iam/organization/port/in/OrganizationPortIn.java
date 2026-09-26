@@ -13,4 +13,6 @@ public interface OrganizationPortIn {
     Organization getOrganizationById(UUID organizationId);
 
     void assignParkingManager(UUID organizationId, UUID parkingManagerAccountId, Set<UUID> parkingLotIds);
+
+    void assignParkingManagerToParkingLot(UUID organizationId, UUID parkingManagerAccountId, UUID parkingLotId);
 }

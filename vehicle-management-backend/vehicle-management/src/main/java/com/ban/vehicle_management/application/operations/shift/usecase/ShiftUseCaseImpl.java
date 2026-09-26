@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.application.operations.shift.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
 import com.ban.vehicle_management.application.operations.employeerosterrule.port.out.EmployeeRosterRulePortOut;
 import com.ban.vehicle_management.application.operations.shift.port.in.ShiftPortIn;
 import com.ban.vehicle_management.application.operations.shift.port.out.ShiftPortOut;
@@ -13,6 +15,7 @@ import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
+import com.ban.vehicle_management.application.people.employee.authorization.EmployeeOrganizationAccessGuard;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.employeerosterrule.model.EmployeeRosterRule;
 import com.ban.vehicle_management.domain.operations.shift.model.Shift;
@@ -49,6 +52,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -65,6 +69,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
     private static final Duration MINIMUM_REST = Duration.ofHours(8);
 
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final OrganizationAccessGuard organizationAccessGuard;
     private final ShiftPortOut shiftPortOut;
     private final ShiftTemplatePortOut templatePortOut;
     private final EmployeeRosterRulePortOut rosterRulePortOut;
@@ -72,6 +77,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
     private final ShiftAssignmentPortOut assignmentPortOut;
     private final ParkingLotPortOut parkingLotPortOut;
     private final EmployeePortOut employeePortOut;
+    private final EmployeeOrganizationAccessGuard employeeOrganizationAccessGuard;
     private final GatePortOut gatePortOut;
     private final ZonePortOut zonePortOut;
     private final NotificationPortIn notificationPortIn;
@@ -82,6 +88,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
 
     public ShiftUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
+            OrganizationAccessGuard organizationAccessGuard,
             ShiftPortOut shiftPortOut,
             ShiftTemplatePortOut templatePortOut,
             EmployeeRosterRulePortOut rosterRulePortOut,
@@ -89,11 +96,13 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
             ShiftAssignmentPortOut assignmentPortOut,
             ParkingLotPortOut parkingLotPortOut,
             EmployeePortOut employeePortOut,
+            EmployeeOrganizationAccessGuard employeeOrganizationAccessGuard,
             GatePortOut gatePortOut,
             ZonePortOut zonePortOut,
             NotificationPortIn notificationPortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
+        this.organizationAccessGuard = organizationAccessGuard;
         this.shiftPortOut = shiftPortOut;
         this.templatePortOut = templatePortOut;
         this.rosterRulePortOut = rosterRulePortOut;
@@ -101,6 +110,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         this.assignmentPortOut = assignmentPortOut;
         this.parkingLotPortOut = parkingLotPortOut;
         this.employeePortOut = employeePortOut;
+        this.employeeOrganizationAccessGuard = employeeOrganizationAccessGuard;
         this.gatePortOut = gatePortOut;
         this.zonePortOut = zonePortOut;
         this.notificationPortIn = notificationPortIn;
@@ -125,6 +135,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         }
 
         ParkingLot parkingLot = findParkingLot(parkingLotId);
+        organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
 
         if (parkingLot.getStatus() == ParkingLotStatus.CLOSED) {
             throw new ConflictException(
@@ -186,6 +197,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         validateWeekRequest(parkingLotId, weekStartDate);
 
         ParkingLot parkingLot = findParkingLot(parkingLotId);
+        organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
 
         if (parkingLot.getStatus() == ParkingLotStatus.CLOSED) {
             throw new ConflictException(
@@ -249,7 +261,9 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
     @Transactional(readOnly = true)
     public Shift getShiftById(UUID shiftId) {
         currentAccountPortIn.requirePermission(READ_PERMISSION);
-        return findShift(shiftId);
+        Shift shift = findShift(shiftId);
+        organizationAccessGuard.ensureCanAccessParkingLot(findParkingLot(shift.getParkingLotId()));
+        return shift;
     }
 
     @Override
@@ -265,20 +279,29 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
     ) {
         currentAccountPortIn.requirePermission(READ_PERMISSION);
         validateDateRange(fromDate, toDate);
-
-        return shiftPortOut.findAll(
-                parkingLotId,
-                fromDate,
-                toDate,
-                shiftType,
-                status,
-                employeeId,
-                TextValidationUtils.normalizeNullableText(
-                        keyword,
-                        "keyword",
-                        100
-                )
-        );
+        String normalizedKeyword = TextValidationUtils.normalizeNullableText(keyword, "keyword", 100);
+        if (parkingLotId != null) {
+            organizationAccessGuard.ensureCanAccessParkingLot(findParkingLot(parkingLotId));
+            return shiftPortOut.findAll(parkingLotId, fromDate, toDate, shiftType, status, employeeId, normalizedKeyword);
+        }
+        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
+        if (OrganizationAccessGuard.SYSTEM_ADMIN.equals(roleCode)) {
+            return shiftPortOut.findAll(null, fromDate, toDate, shiftType, status, employeeId, normalizedKeyword);
+        }
+        if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
+                && !OrganizationAccessGuard.PARKING_MANAGER.equals(roleCode)) {
+            throw new AccessDeniedException("Current account has no parking lot monitoring scope");
+        }
+        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
+        Set<UUID> lotIds = OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
+                ? parkingLotPortOut.findAll(null, null, scope.organizationIds(), null).stream()
+                        .map(ParkingLot::getParkingLotId).collect(Collectors.toSet())
+                : scope.parkingLotIds();
+        return lotIds.stream()
+                .flatMap(lotId -> shiftPortOut.findAll(
+                        lotId, fromDate, toDate, shiftType, status, employeeId, normalizedKeyword).stream())
+                .sorted(Comparator.comparing(Shift::getShiftDate).thenComparing(Shift::getStartTime))
+                .toList();
     }
 
     @Override
@@ -294,6 +317,12 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
 
         ParkingLot parkingLot =
                 findParkingLot(shift.getParkingLotId());
+
+        // SHIFT_OPEN_OWN belongs to an employee assigned to this exact shift;
+        // the assignment check below is the employee's operational scope.
+        if (currentAccountPortIn.hasPermission(UPDATE_PERMISSION)) {
+            organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
+        }
 
         if (parkingLot.getStatus() != ParkingLotStatus.ACTIVE) {
             throw new ConflictException(
@@ -353,6 +382,8 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
 
         Shift shift = findShiftForUpdate(shiftId);
 
+        organizationAccessGuard.ensureCanOperateParkingLot(findParkingLot(shift.getParkingLotId()));
+
         shiftPolicy.close(
                 shift,
                 closingCash,
@@ -373,6 +404,8 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         currentAccountPortIn.requirePermission(UPDATE_PERMISSION);
 
         Shift shift = findShiftForUpdate(shiftId);
+
+        organizationAccessGuard.ensureCanOperateParkingLot(findParkingLot(shift.getParkingLotId()));
 
         if (shift.getStatus() == ShiftStatus.CANCELLED) {
             return shift;
@@ -555,7 +588,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
             );
         }
 
-        ensureOperationalEmployee(employeeId);
+        ensureOperationalEmployee(employeeId, shift.getParkingLotId());
         ensureGateValid(
                 gateId,
                 shift.getParkingLotId(),
@@ -778,7 +811,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
 
         for (ShiftAssignment assignment : assignments) {
             ensureOperationalEmployee(
-                    assignment.getEmployeeId()
+                    assignment.getEmployeeId(), shift.getParkingLotId()
             );
 
             ensureGateValid(
@@ -901,7 +934,8 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         );
     }
 
-    private void ensureOperationalEmployee(UUID employeeId) {
+    private void ensureOperationalEmployee(UUID employeeId, UUID parkingLotId) {
+        employeeOrganizationAccessGuard.ensureBelongsToParkingLot(employeeId, parkingLotId);
         Employee employee = employeePortOut.findById(employeeId)
                 .orElseThrow(() ->
                         new NotFoundException("Employee not found")
@@ -1012,10 +1046,11 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
     }
 
     private ParkingLot findParkingLot(UUID parkingLotId) {
-        return parkingLotPortOut.findById(parkingLotId)
+        ParkingLot parkingLot = parkingLotPortOut.findById(parkingLotId)
                 .orElseThrow(() ->
                         new NotFoundException("Parking lot not found")
                 );
+        return parkingLot;
     }
 
     private Shift findShift(UUID shiftId) {

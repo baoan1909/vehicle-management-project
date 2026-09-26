@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.application.operations.employeerosterrule.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
 import com.ban.vehicle_management.application.operations.employeerosterrule.port.in.EmployeeRosterRulePortIn;
 import com.ban.vehicle_management.application.operations.employeerosterrule.port.out.EmployeeRosterRulePortOut;
 import com.ban.vehicle_management.application.operations.shifttemplate.port.out.ShiftTemplatePortOut;
@@ -8,6 +10,7 @@ import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
+import com.ban.vehicle_management.application.people.employee.authorization.EmployeeOrganizationAccessGuard;
 import com.ban.vehicle_management.domain.operations.employeerosterrule.model.EmployeeRosterRule;
 import com.ban.vehicle_management.domain.operations.employeerosterrule.policy.EmployeeRosterRulePolicy;
 import com.ban.vehicle_management.domain.parking.gate.model.Gate;
@@ -27,7 +30,10 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,9 +51,11 @@ public class EmployeeRosterRuleUseCaseImpl
             "SHIFT_ASSIGNMENT_DELETE_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final OrganizationAccessGuard organizationAccessGuard;
     private final EmployeeRosterRulePortOut rosterRulePortOut;
     private final ParkingLotPortOut parkingLotPortOut;
     private final EmployeePortOut employeePortOut;
+    private final EmployeeOrganizationAccessGuard employeeOrganizationAccessGuard;
     private final GatePortOut gatePortOut;
     private final ZonePortOut zonePortOut;
     private final ShiftTemplatePortOut shiftTemplatePortOut;
@@ -56,17 +64,21 @@ public class EmployeeRosterRuleUseCaseImpl
 
     public EmployeeRosterRuleUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
+            OrganizationAccessGuard organizationAccessGuard,
             EmployeeRosterRulePortOut rosterRulePortOut,
             ParkingLotPortOut parkingLotPortOut,
             EmployeePortOut employeePortOut,
+            EmployeeOrganizationAccessGuard employeeOrganizationAccessGuard,
             GatePortOut gatePortOut,
             ZonePortOut zonePortOut,
             ShiftTemplatePortOut shiftTemplatePortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
+        this.organizationAccessGuard = organizationAccessGuard;
         this.rosterRulePortOut = rosterRulePortOut;
         this.parkingLotPortOut = parkingLotPortOut;
         this.employeePortOut = employeePortOut;
+        this.employeeOrganizationAccessGuard = employeeOrganizationAccessGuard;
         this.gatePortOut = gatePortOut;
         this.zonePortOut = zonePortOut;
         this.shiftTemplatePortOut = shiftTemplatePortOut;
@@ -89,7 +101,9 @@ public class EmployeeRosterRuleUseCaseImpl
     @Transactional(readOnly = true)
     public EmployeeRosterRule getRuleById(UUID rosterRuleId) {
         currentAccountPortIn.requirePermission(READ_PERMISSION);
-        return findExistingRule(rosterRuleId);
+        EmployeeRosterRule rule = findExistingRule(rosterRuleId);
+        requireLotScope(rule.getParkingLotId(), false);
+        return rule;
     }
 
     @Override
@@ -105,17 +119,28 @@ public class EmployeeRosterRuleUseCaseImpl
             LocalDate effectiveDate
     ) {
         currentAccountPortIn.requirePermission(READ_PERMISSION);
-
-        return rosterRulePortOut.findAll(
-                parkingLotId,
-                employeeId,
-                preferredShiftType,
-                preferredGateId,
-                weeklyDayOff,
-                assignmentMode,
-                status,
-                effectiveDate
-        );
+        if (parkingLotId != null) {
+            requireLotScope(parkingLotId, false);
+            return rosterRulePortOut.findAll(parkingLotId, employeeId, preferredShiftType,
+                    preferredGateId, weeklyDayOff, assignmentMode, status, effectiveDate);
+        }
+        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
+        if (OrganizationAccessGuard.SYSTEM_ADMIN.equals(roleCode)) {
+            return rosterRulePortOut.findAll(null, employeeId, preferredShiftType,
+                    preferredGateId, weeklyDayOff, assignmentMode, status, effectiveDate);
+        }
+        if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
+                && !OrganizationAccessGuard.PARKING_MANAGER.equals(roleCode)) {
+            throw new AccessDeniedException("Current account has no parking lot monitoring scope");
+        }
+        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
+        Set<UUID> lotIds = OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
+                ? parkingLotPortOut.findAll(null, null, scope.organizationIds(), null).stream()
+                        .map(ParkingLot::getParkingLotId).collect(Collectors.toSet())
+                : scope.parkingLotIds();
+        return lotIds.stream().flatMap(lotId -> rosterRulePortOut.findAll(
+                lotId, employeeId, preferredShiftType, preferredGateId, weeklyDayOff,
+                assignmentMode, status, effectiveDate).stream()).toList();
     }
 
     @Override
@@ -128,6 +153,7 @@ public class EmployeeRosterRuleUseCaseImpl
 
         EmployeeRosterRule existing =
                 findExistingRule(rosterRuleId);
+        requireLotScope(existing.getParkingLotId(), true);
 
         existing.setPreferredShiftType(
                 request.getPreferredShiftType()
@@ -155,6 +181,7 @@ public class EmployeeRosterRuleUseCaseImpl
 
         EmployeeRosterRule existing =
                 findExistingRule(rosterRuleId);
+        requireLotScope(existing.getParkingLotId(), true);
 
         if (existing.getStatus() == RosterRuleStatus.ACTIVE) {
             return existing;
@@ -179,6 +206,7 @@ public class EmployeeRosterRuleUseCaseImpl
 
         EmployeeRosterRule existing =
                 findExistingRule(rosterRuleId);
+        requireLotScope(existing.getParkingLotId(), true);
 
         if (existing.getStatus() == RosterRuleStatus.INACTIVE) {
             return;
@@ -201,7 +229,7 @@ public class EmployeeRosterRuleUseCaseImpl
             EmployeeRosterRule rule
     ) {
         ensureParkingLotAvailable(rule.getParkingLotId());
-        ensureEmployeeActive(rule.getEmployeeId());
+        ensureEmployeeActive(rule.getEmployeeId(), rule.getParkingLotId());
 
         if (rule.getAssignmentMode() == AssignmentMode.FIXED) {
             ensureActiveShiftTemplate(
@@ -222,6 +250,8 @@ public class EmployeeRosterRuleUseCaseImpl
                         new NotFoundException("Parking lot not found")
                 );
 
+        organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
+
         if (parkingLot.getStatus() == ParkingLotStatus.CLOSED) {
             throw new ConflictException(
                     "Cannot use roster rule for a closed parking lot"
@@ -229,7 +259,18 @@ public class EmployeeRosterRuleUseCaseImpl
         }
     }
 
-    private void ensureEmployeeActive(UUID employeeId) {
+    private void requireLotScope(UUID parkingLotId, boolean write) {
+        ParkingLot parkingLot = parkingLotPortOut.findById(parkingLotId)
+                .orElseThrow(() -> new NotFoundException("Parking lot not found"));
+        if (write) {
+            organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
+        } else {
+            organizationAccessGuard.ensureCanAccessParkingLot(parkingLot);
+        }
+    }
+
+    private void ensureEmployeeActive(UUID employeeId, UUID parkingLotId) {
+        employeeOrganizationAccessGuard.ensureBelongsToParkingLot(employeeId, parkingLotId);
         Employee employee = employeePortOut.findById(employeeId)
                 .orElseThrow(() ->
                         new NotFoundException("Employee not found")

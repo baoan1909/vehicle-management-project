@@ -54,6 +54,7 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
             "vehicleType",
             "zone",
             "zone.parkingLot",
+            "parkingLot",
             "parkingEvents",
             "parkingEvents.lane"
     })

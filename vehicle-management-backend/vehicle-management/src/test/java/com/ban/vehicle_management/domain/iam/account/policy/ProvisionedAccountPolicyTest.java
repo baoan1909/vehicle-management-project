@@ -27,7 +27,8 @@ class ProvisionedAccountPolicyTest {
                 policy.managedTargetRoles(AdminProvisionableAccountRoleCode.SYSTEM_ADMIN)
         );
         assertEquals(
-                Set.of(AdminProvisionableAccountRoleCode.PARKING_MANAGER),
+                Set.of(AdminProvisionableAccountRoleCode.PARKING_MANAGER,
+                        AdminProvisionableAccountRoleCode.EMPLOYEE),
                 policy.managedTargetRoles(AdminProvisionableAccountRoleCode.PARTNER_ADMIN)
         );
         assertEquals(

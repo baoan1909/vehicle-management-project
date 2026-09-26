@@ -1,7 +1,7 @@
 # SaaS đa bãi xe: mô hình vận hành, phân quyền và dữ liệu
 
 > Trạng thái: Đã thống nhất về nghiệp vụ, chưa triển khai toàn bộ.  
-> Cập nhật: 23/09/2026.
+> Cập nhật: 26/09/2026.
 
 ## 1. Mục tiêu
 
@@ -107,13 +107,18 @@ Customer là khách hàng của CoParking, không phải dữ liệu sở hữu 
 
 - Thông tin pháp lý, người đại diện và cấu hình dùng chung của Partner.
 - Các bãi thuộc Partner.
+- Danh mục loại xe, loại vé và bảng giá/quy tắc giá của chính Partner. Partner Admin được cấu hình và vận hành toàn bộ bãi của Partner ngay cả khi chưa phân công Parking Manager. Giá gửi xe không phải phí dịch vụ SaaS của nền tảng.
 - Voucher/chương trình do Partner tài trợ, có thể áp dụng một hoặc nhiều bãi được chọn.
 - Báo cáo tổng hợp, doanh thu, phí nền tảng và đối soát thanh toán của Partner.
+
+Quyết định chuyển đổi dữ liệu ngày 26/09/2026: sao chép bộ loại xe, loại vé, bảng giá và quy tắc giá hiện có thành dữ liệu khởi tạo **riêng cho từng Partner**. Partner mới cũng nhận bản sao khi được duyệt. Mỗi Partner sửa bản sao của mình; sửa giá ở Partner A không được đổi giá ở Partner B. Migration phải dùng quan hệ khóa ngoại/mã ổn định và chịu được số Partner khác nhau giữa các máy, không dựa vào UUID của một cơ sở dữ liệu local cụ thể. Bản ghi cũ đã phát sinh giao dịch phải giữ nguyên tham chiếu lịch sử.
+
+Hồ sơ xe khách hàng vẫn thuộc Platform và có thể dùng ở nhiều Partner. Vì vậy loại xe riêng của Partner phải ánh xạ tới phân loại xe chuẩn dùng cho hồ sơ khách hàng; không được đổi trực tiếp `customer_vehicles.vehicle_type_id` sang bản sao của một Partner. Mọi API danh mục phải kiểm tra đồng thời quyền và `organization_id` trên backend. System Admin được xem xuyên Partner nhưng không sửa danh mục/giá của Partner khác.
 
 ### 6.3. Dữ liệu cấp Parking Lot
 
 - Zone, gate, lane, thiết bị, nhân viên, ca trực và cấu hình vận hành.
-- Bảng giá/vé của bãi; Partner Admin thiết lập hoặc phê duyệt.
+- Bãi sử dụng danh mục và bảng giá thuộc Partner của mình; nếu cần giá khác nhau giữa các bãi cùng Partner thì bổ sung cấu hình/ghi đè theo `parking_lot_id`, không tạo giá toàn sàn.
 - Voucher cấp bãi do Manager quản lý trong phạm vi bãi.
 - Parking session, đặt chỗ, đăng ký vé, hóa đơn, thanh toán, sự kiện bãi và báo cáo bãi.
 
@@ -188,6 +193,39 @@ System Admin có quyền xem thống kê từng Partner để vận hành SaaS, 
 5. Scope lần lượt các module topology, thiết bị, ca trực, session, vé, hóa đơn, thanh toán, voucher và báo cáo.
 6. Xây dựng UI System Admin, UI Partner Admin và bộ chọn bãi làm việc cho Manager.
 7. Thêm test bảo mật: Manager của bãi A truy cập tài nguyên bãi B phải luôn nhận `403 Forbidden`.
+
+### 11.1. Chuyển danh mục và giá từ toàn sàn sang từng Partner
+
+Trạng thái 26/09/2026: **chưa hoàn tất trong code**. Các bảng `catalog.vehicle_types`, `catalog.ticket_types`, `catalog.price_plans` và `catalog.price_rules` hiện chưa có `organization_id`; API danh mục vẫn đọc dữ liệu toàn cục. Đặc biệt `access_control.subscriptions` chưa lưu `parking_lot_id`, nên chưa thể xác định bảng giá của Partner khi khách đăng ký vé. Không được giải quyết bằng cách chỉ cấp thêm permission `*_CREATE_ALL`/`*_UPDATE_ALL` cho Partner Admin.
+
+Thứ tự chuyển đổi an toàn:
+
+1. Thêm quan hệ sở hữu Partner cho danh mục, kế hoạch và quy tắc giá; giữ khóa tham chiếu cũ để hóa đơn/giao dịch lịch sử không đổi. Loại xe Partner phải có ánh xạ tới loại xe chuẩn của hồ sơ khách hàng toàn sàn.
+2. Sao chép dữ liệu hiện có cho từng Partner bằng migration forward-only có kiểm tra idempotency; tạo cùng bộ khởi tạo lúc duyệt Partner mới.
+3. Bổ sung bãi vào đăng ký vé và các luồng báo giá/check-in/check-out; mọi truy vấn giá phải nhận bãi/Partner rõ ràng và chỉ tìm trong phạm vi đó.
+4. Áp dụng kiểm tra role **và** scope cho từng thao tác đọc/ghi danh mục; System Admin chỉ đọc, Partner Admin toàn quyền trong Partner của mình, Manager theo quyền được giao trong bãi.
+5. Chỉ sau khi API và luồng tính giá đã dùng scope đúng mới mở nút chỉnh sửa trên UI và cấp quyền ghi cho Partner Admin.
+6. Kiểm thử ít nhất hai Partner với cùng mã loại xe/vé/bảng giá nhưng mức giá khác nhau; tài khoản Partner A không xem/sửa được dữ liệu Partner B; khách dùng cùng xe ở cả hai bãi; dữ liệu cũ vẫn đọc được.
+
+### 11.2. Partner Admin kế thừa nghiệp vụ của Parking Manager
+
+Partner Admin phải thao tác được trên **mọi bãi thuộc Partner của mình**, kể cả khi chưa gán Parking Manager. Không sao chép mù toàn bộ `role_permissions` của Parking Manager: một số API cũ vẫn dùng dữ liệu toàn cục hoặc chưa kiểm tra `organization_id`/`parking_lot_id`. Cấp quyền trước khi chốt scope sẽ cho phép sửa dữ liệu Partner khác.
+
+- Đã có chốt phạm vi: topology, thẻ vật lý và check-in/check-out; thiết bị được bổ sung kiểm tra Partner tại use case.
+- Đã chốt phạm vi Partner cho hồ sơ nhân sự, phạm vi bãi cho ca trực và phân công; cần tiếp tục chốt phạm vi bãi cho nhân sự, sự kiện bãi, đăng ký vé, hóa đơn/thanh toán, báo cáo.
+- Danh mục loại xe, loại vé và giá tuân theo mục 11.1; không cấp CRUD toàn cục cho Partner Admin khi chưa chuyển sở hữu dữ liệu.
+- Mỗi module cần test Partner A thao tác bãi A1/A2 thành công, bãi B1 nhận `403`, còn System Admin không có quyền ghi.
+
+### 11.3. Trạng thái triển khai phạm vi bãi (26/09/2026)
+
+- Đã bổ sung khóa `parking_lot_id` trực tiếp cho `parking.parking_sessions`; chỉ backfill từ zone xác định được. Lượt cũ không còn zone được để `NULL`, không gán đoán từ thẻ. Lượt mới ghi bãi lúc check-in. Danh sách lượt xe của Partner/Manager được lọc ngay trong truy vấn theo bãi được phép.
+- Đã chặn theo bãi ở mẫu ca, quy tắc xếp lịch, ca trực và phân công; Partner Admin được cấp quyền vận hành nhóm này trong các bãi thuộc Partner, System Admin chỉ xem. Nhân viên check-in/check-out chỉ ở bãi có ca đang mở được phân công.
+- Nhân viên mới được gắn membership Partner khi cấp tài khoản. Migration lịch sử chỉ tự gắn khi người tạo tài khoản và các ca cũ suy ra duy nhất cùng một Partner. Nhân viên không xác định được Partner cần đối soát và gán thủ công trước khi xếp lịch.
+- Hồ sơ nhân viên đã có chốt quyền theo membership Partner ở backend: Partner Admin chỉ quản lý nhân sự thuộc Partner của mình; System Admin chỉ đọc. Manager cần có bãi được phân công và chỉ truy cập nhân sự cùng Partner. Đây **chưa phải** phạm vi nhân sự theo từng bãi; Manager của hai bãi cùng Partner vẫn có thể thấy nhân sự của nhau. Cần thêm quan hệ phân công nhân viên vào bãi ổn định (không suy đoán từ ca trực) trước khi tuyên bố hoàn tất phần này.
+- System Admin vẫn được tạo Partner theo luồng quản trị nền tảng, nhưng không còn được tạo/sửa bãi của Partner hoặc phân công Manager vào bãi; các nút ghi tương ứng phải dựa vào permission thực tế.
+- **Chưa hoàn tất tách toàn hệ thống:** `people.employees` chưa có phạm vi bãi quản lý ổn định; `access_control.subscriptions` và `billing.invoices` chưa có `parking_lot_id`; danh mục loại xe/vé/giá vẫn toàn cục. Không cấp thêm quyền ghi cho Partner ở các module này cho đến khi khóa sở hữu, backfill và luồng tạo mới được hoàn thiện. Bộ chọn phạm vi trên frontend không thay thế kiểm tra scope tại backend.
+
+Đối soát sau migration (không tự sửa dữ liệu): đếm `parking.parking_sessions` có `parking_lot_id IS NULL` và các tài khoản `EMPLOYEE` chưa có `iam.organization_memberships` trạng thái `ACTIVE`. Mỗi dòng tồn đọng cần xác nhận thủ công theo hồ sơ nghiệp vụ trước khi bật truy cập theo bãi.
 
 ## 12. Các quyết định cần chốt trước khi triển khai
 

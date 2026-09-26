@@ -17,6 +17,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatu
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Set;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Component;
 
@@ -87,6 +88,13 @@ public class CardPersistenceAdapter implements CardPortOut {
     @Override
     public List<Card> findAll(CardStatus status, UUID cardTypeId, String keyword) {
         return cardRepository.findAll(CardSpecifications.withFilters(status, cardTypeId, keyword)).stream()
+                .map(cardPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Card> findAll(CardStatus status, UUID cardTypeId, String keyword, Set<UUID> parkingLotIds) {
+        return cardRepository.findAll(CardSpecifications.withFilters(status, cardTypeId, keyword, parkingLotIds)).stream()
                 .map(cardPersistenceMapper::toDomain)
                 .toList();
     }

@@ -19,7 +19,10 @@ public class ProvisionedAccountPolicy {
                     AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
                     AdminProvisionableAccountRoleCode.PARTNER_ADMIN
             );
-            case PARTNER_ADMIN -> Set.of(AdminProvisionableAccountRoleCode.PARKING_MANAGER);
+            case PARTNER_ADMIN -> Set.of(
+                    AdminProvisionableAccountRoleCode.PARKING_MANAGER,
+                    AdminProvisionableAccountRoleCode.EMPLOYEE
+            );
             case PARKING_MANAGER -> Set.of(
                     AdminProvisionableAccountRoleCode.EMPLOYEE,
                     AdminProvisionableAccountRoleCode.CUSTOMER

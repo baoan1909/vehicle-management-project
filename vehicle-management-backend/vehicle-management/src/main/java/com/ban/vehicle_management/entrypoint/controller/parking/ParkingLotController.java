@@ -123,6 +123,18 @@ public class ParkingLotController {
         ));
     }
 
+    @PostMapping("/{parkingLotId}/activation-request")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_READ_ALL')")
+    public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> requestParkingLotActivation(
+            @PathVariable UUID parkingLotId
+    ) {
+        ParkingLot parkingLot = parkingLotPortIn.requestParkingLotActivation(parkingLotId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Parking lot activation requested successfully",
+                parkingLotApiMapper.toAdminResponse(parkingLot)
+        ));
+    }
+
     @PatchMapping("/{parkingLotId}/maintenance")
     @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> markParkingLotMaintenance(

@@ -1,7 +1,12 @@
 package com.ban.vehicle_management.application.parking.parkingsession.usecase;
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.authorization.SubscriptionAccessGuard;
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInCommand;
+import com.ban.vehicle_management.application.parking.parkingsession.authorization.EmployeeParkingLotAccessGuard;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckOutCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutPreviewResult;
@@ -12,13 +17,17 @@ import com.ban.vehicle_management.application.parking.parkingsession.port.in.Par
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -31,6 +40,10 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
     private final SubscriptionAccessGuard subscriptionAccessGuard;
     private final FileAccessPort fileAccessPort;
     private final ParkingSessionManagementResultMapper parkingSessionManagementResultMapper;
+    private final CurrentAccountPortIn currentAccountPortIn;
+    private final OrganizationAccessGuard organizationAccessGuard;
+    private final EmployeeParkingLotAccessGuard employeeParkingLotAccessGuard;
+    private final ParkingLotPortOut parkingLotPortOut;
 
     public ParkingSessionUseCaseImpl(
             ParkingCheckInUseCaseImpl parkingCheckInUseCase,
@@ -39,7 +52,11 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
             CustomerVehiclePortOut customerVehiclePortOut,
             SubscriptionAccessGuard subscriptionAccessGuard,
             FileAccessPort fileAccessPort,
-            ParkingSessionManagementResultMapper parkingSessionManagementResultMapper
+            ParkingSessionManagementResultMapper parkingSessionManagementResultMapper,
+            CurrentAccountPortIn currentAccountPortIn,
+            OrganizationAccessGuard organizationAccessGuard,
+            EmployeeParkingLotAccessGuard employeeParkingLotAccessGuard,
+            ParkingLotPortOut parkingLotPortOut
     ) {
         this.parkingCheckInUseCase = parkingCheckInUseCase;
         this.parkingCheckOutUseCase = parkingCheckOutUseCase;
@@ -48,6 +65,10 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
         this.subscriptionAccessGuard = subscriptionAccessGuard;
         this.fileAccessPort = fileAccessPort;
         this.parkingSessionManagementResultMapper = parkingSessionManagementResultMapper;
+        this.currentAccountPortIn = currentAccountPortIn;
+        this.organizationAccessGuard = organizationAccessGuard;
+        this.employeeParkingLotAccessGuard = employeeParkingLotAccessGuard;
+        this.parkingLotPortOut = parkingLotPortOut;
     }
 
     @Override
@@ -62,6 +83,7 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
         Instant checkInFrom = DateTimeUtils.startOfDayInVietnam(fromDate);
         Instant checkInTo = DateTimeUtils.startOfNextDayInVietnam(toDate);
         String normalizedKeyword = TextValidationUtils.normalizeNullableText(keyword, "keyword", 100);
+        Set<UUID> allowedLotIds = resolveOperationalLotIds();
         List<ParkingSessionManagementResult> sessions = parkingSessionPortOut.findManagementSessions(
                 status,
                 vehicleTypeId,
@@ -69,9 +91,12 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
                 checkInFrom,
                 checkInTo,
                 normalizedKeyword,
-                null
+                null,
+                allowedLotIds
         );
-        return parkingSessionManagementResultMapper.withResolvedEventImageUrls(sessions, fileAccessPort);
+        return parkingSessionManagementResultMapper.withResolvedEventImageUrls(
+                sessions, fileAccessPort
+        );
     }
 
     @Override
@@ -103,7 +128,8 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
                 checkInFrom,
                 checkInTo,
                 normalizedKeyword,
-                customerVehicleIds
+                customerVehicleIds,
+                null
         );
         return parkingSessionManagementResultMapper.withResolvedEventImageUrls(sessions, fileAccessPort);
     }
@@ -116,6 +142,27 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
     @Override
     public CheckOutResult checkOut(CheckOutCommand command) {
         return parkingCheckOutUseCase.checkOut(command);
+    }
+
+    private Set<UUID> resolveOperationalLotIds() {
+        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
+        if (OrganizationAccessGuard.SYSTEM_ADMIN.equals(roleCode)) {
+            return null;
+        }
+        if ("EMPLOYEE".equals(roleCode)) {
+            return employeeParkingLotAccessGuard.activeParkingLotIds();
+        }
+        if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
+                && !OrganizationAccessGuard.PARKING_MANAGER.equals(roleCode)) {
+            throw new AccessDeniedException("Current account has no parking lot monitoring scope");
+        }
+        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
+        if (OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode) && !scope.organizationIds().isEmpty()) {
+            return parkingLotPortOut.findAll(null, null, scope.organizationIds(), null).stream()
+                    .map(ParkingLot::getParkingLotId)
+                    .collect(Collectors.toSet());
+        }
+        return scope.parkingLotIds();
     }
 
     @Override

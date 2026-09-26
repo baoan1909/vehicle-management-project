@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.operations.shifttemplate.port.out.ShiftTemplatePortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.operations.shifttemplate.model.ShiftTemplate;
@@ -18,17 +19,22 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class ShiftTemplateUseCaseImplTest {
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
+
+    @Mock
+    private OrganizationAccessGuard organizationAccessGuard;
 
     @Mock
     private ShiftTemplatePortOut shiftTemplatePortOut;
@@ -38,6 +44,16 @@ class ShiftTemplateUseCaseImplTest {
 
     @InjectMocks
     private ShiftTemplateUseCaseImpl useCase;
+
+    @BeforeEach
+    void stubParkingLotForScopeChecks() {
+        lenient().when(parkingLotPortOut.findById(any(UUID.class))).thenAnswer(invocation -> {
+            ParkingLot lot = parkingLot(ParkingLotStatus.ACTIVE);
+            lot.setParkingLotId(invocation.getArgument(0));
+            lot.setOrganizationId(UUID.randomUUID());
+            return Optional.of(lot);
+        });
+    }
 
     @Test
     void shouldCreateShiftTemplateWhenValid() {
@@ -64,6 +80,16 @@ class ShiftTemplateUseCaseImplTest {
         assertNotNull(result.getShiftTemplateId());
         assertEquals(ShiftTemplateStatus.ACTIVE, result.getStatus());
         verify(shiftTemplatePortOut).save(request);
+    }
+
+    @Test
+    void cannotCreateTemplateForAnotherPartnersLot() {
+        ShiftTemplate request = morningTemplate(UUID.randomUUID());
+        doThrow(new AccessDeniedException("other lot"))
+                .when(organizationAccessGuard).ensureCanOperateParkingLot(any(ParkingLot.class));
+
+        assertThrows(AccessDeniedException.class, () -> useCase.createShiftTemplate(request));
+        verify(shiftTemplatePortOut, never()).save(any(ShiftTemplate.class));
     }
 
     @Test

@@ -17,6 +17,7 @@ public class OrganizationAccessGuard {
     public static final String SYSTEM_ADMIN = "SYSTEM_ADMIN";
     public static final String PARTNER_ADMIN = "PARTNER_ADMIN";
     public static final String PARKING_MANAGER = "PARKING_MANAGER";
+    public static final String PARKING_TOPOLOGY_CONFIGURE_ALL = "PARKING_TOPOLOGY_CONFIGURE_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final OrganizationPortOut organizationPortOut;
@@ -32,11 +33,7 @@ public class OrganizationAccessGuard {
     public UUID resolveOrganizationIdForParkingLotCreation(UUID requestedOrganizationId) {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
         if (isSystemAdmin(currentAccount)) {
-            if (requestedOrganizationId == null) {
-                throw new BadRequestException("organizationId must not be null");
-            }
-            requireActiveOrganization(requestedOrganizationId);
-            return requestedOrganizationId;
+            throw new AccessDeniedException("System Admin cannot create a Partner parking lot");
         }
 
         if (!PARTNER_ADMIN.equals(currentAccount.roleCode())) {
@@ -94,22 +91,66 @@ public class OrganizationAccessGuard {
     public void ensureCanManageParkingLot(ParkingLot parkingLot) {
         ensureCanAccessParkingLot(parkingLot);
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (!isSystemAdmin(currentAccount) && !PARTNER_ADMIN.equals(currentAccount.roleCode())) {
+        if (!PARTNER_ADMIN.equals(currentAccount.roleCode())) {
             throw new AccessDeniedException("Current account cannot manage this parking lot");
         }
+    }
+
+    /** Operational writes are reserved for the owning Partner or an assigned Manager. */
+    public void ensureCanOperateParkingLot(ParkingLot parkingLot) {
+        ensureCanAccessParkingLot(parkingLot);
+        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
+        if (!PARTNER_ADMIN.equals(roleCode) && !PARKING_MANAGER.equals(roleCode)) {
+            throw new AccessDeniedException("Current account cannot operate this parking lot");
+        }
+    }
+
+    /**
+     * Topology is configured by the Partner operating a parking lot. System Admin
+     * may inspect every topology, but must never become an operational operator.
+     */
+    public void ensureCanConfigureParkingLot(ParkingLot parkingLot) {
+        ensureCanAccessParkingLot(parkingLot);
+        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
+        if (isSystemAdmin(currentAccount)) {
+            throw new AccessDeniedException("System Admin can view but cannot configure a partner parking lot");
+        }
+        if ((PARTNER_ADMIN.equals(currentAccount.roleCode()) || PARKING_MANAGER.equals(currentAccount.roleCode()))
+                && currentAccount.getEffectivePermissionCodes().contains(PARKING_TOPOLOGY_CONFIGURE_ALL)) {
+            return;
+        }
+        throw new AccessDeniedException("Current account cannot configure this parking lot");
     }
 
     public void ensureCanManageOrganization(UUID organizationId) {
         requireActiveOrganization(organizationId);
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (isSystemAdmin(currentAccount)) {
-            return;
-        }
         if (PARTNER_ADMIN.equals(currentAccount.roleCode())
                 && organizationPortOut.findActiveOrganizationIdsByAccountId(currentAccount.accountId()).contains(organizationId)) {
             return;
         }
         throw new AccessDeniedException("Current account cannot manage this organization");
+    }
+
+    /**
+     * A manager account may finish profile onboarding without a parking-lot scope,
+     * but it must not access operational resources until a Partner Admin assigns
+     * at least one parking lot to that account.
+     */
+    public void ensureCurrentManagerHasParkingLotAssignment() {
+        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
+        if (!PARKING_MANAGER.equals(currentAccount.roleCode())) {
+            return;
+        }
+        if (organizationPortOut.findScopedParkingLotIdsByAccountId(currentAccount.accountId()).isEmpty()) {
+            throw new AccessDeniedException(
+                    "Parking manager has not been assigned to a parking lot. Please contact the Partner Admin."
+            );
+        }
+    }
+
+    public boolean isCurrentParkingManager() {
+        return PARKING_MANAGER.equals(currentAccountPortIn.getCurrentAccountOrThrow().roleCode());
     }
 
     public void ensureCanAccessOrganization(UUID organizationId) {

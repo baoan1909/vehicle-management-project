@@ -95,6 +95,36 @@ export const adminNavigation: AdminSidebarEntry[] = [
   },
 ];
 
+// Platform navigation uses the existing routes, but groups them by governance scope
+// instead of the daily workflow of a single parking lot. Permission filtering remains
+// the responsibility of getVisibleAdminNavigation.
+export const platformAdminNavigation: AdminSidebarEntry[] = [
+  { kind: "section", label: "Giám sát dữ liệu" },
+  { kind: "link", label: "Tổng quan", to: "/admin/dashboard", matches: ["/admin/dashboard"], icon: "dashboard", monitoring: true },
+  { kind: "link", label: "Đối tác và bãi xe", to: "/admin/parking-lots", matches: ["/admin/parking-lots"], icon: "parking", monitoring: true },
+  { kind: "link", label: "Lượt xe, mức lấp đầy", to: "/admin/swipe/sessions", matches: ["/admin/swipe/sessions"], icon: "swipe", monitoring: true },
+  { kind: "link", label: "Vé đăng ký", to: "/admin/subscription-approvals", matches: ["/admin/subscription-approvals"], icon: "catalog", monitoring: true },
+  { kind: "link", label: "Thẻ", to: "/admin/card", matches: ["/admin/card"], icon: "card", monitoring: true },
+  { kind: "link", label: "Doanh thu, hóa đơn", to: "/admin/invoices", matches: ["/admin/invoices"], icon: "pricing", monitoring: true },
+  { kind: "link", label: "Nhân sự", to: "/admin/employee", matches: ["/admin/employee"], icon: "members", monitoring: true },
+  { kind: "link", label: "Thiết bị", to: "/admin/devices", matches: ["/admin/devices"], icon: "settings", monitoring: true },
+  { kind: "planned", label: "Giá gửi xe của bãi (chỉ xem)" },
+  { kind: "divider" },
+  { kind: "section", label: "Quản trị nền tảng" },
+  { kind: "link", label: "Đăng ký đối tác", to: "/admin/partner-registrations", matches: ["/admin/partner-registrations"], icon: "parking" },
+  { kind: "link", label: "Khách hàng toàn sàn", to: "/admin/customer", matches: ["/admin/customer"], icon: "members" },
+  { kind: "link", label: "Voucher toàn sàn", to: "/admin/vouchers", matches: ["/admin/vouchers"], icon: "catalog" },
+  { kind: "planned", label: "Phí dịch vụ sàn" },
+  { kind: "planned", label: "Ví điện tử" },
+  { kind: "planned", label: "Giao dịch & đối soát" },
+  { kind: "link", label: "Tài khoản", to: "/admin/account", matches: ["/admin/account"], icon: "role" },
+  { kind: "link", label: "Vai trò & phân quyền", to: "/admin/role", matches: ["/admin/role"], icon: "settings" },
+  { kind: "planned", label: "Nhật ký hệ thống" },
+  { kind: "link", label: "Hỗ trợ", to: "/admin/support-tickets", matches: ["/admin/support-tickets"], icon: "support" },
+  { kind: "link", label: "Model AI", to: "/admin/ai-models", matches: ["/admin/ai-models"], icon: "settings" },
+  { kind: "link", label: "Knowledge AI", to: "/admin/ai-knowledge", matches: ["/admin/ai-knowledge", "/admin/ai-knowledge-index"], icon: "catalog" },
+];
+
 export const clientNavigation = [
   { label: "Trang chủ", href: "/pricing" },
   { label: "Vào ra", href: "/customerTicket/customer-infor" },

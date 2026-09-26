@@ -5,6 +5,7 @@ import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Set;
 import org.springframework.data.jpa.domain.Specification;
 
 public final class CardSpecifications {
@@ -15,7 +16,8 @@ public final class CardSpecifications {
     public static Specification<CardEntity> withFilters(
             CardStatus status,
             UUID cardTypeId,
-            String keyword
+            String keyword,
+            Set<UUID> parkingLotIds
     ) {
         return (root, query, criteriaBuilder) -> {
             List<jakarta.persistence.criteria.Predicate> predicates = new ArrayList<>();
@@ -25,6 +27,13 @@ public final class CardSpecifications {
             }
             if (cardTypeId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("cardTypeId"), cardTypeId));
+            }
+            if (parkingLotIds != null) {
+                if (parkingLotIds.isEmpty()) {
+                    predicates.add(criteriaBuilder.disjunction());
+                } else {
+                    predicates.add(root.get("parkingLotId").in(parkingLotIds));
+                }
             }
             if (keyword != null && !keyword.isBlank()) {
                 String keywordPattern = "%" + keyword.trim().toLowerCase() + "%";
@@ -37,5 +46,13 @@ public final class CardSpecifications {
             query.orderBy(criteriaBuilder.asc(root.get("cardNumber")));
             return criteriaBuilder.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };
+    }
+
+    public static Specification<CardEntity> withFilters(
+            CardStatus status,
+            UUID cardTypeId,
+            String keyword
+    ) {
+        return withFilters(status, cardTypeId, keyword, null);
     }
 }

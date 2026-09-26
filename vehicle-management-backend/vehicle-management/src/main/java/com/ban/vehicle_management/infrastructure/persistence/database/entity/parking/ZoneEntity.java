@@ -4,6 +4,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.cat
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import jakarta.persistence.Column;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
@@ -13,6 +15,8 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -45,6 +49,15 @@ public class ZoneEntity extends AuditableEntity {
 
     @Column(name = "vehicle_type_id")
     private UUID vehicleTypeId;
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "zone_vehicle_types",
+            schema = "parking",
+            joinColumns = @JoinColumn(name = "zone_id")
+    )
+    @Column(name = "vehicle_type_id", nullable = false)
+    private Set<UUID> vehicleTypeIds = new HashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicle_type_id", referencedColumnName = "vehicle_type_id", insertable = false, updatable = false)

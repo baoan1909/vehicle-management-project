@@ -2,9 +2,15 @@ package com.ban.vehicle_management.application.parking.parkingsession.authorizat
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.doThrow;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
@@ -53,14 +59,14 @@ class ParkingSessionAccessGuardTest {
     }
 
     @Test
-    void shouldAllowSystemAdminWhenExplicitlyGrantedCheckInPermission() {
+    void shouldRejectSystemAdminEvenWhenExplicitlyGrantedCheckInPermission() {
         ParkingSessionAccessGuard accessGuard = accessGuard(currentAccount(
                 AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name(),
                 null,
                 Set.of(ParkingSessionAccessGuard.PARKING_SESSION_CHECK_IN_ALL)
         ));
 
-        assertDoesNotThrow(accessGuard::ensureCanCheckIn);
+        assertThrows(AccessDeniedException.class, accessGuard::ensureCanCheckIn);
     }
 
     @Test
@@ -129,8 +135,64 @@ class ParkingSessionAccessGuardTest {
         assertThrows(AccessDeniedException.class, accessGuard::ensureCanCheckIn);
     }
 
+    @Test
+    void partnerAdminMustPassParkingLotOrganizationScope() {
+        OrganizationAccessGuard organizationGuard = mock(OrganizationAccessGuard.class);
+        ParkingLot lot = new ParkingLot();
+        ParkingSessionAccessGuard accessGuard = new ParkingSessionAccessGuard(
+                new FakeCurrentAccountPortIn(currentAccount(
+                        "PARTNER_ADMIN", null, Set.of(ParkingSessionAccessGuard.PARKING_SESSION_CHECK_IN_ALL)
+                )),
+                organizationGuard,
+                mock(EmployeeParkingLotAccessGuard.class)
+        );
+
+        accessGuard.ensureCanOperateParkingLot(lot);
+        verify(organizationGuard).ensureCanAccessParkingLot(lot);
+
+        doThrow(new AccessDeniedException("Other partner's parking lot"))
+                .when(organizationGuard).ensureCanAccessParkingLot(lot);
+        assertThrows(AccessDeniedException.class, () -> accessGuard.ensureCanOperateParkingLot(lot));
+    }
+
+    @Test
+    void partnerAdminCannotUseCardFromAnotherLot() {
+        ParkingSessionAccessGuard accessGuard = accessGuard(currentAccount(
+                "PARTNER_ADMIN", null, Set.of(ParkingSessionAccessGuard.PARKING_SESSION_CHECK_IN_ALL)
+        ));
+        ParkingLot lot = new ParkingLot();
+        lot.setParkingLotId(UUID.randomUUID());
+        Card card = new Card();
+        card.setParkingLotId(UUID.randomUUID());
+
+        assertThrows(AccessDeniedException.class, () -> accessGuard.ensureCanUseCardInParkingLot(card, lot));
+        card.setParkingLotId(lot.getParkingLotId());
+        assertDoesNotThrow(() -> accessGuard.ensureCanUseCardInParkingLot(card, lot));
+    }
+
+    @Test
+    void employeeRequiresActiveShiftAtTargetParkingLot() {
+        EmployeeParkingLotAccessGuard employeeGuard = mock(EmployeeParkingLotAccessGuard.class);
+        ParkingSessionAccessGuard accessGuard = new ParkingSessionAccessGuard(
+                new FakeCurrentAccountPortIn(currentAccount("EMPLOYEE", EmployeeStatus.ACTIVE,
+                        Set.of(ParkingSessionAccessGuard.PARKING_SESSION_CHECK_IN_ALL))),
+                mock(OrganizationAccessGuard.class), employeeGuard);
+        ParkingLot lot = new ParkingLot();
+        lot.setParkingLotId(UUID.randomUUID());
+
+        accessGuard.ensureCanOperateParkingLot(lot);
+        verify(employeeGuard).ensureCanOperate(lot.getParkingLotId());
+        doThrow(new AccessDeniedException("other lot"))
+                .when(employeeGuard).ensureCanOperate(lot.getParkingLotId());
+        assertThrows(AccessDeniedException.class, () -> accessGuard.ensureCanOperateParkingLot(lot));
+    }
+
     private ParkingSessionAccessGuard accessGuard(CurrentAccountAccess currentAccount) {
-        return new ParkingSessionAccessGuard(new FakeCurrentAccountPortIn(currentAccount));
+        return new ParkingSessionAccessGuard(
+                new FakeCurrentAccountPortIn(currentAccount),
+                mock(OrganizationAccessGuard.class),
+                mock(EmployeeParkingLotAccessGuard.class)
+        );
     }
 
     private CurrentAccountAccess currentAccount(

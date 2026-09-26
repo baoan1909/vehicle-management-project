@@ -17,6 +17,7 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -61,7 +62,7 @@ class ParkingLotUseCaseImplTest {
 
         assertNotNull(createdParkingLot.getParkingLotId());
         assertEquals("HCMUTE", createdParkingLot.getCode());
-        assertEquals(ParkingLotStatus.ACTIVE, createdParkingLot.getStatus());
+        assertEquals(ParkingLotStatus.SETUP, createdParkingLot.getStatus());
     }
 
     @Test
@@ -208,9 +209,11 @@ class ParkingLotUseCaseImplTest {
         UUID parkingLotId = UUID.randomUUID();
         ParkingLot existingParkingLot = validParkingLot();
         existingParkingLot.setParkingLotId(parkingLotId);
-        existingParkingLot.setStatus(ParkingLotStatus.CLOSED);
+        existingParkingLot.setStatus(ParkingLotStatus.SETUP);
+        existingParkingLot.setActivationRequestedAt(Instant.now());
 
         when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
+        when(parkingLotPortOut.isReadyForActivation(parkingLotId)).thenReturn(true);
         when(parkingLotPortOut.save(any(ParkingLot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ParkingLot activatedParkingLot = parkingLotUseCase.activateParkingLot(parkingLotId);

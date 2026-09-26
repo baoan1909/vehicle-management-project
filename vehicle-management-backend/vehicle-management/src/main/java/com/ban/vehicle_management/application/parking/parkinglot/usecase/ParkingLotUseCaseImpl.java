@@ -14,8 +14,10 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -94,6 +96,8 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         existingParkingLot.setCode(parkingLot.getCode());
         existingParkingLot.setName(parkingLot.getName());
         existingParkingLot.setAddress(parkingLot.getAddress());
+        existingParkingLot.setLatitude(parkingLot.getLatitude());
+        existingParkingLot.setLongitude(parkingLot.getLongitude());
         existingParkingLot.setTotalCapacity(parkingLot.getTotalCapacity());
 
         parkingLotPolicy.initialize(existingParkingLot);
@@ -133,7 +137,40 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
         organizationAccessGuard.ensureCanManageParkingLot(existingParkingLot);
 
+        if (existingParkingLot.getActivationRequestedAt() == null) {
+            throw new ConflictException("Parking manager must request activation before the Partner Admin can activate this parking lot");
+        }
+
+        if (!parkingLotPortOut.isReadyForActivation(parkingLotId)) {
+            throw new ConflictException(
+                    "Parking lot needs at least one active zone, gate, IN lane, and OUT lane before activation"
+            );
+        }
+
         parkingLotPolicy.activate(existingParkingLot);
+        return parkingLotPortOut.save(existingParkingLot);
+    }
+
+    @Override
+    @Transactional
+    public ParkingLot requestParkingLotActivation(UUID parkingLotId) {
+        currentAccountPortIn.requirePermission(PARKING_LOT_READ_ALL);
+        ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
+
+        if (!organizationAccessGuard.isCurrentParkingManager()) {
+            throw new AccessDeniedException("Only the assigned Parking Manager can request parking lot activation");
+        }
+        if (existingParkingLot.getStatus() != ParkingLotStatus.SETUP) {
+            throw new ConflictException("Only a parking lot in setup status can request activation");
+        }
+        if (!parkingLotPortOut.isReadyForActivation(parkingLotId)) {
+            throw new ConflictException(
+                    "Parking lot needs at least one active zone, gate, IN lane, and OUT lane before requesting activation"
+            );
+        }
+
+        existingParkingLot.setActivationRequestedAt(Instant.now());
+        existingParkingLot.setActivationRequestedBy(currentAccountPortIn.getCurrentAccountOrThrow().accountId());
         return parkingLotPortOut.save(existingParkingLot);
     }
 

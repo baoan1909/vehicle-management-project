@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   emptyAddressOption,
-  getDistrictName,
-  getDistrictOptions,
   getProvinceName,
   getWardName,
   getWardOptions,
@@ -14,7 +12,6 @@ import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 
 type AddressPickerState = {
   detail: string;
-  districtId: string;
   provinceId: string;
   wardId: string;
 };
@@ -24,8 +21,8 @@ type AddressPickerProps = {
   value: string;
 };
 
-function buildAddress(data: VietnamAddressData | null, { detail, districtId, provinceId, wardId }: AddressPickerState) {
-  return [detail.trim(), getWardName(data, wardId), getDistrictName(data, districtId), getProvinceName(data, provinceId)].filter(Boolean).join(", ");
+function buildAddress(data: VietnamAddressData | null, { detail, provinceId, wardId }: AddressPickerState) {
+  return [detail.trim(), getWardName(data, wardId), getProvinceName(data, provinceId)].filter(Boolean).join(", ");
 }
 
 export function AddressPicker({ onChange, value }: AddressPickerProps) {
@@ -33,14 +30,12 @@ export function AddressPicker({ onChange, value }: AddressPickerProps) {
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState<AddressPickerState>({
     detail: value,
-    districtId: "",
     provinceId: "",
     wardId: ""
   });
 
   const loadedProvinceOptions = useMemo(() => (addressData ? toProvinceOptions(addressData) : []), [addressData]);
-  const districtOptions = useMemo(() => (addressData ? getDistrictOptions(addressData, state.provinceId) : []), [addressData, state.provinceId]);
-  const wardOptions = useMemo(() => (addressData ? getWardOptions(addressData, state.districtId) : []), [addressData, state.districtId]);
+  const wardOptions = useMemo(() => (addressData ? getWardOptions(addressData, state.provinceId) : []), [addressData, state.provinceId]);
 
   useEffect(() => {
     let mounted = true;
@@ -64,9 +59,9 @@ export function AddressPicker({ onChange, value }: AddressPickerProps) {
   }, []);
 
   useEffect(() => {
-    if (state.provinceId || state.districtId || state.wardId || state.detail === value) return;
+    if (state.provinceId || state.wardId || state.detail === value) return;
     setState((current) => ({ ...current, detail: value }));
-  }, [state.detail, state.districtId, state.provinceId, state.wardId, value]);
+  }, [state.detail, state.provinceId, state.wardId, value]);
 
   const commit = (nextState: AddressPickerState) => {
     setState(nextState);
@@ -75,29 +70,16 @@ export function AddressPicker({ onChange, value }: AddressPickerProps) {
 
   return (
     <div className="tw-grid tw-grid-cols-2 tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3 max-[900px]:tw-grid-cols-1">
-      <label className="tw-grid tw-min-w-0 tw-gap-2">
+      <label className="tw-col-span-full tw-grid tw-min-w-0 tw-gap-2">
         <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Tỉnh/Thành phố</span>
         <SelectMenu
           ariaLabel="Tỉnh hoặc thành phố"
           clearValue=""
           value={state.provinceId}
           onChange={(provinceId) => {
-            commit({ ...state, districtId: "", provinceId, wardId: "" });
+            commit({ ...state, provinceId, wardId: "" });
           }}
           options={[{ ...emptyAddressOption, label: loading ? "Đang tải địa giới..." : "Chọn tỉnh/thành phố" }, ...loadedProvinceOptions]}
-        />
-      </label>
-
-      <label className="tw-grid tw-min-w-0 tw-gap-2">
-        <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Quận/Huyện</span>
-        <SelectMenu
-          ariaLabel="Quận hoặc huyện"
-          clearValue=""
-          value={state.districtId}
-          onChange={(districtId) => {
-            commit({ ...state, districtId, wardId: "" });
-          }}
-          options={[{ ...emptyAddressOption, label: state.provinceId ? "Chọn quận/huyện" : "Chọn tỉnh/thành phố trước" }, ...districtOptions]}
         />
       </label>
 
@@ -110,7 +92,7 @@ export function AddressPicker({ onChange, value }: AddressPickerProps) {
           onChange={(wardId) => {
             commit({ ...state, wardId });
           }}
-          options={[{ ...emptyAddressOption, label: state.districtId ? "Chọn phường/xã" : "Chọn quận/huyện trước" }, ...wardOptions]}
+          options={[{ ...emptyAddressOption, label: state.provinceId ? "Chọn phường/xã" : "Chọn tỉnh/thành phố trước" }, ...wardOptions]}
         />
       </label>
 

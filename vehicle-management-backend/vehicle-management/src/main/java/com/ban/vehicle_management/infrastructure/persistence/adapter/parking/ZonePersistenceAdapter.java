@@ -78,6 +78,14 @@ public class ZonePersistenceAdapter implements ZonePortOut {
     }
 
     @Override
+    public boolean existsConfigurableParkingLotById(UUID parkingLotId) {
+        return parkingLotRepository.existsByParkingLotIdAndStatusIn(
+                parkingLotId,
+                java.util.Set.of(ParkingLotStatus.SETUP, ParkingLotStatus.ACTIVE)
+        );
+    }
+
+    @Override
     public boolean existsActiveParkingLotById(UUID parkingLotId) {
         return parkingLotRepository.existsByParkingLotIdAndStatus(parkingLotId, ParkingLotStatus.ACTIVE);
     }

@@ -28,4 +28,6 @@ public interface ParkingLotPortOut {
     );
 
     boolean hasActiveZones(UUID parkingLotId);
+
+    boolean isReadyForActivation(UUID parkingLotId);
 }

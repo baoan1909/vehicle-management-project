@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.application.operations.shifttemplate.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
 import com.ban.vehicle_management.application.operations.shifttemplate.port.in.ShiftTemplatePortIn;
 import com.ban.vehicle_management.application.operations.shifttemplate.port.out.ShiftTemplatePortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
@@ -14,7 +16,10 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,6 +32,7 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
     private static final String SHIFT_DELETE_ALL = "SHIFT_DELETE_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final OrganizationAccessGuard organizationAccessGuard;
     private final ShiftTemplatePortOut shiftTemplatePortOut;
     private final ParkingLotPortOut parkingLotPortOut;
     private final ShiftTemplatePolicy shiftTemplatePolicy =
@@ -34,10 +40,12 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
 
     public ShiftTemplateUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
+            OrganizationAccessGuard organizationAccessGuard,
             ShiftTemplatePortOut shiftTemplatePortOut,
             ParkingLotPortOut parkingLotPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
+        this.organizationAccessGuard = organizationAccessGuard;
         this.shiftTemplatePortOut = shiftTemplatePortOut;
         this.parkingLotPortOut = parkingLotPortOut;
     }
@@ -60,7 +68,9 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
     @Transactional(readOnly = true)
     public ShiftTemplate getShiftTemplateById(UUID shiftTemplateId) {
         currentAccountPortIn.requirePermission(SHIFT_READ_ALL);
-        return findExistingShiftTemplate(shiftTemplateId);
+        ShiftTemplate template = findExistingShiftTemplate(shiftTemplateId);
+        requireLotScope(template.getParkingLotId(), false);
+        return template;
     }
 
     @Override
@@ -72,13 +82,26 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
             String keyword
     ) {
         currentAccountPortIn.requirePermission(SHIFT_READ_ALL);
-
-        return shiftTemplatePortOut.findAll(
-                parkingLotId,
-                shiftType,
-                status,
-                normalizeKeyword(keyword)
-        );
+        String normalizedKeyword = normalizeKeyword(keyword);
+        if (parkingLotId != null) {
+            requireLotScope(parkingLotId, false);
+            return shiftTemplatePortOut.findAll(parkingLotId, shiftType, status, normalizedKeyword);
+        }
+        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
+        if (OrganizationAccessGuard.SYSTEM_ADMIN.equals(roleCode)) {
+            return shiftTemplatePortOut.findAll(null, shiftType, status, normalizedKeyword);
+        }
+        if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
+                && !OrganizationAccessGuard.PARKING_MANAGER.equals(roleCode)) {
+            throw new AccessDeniedException("Current account has no parking lot monitoring scope");
+        }
+        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
+        Set<UUID> lotIds = OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
+                ? parkingLotPortOut.findAll(null, null, scope.organizationIds(), null).stream()
+                        .map(ParkingLot::getParkingLotId).collect(Collectors.toSet())
+                : scope.parkingLotIds();
+        return lotIds.stream().flatMap(lotId -> shiftTemplatePortOut.findAll(
+                lotId, shiftType, status, normalizedKeyword).stream()).toList();
     }
 
     @Override
@@ -91,6 +114,7 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
 
         ShiftTemplate existing =
                 findExistingShiftTemplate(shiftTemplateId);
+        requireLotScope(existing.getParkingLotId(), true);
 
         existing.setName(request.getName());
         existing.setStartLocalTime(request.getStartLocalTime());
@@ -114,6 +138,7 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
 
         ShiftTemplate existing =
                 findExistingShiftTemplate(shiftTemplateId);
+        requireLotScope(existing.getParkingLotId(), true);
 
         ensureParkingLotAvailable(existing.getParkingLotId());
 
@@ -135,6 +160,7 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
 
         ShiftTemplate existing =
                 findExistingShiftTemplate(shiftTemplateId);
+        requireLotScope(existing.getParkingLotId(), true);
 
         if (existing.getStatus() == ShiftTemplateStatus.INACTIVE) {
             return;
@@ -157,10 +183,22 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
                         new NotFoundException("Parking lot not found")
                 );
 
+        organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
+
         if (parkingLot.getStatus() == ParkingLotStatus.CLOSED) {
             throw new ConflictException(
                     "Cannot use shift template for a closed parking lot"
             );
+        }
+    }
+
+    private void requireLotScope(UUID parkingLotId, boolean write) {
+        ParkingLot parkingLot = parkingLotPortOut.findById(parkingLotId)
+                .orElseThrow(() -> new NotFoundException("Parking lot not found"));
+        if (write) {
+            organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
+        } else {
+            organizationAccessGuard.ensureCanAccessParkingLot(parkingLot);
         }
     }
 

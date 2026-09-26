@@ -13,6 +13,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingLotRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.OrganizationMembershipStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -115,6 +116,15 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
     }
 
     @Override
+    public Set<UUID> findScopedParkingLotIdsByOrganizationIdAndAccountId(UUID organizationId, UUID accountId) {
+        return memberParkingLotScopeRepository.findActiveParkingLotIdsByOrganizationIdAndAccountId(
+                organizationId,
+                accountId,
+                OrganizationMembershipStatus.ACTIVE
+        );
+    }
+
+    @Override
     public void createActiveMembership(UUID organizationId, UUID accountId) {
         OrganizationMembershipEntity membership = new OrganizationMembershipEntity();
         membership.setOrganizationMembershipId(UUID.randomUUID());
@@ -146,4 +156,5 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
                         parkingLotIds
                 ) == parkingLotIds.size();
     }
+
 }

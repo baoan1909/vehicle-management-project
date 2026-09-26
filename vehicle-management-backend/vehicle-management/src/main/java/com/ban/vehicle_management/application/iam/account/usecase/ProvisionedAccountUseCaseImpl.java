@@ -91,6 +91,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
                     buildMinimalUserProfile(account.getUserProfileId(), normalizedCommand.fullName())
             );
             addParkingManagerToCurrentPartner(accountId, normalizedCommand.roleCode());
+            addEmployeeToCurrentPartner(accountId, normalizedCommand.roleCode());
             identityProviderAdminPortOut.updateAccountIdAttribute(keycloakUserId, accountId);
             identityProviderAdminPortOut.sendUpdatePasswordEmail(keycloakUserId);
             ProvisionedAccountResult result = provisionedAccountPortOut.findProvisionedAccountById(accountId)
@@ -340,6 +341,23 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             throw new BadRequestException("Partner Admin chưa được gán vào đơn vị đối tác nào.");
         }
         organizationIds.forEach(organizationId -> organizationPortOut.createActiveMembership(organizationId, accountId));
+    }
+
+    private void addEmployeeToCurrentPartner(UUID accountId, AdminProvisionableAccountRoleCode roleCode) {
+        if (!AdminProvisionableAccountRoleCode.EMPLOYEE.equals(roleCode)) {
+            return;
+        }
+        String creatorRole = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
+        if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(creatorRole)
+                && !OrganizationAccessGuard.PARKING_MANAGER.equals(creatorRole)) {
+            return;
+        }
+        Set<UUID> organizationIds = organizationPortOut.findActiveOrganizationIdsByAccountId(
+                currentAccountPortIn.getCurrentAccountIdOrThrow());
+        if (organizationIds.size() != 1) {
+            throw new BadRequestException("Employee account requires exactly one Partner organization");
+        }
+        organizationPortOut.createActiveMembership(organizationIds.iterator().next(), accountId);
     }
 
     private boolean isWithinCurrentPartnerScope(ProvisionedAccountResult account) {

@@ -9,6 +9,7 @@ import com.ban.vehicle_management.domain.iam.organization.model.Organization;
 import com.ban.vehicle_management.domain.iam.organization.policy.OrganizationPolicy;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -98,6 +99,19 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
                             .orElseThrow(() -> new IllegalStateException("Organization membership was not created"));
                 });
         organizationPortOut.replaceParkingLotScopes(membershipId, Set.copyOf(parkingLotIds));
+    }
+
+    @Override
+    @Transactional
+    public void assignParkingManagerToParkingLot(UUID organizationId, UUID parkingManagerAccountId, UUID parkingLotId) {
+        Set<UUID> parkingLotIds = new HashSet<>(
+                organizationPortOut.findScopedParkingLotIdsByOrganizationIdAndAccountId(
+                        organizationId,
+                        parkingManagerAccountId
+                )
+        );
+        parkingLotIds.add(parkingLotId);
+        assignParkingManager(organizationId, parkingManagerAccountId, parkingLotIds);
     }
 
     private void ensureSystemAdmin() {

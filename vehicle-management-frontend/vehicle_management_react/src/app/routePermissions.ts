@@ -1,4 +1,4 @@
-import { adminNavigation } from "@/config/navigation";
+import { adminNavigation, platformAdminNavigation } from "@/config/navigation";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import type { AdminSidebarEntry, CurrentUser } from "@/shared/types/common";
 
@@ -24,11 +24,11 @@ export const adminRoutePermissions = {
   ],
   "/admin/vehicle": ["VEHICLE_TYPE_READ_ALL"],
   "/admin/vehicle/form": ["VEHICLE_TYPE_CREATE_ALL", "VEHICLE_TYPE_UPDATE_ALL"],
-  "/admin/parking-lots": ["PARKING_SESSION_READ_ALL", "PARKING_SESSION_CHECK_IN_ALL", "PARKING_SESSION_CHECK_OUT_ALL"],
+  "/admin/parking-lots": ["PARKING_LOT_READ_ALL", "PARKING_LOT_CREATE_ALL", "PARKING_LOT_UPDATE_ALL"],
   "/admin/devices": ["DEVICE_READ_ALL"],
   "/admin/price-plans": ["PRICE_PLAN_READ_ALL"],
   "/admin/price-rules": ["PRICE_RULE_READ_ALL"],
-  "/admin/vouchers": ["PRICE_RULE_READ_ALL"],
+  "/admin/vouchers": ["VOUCHER_READ_ALL"],
   "/admin/invoices": ["INVOICE_READ_ALL"],
   "/admin/visitorParkingFee": ["PRICE_RULE_READ_ALL"],
   "/admin/parkingFeeOfCustomer": ["PRICE_RULE_READ_ALL"],
@@ -116,12 +116,22 @@ export function canAccessCustomerRoute(user: CurrentUser | null | undefined, pat
 
 export function getVisibleAdminNavigation(user: CurrentUser | null | undefined) {
   const entries: AdminSidebarEntry[] = [];
+  // ORGANIZATION_CREATE_ALL is a platform-governance capability. Partner Admin
+  // may read their organization, but cannot create a new partner on the platform.
+  const navigation = hasAnyPermission(user, ["ORGANIZATION_CREATE_ALL"])
+    ? platformAdminNavigation
+    : adminNavigation;
 
-  adminNavigation.forEach((entry) => {
+  navigation.forEach((entry) => {
     if (entry.kind === "divider") {
       if (entries.length > 0 && entries.at(-1)?.kind !== "divider") {
         entries.push(entry);
       }
+      return;
+    }
+
+    if (entry.kind === "section" || entry.kind === "planned") {
+      entries.push(entry);
       return;
     }
 

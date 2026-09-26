@@ -8,9 +8,13 @@ import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPo
 import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPortOut;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.domain.audit.auditlog.model.AuditLog;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardNumberSeries;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
@@ -22,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,42 +44,56 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
     private final CardPortOut cardPort;
     private final CardTypePortOut cardTypePort;
     private final AuditLogPortOut auditLogPortOut;
+    private final OrganizationAccessGuard organizationAccessGuard;
+    private final ParkingLotPortOut parkingLotPortOut;
     private final CardPolicy cardPolicy = new CardPolicy();
 
     public CardUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             CardPortOut cardPort,
             CardTypePortOut cardTypePort,
-            AuditLogPortOut auditLogPortOut
+            AuditLogPortOut auditLogPortOut,
+            OrganizationAccessGuard organizationAccessGuard,
+            ParkingLotPortOut parkingLotPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.cardPort = cardPort;
         this.cardTypePort = cardTypePort;
         this.auditLogPortOut = auditLogPortOut;
+        this.organizationAccessGuard = organizationAccessGuard;
+        this.parkingLotPortOut = parkingLotPortOut;
     }
 
     @Override
     @Transactional
     public Card createCard(Card card) {
         currentAccountPortIn.requirePermission(CARD_CREATE_ALL);
-        return issueCards(card.getCardTypeId(), 1).getFirst();
+        ensureManagerHasParkingLotAssignment();
+        return issueCards(card.getCardTypeId(), 1, resolveParkingLotForIssuance(card.getParkingLotId())).getFirst();
     }
 
     @Override
     @Transactional
-    public List<Card> createCards(UUID cardTypeId, Integer quantity) {
+    public List<Card> createCards(UUID cardTypeId, Integer quantity, UUID parkingLotId) {
         currentAccountPortIn.requirePermission(CARD_CREATE_ALL);
+        ensureManagerHasParkingLotAssignment();
         if (quantity == null || quantity < 1 || quantity > 100) {
             throw new BadRequestException("Số lượng thẻ phải từ 1 đến 100");
         }
 
-        return issueCards(cardTypeId, quantity);
+        return issueCards(cardTypeId, quantity, resolveParkingLotForIssuance(parkingLotId));
+    }
+
+    /** Maintains compatibility for internal callers while the API moves to explicit parking-lot ownership. */
+    public List<Card> createCards(UUID cardTypeId, Integer quantity) {
+        return createCards(cardTypeId, quantity, null);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Card getCardById(UUID cardId) {
         currentAccountPortIn.requirePermission(CARD_READ_ALL);
+        ensureManagerHasParkingLotAssignment();
         return findExistingCard(cardId);
     }
 
@@ -82,13 +101,19 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
     @Transactional(readOnly = true)
     public List<Card> getCards(CardStatus status, UUID cardTypeId, String keyword) {
         requireCardReadForOperation();
-        return cardPort.findAll(status, cardTypeId, cardPolicy.normalizeKeyword(keyword));
+        ensureManagerHasParkingLotAssignment();
+        String normalizedKeyword = cardPolicy.normalizeKeyword(keyword);
+        if (organizationAccessGuard == null) {
+            return cardPort.findAll(status, cardTypeId, normalizedKeyword);
+        }
+        return cardPort.findAll(status, cardTypeId, normalizedKeyword, resolveScopedParkingLotIds());
     }
 
     @Override
     @Transactional
     public Card updateCard(UUID cardId, Card card) {
         currentAccountPortIn.requirePermission(CARD_UPDATE_ALL);
+        ensureManagerHasParkingLotAssignment();
         throw new BadRequestException("Không hỗ trợ cập nhật trực tiếp mã thẻ, UID/RFID hoặc loại thẻ. Hãy dùng chức năng phân loại lại hoặc tái cấp/thay thẻ");
     }
 
@@ -96,6 +121,7 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
     @Transactional
     public Card reclassifyCard(UUID cardId, UUID targetCardTypeId, String reason) {
         currentAccountPortIn.requirePermission(CARD_UPDATE_ALL);
+        ensureManagerHasParkingLotAssignment();
         Card existingCard = findExistingCardForUpdate(cardId);
         if (existingCard.getStatus() != CardStatus.AVAILABLE) {
             throw new BadRequestException("Chỉ có thể phân loại lại thẻ ở trạng thái sẵn sàng");
@@ -129,6 +155,7 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
     @Transactional
     public void deleteCard(UUID cardId) {
         currentAccountPortIn.requirePermission(CARD_DELETE_ALL);
+        ensureManagerHasParkingLotAssignment();
         Card existingCard = findExistingCard(cardId);
         retireExistingCard(existingCard, "Ngừng sử dụng qua API cũ");
     }
@@ -137,6 +164,7 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
     @Transactional
     public Card blockCard(UUID cardId, String reason) {
         currentAccountPortIn.requirePermission(CARD_UPDATE_ALL);
+        ensureManagerHasParkingLotAssignment();
         Card existingCard = findExistingCardForUpdate(cardId);
         cardPolicy.block(
                 existingCard,
@@ -152,6 +180,7 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
     @Transactional
     public Card unblockCard(UUID cardId) {
         currentAccountPortIn.requirePermission(CARD_UPDATE_ALL);
+        ensureManagerHasParkingLotAssignment();
         Card existingCard = findExistingCardForUpdate(cardId);
         if (!cardPort.canRestoreBlockedStatus(cardId, existingCard.getStatusBeforeBlocked())) {
             throw new ConflictException("Không thể mở khóa thẻ vì trạng thái nghiệp vụ trước khi khóa không còn hợp lệ");
@@ -165,6 +194,7 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
     @Transactional
     public Card retireCard(UUID cardId, String reason) {
         currentAccountPortIn.requirePermission(CARD_DELETE_ALL);
+        ensureManagerHasParkingLotAssignment();
         Card existingCard = findExistingCardForUpdate(cardId);
         return retireExistingCard(existingCard, reason);
     }
@@ -173,6 +203,7 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
     @Transactional
     public Card recoverLostCard(UUID cardId, String inspectionNote) {
         currentAccountPortIn.requirePermission(CARD_UPDATE_ALL);
+        ensureManagerHasParkingLotAssignment();
         Card existingCard = findExistingCardForUpdate(cardId);
         if (!cardPort.canRecoverLostCard(cardId)) {
             throw new ConflictException("Không thể thu hồi thẻ mất khi vẫn còn liên kết nghiệp vụ đang hoạt động");
@@ -204,7 +235,7 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
         return cardPort.save(existingCard);
     }
 
-    private List<Card> issueCards(UUID cardTypeId, int quantity) {
+    private List<Card> issueCards(UUID cardTypeId, int quantity, UUID parkingLotId) {
         CardType cardType = getRequiredCardType(cardTypeId);
         CardNumberSeries cardNumberSeries = CardNumberSeries.fromCardTypeCode(cardType.getCode());
         List<Card> cards = new ArrayList<>(quantity);
@@ -212,6 +243,7 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
         for (int index = 0; index < quantity; index++) {
             Card card = new Card();
             card.setCardTypeId(cardTypeId);
+            card.setParkingLotId(parkingLotId);
             card.setCardNumber(cardNumberSeries.format(cardPort.nextCardNumberSequence(cardNumberSeries)));
             card.setUid(UUID.randomUUID().toString());
             cardPolicy.initializeNewCard(card);
@@ -268,13 +300,17 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
     }
 
     private Card findExistingCard(UUID cardId) {
-        return cardPort.findById(cardId)
+        Card card = cardPort.findById(cardId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy thẻ"));
+        ensureCanAccessCard(card);
+        return card;
     }
 
     private Card findExistingCardForUpdate(UUID cardId) {
-        return cardPort.findByIdForUpdate(cardId)
+        Card card = cardPort.findByIdForUpdate(cardId)
                 .orElseThrow(() -> new NotFoundException("Không tìm thấy thẻ"));
+        ensureCanAccessCard(card);
+        return card;
     }
 
     private void requireCardReadForOperation() {
@@ -285,6 +321,61 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
         }
 
         currentAccountPortIn.requirePermission(CARD_READ_ALL);
+    }
+
+    private void ensureManagerHasParkingLotAssignment() {
+        if (organizationAccessGuard != null) {
+            organizationAccessGuard.ensureCurrentManagerHasParkingLotAssignment();
+        }
+    }
+
+    private Set<UUID> resolveScopedParkingLotIds() {
+        if (organizationAccessGuard == null || parkingLotPortOut == null) {
+            return null;
+        }
+        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
+        if (scope.unrestricted()) {
+            return null;
+        }
+        if (!scope.parkingLotIds().isEmpty()) {
+            return scope.parkingLotIds();
+        }
+        return parkingLotPortOut.findAll(null, null, scope.organizationIds(), null).stream()
+                .map(ParkingLot::getParkingLotId)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    private UUID resolveParkingLotForIssuance(UUID requestedParkingLotId) {
+        if (organizationAccessGuard == null) {
+            return requestedParkingLotId;
+        }
+        Set<UUID> accessibleParkingLotIds = resolveScopedParkingLotIds();
+        if (accessibleParkingLotIds == null) {
+            if (requestedParkingLotId == null) {
+                throw new BadRequestException("Vui lòng chọn bãi xe cấp thẻ");
+            }
+            return requestedParkingLotId;
+        }
+        if (requestedParkingLotId == null) {
+            if (accessibleParkingLotIds.size() == 1) {
+                return accessibleParkingLotIds.iterator().next();
+            }
+            throw new BadRequestException("Vui lòng chọn bãi xe cấp thẻ");
+        }
+        if (!accessibleParkingLotIds.contains(requestedParkingLotId)) {
+            throw new org.springframework.security.access.AccessDeniedException("Không có quyền cấp thẻ cho bãi xe đã chọn");
+        }
+        return requestedParkingLotId;
+    }
+
+    private void ensureCanAccessCard(Card card) {
+        Set<UUID> accessibleParkingLotIds = resolveScopedParkingLotIds();
+        if (accessibleParkingLotIds == null) {
+            return;
+        }
+        if (card.getParkingLotId() == null || !accessibleParkingLotIds.contains(card.getParkingLotId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Không có quyền truy cập thẻ của bãi xe này");
+        }
     }
 
 }

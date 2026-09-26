@@ -346,10 +346,8 @@ class VehicleManagementApplicationTests {
 					.cleanDisabled(true)
 					.load();
 			flyway.migrate();
-			org.junit.jupiter.api.Assertions.assertEquals(
-					"20260923130000",
-					flyway.info().current().getVersion().toString()
-			);
+			org.junit.jupiter.api.Assertions.assertNotNull(flyway.info().current());
+			org.junit.jupiter.api.Assertions.assertEquals(0, flyway.info().pending().length);
 			UUID ticketId = UUID.randomUUID();
 			try (Connection fresh = DriverManager.getConnection(
 					freshUrl, hikariDataSource.getUsername(), hikariDataSource.getPassword());

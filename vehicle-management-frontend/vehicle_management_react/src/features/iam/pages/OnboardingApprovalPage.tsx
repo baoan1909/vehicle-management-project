@@ -387,7 +387,11 @@ export function OnboardingApprovalWorkspace({ embedded = false, onPendingSummary
   const { user } = useAuth();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
-  const visibleTabs = useMemo(() => approvalTabs.filter((tab) => hasAnyPermission(user, tab.permissions)), [user]);
+  const visibleTabs = useMemo(() => approvalTabs
+    .filter((tab) => hasAnyPermission(user, tab.permissions))
+    .map((tab) => user?.role === "PARTNER_ADMIN" && tab.kind === "internal-employee"
+      ? { ...tab, label: "Duyệt Parking Manager" }
+      : tab), [user]);
   const requestedKind = isOnboardingApprovalKind(searchParams.get("kind")) ? searchParams.get("kind") as OnboardingApprovalKind : null;
   const [activeKind, setActiveKind] = useState<OnboardingApprovalKind>(() =>
     (requestedKind && visibleTabs.some((tab) => tab.kind === requestedKind) ? requestedKind : visibleTabs[0]?.kind) ?? "internal-employee",

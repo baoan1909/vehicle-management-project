@@ -53,6 +53,7 @@ export type AdminSidebarEntry =
       to: string;
       matches: string[];
       icon: AdminSidebarIcon;
+      monitoring?: boolean;
     }
   | {
       kind: "group";
@@ -63,4 +64,12 @@ export type AdminSidebarEntry =
     }
   | {
       kind: "divider";
+    }
+  | {
+      kind: "section";
+      label: string;
+    }
+  | {
+      kind: "planned";
+      label: string;
     };

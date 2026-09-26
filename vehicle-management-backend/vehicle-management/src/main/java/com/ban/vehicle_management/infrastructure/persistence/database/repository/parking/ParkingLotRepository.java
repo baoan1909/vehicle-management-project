@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity;
 import java.util.Collection;
+import java.util.Set;
 import java.util.UUID;
 
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
@@ -21,4 +22,6 @@ public interface ParkingLotRepository extends JpaRepository<ParkingLotEntity, UU
     long countByOrganizationIdAndParkingLotIdIn(UUID organizationId, Collection<UUID> parkingLotIds);
 
     boolean existsByParkingLotIdAndStatus(UUID parkingLotId, ParkingLotStatus status);
+
+    boolean existsByParkingLotIdAndStatusIn(UUID parkingLotId, Set<ParkingLotStatus> statuses);
 }

@@ -71,6 +71,13 @@ public class ParkingSessionEntity extends AuditableEntity {
     @Column(name = "zone_id")
     private UUID zoneId;
 
+    @Column(name = "parking_lot_id")
+    private UUID parkingLotId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parking_lot_id", referencedColumnName = "parking_lot_id", insertable = false, updatable = false)
+    private ParkingLotEntity parkingLot;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "zone_id", referencedColumnName = "zone_id", insertable = false, updatable = false)
     private ZoneEntity zone;

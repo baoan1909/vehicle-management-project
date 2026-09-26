@@ -66,6 +66,86 @@ class OrganizationAccessGuardTest {
         );
     }
 
+    @Test
+    void shouldAllowSystemAdminToReadButNotConfigurePartnerParkingLot() {
+        UUID accountId = UUID.randomUUID();
+        ParkingLot partnerParkingLot = parkingLot(UUID.randomUUID());
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount(
+                accountId,
+                OrganizationAccessGuard.SYSTEM_ADMIN
+        ));
+
+        assertDoesNotThrow(() -> organizationAccessGuard.ensureCanAccessParkingLot(partnerParkingLot));
+        assertThrows(
+                AccessDeniedException.class,
+                () -> organizationAccessGuard.ensureCanConfigureParkingLot(partnerParkingLot)
+        );
+        assertThrows(
+                AccessDeniedException.class,
+                () -> organizationAccessGuard.ensureCanOperateParkingLot(partnerParkingLot)
+        );
+        assertThrows(
+                AccessDeniedException.class,
+                () -> organizationAccessGuard.ensureCanManageParkingLot(partnerParkingLot)
+        );
+        assertThrows(
+                AccessDeniedException.class,
+                () -> organizationAccessGuard.resolveOrganizationIdForParkingLotCreation(partnerParkingLot.getOrganizationId())
+        );
+    }
+
+    @Test
+    void partnerAdminCanOperateOwnLotButNotAnotherPartnersLot() {
+        UUID accountId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
+        ParkingLot ownLot = parkingLot(UUID.randomUUID());
+        ownLot.setOrganizationId(organizationId);
+        ParkingLot otherLot = parkingLot(UUID.randomUUID());
+        when(currentAccountPortIn.getCurrentAccountOrThrow())
+                .thenReturn(currentAccount(accountId, OrganizationAccessGuard.PARTNER_ADMIN));
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(accountId))
+                .thenReturn(Set.of(organizationId));
+
+        assertDoesNotThrow(() -> organizationAccessGuard.ensureCanOperateParkingLot(ownLot));
+        assertThrows(AccessDeniedException.class,
+                () -> organizationAccessGuard.ensureCanOperateParkingLot(otherLot));
+    }
+
+    @Test
+    void managerCanOperateOnlyAssignedLot() {
+        UUID accountId = UUID.randomUUID();
+        ParkingLot assignedLot = parkingLot(UUID.randomUUID());
+        ParkingLot otherLot = parkingLot(UUID.randomUUID());
+        when(currentAccountPortIn.getCurrentAccountOrThrow())
+                .thenReturn(currentAccount(accountId, OrganizationAccessGuard.PARKING_MANAGER));
+        when(organizationPortOut.findScopedParkingLotIdsByAccountId(accountId))
+                .thenReturn(Set.of(assignedLot.getParkingLotId()));
+
+        assertDoesNotThrow(() -> organizationAccessGuard.ensureCanOperateParkingLot(assignedLot));
+        assertThrows(AccessDeniedException.class,
+                () -> organizationAccessGuard.ensureCanOperateParkingLot(otherLot));
+    }
+
+    @Test
+    void shouldAllowAssignedManagerToConfigureParkingLotWhenGrantedTopologyPermission() {
+        UUID accountId = UUID.randomUUID();
+        UUID parkingLotId = UUID.randomUUID();
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(new CurrentAccountAccess(
+                accountId,
+                "subject",
+                "manager",
+                "manager@example.com",
+                UUID.randomUUID(),
+                OrganizationAccessGuard.PARKING_MANAGER,
+                AccountStatus.ACTIVE,
+                EmployeeStatus.ACTIVE,
+                Set.of(OrganizationAccessGuard.PARKING_TOPOLOGY_CONFIGURE_ALL)
+        ));
+        when(organizationPortOut.findScopedParkingLotIdsByAccountId(accountId)).thenReturn(Set.of(parkingLotId));
+
+        assertDoesNotThrow(() -> organizationAccessGuard.ensureCanConfigureParkingLot(parkingLot(parkingLotId)));
+    }
+
     private ParkingLot parkingLot(UUID parkingLotId) {
         ParkingLot parkingLot = new ParkingLot();
         parkingLot.setParkingLotId(parkingLotId);
