@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportSummaryResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportWorkflowResult;
+import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingSessionApiMapper;
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
@@ -28,7 +29,7 @@ import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = ParkingSessionApiMapper.class)
 public interface LostCardReportApiMapper {
 
     @Mapping(target = "lostCardReportId", ignore = true)

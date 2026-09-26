@@ -33,6 +33,16 @@ public class ParkingSessionManagementResponse {
     private String parkingLotName;
     private String licensePlateIn;
     private String licensePlateOut;
+    private String licensePlateInNormalized;
+    private String licensePlateInDisplay;
+    private String licensePlateInFormat;
+    private Boolean licensePlateInValidFormat;
+    private Boolean licensePlateInNeedsReview;
+    private String licensePlateOutNormalized;
+    private String licensePlateOutDisplay;
+    private String licensePlateOutFormat;
+    private Boolean licensePlateOutValidFormat;
+    private Boolean licensePlateOutNeedsReview;
     private java.time.Instant checkInTime;
     private java.time.Instant checkOutTime;
     private ParkingSessionStatus status;
@@ -51,6 +61,11 @@ public class ParkingSessionManagementResponse {
         private ParkingEventType eventType;
         private java.time.Instant eventTime;
         private String licensePlateDetected;
+        private String licensePlateDetectedNormalized;
+        private String licensePlateDetectedDisplay;
+        private String licensePlateFormat;
+        private Boolean validFormat;
+        private Boolean needsReview;
         private String licensePlateImagePath;
         private String personImagePath;
         private UUID actorAccountId;

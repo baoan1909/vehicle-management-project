@@ -123,7 +123,7 @@ class LostCardReportUseCaseImplTest {
         checkInEvent.setPersonImagePath("parking/check-in/person.jpg");
         stubVisitorPriceRules();
 
-        when(parkingSessionPortOut.findOpenByLicensePlateIn("60K8-2301")).thenReturn(List.of(session));
+        when(parkingSessionPortOut.findOpenByLicensePlateIn("60K82301")).thenReturn(List.of(session));
         when(parkingEventPortOut.findLatestBySessionIdAndEventType(PARKING_SESSION_ID, ParkingEventType.CHECK_IN))
                 .thenReturn(Optional.of(checkInEvent));
         when(fileAccessPort.createReadUrl("parking/check-in/plate.jpg", 15 * 60))

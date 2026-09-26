@@ -7,6 +7,17 @@ public record CheckInParkingSessionRequest(
         UUID laneId,
         UUID vehicleTypeId,
         String licensePlate,
-        String note
+        String note,
+        Boolean plateFormatConfirmed,
+        Boolean plateIdentityOverride
 ) {
+    public CheckInParkingSessionRequest(
+            String cardUid,
+            UUID laneId,
+            UUID vehicleTypeId,
+            String licensePlate,
+            String note
+    ) {
+        this(cardUid, laneId, vehicleTypeId, licensePlate, note, false, false);
+    }
 }

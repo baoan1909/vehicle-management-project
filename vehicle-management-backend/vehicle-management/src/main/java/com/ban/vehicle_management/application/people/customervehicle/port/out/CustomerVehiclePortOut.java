@@ -30,6 +30,12 @@ public interface CustomerVehiclePortOut {
 
     boolean existsVehicleTypeById(UUID vehicleTypeId);
 
+    Optional<String> findVehicleTypeCodeById(UUID vehicleTypeId);
+
+    boolean existsActiveSubscription(UUID customerVehicleId);
+
+    boolean existsOpenParkingSession(UUID customerVehicleId);
+
     List<CustomerVehicle> findDefaultVehiclesByCustomerId(UUID customerId);
 }
 

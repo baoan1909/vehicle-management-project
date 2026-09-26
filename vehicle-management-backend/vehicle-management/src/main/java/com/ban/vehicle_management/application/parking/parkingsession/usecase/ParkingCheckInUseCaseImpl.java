@@ -22,6 +22,7 @@ import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlateResolution;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.domain.parking.gate.model.Gate;
 import com.ban.vehicle_management.domain.parking.lane.model.Lane;
@@ -127,6 +128,18 @@ public class ParkingCheckInUseCaseImpl {
         String cardUid = TextValidationUtils.normalizeRequiredText(command.cardUid(), "cardUid", 100);
         UUID requestedVehicleTypeId = command.vehicleTypeId();
         String licensePlate = licensePlatePolicy.normalizeRequired(command.licensePlate(), "licensePlate");
+        LicensePlateResolution plateResolution = licensePlatePolicy.resolve(licensePlate, null);
+        boolean formatConfirmed = Boolean.TRUE.equals(command.plateFormatConfirmed());
+        boolean identityOverride = Boolean.TRUE.equals(command.plateIdentityOverride());
+        if (plateResolution.needsReview() && !formatConfirmed) {
+            throw new BadRequestException("Unknown license plate format must be confirmed before check-in");
+        }
+        if (formatConfirmed) {
+            parkingSessionAccessGuard.ensureCanReviewUnknownPlate();
+        }
+        if (identityOverride) {
+            parkingSessionAccessGuard.ensureCanOverridePlateIdentity();
+        }
         String note = TextValidationUtils.normalizeNullableText(command.note(), "note", 0);
 
         Lane lane = findLane(command.laneId());
@@ -145,7 +158,13 @@ public class ParkingCheckInUseCaseImpl {
         parkingCheckInPolicy.ensureCardHasNoOpenSession(parkingSessionPortOut.existsOpenByCardId(card.getCardId()));
         parkingCheckInPolicy.validateZoneCapacity(zone, parkingSessionPortOut.countOpenByZoneId(zone.getZoneId()));
 
-        CheckInCustomerContext customerContext = resolveCustomerContext(card, cardType, licensePlate, now);
+        CheckInCustomerContext customerContext = resolveCustomerContext(
+                card,
+                cardType,
+                licensePlate,
+                now,
+                identityOverride
+        );
         UUID resolvedVehicleTypeId = resolveVehicleTypeId(customerContext, requestedVehicleTypeId);
         parkingCheckInPolicy.validateVehicleTypeAccepted(resolvedVehicleTypeId, zone);
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
@@ -273,7 +292,13 @@ public class ParkingCheckInUseCaseImpl {
         }
     }
 
-    private CheckInCustomerContext resolveCustomerContext(Card card, CardType cardType, String licensePlate, Instant now) {
+    private CheckInCustomerContext resolveCustomerContext(
+            Card card,
+            CardType cardType,
+            String licensePlate,
+            Instant now,
+            boolean identityOverride
+    ) {
         if (parkingCheckInPolicy.isVisitorCard(cardType)) {
             cardPolicy.assign(card, now);
             cardPolicy.markInUse(card);
@@ -290,7 +315,14 @@ public class ParkingCheckInUseCaseImpl {
             CustomerVehicle customerVehicle = customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
                     .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
 
-            parkingCheckInPolicy.validateSubscriptionContext(card, subscription, customer, customerVehicle, licensePlate);
+            parkingCheckInPolicy.validateSubscriptionContext(
+                    card,
+                    subscription,
+                    customer,
+                    customerVehicle,
+                    licensePlate,
+                    identityOverride
+            );
             cardPolicy.markInUse(card);
             return new CheckInCustomerContext(card, subscription, customerVehicle, CUSTOMER_TYPE_SUBSCRIPTION);
         }

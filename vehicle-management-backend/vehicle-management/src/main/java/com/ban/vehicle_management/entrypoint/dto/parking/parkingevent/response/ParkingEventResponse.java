@@ -17,6 +17,11 @@ public class ParkingEventResponse {
     private ParkingEventType eventType;
     private java.time.Instant eventTime;
     private String licensePlateDetected;
+    private String licensePlateDetectedNormalized;
+    private String licensePlateDetectedDisplay;
+    private String licensePlateFormat;
+    private Boolean validFormat;
+    private Boolean needsReview;
     private String licensePlateImagePath;
     private String personImagePath;
     private UUID actorAccountId;

@@ -77,7 +77,7 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
         select subscription
         from SubscriptionEntity subscription
         join subscription.customerVehicle customerVehicle
-        where upper(customerVehicle.licensePlate) = upper(:licensePlate)
+        where customerVehicle.licensePlateNormalized = :licensePlate
           and subscription.status = :status
           and subscription.effectiveFrom <= :businessDate
           and subscription.effectiveTo >= :businessDate

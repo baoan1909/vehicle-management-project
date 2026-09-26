@@ -9,13 +9,15 @@ import java.time.Instant;
 
 public class ParkingSessionPolicy {
 
+    private final ParkingLicensePlatePolicy licensePlatePolicy = new ParkingLicensePlatePolicy();
+
     public void initialize(ParkingSession parkingSession) {
         requireParkingSession(parkingSession);
         requireField(parkingSession.getCardId(), "cardId");
         requireField(parkingSession.getVehicleTypeId(), "vehicleTypeId");
         requireField(parkingSession.getCheckInTime(), "checkInTime");
-        parkingSession.setLicensePlateIn(TextValidationUtils.normalizeRequiredText(parkingSession.getLicensePlateIn(), "licensePlateIn", 20));
-        parkingSession.setLicensePlateOut(TextValidationUtils.normalizeNullableText(parkingSession.getLicensePlateOut(), "licensePlateOut", 20));
+        parkingSession.setLicensePlateIn(licensePlatePolicy.normalizeRequired(parkingSession.getLicensePlateIn(), "licensePlateIn"));
+        parkingSession.setLicensePlateOut(licensePlatePolicy.normalizeNullable(parkingSession.getLicensePlateOut(), "licensePlateOut"));
         if (parkingSession.getStatus() == null) {
             parkingSession.setStatus(ParkingSessionStatus.OPEN);
         }
@@ -29,7 +31,7 @@ public class ParkingSessionPolicy {
         requirePrice(totalPrice, "totalPrice");
 
         parkingSession.setCheckOutTime(checkOutTime);
-        parkingSession.setLicensePlateOut(TextValidationUtils.normalizeRequiredText(licensePlateOut, "licensePlateOut", 20));
+        parkingSession.setLicensePlateOut(licensePlatePolicy.normalizeRequired(licensePlateOut, "licensePlateOut"));
         parkingSession.setTotalPrice(totalPrice);
         parkingSession.setStatus(ParkingSessionStatus.CLOSED);
         validateState(parkingSession);
@@ -60,8 +62,8 @@ public class ParkingSessionPolicy {
         requireField(parkingSession.getVehicleTypeId(), "vehicleTypeId");
         requireField(parkingSession.getCheckInTime(), "checkInTime");
         requireField(parkingSession.getStatus(), "status");
-        parkingSession.setLicensePlateIn(TextValidationUtils.normalizeRequiredText(parkingSession.getLicensePlateIn(), "licensePlateIn", 20));
-        parkingSession.setLicensePlateOut(TextValidationUtils.normalizeNullableText(parkingSession.getLicensePlateOut(), "licensePlateOut", 20));
+        parkingSession.setLicensePlateIn(licensePlatePolicy.normalizeRequired(parkingSession.getLicensePlateIn(), "licensePlateIn"));
+        parkingSession.setLicensePlateOut(licensePlatePolicy.normalizeNullable(parkingSession.getLicensePlateOut(), "licensePlateOut"));
         parkingSession.setTotalPrice(normalizePrice(parkingSession.getTotalPrice()));
 
         if (parkingSession.getCheckOutTime() != null
@@ -81,7 +83,7 @@ public class ParkingSessionPolicy {
             case CLOSED -> {
                 requireField(parkingSession.getCheckOutTime(), "checkOutTime");
                 parkingSession.setLicensePlateOut(
-                        TextValidationUtils.normalizeRequiredText(parkingSession.getLicensePlateOut(), "licensePlateOut", 20));
+                        licensePlatePolicy.normalizeRequired(parkingSession.getLicensePlateOut(), "licensePlateOut"));
                 requirePrice(parkingSession.getTotalPrice(), "totalPrice");
             }
             case LOST_CARD -> requireField(parkingSession.getCheckOutTime(), "checkOutTime");

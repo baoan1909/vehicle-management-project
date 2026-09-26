@@ -40,7 +40,7 @@ public interface LostCardReportRepository extends
             report.customerId,
             report.parkingSessionId,
             report.subscriptionId,
-            coalesce(parkingSession.licensePlateIn, customerVehicle.licensePlate),
+            coalesce(parkingSession.licensePlateInNormalized, customerVehicle.licensePlateNormalized),
             report.notificationTime,
             report.timeOfLost,
             report.ticketPrice,
@@ -88,6 +88,10 @@ public interface LostCardReportRepository extends
               or lower(coalesce(report.registrationLicense, '')) like :keyword
               or lower(coalesce(parkingSession.licensePlateIn, '')) like :keyword
               or lower(coalesce(customerVehicle.licensePlate, '')) like :keyword
+              or lower(coalesce(parkingSession.licensePlateInNormalized, ''))
+                    like replace(replace(replace(:keyword, '-', ''), '.', ''), ' ', '')
+              or lower(coalesce(customerVehicle.licensePlateNormalized, ''))
+                    like replace(replace(replace(:keyword, '-', ''), '.', ''), ' ', '')
               or lower(coalesce(invoice.invoiceNo, '')) like :keyword
           )
         order by report.notificationTime desc

@@ -6,6 +6,7 @@ import type {
 } from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
 import { formatApplicationDateTime } from "@/shared/time/applicationTime";
+import { displayLicensePlate } from "@/shared/utils/licensePlate";
 import type { ParkingOperationMode } from "./OperationModeTabs";
 
 type ParkingSessionSummaryProps = {
@@ -169,7 +170,16 @@ export function ParkingSessionSummary({
             label="Thời gian check-out"
             value={event?.eventType === "CHECK_OUT_PENDING" ? "Chưa hoàn tất" : formatApplicationDateTime(checkOutTime)}
           />
-          <DetailRow icon="fas fa-car" label="Biển số" value={fallback(session?.licensePlateOut ?? session?.licensePlateIn ?? event?.licensePlateDetected)} />
+          <DetailRow
+            icon="fas fa-car"
+            label="Biển số"
+            value={fallback(
+              session?.licensePlateOutDisplay
+              ?? session?.licensePlateInDisplay
+              ?? event?.licensePlateDetectedDisplay
+              ?? displayLicensePlate(session?.licensePlateOut ?? session?.licensePlateIn ?? event?.licensePlateDetected),
+            )}
+          />
         </div>
 
         <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">

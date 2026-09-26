@@ -73,7 +73,7 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
 
     @Override
     public Optional<CustomerVehicle> findByLicensePlate(String licensePlate) {
-        return customerVehicleRepository.findByLicensePlate(licensePlate)
+        return customerVehicleRepository.findByLicensePlateNormalized(licensePlate)
                 .map(customerVehiclePersistenceMapper::toDomain);
     }
 
@@ -99,12 +99,12 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
 
     @Override
     public boolean existsByLicensePlate(String licensePlate) {
-        return customerVehicleRepository.existsByLicensePlate(licensePlate);
+        return customerVehicleRepository.existsByLicensePlateNormalized(licensePlate);
     }
 
     @Override
     public boolean existsByLicensePlateAndCustomerVehicleIdNot(String licensePlate, UUID customerVehicleId) {
-        return customerVehicleRepository.existsByLicensePlateAndCustomerVehicleIdNot(licensePlate, customerVehicleId);
+        return customerVehicleRepository.existsByLicensePlateNormalizedAndCustomerVehicleIdNot(licensePlate, customerVehicleId);
     }
 
     @Override
@@ -115,6 +115,21 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
     @Override
     public boolean existsVehicleTypeById(UUID vehicleTypeId) {
         return vehicleTypeRepository.existsById(vehicleTypeId);
+    }
+
+    @Override
+    public Optional<String> findVehicleTypeCodeById(UUID vehicleTypeId) {
+        return vehicleTypeRepository.findCodeById(vehicleTypeId);
+    }
+
+    @Override
+    public boolean existsActiveSubscription(UUID customerVehicleId) {
+        return customerVehicleRepository.existsActiveSubscription(customerVehicleId);
+    }
+
+    @Override
+    public boolean existsOpenParkingSession(UUID customerVehicleId) {
+        return customerVehicleRepository.existsOpenParkingSession(customerVehicleId);
     }
 
     @Override

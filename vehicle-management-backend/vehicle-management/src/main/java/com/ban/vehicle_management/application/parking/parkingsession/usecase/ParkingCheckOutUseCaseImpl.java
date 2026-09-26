@@ -24,6 +24,8 @@ import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlatePolicy;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlateResolution;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.parking.gate.model.Gate;
@@ -101,6 +103,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     private final ParkingCheckoutPricePolicy parkingCheckoutPricePolicy = new ParkingCheckoutPricePolicy();
     private final ParkingLicensePlatePolicy licensePlatePolicy = new ParkingLicensePlatePolicy();
     private final ParkingSessionPolicy parkingSessionPolicy = new ParkingSessionPolicy();
+    private final LicensePlatePolicy licensePlateSnapshotPolicy = new LicensePlatePolicy();
     private final ParkingEventPolicy parkingEventPolicy = new ParkingEventPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
 
@@ -536,9 +539,20 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         invoice.setParkingSessionId(parkingSession.getParkingSessionId());
         invoice.setAmount(totalPrice);
         invoice.setDiscountAmount(BigDecimal.ZERO);
+        snapshotLicensePlate(invoice, parkingSession.getLicensePlateOut() == null
+                ? parkingSession.getLicensePlateIn()
+                : parkingSession.getLicensePlateOut());
 
         invoicePolicy.initializeNewInvoice(invoice, generateInvoiceNo(invoice.getInvoiceId(), issuedAt), issuedAt);
         return invoicePortOut.save(invoice);
+    }
+
+    private void snapshotLicensePlate(Invoice invoice, String licensePlate) {
+        LicensePlateResolution resolution = licensePlateSnapshotPolicy.resolve(licensePlate, null);
+        invoice.setLicensePlateNormalizedSnapshot(resolution.normalized());
+        invoice.setLicensePlateDisplaySnapshot(resolution.display());
+        invoice.setLicensePlateFormatSnapshot(resolution.format().name());
+        invoice.setLicensePlateFormatVersion(LicensePlatePolicy.FORMAT_VERSION);
     }
 
     private StoredFile storeCheckOutLicensePlateImage(

@@ -57,6 +57,9 @@ public class ParkingEventEntity extends AuditableEntity {
     @Column(name = "license_plate_detected")
     private String licensePlateDetected;
 
+    @Column(name = "license_plate_detected_normalized", insertable = false, updatable = false)
+    private String licensePlateDetectedNormalized;
+
     @Column(name = "license_plate_image_path")
     private String licensePlateImagePath;
 

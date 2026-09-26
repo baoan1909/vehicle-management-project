@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/cn";
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
 import { formatApplicationDateTime } from "@/shared/time/applicationTime";
+import { displayLicensePlate } from "@/shared/utils/licensePlate";
 
 type SessionTab = "all" | "open" | "closed" | "missing_evidence";
 type BadgeTone = "primary" | "success" | "warning" | "danger" | "neutral";
@@ -111,7 +112,10 @@ function getEvent(session: ParkingSessionManagementResponse, type: "CHECK_IN" | 
 }
 
 function licensePlate(session: ParkingSessionManagementResponse) {
-  return session.licensePlateOut || session.licensePlateIn || "Chưa có dữ liệu";
+  return session.licensePlateOutDisplay
+    || session.licensePlateInDisplay
+    || displayLicensePlate(session.licensePlateOut || session.licensePlateIn, session.vehicleTypeCode)
+    || "Chưa có dữ liệu";
 }
 
 function sessionShortId(session: ParkingSessionManagementResponse) {

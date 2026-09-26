@@ -101,6 +101,7 @@ public final class ParkingSessionSpecifications {
             }
 
             String pattern = "%" + keyword.trim().toLowerCase() + "%";
+            String normalizedPlateKeyword = normalizePlateKeyword(keyword);
             Join<ParkingSessionEntity, CardEntity> card = root.join("card", JoinType.LEFT);
             Join<ParkingSessionEntity, VehicleTypeEntity> vehicleType = root.join("vehicleType", JoinType.LEFT);
 
@@ -108,6 +109,12 @@ public final class ParkingSessionSpecifications {
                     cb.like(cb.lower(castToString(root.get("parkingSessionId"))), pattern),
                     cb.like(cb.lower(root.get("licensePlateIn")), pattern),
                     cb.like(cb.lower(cb.coalesce(root.get("licensePlateOut"), "")), pattern),
+                    normalizedPlateKeyword == null
+                            ? cb.disjunction()
+                            : cb.like(root.get("licensePlateInNormalized"), "%" + normalizedPlateKeyword + "%"),
+                    normalizedPlateKeyword == null
+                            ? cb.disjunction()
+                            : cb.like(cb.coalesce(root.get("licensePlateOutNormalized"), ""), "%" + normalizedPlateKeyword + "%"),
                     cb.like(cb.lower(card.get("cardNumber")), pattern),
                     cb.like(cb.lower(card.get("uid")), pattern),
                     cb.like(cb.lower(cb.coalesce(vehicleType.get("code"), "")), pattern),
@@ -118,5 +125,10 @@ public final class ParkingSessionSpecifications {
 
     private static Expression<String> castToString(Expression<?> expression) {
         return ((JpaExpression<?>) expression).cast(String.class);
+    }
+
+    private static String normalizePlateKeyword(String value) {
+        String normalized = value.trim().toUpperCase().replace(" ", "").replace("-", "").replace(".", "");
+        return normalized.length() >= 4 && normalized.matches("[A-Z0-9]+") ? normalized : null;
     }
 }

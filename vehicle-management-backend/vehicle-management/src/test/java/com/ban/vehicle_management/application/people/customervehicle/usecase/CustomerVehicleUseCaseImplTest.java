@@ -48,12 +48,12 @@ class CustomerVehicleUseCaseImplTest {
                 .thenReturn(requestCustomerVehicle.getCustomerId());
         when(customerVehiclePortOut.existsCustomerById(requestCustomerVehicle.getCustomerId())).thenReturn(true);
         when(customerVehiclePortOut.existsVehicleTypeById(requestCustomerVehicle.getVehicleTypeId())).thenReturn(true);
-        when(customerVehiclePortOut.existsByLicensePlate("51a-12345")).thenReturn(false);
+        when(customerVehiclePortOut.existsByLicensePlate("51A12345")).thenReturn(false);
         when(customerVehiclePortOut.save(any(CustomerVehicle.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CustomerVehicle createdCustomerVehicle = customerVehicleUseCase.createCustomerVehicle(requestCustomerVehicle);
 
-        assertEquals("51a-12345", createdCustomerVehicle.getLicensePlate());
+        assertEquals("51A12345", createdCustomerVehicle.getLicensePlate());
         assertEquals(Boolean.FALSE, createdCustomerVehicle.getIsDefault());
         assertEquals(CustomerVehicleStatus.ACTIVE, createdCustomerVehicle.getStatus());
     }
@@ -72,7 +72,7 @@ class CustomerVehicleUseCaseImplTest {
                 .thenReturn(currentCustomerId);
         when(customerVehiclePortOut.existsCustomerById(currentCustomerId)).thenReturn(true);
         when(customerVehiclePortOut.existsVehicleTypeById(vehicleTypeId)).thenReturn(true);
-        when(customerVehiclePortOut.existsByLicensePlate("59A-12345")).thenReturn(false);
+        when(customerVehiclePortOut.existsByLicensePlate("59A12345")).thenReturn(false);
         when(customerVehiclePortOut.save(any(CustomerVehicle.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CustomerVehicle createdCustomerVehicle = customerVehicleUseCase.createCustomerVehicle(requestCustomerVehicle);
@@ -121,7 +121,7 @@ class CustomerVehicleUseCaseImplTest {
                 .thenReturn(requestCustomerVehicle.getCustomerId());
         when(customerVehiclePortOut.existsCustomerById(requestCustomerVehicle.getCustomerId())).thenReturn(true);
         when(customerVehiclePortOut.existsVehicleTypeById(requestCustomerVehicle.getVehicleTypeId())).thenReturn(true);
-        when(customerVehiclePortOut.existsByLicensePlate("51A-12345")).thenReturn(true);
+        when(customerVehiclePortOut.existsByLicensePlate("51A12345")).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> customerVehicleUseCase.createCustomerVehicle(requestCustomerVehicle));
     }
@@ -140,7 +140,7 @@ class CustomerVehicleUseCaseImplTest {
 
         when(customerVehiclePortOut.findById(customerVehicleId)).thenReturn(Optional.of(existingCustomerVehicle));
         when(customerVehiclePortOut.existsVehicleTypeById(requestCustomerVehicle.getVehicleTypeId())).thenReturn(true);
-        when(customerVehiclePortOut.existsByLicensePlateAndCustomerVehicleIdNot("51B-67890", customerVehicleId))
+        when(customerVehiclePortOut.existsByLicensePlateAndCustomerVehicleIdNot("51B67890", customerVehicleId))
                 .thenReturn(false);
         when(customerVehiclePortOut.save(any(CustomerVehicle.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(customerVehiclePortOut.findDefaultVehiclesByCustomerId(existingCustomerVehicle.getCustomerId()))
@@ -149,7 +149,7 @@ class CustomerVehicleUseCaseImplTest {
         CustomerVehicle updatedCustomerVehicle =
                 customerVehicleUseCase.updateCustomerVehicle(customerVehicleId, requestCustomerVehicle);
 
-        assertEquals("51B-67890", updatedCustomerVehicle.getLicensePlate());
+        assertEquals("51B67890", updatedCustomerVehicle.getLicensePlate());
         assertEquals("Toyota", updatedCustomerVehicle.getBrand());
         assertEquals("Black", updatedCustomerVehicle.getColor());
         assertEquals(Boolean.TRUE, updatedCustomerVehicle.getIsDefault());
@@ -197,8 +197,8 @@ class CustomerVehicleUseCaseImplTest {
                 );
         when(customerVehiclePortOut.existsVehicleTypeById(existingVehicleTypeId)).thenReturn(true);
         when(customerVehiclePortOut.existsVehicleTypeById(newVehicleTypeId)).thenReturn(true);
-        when(customerVehiclePortOut.findByLicensePlate("51B-67890")).thenReturn(Optional.empty());
-        when(customerVehiclePortOut.findByLicensePlate("61C-11111")).thenReturn(Optional.empty());
+        when(customerVehiclePortOut.findByLicensePlate("51B67890")).thenReturn(Optional.empty());
+        when(customerVehiclePortOut.findByLicensePlate("61C11111")).thenReturn(Optional.empty());
         when(customerVehiclePortOut.save(any(CustomerVehicle.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CustomerVehicleBatchCommand command = new CustomerVehicleBatchCommand(

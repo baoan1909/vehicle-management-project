@@ -28,5 +28,9 @@ public class Invoice extends AuditableDomainModel {
     private InvoiceStatus status;
     private Instant issuedAt;
     private Instant paidAt;
+    private String licensePlateNormalizedSnapshot;
+    private String licensePlateDisplaySnapshot;
+    private String licensePlateFormatSnapshot;
+    private String licensePlateFormatVersion;
 }
 

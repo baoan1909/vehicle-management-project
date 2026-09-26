@@ -27,6 +27,8 @@ import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.Lost
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.policy.LostCardReportPolicy;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlatePolicy;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlateResolution;
 import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
@@ -297,7 +299,12 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         cardPortOut.save(oldCard);
 
         LostCardReport savedReport = lostCardReportPortOut.save(report);
-        Invoice invoice = createLostCardInvoice(savedReport, ticketPrice.add(lostCardFee), now);
+        Invoice invoice = createLostCardInvoice(
+                savedReport,
+                ticketPrice.add(lostCardFee),
+                now,
+                resolveLicensePlate(session, subscription)
+        );
 
         return new LostCardReportWorkflowResult(
                 savedReport,
@@ -605,7 +612,12 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         return priceRule.getLostCardFee() == null ? BigDecimal.ZERO : priceRule.getLostCardFee();
     }
 
-    private Invoice createLostCardInvoice(LostCardReport report, BigDecimal totalAmount, Instant issuedAt) {
+    private Invoice createLostCardInvoice(
+            LostCardReport report,
+            BigDecimal totalAmount,
+            Instant issuedAt,
+            String licensePlate
+    ) {
         if (invoicePortOut.existsByLostCardReportIdAndStatusIn(
                 report.getLostCardReportId(),
                 ACTIVE_INVOICE_STATUSES
@@ -619,6 +631,11 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         invoice.setLostCardReportId(report.getLostCardReportId());
         invoice.setAmount(totalAmount);
         invoice.setDiscountAmount(BigDecimal.ZERO);
+        LicensePlateResolution plate = new LicensePlatePolicy().resolve(licensePlate, null);
+        invoice.setLicensePlateNormalizedSnapshot(plate.normalized());
+        invoice.setLicensePlateDisplaySnapshot(plate.display());
+        invoice.setLicensePlateFormatSnapshot(plate.format().name());
+        invoice.setLicensePlateFormatVersion(LicensePlatePolicy.FORMAT_VERSION);
 
         invoicePolicy.initializeNewInvoice(invoice, generateInvoiceNo(invoice.getInvoiceId(), issuedAt), issuedAt);
         return invoicePortOut.save(invoice);

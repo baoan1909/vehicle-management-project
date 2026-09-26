@@ -1,20 +1,25 @@
 package com.ban.vehicle_management.domain.parking.parkingsession.policy;
 
-import com.ban.vehicle_management.shared.utils.TextValidationUtils;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlatePolicy;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlateResolution;
 
 public class ParkingLicensePlatePolicy {
 
+    private final LicensePlatePolicy delegate = new LicensePlatePolicy();
+
     public String normalizeRequired(String licensePlate, String fieldName) {
-        return TextValidationUtils.normalizeRequiredText(licensePlate, fieldName, 20);
+        return delegate.normalizeRequired(licensePlate, fieldName);
     }
 
     public String normalizeNullable(String licensePlate, String fieldName) {
-        return TextValidationUtils.normalizeNullableText(licensePlate, fieldName, 20);
+        return delegate.normalizeNullable(licensePlate, fieldName);
     }
 
     public boolean matches(String expectedLicensePlate, String detectedLicensePlate) {
-        String normalizedExpected = normalizeRequired(expectedLicensePlate, "expectedLicensePlate");
-        String normalizedDetected = normalizeRequired(detectedLicensePlate, "detectedLicensePlate");
-        return normalizedExpected.equalsIgnoreCase(normalizedDetected);
+        return delegate.matches(expectedLicensePlate, detectedLicensePlate);
+    }
+
+    public LicensePlateResolution resolve(String licensePlate, String vehicleTypeCode) {
+        return delegate.resolve(licensePlate, vehicleTypeCode);
     }
 }

@@ -806,7 +806,7 @@ export function SwipeListPage() {
   }
 
   function handleApplyOcrCandidate(candidate: LicensePlateOcrCandidate) {
-    const plate = candidate.normalizedLicensePlate || candidate.formattedLicensePlate || candidate.licensePlate;
+    const plate = candidate.formattedLicensePlate || candidate.normalizedLicensePlate || candidate.licensePlate;
     if (!plate) return;
     setLicensePlate(plate);
     setOcrStatus("review");
@@ -865,7 +865,7 @@ export function SwipeListPage() {
       if (ocrRequestSeq.current !== requestId) return;
 
       const result = response.data;
-      const detectedPlate = result.normalizedLicensePlate || result.licensePlate;
+      const detectedPlate = result.formattedLicensePlate || result.normalizedLicensePlate || result.licensePlate;
       setOcrResult(result);
 
       if (detectedPlate) {
@@ -1027,6 +1027,7 @@ export function SwipeListPage() {
           {
             ...request,
             vehicleTypeId: matchedCardRequiresVehicleType ? vehicleTypeId : undefined,
+            plateFormatConfirmed: ocrStatus === "review",
           },
           licensePlateImage,
           personImage,

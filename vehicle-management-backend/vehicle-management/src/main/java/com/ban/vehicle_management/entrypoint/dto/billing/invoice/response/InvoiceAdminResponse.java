@@ -24,5 +24,9 @@ public record InvoiceAdminResponse(
         , UUID createdBy
         , Instant updatedAt
         , UUID updatedBy
+        , String licensePlateNormalizedSnapshot
+        , String licensePlateDisplaySnapshot
+        , String licensePlateFormatSnapshot
+        , String licensePlateFormatVersion
         ){
 }

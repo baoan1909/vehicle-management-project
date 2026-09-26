@@ -50,6 +50,12 @@ export type CustomerVehicleAdminResponse = {
   customerVehicleId: string;
   isDefault?: boolean | null;
   licensePlate: string;
+  licensePlateNormalized?: string | null;
+  licensePlateDisplay?: string | null;
+  vehicleIdentifier?: string | null;
+  plateFormat?: string;
+  validFormat?: boolean;
+  needsReview?: boolean;
   status: CustomerVehicleStatus;
   updatedAt?: string | null;
   vehicleTypeId?: string | null;
@@ -167,6 +173,13 @@ function toQueryString(params: Record<string, string | undefined>) {
   return query ? `?${query}` : "";
 }
 
+function withDisplayPlate(vehicle: CustomerVehicleAdminResponse): CustomerVehicleAdminResponse {
+  return {
+    ...vehicle,
+    licensePlate: vehicle.licensePlateDisplay || vehicle.vehicleIdentifier || vehicle.licensePlate || "",
+  };
+}
+
 export async function fetchCustomers(filters: CustomerFilters = {}) {
   const query = toQueryString({
     approvalStatus: filters.approvalStatus,
@@ -241,7 +254,7 @@ export async function fetchCustomerVehicles(customerId: string) {
   const response = await apiClient<ApiResponse<CustomerVehicleAdminResponse[]>>(
     `${apiEndpoints.customers.customerVehicles}${query}`,
   );
-  return response.data ?? [];
+  return (response.data ?? []).map(withDisplayPlate);
 }
 
 export async function fetchCustomerSubscriptionCards(customerId: string, customerCode?: string | null) {
@@ -265,7 +278,7 @@ export async function createCustomerVehicle(customerId: string, payload: Custome
       method: "POST",
     },
   );
-  return response.data ?? [];
+  return (response.data ?? []).map(withDisplayPlate);
 }
 
 export async function updateCustomerVehicle(customerVehicleId: string, payload: CustomerVehiclePayload) {
@@ -276,7 +289,7 @@ export async function updateCustomerVehicle(customerVehicleId: string, payload: 
       method: "PUT",
     },
   );
-  return response.data;
+  return withDisplayPlate(response.data);
 }
 
 export async function deleteCustomerVehicle(customerVehicleId: string) {
@@ -290,7 +303,7 @@ export async function inactivateCustomerVehicle(customerVehicleId: string) {
     `${apiEndpoints.customers.customerVehicles}/${customerVehicleId}/inactivate`,
     { method: "PATCH" },
   );
-  return response.data;
+  return withDisplayPlate(response.data);
 }
 
 export async function activateCustomerVehicle(customerVehicleId: string) {
@@ -298,7 +311,7 @@ export async function activateCustomerVehicle(customerVehicleId: string) {
     `${apiEndpoints.customers.customerVehicles}/${customerVehicleId}/activate`,
     { method: "PATCH" },
   );
-  return response.data;
+  return withDisplayPlate(response.data);
 }
 
 export async function markCustomerVehicleAsDefault(customerVehicleId: string) {
@@ -306,7 +319,7 @@ export async function markCustomerVehicleAsDefault(customerVehicleId: string) {
     `${apiEndpoints.customers.customerVehicles}/${customerVehicleId}/mark-default`,
     { method: "PATCH" },
   );
-  return response.data;
+  return withDisplayPlate(response.data);
 }
 
 export async function fetchVehicleTypes() {

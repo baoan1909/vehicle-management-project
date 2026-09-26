@@ -76,6 +76,8 @@ export type CheckInParkingSessionRequest = {
   laneId: string;
   licensePlate: string;
   note?: string;
+  plateFormatConfirmed?: boolean;
+  plateIdentityOverride?: boolean;
   vehicleTypeId?: string;
 };
 
@@ -94,6 +96,16 @@ export type ParkingSessionResponse = {
   customerVehicleId?: string;
   licensePlateIn?: string;
   licensePlateOut?: string;
+  licensePlateInNormalized?: string | null;
+  licensePlateInDisplay?: string | null;
+  licensePlateInFormat?: string;
+  licensePlateInValidFormat?: boolean;
+  licensePlateInNeedsReview?: boolean;
+  licensePlateOutNormalized?: string | null;
+  licensePlateOutDisplay?: string | null;
+  licensePlateOutFormat?: string;
+  licensePlateOutValidFormat?: boolean;
+  licensePlateOutNeedsReview?: boolean;
   parkingSessionId: string;
   status: "OPEN" | "CLOSED" | "LOST_CARD";
   totalPrice?: number;
@@ -107,6 +119,11 @@ export type ParkingEventResponse = {
   eventType?: "CHECK_IN" | "CHECK_OUT_PENDING" | "CHECK_OUT";
   laneId: string;
   licensePlateDetected?: string;
+  licensePlateDetectedNormalized?: string | null;
+  licensePlateDetectedDisplay?: string | null;
+  licensePlateFormat?: string;
+  validFormat?: boolean;
+  needsReview?: boolean;
   licensePlateImagePath?: string;
   note?: string;
   parkingEventId: string;
@@ -163,6 +180,11 @@ export type ParkingSessionManagementEventResponse = {
   laneId?: string;
   laneName?: string;
   licensePlateDetected?: string;
+  licensePlateDetectedNormalized?: string | null;
+  licensePlateDetectedDisplay?: string | null;
+  licensePlateFormat?: string;
+  validFormat?: boolean;
+  needsReview?: boolean;
   licensePlateImagePath?: string;
   note?: string;
   parkingEventId: string;
@@ -183,6 +205,16 @@ export type ParkingSessionManagementResponse = {
   events?: ParkingSessionManagementEventResponse[];
   licensePlateIn?: string;
   licensePlateOut?: string;
+  licensePlateInNormalized?: string | null;
+  licensePlateInDisplay?: string | null;
+  licensePlateInFormat?: string;
+  licensePlateInValidFormat?: boolean;
+  licensePlateInNeedsReview?: boolean;
+  licensePlateOutNormalized?: string | null;
+  licensePlateOutDisplay?: string | null;
+  licensePlateOutFormat?: string;
+  licensePlateOutValidFormat?: boolean;
+  licensePlateOutNeedsReview?: boolean;
   parkingLotCode?: string;
   parkingLotId?: string;
   parkingLotName?: string;
@@ -248,7 +280,6 @@ export type LicensePlateOcrResponse = {
   ocrConfidence?: number | null;
   plateType?: string | null;
   processingMs?: number | null;
-  rawResponse?: Record<string, unknown>;
   requestId?: string | null;
   reviewReasons: string[];
   validFormat?: boolean | null;

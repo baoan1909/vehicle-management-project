@@ -41,10 +41,14 @@ public final class CustomerVehicleSpecifications {
             }
             if (hasText(keyword)) {
                 String normalizedKeyword = "%" + keyword.trim().toLowerCase() + "%";
+                String normalizedPlateKeyword = normalizePlateKeyword(keyword);
                 Join<CustomerVehicleEntity, CustomerEntity> customerJoin = root.join("customer", JoinType.LEFT);
                 Join<CustomerEntity, UserProfileEntity> userProfileJoin = customerJoin.join("userProfile", JoinType.LEFT);
                 predicates.add(criteriaBuilder.or(
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("licensePlate")), normalizedKeyword),
+                        normalizedPlateKeyword == null
+                                ? criteriaBuilder.disjunction()
+                                : criteriaBuilder.like(root.get("licensePlateNormalized"), "%" + normalizedPlateKeyword + "%"),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("brand")), normalizedKeyword),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("color")), normalizedKeyword),
                         criteriaBuilder.like(criteriaBuilder.lower(customerJoin.get("customerCode")), normalizedKeyword),
@@ -60,5 +64,10 @@ public final class CustomerVehicleSpecifications {
 
     private static boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private static String normalizePlateKeyword(String value) {
+        String normalized = value.trim().toUpperCase().replace(" ", "").replace("-", "").replace(".", "");
+        return normalized.length() >= 4 && normalized.matches("[A-Z0-9]+") ? normalized : null;
     }
 }

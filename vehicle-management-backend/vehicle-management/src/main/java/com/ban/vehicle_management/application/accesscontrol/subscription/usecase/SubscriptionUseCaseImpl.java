@@ -21,6 +21,8 @@ import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.policy.SubscriptionPolicy;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlatePolicy;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlateResolution;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
@@ -252,7 +254,12 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         );
 
         Subscription approvedSubscription = subscriptionPortOut.save(subscription);
-        Invoice invoice = invoicePortOut.save(buildSubscriptionInvoice(approvedSubscription, voucherQuote.discountAmount(), now));
+        Invoice invoice = invoicePortOut.save(buildSubscriptionInvoice(
+                approvedSubscription,
+                preparedData.customerVehicle(),
+                voucherQuote.discountAmount(),
+                now
+        ));
         if (voucherQuote.voucherId() != null) {
             voucherPortIn.reserveSubscriptionVoucher(
                     voucherQuote.voucherCode(),
@@ -505,13 +512,23 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         return quote;
     }
 
-    private Invoice buildSubscriptionInvoice(Subscription subscription, BigDecimal discountAmount, Instant now) {
+    private Invoice buildSubscriptionInvoice(
+            Subscription subscription,
+            CustomerVehicle customerVehicle,
+            BigDecimal discountAmount,
+            Instant now
+    ) {
         Invoice invoice = new Invoice();
         invoice.setInvoiceId(UUID.randomUUID());
         invoice.setCustomerId(subscription.getCustomerId());
         invoice.setSubscriptionId(subscription.getSubscriptionId());
         invoice.setAmount(subscription.getPrice());
         invoice.setDiscountAmount(discountAmount);
+        LicensePlateResolution plate = new LicensePlatePolicy().resolve(customerVehicle.getLicensePlate(), null);
+        invoice.setLicensePlateNormalizedSnapshot(plate.normalized());
+        invoice.setLicensePlateDisplaySnapshot(plate.display());
+        invoice.setLicensePlateFormatSnapshot(plate.format().name());
+        invoice.setLicensePlateFormatVersion(LicensePlatePolicy.FORMAT_VERSION);
 
         invoicePolicy.initializeNewInvoice(
                 invoice,

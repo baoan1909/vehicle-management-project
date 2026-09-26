@@ -12,6 +12,8 @@ public class ParkingSessionAccessGuard {
 
     public static final String PARKING_SESSION_CHECK_IN_ALL = "PARKING_SESSION_CHECK_IN_ALL";
     public static final String PARKING_SESSION_CHECK_OUT_ALL = "PARKING_SESSION_CHECK_OUT_ALL";
+    public static final String PARKING_SESSION_PLATE_REVIEW_ALL = "PARKING_SESSION_PLATE_REVIEW_ALL";
+    public static final String PARKING_SESSION_PLATE_OVERRIDE_ALL = "PARKING_SESSION_PLATE_OVERRIDE_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final OrganizationAccessGuard organizationAccessGuard;
@@ -68,6 +70,16 @@ public class ParkingSessionAccessGuard {
             return;
         }
         throw new AccessDeniedException("Access is denied");
+    }
+
+    public void ensureCanReviewUnknownPlate() {
+        currentAccountPortIn.requirePermission(PARKING_SESSION_PLATE_REVIEW_ALL);
+        ensureNotSystemAdmin();
+    }
+
+    public void ensureCanOverridePlateIdentity() {
+        currentAccountPortIn.requirePermission(PARKING_SESSION_PLATE_OVERRIDE_ALL);
+        ensureNotSystemAdmin();
     }
 
     private void ensureNotSystemAdmin() {
