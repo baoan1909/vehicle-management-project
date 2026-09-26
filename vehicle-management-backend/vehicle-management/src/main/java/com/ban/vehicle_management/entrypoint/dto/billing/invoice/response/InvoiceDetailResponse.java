@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.billing.invoice.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.PaymentResponse;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import java.math.BigDecimal;
@@ -17,11 +19,11 @@ public record InvoiceDetailResponse(
         BigDecimal discountAmount,
         BigDecimal finalAmount,
         InvoiceStatus status,
-        String issuedAt,
-        String paidAt,
-        String createdAt,
+        Instant issuedAt,
+        Instant paidAt,
+        Instant createdAt,
         UUID createdBy,
-        String updatedAt,
+        Instant updatedAt,
         UUID updatedBy,
         List<PaymentResponse> payments
 ) {

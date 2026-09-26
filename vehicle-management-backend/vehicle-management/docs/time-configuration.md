@@ -15,6 +15,23 @@
 
 The frontend loads `GET /api/public/application-time` before rendering and uses that IANA zone for instant display, calendar boundaries, and offset-free date-time form values.
 
+## Mandatory API time contract
+
+- Every absolute point in time in domain models, application results, API request DTOs, API response DTOs, realtime messages, and cache envelopes must use `Instant`. Examples include `createdAt`, `updatedAt`, `startAt`, `endAt`, `publishedAt`, `cancelledAt`, `approvedAt`, and `expiresAt`.
+- Backend mappers must map `Instant` values directly. They must not convert an instant to a display `String` such as `HH:mm dd-MM-yyyy`.
+- Jackson is the single API-boundary formatter. With `app.time-zone=Asia/Ho_Chi_Minh`, an instant is rendered as `2026-08-25T16:01:00+07:00`.
+- A missing optional instant is JSON `null`, not an empty string.
+- `LocalDate` is allowed only for a calendar date with no time. `LocalTime` is allowed only for a wall-clock/business time with no date. `Duration` is used for elapsed time and configuration. None of these types may be substituted for an absolute event timestamp.
+- Human-readable formats belong in the frontend presentation layer. They are not API contracts and must not be produced by backend mappers.
+
+Legacy response DTOs that expose absolute timestamps as formatted `String` values violate this contract and must be migrated together with their frontend consumers.
+
+## PostgreSQL database default
+
+Migration `V20260926180000__set_database_default_timezone.sql` sets the database-level default timezone to `Asia/Ho_Chi_Minh` for new sessions and sets the current Flyway session immediately. PostgreSQL may report the equivalent canonical alias `Asia/Saigon`; both resolve to `+07:00` for the tested instant.
+
+This migration does not rewrite any `TIMESTAMPTZ` value. The database-level default affects presentation and parsing for new sessions only. Hikari's `connection-init-sql` remains authoritative for application connections and follows `app.time-zone`; changing `app.time-zone` later does not rewrite the already-applied database default migration.
+
 ## Override order
 
 Configuration is loaded in this order: classpath `time.properties`, optional `.env`, then optional `./config/time-override.properties`. A later source overrides an earlier one. Environment variables referenced by a property also override its default.

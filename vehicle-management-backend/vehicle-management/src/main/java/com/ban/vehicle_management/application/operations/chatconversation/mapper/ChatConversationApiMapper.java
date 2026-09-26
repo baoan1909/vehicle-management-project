@@ -24,7 +24,6 @@ import org.mapstruct.NullValueMappingStrategy;
 @Mapper(componentModel = "spring", nullValueMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT)
 public interface ChatConversationApiMapper {
 
-    @Mapping(target = "lastMessageAt", source = "lastMessageAt", qualifiedByName = "formatInstant")
     ChatConversationUserResponse toConversationUserResponse(ChatConversation conversation);
 
     List<ChatConversationUserResponse> toConversationUserResponses(List<ChatConversation> conversations);
@@ -37,9 +36,6 @@ public interface ChatConversationApiMapper {
 
     List<ChatInboxItemUserResponse> toInboxItemUserResponses(List<ChatInboxItem> items);
 
-    @Mapping(target = "deletedAt", source = "deletedAt", qualifiedByName = "formatInstant")
-    @Mapping(target = "editedAt", source = "editedAt", qualifiedByName = "formatInstant")
-    @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "formatInstant")
     ChatMessageUserResponse toMessageUserResponse(ChatMessage message);
 
     List<ChatMessageUserResponse> toMessageUserResponses(List<ChatMessage> messages);
@@ -57,8 +53,4 @@ public interface ChatConversationApiMapper {
 
     ChatAttachmentReadUrlResponse toReadUrlResponse(ChatAttachmentReadUrl readUrl);
 
-    @Named("formatInstant")
-    default String formatInstant(Instant instant) {
-        return instant == null ? "" : instant.toString();
-    }
 }

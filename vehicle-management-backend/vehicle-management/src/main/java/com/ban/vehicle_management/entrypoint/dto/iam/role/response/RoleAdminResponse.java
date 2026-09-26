@@ -1,4 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.iam.role.response;
+
+import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -14,8 +16,8 @@ public class RoleAdminResponse {
     private String description;
     private Boolean isSystem;
     private Boolean isActive;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }

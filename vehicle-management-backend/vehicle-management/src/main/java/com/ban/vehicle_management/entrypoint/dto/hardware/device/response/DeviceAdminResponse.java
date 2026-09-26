@@ -22,8 +22,8 @@ public class DeviceAdminResponse {
     private String ipAddress;
     private DeviceStatus status;
     private Map<String, Object> config;
-    private String createdAt;
+    private java.time.Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private java.time.Instant updatedAt;
     private UUID updatedBy;
 }

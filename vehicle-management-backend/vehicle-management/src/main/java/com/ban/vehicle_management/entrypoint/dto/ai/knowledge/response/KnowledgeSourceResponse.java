@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.ai.knowledge.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeAccessScope;
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeSourceStatus;
 import java.util.UUID;
@@ -15,6 +17,6 @@ public class KnowledgeSourceResponse {
     private String description;
     private KnowledgeAccessScope accessScope;
     private KnowledgeSourceStatus status;
-    private String createdAt;
-    private String updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

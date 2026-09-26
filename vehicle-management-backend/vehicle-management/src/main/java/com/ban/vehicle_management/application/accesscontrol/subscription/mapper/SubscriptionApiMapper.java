@@ -84,7 +84,4 @@ public interface SubscriptionApiMapper {
 
     List<SubscriptionAdminResponse> toAdminResponses(List<Subscription> subscriptions);
 
-    default String map(Instant value) {
-        return DateTimeUtils.formatInstant(value, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

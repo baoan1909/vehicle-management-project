@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.people.userprofile.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,9 +24,9 @@ public class UserProfileAdminResponse {
     private String identifyCard;
     private String avatarUrl;
     private UserProfileStatus status;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }
 

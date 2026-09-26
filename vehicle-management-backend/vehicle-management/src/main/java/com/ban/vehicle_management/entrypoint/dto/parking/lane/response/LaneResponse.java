@@ -18,8 +18,8 @@ public class LaneResponse {
     private String name;
     private LaneDirection direction;
     private LaneStatus status;
-    private  String createdAt;
+    private  java.time.Instant createdAt;
     private UUID createdBy;
-    private  String updatedAt;
+    private  java.time.Instant updatedAt;
     private UUID updatedBy;
 }

@@ -14,12 +14,12 @@ public record NotificationRealtimeMessage(
         String title,
         String message,
         NotificationStatus status,
-        String sentAt,
-        String readAt,
+        java.time.Instant sentAt,
+        java.time.Instant readAt,
         String redirectUrl,
         String relatedSchema,
         String relatedTable,
         UUID relatedId,
-        String createdAt
+        java.time.Instant createdAt
 ) {
 }

@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportContext;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
@@ -14,8 +16,8 @@ public record LostCardReportListItemResponse(
         UUID parkingSessionId,
         UUID subscriptionId,
         String licensePlate,
-        String notificationTime,
-        String timeOfLost,
+        Instant notificationTime,
+        Instant timeOfLost,
         BigDecimal ticketPrice,
         BigDecimal lostCardFee,
         BigDecimal totalAmount,
@@ -28,9 +30,9 @@ public record LostCardReportListItemResponse(
         UUID invoiceId,
         String invoiceNo,
         InvoiceStatus invoiceStatus,
-        String createdAt,
+        Instant createdAt,
         UUID createdBy,
-        String updatedAt,
+        Instant updatedAt,
         UUID updatedBy
 ) {
 }

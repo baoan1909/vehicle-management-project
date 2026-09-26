@@ -15,7 +15,4 @@ public interface PermissionApiMapper {
 
     PermissionAdminResponse toAdminResponse(Permission permission);
 
-    default String map(Instant value) {
-        return DateTimeUtils.formatInstant(value, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

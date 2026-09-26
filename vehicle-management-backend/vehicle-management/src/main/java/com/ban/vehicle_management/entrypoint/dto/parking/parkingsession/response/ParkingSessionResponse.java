@@ -20,8 +20,8 @@ public class ParkingSessionResponse {
     private UUID zoneId;
     private String licensePlateIn;
     private String licensePlateOut;
-    private String checkInTime;
-    private String checkOutTime;
+    private java.time.Instant checkInTime;
+    private java.time.Instant checkOutTime;
     private ParkingSessionStatus status;
     private BigDecimal totalPrice;
 }

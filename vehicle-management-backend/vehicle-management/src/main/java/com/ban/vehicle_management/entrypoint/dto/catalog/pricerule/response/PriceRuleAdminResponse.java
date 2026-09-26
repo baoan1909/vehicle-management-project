@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
 import java.math.BigDecimal;
 import java.time.LocalTime;
@@ -24,8 +26,8 @@ public class PriceRuleAdminResponse {
     private BigDecimal lostCardFee;
     private Integer priority;
     private Boolean isActive;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }

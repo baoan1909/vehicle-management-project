@@ -14,7 +14,4 @@ public interface NotificationApiMapper {
 
     List<NotificationUserResponse> toUserResponses(List<Notification> notifications);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

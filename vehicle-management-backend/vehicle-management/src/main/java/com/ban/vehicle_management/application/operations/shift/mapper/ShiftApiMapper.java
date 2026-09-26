@@ -16,10 +16,4 @@ public interface ShiftApiMapper {
             List<Shift> shifts
     );
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(
-                instant,
-                DateTimeUtils.VIETNAM_ZONE
-        );
-    }
 }

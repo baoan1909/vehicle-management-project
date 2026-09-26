@@ -34,7 +34,4 @@ public interface PriceRuleApiMapper {
 
     List<PriceRuleAdminResponse> toAdminResponses(List<PriceRule> priceRules);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

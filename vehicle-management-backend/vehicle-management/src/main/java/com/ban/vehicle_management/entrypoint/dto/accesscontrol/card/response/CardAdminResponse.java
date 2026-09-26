@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
@@ -48,20 +50,20 @@ public class CardAdminResponse {
     private String customerFullName;
     private String customerPhoneNumber;
     private CardStatus status;
-    private String issuedAt;
+    private Instant issuedAt;
     private CardStatus statusBeforeBlocked;
-    private String blockedAt;
+    private Instant blockedAt;
     private UUID blockedBy;
     private String blockedReason;
-    private String retiredAt;
+    private Instant retiredAt;
     private UUID retiredBy;
     private String retiredReason;
-    private String recoveredAt;
+    private Instant recoveredAt;
     private UUID recoveredBy;
     private String recoveryNote;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }
 

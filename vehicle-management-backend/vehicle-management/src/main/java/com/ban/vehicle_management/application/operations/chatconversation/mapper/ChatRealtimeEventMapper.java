@@ -21,9 +21,6 @@ public interface ChatRealtimeEventMapper {
     @Mapping(target = "message", source = "message")
     ChatRealtimeEvent toRealtimeEvent(ChatMessage message, Instant occurredAt);
 
-    @Mapping(target = "deletedAt", source = "deletedAt", qualifiedByName = "formatInstant")
-    @Mapping(target = "editedAt", source = "editedAt", qualifiedByName = "formatInstant")
-    @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "formatInstant")
     ChatRealtimeMessage toRealtimeMessage(ChatMessage message);
 
     @AfterMapping
@@ -35,8 +32,4 @@ public interface ChatRealtimeEventMapper {
 
     ChatRealtimeAttachment toRealtimeAttachment(ChatMessageAttachment attachment);
 
-    @Named("formatInstant")
-    default String formatInstant(Instant instant) {
-        return instant == null ? "" : instant.toString();
-    }
 }

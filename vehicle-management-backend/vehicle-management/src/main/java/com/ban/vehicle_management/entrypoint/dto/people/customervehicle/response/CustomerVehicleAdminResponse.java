@@ -19,9 +19,9 @@ public class CustomerVehicleAdminResponse {
     private String color;
     private Boolean isDefault;
     private CustomerVehicleStatus status;
-    private String createdAt;
+    private java.time.Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private java.time.Instant updatedAt;
     private UUID updatedBy;
 }
 

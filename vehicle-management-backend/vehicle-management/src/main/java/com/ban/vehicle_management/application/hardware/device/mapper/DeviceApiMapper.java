@@ -33,10 +33,4 @@ public interface DeviceApiMapper {
 
     List<DeviceAdminResponse> toAdminResponses(List<Device> devices);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(
-                instant,
-                DateTimeUtils.VIETNAM_ZONE
-        );
-    }
 }

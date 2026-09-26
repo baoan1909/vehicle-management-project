@@ -12,6 +12,7 @@ import {
 } from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
+import { formatApplicationDateTime } from "@/shared/time/applicationTime";
 
 type SessionTab = "all" | "open" | "closed" | "missing_evidence";
 type BadgeTone = "primary" | "success" | "warning" | "danger" | "neutral";
@@ -195,7 +196,7 @@ function EventBlock({ event, title }: { event?: ParkingSessionManagementEventRes
     <section className="tw-grid tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4">
       <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
         <strong className="tw-text-[0.96rem] tw-font-black tw-text-vm-slate-900">{title}</strong>
-        <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">{fallback(event?.eventTime)}</span>
+        <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">{formatApplicationDateTime(event?.eventTime)}</span>
       </div>
       <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[620px]:tw-grid-cols-1">
         <EvidenceImage label="Ảnh biển số" src={event?.licensePlateImagePath} />
@@ -248,8 +249,8 @@ function SessionDetailDrawer({
           <Detail label="Loại xe" value={[session.vehicleTypeCode, session.vehicleTypeName].filter(Boolean).join(" • ")} />
           <Detail label="Bãi xe" value={[session.parkingLotCode, session.parkingLotName].filter(Boolean).join(" • ")} />
           <Detail label="Khu vực" value={[session.zoneCode, session.zoneName].filter(Boolean).join(" • ")} />
-          <Detail label="Thời gian vào" value={session.checkInTime} />
-          <Detail label="Thời gian ra" value={session.checkOutTime} />
+          <Detail label="Thời gian vào" value={formatApplicationDateTime(session.checkInTime)} />
+          <Detail label="Thời gian ra" value={formatApplicationDateTime(session.checkOutTime)} />
           <Detail label="Phí" value={formatCurrency(session.totalPrice)} />
           <div className="tw-grid tw-gap-1">
             <span className="tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-500">Trạng thái</span>
@@ -515,8 +516,8 @@ export function ParkingSessionPage() {
                                 <strong className="tw-block tw-text-[0.84rem] tw-font-black tw-text-vm-slate-900">{fallback(session.parkingLotName || session.parkingLotCode)}</strong>
                                 <span className="tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500">{fallback(session.zoneName || session.zoneCode)}</span>
                               </td>
-                              <td><strong className="tw-text-[0.84rem] tw-font-black tw-text-vm-slate-900">{fallback(session.checkInTime)}</strong></td>
-                              <td><span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-700">{fallback(session.checkOutTime)}</span></td>
+                              <td><strong className="tw-text-[0.84rem] tw-font-black tw-text-vm-slate-900">{formatApplicationDateTime(session.checkInTime)}</strong></td>
+                              <td><span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-700">{formatApplicationDateTime(session.checkOutTime)}</span></td>
                               <td><strong className="tw-text-[0.84rem] tw-font-black tw-text-vm-slate-900">{formatCurrency(session.totalPrice)}</strong></td>
                               <td><Badge tone={statusTone(session.status)}>{statusLabel(session.status)}</Badge></td>
                               <td><Badge tone={missing ? "danger" : "success"}>{missing ? "Thiếu ảnh" : "Đủ ảnh"}</Badge></td>

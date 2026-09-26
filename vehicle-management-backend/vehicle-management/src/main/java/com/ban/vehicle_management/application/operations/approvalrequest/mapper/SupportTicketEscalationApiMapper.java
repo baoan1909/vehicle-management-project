@@ -29,7 +29,4 @@ public interface SupportTicketEscalationApiMapper {
 
     List<SupportTicketEscalationResponse> toResponses(List<SupportTicketEscalationResult> results);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

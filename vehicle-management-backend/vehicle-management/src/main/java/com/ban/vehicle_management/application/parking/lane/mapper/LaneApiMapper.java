@@ -34,7 +34,4 @@ public interface LaneApiMapper {
 
     List<LaneResponse> toAdminResponses(List<Lane> lanes);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

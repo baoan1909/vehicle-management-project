@@ -19,6 +19,7 @@ import {
   type KnowledgeIngestionJobResponse,
   type KnowledgeSourceResponse,
 } from "@/features/ai/api/aiKnowledgeAdminApi";
+import { formatApplicationDateTime } from "@/shared/time/applicationTime";
 
 type DocTone = "primary" | "success" | "warning" | "danger" | "neutral";
 
@@ -282,7 +283,7 @@ export function KnowledgeDocumentsTab() {
                       )}
                     </td>
                     <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-semibold tw-text-slate-500">v{document.documentVersion}</td>
-                    <td className="tw-text-xs tw-font-semibold tw-text-slate-500">{document.createdAt}</td>
+                    <td className="tw-text-xs tw-font-semibold tw-text-slate-500">{formatApplicationDateTime(document.createdAt)}</td>
                     <td className="tw-px-3 tw-py-3">
                       <div className="tw-flex tw-flex-wrap tw-gap-2">
                         <Button loading={actingId === document.documentId} onClick={() => void openDetail(document)} size="sm" variant="ghost">Chi tiết</Button>

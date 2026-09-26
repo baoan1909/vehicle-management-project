@@ -42,6 +42,17 @@ export function formatInApplicationTime(
   return new Intl.DateTimeFormat(locales, { ...options, timeZone: applicationTimeZone }).format(date);
 }
 
+export function formatApplicationDateTime(value?: string | number | Date | null): string {
+  if (value === null || value === undefined || value === "") return "--";
+  return formatInApplicationTime(value, "vi-VN", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 export function toApplicationLocalDateTimeInput(value: string | number | Date): string | undefined {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return undefined;

@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.people.employee.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.entrypoint.dto.people.userprofile.response.UserProfileAdminResponse;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.time.LocalDate;
@@ -26,9 +28,9 @@ public class EmployeeAdminResponse {
     private String roleCode;
     private String roleName;
     private UserProfileAdminResponse userProfile;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }
 

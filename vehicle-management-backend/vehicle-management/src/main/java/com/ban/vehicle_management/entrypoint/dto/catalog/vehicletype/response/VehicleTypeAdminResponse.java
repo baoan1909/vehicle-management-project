@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.response;
 
+import java.time.Instant;
+
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,9 +17,9 @@ public class VehicleTypeAdminResponse {
     private String name;
     private String description;
     private Boolean isActive;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }
 

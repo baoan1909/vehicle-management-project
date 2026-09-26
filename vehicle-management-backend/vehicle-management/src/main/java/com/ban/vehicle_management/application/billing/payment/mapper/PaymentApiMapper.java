@@ -40,7 +40,4 @@ public interface PaymentApiMapper {
 
     VnpayReturnResponse toResponse(VnpayReturnResult result);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

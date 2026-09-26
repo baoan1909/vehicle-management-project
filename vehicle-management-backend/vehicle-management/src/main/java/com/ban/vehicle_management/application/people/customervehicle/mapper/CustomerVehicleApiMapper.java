@@ -57,7 +57,4 @@ public interface CustomerVehicleApiMapper {
 
     List<CustomerVehicleAdminResponse> toAdminResponses(List<CustomerVehicle> customerVehicles);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant);
-    }
 }

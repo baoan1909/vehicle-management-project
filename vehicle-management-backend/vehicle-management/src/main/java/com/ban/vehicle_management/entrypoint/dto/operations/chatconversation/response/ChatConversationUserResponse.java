@@ -24,6 +24,6 @@ public class ChatConversationUserResponse {
     private String relatedTable;
     private UUID relatedId;
     private UUID lastMessageId;
-    private String lastMessageAt;
+    private java.time.Instant lastMessageAt;
     private List<ChatConversationParticipantUserResponse> participants;
 }

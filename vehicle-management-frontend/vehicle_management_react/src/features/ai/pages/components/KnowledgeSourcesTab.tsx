@@ -14,6 +14,7 @@ import {
   type KnowledgeDocumentResponse,
   type KnowledgeSourceResponse,
 } from "@/features/ai/api/aiKnowledgeAdminApi";
+import { formatApplicationDateTime } from "@/shared/time/applicationTime";
 
 const scopeOptions: Array<{ label: string; value: KnowledgeAccessScope }> = [
   { label: "Công khai", value: "PUBLIC" },
@@ -204,7 +205,7 @@ export function KnowledgeSourcesTab() {
                           {source.status === "ACTIVE" ? "Đang hoạt động" : "Ngừng hoạt động"}
                         </Badge>
                       </td>
-                      <td className="tw-text-xs tw-font-semibold tw-text-slate-500">{source.createdAt}</td>
+                      <td className="tw-text-xs tw-font-semibold tw-text-slate-500">{formatApplicationDateTime(source.createdAt)}</td>
                       <td className="tw-px-3 tw-py-3">
                         <div className="tw-flex tw-flex-wrap tw-gap-2">
                           <Button loading={loadingDocuments[source.sourceId]} onClick={() => void toggleDocuments(source.sourceId)} size="sm" variant="ghost">

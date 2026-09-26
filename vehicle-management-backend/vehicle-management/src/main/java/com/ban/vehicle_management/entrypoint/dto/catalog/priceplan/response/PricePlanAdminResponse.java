@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.catalog.priceplan.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -19,8 +21,8 @@ public class PricePlanAdminResponse {
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
     private Boolean isActive;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }

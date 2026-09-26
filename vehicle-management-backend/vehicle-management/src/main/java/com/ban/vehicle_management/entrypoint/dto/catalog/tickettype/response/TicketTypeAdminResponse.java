@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.catalog.tickettype.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,8 +19,8 @@ public class TicketTypeAdminResponse {
     private String description;
     private Integer durationDays;
     private TicketTypeStatus status;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private  UUID updatedBy;
 }

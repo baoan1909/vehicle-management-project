@@ -29,13 +29,8 @@ public interface RolePermissionApiMapper {
 
     RolePermissionsResponse toResponse(RolePermissionsResult result);
 
-    @Mapping(target = "eventTime", source = "eventTime", qualifiedByName = "formatVietnamInstant")
     RolePermissionAuditLogResponse toAuditLogResponse(RolePermissionAuditLogResult result);
 
     List<RolePermissionAuditLogResponse> toAuditLogResponses(List<RolePermissionAuditLogResult> results);
 
-    @Named("formatVietnamInstant")
-    default String formatVietnamInstant(Instant value) {
-        return DateTimeUtils.formatInstant(value, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.operations.supportticketcategory.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryStatus;
 import java.util.UUID;
@@ -17,8 +19,8 @@ public class SupportTicketCategoryAdminResponse {
     private String description;
     private SupportTicketCategoryPriority priority;
     private SupportTicketCategoryStatus status;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }

@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.ai.knowledge.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeAccessScope;
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeDocumentStatus;
 import java.util.UUID;
@@ -25,8 +27,8 @@ public class KnowledgeDocumentResponse {
     private String failureCode;
     private String effectiveFrom;
     private String effectiveTo;
-    private String reviewedAt;
-    private String archivedAt;
-    private String createdAt;
-    private String updatedAt;
+    private Instant reviewedAt;
+    private Instant archivedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.ai.toolcall.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.ai.AiToolCallStatus;
 import com.ban.vehicle_management.shared.enumeration.ai.AiToolType;
 import java.util.UUID;
@@ -17,6 +19,6 @@ public class AiToolCallResponse {
     private AiToolCallStatus status;
     private String requestPayloadRedacted;
     private String responsePayloadRedacted;
-    private String expiresAt;
+    private Instant expiresAt;
     private String failureCode;
 }

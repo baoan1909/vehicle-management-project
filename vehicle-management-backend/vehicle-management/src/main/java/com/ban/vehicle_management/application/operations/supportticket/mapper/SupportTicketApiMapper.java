@@ -65,7 +65,4 @@ public interface SupportTicketApiMapper {
 
     List<SupportTicketAdminResponse> toAdminResponses(List<SupportTicket> supportTickets);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

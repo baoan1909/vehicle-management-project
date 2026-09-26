@@ -15,7 +15,7 @@ public class ParkingEventResponse {
     private UUID parkingSessionId;
     private UUID laneId;
     private ParkingEventType eventType;
-    private String eventTime;
+    private java.time.Instant eventTime;
     private String licensePlateDetected;
     private String licensePlateImagePath;
     private String personImagePath;

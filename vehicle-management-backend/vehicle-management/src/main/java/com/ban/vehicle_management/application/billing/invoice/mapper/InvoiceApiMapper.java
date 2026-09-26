@@ -43,10 +43,6 @@ public interface InvoiceApiMapper {
 
     List<InvoiceAdminResponse> toAdminResponses(List<Invoice> invoices);
 
-    default  String map(Instant instant){
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
-
     PaymentResponse toPaymentResponse(Payment payment);
 
     List<PaymentResponse> toPaymentResponses(List<Payment> payments);
@@ -65,11 +61,11 @@ public interface InvoiceApiMapper {
                 invoice.getDiscountAmount(),
                 invoice.getFinalAmount(),
                 invoice.getStatus(),
-                map(invoice.getIssuedAt()),
-                map(invoice.getPaidAt()),
-                map(invoice.getCreatedAt()),
+                invoice.getIssuedAt(),
+                invoice.getPaidAt(),
+                invoice.getCreatedAt(),
                 invoice.getCreatedBy(),
-                map(invoice.getUpdatedAt()),
+                invoice.getUpdatedAt(),
                 invoice.getUpdatedBy(),
                 toPaymentResponses(detail.getPayments())
         );
@@ -91,10 +87,10 @@ public interface InvoiceApiMapper {
                 item.paymentMethod(),
                 item.paymentStatus(),
                 item.transactionRef(),
-                map(item.issuedAt()),
-                map(item.paidAt()),
-                map(item.createdAt()),
-                map(item.updatedAt())
+                item.issuedAt(),
+                item.paidAt(),
+                item.createdAt(),
+                item.updatedAt()
         );
     }
 

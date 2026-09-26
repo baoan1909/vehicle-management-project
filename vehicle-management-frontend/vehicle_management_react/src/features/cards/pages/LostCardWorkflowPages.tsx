@@ -28,7 +28,7 @@ import {
 } from "@/features/cards/utils/lostCardReportValidation";
 import { Modal } from "@/shared/components/ui/Modal";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
-import { toApplicationLocalDateTimeInput } from "@/shared/time/applicationTime";
+import { formatApplicationDateTime, toApplicationLocalDateTimeInput } from "@/shared/time/applicationTime";
 
 type WorkflowStep = {
   number: number;
@@ -134,7 +134,7 @@ function getCardLabel(cardId: string | null | undefined) {
 function getSessionLabel(detail: LostCardReportDetailResponse) {
   const session = detail.parkingSession;
   if (!session) return "Không có phiên gửi xe";
-  return `${session.status ?? "Không xác định"} · ${session.checkInTime ?? "-"}`;
+  return `${session.status ?? "Không xác định"} · ${formatApplicationDateTime(session.checkInTime)}`;
 }
 
 function requiresReplacementCard(context: LostCardReportContext | null | undefined) {
@@ -655,11 +655,11 @@ function InvoiceDetailPanel({
         </div>
         <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
           <span className="tw-text-vm-slate-500">Ngày lập</span>
-          <b className="tw-text-slate-900">{invoice.issuedAt ?? "-"}</b>
+          <b className="tw-text-slate-900">{formatApplicationDateTime(invoice.issuedAt)}</b>
         </div>
         <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
           <span className="tw-text-vm-slate-500">Ngày thanh toán</span>
-          <b className="tw-text-slate-900">{invoice.paidAt ?? "-"}</b>
+          <b className="tw-text-slate-900">{formatApplicationDateTime(invoice.paidAt)}</b>
         </div>
         <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
           <span className="tw-text-vm-slate-500">Số tiền</span>
@@ -682,7 +682,7 @@ function InvoiceDetailPanel({
           <div className="tw-mt-3 tw-grid tw-gap-2">
             {invoice.payments.map((payment) => (
               <div className="tw-rounded-vm-md tw-bg-white tw-p-3 tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700" key={payment.paymentId}>
-                {getPaymentMethodLabel(payment.paymentMethod)} · {formatCurrency(payment.amount)} · {payment.status ?? "-"} · {payment.paidAt ?? "-"}
+                {getPaymentMethodLabel(payment.paymentMethod)} · {formatCurrency(payment.amount)} · {payment.status ?? "-"} · {formatApplicationDateTime(payment.paidAt)}
               </div>
             ))}
           </div>
@@ -1286,9 +1286,13 @@ export function LostCardDetailPage() {
     }
 
     return new Map<number, string>([
-      [1, report.createdAt || report.notificationTime || "-"],
-      [2, detail?.invoice?.paidAt || (detail?.invoice?.status === "UNPAID" ? "Đang chờ" : detail?.invoice?.status ?? "-")],
-      [3, report.resolvedAt || (isResolved ? report.updatedAt : "Đang xử lý")],
+      [1, formatApplicationDateTime(report.createdAt || report.notificationTime)],
+      [2, detail?.invoice?.paidAt
+        ? formatApplicationDateTime(detail.invoice.paidAt)
+        : detail?.invoice?.status === "UNPAID" ? "Đang chờ" : detail?.invoice?.status ?? "-"],
+      [3, report.resolvedAt
+        ? formatApplicationDateTime(report.resolvedAt)
+        : isResolved ? formatApplicationDateTime(report.updatedAt) : "Đang xử lý"],
     ]);
   }, [detail?.invoice?.paidAt, detail?.invoice?.status, isResolved, report]);
 
@@ -1456,7 +1460,7 @@ export function LostCardDetailPage() {
                   <div>
                     <h2 className="tw-m-0 tw-text-[1.12rem] tw-font-extrabold tw-text-slate-900">Phiếu báo mất thẻ</h2>
                     <p className="tw-m-0 tw-mt-1 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500">
-                      Báo lúc {report.notificationTime || "-"} · Mất lúc {report.timeOfLost || "-"}
+                      Báo lúc {formatApplicationDateTime(report.notificationTime)} · Mất lúc {formatApplicationDateTime(report.timeOfLost)}
                     </p>
                   </div>
                   <span className="tw-inline-flex tw-min-h-7 tw-items-center tw-rounded-full tw-bg-brand-50 tw-px-3 tw-text-[0.76rem] tw-font-extrabold tw-text-vm-primary">{contextLabel}</span>

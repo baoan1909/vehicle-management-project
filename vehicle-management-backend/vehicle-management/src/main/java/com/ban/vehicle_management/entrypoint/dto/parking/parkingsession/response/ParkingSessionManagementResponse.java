@@ -33,8 +33,8 @@ public class ParkingSessionManagementResponse {
     private String parkingLotName;
     private String licensePlateIn;
     private String licensePlateOut;
-    private String checkInTime;
-    private String checkOutTime;
+    private java.time.Instant checkInTime;
+    private java.time.Instant checkOutTime;
     private ParkingSessionStatus status;
     private BigDecimal totalPrice;
     private List<EventResponse> events;
@@ -49,7 +49,7 @@ public class ParkingSessionManagementResponse {
         private String laneCode;
         private String laneName;
         private ParkingEventType eventType;
-        private String eventTime;
+        private java.time.Instant eventTime;
         private String licensePlateDetected;
         private String licensePlateImagePath;
         private String personImagePath;

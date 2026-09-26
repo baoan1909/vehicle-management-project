@@ -15,8 +15,8 @@ public class GateAdminResponse {
     private String code;
     private String name;
     private GateStatus status;
-    private String createdAt;
+    private java.time.Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private java.time.Instant updatedAt;
     private UUID updatedBy;
 }

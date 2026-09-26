@@ -15,9 +15,9 @@ public record SystemAdminApprovalAdminResponse(
             String note,
             UUID requestedBy,
             UUID approvedBy,
-            String approvedAt,
-            String createdAt,
-            String updatedAt
+            java.time.Instant approvedAt,
+            java.time.Instant createdAt,
+            java.time.Instant updatedAt
     ) {
     }
 

@@ -22,7 +22,4 @@ public interface CustomerOnboardingApprovalApiMapper {
 
     List<CustomerOnboardingApprovalAdminResponse> toResponses(List<CustomerOnboardingApprovalResult> results);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

@@ -19,6 +19,7 @@ import {
   type ProvisionedAccountStatus,
 } from "@/features/iam/api/provisionedAccountApi";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import { formatApplicationDateTime } from "@/shared/time/applicationTime";
 
 type RoleCode = ProvisionedAccountRoleCode;
 type ProvisionableRoleCode = AdminProvisionableAccountRoleCode;
@@ -311,7 +312,7 @@ function AccountRow({
         {account.status}
       </Badge>
       <span className="tw-text-[0.8rem] tw-font-extrabold tw-text-vm-slate-700">{account.permissionCount} quyền</span>
-      <span className="tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500 max-[1180px]:tw-hidden">{account.updatedAt}</span>
+      <span className="tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500 max-[1180px]:tw-hidden">{formatApplicationDateTime(account.updatedAt)}</span>
     </div>
   );
 }

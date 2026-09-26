@@ -31,14 +31,8 @@ public interface UserProfileApiMapper {
     @Mapping(target = "avatarUrl", ignore = true)
     UserProfile toDomain(UpdateUserProfileRequest request);
 
-    @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "formatInstant")
-    @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "formatInstant")
     UserProfileAdminResponse toAdminResponse(UserProfile userProfile);
 
     List<UserProfileAdminResponse> toAdminResponses(List<UserProfile> userProfiles);
 
-    @Named("formatInstant")
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant);
-    }
 }

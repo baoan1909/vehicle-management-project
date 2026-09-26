@@ -20,10 +20,10 @@ public class ParkingLotAdminResponse {
     private BigDecimal longitude;
     private Integer totalCapacity;
     private ParkingLotStatus status;
-    private String activationRequestedAt;
+    private java.time.Instant activationRequestedAt;
     private UUID activationRequestedBy;
-    private String createdAt;
+    private java.time.Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private java.time.Instant updatedAt;
     private UUID updatedBy;
 }

@@ -30,8 +30,6 @@ public interface EmployeeApiMapper {
     @Mapping(target = "updatedBy", ignore = true)
     Employee toDomain(UpdateEmployeeRequest request);
 
-    @Mapping(target = "createdAt", source = "createdAt", qualifiedByName = "formatInstant")
-    @Mapping(target = "updatedAt", source = "updatedAt", qualifiedByName = "formatInstant")
     EmployeeAdminResponse toAdminResponse(Employee employee);
 
     List<EmployeeAdminResponse> toAdminResponses(List<Employee> employees);

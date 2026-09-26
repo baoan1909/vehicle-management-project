@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.parking.zone.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import java.util.UUID;
 import java.util.Set;
@@ -19,8 +21,8 @@ public class ZoneAdminResponse {
     private Set<UUID> vehicleTypeIds;
     private Integer capacity;
     private ZoneStatus status;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }

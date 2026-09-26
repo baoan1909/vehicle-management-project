@@ -26,7 +26,4 @@ public interface AiModelAdminApiMapper {
 
     List<AiModelWarningResponse> toWarningResponses(List<AiModelWarning> warnings);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

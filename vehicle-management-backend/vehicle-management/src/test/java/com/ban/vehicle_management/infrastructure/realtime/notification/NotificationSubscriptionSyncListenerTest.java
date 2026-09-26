@@ -72,13 +72,13 @@ class NotificationSubscriptionSyncListenerTest {
                 "Title",
                 "Message",
                 NotificationStatus.SENT,
-                "2026-07-30 10:00:00",
+                Instant.parse("2026-07-30T03:00:00Z"),
                 null,
                 null,
                 "access_control",
                 "subscriptions",
                 UUID.randomUUID(),
-                "2026-07-30 10:00:00"
+                Instant.parse("2026-07-30T03:00:00Z")
         );
 
         when(notificationPortOut.findPendingRealtimeNotifications(eq(accountId), any(Instant.class)))

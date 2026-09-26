@@ -73,7 +73,7 @@ public class ChatRealtimeRabbitConsumer {
         return message != null
                 && message.getMessageId() != null
                 && message.getConversationId() != null
-                && StringUtils.hasText(message.getCreatedAt());
+                && message.getCreatedAt() != null;
     }
 
     private void sendToUser(UUID accountId, ChatRealtimeEvent event) {

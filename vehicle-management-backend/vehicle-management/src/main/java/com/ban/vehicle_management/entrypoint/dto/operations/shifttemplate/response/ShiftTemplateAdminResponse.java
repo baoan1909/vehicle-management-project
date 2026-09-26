@@ -20,8 +20,8 @@ public class ShiftTemplateAdminResponse {
     private LocalTime startLocalTime;
     private LocalTime endLocalTime;
     private ShiftTemplateStatus status;
-    private String createdAt;
+    private java.time.Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private java.time.Instant updatedAt;
     private UUID updatedBy;
 }

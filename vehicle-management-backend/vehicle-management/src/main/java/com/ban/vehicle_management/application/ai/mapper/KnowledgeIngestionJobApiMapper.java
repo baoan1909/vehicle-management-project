@@ -31,7 +31,4 @@ public interface KnowledgeIngestionJobApiMapper {
 
     List<KnowledgeIngestionJobEventResponse> toEventResponses(List<KnowledgeIngestionJobEvent> events);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

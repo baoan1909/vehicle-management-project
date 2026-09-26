@@ -18,7 +18,4 @@ public interface KnowledgeIndexVersionApiMapper {
 
     List<KnowledgeIndexVersionResponse> toResponses(List<KnowledgeIndexVersion> indexVersions);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

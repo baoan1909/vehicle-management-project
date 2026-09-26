@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.billing.invoice.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceSource;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
@@ -22,9 +24,9 @@ public record InvoiceManagementItemResponse(
         PaymentMethod paymentMethod,
         PaymentStatus paymentStatus,
         String transactionRef,
-        String issuedAt,
-        String paidAt,
-        String createdAt,
-        String updatedAt
+        Instant issuedAt,
+        Instant paidAt,
+        Instant createdAt,
+        Instant updatedAt
 ) {
 }

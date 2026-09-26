@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.iam.account.response;
 
+import java.time.Instant;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -13,8 +15,8 @@ public record ProvisionedAccountAdminResponse(
             String username,
             String email,
             String accountStatus,
-            String createdAt,
-            String updatedAt
+            Instant createdAt,
+            Instant updatedAt
     ) {
     }
 

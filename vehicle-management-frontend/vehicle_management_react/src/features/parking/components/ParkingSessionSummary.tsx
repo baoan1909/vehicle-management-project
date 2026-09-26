@@ -5,6 +5,7 @@ import type {
   ParkingSessionOperationResponse,
 } from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
+import { formatApplicationDateTime } from "@/shared/time/applicationTime";
 import type { ParkingOperationMode } from "./OperationModeTabs";
 
 type ParkingSessionSummaryProps = {
@@ -162,11 +163,11 @@ export function ParkingSessionSummary({
         <div className="tw-grid tw-gap-2.5">
           <DetailRow icon="far fa-user" label="Loại hành khách" value={customerTypeLabel(customerType)} />
           <DetailRow icon="far fa-address-card" label="Mã phiên đỗ xe" value={session?.parkingSessionId?.slice(0, 13) ?? "Chưa có dữ liệu"} />
-          <DetailRow icon="far fa-clock" label="Thời gian check-in" value={fallback(session?.checkInTime)} />
+          <DetailRow icon="far fa-clock" label="Thời gian check-in" value={formatApplicationDateTime(session?.checkInTime)} />
           <DetailRow
             icon="far fa-clock"
             label="Thời gian check-out"
-            value={event?.eventType === "CHECK_OUT_PENDING" ? "Chưa hoàn tất" : fallback(checkOutTime)}
+            value={event?.eventType === "CHECK_OUT_PENDING" ? "Chưa hoàn tất" : formatApplicationDateTime(checkOutTime)}
           />
           <DetailRow icon="fas fa-car" label="Biển số" value={fallback(session?.licensePlateOut ?? session?.licensePlateIn ?? event?.licensePlateDetected)} />
         </div>
@@ -185,7 +186,7 @@ export function ParkingSessionSummary({
               <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-700">Ảnh người / tài xế khi vào</span>
               <MiniLaneImage alt="Ảnh người / tài xế khi vào" empty={!session && !checkInPersonImagePath} imagePath={checkInPersonImagePath} />
             </div>
-            <span className="tw-col-span-full tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">{fallback(session?.checkInTime ?? checkInEvent?.eventTime)}</span>
+            <span className="tw-col-span-full tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">{formatApplicationDateTime(session?.checkInTime ?? checkInEvent?.eventTime)}</span>
           </div>
         </div>
 

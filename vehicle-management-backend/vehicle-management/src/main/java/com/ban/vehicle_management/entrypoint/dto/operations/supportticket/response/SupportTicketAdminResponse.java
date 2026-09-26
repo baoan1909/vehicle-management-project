@@ -22,18 +22,18 @@ public class SupportTicketAdminResponse {
     private String content;
     private SupportTicketStatus status;
     private UUID assignedTo;
-    private String resolvedAt;
+    private java.time.Instant resolvedAt;
     private String resolutionNote;
-    private String closedAt;
+    private java.time.Instant closedAt;
     private UUID closedBy;
     private Integer reopenCount;
-    private String lastReopenedAt;
-    private String createdAt;
+    private java.time.Instant lastReopenedAt;
+    private java.time.Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private java.time.Instant updatedAt;
     private UUID updatedBy;
     private SupportTicketSource source;
     private UUID sourceConversationId;
     private UUID sourceMessageId;
-    private String firstRespondedAt;
+    private java.time.Instant firstRespondedAt;
 }

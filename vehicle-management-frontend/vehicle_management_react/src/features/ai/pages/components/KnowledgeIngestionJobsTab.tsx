@@ -11,6 +11,7 @@ import {
   type KnowledgeIngestionJobEventResponse,
   type KnowledgeIngestionJobResponse,
 } from "@/features/ai/api/aiKnowledgeAdminApi";
+import { formatApplicationDateTime } from "@/shared/time/applicationTime";
 
 type JobTone = "primary" | "success" | "warning" | "danger" | "neutral";
 
@@ -146,7 +147,7 @@ export function KnowledgeIngestionJobsTab() {
                     <td className="tw-px-3 tw-py-3">
                       {job.errorCode ? <span className="tw-text-xs tw-font-black tw-text-red-600">{job.errorCode}</span> : <span className="tw-text-xs tw-font-bold tw-text-slate-300">—</span>}
                     </td>
-                    <td className="tw-text-xs tw-font-semibold tw-text-slate-500">{job.updatedAt}</td>
+                    <td className="tw-text-xs tw-font-semibold tw-text-slate-500">{formatApplicationDateTime(job.updatedAt)}</td>
                     <td className="tw-px-3 tw-py-3">
                       <div className="tw-flex tw-flex-wrap tw-gap-2">
                         <Button onClick={() => void openEvents(job)} size="sm" variant="ghost">Sự kiện</Button>
@@ -187,7 +188,7 @@ export function KnowledgeIngestionJobsTab() {
               <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
                 <Badge tone="neutral" className="tw-w-fit tw-whitespace-nowrap tw-px-2 tw-text-[0.7rem]">{event.eventType}</Badge>
                 {event.stage ? <span className="tw-text-[0.7rem] tw-font-black tw-text-slate-500">{stageLabel[event.stage] ?? event.stage}</span> : null}
-                <span className="tw-ml-auto tw-text-[0.7rem] tw-font-semibold tw-text-slate-400">{event.createdAt}</span>
+                <span className="tw-ml-auto tw-text-[0.7rem] tw-font-semibold tw-text-slate-400">{formatApplicationDateTime(event.createdAt)}</span>
               </div>
               {event.detail ? <p className="tw-m-0 tw-mt-1 tw-text-xs tw-leading-5 tw-text-slate-600">{event.detail}</p> : null}
             </div>

@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.iam.permission.response;
 
+import java.time.Instant;
+
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,8 +19,8 @@ public class PermissionAdminResponse {
     private UUID scopeId;
     private String name;
     private String description;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }

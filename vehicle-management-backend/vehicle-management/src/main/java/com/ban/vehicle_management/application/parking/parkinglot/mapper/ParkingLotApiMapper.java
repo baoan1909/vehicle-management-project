@@ -34,13 +34,8 @@ public interface ParkingLotApiMapper {
     @Mapping(target = "updatedBy", ignore = true)
     ParkingLot toDomain(UpdateParkingLotRequest request);
 
-    @Mapping(target = "activationRequestedAt", source = "activationRequestedAt", qualifiedByName = "formatInstant")
     ParkingLotAdminResponse toAdminResponse(ParkingLot parkingLot);
 
     List<ParkingLotAdminResponse> toAdminResponses(List<ParkingLot> parkingLots);
 
-    @org.mapstruct.Named("formatInstant")
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

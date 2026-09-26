@@ -35,7 +35,4 @@ public interface TicketTypeApiMapper {
 
     List<TicketTypeAdminResponse> toAdminResponses(List<TicketType> ticketTypes);
 
-    default  String map(Instant instant){
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

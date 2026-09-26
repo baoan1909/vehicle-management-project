@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.ai.indexversion.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.ai.AiProvider;
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeIndexVersionStatus;
 import java.util.UUID;
@@ -25,9 +27,9 @@ public class KnowledgeIndexVersionResponse {
     private Integer failedChunkCount;
     private String contentChecksum;
     private String failureCode;
-    private String readyAt;
-    private String activatedAt;
-    private String retiredAt;
-    private String createdAt;
-    private String updatedAt;
+    private Instant readyAt;
+    private Instant activatedAt;
+    private Instant retiredAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

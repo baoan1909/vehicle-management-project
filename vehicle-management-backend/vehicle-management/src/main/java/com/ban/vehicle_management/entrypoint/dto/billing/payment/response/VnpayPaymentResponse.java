@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.billing.payment.response;
 
+import java.time.Instant;
+
 import java.util.UUID;
 
 public record VnpayPaymentResponse(
@@ -7,6 +9,6 @@ public record VnpayPaymentResponse(
         UUID invoiceId,
         String transactionRef,
         String paymentUrl,
-        String expiresAt
+        Instant expiresAt
 ) {
 }
