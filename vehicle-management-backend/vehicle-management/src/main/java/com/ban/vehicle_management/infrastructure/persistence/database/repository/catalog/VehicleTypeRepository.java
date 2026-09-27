@@ -9,7 +9,11 @@ public interface VehicleTypeRepository extends JpaRepository<VehicleTypeEntity, 
 
     boolean existsByCode(String code);
 
+    boolean existsByCodeAndOrganizationId(String code, UUID organizationId);
+
     boolean existsByCodeAndVehicleTypeIdNot(String code, UUID vehicleTypeId);
+
+    boolean existsByCodeAndOrganizationIdAndVehicleTypeIdNot(String code, UUID organizationId, UUID vehicleTypeId);
 
     boolean existsByVehicleTypeIdAndIsActiveTrue(UUID vehicleTypeId);
 }

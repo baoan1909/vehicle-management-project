@@ -8,13 +8,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
+import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
 import com.ban.vehicle_management.application.catalog.priceplan.port.out.PricePlanPortOut;
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.catalog.pricerule.usecase.PriceRuleUseCaseImpl;
+import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
+import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
+import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
 import com.ban.vehicle_management.shared.enumeration.catalog.PriceRuleUnit;
 import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
@@ -26,6 +32,7 @@ import java.time.LocalTime;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -33,6 +40,31 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class PriceRuleUseCaseImplTest {
+
+    private static final UUID ORGANIZATION_ID = UUID.fromString("00000000-0000-0000-0000-000000009011");
+
+    @Mock
+    private CurrentAccountPortIn currentAccountPortIn;
+
+    @Mock
+    private CatalogAccessGuard catalogAccessGuard;
+
+    @Mock
+    private VehicleTypePortOut vehicleTypePortOut;
+
+    @Mock
+    private TicketTypePortOut ticketTypePortOut;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(catalogAccessGuard.writableOrganizationId()).thenReturn(ORGANIZATION_ID);
+        VehicleType vehicleType = new VehicleType();
+        vehicleType.setOrganizationId(ORGANIZATION_ID);
+        vehicleType.setIsActive(true);
+        lenient().when(vehicleTypePortOut.findById(any(UUID.class))).thenReturn(Optional.of(vehicleType));
+        TicketType ticketType = ticketType("DAILY");
+        lenient().when(ticketTypePortOut.findById(any(UUID.class))).thenReturn(Optional.of(ticketType));
+    }
 
     @Mock
     private PriceRulePortOut priceRulePortOut;
@@ -50,8 +82,6 @@ class PriceRuleUseCaseImplTest {
         TicketType ticketType = ticketType("DAILY");
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
-        when(priceRulePortOut.existsActiveVehicleTypeById(request.getVehicleTypeId())).thenReturn(true);
-        when(priceRulePortOut.findActiveTicketTypeById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
         when(priceRulePortOut.existsActiveVisitorTimeOverlap(
                 request.getPricePlanId(),
                 request.getVehicleTypeId(),
@@ -78,8 +108,6 @@ class PriceRuleUseCaseImplTest {
         TicketType ticketType = ticketType("DAILY");
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
-        when(priceRulePortOut.existsActiveVehicleTypeById(request.getVehicleTypeId())).thenReturn(true);
-        when(priceRulePortOut.findActiveTicketTypeById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
         when(priceRulePortOut.existsActiveVisitorTimeOverlap(
                 request.getPricePlanId(),
                 request.getVehicleTypeId(),
@@ -107,8 +135,6 @@ class PriceRuleUseCaseImplTest {
         TicketType ticketType = ticketType("DAILY");
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
-        when(priceRulePortOut.existsActiveVehicleTypeById(request.getVehicleTypeId())).thenReturn(true);
-        when(priceRulePortOut.findActiveTicketTypeById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
 
         assertThrows(BadRequestException.class, () -> priceRuleUseCase.createPriceRule(request));
         verify(priceRulePortOut, never()).save(any(PriceRule.class));
@@ -121,8 +147,6 @@ class PriceRuleUseCaseImplTest {
         TicketType ticketType = ticketType("DAILY");
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
-        when(priceRulePortOut.existsActiveVehicleTypeById(request.getVehicleTypeId())).thenReturn(true);
-        when(priceRulePortOut.findActiveTicketTypeById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
         when(priceRulePortOut.existsActiveVisitorTimeOverlap(
                 request.getPricePlanId(),
                 request.getVehicleTypeId(),
@@ -141,10 +165,9 @@ class PriceRuleUseCaseImplTest {
         PriceRule request = validCustomerPriceRule();
         PricePlan pricePlan = activePricePlan(PricePlanAppliesTo.CUSTOMER);
         TicketType ticketType = ticketType("MONTHLY");
+        when(ticketTypePortOut.findById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
-        when(priceRulePortOut.existsActiveVehicleTypeById(request.getVehicleTypeId())).thenReturn(true);
-        when(priceRulePortOut.findActiveTicketTypeById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
         when(priceRulePortOut.existsActiveCustomerRule(
                 request.getPricePlanId(),
                 request.getVehicleTypeId(),
@@ -167,10 +190,9 @@ class PriceRuleUseCaseImplTest {
 
         PricePlan pricePlan = activePricePlan(PricePlanAppliesTo.CUSTOMER);
         TicketType ticketType = ticketType("MONTHLY");
+        when(ticketTypePortOut.findById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
-        when(priceRulePortOut.existsActiveVehicleTypeById(request.getVehicleTypeId())).thenReturn(true);
-        when(priceRulePortOut.findActiveTicketTypeById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
 
         assertThrows(BadRequestException.class, () -> priceRuleUseCase.createPriceRule(request));
         verify(priceRulePortOut, never()).save(any(PriceRule.class));
@@ -181,10 +203,9 @@ class PriceRuleUseCaseImplTest {
         PriceRule request = validCustomerPriceRule();
         PricePlan pricePlan = activePricePlan(PricePlanAppliesTo.CUSTOMER);
         TicketType ticketType = ticketType("MONTHLY");
+        when(ticketTypePortOut.findById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
-        when(priceRulePortOut.existsActiveVehicleTypeById(request.getVehicleTypeId())).thenReturn(true);
-        when(priceRulePortOut.findActiveTicketTypeById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
         when(priceRulePortOut.existsActiveCustomerRule(
                 request.getPricePlanId(),
                 request.getVehicleTypeId(),
@@ -227,6 +248,7 @@ class PriceRuleUseCaseImplTest {
 
     private PriceRule validVisitorPriceRule() {
         PriceRule priceRule = new PriceRule();
+        priceRule.setOrganizationId(ORGANIZATION_ID);
         priceRule.setPricePlanId(UUID.randomUUID());
         priceRule.setVehicleTypeId(UUID.randomUUID());
         priceRule.setTicketTypeId(UUID.randomUUID());
@@ -242,6 +264,7 @@ class PriceRuleUseCaseImplTest {
 
     private PriceRule validCustomerPriceRule() {
         PriceRule priceRule = new PriceRule();
+        priceRule.setOrganizationId(ORGANIZATION_ID);
         priceRule.setPricePlanId(UUID.randomUUID());
         priceRule.setVehicleTypeId(UUID.randomUUID());
         priceRule.setTicketTypeId(UUID.randomUUID());
@@ -255,6 +278,7 @@ class PriceRuleUseCaseImplTest {
 
     private PricePlan activePricePlan(PricePlanAppliesTo appliesTo) {
         PricePlan pricePlan = new PricePlan();
+        pricePlan.setOrganizationId(ORGANIZATION_ID);
         pricePlan.setPricePlanId(UUID.randomUUID());
         pricePlan.setCode(appliesTo.name() + "-2027");
         pricePlan.setName("Price plan");
@@ -267,6 +291,7 @@ class PriceRuleUseCaseImplTest {
 
     private TicketType ticketType(String code) {
         TicketType ticketType = new TicketType();
+        ticketType.setOrganizationId(ORGANIZATION_ID);
         ticketType.setTicketTypeId(UUID.randomUUID());
         ticketType.setCode(code);
         ticketType.setName(code);

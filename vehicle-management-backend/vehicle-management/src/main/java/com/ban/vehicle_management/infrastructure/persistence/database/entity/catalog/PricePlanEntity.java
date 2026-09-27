@@ -31,7 +31,10 @@ public class PricePlanEntity extends AuditableEntity {
     @Column(name = "price_plan_id", nullable = false)
     private UUID pricePlanId;
 
-    @Column(name = "code", nullable = false, unique = true)
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
+    @Column(name = "code", nullable = false)
     private String code;
 
     @Column(name = "name", nullable = false)

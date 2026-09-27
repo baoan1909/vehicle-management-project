@@ -54,5 +54,7 @@ public interface CardPortOut {
     boolean hasOpenLostCardReport(UUID cardId);
 
     Optional<Card> findFirstAvailableRegistered();
+
+    Optional<Card> findFirstAvailableRegisteredInParkingLot(UUID parkingLotId);
 }
 

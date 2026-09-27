@@ -18,6 +18,7 @@ import com.ban.vehicle_management.shared.enumeration.notification.NotificationTy
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -70,9 +71,7 @@ public class DeviceUseCaseImpl implements DevicePortIn {
     public Device getDeviceById(UUID deviceId) {
         currentAccountPortIn.requirePermission(DEVICE_READ_ALL);
         Device device = findExistingDevice(deviceId);
-        if (isCurrentPartnerAdmin()) {
-            ensureCanReadParkingLot(device.getParkingLotId());
-        }
+        ensureCanReadParkingLot(device.getParkingLotId());
         return device;
     }
 
@@ -87,18 +86,20 @@ public class DeviceUseCaseImpl implements DevicePortIn {
     ) {
         currentAccountPortIn.requirePermission(DEVICE_READ_ALL);
 
-        boolean partnerAdmin = isCurrentPartnerAdmin();
-        if (partnerAdmin && parkingLotId != null) {
+        if (parkingLotId != null) {
             ensureCanReadParkingLot(parkingLotId);
         }
+        Set<UUID> accessibleParkingLotIds = organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut);
         return devicePortOut.findAll(
                 parkingLotId,
                 laneId,
                 deviceType,
                 status,
-                normalizeKeyword(keyword)
+                normalizeKeyword(keyword),
+                accessibleParkingLotIds
         ).stream()
-                .filter(device -> !partnerAdmin || canReadParkingLot(device.getParkingLotId()))
+                .filter(device -> accessibleParkingLotIds == null
+                        || accessibleParkingLotIds.contains(device.getParkingLotId()))
                 .toList();
     }
 
@@ -108,7 +109,7 @@ public class DeviceUseCaseImpl implements DevicePortIn {
         currentAccountPortIn.requirePermission(DEVICE_UPDATE_ALL);
 
         Device existing = findExistingDevice(deviceId);
-        ensurePartnerCanConfigureParkingLot(existing.getParkingLotId());
+        ensureCanConfigureParkingLot(existing.getParkingLotId());
 
         request.setDeviceId(existing.getDeviceId());
         request.setStatus(existing.getStatus());
@@ -138,7 +139,7 @@ public class DeviceUseCaseImpl implements DevicePortIn {
         currentAccountPortIn.requirePermission(DEVICE_STATUS_UPDATE_ALL);
 
         Device existing = findExistingDevice(deviceId);
-        ensurePartnerCanConfigureParkingLot(existing.getParkingLotId());
+        ensureCanConfigureParkingLot(existing.getParkingLotId());
 
         if (existing.getStatus() == DeviceStatus.ACTIVE) {
             return existing;
@@ -158,7 +159,7 @@ public class DeviceUseCaseImpl implements DevicePortIn {
         currentAccountPortIn.requirePermission(DEVICE_STATUS_UPDATE_ALL);
 
         Device existing = findExistingDevice(deviceId);
-        ensurePartnerCanConfigureParkingLot(existing.getParkingLotId());
+        ensureCanConfigureParkingLot(existing.getParkingLotId());
 
         if (existing.getStatus() == DeviceStatus.OFFLINE) {
             return existing;
@@ -177,7 +178,7 @@ public class DeviceUseCaseImpl implements DevicePortIn {
         currentAccountPortIn.requirePermission(DEVICE_STATUS_UPDATE_ALL);
 
         Device existing = findExistingDevice(deviceId);
-        ensurePartnerCanConfigureParkingLot(existing.getParkingLotId());
+        ensureCanConfigureParkingLot(existing.getParkingLotId());
 
         if (existing.getStatus() == DeviceStatus.MAINTENANCE) {
             return existing;
@@ -196,7 +197,7 @@ public class DeviceUseCaseImpl implements DevicePortIn {
         currentAccountPortIn.requirePermission(DEVICE_DELETE_ALL);
 
         Device existing = findExistingDevice(deviceId);
-        ensurePartnerCanConfigureParkingLot(existing.getParkingLotId());
+        ensureCanConfigureParkingLot(existing.getParkingLotId());
 
         if (existing.getStatus() == DeviceStatus.RETIRED) {
             return;
@@ -218,9 +219,7 @@ public class DeviceUseCaseImpl implements DevicePortIn {
                 .orElseThrow(() ->
                         new NotFoundException("Parking lot not found")
                 );
-        if (isCurrentPartnerAdmin()) {
-            organizationAccessGuard.ensureCanConfigureParkingLot(parkingLot);
-        }
+        organizationAccessGuard.ensureCanConfigureParkingLot(parkingLot);
 
         if (parkingLot.getStatus() == ParkingLotStatus.CLOSED) {
             throw new ConflictException(
@@ -233,25 +232,8 @@ public class DeviceUseCaseImpl implements DevicePortIn {
         organizationAccessGuard.ensureCanAccessParkingLot(findParkingLot(parkingLotId));
     }
 
-    private boolean canReadParkingLot(UUID parkingLotId) {
-        try {
-            ensureCanReadParkingLot(parkingLotId);
-            return true;
-        } catch (org.springframework.security.access.AccessDeniedException exception) {
-            return false;
-        }
-    }
-
-    private void ensurePartnerCanConfigureParkingLot(UUID parkingLotId) {
-        if (isCurrentPartnerAdmin()) {
-            organizationAccessGuard.ensureCanConfigureParkingLot(findParkingLot(parkingLotId));
-        }
-    }
-
-    private boolean isCurrentPartnerAdmin() {
-        return currentAccountPortIn.getCurrentAccount()
-                .map(account -> OrganizationAccessGuard.PARTNER_ADMIN.equals(account.roleCode()))
-                .orElse(false);
+    private void ensureCanConfigureParkingLot(UUID parkingLotId) {
+        organizationAccessGuard.ensureCanConfigureParkingLot(findParkingLot(parkingLotId));
     }
 
     private ParkingLot findParkingLot(UUID parkingLotId) {

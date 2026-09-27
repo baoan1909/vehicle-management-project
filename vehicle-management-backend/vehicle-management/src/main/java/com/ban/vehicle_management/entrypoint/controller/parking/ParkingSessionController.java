@@ -60,7 +60,8 @@ public class ParkingSessionController {
                         request.zoneId(),
                         request.fromDate(),
                         request.toDate(),
-                        request.keyword()
+                        request.keyword(),
+                        request.parkingLotId()
                 ))
         ));
     }
@@ -78,7 +79,8 @@ public class ParkingSessionController {
                         request.zoneId(),
                         request.fromDate(),
                         request.toDate(),
-                        request.keyword()
+                        request.keyword(),
+                        request.parkingLotId()
                 ))
         ));
     }

@@ -62,6 +62,19 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
     );
 
     @Query("""
+            select count(subscription) > 0 from SubscriptionEntity subscription
+            where subscription.customerVehicleId = :customerVehicleId
+              and subscription.parkingLotId = :parkingLotId
+              and subscription.status in :statuses
+              and (:excludedSubscriptionId is null or subscription.subscriptionId <> :excludedSubscriptionId)
+              and subscription.effectiveFrom <= :effectiveTo
+              and subscription.effectiveTo >= :effectiveFrom
+            """)
+    boolean existsOverlappingSubscriptionInParkingLot(UUID customerVehicleId, UUID parkingLotId,
+            LocalDate effectiveFrom, LocalDate effectiveTo,
+            Collection<SubscriptionStatus> statuses, UUID excludedSubscriptionId);
+
+    @Query("""
             select count(subscription)
             from SubscriptionEntity subscription
             join subscription.customerVehicle customerVehicle
@@ -72,6 +85,16 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
             @Param("vehicleTypeId") UUID vehicleTypeId,
             @Param("statuses") Collection<SubscriptionStatus> statuses
     );
+
+    @Query("""
+            select count(subscription) from SubscriptionEntity subscription
+            join subscription.customerVehicle customerVehicle
+            where subscription.parkingLotId = :parkingLotId
+              and customerVehicle.vehicleTypeId = :canonicalVehicleTypeId
+              and subscription.status in :statuses
+            """)
+    long countByCanonicalVehicleTypeIdAndParkingLotIdAndStatusIn(
+            UUID canonicalVehicleTypeId, UUID parkingLotId, Collection<SubscriptionStatus> statuses);
 
     @Query("""
         select subscription
@@ -87,6 +110,24 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
             @Param("licensePlate") String licensePlate,
             @Param("status") SubscriptionStatus status,
             @Param("businessDate") LocalDate businessDate
+    );
+
+    @Query("""
+        select subscription
+        from SubscriptionEntity subscription
+        join subscription.customerVehicle customerVehicle
+        where upper(customerVehicle.licensePlate) = upper(:licensePlate)
+          and subscription.status = :status
+          and subscription.effectiveFrom <= :businessDate
+          and subscription.effectiveTo >= :businessDate
+          and subscription.parkingLotId in :parkingLotIds
+        order by subscription.effectiveFrom desc
+        """)
+    List<SubscriptionEntity> findActiveByLicensePlateInParkingLots(
+            @Param("licensePlate") String licensePlate,
+            @Param("status") SubscriptionStatus status,
+            @Param("businessDate") LocalDate businessDate,
+            @Param("parkingLotIds") java.util.Set<UUID> parkingLotIds
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

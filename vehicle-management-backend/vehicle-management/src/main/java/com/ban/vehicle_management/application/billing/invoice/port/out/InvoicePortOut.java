@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Set;
 
 public interface InvoicePortOut {
 
@@ -24,6 +25,12 @@ public interface InvoicePortOut {
             Instant fromDate,
             Instant toDate,
             String keywword
+    );
+
+    List<Invoice> findAll(
+            UUID customerId, UUID parkingSessionId, UUID subscriptionId, UUID lostCardReportId,
+            InvoiceStatus status, Instant fromDate, Instant toDate, String keyword,
+            Set<UUID> parkingLotIds
     );
 
     boolean existsCustomerById(UUID customerId);

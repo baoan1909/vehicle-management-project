@@ -30,4 +30,6 @@ public interface ZonePortOut {
     boolean hasActiveGates(UUID zoneId);
 
     long sumActiveCapacityByVehicleTypeId(UUID vehicleTypeId);
+
+    long sumActiveCapacityByVehicleTypeIdAndParkingLotId(UUID vehicleTypeId, UUID parkingLotId);
 }

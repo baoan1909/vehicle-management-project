@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.billing.invoice.authorization.InvoiceAccessGuard;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
+import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
@@ -19,6 +21,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -43,6 +46,9 @@ class InvoiceUseCaseImplTest {
 
     @Mock
     private PaymentPortOut paymentPortOut;
+
+    @Mock
+    private ParkingSessionPortOut parkingSessionPortOut;
 
     @InjectMocks
     private InvoiceUseCaseImpl invoiceUseCase;
@@ -112,10 +118,55 @@ class InvoiceUseCaseImplTest {
         request.setParkingSessionId(parkingSessionId);
 
         when(invoicePortOut.existsParkingSessionById(parkingSessionId)).thenReturn(true);
+        ParkingSession session = new ParkingSession();
+        session.setParkingLotId(request.getParkingLotId());
+        when(parkingSessionPortOut.findById(parkingSessionId)).thenReturn(Optional.of(session));
         when(invoicePortOut.existsByParkingSessionIdAndStatusIn(eq(parkingSessionId), any(Collection.class)))
                 .thenReturn(true);
 
         assertThrows(ConflictException.class, () -> invoiceUseCase.createInvoice(request));
+        verify(invoicePortOut, never()).save(any(Invoice.class));
+    }
+
+    @Test
+    void shouldDeriveInvoiceLotFromParkingSession() {
+        UUID sessionId = UUID.randomUUID();
+        UUID lotId = UUID.randomUUID();
+        Invoice request = validCreateRequest();
+        request.setParkingLotId(null);
+        request.setParkingSessionId(sessionId);
+        ParkingSession session = new ParkingSession();
+        session.setParkingLotId(lotId);
+        when(invoicePortOut.existsParkingSessionById(sessionId)).thenReturn(true);
+        when(parkingSessionPortOut.findById(sessionId)).thenReturn(Optional.of(session));
+        when(invoicePortOut.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Invoice created = invoiceUseCase.createInvoice(request);
+
+        assertEquals(lotId, created.getParkingLotId());
+        verify(invoiceAccessGuard).ensureCanCreateAtParkingLot(lotId);
+    }
+
+    @Test
+    void shouldRejectInvoiceLotThatDiffersFromItsSource() {
+        UUID sessionId = UUID.randomUUID();
+        Invoice request = validCreateRequest();
+        request.setParkingSessionId(sessionId);
+        ParkingSession session = new ParkingSession();
+        session.setParkingLotId(UUID.randomUUID());
+        when(invoicePortOut.existsParkingSessionById(sessionId)).thenReturn(true);
+        when(parkingSessionPortOut.findById(sessionId)).thenReturn(Optional.of(session));
+
+        assertThrows(BadRequestException.class, () -> invoiceUseCase.createInvoice(request));
+        verify(invoicePortOut, never()).save(any(Invoice.class));
+    }
+
+    @Test
+    void shouldRequireParkingLotForManualInvoice() {
+        Invoice request = validCreateRequest();
+        request.setParkingLotId(null);
+
+        assertThrows(BadRequestException.class, () -> invoiceUseCase.createInvoice(request));
         verify(invoicePortOut, never()).save(any(Invoice.class));
     }
 
@@ -162,7 +213,8 @@ class InvoiceUseCaseImplTest {
                 InvoiceStatus.UNPAID,
                 fromDate,
                 toDate,
-                "INV"
+                "INV",
+                java.util.Set.of()
         )).thenReturn(expectedInvoices);
 
         List<Invoice> result = invoiceUseCase.getInvoices(
@@ -190,7 +242,7 @@ class InvoiceUseCaseImplTest {
         Invoice cancelledInvoice = invoiceUseCase.cancelInvoice(invoiceId);
 
         assertEquals(InvoiceStatus.CANCELLED, cancelledInvoice.getStatus());
-        verify(invoiceAccessGuard).ensureCanCancel();
+        verify(invoiceAccessGuard).ensureCanCancel(invoice);
         verify(invoicePortOut).save(invoice);
     }
 
@@ -198,6 +250,7 @@ class InvoiceUseCaseImplTest {
         Invoice invoice = new Invoice();
         invoice.setAmount(new BigDecimal("300000"));
         invoice.setDiscountAmount(BigDecimal.ZERO);
+        invoice.setParkingLotId(UUID.randomUUID());
         return invoice;
     }
 
@@ -205,6 +258,7 @@ class InvoiceUseCaseImplTest {
         Invoice invoice = new Invoice();
         invoice.setInvoiceId(invoiceId);
         invoice.setInvoiceNo("INV-001");
+        invoice.setParkingLotId(UUID.randomUUID());
         invoice.setCustomerId(UUID.randomUUID());
         invoice.setAmount(new BigDecimal("300000"));
         invoice.setDiscountAmount(BigDecimal.ZERO);

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.Set;
 
 public final class InvoiceSpecifications {
 
@@ -21,8 +22,18 @@ public final class InvoiceSpecifications {
             Instant toDate,
             String keyword
     ){
+        return withFilters(customerId, parkingSessionId, subscriptionId, lostCardReportId,
+                status, fromDate, toDate, keyword, null);
+    }
+
+    public static Specification<InvoiceEntity> withFilters(
+            UUID customerId, UUID parkingSessionId, UUID subscriptionId, UUID lostCardReportId,
+            InvoiceStatus status, Instant fromDate, Instant toDate, String keyword,
+            Set<UUID> parkingLotIds
+    ){
         return Specification
-                .where(hasCustomerId(customerId))
+                .where(inParkingLots(parkingLotIds))
+                .and(hasCustomerId(customerId))
                 .and(hasParkingSessionId(parkingSessionId))
                 .and(hasSubscriptionId(subscriptionId))
                 .and(hasLostCardReportId(lostCardReportId))
@@ -30,6 +41,10 @@ public final class InvoiceSpecifications {
                 .and(issuedAtFrom(fromDate))
                 .and(issuedTo(toDate))
                 .and(containsKeyword(keyword));
+    }
+
+    private static Specification<InvoiceEntity> inParkingLots(Set<UUID> parkingLotIds) {
+        return (root, query, cb) -> parkingLotIds == null ? null : root.get("parkingLotId").in(parkingLotIds);
     }
 
     private static Specification<InvoiceEntity> hasCustomerId(UUID customerId){

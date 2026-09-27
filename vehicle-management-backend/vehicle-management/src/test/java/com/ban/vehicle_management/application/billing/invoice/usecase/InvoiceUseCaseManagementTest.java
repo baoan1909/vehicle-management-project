@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.billing.invoice.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,7 +53,7 @@ class InvoiceUseCaseManagementTest {
         Invoice vnpayInvoice = invoice("INV-VNPAY", InvoiceStatus.PAID, "2026-08-06T02:00:00Z");
         Invoice cashInvoice = invoice("INV-CASH", InvoiceStatus.PAID, "2026-08-06T01:00:00Z");
 
-        when(invoicePortOut.findAll(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+        when(invoicePortOut.findAll(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(java.util.Set.of())))
                 .thenReturn(List.of(cashInvoice, vnpayInvoice));
         when(paymentPortOut.findByInvoiceId(vnpayInvoice.getInvoiceId()))
                 .thenReturn(List.of(payment(vnpayInvoice.getInvoiceId(), PaymentMethod.VNPAY)));
@@ -60,7 +61,7 @@ class InvoiceUseCaseManagementTest {
                 .thenReturn(List.of(payment(cashInvoice.getInvoiceId(), PaymentMethod.CASH)));
 
         InvoiceManagementPageResult result = useCase.getManagementInvoices(
-                null, PaymentMethod.VNPAY, null, null, null, 0, 10
+                null, PaymentMethod.VNPAY, null, null, null, 0, 10, null, null
         );
 
         assertEquals(1, result.totalElements());
@@ -71,7 +72,7 @@ class InvoiceUseCaseManagementTest {
 
     @Test
     void shouldBuildInvoiceSummaryFromAllStatuses() {
-        when(invoicePortOut.findAll(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+        when(invoicePortOut.findAll(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(java.util.Set.of())))
                 .thenReturn(List.of(
                         invoice("INV-1", InvoiceStatus.UNPAID, "2026-08-06T01:00:00Z"),
                         invoice("INV-2", InvoiceStatus.PAID, "2026-08-06T02:00:00Z"),
@@ -80,7 +81,7 @@ class InvoiceUseCaseManagementTest {
                         invoice("INV-5", InvoiceStatus.REFUNDED, "2026-08-06T05:00:00Z")
                 ));
 
-        InvoiceManagementSummaryResult result = useCase.getManagementSummary();
+        InvoiceManagementSummaryResult result = useCase.getManagementSummary(null, null);
 
         assertEquals(5, result.total());
         assertEquals(1, result.unpaid());

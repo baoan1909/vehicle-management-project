@@ -104,11 +104,20 @@ class DevicePersistenceAdapterTest {
                 laneId,
                 DeviceType.CAMERA,
                 DeviceStatus.ACTIVE,
-                "Camera"
+                "Camera",
+                java.util.Set.of(parkingLotId)
         );
 
         assertEquals(1, result.size());
         assertSame(domain, result.get(0));
+    }
+
+    @Test
+    void shouldNotQueryDevicesWhenNoParkingLotIsAccessible() {
+        List<Device> result = adapter.findAll(null, null, null, null, null, java.util.Set.of());
+
+        assertTrue(result.isEmpty());
+        verifyNoInteractions(deviceRepository);
     }
 
     @Test

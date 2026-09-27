@@ -54,6 +54,17 @@ public interface CardRepository extends JpaRepository<CardEntity, UUID>, JpaSpec
             @Param("status") CardStatus status,
             @Param("cardTypeCode") String cardTypeCode
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select card from CardEntity card join card.cardType cardType
+        where card.status = :status
+          and card.parkingLotId = :parkingLotId
+          and upper(cardType.code) = upper(:cardTypeCode)
+        order by card.cardNumber asc
+        """)
+    List<CardEntity> findAvailableByCardTypeCodeAndParkingLotIdForUpdate(
+            CardStatus status, String cardTypeCode, UUID parkingLotId);
 }
 
 

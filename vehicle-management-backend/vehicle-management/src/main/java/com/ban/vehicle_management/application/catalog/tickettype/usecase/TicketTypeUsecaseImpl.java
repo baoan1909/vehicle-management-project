@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.catalog.tickettype.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
 import com.ban.vehicle_management.application.catalog.tickettype.port.in.TicketTypePortIn;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
@@ -27,26 +28,36 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
 
     private  final CurrentAccountPortIn currentAccountPortIn;
     private  final TicketTypePortOut ticketTypePortOut;
+    private final CatalogAccessGuard catalogAccessGuard;
     private final NotificationPortIn notificationPortIn;
     private  final TicketTypePolicy ticketTypePolicy = new TicketTypePolicy();
 
     public TicketTypeUsecaseImpl (
             CurrentAccountPortIn currentAccountPortIn,
             TicketTypePortOut ticketTypePortOut,
-            NotificationPortIn notificationPortIn
+            NotificationPortIn notificationPortIn,
+            CatalogAccessGuard catalogAccessGuard
     ){
         this.currentAccountPortIn = currentAccountPortIn;
         this.ticketTypePortOut = ticketTypePortOut;
         this.notificationPortIn = notificationPortIn;
+        this.catalogAccessGuard = catalogAccessGuard;
     }
 
     @Override
     @Transactional
     public TicketType createTicketType(TicketType ticketType){
+        return createTicketType(ticketType, null);
+    }
+
+    @Override
+    @Transactional
+    public TicketType createTicketType(TicketType ticketType, UUID parkingLotId){
         currentAccountPortIn.requirePermission(TICKET_TYPE_CREATE_ALL);
         ticketTypePolicy.initialize(ticketType);
+        ticketType.setOrganizationId(catalogAccessGuard.writableOrganizationId(parkingLotId));
 
-        if(ticketTypePortOut.existsActiveByCode(ticketType.getCode())){
+        if(ticketTypePortOut.existsActiveByCodeInOrganization(ticketType.getCode(), ticketType.getOrganizationId())){
             throw new ConflictException("Active ticket type code already exists");
         }
 
@@ -65,7 +76,7 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     @Transactional(readOnly = true)
     public List<TicketType> getTicketTypes(TicketTypeStatus status, String keyword){
         currentAccountPortIn.requirePermission(TICKET_TYPE_READ_ALL);
-        return ticketTypePortOut.findAll(status, normalizeKeyword(keyword));
+        return ticketTypePortOut.findAll(status, normalizeKeyword(keyword), catalogAccessGuard.visibleOrganizationIds());
     }
 
     @Override
@@ -73,6 +84,7 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     public TicketType updateTicketType(UUID ticketTypeId, TicketType ticketType){
         currentAccountPortIn.requirePermission(TICKET_TYPE_UPDATE_ALL);
         TicketType existingTicketType = findExistingTicketType(ticketTypeId);
+        catalogAccessGuard.ensureWritable(existingTicketType.getOrganizationId());
 
         if (existingTicketType.getStatus() != TicketTypeStatus.ACTIVE){
             throw new BadRequestException("Only active ticket type can be update");
@@ -89,7 +101,8 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
 
         ticketTypePolicy.initialize(existingTicketType);
 
-        if (ticketTypePortOut.existsActiveByCodeAndTicketTypeIdNot(existingTicketType.getCode(), ticketTypeId)){
+        if (ticketTypePortOut.existsActiveByCodeInOrganizationExcludingId(existingTicketType.getCode(),
+                existingTicketType.getOrganizationId(), ticketTypeId)){
             throw new ConflictException("Active ticket type code already exists");
         }
 
@@ -103,6 +116,7 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     public void deleteTicketType(UUID ticketTypeId){
         currentAccountPortIn.requirePermission(TICKET_TYPE_DELETE_ALL);
         TicketType existingTicketType = findExistingTicketType(ticketTypeId);
+        catalogAccessGuard.ensureWritable(existingTicketType.getOrganizationId());
         if (existingTicketType.getStatus() == TicketTypeStatus.INACTIVE){
             return;
         }
@@ -125,6 +139,7 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     public TicketType activateTicketType(UUID ticketTypeId){
         currentAccountPortIn.requirePermission(TICKET_TYPE_UPDATE_ALL);
         TicketType existingTicketType = findExistingTicketType(ticketTypeId);
+        catalogAccessGuard.ensureWritable(existingTicketType.getOrganizationId());
 
         if (existingTicketType.getStatus() == TicketTypeStatus.ACTIVE){
             return existingTicketType;
@@ -132,7 +147,8 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
 
         ticketTypePolicy.activate(existingTicketType);
 
-        if (ticketTypePortOut.existsActiveByCodeAndTicketTypeIdNot(existingTicketType.getCode(), ticketTypeId)){
+        if (ticketTypePortOut.existsActiveByCodeInOrganizationExcludingId(existingTicketType.getCode(),
+                existingTicketType.getOrganizationId(), ticketTypeId)){
             throw new ConflictException("Active ticket type code already exists");
         }
 
@@ -146,8 +162,10 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     }
 
     private TicketType findExistingTicketType(UUID ticketTypeId) {
-        return ticketTypePortOut.findById(ticketTypeId)
+        TicketType ticketType = ticketTypePortOut.findById(ticketTypeId)
                 .orElseThrow(() -> new NotFoundException("Ticket type not found"));
+        catalogAccessGuard.ensureReadable(ticketType.getOrganizationId());
+        return ticketType;
     }
 
     private void notifyTicketTypeChanged(TicketType ticketType, String title) {

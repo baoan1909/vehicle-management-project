@@ -6,6 +6,8 @@ import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 
 public final class PricePlanSpecifications {
@@ -19,8 +21,17 @@ public final class PricePlanSpecifications {
             LocalDate effectiveDate,
             String keyword
     ) {
+        return withFilters(isActive, appliesTo, effectiveDate, keyword, null);
+    }
+
+    public static Specification<PricePlanEntity> withFilters(Boolean isActive, PricePlanAppliesTo appliesTo,
+            LocalDate effectiveDate, String keyword, Set<UUID> organizationIds) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            if (organizationIds != null) {
+                predicates.add(root.get("organizationId").in(organizationIds));
+            }
 
             if (isActive != null) {
                 predicates.add(criteriaBuilder.equal(root.get("isActive"), isActive));

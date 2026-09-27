@@ -18,6 +18,7 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -253,7 +254,7 @@ class CustomerVehicleUseCaseImplTest {
                 CustomerVehicleStatus.ACTIVE,
                 vehicleTypeId,
                 Boolean.TRUE,
-                "nguyen"
+                "nguyen", Set.of()
         )).thenReturn(List.of(new CustomerVehicle(), new CustomerVehicle()));
         when(customerVehicleAccessGuard.resolveCustomerIdForRead(customerId)).thenReturn(customerId);
 
@@ -266,7 +267,7 @@ class CustomerVehicleUseCaseImplTest {
         );
 
         assertEquals(2, customerVehicles.size());
-        verify(customerVehiclePortOut).findAll(customerId, CustomerVehicleStatus.ACTIVE, vehicleTypeId, Boolean.TRUE, "nguyen");
+        verify(customerVehiclePortOut).findAll(customerId, CustomerVehicleStatus.ACTIVE, vehicleTypeId, Boolean.TRUE, "nguyen", Set.of());
     }
 
     @Test
@@ -280,7 +281,7 @@ class CustomerVehicleUseCaseImplTest {
                 CustomerVehicleStatus.ACTIVE,
                 vehicleTypeId,
                 Boolean.FALSE,
-                "abc"
+                "abc", Set.of()
         )).thenReturn(List.of(new CustomerVehicle()));
 
         List<CustomerVehicle> customerVehicles = customerVehicleUseCase.getAllCustomerVehicle(
@@ -297,7 +298,7 @@ class CustomerVehicleUseCaseImplTest {
                 CustomerVehicleStatus.ACTIVE,
                 vehicleTypeId,
                 Boolean.FALSE,
-                "abc"
+                "abc", Set.of()
         );
     }
 

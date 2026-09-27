@@ -120,7 +120,8 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
             String keyword
     ) {
         UUID resolvedCustomerId = customerVehicleAccessGuard.resolveCustomerIdForRead(customerId);
-        return customerVehiclePortOut.findAll(resolvedCustomerId, status, vehicleTypeId, isDefault, keyword);
+        return customerVehiclePortOut.findAll(resolvedCustomerId, status, vehicleTypeId, isDefault, keyword,
+                customerVehicleAccessGuard.visibleParkingLotIdsForRead());
     }
 
     @Override

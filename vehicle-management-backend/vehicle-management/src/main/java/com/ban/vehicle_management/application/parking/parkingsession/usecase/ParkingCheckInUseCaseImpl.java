@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.parking.parkingsession.usecase;
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
+import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
 import com.ban.vehicle_management.application.parking.lane.port.out.LanePortOut;
@@ -72,6 +73,7 @@ public class ParkingCheckInUseCaseImpl {
     private final GatePortOut gatePortOut;
     private final ZonePortOut zonePortOut;
     private final ParkingLotPortOut parkingLotPortOut;
+    private final ParkingLotCatalogAvailabilityPortOut catalogAvailabilityPortOut;
     private final ParkingSessionPortOut parkingSessionPortOut;
     private final ParkingEventPortOut parkingEventPortOut;
     private final ParkingCheckInMapper parkingCheckInMapper;
@@ -94,6 +96,7 @@ public class ParkingCheckInUseCaseImpl {
             GatePortOut gatePortOut,
             ZonePortOut zonePortOut,
             ParkingLotPortOut parkingLotPortOut,
+            ParkingLotCatalogAvailabilityPortOut catalogAvailabilityPortOut,
             ParkingSessionPortOut parkingSessionPortOut,
             ParkingEventPortOut parkingEventPortOut,
             ParkingCheckInMapper parkingCheckInMapper,
@@ -110,6 +113,7 @@ public class ParkingCheckInUseCaseImpl {
         this.gatePortOut = gatePortOut;
         this.zonePortOut = zonePortOut;
         this.parkingLotPortOut = parkingLotPortOut;
+        this.catalogAvailabilityPortOut = catalogAvailabilityPortOut;
         this.parkingSessionPortOut = parkingSessionPortOut;
         this.parkingEventPortOut = parkingEventPortOut;
         this.parkingCheckInMapper = parkingCheckInMapper;
@@ -147,6 +151,11 @@ public class ParkingCheckInUseCaseImpl {
 
         CheckInCustomerContext customerContext = resolveCustomerContext(card, cardType, licensePlate, now);
         UUID resolvedVehicleTypeId = resolveVehicleTypeId(customerContext, requestedVehicleTypeId);
+        // Honor already-active subscriptions; disabling a type stops new admissions, not existing contracts.
+        if (customerContext.subscription() == null
+                && !catalogAvailabilityPortOut.isVehicleTypeEnabled(parkingLot.getParkingLotId(), resolvedVehicleTypeId)) {
+            throw new ConflictException("Vehicle type is not accepted at this parking lot");
+        }
         parkingCheckInPolicy.validateVehicleTypeAccepted(resolvedVehicleTypeId, zone);
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         UUID parkingEventId = UUID.randomUUID();

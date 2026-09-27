@@ -7,7 +7,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
+import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.priceplan.port.out.PricePlanPortOut;
 import com.ban.vehicle_management.application.catalog.priceplan.usecase.PricePlanUseCaseImpl;
 import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
@@ -17,8 +20,10 @@ import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -26,6 +31,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class PricePlanUseCaseImplTest {
+
+    private static final UUID ORGANIZATION_ID = UUID.fromString("00000000-0000-0000-0000-000000009011");
+
+    @Mock
+    private CurrentAccountPortIn currentAccountPortIn;
+
+    @Mock
+    private CatalogAccessGuard catalogAccessGuard;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(catalogAccessGuard.writableOrganizationId()).thenReturn(ORGANIZATION_ID);
+        lenient().when(catalogAccessGuard.visibleOrganizationIds()).thenReturn(Set.of(ORGANIZATION_ID));
+    }
 
     @Mock
     private PricePlanPortOut pricePlanPortOut;
@@ -37,13 +56,6 @@ class PricePlanUseCaseImplTest {
     void shouldCreatePricePlanWhenValid() {
         PricePlan request = validVisitorPricePlan();
 
-        when(pricePlanPortOut.existsByCode("VISITOR-2027")).thenReturn(false);
-        when(pricePlanPortOut.existsActiveOverlap(
-                PricePlanAppliesTo.VISITOR,
-                LocalDate.of(2027, 1, 1),
-                LocalDate.of(2027, 12, 31),
-                null
-        )).thenReturn(false);
         when(pricePlanPortOut.save(any(PricePlan.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         PricePlan createdPricePlan = pricePlanUseCase.createPricePlan(request);
@@ -51,13 +63,14 @@ class PricePlanUseCaseImplTest {
         assertNotNull(createdPricePlan.getPricePlanId());
         assertEquals("VISITOR-2027", createdPricePlan.getCode());
         assertEquals(Boolean.TRUE, createdPricePlan.getIsActive());
+        assertEquals(ORGANIZATION_ID, createdPricePlan.getOrganizationId());
     }
 
     @Test
     void shouldRejectCreateWhenCodeAlreadyExists() {
         PricePlan request = validVisitorPricePlan();
 
-        when(pricePlanPortOut.existsByCode("VISITOR-2027")).thenReturn(true);
+        when(pricePlanPortOut.existsByCodeInOrganization("VISITOR-2027", ORGANIZATION_ID)).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> pricePlanUseCase.createPricePlan(request));
         verify(pricePlanPortOut, never()).save(any(PricePlan.class));
@@ -67,8 +80,8 @@ class PricePlanUseCaseImplTest {
     void shouldRejectCreateWhenActivePeriodOverlaps() {
         PricePlan request = validVisitorPricePlan();
 
-        when(pricePlanPortOut.existsByCode("VISITOR-2027")).thenReturn(false);
-        when(pricePlanPortOut.existsActiveOverlap(
+        when(pricePlanPortOut.existsActiveOverlapInOrganization(
+                ORGANIZATION_ID,
                 PricePlanAppliesTo.VISITOR,
                 LocalDate.of(2027, 1, 1),
                 LocalDate.of(2027, 12, 31),
@@ -85,7 +98,7 @@ class PricePlanUseCaseImplTest {
                 Boolean.TRUE,
                 PricePlanAppliesTo.VISITOR,
                 LocalDate.of(2027, 1, 1),
-                "VISITOR"
+                "VISITOR", Set.of(ORGANIZATION_ID)
         )).thenReturn(List.of(new PricePlan(), new PricePlan()));
 
         List<PricePlan> pricePlans = pricePlanUseCase.getPricePlans(
@@ -100,7 +113,7 @@ class PricePlanUseCaseImplTest {
                 Boolean.TRUE,
                 PricePlanAppliesTo.VISITOR,
                 LocalDate.of(2027, 1, 1),
-                "VISITOR"
+                "VISITOR", Set.of(ORGANIZATION_ID)
         );
     }
 
@@ -128,12 +141,6 @@ class PricePlanUseCaseImplTest {
         existingPricePlan.setIsActive(Boolean.FALSE);
 
         when(pricePlanPortOut.findById(pricePlanId)).thenReturn(Optional.of(existingPricePlan));
-        when(pricePlanPortOut.existsActiveOverlap(
-                PricePlanAppliesTo.VISITOR,
-                existingPricePlan.getEffectiveFrom(),
-                existingPricePlan.getEffectiveTo(),
-                pricePlanId
-        )).thenReturn(false);
         when(pricePlanPortOut.save(any(PricePlan.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         PricePlan activatedPricePlan = pricePlanUseCase.activatePricePlan(pricePlanId);
@@ -152,6 +159,7 @@ class PricePlanUseCaseImplTest {
 
     private PricePlan validVisitorPricePlan() {
         PricePlan pricePlan = new PricePlan();
+        pricePlan.setOrganizationId(ORGANIZATION_ID);
         pricePlan.setCode(" VISITOR-2027 ");
         pricePlan.setName(" Bang gia vang lai 2027 ");
         pricePlan.setDescription("Visitor price plan");

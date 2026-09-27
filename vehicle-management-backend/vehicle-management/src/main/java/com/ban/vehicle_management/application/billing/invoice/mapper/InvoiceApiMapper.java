@@ -56,6 +56,7 @@ public interface InvoiceApiMapper {
 
         return new InvoiceDetailResponse(
                 invoice.getInvoiceId(),
+                invoice.getParkingLotId(),
                 invoice.getInvoiceNo(),
                 invoice.getCustomerId(),
                 invoice.getParkingSessionId(),
@@ -78,6 +79,7 @@ public interface InvoiceApiMapper {
     default InvoiceManagementItemResponse toManagementItemResponse(InvoiceManagementItemResult item) {
         return new InvoiceManagementItemResponse(
                 item.invoiceId(),
+                item.parkingLotId(),
                 item.invoiceNo(),
                 item.customerId(),
                 item.customerName(),

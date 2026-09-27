@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,6 +23,8 @@ import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePo
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.parkingevent.port.out.ParkingEventPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
@@ -53,6 +56,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -73,6 +77,7 @@ class LostCardReportUseCaseImplTest {
     private static final UUID INVOICE_ID = UUID.fromString("10000000-0000-0000-0000-000000000009");
     private static final UUID ACCOUNT_ID = UUID.fromString("10000000-0000-0000-0000-000000000010");
     private static final UUID CARD_TYPE_ID = UUID.fromString("10000000-0000-0000-0000-000000000011");
+    private static final UUID PARKING_LOT_ID = UUID.fromString("10000000-0000-0000-0000-000000000012");
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
@@ -110,8 +115,19 @@ class LostCardReportUseCaseImplTest {
     @Mock
     private FileAccessPort fileAccessPort;
 
+    @Mock
+    private OrganizationAccessGuard organizationAccessGuard;
+
+    @Mock
+    private ParkingLotPortOut parkingLotPortOut;
+
     @InjectMocks
     private LostCardReportUseCaseImpl lostCardReportUseCase;
+
+    @BeforeEach
+    void usePlatformScopeForExistingWorkflowTests() {
+        lenient().when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut)).thenReturn(null);
+    }
 
     @Test
     void shouldPreviewVisitorLostCardInParking() {
@@ -134,6 +150,7 @@ class LostCardReportUseCaseImplTest {
         LostCardPreviewResult result = lostCardReportUseCase.previewByLicensePlate(" 60K8-2301 ");
 
         assertEquals(LostCardReportContext.VISITOR_IN_PARKING, result.context());
+        assertEquals(PARKING_LOT_ID, result.parkingLotId());
         assertEquals(session, result.parkingSession());
         assertEquals(CARD_ID, result.cardId());
         assertEquals(new BigDecimal("50000"), result.lostCardFee());
@@ -164,6 +181,7 @@ class LostCardReportUseCaseImplTest {
 
         assertNotNull(result.lostCardReport().getLostCardReportId());
         assertEquals(LostCardReportContext.VISITOR_IN_PARKING, result.lostCardReport().getContext());
+        assertEquals(PARKING_LOT_ID, result.lostCardReport().getParkingLotId());
         assertEquals(LostCardReportStatus.OPEN, result.lostCardReport().getStatus());
         assertEquals(ParkingSessionStatus.LOST_CARD, result.parkingSession().getStatus());
         assertEquals(CardStatus.LOST, card.getStatus());
@@ -325,7 +343,7 @@ class LostCardReportUseCaseImplTest {
 
         when(lostCardReportPortOut.findById(REPORT_ID)).thenReturn(Optional.of(report));
         when(cardPortOut.findById(CARD_ID)).thenReturn(Optional.of(oldCard));
-        when(cardPortOut.findAll(CardStatus.AVAILABLE, CARD_TYPE_ID, null))
+        when(cardPortOut.findAll(CardStatus.AVAILABLE, CARD_TYPE_ID, null, null))
                 .thenReturn(List.of(replacementCard));
 
         var result = lostCardReportUseCase.getAvailableReplacementCards(REPORT_ID);
@@ -369,6 +387,7 @@ class LostCardReportUseCaseImplTest {
         ParkingSession session = new ParkingSession();
         session.setParkingSessionId(PARKING_SESSION_ID);
         session.setCardId(CARD_ID);
+        session.setParkingLotId(PARKING_LOT_ID);
         session.setVehicleTypeId(VEHICLE_TYPE_ID);
         session.setLicensePlateIn("60K8-2301");
         session.setCheckInTime(Instant.now().minusSeconds(1800));
@@ -406,6 +425,7 @@ class LostCardReportUseCaseImplTest {
         LostCardReport report = new LostCardReport();
         report.setLostCardReportId(REPORT_ID);
         report.setCardId(CARD_ID);
+        report.setParkingLotId(PARKING_LOT_ID);
         report.setNotificationTime(Instant.now().minusSeconds(300));
         report.setTimeOfLost(Instant.now().minusSeconds(600));
         report.setTicketPrice(new BigDecimal("4000"));
@@ -423,6 +443,7 @@ class LostCardReportUseCaseImplTest {
         card.setCardNumber("V001");
         card.setUid("RFID-001");
         card.setCardTypeId(CARD_TYPE_ID);
+        card.setParkingLotId(PARKING_LOT_ID);
         card.setStatus(status);
         return card;
     }

@@ -39,6 +39,9 @@ public class InvoiceEntity extends AuditableEntity {
     @Column(name = "invoice_id", nullable = false)
     private UUID invoiceId;
 
+    @Column(name = "parking_lot_id")
+    private UUID parkingLotId;
+
     @Column(name = "invoice_no", nullable = false, unique = true)
     private String invoiceNo;
 

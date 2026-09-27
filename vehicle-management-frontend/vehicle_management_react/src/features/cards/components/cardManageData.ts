@@ -27,6 +27,8 @@ export interface CardManageRecord {
   licensePlate: string | null;
   lostCardState: CardLostState;
   lostCardStateLabel: string;
+  parkingLotId: string | null;
+  parkingLotLabel: string;
   phoneNumber: string | null;
   registeredVehicleTypeCode: string | null;
   registeredVehicleTypeId: string | null;

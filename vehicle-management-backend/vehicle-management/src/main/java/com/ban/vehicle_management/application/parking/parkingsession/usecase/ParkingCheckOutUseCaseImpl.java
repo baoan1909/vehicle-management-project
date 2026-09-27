@@ -528,6 +528,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         invoice.setInvoiceId(UUID.randomUUID());
         invoice.setCustomerId(parkingSession.getCustomerId());
         invoice.setParkingSessionId(parkingSession.getParkingSessionId());
+        invoice.setParkingLotId(parkingSession.getParkingLotId());
         invoice.setAmount(totalPrice);
         invoice.setDiscountAmount(BigDecimal.ZERO);
 
@@ -631,8 +632,12 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     }
 
     private void ensureSessionBelongsToParkingLot(ParkingSession session, ParkingLot exitParkingLot) {
-        if (!exitParkingLot.getParkingLotId().equals(resolveSessionParkingLotId(session))) {
+        UUID sessionParkingLotId = resolveSessionParkingLotId(session);
+        if (!exitParkingLot.getParkingLotId().equals(sessionParkingLotId)) {
             throw new ConflictException("Parking session belongs to another parking lot");
+        }
+        if (session.getParkingLotId() == null) {
+            session.setParkingLotId(sessionParkingLotId);
         }
     }
 

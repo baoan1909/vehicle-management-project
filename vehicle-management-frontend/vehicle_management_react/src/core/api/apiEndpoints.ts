@@ -5,6 +5,7 @@ export const apiEndpoints = {
     forgotPassword: "/public/auth/forgot-password",
   },
   public: {
+    parkingLots: "/public/parking-lots",
     pricing: {
       pricePlans: "/public/pricing/price-plans",
       priceRules: "/public/pricing/price-rules",
@@ -95,6 +96,7 @@ modelConfigurations: "/ai/models/configurations",
     customerVoucherBanners: "/catalog/vouchers/promotions",
     ticketTypes: "/catalog/ticket-types",
     vehicleTypes: "/catalog/vehicle-types",
+    parkingLotCatalogAvailability: (parkingLotId: string) => `/catalog/parking-lots/${parkingLotId}/availability`,
     tickets: "/tickets",
     vehicles: "/vehicles",
     visitorParkingFees: "/visitor-parking-fees",

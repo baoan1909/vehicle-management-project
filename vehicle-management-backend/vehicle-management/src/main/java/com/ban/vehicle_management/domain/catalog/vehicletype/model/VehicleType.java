@@ -14,6 +14,8 @@ import lombok.Setter;
 public class VehicleType extends AuditableDomainModel {
 
     private UUID vehicleTypeId;
+    private UUID organizationId;
+    private UUID canonicalVehicleTypeId;
     private String code;
     private String name;
     private String description;

@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 
 import { Badge, Button, Card, DateRangeInput, Drawer, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
 import {
@@ -21,6 +24,7 @@ import {
   type VehicleTypeApiResponse,
 } from "@/features/catalog/api/subscriptionApprovalsApi";
 import { cn } from "@/lib/cn";
+import type { ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 
 type ViewMode = "pipeline" | "table";
 
@@ -37,6 +41,7 @@ type SubscriptionView = {
   id: string;
   invoiceHint: string;
   packageLabel: string;
+  parkingLotName: string;
   packageTone: "primary" | "success";
   plate: string;
   status: SubscriptionStatus;
@@ -47,6 +52,7 @@ type SubscriptionView = {
 
 type LookupData = {
   cards: CardResponse[];
+  parkingLots: ParkingLotApiResponse[];
   customers: CustomerApiResponse[];
   customerVehicles: CustomerVehicleApiResponse[];
   ticketTypes: TicketTypeApiResponse[];
@@ -131,6 +137,7 @@ function toSubscriptionView(
   subscription: SubscriptionApiResponse,
   lookup: {
     cardMap: Map<string, CardResponse>;
+    parkingLotMap: Map<string, ParkingLotApiResponse>;
     customerMap: Map<string, CustomerApiResponse>;
     ticketTypeMap: Map<string, TicketTypeApiResponse>;
     vehicleMap: Map<string, CustomerVehicleApiResponse>;
@@ -158,6 +165,9 @@ function toSubscriptionView(
     id: shortCode("SUB", subscription.subscriptionId),
     invoiceHint: subscription.status === "PENDING" ? "Chưa tạo hóa đơn" : "Hóa đơn theo subscription",
     packageLabel: ticketName,
+    parkingLotName: subscription.parkingLotId
+      ? lookup.parkingLotMap.get(subscription.parkingLotId)?.name ?? "Bãi xe không còn trong phạm vi"
+      : "Chưa xác định bãi",
     packageTone: isVip ? "success" : "primary",
     plate: vehicle?.licensePlate ?? shortCode("XE", subscription.customerVehicleId),
     status: subscription.status,
@@ -351,6 +361,10 @@ function DetailLine({ label, value }: { label: string; value: string }) {
 function ReviewDrawer({
   actionError,
   actionLoading,
+  canApproveAction,
+  canAssignCardAction,
+  canRecordPaymentAction,
+  canRejectAction,
   onApprove,
   onAssignCard,
   onClose,
@@ -361,6 +375,10 @@ function ReviewDrawer({
 }: {
   actionError: string;
   actionLoading: boolean;
+  canApproveAction: boolean;
+  canAssignCardAction: boolean;
+  canRecordPaymentAction: boolean;
+  canRejectAction: boolean;
   onApprove: (request: SubscriptionView) => void;
   onAssignCard: (request: SubscriptionView) => void;
   onClose: () => void;
@@ -392,11 +410,11 @@ function ReviewDrawer({
           ) : null}
           <div className={cn("tw-grid tw-gap-3", canApprove ? "tw-grid-cols-[1fr_1fr_1.15fr]" : "tw-grid-cols-[1fr_1.15fr]")}>
             <Button variant="secondary" onClick={onClose}>Đóng</Button>
-            {canApprove ? <Button disabled={actionLoading} variant="danger" onClick={() => onReject(request, rejectReason)}>Từ chối</Button> : null}
-            {canApprove ? <Button disabled={actionLoading} onClick={() => onApprove(request)}>Duyệt yêu cầu</Button> : null}
-            {canAssignCard ? <Button disabled={actionLoading} onClick={() => onAssignCard(request)}>Gán thẻ</Button> : null}
-            {waitingPayment ? <Button disabled={actionLoading} onClick={() => onOpenCashPayment(request)}>Xác nhận tại quầy</Button> : null}
-            {!canApprove && !canAssignCard && !waitingPayment ? <Button disabled>Không có thao tác</Button> : null}
+            {canApprove && canRejectAction ? <Button disabled={actionLoading} variant="danger" onClick={() => onReject(request, rejectReason)}>Từ chối</Button> : null}
+            {canApprove && canApproveAction ? <Button disabled={actionLoading} onClick={() => onApprove(request)}>Duyệt yêu cầu</Button> : null}
+            {canAssignCard && canAssignCardAction ? <Button disabled={actionLoading} onClick={() => onAssignCard(request)}>Gán thẻ</Button> : null}
+            {waitingPayment && canRecordPaymentAction ? <Button disabled={actionLoading} onClick={() => onOpenCashPayment(request)}>Xác nhận tại quầy</Button> : null}
+            {!(canApprove && (canApproveAction || canRejectAction)) && !(canAssignCard && canAssignCardAction) && !(waitingPayment && canRecordPaymentAction) ? <Button disabled>Chỉ xem</Button> : null}
           </div>
         </div>
       }
@@ -433,6 +451,7 @@ function ReviewDrawer({
 
         <section className="tw-grid tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-4">
           <h3 className="tw-m-0 tw-text-[0.9rem] tw-font-black tw-text-vm-slate-900"><i className="far fa-calendar-alt tw-mr-2 tw-text-vm-slate-500" />Thông tin đăng ký</h3>
+          <DetailLine label="Bãi xe" value={request.parkingLotName} />
           <DetailLine label="Ngày hiệu lực" value={request.date} />
           <DetailLine label="Loại vé" value={`${request.packageLabel} - ${request.amount}`} />
           <DetailLine label="Hóa đơn" value={request.invoiceHint} />
@@ -449,7 +468,7 @@ function ReviewDrawer({
           ) : null}
         </section>
 
-        {canApprove ? (
+        {canApprove && canRejectAction ? (
           <section className="tw-grid tw-gap-2">
             <label className="tw-text-[0.8rem] tw-font-black tw-text-vm-slate-700" htmlFor="subscription-reject-reason">Lý do từ chối</label>
             <textarea
@@ -467,7 +486,15 @@ function ReviewDrawer({
 }
 
 export function SubscriptionApprovalPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const customerIdFilter = searchParams.get("customerId") || undefined;
   const toast = useToast();
+  const { user } = useAuth();
+  const canApproveAction = hasAnyPermission(user, ["SUBSCRIPTION_APPROVE_ALL"]);
+  const canRejectAction = hasAnyPermission(user, ["SUBSCRIPTION_REJECT_ALL"]);
+  const canAssignCardAction = hasAnyPermission(user, ["SUBSCRIPTION_ASSIGN_CARD_ALL"]);
+  const canRecordPaymentAction = hasAnyPermission(user, ["PAYMENT_CREATE_ALL"])
+    && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER", "PARKING_SCOPE_ASSIGNED"]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionApiResponse[]>([]);
   const [lookupData, setLookupData] = useState<LookupData | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -495,6 +522,7 @@ export function SubscriptionApprovalPage() {
     try {
       const [nextSubscriptions, nextLookupData] = await Promise.all([
         getSubscriptions({
+          customerId: customerIdFilter,
           effectiveFrom,
           effectiveTo,
           status: statusFilter === "all" ? undefined : (statusFilter as SubscriptionStatus),
@@ -511,7 +539,7 @@ export function SubscriptionApprovalPage() {
     } finally {
       setLoading(false);
     }
-  }, [dateRange, statusFilter, ticketTypeFilter]);
+  }, [customerIdFilter, dateRange, statusFilter, ticketTypeFilter]);
 
   useEffect(() => {
     void loadData();
@@ -522,6 +550,7 @@ export function SubscriptionApprovalPage() {
 
     const lookup = {
       cardMap: buildLookupMap(lookupData.cards, "cardId"),
+      parkingLotMap: buildLookupMap(lookupData.parkingLots, "parkingLotId"),
       customerMap: buildLookupMap(lookupData.customers, "customerId"),
       ticketTypeMap: buildLookupMap(lookupData.ticketTypes, "ticketTypeId"),
       vehicleMap: buildLookupMap(lookupData.customerVehicles, "customerVehicleId"),
@@ -665,6 +694,11 @@ export function SubscriptionApprovalPage() {
               </Button>
             </header>
 
+            {customerIdFilter ? <div className="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50 tw-px-4 tw-py-2 tw-text-[0.85rem] tw-font-semibold tw-text-vm-slate-700">
+              <span>Đang xem đơn đăng ký vé của khách hàng đã chọn.</span>
+              <button type="button" className="tw-border-0 tw-bg-transparent tw-font-bold tw-text-vm-primary" onClick={() => setSearchParams({})}>Xem tất cả</button>
+            </div> : null}
+
             <div className="tw-grid tw-grid-cols-5 tw-gap-4 max-[1280px]:tw-grid-cols-3 max-[900px]:tw-grid-cols-1">
               {statusOrder.map((status) => <SummaryCard key={status} {...statusMeta[status]} count={counts.get(status) ?? 0} label={statusLabels[status]} />)}
               <SummaryCard {...statusMeta.REJECTED} count={counts.get("REJECTED") ?? 0} label="Bị từ chối" />
@@ -758,6 +792,10 @@ export function SubscriptionApprovalPage() {
       <ReviewDrawer
         actionError={actionError}
         actionLoading={actionLoading}
+        canApproveAction={canApproveAction}
+        canAssignCardAction={canAssignCardAction}
+        canRecordPaymentAction={canRecordPaymentAction}
+        canRejectAction={canRejectAction}
         onApprove={handleApprove}
         onAssignCard={handleAssignCard}
         onClose={() => setDrawerOpen(false)}

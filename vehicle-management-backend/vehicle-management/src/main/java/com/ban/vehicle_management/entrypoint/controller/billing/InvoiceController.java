@@ -95,16 +95,21 @@ public class InvoiceController {
                         request.toDate(),
                         request.keyword(),
                         page,
-                        size
+                        size,
+                        request.organizationId(),
+                        request.parkingLotId()
                 ))
         ));
     }
 
     @GetMapping("/management/summary")
-    public ResponseEntity<ApiResponse<InvoiceManagementSummaryResponse>> getManagementSummary() {
+    public ResponseEntity<ApiResponse<InvoiceManagementSummaryResponse>> getManagementSummary(
+            @RequestParam(required = false) UUID organizationId,
+            @RequestParam(required = false) UUID parkingLotId
+    ) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched invoice management summary successfully",
-                invoiceApiMapper.toManagementSummaryResponse(invoicePortIn.getManagementSummary())
+                invoiceApiMapper.toManagementSummaryResponse(invoicePortIn.getManagementSummary(organizationId, parkingLotId))
         ));
     }
 

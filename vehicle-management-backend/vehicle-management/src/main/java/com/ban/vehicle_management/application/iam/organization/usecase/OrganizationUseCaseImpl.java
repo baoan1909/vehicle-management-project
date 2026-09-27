@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.iam.organization.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.catalog.seed.port.out.PartnerCatalogSeedPortOut;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.iam.organization.port.in.OrganizationPortIn;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
@@ -28,17 +29,20 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
     private final OrganizationPortOut organizationPortOut;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final OrganizationPolicy organizationPolicy;
+    private final PartnerCatalogSeedPortOut partnerCatalogSeedPortOut;
 
     public OrganizationUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             OrganizationPortOut organizationPortOut,
             OrganizationAccessGuard organizationAccessGuard,
-            OrganizationPolicy organizationPolicy
+            OrganizationPolicy organizationPolicy,
+            PartnerCatalogSeedPortOut partnerCatalogSeedPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.organizationPortOut = organizationPortOut;
         this.organizationAccessGuard = organizationAccessGuard;
         this.organizationPolicy = organizationPolicy;
+        this.partnerCatalogSeedPortOut = partnerCatalogSeedPortOut;
     }
 
     @Override
@@ -56,6 +60,7 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
         organization.setOrganizationId(UUID.randomUUID());
         Organization savedOrganization = organizationPortOut.save(organization);
         organizationPortOut.createActiveMembership(savedOrganization.getOrganizationId(), partnerAdminAccountId);
+        partnerCatalogSeedPortOut.copyInternalCatalog(savedOrganization.getOrganizationId());
         return savedOrganization;
     }
 

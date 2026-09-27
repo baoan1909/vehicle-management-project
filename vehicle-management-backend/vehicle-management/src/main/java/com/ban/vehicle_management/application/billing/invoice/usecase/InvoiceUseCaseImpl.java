@@ -31,6 +31,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import org.springframework.stereotype.Service;
@@ -101,6 +102,8 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
 
         invoice.setInvoiceId(UUID.randomUUID());
         validateRelatedData(invoice);
+        invoice.setParkingLotId(resolveParkingLotForNewInvoice(invoice));
+        invoiceAccessGuard.ensureCanCreateAtParkingLot(invoice.getParkingLotId());
         validateDuplicateActiveSource(invoice);
 
         Instant now = Instant.now();
@@ -144,7 +147,8 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
                 status,
                 fromDate,
                 toDate,
-                normalizeKeyword(keyword)
+                normalizeKeyword(keyword),
+                invoiceAccessGuard.visibleParkingLotIdsForList()
         );
     }
 
@@ -157,7 +161,9 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
             Instant toDate,
             String keyword,
             int page,
-            int size
+            int size,
+            UUID organizationId,
+            UUID parkingLotId
     ) {
         invoiceAccessGuard.ensureCanReadAll();
 
@@ -173,7 +179,8 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
                         status,
                         fromDate,
                         toDate,
-                        null
+                        null,
+                        invoiceAccessGuard.visibleParkingLotIdsForManagement(organizationId, parkingLotId)
                 ).stream()
                 .map(this::toManagementItem)
                 .filter(item -> paymentMethod == null || paymentMethod.equals(item.paymentMethod()))
@@ -201,10 +208,11 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
 
     @Override
     @Transactional(readOnly = true)
-    public InvoiceManagementSummaryResult getManagementSummary() {
+    public InvoiceManagementSummaryResult getManagementSummary(UUID organizationId, UUID parkingLotId) {
         invoiceAccessGuard.ensureCanReadAll();
         List<Invoice> invoices = invoicePortOut.findAll(
-                null, null, null, null, null, null, null, null
+                null, null, null, null, null, null, null, null,
+                invoiceAccessGuard.visibleParkingLotIdsForManagement(organizationId, parkingLotId)
         );
 
         return new InvoiceManagementSummaryResult(
@@ -221,6 +229,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
     public InvoiceManagementDetailResult getManagementInvoiceDetail(UUID invoiceId) {
         invoiceAccessGuard.ensureCanReadAll();
         Invoice invoice = findInvoiceOrThrow(invoiceId);
+        invoiceAccessGuard.ensureCanReadManagementInvoice(invoice);
 
         return new InvoiceManagementDetailResult(
                 toManagementItem(invoice),
@@ -235,6 +244,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
 
         return new InvoiceManagementItemResult(
                 invoice.getInvoiceId(),
+                invoice.getParkingLotId(),
                 invoice.getInvoiceNo(),
                 invoice.getCustomerId(),
                 context.customerName(),
@@ -438,8 +448,8 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
     @Override
     @Transactional
     public Invoice cancelInvoice(UUID invoiceId){
-        invoiceAccessGuard.ensureCanCancel();
         Invoice invoice = findInvoiceOrThrow(invoiceId);
+        invoiceAccessGuard.ensureCanCancel(invoice);
         invoicePolicy.cancel(invoice);
         return invoicePortOut.save(invoice);
     }
@@ -465,6 +475,43 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
         if (invoice.getSubscriptionId() != null && !invoicePortOut.existsSubcriptionById(invoice.getSubscriptionId())){
             throw new NotFoundException("Subcription not found");
         }
+    }
+
+    private UUID resolveParkingLotForNewInvoice(Invoice invoice) {
+        int sources = (invoice.getParkingSessionId() == null ? 0 : 1)
+                + (invoice.getSubscriptionId() == null ? 0 : 1)
+                + (invoice.getLostCardReportId() == null ? 0 : 1);
+        if (sources > 1) {
+            throw new BadRequestException("Invoice must reference at most one source");
+        }
+
+        UUID sourceLotId = null;
+        if (invoice.getParkingSessionId() != null) {
+            sourceLotId = parkingSessionPortOut.findById(invoice.getParkingSessionId())
+                    .orElseThrow(() -> new NotFoundException("Parking session not found"))
+                    .getParkingLotId();
+        } else if (invoice.getSubscriptionId() != null) {
+            sourceLotId = subscriptionPortOut.findById(invoice.getSubscriptionId())
+                    .orElseThrow(() -> new NotFoundException("Subscription not found"))
+                    .getParkingLotId();
+        } else if (invoice.getLostCardReportId() != null) {
+            sourceLotId = lostCardReportPortOut.findById(invoice.getLostCardReportId())
+                    .orElseThrow(() -> new NotFoundException("Lost card report not found"))
+                    .getParkingLotId();
+        }
+
+        if (sourceLotId == null && sources != 0) {
+            throw new BadRequestException("Source has no parking lot; reconcile historical data before creating an invoice");
+        }
+        if (sourceLotId != null && invoice.getParkingLotId() != null
+                && !sourceLotId.equals(invoice.getParkingLotId())) {
+            throw new BadRequestException("Invoice parking lot does not match its source");
+        }
+        UUID parkingLotId = sourceLotId == null ? invoice.getParkingLotId() : sourceLotId;
+        if (parkingLotId == null) {
+            throw new BadRequestException("parkingLotId is required for a manual invoice");
+        }
+        return parkingLotId;
     }
 
     private void validateDuplicateActiveSource(Invoice invoice){

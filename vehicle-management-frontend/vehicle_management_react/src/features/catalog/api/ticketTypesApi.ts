@@ -25,6 +25,7 @@ export type UpdateTicketTypeRequest = CreateTicketTypeRequest;
 
 export type TicketTypeApiResponse = {
   code: string;
+  organizationId: string;
   createdAt: string | null;
   createdBy: string | null;
   description: string | null;
@@ -55,8 +56,8 @@ export function getTicketTypes(filter: TicketTypeFilter = {}) {
   );
 }
 
-export function createTicketType(payload: CreateTicketTypeRequest) {
-  return apiClient<ApiResponse<TicketTypeApiResponse>>(apiEndpoints.catalog.ticketTypes, {
+export function createTicketType(payload: CreateTicketTypeRequest, parkingLotId?: string | null) {
+  return apiClient<ApiResponse<TicketTypeApiResponse>>(`${apiEndpoints.catalog.ticketTypes}${buildQuery({ parkingLotId })}`, {
     method: "POST",
     body: payload,
   });

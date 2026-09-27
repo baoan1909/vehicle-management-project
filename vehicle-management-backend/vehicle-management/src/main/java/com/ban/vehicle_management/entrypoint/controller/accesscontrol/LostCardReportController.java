@@ -104,9 +104,10 @@ public class LostCardReportController {
     @GetMapping("/summary")
     public ResponseEntity<ApiResponse<LostCardReportSummaryResponse>> getSummary(
             @RequestParam(required = false) Instant fromDate,
-            @RequestParam(required = false) Instant toDate
+            @RequestParam(required = false) Instant toDate,
+            @RequestParam(required = false) UUID parkingLotId
     ) {
-        LostCardReportSummaryResult result = lostCardReportPortIn.getSummary(fromDate, toDate);
+        LostCardReportSummaryResult result = lostCardReportPortIn.getSummary(fromDate, toDate, parkingLotId);
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched lost card report summary successfully",
@@ -159,6 +160,7 @@ public class LostCardReportController {
                 request.cardId(),
                 request.parkingSessionId(),
                 request.subscriptionId(),
+                request.parkingLotId(),
                 request.fromDate(),
                 request.toDate(),
                 request.keyword()

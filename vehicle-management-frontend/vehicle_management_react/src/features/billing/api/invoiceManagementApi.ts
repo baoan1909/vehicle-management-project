@@ -15,6 +15,7 @@ export type InvoiceSource = "PARKING_SESSION" | "SUBSCRIPTION" | "LOST_CARD" | "
 
 export type InvoiceManagementItem = {
   invoiceId: string;
+  parkingLotId: string | null;
   invoiceNo: string;
   customerId: string | null;
   customerName: string;
@@ -75,6 +76,8 @@ export type InvoiceManagementDetail = {
 };
 
 export type InvoiceManagementFilter = {
+  organizationId?: string;
+  parkingLotId?: string;
   status?: InvoiceStatus;
   paymentMethod?: PaymentMethod;
   fromDate?: string;
@@ -101,9 +104,9 @@ export function getInvoiceManagementList(filter: InvoiceManagementFilter = {}) {
   );
 }
 
-export function getInvoiceManagementSummary() {
+export function getInvoiceManagementSummary(scope: Pick<InvoiceManagementFilter, "organizationId" | "parkingLotId"> = {}) {
   return apiClient<ApiResponse<InvoiceManagementSummary>>(
-    `${apiEndpoints.billing.invoices}/management/summary`,
+    `${apiEndpoints.billing.invoices}/management/summary${buildQuery(scope)}`,
   );
 }
 

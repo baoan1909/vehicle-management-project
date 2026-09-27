@@ -11,6 +11,8 @@ import lombok.Setter;
 public class VehicleTypeAdminResponse {
 
     private UUID vehicleTypeId;
+    private UUID organizationId;
+    private UUID canonicalVehicleTypeId;
     private String code;
     private String name;
     private String description;

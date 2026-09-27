@@ -26,6 +26,7 @@ export type CreatePricePlanRequest = {
 };
 
 export type PriceRuleFilter = {
+  parkingLotId?: string;
   isActive?: boolean;
   keyword?: string;
   pricePlanId?: string;
@@ -83,6 +84,7 @@ export type PriceRuleApiResponse = {
 };
 
 export type VehicleTypeApiResponse = {
+  canonicalVehicleTypeId?: string | null;
   code: string;
   description: string | null;
   isActive: boolean | null;
@@ -195,16 +197,16 @@ export function getPricingTicketTypes() {
   );
 }
 
-export function getPublicPricingVehicleTypes() {
+export function getPublicPricingVehicleTypes(parkingLotId?: string) {
   return apiClient<ApiResponse<VehicleTypeApiResponse[]>>(
-    `${apiEndpoints.public.pricing.vehicleTypes}${buildQuery({ isActive: true })}`,
+    `${apiEndpoints.public.pricing.vehicleTypes}${buildQuery({ isActive: true, parkingLotId })}`,
     { skipAuth: true },
   );
 }
 
-export function getPublicPricingTicketTypes() {
+export function getPublicPricingTicketTypes(parkingLotId?: string) {
   return apiClient<ApiResponse<TicketTypeApiResponse[]>>(
-    `${apiEndpoints.public.pricing.ticketTypes}${buildQuery({ status: "ACTIVE" })}`,
+    `${apiEndpoints.public.pricing.ticketTypes}${buildQuery({ status: "ACTIVE", parkingLotId })}`,
     { skipAuth: true },
   );
 }

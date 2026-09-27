@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -48,7 +49,12 @@ public class TicketTypePersistenceAdapter implements TicketTypePortOut {
 
     @Override
     public List<TicketType> findAll(TicketTypeStatus status, String keyword) {
-        return ticketTypeRepository.findAll(TicketTypeSpecifications.withFilters(status, keyword))
+        return findAll(status, keyword, null);
+    }
+
+    @Override
+    public List<TicketType> findAll(TicketTypeStatus status, String keyword, Set<UUID> organizationIds) {
+        return ticketTypeRepository.findAll(TicketTypeSpecifications.withFilters(status, keyword, organizationIds))
                 .stream()
                 .map(ticketTypePersistenceMapper::toDomain)
                 .toList();
@@ -57,6 +63,17 @@ public class TicketTypePersistenceAdapter implements TicketTypePortOut {
     @Override
     public boolean existsActiveByCode(String code){
         return ticketTypeRepository.existsByCodeAndStatus(code, TicketTypeStatus.ACTIVE);
+    }
+
+    @Override
+    public boolean existsActiveByCodeInOrganization(String code, UUID organizationId) {
+        return ticketTypeRepository.existsByCodeAndStatusAndOrganizationId(code, TicketTypeStatus.ACTIVE, organizationId);
+    }
+
+    @Override
+    public boolean existsActiveByCodeInOrganizationExcludingId(String code, UUID organizationId, UUID ticketTypeId) {
+        return ticketTypeRepository.existsByCodeAndStatusAndOrganizationIdAndTicketTypeIdNot(
+                code, TicketTypeStatus.ACTIVE, organizationId, ticketTypeId);
     }
 
     @Override

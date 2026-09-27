@@ -4,6 +4,9 @@ import { DateRangeInput } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
+import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 
 import {
   getLostCardReports,
@@ -19,6 +22,7 @@ type LostCardInvoiceStatus = "unpaid" | "paid" | "cancelled";
 
 type LostCardReportRow = {
   id: string;
+  parkingLotId: string | null;
   licensePlate: string;
   context: LostCardContext;
   reporterName: string;
@@ -232,6 +236,7 @@ function mapLostCardReportToRow(item: LostCardReportResponse): LostCardReportRow
 
   return {
     id: item.lostCardReportId,
+    parkingLotId: item.parkingLotId,
     licensePlate: item.licensePlate || "-",
     context: item.context === "VISITOR_IN_PARKING" ? "visitor" : "registered",
     reporterName: item.reporterName,
@@ -253,8 +258,13 @@ const getDetailPaymentState = (row: LostCardReportRow) => {
 };
 
 export function LostCardListPage() {
+  const { user } = useAuth();
+  const showParkingLotFilter = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const [searchValue, setSearchValue] = useState("");
   const [statusValue, setStatusValue] = useState("all");
+  const [parkingLotValue, setParkingLotValue] = useState("all");
+  const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
+  const [parkingLotError, setParkingLotError] = useState("");
   const [dateRange, setDateRange] = useState("");
   const [reports, setReports] = useState<LostCardReportResponse[]>([]);
   const [summary, setSummary] = useState<LostCardReportSummaryResponse | null>(null);
@@ -271,6 +281,11 @@ export function LostCardListPage() {
   };
 
   const rows = useMemo(() => reports.map(mapLostCardReportToRow), [reports]);
+  const parkingLotOptions = useMemo(() => parkingLots.map((lot) => ({
+    label: lot.name,
+    value: lot.parkingLotId,
+  })), [parkingLots]);
+  const parkingLotNames = useMemo(() => new Map(parkingLotOptions.map((option) => [option.value, option.label])), [parkingLotOptions]);
   const summaryMetrics = useMemo(() => buildSummaryMetrics(summary), [summary]);
   const { fromDate, toDate } = useMemo(() => splitDateRange(dateRange), [dateRange]);
 
@@ -279,11 +294,29 @@ export function LostCardListPage() {
       rows.filter((row) => {
         const matchesStatus = statusValue === "all" ? true : row.status === statusValue;
         const matchesDate = matchesDateRange(row.lostDate, fromDate, toDate);
+        const matchesParkingLot = !showParkingLotFilter || parkingLotValue === "all" || row.parkingLotId === parkingLotValue;
 
-        return matchesStatus && matchesSearch(row, searchValue) && matchesDate;
+        return matchesStatus && matchesSearch(row, searchValue) && matchesDate && matchesParkingLot;
       }),
-    [rows, searchValue, statusValue, fromDate, toDate],
+    [rows, searchValue, statusValue, fromDate, toDate, parkingLotValue, showParkingLotFilter],
   );
+
+  useEffect(() => {
+    if (!showParkingLotFilter) return undefined;
+    let active = true;
+    void getParkingLots()
+      .then((response) => {
+        if (!active) return;
+        setParkingLots(response.data ?? []);
+        setParkingLotError("");
+      })
+      .catch((error) => {
+        if (!active) return;
+        setParkingLots([]);
+        setParkingLotError(error instanceof Error ? error.message : "Không tải được danh sách bãi xe.");
+      });
+    return () => { active = false; };
+  }, [showParkingLotFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -319,6 +352,7 @@ export function LostCardListPage() {
       try {
         const filter = {
           status: statusValue === "all" ? undefined : (statusValue.toUpperCase() as LostCardReportStatus),
+          parkingLotId: showParkingLotFilter && parkingLotValue !== "all" ? parkingLotValue : undefined,
           keyword: searchValue || undefined,
           fromDate: toStartOfDayInstant(fromDate),
           toDate: toEndOfDayInstant(toDate),
@@ -329,6 +363,7 @@ export function LostCardListPage() {
           getLostCardReportSummary({
             fromDate: filter.fromDate,
             toDate: filter.toDate,
+            parkingLotId: filter.parkingLotId,
           }),
         ]);
 
@@ -352,7 +387,7 @@ export function LostCardListPage() {
     return () => {
       cancelled = true;
     };
-  }, [searchValue, statusValue, fromDate, toDate]);
+  }, [searchValue, statusValue, fromDate, toDate, parkingLotValue, showParkingLotFilter]);
 
   const toggleRowCheck = (id: string) => {
     setCheckedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
@@ -366,6 +401,7 @@ export function LostCardListPage() {
   const resetFilters = () => {
     setSearchValue("");
     setStatusValue("all");
+    setParkingLotValue("all");
     setDateRange("");
     setCurrentPage(1);
   };
@@ -409,7 +445,7 @@ export function LostCardListPage() {
             </div>
 
             <section className="tw-min-w-0 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
-              <div className="tw-grid tw-grid-cols-[minmax(260px,1fr)_170px_250px_auto] tw-items-center tw-gap-3 tw-p-[1.1rem] max-[1200px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1">
+              <div className={cn("tw-grid tw-items-center tw-gap-3 tw-p-[1.1rem] max-[1360px]:tw-grid-cols-2 max-[720px]:tw-grid-cols-1", showParkingLotFilter ? "tw-grid-cols-[minmax(220px,1fr)_150px_200px_minmax(150px,200px)_auto]" : "tw-grid-cols-[minmax(260px,1fr)_170px_250px_auto]")}>
                 <label className="tw-m-0 tw-flex tw-min-h-10 tw-min-w-0 tw-items-center tw-gap-[0.7rem] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-[0.95rem] tw-text-vm-slate-500">
                   <i className="fas fa-search" />
                   <input
@@ -449,8 +485,21 @@ export function LostCardListPage() {
                   }}
                 />
 
+                {showParkingLotFilter ? (
+                  <SelectMenu
+                    ariaLabel="Lọc phiếu mất thẻ theo bãi xe"
+                    className="tw-min-w-0"
+                    value={parkingLotValue}
+                    onChange={(value) => {
+                      setParkingLotValue(value);
+                      setCurrentPage(1);
+                    }}
+                    options={[{ label: "Tất cả bãi xe", value: "all" }, ...parkingLotOptions]}
+                  />
+                ) : null}
+
                 <button
-                  className="tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-gap-[0.55rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-py-[0.7rem] tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-700 tw-transition-colors hover:tw-bg-vm-slate-25 max-[1200px]:tw-w-full"
+                  className="tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-gap-[0.55rem] tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-py-[0.7rem] tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-700 tw-transition-colors hover:tw-bg-vm-slate-25 max-[1360px]:tw-w-full"
                   onClick={resetFilters}
                   type="button"
                 >
@@ -464,6 +513,11 @@ export function LostCardListPage() {
                   {errorMessage}
                 </div>
               ) : null}
+              {parkingLotError ? (
+                <div className="tw-mx-[1.1rem] tw-mb-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-3 tw-text-[0.9rem] tw-font-semibold tw-text-amber-700">
+                  {parkingLotError}
+                </div>
+              ) : null}
 
               <div className="tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100">
                 <div className="table-responsive">
@@ -474,6 +528,7 @@ export function LostCardListPage() {
                           <CheckButton checked={allRowsChecked} partial={someRowsChecked} label="Chọn tất cả dòng trong trang" onClick={() => toggleAllVisibleRows()} />
                         </th>
                         <th>Biển số <HeaderSort /></th>
+                        {showParkingLotFilter ? <th>Bãi xe</th> : null}
                         <th>Loại khách</th>
                         <th>Người báo</th>
                         <th>Thời gian mất</th>
@@ -486,7 +541,7 @@ export function LostCardListPage() {
                     <tbody>
                       {isLoading ? (
                         <tr>
-                          <td className="tw-py-8 tw-text-center tw-font-semibold tw-text-vm-slate-500" colSpan={9}>
+                          <td className="tw-py-8 tw-text-center tw-font-semibold tw-text-vm-slate-500" colSpan={showParkingLotFilter ? 10 : 9}>
                             Đang tải danh sách phiếu mất thẻ...
                           </td>
                         </tr>
@@ -494,7 +549,7 @@ export function LostCardListPage() {
 
                       {!isLoading && pagedRecords.length === 0 ? (
                         <tr>
-                          <td className="tw-py-8 tw-text-center tw-font-semibold tw-text-vm-slate-500" colSpan={9}>
+                          <td className="tw-py-8 tw-text-center tw-font-semibold tw-text-vm-slate-500" colSpan={showParkingLotFilter ? 10 : 9}>
                             Không có phiếu mất thẻ phù hợp.
                           </td>
                         </tr>
@@ -532,6 +587,7 @@ export function LostCardListPage() {
                                 {row.licensePlate}
                               </Link>
                             </td>
+                            {showParkingLotFilter ? <td className="tw-font-semibold tw-text-vm-slate-700">{row.parkingLotId ? parkingLotNames.get(row.parkingLotId) ?? "Bãi chưa có trong danh sách" : "Chưa xác định"}</td> : null}
                             <td><ContextPill context={row.context} /></td>
                             <td>
                               <div className="tw-grid tw-gap-[0.15rem]">

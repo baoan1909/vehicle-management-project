@@ -9,6 +9,7 @@ import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -27,8 +28,20 @@ public final class SubscriptionSpecifications {
             LocalDate effectiveTo,
             String keyword
     ) {
+        return withFilters(customerId, customerVehicleId, cardId, ticketTypeId,
+                status, effectiveFrom, effectiveTo, keyword, null);
+    }
+
+    public static Specification<SubscriptionEntity> withFilters(
+            UUID customerId, UUID customerVehicleId, UUID cardId, UUID ticketTypeId,
+            SubscriptionStatus status, LocalDate effectiveFrom, LocalDate effectiveTo,
+            String keyword, Set<UUID> parkingLotIds) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+
+            if (parkingLotIds != null) {
+                predicates.add(root.get("parkingLotId").in(parkingLotIds));
+            }
 
             if (customerId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("customerId"), customerId));

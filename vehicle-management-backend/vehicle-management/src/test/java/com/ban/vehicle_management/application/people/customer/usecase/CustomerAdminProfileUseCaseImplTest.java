@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.customer.model.command.UpdateCustomerAdminProfileCommand;
+import com.ban.vehicle_management.application.people.customer.authorization.CustomerAccessGuard;
 import com.ban.vehicle_management.application.people.customer.model.result.CustomerAdminProfileResult;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
@@ -35,6 +36,9 @@ class CustomerAdminProfileUseCaseImplTest {
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
+
+    @Mock
+    private CustomerAccessGuard customerAccessGuard;
 
     @Mock
     private UserProfilePortOut userProfilePortOut;
@@ -111,7 +115,7 @@ class CustomerAdminProfileUseCaseImplTest {
 
         CustomerAdminProfileResult result = customerAdminProfileUseCase.uploadCustomerAvatar(customerId, file);
 
-        verify(currentAccountPortIn).requirePermission("CUSTOMER_UPDATE_ALL");
+        verify(customerAccessGuard).ensureCanManage();
         verify(userProfileAvatarPortIn).uploadAvatar(userProfileId, file, uploaderAccountId);
         assertEquals("https://cdn.example.com/avatar.png", result.userProfile().getAvatarUrl());
         assertEquals(customerId, result.customer().getCustomerId());
@@ -133,7 +137,7 @@ class CustomerAdminProfileUseCaseImplTest {
 
         CustomerAdminProfileResult result = customerAdminProfileUseCase.deleteCustomerAvatar(customerId);
 
-        verify(currentAccountPortIn).requirePermission("CUSTOMER_UPDATE_ALL");
+        verify(customerAccessGuard).ensureCanManage();
         verify(userProfileAvatarPortIn).deleteAvatar(userProfileId);
         assertEquals(null, result.userProfile().getAvatarUrl());
     }

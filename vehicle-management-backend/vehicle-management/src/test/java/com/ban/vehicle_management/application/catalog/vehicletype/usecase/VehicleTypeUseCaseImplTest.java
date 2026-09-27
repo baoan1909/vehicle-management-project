@@ -8,7 +8,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
+import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
@@ -16,8 +18,10 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -26,6 +30,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class VehicleTypeUseCaseImplTest {
+
+    private static final UUID ORGANIZATION_ID = UUID.fromString("00000000-0000-0000-0000-000000009011");
+
+    @Mock
+    private CatalogAccessGuard catalogAccessGuard;
 
     @Mock
     private VehicleTypePortOut vehicleTypePort;
@@ -36,6 +45,12 @@ class VehicleTypeUseCaseImplTest {
     @InjectMocks
     private VehicleTypeUseCaseImpl vehicleTypeUseCase;
 
+    @BeforeEach
+    void setUp() {
+        lenient().when(catalogAccessGuard.writableOrganizationId((UUID) null)).thenReturn(ORGANIZATION_ID);
+        lenient().when(catalogAccessGuard.visibleOrganizationIds()).thenReturn(Set.of(ORGANIZATION_ID));
+    }
+
     @Test
     void shouldCreateVehicleTypeWithDefaultActiveFlag() {
         VehicleType requestVehicleType = new VehicleType();
@@ -43,7 +58,6 @@ class VehicleTypeUseCaseImplTest {
         requestVehicleType.setName(" Motorbike ");
         requestVehicleType.setDescription(" Two-wheel vehicle ");
 
-        when(vehicleTypePort.existsByCode("MOTORBIKE")).thenReturn(false);
         when(vehicleTypePort.save(any(VehicleType.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         VehicleType createdVehicleType = vehicleTypeUseCase.createVehicleType(requestVehicleType);
@@ -52,6 +66,7 @@ class VehicleTypeUseCaseImplTest {
         assertEquals("MOTORBIKE", createdVehicleType.getCode());
         assertEquals("Motorbike", createdVehicleType.getName());
         assertEquals("Two-wheel vehicle", createdVehicleType.getDescription());
+        assertEquals(ORGANIZATION_ID, createdVehicleType.getOrganizationId());
         assertTrue(createdVehicleType.getIsActive());
         verify(vehicleTypePort).save(any(VehicleType.class));
     }
@@ -62,7 +77,7 @@ class VehicleTypeUseCaseImplTest {
         requestVehicleType.setCode("CAR");
         requestVehicleType.setName("Car");
 
-        when(vehicleTypePort.existsByCode("CAR")).thenReturn(true);
+        when(vehicleTypePort.existsByCodeInOrganization("CAR", ORGANIZATION_ID)).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> vehicleTypeUseCase.createVehicleType(requestVehicleType));
         verify(vehicleTypePort, never()).save(any(VehicleType.class));
@@ -85,7 +100,6 @@ class VehicleTypeUseCaseImplTest {
         requestVehicleType.setIsActive(false);
 
         when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
-        when(vehicleTypePort.existsByCodeAndVehicleTypeIdNot("CAR", vehicleTypeId)).thenReturn(false);
         when(vehicleTypePort.save(any(VehicleType.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         VehicleType updatedVehicleType = vehicleTypeUseCase.updateVehicleType(vehicleTypeId, requestVehicleType);
@@ -98,13 +112,14 @@ class VehicleTypeUseCaseImplTest {
 
     @Test
     void shouldReturnOrderedVehicleTypes() {
-        when(vehicleTypePort.findAll(Boolean.TRUE)).thenReturn(List.of(new VehicleType(), new VehicleType()));
+        when(vehicleTypePort.findAll(Boolean.TRUE, Set.of(ORGANIZATION_ID)))
+                .thenReturn(List.of(new VehicleType(), new VehicleType()));
 
         List<VehicleType> vehicleTypes = vehicleTypeUseCase.getVehicleTypes(Boolean.TRUE);
 
         assertEquals(2, vehicleTypes.size());
         verify(currentAccountPortIn).requirePermission("VEHICLE_TYPE_READ_ALL");
-        verify(vehicleTypePort).findAll(Boolean.TRUE);
+        verify(vehicleTypePort).findAll(Boolean.TRUE, Set.of(ORGANIZATION_ID));
     }
 
     @Test
@@ -137,7 +152,6 @@ class VehicleTypeUseCaseImplTest {
         existingVehicleType.setIsActive(false);
 
         when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
-        when(vehicleTypePort.existsByCodeAndVehicleTypeIdNot("CAR", vehicleTypeId)).thenReturn(false);
         when(vehicleTypePort.save(any(VehicleType.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         VehicleType activatedVehicleType = vehicleTypeUseCase.activateVehicleType(vehicleTypeId);

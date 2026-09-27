@@ -30,7 +30,13 @@ public class VehicleTypeEntity extends AuditableEntity {
     @Column(name = "vehicle_type_id", nullable = false)
     private UUID vehicleTypeId;
 
-    @Column(name = "code", nullable = false, unique = true)
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
+    @Column(name = "canonical_vehicle_type_id")
+    private UUID canonicalVehicleTypeId;
+
+    @Column(name = "code", nullable = false)
     private String code;
 
     @Column(name = "name", nullable = false)

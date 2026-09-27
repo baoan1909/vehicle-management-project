@@ -12,6 +12,7 @@ import lombok.Setter;
 @NoArgsConstructor
 public class PricePlanAdminResponse {
     private UUID pricePlanId;
+    private UUID organizationId;
     private String code;
     private String name;
     private String description;

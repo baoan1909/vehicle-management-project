@@ -199,5 +199,12 @@ public class CardPersistenceAdapter implements CardPortOut {
                 .findFirst()
                 .map(cardPersistenceMapper::toDomain);
     }
+
+    @Override
+    public Optional<Card> findFirstAvailableRegisteredInParkingLot(UUID parkingLotId) {
+        return cardRepository.findAvailableByCardTypeCodeAndParkingLotIdForUpdate(
+                        CardStatus.AVAILABLE, CARD_TYPE_REGISTERED, parkingLotId)
+                .stream().findFirst().map(cardPersistenceMapper::toDomain);
+    }
 }
 
