@@ -113,10 +113,10 @@ class EmployeeUseCaseImplTest {
         org.mockito.Mockito.doNothing().when(currentAccountPortIn).requirePermission("EMPLOYEE_READ_ALL");
         when(employeePortOut.findAll(EmployeeStatus.ACTIVE, "nguyen"))
                 .thenReturn(List.of(firstEmployee, secondEmployee));
-        when(employeeAccessGuard.filterReadableEmployees(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(employeeAccessGuard.filterReadableEmployees(any(), any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(userProfileAvatarPortIn.withResolvedAvatarUrls(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        List<Employee> employees = employeeUseCase.getEmployees(EmployeeStatus.ACTIVE, "nguyen");
+        List<Employee> employees = employeeUseCase.getEmployees(EmployeeStatus.ACTIVE, "nguyen", UUID.randomUUID());
 
         assertEquals(2, employees.size());
         verify(employeePortOut).findAll(EmployeeStatus.ACTIVE, "nguyen");

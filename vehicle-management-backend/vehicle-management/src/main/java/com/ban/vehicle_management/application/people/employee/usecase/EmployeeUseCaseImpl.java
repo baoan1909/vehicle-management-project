@@ -222,9 +222,10 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Employee> getEmployees(EmployeeStatus status, String keyword) {
+    public List<Employee> getEmployees(EmployeeStatus status, String keyword, UUID parkingLotId) {
         currentAccountPortIn.requirePermission(EMPLOYEE_READ_ALL);
-        List<Employee> employees = employeeAccessGuard.filterReadableEmployees(employeePortOut.findAll(status, keyword));
+        List<Employee> employees = employeeAccessGuard.filterReadableEmployees(
+                employeePortOut.findAll(status, keyword), parkingLotId);
         return withResolvedAvatarUrls(employees);
     }
 

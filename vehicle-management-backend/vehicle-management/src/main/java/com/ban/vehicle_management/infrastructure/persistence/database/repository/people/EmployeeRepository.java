@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -9,6 +10,30 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>, JpaSpecificationExecutor<EmployeeEntity> {
+
+    @Query(value = """
+        SELECT employee.employee_id
+        FROM people.employees employee
+        WHERE EXISTS (
+            SELECT 1
+            FROM operations.shift_assignments assignment
+            JOIN operations.shifts shift ON shift.shift_id = assignment.shift_id
+            WHERE assignment.employee_id = employee.employee_id
+              AND shift.parking_lot_id = :parkingLotId
+              AND assignment.status <> 'REMOVED'
+              AND shift.status <> 'CANCELLED'
+        ) OR EXISTS (
+            SELECT 1
+            FROM iam.accounts account
+            JOIN iam.organization_memberships membership ON membership.account_id = account.account_id
+            JOIN iam.member_parking_lot_scopes scope
+              ON scope.organization_membership_id = membership.organization_membership_id
+            WHERE account.user_profile_id = employee.user_profile_id
+              AND membership.status = 'ACTIVE'
+              AND scope.parking_lot_id = :parkingLotId
+        )
+        """, nativeQuery = true)
+    List<UUID> findEmployeeIdsLinkedToParkingLot(@Param("parkingLotId") UUID parkingLotId);
 
     boolean existsByEmployeeCode(String employeeCode);
 

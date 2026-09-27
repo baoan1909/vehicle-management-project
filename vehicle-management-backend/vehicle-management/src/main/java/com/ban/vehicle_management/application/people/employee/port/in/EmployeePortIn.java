@@ -19,7 +19,7 @@ public interface EmployeePortIn {
 
     Employee getEmployeeById(UUID employeeId);
 
-    List<Employee> getEmployees(EmployeeStatus status, String keyword);
+    List<Employee> getEmployees(EmployeeStatus status, String keyword, UUID parkingLotId);
 
     void deleteEmployee(UUID employeeId);
 
