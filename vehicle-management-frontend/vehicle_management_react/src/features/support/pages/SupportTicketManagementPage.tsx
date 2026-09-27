@@ -5,6 +5,7 @@ import { Badge, Button, Card, EntityAvatar, Modal, PaginationFooter, SearchInput
 import { useAuth } from "@/core/auth/useAuth";
 import { getEmployees, type EmployeeApiResponse } from "@/features/employees/api/employeesApi";
 import { SupportTicketDetailDrawer } from "@/features/support/components/SupportTicketDetailDrawer";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
   approveSupportTicketEscalation,
   assignSupportTicket,
@@ -51,7 +52,7 @@ function formatDate(value: string | null) {
   if (!value) return "--";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--";
-  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: getApplicationTimeZone() }).format(date);
 }
 
 function employeeName(employee: EmployeeApiResponse | undefined) {

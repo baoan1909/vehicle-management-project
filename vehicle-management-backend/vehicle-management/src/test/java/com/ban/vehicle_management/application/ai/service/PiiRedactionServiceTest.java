@@ -29,4 +29,13 @@ class PiiRedactionServiceTest {
         assertTrue(result.sensitivePayment());
         assertTrue(result.value().contains("[PAYMENT_DATA_REDACTED]"));
     }
+
+    @Test
+    void shouldRedactNormalizedMotorbikeAndForeignPlates() {
+        PiiRedactionService.RedactionResult result = service.redact("Plates 59B112345 and 80-441-NG-02");
+
+        assertTrue(result.redacted());
+        assertFalse(result.value().contains("59B112345"));
+        assertFalse(result.value().contains("80-441-NG-02"));
+    }
 }

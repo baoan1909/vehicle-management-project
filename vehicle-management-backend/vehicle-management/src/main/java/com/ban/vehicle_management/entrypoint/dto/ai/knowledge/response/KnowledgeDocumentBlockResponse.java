@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.ai.knowledge.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeDocumentBlock.BlockKind;
 import java.util.UUID;
 import lombok.Getter;
@@ -15,5 +17,5 @@ public class KnowledgeDocumentBlockResponse {
     private Integer sourcePage;
     private String sourceSection;
     private String content;
-    private String createdAt;
+    private Instant createdAt;
 }

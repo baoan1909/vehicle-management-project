@@ -21,12 +21,12 @@ public class CustomerAdminResponse {
     private CustomerStatus status;
     private CustomerApprovalStatus approvalStatus;
     private UUID approvedBy;
-    private String approvedAt;
+    private java.time.Instant approvedAt;
     private String accountEmail;
     private UserProfileAdminResponse userProfile;
-    private String createdAt;
+    private java.time.Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private java.time.Instant updatedAt;
     private UUID updatedBy;
 }
 

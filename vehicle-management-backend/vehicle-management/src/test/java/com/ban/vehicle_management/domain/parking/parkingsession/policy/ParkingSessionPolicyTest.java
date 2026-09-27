@@ -25,7 +25,7 @@ class ParkingSessionPolicyTest {
 
         parkingSessionPolicy.initialize(parkingSession);
 
-        assertEquals("51A-12345", parkingSession.getLicensePlateIn());
+        assertEquals("51A12345", parkingSession.getLicensePlateIn());
         assertEquals(ParkingSessionStatus.OPEN, parkingSession.getStatus());
     }
 
@@ -39,7 +39,7 @@ class ParkingSessionPolicyTest {
 
         assertEquals(ParkingSessionStatus.CLOSED, parkingSession.getStatus());
         assertEquals(checkOutTime, parkingSession.getCheckOutTime());
-        assertEquals("51A-12345", parkingSession.getLicensePlateOut());
+        assertEquals("51A12345", parkingSession.getLicensePlateOut());
         assertEquals(totalPrice, parkingSession.getTotalPrice());
     }
 

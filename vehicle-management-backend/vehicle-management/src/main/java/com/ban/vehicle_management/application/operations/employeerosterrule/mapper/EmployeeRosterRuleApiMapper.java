@@ -39,10 +39,4 @@ public interface EmployeeRosterRuleApiMapper {
             List<EmployeeRosterRule> rules
     );
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(
-                instant,
-                DateTimeUtils.VIETNAM_ZONE
-        );
-    }
 }

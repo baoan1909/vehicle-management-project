@@ -25,6 +25,7 @@ import { PortalTicketFrame } from "@/features/customer-portal/components/PortalT
 import { VehicleVisual } from "@/features/customer-portal/components/VehicleVisual";
 import { VoucherPromotionBanner } from "@/features/customer-portal/components/VoucherPromotionBanner";
 import { parsePortalDate } from "@/features/customer-portal/utils/portalDate";
+import { formatInApplicationTime } from "@/shared/time/applicationTime";
 
 import { CustomerPortalLayout, StatusPill } from "./PortalShared";
 
@@ -34,20 +35,20 @@ function formatDate(value?: string | null) {
   if (!value) return "--";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--";
-  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+  return formatInApplicationTime(date, "vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function formatDateTime(value?: string | null) {
   if (!value) return "--";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--";
-  return new Intl.DateTimeFormat("vi-VN", {
+  return formatInApplicationTime(date, "vi-VN", {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     month: "2-digit",
     year: "numeric",
-  }).format(date);
+  });
 }
 
 function statusLabel(status?: string | null) {
@@ -297,8 +298,8 @@ export function CustomerDashboardPage() {
                     >
                       {createdAt ? (
                         <time dateTime={createdAt.toISOString()} className="tw-grid tw-gap-1 tw-whitespace-nowrap">
-                          {new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" }).format(createdAt)}
-                          <small className="tw-text-[0.68rem] tw-text-[#71819a]">{new Intl.DateTimeFormat("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }).format(createdAt)}</small>
+                          {formatInApplicationTime(createdAt, "vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                          <small className="tw-text-[0.68rem] tw-text-[#71819a]">{formatInApplicationTime(createdAt, "vi-VN", { hour: "2-digit", minute: "2-digit" })}</small>
                         </time>
                       ) : <span className="tw-text-[0.68rem] tw-text-[#71819a]" title="Ngày đăng ký chưa được cung cấp hoặc không hợp lệ">Chưa có ngày đăng ký</span>}
                       <span className="tw-grid tw-min-w-0 tw-gap-1"><span className="tw-text-[#223554]">{ticket?.name ?? "Vé tháng CoParking"}</span><small className="tw-text-[0.68rem] tw-text-[#71819a]">{vehicle?.licensePlate ?? "Chưa gán xe"}</small></span>

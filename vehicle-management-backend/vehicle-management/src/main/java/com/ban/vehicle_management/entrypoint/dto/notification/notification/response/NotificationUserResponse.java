@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.notification.notification.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationChannel;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
@@ -20,11 +22,11 @@ public class NotificationUserResponse {
     private String title;
     private String message;
     private NotificationStatus status;
-    private String sentAt;
-    private String readAt;
+    private Instant sentAt;
+    private Instant readAt;
     private String redirectUrl;
     private String relatedSchema;
     private String relatedTable;
     private UUID relatedId;
-    private String createdAt;
+    private Instant createdAt;
 }

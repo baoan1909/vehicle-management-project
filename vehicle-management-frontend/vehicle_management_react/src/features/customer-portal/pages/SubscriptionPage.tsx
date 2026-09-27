@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
+import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 import {
   createVnpayInvoicePayment,
@@ -45,8 +46,6 @@ type SubscriptionForm = {
 
 type CustomerPaymentChoice = "VNPAY" | "AT_COUNTER";
 
-const today = toDateInputValue(new Date())!;
-
 function formatCurrency(value?: number | string | null) {
   const numberValue = Number(value ?? 0);
   return `${new Intl.NumberFormat("vi-VN").format(Number.isFinite(numberValue) ? numberValue : 0)} đ`;
@@ -56,7 +55,7 @@ function formatDate(value?: string | null) {
   if (!value) return "--";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--";
-  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date);
+  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: getApplicationTimeZone() }).format(date);
 }
 
 function formatDateRange(from?: string | null, to?: string | null) {
@@ -199,7 +198,7 @@ export function SubscriptionPage() {
   const [form, setForm] = useState<SubscriptionForm>({
     parkingLotId: "",
     customerVehicleId: "",
-    requestedEffectiveFrom: today,
+    requestedEffectiveFrom: todayApplicationIsoDate(),
     ticketTypeId: "",
     voucherCode: voucherCodeFromUrl,
   });

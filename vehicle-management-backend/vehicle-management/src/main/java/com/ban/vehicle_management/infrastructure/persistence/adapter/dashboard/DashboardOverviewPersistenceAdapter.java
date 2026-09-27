@@ -6,6 +6,7 @@ import com.ban.vehicle_management.entrypoint.dto.dashboard.response.DeviceStatus
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.RevenueTrendPointResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.VehicleTypeRatioItemResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.VehicleTypeRatioResponse;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Component;
@@ -23,8 +24,6 @@ import java.util.UUID;
 
 @Component
 public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPortOut {
-
-    private static final String VIETNAM_ZONE = "Asia/Ho_Chi_Minh";
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -124,7 +123,7 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
                 """;
 
         List<Object[]> rows = entityManager.createNativeQuery(sql)
-                .setParameter("zoneId", VIETNAM_ZONE)
+                .setParameter("zoneId", DateTimeUtils.getAppZone().getId())
                 .setParameter("fromInstant", fromInstant)
                 .setParameter("toInstantExclusive", toInstantExclusive)
                 .getResultList();

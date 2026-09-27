@@ -14,10 +14,14 @@ import com.ban.vehicle_management.entrypoint.dto.dashboard.response.DeviceStatus
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.RevenueTrendPointResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.VehicleTypeRatioResponse;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -26,6 +30,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class DashboardOverviewUseCaseImplTest {
+
+    @BeforeEach
+    void configureApplicationZone() {
+        DateTimeUtils.configureAppZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+    }
+
+    @AfterEach
+    void resetApplicationZone() {
+        DateTimeUtils.configureAppZone(DateTimeUtils.UTC_ZONE);
+    }
 
     @Mock
     private DashboardOverviewPortOut dashboardOverviewPortOut;

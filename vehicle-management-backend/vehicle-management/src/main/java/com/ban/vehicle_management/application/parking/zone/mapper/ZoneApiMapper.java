@@ -34,7 +34,4 @@ public interface ZoneApiMapper {
 
     List<ZoneAdminResponse> toAdminResponses(List<Zone> zones);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

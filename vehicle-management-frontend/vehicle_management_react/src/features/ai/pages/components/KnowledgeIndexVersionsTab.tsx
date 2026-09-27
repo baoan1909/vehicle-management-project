@@ -15,6 +15,7 @@ import { getAiModelConfigurations } from "@/features/ai/api/aiModelAdminApi";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { Badge } from "@/components/ui";
+import { formatApplicationDateTime } from "@/shared/time/applicationTime";
 
 type StatusTone = "primary" | "success" | "warning" | "danger" | "neutral";
 
@@ -200,7 +201,7 @@ export function KnowledgeIndexVersionsTab() {
                       <span className="tw-text-slate-400"> / {version.expectedChunkCount ?? "-"}</span>
                       {version.failedChunkCount ? <span className="tw-rounded tw-bg-red-50 tw-px-1.5 tw-py-0.5 tw-text-xs tw-font-black tw-text-red-700">{version.failedChunkCount} lỗi</span> : null}
                     </td>
-                    <td className="tw-text-xs tw-font-semibold tw-text-slate-500">{version.updatedAt}</td>
+                    <td className="tw-text-xs tw-font-semibold tw-text-slate-500">{formatApplicationDateTime(version.updatedAt)}</td>
                     <td className="tw-px-3 tw-py-3">
                       {version.status === "DRAFT" && canReindex ? (
                         <Button loading={busy} onClick={() => setPendingAction({ kind: "build", indexVersion: version })} size="sm" variant="secondary">Xây dựng</Button>

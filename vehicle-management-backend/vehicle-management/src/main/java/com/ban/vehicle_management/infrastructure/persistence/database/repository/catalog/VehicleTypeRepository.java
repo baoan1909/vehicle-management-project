@@ -4,6 +4,9 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.cat
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.util.Optional;
 
 public interface VehicleTypeRepository extends JpaRepository<VehicleTypeEntity, UUID>, JpaSpecificationExecutor<VehicleTypeEntity> {
 
@@ -16,6 +19,9 @@ public interface VehicleTypeRepository extends JpaRepository<VehicleTypeEntity, 
     boolean existsByCodeAndOrganizationIdAndVehicleTypeIdNot(String code, UUID organizationId, UUID vehicleTypeId);
 
     boolean existsByVehicleTypeIdAndIsActiveTrue(UUID vehicleTypeId);
+
+    @Query("select vehicleType.code from VehicleTypeEntity vehicleType where vehicleType.vehicleTypeId = :vehicleTypeId")
+    Optional<String> findCodeById(@Param("vehicleTypeId") UUID vehicleTypeId);
 }
 
 

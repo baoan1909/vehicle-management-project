@@ -1,18 +1,29 @@
 package com.ban.vehicle_management.domain.iam.account.policy;
 
 import com.ban.vehicle_management.application.iam.account.port.out.VerificationEmailRateLimitPortOut;
-import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 
-@Component
 public class VerificationEmailResendPolicy {
 
-    private static final Duration COOLDOWN = Duration.ofSeconds(60);
-    private static final Duration HOURLY_WINDOW = Duration.ofHours(1);
-    private static final int MAX_REQUESTS_PER_HOUR = 5;
+    private final Duration cooldown;
+    private final Duration rateWindow;
+    private final int maxRequests;
+
+    public VerificationEmailResendPolicy() {
+        this(Duration.ofMinutes(1), Duration.ofHours(1), 5);
+    }
+
+    public VerificationEmailResendPolicy(Duration cooldown, Duration rateWindow, int maxRequests) {
+        if (!isPositive(cooldown) || !isPositive(rateWindow) || maxRequests <= 0) {
+            throw new IllegalArgumentException("Verification email time policy is invalid");
+        }
+        this.cooldown = cooldown;
+        this.rateWindow = rateWindow;
+        this.maxRequests = maxRequests;
+    }
 
     public VerificationEmailResendDecision evaluate(
             Instant requestedAt,
@@ -21,18 +32,18 @@ public class VerificationEmailResendPolicy {
         Optional<Instant> latestAttemptAt = snapshot.latestAttemptAt();
         if (latestAttemptAt.isPresent()) {
             long elapsedSeconds = Duration.between(latestAttemptAt.get(), requestedAt).getSeconds();
-            if (elapsedSeconds < COOLDOWN.getSeconds()) {
-                return new VerificationEmailResendDecision(false, COOLDOWN.getSeconds() - elapsedSeconds);
+            if (elapsedSeconds < cooldown.getSeconds()) {
+                return new VerificationEmailResendDecision(false, cooldown.getSeconds() - elapsedSeconds);
             }
         }
 
-        if (snapshot.attemptsInWindow() >= MAX_REQUESTS_PER_HOUR) {
+        if (snapshot.attemptsInWindow() >= maxRequests) {
             long retryAfterSeconds = snapshot.earliestAttemptAtInWindow()
                     .map(earliestAttemptAt -> Duration.between(
                             requestedAt,
-                            earliestAttemptAt.plus(HOURLY_WINDOW)
+                            earliestAttemptAt.plus(rateWindow)
                     ).getSeconds())
-                    .orElse(COOLDOWN.getSeconds());
+                    .orElse(cooldown.getSeconds());
             if (retryAfterSeconds <= 0) {
                 retryAfterSeconds = 1;
             }
@@ -43,7 +54,11 @@ public class VerificationEmailResendPolicy {
     }
 
     public Instant windowStartAt(Instant requestedAt) {
-        return requestedAt.minus(HOURLY_WINDOW);
+        return requestedAt.minus(rateWindow);
+    }
+
+    private boolean isPositive(Duration value) {
+        return value != null && !value.isZero() && !value.isNegative();
     }
 
     public record VerificationEmailResendDecision(

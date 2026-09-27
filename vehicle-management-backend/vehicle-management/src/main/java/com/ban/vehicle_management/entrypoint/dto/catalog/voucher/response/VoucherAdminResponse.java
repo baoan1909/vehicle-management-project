@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.catalog.voucher.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.catalog.VoucherDiscountType;
 import com.ban.vehicle_management.shared.enumeration.catalog.VoucherStatus;
 import java.math.BigDecimal;
@@ -22,14 +24,14 @@ public class VoucherAdminResponse {
     private BigDecimal minimumSubscriptionAmount;
     private Integer maxRedemptions;
     private Integer maxRedemptionsPerCustomer;
-    private String validFrom;
-    private String validTo;
+    private Instant validFrom;
+    private Instant validTo;
     private boolean showOnDashboard;
     private boolean showOnSubscriptionPage;
     private String bannerTitle;
     private String bannerDescription;
     private Integer bannerPriority;
     private VoucherStatus status;
-    private String createdAt;
-    private String updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

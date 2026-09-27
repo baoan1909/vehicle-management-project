@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.iam.organization.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus;
 import java.util.UUID;
 import lombok.Getter;
@@ -15,8 +17,8 @@ public class OrganizationAdminResponse {
     private String name;
     private String address;
     private OrganizationStatus status;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { DatePicker } from "@/components/ui";
 import { cn } from "@/lib/cn";
+import { todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 import {
   getDashboardOverview,
@@ -151,7 +152,7 @@ function toIsoDate(date: Date) {
 }
 
 function todayIsoDate() {
-  return toIsoDate(new Date());
+  return todayApplicationIsoDate();
 }
 
 function addDays(date: Date, amount: number) {

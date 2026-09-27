@@ -10,6 +10,19 @@ public record CheckInCommand(
         String licensePlate,
         MultipartFile licensePlateImage,
         MultipartFile personImage,
-        String note
+        String note,
+        Boolean plateFormatConfirmed,
+        Boolean plateIdentityOverride
 ) {
+    public CheckInCommand(
+            String cardUid,
+            UUID laneId,
+            UUID vehicleTypeId,
+            String licensePlate,
+            MultipartFile licensePlateImage,
+            MultipartFile personImage,
+            String note
+    ) {
+        this(cardUid, laneId, vehicleTypeId, licensePlate, licensePlateImage, personImage, note, false, false);
+    }
 }

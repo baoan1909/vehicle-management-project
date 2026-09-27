@@ -1,4 +1,5 @@
 import type { SupportTicketResponse } from "@/features/support/api/supportApi";
+import { formatApplicationDateTime } from "@/shared/time/applicationTime";
 import type { ReactNode } from "react";
 
 const statusLabels = {
@@ -22,20 +23,8 @@ export function supportTicketCode(ticketId: string) {
 function formatDate(value: string | null) {
   if (!value) return "--";
   const legacyMatch = value.match(/^(\d{2}):(\d{2})\s+(\d{2})-(\d{2})-(\d{4})$/);
-  const date = legacyMatch
-    ? new Date(
-        Number(legacyMatch[5]),
-        Number(legacyMatch[4]) - 1,
-        Number(legacyMatch[3]),
-        Number(legacyMatch[1]),
-        Number(legacyMatch[2]),
-      )
-    : new Date(value);
-
-  if (Number.isNaN(date.getTime())) return value;
-
-  const pad = (part: number) => String(part).padStart(2, "0");
-  return `${pad(date.getHours())}:${pad(date.getMinutes())} ${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
+  if (legacyMatch) return value;
+  return formatApplicationDateTime(value);
 }
 
 export function SupportTicketCard({

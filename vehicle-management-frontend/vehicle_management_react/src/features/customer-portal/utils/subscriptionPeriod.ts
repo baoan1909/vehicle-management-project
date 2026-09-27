@@ -1,4 +1,5 @@
 import { parsePortalDate } from "./portalDate";
+import { toApplicationLocalDateTimeInput } from "@/shared/time/applicationTime";
 
 function calendarDay(value?: string | null) {
   // A date-only contract denotes a calendar date, regardless of the browser's time zone.
@@ -20,7 +21,9 @@ export function getSubscriptionPeriod(from?: string | null, to?: string | null, 
   const start = calendarDay(from);
   const end = calendarDay(to);
   if (start === null || end === null || end < start) return null;
-  const current = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 86_400_000;
+  const currentDate = toApplicationLocalDateTimeInput(now)?.slice(0, 10);
+  const current = calendarDay(currentDate);
+  if (current === null) return null;
   const totalDays = end - start + 1;
   const elapsedDays = Math.min(totalDays, Math.max(0, current - start));
   const remainingDays = totalDays - elapsedDays;

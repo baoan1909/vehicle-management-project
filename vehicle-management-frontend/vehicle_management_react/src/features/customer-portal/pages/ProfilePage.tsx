@@ -27,6 +27,7 @@ import {
   type OnboardingApprovalResponse,
 } from "@/features/iam/api/onboardingApprovalApi";
 import { Modal } from "@/shared/components/ui/Modal";
+import { formatInApplicationTime } from "@/shared/time/applicationTime";
 
 import { CustomerPortalLayout } from "./PortalShared";
 
@@ -58,7 +59,7 @@ function formatDate(value?: string | null) {
   if (!value) return "--";
   const date = parsePortalDate(value);
   if (!date) return "--";
-  return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Asia/Ho_Chi_Minh" }).format(date);
+  return formatInApplicationTime(date, "vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function compactCode(value?: string | null) {

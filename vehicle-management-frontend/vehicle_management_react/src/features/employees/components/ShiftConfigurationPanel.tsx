@@ -21,6 +21,7 @@ import {
   type WeekdayApi,
 } from "@/features/employees/api/shiftsApi";
 import { cn } from "@/lib/cn";
+import { todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 type ConfigurationMode = "templates" | "rules";
 
@@ -97,8 +98,7 @@ const weekdayLabels: Record<WeekdayApi, string> = {
 };
 
 function todayIsoDate() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  return todayApplicationIsoDate();
 }
 
 function getEmployeeName(employee?: EmployeeApiResponse) {

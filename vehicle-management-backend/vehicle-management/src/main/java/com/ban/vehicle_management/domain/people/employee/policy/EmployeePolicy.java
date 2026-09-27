@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.people.employee.policy;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.LocalDate;
 
@@ -54,7 +55,8 @@ public class EmployeePolicy {
         employee.setJobTitle(TextValidationUtils.normalizeNullableText(employee.getJobTitle(), "jobTitle", 100));
         requireField(employee.getStatus(), "status");
 
-        if (employee.getHiredAt() != null && employee.getHiredAt().isAfter(LocalDate.now())) {
+        if (employee.getHiredAt() != null
+                && employee.getHiredAt().isAfter(LocalDate.now(DateTimeUtils.getAppZone()))) {
             throw new BadRequestException("hiredAt must not be in the future");
         }
     }

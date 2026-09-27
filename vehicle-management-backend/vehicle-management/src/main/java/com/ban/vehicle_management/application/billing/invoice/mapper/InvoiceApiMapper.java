@@ -33,6 +33,10 @@ public interface InvoiceApiMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "issuedAt", ignore = true)
     @Mapping(target = "paidAt", ignore = true)
+    @Mapping(target = "licensePlateNormalizedSnapshot", ignore = true)
+    @Mapping(target = "licensePlateDisplaySnapshot", ignore = true)
+    @Mapping(target = "licensePlateFormatSnapshot", ignore = true)
+    @Mapping(target = "licensePlateFormatVersion", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
@@ -42,10 +46,6 @@ public interface InvoiceApiMapper {
     InvoiceAdminResponse toAdminResponse(Invoice invoice);
 
     List<InvoiceAdminResponse> toAdminResponses(List<Invoice> invoices);
-
-    default  String map(Instant instant){
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 
     PaymentResponse toPaymentResponse(Payment payment);
 
@@ -66,11 +66,11 @@ public interface InvoiceApiMapper {
                 invoice.getDiscountAmount(),
                 invoice.getFinalAmount(),
                 invoice.getStatus(),
-                map(invoice.getIssuedAt()),
-                map(invoice.getPaidAt()),
-                map(invoice.getCreatedAt()),
+                invoice.getIssuedAt(),
+                invoice.getPaidAt(),
+                invoice.getCreatedAt(),
                 invoice.getCreatedBy(),
-                map(invoice.getUpdatedAt()),
+                invoice.getUpdatedAt(),
                 invoice.getUpdatedBy(),
                 toPaymentResponses(detail.getPayments())
         );
@@ -93,10 +93,10 @@ public interface InvoiceApiMapper {
                 item.paymentMethod(),
                 item.paymentStatus(),
                 item.transactionRef(),
-                map(item.issuedAt()),
-                map(item.paidAt()),
-                map(item.createdAt()),
-                map(item.updatedAt())
+                item.issuedAt(),
+                item.paidAt(),
+                item.createdAt(),
+                item.updatedAt()
         );
     }
 

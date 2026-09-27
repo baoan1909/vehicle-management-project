@@ -37,10 +37,4 @@ public interface BroadcastAnnouncementApiMapper {
 
     List<BroadcastAnnouncementAdminResponse> toAdminResponses(List<BroadcastAnnouncement> announcements);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(
-                instant,
-                DateTimeUtils.VIETNAM_ZONE
-        );
-    }
 }

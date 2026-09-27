@@ -52,7 +52,6 @@ public class KnowledgeIngestionWorker {
 
     private static final Logger log = LoggerFactory.getLogger(KnowledgeIngestionWorker.class);
 
-    private static final Duration RETRY_MAX_DELAY = Duration.ofMinutes(30);
 
     private final KnowledgeIngestionJobPortOut jobPortOut;
     private final KnowledgeDocumentPortOut documentPortOut;
@@ -100,7 +99,7 @@ public class KnowledgeIngestionWorker {
         this.piiRedactionService = piiRedactionService;
         this.properties = properties;
         this.retryPolicy = new EmbeddingRetryPolicy(
-                properties.getRetryInitialDelay(), RETRY_MAX_DELAY, false);
+                properties.getRetryInitialDelay(), properties.getRetryMaxDelay(), false);
         this.self = self == null ? this : self;
     }
 

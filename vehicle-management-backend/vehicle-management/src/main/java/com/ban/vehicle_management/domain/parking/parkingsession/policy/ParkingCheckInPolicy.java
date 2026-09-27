@@ -130,6 +130,17 @@ public class ParkingCheckInPolicy {
             CustomerVehicle customerVehicle,
             String detectedLicensePlate
     ) {
+        validateSubscriptionContext(card, subscription, customer, customerVehicle, detectedLicensePlate, false);
+    }
+
+    public void validateSubscriptionContext(
+            Card card,
+            Subscription subscription,
+            Customer customer,
+            CustomerVehicle customerVehicle,
+            String detectedLicensePlate,
+            boolean allowPlateIdentityOverride
+    ) {
         requireField(card, "card");
         requireField(subscription, "subscription");
         requireField(customer, "customer");
@@ -150,7 +161,8 @@ public class ParkingCheckInPolicy {
         if (customerVehicle.getStatus() != CustomerVehicleStatus.ACTIVE) {
             throw new ConflictException("Phương tiện của khách hàng hiện không hoạt động");
         }
-        if (!licensePlatePolicy.matches(customerVehicle.getLicensePlate(), detectedLicensePlate)) {
+        if (!allowPlateIdentityOverride
+                && !licensePlatePolicy.matches(customerVehicle.getLicensePlate(), detectedLicensePlate)) {
             throw new ConflictException("Biển số nhận diện không khớp với phương tiện đã đăng ký");
         }
     }

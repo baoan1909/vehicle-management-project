@@ -11,6 +11,7 @@ import com.ban.vehicle_management.application.operations.supportticket.service.S
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
 import com.ban.vehicle_management.application.storage.model.StoredFile;
 import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
+import com.ban.vehicle_management.application.storage.config.StorageAccessTimeProperties;
 import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.chatconversation.model.ChatConversation;
@@ -42,15 +43,17 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
 
+    private int attachmentReadUrlExpirySeconds = 900;
+
     private static final int DEFAULT_HISTORY_LIMIT = 30;
     private static final int MAX_HISTORY_LIMIT = 100;
-    private static final int ATTACHMENT_READ_URL_EXPIRE_SECONDS = 900;
     private static final Set<String> CHAT_PARTICIPANT_PERMISSIONS = Set.of("CHAT_CONVERSATION_READ_OWN");
 
     private final CurrentAccountPortIn currentAccountPortIn;
@@ -83,6 +86,11 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         this.ticketMessageContextService = ticketMessageContextService;
         this.fileStoragePort = fileStoragePort;
         this.fileAccessPort = fileAccessPort;
+    }
+
+    @Autowired
+    void configureStorageAccessTime(StorageAccessTimeProperties properties) {
+        this.attachmentReadUrlExpirySeconds = properties.chatAttachmentReadUrlExpirySeconds();
     }
 
     @Override
@@ -299,8 +307,8 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
         requireReadAccess(getConversationOrThrow(message.getConversationId()));
         return new ChatAttachmentReadUrl(
                 attachmentId,
-                fileAccessPort.createReadUrl(attachment.getObjectKey(), ATTACHMENT_READ_URL_EXPIRE_SECONDS),
-                ATTACHMENT_READ_URL_EXPIRE_SECONDS
+                fileAccessPort.createReadUrl(attachment.getObjectKey(), attachmentReadUrlExpirySeconds),
+                attachmentReadUrlExpirySeconds
         );
     }
 

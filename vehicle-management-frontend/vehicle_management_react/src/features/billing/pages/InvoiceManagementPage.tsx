@@ -14,6 +14,7 @@ import {
   type PaymentMethod,
 } from "@/features/billing/api/invoiceManagementApi";
 import { cn } from "@/lib/cn";
+import { endOfApplicationDayIso, startOfApplicationDayIso, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
 
@@ -78,9 +79,7 @@ function formatDisplayDate(value?: string | null) {
 
 function toBoundaryInstant(value: string, endOfDay = false) {
   if (!value) return undefined;
-  const suffix = endOfDay ? "T23:59:59.999+07:00" : "T00:00:00+07:00";
-  const date = new Date(`${value}${suffix}`);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
+  return endOfDay ? endOfApplicationDayIso(value) : startOfApplicationDayIso(value);
 }
 
 function splitDateRange(value: string) {
@@ -369,7 +368,7 @@ export function InvoiceManagementPage() {
       const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `hoa-don-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.download = `hoa-don-${todayApplicationIsoDate()}.csv`;
       link.click();
       URL.revokeObjectURL(url);
       toast.success(`Đã xuất ${rows.length} hóa đơn.`, "Xuất dữ liệu thành công");

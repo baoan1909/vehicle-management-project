@@ -16,9 +16,9 @@ public record CustomerOnboardingApprovalAdminResponse(
             String note,
             UUID requestedBy,
             UUID approvedBy,
-            String approvedAt,
-            String createdAt,
-            String updatedAt
+            java.time.Instant approvedAt,
+            java.time.Instant createdAt,
+            java.time.Instant updatedAt
     ) {
     }
 
@@ -49,7 +49,7 @@ public record CustomerOnboardingApprovalAdminResponse(
             String customerStatus,
             String customerApprovalStatus,
             UUID approvedBy,
-            String approvedAt
+            java.time.Instant approvedAt
     ) {
     }
 }

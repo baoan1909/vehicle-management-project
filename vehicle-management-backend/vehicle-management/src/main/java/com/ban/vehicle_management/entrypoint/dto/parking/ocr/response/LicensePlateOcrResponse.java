@@ -2,7 +2,6 @@ package com.ban.vehicle_management.entrypoint.dto.parking.ocr.response;
 
 import com.ban.vehicle_management.application.parking.ocr.model.LicensePlateOcrResult;
 import java.util.List;
-import java.util.Map;
 
 public record LicensePlateOcrResponse(
         String requestId,
@@ -22,8 +21,7 @@ public record LicensePlateOcrResponse(
         String modelStage,
         List<String> reviewReasons,
         List<LicensePlateOcrDetectionResponse> detections,
-        List<LicensePlateOcrCandidateResponse> candidates,
-        Map<String, Object> rawResponse
+        List<LicensePlateOcrCandidateResponse> candidates
 ) {
     public static LicensePlateOcrResponse from(LicensePlateOcrResult result) {
         return new LicensePlateOcrResponse(
@@ -52,8 +50,7 @@ public record LicensePlateOcrResponse(
                         ? List.of()
                         : result.candidates().stream()
                         .map(LicensePlateOcrCandidateResponse::from)
-                        .toList(),
-                result.rawResponse() == null ? Map.of() : result.rawResponse()
+                        .toList()
         );
     }
 

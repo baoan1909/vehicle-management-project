@@ -40,6 +40,7 @@ import {
 } from "@/features/parking/components/ParkingOperationForm";
 import { ParkingSessionSummary } from "@/features/parking/components/ParkingSessionSummary";
 import { cn } from "@/lib/cn";
+import { formatApplicationDateTime, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 type OcrStatus = "idle" | "recognizing" | "success" | "review" | "error";
 
@@ -111,9 +112,7 @@ function findMatchingCard(cards: ParkingCardResponse[], input: string) {
 }
 
 function formatCurrentCheckOutTime() {
-  const now = new Date();
-  const pad = (value: number) => value.toString().padStart(2, "0");
-  return `${pad(now.getHours())}:${pad(now.getMinutes())} ${pad(now.getDate())}-${pad(now.getMonth() + 1)}-${now.getFullYear()}`;
+  return formatApplicationDateTime(new Date());
 }
 
 function formatDateOnly(value?: string) {
@@ -123,15 +122,10 @@ function formatDateOnly(value?: string) {
   return `${day}/${month}/${year}`;
 }
 
-function getLocalDateKey(date = new Date()) {
-  const pad = (value: number) => value.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
 function getRegisteredCardAvailabilityError(card?: ParkingCardResponse) {
   if (!card) return "";
 
-  const today = getLocalDateKey();
+  const today = todayApplicationIsoDate();
   if (card.effectiveFrom && today < card.effectiveFrom) {
     return `Vé đăng ký chưa đến ngày hiệu lực. Có thể ghi nhận xe vào từ ${formatDateOnly(card.effectiveFrom)}.`;
   }
@@ -806,7 +800,7 @@ export function SwipeListPage() {
   }
 
   function handleApplyOcrCandidate(candidate: LicensePlateOcrCandidate) {
-    const plate = candidate.normalizedLicensePlate || candidate.formattedLicensePlate || candidate.licensePlate;
+    const plate = candidate.formattedLicensePlate || candidate.normalizedLicensePlate || candidate.licensePlate;
     if (!plate) return;
     setLicensePlate(plate);
     setOcrStatus("review");
@@ -865,7 +859,7 @@ export function SwipeListPage() {
       if (ocrRequestSeq.current !== requestId) return;
 
       const result = response.data;
-      const detectedPlate = result.normalizedLicensePlate || result.licensePlate;
+      const detectedPlate = result.formattedLicensePlate || result.normalizedLicensePlate || result.licensePlate;
       setOcrResult(result);
 
       if (detectedPlate) {
@@ -1027,6 +1021,7 @@ export function SwipeListPage() {
           {
             ...request,
             vehicleTypeId: matchedCardRequiresVehicleType ? vehicleTypeId : undefined,
+            plateFormatConfirmed: ocrStatus === "review",
           },
           licensePlateImage,
           personImage,

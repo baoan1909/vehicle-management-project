@@ -19,9 +19,9 @@ public class SupportTicketEscalationResponse {
     private String description;
     private UUID requestedBy;
     private UUID currentAssigneeId;
-    private String requestedAt;
+    private java.time.Instant requestedAt;
     private UUID reviewedBy;
-    private String reviewedAt;
+    private java.time.Instant reviewedAt;
     private SupportTicketEscalationDecision decision;
     private UUID reassignedTo;
     private String decisionNote;

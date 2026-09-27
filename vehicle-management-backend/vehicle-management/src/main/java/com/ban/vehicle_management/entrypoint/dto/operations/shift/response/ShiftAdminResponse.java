@@ -20,30 +20,30 @@ public class ShiftAdminResponse {
     private String shiftCode;
     private LocalDate shiftDate;
     private ShiftType shiftType;
-    private String startTime;
-    private String endTime;
+    private java.time.Instant startTime;
+    private java.time.Instant endTime;
     private ShiftStatus status;
 
-    private String approvedAt;
+    private java.time.Instant approvedAt;
     private UUID approvedBy;
 
     private BigDecimal openingCash;
     private BigDecimal closingCash;
 
-    private String openedAt;
+    private java.time.Instant openedAt;
     private UUID openedBy;
 
-    private String closedAt;
+    private java.time.Instant closedAt;
     private UUID closedBy;
 
-    private String cancelledAt;
+    private java.time.Instant cancelledAt;
     private UUID cancelledBy;
     private String cancellationReason;
 
     private String note;
 
-    private String createdAt;
+    private java.time.Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private java.time.Instant updatedAt;
     private UUID updatedBy;
 }

@@ -74,14 +74,22 @@ public final class SubscriptionSpecifications {
             if (keyword != null && !keyword.isBlank()) {
                 Join<SubscriptionEntity, CustomerVehicleEntity> customerVehicle = root.join("customerVehicle", JoinType.LEFT);
                 String keywordPattern = "%" + keyword.trim().toLowerCase() + "%";
+                String normalizedPlateKeyword = normalizePlateKeyword(keyword);
 
                 predicates.add(criteriaBuilder.or(
-                        criteriaBuilder.like(criteriaBuilder.lower(customerVehicle.get("licensePlate")), keywordPattern)
+                        criteriaBuilder.like(criteriaBuilder.lower(customerVehicle.get("licensePlate")), keywordPattern),
+                        normalizedPlateKeyword == null
+                                ? criteriaBuilder.disjunction()
+                                : criteriaBuilder.like(customerVehicle.get("licensePlateNormalized"), "%" + normalizedPlateKeyword + "%")
                 ));
             }
 
             query.orderBy(criteriaBuilder.desc(root.get("createdAt")));
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+    private static String normalizePlateKeyword(String value) {
+        String normalized = value.trim().toUpperCase().replace(" ", "").replace("-", "").replace(".", "");
+        return normalized.length() >= 4 && normalized.matches("[A-Z0-9]+") ? normalized : null;
     }
 }

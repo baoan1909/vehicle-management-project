@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.domain.people.customervehicle.policy;
 
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlatePolicy;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -7,11 +8,13 @@ import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class CustomerVehiclePolicy {
 
+    private final LicensePlatePolicy licensePlatePolicy = new LicensePlatePolicy();
+
     public void initialize(CustomerVehicle customerVehicle) {
         requireCustomerVehicle(customerVehicle);
         requireField(customerVehicle.getCustomerId(), "customerId");
         requireField(customerVehicle.getVehicleTypeId(), "vehicleTypeId");
-        customerVehicle.setLicensePlate(TextValidationUtils.normalizeRequiredText(customerVehicle.getLicensePlate(), "licensePlate", 20));
+        customerVehicle.setLicensePlate(licensePlatePolicy.normalizeNullable(customerVehicle.getLicensePlate(), "licensePlate"));
         customerVehicle.setBrand(TextValidationUtils.normalizeNullableText(customerVehicle.getBrand(), "brand", 80));
         customerVehicle.setColor(TextValidationUtils.normalizeNullableText(customerVehicle.getColor(), "color", 50));
         if (customerVehicle.getIsDefault() == null) {
@@ -64,7 +67,7 @@ public class CustomerVehiclePolicy {
         requireCustomerVehicle(customerVehicle);
         requireField(customerVehicle.getCustomerId(), "customerId");
         requireField(customerVehicle.getVehicleTypeId(), "vehicleTypeId");
-        customerVehicle.setLicensePlate(TextValidationUtils.normalizeRequiredText(customerVehicle.getLicensePlate(), "licensePlate", 20));
+        customerVehicle.setLicensePlate(licensePlatePolicy.normalizeNullable(customerVehicle.getLicensePlate(), "licensePlate"));
         customerVehicle.setBrand(TextValidationUtils.normalizeNullableText(customerVehicle.getBrand(), "brand", 80));
         customerVehicle.setColor(TextValidationUtils.normalizeNullableText(customerVehicle.getColor(), "color", 50));
         requireField(customerVehicle.getStatus(), "status");

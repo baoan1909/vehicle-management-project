@@ -182,7 +182,7 @@ class ParkingCheckInUseCaseImplTest {
         assertEquals(data.cardId(), result.parkingSession().getCardId());
         assertEquals(data.zoneId(), result.parkingSession().getZoneId());
         assertEquals(data.parkingLotId(), result.parkingSession().getParkingLotId());
-        assertEquals("51A-12345", result.parkingSession().getLicensePlateIn());
+        assertEquals("51A12345", result.parkingSession().getLicensePlateIn());
         assertEquals(ParkingEventType.CHECK_IN, result.parkingEvent().getEventType());
         assertEquals(data.laneId(), result.parkingEvent().getLaneId());
         assertEquals(data.actorAccountId(), result.parkingEvent().getActorAccountId());
@@ -262,7 +262,7 @@ class ParkingCheckInUseCaseImplTest {
         assertEquals(data.customerId(), result.parkingSession().getCustomerId());
         assertEquals(data.customerVehicleId(), result.parkingSession().getCustomerVehicleId());
         assertEquals(data.vehicleTypeId(), result.parkingSession().getVehicleTypeId());
-        assertEquals("51a-12345", result.parkingSession().getLicensePlateIn());
+        assertEquals("51A12345", result.parkingSession().getLicensePlateIn());
     }
 
     @Test

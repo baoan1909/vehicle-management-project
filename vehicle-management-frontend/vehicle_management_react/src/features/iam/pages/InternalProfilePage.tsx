@@ -21,6 +21,7 @@ import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/account
 import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta, type StatusTone } from "@/shared/utils/accountStatus";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
+import { todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 type ProfileFormState = {
   address: string;
@@ -744,7 +745,7 @@ export function InternalProfilePage() {
                     <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Ngày sinh</span>
                     <DatePicker
                       ariaLabel="Chọn ngày sinh"
-                      max={new Date().toISOString().slice(0, 10)}
+                      max={todayApplicationIsoDate()}
                       value={form.dateOfBirth}
                       onChange={(value) => updateField("dateOfBirth", value)}
                     />

@@ -1,11 +1,14 @@
 package com.ban.vehicle_management.domain.parking.parkingevent.policy;
 
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlatePolicy;
 import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class ParkingEventPolicy {
+
+    private final LicensePlatePolicy licensePlatePolicy = new LicensePlatePolicy();
 
     public void initialize(ParkingEvent parkingEvent) {
         validateState(parkingEvent);
@@ -18,7 +21,7 @@ public class ParkingEventPolicy {
         requireField(parkingEvent.getEventType(), "eventType");
         requireField(parkingEvent.getEventTime(), "eventTime");
 
-        parkingEvent.setLicensePlateDetected(TextValidationUtils.normalizeNullableText(parkingEvent.getLicensePlateDetected(), "licensePlateDetected", 20));
+        parkingEvent.setLicensePlateDetected(licensePlatePolicy.normalizeNullable(parkingEvent.getLicensePlateDetected(), "licensePlateDetected"));
         parkingEvent.setLicensePlateImagePath(TextValidationUtils.normalizeNullableText(
                 parkingEvent.getLicensePlateImagePath(),
                 "licensePlateImagePath",
@@ -35,7 +38,7 @@ public class ParkingEventPolicy {
                 || parkingEvent.getEventType() == ParkingEventType.CHECK_OUT_PENDING
                 || parkingEvent.getEventType() == ParkingEventType.CHECK_OUT) {
             parkingEvent.setLicensePlateDetected(
-                    TextValidationUtils.normalizeRequiredText(parkingEvent.getLicensePlateDetected(), "licensePlateDetected", 20));
+                    licensePlatePolicy.normalizeRequired(parkingEvent.getLicensePlateDetected(), "licensePlateDetected"));
         }
     }
 

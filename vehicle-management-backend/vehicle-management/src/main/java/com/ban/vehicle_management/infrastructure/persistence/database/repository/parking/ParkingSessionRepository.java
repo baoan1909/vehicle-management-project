@@ -39,7 +39,7 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
     @Query("""
             SELECT parkingSession
             FROM ParkingSessionEntity parkingSession
-            WHERE parkingSession.licensePlateIn = :licensePlateIn
+            WHERE parkingSession.licensePlateInNormalized = :licensePlateIn
               AND parkingSession.status = :status
             """)
     List<ParkingSessionEntity> findByLicensePlateInAndStatus(

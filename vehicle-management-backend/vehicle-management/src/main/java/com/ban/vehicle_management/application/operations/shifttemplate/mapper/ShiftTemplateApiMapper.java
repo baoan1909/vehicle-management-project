@@ -37,10 +37,4 @@ public interface ShiftTemplateApiMapper {
             List<ShiftTemplate> shiftTemplates
     );
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(
-                instant,
-                DateTimeUtils.VIETNAM_ZONE
-        );
-    }
 }

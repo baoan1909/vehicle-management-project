@@ -41,7 +41,4 @@ public interface KnowledgeDocumentApiMapper {
 
     List<KnowledgeChunkResponse> toChunkResponses(List<KnowledgeChunkSnapshot> chunks);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }
