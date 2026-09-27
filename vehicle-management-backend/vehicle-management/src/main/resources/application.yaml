@@ -13,7 +13,7 @@ management:
       show-details: when_authorized
 spring:
   config:
-    import: optional:file:.env[.properties]
+    import: "classpath:time.properties,optional:file:.env[.properties],optional:file:./config/time-override.properties"
 
   datasource:
     url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:vehicle_management_db}"
@@ -62,9 +62,6 @@ spring:
           auth: ${MAIL_SMTP_AUTH:true}
           starttls:
             enable: ${MAIL_SMTP_STARTTLS_ENABLE:true}
-          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT_MS:10000}
-          timeout: ${MAIL_TIMEOUT_MS:10000}
-          writetimeout: ${MAIL_WRITE_TIMEOUT_MS:10000}
 
   security:
     oauth2:
@@ -104,7 +101,6 @@ app:
       secret-key: ${MINIO_SECRET_KEY:minioadmin}
       public-bucket: ${MINIO_PUBLIC_BUCKET:vehicle-public}
       private-bucket: ${MINIO_PRIVATE_BUCKET:vehicle-private}
-      presigned-url-expire-seconds: ${MINIO_PRESIGNED_EXPIRE_SECONDS:900}
       public-url-base: ${MINIO_PUBLIC_URL_BASE:}
       image-max-size-bytes: ${MINIO_IMAGE_MAX_SIZE_BYTES:5242880}
       image-max-width-pixels: ${MINIO_IMAGE_MAX_WIDTH_PIXELS:1280}
@@ -113,8 +109,6 @@ app:
     enabled: ${OCR_ENABLED:true}
     base-url: ${OCR_BASE_URL:http://localhost:8010}
     internal-token: ${OCR_INTERNAL_TOKEN:dev-ocr-internal-token}
-    connect-timeout-ms: ${OCR_CONNECT_TIMEOUT_MS:1500}
-    read-timeout-ms: ${OCR_READ_TIMEOUT_MS:10000}
     confidence-threshold: ${OCR_CONFIDENCE_THRESHOLD:0.70}
   payment:
     vnpay:
@@ -128,39 +122,21 @@ app:
       ipn-url: ${VNPAY_IPN_URL:}
       frontend-return-url: ${VNPAY_FRONTEND_RETURN_URL:http://localhost:5173/payment/vnpay-return}
       order-type: ${VNPAY_ORDER_TYPE:other}
-      timeout-minutes: ${VNPAY_TIMEOUT_MINUTES:15}
       minimum-amount: ${VNPAY_MINIMUM_AMOUNT:10000}
-  subscription:
-    payment-timeout-hours: ${SUBSCRIPTION_PAYMENT_TIMEOUT_HOURS:48}
-  scheduler:
-    subscription-lifecycle:
-      fixed-delay-ms: ${SUBSCRIPTION_LIFECYCLE_SCHEDULER_FIXED_DELAY_MS:300000}
-      initial-delay-ms: ${SUBSCRIPTION_LIFECYCLE_SCHEDULER_INITIAL_DELAY_MS:60000}
   ai:
     assistant-enabled: ${AI_ASSISTANT_ENABLED:false}
     data-mode: ${AI_GEMINI_DATA_MODE:UNPAID}
     allow-unpaid-support-data: ${AI_ALLOW_UNPAID_SUPPORT_DATA:false}
     recent-message-limit: ${AI_ASSISTANT_RECENT_MESSAGE_LIMIT:8}
     max-attempts: ${AI_ASSISTANT_MAX_ATTEMPTS:3}
-    retry-initial-delay: ${AI_ASSISTANT_RETRY_INITIAL_DELAY:20s}
-    request-timeout: ${AI_ASSISTANT_REQUEST_TIMEOUT:20s}
     prompt-version: ${AI_ASSISTANT_PROMPT_VERSION:support-assistant-v1}
-    assistant-job-fixed-delay-ms: ${AI_ASSISTANT_JOB_FIXED_DELAY_MS:2500}
-    assistant-job-initial-delay-ms: ${AI_ASSISTANT_JOB_INITIAL_DELAY_MS:5000}
-    model-catalog-sync-fixed-delay-ms: ${AI_MODEL_CATALOG_SYNC_FIXED_DELAY_MS:86400000}
-    model-catalog-sync-initial-delay-ms: ${AI_MODEL_CATALOG_SYNC_INITIAL_DELAY_MS:60000}
     embedding:
       enabled: ${AI_EMBEDDING_ENABLED:false}
       vector-search-enabled: ${AI_EMBEDDING_VECTOR_SEARCH_ENABLED:true}
       lexical-fallback-enabled: ${AI_EMBEDDING_LEXICAL_FALLBACK_ENABLED:true}
       retry-max-attempts: ${AI_EMBEDDING_RETRY_MAX_ATTEMPTS:3}
-      retry-initial-delay: ${AI_EMBEDDING_RETRY_INITIAL_DELAY:1s}
-      retry-max-delay: ${AI_EMBEDDING_RETRY_MAX_DELAY:10s}
       retry-jitter-enabled: ${AI_EMBEDDING_RETRY_JITTER_ENABLED:true}
       build-batch-size: ${AI_EMBEDDING_BUILD_BATCH_SIZE:5}
-      build-fixed-delay-ms: ${AI_EMBEDDING_BUILD_FIXED_DELAY_MS:5000}
-      build-initial-delay-ms: ${AI_EMBEDDING_BUILD_INITIAL_DELAY_MS:10000}
-      build-lease-duration: ${AI_EMBEDDING_BUILD_LEASE_DURATION:10m}
       pgvector-required: ${AI_PGVECTOR_REQUIRED:false}
     retrieval:
       final-top-k: ${AI_RETRIEVAL_FINAL_TOP_K:5}
@@ -179,38 +155,19 @@ app:
       unaccent-required: ${AI_RETRIEVAL_UNACCENT_REQUIRED:false}
     ingestion:
       enabled: ${AI_INGESTION_ENABLED:true}
-      poll-fixed-delay-ms: ${AI_INGESTION_POLL_FIXED_DELAY_MS:5000}
-      poll-initial-delay-ms: ${AI_INGESTION_POLL_INITIAL_DELAY_MS:15000}
       claim-limit: ${AI_INGESTION_CLAIM_LIMIT:3}
       worker-id-prefix: ${AI_INGESTION_WORKER_ID_PREFIX:kd-worker}
-      lock-duration: ${AI_INGESTION_LOCK_DURATION:5m}
-      retry-initial-delay: ${AI_INGESTION_RETRY_INITIAL_DELAY:1m}
       max-attempts: ${AI_INGESTION_MAX_ATTEMPTS:3}
     gemini:
       api-key: ${GEMINI_API_KEY:}
       base-url: ${GEMINI_BASE_URL:https://generativelanguage.googleapis.com}
     cache:
       enabled: ${AI_CACHE_ENABLED:true}
-      query-embedding-ttl: ${AI_REDIS_QUERY_EMBEDDING_TTL:24h}
-      public-retrieval-ttl: ${AI_REDIS_PUBLIC_RETRIEVAL_TTL:15m}
-      customer-retrieval-ttl: ${AI_REDIS_CUSTOMER_RETRIEVAL_TTL:10m}
-      tenant-retrieval-ttl: ${AI_REDIS_TENANT_RETRIEVAL_TTL:5m}
-      negative-retrieval-ttl: ${AI_REDIS_NEGATIVE_RETRIEVAL_TTL:30s}
-      public-grounded-answer-ttl: ${AI_REDIS_PUBLIC_GROUNDED_ANSWER_TTL:15m}
-      customer-grounded-answer-ttl: ${AI_REDIS_CUSTOMER_GROUNDED_ANSWER_TTL:5m}
-      tenant-grounded-answer-ttl: ${AI_REDIS_TENANT_GROUNDED_ANSWER_TTL:5m}
-      single-flight-lock-ttl: ${AI_REDIS_SINGLE_FLIGHT_LOCK_TTL:45s}
-      single-flight-wait: ${AI_SINGLE_FLIGHT_WAIT:2s}
       max-models-per-job-attempt: ${AI_MAX_MODELS_PER_JOB_ATTEMPT:3}
       ttl-jitter-percent: ${AI_CACHE_TTL_JITTER_PERCENT:10}
       key-hmac-secret: ${AI_CACHE_KEY_HMAC_SECRET:}
     circuit-breaker:
       failure-threshold: ${AI_CIRCUIT_BREAKER_FAILURE_THRESHOLD:3}
-      failure-window: ${AI_CIRCUIT_BREAKER_FAILURE_WINDOW:120s}
-      open-duration: ${AI_CIRCUIT_BREAKER_OPEN_DURATION:60s}
-      min-open-duration: ${AI_CIRCUIT_BREAKER_MIN_OPEN_DURATION:30s}
-      max-open-duration: ${AI_CIRCUIT_BREAKER_MAX_OPEN_DURATION:300s}
-      half-open-lock-ttl: ${AI_CIRCUIT_BREAKER_HALF_OPEN_LOCK:30s}
   redis:
     enabled: ${REDIS_ENABLED:true}
     host: ${REDIS_HOST:localhost}
@@ -218,8 +175,6 @@ app:
     username: ${REDIS_USERNAME:}
     password: ${REDIS_PASSWORD:}
     ssl-enabled: ${REDIS_SSL_ENABLED:false}
-    connect-timeout: ${REDIS_CONNECT_TIMEOUT:1s}
-    command-timeout: ${REDIS_COMMAND_TIMEOUT:1s}
     environment: ${APP_ENV:local}
     service: ${APP_SERVICE_NAME:vehicle-management}
 

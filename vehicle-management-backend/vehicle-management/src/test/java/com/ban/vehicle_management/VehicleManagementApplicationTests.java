@@ -352,6 +352,21 @@ class VehicleManagementApplicationTests {
 			try (Connection fresh = DriverManager.getConnection(
 					freshUrl, hikariDataSource.getUsername(), hikariDataSource.getPassword());
 				 Statement statement = fresh.createStatement()) {
+				try (var resultSet = statement.executeQuery("SHOW TIME ZONE")) {
+					org.junit.jupiter.api.Assertions.assertTrue(resultSet.next());
+					org.junit.jupiter.api.Assertions.assertTrue(
+							java.util.Set.of("Asia/Ho_Chi_Minh", "Asia/Saigon").contains(resultSet.getString(1))
+					);
+				}
+				try (var resultSet = statement.executeQuery(
+						"SELECT to_char(TIMESTAMPTZ '2026-09-26T08:30:00Z', 'YYYY-MM-DD HH24:MI:SSOF')"
+				)) {
+					org.junit.jupiter.api.Assertions.assertTrue(resultSet.next());
+					org.junit.jupiter.api.Assertions.assertEquals(
+							"2026-09-26 15:30:00+07",
+							resultSet.getString(1)
+					);
+				}
 				try (var resultSet = statement.executeQuery(
 						"SELECT COUNT(*) FROM ai.ai_model_configurations WHERE use_case = 'SUPPORT_CHAT' AND status = 'ACTIVE'"
 				)) {

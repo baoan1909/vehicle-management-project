@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.notification.broadcastannouncement.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.notification.BroadcastAnnouncementAudienceType;
 import com.ban.vehicle_management.shared.enumeration.notification.BroadcastAnnouncementStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
@@ -20,19 +22,19 @@ public class BroadcastAnnouncementAdminResponse {
     private String message;
     private BroadcastAnnouncementAudienceType audienceType;
     private Set<String> roleCodes;
-    private String startAt;
-    private String endAt;
+    private Instant startAt;
+    private Instant endAt;
     private Integer displayOrder;
     private Boolean enabled;
     private String redirectUrl;
     private BroadcastAnnouncementStatus status;
-    private String publishedAt;
-    private String cancelledAt;
+    private Instant publishedAt;
+    private Instant cancelledAt;
     private String relatedSchema;
     private String relatedTable;
     private UUID relatedId;
-    private String createdAt;
+    private Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private Instant updatedAt;
     private UUID updatedBy;
 }

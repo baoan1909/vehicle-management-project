@@ -175,7 +175,10 @@ public class AiModelCircuitBreakerService implements AiModelCircuitBreakerPortOu
 
     private void writeRemote(String circuitKey, CircuitRecord record) {
         try {
-            distributedCache.put(circuitKey, record, maxOpen().plus(Duration.ofMinutes(5)));
+            Duration retentionMargin = breakerProperties.getRetentionMargin() == null
+                    ? Duration.ofMinutes(5)
+                    : breakerProperties.getRetentionMargin();
+            distributedCache.put(circuitKey, record, maxOpen().plus(retentionMargin));
         } catch (Exception ignored) {
             // local fallback already updated
         }

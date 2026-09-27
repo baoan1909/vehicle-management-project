@@ -23,6 +23,8 @@ import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.policy.SubscriptionPolicy;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlatePolicy;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlateResolution;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
@@ -57,8 +59,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             Set.of("MONTHLY", "QUARTERLY", "YEARLY", "FREE");
 
     private static final DateTimeFormatter INVOICE_NO_TIME_FORMATTER = DateTimeFormatter
-            .ofPattern("yyyyMMddHHmmss")
-            .withZone(DateTimeUtils.VIETNAM_ZONE);
+            .ofPattern("yyyyMMddHHmmss");
 
     private static final List<InvoiceStatus> ACTIVE_INVOICE_STATUSES = List.of(
             InvoiceStatus.UNPAID,
@@ -268,7 +269,12 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         );
 
         Subscription approvedSubscription = subscriptionPortOut.save(subscription);
-        Invoice invoice = invoicePortOut.save(buildSubscriptionInvoice(approvedSubscription, voucherQuote.discountAmount(), now));
+        Invoice invoice = invoicePortOut.save(buildSubscriptionInvoice(
+                approvedSubscription,
+                preparedData.customerVehicle(),
+                voucherQuote.discountAmount(),
+                now
+        ));
         if (voucherQuote.voucherId() != null) {
             voucherPortIn.reserveSubscriptionVoucher(
                     voucherQuote.voucherCode(),
@@ -557,7 +563,12 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         return quote;
     }
 
-    private Invoice buildSubscriptionInvoice(Subscription subscription, BigDecimal discountAmount, Instant now) {
+    private Invoice buildSubscriptionInvoice(
+            Subscription subscription,
+            CustomerVehicle customerVehicle,
+            BigDecimal discountAmount,
+            Instant now
+    ) {
         Invoice invoice = new Invoice();
         invoice.setInvoiceId(UUID.randomUUID());
         invoice.setCustomerId(subscription.getCustomerId());
@@ -565,6 +576,11 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         invoice.setParkingLotId(subscription.getParkingLotId());
         invoice.setAmount(subscription.getPrice());
         invoice.setDiscountAmount(discountAmount);
+        LicensePlateResolution plate = new LicensePlatePolicy().resolve(customerVehicle.getLicensePlate(), null);
+        invoice.setLicensePlateNormalizedSnapshot(plate.normalized());
+        invoice.setLicensePlateDisplaySnapshot(plate.display());
+        invoice.setLicensePlateFormatSnapshot(plate.format().name());
+        invoice.setLicensePlateFormatVersion(LicensePlatePolicy.FORMAT_VERSION);
 
         invoicePolicy.initializeNewInvoice(
                 invoice,
@@ -581,7 +597,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 .substring(0, 8)
                 .toUpperCase();
 
-        return "INV-" + INVOICE_NO_TIME_FORMATTER.format(now) + "-" + suffix;
+        return "INV-" + now.atZone(DateTimeUtils.getAppZone()).format(INVOICE_NO_TIME_FORMATTER) + "-" + suffix;
     }
 
     private Subscription findSubscriptionOrThrow(UUID subscriptionId) {

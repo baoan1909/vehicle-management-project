@@ -6,6 +6,7 @@ import com.ban.vehicle_management.application.people.customervehicle.port.in.Cus
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.domain.people.customervehicle.policy.CustomerVehiclePolicy;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlatePolicy;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -27,6 +28,7 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
 
     private final CustomerVehiclePortOut customerVehiclePortOut;
     private final CustomerVehiclePolicy customerVehiclePolicy = new CustomerVehiclePolicy();
+    private final LicensePlatePolicy licensePlatePolicy = new LicensePlatePolicy();
     private final CustomerVehicleAccessGuard customerVehicleAccessGuard;
 
     public CustomerVehicleUseCaseImpl(CustomerVehiclePortOut customerVehiclePortOut, CustomerVehicleAccessGuard customerVehicleAccessGuard) {
@@ -40,6 +42,10 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
         customerVehicle.setCustomerId(customerVehicleAccessGuard.resolveCustomerIdForCreate(customerVehicle.getCustomerId()));
         customerVehiclePolicy.initialize(customerVehicle);
         validateReferences(customerVehicle);
+        customerVehicle.setLicensePlate(normalizePlateForVehicleType(
+                customerVehicle.getLicensePlate(),
+                customerVehicle.getVehicleTypeId()
+        ));
         validateUniqueLicensePlate(customerVehicle);
 
         customerVehicle.setCustomerVehicleId(UUID.randomUUID());
@@ -84,9 +90,14 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
     public CustomerVehicle updateCustomerVehicle(UUID customerVehicleId, CustomerVehicle customerVehicle) {
         CustomerVehicle existingCustomerVehicle = findCustomerVehicleOrThrow(customerVehicleId);
         customerVehicleAccessGuard.ensureCanUpdate(existingCustomerVehicle);
+        String requestedLicensePlate = normalizePlateForVehicleType(
+                customerVehicle.getLicensePlate(),
+                customerVehicle.getVehicleTypeId()
+        );
+        ensureLicensePlateCanChange(existingCustomerVehicle, requestedLicensePlate);
 
         existingCustomerVehicle.setVehicleTypeId(customerVehicle.getVehicleTypeId());
-        existingCustomerVehicle.setLicensePlate(customerVehicle.getLicensePlate());
+        existingCustomerVehicle.setLicensePlate(requestedLicensePlate);
         existingCustomerVehicle.setBrand(customerVehicle.getBrand());
         existingCustomerVehicle.setColor(customerVehicle.getColor());
         if (customerVehicle.getIsDefault() != null) {
@@ -206,12 +217,18 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
     }
 
     private void validateUniqueLicensePlate(CustomerVehicle customerVehicle) {
+        if (customerVehicle.getLicensePlate() == null) {
+            return;
+        }
         if (customerVehiclePortOut.existsByLicensePlate(customerVehicle.getLicensePlate())) {
             throw new ConflictException("Customer vehicle license plate already exists");
         }
     }
 
     private void validateUniqueLicensePlate(CustomerVehicle customerVehicle, UUID customerVehicleId) {
+        if (customerVehicle.getLicensePlate() == null) {
+            return;
+        }
         if (customerVehiclePortOut.existsByLicensePlateAndCustomerVehicleIdNot(
                 customerVehicle.getLicensePlate(),
                 customerVehicleId
@@ -284,6 +301,10 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
             requestedVehicleCreate.setCustomerId(customerId);
             customerVehiclePolicy.initialize(requestedVehicleCreate);
             validateVehicleTypeExists(requestedVehicleCreate.getVehicleTypeId());
+            requestedVehicleCreate.setLicensePlate(normalizePlateForVehicleType(
+                    requestedVehicleCreate.getLicensePlate(),
+                    requestedVehicleCreate.getVehicleTypeId()
+            ));
             requestedVehicleCreate.setCustomerVehicleId(UUID.randomUUID());
             preparedVehiclesToCreate.add(requestedVehicleCreate);
         }
@@ -321,8 +342,14 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
         ensureVehicleBelongsToCustomer(customerId, existingCustomerVehicle);
         customerVehicleAccessGuard.ensureCanUpdate(existingCustomerVehicle);
 
+        String requestedLicensePlate = normalizePlateForVehicleType(
+                requestedCustomerVehicle.getLicensePlate(),
+                requestedCustomerVehicle.getVehicleTypeId()
+        );
+        ensureLicensePlateCanChange(existingCustomerVehicle, requestedLicensePlate);
+
         existingCustomerVehicle.setVehicleTypeId(requestedCustomerVehicle.getVehicleTypeId());
-        existingCustomerVehicle.setLicensePlate(requestedCustomerVehicle.getLicensePlate());
+        existingCustomerVehicle.setLicensePlate(requestedLicensePlate);
         existingCustomerVehicle.setBrand(requestedCustomerVehicle.getBrand());
         existingCustomerVehicle.setColor(requestedCustomerVehicle.getColor());
         if (requestedCustomerVehicle.getIsDefault() != null) {
@@ -369,6 +396,9 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
             UUID currentCustomerVehicleId,
             Map<UUID, CustomerVehicle> finalExistingVehiclesById
     ) {
+        if (licensePlate == null) {
+            return;
+        }
         Optional<CustomerVehicle> existingVehicleWithSamePlate = customerVehiclePortOut.findByLicensePlate(licensePlate);
         if (existingVehicleWithSamePlate.isEmpty()) {
             return;
@@ -523,9 +553,33 @@ public class CustomerVehicleUseCaseImpl implements CustomerVehiclePortIn {
     }
 
     private void ensureUniqueLicensePlateInRequest(Set<String> seenLicensePlates, String licensePlate) {
+        if (licensePlate == null) {
+            return;
+        }
         if (!seenLicensePlates.add(licensePlate)) {
             throw new BadRequestException("Duplicate customer vehicle license plate found in request");
         }
+    }
+
+    private void ensureLicensePlateCanChange(CustomerVehicle existingVehicle, String requestedLicensePlate) {
+        if (java.util.Objects.equals(existingVehicle.getLicensePlate(), requestedLicensePlate)) {
+            return;
+        }
+        UUID vehicleId = existingVehicle.getCustomerVehicleId();
+        if (customerVehiclePortOut.existsActiveSubscription(vehicleId)) {
+            throw new ConflictException("License plate cannot be changed while the vehicle has an active subscription");
+        }
+        if (customerVehiclePortOut.existsOpenParkingSession(vehicleId)) {
+            throw new ConflictException("License plate cannot be changed while the vehicle has an open parking session");
+        }
+    }
+
+    private String normalizePlateForVehicleType(String licensePlate, UUID vehicleTypeId) {
+        String vehicleTypeCode = customerVehiclePortOut.findVehicleTypeCodeById(vehicleTypeId).orElse(null);
+        if ("BICYCLE".equalsIgnoreCase(vehicleTypeCode)) {
+            return licensePlatePolicy.normalizeNullable(licensePlate, "licensePlate");
+        }
+        return licensePlatePolicy.normalizeRequired(licensePlate, "licensePlate");
     }
 
     private CustomerVehicle copyCustomerVehicle(CustomerVehicle customerVehicle) {

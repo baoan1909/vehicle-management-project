@@ -5,6 +5,7 @@ import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 import { Modal } from "@/shared/components/ui/Modal";
 import { SelectMenu, type SelectMenuOption } from "@/shared/components/ui/SelectMenu";
 import { cn } from "@/lib/cn";
+import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import {
   activatePricePlan,
   activatePriceRule,
@@ -227,12 +228,14 @@ function getDateTimeParts(value: string | null | undefined) {
       date: new Intl.DateTimeFormat("vi-VN", {
         day: "2-digit",
         month: "2-digit",
-        year: "numeric"
+        year: "numeric",
+        timeZone: getApplicationTimeZone()
       }).format(parsed),
       time: new Intl.DateTimeFormat("vi-VN", {
         hour: "2-digit",
         hour12: false,
-        minute: "2-digit"
+        minute: "2-digit",
+        timeZone: getApplicationTimeZone()
       }).format(parsed)
     };
   }
@@ -247,7 +250,7 @@ function getDateTimeParts(value: string | null | undefined) {
 function getPricingStatus(isActive: boolean | null | undefined, effectiveFrom: string | null | undefined, effectiveTo: string | null | undefined): PricingStatus {
   if (!isActive) return "inactive";
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayApplicationIsoDate();
   if (effectiveFrom && today < effectiveFrom) return "upcoming";
   if (effectiveTo && today > effectiveTo) return "expired";
 
@@ -432,7 +435,7 @@ function buildPricePlanExportTable(rows: PricePlanRecord[], options: PricingExpo
 }
 
 function exportPricePlans(rows: PricePlanRecord[], options: PricingExportOptions) {
-  const timestamp = new Date().toISOString().slice(0, 10);
+  const timestamp = todayApplicationIsoDate();
   const filename = `ke-hoach-gia-${timestamp}`;
 
   if (options.format === "csv") {
@@ -494,7 +497,7 @@ function buildPriceRuleExportTable(rows: PriceRuleRecord[], options: PricingRule
 }
 
 function exportPriceRules(rows: PriceRuleRecord[], options: PricingRuleExportOptions) {
-  const timestamp = new Date().toISOString().slice(0, 10);
+  const timestamp = todayApplicationIsoDate();
   const filename = `quy-tac-gia-${timestamp}`;
 
   if (options.format === "csv") {
@@ -1497,12 +1500,14 @@ function PricePlanDetailPanel({
     const updatedDate = new Intl.DateTimeFormat("vi-VN", {
       day: "2-digit",
       month: "2-digit",
-      year: "numeric"
+      year: "numeric",
+      timeZone: getApplicationTimeZone()
     }).format(now);
     const updatedTime = new Intl.DateTimeFormat("vi-VN", {
       hour: "2-digit",
       hour12: false,
-      minute: "2-digit"
+      minute: "2-digit",
+      timeZone: getApplicationTimeZone()
     }).format(now);
 
     onSave({

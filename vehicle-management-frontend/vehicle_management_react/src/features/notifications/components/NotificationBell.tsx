@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { canAccessAdminRoute } from "@/app/routePermissions";
 import { useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
+import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
   countMyUnreadNotifications,
   getMyNotifications,
@@ -103,6 +104,7 @@ function formatDateTime(value: string | null | undefined) {
     day: "2-digit",
     hour: "2-digit",
     hour12: false,
+    timeZone: getApplicationTimeZone(),
     minute: "2-digit",
     month: "2-digit",
   }).format(date);

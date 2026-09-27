@@ -33,7 +33,4 @@ public interface KnowledgeSourceApiMapper {
                 page.getTotalElements(), page.getTotalPages(), page.isFirst(), page.isLast());
     }
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

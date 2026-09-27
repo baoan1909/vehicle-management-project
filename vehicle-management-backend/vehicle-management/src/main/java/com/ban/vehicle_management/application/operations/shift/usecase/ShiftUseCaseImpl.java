@@ -20,6 +20,7 @@ import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.employeerosterrule.model.EmployeeRosterRule;
 import com.ban.vehicle_management.domain.operations.shift.model.Shift;
 import com.ban.vehicle_management.domain.operations.shift.policy.ShiftPolicy;
+import com.ban.vehicle_management.domain.operations.shift.policy.ShiftRestPolicy;
 import com.ban.vehicle_management.domain.operations.shiftassignment.model.ShiftAssignment;
 import com.ban.vehicle_management.domain.operations.shiftassignment.policy.ShiftAssignmentPolicy;
 import com.ban.vehicle_management.domain.operations.shifttemplate.model.ShiftTemplate;
@@ -52,6 +53,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -66,7 +68,6 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
     private static final int EXPECTED_SHIFT_COUNT = 21;
     private static final int ASSIGNMENTS_PER_SHIFT = 2;
     private static final int MAX_SHIFTS_PER_WEEK = 6;
-    private static final Duration MINIMUM_REST = Duration.ofHours(8);
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final OrganizationAccessGuard organizationAccessGuard;
@@ -83,8 +84,9 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
     private final NotificationPortIn notificationPortIn;
 
     private final ShiftPolicy shiftPolicy = new ShiftPolicy();
-    private final ShiftTemplatePolicy templatePolicy = new ShiftTemplatePolicy();
+    private ShiftTemplatePolicy templatePolicy = new ShiftTemplatePolicy();
     private final ShiftAssignmentPolicy assignmentPolicy = new ShiftAssignmentPolicy();
+    private ShiftRestPolicy shiftRestPolicy = new ShiftRestPolicy(Duration.ofHours(8));
 
     public ShiftUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
@@ -114,6 +116,12 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         this.gatePortOut = gatePortOut;
         this.zonePortOut = zonePortOut;
         this.notificationPortIn = notificationPortIn;
+    }
+
+    @Autowired
+    void configureTimePolicies(ShiftTemplatePolicy templatePolicy, ShiftRestPolicy shiftRestPolicy) {
+        this.templatePolicy = templatePolicy;
+        this.shiftRestPolicy = shiftRestPolicy;
     }
 
     @Override
@@ -877,12 +885,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
                 );
             }
 
-            Duration rest = Duration.between(
-                    previous.getEndTime(),
-                    current.getStartTime()
-            );
-
-            if (rest.compareTo(MINIMUM_REST) < 0) {
+            if (!shiftRestPolicy.isSatisfied(previous.getEndTime(), current.getStartTime())) {
                 throw new ConflictException(
                         "Employee must have at least eight hours of rest"
                 );

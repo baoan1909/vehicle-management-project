@@ -117,7 +117,7 @@ function formatPercent(value?: number | null) {
 }
 
 function candidatePlate(candidate: LicensePlateOcrCandidate) {
-  return candidate.normalizedLicensePlate || candidate.formattedLicensePlate || candidate.licensePlate;
+  return candidate.formattedLicensePlate || candidate.normalizedLicensePlate || candidate.licensePlate;
 }
 
 function reviewReasonLabel(reason: string) {

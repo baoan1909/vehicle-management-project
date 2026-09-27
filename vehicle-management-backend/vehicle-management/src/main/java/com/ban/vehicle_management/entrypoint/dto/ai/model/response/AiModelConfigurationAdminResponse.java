@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.ai.model.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.ai.AiModelStatus;
 import com.ban.vehicle_management.shared.enumeration.ai.AiProvider;
 import com.ban.vehicle_management.shared.enumeration.ai.AiUseCase;
@@ -25,6 +27,6 @@ public class AiModelConfigurationAdminResponse {
     private boolean requiresFunctionCalling;
     private boolean requiresStructuredOutput;
     private boolean freeTierApproved;
-    private String createdAt;
-    private String updatedAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

@@ -7,34 +7,59 @@ import com.ban.vehicle_management.application.ai.port.out.KnowledgeQualityMetric
 import com.ban.vehicle_management.shared.enumeration.ai.AiModelStatus;
 import com.ban.vehicle_management.shared.enumeration.ai.AiUseCase;
 import java.time.Duration;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class KnowledgeQualityService implements KnowledgeQualityPortIn {
 
-    private static final Duration JOB_STUCK_TOLERANCE = Duration.ofMinutes(30);
-    private static final Duration CANDIDATE_STALE_TOLERANCE = Duration.ofMinutes(60);
-
     private final KnowledgeQualityMetricsPortOut metricsPortOut;
     private final AiModelConfigurationPortOut configurationPortOut;
+    private final Duration jobStuckTolerance;
+    private final Duration candidateStaleTolerance;
+    private final Clock clock;
+
+    @Autowired
+    public KnowledgeQualityService(
+            KnowledgeQualityMetricsPortOut metricsPortOut,
+            AiModelConfigurationPortOut configurationPortOut,
+            AiQualityProperties properties,
+            Clock clock) {
+        this(metricsPortOut, configurationPortOut, properties.getJobStuckTolerance(),
+                properties.getCandidateStaleTolerance(), clock);
+    }
 
     public KnowledgeQualityService(
             KnowledgeQualityMetricsPortOut metricsPortOut,
             AiModelConfigurationPortOut configurationPortOut) {
+        this(metricsPortOut, configurationPortOut, Duration.ofMinutes(30),
+                Duration.ofMinutes(60), Clock.systemUTC());
+    }
+
+    private KnowledgeQualityService(
+            KnowledgeQualityMetricsPortOut metricsPortOut,
+            AiModelConfigurationPortOut configurationPortOut,
+            Duration jobStuckTolerance,
+            Duration candidateStaleTolerance,
+            Clock clock) {
         this.metricsPortOut = metricsPortOut;
         this.configurationPortOut = configurationPortOut;
+        this.jobStuckTolerance = jobStuckTolerance;
+        this.candidateStaleTolerance = candidateStaleTolerance;
+        this.clock = clock;
     }
 
     public KnowledgeQualityDashboard summarize() {
-        Instant now = Instant.now();
+        Instant now = Instant.now(clock);
         KnowledgeQualityMetrics metrics = metricsPortOut.snapshot(
                 now,
-                now.minus(JOB_STUCK_TOLERANCE),
-                now.minus(CANDIDATE_STALE_TOLERANCE));
+                now.minus(jobStuckTolerance),
+                now.minus(candidateStaleTolerance));
         List<KnowledgeQualityWarning> warnings = buildWarnings(metrics);
         return new KnowledgeQualityDashboard(
                 metrics.sourcesByStatus(),
@@ -68,14 +93,14 @@ public class KnowledgeQualityService implements KnowledgeQualityPortIn {
             warnings.add(new KnowledgeQualityWarning(
                     "STUCK_INGESTION_JOBS", "WARNING", stuckJobs,
                     stuckJobs + " công việc xử lý đang mở nhưng không có tiến triển trong vòng hơn "
-                            + JOB_STUCK_TOLERANCE.toMinutes() + " phút."));
+                            + jobStuckTolerance.toMinutes() + " phút."));
         }
         long staleCandidates = metrics.staleCandidateCount();
         if (staleCandidates > 0) {
             warnings.add(new KnowledgeQualityWarning(
                     "STALE_INDEX_CANDIDATES", "WARNING", staleCandidates,
                     staleCandidates + " phiên bản chỉ mục dự thảo/đang xây dựng bị bỏ dở hơn "
-                            + CANDIDATE_STALE_TOLERANCE.toMinutes() + " phút."));
+                            + candidateStaleTolerance.toMinutes() + " phút."));
         }
         long failedJobs = metrics.jobsByStatus().getOrDefault("FAILED", 0L);
         addWarning(warnings, failedJobs, "FAILED_INGESTION_JOBS", "DANGER",

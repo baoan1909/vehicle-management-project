@@ -24,7 +24,7 @@ class CustomerVehiclePolicyTest {
 
         customerVehiclePolicy.initialize(customerVehicle);
 
-        assertEquals("51A-12345", customerVehicle.getLicensePlate());
+        assertEquals("51A12345", customerVehicle.getLicensePlate());
         assertEquals("Honda", customerVehicle.getBrand());
         assertEquals("White", customerVehicle.getColor());
         assertEquals(Boolean.FALSE, customerVehicle.getIsDefault());

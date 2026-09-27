@@ -27,6 +27,7 @@ import {
   type ShiftTypeApi,
 } from "@/features/employees/api/shiftsApi";
 import { cn } from "@/lib/cn";
+import { todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 type DrawerPhase = "opening" | "open" | "closing";
 type ShiftWorkspace = "schedule" | "templates" | "rules";
@@ -827,7 +828,7 @@ export function ShiftSchedulePage() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [weekStartDate, setWeekStartDate] = useState(() => toIsoDate(startOfWeek(new Date())));
+  const [weekStartDate, setWeekStartDate] = useState(() => toIsoDate(startOfWeek(parseIsoDate(todayApplicationIsoDate()))));
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);

@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.dashboard.overview.port.in.Dashboa
 import com.ban.vehicle_management.application.dashboard.overview.port.out.DashboardOverviewPortOut;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.*;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,7 +17,6 @@ import java.time.temporal.ChronoUnit;
 @Service
 public class DashboardOverviewUseCaseImpl implements DashboardOverviewPortIn {
 
-    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final long MAX_RANGE_DAYS = 366;
 
     private final DashboardOverviewPortOut dashboardOverviewPortOut;
@@ -120,7 +120,7 @@ public class DashboardOverviewUseCaseImpl implements DashboardOverviewPortIn {
     }
 
     private DashboardPeriod resolvePeriod(LocalDate fromDate, LocalDate toDate) {
-        LocalDate resolvedToDate = toDate == null ? LocalDate.now(VIETNAM_ZONE) : toDate;
+        LocalDate resolvedToDate = toDate == null ? LocalDate.now(DateTimeUtils.getAppZone()) : toDate;
         LocalDate resolvedFromDate = fromDate == null ? resolvedToDate.minusDays(6) : fromDate;
 
         if (resolvedFromDate.isAfter(resolvedToDate)) {
@@ -148,11 +148,11 @@ public class DashboardOverviewUseCaseImpl implements DashboardOverviewPortIn {
     }
 
     private Instant toStartOfDay(LocalDate date) {
-        return date.atStartOfDay(VIETNAM_ZONE).toInstant();
+        return DateTimeUtils.startOfDayInAppZone(date);
     }
 
     private Instant toStartOfNextDay(LocalDate date) {
-        return date.plusDays(1).atStartOfDay(VIETNAM_ZONE).toInstant();
+        return DateTimeUtils.startOfNextDayInAppZone(date);
     }
 
     private BigDecimal calculateOccupancyRate(long parkingCount, long capacity) {

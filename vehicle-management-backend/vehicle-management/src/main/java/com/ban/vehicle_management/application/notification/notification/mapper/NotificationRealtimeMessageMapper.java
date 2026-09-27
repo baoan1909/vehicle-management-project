@@ -11,7 +11,4 @@ public interface NotificationRealtimeMessageMapper {
 
     NotificationRealtimeMessage toRealtimeMessage(Notification notification);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

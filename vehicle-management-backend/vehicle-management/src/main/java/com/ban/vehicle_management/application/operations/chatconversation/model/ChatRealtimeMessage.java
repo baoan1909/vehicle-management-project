@@ -27,8 +27,8 @@ public class ChatRealtimeMessage implements Serializable {
     private UUID relatedId;
     private UUID contextTicketId;
     private boolean deleted;
-    private String deletedAt;
-    private String editedAt;
-    private String createdAt;
+    private java.time.Instant deletedAt;
+    private java.time.Instant editedAt;
+    private java.time.Instant createdAt;
     private List<ChatRealtimeAttachment> attachments = new ArrayList<>();
 }

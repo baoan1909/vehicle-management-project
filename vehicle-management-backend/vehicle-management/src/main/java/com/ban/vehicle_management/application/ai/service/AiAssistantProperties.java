@@ -1,9 +1,12 @@
 package com.ban.vehicle_management.application.ai.service;
 
 import com.ban.vehicle_management.shared.enumeration.ai.AiDataMode;
+import jakarta.validation.constraints.AssertTrue;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
+@Validated
 @ConfigurationProperties(prefix = "app.ai")
 public class AiAssistantProperties {
 
@@ -13,6 +16,7 @@ public class AiAssistantProperties {
     private boolean allowUnpaidSupportData;
     private Duration retryInitialDelay = Duration.ofSeconds(20);
     private Duration requestTimeout = Duration.ofSeconds(20);
+    private Duration lockSafetyMargin = Duration.ofSeconds(90);
     private AiDataMode dataMode = AiDataMode.UNPAID;
     private String promptVersion = "support-assistant-v1";
 
@@ -68,6 +72,14 @@ public class AiAssistantProperties {
         this.requestTimeout = requestTimeout;
     }
 
+    public Duration getLockSafetyMargin() {
+        return lockSafetyMargin;
+    }
+
+    public void setLockSafetyMargin(Duration lockSafetyMargin) {
+        this.lockSafetyMargin = lockSafetyMargin;
+    }
+
     public AiDataMode getDataMode() {
         return dataMode;
     }
@@ -82,5 +94,14 @@ public class AiAssistantProperties {
 
     public void setPromptVersion(String promptVersion) {
         this.promptVersion = promptVersion;
+    }
+
+    @AssertTrue(message = "AI assistant durations must be greater than zero")
+    public boolean areDurationsValid() {
+        return isPositive(retryInitialDelay) && isPositive(requestTimeout) && isPositive(lockSafetyMargin);
+    }
+
+    private boolean isPositive(Duration value) {
+        return value != null && !value.isZero() && !value.isNegative();
     }
 }

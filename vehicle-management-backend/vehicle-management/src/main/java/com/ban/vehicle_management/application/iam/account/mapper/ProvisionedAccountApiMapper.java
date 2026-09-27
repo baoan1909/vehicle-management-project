@@ -67,7 +67,4 @@ public interface ProvisionedAccountApiMapper {
     @Mapping(target = "updatedBy", ignore = true)
     Account toAccount(CreateProvisionedAccountRequest request);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant);
-    }
 }

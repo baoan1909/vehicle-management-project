@@ -22,7 +22,4 @@ public interface InternalEmployeeApprovalApiMapper {
 
     List<InternalEmployeeApprovalAdminResponse> toResponses(List<InternalEmployeeApprovalResult> results);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

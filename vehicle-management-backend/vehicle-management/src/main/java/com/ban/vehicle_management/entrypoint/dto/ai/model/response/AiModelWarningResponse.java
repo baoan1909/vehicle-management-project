@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.ai.model.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.ai.AiModelWarningSeverity;
 import com.ban.vehicle_management.shared.enumeration.ai.AiModelWarningStatus;
 import com.ban.vehicle_management.shared.enumeration.ai.AiProvider;
@@ -18,6 +20,6 @@ public class AiModelWarningResponse {
     private AiModelWarningSeverity severity;
     private AiModelWarningStatus status;
     private String detail;
-    private String detectedAt;
-    private String resolvedAt;
+    private Instant detectedAt;
+    private Instant resolvedAt;
 }

@@ -9,6 +9,7 @@ import {
   type VoucherPayload,
   type VoucherResponse,
 } from "@/features/pricing/api/voucherApi";
+import { endOfApplicationDayIso, getApplicationTimeZone, startOfApplicationDayIso, toApplicationLocalDateTimeInput, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 type VoucherForm = {
   code: string;
@@ -39,7 +40,7 @@ const emptyForm = (): VoucherForm => ({
   minimumSubscriptionAmount: "0",
   maxRedemptions: "",
   maxRedemptionsPerCustomer: "1",
-  validFrom: toDateInputValue(new Date()),
+  validFrom: todayApplicationIsoDate(),
   validTo: "",
   showOnDashboard: false,
   showOnSubscriptionPage: false,
@@ -62,15 +63,12 @@ function normalizeCurrencyInput(value: string) {
 }
 
 function toDateInputValue(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return toApplicationLocalDateTimeInput(date)?.slice(0, 10) ?? "";
 }
 
 function formatDate(value: string) {
   const parsed = parseVoucherDate(value);
-  return Number.isNaN(parsed.getTime()) ? value || "--" : new Intl.DateTimeFormat("vi-VN", { dateStyle: "short" }).format(parsed);
+  return Number.isNaN(parsed.getTime()) ? value || "--" : new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeZone: getApplicationTimeZone() }).format(parsed);
 }
 
 function parseVoucherDate(value: string) {
@@ -215,8 +213,8 @@ export function VoucherManagementPage() {
       minimumSubscriptionAmount: Number(form.minimumSubscriptionAmount || 0),
       maxRedemptions: form.maxRedemptions ? Number(form.maxRedemptions) : null,
       maxRedemptionsPerCustomer: Number(form.maxRedemptionsPerCustomer || 1),
-      validFrom: new Date(`${form.validFrom}T00:00:00`).toISOString(),
-      validTo: new Date(`${form.validTo}T23:59:59.999`).toISOString(),
+      validFrom: startOfApplicationDayIso(form.validFrom)!,
+      validTo: endOfApplicationDayIso(form.validTo)!,
       showOnDashboard: form.showOnDashboard,
       showOnSubscriptionPage: form.showOnSubscriptionPage,
       bannerTitle: form.bannerTitle.trim() || null,

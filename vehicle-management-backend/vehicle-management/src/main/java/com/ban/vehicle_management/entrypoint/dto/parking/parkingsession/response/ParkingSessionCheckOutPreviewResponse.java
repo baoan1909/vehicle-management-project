@@ -14,7 +14,7 @@ public class ParkingSessionCheckOutPreviewResponse {
     private ParkingSessionResponse parkingSession;
     private ParkingEventResponse checkInEvent;
     private BigDecimal estimatedTotalPrice;
-    private String previewCheckOutTime;
+    private java.time.Instant previewCheckOutTime;
     private String customerType;
     private String pricingMessage;
 }

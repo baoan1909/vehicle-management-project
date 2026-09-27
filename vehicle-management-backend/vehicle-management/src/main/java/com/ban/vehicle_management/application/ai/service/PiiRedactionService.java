@@ -11,7 +11,11 @@ public class PiiRedactionService {
     private static final Pattern TOKEN = Pattern.compile("(?i)\\b(?:bearer|token|password|refresh_token|access_token)\\s*[:=]\\s*\\S+");
     private static final Pattern ID_NUMBER = Pattern.compile("\\b\\d{9,12}\\b");
     private static final Pattern PAYMENT_CARD = Pattern.compile("\\b(?:\\d[ -]*?){13,19}\\b");
-    private static final Pattern LICENSE_PLATE = Pattern.compile("\\b\\d{2}[A-Z][A-Z0-9]?[- ]?\\d{3,5}(?:\\.\\d{2})?\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern LICENSE_PLATE = Pattern.compile(
+            "(?<![A-Z0-9])(?:80[- .]?\\d{3}[- .]?(?:NG|QT|CV|NN)[- .]?\\d{2,3}"
+                    + "|\\d{2}[A-Z](?:[A-Z]|\\d)?[- .]?(?:\\d{4}|\\d{3}(?:[ .]?\\d{2})))(?![A-Z0-9])",
+            Pattern.CASE_INSENSITIVE
+    );
 
     public RedactionResult redact(String value) {
         if (value == null || value.isBlank()) {

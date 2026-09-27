@@ -10,5 +10,13 @@ public interface FileAccessPort {
 
     String createReadUrl(String objectKey, int expireSeconds);
 
+    default String createReadUrl(String objectKey) {
+        return createReadUrl(objectKey, 0);
+    }
+
     Map<String, String> createReadUrls(Set<String> objectKeys, int expireSeconds);
+
+    default Map<String, String> createReadUrls(Set<String> objectKeys) {
+        return createReadUrls(objectKeys, 0);
+    }
 }

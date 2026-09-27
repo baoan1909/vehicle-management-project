@@ -112,13 +112,13 @@ class NotificationUseCaseImplTest {
                 savedNotification.getTitle(),
                 savedNotification.getMessage(),
                 NotificationStatus.SENT,
-                "2026-07-30 10:00:00",
+                Instant.parse("2026-07-30T03:00:00Z"),
                 null,
                 null,
                 "access_control",
                 "subscriptions",
                 command.relatedId(),
-                "2026-07-30 10:00:00"
+                Instant.parse("2026-07-30T03:00:00Z")
         );
 
         when(notificationPortOut.existsAccountById(accountId)).thenReturn(true);
@@ -369,13 +369,13 @@ class NotificationUseCaseImplTest {
                 notification.getTitle(),
                 notification.getMessage(),
                 NotificationStatus.SENT,
-                "2026-07-30 10:00:00",
+                Instant.parse("2026-07-30T03:00:00Z"),
                 null,
                 null,
                 notification.getRelatedSchema(),
                 notification.getRelatedTable(),
                 notification.getRelatedId(),
-                "2026-07-30 10:00:00"
+                Instant.parse("2026-07-30T03:00:00Z")
         );
     }
 }

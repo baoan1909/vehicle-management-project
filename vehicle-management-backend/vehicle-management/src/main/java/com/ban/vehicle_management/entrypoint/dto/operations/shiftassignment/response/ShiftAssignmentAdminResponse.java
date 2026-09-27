@@ -16,8 +16,8 @@ public class ShiftAssignmentAdminResponse {
     private UUID employeeId;
     private UUID gateId;
     private ShiftAssignmentStatus status;
-    private String createdAt;
+    private java.time.Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private java.time.Instant updatedAt;
     private UUID updatedBy;
 }

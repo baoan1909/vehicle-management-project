@@ -92,6 +92,18 @@ public class InvoiceEntity extends AuditableEntity {
     @Column(name = "paid_at")
     private Instant paidAt;
 
+    @Column(name = "license_plate_normalized_snapshot")
+    private String licensePlateNormalizedSnapshot;
+
+    @Column(name = "license_plate_display_snapshot")
+    private String licensePlateDisplaySnapshot;
+
+    @Column(name = "license_plate_format_snapshot")
+    private String licensePlateFormatSnapshot;
+
+    @Column(name = "license_plate_format_version")
+    private String licensePlateFormatVersion;
+
     @OneToMany(mappedBy = "invoice")
     private Set<PaymentEntity> payments = new HashSet<>();
 

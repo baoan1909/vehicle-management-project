@@ -56,8 +56,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
     );
 
     private static final DateTimeFormatter INVOICE_NO_TIME_FORMATTER = DateTimeFormatter
-            .ofPattern("yyyyMMddHHmmss")
-            .withZone(DateTimeUtils.VIETNAM_ZONE);
+            .ofPattern("yyyyMMddHHmmss");
 
     private final InvoicePortOut invoicePortOut;
     private final InvoiceAccessGuard invoiceAccessGuard;
@@ -273,7 +272,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
             if (isBlank(customerName) && report != null) customerName = report.getReporterName();
             return new InvoiceContext(
                     defaultText(customerName, "Khách vãng lai"),
-                    licensePlate,
+                    snapshotOrFallback(invoice, licensePlate),
                     InvoiceSource.LOST_CARD,
                     invoice.getLostCardReportId()
             );
@@ -288,7 +287,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
                             .orElse(null);
             return new InvoiceContext(
                     defaultText(resolveCustomerName(invoice.getCustomerId()), "Khách hàng"),
-                    licensePlate,
+                    snapshotOrFallback(invoice, licensePlate),
                     InvoiceSource.SUBSCRIPTION,
                     invoice.getSubscriptionId()
             );
@@ -301,7 +300,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
                     : defaultText(session.getLicensePlateOut(), session.getLicensePlateIn());
             return new InvoiceContext(
                     defaultText(resolveCustomerName(invoice.getCustomerId()), "Khách vãng lai"),
-                    licensePlate,
+                    snapshotOrFallback(invoice, licensePlate),
                     InvoiceSource.PARKING_SESSION,
                     invoice.getParkingSessionId()
             );
@@ -309,10 +308,16 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
 
         return new InvoiceContext(
                 defaultText(resolveCustomerName(invoice.getCustomerId()), "Khách vãng lai"),
-                null,
+                invoice.getLicensePlateDisplaySnapshot(),
                 InvoiceSource.MANUAL,
                 null
         );
+    }
+
+    private String snapshotOrFallback(Invoice invoice, String fallback) {
+        return isBlank(invoice.getLicensePlateDisplaySnapshot())
+                ? fallback
+                : invoice.getLicensePlateDisplaySnapshot();
     }
 
     private List<InvoiceLineItemResult> resolveLineItems(Invoice invoice) {
@@ -545,7 +550,7 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
                 .replace("-", "")
                 .substring(0, 8)
                 .toUpperCase();
-        return "INV-" + INVOICE_NO_TIME_FORMATTER.format(now)+"-"+ suffix;
+        return "INV-" + now.atZone(DateTimeUtils.getAppZone()).format(INVOICE_NO_TIME_FORMATTER)+"-"+ suffix;
 
     }
 

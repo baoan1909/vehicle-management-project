@@ -5,8 +5,6 @@ import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.Crea
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.UpdateParkingLotRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotPublicResponse;
-import com.ban.vehicle_management.shared.utils.DateTimeUtils;
-import java.time.Instant;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -35,7 +33,6 @@ public interface ParkingLotApiMapper {
     @Mapping(target = "updatedBy", ignore = true)
     ParkingLot toDomain(UpdateParkingLotRequest request);
 
-    @Mapping(target = "activationRequestedAt", source = "activationRequestedAt", qualifiedByName = "formatInstant")
     ParkingLotAdminResponse toAdminResponse(ParkingLot parkingLot);
 
     List<ParkingLotAdminResponse> toAdminResponses(List<ParkingLot> parkingLots);
@@ -43,9 +40,4 @@ public interface ParkingLotApiMapper {
     ParkingLotPublicResponse toPublicResponse(ParkingLot parkingLot);
 
     List<ParkingLotPublicResponse> toPublicResponses(List<ParkingLot> parkingLots);
-
-    @org.mapstruct.Named("formatInstant")
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

@@ -83,7 +83,4 @@ public interface CardApiMapper {
 
     List<CardAdminResponse> toAdminResponses(List<Card> cards);
 
-    default String map(Instant value) {
-        return DateTimeUtils.formatInstant(value, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

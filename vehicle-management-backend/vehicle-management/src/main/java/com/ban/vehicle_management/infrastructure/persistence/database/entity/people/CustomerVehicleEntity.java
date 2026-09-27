@@ -50,8 +50,11 @@ public class CustomerVehicleEntity extends AuditableEntity {
     @JoinColumn(name = "vehicle_type_id", referencedColumnName = "vehicle_type_id", insertable = false, updatable = false)
     private VehicleTypeEntity vehicleType;
 
-    @Column(name = "license_plate", nullable = false, unique = true)
+    @Column(name = "license_plate")
     private String licensePlate;
+
+    @Column(name = "license_plate_normalized", insertable = false, updatable = false)
+    private String licensePlateNormalized;
 
     @Column(name = "brand")
     private String brand;

@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.people.userprofile.policy;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.LocalDate;
 
@@ -48,7 +49,8 @@ public class UserProfilePolicy {
         userProfile.setIdentifyCard(TextValidationUtils.normalizeAlphaNumeric(userProfile.getIdentifyCard(), "identifyCard", 20));
         requireField(userProfile.getStatus(), "status");
 
-        if (userProfile.getDateOfBirth() != null && userProfile.getDateOfBirth().isAfter(LocalDate.now())) {
+        if (userProfile.getDateOfBirth() != null
+                && userProfile.getDateOfBirth().isAfter(LocalDate.now(DateTimeUtils.getAppZone()))) {
             throw new BadRequestException("dateOfBirth must not be in the future");
         }
     }

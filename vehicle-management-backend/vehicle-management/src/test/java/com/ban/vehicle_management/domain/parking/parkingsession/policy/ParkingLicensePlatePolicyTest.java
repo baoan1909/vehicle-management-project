@@ -14,7 +14,7 @@ class ParkingLicensePlatePolicyTest {
 
     @Test
     void shouldNormalizeRequiredLicensePlate() {
-        assertEquals("51A-12345", parkingLicensePlatePolicy.normalizeRequired(" 51A-12345 ", "licensePlate"));
+        assertEquals("51A12345", parkingLicensePlatePolicy.normalizeRequired(" 51A-12345 ", "licensePlate"));
     }
 
     @Test

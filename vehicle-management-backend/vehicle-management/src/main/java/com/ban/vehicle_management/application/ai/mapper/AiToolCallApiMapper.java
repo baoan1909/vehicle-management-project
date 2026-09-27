@@ -11,7 +11,4 @@ public interface AiToolCallApiMapper {
 
     AiToolCallResponse toResponse(AiToolCall toolCall);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

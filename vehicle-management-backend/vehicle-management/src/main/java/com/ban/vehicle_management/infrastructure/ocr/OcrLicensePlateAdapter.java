@@ -41,8 +41,8 @@ public class OcrLicensePlateAdapter implements LicensePlateOcrPortOut {
         this.properties = properties;
 
         SimpleClientHttpRequestFactory requestFactory = new SimpleClientHttpRequestFactory();
-        requestFactory.setConnectTimeout(properties.getConnectTimeoutMs());
-        requestFactory.setReadTimeout(properties.getReadTimeoutMs());
+        requestFactory.setConnectTimeout(Math.toIntExact(properties.getConnectTimeout().toMillis()));
+        requestFactory.setReadTimeout(Math.toIntExact(properties.getReadTimeout().toMillis()));
 
         this.restClient = RestClient.builder()
                 .baseUrl(trimTrailingSlash(properties.getBaseUrl()))

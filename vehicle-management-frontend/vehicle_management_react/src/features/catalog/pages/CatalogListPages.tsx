@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { Drawer } from "@/shared/components/ui/Drawer";
+import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import { ParkingLotCatalogControls } from "@/features/catalog/components/ParkingLotCatalogControls";
 import { useParkingLotCatalogScope } from "@/features/catalog/hooks/useParkingLotCatalogScope";
 import {
@@ -94,12 +95,14 @@ function formatDateTimeParts(value: string | null | undefined) {
     date: new Intl.DateTimeFormat("vi-VN", {
       day: "2-digit",
       month: "2-digit",
-      year: "numeric"
+      year: "numeric",
+      timeZone: getApplicationTimeZone()
     }).format(parsed),
     time: new Intl.DateTimeFormat("vi-VN", {
       hour: "2-digit",
       hour12: false,
-      minute: "2-digit"
+      minute: "2-digit",
+      timeZone: getApplicationTimeZone()
     }).format(parsed)
   };
 }
@@ -162,7 +165,7 @@ function exportTicketTypes(rows: TicketCatalogRecord[]) {
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = `loai-ve-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `loai-ve-${todayApplicationIsoDate()}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -226,7 +229,7 @@ function exportVehicleTypes(rows: VehicleCatalogRecord[]) {
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = `loai-phuong-tien-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `loai-phuong-tien-${todayApplicationIsoDate()}.csv`;
   document.body.appendChild(link);
   link.click();
   link.remove();

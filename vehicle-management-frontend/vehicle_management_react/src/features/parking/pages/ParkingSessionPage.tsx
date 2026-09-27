@@ -12,6 +12,8 @@ import {
 } from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
+import { addApplicationCalendarDays, formatApplicationDateTime, todayApplicationIsoDate } from "@/shared/time/applicationTime";
+import { displayLicensePlate } from "@/shared/utils/licensePlate";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
@@ -27,21 +29,11 @@ const tabItems: Array<{ label: string; value: SessionTab }> = [
 ];
 
 function todayIso() {
-  const today = new Date();
-  return toIsoDate(today);
+  return todayApplicationIsoDate();
 }
 
 function daysAgoIso(days: number) {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return toIsoDate(date);
-}
-
-function toIsoDate(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return addApplicationCalendarDays(todayApplicationIsoDate(), -days) ?? todayApplicationIsoDate();
 }
 
 function splitDateRange(value: string) {
@@ -113,7 +105,10 @@ function getEvent(session: ParkingSessionManagementResponse, type: "CHECK_IN" | 
 }
 
 function licensePlate(session: ParkingSessionManagementResponse) {
-  return session.licensePlateOut || session.licensePlateIn || "Chưa có dữ liệu";
+  return session.licensePlateOutDisplay
+    || session.licensePlateInDisplay
+    || displayLicensePlate(session.licensePlateOut || session.licensePlateIn, session.vehicleTypeCode)
+    || "Chưa có dữ liệu";
 }
 
 function sessionShortId(session: ParkingSessionManagementResponse) {
@@ -198,7 +193,7 @@ function EventBlock({ event, title }: { event?: ParkingSessionManagementEventRes
     <section className="tw-grid tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4">
       <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
         <strong className="tw-text-[0.96rem] tw-font-black tw-text-vm-slate-900">{title}</strong>
-        <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">{fallback(event?.eventTime)}</span>
+        <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">{formatApplicationDateTime(event?.eventTime)}</span>
       </div>
       <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[620px]:tw-grid-cols-1">
         <EvidenceImage label="Ảnh biển số" src={event?.licensePlateImagePath} />
@@ -251,8 +246,8 @@ function SessionDetailDrawer({
           <Detail label="Loại xe" value={[session.vehicleTypeCode, session.vehicleTypeName].filter(Boolean).join(" • ")} />
           <Detail label="Bãi xe" value={[session.parkingLotCode, session.parkingLotName].filter(Boolean).join(" • ")} />
           <Detail label="Khu vực" value={[session.zoneCode, session.zoneName].filter(Boolean).join(" • ")} />
-          <Detail label="Thời gian vào" value={session.checkInTime} />
-          <Detail label="Thời gian ra" value={session.checkOutTime} />
+          <Detail label="Thời gian vào" value={formatApplicationDateTime(session.checkInTime)} />
+          <Detail label="Thời gian ra" value={formatApplicationDateTime(session.checkOutTime)} />
           <Detail label="Phí" value={formatCurrency(session.totalPrice)} />
           <div className="tw-grid tw-gap-1">
             <span className="tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-500">Trạng thái</span>
@@ -565,8 +560,8 @@ export function ParkingSessionPage() {
                                 <strong className="tw-block tw-text-[0.84rem] tw-font-black tw-text-vm-slate-900">{fallback(session.parkingLotName || session.parkingLotCode)}</strong>
                                 <span className="tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500">{fallback(session.zoneName || session.zoneCode)}</span>
                               </td>
-                              <td><strong className="tw-text-[0.84rem] tw-font-black tw-text-vm-slate-900">{fallback(session.checkInTime)}</strong></td>
-                              <td><span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-700">{fallback(session.checkOutTime)}</span></td>
+                              <td><strong className="tw-text-[0.84rem] tw-font-black tw-text-vm-slate-900">{formatApplicationDateTime(session.checkInTime)}</strong></td>
+                              <td><span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-700">{formatApplicationDateTime(session.checkOutTime)}</span></td>
                               <td><strong className="tw-text-[0.84rem] tw-font-black tw-text-vm-slate-900">{formatCurrency(session.totalPrice)}</strong></td>
                               <td><Badge tone={statusTone(session.status)}>{statusLabel(session.status)}</Badge></td>
                               <td><Badge tone={missing ? "danger" : "success"}>{missing ? "Thiếu ảnh" : "Đủ ảnh"}</Badge></td>

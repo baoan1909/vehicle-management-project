@@ -15,11 +15,15 @@ import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftAssignmentStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftType;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.InjectMocks;
@@ -30,6 +34,16 @@ import org.springframework.data.domain.Pageable;
 
 @ExtendWith(MockitoExtension.class)
 class EmployeeManagerReadPersistenceAdapterTest {
+
+    @BeforeEach
+    void configureApplicationZone() {
+        DateTimeUtils.configureAppZone(ZoneId.of("Asia/Ho_Chi_Minh"));
+    }
+
+    @AfterEach
+    void resetApplicationZone() {
+        DateTimeUtils.configureAppZone(DateTimeUtils.UTC_ZONE);
+    }
 
     @Mock
     private ShiftAssignmentRepository shiftAssignmentRepository;

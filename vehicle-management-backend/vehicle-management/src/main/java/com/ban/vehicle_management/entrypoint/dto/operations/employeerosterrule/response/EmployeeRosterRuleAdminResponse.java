@@ -25,8 +25,8 @@ public class EmployeeRosterRuleAdminResponse {
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
     private RosterRuleStatus status;
-    private String createdAt;
+    private java.time.Instant createdAt;
     private UUID createdBy;
-    private String updatedAt;
+    private java.time.Instant updatedAt;
     private UUID updatedBy;
 }

@@ -82,11 +82,17 @@ public class ParkingSessionEntity extends AuditableEntity {
     @JoinColumn(name = "zone_id", referencedColumnName = "zone_id", insertable = false, updatable = false)
     private ZoneEntity zone;
 
-    @Column(name = "license_plate_in", nullable = false)
+    @Column(name = "license_plate_in")
     private String licensePlateIn;
+
+    @Column(name = "license_plate_in_normalized", insertable = false, updatable = false)
+    private String licensePlateInNormalized;
 
     @Column(name = "license_plate_out")
     private String licensePlateOut;
+
+    @Column(name = "license_plate_out_normalized", insertable = false, updatable = false)
+    private String licensePlateOutNormalized;
 
     @Column(name = "check_in_time", nullable = false)
     private Instant checkInTime;

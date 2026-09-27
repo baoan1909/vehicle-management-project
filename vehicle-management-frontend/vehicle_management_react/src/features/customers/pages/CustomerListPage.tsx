@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Badge, Button, Card, DatePicker, EntityAvatar, InfoBanner, Input, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
 import { createAndOpenCustomerSupportConversation } from "@/features/support";
 import { cn } from "@/lib/cn";
+import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
@@ -123,6 +124,7 @@ function formatDateTime(value?: string | null) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: getApplicationTimeZone(),
     month: "2-digit",
     year: "numeric",
   }).format(date);
@@ -1102,7 +1104,7 @@ export function CustomerListPage() {
             <Field label="Ngày sinh">
               <DatePicker
                 ariaLabel="Ngày sinh"
-                max={new Date().toISOString().slice(0, 10)}
+                max={todayApplicationIsoDate()}
                 value={form.dateOfBirth}
                 onChange={(value) => setForm((current) => (current ? { ...current, dateOfBirth: value } : current))}
               />

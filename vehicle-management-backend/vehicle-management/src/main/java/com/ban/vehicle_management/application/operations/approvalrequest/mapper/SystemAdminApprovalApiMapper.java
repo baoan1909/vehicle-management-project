@@ -22,7 +22,4 @@ public interface SystemAdminApprovalApiMapper {
 
     List<SystemAdminApprovalAdminResponse> toResponses(List<SystemAdminApprovalResult> results);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

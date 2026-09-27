@@ -34,7 +34,4 @@ public interface GateApiMapper {
 
     List<GateAdminResponse> toAdminResponses(List<Gate> gates);
 
-    default String map(Instant instant) {
-        return DateTimeUtils.formatInstant(instant, DateTimeUtils.VIETNAM_ZONE);
-    }
 }

@@ -19,10 +19,13 @@ import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
 import com.ban.vehicle_management.application.storage.model.StoredFile;
 import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
+import com.ban.vehicle_management.application.storage.config.StorageAccessTimeProperties;
 import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlatePolicy;
+import com.ban.vehicle_management.domain.common.licenseplate.LicensePlateResolution;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.parking.gate.model.Gate;
@@ -58,6 +61,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -70,12 +74,10 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     private static final String CUSTOMER_TYPE_SUBSCRIPTION = "SUBSCRIPTION";
     private static final String BARRIER_ACTION_OPEN = "OPEN";
     private static final String BARRIER_ACTION_WAIT_PAYMENT = "WAIT_PAYMENT";
-    private static final int CHECK_IN_IMAGE_READ_URL_EXPIRE_SECONDS = 15 * 60;
     private static final LocalTime DAY_REFERENCE_TIME = LocalTime.NOON;
     private static final LocalTime NIGHT_REFERENCE_TIME = LocalTime.MIDNIGHT;
     private static final DateTimeFormatter INVOICE_NO_TIME_FORMATTER = DateTimeFormatter
-            .ofPattern("yyyyMMddHHmmss")
-            .withZone(DateTimeUtils.VIETNAM_ZONE);
+            .ofPattern("yyyyMMddHHmmss");
     private static final List<InvoiceStatus> ACTIVE_INVOICE_STATUSES = List.of(
             InvoiceStatus.UNPAID,
             InvoiceStatus.PAID
@@ -95,11 +97,13 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     private final ParkingCheckOutMapper parkingCheckOutMapper;
     private final FileStoragePort fileStoragePort;
     private final FileAccessPort fileAccessPort;
+    private int parkingImageReadUrlExpirySeconds = 900;
     private final CardPolicy cardPolicy = new CardPolicy();
     private final ParkingCheckOutPolicy parkingCheckOutPolicy = new ParkingCheckOutPolicy();
     private final ParkingCheckoutPricePolicy parkingCheckoutPricePolicy = new ParkingCheckoutPricePolicy();
     private final ParkingLicensePlatePolicy licensePlatePolicy = new ParkingLicensePlatePolicy();
     private final ParkingSessionPolicy parkingSessionPolicy = new ParkingSessionPolicy();
+    private final LicensePlatePolicy licensePlateSnapshotPolicy = new LicensePlatePolicy();
     private final ParkingEventPolicy parkingEventPolicy = new ParkingEventPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
 
@@ -133,6 +137,11 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         this.parkingCheckOutMapper = parkingCheckOutMapper;
         this.fileStoragePort = fileStoragePort;
         this.fileAccessPort = fileAccessPort;
+    }
+
+    @Autowired
+    void configureStorageAccessTime(StorageAccessTimeProperties properties) {
+        this.parkingImageReadUrlExpirySeconds = properties.parkingImageReadUrlExpirySeconds();
     }
 
     @Transactional
@@ -474,7 +483,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         if (objectKey == null || objectKey.isBlank() || isBrowserReachableUrl(objectKey)) {
             return objectKey;
         }
-        return fileAccessPort.createReadUrl(objectKey, CHECK_IN_IMAGE_READ_URL_EXPIRE_SECONDS);
+        return fileAccessPort.createReadUrl(objectKey, parkingImageReadUrlExpirySeconds);
     }
 
     private boolean isBrowserReachableUrl(String value) {
@@ -531,9 +540,20 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         invoice.setParkingLotId(parkingSession.getParkingLotId());
         invoice.setAmount(totalPrice);
         invoice.setDiscountAmount(BigDecimal.ZERO);
+        snapshotLicensePlate(invoice, parkingSession.getLicensePlateOut() == null
+                ? parkingSession.getLicensePlateIn()
+                : parkingSession.getLicensePlateOut());
 
         invoicePolicy.initializeNewInvoice(invoice, generateInvoiceNo(invoice.getInvoiceId(), issuedAt), issuedAt);
         return invoicePortOut.save(invoice);
+    }
+
+    private void snapshotLicensePlate(Invoice invoice, String licensePlate) {
+        LicensePlateResolution resolution = licensePlateSnapshotPolicy.resolve(licensePlate, null);
+        invoice.setLicensePlateNormalizedSnapshot(resolution.normalized());
+        invoice.setLicensePlateDisplaySnapshot(resolution.display());
+        invoice.setLicensePlateFormatSnapshot(resolution.format().name());
+        invoice.setLicensePlateFormatVersion(LicensePlatePolicy.FORMAT_VERSION);
     }
 
     private StoredFile storeCheckOutLicensePlateImage(
@@ -655,7 +675,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
                 .replace("-", "")
                 .substring(0, 8)
                 .toUpperCase();
-        return "INV-" + INVOICE_NO_TIME_FORMATTER.format(now) + "-" + suffix;
+        return "INV-" + now.atZone(DateTimeUtils.getAppZone()).format(INVOICE_NO_TIME_FORMATTER) + "-" + suffix;
     }
 
     private boolean isSubscriptionSession(ParkingSession parkingSession) {

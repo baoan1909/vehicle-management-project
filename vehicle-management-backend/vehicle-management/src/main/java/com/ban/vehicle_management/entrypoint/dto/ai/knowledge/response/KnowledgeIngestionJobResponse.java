@@ -1,5 +1,7 @@
 package com.ban.vehicle_management.entrypoint.dto.ai.knowledge.response;
 
+import java.time.Instant;
+
 import com.ban.vehicle_management.shared.enumeration.ai.IngestionStage;
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeIngestionJobStatus;
 import java.util.UUID;
@@ -17,11 +19,11 @@ public class KnowledgeIngestionJobResponse {
     private Integer attemptCount;
     private Integer maxAttempts;
     private IngestionStage lastCompletedStage;
-    private String startedAt;
-    private String completedAt;
+    private Instant startedAt;
+    private Instant completedAt;
     private String errorCode;
     private String errorMessageRedacted;
-    private String nextAttemptAt;
-    private String createdAt;
-    private String updatedAt;
+    private Instant nextAttemptAt;
+    private Instant createdAt;
+    private Instant updatedAt;
 }

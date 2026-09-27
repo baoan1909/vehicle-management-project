@@ -25,8 +25,8 @@ public class SubscriptionLifecycleScheduler {
     }
 
     @Scheduled(
-            fixedDelayString = "${app.scheduler.subscription-lifecycle.fixed-delay-ms:300000}",
-            initialDelayString = "${app.scheduler.subscription-lifecycle.initial-delay-ms:60000}"
+            fixedDelayString = "${app.scheduler.subscription-lifecycle.fixed-delay:5m}",
+            initialDelayString = "${app.scheduler.subscription-lifecycle.initial-delay:1m}"
     )
     public void processSubscriptionLifecycle() {
         expireActiveSubscriptions();

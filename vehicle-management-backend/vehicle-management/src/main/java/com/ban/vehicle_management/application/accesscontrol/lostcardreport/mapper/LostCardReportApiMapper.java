@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportSummaryResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportWorkflowResult;
+import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingSessionApiMapper;
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
@@ -28,7 +29,7 @@ import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = ParkingSessionApiMapper.class)
 public interface LostCardReportApiMapper {
 
     @Mapping(target = "lostCardReportId", ignore = true)
@@ -69,8 +70,8 @@ public interface LostCardReportApiMapper {
                 item.parkingSessionId(),
                 item.subscriptionId(),
                 item.licensePlate(),
-                map(item.notificationTime()),
-                map(item.timeOfLost()),
+                item.notificationTime(),
+                item.timeOfLost(),
                 item.ticketPrice(),
                 item.lostCardFee(),
                 item.totalAmount(),
@@ -83,9 +84,9 @@ public interface LostCardReportApiMapper {
                 item.invoiceId(),
                 item.invoiceNo(),
                 item.invoiceStatus(),
-                map(item.createdAt()),
+                item.createdAt(),
                 item.createdBy(),
-                map(item.updatedAt()),
+                item.updatedAt(),
                 item.updatedBy()
         );
     }
@@ -124,10 +125,6 @@ public interface LostCardReportApiMapper {
         );
     }
 
-    default String map(Instant value) {
-        return DateTimeUtils.formatInstant(value, DateTimeUtils.VIETNAM_ZONE);
-    }
-
     private String buildReportCode(LostCardReportListItemResult item) {
         String datePart = item.notificationTime() == null
                 ? "UNKNOWN"
@@ -155,8 +152,8 @@ public interface LostCardReportApiMapper {
         response.setZoneId(parkingSession.getZoneId());
         response.setLicensePlateIn(parkingSession.getLicensePlateIn());
         response.setLicensePlateOut(parkingSession.getLicensePlateOut());
-        response.setCheckInTime(map(parkingSession.getCheckInTime()));
-        response.setCheckOutTime(map(parkingSession.getCheckOutTime()));
+        response.setCheckInTime(parkingSession.getCheckInTime());
+        response.setCheckOutTime(parkingSession.getCheckOutTime());
         response.setStatus(parkingSession.getStatus());
         response.setTotalPrice(parkingSession.getTotalPrice());
         return response;
@@ -180,14 +177,14 @@ public interface LostCardReportApiMapper {
         response.setPrice(subscription.getPrice());
         response.setStatus(subscription.getStatus());
         response.setApprovedBy(subscription.getApprovedBy());
-        response.setApprovedAt(map(subscription.getApprovedAt()));
+        response.setApprovedAt(subscription.getApprovedAt());
         response.setRejectionReason(subscription.getRejectionReason());
         response.setRejectedBy(subscription.getRejectedBy());
-        response.setRejectedAt(map(subscription.getRejectedAt()));
+        response.setRejectedAt(subscription.getRejectedAt());
         response.setCardReceiptDate(subscription.getCardReceiptDate());
-        response.setCreatedAt(map(subscription.getCreatedAt()));
+        response.setCreatedAt(subscription.getCreatedAt());
         response.setCreatedBy(subscription.getCreatedBy());
-        response.setUpdatedAt(map(subscription.getUpdatedAt()));
+        response.setUpdatedAt(subscription.getUpdatedAt());
         response.setUpdatedBy(subscription.getUpdatedBy());
         return response;
     }
@@ -209,11 +206,11 @@ public interface LostCardReportApiMapper {
                 detail.getInvoice().getDiscountAmount(),
                 detail.getInvoice().getFinalAmount(),
                 detail.getInvoice().getStatus(),
-                map(detail.getInvoice().getIssuedAt()),
-                map(detail.getInvoice().getPaidAt()),
-                map(detail.getInvoice().getCreatedAt()),
+                detail.getInvoice().getIssuedAt(),
+                detail.getInvoice().getPaidAt(),
+                detail.getInvoice().getCreatedAt(),
                 detail.getInvoice().getCreatedBy(),
-                map(detail.getInvoice().getUpdatedAt()),
+                detail.getInvoice().getUpdatedAt(),
                 detail.getInvoice().getUpdatedBy(),
                 toPaymentResponses(detail.getPayments())
         );
@@ -241,7 +238,7 @@ public interface LostCardReportApiMapper {
                 payment.getAmount(),
                 payment.getTransactionRef(),
                 payment.getStatus(),
-                map(payment.getPaidAt()),
+                payment.getPaidAt(),
                 payment.getReceivedBy(),
                 payment.getNote()
         );
