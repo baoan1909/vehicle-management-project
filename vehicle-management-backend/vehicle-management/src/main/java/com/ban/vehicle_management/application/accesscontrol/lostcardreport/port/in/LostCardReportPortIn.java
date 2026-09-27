@@ -46,10 +46,11 @@ public interface LostCardReportPortIn {
             UUID cardId,
             UUID parkingSessionId,
             UUID subscriptionId,
+            UUID parkingLotId,
             Instant fromDate,
             Instant toDate,
             String keyword
     );
 
-    LostCardReportSummaryResult getSummary(Instant fromDate, Instant toDate);
+    LostCardReportSummaryResult getSummary(Instant fromDate, Instant toDate, UUID parkingLotId);
 }

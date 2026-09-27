@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public record InvoiceManagementItemResponse(
         UUID invoiceId,
+        UUID parkingLotId,
         String invoiceNo,
         UUID customerId,
         String customerName,

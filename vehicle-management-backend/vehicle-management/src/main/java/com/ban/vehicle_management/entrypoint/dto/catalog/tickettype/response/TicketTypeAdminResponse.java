@@ -12,6 +12,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class TicketTypeAdminResponse {
     private UUID ticketTypeId;
+    private UUID organizationId;
     private String code;
     private String name;
     private String description;

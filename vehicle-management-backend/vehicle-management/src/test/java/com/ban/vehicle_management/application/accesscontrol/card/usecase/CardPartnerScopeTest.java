@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.accesscontrol.card.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
@@ -9,11 +10,9 @@ import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPo
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
-import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
-import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
-import java.util.List;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -38,19 +37,14 @@ class CardPartnerScopeTest {
 
     @Test
     void partnerCanReadCardFromAnyLotInItsOrganization() {
-        UUID organizationId = UUID.randomUUID();
         UUID firstLotId = UUID.randomUUID();
         UUID secondLotId = UUID.randomUUID();
         UUID cardId = UUID.randomUUID();
-        ParkingLot firstLot = lot(firstLotId);
-        ParkingLot secondLot = lot(secondLotId);
         Card card = new Card();
         card.setParkingLotId(secondLotId);
 
-        when(organizationAccessGuard.resolveParkingLotAccessScope())
-                .thenReturn(new ParkingLotAccessScope(false, Set.of(organizationId), Set.of()));
-        when(parkingLotPortOut.findAll(null, null, Set.of(organizationId), null))
-                .thenReturn(List.of(firstLot, secondLot));
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut))
+                .thenReturn(Set.of(firstLotId, secondLotId));
         when(cardPort.findById(cardId)).thenReturn(Optional.of(card));
 
         assertEquals(card, cardUseCase.getCardById(cardId));
@@ -58,25 +52,27 @@ class CardPartnerScopeTest {
 
     @Test
     void partnerCannotReadCardFromAnotherOrganization() {
-        UUID organizationId = UUID.randomUUID();
         UUID ownLotId = UUID.randomUUID();
         UUID otherLotId = UUID.randomUUID();
         UUID cardId = UUID.randomUUID();
         Card card = new Card();
         card.setParkingLotId(otherLotId);
 
-        when(organizationAccessGuard.resolveParkingLotAccessScope())
-                .thenReturn(new ParkingLotAccessScope(false, Set.of(organizationId), Set.of()));
-        when(parkingLotPortOut.findAll(null, null, Set.of(organizationId), null))
-                .thenReturn(List.of(lot(ownLotId)));
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut))
+                .thenReturn(Set.of(ownLotId));
         when(cardPort.findById(cardId)).thenReturn(Optional.of(card));
 
         assertThrows(AccessDeniedException.class, () -> cardUseCase.getCardById(cardId));
     }
 
-    private ParkingLot lot(UUID id) {
-        ParkingLot lot = new ParkingLot();
-        lot.setParkingLotId(id);
-        return lot;
+    @Test
+    void partnerCardListQueriesOnlyItsParkingLots() {
+        Set<UUID> ownLots = Set.of(UUID.randomUUID(), UUID.randomUUID());
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut)).thenReturn(ownLots);
+
+        cardUseCase.getCards(CardStatus.AVAILABLE, null, null);
+
+        verify(cardPort).findAll(CardStatus.AVAILABLE, null, null, ownLots);
     }
+
 }

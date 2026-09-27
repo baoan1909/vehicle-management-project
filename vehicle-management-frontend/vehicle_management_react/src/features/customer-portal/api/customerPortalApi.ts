@@ -49,6 +49,7 @@ export type CustomerPortalSubscriptionStatus =
   | "REJECTED";
 
 export type CustomerPortalSubscription = {
+  parkingLotId?: string | null;
   approvedAt?: string | null;
   approvedBy?: string | null;
   cardId?: string | null;
@@ -74,6 +75,7 @@ export type CustomerPortalSubscription = {
 };
 
 export type CreateMySubscriptionRequest = {
+  parkingLotId: string;
   customerVehicleId: string;
   requestedEffectiveFrom: string;
   ticketTypeId: string;
@@ -203,11 +205,25 @@ export async function createMySubscription(payload: CreateMySubscriptionRequest)
   return response.data;
 }
 
-export async function getCustomerPortalLookups() {
+export type CustomerPortalParkingLot = {
+  parkingLotId: string;
+  name: string;
+  address?: string | null;
+};
+
+export async function getCustomerPortalParkingLots() {
+  const response = await apiClient<ApiResponse<CustomerPortalParkingLot[]>>(
+    apiEndpoints.public.parkingLots,
+    { skipAuth: true },
+  );
+  return response.data ?? [];
+}
+
+export async function getCustomerPortalLookups(parkingLotId?: string) {
   const [vehicleTypesResponse, ticketTypesResponse, priceRulesResponse] = await Promise.all([
-    getPublicPricingVehicleTypes(),
-    getPublicPricingTicketTypes(),
-    getPublicPriceRules({ isActive: true }),
+    getPublicPricingVehicleTypes(parkingLotId),
+    getPublicPricingTicketTypes(parkingLotId),
+    getPublicPriceRules({ isActive: true, parkingLotId }),
   ]);
 
   return {

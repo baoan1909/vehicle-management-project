@@ -117,4 +117,9 @@ public class ZonePersistenceAdapter implements ZonePortOut {
     public long sumActiveCapacityByVehicleTypeId(UUID vehicleTypeId) {
         return zoneRepository.sumActiveCapacityByVehicleTypeId(vehicleTypeId);
     }
+
+    @Override
+    public long sumActiveCapacityByVehicleTypeIdAndParkingLotId(UUID vehicleTypeId, UUID parkingLotId) {
+        return zoneRepository.sumActiveCapacityByVehicleTypeIdAndParkingLotId(vehicleTypeId, parkingLotId);
+    }
 }

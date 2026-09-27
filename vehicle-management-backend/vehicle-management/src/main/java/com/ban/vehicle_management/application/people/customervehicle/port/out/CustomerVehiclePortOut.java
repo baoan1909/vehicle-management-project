@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVe
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface CustomerVehiclePortOut {
@@ -21,6 +22,13 @@ public interface CustomerVehiclePortOut {
             Boolean isDefault,
             String keyword
     );
+
+    List<CustomerVehicle> findAll(
+            UUID customerId, CustomerVehicleStatus status, UUID vehicleTypeId,
+            Boolean isDefault, String keyword, Set<UUID> parkingLotIds
+    );
+
+    boolean existsInParkingLots(UUID customerVehicleId, Set<UUID> parkingLotIds);
 
     boolean existsByLicensePlate(String licensePlate);
 

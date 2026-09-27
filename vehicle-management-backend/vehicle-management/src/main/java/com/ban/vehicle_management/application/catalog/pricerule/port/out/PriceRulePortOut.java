@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface PriceRulePortOut {
@@ -21,6 +22,9 @@ public interface PriceRulePortOut {
             Boolean isActive,
             String keyword
     );
+
+    List<PriceRule> findAll(UUID pricePlanId, UUID vehicleTypeId, UUID ticketTypeId,
+                            Boolean isActive, String keyword, Set<UUID> organizationIds);
 
     boolean existsActiveVehicleTypeById(UUID vehicleTypeId);
 
@@ -49,6 +53,9 @@ public interface PriceRulePortOut {
             UUID ticketTypeId,
             LocalDate effectiveDate
     );
+
+    Optional<PriceRule> findActiveSubscriptionRuleInOrganization(
+            UUID canonicalVehicleTypeId, UUID ticketTypeId, UUID organizationId, LocalDate effectiveDate);
 
     Optional<PriceRule> findActiveVisitorRuleByTime(
             UUID vehicleTypeId,

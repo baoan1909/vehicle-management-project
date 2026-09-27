@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.people.customer.usecase;
 
 import com.ban.vehicle_management.application.people.customer.port.in.CustomerPortIn;
+import com.ban.vehicle_management.application.people.customer.authorization.CustomerAccessGuard;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
@@ -22,20 +23,24 @@ import org.springframework.transaction.annotation.Transactional;
 public class CustomerUseCaseImpl implements CustomerPortIn {
 
     private final CustomerPortOut customerPortOut;
+    private final CustomerAccessGuard customerAccessGuard;
     private final UserProfileAvatarPortIn userProfileAvatarPortIn;
     private final CustomerPolicy customerPolicy = new CustomerPolicy();
 
     public CustomerUseCaseImpl(
             CustomerPortOut customerPortOut,
-            UserProfileAvatarPortIn userProfileAvatarPortIn
+            UserProfileAvatarPortIn userProfileAvatarPortIn,
+            CustomerAccessGuard customerAccessGuard
     ) {
         this.customerPortOut = customerPortOut;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
+        this.customerAccessGuard = customerAccessGuard;
     }
 
     @Override
     @Transactional(readOnly = true)
     public Customer getCustomerById(UUID customerId) {
+        customerAccessGuard.ensureCanRead(customerId);
         Customer customer = customerPortOut.findById(customerId)
                 .orElseThrow(() -> new NotFoundException("Customer not found"));
         return withResolvedAvatarUrl(customer);
@@ -47,15 +52,19 @@ public class CustomerUseCaseImpl implements CustomerPortIn {
             CustomerStatus status,
             CustomerApprovalStatus approvalStatus,
             CustomerType customerType,
-            String keyword
+            String keyword,
+            UUID parkingLotId
     ) {
-        return withResolvedAvatarUrls(customerPortOut.findAll(status, approvalStatus, customerType, keyword));
+        return withResolvedAvatarUrls(customerPortOut.findAll(status, approvalStatus, customerType,
+                keyword, customerAccessGuard.visibleParkingLotIds(parkingLotId)));
     }
 
     @Override
     @Transactional
     public Customer activateCustomer(UUID customerId) {
-        Customer customer = getCustomerById(customerId);
+        customerAccessGuard.ensureCanManage();
+        Customer customer = customerPortOut.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("Customer not found"));
         customerPolicy.activate(customer);
         return withResolvedAvatarUrl(customerPortOut.save(customer));
     }
@@ -63,7 +72,9 @@ public class CustomerUseCaseImpl implements CustomerPortIn {
     @Override
     @Transactional
     public Customer inactivateCustomer(UUID customerId) {
-        Customer customer = getCustomerById(customerId);
+        customerAccessGuard.ensureCanManage();
+        Customer customer = customerPortOut.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("Customer not found"));
         customerPolicy.inactivate(customer);
         return withResolvedAvatarUrl(customerPortOut.save(customer));
     }

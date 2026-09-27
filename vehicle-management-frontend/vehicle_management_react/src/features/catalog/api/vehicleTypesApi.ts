@@ -23,6 +23,7 @@ export type UpdateVehicleTypeRequest = CreateVehicleTypeRequest;
 
 export type VehicleTypeApiResponse = {
   code: string;
+  organizationId: string;
   createdAt: string | null;
   createdBy: string | null;
   description: string | null;
@@ -52,8 +53,8 @@ export function getVehicleTypes(filter: VehicleTypeFilter = {}) {
   );
 }
 
-export function createVehicleType(payload: CreateVehicleTypeRequest) {
-  return apiClient<ApiResponse<VehicleTypeApiResponse>>(apiEndpoints.catalog.vehicleTypes, {
+export function createVehicleType(payload: CreateVehicleTypeRequest, parkingLotId?: string | null) {
+  return apiClient<ApiResponse<VehicleTypeApiResponse>>(`${apiEndpoints.catalog.vehicleTypes}${buildQuery({ parkingLotId })}`, {
     method: "POST",
     body: payload,
   });

@@ -16,11 +16,13 @@ import com.ban.vehicle_management.application.accesscontrol.subscription.model.r
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.catalog.voucher.port.in.VoucherPortIn;
+import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
 import com.ban.vehicle_management.application.catalog.voucher.model.result.VoucherQuote;
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
@@ -30,6 +32,7 @@ import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
+import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
@@ -37,6 +40,7 @@ import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
@@ -55,6 +59,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class SubscriptionUseCaseImplTest {
+    private static final UUID LOT_ID = UUID.fromString("00000000-0000-0000-0000-000000000101");
+    private static final UUID ORGANIZATION_ID = UUID.fromString("00000000-0000-0000-0000-000000000102");
 
     @Mock
     private SubscriptionPortOut subscriptionPortOut;
@@ -84,6 +90,12 @@ class SubscriptionUseCaseImplTest {
     private ZonePortOut zonePortOut;
 
     @Mock
+    private ParkingLotPortOut parkingLotPortOut;
+
+    @Mock
+    private ParkingLotCatalogAvailabilityPortOut catalogAvailabilityPortOut;
+
+    @Mock
     private CurrentAccountPortIn currentAccountPortIn;
 
     @Mock
@@ -99,7 +111,7 @@ class SubscriptionUseCaseImplTest {
 
         when(subscriptionAccessGuard.resolveCurrentApprovedCustomerId()).thenReturn(data.customerId());
         mockValidSubscriptionPreparation(data);
-        when(subscriptionPortOut.existsOverlappingSubscription(data.customerVehicleId(), request.getRequestedEffectiveFrom(), request.getRequestedEffectiveFrom().plusDays(29), null))
+        when(subscriptionPortOut.existsOverlappingSubscriptionInParkingLot(data.customerVehicleId(), LOT_ID, request.getRequestedEffectiveFrom(), request.getRequestedEffectiveFrom().plusDays(29), null))
                 .thenReturn(false);
         when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -152,11 +164,36 @@ class SubscriptionUseCaseImplTest {
         Subscription request = createRequest(data.customerVehicleId(), data.ticketTypeId());
         CustomerVehicle vehicle = activeCustomerVehicle(data.customerVehicleId(), UUID.randomUUID(), data.vehicleTypeId());
 
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setParkingLotId(LOT_ID);
+        parkingLot.setStatus(ParkingLotStatus.ACTIVE);
+        when(parkingLotPortOut.findById(LOT_ID)).thenReturn(Optional.of(parkingLot));
+
         when(subscriptionAccessGuard.resolveCurrentApprovedCustomerId()).thenReturn(data.customerId());
         when(customerPortOut.findById(data.customerId())).thenReturn(Optional.of(activeApprovedCustomer(data.customerId())));
         when(customerVehiclePortOut.findById(data.customerVehicleId())).thenReturn(Optional.of(vehicle));
 
         assertThrows(BadRequestException.class, () -> subscriptionUseCase.createOwnSubscription(request));
+        verify(subscriptionPortOut, never()).save(any(Subscription.class));
+    }
+
+    @Test
+    void shouldRejectNewSubscriptionWhenTicketTypeIsNotOfferedAtLot() {
+        TestData data = validTestData();
+        Subscription request = createRequest(data.customerVehicleId(), data.ticketTypeId());
+        ParkingLot lot = new ParkingLot();
+        lot.setParkingLotId(LOT_ID);
+        lot.setOrganizationId(ORGANIZATION_ID);
+        lot.setStatus(ParkingLotStatus.ACTIVE);
+        when(subscriptionAccessGuard.resolveCurrentApprovedCustomerId()).thenReturn(data.customerId());
+        when(parkingLotPortOut.findById(LOT_ID)).thenReturn(Optional.of(lot));
+        when(customerPortOut.findById(data.customerId())).thenReturn(Optional.of(activeApprovedCustomer(data.customerId())));
+        when(customerVehiclePortOut.findById(data.customerVehicleId()))
+                .thenReturn(Optional.of(activeCustomerVehicle(data.customerVehicleId(), data.customerId(), data.vehicleTypeId())));
+        when(ticketTypePortOut.findById(data.ticketTypeId())).thenReturn(Optional.of(activeMonthlyTicketType(data.ticketTypeId())));
+
+        assertThrows(ConflictException.class, () -> subscriptionUseCase.createOwnSubscription(request));
+        verify(catalogAvailabilityPortOut).isTicketTypeEnabled(LOT_ID, data.ticketTypeId());
         verify(subscriptionPortOut, never()).save(any(Subscription.class));
     }
 
@@ -178,7 +215,8 @@ class SubscriptionUseCaseImplTest {
                 SubscriptionStatus.PENDING,
                 LocalDate.of(2026, 6, 1),
                 LocalDate.of(2026, 6, 30),
-                "SUB"
+                "SUB",
+                java.util.Set.of()
         )).thenReturn(expectedSubscriptions);
 
         List<Subscription> subscriptions = subscriptionUseCase.getSubscriptions(
@@ -205,12 +243,12 @@ class SubscriptionUseCaseImplTest {
 
         when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingSubscription));
         mockValidSubscriptionPreparation(data);
-        when(subscriptionPortOut.existsOverlappingSubscription(data.customerVehicleId(), pendingSubscription.getEffectiveFrom(), pendingSubscription.getEffectiveTo(), data.subscriptionId()))
+        when(subscriptionPortOut.existsOverlappingSubscriptionInParkingLot(data.customerVehicleId(), LOT_ID, pendingSubscription.getEffectiveFrom(), pendingSubscription.getEffectiveTo(), data.subscriptionId()))
                 .thenReturn(false);
-        when(zonePortOut.sumActiveCapacityByVehicleTypeId(data.vehicleTypeId())).thenReturn(100L);
-        when(subscriptionPortOut.countReservedOrActiveByVehicleTypeId(data.vehicleTypeId())).thenReturn(10L);
+        when(zonePortOut.sumActiveCapacityByVehicleTypeIdAndParkingLotId(data.vehicleTypeId(), LOT_ID)).thenReturn(100L);
+        when(subscriptionPortOut.countReservedOrActiveByVehicleTypeIdInParkingLot(data.vehicleTypeId(), LOT_ID)).thenReturn(10L);
         when(invoicePortOut.existsBySubscriptionIdAndStatusIn(eq(data.subscriptionId()), any(List.class))).thenReturn(false);
-        when(cardPortOut.findFirstAvailableRegistered()).thenReturn(Optional.of(availableCard));
+        when(cardPortOut.findFirstAvailableRegisteredInParkingLot(LOT_ID)).thenReturn(Optional.of(availableCard));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(managerAccountId);
         when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -240,10 +278,10 @@ class SubscriptionUseCaseImplTest {
 
         when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingSubscription));
         mockValidSubscriptionPreparation(data);
-        when(subscriptionPortOut.existsOverlappingSubscription(data.customerVehicleId(), pendingSubscription.getEffectiveFrom(), pendingSubscription.getEffectiveTo(), data.subscriptionId()))
+        when(subscriptionPortOut.existsOverlappingSubscriptionInParkingLot(data.customerVehicleId(), LOT_ID, pendingSubscription.getEffectiveFrom(), pendingSubscription.getEffectiveTo(), data.subscriptionId()))
                 .thenReturn(false);
-        when(zonePortOut.sumActiveCapacityByVehicleTypeId(data.vehicleTypeId())).thenReturn(100L);
-        when(subscriptionPortOut.countReservedOrActiveByVehicleTypeId(data.vehicleTypeId())).thenReturn(10L);
+        when(zonePortOut.sumActiveCapacityByVehicleTypeIdAndParkingLotId(data.vehicleTypeId(), LOT_ID)).thenReturn(100L);
+        when(subscriptionPortOut.countReservedOrActiveByVehicleTypeIdInParkingLot(data.vehicleTypeId(), LOT_ID)).thenReturn(10L);
         when(invoicePortOut.existsBySubscriptionIdAndStatusIn(eq(data.subscriptionId()), any(List.class))).thenReturn(false);
 
         assertThrows(ConflictException.class, () -> subscriptionUseCase.approveSubscription(data.subscriptionId()));
@@ -332,17 +370,25 @@ class SubscriptionUseCaseImplTest {
     }
 
     private void mockValidSubscriptionPreparation(TestData data) {
+        when(catalogAvailabilityPortOut.isTicketTypeEnabled(LOT_ID, data.ticketTypeId())).thenReturn(true);
+        when(catalogAvailabilityPortOut.isVehicleTypeEnabled(LOT_ID, data.vehicleTypeId())).thenReturn(true);
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setParkingLotId(LOT_ID);
+        parkingLot.setOrganizationId(ORGANIZATION_ID);
+        parkingLot.setStatus(ParkingLotStatus.ACTIVE);
+        when(parkingLotPortOut.findById(LOT_ID)).thenReturn(Optional.of(parkingLot));
         when(customerPortOut.findById(data.customerId())).thenReturn(Optional.of(activeApprovedCustomer(data.customerId())));
         when(customerVehiclePortOut.findById(data.customerVehicleId()))
                 .thenReturn(Optional.of(activeCustomerVehicle(data.customerVehicleId(), data.customerId(), data.vehicleTypeId())));
         when(ticketTypePortOut.findById(data.ticketTypeId())).thenReturn(Optional.of(activeMonthlyTicketType(data.ticketTypeId())));
-        when(priceRulePortOut.findActiveSubscriptionRule(data.vehicleTypeId(), data.ticketTypeId(), requestedEffectiveFrom()))
+        when(priceRulePortOut.findActiveSubscriptionRuleInOrganization(data.vehicleTypeId(), data.ticketTypeId(), ORGANIZATION_ID, requestedEffectiveFrom()))
                 .thenReturn(Optional.of(subscriptionPriceRule(data.priceRuleId(), data.vehicleTypeId(), data.ticketTypeId())));
     }
 
     private Subscription createRequest(UUID customerVehicleId, UUID ticketTypeId) {
         Subscription subscription = new Subscription();
         subscription.setCustomerVehicleId(customerVehicleId);
+        subscription.setParkingLotId(LOT_ID);
         subscription.setTicketTypeId(ticketTypeId);
         subscription.setRequestedEffectiveFrom(requestedEffectiveFrom());
         return subscription;
@@ -390,6 +436,7 @@ class SubscriptionUseCaseImplTest {
     private TicketType activeMonthlyTicketType(UUID ticketTypeId) {
         TicketType ticketType = new TicketType();
         ticketType.setTicketTypeId(ticketTypeId);
+        ticketType.setOrganizationId(ORGANIZATION_ID);
         ticketType.setCode("MONTHLY");
         ticketType.setDurationDays(30);
         ticketType.setStatus(TicketTypeStatus.ACTIVE);
@@ -413,6 +460,7 @@ class SubscriptionUseCaseImplTest {
         card.setCardNumber("V001");
         card.setUid("RFID-001");
         card.setCardTypeId(UUID.randomUUID());
+        card.setParkingLotId(LOT_ID);
         card.setStatus(CardStatus.AVAILABLE);
         return card;
     }

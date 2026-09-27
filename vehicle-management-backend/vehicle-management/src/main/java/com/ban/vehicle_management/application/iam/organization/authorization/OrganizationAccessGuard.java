@@ -5,9 +5,11 @@ import com.ban.vehicle_management.application.iam.organization.model.result.Park
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +20,9 @@ public class OrganizationAccessGuard {
     public static final String PARTNER_ADMIN = "PARTNER_ADMIN";
     public static final String PARKING_MANAGER = "PARKING_MANAGER";
     public static final String PARKING_TOPOLOGY_CONFIGURE_ALL = "PARKING_TOPOLOGY_CONFIGURE_ALL";
+    public static final String PARKING_SCOPE_PLATFORM = "PARKING_SCOPE_PLATFORM";
+    public static final String PARKING_SCOPE_PARTNER = "PARKING_SCOPE_PARTNER";
+    public static final String PARKING_SCOPE_ASSIGNED = "PARKING_SCOPE_ASSIGNED";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final OrganizationPortOut organizationPortOut;
@@ -55,17 +60,18 @@ public class OrganizationAccessGuard {
 
     public ParkingLotAccessScope resolveParkingLotAccessScope() {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (isSystemAdmin(currentAccount)) {
+        Set<String> permissions = currentAccount.getEffectivePermissionCodes();
+        if (permissions.contains(PARKING_SCOPE_PLATFORM)) {
             return ParkingLotAccessScope.unrestrictedScope();
         }
-        if (PARTNER_ADMIN.equals(currentAccount.roleCode())) {
+        if (permissions.contains(PARKING_SCOPE_PARTNER)) {
             return new ParkingLotAccessScope(
                     false,
                     organizationPortOut.findActiveOrganizationIdsByAccountId(currentAccount.accountId()),
                     Set.of()
             );
         }
-        if (PARKING_MANAGER.equals(currentAccount.roleCode())) {
+        if (permissions.contains(PARKING_SCOPE_ASSIGNED)) {
             return new ParkingLotAccessScope(
                     false,
                     Set.of(),
@@ -94,6 +100,23 @@ public class OrganizationAccessGuard {
         if (!PARTNER_ADMIN.equals(currentAccount.roleCode())) {
             throw new AccessDeniedException("Current account cannot manage this parking lot");
         }
+    }
+
+    /** Null means platform-wide access; an empty set means no accessible lots. */
+    public Set<UUID> resolveAccessibleParkingLotIds(ParkingLotPortOut parkingLotPortOut) {
+        ParkingLotAccessScope scope = resolveParkingLotAccessScope();
+        if (scope.unrestricted()) {
+            return null;
+        }
+        if (!scope.parkingLotIds().isEmpty()) {
+            return scope.parkingLotIds();
+        }
+        if (scope.organizationIds().isEmpty()) {
+            return Set.of();
+        }
+        return parkingLotPortOut.findAll(null, null, scope.organizationIds(), null).stream()
+                .map(ParkingLot::getParkingLotId)
+                .collect(Collectors.toSet());
     }
 
     /** Operational writes are reserved for the owning Partner or an assigned Manager. */

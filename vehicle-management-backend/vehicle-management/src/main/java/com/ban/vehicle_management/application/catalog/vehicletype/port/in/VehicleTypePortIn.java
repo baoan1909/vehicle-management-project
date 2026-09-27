@@ -8,6 +8,8 @@ public interface VehicleTypePortIn {
 
     VehicleType createVehicleType(VehicleType vehicleType);
 
+    VehicleType createVehicleType(VehicleType vehicleType, UUID parkingLotId);
+
     VehicleType updateVehicleType(UUID vehicleTypeId, VehicleType vehicleType);
 
     VehicleType getVehicleTypeById(UUID vehicleTypeId);

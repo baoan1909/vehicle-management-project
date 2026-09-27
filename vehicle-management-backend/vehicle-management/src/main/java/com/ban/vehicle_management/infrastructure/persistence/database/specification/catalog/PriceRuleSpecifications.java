@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.specifica
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.PriceRuleEntity;
 import java.util.UUID;
+import java.util.Set;
 import org.springframework.data.jpa.domain.Specification;
 
 public final class PriceRuleSpecifications {
@@ -16,12 +17,19 @@ public final class PriceRuleSpecifications {
             Boolean isActive,
             String keyword
     ) {
+        return withFilters(pricePlanId, vehicleTypeId, ticketTypeId, isActive, keyword, null);
+    }
+
+    public static Specification<PriceRuleEntity> withFilters(UUID pricePlanId, UUID vehicleTypeId,
+            UUID ticketTypeId, Boolean isActive, String keyword, Set<UUID> organizationIds) {
         return Specification
                 .where(hasPricePlanId(pricePlanId))
                 .and(hasVehicleTypeId(vehicleTypeId))
                 .and(hasTicketTypeId(ticketTypeId))
                 .and(hasActiveStatus(isActive))
-                .and(containsKeyword(keyword));
+                .and(containsKeyword(keyword))
+                .and((root, query, criteriaBuilder) -> organizationIds == null
+                        ? null : root.get("organizationId").in(organizationIds));
     }
 
     private static Specification<PriceRuleEntity> hasPricePlanId(UUID pricePlanId) {

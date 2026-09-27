@@ -19,7 +19,8 @@ public interface ParkingSessionPortIn {
             UUID zoneId,
             LocalDate fromDate,
             LocalDate toDate,
-            String keyword
+            String keyword,
+            UUID parkingLotId
     );
 
     List<ParkingSessionManagementResult> getOwnSessions(
@@ -28,7 +29,8 @@ public interface ParkingSessionPortIn {
             UUID zoneId,
             LocalDate fromDate,
             LocalDate toDate,
-            String keyword
+            String keyword,
+            UUID parkingLotId
     );
 
     CheckInResult checkIn(CheckInCommand command);

@@ -7,17 +7,23 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
+import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
@@ -30,6 +36,15 @@ class CustomerVehicleAccessGuardTest {
     @Mock
     private AccountProfilePortOut accountProfilePortOut;
 
+    @Mock
+    private OrganizationAccessGuard organizationAccessGuard;
+
+    @Mock
+    private ParkingLotPortOut parkingLotPortOut;
+
+    @Mock
+    private CustomerVehiclePortOut customerVehiclePortOut;
+
     @InjectMocks
     private CustomerVehicleAccessGuard customerVehicleAccessGuard;
 
@@ -37,6 +52,7 @@ class CustomerVehicleAccessGuardTest {
     void shouldKeepRequestedCustomerIdWhenCreateAllPermissionIsGranted() {
         UUID requestedCustomerId = UUID.randomUUID();
         when(currentAccountPortIn.hasPermission("CUSTOMER_VEHICLE_CREATE_ALL")).thenReturn(true);
+        allowPlatformScope();
 
         UUID resolvedCustomerId = customerVehicleAccessGuard.resolveCustomerIdForCreate(requestedCustomerId);
 
@@ -127,9 +143,29 @@ class CustomerVehicleAccessGuardTest {
 
     @Test
     void shouldRequireUpdateAllPermissionForBlocking() {
+        allowPlatformScope();
         customerVehicleAccessGuard.ensureCanBlock();
 
         verify(currentAccountPortIn).requirePermission("CUSTOMER_VEHICLE_UPDATE_ALL");
+    }
+
+    @Test
+    void shouldDenyPartnerReadingVehicleNotUsedAtItsLot() {
+        UUID lotId = UUID.randomUUID();
+        CustomerVehicle vehicle = new CustomerVehicle();
+        vehicle.setCustomerVehicleId(UUID.randomUUID());
+        when(currentAccountPortIn.hasPermission("CUSTOMER_VEHICLE_READ_ALL")).thenReturn(true);
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut))
+                .thenReturn(Set.of(lotId));
+
+        assertThrows(AccessDeniedException.class, () -> customerVehicleAccessGuard.ensureCanRead(vehicle));
+        verify(customerVehiclePortOut).existsInParkingLots(vehicle.getCustomerVehicleId(), Set.of(lotId));
+    }
+
+    private void allowPlatformScope() {
+        CurrentAccountAccess access = mock(CurrentAccountAccess.class);
+        when(access.getEffectivePermissionCodes()).thenReturn(Set.of("PARKING_SCOPE_PLATFORM"));
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(access);
     }
 
     private AccountProfileState approvedCustomerProfile(UUID accountId, UUID customerId) {

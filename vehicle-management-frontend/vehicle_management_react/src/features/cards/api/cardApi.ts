@@ -68,11 +68,13 @@ export type CardFilters = {
 
 export type CreateCardPayload = {
   cardTypeId: string;
+  parkingLotId: string;
 };
 
 export type CreateCardBatchPayload = {
   cardTypeId: string;
   quantity: number;
+  parkingLotId: string;
 };
 
 export type ReclassifyCardPayload = {

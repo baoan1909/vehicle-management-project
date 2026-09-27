@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.people.customer.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.customer.model.command.UpdateCustomerAdminProfileCommand;
+import com.ban.vehicle_management.application.people.customer.authorization.CustomerAccessGuard;
 import com.ban.vehicle_management.application.people.customer.model.result.CustomerAdminProfileResult;
 import com.ban.vehicle_management.application.people.customer.port.in.CustomerAdminProfilePortIn;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
@@ -25,9 +26,8 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class CustomerAdminProfileUseCaseImpl implements CustomerAdminProfilePortIn {
 
-    private static final String CUSTOMER_UPDATE_ALL = "CUSTOMER_UPDATE_ALL";
-
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final CustomerAccessGuard customerAccessGuard;
     private final UserProfilePortOut userProfilePortOut;
     private final CustomerPortOut customerPortOut;
     private final CustomerVehiclePortOut customerVehiclePortOut;
@@ -40,18 +40,21 @@ public class CustomerAdminProfileUseCaseImpl implements CustomerAdminProfilePort
             UserProfilePortOut userProfilePortOut,
             CustomerPortOut customerPortOut,
             CustomerVehiclePortOut customerVehiclePortOut,
-            UserProfileAvatarPortIn userProfileAvatarPortIn
+            UserProfileAvatarPortIn userProfileAvatarPortIn,
+            CustomerAccessGuard customerAccessGuard
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.userProfilePortOut = userProfilePortOut;
         this.customerPortOut = customerPortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
+        this.customerAccessGuard = customerAccessGuard;
     }
 
     @Override
     @Transactional
     public CustomerAdminProfileResult updateCustomerAdminProfile(UUID customerId, UpdateCustomerAdminProfileCommand command) {
+        customerAccessGuard.ensureCanManage();
         ensureUpdatePayloadHasContent(command);
 
         Customer existingCustomer = customerPortOut.findById(customerId)
@@ -78,7 +81,7 @@ public class CustomerAdminProfileUseCaseImpl implements CustomerAdminProfilePort
     @Override
     @Transactional
     public CustomerAdminProfileResult uploadCustomerAvatar(UUID customerId, MultipartFile file) {
-        currentAccountPortIn.requirePermission(CUSTOMER_UPDATE_ALL);
+        customerAccessGuard.ensureCanManage();
         UUID uploaderAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         Customer customer = customerPortOut.findById(customerId)
                 .orElseThrow(() -> new NotFoundException("Customer not found"));
@@ -93,7 +96,7 @@ public class CustomerAdminProfileUseCaseImpl implements CustomerAdminProfilePort
     @Override
     @Transactional
     public CustomerAdminProfileResult deleteCustomerAvatar(UUID customerId) {
-        currentAccountPortIn.requirePermission(CUSTOMER_UPDATE_ALL);
+        customerAccessGuard.ensureCanManage();
         Customer customer = customerPortOut.findById(customerId)
                 .orElseThrow(() -> new NotFoundException("Customer not found"));
         UserProfile updatedUserProfile = userProfileAvatarPortIn.deleteAvatar(customer.getUserProfileId());

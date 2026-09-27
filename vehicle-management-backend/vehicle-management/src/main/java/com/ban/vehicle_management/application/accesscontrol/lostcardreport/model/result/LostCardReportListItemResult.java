@@ -9,6 +9,7 @@ import java.util.UUID;
 
 public record LostCardReportListItemResult(
         UUID lostCardReportId,
+        UUID parkingLotId,
         UUID cardId,
         UUID customerId,
         UUID parkingSessionId,

@@ -3,6 +3,7 @@ import { apiEndpoints } from "@/core/api/apiEndpoints";
 import { fetchCards, type CardResponse } from "@/features/cards/api/cardApi";
 import { getTicketTypes, type TicketTypeApiResponse } from "@/features/catalog/api/ticketTypesApi";
 import { getVehicleTypes, type VehicleTypeApiResponse } from "@/features/catalog/api/vehicleTypesApi";
+import { getParkingLots } from "@/features/parking/api/parkingLotsApi";
 
 type ApiResponse<T> = {
   data: T;
@@ -21,6 +22,7 @@ export type SubscriptionStatus =
   | "REJECTED";
 
 export type SubscriptionApiResponse = {
+  parkingLotId?: string | null;
   approvedAt?: string | null;
   approvedBy?: string | null;
   cardId?: string | null;
@@ -45,6 +47,7 @@ export type SubscriptionApiResponse = {
 };
 
 export type SubscriptionFilter = {
+  customerId?: string;
   effectiveFrom?: string;
   effectiveTo?: string;
   keyword?: string;
@@ -135,16 +138,18 @@ export async function getCustomerVehicles() {
 }
 
 export async function getSubscriptionLookupData() {
-  const [customers, customerVehicles, ticketTypesResponse, vehicleTypesResponse, cards] = await Promise.all([
+  const [customers, customerVehicles, ticketTypesResponse, vehicleTypesResponse, cards, parkingLotsResponse] = await Promise.all([
     getCustomers(),
     getCustomerVehicles(),
     getTicketTypes(),
     getVehicleTypes(),
     fetchCards(),
+    getParkingLots(),
   ]);
 
   return {
     cards,
+    parkingLots: parkingLotsResponse.data ?? [],
     customers,
     customerVehicles,
     ticketTypes: ticketTypesResponse.data ?? [],

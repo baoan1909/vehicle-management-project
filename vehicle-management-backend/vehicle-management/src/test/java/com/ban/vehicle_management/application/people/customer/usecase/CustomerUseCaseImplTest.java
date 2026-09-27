@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
+import com.ban.vehicle_management.application.people.customer.authorization.CustomerAccessGuard;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
@@ -17,6 +18,7 @@ import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,23 +35,29 @@ class CustomerUseCaseImplTest {
     @Mock
     private UserProfileAvatarPortIn userProfileAvatarPortIn;
 
+    @Mock
+    private CustomerAccessGuard customerAccessGuard;
+
     @InjectMocks
     private CustomerUseCaseImpl customerUseCase;
 
     @Test
     void shouldReturnFilteredCustomers() {
-        when(customerPortOut.findAll(CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus"))
+        UUID parkingLotId = UUID.randomUUID();
+        when(customerAccessGuard.visibleParkingLotIds(parkingLotId)).thenReturn(Set.of(parkingLotId));
+        when(customerPortOut.findAll(CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus", Set.of(parkingLotId)))
                 .thenReturn(List.of(new Customer(), new Customer()));
 
         List<Customer> customers = customerUseCase.getCustomers(
                 CustomerStatus.ACTIVE,
                 CustomerApprovalStatus.PENDING,
                 CustomerType.REGISTERED,
-                "cus"
+                "cus",
+                parkingLotId
         );
 
         assertEquals(2, customers.size());
-        verify(customerPortOut).findAll(CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus");
+        verify(customerPortOut).findAll(CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, CustomerType.REGISTERED, "cus", Set.of(parkingLotId));
     }
 
     @Test
@@ -60,11 +68,11 @@ class CustomerUseCaseImplTest {
         customer.setUserProfile(profile(userProfileId, null));
         UserProfile resolvedProfile = profile(userProfileId, "https://cdn.example.com/customer-avatar.png");
 
-        when(customerPortOut.findAll(null, null, null, null)).thenReturn(List.of(customer));
+        when(customerPortOut.findAll(null, null, null, null, Set.of())).thenReturn(List.of(customer));
         when(userProfileAvatarPortIn.withResolvedAvatarUrls(List.of(customer.getUserProfile())))
                 .thenReturn(List.of(resolvedProfile));
 
-        List<Customer> customers = customerUseCase.getCustomers(null, null, null, null);
+        List<Customer> customers = customerUseCase.getCustomers(null, null, null, null, null);
 
         assertEquals("https://cdn.example.com/customer-avatar.png",
                 customers.getFirst().getUserProfile().getAvatarUrl());

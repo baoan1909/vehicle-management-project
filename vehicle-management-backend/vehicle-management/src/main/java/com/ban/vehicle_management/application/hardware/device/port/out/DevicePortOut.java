@@ -5,6 +5,7 @@ import com.ban.vehicle_management.shared.enumeration.hardware.DeviceStatus;
 import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface DevicePortOut {
@@ -18,7 +19,8 @@ public interface DevicePortOut {
             UUID laneId,
             DeviceType deviceType,
             DeviceStatus status,
-            String keyword
+            String keyword,
+            Set<UUID> accessibleParkingLotIds
     );
 
     boolean existsByDeviceCode(String deviceCode);

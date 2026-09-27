@@ -62,6 +62,11 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
     }
 
     @Override
+    public Optional<Organization> findByCode(String code) {
+        return organizationRepository.findByCode(code).map(organizationPersistenceMapper::toDomain);
+    }
+
+    @Override
     public List<Organization> findAllByIds(Set<UUID> organizationIds) {
         if (organizationIds == null || organizationIds.isEmpty()) {
             return List.of();

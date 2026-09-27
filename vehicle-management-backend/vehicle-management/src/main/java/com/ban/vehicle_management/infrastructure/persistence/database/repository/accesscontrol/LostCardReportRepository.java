@@ -8,6 +8,7 @@ import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardRepor
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -24,8 +25,6 @@ public interface LostCardReportRepository extends
 
     boolean existsByCardId(UUID cardId);
 
-    long countByStatus(LostCardReportStatus status);
-
     List<LostCardReportEntity> findByStatusAndContextAndNotificationTimeBetween(
             LostCardReportStatus status,
             LostCardReportContext context,
@@ -36,6 +35,7 @@ public interface LostCardReportRepository extends
     @Query("""
         select new com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult(
             report.lostCardReportId,
+            report.parkingLotId,
             report.cardId,
             report.customerId,
             report.parkingSessionId,
@@ -70,6 +70,7 @@ public interface LostCardReportRepository extends
           and (:cardId is null or report.cardId = :cardId)
           and (:parkingSessionId is null or report.parkingSessionId = :parkingSessionId)
           and (:subscriptionId is null or report.subscriptionId = :subscriptionId)
+          and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
           and report.timeOfLost >= :fromDate
           and report.timeOfLost <= :toDate
           and (
@@ -101,7 +102,20 @@ public interface LostCardReportRepository extends
             @Param("subscriptionId") UUID subscriptionId,
             @Param("fromDate") Instant fromDate,
             @Param("toDate") Instant toDate,
-            @Param("keyword") String keyword
+            @Param("keyword") String keyword,
+            @Param("scopeEnabled") boolean scopeEnabled,
+            @Param("parkingLotIds") Set<UUID> parkingLotIds
+    );
+
+    @Query("""
+        select count(report) from LostCardReportEntity report
+        where report.status = :status
+          and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
+        """)
+    long countByStatusInParkingLots(
+            @Param("status") LostCardReportStatus status,
+            @Param("scopeEnabled") boolean scopeEnabled,
+            @Param("parkingLotIds") Set<UUID> parkingLotIds
     );
 
     @Query("""
@@ -110,11 +124,14 @@ public interface LostCardReportRepository extends
         where report.status = :status
           and report.resolvedAt >= :fromDate
           and report.resolvedAt <= :toDate
+          and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
         """)
     long countByStatusAndResolvedAtBetween(
             @Param("status") LostCardReportStatus status,
             @Param("fromDate") Instant fromDate,
-            @Param("toDate") Instant toDate
+            @Param("toDate") Instant toDate,
+            @Param("scopeEnabled") boolean scopeEnabled,
+            @Param("parkingLotIds") Set<UUID> parkingLotIds
     );
 
     @Query("""
@@ -123,10 +140,13 @@ public interface LostCardReportRepository extends
         join InvoiceEntity invoice on invoice.lostCardReportId = report.lostCardReportId
         where report.status = :reportStatus
           and invoice.status = :invoiceStatus
+          and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
         """)
     long countByReportStatusAndInvoiceStatus(
             @Param("reportStatus") LostCardReportStatus reportStatus,
-            @Param("invoiceStatus") InvoiceStatus invoiceStatus
+            @Param("invoiceStatus") InvoiceStatus invoiceStatus,
+            @Param("scopeEnabled") boolean scopeEnabled,
+            @Param("parkingLotIds") Set<UUID> parkingLotIds
     );
 
     @Query("""
@@ -134,6 +154,11 @@ public interface LostCardReportRepository extends
         from LostCardReportEntity report
         join report.card card
         where card.status = :cardStatus
+          and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
         """)
-    long countDistinctCardsByCardStatus(@Param("cardStatus") CardStatus cardStatus);
+    long countDistinctCardsByCardStatus(
+            @Param("cardStatus") CardStatus cardStatus,
+            @Param("scopeEnabled") boolean scopeEnabled,
+            @Param("parkingLotIds") Set<UUID> parkingLotIds
+    );
 }

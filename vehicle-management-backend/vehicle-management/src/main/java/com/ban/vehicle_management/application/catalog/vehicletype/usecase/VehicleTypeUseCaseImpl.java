@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.catalog.vehicletype.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.in.VehicleTypePortIn;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
@@ -24,20 +25,30 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final VehicleTypePortOut vehicleTypePort;
+    private final CatalogAccessGuard catalogAccessGuard;
     private final VehicleTypePolicy vehicleTypePolicy = new VehicleTypePolicy();
 
-    public VehicleTypeUseCaseImpl(CurrentAccountPortIn currentAccountPortIn, VehicleTypePortOut vehicleTypePort) {
+    public VehicleTypeUseCaseImpl(CurrentAccountPortIn currentAccountPortIn, VehicleTypePortOut vehicleTypePort,
+                                  CatalogAccessGuard catalogAccessGuard) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.vehicleTypePort = vehicleTypePort;
+        this.catalogAccessGuard = catalogAccessGuard;
     }
 
     @Override
     @Transactional
     public VehicleType createVehicleType(VehicleType vehicleType) {
+        return createVehicleType(vehicleType, null);
+    }
+
+    @Override
+    @Transactional
+    public VehicleType createVehicleType(VehicleType vehicleType, UUID parkingLotId) {
         currentAccountPortIn.requirePermission(VEHICLE_TYPE_CREATE_ALL);
         vehicleTypePolicy.initialize(vehicleType);
+        vehicleType.setOrganizationId(catalogAccessGuard.writableOrganizationId(parkingLotId));
 
-        if (vehicleTypePort.existsByCode(vehicleType.getCode())) {
+        if (vehicleTypePort.existsByCodeInOrganization(vehicleType.getCode(), vehicleType.getOrganizationId())) {
             throw new ConflictException("Vehicle type code already exists");
         }
 
@@ -50,6 +61,7 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
     public VehicleType updateVehicleType(UUID vehicleTypeId, VehicleType vehicleType) {
         currentAccountPortIn.requirePermission(VEHICLE_TYPE_UPDATE_ALL);
         VehicleType existingVehicleType = findExistingVehicleType(vehicleTypeId);
+        catalogAccessGuard.ensureWritable(existingVehicleType.getOrganizationId());
 
         existingVehicleType.setCode(vehicleType.getCode());
         existingVehicleType.setName(vehicleType.getName());
@@ -60,7 +72,8 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
 
         vehicleTypePolicy.initialize(existingVehicleType);
 
-        if (vehicleTypePort.existsByCodeAndVehicleTypeIdNot(existingVehicleType.getCode(), vehicleTypeId)) {
+        if (vehicleTypePort.existsByCodeInOrganizationExcludingId(existingVehicleType.getCode(),
+                existingVehicleType.getOrganizationId(), vehicleTypeId)) {
             throw new ConflictException("Vehicle type code already exists");
         }
 
@@ -78,7 +91,7 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
     @Transactional(readOnly = true)
     public List<VehicleType> getVehicleTypes(Boolean isActive) {
         requireCatalogReadForOperation();
-        return vehicleTypePort.findAll(isActive);
+        return vehicleTypePort.findAll(isActive, catalogAccessGuard.visibleOrganizationIds());
     }
 
     @Override
@@ -86,6 +99,7 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
     public void deleteVehicleType(UUID vehicleTypeId) {
         currentAccountPortIn.requirePermission(VEHICLE_TYPE_DELETE_ALL);
         VehicleType existingVehicleType = findExistingVehicleType(vehicleTypeId);
+        catalogAccessGuard.ensureWritable(existingVehicleType.getOrganizationId());
         if (Boolean.FALSE.equals(existingVehicleType.getIsActive())) {
             return;
         }
@@ -100,12 +114,14 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
     public VehicleType activateVehicleType(UUID vehicleTypeId) {
         currentAccountPortIn.requirePermission(VEHICLE_TYPE_UPDATE_ALL);
         VehicleType existingVehicleType = findExistingVehicleType(vehicleTypeId);
+        catalogAccessGuard.ensureWritable(existingVehicleType.getOrganizationId());
         if (Boolean.TRUE.equals(existingVehicleType.getIsActive())) {
             return existingVehicleType;
         }
 
         vehicleTypePolicy.activate(existingVehicleType);
-        if (vehicleTypePort.existsByCodeAndVehicleTypeIdNot(existingVehicleType.getCode(), vehicleTypeId)) {
+        if (vehicleTypePort.existsByCodeInOrganizationExcludingId(existingVehicleType.getCode(),
+                existingVehicleType.getOrganizationId(), vehicleTypeId)) {
             throw new ConflictException("Vehicle type code already exists");
         }
 
@@ -113,8 +129,10 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
     }
 
     private VehicleType findExistingVehicleType(UUID vehicleTypeId) {
-        return vehicleTypePort.findById(vehicleTypeId)
+        VehicleType vehicleType = vehicleTypePort.findById(vehicleTypeId)
                 .orElseThrow(() -> new NotFoundException("Vehicle type not found"));
+        catalogAccessGuard.ensureReadable(vehicleType.getOrganizationId());
+        return vehicleType;
     }
 
     private void requireCatalogReadForOperation() {

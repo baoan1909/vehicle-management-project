@@ -13,7 +13,22 @@ public interface PricePlanRepository extends JpaRepository<PricePlanEntity, UUID
 
     boolean existsByCode(String code);
 
+    boolean existsByCodeAndOrganizationId(String code, UUID organizationId);
+
     boolean existsByCodeAndPricePlanIdNot(String code, UUID pricePlanId);
+
+    boolean existsByCodeAndOrganizationIdAndPricePlanIdNot(String code, UUID organizationId, UUID pricePlanId);
+
+    @Query("""
+            select count(pricePlan) > 0 from PricePlanEntity pricePlan
+            where pricePlan.organizationId = :organizationId
+              and pricePlan.isActive = true and pricePlan.appliesTo = :appliesTo
+              and (:excludedPricePlanId is null or pricePlan.pricePlanId <> :excludedPricePlanId)
+              and pricePlan.effectiveFrom <= :effectiveToBoundary
+              and (pricePlan.effectiveTo is null or pricePlan.effectiveTo >= :effectiveFrom)
+            """)
+    boolean existsActiveOverlapInOrganization(UUID organizationId, PricePlanAppliesTo appliesTo,
+            LocalDate effectiveFrom, LocalDate effectiveToBoundary, UUID excludedPricePlanId);
 
     @Query("""
             select count(pricePlan) > 0

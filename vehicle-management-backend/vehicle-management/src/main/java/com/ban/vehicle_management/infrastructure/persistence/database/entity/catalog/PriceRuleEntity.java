@@ -38,6 +38,9 @@ public class PriceRuleEntity extends AuditableEntity {
     @Column(name = "price_rule_id", nullable = false)
     private UUID priceRuleId;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "price_plan_id", nullable = false)
     private UUID pricePlanId;
 

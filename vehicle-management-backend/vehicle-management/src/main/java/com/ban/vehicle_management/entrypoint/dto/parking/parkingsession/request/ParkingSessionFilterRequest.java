@@ -8,6 +8,7 @@ public record ParkingSessionFilterRequest(
         ParkingSessionStatus status,
         UUID vehicleTypeId,
         UUID zoneId,
+        UUID parkingLotId,
         LocalDate fromDate,
         LocalDate toDate,
         String keyword

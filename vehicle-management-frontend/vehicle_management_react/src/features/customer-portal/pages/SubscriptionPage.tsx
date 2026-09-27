@@ -10,12 +10,14 @@ import {
 import {
   createMySubscription,
   getCustomerPortalLookups,
+  getCustomerPortalParkingLots,
   getCustomerPortalProfile,
   getCustomerPortalVoucherBanners,
   getMyCustomerVehicles,
   getMySubscriptions,
   quoteMySubscriptionVoucher,
   type CustomerPortalPriceRule,
+  type CustomerPortalParkingLot,
   type CustomerPortalProfile,
   type CustomerPortalSubscription,
   type CustomerPortalTicketType,
@@ -34,6 +36,7 @@ import { CustomerPortalLayout, PortalPagination } from "./PortalShared";
 import { DatePicker, Modal, useToast } from "@/components/ui";
 
 type SubscriptionForm = {
+  parkingLotId: string;
   customerVehicleId: string;
   requestedEffectiveFrom: string;
   ticketTypeId: string;
@@ -117,11 +120,15 @@ function findMatchingPriceRule(
   vehicle?: CustomerPortalVehicle,
   ticketTypeId?: string,
   priceRules: CustomerPortalPriceRule[] = [],
+  partnerVehicleTypes: CustomerPortalVehicleType[] = [],
 ) {
   if (!vehicle?.vehicleTypeId || !ticketTypeId) return undefined;
+  const partnerVehicleTypeIds = new Set(partnerVehicleTypes
+    .filter((type) => type.canonicalVehicleTypeId === vehicle.vehicleTypeId)
+    .map((type) => type.vehicleTypeId));
   return priceRules.find((rule) => (
     rule.isActive !== false
-    && rule.vehicleTypeId === vehicle.vehicleTypeId
+    && partnerVehicleTypeIds.has(rule.vehicleTypeId ?? "")
     && rule.ticketTypeId === ticketTypeId
   ));
 }
@@ -172,6 +179,7 @@ export function SubscriptionPage() {
   const voucherCodeFromUrl = searchParams.get("voucherCode")?.trim().toUpperCase() ?? "";
   const handledVnpayReturnRef = useRef(false);
   const voucherQuoteRequestRef = useRef(0);
+  const lotLookupRequestRef = useRef(0);
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [vehicles, setVehicles] = useState<CustomerPortalVehicle[]>([]);
   const [subscriptions, setSubscriptions] = useState<CustomerPortalSubscription[]>([]);
@@ -180,12 +188,16 @@ export function SubscriptionPage() {
   const [priceRules, setPriceRules] = useState<CustomerPortalPriceRule[]>([]);
   const [ticketTypes, setTicketTypes] = useState<CustomerPortalTicketType[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<CustomerPortalVehicleType[]>([]);
+  const [partnerVehicleTypes, setPartnerVehicleTypes] = useState<CustomerPortalVehicleType[]>([]);
+  const [parkingLots, setParkingLots] = useState<CustomerPortalParkingLot[]>([]);
+  const [lotLookupsLoading, setLotLookupsLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [keyword, setKeyword] = useState(() => searchParams.get("subscriptionId") ?? "");
   const [selectedSubscriptionId, setSelectedSubscriptionId] = useState(() => searchParams.get("subscriptionId") ?? "");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [form, setForm] = useState<SubscriptionForm>({
+    parkingLotId: "",
     customerVehicleId: "",
     requestedEffectiveFrom: today,
     ticketTypeId: "",
@@ -220,11 +232,12 @@ export function SubscriptionPage() {
 
   const vehicleById = useMemo(() => new Map(vehicles.map((vehicle) => [vehicle.customerVehicleId, vehicle])), [vehicles]);
   const ticketTypeById = useMemo(() => new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType])), [ticketTypes]);
+  const parkingLotById = useMemo(() => new Map(parkingLots.map((lot) => [lot.parkingLotId, lot])), [parkingLots]);
   const vehicleTypeById = useMemo(() => new Map(vehicleTypes.map((type) => [type.vehicleTypeId, type])), [vehicleTypes]);
 
   const activeVehicles = vehicles.filter((vehicle) => vehicle.status === "ACTIVE");
   const selectedVehicle = vehicleById.get(form.customerVehicleId);
-  const selectedPriceRule = findMatchingPriceRule(selectedVehicle, form.ticketTypeId, priceRules);
+  const selectedPriceRule = findMatchingPriceRule(selectedVehicle, form.ticketTypeId, priceRules, partnerVehicleTypes);
   const activeSubscription = subscriptions.find((subscription) => subscription.status === "ACTIVE");
   const selectedSubscription = subscriptions.find((subscription) => subscription.subscriptionId === selectedSubscriptionId);
   const detailSubscription = selectedSubscription ?? activeSubscription;
@@ -265,12 +278,16 @@ export function SubscriptionPage() {
     setLoadError("");
     try {
       const nextProfile = await getCustomerPortalProfile();
-      const [nextVehicles, nextSubscriptions, lookups, nextVoucherBanners] = await Promise.all([
+      const [nextVehicles, nextSubscriptions, nextParkingLots, globalLookups, nextVoucherBanners] = await Promise.all([
         getMyCustomerVehicles(nextProfile),
         getMySubscriptions(nextProfile),
+        getCustomerPortalParkingLots(),
         getCustomerPortalLookups(),
         getCustomerPortalVoucherBanners().catch(() => []),
       ]);
+      const parkingLotId = nextParkingLots.find((lot) => lot.parkingLotId === form.parkingLotId)?.parkingLotId
+        ?? nextParkingLots[0]?.parkingLotId ?? "";
+      const lookups = parkingLotId ? await getCustomerPortalLookups(parkingLotId) : { priceRules: [], ticketTypes: [], vehicleTypes: [] };
       const invoiceEntries = await Promise.all(nextSubscriptions.map(async (subscription) => {
         try {
           const invoice = await getSubscriptionInvoice(subscription.subscriptionId);
@@ -286,11 +303,14 @@ export function SubscriptionPage() {
         invoiceEntries.filter((entry): entry is readonly [string, InvoiceSummaryResponse] => entry !== null),
       ));
       setVoucherBanners(nextVoucherBanners);
+      setParkingLots(nextParkingLots);
       setPriceRules(lookups.priceRules);
       setTicketTypes(lookups.ticketTypes);
-      setVehicleTypes(lookups.vehicleTypes);
+      setVehicleTypes(globalLookups.vehicleTypes);
+      setPartnerVehicleTypes(lookups.vehicleTypes);
       setForm((current) => ({
         ...current,
+        parkingLotId,
         customerVehicleId: current.customerVehicleId || nextVehicles.find((vehicle) => vehicle.status === "ACTIVE")?.customerVehicleId || "",
         ticketTypeId: current.ticketTypeId || lookups.ticketTypes[0]?.ticketTypeId || "",
       }));
@@ -351,6 +371,32 @@ export function SubscriptionPage() {
     setCurrentPage(1);
   }, [keyword, pageSize, statusFilter]);
 
+  const changeParkingLot = async (parkingLotId: string) => {
+    const requestId = ++lotLookupRequestRef.current;
+    setForm((current) => ({ ...current, parkingLotId, ticketTypeId: "" }));
+    setPriceRules([]);
+    setTicketTypes([]);
+    setPartnerVehicleTypes([]);
+    setSubscriptionFormError("");
+    clearVoucherQuote();
+    if (!parkingLotId) return;
+    setLotLookupsLoading(true);
+    try {
+      const lookups = await getCustomerPortalLookups(parkingLotId);
+      if (requestId !== lotLookupRequestRef.current) return;
+      setPriceRules(lookups.priceRules);
+      setTicketTypes(lookups.ticketTypes);
+      setPartnerVehicleTypes(lookups.vehicleTypes);
+      setForm((current) => ({ ...current, ticketTypeId: lookups.ticketTypes[0]?.ticketTypeId ?? "" }));
+    } catch (error) {
+      if (requestId === lotLookupRequestRef.current) {
+        setSubscriptionFormError(error instanceof Error ? error.message : "Không thể tải giá vé của bãi xe.");
+      }
+    } finally {
+      if (requestId === lotLookupRequestRef.current) setLotLookupsLoading(false);
+    }
+  };
+
   const clearVoucherQuote = () => {
     voucherQuoteRequestRef.current += 1;
     setVoucherQuote(null);
@@ -365,9 +411,9 @@ export function SubscriptionPage() {
       return;
     }
 
-    if (!form.customerVehicleId || !form.ticketTypeId || !form.requestedEffectiveFrom) {
+    if (!form.parkingLotId || !form.customerVehicleId || !form.ticketTypeId || !form.requestedEffectiveFrom) {
       setVoucherQuote(null);
-      setVoucherQuoteError("Chọn phương tiện, loại vé và ngày bắt đầu trước khi áp dụng mã ưu đãi.");
+      setVoucherQuoteError("Chọn bãi xe, phương tiện, loại vé và ngày bắt đầu trước khi áp dụng mã ưu đãi.");
       return;
     }
 
@@ -399,6 +445,9 @@ export function SubscriptionPage() {
     try {
       if (!form.customerVehicleId) {
         throw new Error("Vui lòng chọn xe đăng ký.");
+      }
+      if (!form.parkingLotId) {
+        throw new Error("Vui lòng chọn bãi xe đăng ký.");
       }
       if (!form.ticketTypeId) {
         throw new Error("Vui lòng chọn loại vé.");
@@ -509,7 +558,8 @@ export function SubscriptionPage() {
           <div className="tw-relative tw-grid tw-min-h-[296px] tw-grid-cols-[52%_48%]">
             <div className="tw-min-w-0 tw-py-6 tw-pl-7 tw-pr-4">
               <span className="tw-inline-flex tw-items-center tw-gap-2 tw-text-[0.84rem] tw-font-normal tw-text-[#f7ce68]"><SubscriptionIcon name="ticket" className="!tw-h-6 !tw-w-6" />{detailSubscription && !isDetailSubscriptionActive ? "Chi tiết vé tháng" : "Vé tháng đang sử dụng"}</span>
-              <h2 className="tw-m-0 tw-mt-2 tw-text-[1.18rem] tw-font-semibold tw-leading-snug tw-text-white">{loading ? "Đang tải vé tháng..." : currentTicketType?.name ?? (detailSubscription ? "Vé tháng" : "Chưa có vé tháng")}</h2>
+              <h2 className="tw-m-0 tw-mt-2 tw-text-[1.18rem] tw-font-semibold tw-leading-snug tw-text-white">{loading ? "Đang tải vé đăng ký..." : currentTicketType?.name ?? (detailSubscription ? "Vé đăng ký" : "Chưa có vé đăng ký")}</h2>
+              {detailSubscription?.parkingLotId ? <p className="tw-m-0 tw-mt-1 tw-text-[0.72rem] tw-text-[#b8c6db]">Bãi xe: {parkingLotById.get(detailSubscription.parkingLotId)?.name ?? "Không còn hoạt động"}</p> : null}
               <div className="tw-mt-3 tw-flex tw-flex-wrap tw-items-center tw-gap-x-2 tw-gap-y-2">
                 <strong className="tw-whitespace-nowrap tw-rounded-[4px] tw-border tw-border-solid tw-border-[#b5c6da] tw-px-2.5 tw-py-1 tw-text-[1.1rem] tw-font-semibold tw-leading-tight">{currentVehicle?.licensePlate ?? "--"}</strong>
                 <span className="tw-min-w-0 tw-text-[0.76rem] tw-font-normal tw-text-[#e0e7f2]">{[currentVehicle?.brand, currentVehicle?.vehicleTypeId ? vehicleTypeById.get(currentVehicle.vehicleTypeId)?.name : undefined].filter(Boolean).join(" · ") || "Chưa gán phương tiện"}</span>
@@ -561,7 +611,7 @@ export function SubscriptionPage() {
               return (
                 <article key={subscription.subscriptionId} aria-label={"Xem chi tiết vé " + compactCode(subscription.subscriptionId)} aria-pressed={selected} className={["tw-grid tw-min-h-[94px] tw-grid-cols-[48px_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.25fr)_112px_8px] max-[1300px]:tw-grid-cols-[38px_minmax(0,1fr)_minmax(0,.85fr)_minmax(0,1.15fr)_105px_8px] max-[640px]:tw-grid-cols-[38px_minmax(0,1fr)_minmax(0,1fr)] tw-items-center tw-gap-x-3 tw-gap-y-2 tw-rounded-xl tw-border tw-border-solid tw-p-3 tw-transition", selected ? "tw-border-[#1263e9] tw-bg-[#f4f8ff]" : "tw-border-[#e0e3e9] tw-bg-white hover:tw-border-[#b9d3fb]"].join(" ")} role="button" tabIndex={0} title={"Xem vé " + subscription.subscriptionId} onClick={() => setSelectedSubscriptionId(subscription.subscriptionId)} onKeyDown={(event) => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedSubscriptionId(subscription.subscriptionId); } }}>
                   <span className={["tw-grid tw-h-12 tw-w-12 tw-place-items-center tw-rounded-full max-[1300px]:tw-h-9 max-[1300px]:tw-w-9", subscription.status === "ACTIVE" ? "tw-bg-[#edf7f0] tw-text-[#438c76]" : subscription.status?.startsWith("PENDING") ? "tw-bg-[#fff5e6] tw-text-[#e69a49]" : "tw-bg-[#f3f3f3] tw-text-[#777777]"].join(" ")}><SubscriptionIcon name="ticket" /></span>
-                  <span className="tw-min-w-0"><strong title={subscription.subscriptionId} className="tw-block tw-truncate tw-text-[0.82rem] tw-font-semibold tw-text-[#17233e]">{compactCode(subscription.subscriptionId)}</strong><small title={ticketType?.name} className="tw-mt-1 tw-block tw-truncate tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{ticketType?.name ?? "Vé tháng"}</small></span>
+                  <span className="tw-min-w-0"><strong title={subscription.subscriptionId} className="tw-block tw-truncate tw-text-[0.82rem] tw-font-semibold tw-text-[#17233e]">{compactCode(subscription.subscriptionId)}</strong><small title={ticketType?.name} className="tw-mt-1 tw-block tw-truncate tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{ticketType?.name ?? "Vé đăng ký"}</small><small className="tw-block tw-truncate tw-text-[0.68rem] tw-text-[#64748b]">{subscription.parkingLotId ? parkingLotById.get(subscription.parkingLotId)?.name ?? "Bãi ngừng hoạt động" : "Chưa xác định bãi"}</small></span>
                   <span className="tw-min-w-0 tw-border-0 tw-border-l tw-border-solid tw-border-[#edf0f3] tw-pl-3"><strong className="tw-block tw-whitespace-nowrap tw-text-[0.82rem] tw-font-semibold tw-text-[#17233e]">{vehicle?.licensePlate ?? "--"}</strong><small title={vehicleLabel(vehicle, vehicleTypeById)} className="tw-mt-1 tw-block tw-truncate tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{[vehicle?.brand, vehicle?.vehicleTypeId ? vehicleTypeById.get(vehicle.vehicleTypeId)?.name : undefined].filter(Boolean).join(" · ") || "--"}</small></span>
                   <span className="tw-min-w-0 tw-border-0 tw-border-l tw-border-solid tw-border-[#edf0f3] tw-pl-3 max-[640px]:tw-col-start-2">
                     <span className="tw-flex tw-flex-wrap tw-gap-x-1 tw-text-[0.7rem] tw-font-semibold tw-leading-5 tw-text-[#17233e]"><span className="tw-whitespace-nowrap">{formatDate(toDateInputValue(getDisplayEffectiveFrom(subscription)) ?? subscription.requestedEffectiveFrom)}</span><span className="tw-whitespace-nowrap">— {subscription.effectiveTo ? formatDate(subscription.effectiveTo) : "Chưa xác định"}</span></span>
@@ -583,6 +633,11 @@ export function SubscriptionPage() {
         <div className="tw-min-w-0 [&_select]:tw-w-full [&_input]:tw-w-full [&_label]:tw-min-w-0">
           {subscriptionFormError ? <div className="tw-mt-3 tw-flex tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-[0.76rem] tw-font-medium tw-text-red-700" role="alert"><i className="fas fa-exclamation-circle tw-mt-0.5" /><span>{subscriptionFormError}</span></div> : null}
           <div className="tw-mt-3 tw-grid tw-gap-2.5">
+            <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Bãi xe đăng ký
+              <select className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-px-3 tw-text-[0.78rem] tw-text-[#273345]" value={form.parkingLotId} onChange={(event) => { void changeParkingLot(event.target.value); }}><option value="">Chọn bãi xe</option>{parkingLots.map((lot) => <option key={lot.parkingLotId} value={lot.parkingLotId}>{lot.name}{lot.address ? ` · ${lot.address}` : ""}</option>)}</select>
+              {lotLookupsLoading ? <small className="tw-text-[#64748b]">Đang tải giá vé của bãi...</small> : null}
+              {!loading && parkingLots.length === 0 ? <small className="tw-text-amber-700">Hiện chưa có bãi xe đang hoạt động để đăng ký.</small> : null}
+            </label>
             <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Phương tiện
               <span className="tw-relative"><SubscriptionIcon name="vehicle" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-2.5 !tw-h-4 !tw-w-4 tw-text-[#677181]" /><select className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-pl-10 tw-pr-3 tw-text-[0.78rem] tw-font-normal tw-text-[#273345]" value={form.customerVehicleId} onChange={(event) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, customerVehicleId: event.target.value })); }}><option value="">Chọn xe</option>{activeVehicles.map((vehicle) => <option key={vehicle.customerVehicleId} value={vehicle.customerVehicleId}>{vehicleLabel(vehicle, vehicleTypeById)}</option>)}</select></span>
             </label>
@@ -620,7 +675,7 @@ export function SubscriptionPage() {
             <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>{selectedVehicle ? `Phương tiện: ${selectedVehicle.licensePlate} · ${selectedVehicle.brand || vehicleTypeById.get(selectedVehicle.vehicleTypeId ?? "")?.name || "--"}` : "Chưa chọn phương tiện"}</span>{selectedPriceRule ? <span className="tw-shrink-0 tw-text-[#257640]">Phù hợp</span> : null}</div>
           </div>
           <small className="tw-mt-2 tw-block tw-text-[0.66rem] tw-font-normal tw-text-[#586273]">Mức phí theo gói và phương tiện đã chọn.</small>
-          <button className="tw-mt-3 tw-h-11 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-text-[0.86rem] tw-font-medium tw-text-white tw-shadow-[0_2px_4px_rgba(20,99,230,0.15)] disabled:tw-opacity-60" type="button" disabled={saving || !profile} onClick={handleCreate}>{saving ? "Đang gửi..." : "Gửi đăng ký"}</button>
+          <button className="tw-mt-3 tw-h-11 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-text-[0.86rem] tw-font-medium tw-text-white tw-shadow-[0_2px_4px_rgba(20,99,230,0.15)] disabled:tw-opacity-60" type="button" disabled={saving || !profile || lotLookupsLoading || !form.parkingLotId} onClick={handleCreate}>{saving ? "Đang gửi..." : "Gửi đăng ký"}</button>
         </div>
         </Modal>
       </div>

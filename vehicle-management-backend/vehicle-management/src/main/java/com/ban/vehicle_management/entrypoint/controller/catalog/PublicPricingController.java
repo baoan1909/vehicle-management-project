@@ -1,13 +1,14 @@
 package com.ban.vehicle_management.entrypoint.controller.catalog;
 
 import com.ban.vehicle_management.application.catalog.priceplan.mapper.PricePlanApiMapper;
-import com.ban.vehicle_management.application.catalog.priceplan.port.in.PricePlanPortIn;
+import com.ban.vehicle_management.application.catalog.availability.port.in.PublicParkingLotCatalogPortIn;
+import com.ban.vehicle_management.application.catalog.priceplan.port.out.PricePlanPortOut;
 import com.ban.vehicle_management.application.catalog.pricerule.mapper.PriceRuleApiMapper;
-import com.ban.vehicle_management.application.catalog.pricerule.port.in.PriceRulePortIn;
+import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
+import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.catalog.tickettype.mapper.TicketTypeApiMapper;
-import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.catalog.vehicletype.mapper.VehicleTypeApiMapper;
-import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
@@ -21,55 +22,65 @@ import com.ban.vehicle_management.entrypoint.dto.catalog.tickettype.response.Tic
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.VehicleTypeFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.response.VehicleTypeAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/public/pricing")
 public class PublicPricingController {
 
-    private final PricePlanPortIn pricePlanPortIn;
+    private final PricePlanPortOut pricePlanPortOut;
     private final PricePlanApiMapper pricePlanApiMapper;
-    private final PriceRulePortIn priceRulePortIn;
+    private final PriceRulePortOut priceRulePortOut;
+    private final OrganizationPortOut organizationPortOut;
+    private final ParkingLotPortOut parkingLotPortOut;
     private final PriceRuleApiMapper priceRuleApiMapper;
-    private final VehicleTypePortOut vehicleTypePortOut;
+    private final PublicParkingLotCatalogPortIn publicParkingLotCatalogPortIn;
     private final VehicleTypeApiMapper vehicleTypeApiMapper;
-    private final TicketTypePortOut ticketTypePortOut;
     private final TicketTypeApiMapper ticketTypeApiMapper;
 
     public PublicPricingController(
-            PricePlanPortIn pricePlanPortIn,
+            PricePlanPortOut pricePlanPortOut,
             PricePlanApiMapper pricePlanApiMapper,
-            PriceRulePortIn priceRulePortIn,
+            PriceRulePortOut priceRulePortOut,
             PriceRuleApiMapper priceRuleApiMapper,
-            VehicleTypePortOut vehicleTypePortOut,
+            PublicParkingLotCatalogPortIn publicParkingLotCatalogPortIn,
             VehicleTypeApiMapper vehicleTypeApiMapper,
-            TicketTypePortOut ticketTypePortOut,
-            TicketTypeApiMapper ticketTypeApiMapper
+            TicketTypeApiMapper ticketTypeApiMapper,
+            OrganizationPortOut organizationPortOut,
+            ParkingLotPortOut parkingLotPortOut
     ) {
-        this.pricePlanPortIn = pricePlanPortIn;
+        this.pricePlanPortOut = pricePlanPortOut;
         this.pricePlanApiMapper = pricePlanApiMapper;
-        this.priceRulePortIn = priceRulePortIn;
+        this.priceRulePortOut = priceRulePortOut;
+        this.organizationPortOut = organizationPortOut;
+        this.parkingLotPortOut = parkingLotPortOut;
         this.priceRuleApiMapper = priceRuleApiMapper;
-        this.vehicleTypePortOut = vehicleTypePortOut;
+        this.publicParkingLotCatalogPortIn = publicParkingLotCatalogPortIn;
         this.vehicleTypeApiMapper = vehicleTypeApiMapper;
-        this.ticketTypePortOut = ticketTypePortOut;
         this.ticketTypeApiMapper = ticketTypeApiMapper;
     }
 
     @GetMapping("/price-plans")
     public ResponseEntity<ApiResponse<List<PricePlanAdminResponse>>> getPricePlans(
-            @ModelAttribute PricePlanFilterRequest request
+            @ModelAttribute PricePlanFilterRequest request,
+            @RequestParam(required = false) UUID parkingLotId
     ) {
-        List<PricePlan> pricePlans = pricePlanPortIn.getPricePlans(
-                request.isActive(),
+        List<PricePlan> pricePlans = pricePlanPortOut.findAll(
+                true,
                 request.appliesTo(),
                 request.effectiveDate(),
-                request.keyword()
+                request.keyword(),
+                Set.of(resolvePublicOrganizationId(parkingLotId))
         );
 
         return ResponseEntity.ok(ApiResponse.ok(
@@ -80,27 +91,30 @@ public class PublicPricingController {
 
     @GetMapping("/price-rules")
     public ResponseEntity<ApiResponse<List<PriceRuleAdminResponse>>> getPriceRules(
-            @ModelAttribute PriceRuleFilterRequest request
+            @ModelAttribute PriceRuleFilterRequest request,
+            @RequestParam(required = false) UUID parkingLotId
     ) {
-        List<PriceRule> priceRules = priceRulePortIn.getPriceRules(
+        List<PriceRule> priceRules = priceRulePortOut.findAll(
                 request.pricePlanId(),
                 request.vehicleTypeId(),
                 request.ticketTypeId(),
-                request.isActive(),
-                request.keyword()
+                true,
+                request.keyword(),
+                Set.of(resolvePublicOrganizationId(parkingLotId))
         );
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched public price rules successfully",
-                priceRuleApiMapper.toAdminResponses(priceRules)
+                priceRuleApiMapper.toAdminResponses(publicParkingLotCatalogPortIn.filterAvailablePriceRules(parkingLotId, priceRules))
         ));
     }
 
     @GetMapping("/vehicle-types")
     public ResponseEntity<ApiResponse<List<VehicleTypeAdminResponse>>> getVehicleTypes(
-            @ModelAttribute VehicleTypeFilterRequest request
+            @ModelAttribute VehicleTypeFilterRequest request,
+            @RequestParam(required = false) UUID parkingLotId
     ) {
-        List<VehicleType> vehicleTypes = vehicleTypePortOut.findAll(request.isActive());
+        List<VehicleType> vehicleTypes = publicParkingLotCatalogPortIn.getVehicleTypes(parkingLotId);
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched public vehicle types successfully",
@@ -110,9 +124,10 @@ public class PublicPricingController {
 
     @GetMapping("/ticket-types")
     public ResponseEntity<ApiResponse<List<TicketTypeAdminResponse>>> getTicketTypes(
-            @ModelAttribute TicketTypeFilterRequest request
+            @ModelAttribute TicketTypeFilterRequest request,
+            @RequestParam(required = false) UUID parkingLotId
     ) {
-        List<TicketType> ticketTypes = ticketTypePortOut.findAll(request.status(), normalizeKeyword(request.keyword()));
+        List<TicketType> ticketTypes = publicParkingLotCatalogPortIn.getTicketTypes(parkingLotId, request.keyword());
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched public ticket types successfully",
@@ -120,10 +135,17 @@ public class PublicPricingController {
         ));
     }
 
-    private String normalizeKeyword(String keyword) {
-        if (keyword == null || keyword.isBlank()) {
-            return null;
+    private UUID resolvePublicOrganizationId(UUID parkingLotId) {
+        if (parkingLotId == null) {
+            return organizationPortOut.findByCode("COPARKING_INTERNAL")
+                    .orElseThrow(() -> new NotFoundException("Default catalog not found"))
+                    .getOrganizationId();
         }
-        return keyword.trim();
+        var parkingLot = parkingLotPortOut.findById(parkingLotId)
+                .orElseThrow(() -> new NotFoundException("Parking lot not found"));
+        if (parkingLot.getStatus() != ParkingLotStatus.ACTIVE) {
+            throw new NotFoundException("Active parking lot not found");
+        }
+        return parkingLot.getOrganizationId();
     }
 }

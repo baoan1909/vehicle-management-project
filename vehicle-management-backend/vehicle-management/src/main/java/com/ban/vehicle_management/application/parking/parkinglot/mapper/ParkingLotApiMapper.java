@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.CreateParkingLotRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.UpdateParkingLotRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotPublicResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
@@ -38,6 +39,10 @@ public interface ParkingLotApiMapper {
     ParkingLotAdminResponse toAdminResponse(ParkingLot parkingLot);
 
     List<ParkingLotAdminResponse> toAdminResponses(List<ParkingLot> parkingLots);
+
+    ParkingLotPublicResponse toPublicResponse(ParkingLot parkingLot);
+
+    List<ParkingLotPublicResponse> toPublicResponses(List<ParkingLot> parkingLots);
 
     @org.mapstruct.Named("formatInstant")
     default String map(Instant instant) {

@@ -30,6 +30,9 @@ public class LostCardReportEntity extends AuditableEntity {
     @Column(name = "card_id", nullable = false)
     private UUID cardId;
 
+    @Column(name = "parking_lot_id")
+    private UUID parkingLotId;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "card_id", referencedColumnName = "card_id", insertable = false, updatable = false)
     private CardEntity card;

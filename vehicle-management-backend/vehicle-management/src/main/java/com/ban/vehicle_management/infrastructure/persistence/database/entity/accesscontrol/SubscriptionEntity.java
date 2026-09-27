@@ -42,6 +42,9 @@ public class SubscriptionEntity extends AuditableEntity {
     @Column(name = "subscription_id", nullable = false)
     private UUID subscriptionId;
 
+    @Column(name = "parking_lot_id")
+    private UUID parkingLotId;
+
     @Column(name = "customer_id", nullable = false)
     private UUID customerId;
 

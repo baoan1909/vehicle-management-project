@@ -29,4 +29,13 @@ public interface ZoneRepository extends JpaRepository<ZoneEntity, UUID>, JpaSpec
           and zone.status = com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus.ACTIVE
         """)
     long sumActiveCapacityByVehicleTypeId(@Param("vehicleTypeId") UUID vehicleTypeId);
+
+    @Query("""
+        select coalesce(sum(zone.capacity), 0)
+        from ZoneEntity zone join zone.vehicleTypeIds allowedVehicleTypeId
+        where zone.parkingLotId = :parkingLotId
+          and allowedVehicleTypeId = :vehicleTypeId
+          and zone.status = com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus.ACTIVE
+        """)
+    long sumActiveCapacityByVehicleTypeIdAndParkingLotId(UUID vehicleTypeId, UUID parkingLotId);
 }

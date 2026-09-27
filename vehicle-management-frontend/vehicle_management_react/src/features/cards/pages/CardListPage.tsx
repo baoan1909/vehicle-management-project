@@ -38,6 +38,7 @@ import { useToast } from "@/shared/components/ui/ToastProvider";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
+import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 
 type LifecycleCardTableAction = Exclude<CardTableAction, "reclassify">;
 
@@ -161,7 +162,7 @@ function buildCardTypeLookup(cardTypes: CardTypeResponse[]) {
   return new Map(cardTypes.map((cardType) => [cardType.cardTypeId, [cardType.code, cardType.name].filter(Boolean).join(" • ")]));
 }
 
-function mapCardToRecord(card: CardResponse, cardTypeLookup: Map<string, string>): CardManageRecord {
+function mapCardToRecord(card: CardResponse, cardTypeLookup: Map<string, string>, parkingLotLookup: Map<string, string>): CardManageRecord {
   const inventoryStatus = inventoryStatusByBackendStatus[card.status] ?? "available";
   const updated = formatDateParts(card.updatedAt ?? card.createdAt ?? card.issuedAt);
   const nextSubscriptionState = subscriptionState(card.subscriptionStatus);
@@ -194,6 +195,8 @@ function mapCardToRecord(card: CardResponse, cardTypeLookup: Map<string, string>
     licensePlate: card.licensePlate ?? null,
     lostCardState: inventoryStatus === "lost" ? "open" : "none",
     lostCardStateLabel: inventoryStatus === "lost" ? "Mở" : "Không",
+    parkingLotId: card.parkingLotId ?? null,
+    parkingLotLabel: card.parkingLotId ? parkingLotLookup.get(card.parkingLotId) ?? card.parkingLotId : "Chưa gắn bãi",
     phoneNumber: card.customerPhoneNumber ?? null,
     registeredVehicleTypeCode: card.registeredVehicleTypeCode ?? null,
     registeredVehicleTypeId: card.registeredVehicleTypeId ?? null,
@@ -263,33 +266,77 @@ function filterRecords(
   activeStatus: CardStatusTabValue,
   subscriptionStatusValue: string,
   lostStatusValue: string,
+  parkingLotValue: string,
 ) {
   return records.filter((row) => {
     const matchesActiveTab = activeStatus === "all" ? true : row.inventoryStatus === activeStatus;
     const matchesSubscriptionStatus = subscriptionStatusValue === "all" ? true : row.subscriptionState === (subscriptionStatusValue as CardSubscriptionState);
     const matchesLostStatus = lostStatusValue === "all" ? true : row.lostCardState === (lostStatusValue as CardLostState);
-    return matchesActiveTab && matchesSubscriptionStatus && matchesLostStatus;
+    const matchesParkingLot = parkingLotValue === "all" || row.parkingLotId === parkingLotValue;
+    return matchesActiveTab && matchesSubscriptionStatus && matchesLostStatus && matchesParkingLot;
   });
+}
+
+function ParkingLotField({
+  autoSelectSingleLot,
+  error,
+  onChange,
+  options,
+  value,
+}: {
+  autoSelectSingleLot: boolean;
+  error: string;
+  onChange: (value: string) => void;
+  options: SelectMenuOption[];
+  value: string;
+}) {
+  const isFixedLot = autoSelectSingleLot && options.length === 1;
+  return (
+    <label className="tw-grid tw-gap-2">
+      <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Bãi xe sử dụng thẻ</span>
+      <SelectMenu
+        ariaLabel="Bãi xe sử dụng thẻ"
+        clearValue=""
+        disabled={options.length === 0 || isFixedLot}
+        options={[{ label: options.length === 0 ? "Chưa có bãi xe được phép cấp thẻ" : "Chọn bãi xe", value: "" }, ...options]}
+        value={value}
+        onChange={onChange}
+      />
+      {isFixedLot ? <span className="tw-text-[0.76rem] tw-text-vm-slate-500">Bãi xe được phân công đã được chọn mặc định.</span> : null}
+      {error ? <span className="tw-text-[0.76rem] tw-text-red-600">{error}</span> : null}
+    </label>
+  );
 }
 
 function CardEditorModal({
   cardTypeOptions,
+  parkingLotOptions,
+  autoSelectSingleLot,
+  parkingLotError,
   isOpen,
   isSaving,
   onClose,
   onSubmit,
 }: {
   cardTypeOptions: SelectMenuOption[];
+  parkingLotOptions: SelectMenuOption[];
+  autoSelectSingleLot: boolean;
+  parkingLotError: string;
   isOpen: boolean;
   isSaving: boolean;
   onClose: () => void;
-  onSubmit: (cardTypeId: string) => void;
+  onSubmit: (cardTypeId: string, parkingLotId: string) => void;
 }) {
   const [cardTypeId, setCardTypeId] = useState("");
+  const [parkingLotId, setParkingLotId] = useState("");
 
   useEffect(() => {
     if (isOpen) setCardTypeId(cardTypeOptions[0]?.value ?? "");
   }, [cardTypeOptions, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) setParkingLotId(autoSelectSingleLot && parkingLotOptions.length === 1 ? parkingLotOptions[0].value : "");
+  }, [autoSelectSingleLot, isOpen, parkingLotOptions]);
 
   return (
     <Modal
@@ -300,16 +347,16 @@ function CardEditorModal({
           </button>
           <button
             className="tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-font-bold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60"
-            disabled={isSaving || !cardTypeId}
+            disabled={isSaving || !cardTypeId || !parkingLotId}
             type="button"
-            onClick={() => onSubmit(cardTypeId)}
+            onClick={() => onSubmit(cardTypeId, parkingLotId)}
           >
             {isSaving ? <i className="fas fa-spinner fa-spin" /> : null}
             {isSaving ? "Đang lưu..." : "Lưu thẻ"}
           </button>
         </div>
       }
-      description="Chọn loại thẻ. Hệ thống tự sinh mã thẻ theo dãy R001/V001 và UID/RFID dạng UUID."
+      description="Chọn loại thẻ và bãi xe sử dụng. Hệ thống tự sinh mã thẻ và UID/RFID."
       onClose={onClose}
       open={isOpen}
       title="Cấp thẻ mới"
@@ -329,6 +376,7 @@ function CardEditorModal({
             onChange={setCardTypeId}
           />
         </label>
+        <ParkingLotField autoSelectSingleLot={autoSelectSingleLot} error={parkingLotError} onChange={setParkingLotId} options={parkingLotOptions} value={parkingLotId} />
       </div>
     </Modal>
   );
@@ -336,18 +384,25 @@ function CardEditorModal({
 
 function CardBatchCreateModal({
   cardTypeOptions,
+  parkingLotOptions,
+  autoSelectSingleLot,
+  parkingLotError,
   isOpen,
   isSaving,
   onClose,
   onSubmit,
 }: {
   cardTypeOptions: SelectMenuOption[];
+  parkingLotOptions: SelectMenuOption[];
+  autoSelectSingleLot: boolean;
+  parkingLotError: string;
   isOpen: boolean;
   isSaving: boolean;
   onClose: () => void;
-  onSubmit: (cardTypeId: string, quantity: number) => void;
+  onSubmit: (cardTypeId: string, quantity: number, parkingLotId: string) => void;
 }) {
   const [cardTypeId, setCardTypeId] = useState("");
+  const [parkingLotId, setParkingLotId] = useState("");
   const [quantity, setQuantity] = useState("1");
 
   useEffect(() => {
@@ -357,8 +412,13 @@ function CardBatchCreateModal({
     }
   }, [cardTypeOptions, isOpen]);
 
+  useEffect(() => {
+    if (isOpen) setParkingLotId(autoSelectSingleLot && parkingLotOptions.length === 1 ? parkingLotOptions[0].value : "");
+  }, [autoSelectSingleLot, isOpen, parkingLotOptions]);
+
   const normalizedQuantity = Number(quantity);
   const canSubmit = cardTypeId.length > 0
+    && parkingLotId.length > 0
     && Number.isInteger(normalizedQuantity)
     && normalizedQuantity >= 1
     && normalizedQuantity <= 100;
@@ -374,14 +434,14 @@ function CardBatchCreateModal({
             className="tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-font-bold tw-text-white disabled:tw-cursor-not-allowed disabled:tw-opacity-60"
             disabled={isSaving || !canSubmit}
             type="button"
-            onClick={() => onSubmit(cardTypeId, normalizedQuantity)}
+            onClick={() => onSubmit(cardTypeId, normalizedQuantity, parkingLotId)}
           >
             {isSaving ? <i className="fas fa-spinner fa-spin" /> : <i className="fas fa-layer-group" />}
             {isSaving ? "Đang cấp..." : "Cấp thẻ"}
           </button>
         </div>
       }
-      description="Hệ thống sẽ cấp liên tiếp mã R... hoặc V... và UID/RFID UUID cho từng thẻ. Mỗi lần cấp tối đa 100 thẻ."
+      description="Chọn bãi xe cho cả lô thẻ. Hệ thống tự sinh mã và UID/RFID; tối đa 100 thẻ mỗi lần."
       onClose={onClose}
       open={isOpen}
       title="Cấp thẻ hàng loạt"
@@ -397,6 +457,7 @@ function CardBatchCreateModal({
             onChange={setCardTypeId}
           />
         </label>
+        <ParkingLotField autoSelectSingleLot={autoSelectSingleLot} error={parkingLotError} onChange={setParkingLotId} options={parkingLotOptions} value={parkingLotId} />
         <label className="tw-grid tw-gap-2">
           <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-600">Số lượng</span>
           <input
@@ -591,12 +652,17 @@ export function CardListPage() {
   const { user } = useAuth();
   const { permittedLotIds } = usePlatformMonitoringScope();
   const canCreateCards = hasAnyPermission(user, ["CARD_CREATE_ALL"]);
+  const canReadParkingLots = hasAnyPermission(user, ["PARKING_LOT_READ_ALL"]);
+  const showParkingLotFilter = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
+  const autoSelectAssignedLot = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"])
+    && !hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const canManageCards = hasAnyPermission(user, ["CARD_UPDATE_ALL", "CARD_DELETE_ALL"]);
   const [activeStatus, setActiveStatus] = useState<CardStatusTabValue>("all");
   const [searchValue, setSearchValue] = useState("");
   const [cardTypeValue, setCardTypeValue] = useState("all");
   const [subscriptionStatusValue, setSubscriptionStatusValue] = useState("all");
   const [lostStatusValue, setLostStatusValue] = useState("all");
+  const [parkingLotValue, setParkingLotValue] = useState("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [checkedIds, setCheckedIds] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -606,6 +672,8 @@ export function CardListPage() {
   const [isDetailDrawerOpen, setIsDetailDrawerOpen] = useState(false);
   const [isLostCardReportLoading, setIsLostCardReportLoading] = useState(false);
   const [cardTypes, setCardTypes] = useState<CardTypeResponse[]>([]);
+  const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
+  const [parkingLotError, setParkingLotError] = useState("");
   const [cards, setCards] = useState<CardResponse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -642,6 +710,23 @@ export function CardListPage() {
   }, []);
 
   useEffect(() => {
+    if (!canReadParkingLots) return undefined;
+    let active = true;
+    void getParkingLots()
+      .then((response) => {
+        if (!active) return;
+        setParkingLots(response.data ?? []);
+        setParkingLotError("");
+      })
+      .catch((error) => {
+        if (!active) return;
+        setParkingLots([]);
+        setParkingLotError(error instanceof Error ? error.message : "Không tải được danh sách bãi xe.");
+      });
+    return () => { active = false; };
+  }, [canReadParkingLots]);
+
+  useEffect(() => {
     let active = true;
 
     async function loadCards() {
@@ -676,13 +761,22 @@ export function CardListPage() {
   }, [cardTypeValue, permittedLotIds, reloadKey, searchValue]);
 
   const cardTypeOptions = useMemo(() => buildCardTypeOptions(cardTypes), [cardTypes]);
+  const parkingLotOptions = useMemo(() => parkingLots.map((lot) => ({
+    label: `${lot.name} (${lot.code})`, value: lot.parkingLotId,
+  })), [parkingLots]);
+  const parkingLotFilterOptions = useMemo(() => parkingLots.map((lot) => ({
+    label: lot.name, value: lot.parkingLotId,
+  })), [parkingLots]);
+  const parkingLotLookup = useMemo(() => new Map(parkingLotOptions.map((option) => [option.value, option.label])), [parkingLotOptions]);
   const editorCardTypeOptions = useMemo(() => buildEditorCardTypeOptions(cardTypes), [cardTypes]);
   const cardTypeLookup = useMemo(() => buildCardTypeLookup(cardTypes), [cardTypes]);
-  const records = useMemo(() => cards.map((card) => mapCardToRecord(card, cardTypeLookup)), [cardTypeLookup, cards]);
+  const records = useMemo(() => cards.map((card) => mapCardToRecord(card, cardTypeLookup, parkingLotLookup)), [cardTypeLookup, cards, parkingLotLookup]);
 
   const filteredRecords = useMemo(
-    () => filterRecords(records, activeStatus, subscriptionStatusValue, lostStatusValue),
-    [activeStatus, lostStatusValue, records, subscriptionStatusValue],
+    () => filterRecords(records, activeStatus, subscriptionStatusValue,
+      showParkingLotFilter ? "all" : lostStatusValue,
+      showParkingLotFilter ? parkingLotValue : "all"),
+    [activeStatus, lostStatusValue, parkingLotValue, records, showParkingLotFilter, subscriptionStatusValue],
   );
 
   const statusCounts = useMemo(() => buildStatusCounts(records), [records]);
@@ -749,7 +843,7 @@ export function CardListPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeStatus, cardTypeValue, lostStatusValue, searchValue, subscriptionStatusValue]);
+  }, [activeStatus, cardTypeValue, lostStatusValue, parkingLotValue, searchValue, subscriptionStatusValue]);
 
   const reloadCards = () => setReloadKey((current) => current + 1);
 
@@ -763,11 +857,11 @@ export function CardListPage() {
     setCheckedIds(allVisibleChecked ? [] : visibleIds);
   };
 
-  const handleEditorSubmit = async (cardTypeId: string) => {
+  const handleEditorSubmit = async (cardTypeId: string, parkingLotId: string) => {
     setIsSaving(true);
     setLoadError("");
     try {
-      const createdCard = await createCard({ cardTypeId });
+      const createdCard = await createCard({ cardTypeId, parkingLotId });
       toast.success(`Đã cấp thẻ ${createdCard.cardNumber}.`, "Thêm mới thành công");
       setIsCreateModalOpen(false);
       reloadCards();
@@ -805,11 +899,11 @@ export function CardListPage() {
     }
   };
 
-  const handleBatchCreate = async (cardTypeId: string, quantity: number) => {
+  const handleBatchCreate = async (cardTypeId: string, quantity: number, parkingLotId: string) => {
     setIsSaving(true);
     setLoadError("");
     try {
-      const createdCards = await createCardsBatch({ cardTypeId, quantity });
+      const createdCards = await createCardsBatch({ cardTypeId, quantity, parkingLotId });
       const firstCardNumber = createdCards[0]?.cardNumber;
       const lastCardNumber = createdCards[createdCards.length - 1]?.cardNumber;
       const cardRange = firstCardNumber && lastCardNumber ? ` (${firstCardNumber} – ${lastCardNumber})` : "";
@@ -871,6 +965,7 @@ export function CardListPage() {
     setCardTypeValue("all");
     setSubscriptionStatusValue("all");
     setLostStatusValue("all");
+    setParkingLotValue("all");
     setCurrentPage(1);
   };
 
@@ -904,8 +999,12 @@ export function CardListPage() {
                   cardTypeOptions={cardTypeOptions}
                   cardTypeValue={cardTypeValue}
                   lostStatusValue={lostStatusValue}
+                  parkingLotOptions={parkingLotFilterOptions}
+                  parkingLotValue={parkingLotValue}
+                  showParkingLotFilter={showParkingLotFilter}
                   onCardTypeChange={setCardTypeValue}
                   onLostStatusChange={setLostStatusValue}
+                  onParkingLotChange={setParkingLotValue}
                   onReset={resetFilters}
                   onSearchChange={setSearchValue}
                   onSubscriptionStatusChange={setSubscriptionStatusValue}
@@ -963,9 +1062,12 @@ export function CardListPage() {
         onClose={() => setIsDetailDrawerOpen(false)}
       />
       <CardExportDrawer isOpen={isExportDrawerOpen} totalRecords={filteredRecords.length} onClose={() => setIsExportDrawerOpen(false)} />
-      <CardEditorModal cardTypeOptions={editorCardTypeOptions} isOpen={isCreateModalOpen} isSaving={isSaving} onClose={() => setIsCreateModalOpen(false)} onSubmit={handleEditorSubmit} />
+      <CardEditorModal cardTypeOptions={editorCardTypeOptions} parkingLotOptions={parkingLotOptions} autoSelectSingleLot={autoSelectAssignedLot} parkingLotError={parkingLotError} isOpen={isCreateModalOpen} isSaving={isSaving} onClose={() => setIsCreateModalOpen(false)} onSubmit={handleEditorSubmit} />
       <CardBatchCreateModal
         cardTypeOptions={editorCardTypeOptions}
+        parkingLotOptions={parkingLotOptions}
+        autoSelectSingleLot={autoSelectAssignedLot}
+        parkingLotError={parkingLotError}
         isOpen={isBatchCreateOpen}
         isSaving={isSaving}
         onClose={() => setIsBatchCreateOpen(false)}

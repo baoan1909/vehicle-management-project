@@ -15,6 +15,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -60,7 +61,12 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
 
     @Override
     public List<VehicleType> findAll(Boolean isActive) {
-        Specification<VehicleTypeEntity> specification = VehicleTypeSpecifications.withFilters(isActive);
+        return findAll(isActive, null);
+    }
+
+    @Override
+    public List<VehicleType> findAll(Boolean isActive, Set<UUID> organizationIds) {
+        Specification<VehicleTypeEntity> specification = VehicleTypeSpecifications.withFilters(isActive, organizationIds);
         List<VehicleTypeEntity> vehicleTypeEntities = vehicleTypeRepository.findAll(specification);
 
         return vehicleTypeEntities.stream()
@@ -74,8 +80,18 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
     }
 
     @Override
+    public boolean existsByCodeInOrganization(String code, UUID organizationId) {
+        return vehicleTypeRepository.existsByCodeAndOrganizationId(code, organizationId);
+    }
+
+    @Override
     public boolean existsByCodeAndVehicleTypeIdNot(String code, UUID vehicleTypeId) {
         return vehicleTypeRepository.existsByCodeAndVehicleTypeIdNot(code, vehicleTypeId);
+    }
+
+    @Override
+    public boolean existsByCodeInOrganizationExcludingId(String code, UUID organizationId, UUID vehicleTypeId) {
+        return vehicleTypeRepository.existsByCodeAndOrganizationIdAndVehicleTypeIdNot(code, organizationId, vehicleTypeId);
     }
 
     @Override

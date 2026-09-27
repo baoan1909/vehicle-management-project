@@ -16,6 +16,7 @@ import lombok.Setter;
 public class PricePlan extends AuditableDomainModel {
 
     private UUID pricePlanId;
+    private UUID organizationId;
     private String code;
     private String name;
     private String description;

@@ -69,7 +69,8 @@ public class CustomerController {
                 request.status(),
                 request.approvalStatus(),
                 request.customerType(),
-                request.keyword()
+                request.keyword(),
+                request.parkingLotId()
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched customers successfully",

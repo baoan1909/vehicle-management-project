@@ -11,6 +11,7 @@ import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -54,8 +55,14 @@ public class PricePlanPersistenceAdapter implements PricePlanPortOut {
             LocalDate effectiveDate,
             String keyword
     ) {
+        return findAll(isActive, appliesTo, effectiveDate, keyword, null);
+    }
+
+    @Override
+    public List<PricePlan> findAll(Boolean isActive, PricePlanAppliesTo appliesTo,
+            LocalDate effectiveDate, String keyword, Set<UUID> organizationIds) {
         return pricePlanRepository.findAll(
-                        PricePlanSpecifications.withFilters(isActive, appliesTo, effectiveDate, keyword)
+                        PricePlanSpecifications.withFilters(isActive, appliesTo, effectiveDate, keyword, organizationIds)
                 )
                 .stream()
                 .map(pricePlanPersistenceMapper::toDomain)
@@ -65,6 +72,23 @@ public class PricePlanPersistenceAdapter implements PricePlanPortOut {
     @Override
     public boolean existsByCode(String code) {
         return pricePlanRepository.existsByCode(code);
+    }
+
+    @Override
+    public boolean existsByCodeInOrganization(String code, UUID organizationId) {
+        return pricePlanRepository.existsByCodeAndOrganizationId(code, organizationId);
+    }
+
+    @Override
+    public boolean existsByCodeInOrganizationExcludingId(String code, UUID organizationId, UUID pricePlanId) {
+        return pricePlanRepository.existsByCodeAndOrganizationIdAndPricePlanIdNot(code, organizationId, pricePlanId);
+    }
+
+    @Override
+    public boolean existsActiveOverlapInOrganization(UUID organizationId, PricePlanAppliesTo appliesTo,
+            LocalDate effectiveFrom, LocalDate effectiveTo, UUID excludedPricePlanId) {
+        return pricePlanRepository.existsActiveOverlapInOrganization(organizationId, appliesTo, effectiveFrom,
+                effectiveTo == null ? MAX_DATE : effectiveTo, excludedPricePlanId);
     }
 
     @Override
