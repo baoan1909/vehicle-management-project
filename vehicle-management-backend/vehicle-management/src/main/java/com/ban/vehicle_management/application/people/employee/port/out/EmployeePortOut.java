@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface EmployeePortOut {
@@ -13,6 +14,8 @@ public interface EmployeePortOut {
     Optional<Employee> findById(UUID employeeId);
 
     List<Employee> findAll(EmployeeStatus status, String keyword);
+
+    Set<UUID> findEmployeeIdsLinkedToParkingLot(UUID parkingLotId);
 
     boolean existsByEmployeeCode(String employeeCode);
 

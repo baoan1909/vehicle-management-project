@@ -17,6 +17,7 @@ export type EmployeeShiftAssignmentStatusApi = "SCHEDULED" | "CONFIRMED" | "COMP
 
 export type EmployeeFilter = {
   keyword?: string;
+  parkingLotId?: string;
   status?: EmployeeStatusApi;
 };
 

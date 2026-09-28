@@ -2,6 +2,8 @@ package com.ban.vehicle_management.application.people.employee.authorization;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
@@ -20,17 +22,23 @@ public class EmployeeAccessGuard {
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
     private final EmployeePortOut employeePortOut;
     private final OrganizationPortOut organizationPortOut;
+    private final OrganizationAccessGuard organizationAccessGuard;
+    private final ParkingLotPortOut parkingLotPortOut;
 
     public EmployeeAccessGuard(
             CurrentAccountPortIn currentAccountPortIn,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
             EmployeePortOut employeePortOut,
-            OrganizationPortOut organizationPortOut
+            OrganizationPortOut organizationPortOut,
+            OrganizationAccessGuard organizationAccessGuard,
+            ParkingLotPortOut parkingLotPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
         this.employeePortOut = employeePortOut;
         this.organizationPortOut = organizationPortOut;
+        this.organizationAccessGuard = organizationAccessGuard;
+        this.parkingLotPortOut = parkingLotPortOut;
     }
 
     public void ensureCanRead(Employee employee) {
@@ -57,9 +65,22 @@ public class EmployeeAccessGuard {
     }
 
     public List<Employee> filterReadableEmployees(List<Employee> employees) {
+        return filterReadableEmployees(employees, null);
+    }
+
+    public List<Employee> filterReadableEmployees(List<Employee> employees, UUID parkingLotId) {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
+        if (parkingLotId != null) {
+            Set<UUID> accessibleLotIds = organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut);
+            if (accessibleLotIds != null && !accessibleLotIds.contains(parkingLotId)) {
+                throw new AccessDeniedException("Parking lot is outside the accessible scope");
+            }
+        }
+        Set<UUID> linkedEmployeeIds = parkingLotId == null ? null
+                : employeePortOut.findEmployeeIdsLinkedToParkingLot(parkingLotId);
         return employees.stream()
                 .filter(employee -> canRead(currentAccount, employee))
+                .filter(employee -> linkedEmployeeIds == null || linkedEmployeeIds.contains(employee.getEmployeeId()))
                 .toList();
     }
 

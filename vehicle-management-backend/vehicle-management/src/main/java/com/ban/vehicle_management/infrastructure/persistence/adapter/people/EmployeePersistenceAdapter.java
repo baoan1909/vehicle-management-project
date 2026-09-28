@@ -10,6 +10,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.specificat
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -60,6 +61,11 @@ public class EmployeePersistenceAdapter implements EmployeePortOut {
         return employeeRepository.findAll(specification).stream()
                 .map(employeePersistenceMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Set<UUID> findEmployeeIdsLinkedToParkingLot(UUID parkingLotId) {
+        return Set.copyOf(employeeRepository.findEmployeeIdsLinkedToParkingLot(parkingLotId));
     }
 
     @Override

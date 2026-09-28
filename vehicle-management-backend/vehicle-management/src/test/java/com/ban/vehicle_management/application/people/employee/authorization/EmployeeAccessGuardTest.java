@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
@@ -30,6 +32,8 @@ class EmployeeAccessGuardTest {
     @Mock private InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
     @Mock private EmployeePortOut employeePortOut;
     @Mock private OrganizationPortOut organizationPortOut;
+    @Mock private OrganizationAccessGuard organizationAccessGuard;
+    @Mock private ParkingLotPortOut parkingLotPortOut;
     @InjectMocks private EmployeeAccessGuard employeeAccessGuard;
 
     @Test
@@ -98,6 +102,37 @@ class EmployeeAccessGuardTest {
         employeeAccessGuard.ensureCanRead(staff);
         assertEquals(1, employeeAccessGuard.filterReadableEmployees(List.of(staff)).size());
         assertThrows(AccessDeniedException.class, () -> employeeAccessGuard.ensureCanManage(staff));
+    }
+
+    @Test
+    void partnerLotFilterIncludesOnlyLinkedEmployees() {
+        CurrentAccountAccess partner = account("PARTNER_ADMIN");
+        Employee assigned = employee("EMPLOYEE");
+        Employee elsewhere = employee("EMPLOYEE");
+        UUID organizationId = UUID.randomUUID();
+        UUID lotId = UUID.randomUUID();
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(partner);
+        ownOrganization(partner, assigned, organizationId);
+        ownOrganization(partner, elsewhere, organizationId);
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut))
+                .thenReturn(Set.of(lotId));
+        when(employeePortOut.findEmployeeIdsLinkedToParkingLot(lotId))
+                .thenReturn(Set.of(assigned.getEmployeeId()));
+
+        assertEquals(List.of(assigned), employeeAccessGuard.filterReadableEmployees(List.of(assigned, elsewhere), lotId));
+    }
+
+    @Test
+    void partnerCannotFilterEmployeesByAnotherPartnersLot() {
+        CurrentAccountAccess partner = account("PARTNER_ADMIN");
+        UUID ownLotId = UUID.randomUUID();
+        UUID otherLotId = UUID.randomUUID();
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(partner);
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut))
+                .thenReturn(Set.of(ownLotId));
+
+        assertThrows(AccessDeniedException.class,
+                () -> employeeAccessGuard.filterReadableEmployees(List.of(), otherLotId));
     }
 
     private void ownOrganization(CurrentAccountAccess actor, Employee target, UUID organizationId) {

@@ -28,6 +28,7 @@ import {
 import { openSupportCenterConversation } from "@/features/support";
 import { cn } from "@/lib/cn";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 
 type EmployeeRole = Exclude<EmployeeRoleCodeApi, "CUSTOMER"> | "UNKNOWN";
 type EmployeeStatus = EmployeeStatusApi;
@@ -816,7 +817,11 @@ export function EmployeeListPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
+  const canFilterByParkingLot = hasAnyPermission(user, ["EMPLOYEE_READ_ALL"])
+    && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const [records, setRecords] = useState<Employee[]>([]);
+  const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
+  const [selectedParkingLotId, setSelectedParkingLotId] = useState("all");
   const [selectedId, setSelectedId] = useState<string>("");
   const [searchValue, setSearchValue] = useState("");
   const [selectedRole, setSelectedRole] = useState("all");
@@ -839,6 +844,7 @@ export function EmployeeListPage() {
     try {
       const response = await getEmployees({
         keyword: searchValue.trim() || undefined,
+        parkingLotId: canFilterByParkingLot && selectedParkingLotId !== "all" ? selectedParkingLotId : undefined,
         status: selectedStatus === "all" ? undefined : selectedStatus
       });
       const mappedEmployees = response.data.map((employee, index) => mapEmployee(employee, index));
@@ -883,7 +889,14 @@ export function EmployeeListPage() {
       void loadEmployees();
     }, 250);
     return () => window.clearTimeout(timeoutId);
-  }, [searchValue, selectedStatus]);
+  }, [canFilterByParkingLot, searchValue, selectedParkingLotId, selectedStatus]);
+
+  useEffect(() => {
+    if (!canFilterByParkingLot) return;
+    getParkingLots()
+      .then((response) => setParkingLots(response.data ?? []))
+      .catch(() => setParkingLots([]));
+  }, [canFilterByParkingLot]);
 
   const filteredEmployees = useMemo(() => {
     return records.filter((employee) => selectedRole === "all" || employee.role === selectedRole);
@@ -910,7 +923,7 @@ export function EmployeeListPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchValue, selectedRole, selectedStatus]);
+  }, [searchValue, selectedParkingLotId, selectedRole, selectedStatus]);
 
   useEffect(() => {
     if (!roleFilterOptions.some((option) => option.value === selectedRole)) {
@@ -1112,6 +1125,17 @@ export function EmployeeListPage() {
               <div className="tw-mt-3">
                 <SelectMenu ariaLabel="Vai trò" value={selectedRole} options={roleFilterOptions} onChange={setSelectedRole} />
               </div>
+              {canFilterByParkingLot ? <div className="tw-mt-3">
+                <SelectMenu
+                  ariaLabel="Lọc nhân viên theo bãi xe"
+                  value={selectedParkingLotId}
+                  options={[{ label: "Tất cả bãi xe", value: "all" }, ...parkingLots.map((lot) => ({ label: lot.name, value: lot.parkingLotId }))]}
+                  onChange={setSelectedParkingLotId}
+                />
+                <p className="tw-mb-0 tw-mt-1.5 tw-text-[0.71rem] tw-text-vm-slate-500">
+                  Lọc theo bãi được phân công hoặc đã có ca làm; người chưa phân công chỉ hiện ở Tất cả bãi xe.
+                </p>
+              </div> : null}
               <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
                 {statusTabs.map((tab) => (
                   <button

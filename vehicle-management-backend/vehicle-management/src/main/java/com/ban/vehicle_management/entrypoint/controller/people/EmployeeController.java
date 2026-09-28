@@ -67,7 +67,7 @@ public class EmployeeController {
     public ResponseEntity<ApiResponse<List<EmployeeAdminResponse>>> getEmployees(
             @ModelAttribute EmployeeFilterRequest request
     ) {
-        List<Employee> employees = employeePortIn.getEmployees(request.status(), request.keyword());
+        List<Employee> employees = employeePortIn.getEmployees(request.status(), request.keyword(), request.parkingLotId());
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched employees successfully",
                 employeeApiMapper.toAdminResponses(employees)
