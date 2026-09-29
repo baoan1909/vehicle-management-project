@@ -1,6 +1,11 @@
 services:
   pgvector:
-    image: ${PGVECTOR_IMAGE:-pgvector/pgvector:0.8.6-pg17}
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+      args:
+        PGVECTOR_IMAGE: ${PGVECTOR_IMAGE:-pgvector/pgvector:0.8.6-pg17}
+    image: ${POSTGRES_SPATIAL_IMAGE:-vehicle-management/postgres-pgvector-postgis:17}
     container_name: ${PGVECTOR_CONTAINER_NAME:-vehicle-pgvector}
     environment:
       POSTGRES_USER: ${DB_USERNAME:-postgres}
@@ -13,10 +18,11 @@ services:
       - pgvector_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-vehicle_management_db}"]
+      test: ["CMD", "/usr/local/bin/vehicle-postgres-healthcheck"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 20s
 
 volumes:
   pgvector_data:
