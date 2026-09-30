@@ -14,6 +14,10 @@ public interface ParkingLotPortIn {
 
     ParkingLot updateParkingLot(UUID parkingLotId, ParkingLot parkingLot);
 
+    ParkingLot geocodeParkingLot(UUID parkingLotId);
+
+    ParkingLot confirmParkingLotLocation(UUID parkingLotId, java.math.BigDecimal latitude, java.math.BigDecimal longitude);
+
     void deleteParkingLot(UUID parkingLotId);
 
     ParkingLot activateParkingLot(UUID parkingLotId);

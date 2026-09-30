@@ -6,6 +6,7 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.CreateParkingLotRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.ParkingLotFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.UpdateParkingLotRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.ConfirmParkingLotLocationRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
@@ -37,6 +38,35 @@ public class ParkingLotController {
     ) {
         this.parkingLotPortIn = parkingLotPortIn;
         this.parkingLotApiMapper = parkingLotApiMapper;
+    }
+
+    @PostMapping("/{parkingLotId}/geocode")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> geocodeParkingLot(
+            @PathVariable UUID parkingLotId
+    ) {
+        ParkingLot parkingLot = parkingLotPortIn.geocodeParkingLot(parkingLotId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Parking lot address geocoded successfully",
+                parkingLotApiMapper.toAdminResponse(parkingLot)
+        ));
+    }
+
+    @PostMapping("/{parkingLotId}/location-confirmation")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<ParkingLotAdminResponse>> confirmParkingLotLocation(
+            @PathVariable UUID parkingLotId,
+            @RequestBody ConfirmParkingLotLocationRequest request
+    ) {
+        ParkingLot parkingLot = parkingLotPortIn.confirmParkingLotLocation(
+                parkingLotId,
+                request.latitude(),
+                request.longitude()
+        );
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Parking lot location manually confirmed",
+                parkingLotApiMapper.toAdminResponse(parkingLot)
+        ));
     }
 
     @PostMapping

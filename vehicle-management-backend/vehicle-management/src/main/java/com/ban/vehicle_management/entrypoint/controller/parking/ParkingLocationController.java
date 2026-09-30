@@ -23,7 +23,7 @@ public class ParkingLocationController {
     }
 
     @GetMapping("/search")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_CREATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_CREATE_ALL') or @permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<List<ParkingLocationResponse>>> search(@RequestParam String query) {
         return ResponseEntity.ok(ApiResponse.ok("Parking locations fetched successfully", parkingLocationPortIn.search(query)
                 .stream()
@@ -32,7 +32,7 @@ public class ParkingLocationController {
     }
 
     @GetMapping("/reverse")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_CREATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_CREATE_ALL') or @permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<List<ParkingLocationResponse>>> reverse(
             @RequestParam BigDecimal latitude,
             @RequestParam BigDecimal longitude

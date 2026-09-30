@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 public class ParkingLocationUseCaseImpl implements ParkingLocationPortIn {
 
     private static final String PARKING_LOT_CREATE_ALL = "PARKING_LOT_CREATE_ALL";
+    private static final String PARKING_LOT_UPDATE_ALL = "PARKING_LOT_UPDATE_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final ParkingLocationPortOut parkingLocationPortOut;
@@ -27,7 +28,7 @@ public class ParkingLocationUseCaseImpl implements ParkingLocationPortIn {
 
     @Override
     public List<ParkingLocationSearchResult> search(String query) {
-        currentAccountPortIn.requirePermission(PARKING_LOT_CREATE_ALL);
+        requireLocationManagementPermission();
         if (query == null || query.trim().length() < 3) {
             throw new BadRequestException("location query must contain at least 3 characters");
         }
@@ -36,12 +37,20 @@ public class ParkingLocationUseCaseImpl implements ParkingLocationPortIn {
 
     @Override
     public List<ParkingLocationSearchResult> reverse(BigDecimal latitude, BigDecimal longitude) {
-        currentAccountPortIn.requirePermission(PARKING_LOT_CREATE_ALL);
+        requireLocationManagementPermission();
         if (latitude == null || longitude == null
                 || latitude.compareTo(BigDecimal.valueOf(-90)) < 0 || latitude.compareTo(BigDecimal.valueOf(90)) > 0
                 || longitude.compareTo(BigDecimal.valueOf(-180)) < 0 || longitude.compareTo(BigDecimal.valueOf(180)) > 0) {
             throw new BadRequestException("parking location coordinates are invalid");
         }
         return parkingLocationPortOut.reverse(latitude, longitude);
+    }
+
+    private void requireLocationManagementPermission() {
+        if (currentAccountPortIn.hasPermission(PARKING_LOT_CREATE_ALL)
+                || currentAccountPortIn.hasPermission(PARKING_LOT_UPDATE_ALL)) {
+            return;
+        }
+        currentAccountPortIn.requirePermission(PARKING_LOT_CREATE_ALL);
     }
 }
