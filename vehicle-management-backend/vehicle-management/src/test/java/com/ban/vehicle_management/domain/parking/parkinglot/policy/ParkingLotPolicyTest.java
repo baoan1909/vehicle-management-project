@@ -6,7 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.GeocodingStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 
 class ParkingLotPolicyTest {
@@ -82,6 +84,11 @@ class ParkingLotPolicyTest {
     void shouldActivateParkingLot() {
         ParkingLot parkingLot = validParkingLot();
         parkingLot.setStatus(ParkingLotStatus.CLOSED);
+        parkingLot.setAddressDisplay("So 1 Vo Van Ngan");
+        parkingLot.setCurrentWardCode("00001");
+        parkingLot.setLatitude(BigDecimal.valueOf(10.85));
+        parkingLot.setLongitude(BigDecimal.valueOf(106.77));
+        parkingLot.setGeocodingStatus(GeocodingStatus.RESOLVED);
 
         parkingLotPolicy.activate(parkingLot);
 
@@ -122,7 +129,7 @@ class ParkingLotPolicyTest {
         parkingLot.setName("Bai xe HCMUTE");
         parkingLot.setAddress("So 1 Vo Van Ngan");
         parkingLot.setTotalCapacity(1000);
-        parkingLot.setStatus(ParkingLotStatus.ACTIVE);
+        parkingLot.setStatus(ParkingLotStatus.SETUP);
         return parkingLot;
     }
 }

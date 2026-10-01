@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   emptyAddressOption,
-  getProvinceName,
-  getWardName,
-  getWardOptions,
-  loadVietnamAddressData,
-  toProvinceOptions,
-  type VietnamAddressData
+  getDivisionName,
+  loadCurrentProvinces,
+  loadCurrentWards,
+  toAddressOptions,
+  type AdministrativeDivision
 } from "@/shared/data/vietnamAddress";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 
@@ -21,36 +20,42 @@ type AddressPickerProps = {
   value: string;
 };
 
-function buildAddress(data: VietnamAddressData | null, { detail, provinceId, wardId }: AddressPickerState) {
-  return [detail.trim(), getWardName(data, wardId), getProvinceName(data, provinceId)].filter(Boolean).join(", ");
+function buildAddress(
+  provinces: AdministrativeDivision[],
+  wards: AdministrativeDivision[],
+  { detail, provinceId, wardId }: AddressPickerState
+) {
+  return [detail.trim(), getDivisionName(wards, wardId), getDivisionName(provinces, provinceId)].filter(Boolean).join(", ");
 }
 
 export function AddressPicker({ onChange, value }: AddressPickerProps) {
-  const [addressData, setAddressData] = useState<VietnamAddressData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [provinces, setProvinces] = useState<AdministrativeDivision[]>([]);
+  const [wards, setWards] = useState<AdministrativeDivision[]>([]);
+  const [loadingProvinces, setLoadingProvinces] = useState(true);
+  const [loadingWards, setLoadingWards] = useState(false);
   const [state, setState] = useState<AddressPickerState>({
     detail: value,
     provinceId: "",
     wardId: ""
   });
 
-  const loadedProvinceOptions = useMemo(() => (addressData ? toProvinceOptions(addressData) : []), [addressData]);
-  const wardOptions = useMemo(() => (addressData ? getWardOptions(addressData, state.provinceId) : []), [addressData, state.provinceId]);
+  const loadedProvinceOptions = useMemo(() => toAddressOptions(provinces), [provinces]);
+  const wardOptions = useMemo(() => toAddressOptions(wards), [wards]);
 
   useEffect(() => {
     let mounted = true;
 
-    loadVietnamAddressData()
+    loadCurrentProvinces()
       .then((data) => {
         if (!mounted) return;
-        setAddressData(data);
+        setProvinces(data);
       })
       .catch(() => {
         if (!mounted) return;
-        setAddressData(null);
+        setProvinces([]);
       })
       .finally(() => {
-        if (mounted) setLoading(false);
+        if (mounted) setLoadingProvinces(false);
       });
 
     return () => {
@@ -59,13 +64,41 @@ export function AddressPicker({ onChange, value }: AddressPickerProps) {
   }, []);
 
   useEffect(() => {
+    let mounted = true;
+    if (!state.provinceId) {
+      setWards([]);
+      setLoadingWards(false);
+      return () => {
+        mounted = false;
+      };
+    }
+
+    setWards([]);
+    setLoadingWards(true);
+    loadCurrentWards(state.provinceId)
+      .then((data) => {
+        if (mounted) setWards(data);
+      })
+      .catch(() => {
+        if (mounted) setWards([]);
+      })
+      .finally(() => {
+        if (mounted) setLoadingWards(false);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [state.provinceId]);
+
+  useEffect(() => {
     if (state.provinceId || state.wardId || state.detail === value) return;
     setState((current) => ({ ...current, detail: value }));
   }, [state.detail, state.provinceId, state.wardId, value]);
 
   const commit = (nextState: AddressPickerState) => {
     setState(nextState);
-    onChange(buildAddress(addressData, nextState));
+    onChange(buildAddress(provinces, nextState.provinceId === state.provinceId ? wards : [], nextState));
   };
 
   return (
@@ -79,7 +112,7 @@ export function AddressPicker({ onChange, value }: AddressPickerProps) {
           onChange={(provinceId) => {
             commit({ ...state, provinceId, wardId: "" });
           }}
-          options={[{ ...emptyAddressOption, label: loading ? "Đang tải địa giới..." : "Chọn tỉnh/thành phố" }, ...loadedProvinceOptions]}
+          options={[{ ...emptyAddressOption, label: loadingProvinces ? "Đang tải địa giới..." : "Chọn tỉnh/thành phố" }, ...loadedProvinceOptions]}
         />
       </label>
 
@@ -92,7 +125,10 @@ export function AddressPicker({ onChange, value }: AddressPickerProps) {
           onChange={(wardId) => {
             commit({ ...state, wardId });
           }}
-          options={[{ ...emptyAddressOption, label: state.provinceId ? "Chọn phường/xã" : "Chọn tỉnh/thành phố trước" }, ...wardOptions]}
+          options={[{
+            ...emptyAddressOption,
+            label: loadingWards ? "Đang tải phường/xã..." : state.provinceId ? "Chọn phường/xã" : "Chọn tỉnh/thành phố trước"
+          }, ...wardOptions]}
         />
       </label>
 
@@ -108,10 +144,10 @@ export function AddressPicker({ onChange, value }: AddressPickerProps) {
         />
       </label>
 
-      {buildAddress(addressData, state) ? (
+      {buildAddress(provinces, wards, state) ? (
         <div className="tw-col-span-full tw-flex tw-min-h-[38px] tw-items-start tw-gap-2 tw-rounded-vm-md tw-border tw-border-brand-100 tw-bg-brand-50 tw-px-3 tw-py-2.5 tw-text-[0.82rem] tw-font-bold tw-leading-6 tw-text-blue-900">
           <i className="fas fa-map-marker-alt tw-mt-1 tw-text-vm-primary" />
-          <span>{buildAddress(addressData, state)}</span>
+          <span>{buildAddress(provinces, wards, state)}</span>
         </div>
       ) : null}
     </div>

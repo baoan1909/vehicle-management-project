@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
-import { AddressPicker, Badge, Button, Card, SelectMenu, useToast } from "@/components/ui";
+import { Badge, Button, Card, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { getVehicleTypes, type VehicleTypeApiResponse } from "@/features/catalog/api/vehicleTypesApi";
 import { assignParkingManagerToParkingLot } from "@/features/iam/api/organizationsApi";
@@ -10,15 +10,21 @@ import { getProvisionedAccounts, type ProvisionedAccountResponse } from "@/featu
 import {
   activateParkingLot,
   closeParkingLot,
+  confirmParkingLotLocation,
   createParkingLot,
+  geocodeParkingLot,
   getParkingLots,
   markParkingLotMaintenance,
   requestParkingLotActivation,
   updateParkingLot,
   type ParkingLotApiResponse,
   type ParkingLotStatusApi,
+  type AddressInputSchemeApi,
+  type GeocodingStatusApi,
 } from "@/features/parking/api/parkingLotsApi";
-import { searchParkingLocations } from "@/features/parking/api/parkingLocationApi";
+import { reverseParkingLocation, searchParkingLocations } from "@/features/parking/api/parkingLocationApi";
+import { ParkingAddressPicker } from "@/features/parking/components/ParkingAddressPicker";
+import { ParkingLocationMap } from "@/features/parking/components/ParkingLocationMap";
 import {
   activateGate,
   activateLane,
@@ -59,6 +65,13 @@ type DrawerPhase = "opening" | "open" | "closing";
 
 type ParkingLot = {
   address: string;
+  addressDisplay?: string;
+  addressInputScheme?: AddressInputSchemeApi;
+  currentWardCode?: string | null;
+  legacyWardCode?: string | null;
+  geocodingStatus?: GeocodingStatusApi;
+  geocodedAt?: string | null;
+  locationResolution?: "GEOCODED" | "MANUAL" | "NONE";
   activationRequestedAt: string | null;
   activationRequestedBy: string | null;
   code: string;
@@ -376,6 +389,13 @@ const statusOptions = [
 function toParkingLotView(lot: ParkingLotApiResponse): ParkingLot {
   return {
     address: lot.address ?? "",
+    addressDisplay: lot.addressDisplay ?? lot.address ?? "",
+    addressInputScheme: lot.addressInputScheme ?? "CURRENT",
+    currentWardCode: lot.currentWardCode,
+    legacyWardCode: lot.legacyWardCode,
+    geocodingStatus: lot.geocodingStatus,
+    geocodedAt: lot.geocodedAt,
+    locationResolution: "NONE",
     activationRequestedAt: lot.activationRequestedAt ?? null,
     activationRequestedBy: lot.activationRequestedBy ?? null,
     code: lot.code,
@@ -395,6 +415,10 @@ function toParkingLotView(lot: ParkingLotApiResponse): ParkingLot {
 function toParkingLotPayload(lot: ParkingLot) {
   return {
     address: lot.address,
+    addressDisplay: lot.addressDisplay ?? lot.address,
+    addressInputScheme: lot.addressInputScheme ?? "CURRENT",
+    currentWardCode: lot.currentWardCode ?? null,
+    legacyWardCode: lot.legacyWardCode ?? null,
     code: lot.code,
     latitude: lot.latitude,
     longitude: lot.longitude,
@@ -1021,6 +1045,12 @@ function ParkingLotDrawer({
 }) {
   const [form, setForm] = useState<ParkingLot>(() => lot ?? {
     address: "",
+    addressDisplay: "",
+    addressInputScheme: "CURRENT",
+    currentWardCode: null,
+    legacyWardCode: null,
+    geocodingStatus: "NOT_REQUESTED",
+    locationResolution: "NONE",
     activationRequestedAt: null,
     activationRequestedBy: null,
     code: "",
@@ -1038,10 +1068,18 @@ function ParkingLotDrawer({
   const [formError, setFormError] = useState("");
   const [locationSearchError, setLocationSearchError] = useState("");
   const [searchingLocation, setSearchingLocation] = useState(false);
+  const [reverseAddress, setReverseAddress] = useState("");
+  const [locationMismatchWarning, setLocationMismatchWarning] = useState("");
 
   useEffect(() => {
     setForm(lot ?? {
       address: "",
+      addressDisplay: "",
+      addressInputScheme: "CURRENT",
+      currentWardCode: null,
+      legacyWardCode: null,
+      geocodingStatus: "NOT_REQUESTED",
+      locationResolution: "NONE",
       activationRequestedAt: null,
       activationRequestedBy: null,
       code: "",
@@ -1058,6 +1096,8 @@ function ParkingLotDrawer({
     });
     setFormError("");
     setLocationSearchError("");
+    setReverseAddress("");
+    setLocationMismatchWarning("");
   }, [lot, isOpen]);
 
   if (!isOpen) return null;
@@ -1073,6 +1113,14 @@ function ParkingLotDrawer({
 
     if (!form.address.trim()) {
       setFormError("Vui lòng nhập địa chỉ và bấm “Xác định vị trí”.");
+      return;
+    }
+    if (form.addressInputScheme === "CURRENT" && !form.currentWardCode) {
+      setFormError("Vui lòng chọn phường/xã hiện hành.");
+      return;
+    }
+    if (form.addressInputScheme === "LEGACY" && !form.legacyWardCode) {
+      setFormError("Vui lòng chọn phường/xã theo địa chỉ cũ.");
       return;
     }
 
@@ -1122,9 +1170,12 @@ function ParkingLotDrawer({
       setForm((current) => ({
         ...current,
         address: result.displayName,
+        addressDisplay: result.displayName,
         latitude: Number(result.latitude),
         longitude: Number(result.longitude),
+        locationResolution: "GEOCODED",
       }));
+      setReverseAddress(result.displayName);
     } catch {
       setLocationSearchError(
         "Không thể tra tọa độ tự động vì mạng hiện tại không kết nối được dịch vụ định vị. "
@@ -1135,10 +1186,31 @@ function ParkingLotDrawer({
     }
   }
 
+  async function handleMarkerMoved(latitude: number, longitude: number) {
+    setForm((current) => ({ ...current, latitude, longitude, locationResolution: "NONE" }));
+    setReverseAddress("");
+    setLocationMismatchWarning("");
+    try {
+      const response = await reverseParkingLocation(latitude, longitude);
+      const resolved = response.data?.[0]?.displayName ?? "";
+      setReverseAddress(resolved);
+      const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase().replace(/[^a-z0-9 ]/g, " ");
+      const expectedTokens = new Set(normalize(form.addressDisplay ?? form.address).split(/\s+/).filter((token) => token.length >= 4));
+      const resolvedTokens = new Set(normalize(resolved).split(/\s+/).filter(Boolean));
+      const matches = [...expectedTokens].filter((token) => resolvedTokens.has(token)).length;
+      if (resolved && expectedTokens.size > 0 && matches / expectedTokens.size < 0.25) {
+        setLocationMismatchWarning("Tọa độ vừa chọn có vẻ không khớp địa chỉ đã nhập. Hãy kiểm tra kỹ trước khi xác nhận.");
+      }
+    } catch {
+      setLocationMismatchWarning("Không reverse geocode được vị trí mới. Chưa thể xác nhận thủ công.");
+    }
+  }
+
   return (
     <div className="tw-fixed tw-inset-0 tw-z-[2300] tw-isolate tw-flex tw-justify-end" role="dialog" aria-modal="true" aria-labelledby="parking-lot-drawer-title">
       <button className="tw-absolute tw-inset-0 tw-border-0 tw-bg-slate-900/30 tw-p-0" type="button" aria-label="Đóng form bãi xe" onClick={onClose} />
-      <aside className="tw-relative tw-z-[1] tw-flex tw-h-full tw-w-[min(100%,460px)] tw-flex-col tw-border-0 tw-border-l tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-vm-drawer">
+      <aside className="tw-relative tw-z-[1] tw-flex tw-h-full tw-w-[min(100%,620px)] tw-flex-col tw-border-0 tw-border-l tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-vm-drawer">
         <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-px-6 tw-py-5">
           <div>
             <h2 id="parking-lot-drawer-title" className="tw-m-0 tw-text-[1.22rem] tw-font-extrabold tw-text-vm-slate-900">{lot ? "Sửa bãi xe" : "Thêm bãi xe"}</h2>
@@ -1173,11 +1245,25 @@ function ParkingLotDrawer({
                   Nhập địa chỉ để lưu thông tin bãi. Việc tìm tọa độ tự động là tùy chọn.
                 </p>
               </div>
-              <AddressPicker
-                value={form.address}
+              <ParkingAddressPicker
+                value={{
+                  addressDisplay: form.addressDisplay ?? form.address,
+                  addressInputScheme: form.addressInputScheme ?? "CURRENT",
+                  currentWardCode: form.currentWardCode ?? null,
+                  legacyWardCode: form.legacyWardCode ?? null,
+                }}
                 onChange={(address) => {
                   setLocationSearchError("");
-                  setForm((current) => ({ ...current, address, latitude: null, longitude: null }));
+                  setReverseAddress("");
+                  setLocationMismatchWarning("");
+                  setForm((current) => ({
+                    ...current,
+                    ...address,
+                    address: address.addressDisplay,
+                    latitude: null,
+                    longitude: null,
+                    locationResolution: "NONE",
+                  }));
                 }}
               />
               <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3">
@@ -1208,10 +1294,23 @@ function ParkingLotDrawer({
               </div>
               {locationSearchError ? <span className="tw-text-[0.75rem] tw-font-semibold tw-text-red-600">{locationSearchError}</span> : null}
               {form.latitude !== null && form.longitude !== null ? (
-                <div className="tw-flex tw-items-start tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-100 tw-bg-emerald-50 tw-p-3 tw-text-[0.78rem] tw-font-semibold tw-leading-5 tw-text-emerald-800">
-                  <i className="fas fa-check-circle tw-mt-0.5" />
-                  <span>Đã xác định vị trí cho: {form.address}</span>
-                </div>
+                <>
+                  <ParkingLocationMap latitude={form.latitude} longitude={form.longitude} onMarkerMoved={(lat, lon) => void handleMarkerMoved(lat, lon)} />
+                  <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-100 tw-bg-emerald-50 tw-p-3 tw-text-[0.78rem] tw-font-semibold tw-leading-5 tw-text-emerald-800">
+                    <div><i className="fas fa-map-marker-alt tw-mr-2" />{form.latitude.toFixed(6)}, {form.longitude.toFixed(6)}</div>
+                    {reverseAddress ? <div className="tw-mt-1">Reverse geocode: {reverseAddress}</div> : null}
+                  </div>
+                  {locationMismatchWarning ? <div className="tw-rounded-vm-md tw-bg-amber-100 tw-p-3 tw-text-xs tw-font-bold tw-text-amber-900">{locationMismatchWarning}</div> : null}
+                  <Button
+                    disabled={!reverseAddress || Boolean(locationMismatchWarning)}
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setForm((current) => ({ ...current, locationResolution: "MANUAL" }))}
+                  >
+                    <i className="fas fa-check-circle" />
+                    {form.locationResolution === "MANUAL" ? "Đã xác nhận thủ công" : "Xác nhận vị trí thủ công"}
+                  </Button>
+                </>
               ) : (
                 <div className="tw-flex tw-items-start tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-100 tw-bg-amber-50 tw-p-3 tw-text-[0.78rem] tw-font-semibold tw-leading-5 tw-text-amber-800">
                   <i className="fas fa-info-circle tw-mt-0.5" />
@@ -1235,6 +1334,7 @@ function ParkingLotDrawer({
                 <span className="tw-text-[0.74rem] tw-font-extrabold tw-text-vm-slate-500">Trạng thái hiện tại</span>
                 <div className="tw-mt-2">
                   <Badge tone={statusTone(form.status)} className="tw-rounded-full tw-px-3">{statusLabel(form.status)}</Badge>
+                  <span className="tw-ml-2 tw-text-xs tw-font-bold tw-text-slate-600">Geocoding: {form.geocodingStatus ?? "NOT_REQUESTED"}</span>
                 </div>
               </div>
             ) : null}
@@ -1945,15 +2045,25 @@ export function ParkingOperationsPage() {
     setLotError("");
 
     try {
+      let savedParkingLotId: string;
       if (editingLot) {
-        await updateParkingLot(editingLot.id, toParkingLotPayload(payload));
+        const updated = await updateParkingLot(editingLot.id, toParkingLotPayload(payload));
+        savedParkingLotId = updated.data.parkingLotId;
         toast.success("Đã cập nhật bãi xe.");
-        await loadParkingLots(editingLot.id);
       } else {
         const created = await createParkingLot(toParkingLotPayload(payload));
+        savedParkingLotId = created.data.parkingLotId;
         toast.success("Đã tạo bãi xe.");
-        await loadParkingLots(created.data.parkingLotId);
       }
+
+      if (payload.latitude !== null && payload.longitude !== null) {
+        if (payload.locationResolution === "MANUAL") {
+          await confirmParkingLotLocation(savedParkingLotId, payload.latitude, payload.longitude);
+        } else if (payload.locationResolution === "GEOCODED") {
+          await geocodeParkingLot(savedParkingLotId);
+        }
+      }
+      await loadParkingLots(savedParkingLotId);
 
       setLotDrawerOpen(false);
       setEditingLot(null);

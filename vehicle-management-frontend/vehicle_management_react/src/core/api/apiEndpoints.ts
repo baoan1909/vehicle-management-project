@@ -6,6 +6,13 @@ export const apiEndpoints = {
   },
   public: {
     parkingLots: "/public/parking-lots",
+    administrativeDivisions: {
+      currentProvinces: "/public/administrative-divisions/current/provinces",
+      currentWards: (provinceCode: string) => `/public/administrative-divisions/current/provinces/${provinceCode}/wards`,
+      legacyProvinces: "/public/administrative-divisions/legacy/provinces",
+      legacyDistricts: (provinceCode: string) => `/public/administrative-divisions/legacy/provinces/${provinceCode}/districts`,
+      legacyWards: (districtCode: string) => `/public/administrative-divisions/legacy/districts/${districtCode}/wards`,
+    },
     pricing: {
       pricePlans: "/public/pricing/price-plans",
       priceRules: "/public/pricing/price-rules",

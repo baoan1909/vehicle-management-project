@@ -9,9 +9,17 @@ type ApiResponse<T> = {
 };
 
 export type ParkingLotStatusApi = "SETUP" | "ACTIVE" | "MAINTENANCE" | "CLOSED";
+export type AddressInputSchemeApi = "CURRENT" | "LEGACY";
+export type GeocodingStatusApi = "NOT_REQUESTED" | "RESOLVED" | "MANUAL_CONFIRMED" | "FAILED" | "NEEDS_REVIEW";
 
 export type ParkingLotApiResponse = {
   address: string | null;
+  addressDisplay: string | null;
+  addressInputScheme: AddressInputSchemeApi | null;
+  currentWardCode: string | null;
+  legacyWardCode: string | null;
+  geocodingStatus: GeocodingStatusApi;
+  geocodedAt: string | null;
   activationRequestedAt?: string | null;
   activationRequestedBy?: string | null;
   latitude: number | null;
@@ -35,12 +43,30 @@ export type ParkingLotFilter = {
 
 export type UpsertParkingLotRequest = {
   address: string;
+  addressDisplay: string;
+  addressInputScheme: AddressInputSchemeApi;
+  currentWardCode: string | null;
+  legacyWardCode: string | null;
   code: string;
   latitude: number | null;
   longitude: number | null;
   name: string;
   totalCapacity: number;
 };
+
+export function geocodeParkingLot(parkingLotId: string) {
+  return apiClient<ApiResponse<ParkingLotApiResponse>>(
+    `${apiEndpoints.parking.parkingLots}/${parkingLotId}/geocode`,
+    { method: "POST" },
+  );
+}
+
+export function confirmParkingLotLocation(parkingLotId: string, latitude: number, longitude: number) {
+  return apiClient<ApiResponse<ParkingLotApiResponse>>(
+    `${apiEndpoints.parking.parkingLots}/${parkingLotId}/location-confirmation`,
+    { body: { latitude, longitude }, method: "POST" },
+  );
+}
 
 function buildQuery(filter: Record<string, string | number | boolean | null | undefined>) {
   const params = new URLSearchParams();
