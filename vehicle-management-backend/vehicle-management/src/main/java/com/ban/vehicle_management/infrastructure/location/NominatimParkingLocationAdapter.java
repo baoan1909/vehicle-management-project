@@ -104,7 +104,6 @@ public class NominatimParkingLocationAdapter implements ParkingLocationPortOut {
         if (cached != null) {
             return cached;
         }
-        Exception lastFailure = null;
         for (int attempt = 1; attempt <= properties.getMaxAttempts(); attempt++) {
             acquireRatePermit();
             consumeDailyQuota();
@@ -116,12 +115,11 @@ public class NominatimParkingLocationAdapter implements ParkingLocationPortOut {
                 List<ParkingLocationSearchResult> result = parseResponse(path, response);
                 writeCache(cacheKey, result);
                 return result;
-            } catch (RestClientException | com.fasterxml.jackson.core.JsonProcessingException exception) {
-                lastFailure = exception;
+            } catch (RestClientException | com.fasterxml.jackson.core.JsonProcessingException ignored) {
+                // Retry with a bounded attempt count; do not expose provider internals to API clients.
             }
         }
-        throw new ConflictException("Parking location search service is unavailable"
-                + (lastFailure == null ? "" : " (" + lastFailure.getClass().getSimpleName() + ")"));
+        throw new ConflictException("Parking location search service is unavailable");
     }
 
     private void consumeDailyQuota() {

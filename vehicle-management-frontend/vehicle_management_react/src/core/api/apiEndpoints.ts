@@ -6,6 +6,9 @@ export const apiEndpoints = {
   },
   public: {
     parkingLots: "/public/parking-lots",
+    nearbyParkingLots: "/public/parking-lots/nearby",
+    parkingLocationSearch: "/public/parking-locations/search",
+    parkingLocationReverse: "/public/parking-locations/reverse",
     administrativeDivisions: {
       currentProvinces: "/public/administrative-divisions/current/provinces",
       currentWards: (provinceCode: string) => `/public/administrative-divisions/current/provinces/${provinceCode}/wards`,

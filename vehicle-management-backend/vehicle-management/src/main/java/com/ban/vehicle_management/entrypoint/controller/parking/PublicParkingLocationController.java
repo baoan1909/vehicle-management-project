@@ -1,49 +1,46 @@
 package com.ban.vehicle_management.entrypoint.controller.parking;
 
 import com.ban.vehicle_management.application.parking.location.mapper.ParkingLocationApiMapper;
-import com.ban.vehicle_management.application.parking.location.port.in.ParkingLocationPortIn;
+import com.ban.vehicle_management.application.parking.location.port.in.PublicParkingLocationPortIn;
 import com.ban.vehicle_management.entrypoint.dto.parking.location.response.ParkingLocationResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/parking/locations")
-public class ParkingLocationController {
+@RequestMapping("/api/public/parking-locations")
+public class PublicParkingLocationController {
 
-    private final ParkingLocationPortIn parkingLocationPortIn;
+    private final PublicParkingLocationPortIn publicParkingLocationPortIn;
     private final ParkingLocationApiMapper parkingLocationApiMapper;
 
-    public ParkingLocationController(
-            ParkingLocationPortIn parkingLocationPortIn,
+    public PublicParkingLocationController(
+            PublicParkingLocationPortIn publicParkingLocationPortIn,
             ParkingLocationApiMapper parkingLocationApiMapper
     ) {
-        this.parkingLocationPortIn = parkingLocationPortIn;
+        this.publicParkingLocationPortIn = publicParkingLocationPortIn;
         this.parkingLocationApiMapper = parkingLocationApiMapper;
     }
 
     @GetMapping("/search")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_CREATE_ALL') or @permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<List<ParkingLocationResponse>>> search(@RequestParam String query) {
         return ResponseEntity.ok(ApiResponse.ok(
-                "Parking locations fetched successfully",
-                parkingLocationApiMapper.toResponses(parkingLocationPortIn.search(query))));
+                "Public parking locations fetched successfully",
+                parkingLocationApiMapper.toResponses(publicParkingLocationPortIn.search(query))));
     }
 
     @GetMapping("/reverse")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_LOT_CREATE_ALL') or @permissionAuthorizer.hasPermission('PARKING_LOT_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<List<ParkingLocationResponse>>> reverse(
             @RequestParam BigDecimal latitude,
             @RequestParam BigDecimal longitude
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
-                "Parking location fetched successfully",
-                parkingLocationApiMapper.toResponses(parkingLocationPortIn.reverse(latitude, longitude))));
+                "Public parking location fetched successfully",
+                parkingLocationApiMapper.toResponses(publicParkingLocationPortIn.reverse(latitude, longitude))));
     }
 }

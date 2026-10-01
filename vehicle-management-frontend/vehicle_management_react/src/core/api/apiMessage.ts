@@ -79,7 +79,10 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   "latitude must be between -90 and 90": "Vĩ độ phải nằm trong khoảng từ -90 đến 90.",
   "longitude must be between -180 and 180": "Kinh độ phải nằm trong khoảng từ -180 đến 180.",
   "location query must contain at least 3 characters": "Vui lòng nhập ít nhất 3 ký tự để tìm vị trí.",
+  "location query must not exceed 200 characters": "Địa chỉ tìm kiếm không được vượt quá 200 ký tự.",
   "parking location coordinates are invalid": "Vị trí đã chọn không hợp lệ.",
+  "Daily parking geocoding request limit has been reached":
+    "Đã hết hạn mức tìm tọa độ miễn phí trong ngày. Bạn vẫn có thể chọn điểm trực tiếp trên bản đồ.",
   "Parking location search service is unavailable":
     "Không thể tìm địa điểm vào lúc này. Bạn vẫn có thể đặt ghim trực tiếp trên bản đồ.",
   "Parking lot needs at least one active zone, gate, IN lane, and OUT lane before activation":

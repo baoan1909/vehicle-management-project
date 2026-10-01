@@ -34,13 +34,20 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
   const [wardCode, setWardCode] = useState(value.legacyWardCode ?? value.currentWardCode ?? "");
   const [detail, setDetail] = useState(value.addressDisplay);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
+    setLoadError(null);
     const loader = value.addressInputScheme === "LEGACY" ? loadLegacyProvinces : loadCurrentProvinces;
     loader().then((items) => mounted && setProvinces(items))
-      .catch(() => mounted && setProvinces([]))
+      .catch(() => {
+        if (mounted) {
+          setProvinces([]);
+          setLoadError("Không tải được danh mục tỉnh/thành. Vui lòng thử lại sau.");
+        }
+      })
       .finally(() => mounted && setLoading(false));
     return () => { mounted = false; };
   }, [value.addressInputScheme]);
@@ -51,6 +58,7 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
     setWards([]);
     if (!provinceCode) return () => { mounted = false; };
     setLoading(true);
+    setLoadError(null);
     const loader = value.addressInputScheme === "LEGACY"
       ? loadLegacyDistricts(provinceCode)
       : loadCurrentWards(provinceCode);
@@ -58,7 +66,9 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
       if (!mounted) return;
       if (value.addressInputScheme === "LEGACY") setDistricts(items);
       else setWards(items);
-    }).catch(() => undefined).finally(() => mounted && setLoading(false));
+    }).catch(() => {
+      if (mounted) setLoadError("Không tải được đơn vị hành chính cấp dưới. Vui lòng thử lại sau.");
+    }).finally(() => mounted && setLoading(false));
     return () => { mounted = false; };
   }, [provinceCode, value.addressInputScheme]);
 
@@ -67,8 +77,10 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
     setWards([]);
     if (value.addressInputScheme !== "LEGACY" || !districtCode) return () => { mounted = false; };
     setLoading(true);
+    setLoadError(null);
     loadLegacyWards(districtCode).then((items) => mounted && setWards(items))
-      .catch(() => undefined).finally(() => mounted && setLoading(false));
+      .catch(() => mounted && setLoadError("Không tải được danh mục phường/xã. Vui lòng thử lại sau."))
+      .finally(() => mounted && setLoading(false));
     return () => { mounted = false; };
   }, [districtCode, value.addressInputScheme]);
 
@@ -124,8 +136,9 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
           options={[{ ...emptyAddressOption, label: "Chọn phường/xã" }, ...options.wards]} />
       </div>
       <input className="tw-col-span-full tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-200 tw-px-3"
-        value={detail} placeholder="Số nhà, tên đường"
+        value={detail} placeholder="Số nhà, tên đường" aria-label="Số nhà, tên đường"
         onChange={(event) => { setDetail(event.target.value); commit(event.target.value, wardCode); }} />
+      {loadError ? <div className="tw-col-span-full tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-xs tw-font-bold tw-text-red-800" role="alert">{loadError}</div> : null}
       {value.addressDisplay ? <div className="tw-col-span-full tw-rounded-vm-md tw-bg-blue-50 tw-p-3 tw-text-xs tw-font-bold tw-text-blue-900">{value.addressDisplay}</div> : null}
     </div>
   );
