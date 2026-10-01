@@ -1,15 +1,14 @@
-package com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response;
+package com.ban.vehicle_management.application.parking.parkinglot.model.result;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public record ParkingLotPublicResponse(
+public record NearbyParkingLotResult(
         UUID parkingLotId,
         String name,
         String address,
         BigDecimal latitude,
         BigDecimal longitude,
-        Long distanceMeters,
-        BigDecimal distanceKm
+        double distanceMeters
 ) {
 }

@@ -85,6 +85,8 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/public/parking-lots",
+                                "/api/public/parking-lots/**",
+                                "/api/public/administrative-divisions/**",
                                 "/api/public/pricing/**",
                                 "/api/public/payments/vnpay/**",
                                 "/api/notifications/broadcast-announcements/active"

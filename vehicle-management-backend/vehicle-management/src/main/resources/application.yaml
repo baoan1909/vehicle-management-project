@@ -33,6 +33,11 @@ spring:
 
   flyway:
     enabled: ${FLYWAY_ENABLED:true}
+    # Production can use a privileged migration role without granting the
+    # runtime application account permission to install extensions.
+    url: ${FLYWAY_DB_URL:${spring.datasource.url}}
+    user: ${FLYWAY_DB_USERNAME:${spring.datasource.username}}
+    password: ${FLYWAY_DB_PASSWORD:${spring.datasource.password}}
     locations: classpath:db/migration
     # Flyway owns this table and creates it before applying the first migration.
     default-schema: public
@@ -177,4 +182,18 @@ app:
     ssl-enabled: ${REDIS_SSL_ENABLED:false}
     environment: ${APP_ENV:local}
     service: ${APP_SERVICE_NAME:vehicle-management}
+  geocoding:
+    nominatim:
+      base-url: ${NOMINATIM_BASE_URL:https://nominatim.openstreetmap.org}
+      # Host names, not URLs. Keeping this allowlist server-side prevents SSRF
+      # when deployment configuration is changed.
+      allowed-hosts: ${NOMINATIM_ALLOWED_HOSTS:nominatim.openstreetmap.org}
+      user-agent: "${NOMINATIM_USER_AGENT:CoParking/1.0 (contact: dev@coparking.local)}"
+      accept-language: vi
+      connect-timeout: ${NOMINATIM_CONNECT_TIMEOUT:3s}
+      read-timeout: ${NOMINATIM_READ_TIMEOUT:5s}
+      cache-ttl: ${NOMINATIM_CACHE_TTL:7d}
+      max-attempts: ${NOMINATIM_MAX_ATTEMPTS:2}
+      requests-per-second: 1
+      daily-request-limit: ${NOMINATIM_DAILY_REQUEST_LIMIT:1000}
 
