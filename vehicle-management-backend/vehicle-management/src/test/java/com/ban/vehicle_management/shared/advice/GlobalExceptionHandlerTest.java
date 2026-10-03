@@ -4,10 +4,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.FeatureDisabledException;
+import com.ban.vehicle_management.shared.exception.MapRequestLimitException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.Map;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,6 +27,21 @@ class GlobalExceptionHandlerTest {
 
     private final GlobalExceptionHandler globalExceptionHandler = new GlobalExceptionHandler();
 
+    @Test
+    void shouldReturnStructuredServiceUnavailableForDisabledFeature() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/public/parking-lots/nearby");
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response =
+                globalExceptionHandler.handleFeatureDisabledException(
+                        new FeatureDisabledException("PUBLIC_NEARBY_SEARCH_ENABLED"),
+                        request
+                );
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, response.getStatusCode());
+        assertEquals("FEATURE_DISABLED", response.getBody().getData().get("code"));
+        assertEquals("PUBLIC_NEARBY_SEARCH_ENABLED", response.getBody().getData().get("feature"));
+    }
     @Test
     void shouldReturnConflictStatusForConflictException() {
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -100,6 +119,28 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
         assertEquals("Too many requests", response.getBody().getMessage());
+    }
+
+    @Test
+    void shouldReturnStructuredMapQuotaResponseAndRetryAfterHeader() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/public/parking-locations/search");
+        OffsetDateTime retryAfter = OffsetDateTime.now(ZoneOffset.ofHours(7)).plusHours(2);
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response =
+                globalExceptionHandler.handleMapRequestLimitException(
+                        new MapRequestLimitException(
+                                "MAP_DAILY_QUOTA_EXHAUSTED",
+                                "Đã hết lượt tra cứu bản đồ hôm nay.",
+                                retryAfter
+                        ),
+                        request
+                );
+
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
+        assertEquals("MAP_DAILY_QUOTA_EXHAUSTED", response.getBody().getData().get("code"));
+        assertEquals(retryAfter.toString(), response.getBody().getData().get("retryAfter"));
+        assertFalse(response.getHeaders().getFirst("Retry-After").isBlank());
     }
 
     @Test

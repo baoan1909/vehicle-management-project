@@ -1,0 +1,71 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Nearby requests / second",
+      "targets": [{ "expr": "sum by (outcome) (rate(maps_nearby_search_requests_total[5m]))", "legendFormat": "{{outcome}}" }],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Nearby latency P50/P95/P99",
+      "targets": [
+        { "expr": "maps_nearby_search_duration_seconds{quantile=\"0.5\"}", "legendFormat": "P50" },
+        { "expr": "maps_nearby_search_duration_seconds{quantile=\"0.95\"}", "legendFormat": "P95" },
+        { "expr": "maps_nearby_search_duration_seconds{quantile=\"0.99\"}", "legendFormat": "P99" }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "Average nearby result count",
+      "targets": [{ "expr": "maps_nearby_search_results_sum / clamp_min(maps_nearby_search_results_count, 1)" }],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 }
+    },
+    {
+      "type": "gauge",
+      "title": "Geocoding cache hit ratio",
+      "targets": [{ "expr": "sum(rate(maps_geocoding_cache_requests_total{result=\"hit\"}[15m])) / clamp_min(sum(rate(maps_geocoding_cache_requests_total[15m])), 0.001)" }],
+      "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } },
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 }
+    },
+    {
+      "type": "gauge",
+      "title": "Provider quota used",
+      "targets": [{ "expr": "1 - maps_provider_quota_remaining / clamp_min(maps_provider_quota_limit, 1)", "legendFormat": "{{provider}}/{{operation}}" }],
+      "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "percentunit" } },
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Provider errors",
+      "targets": [{ "expr": "sum by (reason, operation) (rate(maps_provider_errors_total[5m]))", "legendFormat": "{{operation}}/{{reason}}" }],
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 }
+    },
+    {
+      "type": "stat",
+      "title": "Parking data quality",
+      "targets": [
+        { "expr": "maps_parking_active_without_location", "legendFormat": "Active without location" },
+        { "expr": "maps_parking_address_needs_review", "legendFormat": "Needs review" }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 }
+    },
+    {
+      "type": "piechart",
+      "title": "Browser geolocation outcomes",
+      "targets": [{ "expr": "sum by (outcome) (increase(maps_geolocation_outcomes_total[24h]))", "legendFormat": "{{outcome}}" }],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["maps", "postgis", "phase-7"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "CoParking — Maps & Nearby Search",
+  "version": 1
+}

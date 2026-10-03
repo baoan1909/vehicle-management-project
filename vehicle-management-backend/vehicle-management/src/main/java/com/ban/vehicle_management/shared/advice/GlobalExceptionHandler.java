@@ -2,12 +2,18 @@ package com.ban.vehicle_management.shared.advice;
 
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.FeatureDisabledException;
 import com.ban.vehicle_management.shared.exception.KnowledgeFileValidationException;
+import com.ban.vehicle_management.shared.exception.MapRequestLimitException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.exception.ServiceUnavailableException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import java.util.Map;
+import java.time.Duration;
+import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -23,6 +29,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
@@ -69,12 +77,59 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(FeatureDisabledException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleFeatureDisabledException(
+            FeatureDisabledException exception,
+            HttpServletRequest request
+    ) {
+        ApiResponse<Map<String, Object>> response = ApiResponse.fail(
+                exception.getMessage(),
+                Map.of(
+                        "status", HttpStatus.SERVICE_UNAVAILABLE.value(),
+                        "error", HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(),
+                        "path", request.getRequestURI(),
+                        "code", "FEATURE_DISABLED",
+                        "feature", exception.feature()
+                )
+        );
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+    }
+    @ExceptionHandler(ServiceUnavailableException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleServiceUnavailableException(
+            ServiceUnavailableException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage(), request.getRequestURI());
+    }
+
     @ExceptionHandler(TooManyRequestsException.class)
     public ResponseEntity<ApiResponse<Map<String, Object>>> handleTooManyRequestsException(
             TooManyRequestsException exception,
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(MapRequestLimitException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleMapRequestLimitException(
+            MapRequestLimitException exception,
+            HttpServletRequest request
+    ) {
+        OffsetDateTime now = OffsetDateTime.now(exception.retryAfter().getOffset());
+        long retryAfterSeconds = Math.max(1L, Duration.between(now, exception.retryAfter()).toSeconds());
+        ApiResponse<Map<String, Object>> response = ApiResponse.fail(
+                exception.getMessage(),
+                Map.of(
+                        "status", HttpStatus.TOO_MANY_REQUESTS.value(),
+                        "error", HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(),
+                        "path", request.getRequestURI(),
+                        "code", exception.code(),
+                        "retryAfter", exception.retryAfter().toString()
+                )
+        );
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(retryAfterSeconds))
+                .body(response);
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
@@ -87,7 +142,10 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({
             BindException.class,
-            HandlerMethodValidationException.class
+            HandlerMethodValidationException.class,
+            ConstraintViolationException.class,
+            MissingServletRequestParameterException.class,
+            MethodArgumentTypeMismatchException.class
     })
     public ResponseEntity<ApiResponse<Map<String, Object>>> handleValidationException(
             Exception exception,

@@ -14,6 +14,7 @@ import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
 const publicNavigation = [
   { label: "Giới thiệu", href: "/" },
+  { label: "Tìm bãi", href: "/parking-lots/nearby" },
   { label: "Bảng giá", href: "/pricing" },
   { label: "Hướng dẫn", href: "/guide" },
   { label: "Liên hệ", href: "/contact" },

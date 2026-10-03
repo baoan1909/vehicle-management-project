@@ -4,6 +4,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.com
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.hardware.DeviceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ShiftEntity;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.AddressInputScheme;
+import com.ban.vehicle_management.shared.enumeration.parking.GeocodingStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
@@ -44,6 +46,26 @@ public class ParkingLotEntity extends AuditableEntity {
 
     @Column(name = "address")
     private String address;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "address_input_scheme")
+    private AddressInputScheme addressInputScheme;
+
+    @Column(name = "address_display", length = 500)
+    private String addressDisplay;
+
+    @Column(name = "current_ward_code", length = 20)
+    private String currentWardCode;
+
+    @Column(name = "legacy_ward_code", length = 20)
+    private String legacyWardCode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "geocoding_status", nullable = false)
+    private GeocodingStatus geocodingStatus;
+
+    @Column(name = "geocoded_at")
+    private Instant geocodedAt;
 
     @Column(name = "latitude", precision = 9, scale = 6)
     private BigDecimal latitude;

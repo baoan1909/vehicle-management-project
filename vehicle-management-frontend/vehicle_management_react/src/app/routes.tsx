@@ -27,7 +27,7 @@ import { DeviceManagementPage } from "@/features/hardware";
 import { AccountFormPage, AccountListPage, InternalProfilePage, PartnerRegistrationManagementPage, RoleFormPage, RoleListPage } from "@/features/iam";
 import { AiKnowledgeAdminPage, AiModelManagementPage } from "@/features/ai";
 import { AnnouncementManagementPage } from "@/features/notifications";
-import { ParkingOperationsPage, ParkingSessionPage, SwipeEntryPage, SwipeListPage } from "@/features/parking";
+import { NearbyParkingLotsPage, ParkingOperationsPage, ParkingSessionPage, SwipeEntryPage, SwipeListPage } from "@/features/parking";
 import { PricePlanListPage, PriceRuleListPage, VoucherManagementPage } from "@/features/pricing";
 import { OperationsSupportCenterPage, SupportCategoryWorkflowPage, SupportTicketManagementPage } from "@/features/support";
 
@@ -84,6 +84,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/ai-knowledge-index", title: "Quan ly tri thuc AI", layout: "admin", element: <Navigate to="/admin/ai-knowledge" replace /> },
   { path: "/admin/support-center", title: "Trung tam ho tro van hanh", layout: "fullscreen", element: <OperationsSupportCenterPage /> },
   { path: "/", title: "Gioi thieu CoParking", layout: "client", element: <AboutPage /> },
+  { path: "/parking-lots/nearby", title: "Tìm bãi xe gần tôi", layout: "client", element: <NearbyParkingLotsPage /> },
   { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },
   { path: "/guide", title: "Huong dan", layout: "client", element: <GuidePage /> },
   { path: "/contact", title: "Lien he", layout: "client", element: <ContactPage /> },

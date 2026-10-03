@@ -5,19 +5,28 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.AdministrativeBoundaryPortOut;
+import com.ban.vehicle_management.application.parking.location.port.out.ParkingLocationPortOut;
+import com.ban.vehicle_management.application.parking.location.model.ParkingLocationSearchResult;
+import com.ban.vehicle_management.application.parking.location.port.in.ParkingLocationFeaturePortIn;
+import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.iam.organization.model.result.ParkingLotAccessScope;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.GeocodingStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.AddressInputScheme;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -27,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class ParkingLotUseCaseImplTest {
@@ -40,6 +50,18 @@ class ParkingLotUseCaseImplTest {
     @Mock
     private OrganizationAccessGuard organizationAccessGuard;
 
+    @Mock
+    private ParkingLocationPortOut parkingLocationPortOut;
+
+    @Mock
+    private ParkingLocationFeaturePortIn featurePortIn;
+
+    @Mock
+    private AdministrativeBoundaryPortOut administrativeBoundaryPortOut;
+
+    @Mock
+    private AuditLogPortOut auditLogPortOut;
+
     @InjectMocks
     private ParkingLotUseCaseImpl parkingLotUseCase;
 
@@ -51,6 +73,21 @@ class ParkingLotUseCaseImplTest {
                 .thenReturn(ParkingLotAccessScope.unrestrictedScope());
     }
 
+    @Test
+    void shouldRejectCrossOrganizationUpdateBeforeSaving() {
+        UUID parkingLotId = UUID.randomUUID();
+        ParkingLot existing = validParkingLot();
+        existing.setParkingLotId(parkingLotId);
+        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existing));
+        doThrow(new AccessDeniedException("cross-organization access"))
+                .when(organizationAccessGuard).ensureCanManageParkingLot(existing);
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> parkingLotUseCase.updateParkingLot(parkingLotId, validParkingLot())
+        );
+        verify(parkingLotPortOut, never()).save(any(ParkingLot.class));
+    }
     @Test
     void shouldCreateParkingLotWhenValid() {
         ParkingLot request = validParkingLot();
@@ -211,9 +248,18 @@ class ParkingLotUseCaseImplTest {
         existingParkingLot.setParkingLotId(parkingLotId);
         existingParkingLot.setStatus(ParkingLotStatus.SETUP);
         existingParkingLot.setActivationRequestedAt(Instant.now());
+        existingParkingLot.setAddressDisplay("So 1 Vo Van Ngan");
+        existingParkingLot.setCurrentWardCode("00001");
+        existingParkingLot.setLatitude(BigDecimal.valueOf(10.85));
+        existingParkingLot.setLongitude(BigDecimal.valueOf(106.77));
+        existingParkingLot.setGeocodingStatus(GeocodingStatus.RESOLVED);
 
         when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
         when(parkingLotPortOut.isReadyForActivation(parkingLotId)).thenReturn(true);
+        when(administrativeBoundaryPortOut.findCurrentWardCodes(
+                existingParkingLot.getLatitude(),
+                existingParkingLot.getLongitude()
+        )).thenReturn(List.of("00001"));
         when(parkingLotPortOut.save(any(ParkingLot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ParkingLot activatedParkingLot = parkingLotUseCase.activateParkingLot(parkingLotId);
@@ -247,6 +293,87 @@ class ParkingLotUseCaseImplTest {
         ParkingLot parkingLot = parkingLotUseCase.closeParkingLot(parkingLotId);
 
         assertEquals(ParkingLotStatus.CLOSED, parkingLot.getStatus());
+    }
+
+    @Test
+    void shouldResolveLegacyAddressToCurrentWardAndKeepLegacyWard() {
+        UUID parkingLotId = UUID.randomUUID();
+        ParkingLot existingParkingLot = validParkingLot();
+        existingParkingLot.setParkingLotId(parkingLotId);
+        existingParkingLot.setAddressInputScheme(AddressInputScheme.LEGACY);
+        existingParkingLot.setAddressDisplay("Phường 5, Quận 3, TP. Hồ Chí Minh");
+        existingParkingLot.setLegacyWardCode("27145");
+        existingParkingLot.setStatus(ParkingLotStatus.SETUP);
+        existingParkingLot.setGeocodingStatus(GeocodingStatus.NOT_REQUESTED);
+        BigDecimal latitude = new BigDecimal("10.776889");
+        BigDecimal longitude = new BigDecimal("106.700806");
+
+        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
+        when(parkingLocationPortOut.search(existingParkingLot.getAddressDisplay())).thenReturn(List.of(
+                new ParkingLocationSearchResult(existingParkingLot.getAddressDisplay(), latitude, longitude)
+        ));
+        when(administrativeBoundaryPortOut.findCurrentWardCodes(latitude, longitude))
+                .thenReturn(List.of("26734"));
+        when(parkingLotPortOut.save(any(ParkingLot.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
+
+        ParkingLot resolved = parkingLotUseCase.geocodeParkingLot(parkingLotId);
+
+        assertEquals("27145", resolved.getLegacyWardCode());
+        assertEquals("26734", resolved.getCurrentWardCode());
+        assertEquals(GeocodingStatus.RESOLVED, resolved.getGeocodingStatus());
+        assertNotNull(resolved.getGeocodedAt());
+        verify(auditLogPortOut).save(any());
+    }
+
+    @Test
+    void shouldSetManualConfirmedOnlyThroughConfirmationUseCase() {
+        UUID parkingLotId = UUID.randomUUID();
+        ParkingLot existingParkingLot = validParkingLot();
+        existingParkingLot.setParkingLotId(parkingLotId);
+        existingParkingLot.setAddressDisplay("Số 1 Võ Văn Ngân, TP. Hồ Chí Minh");
+        existingParkingLot.setAddressInputScheme(AddressInputScheme.CURRENT);
+        existingParkingLot.setStatus(ParkingLotStatus.SETUP);
+        existingParkingLot.setGeocodingStatus(GeocodingStatus.NEEDS_REVIEW);
+        BigDecimal latitude = new BigDecimal("10.850000");
+        BigDecimal longitude = new BigDecimal("106.771000");
+
+        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
+        when(administrativeBoundaryPortOut.findCurrentWardCodes(latitude, longitude))
+                .thenReturn(List.of("26824"));
+        when(parkingLotPortOut.save(any(ParkingLot.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
+
+        ParkingLot confirmed = parkingLotUseCase.confirmParkingLotLocation(
+                parkingLotId,
+                latitude,
+                longitude
+        );
+
+        assertEquals("26824", confirmed.getCurrentWardCode());
+        assertEquals(GeocodingStatus.MANUAL_CONFIRMED, confirmed.getGeocodingStatus());
+        assertNotNull(confirmed.getGeocodedAt());
+        verify(auditLogPortOut).save(any());
+    }
+
+    @Test
+    void shouldRejectActivationWhenLocationNeedsReview() {
+        UUID parkingLotId = UUID.randomUUID();
+        ParkingLot parkingLot = validParkingLot();
+        parkingLot.setParkingLotId(parkingLotId);
+        parkingLot.setStatus(ParkingLotStatus.SETUP);
+        parkingLot.setActivationRequestedAt(Instant.now());
+        parkingLot.setAddressDisplay("Số 1 Võ Văn Ngân");
+        parkingLot.setCurrentWardCode("26824");
+        parkingLot.setLatitude(new BigDecimal("10.850000"));
+        parkingLot.setLongitude(new BigDecimal("106.771000"));
+        parkingLot.setGeocodingStatus(GeocodingStatus.NEEDS_REVIEW);
+
+        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(parkingLot));
+        when(parkingLotPortOut.isReadyForActivation(parkingLotId)).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> parkingLotUseCase.activateParkingLot(parkingLotId));
+        verify(parkingLotPortOut, never()).save(any(ParkingLot.class));
     }
 
     private ParkingLot validParkingLot() {

@@ -5,8 +5,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
+import com.ban.vehicle_management.shared.enumeration.parking.AddressInputScheme;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.GeocodingStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import java.math.BigDecimal;
 import org.junit.jupiter.api.Test;
 
 class ParkingLotPolicyTest {
@@ -82,6 +85,11 @@ class ParkingLotPolicyTest {
     void shouldActivateParkingLot() {
         ParkingLot parkingLot = validParkingLot();
         parkingLot.setStatus(ParkingLotStatus.CLOSED);
+        parkingLot.setAddressDisplay("So 1 Vo Van Ngan");
+        parkingLot.setCurrentWardCode("00001");
+        parkingLot.setLatitude(BigDecimal.valueOf(10.85));
+        parkingLot.setLongitude(BigDecimal.valueOf(106.77));
+        parkingLot.setGeocodingStatus(GeocodingStatus.RESOLVED);
 
         parkingLotPolicy.activate(parkingLot);
 
@@ -116,13 +124,40 @@ class ParkingLotPolicyTest {
         assertTrue(parkingLot.getAddress() == null);
     }
 
+    @Test
+    void shouldRejectLegacyWardForCurrentAddress() {
+        ParkingLot parkingLot = validParkingLot();
+        parkingLot.setAddressInputScheme(AddressInputScheme.CURRENT);
+        parkingLot.setLegacyWardCode("00123");
+
+        assertThrows(BadRequestException.class, () -> parkingLotPolicy.initialize(parkingLot));
+    }
+
+    @Test
+    void shouldRequireLegacyWardForLegacyAddress() {
+        ParkingLot parkingLot = validParkingLot();
+        parkingLot.setAddressInputScheme(AddressInputScheme.LEGACY);
+
+        assertThrows(BadRequestException.class, () -> parkingLotPolicy.initialize(parkingLot));
+    }
+
+    @Test
+    void shouldKeepLeadingZeroesInValidLegacyWardCode() {
+        ParkingLot parkingLot = validParkingLot();
+        parkingLot.setAddressInputScheme(AddressInputScheme.LEGACY);
+        parkingLot.setLegacyWardCode(" 00123 ");
+
+        parkingLotPolicy.initialize(parkingLot);
+
+        assertEquals("00123", parkingLot.getLegacyWardCode());
+    }
     private ParkingLot validParkingLot() {
         ParkingLot parkingLot = new ParkingLot();
         parkingLot.setCode("HCMUTE");
         parkingLot.setName("Bai xe HCMUTE");
         parkingLot.setAddress("So 1 Vo Van Ngan");
         parkingLot.setTotalCapacity(1000);
-        parkingLot.setStatus(ParkingLotStatus.ACTIVE);
+        parkingLot.setStatus(ParkingLotStatus.SETUP);
         return parkingLot;
     }
 }

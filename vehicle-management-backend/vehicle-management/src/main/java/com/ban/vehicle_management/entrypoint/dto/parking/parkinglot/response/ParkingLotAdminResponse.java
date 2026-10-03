@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response;
 
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.AddressInputScheme;
+import com.ban.vehicle_management.shared.enumeration.parking.GeocodingStatus;
 import java.math.BigDecimal;
 import java.util.UUID;
 import lombok.Getter;
@@ -16,6 +18,12 @@ public class ParkingLotAdminResponse {
     private String code;
     private String name;
     private String address;
+    private AddressInputScheme addressInputScheme;
+    private String addressDisplay;
+    private String currentWardCode;
+    private String legacyWardCode;
+    private GeocodingStatus geocodingStatus;
+    private java.time.Instant geocodedAt;
     private BigDecimal latitude;
     private BigDecimal longitude;
     private Integer totalCapacity;
