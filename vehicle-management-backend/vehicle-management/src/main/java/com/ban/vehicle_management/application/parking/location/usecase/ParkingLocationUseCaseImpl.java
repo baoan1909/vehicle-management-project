@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.parking.location.usecase;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.parking.location.model.ParkingLocationSearchResult;
 import com.ban.vehicle_management.application.parking.location.port.in.ParkingLocationPortIn;
+import com.ban.vehicle_management.application.parking.location.port.in.ParkingLocationFeaturePortIn;
 import com.ban.vehicle_management.application.parking.location.port.out.ParkingLocationPortOut;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
@@ -17,18 +18,23 @@ public class ParkingLocationUseCaseImpl implements ParkingLocationPortIn {
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final ParkingLocationPortOut parkingLocationPortOut;
+    private final ParkingLocationFeaturePortIn featurePortIn;
 
     public ParkingLocationUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
-            ParkingLocationPortOut parkingLocationPortOut
+            ParkingLocationPortOut parkingLocationPortOut,
+            ParkingLocationFeaturePortIn featurePortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.parkingLocationPortOut = parkingLocationPortOut;
+        this.featurePortIn = featurePortIn;
     }
 
     @Override
     public List<ParkingLocationSearchResult> search(String query) {
         requireLocationManagementPermission();
+        featurePortIn.requireAdminAddressV2();
+        featurePortIn.requireGeocodingProvider();
         if (query == null || query.trim().length() < 3) {
             throw new BadRequestException("location query must contain at least 3 characters");
         }
@@ -38,6 +44,8 @@ public class ParkingLocationUseCaseImpl implements ParkingLocationPortIn {
     @Override
     public List<ParkingLocationSearchResult> reverse(BigDecimal latitude, BigDecimal longitude) {
         requireLocationManagementPermission();
+        featurePortIn.requireAdminAddressV2();
+        featurePortIn.requireGeocodingProvider();
         if (latitude == null || longitude == null
                 || latitude.compareTo(BigDecimal.valueOf(-90)) < 0 || latitude.compareTo(BigDecimal.valueOf(90)) > 0
                 || longitude.compareTo(BigDecimal.valueOf(-180)) < 0 || longitude.compareTo(BigDecimal.valueOf(180)) > 0) {

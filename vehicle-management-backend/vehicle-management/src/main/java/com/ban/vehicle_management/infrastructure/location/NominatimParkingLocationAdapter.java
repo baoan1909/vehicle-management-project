@@ -3,25 +3,28 @@ package com.ban.vehicle_management.infrastructure.location;
 import com.ban.vehicle_management.application.parking.location.model.ParkingLocationSearchResult;
 import com.ban.vehicle_management.application.parking.location.port.out.ParkingLocationPortOut;
 import com.ban.vehicle_management.infrastructure.cache.RedisProperties;
-import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.MapRequestLimitException;
+import com.ban.vehicle_management.shared.exception.ServiceUnavailableException;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Timer;
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
-import java.time.LocalDate;
-import java.time.ZoneId;
+import java.time.OffsetDateTime;
 import java.text.Normalizer;
 import java.util.Arrays;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.Semaphore;
 import java.util.function.Function;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -34,27 +37,34 @@ import org.springframework.web.util.UriBuilder;
 
 @Component
 public class NominatimParkingLocationAdapter implements ParkingLocationPortOut {
+    private static final String PROVIDER = "nominatim";
     private static final String RATE_KEY = "vm:geocoding:nominatim:global-rate";
     private static final AtomicLong LOCAL_NEXT_REQUEST_AT = new AtomicLong();
-    private static final AtomicInteger LOCAL_DAILY_REQUESTS = new AtomicInteger();
-    private static volatile LocalDate localQuotaDate = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
 
     private final NominatimProperties properties;
     private final RedisProperties redisProperties;
     private final ObjectProvider<StringRedisTemplate> redisTemplateProvider;
     private final ObjectMapper objectMapper;
+    private final MapProviderQuotaGuard quotaGuard;
+    private final MapProviderMetrics metrics;
+    private final Semaphore providerBulkhead;
     private final RestClient restClient;
 
     public NominatimParkingLocationAdapter(
             NominatimProperties properties,
             RedisProperties redisProperties,
             ObjectProvider<StringRedisTemplate> redisTemplateProvider,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            MapProviderQuotaGuard quotaGuard,
+            MapProviderMetrics metrics
     ) {
         this.properties = properties;
         this.redisProperties = redisProperties;
         this.redisTemplateProvider = redisTemplateProvider;
         this.objectMapper = objectMapper;
+        this.quotaGuard = quotaGuard;
+        this.metrics = metrics;
+        this.providerBulkhead = new Semaphore(properties.getMaxConcurrentRequests(), true);
         URI baseUri = validateProviderUri(properties);
         HttpClient httpClient = HttpClient.newBuilder()
                 .connectTimeout(properties.getConnectTimeout())
@@ -99,57 +109,64 @@ public class NominatimParkingLocationAdapter implements ParkingLocationPortOut {
             String path,
             Function<UriBuilder, UriBuilder> uriCustomizer
     ) {
+        MapProviderOperation operation = "/reverse".equals(path)
+                ? MapProviderOperation.REVERSE
+                : MapProviderOperation.FORWARD;
         String cacheKey = "vm:geocoding:nominatim:v1:" + sha256(cacheIdentity);
         List<ParkingLocationSearchResult> cached = readCache(cacheKey);
         if (cached != null) {
+            metrics.cacheRequest(PROVIDER, operation, true);
             return cached;
         }
-        for (int attempt = 1; attempt <= properties.getMaxAttempts(); attempt++) {
-            acquireRatePermit();
-            consumeDailyQuota();
-            try {
-                String response = restClient.get()
-                        .uri(uriBuilder -> uriCustomizer.apply(uriBuilder.path(path)).build())
-                        .retrieve()
-                        .body(String.class);
-                List<ParkingLocationSearchResult> result = parseResponse(path, response);
-                writeCache(cacheKey, result);
-                return result;
-            } catch (RestClientException | com.fasterxml.jackson.core.JsonProcessingException ignored) {
-                // Retry with a bounded attempt count; do not expose provider internals to API clients.
-            }
+        metrics.cacheRequest(PROVIDER, operation, false);
+        if (!providerBulkhead.tryAcquire()) {
+            throw new MapRequestLimitException(
+                    "MAP_PROVIDER_BUSY",
+                    "Dịch vụ tra cứu bản đồ đang bận. Vui lòng thử lại sau.",
+                    OffsetDateTime.now(MapProviderQuotaGuard.VIETNAM_ZONE).plusSeconds(1)
+            );
         }
-        throw new ConflictException("Parking location search service is unavailable");
+        try {
+            for (int attempt = 1; attempt <= properties.getMaxAttempts(); attempt++) {
+                acquireRatePermit();
+                quotaGuard.acquire(
+                        PROVIDER,
+                        operation,
+                        properties.getDailyRequestLimit(),
+                        properties.getQuotaUsagePercent()
+                );
+                Timer.Sample sample = metrics.providerRequestStarted();
+                try {
+                    String response = readBoundedResponse(path, uriCustomizer);
+                    List<ParkingLocationSearchResult> result = parseResponse(path, response);
+                    metrics.providerRequestFinished(sample, PROVIDER, operation, "success");
+                    writeCache(cacheKey, result);
+                    return result;
+                } catch (RestClientException | IOException exception) {
+                    metrics.providerRequestFinished(sample, PROVIDER, operation, "error");
+                    metrics.providerError(PROVIDER, operation, providerFailureReason(exception));
+                }
+            }
+        } finally {
+            providerBulkhead.release();
+        }
+        throw new ServiceUnavailableException("Parking location search service is unavailable");
     }
 
-    private void consumeDailyQuota() {
-        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        StringRedisTemplate redis = redisTemplate();
-        if (redis != null) {
-            try {
-                String key = "vm:geocoding:nominatim:daily:" + today;
-                Long used = redis.opsForValue().increment(key);
-                if (used != null && used == 1L) {
-                    redis.expire(key, Duration.ofDays(2));
-                }
-                if (used != null && used > properties.getDailyRequestLimit()) {
-                    throw new ConflictException("Daily parking geocoding request limit has been reached");
-                }
-                return;
-            } catch (ConflictException exception) {
-                throw exception;
-            } catch (RuntimeException ignored) {
-                // Use the single-instance guard when Redis is unavailable in local development.
+    private String readBoundedResponse(
+            String path,
+            Function<UriBuilder, UriBuilder> uriCustomizer
+    ) throws IOException {
+        try (InputStream response = restClient.get()
+                .uri(uriBuilder -> uriCustomizer.apply(uriBuilder.path(path)).build())
+                .retrieve()
+                .body(InputStream.class)) {
+            if (response == null) return "";
+            byte[] body = response.readNBytes(properties.getMaxResponseBytes() + 1);
+            if (body.length > properties.getMaxResponseBytes()) {
+                throw new IOException("provider_response_too_large");
             }
-        }
-        synchronized (NominatimParkingLocationAdapter.class) {
-            if (!today.equals(localQuotaDate)) {
-                localQuotaDate = today;
-                LOCAL_DAILY_REQUESTS.set(0);
-            }
-            if (LOCAL_DAILY_REQUESTS.incrementAndGet() > properties.getDailyRequestLimit()) {
-                throw new ConflictException("Daily parking geocoding request limit has been reached");
-            }
+            return new String(body, StandardCharsets.UTF_8);
         }
     }
 
@@ -171,7 +188,7 @@ public class NominatimParkingLocationAdapter implements ParkingLocationPortOut {
     private void acquireRatePermit() {
         StringRedisTemplate redis = redisTemplate();
         if (redis != null) {
-            long deadline = System.nanoTime() + Duration.ofSeconds(4).toNanos();
+            long deadline = System.nanoTime() + Duration.ofMillis(1_100).toNanos();
             while (System.nanoTime() < deadline) {
                 try {
                     if (Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(
@@ -200,8 +217,26 @@ public class NominatimParkingLocationAdapter implements ParkingLocationPortOut {
             Thread.sleep(millis);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            throw new ConflictException("Parking location search was interrupted");
+            throw new ServiceUnavailableException("Parking location search was interrupted");
         }
+    }
+
+    private String providerFailureReason(Exception exception) {
+        String message = exception.getMessage();
+        if (message != null && message.contains("provider_response_too_large")) return "response_too_large";
+        if (exception instanceof java.net.http.HttpTimeoutException
+                || hasCause(exception, java.net.http.HttpTimeoutException.class)) return "timeout";
+        if (exception instanceof com.fasterxml.jackson.core.JsonProcessingException) return "invalid_response";
+        return "request_failed";
+    }
+
+    private boolean hasCause(Throwable throwable, Class<? extends Throwable> causeType) {
+        Throwable current = throwable;
+        while (current != null) {
+            if (causeType.isInstance(current)) return true;
+            current = current.getCause();
+        }
+        return false;
     }
 
     private List<ParkingLocationSearchResult> readCache(String key) {

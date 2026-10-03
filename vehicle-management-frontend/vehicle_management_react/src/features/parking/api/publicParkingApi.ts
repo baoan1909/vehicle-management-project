@@ -8,6 +8,17 @@ type ApiResponse<T> = {
   timestamp: string;
 };
 
+export type ParkingMapFeatureStatus = {
+  customerParkingMapEnabled: boolean;
+  publicNearbySearchEnabled: boolean;
+  geocodingProviderEnabled: boolean;
+};
+
+export function getParkingMapFeatures() {
+  return apiClient<ApiResponse<ParkingMapFeatureStatus>>(apiEndpoints.public.parkingMapFeatures, {
+    skipAuth: true,
+  });
+}
 export type NearbyParkingLot = {
   parkingLotId: string;
   name: string;
@@ -34,14 +45,12 @@ export function getNearbyParkingLots(latitude: number, longitude: number, radius
 
   return apiClient<ApiResponse<NearbyParkingLot[]>>(
     `${apiEndpoints.public.nearbyParkingLots}?${query}`,
-    { skipAuth: true },
   );
 }
 
 export function searchPublicParkingLocations(query: string) {
   return apiClient<ApiResponse<PublicParkingLocation[]>>(
     `${apiEndpoints.public.parkingLocationSearch}?${new URLSearchParams({ query })}`,
-    { skipAuth: true },
   );
 }
 
@@ -51,6 +60,22 @@ export function reversePublicParkingLocation(latitude: number, longitude: number
       latitude: String(latitude),
       longitude: String(longitude),
     })}`,
-    { skipAuth: true },
   );
+}
+
+export type GeolocationOutcome =
+  | "GRANTED"
+  | "DENIED"
+  | "TIMEOUT"
+  | "UNAVAILABLE"
+  | "UNSUPPORTED"
+  | "INSECURE_CONTEXT"
+  | "LOW_ACCURACY";
+
+export function recordGeolocationOutcome(outcome: GeolocationOutcome) {
+  return apiClient<ApiResponse<void>>(apiEndpoints.public.geolocationTelemetry, {
+    body: { outcome },
+    method: "POST",
+    keepalive: true,
+  });
 }

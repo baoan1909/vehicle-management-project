@@ -1,10 +1,13 @@
-import { Component, useCallback, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
 
 import {
   getNearbyParkingLots,
+  getParkingMapFeatures,
   reversePublicParkingLocation,
+  recordGeolocationOutcome,
   searchPublicParkingLocations,
   type NearbyParkingLot,
+  type ParkingMapFeatureStatus,
 } from "@/features/parking/api/publicParkingApi";
 import {
   NearbyParkingMap,
@@ -67,7 +70,8 @@ function createDirectionsUrl(origin: MapPoint, destination: NearbyParkingLot) {
 }
 
 export function NearbyParkingLotsPage() {
-  const [radiusKm, setRadiusKm] = useState<(typeof RADIUS_OPTIONS)[number]>(5);
+  const [featureStatus, setFeatureStatus] = useState<ParkingMapFeatureStatus | null>(null);
+  const [featureStatusError, setFeatureStatusError] = useState(false);  const [radiusKm, setRadiusKm] = useState<(typeof RADIUS_OPTIONS)[number]>(5);
   const [userLocation, setUserLocation] = useState<MapPoint | null>(null);
   const [locationLabel, setLocationLabel] = useState("");
   const [lots, setLots] = useState<NearbyParkingLot[]>([]);
@@ -88,6 +92,19 @@ export function NearbyParkingLotsPage() {
   });
   const searchSequence = useRef(0);
 
+  useEffect(() => {
+    let active = true;
+    void getParkingMapFeatures()
+      .then((response) => {
+        if (active) setFeatureStatus(response.data);
+      })
+      .catch(() => {
+        if (active) setFeatureStatusError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
   const selectedLot = useMemo(
     () => lots.find((lot) => lot.parkingLotId === selectedLotId) ?? null,
     [lots, selectedLotId],
@@ -113,16 +130,22 @@ export function NearbyParkingLotsPage() {
   }, [radiusKm]);
 
   function handleFindNearMe() {
+    if (!featureStatus?.customerParkingMapEnabled || !featureStatus.publicNearbySearchEnabled) {
+      setError("Bản đồ tìm bãi hiện chưa được bật.");
+      return;
+    }
     setNotice(null);
     setError(null);
     setPickingEnabled(false);
 
     if (import.meta.env.PROD && !window.isSecureContext) {
+      void recordGeolocationOutcome("INSECURE_CONTEXT").catch(() => undefined);
       setError("Định vị trên production chỉ hoạt động qua HTTPS. Hãy dùng phần chọn địa chỉ hoặc chọn điểm trên bản đồ.");
       setShowFallback(true);
       return;
     }
     if (!("geolocation" in navigator)) {
+      void recordGeolocationOutcome("UNSUPPORTED").catch(() => undefined);
       setError("Trình duyệt này không hỗ trợ định vị. Hãy chọn địa chỉ hoặc một điểm trên bản đồ.");
       setShowFallback(true);
       return;
@@ -137,9 +160,11 @@ export function NearbyParkingLotsPage() {
           accuracy: position.coords.accuracy,
         };
         setIsLocating(false);
+        void recordGeolocationOutcome("GRANTED").catch(() => undefined);
         setUserLocation(point);
         setLocationLabel("Vị trí hiện tại của bạn");
         if (position.coords.accuracy > LOW_ACCURACY_THRESHOLD_METERS) {
+          void recordGeolocationOutcome("LOW_ACCURACY").catch(() => undefined);
           setNotice(`Vị trí có độ chính xác thấp (khoảng ${Math.round(position.coords.accuracy)} m). Bạn có thể chọn lại điểm trên bản đồ.`);
         }
         void searchNearby(point);
@@ -148,10 +173,13 @@ export function NearbyParkingLotsPage() {
         setIsLocating(false);
         setShowFallback(true);
         if (geolocationError.code === geolocationError.PERMISSION_DENIED) {
+          void recordGeolocationOutcome("DENIED").catch(() => undefined);
           setError("Bạn đã từ chối quyền vị trí. Hãy cho phép GPS trong trình duyệt hoặc dùng cách tìm thủ công bên dưới.");
         } else if (geolocationError.code === geolocationError.TIMEOUT) {
+          void recordGeolocationOutcome("TIMEOUT").catch(() => undefined);
           setError("Yêu cầu lấy vị trí đã hết thời gian. Hãy thử lại hoặc chọn địa chỉ.");
         } else {
+          void recordGeolocationOutcome("UNAVAILABLE").catch(() => undefined);
           setError("Không lấy được vị trí. GPS có thể đang tắt hoặc tín hiệu chưa sẵn sàng.");
         }
       },
@@ -160,6 +188,10 @@ export function NearbyParkingLotsPage() {
   }
 
   async function handleAddressSearch() {
+    if (!featureStatus?.geocodingProviderEnabled) {
+      setError("Tra cứu tọa độ theo địa chỉ đang tạm dừng. Bạn vẫn có thể chọn điểm trên bản đồ.");
+      return;
+    }
     if (address.addressDisplay.trim().length < 3) {
       setError("Hãy chọn khu vực hoặc nhập địa chỉ có ít nhất 3 ký tự.");
       return;
@@ -193,11 +225,13 @@ export function NearbyParkingLotsPage() {
     setError(null);
     setNotice("Đã chọn điểm trên bản đồ và đang tìm bãi xe gần đó.");
     void searchNearby(point);
-    void reversePublicParkingLocation(point.latitude, point.longitude)
-      .then((response) => {
-        if (response.data[0]) setLocationLabel(response.data[0].displayName);
-      })
-      .catch(() => undefined);
+    if (featureStatus?.geocodingProviderEnabled) {
+      void reversePublicParkingLocation(point.latitude, point.longitude)
+        .then((response) => {
+          if (response.data[0]) setLocationLabel(response.data[0].displayName);
+        })
+        .catch(() => undefined);
+    }
   }
 
   function handleRadiusChange(nextRadius: (typeof RADIUS_OPTIONS)[number]) {
@@ -205,6 +239,29 @@ export function NearbyParkingLotsPage() {
     if (userLocation) void searchNearby(userLocation, nextRadius);
   }
 
+  if (!featureStatus && !featureStatusError) {
+    return (
+      <main className="tw-grid tw-min-h-[calc(100vh-72px)] tw-place-items-center tw-bg-slate-50 tw-p-6" role="status">
+        <p className="tw-font-extrabold tw-text-slate-700">Đang kiểm tra trạng thái bản đồ...</p>
+      </main>
+    );
+  }
+
+  if (
+    featureStatusError ||
+    !featureStatus?.customerParkingMapEnabled ||
+    !featureStatus.publicNearbySearchEnabled
+  ) {
+    return (
+      <main className="tw-grid tw-min-h-[calc(100vh-72px)] tw-place-items-center tw-bg-slate-50 tw-p-6">
+        <section className="tw-max-w-xl tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-8 tw-text-center tw-shadow-sm" role="status">
+          <i className="fas fa-map-marked-alt tw-text-4xl tw-text-slate-300" aria-hidden="true" />
+          <h1 className="tw-mb-2 tw-mt-4 tw-text-2xl tw-font-black tw-text-slate-950">Bản đồ tìm bãi hiện chưa được bật</h1>
+          <p className="tw-m-0 tw-text-slate-600">Hệ thống đang triển khai theo từng giai đoạn. Vui lòng quay lại sau.</p>
+        </section>
+      </main>
+    );
+  }
   return (
     <main className="tw-min-h-[calc(100vh-72px)] tw-bg-slate-50 tw-px-4 tw-py-8 sm:tw-px-6 lg:tw-px-8">
       <div className="tw-mx-auto tw-max-w-[1440px]">
@@ -270,12 +327,12 @@ export function NearbyParkingLotsPage() {
                 <button
                   className="tw-min-h-11 tw-rounded-full tw-border-0 tw-bg-blue-600 tw-px-5 tw-font-extrabold tw-text-white hover:tw-bg-blue-700 disabled:tw-cursor-wait disabled:tw-opacity-60"
                   type="button"
-                  disabled={isGeocoding}
+                  disabled={isGeocoding || !featureStatus.geocodingProviderEnabled}
                   aria-busy={isGeocoding}
                   onClick={() => void handleAddressSearch()}
                 >
                   <i className={`fas ${isGeocoding ? "fa-spinner fa-spin" : "fa-search-location"} tw-mr-2`} aria-hidden="true" />
-                  {isGeocoding ? "Đang tìm tọa độ..." : "Tìm tọa độ từ địa chỉ"}
+                  {isGeocoding ? "Đang tìm tọa độ..." : featureStatus.geocodingProviderEnabled ? "Tìm tọa độ từ địa chỉ" : "Tra cứu địa chỉ đang tạm dừng"}
                 </button>
                 <button
                   className={`tw-min-h-11 tw-rounded-full tw-border tw-border-solid tw-px-5 tw-font-extrabold ${pickingEnabled ? "tw-border-amber-500 tw-bg-amber-100 tw-text-amber-950" : "tw-border-slate-300 tw-bg-white tw-text-slate-800"}`}

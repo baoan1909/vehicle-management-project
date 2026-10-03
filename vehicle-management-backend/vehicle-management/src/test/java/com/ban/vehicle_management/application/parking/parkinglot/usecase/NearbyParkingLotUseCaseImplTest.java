@@ -6,8 +6,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ban.vehicle_management.application.parking.location.port.in.ParkingLocationFeaturePortIn;
 import com.ban.vehicle_management.application.parking.parkinglot.model.result.NearbyParkingLotResult;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.NearbyParkingLotPortOut;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingMapMetricsPortOut;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
 import java.util.List;
@@ -23,11 +25,17 @@ class NearbyParkingLotUseCaseImplTest {
     @Mock
     private NearbyParkingLotPortOut nearbyParkingLotPortOut;
 
+    @Mock
+    private ParkingMapMetricsPortOut parkingMapMetricsPortOut;
+
+    @Mock
+    private ParkingLocationFeaturePortIn featurePortIn;
+
     private NearbyParkingLotUseCaseImpl useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new NearbyParkingLotUseCaseImpl(nearbyParkingLotPortOut);
+        useCase = new NearbyParkingLotUseCaseImpl(nearbyParkingLotPortOut, parkingMapMetricsPortOut, featurePortIn);
     }
 
     @Test
@@ -55,6 +63,11 @@ class NearbyParkingLotUseCaseImplTest {
                 longitude,
                 new BigDecimal("5000"),
                 20
+        );
+        verify(parkingMapMetricsPortOut).recordNearbySearch(
+                org.mockito.ArgumentMatchers.anyLong(),
+                org.mockito.ArgumentMatchers.eq(0),
+                org.mockito.ArgumentMatchers.eq(true)
         );
     }
 

@@ -86,11 +86,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/public/parking-lots",
                                 "/api/public/parking-lots/**",
+                                "/api/public/parking-map/**",
                                 "/api/public/parking-locations/**",
                                 "/api/public/administrative-divisions/**",
                                 "/api/public/pricing/**",
                                 "/api/public/payments/vnpay/**",
                                 "/api/notifications/broadcast-announcements/active"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/public/parking-lots/telemetry/geolocation"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

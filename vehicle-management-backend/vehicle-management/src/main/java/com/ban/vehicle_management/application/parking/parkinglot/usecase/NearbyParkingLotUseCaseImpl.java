@@ -2,7 +2,9 @@ package com.ban.vehicle_management.application.parking.parkinglot.usecase;
 
 import com.ban.vehicle_management.application.parking.parkinglot.model.result.NearbyParkingLotResult;
 import com.ban.vehicle_management.application.parking.parkinglot.port.in.NearbyParkingLotPortIn;
+import com.ban.vehicle_management.application.parking.location.port.in.ParkingLocationFeaturePortIn;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.NearbyParkingLotPortOut;
+import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingMapMetricsPortOut;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
 import java.util.List;
@@ -21,9 +23,17 @@ public class NearbyParkingLotUseCaseImpl implements NearbyParkingLotPortIn {
     private static final BigDecimal MAX_LONGITUDE = new BigDecimal("180");
 
     private final NearbyParkingLotPortOut nearbyParkingLotPortOut;
+    private final ParkingMapMetricsPortOut metricsPortOut;
+    private final ParkingLocationFeaturePortIn featurePortIn;
 
-    public NearbyParkingLotUseCaseImpl(NearbyParkingLotPortOut nearbyParkingLotPortOut) {
+    public NearbyParkingLotUseCaseImpl(
+            NearbyParkingLotPortOut nearbyParkingLotPortOut,
+            ParkingMapMetricsPortOut metricsPortOut,
+            ParkingLocationFeaturePortIn featurePortIn
+    ) {
         this.nearbyParkingLotPortOut = nearbyParkingLotPortOut;
+        this.metricsPortOut = metricsPortOut;
+        this.featurePortIn = featurePortIn;
     }
 
     @Override
@@ -34,15 +44,24 @@ public class NearbyParkingLotUseCaseImpl implements NearbyParkingLotPortIn {
             BigDecimal radiusKm,
             int limit
     ) {
+        featurePortIn.requirePublicNearbySearch();
         validateCoordinates(latitude, longitude);
         validateRadius(radiusKm);
         validateLimit(limit);
-        return nearbyParkingLotPortOut.findNearby(
-                latitude,
-                longitude,
-                radiusKm.multiply(METERS_PER_KILOMETER),
-                limit
-        );
+        long startedAt = System.nanoTime();
+        try {
+            List<NearbyParkingLotResult> results = nearbyParkingLotPortOut.findNearby(
+                    latitude,
+                    longitude,
+                    radiusKm.multiply(METERS_PER_KILOMETER),
+                    limit
+            );
+            metricsPortOut.recordNearbySearch(System.nanoTime() - startedAt, results.size(), true);
+            return results;
+        } catch (RuntimeException exception) {
+            metricsPortOut.recordNearbySearch(System.nanoTime() - startedAt, 0, false);
+            throw exception;
+        }
     }
 
     private void validateCoordinates(BigDecimal latitude, BigDecimal longitude) {

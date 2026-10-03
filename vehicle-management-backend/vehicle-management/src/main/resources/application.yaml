@@ -7,7 +7,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: when_authorized
@@ -81,6 +81,12 @@ spring:
         enabled: false
 
 app:
+  features:
+    parking-location:
+      admin-address-v2-enabled: ${ADMIN_ADDRESS_V2_ENABLED:false}
+      public-nearby-search-enabled: ${PUBLIC_NEARBY_SEARCH_ENABLED:false}
+      customer-parking-map-enabled: ${CUSTOMER_PARKING_MAP_ENABLED:false}
+      geocoding-provider-enabled: ${GEOCODING_PROVIDER_ENABLED:false}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
   mail:
@@ -196,4 +202,17 @@ app:
       max-attempts: ${NOMINATIM_MAX_ATTEMPTS:2}
       requests-per-second: 1
       daily-request-limit: ${NOMINATIM_DAILY_REQUEST_LIMIT:1000}
+      quota-usage-percent: ${NOMINATIM_QUOTA_USAGE_PERCENT:90}
+      max-concurrent-requests: ${NOMINATIM_MAX_CONCURRENT_REQUESTS:2}
+      max-response-bytes: ${NOMINATIM_MAX_RESPONSE_BYTES:262144}
+  maps:
+    rate-limit:
+      enabled: ${MAP_RATE_LIMIT_ENABLED:true}
+      window: ${MAP_RATE_LIMIT_WINDOW:1m}
+      anonymous-ip-limit: ${MAP_RATE_LIMIT_ANONYMOUS_IP:30}
+      authenticated-ip-limit: ${MAP_RATE_LIMIT_AUTHENTICATED_IP:120}
+      account-limit: ${MAP_RATE_LIMIT_ACCOUNT:120}
+    metrics:
+      data-quality-refresh-ms: ${MAP_DATA_QUALITY_REFRESH_MS:300000}
+      data-quality-initial-delay-ms: ${MAP_DATA_QUALITY_INITIAL_DELAY_MS:15000}
 

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,6 +14,7 @@ import com.ban.vehicle_management.application.parking.parkinglot.port.out.Parkin
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.AdministrativeBoundaryPortOut;
 import com.ban.vehicle_management.application.parking.location.port.out.ParkingLocationPortOut;
 import com.ban.vehicle_management.application.parking.location.model.ParkingLocationSearchResult;
+import com.ban.vehicle_management.application.parking.location.port.in.ParkingLocationFeaturePortIn;
 import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
@@ -34,6 +36,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class ParkingLotUseCaseImplTest {
@@ -49,6 +52,9 @@ class ParkingLotUseCaseImplTest {
 
     @Mock
     private ParkingLocationPortOut parkingLocationPortOut;
+
+    @Mock
+    private ParkingLocationFeaturePortIn featurePortIn;
 
     @Mock
     private AdministrativeBoundaryPortOut administrativeBoundaryPortOut;
@@ -67,6 +73,21 @@ class ParkingLotUseCaseImplTest {
                 .thenReturn(ParkingLotAccessScope.unrestrictedScope());
     }
 
+    @Test
+    void shouldRejectCrossOrganizationUpdateBeforeSaving() {
+        UUID parkingLotId = UUID.randomUUID();
+        ParkingLot existing = validParkingLot();
+        existing.setParkingLotId(parkingLotId);
+        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existing));
+        doThrow(new AccessDeniedException("cross-organization access"))
+                .when(organizationAccessGuard).ensureCanManageParkingLot(existing);
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> parkingLotUseCase.updateParkingLot(parkingLotId, validParkingLot())
+        );
+        verify(parkingLotPortOut, never()).save(any(ParkingLot.class));
+    }
     @Test
     void shouldCreateParkingLotWhenValid() {
         ParkingLot request = validParkingLot();

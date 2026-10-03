@@ -12,6 +12,11 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -157,6 +162,36 @@ class NearbyParkingLotIntegrationTest {
                 .reduce("", (left, right) -> left + System.lineSeparator() + right);
 
         assertTrue(plan.contains("idx_parking_lots_active_location_gist"), plan);
+    }
+
+    @Test
+    void shouldHandleConcurrentNearbyQueriesWithoutErrors() throws Exception {
+        int requestCount = 32;
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(8);
+
+        try {
+            List<Future<List<NearbyParkingLotResult>>> futures = java.util.stream.IntStream
+                    .range(0, requestCount)
+                    .mapToObj(ignored -> executor.submit(() -> {
+                        start.await();
+                        return nearbyParkingLotPortIn.findNearby(
+                                ORIGIN_LATITUDE,
+                                ORIGIN_LONGITUDE,
+                                new BigDecimal("5"),
+                                20
+                        );
+                    }))
+                    .toList();
+
+            start.countDown();
+            for (Future<List<NearbyParkingLotResult>> future : futures) {
+                assertTrue(future.get(10, TimeUnit.SECONDS) != null);
+            }
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
     }
 
     private void insertParkingLotAtDistance(UUID parkingLotId, String status, int distanceMeters) {

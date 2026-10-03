@@ -26,6 +26,9 @@ public class NominatimProperties {
     private int maxAttempts = 2;
     private int requestsPerSecond = 1;
     private int dailyRequestLimit = 1_000;
+    private int quotaUsagePercent = 90;
+    private int maxConcurrentRequests = 2;
+    private int maxResponseBytes = 262_144;
 
     @AssertTrue(message = "Nominatim configuration is invalid")
     public boolean isValid() {
@@ -37,6 +40,9 @@ public class NominatimProperties {
                 && cacheTtl != null && !cacheTtl.isNegative() && !cacheTtl.isZero()
                 && maxAttempts >= 1 && maxAttempts <= 3
                 && requestsPerSecond == 1
-                && dailyRequestLimit >= 1;
+                && dailyRequestLimit >= 1
+                && quotaUsagePercent >= 1 && quotaUsagePercent <= 95
+                && maxConcurrentRequests >= 1 && maxConcurrentRequests <= 10
+                && maxResponseBytes >= 1_024 && maxResponseBytes <= 1_048_576;
     }
 }

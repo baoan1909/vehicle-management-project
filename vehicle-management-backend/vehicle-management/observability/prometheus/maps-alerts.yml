@@ -1,0 +1,75 @@
+groups:
+  - name: vehicle-management-maps
+    rules:
+      - alert: PostGisUnavailable
+        expr: maps_postgis_available < 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: PostGIS capability is unavailable
+          description: Nearby parking search must be disabled or investigated immediately.
+
+      - alert: NearbySearchErrorRateHigh
+        expr: |
+          sum(rate(maps_nearby_search_requests_total{outcome="error"}[5m]))
+          /
+          clamp_min(sum(rate(maps_nearby_search_requests_total[5m])), 0.001) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Nearby API error ratio is above 5%
+
+      - alert: MapQuotaUsage80Percent
+        expr: |
+          (1 - maps_provider_quota_remaining / clamp_min(maps_provider_quota_limit, 1)) >= 0.80
+          and
+          (1 - maps_provider_quota_remaining / clamp_min(maps_provider_quota_limit, 1)) < 0.90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Map provider internal quota reached 80%
+
+      - alert: MapQuotaUsage90Percent
+        expr: |
+          (1 - maps_provider_quota_remaining / clamp_min(maps_provider_quota_limit, 1)) >= 0.90
+          and maps_provider_quota_remaining > 0
+        for: 2m
+        labels:
+          severity: high
+        annotations:
+          summary: Map provider internal quota reached 90%
+
+      - alert: MapQuotaExhausted
+        expr: maps_provider_quota_remaining <= 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Map provider internal daily quota is exhausted
+
+      - alert: MapProviderTimeoutsIncreasing
+        expr: sum(rate(maps_provider_errors_total{reason="timeout"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Map provider timeout rate is increasing
+
+      - alert: ActiveParkingLotsMissingLocation
+        expr: maps_parking_active_without_location > 0
+        for: 10m
+        labels:
+          severity: high
+        annotations:
+          summary: Active parking lots exist without PostGIS location
+
+      - alert: ParkingAddressesNeedReview
+        expr: maps_parking_address_needs_review > 20
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: Address review queue exceeded 20 parking lots

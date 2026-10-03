@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import static org.mockito.Mockito.mock;
 
 class NominatimParkingLocationAdapterTest {
 
@@ -21,7 +22,9 @@ class NominatimParkingLocationAdapterTest {
                 properties,
                 new RedisProperties(),
                 emptyRedisProvider(),
-                new ObjectMapper()
+                new ObjectMapper(),
+                mock(MapProviderQuotaGuard.class),
+                mock(MapProviderMetrics.class)
         ));
     }
 
@@ -35,6 +38,10 @@ class NominatimParkingLocationAdapterTest {
 
         properties.setUserAgent("CoParking/1.0 (contact: dev@coparking.local)");
         properties.setDailyRequestLimit(0);
+        assertFalse(properties.isValid());
+
+        properties.setDailyRequestLimit(1_000);
+        properties.setQuotaUsagePercent(96);
         assertFalse(properties.isValid());
     }
 

@@ -9,6 +9,7 @@ import com.ban.vehicle_management.application.iam.organization.model.result.Park
 import com.ban.vehicle_management.application.parking.parkinglot.port.in.ParkingLotPortIn;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.AdministrativeBoundaryPortOut;
+import com.ban.vehicle_management.application.parking.location.port.in.ParkingLocationFeaturePortIn;
 import com.ban.vehicle_management.application.parking.location.port.out.ParkingLocationPortOut;
 import com.ban.vehicle_management.application.parking.location.model.ParkingLocationSearchResult;
 import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPortOut;
@@ -43,6 +44,7 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final ParkingLocationPortOut parkingLocationPortOut;
+    private final ParkingLocationFeaturePortIn featurePortIn;
     private final AdministrativeBoundaryPortOut administrativeBoundaryPortOut;
     private final AuditLogPortOut auditLogPortOut;
     private final ParkingLotPolicy parkingLotPolicy = new ParkingLotPolicy();
@@ -53,6 +55,7 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
             CurrentAccountPortIn currentAccountPortIn,
             OrganizationAccessGuard organizationAccessGuard,
             ParkingLocationPortOut parkingLocationPortOut,
+            ParkingLocationFeaturePortIn featurePortIn,
             AdministrativeBoundaryPortOut administrativeBoundaryPortOut,
             AuditLogPortOut auditLogPortOut
     ) {
@@ -61,6 +64,7 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         this.currentAccountPortIn = currentAccountPortIn;
         this.organizationAccessGuard = organizationAccessGuard;
         this.parkingLocationPortOut = parkingLocationPortOut;
+        this.featurePortIn = featurePortIn;
         this.administrativeBoundaryPortOut = administrativeBoundaryPortOut;
         this.auditLogPortOut = auditLogPortOut;
     }
@@ -69,6 +73,7 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     @Transactional
     public ParkingLot createParkingLot(ParkingLot parkingLot) {
         currentAccountPortIn.requirePermission(PARKING_LOT_CREATE_ALL);
+        requireAdminAddressV2WhenUsed(parkingLot);
         parkingLot.setOrganizationId(
                 organizationAccessGuard.resolveOrganizationIdForParkingLotCreation(parkingLot.getOrganizationId())
         );
@@ -110,6 +115,7 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     @Transactional
     public ParkingLot updateParkingLot(UUID parkingLotId, ParkingLot parkingLot) {
         currentAccountPortIn.requirePermission(PARKING_LOT_UPDATE_ALL);
+        requireAdminAddressV2WhenUsed(parkingLot);
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
         organizationAccessGuard.ensureCanManageParkingLot(existingParkingLot);
 
@@ -152,6 +158,8 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
     @Transactional
     public ParkingLot geocodeParkingLot(UUID parkingLotId) {
         currentAccountPortIn.requirePermission(PARKING_LOT_UPDATE_ALL);
+        featurePortIn.requireAdminAddressV2();
+        featurePortIn.requireGeocodingProvider();
         ParkingLot parkingLot = getParkingLotById(parkingLotId);
         organizationAccessGuard.ensureCanManageParkingLot(parkingLot);
         if (parkingLot.getAddressDisplay() == null || parkingLot.getAddressDisplay().isBlank()) {
@@ -216,6 +224,7 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
             BigDecimal longitude
     ) {
         currentAccountPortIn.requirePermission(PARKING_LOT_UPDATE_ALL);
+        featurePortIn.requireAdminAddressV2();
         ParkingLot parkingLot = getParkingLotById(parkingLotId);
         organizationAccessGuard.ensureCanManageParkingLot(parkingLot);
         Map<String, Object> before = locationSnapshot(parkingLot);
@@ -324,6 +333,17 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         return parkingLotPortOut.save(existingParkingLot);
     }
 
+    private void requireAdminAddressV2WhenUsed(ParkingLot parkingLot) {
+        if (parkingLot != null && (
+                parkingLot.getAddressInputScheme() != null
+                || parkingLot.getCurrentWardCode() != null
+                || parkingLot.getLegacyWardCode() != null
+                || parkingLot.getLatitude() != null
+                || parkingLot.getLongitude() != null
+        )) {
+            featurePortIn.requireAdminAddressV2();
+        }
+    }
     private String normalizeKeyword(String keyword) {
         if (keyword == null || keyword.isBlank()) {
             return null;

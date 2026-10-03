@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.parking.location.model.ParkingLocationSearchResult;
+import com.ban.vehicle_management.application.parking.location.port.in.ParkingLocationFeaturePortIn;
 import com.ban.vehicle_management.application.parking.location.port.out.ParkingLocationPortOut;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
@@ -22,6 +23,9 @@ class PublicParkingLocationUseCaseImplTest {
 
     @Mock
     private ParkingLocationPortOut parkingLocationPortOut;
+
+    @Mock
+    private ParkingLocationFeaturePortIn featurePortIn;
 
     @InjectMocks
     private PublicParkingLocationUseCaseImpl useCase;
