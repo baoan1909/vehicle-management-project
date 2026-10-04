@@ -30,6 +30,8 @@ services:
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_ADMIN_CLIENT_SECRET: ${KEYCLOAK_ADMIN_CLIENT_SECRET}
+      KEYCLOAK_SMTP_PASSWORD: ${KEYCLOAK_SMTP_PASSWORD}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     ports:
@@ -40,7 +42,7 @@ services:
     restart: unless-stopped
     volumes:
       - ../../vehicle-management-frontend/vehicle_management_react/keycloak/themes:/opt/keycloak/themes
-      - ../../vehicle-management-frontend/vehicle_management_react/keycloak/import:/opt/keycloak/data/import
+      - ../../vehicle-management-frontend/vehicle_management_react/keycloak/bootstrap/realm-template.json:/opt/keycloak/data/import/vehicle-management-realm.json:ro
 
 volumes:
   keycloak_postgres_data:

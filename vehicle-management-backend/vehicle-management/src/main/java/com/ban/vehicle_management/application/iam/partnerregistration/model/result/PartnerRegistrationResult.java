@@ -11,9 +11,6 @@ public record PartnerRegistrationResult(
         String representativeName,
         String email,
         String phoneNumber,
-        String address,
-        Integer expectedParkingLotCount,
-        String parkingOperationDescription,
         ApprovalRequestStatus status,
         String note,
         Instant createdAt

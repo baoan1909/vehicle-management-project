@@ -82,7 +82,7 @@ function RegistrationModal({
       open
       onClose={isSaving ? () => undefined : onClose}
       title="Hồ sơ đăng ký đối tác"
-      description="Kiểm tra thông tin đơn vị trước khi cấp quyền quản trị đối tác."
+      description="Kiểm tra thông tin đơn vị trước khi kích hoạt tài khoản quản trị đối tác."
       width="lg"
       actions={(
         <div className="tw-flex tw-flex-wrap tw-justify-end tw-gap-3">
@@ -95,7 +95,7 @@ function RegistrationModal({
               </Button>
               <Button loading={isSaving} onClick={() => onReview("approve")}>
                 {!isSaving ? <i className="fas fa-check" /> : null}
-                Duyệt & cấp Partner Admin
+                Duyệt & kích hoạt
               </Button>
             </>
           ) : null}
@@ -115,18 +115,15 @@ function RegistrationModal({
           <h5 className="tw-m-0 tw-mb-3 tw-text-[0.8rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Thông tin đối tác</h5>
           <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[560px]:tw-grid-cols-1">
             <DetailField label="Mã đối tác" value={item.organizationCode} />
-            <DetailField label="Số bãi dự kiến" value={item.expectedParkingLotCount} />
-            <DetailField label="Địa chỉ" value={item.address} wide />
-            <DetailField label="Mô tả vận hành" value={item.parkingOperationDescription} wide />
           </div>
         </section>
 
         <section>
-          <h5 className="tw-m-0 tw-mb-3 tw-text-[0.8rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Người đại diện & tài khoản cấp mới</h5>
+          <h5 className="tw-m-0 tw-mb-3 tw-text-[0.8rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Người đại diện & tài khoản đã đăng ký</h5>
           <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[560px]:tw-grid-cols-1">
             <DetailField label="Người đại diện" value={item.representativeName} />
             <DetailField label="Số điện thoại" value={item.phoneNumber} />
-            <DetailField label="Email / tên đăng nhập" value={item.email} wide />
+            <DetailField label="Email tài khoản" value={item.email} wide />
             <DetailField label="Thời điểm gửi yêu cầu" value={formatDateTime(item.createdAt)} wide />
           </div>
         </section>
@@ -214,7 +211,7 @@ export function PartnerRegistrationManagementPage() {
     try {
       await reviewPartnerRegistration(selectedRegistration.approvalRequestId, decision, reviewNote);
       toast.success(
-        decision === "approve" ? "Đã tạo Partner và cấp tài khoản Partner Admin." : "Đã từ chối yêu cầu đăng ký đối tác.",
+        decision === "approve" ? "Đã tạo đơn vị và kích hoạt tài khoản quản trị viên đối tác." : "Đã từ chối yêu cầu đăng ký đối tác.",
         decision === "approve" ? "Duyệt thành công" : "Đã từ chối",
       );
       setSelectedRegistration(null);
@@ -234,7 +231,7 @@ export function PartnerRegistrationManagementPage() {
           <div>
             <p className="tw-m-0 tw-text-[0.74rem] tw-font-black tw-uppercase tw-tracking-[0.12em] tw-text-vm-primary">Nền tảng CoParking</p>
             <h1 className="tw-m-0 tw-mt-1 tw-text-vm-page-title tw-text-vm-slate-900">Đăng ký đối tác</h1>
-            <p className="tw-m-0 tw-mt-2 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-500">Xét duyệt đơn vị vận hành trước khi cấp quyền Partner Admin.</p>
+            <p className="tw-m-0 tw-mt-2 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-500">Xét duyệt đơn vị vận hành trước khi kích hoạt quyền quản trị đối tác.</p>
           </div>
           <Button variant="secondary" disabled={isLoading} onClick={() => void loadRegistrations()}>
             <i className="fas fa-sync-alt" />
@@ -279,10 +276,9 @@ export function PartnerRegistrationManagementPage() {
         </Card>
 
         <Card className="tw-mt-4 tw-overflow-hidden">
-          <div className="tw-grid tw-grid-cols-[minmax(230px,1.1fr)_minmax(220px,1fr)_155px_135px_110px] tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-4 tw-py-3 tw-text-[0.72rem] tw-font-extrabold tw-uppercase tw-text-vm-slate-500 max-[1080px]:tw-hidden">
+          <div className="tw-grid tw-grid-cols-[minmax(230px,1.1fr)_minmax(220px,1fr)_135px_110px] tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-4 tw-py-3 tw-text-[0.72rem] tw-font-extrabold tw-uppercase tw-text-vm-slate-500 max-[1080px]:tw-hidden">
             <span>Đơn vị đối tác</span>
             <span>Người đại diện</span>
-            <span>Quy mô dự kiến</span>
             <span>Trạng thái</span>
             <span className="tw-text-right">Thao tác</span>
           </div>
@@ -290,13 +286,12 @@ export function PartnerRegistrationManagementPage() {
           {!isLoading && error ? <div className="tw-p-4"><InfoBanner tone="warning" title="Không thể tải hồ sơ" description={error} icon={<i className="fas fa-exclamation-circle" />} /></div> : null}
           {!isLoading && !error && visibleRegistrations.length === 0 ? <div className="tw-p-4"><InfoBanner tone="success" title="Không có hồ sơ phù hợp" description="Không có đăng ký đối tác nào theo bộ lọc hiện tại." icon={<i className="fas fa-check-circle" />} /></div> : null}
           {!isLoading && !error ? visibleRegistrations.map((item) => (
-            <article key={item.approvalRequestId} className="tw-grid tw-grid-cols-[minmax(230px,1.1fr)_minmax(220px,1fr)_155px_135px_110px] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-3 last:tw-border-b-0 max-[1080px]:tw-grid-cols-1">
+            <article key={item.approvalRequestId} className="tw-grid tw-grid-cols-[minmax(230px,1.1fr)_minmax(220px,1fr)_135px_110px] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-3 last:tw-border-b-0 max-[1080px]:tw-grid-cols-1">
               <div className="tw-min-w-0">
                 <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2"><strong className="tw-truncate tw-text-[0.92rem] tw-font-black tw-text-vm-slate-900">{item.organizationName}</strong><Badge tone="neutral" className="tw-rounded-full tw-px-2.5">{item.organizationCode}</Badge></div>
                 <p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.77rem] tw-font-semibold tw-text-vm-slate-500">Gửi lúc {formatDateTime(item.createdAt)}</p>
               </div>
               <div className="tw-min-w-0"><strong className="tw-block tw-truncate tw-text-[0.88rem] tw-font-bold tw-text-vm-slate-900">{item.representativeName}</strong><p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.77rem] tw-font-semibold tw-text-vm-slate-500">{item.email} · {item.phoneNumber}</p></div>
-              <span className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-700">{item.expectedParkingLotCount} bãi xe</span>
               <Badge tone={statusTone(item.status)} className="tw-w-fit tw-rounded-full tw-px-3">{statusLabel(item.status)}</Badge>
               <div className="tw-justify-self-end max-[1080px]:tw-justify-self-start"><Button className="tw-w-[104px] tw-gap-1.5 tw-px-2 tw-text-[0.78rem]" size="sm" variant={item.status === "PENDING" ? "primary" : "secondary"} onClick={() => openRegistration(item)}><i className="fas fa-eye" />{item.status === "PENDING" ? "Xét duyệt" : "Chi tiết"}</Button></div>
             </article>

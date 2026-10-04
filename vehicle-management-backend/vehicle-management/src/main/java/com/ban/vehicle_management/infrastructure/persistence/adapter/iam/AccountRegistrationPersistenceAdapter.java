@@ -11,6 +11,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import org.springframework.stereotype.Component;
 
@@ -19,8 +20,6 @@ import java.util.UUID;
 
 @Component
 public class AccountRegistrationPersistenceAdapter implements AccountRegistrationPortOut {
-
-    private static final String CUSTOMER_ROLE_CODE = "CUSTOMER";
 
     private final AccountRepository accountRepository;
     private final RoleRepository roleRepository;
@@ -67,8 +66,23 @@ public class AccountRegistrationPersistenceAdapter implements AccountRegistratio
 
     @Override
     public Account registerAccount(RegisterAccountCommand command, String keycloakUserId, UserProfile userProfile) {
-        RoleEntity customerRole = roleRepository.findByCode(CUSTOMER_ROLE_CODE)
-                .orElseThrow(() -> new NotFoundException("Customer role is not configured"));
+        return registerPendingAccount(
+                command,
+                keycloakUserId,
+                userProfile,
+                AdminProvisionableAccountRoleCode.CUSTOMER
+        );
+    }
+
+    @Override
+    public Account registerPendingAccount(
+            RegisterAccountCommand command,
+            String keycloakUserId,
+            UserProfile userProfile,
+            AdminProvisionableAccountRoleCode roleCode
+    ) {
+        RoleEntity accountRole = roleRepository.findByCode(roleCode.name())
+                .orElseThrow(() -> new NotFoundException(roleCode.name() + " role is not configured"));
 
         UUID accountId = UUID.randomUUID();
 
@@ -80,7 +94,7 @@ public class AccountRegistrationPersistenceAdapter implements AccountRegistratio
         account.setKeycloakUserId(keycloakUserId);
         account.setUsername(command.username());
         account.setEmail(command.email());
-        account.setRoleId(customerRole.getRoleId());
+        account.setRoleId(accountRole.getRoleId());
         account.setStatus(AccountStatus.PENDING);
         account.setFailedLoginCount(0);
         return accountPersistenceMapper.toDomain(accountRepository.save(accountPersistenceMapper.toEntity(account)));

@@ -117,6 +117,38 @@ class CurrentAccountSecurityAdapterTest {
     }
 
     @Test
+    void shouldDenyBusinessPermissionForPendingPartnerAdmin() {
+        UUID accountId = UUID.randomUUID();
+        CurrentAccountAccess currentAccountAccess = new CurrentAccountAccess(
+                accountId,
+                "partner-keycloak-sub",
+                "partner.admin",
+                "partner@example.com",
+                UUID.randomUUID(),
+                "PARTNER_ADMIN",
+                AccountStatus.PENDING,
+                null,
+                Set.of("ORGANIZATION_READ_ALL", "PARKING_LOT_CREATE_ALL")
+        );
+        when(accountAuthorizationPortOut.findByAccountId(accountId)).thenReturn(Optional.of(currentAccountAccess));
+
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                "user",
+                "pass",
+                java.util.List.of(new SimpleGrantedAuthority("ORGANIZATION_READ_ALL"))
+        );
+        authenticationToken.setDetails(new AuthenticatedAccountPrincipal(
+                accountId,
+                "partner-keycloak-sub",
+                "partner.admin",
+                "partner@example.com"
+        ));
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+        assertFalse(currentAccountSecurityAdapter.hasPermission("ORGANIZATION_READ_ALL"));
+    }
+
+    @Test
     void shouldResolveSchedulerActorFromAssistantScopeWhenSecurityContextIsEmpty() {
         UUID accountId = UUID.randomUUID();
         CurrentAccountAccess currentAccountAccess = new CurrentAccountAccess(

@@ -86,4 +86,62 @@ class JwtAuthenticationConverterTest {
         assertTrue(authenticationToken.getAuthorities().stream()
                 .anyMatch(authority -> "EMPLOYEE_READ_ALL".equals(authority.getAuthority())));
     }
+
+    @Test
+    void shouldNotGrantPartnerPermissionsWhilePartnerAccountIsPending() {
+        UUID accountId = UUID.randomUUID();
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("partner-subject")
+                .claim("account_id", accountId.toString())
+                .build();
+        when(accountAuthorizationPortOut.findByAccountId(accountId)).thenReturn(java.util.Optional.of(
+                new CurrentAccountAccess(
+                        accountId,
+                        "partner-subject",
+                        "partner.admin",
+                        "partner@example.com",
+                        UUID.randomUUID(),
+                        "PARTNER_ADMIN",
+                        AccountStatus.PENDING,
+                        null,
+                        Set.of("ORGANIZATION_READ_ALL", "PARKING_LOT_CREATE_ALL")
+                )
+        ));
+
+        JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) jwtAuthenticationConverter.convert(jwt);
+
+        assertFalse(authenticationToken.getAuthorities().stream()
+                .anyMatch(authority -> "ORGANIZATION_READ_ALL".equals(authority.getAuthority())));
+        assertFalse(authenticationToken.getAuthorities().stream()
+                .anyMatch(authority -> "PARKING_LOT_CREATE_ALL".equals(authority.getAuthority())));
+    }
+
+    @Test
+    void shouldGrantMappedPartnerPermissionsAfterAccountActivation() {
+        UUID accountId = UUID.randomUUID();
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("active-partner-subject")
+                .claim("account_id", accountId.toString())
+                .build();
+        when(accountAuthorizationPortOut.findByAccountId(accountId)).thenReturn(java.util.Optional.of(
+                new CurrentAccountAccess(
+                        accountId,
+                        "active-partner-subject",
+                        "partner.admin",
+                        "partner@example.com",
+                        UUID.randomUUID(),
+                        "PARTNER_ADMIN",
+                        AccountStatus.ACTIVE,
+                        null,
+                        Set.of("ORGANIZATION_READ_ALL")
+                )
+        ));
+
+        JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) jwtAuthenticationConverter.convert(jwt);
+
+        assertTrue(authenticationToken.getAuthorities().stream()
+                .anyMatch(authority -> "ORGANIZATION_READ_ALL".equals(authority.getAuthority())));
+    }
 }

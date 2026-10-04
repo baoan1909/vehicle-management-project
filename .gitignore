@@ -44,5 +44,15 @@ dist/
 .env
 .env.local
 
+# Keycloak runtime exports and private key material must never be committed.
+**/keycloak/export/
+*-users-*.json
+*-realm-export.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+
 # Local analysis and design artifacts at the repository root
 /docs/

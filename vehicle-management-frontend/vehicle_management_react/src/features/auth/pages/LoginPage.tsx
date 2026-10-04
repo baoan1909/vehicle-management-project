@@ -10,6 +10,7 @@ import {
 import { useAuth } from "@/core/auth/useAuth";
 import { bootstrapSocialAccount, getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
+import { getMyPartnerRegistrationStatus } from "@/features/iam/api/partnerRegistrationApi";
 import type { CurrentUser } from "@/shared/types/common";
 import {
   buildKeycloakLogoutUrl,
@@ -59,6 +60,9 @@ const forgotPasswordEmailStorageKey = "vm_forgot_password_email";
 let activeAuthorizationCode = "";
 
 function resolvePostLoginRedirectPath(user: CurrentUser | null) {
+  if (user?.partnerApplicationStatus) {
+    return "/partner/application-status";
+  }
   if (user?.role === "CUSTOMER") {
     return user.onboardingRequired ? "/customer/profile" : customerPostLoginRedirectPath;
   }
@@ -72,12 +76,12 @@ async function resolveLoggedInUser(accessToken: string) {
   if (getIdentityProviderFromAccessToken(accessToken) === "google") {
     await bootstrapSocialAccount();
     const response = await getMyAccountProfile();
-    return mergeCurrentUserWithAccountProfile(tokenUser, response.data);
+    return enrichWithPartnerWorkflow(mergeCurrentUserWithAccountProfile(tokenUser, response.data));
   }
 
   try {
     const response = await getMyAccountProfile();
-    return mergeCurrentUserWithAccountProfile(tokenUser, response.data);
+    return enrichWithPartnerWorkflow(mergeCurrentUserWithAccountProfile(tokenUser, response.data));
   } catch {
     return tokenUser;
   }
@@ -184,6 +188,20 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
   }, [isReturningToLogin, location.search]);
 
   return <FullPageCarLoader label={label} />;
+}
+
+async function enrichWithPartnerWorkflow(user: CurrentUser) {
+  if (user.accountStatus !== "PENDING") return user;
+  try {
+    const response = await getMyPartnerRegistrationStatus();
+    return {
+      ...user,
+      partnerApplicationStatus: response.data.approvalStatus,
+      partnerNextAction: response.data.nextAction,
+    };
+  } catch {
+    return user;
+  }
 }
 
 function RegisterScreenV2() {

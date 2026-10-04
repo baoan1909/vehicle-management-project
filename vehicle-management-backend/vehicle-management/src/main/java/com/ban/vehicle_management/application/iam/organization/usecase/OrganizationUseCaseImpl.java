@@ -14,7 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,7 +48,6 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
     @Transactional
     public Organization createOrganization(Organization organization, UUID partnerAdminAccountId) {
         currentAccountPortIn.requirePermission(ORGANIZATION_CREATE_ALL);
-        ensureSystemAdmin();
         organizationPolicy.initialize(organization);
         if (organizationPortOut.existsByCode(organization.getCode())) {
             throw new ConflictException("Organization code already exists");
@@ -69,7 +67,7 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
     public List<Organization> getAccessibleOrganizations() {
         currentAccountPortIn.requirePermission(ORGANIZATION_READ_ALL);
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (OrganizationAccessGuard.SYSTEM_ADMIN.equals(currentAccount.roleCode())) {
+        if (currentAccountPortIn.hasPermission(ORGANIZATION_CREATE_ALL)) {
             return organizationPortOut.findAll();
         }
         return organizationPortOut.findAllByIds(
@@ -119,9 +117,4 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
         assignParkingManager(organizationId, parkingManagerAccountId, parkingLotIds);
     }
 
-    private void ensureSystemAdmin() {
-        if (!OrganizationAccessGuard.SYSTEM_ADMIN.equals(currentAccountPortIn.getCurrentAccountOrThrow().roleCode())) {
-            throw new AccessDeniedException("Current account is not a system administrator");
-        }
-    }
 }

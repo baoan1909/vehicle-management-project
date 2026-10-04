@@ -1,0 +1,44 @@
+title = "CoParking secret scanning rules"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "UUID identifiers are not credentials"
+targetRules = ["generic-api-key"]
+regexTarget = "match"
+regexes = [
+  '''(?i)\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b''',
+]
+
+[[rules]]
+id = "keycloak-export-private-key"
+description = "Keycloak realm exports must not contain generated private keys"
+regex = '''(?i)"privateKey"\s*:\s*(?:\[\s*)?"([A-Za-z0-9+/_=-]{256,})"'''
+secretGroup = 1
+path = '''(?i)keycloak[\\/].*\.json$'''
+keywords = ["privateKey"]
+
+[[rules]]
+id = "keycloak-literal-client-secret"
+description = "Keycloak client secrets must be injected through environment placeholders"
+regex = '''(?i)"secret"\s*:\s*"([A-Za-z0-9][A-Za-z0-9._~+/=-]{15,})"'''
+secretGroup = 1
+path = '''(?i)keycloak[\\/].*\.json$'''
+keywords = ["secret"]
+
+[[rules]]
+id = "keycloak-literal-smtp-password"
+description = "Keycloak SMTP passwords must be injected through environment placeholders"
+regex = '''(?i)"password"\s*:\s*"([A-Za-z0-9][^"\r\n]{7,})"'''
+secretGroup = 1
+path = '''(?i)keycloak[\\/].*\.json$'''
+keywords = ["password"]
+
+[[rules]]
+id = "keycloak-user-export-credential"
+description = "Keycloak user exports must not contain credential values"
+regex = '''(?i)"value"\s*:\s*"([^"\r\n]{1,})"'''
+secretGroup = 1
+path = '''(?i)keycloak[\\/].*(?:users|export).*\.json$'''
+keywords = ["value"]

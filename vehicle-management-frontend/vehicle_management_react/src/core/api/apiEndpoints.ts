@@ -5,6 +5,7 @@ export const apiEndpoints = {
     forgotPassword: "/public/auth/forgot-password",
   },
   public: {
+    partnerRegistrations: "/public/partner-registrations",
     parkingLots: "/public/parking-lots",
     nearbyParkingLots: "/public/parking-lots/nearby",
     parkingMapFeatures: "/public/parking-map/features",
@@ -123,6 +124,7 @@ modelConfigurations: "/ai/models/configurations",
     accounts: "/accounts",
     organizations: "/iam/organizations",
     partnerRegistrations: "/iam/partner-registrations",
+    myPartnerRegistration: "/iam/partner-registrations/me",
     provisionedAccounts: "/iam/accounts/provisioned",
     accountProfile: {
       currentAccess: "/iam/accounts/current-access",

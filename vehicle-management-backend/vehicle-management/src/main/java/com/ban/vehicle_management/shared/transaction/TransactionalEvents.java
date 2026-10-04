@@ -23,4 +23,18 @@ public final class TransactionalEvents {
             }
         });
     }
+
+    public static void runAfterRollback(Runnable action) {
+        if (action == null || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status != TransactionSynchronization.STATUS_COMMITTED) {
+                    action.run();
+                }
+            }
+        });
+    }
 }

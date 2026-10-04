@@ -33,6 +33,8 @@ export interface CurrentUser {
   employeeStatus?: string;
   jobTitle?: string;
   onboardingRequired?: boolean;
+  partnerApplicationStatus?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  partnerNextAction?: "VERIFY_EMAIL" | "WAIT_FOR_REVIEW" | "REVIEW_REJECTED" | "ACCESS_PARTNER_PORTAL";
   permissionCodes?: string[];
   profileStatus?: string;
   roleLabel?: string;
