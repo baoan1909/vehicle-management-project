@@ -68,6 +68,10 @@ function AdminShell() {
     return <Navigate to="/login" replace />;
   }
 
+  if (user.partnerApplicationStatus && user.accountStatus !== "ACTIVE") {
+    return <Navigate to="/partner/application-status" replace />;
+  }
+
   if (user?.role === "CUSTOMER") {
     return <Navigate to="/customer/dashboard" replace />;
   }

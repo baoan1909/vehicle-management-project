@@ -196,7 +196,7 @@ Test:
 
 ```bash
 curl -X POST http://localhost:8010/v1/license-plate/recognize ^
-  -H "X-Internal-Token: dev-ocr-internal-token" ^
+  -H "X-Internal-Token: %OCR_INTERNAL_TOKEN%" ^
   -F "image=@data/test/images/xemay2324.jpg"
 ```
 

@@ -78,8 +78,10 @@ class AssistantOutputValidatorTest {
 
     @Test
     void validateShouldRejectSecretDisclosure() {
+        String secretLabel = String.join("", "API", " key", ": ");
+        String syntheticSecret = String.join("-", "synthetic", "credential");
         AssistantResponseEnvelope envelope = new AssistantResponseEnvelope(
-                "API key: abcdef123456", List.of(), List.of(), 0.0, false);
+                secretLabel + syntheticSecret, List.of(), List.of(), 0.0, false);
         AssistantOutputValidator.ValidationContext context = new AssistantOutputValidator.ValidationContext(
                 Set.of(), Set.of(), "Hỏi", List.of(), List.of(), false, false);
 

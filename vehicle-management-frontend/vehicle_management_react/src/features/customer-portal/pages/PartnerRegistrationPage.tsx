@@ -1,91 +1,129 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
-import { apiClient } from "@/core/api/apiClient";
-import { cn } from "@/lib/cn";
-import { ClientPage } from "@/shared/components/layout/ClientPage";
-
-import { PublicFooter } from "./PortalShared";
+import { Button, useToast } from "@/components/ui";
+import { resendVerificationEmail } from "@/features/auth/api/authApi";
+import {
+  AuthFormField,
+  AuthFormSectionTitle,
+  AuthInlineNotice,
+  AuthPasswordInput,
+} from "@/features/auth/components/AuthFormControls";
+import {
+  authFieldLimits,
+  validateEmail,
+  validateRegisterValues,
+  type RegisterFieldErrors,
+} from "@/features/auth/utils/authValidation";
+import { submitPartnerRegistration } from "@/features/iam/api/partnerRegistrationApi";
 
 const initialForm = {
+  fullName: "",
+  username: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
   organizationCode: "",
   organizationName: "",
   representativeName: "",
-  email: "",
   phoneNumber: "",
-  address: "",
-  expectedParkingLotCount: "1",
-  parkingOperationDescription: "",
 };
 
 type PartnerForm = typeof initialForm;
 type FormField = keyof PartnerForm;
 type FieldErrors = Partial<Record<FormField, string>>;
 
-function validateForm(form: PartnerForm): FieldErrors {
-  const errors: FieldErrors = {};
-  if (!/^[A-Za-z0-9_-]+$/.test(form.organizationCode.trim())) {
-    errors.organizationCode = "Mã đơn vị chỉ được chứa chữ, số, dấu gạch dưới hoặc dấu gạch ngang.";
+function validatePartnerForm(form: PartnerForm): FieldErrors {
+  const accountErrors: RegisterFieldErrors = validateRegisterValues({
+    confirmPassword: form.confirmPassword,
+    email: form.email,
+    fullName: form.fullName,
+    password: form.password,
+    username: form.username,
+  });
+  const errors: FieldErrors = { ...accountErrors };
+  const organizationCode = form.organizationCode.trim();
+  if (!organizationCode) {
+    errors.organizationCode = "Vui lòng nhập mã đơn vị.";
+  } else if (!/^[A-Za-z0-9_-]+$/.test(organizationCode)) {
+    errors.organizationCode = "Mã đơn vị chỉ gồm chữ, số, dấu gạch dưới hoặc dấu gạch ngang.";
+  } else if (organizationCode.length > 50) {
+    errors.organizationCode = "Mã đơn vị không được vượt quá 50 ký tự.";
   }
+  if (!form.organizationName.trim()) errors.organizationName = "Vui lòng nhập tên đơn vị.";
+  if (!form.representativeName.trim()) errors.representativeName = "Vui lòng nhập tên người đại diện.";
   if (!/^\+?\d+$/.test(form.phoneNumber.trim())) {
-    errors.phoneNumber = "Số điện thoại chỉ được chứa chữ số và có thể bắt đầu bằng dấu +.";
-  }
-  const parkingLotCount = Number(form.expectedParkingLotCount);
-  if (!Number.isInteger(parkingLotCount) || parkingLotCount < 1 || parkingLotCount > 1000) {
-    errors.expectedParkingLotCount = "Số bãi dự kiến quản lý phải nằm trong khoảng từ 1 đến 1.000.";
+    errors.phoneNumber = "Số điện thoại chỉ gồm chữ số và có thể bắt đầu bằng dấu +.";
   }
   return errors;
 }
 
 function errorFieldsForMessage(message: string): FieldErrors {
-  if (message.includes("Email này đã có hồ sơ") || message.includes("Email liên hệ không đúng")) return { email: message };
-  if (message.includes("Mã đơn vị này đã có hồ sơ") || message.includes("Mã đơn vị chỉ được")) return { organizationCode: message };
-  if (message.includes("Số điện thoại")) return { phoneNumber: message };
-  if (message.includes("Số bãi dự kiến")) return { expectedParkingLotCount: message };
+  const normalized = message.toLocaleLowerCase("vi-VN");
+  if (normalized.includes("tên đăng nhập")) return { username: message };
+  if (normalized.includes("email")) return { email: message };
+  if (normalized.includes("organization code") || normalized.includes("mã đơn vị")) return { organizationCode: message };
+  if (normalized.includes("số điện thoại")) return { phoneNumber: message };
   return {};
 }
 
 export function PartnerRegistrationPage() {
+  const toast = useToast();
   const [form, setForm] = useState<PartnerForm>(initialForm);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const resendTargetEmail = (registeredEmail || form.email).trim().toLocaleLowerCase("en-US");
 
   function updateField(field: FormField, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
-    setFieldErrors((current) => ({ ...current, [field]: undefined }));
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
     setError(null);
   }
 
-  async function submit(event: FormEvent) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const validationErrors = validateForm(form);
+    if (saving) return;
+    const validationErrors = validatePartnerForm(form);
     if (Object.keys(validationErrors).length > 0) {
-      setNotice(null);
       setError("Vui lòng kiểm tra các thông tin được đánh dấu bên dưới.");
       setFieldErrors(validationErrors);
       return;
     }
+    if (!acceptedTerms) {
+      setError("Vui lòng đồng ý Điều khoản sử dụng và Chính sách bảo mật.");
+      return;
+    }
 
     setSaving(true);
-    setNotice(null);
     setError(null);
     setFieldErrors({});
+    const normalizedEmail = form.email.trim().toLocaleLowerCase("en-US");
     try {
-      await apiClient("/public/partner-registrations", {
-        method: "POST",
-        skipAuth: true,
-        body: {
-          ...form,
-          organizationCode: form.organizationCode.trim().toUpperCase(),
-          expectedParkingLotCount: Number(form.expectedParkingLotCount),
-        },
+      await submitPartnerRegistration({
+        email: normalizedEmail,
+        fullName: form.fullName.trim(),
+        organizationCode: form.organizationCode.trim().toUpperCase(),
+        organizationName: form.organizationName.trim(),
+        password: form.password,
+        phoneNumber: form.phoneNumber.trim(),
+        representativeName: form.representativeName.trim(),
+        username: form.username.trim(),
       });
-      setNotice("Hồ sơ đã được gửi. Đội ngũ CoParking sẽ liên hệ để xác minh và hướng dẫn triển khai.");
+      setRegisteredEmail(normalizedEmail);
+      toast.success("Tài khoản đối tác đã được tạo. Vui lòng kiểm tra email để xác thực.");
       setForm(initialForm);
+      setAcceptedTerms(false);
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : "Không thể gửi hồ sơ. Vui lòng thử lại.";
+      const message = cause instanceof Error ? cause.message : "Không thể tạo tài khoản đối tác. Vui lòng thử lại.";
       setError(message);
       setFieldErrors(errorFieldsForMessage(message));
     } finally {
@@ -93,96 +131,117 @@ export function PartnerRegistrationPage() {
     }
   }
 
-  function field(key: FormField, label: string, type = "text", required = true) {
-    const fieldError = fieldErrors[key];
-    return (
-      <label className="tw-grid tw-gap-2 tw-text-[.88rem] tw-font-bold tw-text-[#173252]">
-        <span>{label}</span>
-        <input
-          aria-invalid={Boolean(fieldError)}
-          required={required}
-          type={type}
-          value={form[key]}
-          onChange={(event) => updateField(key, event.target.value)}
-          className={cn(
-            "tw-h-11 tw-rounded-[9px] tw-border tw-border-solid tw-bg-white tw-px-3 tw-outline-none focus:tw-ring-4",
-            fieldError
-              ? "tw-border-red-400 focus:tw-border-red-500 focus:tw-ring-red-500/10"
-              : "tw-border-[#d7e3f2] focus:tw-border-[#176fff] focus:tw-ring-[#176fff]/10",
-          )}
-        />
-        {fieldError ? <span className="tw-text-[.78rem] tw-font-semibold tw-leading-5 tw-text-red-600">{fieldError}</span> : null}
-      </label>
-    );
+  async function resendVerification() {
+    if (resending) return;
+    const validationError = validateEmail(resendTargetEmail);
+    if (validationError) {
+      setError(validationError);
+      setFieldErrors((current) => ({ ...current, email: validationError }));
+      return;
+    }
+    setResending(true);
+    setError(null);
+    try {
+      const response = await resendVerificationEmail({ email: resendTargetEmail });
+      setRegisteredEmail(resendTargetEmail);
+      toast.success(response.message || "Đã gửi lại email xác thực.");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Không thể gửi lại email xác thực.");
+    } finally {
+      setResending(false);
+    }
   }
 
-  const parkingLotCountError = fieldErrors.expectedParkingLotCount;
-
   return (
-    <ClientPage>
-      <main className="tw-bg-[#f5f9ff] tw-py-10">
-        <section className="tw-mx-auto tw-grid tw-w-[min(980px,calc(100%_-_32px))] tw-grid-cols-[.8fr_1.2fr] tw-overflow-hidden tw-rounded-[22px] tw-bg-white tw-shadow-[0_24px_60px_rgba(18,59,110,.14)] max-[760px]:tw-grid-cols-1">
+    <div className="tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-overflow-y-auto tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)]">
+      <main className="tw-my-auto tw-w-full tw-py-10">
+        <section className="tw-mx-auto tw-grid tw-w-[min(1120px,calc(100%_-_32px))] tw-grid-cols-[0.68fr_1.32fr] tw-overflow-hidden tw-rounded-vm-lg tw-bg-white tw-shadow-[0_24px_60px_rgba(18,59,110,.14)] max-[880px]:tw-grid-cols-1">
           <aside className="tw-bg-[linear-gradient(145deg,#061d42,#1267df)] tw-p-9 tw-text-white">
             <p className="tw-m-0 tw-text-sm tw-font-black tw-uppercase tw-tracking-[.14em] tw-text-[#8fc0ff]">CoParking for business</p>
             <h1 className="tw-m-0 tw-mt-4 tw-font-[Cambria] tw-text-4xl tw-font-bold">Trở thành đối tác CoParking</h1>
-            <p className="tw-mt-5 tw-leading-7 tw-text-[#d4e5ff]">Đưa bãi xe của bạn lên một nền tảng quản lý tập trung, linh hoạt và sẵn sàng mở rộng.</p>
-            <ul className="tw-mt-8 tw-grid tw-gap-4 tw-list-none tw-p-0 tw-text-sm tw-font-semibold">
-              {["Tư vấn mô hình vận hành phù hợp", "Hỗ trợ cấu hình bãi và thiết bị", "Đào tạo đội ngũ vận hành"].map((item) => (
-                <li key={item}><i className="fas fa-check-circle tw-mr-3 tw-text-[#67b4ff]" />{item}</li>
-              ))}
-            </ul>
+            <p className="tw-mt-5 tw-leading-7 tw-text-[#d4e5ff]">Tự tạo tài khoản quản trị đối tác, xác minh email và theo dõi quá trình xét duyệt trên một luồng duy nhất.</p>
+            <ol className="tw-mt-8 tw-grid tw-gap-4 tw-pl-5 tw-text-sm tw-font-semibold tw-leading-6">
+              <li>Tạo tài khoản và hồ sơ đơn vị.</li>
+              <li>Xác minh địa chỉ email đăng ký.</li>
+              <li>Chờ CoParking xét duyệt và kích hoạt quyền.</li>
+            </ol>
+            <p className="tw-mt-8 tw-rounded-vm-md tw-bg-white/10 tw-p-4 tw-text-sm tw-leading-6 tw-text-[#d4e5ff]">
+              Trong thời gian chờ duyệt, tài khoản có thể đăng nhập để xem trạng thái nhưng chưa sử dụng chức năng quản trị bãi xe.
+            </p>
           </aside>
 
-          <section className="tw-p-8 max-[520px]:tw-p-5">
-            <div className="tw-flex tw-items-center tw-justify-between">
-              <div>
-                <h2 className="tw-m-0 tw-text-2xl tw-font-black tw-text-[#102b50]">Đăng ký đối tác</h2>
-                <p className="tw-m-0 tw-mt-1 tw-text-sm tw-text-[#65809f]">Thông tin sẽ được CoParking xác minh trước khi cấp tài khoản.</p>
-              </div>
-              <Link to="/" className="tw-text-sm tw-font-bold tw-text-[#176fff]">Trang chủ</Link>
+          <section className="tw-p-8 max-[560px]:tw-p-5">
+            <div>
+              <h2 className="tw-m-0 tw-text-2xl tw-font-black tw-text-[#102b50]">Đăng ký tài khoản đối tác</h2>
+              <p className="tw-m-0 tw-mt-1 tw-text-sm tw-text-[#65809f]">Dùng email chính chủ để nhận liên kết xác minh và kết quả xét duyệt.</p>
             </div>
-            {notice ? <p className="tw-mt-5 tw-rounded-[9px] tw-bg-emerald-50 tw-p-3 tw-text-sm tw-font-semibold tw-text-emerald-700">{notice}</p> : null}
-            {error ? <p className="tw-mt-5 tw-rounded-[9px] tw-bg-red-50 tw-p-3 tw-text-sm tw-font-semibold tw-text-red-700">{error}</p> : null}
 
-            <form onSubmit={submit} className="tw-mt-6 tw-grid tw-grid-cols-2 tw-gap-4 max-[520px]:tw-grid-cols-1">
-              {field("organizationName", "Tên đơn vị / bãi xe")}
-              {field("organizationCode", "Mã đơn vị dự kiến (VD: PARKING_A)")}
-              {field("representativeName", "Họ tên người đại diện")}
-              {field("phoneNumber", "Số điện thoại", "tel")}
-              {field("email", "Email liên hệ", "email")}
-              <label className="tw-grid tw-gap-2 tw-text-[.88rem] tw-font-bold tw-text-[#173252]">
-                <span>Số bãi dự kiến quản lý</span>
+            <form className="tw-mt-6 tw-grid tw-gap-5" noValidate onSubmit={submit}>
+              {error ? <AuthInlineNotice tone="error">{error}</AuthInlineNotice> : null}
+
+              <section className="tw-grid tw-gap-3">
+                <AuthFormSectionTitle>Thông tin tài khoản</AuthFormSectionTitle>
+                <div className="tw-grid tw-grid-cols-2 tw-gap-4 max-[680px]:tw-grid-cols-1">
+                  <AuthFormField autoComplete="name" id="partnerFullName" icon="far fa-user" label="Họ và tên" error={fieldErrors.fullName} maxLength={authFieldLimits.fullNameMaxLength} required value={form.fullName} onChange={(value) => updateField("fullName", value)} />
+                  <AuthFormField autoComplete="username" id="partnerUsername" icon="far fa-user-circle" label="Tên đăng nhập" error={fieldErrors.username} maxLength={authFieldLimits.usernameMaxLength} required value={form.username} onChange={(value) => updateField("username", value)} />
+                  <div className="tw-col-span-2 max-[680px]:tw-col-span-1">
+                    <AuthFormField autoComplete="email" id="partnerEmail" icon="far fa-envelope" label="Email" error={fieldErrors.email} maxLength={authFieldLimits.emailMaxLength} required type="email" value={form.email} onChange={(value) => updateField("email", value)} />
+                  </div>
+                  <AuthPasswordInput autoComplete="new-password" id="partnerPassword" label="Mật khẩu" error={fieldErrors.password} maxLength={authFieldLimits.passwordMaxLength} required value={form.password} onChange={(value) => updateField("password", value)} />
+                  <AuthPasswordInput autoComplete="new-password" id="partnerConfirmPassword" label="Xác nhận mật khẩu" error={fieldErrors.confirmPassword} maxLength={authFieldLimits.passwordMaxLength} required value={form.confirmPassword} onChange={(value) => updateField("confirmPassword", value)} />
+                </div>
+              </section>
+
+              <section className="tw-grid tw-gap-3">
+                <AuthFormSectionTitle>Thông tin đối tác</AuthFormSectionTitle>
+                <div className="tw-grid tw-grid-cols-2 tw-gap-4 max-[680px]:tw-grid-cols-1">
+                  <AuthFormField id="organizationCode" icon="fas fa-fingerprint" label="Mã đơn vị" error={fieldErrors.organizationCode} maxLength={50} placeholder="VD: PARKING_ABC" required value={form.organizationCode} onChange={(value) => updateField("organizationCode", value.toUpperCase())} />
+                  <AuthFormField id="organizationName" icon="far fa-building" label="Tên đơn vị" error={fieldErrors.organizationName} maxLength={150} required value={form.organizationName} onChange={(value) => updateField("organizationName", value)} />
+                  <AuthFormField id="representativeName" icon="far fa-address-card" label="Người đại diện" error={fieldErrors.representativeName} maxLength={150} required value={form.representativeName} onChange={(value) => updateField("representativeName", value)} />
+                  <AuthFormField id="phoneNumber" icon="fas fa-phone-alt" label="Số điện thoại" error={fieldErrors.phoneNumber} maxLength={20} required type="tel" value={form.phoneNumber} onChange={(value) => updateField("phoneNumber", value)} />
+                </div>
+              </section>
+
+              <AuthInlineNotice>
+                <div className="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-3 max-[680px]:tw-flex-col max-[680px]:tw-items-start">
+                  <span className="tw-min-w-0 tw-flex-1">Sau khi tạo tài khoản, email xác thực sẽ được gửi đến địa chỉ email của bạn. Vui lòng kiểm tra email để kích hoạt tài khoản.</span>
+                  <Button
+                    className="tw-ml-auto tw-mr-2 tw-h-8 tw-flex-shrink-0 tw-rounded-vm-sm tw-px-3 tw-text-[0.78rem] tw-font-extrabold max-[680px]:tw-ml-0 max-[680px]:tw-mr-0"
+                    disabled={!resendTargetEmail}
+                    loading={resending}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                    onClick={resendVerification}
+                  >
+                    {resending ? "Đang gửi..." : "Gửi lại email"}
+                  </Button>
+                </div>
+              </AuthInlineNotice>
+
+              <label className="tw-flex tw-items-center tw-gap-2.5 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-700">
                 <input
-                  aria-invalid={Boolean(parkingLotCountError)}
-                  required
-                  min="1"
-                  max="1000"
-                  type="number"
-                  value={form.expectedParkingLotCount}
-                  onChange={(event) => updateField("expectedParkingLotCount", event.target.value)}
-                  className={cn(
-                    "tw-h-11 tw-rounded-[9px] tw-border tw-border-solid tw-px-3 tw-outline-none focus:tw-ring-4",
-                    parkingLotCountError ? "tw-border-red-400 focus:tw-border-red-500 focus:tw-ring-red-500/10" : "tw-border-[#d7e3f2] focus:tw-border-[#176fff] focus:tw-ring-[#176fff]/10",
-                  )}
+                  checked={acceptedTerms}
+                  className="tw-h-4 tw-w-4 tw-rounded-vm-sm tw-border tw-border-solid tw-border-[#cbd5e1] tw-accent-vm-primary"
+                  type="checkbox"
+                  onChange={(event) => setAcceptedTerms(event.target.checked)}
                 />
-                {parkingLotCountError ? <span className="tw-text-[.78rem] tw-font-semibold tw-leading-5 tw-text-red-600">{parkingLotCountError}</span> : null}
+                <span>
+                  Tôi đã đọc và đồng ý với{" "}
+                  <Link className="tw-font-extrabold tw-text-vm-primary tw-no-underline hover:tw-text-vm-primary-hover" to="/pricing">Điều khoản sử dụng</Link>
+                  {" "}và{" "}
+                  <Link className="tw-font-extrabold tw-text-vm-primary tw-no-underline hover:tw-text-vm-primary-hover" to="/pricing">Chính sách bảo mật</Link>
+                </span>
               </label>
-              <label className="tw-col-span-2 tw-grid tw-gap-2 tw-text-[.88rem] tw-font-bold tw-text-[#173252] max-[520px]:tw-col-span-1">
-                <span>Địa chỉ</span>
-                <input required value={form.address} onChange={(event) => updateField("address", event.target.value)} className="tw-h-11 tw-rounded-[9px] tw-border tw-border-solid tw-border-[#d7e3f2] tw-px-3" />
-              </label>
-              <label className="tw-col-span-2 tw-grid tw-gap-2 tw-text-[.88rem] tw-font-bold tw-text-[#173252] max-[520px]:tw-col-span-1">
-                <span>Mô tả bãi xe <small className="tw-font-normal">(tuỳ chọn)</small></span>
-                <textarea value={form.parkingOperationDescription} onChange={(event) => updateField("parkingOperationDescription", event.target.value)} className="tw-min-h-24 tw-rounded-[9px] tw-border tw-border-solid tw-border-[#d7e3f2] tw-p-3" placeholder="Loại xe phục vụ, số tầng/hầm, thiết bị hiện có..." />
-              </label>
-              <button disabled={saving} className="tw-col-span-2 tw-mt-2 tw-min-h-12 tw-rounded-[9px] tw-bg-[#176fff] tw-font-black tw-text-white tw-shadow-[0_12px_22px_rgba(23,111,255,.24)] disabled:tw-opacity-60 max-[520px]:tw-col-span-1">
-                {saving ? "Đang gửi hồ sơ..." : "Gửi đăng ký đối tác"} <i className="fas fa-arrow-right tw-ml-2" />
-              </button>
+
+              <Button className="tw-h-11 tw-w-full tw-rounded-vm-md tw-font-extrabold" disabled={saving} loading={saving} type="submit" variant="primary">
+                {saving ? "Đang tạo tài khoản..." : "Đăng ký trở thành đối tác"}
+              </Button>
+              <p className="tw-m-0 tw-text-center tw-text-sm tw-font-semibold tw-text-vm-slate-600">Đã có tài khoản? <Link className="tw-font-extrabold tw-text-vm-primary" to="/login">Đăng nhập</Link></p>
             </form>
           </section>
         </section>
       </main>
-      <PublicFooter />
-    </ClientPage>
+    </div>
   );
 }

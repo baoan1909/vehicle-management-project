@@ -15,4 +15,8 @@ public interface PartnerRegistrationPortOut {
     List<PartnerRegistrationResult> findAll(ApprovalRequestStatus status);
 
     Optional<ApprovalRequest> findById(UUID approvalRequestId);
+
+    Optional<ApprovalRequest> findByIdForUpdate(UUID approvalRequestId);
+
+    Optional<ApprovalRequest> findLatestByApplicantAccountId(UUID accountId);
 }

@@ -262,9 +262,12 @@ export function ClientNavbar() {
                       </Link>
                     ) : null}
 
-                    <Link to="/customer/profile" className={profileItemClassName} onClick={() => setProfileOpen(false)}>
-                      <HeaderItemIcon icon="fas fa-user-circle" />
-                      <HeaderItemCopy title="Hồ sơ cá nhân" meta="Cập nhật thông tin tài khoản" />
+                    <Link to={user.partnerApplicationStatus ? "/partner/application-status" : "/customer/profile"} className={profileItemClassName} onClick={() => setProfileOpen(false)}>
+                      <HeaderItemIcon icon={user.partnerApplicationStatus ? "fas fa-clipboard-check" : "fas fa-user-circle"} />
+                      <HeaderItemCopy
+                        title={user.partnerApplicationStatus ? "Trạng thái hồ sơ đối tác" : "Hồ sơ cá nhân"}
+                        meta={user.partnerApplicationStatus ? "Theo dõi xác thực và xét duyệt" : "Cập nhật thông tin tài khoản"}
+                      />
                     </Link>
 
                     {canAccessCustomerRoute(user, "/customer/support") ? (
@@ -290,6 +293,7 @@ export function ClientNavbar() {
             </>
           ) : (
             <>
+              <Link className="tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-vm-primary tw-bg-vm-primary tw-px-4 tw-text-[0.84rem] tw-font-black tw-text-white tw-transition hover:tw-border-vm-primary-hover hover:tw-bg-vm-primary-hover hover:tw-text-white hover:tw-no-underline max-[640px]:tw-min-h-9 max-[640px]:tw-px-3 max-[640px]:tw-text-[0.76rem]" to="/become-a-partner">Trở thành đối tác</Link>
               <button
                 className="tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-4 tw-text-[0.84rem] tw-font-black tw-text-slate-900 tw-transition hover:tw-border-brand-200 hover:tw-bg-brand-50 hover:tw-text-vm-primary hover:tw-no-underline disabled:tw-cursor-wait disabled:tw-opacity-75 max-[640px]:tw-min-h-9 max-[640px]:tw-px-3 max-[640px]:tw-text-[0.76rem]"
                 type="button"

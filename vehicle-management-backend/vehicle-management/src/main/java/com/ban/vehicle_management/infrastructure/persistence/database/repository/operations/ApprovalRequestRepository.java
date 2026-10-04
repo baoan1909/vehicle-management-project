@@ -65,6 +65,13 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
             ApprovalRequestStatus status
     );
 
+    Optional<ApprovalRequestEntity> findTopByRequestedByAndRequestTypeAndTargetSchemaAndTargetTableOrderByCreatedAtDesc(
+            UUID requestedBy,
+            String requestType,
+            String targetSchema,
+            String targetTable
+    );
+
     Optional<ApprovalRequestEntity> findByRequestedByAndRequestTypeAndIdempotencyKey(
             UUID requestedBy,
             String requestType,
@@ -95,6 +102,22 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
               AND approval.targetTable = :targetTable
             """)
     Optional<ApprovalRequestEntity> findSupportEscalationForUpdate(
+            @Param("approvalRequestId") UUID approvalRequestId,
+            @Param("requestType") String requestType,
+            @Param("targetSchema") String targetSchema,
+            @Param("targetTable") String targetTable
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT approval
+            FROM ApprovalRequestEntity approval
+            WHERE approval.approvalRequestId = :approvalRequestId
+              AND approval.requestType = :requestType
+              AND approval.targetSchema = :targetSchema
+              AND approval.targetTable = :targetTable
+            """)
+    Optional<ApprovalRequestEntity> findPartnerRegistrationForUpdate(
             @Param("approvalRequestId") UUID approvalRequestId,
             @Param("requestType") String requestType,
             @Param("targetSchema") String targetSchema,

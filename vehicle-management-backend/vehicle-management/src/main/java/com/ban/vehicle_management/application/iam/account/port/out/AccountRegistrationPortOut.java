@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.iam.account.port.out;
 import com.ban.vehicle_management.application.iam.account.model.command.RegisterAccountCommand;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 
 import java.util.Optional;
 
@@ -17,4 +18,11 @@ public interface AccountRegistrationPortOut {
     Optional<Account> findByEmail(String email);
 
     Account registerAccount(RegisterAccountCommand command, String keycloakUserId, UserProfile userProfile);
+
+    Account registerPendingAccount(
+            RegisterAccountCommand command,
+            String keycloakUserId,
+            UserProfile userProfile,
+            AdminProvisionableAccountRoleCode roleCode
+    );
 }
