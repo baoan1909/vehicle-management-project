@@ -1,14 +1,28 @@
 package com.ban.vehicle_management.domain.iam.account.policy;
 
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.shared.address.VietnamAddress;
+import com.ban.vehicle_management.domain.shared.address.VietnamAddressPolicy;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.LocalDate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AccountProfilePolicy {
+
+    private final VietnamAddressPolicy vietnamAddressPolicy;
+
+    @Autowired
+    public AccountProfilePolicy(VietnamAddressPolicy vietnamAddressPolicy) {
+        this.vietnamAddressPolicy = vietnamAddressPolicy;
+    }
+
+    public AccountProfilePolicy() {
+        this.vietnamAddressPolicy = null;
+    }
 
     public String normalizeRequiredFullName(String fullName) {
         return TextValidationUtils.normalizeRequiredText(fullName, "fullName", 150);
@@ -40,6 +54,19 @@ public class AccountProfilePolicy {
 
     public String normalizeNullableIdentifyCard(String identifyCard) {
         return TextValidationUtils.normalizeAlphaNumeric(identifyCard, "identifyCard", 50);
+    }
+
+    public VietnamAddress validateStructuredAddress(VietnamAddress address) {
+        if (address == null) {
+            return null;
+        }
+        if (vietnamAddressPolicy == null) {
+            address.validateStructure();
+            address.normalize();
+            return address;
+        }
+        vietnamAddressPolicy.validateAndBuildDisplay(address);
+        return address;
     }
 
     public void ensurePatchHasAtLeastOneField(

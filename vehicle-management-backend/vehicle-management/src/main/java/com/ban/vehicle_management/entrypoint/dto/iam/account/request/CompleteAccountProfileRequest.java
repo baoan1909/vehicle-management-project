@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.entrypoint.dto.iam.account.request;
 
+import com.ban.vehicle_management.entrypoint.dto.shared.address.request.VietnamAddressRequest;
 import java.time.LocalDate;
 
 public record CompleteAccountProfileRequest(
@@ -9,6 +10,18 @@ public record CompleteAccountProfileRequest(
         String gender,
         String address,
         String identifyCard,
-        String avatarUrl
+        String avatarUrl,
+        VietnamAddressRequest structuredAddress
 ) {
+    public CompleteAccountProfileRequest(
+            String fullName,
+            String phoneNumber,
+            LocalDate dateOfBirth,
+            String gender,
+            String address,
+            String identifyCard,
+            String avatarUrl
+    ) {
+        this(fullName, phoneNumber, dateOfBirth, gender, address, identifyCard, avatarUrl, null);
+    }
 }

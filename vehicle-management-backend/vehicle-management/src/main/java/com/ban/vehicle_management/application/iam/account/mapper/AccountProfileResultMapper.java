@@ -44,6 +44,11 @@ public interface AccountProfileResultMapper {
     @Mapping(target = "dateOfBirth", expression = "java(command.dateOfBirth() != null ? command.dateOfBirth() : state.dateOfBirth())")
     @Mapping(target = "gender", expression = "java(firstNonNull(command.gender(), state.gender()))")
     @Mapping(target = "address", expression = "java(firstNonNull(command.address(), state.address()))")
+    @Mapping(target = "addressDetail", source = "state.addressDetail")
+    @Mapping(target = "provinceCode", source = "state.provinceCode")
+    @Mapping(target = "wardCode", source = "state.wardCode")
+    @Mapping(target = "districtCode", source = "state.districtCode")
+    @Mapping(target = "addressDisplay", source = "state.addressDisplay")
     @Mapping(target = "identifyCard", expression = "java(firstNonNull(command.identifyCard(), state.identifyCard()))")
     @Mapping(target = "avatarUrl", source = "state.avatarUrl")
     @Mapping(target = "status", expression = "java(resolveUserProfileStatus(state.userProfileStatus()))")
@@ -52,6 +57,16 @@ public interface AccountProfileResultMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     UserProfile mergeProfile(AccountProfileState state, UpdateAccountProfileCommand command);
+
+    @org.mapstruct.AfterMapping
+    default void applyStructuredAddress(
+            UpdateAccountProfileCommand command,
+            @org.mapstruct.MappingTarget UserProfile profile
+    ) {
+        if (command.structuredAddress() != null) {
+            profile.setStructuredAddress(command.structuredAddress());
+        }
+    }
 
     default <T> T firstNonNull(T preferred, T fallback) {
         return preferred != null ? preferred : fallback;
@@ -87,6 +102,11 @@ public interface AccountProfileResultMapper {
     @Mapping(target = "gender", source = "userProfile.gender")
     @Mapping(target = "phoneNumber", source = "userProfile.phoneNumber")
     @Mapping(target = "address", source = "userProfile.address")
+    @Mapping(target = "addressDetail", source = "userProfile.addressDetail")
+    @Mapping(target = "provinceCode", source = "userProfile.provinceCode")
+    @Mapping(target = "wardCode", source = "userProfile.wardCode")
+    @Mapping(target = "districtCode", source = "userProfile.districtCode")
+    @Mapping(target = "addressDisplay", source = "userProfile.addressDisplay")
     @Mapping(target = "identifyCard", source = "userProfile.identifyCard")
     @Mapping(target = "avatarUrl", source = "userProfile.avatarUrl")
     @Mapping(target = "userProfileStatus", source = "userProfile.status")

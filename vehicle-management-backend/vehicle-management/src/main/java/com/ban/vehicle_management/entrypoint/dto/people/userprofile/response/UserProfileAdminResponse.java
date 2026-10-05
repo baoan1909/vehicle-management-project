@@ -21,6 +21,11 @@ public class UserProfileAdminResponse {
     private String gender;
     private String phoneNumber;
     private String address;
+    private String addressDetail;
+    private String provinceCode;
+    private String wardCode;
+    private String districtCode;
+    private String addressDisplay;
     private String identifyCard;
     private String avatarUrl;
     private UserProfileStatus status;

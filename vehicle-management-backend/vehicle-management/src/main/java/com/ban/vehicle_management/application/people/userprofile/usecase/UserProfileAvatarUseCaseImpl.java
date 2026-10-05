@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.people.userprofile.usecase;
 
 import com.ban.vehicle_management.application.people.userprofile.mapper.UserProfileSnapshotMapper;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
+import com.ban.vehicle_management.application.people.userprofile.port.in.AvatarModerationPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfileAvatarPortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
@@ -40,19 +41,22 @@ public class UserProfileAvatarUseCaseImpl implements UserProfileAvatarPortIn {
     private final FileStoragePort fileStoragePort;
     private final StorageUrlResolver storageUrlResolver;
     private final UserProfileSnapshotMapper userProfileSnapshotMapper;
+    private final AvatarModerationPortIn avatarModerationPortIn;
 
     public UserProfileAvatarUseCaseImpl(
             UserProfilePortOut userProfilePortOut,
             UserProfileAvatarPortOut userProfileAvatarPortOut,
             FileStoragePort fileStoragePort,
             StorageUrlResolver storageUrlResolver,
-            UserProfileSnapshotMapper userProfileSnapshotMapper
+            UserProfileSnapshotMapper userProfileSnapshotMapper,
+            AvatarModerationPortIn avatarModerationPortIn
     ) {
         this.userProfilePortOut = userProfilePortOut;
         this.userProfileAvatarPortOut = userProfileAvatarPortOut;
         this.fileStoragePort = fileStoragePort;
         this.storageUrlResolver = storageUrlResolver;
         this.userProfileSnapshotMapper = userProfileSnapshotMapper;
+        this.avatarModerationPortIn = avatarModerationPortIn;
     }
 
     @Override
@@ -60,8 +64,6 @@ public class UserProfileAvatarUseCaseImpl implements UserProfileAvatarPortIn {
     public UserProfile uploadAvatar(UUID userProfileId, MultipartFile file, UUID uploaderAccountId) {
         UserProfile existingUserProfile = userProfilePortOut.findById(userProfileId)
                 .orElseThrow(() -> new NotFoundException("User profile not found"));
-        Optional<UserProfileAvatar> previousCurrentAvatar = findCurrentAvatar(userProfileId);
-
         StoredFile storedFile = fileStoragePort.store(new StoreFileCommand(
                 file,
                 StorageBucket.PUBLIC,
@@ -73,13 +75,12 @@ public class UserProfileAvatarUseCaseImpl implements UserProfileAvatarPortIn {
         ));
 
         try {
-            userProfileAvatarPortOut.markCurrentAsReplaced(userProfileId);
+            avatarModerationPortIn.cancelPendingCandidate(userProfileId);
             UserProfileAvatar savedAvatar = userProfileAvatarPortOut.save(
-                    buildActiveAvatar(userProfileId, storedFile, uploaderAccountId)
+                    buildPendingAvatar(userProfileId, storedFile, uploaderAccountId)
             );
-            previousCurrentAvatar.map(UserProfileAvatar::getObjectKey)
-                    .ifPresent(this::deleteManagedAvatarAfterCommit);
-            return withResolvedAvatarUrl(existingUserProfile, Map.of(userProfileId, savedAvatar));
+            avatarModerationPortIn.submitCandidate(savedAvatar, uploaderAccountId);
+            return withResolvedAvatarUrl(existingUserProfile);
         } catch (RuntimeException exception) {
             deleteQuietly(storedFile.objectKey());
             throw exception;
@@ -93,6 +94,7 @@ public class UserProfileAvatarUseCaseImpl implements UserProfileAvatarPortIn {
                 .orElseThrow(() -> new NotFoundException("User profile not found"));
         Optional<UserProfileAvatar> previousCurrentAvatar = findCurrentAvatar(userProfileId);
 
+        avatarModerationPortIn.cancelPendingCandidate(userProfileId);
         userProfileAvatarPortOut.markCurrentAsDeleted(userProfileId);
         previousCurrentAvatar.map(UserProfileAvatar::getObjectKey)
                 .ifPresent(this::deleteManagedAvatarAfterCommit);
@@ -132,7 +134,7 @@ public class UserProfileAvatarUseCaseImpl implements UserProfileAvatarPortIn {
                 .toList();
     }
 
-    private UserProfileAvatar buildActiveAvatar(
+    private UserProfileAvatar buildPendingAvatar(
             UUID userProfileId,
             StoredFile storedFile,
             UUID uploaderAccountId
@@ -146,8 +148,8 @@ public class UserProfileAvatarUseCaseImpl implements UserProfileAvatarPortIn {
         avatar.setSizeBytes(storedFile.sizeBytes());
         avatar.setChecksumSha256(storedFile.checksumSha256());
         avatar.setBucket(StorageBucket.PUBLIC);
-        avatar.setStatus(UserProfileAvatarStatus.ACTIVE);
-        avatar.setCurrent(true);
+        avatar.setStatus(UserProfileAvatarStatus.PENDING);
+        avatar.setCurrent(false);
         avatar.setUploadedByAccountId(uploaderAccountId);
         return avatar;
     }
@@ -211,5 +213,11 @@ public class UserProfileAvatarUseCaseImpl implements UserProfileAvatarPortIn {
         } catch (RuntimeException exception) {
             LOGGER.warn("Failed to delete avatar object {}", objectKey, exception);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserProfileAvatar> findAllByUserProfileId(UUID userProfileId) {
+        return userProfileAvatarPortOut.findAllByUserProfileId(userProfileId);
     }
 }

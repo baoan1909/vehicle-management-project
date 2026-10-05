@@ -26,6 +26,8 @@ public interface CustomerOnboardingApprovalPortOut {
 
     Optional<ApprovalRequest> findCustomerOnboardingApprovalRequestById(UUID approvalRequestId);
 
+    Optional<ApprovalRequest> findCustomerOnboardingApprovalRequestByIdForUpdate(UUID approvalRequestId);
+
     Optional<ApprovalRequest> findLatestCustomerOnboardingApprovalRequest(UUID customerId);
 
     Optional<Customer> findCustomerById(UUID customerId);

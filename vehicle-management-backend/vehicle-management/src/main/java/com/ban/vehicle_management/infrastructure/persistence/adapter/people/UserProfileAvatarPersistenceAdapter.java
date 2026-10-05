@@ -6,6 +6,7 @@ import com.ban.vehicle_management.infrastructure.mapper.people.UserProfileAvatar
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileAvatarEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileAvatarRepository;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileAvatarStatus;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -30,6 +31,23 @@ public class UserProfileAvatarPersistenceAdapter implements UserProfileAvatarPor
     @Override
     public Optional<UserProfileAvatar> findCurrentByUserProfileId(UUID userProfileId) {
         return userProfileAvatarRepository.findByUserProfileIdAndCurrentTrue(userProfileId)
+                .map(userProfileAvatarPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<UserProfileAvatar> findPendingByUserProfileId(UUID userProfileId) {
+        return userProfileAvatarRepository.findByUserProfileIdAndStatus(userProfileId, UserProfileAvatarStatus.PENDING)
+                .map(userProfileAvatarPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<UserProfileAvatar> findById(UUID avatarId) {
+        return userProfileAvatarRepository.findById(avatarId).map(userProfileAvatarPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<UserProfileAvatar> findByIdForUpdate(UUID avatarId) {
+        return userProfileAvatarRepository.findByIdForUpdate(avatarId)
                 .map(userProfileAvatarPersistenceMapper::toDomain);
     }
 
@@ -68,5 +86,12 @@ public class UserProfileAvatarPersistenceAdapter implements UserProfileAvatarPor
                     currentAvatar.setCurrent(false);
                     userProfileAvatarRepository.saveAndFlush(currentAvatar);
                 });
+    }
+
+    @Override
+    public List<UserProfileAvatar> findAllByUserProfileId(UUID userProfileId) {
+        return userProfileAvatarRepository.findByUserProfileId(userProfileId).stream()
+                .map(userProfileAvatarPersistenceMapper::toDomain)
+                .toList();
     }
 }

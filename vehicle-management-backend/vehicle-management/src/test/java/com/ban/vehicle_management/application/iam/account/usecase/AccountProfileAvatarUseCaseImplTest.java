@@ -14,6 +14,7 @@ import com.ban.vehicle_management.application.iam.account.model.result.AccountPr
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
+import com.ban.vehicle_management.application.operations.approvalrequest.port.in.CustomerOnboardingApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
@@ -47,6 +48,9 @@ class AccountProfileAvatarUseCaseImplTest {
 
     @Mock
     private CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
+
+    @Mock
+    private CustomerOnboardingApprovalPortIn customerOnboardingApprovalPortIn;
 
     @Mock
     private InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;

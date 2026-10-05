@@ -131,6 +131,17 @@ public class CustomerOnboardingApprovalPersistenceAdapter implements CustomerOnb
     }
 
     @Override
+    public Optional<ApprovalRequest> findCustomerOnboardingApprovalRequestByIdForUpdate(UUID approvalRequestId) {
+        return approvalRequestRepository.findCustomerOnboardingForUpdate(
+                        approvalRequestId,
+                        CustomerOnboardingApprovalAccessGuard.REQUEST_TYPE,
+                        CustomerOnboardingApprovalAccessGuard.TARGET_SCHEMA,
+                        CustomerOnboardingApprovalAccessGuard.TARGET_TABLE
+                )
+                .map(approvalRequestPersistenceMapper::toDomain);
+    }
+
+    @Override
     public Optional<ApprovalRequest> findLatestCustomerOnboardingApprovalRequest(UUID customerId) {
         return approvalRequestRepository.findTopByRequestTypeAndTargetSchemaAndTargetTableAndTargetIdOrderByCreatedAtDesc(
                         CustomerOnboardingApprovalAccessGuard.REQUEST_TYPE,
@@ -229,6 +240,7 @@ public class CustomerOnboardingApprovalPersistenceAdapter implements CustomerOnb
                         customerEntity.getUserProfileId(),
                         customerEntity.getCustomerId(),
                         roleEntity.getCode(),
+                        accountEntity.getKeycloakUserId(),
                         accountEntity.getStatus(),
                         customerEntity.getStatus(),
                         customerEntity.getApprovalStatus()

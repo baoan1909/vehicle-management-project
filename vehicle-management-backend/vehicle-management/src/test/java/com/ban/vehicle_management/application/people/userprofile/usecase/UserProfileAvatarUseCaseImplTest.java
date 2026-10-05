@@ -10,6 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.people.userprofile.mapper.UserProfileSnapshotMapper;
+import com.ban.vehicle_management.application.people.userprofile.port.in.AvatarModerationPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfileAvatarPortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
@@ -32,7 +33,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -56,6 +56,9 @@ class UserProfileAvatarUseCaseImplTest {
     @Mock
     private UserProfileSnapshotMapper userProfileSnapshotMapper;
 
+    @Mock
+    private AvatarModerationPortIn avatarModerationPortIn;
+
     @InjectMocks
     private UserProfileAvatarUseCaseImpl useCase;
 
@@ -66,12 +69,12 @@ class UserProfileAvatarUseCaseImplTest {
     }
 
     @Test
-    void shouldUploadAvatarAndDeleteOldManagedAvatar() {
+    void shouldUploadPendingAvatarAndKeepOldApprovedAvatarVisible() {
         UUID userProfileId = UUID.randomUUID();
         UUID uploaderAccountId = UUID.randomUUID();
         String oldAvatar = "av/2026/06/11/" + userProfileId + "/pb-old-avatar.jpg";
         String newAvatar = "av/2026/06/11/" + userProfileId + "/pb-new-avatar.jpg";
-        String publicAvatar = "https://cdn.example.com/files/" + newAvatar;
+        String publicAvatar = "https://cdn.example.com/files/" + oldAvatar;
         MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", new byte[]{1, 2, 3});
 
         when(userProfilePortOut.findById(userProfileId)).thenReturn(Optional.of(profile(userProfileId, null)));
@@ -82,8 +85,7 @@ class UserProfileAvatarUseCaseImplTest {
         when(userProfileAvatarPortOut.save(any(UserProfileAvatar.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(storageUrlResolver.isManagedAvatarObjectKey(oldAvatar)).thenReturn(true);
-        when(storageUrlResolver.isManagedAvatarObjectKey(newAvatar)).thenReturn(true);
-        when(storageUrlResolver.resolvePublicAvatarUrl(newAvatar)).thenReturn(publicAvatar);
+        when(storageUrlResolver.resolvePublicAvatarUrl(oldAvatar)).thenReturn(publicAvatar);
 
         UserProfile result = useCase.uploadAvatar(userProfileId, file, uploaderAccountId);
 
@@ -104,15 +106,14 @@ class UserProfileAvatarUseCaseImplTest {
         assertEquals(3L, avatar.getSizeBytes());
         assertEquals("checksum", avatar.getChecksumSha256());
         assertEquals(StorageBucket.PUBLIC, avatar.getBucket());
-        assertEquals(UserProfileAvatarStatus.ACTIVE, avatar.getStatus());
-        assertEquals(true, avatar.getCurrent());
+        assertEquals(UserProfileAvatarStatus.PENDING, avatar.getStatus());
+        assertEquals(false, avatar.getCurrent());
         assertEquals(uploaderAccountId, avatar.getUploadedByAccountId());
 
-        InOrder inOrder = org.mockito.Mockito.inOrder(userProfileAvatarPortOut);
-        inOrder.verify(userProfileAvatarPortOut).findCurrentByUserProfileId(userProfileId);
-        inOrder.verify(userProfileAvatarPortOut).markCurrentAsReplaced(userProfileId);
-        inOrder.verify(userProfileAvatarPortOut).save(any(UserProfileAvatar.class));
-        verify(fileStoragePort).delete(oldAvatar);
+        verify(avatarModerationPortIn).cancelPendingCandidate(userProfileId);
+        verify(avatarModerationPortIn).submitCandidate(avatar, uploaderAccountId);
+        verify(userProfileAvatarPortOut, never()).markCurrentAsReplaced(userProfileId);
+        verify(fileStoragePort, never()).delete(oldAvatar);
         assertEquals(publicAvatar, result.getAvatarUrl());
     }
 
@@ -125,8 +126,6 @@ class UserProfileAvatarUseCaseImplTest {
         MockMultipartFile file = new MockMultipartFile("file", "avatar.png", "image/png", new byte[]{1, 2, 3});
 
         when(userProfilePortOut.findById(userProfileId)).thenReturn(Optional.of(profile(userProfileId, null)));
-        when(userProfileAvatarPortOut.findCurrentByUserProfileId(userProfileId))
-                .thenReturn(Optional.of(avatar(userProfileId, oldAvatar)));
         when(fileStoragePort.store(any(StoreFileCommand.class)))
                 .thenReturn(new StoredFile(newAvatar, "avatar.png", "image/png", 3, "checksum"));
         when(userProfileAvatarPortOut.save(any(UserProfileAvatar.class)))
@@ -134,7 +133,8 @@ class UserProfileAvatarUseCaseImplTest {
 
         assertThrows(ConflictException.class, () -> useCase.uploadAvatar(userProfileId, file, uploaderAccountId));
 
-        verify(userProfileAvatarPortOut).markCurrentAsReplaced(userProfileId);
+        verify(avatarModerationPortIn).cancelPendingCandidate(userProfileId);
+        verify(userProfileAvatarPortOut, never()).markCurrentAsReplaced(userProfileId);
         verify(userProfileAvatarPortOut).save(any(UserProfileAvatar.class));
         verify(fileStoragePort).delete(newAvatar);
         verify(fileStoragePort, never()).delete(oldAvatar);
@@ -152,6 +152,7 @@ class UserProfileAvatarUseCaseImplTest {
 
         UserProfile result = useCase.deleteAvatar(userProfileId);
 
+        verify(avatarModerationPortIn).cancelPendingCandidate(userProfileId);
         verify(userProfileAvatarPortOut).markCurrentAsDeleted(userProfileId);
         verify(fileStoragePort).delete(oldAvatar);
         assertNull(result.getAvatarUrl());

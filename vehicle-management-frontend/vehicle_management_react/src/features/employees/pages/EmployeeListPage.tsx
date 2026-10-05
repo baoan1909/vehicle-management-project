@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Badge, Button, Card, DatePicker, Drawer, EntityAvatar, InfoBanner, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
+import { Badge, Button, Card, DatePicker, Drawer, EntityAvatar, InfoBanner, Modal, PaginationFooter, SelectMenu, VietnamAddressPicker, useToast, type VietnamAddressValue } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import {
@@ -51,6 +51,7 @@ type Employee = {
   accountId: string | null;
   accountStatus: AccountStatus;
   address: string;
+  structuredAddress: VietnamAddressValue;
   avatarTone: "blue" | "green" | "amber" | "red" | "violet";
   avatarUrl: string | null;
   code: string;
@@ -99,6 +100,7 @@ const emptyEmployee: Employee = {
   accountId: null,
   accountStatus: "UNLINKED",
   address: "-",
+  structuredAddress: { provinceCode: "", districtCode: null, wardCode: "", addressDetail: "" },
   avatarTone: "blue",
   avatarUrl: null,
   code: "-",
@@ -264,6 +266,12 @@ function mapEmployee(row: EmployeeApiResponse, index = 0): Employee {
     accountId: row.accountId,
     accountStatus: row.accountStatus ?? "UNLINKED",
     address: row.userProfile?.address || "-",
+    structuredAddress: {
+      provinceCode: row.userProfile?.provinceCode ?? "",
+      districtCode: row.userProfile?.districtCode ?? null,
+      wardCode: row.userProfile?.wardCode ?? "",
+      addressDetail: row.userProfile?.addressDetail ?? "",
+    },
     avatarTone: getAvatarTone(index),
     avatarUrl: row.userProfile?.avatarUrl || null,
     code: row.employeeCode || row.employeeId,
@@ -618,6 +626,7 @@ function EmployeeEditDrawer({
 }) {
   const [form, setForm] = useState({
     address: "",
+    structuredAddress: { provinceCode: "", districtCode: null, wardCode: "", addressDetail: "" } as VietnamAddressValue,
     dateOfBirth: "",
     employeeCode: "",
     fullName: "",
@@ -635,6 +644,7 @@ function EmployeeEditDrawer({
     if (!open) return;
     setForm({
       address: employee?.address === "-" ? "" : employee?.address ?? "",
+      structuredAddress: employee?.structuredAddress ?? { provinceCode: "", districtCode: null, wardCode: "", addressDetail: "" },
       dateOfBirth: employee?.dateOfBirth ?? "",
       employeeCode: employee?.code ?? "",
       fullName: employee?.name === "Chưa có nhân viên" ? "" : employee?.name ?? "",
@@ -679,6 +689,11 @@ function EmployeeEditDrawer({
         },
         userProfile: {
           address: form.address.trim() || null,
+          structuredAddress: form.structuredAddress.provinceCode
+            && form.structuredAddress.wardCode
+            && form.structuredAddress.addressDetail.trim()
+            ? form.structuredAddress
+            : null,
           dateOfBirth: form.dateOfBirth || null,
           fullName: form.fullName.trim(),
           gender: form.gender || null,
@@ -798,14 +813,15 @@ function EmployeeEditDrawer({
                 onChange={(event) => updateField("identifyCard", event.target.value)}
               />
             </label>
-            <label className="tw-grid tw-gap-2 tw-col-span-2 max-[640px]:tw-col-span-1">
-              <span className="tw-text-[0.86rem] tw-font-extrabold tw-text-vm-slate-700">Địa chỉ</span>
-              <input
-                className="tw-min-h-12 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-900 focus:tw-border-vm-primary focus:tw-outline-none focus:tw-shadow-vm-focus"
-                value={form.address}
-                onChange={(event) => updateField("address", event.target.value)}
+            <div className="tw-grid tw-gap-2 tw-col-span-2 max-[640px]:tw-col-span-1">
+              <VietnamAddressPicker
+                label="Địa chỉ"
+                mode="auto"
+                value={form.structuredAddress}
+                onChange={(structuredAddress) => setForm((current) => ({ ...current, structuredAddress }))}
               />
-            </label>
+              {form.address && !form.structuredAddress.provinceCode ? <span className="tw-text-xs tw-font-semibold tw-text-amber-700">Địa chỉ cũ: {form.address}. Vui lòng chọn lại theo danh mục địa giới.</span> : null}
+            </div>
           </div>
         </section>
       </div>

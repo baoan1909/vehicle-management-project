@@ -60,6 +60,9 @@ const forgotPasswordEmailStorageKey = "vm_forgot_password_email";
 let activeAuthorizationCode = "";
 
 function resolvePostLoginRedirectPath(user: CurrentUser | null) {
+  if (user?.partnerNextAction === "COMPLETE_PROFILE") {
+    return "/partner/profile-completion";
+  }
   if (user?.partnerApplicationStatus) {
     return "/partner/application-status";
   }

@@ -9,6 +9,7 @@ import {
   type PartnerRegistrationStatus,
 } from "@/features/iam/api/partnerRegistrationApi";
 import { cn } from "@/lib/cn";
+import { OnboardingApprovalPolicyButton } from "@/features/iam/components/OnboardingApprovalPolicyButton";
 
 type BadgeTone = "primary" | "success" | "warning" | "danger" | "neutral";
 type ReviewDecision = "approve" | "reject";
@@ -233,10 +234,13 @@ export function PartnerRegistrationManagementPage() {
             <h1 className="tw-m-0 tw-mt-1 tw-text-vm-page-title tw-text-vm-slate-900">Đăng ký đối tác</h1>
             <p className="tw-m-0 tw-mt-2 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-500">Xét duyệt đơn vị vận hành trước khi kích hoạt quyền quản trị đối tác.</p>
           </div>
-          <Button variant="secondary" disabled={isLoading} onClick={() => void loadRegistrations()}>
-            <i className="fas fa-sync-alt" />
-            Làm mới
-          </Button>
+          <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3">
+            <OnboardingApprovalPolicyButton />
+            <Button variant="secondary" disabled={isLoading} onClick={() => void loadRegistrations()}>
+              <i className="fas fa-sync-alt" />
+              Làm mới
+            </Button>
+          </div>
         </div>
 
         <div className="tw-mt-5 tw-grid tw-grid-cols-4 tw-gap-4 max-[1100px]:tw-grid-cols-2 max-[580px]:tw-grid-cols-1">

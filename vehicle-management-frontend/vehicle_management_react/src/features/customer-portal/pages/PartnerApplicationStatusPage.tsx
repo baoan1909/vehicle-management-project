@@ -8,6 +8,7 @@ import {
   getMyPartnerRegistrationStatus,
   type PartnerApplicationStatus,
 } from "@/features/iam/api/partnerRegistrationApi";
+import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { ClientPage } from "@/shared/components/layout/ClientPage";
 
 import { PublicFooter } from "./PortalShared";
@@ -21,11 +22,19 @@ function statusCopy(status: PartnerApplicationStatus) {
       tone: "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-800",
     };
   }
-  if (status.approvalStatus === "REJECTED") {
+  if (status.nextAction === "COMPLETE_PROFILE") {
+    return {
+      icon: "fas fa-user-edit",
+      title: "Cần hoàn thiện hồ sơ",
+      description: "Vui lòng bổ sung thông tin cá nhân, ảnh đại diện và địa chỉ trước khi hồ sơ được xét duyệt.",
+      tone: "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-800",
+    };
+  }
+  if (status.approvalStatus === "REJECTED" || status.nextAction === "REVIEW_REJECTED") {
     return {
       icon: "fas fa-times-circle",
       title: "Hồ sơ chưa được duyệt",
-      description: "Tài khoản vẫn ở trạng thái chờ và chưa có quyền nghiệp vụ. Vui lòng xem phản hồi bên dưới.",
+      description: "Tài khoản vẫn ở trạng thái chờ và chưa có quyền nghiệp vụ. Vui lòng xem phản hồi của reviewer bên dưới.",
       tone: "tw-border-red-200 tw-bg-red-50 tw-text-red-800",
     };
   }
@@ -76,6 +85,17 @@ export function PartnerApplicationStatusPage() {
   useEffect(() => {
     if (user) void loadStatus();
   }, [loadStatus, user?.id]);
+
+  useEffect(() => subscribeNotificationReceived((notification) => {
+    const isPartnerReviewOutcome =
+      notification.redirectUrl === "/partner/application-status"
+      && notification.relatedSchema === "operations"
+      && notification.relatedTable === "approval_requests"
+      && ["ACCOUNT_STATUS_CHANGED", "SYSTEM_NOTICE"].includes(notification.notificationType);
+    if (!isPartnerReviewOutcome) return;
+
+    void loadStatus();
+  }), [loadStatus]);
 
   if (!user) return <Navigate to="/login" replace />;
   const userEmail = user.email;
@@ -130,6 +150,18 @@ export function PartnerApplicationStatusPage() {
                 <div className="tw-rounded-vm-md tw-bg-vm-slate-25 tw-p-4"><dt className="tw-text-xs tw-font-black tw-uppercase tw-text-vm-slate-500">Xét duyệt</dt><dd className="tw-m-0 tw-mt-1 tw-font-bold tw-text-vm-slate-900">{status.approvalStatus}</dd></div>
               </dl>
 
+              {(!status.hasCompletePersonalProfile || !status.hasAvatar || !status.hasPersonalAddress || !status.hasOrganizationAddress) && (
+                <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-4">
+                  <strong className="tw-text-sm tw-font-black tw-text-vm-slate-900">Thiếu thông tin:</strong>
+                  <ul className="tw-mt-2 tw-ml-4 tw-list-disc tw-space-y-1 tw-text-sm tw-text-vm-slate-700">
+                    {!status.hasCompletePersonalProfile && <li>Thông tin cá nhân (ngày sinh, giới tính, CCCD)</li>}
+                    {!status.hasAvatar && <li>Ảnh đại diện</li>}
+                    {!status.hasPersonalAddress && <li>Địa chỉ liên hệ cá nhân</li>}
+                    {!status.hasOrganizationAddress && <li>Địa chỉ đơn vị</li>}
+                  </ul>
+                </div>
+              )}
+
               {status.reviewNote ? (
                 <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-p-4">
                   <strong className="tw-text-sm tw-font-black tw-text-vm-slate-900">Phản hồi của reviewer</strong>
@@ -139,6 +171,7 @@ export function PartnerApplicationStatusPage() {
 
               <div className="tw-flex tw-flex-wrap tw-justify-end tw-gap-3">
                 {!status.emailVerified ? <Button loading={resending} type="button" variant="secondary" onClick={resendEmail}>Gửi lại email xác thực</Button> : null}
+                {status.nextAction === "COMPLETE_PROFILE" ? <Link className="tw-inline-flex tw-h-10 tw-items-center tw-rounded-vm-md tw-bg-vm-primary tw-px-4 tw-font-extrabold tw-text-white hover:tw-bg-vm-primary-hover hover:tw-text-white hover:tw-no-underline" to="/partner/profile-completion">Hoàn thiện hồ sơ</Link> : null}
                 {status.nextAction === "ACCESS_PARTNER_PORTAL" ? <Link className="tw-inline-flex tw-h-10 tw-items-center tw-rounded-vm-md tw-bg-vm-primary tw-px-4 tw-font-extrabold tw-text-white hover:tw-bg-vm-primary-hover hover:tw-text-white hover:tw-no-underline" to="/admin">Vào trang quản trị</Link> : null}
               </div>
             </>

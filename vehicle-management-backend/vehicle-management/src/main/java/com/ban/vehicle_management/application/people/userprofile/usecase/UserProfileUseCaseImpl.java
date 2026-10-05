@@ -25,16 +25,18 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final UserProfilePortOut userProfilePort;
     private final UserProfileAvatarPortIn userProfileAvatarPortIn;
-    private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
+    private final UserProfilePolicy userProfilePolicy;
 
     public UserProfileUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             UserProfilePortOut userProfilePort,
-            UserProfileAvatarPortIn userProfileAvatarPortIn
+            UserProfileAvatarPortIn userProfileAvatarPortIn,
+            UserProfilePolicy userProfilePolicy
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.userProfilePort = userProfilePort;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
+        this.userProfilePolicy = userProfilePolicy;
     }
 
     @Override
@@ -60,6 +62,9 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
         existingUserProfile.setGender(userProfile.getGender());
         existingUserProfile.setPhoneNumber(userProfile.getPhoneNumber());
         existingUserProfile.setAddress(userProfile.getAddress());
+        if (userProfile.getStructuredAddress() != null) {
+            existingUserProfile.setStructuredAddress(userProfile.getStructuredAddress());
+        }
         existingUserProfile.setIdentifyCard(userProfile.getIdentifyCard());
         if (userProfile.getStatus() != null) {
             existingUserProfile.setStatus(userProfile.getStatus());

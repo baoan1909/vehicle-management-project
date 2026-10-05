@@ -14,6 +14,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.Comparator;
 import java.util.stream.Stream;
+import java.time.Instant;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -71,6 +73,18 @@ public class PartnerRegistrationPersistenceAdapter implements PartnerRegistratio
                 PartnerRegistrationUseCaseImpl.TARGET_SCHEMA,
                 PartnerRegistrationUseCaseImpl.LEGACY_TARGET_TABLE
         )).map(approvalRequestPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public List<UUID> findPendingIdsCreatedAtOrAfter(Instant effectiveFrom, int limit) {
+        return approvalRequestRepository.findPartnerRegistrationIdsEligibleForAutoApproval(
+                PartnerRegistrationUseCaseImpl.REQUEST_TYPE,
+                PartnerRegistrationUseCaseImpl.TARGET_SCHEMA,
+                PartnerRegistrationUseCaseImpl.TARGET_TABLE,
+                ApprovalRequestStatus.PENDING,
+                effectiveFrom,
+                PageRequest.of(0, Math.max(1, limit))
+        );
     }
 
     @Override public Optional<ApprovalRequest> findLatestByApplicantAccountId(UUID accountId) {

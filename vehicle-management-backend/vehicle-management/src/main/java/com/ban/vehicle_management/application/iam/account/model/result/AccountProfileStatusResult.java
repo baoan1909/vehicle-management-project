@@ -39,10 +39,43 @@ public record AccountProfileStatusResult(
             String gender,
             String phoneNumber,
             String address,
+            String addressDetail,
+            String provinceCode,
+            String wardCode,
+            String districtCode,
+            String addressDisplay,
             String identifyCard,
             String avatarUrl,
             String userProfileStatus
     ) {
+        public ProfileInfoResult(
+                UUID userProfileId,
+                String fullName,
+                LocalDate dateOfBirth,
+                String gender,
+                String phoneNumber,
+                String address,
+                String identifyCard,
+                String avatarUrl,
+                String userProfileStatus
+        ) {
+            this(
+                    userProfileId,
+                    fullName,
+                    dateOfBirth,
+                    gender,
+                    phoneNumber,
+                    address,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    identifyCard,
+                    avatarUrl,
+                    userProfileStatus
+            );
+        }
     }
 
     public record EmployeeInfoResult(

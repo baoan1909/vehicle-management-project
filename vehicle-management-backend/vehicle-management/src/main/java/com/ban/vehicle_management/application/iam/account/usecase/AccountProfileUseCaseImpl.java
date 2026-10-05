@@ -10,6 +10,7 @@ import com.ban.vehicle_management.application.iam.account.port.out.AccountProfil
 import com.ban.vehicle_management.application.operations.approvalrequest.authorization.CustomerOnboardingApprovalAccessGuard;
 import com.ban.vehicle_management.application.operations.approvalrequest.authorization.InternalEmployeeApprovalAccessGuard;
 import com.ban.vehicle_management.application.operations.approvalrequest.authorization.SystemAdminApprovalAccessGuard;
+import com.ban.vehicle_management.application.operations.approvalrequest.port.in.CustomerOnboardingApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
@@ -27,6 +28,7 @@ import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.employee.policy.EmployeePolicy;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.shared.address.VietnamAddress;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
@@ -51,6 +53,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final AccountProfilePortOut accountProfilePortOut;
     private final CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
+    private final CustomerOnboardingApprovalPortIn customerOnboardingApprovalPortIn;
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
     private final SystemAdminApprovalPortOut systemAdminApprovalPortOut;
     private final UserProfileAvatarPortIn userProfileAvatarPortIn;
@@ -65,6 +68,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             CurrentAccountPortIn currentAccountPortIn,
             AccountProfilePortOut accountProfilePortOut,
             CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut,
+            CustomerOnboardingApprovalPortIn customerOnboardingApprovalPortIn,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
             SystemAdminApprovalPortOut systemAdminApprovalPortOut,
             UserProfileAvatarPortIn userProfileAvatarPortIn,
@@ -76,6 +80,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         this.currentAccountPortIn = currentAccountPortIn;
         this.accountProfilePortOut = accountProfilePortOut;
         this.customerOnboardingApprovalPortOut = customerOnboardingApprovalPortOut;
+        this.customerOnboardingApprovalPortIn = customerOnboardingApprovalPortIn;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
         this.systemAdminApprovalPortOut = systemAdminApprovalPortOut;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
@@ -142,8 +147,13 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             updatedAccount = accountProfilePortOut.completeProfile(accountId, userProfile, customer);
             ApprovalRequest approvalRequest = buildCustomerOnboardingApprovalRequest(customer.getCustomerId(), accountId);
             customerOnboardingApprovalPortOut.saveCustomerOnboardingApprovalRequest(approvalRequest);
-            notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ khách hàng đã gửi duyệt", "/customer/profile");
-            notifyApprovalReviewers(approvalRequest, null, "Có hồ sơ khách hàng cần duyệt");
+            boolean automaticallyApproved = customerOnboardingApprovalPortIn
+                    .tryAutoApproveCustomerOnboardingApproval(approvalRequest.getApprovalRequestId())
+                    .isPresent();
+            if (!automaticallyApproved) {
+                notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ khách hàng đã gửi duyệt", "/customer/profile");
+                notifyApprovalReviewers(approvalRequest, null, "Có hồ sơ khách hàng cần duyệt");
+            }
         } else {
             updatedAccount = accountProfilePortOut.completeProfileOnly(accountId, userProfile);
             if (accountOnboardingPolicy.shouldCreateSystemAdminApproval(state)) {
@@ -188,7 +198,9 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 command.phoneNumber(),
                 command.dateOfBirth(),
                 command.gender(),
-                command.address(),
+                command.address() != null || command.structuredAddress() == null
+                        ? command.address()
+                        : command.structuredAddress().getAddressDetail(),
                 command.identifyCard()
         );
         UpdateAccountProfileCommand normalizedCommand = normalizeUpdateCommand(command);
@@ -251,6 +263,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         userProfile.setDateOfBirth(command.dateOfBirth());
         userProfile.setGender(command.gender());
         userProfile.setAddress(command.address());
+        userProfile.setStructuredAddress(command.structuredAddress());
         userProfile.setIdentifyCard(command.identifyCard());
         userProfile.setAvatarUrl(null);
         userProfile.setStatus(UserProfileStatus.ACTIVE);
@@ -282,26 +295,34 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
 
     private CompleteAccountProfileCommand normalizeCompleteCommand(CompleteAccountProfileCommand command) {
         requireField(command, "command");
+        VietnamAddress structuredAddress = accountProfilePolicy.validateStructuredAddress(command.structuredAddress());
         return new CompleteAccountProfileCommand(
                 accountProfilePolicy.normalizeRequiredFullName(command.fullName()),
                 accountProfilePolicy.normalizeRequiredPhoneNumber(command.phoneNumber()),
                 command.dateOfBirth(),
                 accountProfilePolicy.normalizeNullableGender(command.gender()),
-                accountProfilePolicy.normalizeNullableAddress(command.address()),
+                structuredAddress == null
+                        ? accountProfilePolicy.normalizeNullableAddress(command.address())
+                        : structuredAddress.getAddressDisplay(),
                 accountProfilePolicy.normalizeNullableIdentifyCard(command.identifyCard()),
-                null
+                null,
+                structuredAddress
         );
     }
 
     private UpdateAccountProfileCommand normalizeUpdateCommand(UpdateAccountProfileCommand command) {
+        VietnamAddress structuredAddress = accountProfilePolicy.validateStructuredAddress(command.structuredAddress());
         return new UpdateAccountProfileCommand(
                 accountProfilePolicy.normalizeNullableFullName(command.fullName()),
                 accountProfilePolicy.normalizeNullablePhoneNumber(command.phoneNumber()),
                 command.dateOfBirth(),
                 accountProfilePolicy.normalizeNullableGender(command.gender()),
-                accountProfilePolicy.normalizeNullableAddress(command.address()),
+                structuredAddress == null
+                        ? accountProfilePolicy.normalizeNullableAddress(command.address())
+                        : structuredAddress.getAddressDisplay(),
                 accountProfilePolicy.normalizeNullableIdentifyCard(command.identifyCard()),
-                null
+                null,
+                structuredAddress
         );
     }
 

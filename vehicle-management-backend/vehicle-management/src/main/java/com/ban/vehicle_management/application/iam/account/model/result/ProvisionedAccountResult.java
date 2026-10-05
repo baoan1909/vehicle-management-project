@@ -12,6 +12,7 @@ public record ProvisionedAccountResult(
 ) {
     public record AccountInfoResult(
             UUID accountId,
+            UUID userProfileId,
             String keycloakUserId,
             String username,
             String email,

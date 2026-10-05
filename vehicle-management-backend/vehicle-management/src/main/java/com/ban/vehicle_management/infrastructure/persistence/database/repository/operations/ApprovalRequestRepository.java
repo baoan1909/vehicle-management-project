@@ -124,6 +124,56 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
             @Param("targetTable") String targetTable
     );
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT approval FROM ApprovalRequestEntity approval
+            WHERE approval.approvalRequestId = :approvalRequestId
+              AND approval.requestType = :requestType
+              AND approval.targetSchema = :targetSchema
+              AND approval.targetTable = :targetTable
+            """)
+    Optional<ApprovalRequestEntity> findAvatarApprovalForUpdate(
+            @Param("approvalRequestId") UUID approvalRequestId,
+            @Param("requestType") String requestType,
+            @Param("targetSchema") String targetSchema,
+            @Param("targetTable") String targetTable
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT approval
+            FROM ApprovalRequestEntity approval
+            WHERE approval.approvalRequestId = :approvalRequestId
+              AND approval.requestType = :requestType
+              AND approval.targetSchema = :targetSchema
+              AND approval.targetTable = :targetTable
+            """)
+    Optional<ApprovalRequestEntity> findCustomerOnboardingForUpdate(
+            @Param("approvalRequestId") UUID approvalRequestId,
+            @Param("requestType") String requestType,
+            @Param("targetSchema") String targetSchema,
+            @Param("targetTable") String targetTable
+    );
+
+    @Query("""
+            SELECT approval.approvalRequestId
+            FROM ApprovalRequestEntity approval
+            WHERE approval.requestType = :requestType
+              AND approval.targetSchema = :targetSchema
+              AND approval.targetTable = :targetTable
+              AND approval.status = :status
+              AND approval.createdAt >= :effectiveFrom
+            ORDER BY approval.createdAt ASC
+            """)
+    List<UUID> findPartnerRegistrationIdsEligibleForAutoApproval(
+            @Param("requestType") String requestType,
+            @Param("targetSchema") String targetSchema,
+            @Param("targetTable") String targetTable,
+            @Param("status") ApprovalRequestStatus status,
+            @Param("effectiveFrom") Instant effectiveFrom,
+            Pageable pageable
+    );
+
     long countByRequestTypeAndTargetSchemaAndTargetTableAndStatus(
             String requestType,
             String targetSchema,

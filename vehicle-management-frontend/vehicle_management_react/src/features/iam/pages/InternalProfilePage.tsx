@@ -5,18 +5,21 @@ import {
   completeMyAccountProfile,
   deleteMyAccountAvatar,
   getMyAccountProfile,
+  getMyAvatarModerationStatus,
   updateMyAccountProfile,
   uploadMyAccountAvatar,
   type AccountProfileStatusResponse,
+  type AvatarModerationStatus,
   type UpdateAccountProfileRequest
 } from "@/features/iam/api/accountProfileApi";
+import { AvatarModerationStatusCard } from "@/features/iam/components/AvatarModerationStatusCard";
 import {
   fetchMyOnboardingApproval,
   resubmitMyOnboardingApproval,
   type OnboardingApprovalKind,
   type OnboardingApprovalResponse
 } from "@/features/iam/api/onboardingApprovalApi";
-import { AddressPicker, Badge, Button, Card, DatePicker, Input, Modal, SelectMenu } from "@/components/ui";
+import { Badge, Button, Card, DatePicker, Input, Modal, SelectMenu, VietnamAddressPicker, type VietnamAddressValue } from "@/components/ui";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta, type StatusTone } from "@/shared/utils/accountStatus";
@@ -25,6 +28,7 @@ import { todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 type ProfileFormState = {
   address: string;
+  structuredAddress: VietnamAddressValue;
   dateOfBirth: string;
   fullName: string;
   gender: string;
@@ -74,6 +78,12 @@ function normalizeGender(value?: string) {
 function normalizeProfile(profile: AccountProfileStatusResponse): ProfileFormState {
   return {
     address: profile.profile?.address ?? "",
+    structuredAddress: {
+      provinceCode: profile.profile?.provinceCode ?? "",
+      districtCode: profile.profile?.districtCode ?? null,
+      wardCode: profile.profile?.wardCode ?? "",
+      addressDetail: profile.profile?.addressDetail ?? "",
+    },
     dateOfBirth: profile.profile?.dateOfBirth ?? "",
     fullName: profile.profile?.fullName ?? "",
     gender: normalizeGender(profile.profile?.gender),
@@ -155,13 +165,15 @@ function IdentityCard({
   displayName,
   onAvatarChange,
   onAvatarDelete,
-  profile
+  profile,
+  avatarModeration
 }: {
   avatarUrl: string;
   displayName: string;
   onAvatarChange: (file: File) => void;
   onAvatarDelete: () => void;
   profile: AccountProfileStatusResponse;
+  avatarModeration: AvatarModerationStatus | null;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const approvalStatus = approvalStatusValue(profile);
@@ -208,6 +220,8 @@ function IdentityCard({
           <span>Xóa</span>
         </Button>
       </div>
+
+      <AvatarModerationStatusCard status={avatarModeration} />
 
       <dl className="tw-mt-4 tw-grid tw-w-full tw-gap-[0.7rem]">
         <div className="tw-grid tw-grid-cols-[minmax(86px,0.72fr)_minmax(0,1fr)] tw-items-start tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-pt-3 tw-text-left">
@@ -466,6 +480,7 @@ export function InternalProfilePage() {
   const { user, setUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState<AccountProfileStatusResponse>(() => buildFallbackProfile(user));
+  const [avatarModeration, setAvatarModeration] = useState<AvatarModerationStatus | null>(null);
   const [latestApproval, setLatestApproval] = useState<OnboardingApprovalResponse | null>(null);
   const [form, setForm] = useState<ProfileFormState>(() => normalizeProfile(buildFallbackProfile(user)));
   const [loading, setLoading] = useState(true);
@@ -519,6 +534,12 @@ export function InternalProfilePage() {
         if (mounted) setLoading(false);
       });
 
+    void getMyAvatarModerationStatus().then((response) => {
+      if (mounted) setAvatarModeration(response.data);
+    }).catch(() => {
+      if (mounted) setAvatarModeration(null);
+    });
+
     return () => {
       mounted = false;
     };
@@ -530,6 +551,8 @@ export function InternalProfilePage() {
       "INTERNAL_EMPLOYEE_REJECTED",
       "SYSTEM_ADMIN_APPROVED",
       "SYSTEM_ADMIN_REJECTED",
+      "AVATAR_APPROVED",
+      "AVATAR_REJECTED",
     ].includes(notification.notificationType)) return;
 
     void getMyAccountProfile().then((response) => {
@@ -540,6 +563,7 @@ export function InternalProfilePage() {
         : currentUser);
       void refreshLatestApproval(response.data);
     });
+    void getMyAvatarModerationStatus().then((response) => setAvatarModeration(response.data));
   }), [setUser]);
 
   useEffect(() => {
@@ -560,6 +584,11 @@ export function InternalProfilePage() {
 
   const buildProfilePayload = (): UpdateAccountProfileRequest => ({
       address: form.address || undefined,
+      structuredAddress: form.structuredAddress.provinceCode
+        && form.structuredAddress.wardCode
+        && form.structuredAddress.addressDetail.trim()
+        ? form.structuredAddress
+        : undefined,
       dateOfBirth: form.dateOfBirth || undefined,
       fullName: form.fullName,
       gender: form.gender || undefined,
@@ -650,7 +679,9 @@ export function InternalProfilePage() {
     try {
       const response = await uploadMyAccountAvatar(file);
       applyProfileResponse(response.data);
-      setNotice("Đã cập nhật ảnh đại diện.");
+      const moderation = await getMyAvatarModerationStatus();
+      setAvatarModeration(moderation.data);
+      setNotice(moderation.data?.approvalStatus === "APPROVED" ? "Ảnh đại diện đã được tự động duyệt." : "Ảnh đại diện đã được gửi duyệt.");
       URL.revokeObjectURL(previewUrl);
     } catch {
       setNotice("Đã xem trước ảnh đại diện. Vui lòng thử lại nếu ảnh chưa được lưu.");
@@ -661,6 +692,7 @@ export function InternalProfilePage() {
     try {
       const response = await deleteMyAccountAvatar();
       applyProfileResponse(response.data);
+      setAvatarModeration(null);
       setNotice("Đã xóa ảnh đại diện.");
     } catch {
       applyProfileResponse({
@@ -727,7 +759,7 @@ export function InternalProfilePage() {
             ) : null}
 
             <div className="tw-grid tw-grid-cols-[minmax(250px,290px)_minmax(0,1fr)_minmax(270px,300px)] tw-items-start tw-gap-[0.9rem] max-[1320px]:tw-grid-cols-[minmax(240px,280px)_minmax(0,1fr)] max-[900px]:tw-grid-cols-1">
-              <IdentityCard avatarUrl={avatarUrl} displayName={displayName} onAvatarChange={handleAvatarChange} onAvatarDelete={handleAvatarDelete} profile={profile} />
+              <IdentityCard avatarModeration={avatarModeration} avatarUrl={avatarUrl} displayName={displayName} onAvatarChange={handleAvatarChange} onAvatarDelete={handleAvatarDelete} profile={profile} />
 
               <Card className="tw-min-w-0 tw-rounded-vm-lg tw-border tw-border-solid !tw-border-vm-slate-100 tw-p-4 tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
                 <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-gap-4 max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
@@ -770,7 +802,16 @@ export function InternalProfilePage() {
                   </label>
                   <div className="tw-col-span-full tw-grid tw-gap-2">
                     <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Địa chỉ liên hệ</span>
-                    <AddressPicker value={form.address} onChange={(value) => updateField("address", value)} />
+                    <VietnamAddressPicker
+                      mode="auto"
+                      value={form.structuredAddress}
+                      onChange={(structuredAddress) => setForm((current) => ({ ...current, structuredAddress }))}
+                    />
+                    {form.address && !form.structuredAddress.provinceCode ? (
+                      <span className="tw-text-xs tw-font-semibold tw-text-amber-700">
+                        Địa chỉ cũ: {form.address}. Vui lòng chọn lại theo danh mục địa giới.
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </Card>

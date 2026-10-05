@@ -33,6 +33,21 @@ public class OrganizationEntity extends AuditableEntity {
     @Column(name = "address")
     private String address;
 
+    @Column(name = "address_detail")
+    private String addressDetail;
+
+    @Column(name = "province_code", length = 20)
+    private String provinceCode;
+
+    @Column(name = "ward_code", length = 20)
+    private String wardCode;
+
+    @Column(name = "district_code", length = 20)
+    private String districtCode;
+
+    @Column(name = "address_display")
+    private String addressDisplay;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private OrganizationStatus status;

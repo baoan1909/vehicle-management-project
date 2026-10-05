@@ -18,7 +18,8 @@ import { VehicleVisual } from "@/features/customer-portal/components/VehicleVisu
 import { parsePortalDate } from "@/features/customer-portal/utils/portalDate";
 import { requestPasswordReset } from "@/features/auth/api/authApi";
 import { useAuth } from "@/core/auth/useAuth";
-import { completeMyAccountProfile, uploadMyAccountAvatar, type UpdateAccountProfileRequest } from "@/features/iam/api/accountProfileApi";
+import { completeMyAccountProfile, getMyAvatarModerationStatus, uploadMyAccountAvatar, type AvatarModerationStatus, type UpdateAccountProfileRequest } from "@/features/iam/api/accountProfileApi";
+import { AvatarModerationStatusCard } from "@/features/iam/components/AvatarModerationStatusCard";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import {
@@ -27,12 +28,14 @@ import {
   type OnboardingApprovalResponse,
 } from "@/features/iam/api/onboardingApprovalApi";
 import { Modal } from "@/shared/components/ui/Modal";
+import { VietnamAddressPicker, type VietnamAddressValue } from "@/components/ui";
 import { formatInApplicationTime } from "@/shared/time/applicationTime";
 
 import { CustomerPortalLayout } from "./PortalShared";
 
 type ProfileForm = {
   address: string;
+  structuredAddress: VietnamAddressValue;
   dateOfBirth: string;
   fullName: string;
   gender: string;
@@ -42,6 +45,7 @@ type ProfileForm = {
 
 const emptyForm: ProfileForm = {
   address: "",
+  structuredAddress: { provinceCode: "", districtCode: null, wardCode: "", addressDetail: "" },
   dateOfBirth: "",
   fullName: "",
   gender: "",
@@ -93,6 +97,12 @@ function profileStatusLabel(status?: string | null) {
 function profileToForm(profile: CustomerPortalProfile): ProfileForm {
   return {
     address: profile.profile?.address ?? "",
+    structuredAddress: {
+      provinceCode: profile.profile?.provinceCode ?? "",
+      districtCode: profile.profile?.districtCode ?? null,
+      wardCode: profile.profile?.wardCode ?? "",
+      addressDetail: profile.profile?.addressDetail ?? "",
+    },
     dateOfBirth: profile.profile?.dateOfBirth ?? "",
     fullName: profile.profile?.fullName ?? "",
     gender: profile.profile?.gender ?? "",
@@ -104,6 +114,11 @@ function profileToForm(profile: CustomerPortalProfile): ProfileForm {
 function buildProfilePayload(form: ProfileForm): UpdateAccountProfileRequest {
   return {
     address: form.address.trim() || undefined,
+    structuredAddress: form.structuredAddress.provinceCode
+      && form.structuredAddress.wardCode
+      && form.structuredAddress.addressDetail.trim()
+      ? form.structuredAddress
+      : undefined,
     dateOfBirth: form.dateOfBirth || undefined,
     fullName: form.fullName.trim() || undefined,
     gender: form.gender.trim() || undefined,
@@ -120,6 +135,7 @@ export function ProfilePage() {
   const [ticketTypes, setTicketTypes] = useState<CustomerPortalTicketType[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<CustomerPortalVehicleType[]>([]);
   const [latestApproval, setLatestApproval] = useState<OnboardingApprovalResponse | null>(null);
+  const [avatarModeration, setAvatarModeration] = useState<AvatarModerationStatus | null>(null);
   const [form, setForm] = useState<ProfileForm>(emptyForm);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordSending, setPasswordSending] = useState(false);
@@ -164,6 +180,12 @@ export function ProfilePage() {
         } catch {
           if (!ignore) setLatestApproval(null);
         }
+        try {
+          const moderation = await getMyAvatarModerationStatus();
+          if (!ignore) setAvatarModeration(moderation.data);
+        } catch {
+          if (!ignore) setAvatarModeration(null);
+        }
       } catch (requestError) {
         if (!ignore) setError(requestError instanceof Error ? requestError.message : "Không thể tải hồ sơ khách hàng.");
       } finally {
@@ -178,7 +200,7 @@ export function ProfilePage() {
   }, []);
 
   useEffect(() => subscribeNotificationReceived((notification) => {
-    if (!["CUSTOMER_ONBOARDING_APPROVED", "CUSTOMER_ONBOARDING_REJECTED"].includes(notification.notificationType)) return;
+    if (!["CUSTOMER_ONBOARDING_APPROVED", "CUSTOMER_ONBOARDING_REJECTED", "AVATAR_APPROVED", "AVATAR_REJECTED"].includes(notification.notificationType)) return;
 
     void getCustomerPortalProfile().then(async (nextProfile) => {
       setProfile(nextProfile);
@@ -191,11 +213,18 @@ export function ProfilePage() {
       } catch {
         setLatestApproval(null);
       }
+      try {
+        setAvatarModeration((await getMyAvatarModerationStatus()).data);
+      } catch {
+        setAvatarModeration(null);
+      }
     });
   }), [setUser]);
 
   const displayName = form.fullName || profile?.account?.username || "Khách hàng";
   const avatarUrl = profile?.profile?.avatarUrl?.trim();
+  const avatarApprovalStatus = avatarModeration?.approvalStatus;
+  const avatarApproved = avatarApprovalStatus === "APPROVED" || (!avatarModeration && Boolean(avatarUrl));
   const email = profile?.account?.email ?? "--";
   const customerCode = profile?.customer?.customerCode ?? "--";
   const displayCustomerCode = compactCode(customerCode);
@@ -263,7 +292,9 @@ export function ProfilePage() {
       // Updating the avatar must preserve any unsaved personal information.
       setProfile(response.data);
       setUser((currentUser) => (currentUser ? mergeCurrentUserWithAccountProfile(currentUser, response.data) : currentUser));
-      setNotice("Đã cập nhật ảnh đại diện.");
+      const moderation = await getMyAvatarModerationStatus();
+      setAvatarModeration(moderation.data);
+      setNotice(moderation.data?.approvalStatus === "APPROVED" ? "Ảnh đại diện đã được tự động duyệt." : "Ảnh đại diện đã được gửi duyệt.");
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Không thể cập nhật ảnh đại diện.");
     } finally {
@@ -454,7 +485,9 @@ export function ProfilePage() {
         </div>
       </section>
 
-      <section className={`${panelClass} tw-mt-4`}><h2 className={panelTitleClass}><i className="far fa-file-alt" /> Thông tin cá nhân</h2><div className="tw-grid tw-grid-cols-3 tw-gap-x-6 tw-gap-y-2 [&>label]:tw-min-w-0 max-[640px]:tw-grid-cols-1"><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Họ và tên<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.fullName} onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Số điện thoại<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.phoneNumber} onChange={(event) => setForm((current) => ({ ...current, phoneNumber: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Ngày sinh<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" type="date" value={form.dateOfBirth} onChange={(event) => setForm((current) => ({ ...current, dateOfBirth: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Email<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-bg-slate-50 tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#71819a]" value={email} readOnly /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Giới tính<select className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))}><option value="">Chưa chọn</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">CMND/CCCD<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.identifyCard} onChange={(event) => setForm((current) => ({ ...current, identifyCard: event.target.value }))} /></label><label className="tw-col-span-3 max-[640px]:tw-col-span-1 tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Địa chỉ<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.address} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} /></label></div>
+      <AvatarModerationStatusCard status={avatarModeration} />
+
+      <section className={`${panelClass} tw-mt-4`}><h2 className={panelTitleClass}><i className="far fa-file-alt" /> Thông tin cá nhân</h2><div className="tw-grid tw-grid-cols-3 tw-gap-x-6 tw-gap-y-2 [&>label]:tw-min-w-0 max-[640px]:tw-grid-cols-1"><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Họ và tên<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.fullName} onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Số điện thoại<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.phoneNumber} onChange={(event) => setForm((current) => ({ ...current, phoneNumber: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Ngày sinh<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" type="date" value={form.dateOfBirth} onChange={(event) => setForm((current) => ({ ...current, dateOfBirth: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Email<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-bg-slate-50 tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#71819a]" value={email} readOnly /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Giới tính<select className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))}><option value="">Chưa chọn</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">CMND/CCCD<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.identifyCard} onChange={(event) => setForm((current) => ({ ...current, identifyCard: event.target.value }))} /></label><div className="tw-col-span-3 max-[640px]:tw-col-span-1"><VietnamAddressPicker compact label="Địa chỉ liên hệ" mode="auto" value={form.structuredAddress} onChange={(structuredAddress) => setForm((current) => ({ ...current, structuredAddress }))} />{form.address && !form.structuredAddress.provinceCode ? <p className="tw-mt-2 tw-text-xs tw-font-semibold tw-text-amber-700">Địa chỉ cũ: {form.address}. Vui lòng chọn lại theo danh mục địa giới.</p> : null}</div></div>
         <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] tw-items-end tw-gap-6 max-[1100px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
           <div className="tw-min-w-0">
             <span className="tw-block tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Ảnh đại diện</span>
@@ -512,7 +545,7 @@ export function ProfilePage() {
         </div>
       </section></div>
 
-      <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1fr)_minmax(0,1fr)] max-[900px]:tw-grid-cols-1 tw-gap-4"><section ref={verificationRef} className={`${panelClass} tw-scroll-mt-24`}><h2 className={panelTitleClass}><i className="far fa-file-alt" /> Tài liệu xác minh</h2><div className="tw-grid tw-gap-0"><div className="tw-grid tw-grid-cols-[28px_minmax(0,1fr)_auto] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-[#e8edf4] tw-py-2.5"><i className={isApproved ? "fas fa-check-circle tw-text-[#0e73e8]" : "far fa-clock tw-text-amber-600"} /><span><strong className="tw-block tw-text-[0.84rem] tw-text-[#263a5d]">Thông tin cá nhân <em className={`tw-ml-2 tw-not-italic tw-text-[0.68rem] ${isApproved ? "tw-text-[#078553]" : "tw-text-amber-700"}`}>{isApproved ? "Hồ sơ đã duyệt" : "Chưa xác minh"}</em></strong><small className="tw-text-[0.72rem] tw-text-[#71819a]">Họ tên, ngày sinh, số điện thoại</small></span><i className="fas fa-chevron-down tw-text-[#71819a]" /></div><div className="tw-grid tw-grid-cols-[28px_minmax(0,1fr)_auto] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-[#e8edf4] tw-py-3"><i className={isApproved ? "fas fa-check-circle tw-text-[#0e73e8]" : "far fa-clock tw-text-amber-600"} /><span><strong className="tw-block tw-text-[0.84rem] tw-text-[#263a5d]">CMND/CCCD <em className={`tw-ml-2 tw-not-italic tw-text-[0.68rem] ${isApproved ? "tw-text-[#078553]" : "tw-text-amber-700"}`}>{isApproved ? "Hồ sơ đã duyệt" : "Chưa xác minh"}</em></strong><small className="tw-text-[0.72rem] tw-text-[#71819a]">Số CCCD: {form.identifyCard || "--"}</small></span><i className="fas fa-chevron-down tw-text-[#71819a]" /></div><div className="tw-grid tw-grid-cols-[28px_minmax(0,1fr)_auto] tw-items-center tw-gap-3 tw-py-2.5"><i className={isApproved ? "fas fa-check-circle tw-text-[#0e73e8]" : "far fa-clock tw-text-amber-600"} /><span><strong className="tw-block tw-text-[0.84rem] tw-text-[#263a5d]">Ảnh chân dung <em className={`tw-ml-2 tw-not-italic tw-text-[0.68rem] ${isApproved ? "tw-text-[#078553]" : "tw-text-amber-700"}`}>{isApproved ? "Hồ sơ đã duyệt" : "Chưa xác minh"}</em></strong><small className="tw-text-[0.72rem] tw-text-[#71819a]">{avatarUrl ? "Đã cập nhật ảnh đại diện" : "Chưa cập nhật ảnh đại diện"}</small></span><i className="fas fa-chevron-down tw-text-[#71819a]" /></div></div></section>
+      <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1fr)_minmax(0,1fr)] max-[900px]:tw-grid-cols-1 tw-gap-4"><section ref={verificationRef} className={`${panelClass} tw-scroll-mt-24`}><h2 className={panelTitleClass}><i className="far fa-file-alt" /> Tài liệu xác minh</h2><div className="tw-grid tw-gap-0"><div className="tw-grid tw-grid-cols-[28px_minmax(0,1fr)_auto] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-[#e8edf4] tw-py-2.5"><i className={avatarApproved ? "fas fa-check-circle tw-text-[#0e73e8]" : "far fa-clock tw-text-amber-600"} /><span><strong className="tw-block tw-text-[0.84rem] tw-text-[#263a5d]">Thông tin cá nhân <em className={`tw-ml-2 tw-not-italic tw-text-[0.68rem] ${avatarApproved ? "tw-text-[#078553]" : "tw-text-amber-700"}`}>{avatarApproved ? "Ảnh đã duyệt" : avatarApprovalStatus === "PENDING" ? "Chờ duyệt ảnh" : avatarApprovalStatus === "REJECTED" ? "Ảnh bị từ chối" : "Chưa có ảnh duyệt"}</em></strong><small className="tw-text-[0.72rem] tw-text-[#71819a]">Họ tên, ngày sinh, số điện thoại</small></span><i className="fas fa-chevron-down tw-text-[#71819a]" /></div><div className="tw-grid tw-grid-cols-[28px_minmax(0,1fr)_auto] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-[#e8edf4] tw-py-3"><i className={avatarApproved ? "fas fa-check-circle tw-text-[#0e73e8]" : "far fa-clock tw-text-amber-600"} /><span><strong className="tw-block tw-text-[0.84rem] tw-text-[#263a5d]">CMND/CCCD <em className={`tw-ml-2 tw-not-italic tw-text-[0.68rem] ${avatarApproved ? "tw-text-[#078553]" : "tw-text-amber-700"}`}>{avatarApproved ? "Ảnh đã duyệt" : avatarApprovalStatus === "PENDING" ? "Chờ duyệt ảnh" : avatarApprovalStatus === "REJECTED" ? "Ảnh bị từ chối" : "Chưa có ảnh duyệt"}</em></strong><small className="tw-text-[0.72rem] tw-text-[#71819a]">Số CCCD: {form.identifyCard || "--"}</small></span><i className="fas fa-chevron-down tw-text-[#71819a]" /></div><div className="tw-grid tw-grid-cols-[28px_minmax(0,1fr)_auto] tw-items-center tw-gap-3 tw-py-2.5"><i className={avatarApproved ? "fas fa-check-circle tw-text-[#0e73e8]" : "far fa-clock tw-text-amber-600"} /><span><strong className="tw-block tw-text-[0.84rem] tw-text-[#263a5d]">Ảnh chân dung <em className={`tw-ml-2 tw-not-italic tw-text-[0.68rem] ${avatarApproved ? "tw-text-[#078553]" : "tw-text-amber-700"}`}>{avatarApproved ? "Ảnh đã duyệt" : avatarApprovalStatus === "PENDING" ? "Chờ duyệt ảnh" : avatarApprovalStatus === "REJECTED" ? "Ảnh bị từ chối" : "Chưa có ảnh duyệt"}</em></strong><small className="tw-text-[0.72rem] tw-text-[#71819a]">{avatarApprovalStatus === "PENDING" ? "Ảnh mới đang chờ duyệt; ảnh cũ vẫn hiển thị." : avatarApprovalStatus === "REJECTED" ? (avatarModeration?.reviewNote || "Ảnh mới chưa được duyệt.") : avatarUrl ? "Đang hiển thị ảnh đã duyệt." : "Chưa có ảnh đại diện được duyệt."}</small></span><i className="fas fa-chevron-down tw-text-[#71819a]" /></div></div></section>
         <div className="tw-grid tw-content-start tw-gap-2.5">
           <section className={`${panelClass} !tw-px-3 !tw-py-2.5`} aria-label="Xe mặc định">
             <div className="tw-flex tw-items-center tw-justify-between tw-gap-2">

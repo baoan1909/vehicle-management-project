@@ -29,6 +29,7 @@ public interface ProvisionedAccountReadModelMapper {
     }
 
     @Mapping(target = "accountStatus", source = "status")
+    @Mapping(target = "userProfileId", source = "userProfileId")
     ProvisionedAccountResult.AccountInfoResult toAccountInfoResult(AccountEntity entity);
 
     @Mapping(target = "roleCode", source = "code")

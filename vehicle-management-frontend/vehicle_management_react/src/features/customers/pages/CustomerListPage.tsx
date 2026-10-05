@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
-import { Badge, Button, Card, DatePicker, EntityAvatar, InfoBanner, Input, Modal, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
+import { Badge, Button, Card, DatePicker, EntityAvatar, InfoBanner, Input, Modal, PaginationFooter, SelectMenu, VietnamAddressPicker, useToast, type VietnamAddressValue } from "@/components/ui";
 import { createAndOpenCustomerSupportConversation } from "@/features/support";
 import { cn } from "@/lib/cn";
 import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
+import { OnboardingApprovalPolicyButton } from "@/features/iam/components/OnboardingApprovalPolicyButton";
 
 import {
   activateCustomer,
@@ -39,6 +40,7 @@ type SegmentValue = "all" | "approved" | "pending" | "vip";
 
 type CustomerFormState = {
   address: string;
+  structuredAddress: VietnamAddressValue;
   customerType: CustomerType;
   dateOfBirth: string;
   fullName: string;
@@ -200,6 +202,12 @@ function normalizeBinaryGender(value?: string | null) {
 function toCustomerForm(customer: CustomerAdminResponse): CustomerFormState {
   return {
     address: customer.userProfile?.address ?? "",
+    structuredAddress: {
+      provinceCode: customer.userProfile?.provinceCode ?? "",
+      districtCode: customer.userProfile?.districtCode ?? null,
+      wardCode: customer.userProfile?.wardCode ?? "",
+      addressDetail: customer.userProfile?.addressDetail ?? "",
+    },
     customerType: customer.customerType ?? "REGISTERED",
     dateOfBirth: customer.userProfile?.dateOfBirth ?? "",
     fullName: getCustomerName(customer),
@@ -602,6 +610,11 @@ export function CustomerListPage() {
         customer: { customerType: form.customerType },
         userProfile: {
           address: form.address.trim() || null,
+          structuredAddress: form.structuredAddress.provinceCode
+            && form.structuredAddress.wardCode
+            && form.structuredAddress.addressDetail.trim()
+            ? form.structuredAddress
+            : null,
           dateOfBirth: form.dateOfBirth || null,
           fullName: form.fullName.trim(),
           gender: form.gender.trim() || null,
@@ -789,6 +802,7 @@ export function CustomerListPage() {
             </a>
           </div>
           <div className="tw-flex tw-flex-shrink-0 tw-items-center tw-gap-3">
+            <OnboardingApprovalPolicyButton />
             {canApproveCustomer ? <Button size="lg" variant="primary" onClick={() => setActiveSegment("pending")}>
               <i className="fas fa-check" />
               Duyệt tài khoản
@@ -1122,9 +1136,13 @@ export function CustomerListPage() {
               <Input value={form.identifyCard} onChange={(event) => setForm((current) => (current ? { ...current, identifyCard: event.target.value } : current))} />
             </Field>
             <div className="tw-col-span-2 max-[640px]:tw-col-span-1">
-              <Field label="Địa chỉ">
-                <Input value={form.address} onChange={(event) => setForm((current) => (current ? { ...current, address: event.target.value } : current))} />
-              </Field>
+              <VietnamAddressPicker
+                label="Địa chỉ"
+                mode="auto"
+                value={form.structuredAddress}
+                onChange={(structuredAddress) => setForm((current) => (current ? { ...current, structuredAddress } : current))}
+              />
+              {form.address && !form.structuredAddress.provinceCode ? <p className="tw-mt-2 tw-text-xs tw-font-semibold tw-text-amber-700">Địa chỉ cũ: {form.address}. Vui lòng chọn lại theo danh mục địa giới.</p> : null}
             </div>
           </div>
         ) : null}

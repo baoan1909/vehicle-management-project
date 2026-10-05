@@ -40,6 +40,10 @@ assert.match(files.login, /partnerApplicationStatus[\s\S]*\/partner\/application
 assert.match(files.router, /user\.partnerApplicationStatus && user\.accountStatus !== "ACTIVE"/);
 assert.match(files.status, /Gửi lại email xác thực/);
 assert.match(files.status, /reviewNote/);
+assert.match(files.status, /subscribeNotificationReceived/);
+assert.match(files.status, /relatedSchema === "operations"/);
+assert.match(files.status, /relatedTable === "approval_requests"/);
+assert.match(files.status, /void loadStatus\(\)/);
 
 assert.ok(!files.form.includes('id="address"') && !files.form.includes("form.address"), "Partner form must not request an address");
 assert.ok(!files.form.includes("expectedParkingLotCount"), "Partner form must not request a parking lot count");

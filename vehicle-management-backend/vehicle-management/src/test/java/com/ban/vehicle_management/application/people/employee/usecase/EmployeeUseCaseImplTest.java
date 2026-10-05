@@ -16,6 +16,7 @@ import com.ban.vehicle_management.application.people.userprofile.port.out.UserPr
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -53,6 +55,9 @@ class EmployeeUseCaseImplTest {
 
     @Mock
     private UserProfilePortOut userProfilePortOut;
+
+    @Spy
+    private UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
 
     @InjectMocks
     private EmployeeUseCaseImpl employeeUseCase;

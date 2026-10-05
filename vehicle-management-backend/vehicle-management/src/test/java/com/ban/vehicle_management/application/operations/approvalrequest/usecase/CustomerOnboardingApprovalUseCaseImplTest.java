@@ -2,7 +2,10 @@ package com.ban.vehicle_management.application.operations.approvalrequest.usecas
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -12,12 +15,17 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.r
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.CustomerOnboardingApprovalResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
+import com.ban.vehicle_management.application.iam.account.port.out.SystemAccountIdPortOut;
+import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
+import com.ban.vehicle_management.domain.operations.approvalrequest.model.OnboardingApprovalPolicy;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.OnboardingApprovalPolicyType;
+import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
@@ -47,7 +55,16 @@ class CustomerOnboardingApprovalUseCaseImplTest {
     private IdentityProviderAdminPortOut identityProviderAdminPortOut;
 
     @Mock
+    private SystemAccountIdPortOut systemAccountIdPortOut;
+
+    @Mock
+    private OnboardingApprovalPolicyEvaluator onboardingApprovalPolicyEvaluator;
+
+    @Mock
     private VehicleMailService vehicleMailService;
+
+    @Mock
+    private NotificationPortIn notificationPortIn;
 
     @InjectMocks
     private CustomerOnboardingApprovalUseCaseImpl customerOnboardingApprovalUseCase;
@@ -65,13 +82,14 @@ class CustomerOnboardingApprovalUseCaseImplTest {
         CustomerOnboardingApprovalResult expectedResult = approvalResult(
                 approvalRequestId,
                 "APPROVED",
+                accountId,
                 customerId,
                 CustomerApprovalStatus.APPROVED,
                 CustomerStatus.ACTIVE
         );
 
         when(customerOnboardingApprovalAccessGuard.requireWriteAccess()).thenReturn(currentParkingManager(managerId));
-        when(customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalRequestById(approvalRequestId))
+        when(customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalRequestByIdForUpdate(approvalRequestId))
                 .thenReturn(Optional.of(approvalRequest));
         when(customerOnboardingApprovalPortOut.findCandidateByCustomerId(customerId))
                 .thenReturn(Optional.of(candidate(accountId, userProfileId, customerId)));
@@ -80,6 +98,9 @@ class CustomerOnboardingApprovalUseCaseImplTest {
                 .thenReturn("keycloak-customer-id");
         when(customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId))
                 .thenReturn(Optional.of(expectedResult));
+        doThrow(new RuntimeException("SMTP unavailable"))
+                .when(vehicleMailService)
+                .sendOnboardingApprovedEmail("customer@example.com", "Customer User", "khách hàng");
 
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalUseCase.approveCustomerOnboardingApproval(
                 approvalRequestId,
@@ -99,6 +120,10 @@ class CustomerOnboardingApprovalUseCaseImplTest {
         verify(customerOnboardingApprovalPortOut).activateCustomerAccount(accountId, managerId);
         verify(identityProviderAdminPortOut).updateUserEnabled("keycloak-customer-id", true);
         verify(vehicleMailService).sendOnboardingApprovedEmail("customer@example.com", "Customer User", "khách hàng");
+        verify(notificationPortIn).sendWebNotification(argThat(command ->
+                accountId.equals(command.accountId())
+                        && NotificationType.CUSTOMER_ONBOARDING_APPROVED.equals(command.notificationType())
+        ));
     }
 
     @Test
@@ -113,19 +138,23 @@ class CustomerOnboardingApprovalUseCaseImplTest {
         CustomerOnboardingApprovalResult expectedResult = approvalResult(
                 approvalRequestId,
                 "REJECTED",
+                accountId,
                 customerId,
                 CustomerApprovalStatus.REJECTED,
                 CustomerStatus.INACTIVE
         );
 
         when(customerOnboardingApprovalAccessGuard.requireWriteAccess()).thenReturn(currentParkingManager(UUID.randomUUID()));
-        when(customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalRequestById(approvalRequestId))
+        when(customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalRequestByIdForUpdate(approvalRequestId))
                 .thenReturn(Optional.of(approvalRequest));
         when(customerOnboardingApprovalPortOut.findCandidateByCustomerId(customerId))
                 .thenReturn(Optional.of(candidate(accountId, userProfileId, customerId)));
         when(customerOnboardingApprovalPortOut.findCustomerById(customerId)).thenReturn(Optional.of(customer));
         when(customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId))
                 .thenReturn(Optional.of(expectedResult));
+        doThrow(new RuntimeException("SMTP unavailable"))
+                .when(vehicleMailService)
+                .sendOnboardingRejectedEmail("customer@example.com", "Customer User", "khách hàng", null);
 
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalUseCase.rejectCustomerOnboardingApproval(
                 approvalRequestId,
@@ -138,6 +167,70 @@ class CustomerOnboardingApprovalUseCaseImplTest {
         assertEquals(CustomerStatus.INACTIVE, customerCaptor.getValue().getStatus());
         assertEquals("REJECTED", result.request().approvalRequestStatus());
         verify(vehicleMailService).sendOnboardingRejectedEmail("customer@example.com", "Customer User", "khách hàng", null);
+        verify(notificationPortIn).sendWebNotification(argThat(command ->
+                accountId.equals(command.accountId())
+                        && NotificationType.CUSTOMER_ONBOARDING_REJECTED.equals(command.notificationType())
+        ));
+    }
+
+    @Test
+    void shouldAutoApproveEligibleVerifiedCustomerUsingSystemActor() {
+        UUID approvalRequestId = UUID.randomUUID();
+        UUID systemAccountId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+        ApprovalRequest approvalRequest = pendingApprovalRequest(approvalRequestId, customerId, accountId);
+        Customer customer = pendingCustomer(customerId, userProfileId);
+        OnboardingApprovalPolicy policy = new OnboardingApprovalPolicy();
+        policy.setPolicyId(UUID.randomUUID());
+        policy.setPolicyType(OnboardingApprovalPolicyType.CUSTOMER_ONBOARDING);
+        policy.setAutoApproveEnabled(true);
+        policy.setEffectiveFrom(approvalRequest.getCreatedAt().minusSeconds(1));
+        policy.setVersion(1L);
+
+        when(customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalRequestByIdForUpdate(approvalRequestId))
+                .thenReturn(Optional.of(approvalRequest));
+        when(onboardingApprovalPolicyEvaluator.findEligiblePolicy(
+                OnboardingApprovalPolicyType.CUSTOMER_ONBOARDING,
+                approvalRequest.getCreatedAt()
+        )).thenReturn(Optional.of(policy));
+        when(customerOnboardingApprovalPortOut.findCandidateByCustomerId(customerId))
+                .thenReturn(Optional.of(new CustomerOnboardingApprovalCandidate(
+                        accountId,
+                        userProfileId,
+                        customerId,
+                        "CUSTOMER",
+                        "keycloak-customer-id",
+                        AccountStatus.PENDING,
+                        CustomerStatus.INACTIVE,
+                        CustomerApprovalStatus.PENDING
+                )));
+        when(identityProviderAdminPortOut.isEmailVerified("keycloak-customer-id")).thenReturn(true);
+        when(systemAccountIdPortOut.getSystemAccountId()).thenReturn(systemAccountId);
+        when(customerOnboardingApprovalPortOut.findCustomerById(customerId)).thenReturn(Optional.of(customer));
+        when(customerOnboardingApprovalPortOut.activateCustomerAccount(accountId, systemAccountId))
+                .thenReturn("keycloak-customer-id");
+        when(customerOnboardingApprovalPortOut.findCustomerOnboardingApprovalResultById(approvalRequestId))
+                .thenReturn(Optional.of(approvalResult(
+                        approvalRequestId,
+                        "APPROVED",
+                        accountId,
+                        customerId,
+                        CustomerApprovalStatus.APPROVED,
+                        CustomerStatus.ACTIVE
+                )));
+
+        var result = customerOnboardingApprovalUseCase.tryAutoApproveCustomerOnboardingApproval(approvalRequestId);
+
+        assertTrue(result.isPresent());
+        assertEquals("AUTO", approvalRequest.getDecisionData().get("decisionMode"));
+        verify(customerOnboardingApprovalPortOut).activateCustomerAccount(accountId, systemAccountId);
+        verify(identityProviderAdminPortOut).updateUserEnabled("keycloak-customer-id", true);
+        verify(notificationPortIn).sendWebNotification(argThat(command ->
+                accountId.equals(command.accountId())
+                        && NotificationType.CUSTOMER_ONBOARDING_APPROVED.equals(command.notificationType())
+        ));
     }
 
     @Test
@@ -160,6 +253,7 @@ class CustomerOnboardingApprovalUseCaseImplTest {
                 .thenReturn(Optional.of(approvalResult(
                         UUID.randomUUID(),
                         "PENDING",
+                        accountId,
                         customerId,
                         CustomerApprovalStatus.PENDING,
                         CustomerStatus.INACTIVE
@@ -235,6 +329,7 @@ class CustomerOnboardingApprovalUseCaseImplTest {
         approvalRequest.setTargetId(customerId);
         approvalRequest.setStatus(ApprovalRequestStatus.PENDING);
         approvalRequest.setRequestedBy(requestedBy);
+        approvalRequest.setCreatedAt(Instant.now());
         return approvalRequest;
     }
 
@@ -271,6 +366,7 @@ class CustomerOnboardingApprovalUseCaseImplTest {
     private CustomerOnboardingApprovalResult approvalResult(
             UUID approvalRequestId,
             String requestStatus,
+            UUID accountId,
             UUID customerId,
             CustomerApprovalStatus customerApprovalStatus,
             CustomerStatus customerStatus
@@ -288,7 +384,7 @@ class CustomerOnboardingApprovalUseCaseImplTest {
                         Instant.now()
                 ),
                 new CustomerOnboardingApprovalResult.AccountInfoResult(
-                        UUID.randomUUID(),
+                        accountId,
                         "customer",
                         "customer@example.com",
                         "CUSTOMER",

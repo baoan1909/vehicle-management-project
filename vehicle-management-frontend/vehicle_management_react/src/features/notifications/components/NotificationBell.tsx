@@ -93,6 +93,9 @@ const typeMeta: Record<NotificationType, { icon: string; tone: string }> = {
   SYSTEM_ADMIN_APPROVED: { icon: "fas fa-user-shield", tone: "tw-bg-emerald-50 tw-text-emerald-700" },
   SYSTEM_ADMIN_REJECTED: { icon: "fas fa-user-times", tone: "tw-bg-red-50 tw-text-red-600" },
   SYSTEM_ADMIN_RESUBMITTED: { icon: "fas fa-user-clock", tone: "tw-bg-amber-50 tw-text-amber-700" },
+  AVATAR_APPROVAL_SUBMITTED: { icon: "far fa-image", tone: "tw-bg-amber-50 tw-text-amber-700" },
+  AVATAR_APPROVED: { icon: "fas fa-user-circle", tone: "tw-bg-emerald-50 tw-text-emerald-700" },
+  AVATAR_REJECTED: { icon: "fas fa-user-times", tone: "tw-bg-red-50 tw-text-red-600" },
 };
 
 function formatDateTime(value: string | null | undefined) {

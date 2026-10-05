@@ -572,6 +572,7 @@ class ProvisionedAccountUseCaseImplTest {
         return new ProvisionedAccountResult(
                 new ProvisionedAccountResult.AccountInfoResult(
                         accountId,
+                        UUID.randomUUID(),
                         "kc-employee-id",
                         username,
                         email,

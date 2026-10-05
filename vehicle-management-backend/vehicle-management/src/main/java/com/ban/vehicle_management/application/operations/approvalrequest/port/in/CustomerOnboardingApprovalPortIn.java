@@ -4,6 +4,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.c
 import com.ban.vehicle_management.application.operations.approvalrequest.model.command.ReviewInternalEmployeeApprovalCommand;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.CustomerOnboardingApprovalResult;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface CustomerOnboardingApprovalPortIn {
@@ -20,6 +21,8 @@ public interface CustomerOnboardingApprovalPortIn {
             UUID approvalRequestId,
             ReviewInternalEmployeeApprovalCommand command
     );
+
+    Optional<CustomerOnboardingApprovalResult> tryAutoApproveCustomerOnboardingApproval(UUID approvalRequestId);
 
     CustomerOnboardingApprovalResult rejectCustomerOnboardingApproval(
             UUID approvalRequestId,

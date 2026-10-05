@@ -32,7 +32,7 @@ public class CustomerAdminProfileUseCaseImpl implements CustomerAdminProfilePort
     private final CustomerPortOut customerPortOut;
     private final CustomerVehiclePortOut customerVehiclePortOut;
     private final UserProfileAvatarPortIn userProfileAvatarPortIn;
-    private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
+    private final UserProfilePolicy userProfilePolicy;
     private final CustomerPolicy customerPolicy = new CustomerPolicy();
 
     public CustomerAdminProfileUseCaseImpl(
@@ -41,7 +41,8 @@ public class CustomerAdminProfileUseCaseImpl implements CustomerAdminProfilePort
             CustomerPortOut customerPortOut,
             CustomerVehiclePortOut customerVehiclePortOut,
             UserProfileAvatarPortIn userProfileAvatarPortIn,
-            CustomerAccessGuard customerAccessGuard
+            CustomerAccessGuard customerAccessGuard,
+            UserProfilePolicy userProfilePolicy
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.userProfilePortOut = userProfilePortOut;
@@ -49,6 +50,7 @@ public class CustomerAdminProfileUseCaseImpl implements CustomerAdminProfilePort
         this.customerVehiclePortOut = customerVehiclePortOut;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
         this.customerAccessGuard = customerAccessGuard;
+        this.userProfilePolicy = userProfilePolicy;
     }
 
     @Override
@@ -127,6 +129,9 @@ public class CustomerAdminProfileUseCaseImpl implements CustomerAdminProfilePort
         existingUserProfile.setGender(updatedUserProfile.getGender());
         existingUserProfile.setPhoneNumber(updatedUserProfile.getPhoneNumber());
         existingUserProfile.setAddress(updatedUserProfile.getAddress());
+        if (updatedUserProfile.getStructuredAddress() != null) {
+            existingUserProfile.setStructuredAddress(updatedUserProfile.getStructuredAddress());
+        }
         existingUserProfile.setIdentifyCard(updatedUserProfile.getIdentifyCard());
         if (updatedUserProfile.getStatus() != null) {
             existingUserProfile.setStatus(updatedUserProfile.getStatus());
@@ -146,6 +151,7 @@ public class CustomerAdminProfileUseCaseImpl implements CustomerAdminProfilePort
                 || userProfile.getGender() != null
                 || userProfile.getPhoneNumber() != null
                 || userProfile.getAddress() != null
+                || userProfile.getStructuredAddress() != null
                 || userProfile.getIdentifyCard() != null
                 || userProfile.getStatus() != null);
     }
