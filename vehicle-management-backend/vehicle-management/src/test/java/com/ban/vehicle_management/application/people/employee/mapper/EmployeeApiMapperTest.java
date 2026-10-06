@@ -31,7 +31,7 @@ class EmployeeApiMapperTest {
         userProfile.setDateOfBirth(LocalDate.of(1998, 5, 20));
         userProfile.setGender("MALE");
         userProfile.setPhoneNumber("0901234567");
-        userProfile.setAddress("Thu Duc, Ho Chi Minh City");
+        userProfile.setAddressDisplay("Thu Duc, Ho Chi Minh City");
         userProfile.setIdentifyCard("079203001234");
         userProfile.setAvatarUrl("https://example.com/avatar-a.jpg");
         userProfile.setStatus(UserProfileStatus.ACTIVE);

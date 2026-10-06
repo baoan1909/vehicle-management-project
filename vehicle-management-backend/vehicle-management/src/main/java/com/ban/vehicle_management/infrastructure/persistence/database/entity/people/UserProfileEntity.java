@@ -44,9 +44,6 @@ public class UserProfileEntity extends AuditableEntity {
     @Column(name = "phone_number", unique = true)
     private String phoneNumber;
 
-    @Column(name = "address")
-    private String address;
-
     @Column(name = "address_detail")
     private String addressDetail;
 

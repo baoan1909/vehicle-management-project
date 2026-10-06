@@ -4,6 +4,7 @@ import { Badge, Button, Card, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { fetchAvatarApprovals, reviewAvatarApproval } from "@/features/iam/api/avatarApprovalApi";
 import type { AvatarModerationStatus } from "@/features/iam/api/accountProfileApi";
+import { OnboardingApprovalPolicyButton } from "@/features/iam/components/OnboardingApprovalPolicyButton";
 import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { formatInApplicationTime } from "@/shared/time/applicationTime";
@@ -92,6 +93,7 @@ export function AvatarApprovalManagementPage() {
               <p className="tw-mb-0 tw-mt-2 tw-text-sm tw-font-semibold tw-text-vm-slate-500">Ảnh cũ tiếp tục hiển thị cho đến khi ảnh mới được phê duyệt.</p>
             </div>
             <div className="tw-flex tw-items-center tw-gap-3">
+              <OnboardingApprovalPolicyButton />
               <div className="tw-w-48"><SelectMenu ariaLabel="Lọc trạng thái duyệt ảnh" options={statusOptions} value={filter} onChange={(value) => setFilter(value as FilterStatus)} /></div>
               <Button loading={loading} type="button" variant="secondary" onClick={() => void loadItems()}><i className="fas fa-sync-alt" /> Làm mới</Button>
             </div>

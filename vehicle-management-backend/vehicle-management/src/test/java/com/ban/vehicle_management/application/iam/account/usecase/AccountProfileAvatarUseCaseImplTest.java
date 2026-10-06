@@ -101,6 +101,12 @@ class AccountProfileAvatarUseCaseImplTest {
         verify(userProfileAvatarPortIn).uploadAvatar(userProfileId, file, accountId);
         verify(accountProfilePortOut, never()).updateProfile(eq(accountId), any(UserProfile.class));
         assertEquals(publicAvatar, result.profile().avatarUrl());
+        assertEquals("25 Nguyễn Đỗ Cung", result.profile().addressDetail());
+        assertEquals("79", result.profile().provinceCode());
+        assertEquals("760", result.profile().districtCode());
+        assertEquals("26740", result.profile().wardCode());
+        assertEquals("25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh",
+                result.profile().addressDisplay());
     }
 
     @Test
@@ -206,7 +212,11 @@ class AccountProfileAvatarUseCaseImplTest {
                         LocalDate.of(2003, 9, 19),
                         "MALE",
                         "0901234567",
-                        "Ho Chi Minh City",
+                        "25 Nguyễn Đỗ Cung",
+                        "79",
+                        "26740",
+                        "760",
+                        "25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh",
                         "079203001234",
                         avatarUrl,
                         "ACTIVE"

@@ -338,7 +338,6 @@ class AccountProfileUseCaseImplTest {
                         "+84901234567",
                         LocalDate.of(2003, 9, 19),
                         "MALE",
-                        "Ho Chi Minh City",
                         "079203001234",
                         "https://cdn.example.com/avatars/bao-an.jpg"
                 )
@@ -442,7 +441,6 @@ class AccountProfileUseCaseImplTest {
                         "0901002003",
                         LocalDate.of(1998, 3, 15),
                         "MALE",
-                        "Ho Chi Minh City",
                         "079100200003",
                         null
                 )
@@ -549,7 +547,6 @@ class AccountProfileUseCaseImplTest {
                         "0901002003",
                         LocalDate.of(1998, 3, 15),
                         "MALE",
-                        "Ho Chi Minh City",
                         "079100200003",
                         null
                 )
@@ -641,7 +638,6 @@ class AccountProfileUseCaseImplTest {
                         "0987001003",
                         LocalDate.of(1992, 6, 10),
                         "Female",
-                        "78 Le Loi, District 1, Ho Chi Minh City",
                         "079123450203",
                         "https://example.com/avatars/manager-01.jpg"
                 )
@@ -725,7 +721,6 @@ class AccountProfileUseCaseImplTest {
                         "0901000000",
                         LocalDate.of(1990, 1, 1),
                         "MALE",
-                        "Ho Chi Minh City",
                         "079100000001",
                         "https://example.com/avatars/sysadmin.jpg"
                 )
@@ -818,7 +813,6 @@ class AccountProfileUseCaseImplTest {
                         "0901000001",
                         LocalDate.of(1990, 1, 1),
                         "MALE",
-                        "Ho Chi Minh City",
                         "079100000002",
                         null
                 )
@@ -876,7 +870,6 @@ class AccountProfileUseCaseImplTest {
                         "0987001999",
                         LocalDate.of(1990, 1, 1),
                         "Male",
-                        "Unknown",
                         "079123450999",
                         null
                 ))

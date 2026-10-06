@@ -50,7 +50,7 @@ type EmployeePermissionModalState = {
 type Employee = {
   accountId: string | null;
   accountStatus: AccountStatus;
-  address: string;
+  addressDisplay: string;
   structuredAddress: VietnamAddressValue;
   avatarTone: "blue" | "green" | "amber" | "red" | "violet";
   avatarUrl: string | null;
@@ -99,7 +99,7 @@ const genderOptions = [
 const emptyEmployee: Employee = {
   accountId: null,
   accountStatus: "UNLINKED",
-  address: "-",
+  addressDisplay: "-",
   structuredAddress: { provinceCode: "", districtCode: null, wardCode: "", addressDetail: "" },
   avatarTone: "blue",
   avatarUrl: null,
@@ -265,7 +265,7 @@ function mapEmployee(row: EmployeeApiResponse, index = 0): Employee {
   return {
     accountId: row.accountId,
     accountStatus: row.accountStatus ?? "UNLINKED",
-    address: row.userProfile?.address || "-",
+    addressDisplay: row.userProfile?.addressDisplay || "-",
     structuredAddress: {
       provinceCode: row.userProfile?.provinceCode ?? "",
       districtCode: row.userProfile?.districtCode ?? null,
@@ -625,7 +625,7 @@ function EmployeeEditDrawer({
   open: boolean;
 }) {
   const [form, setForm] = useState({
-    address: "",
+    addressDisplay: "",
     structuredAddress: { provinceCode: "", districtCode: null, wardCode: "", addressDetail: "" } as VietnamAddressValue,
     dateOfBirth: "",
     employeeCode: "",
@@ -643,7 +643,7 @@ function EmployeeEditDrawer({
   useEffect(() => {
     if (!open) return;
     setForm({
-      address: employee?.address === "-" ? "" : employee?.address ?? "",
+      addressDisplay: employee?.addressDisplay === "-" ? "" : employee?.addressDisplay ?? "",
       structuredAddress: employee?.structuredAddress ?? { provinceCode: "", districtCode: null, wardCode: "", addressDetail: "" },
       dateOfBirth: employee?.dateOfBirth ?? "",
       employeeCode: employee?.code ?? "",
@@ -688,7 +688,6 @@ function EmployeeEditDrawer({
           status: null,
         },
         userProfile: {
-          address: form.address.trim() || null,
           structuredAddress: form.structuredAddress.provinceCode
             && form.structuredAddress.wardCode
             && form.structuredAddress.addressDetail.trim()
@@ -820,7 +819,7 @@ function EmployeeEditDrawer({
                 value={form.structuredAddress}
                 onChange={(structuredAddress) => setForm((current) => ({ ...current, structuredAddress }))}
               />
-              {form.address && !form.structuredAddress.provinceCode ? <span className="tw-text-xs tw-font-semibold tw-text-amber-700">Địa chỉ cũ: {form.address}. Vui lòng chọn lại theo danh mục địa giới.</span> : null}
+              {form.addressDisplay && !form.structuredAddress.provinceCode ? <span className="tw-text-xs tw-font-semibold tw-text-amber-700">Địa chỉ chưa chuẩn hóa: {form.addressDisplay}. Vui lòng chọn lại theo danh mục địa giới.</span> : null}
             </div>
           </div>
         </section>
@@ -1234,7 +1233,7 @@ export function EmployeeListPage() {
                 <InfoRow icon="far fa-envelope" label={selectedEmployee.email} />
                 <InfoRow icon="fas fa-phone" label={selectedEmployee.phone} />
                 <InfoRow icon="far fa-calendar-check" label={`Ngày vào làm ${selectedEmployee.hiredAt}`} />
-                <InfoRow icon="fas fa-map-marker-alt" label={selectedEmployee.address} />
+                <InfoRow icon="fas fa-map-marker-alt" label={selectedEmployee.addressDisplay} />
               </div>
 
               <div className="tw-mt-5 tw-flex tw-flex-wrap tw-gap-3">

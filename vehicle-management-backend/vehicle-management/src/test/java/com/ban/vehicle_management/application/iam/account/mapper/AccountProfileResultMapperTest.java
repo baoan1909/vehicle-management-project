@@ -1,10 +1,13 @@
 package com.ban.vehicle_management.application.iam.account.mapper;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
+import com.ban.vehicle_management.application.iam.account.model.command.UpdateAccountProfileCommand;
 import com.ban.vehicle_management.application.iam.account.model.result.AccountProfileStatusResult;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
@@ -126,5 +129,61 @@ class AccountProfileResultMapperTest {
 
         assertNull(result.employee());
         assertNull(result.customer());
+    }
+
+    @Test
+    void mergeProfileShouldPreserveStructuredAddressWhenPatchOmitsIt() {
+        UUID userProfileId = UUID.randomUUID();
+        AccountProfileState state = new AccountProfileState(
+                UUID.randomUUID(),
+                "customer.user",
+                "customer@example.com",
+                "kc-customer",
+                AdminProvisionableAccountRoleCode.CUSTOMER.name(),
+                userProfileId,
+                "Customer User",
+                LocalDate.of(2000, 1, 1),
+                "MALE",
+                "0901234567",
+                "25 Nguyễn Đỗ Cung",
+                "79",
+                "26740",
+                "760",
+                "25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh",
+                "079123456789",
+                null,
+                UserProfileStatus.ACTIVE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                UUID.randomUUID(),
+                "CUS-001",
+                CustomerType.REGISTERED,
+                CustomerStatus.ACTIVE,
+                CustomerApprovalStatus.APPROVED,
+                AccountStatus.ACTIVE,
+                java.util.List.of()
+        );
+        UpdateAccountProfileCommand command = new UpdateAccountProfileCommand(
+                "Customer User Updated",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+        UserProfile result = mapper.mergeProfile(state, command);
+
+        assertEquals("Customer User Updated", result.getFullName());
+        assertEquals("25 Nguyễn Đỗ Cung", result.getAddressDetail());
+        assertEquals("79", result.getProvinceCode());
+        assertEquals("760", result.getDistrictCode());
+        assertEquals("26740", result.getWardCode());
+        assertEquals("25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh",
+                result.getAddressDisplay());
     }
 }

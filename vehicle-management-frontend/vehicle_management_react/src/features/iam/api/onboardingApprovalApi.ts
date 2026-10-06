@@ -32,7 +32,7 @@ type ApprovalAccountInfo = {
 };
 
 type ApprovalProfileInfo = {
-  address?: string | null;
+  addressDisplay?: string | null;
   dateOfBirth?: string | null;
   fullName?: string | null;
   gender?: string | null;

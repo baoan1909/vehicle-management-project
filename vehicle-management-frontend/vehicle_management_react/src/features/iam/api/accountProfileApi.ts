@@ -39,7 +39,6 @@ export type AccountProfileStatusResponse = {
   };
   onboardingRequired: boolean;
   profile?: {
-    address?: string;
     addressDetail?: string;
     provinceCode?: string;
     wardCode?: string;
@@ -57,7 +56,6 @@ export type AccountProfileStatusResponse = {
 };
 
 export type UpdateAccountProfileRequest = {
-  address?: string;
   structuredAddress?: VietnamAddressValue;
   avatarUrl?: string;
   dateOfBirth?: string;

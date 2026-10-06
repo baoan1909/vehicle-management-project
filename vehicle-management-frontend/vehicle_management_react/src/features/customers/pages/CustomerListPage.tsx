@@ -39,7 +39,7 @@ import {
 type SegmentValue = "all" | "approved" | "pending" | "vip";
 
 type CustomerFormState = {
-  address: string;
+  addressDisplay: string;
   structuredAddress: VietnamAddressValue;
   customerType: CustomerType;
   dateOfBirth: string;
@@ -201,7 +201,7 @@ function normalizeBinaryGender(value?: string | null) {
 
 function toCustomerForm(customer: CustomerAdminResponse): CustomerFormState {
   return {
-    address: customer.userProfile?.address ?? "",
+    addressDisplay: customer.userProfile?.addressDisplay ?? "",
     structuredAddress: {
       provinceCode: customer.userProfile?.provinceCode ?? "",
       districtCode: customer.userProfile?.districtCode ?? null,
@@ -609,7 +609,6 @@ export function CustomerListPage() {
       await updateCustomerAdminProfile(selectedCustomer.customerId, {
         customer: { customerType: form.customerType },
         userProfile: {
-          address: form.address.trim() || null,
           structuredAddress: form.structuredAddress.provinceCode
             && form.structuredAddress.wardCode
             && form.structuredAddress.addressDetail.trim()
@@ -954,7 +953,7 @@ export function CustomerListPage() {
                   <div className="tw-mt-3 tw-grid tw-gap-2">
                     <QuickInfoRow icon="far fa-envelope" label={selectedCustomer.accountEmail || "--"} />
                     <QuickInfoRow icon="fas fa-phone" label={selectedCustomer.userProfile?.phoneNumber || "--"} />
-                    <QuickInfoRow icon="fas fa-map-marker-alt" label={selectedCustomer.userProfile?.address || "--"} />
+                    <QuickInfoRow icon="fas fa-map-marker-alt" label={selectedCustomer.userProfile?.addressDisplay || "--"} />
                   </div>
 
                   <div className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-2">
@@ -1142,7 +1141,7 @@ export function CustomerListPage() {
                 value={form.structuredAddress}
                 onChange={(structuredAddress) => setForm((current) => (current ? { ...current, structuredAddress } : current))}
               />
-              {form.address && !form.structuredAddress.provinceCode ? <p className="tw-mt-2 tw-text-xs tw-font-semibold tw-text-amber-700">Địa chỉ cũ: {form.address}. Vui lòng chọn lại theo danh mục địa giới.</p> : null}
+              {form.addressDisplay && !form.structuredAddress.provinceCode ? <p className="tw-mt-2 tw-text-xs tw-font-semibold tw-text-amber-700">Địa chỉ chưa chuẩn hóa: {form.addressDisplay}. Vui lòng chọn lại theo danh mục địa giới.</p> : null}
             </div>
           </div>
         ) : null}

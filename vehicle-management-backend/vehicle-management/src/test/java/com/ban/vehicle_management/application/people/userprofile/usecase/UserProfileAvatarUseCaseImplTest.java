@@ -247,7 +247,7 @@ class UserProfileAvatarUseCaseImplTest {
         snapshotUserProfile.setDateOfBirth(userProfile.getDateOfBirth());
         snapshotUserProfile.setGender(userProfile.getGender());
         snapshotUserProfile.setPhoneNumber(userProfile.getPhoneNumber());
-        snapshotUserProfile.setAddress(userProfile.getAddress());
+        snapshotUserProfile.setAddressDisplay(userProfile.getAddressDisplay());
         snapshotUserProfile.setIdentifyCard(userProfile.getIdentifyCard());
         snapshotUserProfile.setAvatarUrl(userProfile.getAvatarUrl());
         snapshotUserProfile.setStatus(userProfile.getStatus());

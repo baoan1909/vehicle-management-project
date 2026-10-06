@@ -274,7 +274,7 @@ function ReviewSubjectDetails({ item }: { item: OnboardingApprovalResponse }) {
         <DetailItem label="Ngày sinh" value={formatDateValue(item.profile?.dateOfBirth)} />
         <DetailItem label="Giới tính" value={genderLabel(item.profile?.gender)} />
         <DetailItem label="CCCD/CMND" value={item.profile?.identifyCard} />
-        <DetailItem label="Địa chỉ" value={item.profile?.address} wide />
+        <DetailItem label="Địa chỉ" value={item.profile?.addressDisplay} wide />
       </DetailSection>
 
       <DetailSection title="Tài khoản đăng nhập">

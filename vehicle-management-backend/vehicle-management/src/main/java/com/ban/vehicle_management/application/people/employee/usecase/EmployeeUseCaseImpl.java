@@ -146,7 +146,6 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         existingUserProfile.setDateOfBirth(updatedUserProfile.getDateOfBirth());
         existingUserProfile.setGender(updatedUserProfile.getGender());
         existingUserProfile.setPhoneNumber(updatedUserProfile.getPhoneNumber());
-        existingUserProfile.setAddress(updatedUserProfile.getAddress());
         if (updatedUserProfile.getStructuredAddress() != null) {
             existingUserProfile.setStructuredAddress(updatedUserProfile.getStructuredAddress());
         }
@@ -170,7 +169,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
                 || userProfile.getDateOfBirth() != null
                 || userProfile.getGender() != null
                 || userProfile.getPhoneNumber() != null
-                || userProfile.getAddress() != null
+                || userProfile.getStructuredAddress() != null
                 || userProfile.getIdentifyCard() != null
                 || userProfile.getStatus() != null);
     }

@@ -3,7 +3,7 @@ package com.ban.vehicle_management.application.people.userprofile.usecase;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.SystemAccountIdPortOut;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
-import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.application.notification.notification.usecase.RequiresNewNotificationSender;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.AvatarApprovalPolicyPortOut;
 import com.ban.vehicle_management.application.people.userprofile.model.AvatarModerationResult;
 import com.ban.vehicle_management.application.people.userprofile.port.in.AvatarModerationPortIn;
@@ -45,7 +45,7 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
     private final AvatarModerationPortOut moderationPortOut;
     private final UserProfileAvatarPortOut avatarPortOut;
     private final AvatarApprovalPolicyPortOut policyPortOut;
-    private final NotificationPortIn notificationPortIn;
+    private final RequiresNewNotificationSender notificationSender;
     private final StorageUrlResolver storageUrlResolver;
     private final FileStoragePort fileStoragePort;
     private final ApprovalRequestPolicy approvalPolicy = new ApprovalRequestPolicy();
@@ -55,7 +55,7 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
                                        AvatarModerationPortOut moderationPortOut,
                                        UserProfileAvatarPortOut avatarPortOut,
                                        AvatarApprovalPolicyPortOut policyPortOut,
-                                       NotificationPortIn notificationPortIn,
+                                       RequiresNewNotificationSender notificationSender,
                                        StorageUrlResolver storageUrlResolver,
                                        FileStoragePort fileStoragePort) {
         this.currentAccountPortIn = currentAccountPortIn;
@@ -63,7 +63,7 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
         this.moderationPortOut = moderationPortOut;
         this.avatarPortOut = avatarPortOut;
         this.policyPortOut = policyPortOut;
-        this.notificationPortIn = notificationPortIn;
+        this.notificationSender = notificationSender;
         this.storageUrlResolver = storageUrlResolver;
         this.fileStoragePort = fileStoragePort;
     }
@@ -203,7 +203,7 @@ public class AvatarModerationUseCaseImpl implements AvatarModerationPortIn {
     private void scheduleNotification(UUID accountId, NotificationType type, String title, String message, UUID avatarId) {
         TransactionalEvents.runAfterCommit(() -> {
             try {
-                notificationPortIn.sendWebNotification(new SendNotificationCommand(accountId, type, title, message,
+                notificationSender.send(new SendNotificationCommand(accountId, type, title, message,
                         "/", TARGET_SCHEMA, TARGET_TABLE, avatarId));
             } catch (RuntimeException exception) {
                 LOGGER.warn("Avatar workflow completed but notification failed for account {}", accountId, exception);

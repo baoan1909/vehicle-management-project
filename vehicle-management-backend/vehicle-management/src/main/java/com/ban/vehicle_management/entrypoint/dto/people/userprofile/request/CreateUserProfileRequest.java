@@ -9,7 +9,6 @@ public record CreateUserProfileRequest(
         LocalDate dateOfBirth,
         String gender,
         String phoneNumber,
-        String address,
         String identifyCard,
         String avatarUrl,
         UserProfileStatus status,
@@ -20,12 +19,11 @@ public record CreateUserProfileRequest(
             LocalDate dateOfBirth,
             String gender,
             String phoneNumber,
-            String address,
             String identifyCard,
             String avatarUrl,
             UserProfileStatus status
     ) {
-        this(fullName, dateOfBirth, gender, phoneNumber, address, identifyCard, avatarUrl, status, null);
+        this(fullName, dateOfBirth, gender, phoneNumber, identifyCard, avatarUrl, status, null);
     }
 }
 

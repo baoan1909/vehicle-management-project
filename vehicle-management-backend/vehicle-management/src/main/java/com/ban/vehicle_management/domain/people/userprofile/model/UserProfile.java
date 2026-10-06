@@ -21,7 +21,6 @@ public class UserProfile extends AuditableDomainModel {
     private LocalDate dateOfBirth;
     private String gender;
     private String phoneNumber;
-    private String address;
     private String addressDetail;
     private String provinceCode;
     private String wardCode;
@@ -58,7 +57,6 @@ public class UserProfile extends AuditableDomainModel {
         this.wardCode = address.getWardCode();
         this.districtCode = address.getDistrictCode();
         this.addressDisplay = address.getAddressDisplay();
-        this.address = address.getAddressDisplay();
     }
 }
 

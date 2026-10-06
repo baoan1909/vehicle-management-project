@@ -20,7 +20,6 @@ public class UserProfileAdminResponse {
     private LocalDate dateOfBirth;
     private String gender;
     private String phoneNumber;
-    private String address;
     private String addressDetail;
     private String provinceCode;
     private String wardCode;

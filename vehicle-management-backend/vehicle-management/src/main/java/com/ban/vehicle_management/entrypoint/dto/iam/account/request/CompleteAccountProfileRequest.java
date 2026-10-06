@@ -8,7 +8,6 @@ public record CompleteAccountProfileRequest(
         String phoneNumber,
         LocalDate dateOfBirth,
         String gender,
-        String address,
         String identifyCard,
         String avatarUrl,
         VietnamAddressRequest structuredAddress
@@ -18,10 +17,9 @@ public record CompleteAccountProfileRequest(
             String phoneNumber,
             LocalDate dateOfBirth,
             String gender,
-            String address,
             String identifyCard,
             String avatarUrl
     ) {
-        this(fullName, phoneNumber, dateOfBirth, gender, address, identifyCard, avatarUrl, null);
+        this(fullName, phoneNumber, dateOfBirth, gender, identifyCard, avatarUrl, null);
     }
 }

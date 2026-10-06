@@ -198,9 +198,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 command.phoneNumber(),
                 command.dateOfBirth(),
                 command.gender(),
-                command.address() != null || command.structuredAddress() == null
-                        ? command.address()
-                        : command.structuredAddress().getAddressDetail(),
+                command.structuredAddress(),
                 command.identifyCard()
         );
         UpdateAccountProfileCommand normalizedCommand = normalizeUpdateCommand(command);
@@ -262,7 +260,6 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         userProfile.setPhoneNumber(command.phoneNumber());
         userProfile.setDateOfBirth(command.dateOfBirth());
         userProfile.setGender(command.gender());
-        userProfile.setAddress(command.address());
         userProfile.setStructuredAddress(command.structuredAddress());
         userProfile.setIdentifyCard(command.identifyCard());
         userProfile.setAvatarUrl(null);
@@ -301,9 +298,6 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 accountProfilePolicy.normalizeRequiredPhoneNumber(command.phoneNumber()),
                 command.dateOfBirth(),
                 accountProfilePolicy.normalizeNullableGender(command.gender()),
-                structuredAddress == null
-                        ? accountProfilePolicy.normalizeNullableAddress(command.address())
-                        : structuredAddress.getAddressDisplay(),
                 accountProfilePolicy.normalizeNullableIdentifyCard(command.identifyCard()),
                 null,
                 structuredAddress
@@ -317,9 +311,6 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 accountProfilePolicy.normalizeNullablePhoneNumber(command.phoneNumber()),
                 command.dateOfBirth(),
                 accountProfilePolicy.normalizeNullableGender(command.gender()),
-                structuredAddress == null
-                        ? accountProfilePolicy.normalizeNullableAddress(command.address())
-                        : structuredAddress.getAddressDisplay(),
                 accountProfilePolicy.normalizeNullableIdentifyCard(command.identifyCard()),
                 null,
                 structuredAddress
@@ -416,7 +407,11 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                         profile.dateOfBirth(),
                         profile.gender(),
                         profile.phoneNumber(),
-                        profile.address(),
+                        profile.addressDetail(),
+                        profile.provinceCode(),
+                        profile.wardCode(),
+                        profile.districtCode(),
+                        profile.addressDisplay(),
                         profile.identifyCard(),
                         resolvedAvatarUrl,
                         profile.userProfileStatus()

@@ -17,12 +17,12 @@ class UserProfilePolicyTest {
     void shouldInitializeUserProfileWithDefaults() {
         UserProfile userProfile = new UserProfile();
         userProfile.setFullName("  Nguyen Van A  ");
-        userProfile.setAddress("  HCM  ");
+        userProfile.setAddressDisplay("  HCM  ");
 
         userProfilePolicy.initialize(userProfile);
 
         assertEquals("Nguyen Van A", userProfile.getFullName());
-        assertEquals("HCM", userProfile.getAddress());
+        assertEquals("HCM", userProfile.getAddressDisplay());
         assertEquals(UserProfileStatus.ACTIVE, userProfile.getStatus());
     }
 

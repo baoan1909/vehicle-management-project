@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.domain.iam.account.model.Account;
+import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.infrastructure.mapper.iam.AccountPersistenceMapper;
@@ -18,6 +19,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
@@ -38,6 +41,12 @@ class AccountProfilePersistenceAdapterTest {
 
     @Mock
     private AccountRepository accountRepository;
+
+    @Mock
+    private RoleRepository roleRepository;
+
+    @Mock
+    private RolePermissionRepository rolePermissionRepository;
 
     @Mock
     private UserProfileRepository userProfileRepository;
@@ -86,7 +95,12 @@ class AccountProfilePersistenceAdapterTest {
         userProfile.setPhoneNumber("0901002003");
         userProfile.setDateOfBirth(LocalDate.of(1998, 3, 15));
         userProfile.setGender("MALE");
-        userProfile.setAddress("Ho Chi Minh City");
+        userProfile.setAddressDisplay("25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh");
+        userProfile.setAddressDetail("25 Nguyễn Đỗ Cung");
+        userProfile.setProvinceCode("79");
+        userProfile.setDistrictCode("760");
+        userProfile.setWardCode("26740");
+        userProfile.setAddressDisplay("25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh");
         userProfile.setIdentifyCard("079100200003");
         userProfile.setStatus(UserProfileStatus.ACTIVE);
 
@@ -111,6 +125,56 @@ class AccountProfilePersistenceAdapterTest {
         assertSame(createdAt, existingUserProfileEntity.getCreatedAt());
         assertEquals("New Name", existingUserProfileEntity.getFullName());
         assertEquals("0901002003", existingUserProfileEntity.getPhoneNumber());
+        assertEquals("25 Nguyễn Đỗ Cung", existingUserProfileEntity.getAddressDetail());
+        assertEquals("79", existingUserProfileEntity.getProvinceCode());
+        assertEquals("760", existingUserProfileEntity.getDistrictCode());
+        assertEquals("26740", existingUserProfileEntity.getWardCode());
+        assertEquals("25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh",
+                existingUserProfileEntity.getAddressDisplay());
         assertEquals(AccountStatus.ACTIVE, accountEntity.getStatus());
+    }
+
+    @Test
+    void updateProfileShouldPersistAndReturnLegacyStructuredAddress() {
+        UUID accountId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+
+        AccountEntity accountEntity = new AccountEntity();
+        accountEntity.setAccountId(accountId);
+        accountEntity.setUserProfileId(userProfileId);
+        accountEntity.setStatus(AccountStatus.PENDING);
+
+        UserProfileEntity existingUserProfileEntity = new UserProfileEntity();
+        existingUserProfileEntity.setUserProfileId(userProfileId);
+        existingUserProfileEntity.setStatus(UserProfileStatus.ACTIVE);
+
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUserProfileId(userProfileId);
+        userProfile.setFullName("Nguyễn Văn A");
+        userProfile.setPhoneNumber("0384679271");
+        userProfile.setAddressDisplay("25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh");
+        userProfile.setAddressDetail("25 Nguyễn Đỗ Cung");
+        userProfile.setProvinceCode("79");
+        userProfile.setDistrictCode("760");
+        userProfile.setWardCode("26740");
+        userProfile.setAddressDisplay("25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh");
+        userProfile.setStatus(UserProfileStatus.ACTIVE);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(accountEntity));
+        when(userProfileRepository.findById(userProfileId))
+                .thenReturn(Optional.of(existingUserProfileEntity));
+        when(customerRepository.findByUserProfileId(userProfileId)).thenReturn(Optional.empty());
+        when(employeeRepository.findByUserProfileId(userProfileId)).thenReturn(Optional.empty());
+
+        AccountProfileState result = adapter.updateProfile(accountId, userProfile);
+
+        verify(userProfileRepository).save(existingUserProfileEntity);
+        assertEquals("25 Nguyễn Đỗ Cung", existingUserProfileEntity.getAddressDetail());
+        assertEquals("79", existingUserProfileEntity.getProvinceCode());
+        assertEquals("760", existingUserProfileEntity.getDistrictCode());
+        assertEquals("26740", existingUserProfileEntity.getWardCode());
+        assertEquals("79", result.provinceCode());
+        assertEquals("760", result.districtCode());
+        assertEquals("26740", result.wardCode());
     }
 }

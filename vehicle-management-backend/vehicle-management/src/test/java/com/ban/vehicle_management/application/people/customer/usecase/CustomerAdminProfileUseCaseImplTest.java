@@ -153,7 +153,7 @@ class CustomerAdminProfileUseCaseImplTest {
         userProfile.setDateOfBirth(LocalDate.of(1995, 1, 10));
         userProfile.setGender("male");
         userProfile.setPhoneNumber("0901234567");
-        userProfile.setAddress("Ho Chi Minh City");
+        userProfile.setAddressDisplay("Ho Chi Minh City");
         userProfile.setIdentifyCard("079123456789");
         userProfile.setAvatarUrl("https://example.com/avatar.jpg");
         userProfile.setStatus(UserProfileStatus.ACTIVE);

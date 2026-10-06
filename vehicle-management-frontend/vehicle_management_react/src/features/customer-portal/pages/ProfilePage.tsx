@@ -34,7 +34,7 @@ import { formatInApplicationTime } from "@/shared/time/applicationTime";
 import { CustomerPortalLayout } from "./PortalShared";
 
 type ProfileForm = {
-  address: string;
+  addressDisplay: string;
   structuredAddress: VietnamAddressValue;
   dateOfBirth: string;
   fullName: string;
@@ -44,7 +44,7 @@ type ProfileForm = {
 };
 
 const emptyForm: ProfileForm = {
-  address: "",
+  addressDisplay: "",
   structuredAddress: { provinceCode: "", districtCode: null, wardCode: "", addressDetail: "" },
   dateOfBirth: "",
   fullName: "",
@@ -96,7 +96,7 @@ function profileStatusLabel(status?: string | null) {
 
 function profileToForm(profile: CustomerPortalProfile): ProfileForm {
   return {
-    address: profile.profile?.address ?? "",
+    addressDisplay: profile.profile?.addressDisplay ?? "",
     structuredAddress: {
       provinceCode: profile.profile?.provinceCode ?? "",
       districtCode: profile.profile?.districtCode ?? null,
@@ -113,7 +113,6 @@ function profileToForm(profile: CustomerPortalProfile): ProfileForm {
 
 function buildProfilePayload(form: ProfileForm): UpdateAccountProfileRequest {
   return {
-    address: form.address.trim() || undefined,
     structuredAddress: form.structuredAddress.provinceCode
       && form.structuredAddress.wardCode
       && form.structuredAddress.addressDetail.trim()
@@ -462,7 +461,7 @@ export function ProfilePage() {
             <div className="tw-mt-3 tw-grid tw-gap-1.5 tw-text-[0.82rem] tw-font-normal tw-leading-5 tw-text-[#e1e9f8]">
               <span className="tw-flex tw-min-w-0 tw-items-center tw-gap-2.5"><i aria-hidden="true" className="far fa-envelope tw-w-3.5 tw-shrink-0" /><span className="tw-truncate" title={email}>{email}</span></span>
               <span className="tw-flex tw-min-w-0 tw-items-center tw-gap-2.5"><i aria-hidden="true" className="fas fa-phone-alt tw-w-3.5 tw-shrink-0" /><span className="tw-truncate">{form.phoneNumber || "Chưa cập nhật số điện thoại"}</span></span>
-              <span className="tw-flex tw-min-w-0 tw-items-center tw-gap-2.5"><i aria-hidden="true" className="fas fa-map-marker-alt tw-w-3.5 tw-shrink-0" /><span className="tw-truncate" title={form.address}>{form.address || "Chưa cập nhật địa chỉ"}</span></span>
+              <span className="tw-flex tw-min-w-0 tw-items-center tw-gap-2.5"><i aria-hidden="true" className="fas fa-map-marker-alt tw-w-3.5 tw-shrink-0" /><span className="tw-truncate" title={form.addressDisplay}>{form.addressDisplay || "Chưa cập nhật địa chỉ"}</span></span>
             </div>
           </div>
           <div className="tw-grid tw-min-h-[120px] tw-grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] tw-content-between tw-gap-x-4 tw-gap-y-5 tw-border-0 tw-border-l tw-border-solid tw-border-white/10 tw-pl-5 tw-text-[0.75rem] max-[760px]:tw-col-span-2 max-[760px]:tw-min-h-0 max-[760px]:tw-border-l-0 max-[760px]:tw-border-t max-[760px]:tw-pl-0 max-[760px]:tw-pt-4">
@@ -487,7 +486,7 @@ export function ProfilePage() {
 
       <AvatarModerationStatusCard status={avatarModeration} />
 
-      <section className={`${panelClass} tw-mt-4`}><h2 className={panelTitleClass}><i className="far fa-file-alt" /> Thông tin cá nhân</h2><div className="tw-grid tw-grid-cols-3 tw-gap-x-6 tw-gap-y-2 [&>label]:tw-min-w-0 max-[640px]:tw-grid-cols-1"><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Họ và tên<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.fullName} onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Số điện thoại<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.phoneNumber} onChange={(event) => setForm((current) => ({ ...current, phoneNumber: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Ngày sinh<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" type="date" value={form.dateOfBirth} onChange={(event) => setForm((current) => ({ ...current, dateOfBirth: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Email<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-bg-slate-50 tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#71819a]" value={email} readOnly /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Giới tính<select className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))}><option value="">Chưa chọn</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">CMND/CCCD<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.identifyCard} onChange={(event) => setForm((current) => ({ ...current, identifyCard: event.target.value }))} /></label><div className="tw-col-span-3 max-[640px]:tw-col-span-1"><VietnamAddressPicker compact label="Địa chỉ liên hệ" mode="auto" value={form.structuredAddress} onChange={(structuredAddress) => setForm((current) => ({ ...current, structuredAddress }))} />{form.address && !form.structuredAddress.provinceCode ? <p className="tw-mt-2 tw-text-xs tw-font-semibold tw-text-amber-700">Địa chỉ cũ: {form.address}. Vui lòng chọn lại theo danh mục địa giới.</p> : null}</div></div>
+      <section className={`${panelClass} tw-mt-4`}><h2 className={panelTitleClass}><i className="far fa-file-alt" /> Thông tin cá nhân</h2><div className="tw-grid tw-grid-cols-3 tw-gap-x-6 tw-gap-y-2 [&>label]:tw-min-w-0 max-[640px]:tw-grid-cols-1"><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Họ và tên<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.fullName} onChange={(event) => setForm((current) => ({ ...current, fullName: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Số điện thoại<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.phoneNumber} onChange={(event) => setForm((current) => ({ ...current, phoneNumber: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Ngày sinh<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" type="date" value={form.dateOfBirth} onChange={(event) => setForm((current) => ({ ...current, dateOfBirth: event.target.value }))} /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Email<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-bg-slate-50 tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#71819a]" value={email} readOnly /></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Giới tính<select className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.gender} onChange={(event) => setForm((current) => ({ ...current, gender: event.target.value }))}><option value="">Chưa chọn</option><option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option></select></label><label className="tw-grid tw-gap-1.5 tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">CMND/CCCD<input className="tw-h-8 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce4ef] tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-text-[#223554]" value={form.identifyCard} onChange={(event) => setForm((current) => ({ ...current, identifyCard: event.target.value }))} /></label><div className="tw-col-span-3 max-[640px]:tw-col-span-1"><VietnamAddressPicker compact label="Địa chỉ liên hệ" mode="auto" value={form.structuredAddress} onChange={(structuredAddress) => setForm((current) => ({ ...current, structuredAddress }))} />{form.addressDisplay && !form.structuredAddress.provinceCode ? <p className="tw-mt-2 tw-text-xs tw-font-semibold tw-text-amber-700">Địa chỉ chưa chuẩn hóa: {form.addressDisplay}. Vui lòng chọn lại theo danh mục địa giới.</p> : null}</div></div>
         <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_auto] tw-items-end tw-gap-6 max-[1100px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
           <div className="tw-min-w-0">
             <span className="tw-block tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]">Ảnh đại diện</span>

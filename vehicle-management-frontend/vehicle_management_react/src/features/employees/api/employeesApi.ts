@@ -32,7 +32,6 @@ export type UpdateEmployeeRequest = {
 export type UpdateEmployeeAdminProfileRequest = {
   employee: UpdateEmployeeRequest;
   userProfile: {
-    address?: string | null;
     structuredAddress?: VietnamAddressValue | null;
     dateOfBirth?: string | null;
     fullName?: string | null;
@@ -44,7 +43,6 @@ export type UpdateEmployeeAdminProfileRequest = {
 };
 
 export type UserProfileApiResponse = {
-  address: string | null;
   addressDetail: string | null;
   provinceCode: string | null;
   wardCode: string | null;

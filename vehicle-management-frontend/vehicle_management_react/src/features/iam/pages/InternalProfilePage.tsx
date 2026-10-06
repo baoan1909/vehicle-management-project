@@ -27,7 +27,7 @@ import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 import { todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 type ProfileFormState = {
-  address: string;
+  addressDisplay: string;
   structuredAddress: VietnamAddressValue;
   dateOfBirth: string;
   fullName: string;
@@ -77,7 +77,7 @@ function normalizeGender(value?: string) {
 
 function normalizeProfile(profile: AccountProfileStatusResponse): ProfileFormState {
   return {
-    address: profile.profile?.address ?? "",
+    addressDisplay: profile.profile?.addressDisplay ?? "",
     structuredAddress: {
       provinceCode: profile.profile?.provinceCode ?? "",
       districtCode: profile.profile?.districtCode ?? null,
@@ -103,7 +103,7 @@ function buildFallbackProfile(user: ReturnType<typeof useAuth>["user"]): Account
       username: user?.username ?? "admin"
     },
     profile: {
-      address: "12 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh",
+      addressDisplay: "12 Nguyễn Văn Linh, Quận 7, TP. Hồ Chí Minh",
       avatarUrl: user?.avatarUrl ?? DEFAULT_USER_AVATAR_URL,
       dateOfBirth: "1994-08-18",
       fullName: user?.fullName ?? "Nguyễn Văn Admin",
@@ -583,7 +583,6 @@ export function InternalProfilePage() {
   };
 
   const buildProfilePayload = (): UpdateAccountProfileRequest => ({
-      address: form.address || undefined,
       structuredAddress: form.structuredAddress.provinceCode
         && form.structuredAddress.wardCode
         && form.structuredAddress.addressDetail.trim()
@@ -807,9 +806,9 @@ export function InternalProfilePage() {
                       value={form.structuredAddress}
                       onChange={(structuredAddress) => setForm((current) => ({ ...current, structuredAddress }))}
                     />
-                    {form.address && !form.structuredAddress.provinceCode ? (
+                    {form.addressDisplay && !form.structuredAddress.provinceCode ? (
                       <span className="tw-text-xs tw-font-semibold tw-text-amber-700">
-                        Địa chỉ cũ: {form.address}. Vui lòng chọn lại theo danh mục địa giới.
+                        Địa chỉ chưa chuẩn hóa: {form.addressDisplay}. Vui lòng chọn lại theo danh mục địa giới.
                       </span>
                     ) : null}
                   </div>

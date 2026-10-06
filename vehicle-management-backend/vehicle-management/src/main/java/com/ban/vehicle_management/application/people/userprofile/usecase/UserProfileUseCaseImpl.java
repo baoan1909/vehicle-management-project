@@ -61,7 +61,6 @@ public class UserProfileUseCaseImpl implements UserProfilePortIn {
         existingUserProfile.setDateOfBirth(userProfile.getDateOfBirth());
         existingUserProfile.setGender(userProfile.getGender());
         existingUserProfile.setPhoneNumber(userProfile.getPhoneNumber());
-        existingUserProfile.setAddress(userProfile.getAddress());
         if (userProfile.getStructuredAddress() != null) {
             existingUserProfile.setStructuredAddress(userProfile.getStructuredAddress());
         }

@@ -37,7 +37,7 @@ public record CustomerOnboardingApprovalAdminResponse(
             String phoneNumber,
             LocalDate dateOfBirth,
             String gender,
-            String address,
+            String addressDisplay,
             String identifyCard
     ) {
     }

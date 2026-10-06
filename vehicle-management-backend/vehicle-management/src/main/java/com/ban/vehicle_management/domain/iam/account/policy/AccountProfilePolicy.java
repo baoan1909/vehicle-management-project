@@ -48,10 +48,6 @@ public class AccountProfilePolicy {
         return TextValidationUtils.normalizeNullableText(gender, "gender", 20);
     }
 
-    public String normalizeNullableAddress(String address) {
-        return TextValidationUtils.normalizeNullableText(address, "address", 255);
-    }
-
     public String normalizeNullableIdentifyCard(String identifyCard) {
         return TextValidationUtils.normalizeAlphaNumeric(identifyCard, "identifyCard", 50);
     }
@@ -74,14 +70,14 @@ public class AccountProfilePolicy {
             String phoneNumber,
             LocalDate dateOfBirth,
             String gender,
-            String address,
+            VietnamAddress structuredAddress,
             String identifyCard
     ) {
         if (fullName == null
                 && phoneNumber == null
                 && dateOfBirth == null
                 && gender == null
-                && address == null
+                && structuredAddress == null
                 && identifyCard == null) {
             throw new BadRequestException("At least one profile field must be provided");
         }

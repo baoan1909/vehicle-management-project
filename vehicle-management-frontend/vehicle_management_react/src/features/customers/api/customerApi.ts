@@ -15,7 +15,6 @@ export type CustomerType = "REGISTERED" | "VIP";
 export type CustomerVehicleStatus = "ACTIVE" | "INACTIVE" | "BLOCKED";
 
 export type UserProfileAdminResponse = {
-  address?: string | null;
   addressDetail?: string | null;
   provinceCode?: string | null;
   wardCode?: string | null;
@@ -151,7 +150,6 @@ export type UpdateCustomerAdminProfilePayload = {
     customerType: CustomerType;
   };
   userProfile: {
-    address?: string | null;
     structuredAddress?: VietnamAddressValue | null;
     dateOfBirth?: string | null;
     fullName?: string | null;

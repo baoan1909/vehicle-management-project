@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.SystemAccountIdPortOut;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
-import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.application.notification.notification.usecase.RequiresNewNotificationSender;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.AvatarApprovalPolicyPortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.out.AvatarModerationPortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfileAvatarPortOut;
@@ -44,7 +44,7 @@ class AvatarModerationUseCaseImplTest {
     @Mock private AvatarModerationPortOut moderationPortOut;
     @Mock private UserProfileAvatarPortOut avatarPortOut;
     @Mock private AvatarApprovalPolicyPortOut policyPortOut;
-    @Mock private NotificationPortIn notificationPortIn;
+    @Mock private RequiresNewNotificationSender notificationSender;
     @Mock private StorageUrlResolver storageUrlResolver;
     @Mock private FileStoragePort fileStoragePort;
 
@@ -53,7 +53,7 @@ class AvatarModerationUseCaseImplTest {
     @BeforeEach
     void setUp() {
         useCase = new AvatarModerationUseCaseImpl(currentAccountPortIn, systemAccountIdPortOut,
-                moderationPortOut, avatarPortOut, policyPortOut, notificationPortIn,
+                moderationPortOut, avatarPortOut, policyPortOut, notificationSender,
                 storageUrlResolver, fileStoragePort);
     }
 
@@ -85,7 +85,7 @@ class AvatarModerationUseCaseImplTest {
         assertEquals(ownerId, requestCaptor.getValue().getRequestedBy());
         verify(avatarPortOut, never()).markCurrentAsReplaced(any(UUID.class));
         ArgumentCaptor<SendNotificationCommand> notificationCaptor = ArgumentCaptor.forClass(SendNotificationCommand.class);
-        verify(notificationPortIn).sendWebNotification(notificationCaptor.capture());
+        verify(notificationSender).send(notificationCaptor.capture());
         assertEquals(NotificationType.AVATAR_APPROVAL_SUBMITTED, notificationCaptor.getValue().notificationType());
     }
 

@@ -78,14 +78,43 @@ CREATE TABLE people.user_profiles (
     date_of_birth DATE,
     gender VARCHAR(20),
     phone_number VARCHAR(20) UNIQUE,
-    address TEXT,
+    address_detail TEXT,
+    province_code VARCHAR(20),
+    ward_code VARCHAR(20),
+    district_code VARCHAR(20),
+    address_display TEXT,
     identify_card VARCHAR(20) UNIQUE,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by UUID,
     updated_at TIMESTAMPTZ,
     updated_by UUID,
-    CONSTRAINT ck_user_profiles_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED'))
+    CONSTRAINT ck_user_profiles_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'SUSPENDED')),
+    CONSTRAINT ck_user_profiles_address_structured CHECK (
+        (
+            address_display IS NULL
+            AND address_detail IS NULL
+            AND province_code IS NULL
+            AND ward_code IS NULL
+            AND district_code IS NULL
+        )
+        OR (
+            address_display IS NOT NULL
+            AND (
+                (
+                    address_detail IS NULL
+                    AND province_code IS NULL
+                    AND ward_code IS NULL
+                    AND district_code IS NULL
+                )
+                OR (
+                    address_detail IS NOT NULL
+                    AND province_code IS NOT NULL
+                    AND ward_code IS NOT NULL
+                )
+            )
+        )
+    )
 );
 
 -- Lưu tài khoản đăng nhập, tách riêng với hồ sơ cá nhân.
@@ -1190,7 +1219,7 @@ VALUES
     ('00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000112');
 
 -- Dữ liệu mẫu: hồ sơ người dùng.
-INSERT INTO people.user_profiles (user_profile_id, full_name, date_of_birth, gender, phone_number, address, identify_card, status)
+INSERT INTO people.user_profiles (user_profile_id, full_name, date_of_birth, gender, phone_number, address_display, identify_card, status)
 VALUES
     ('10000000-0000-0000-0000-000000000001', 'Nguyễn Văn Admin', '1988-01-10', 'Nam', '0901000001', 'TP.HCM', '079188000001', 'ACTIVE'),
     ('10000000-0000-0000-0000-000000000002', 'Trần Thị Nhân Viên', '1996-06-15', 'Nữ', '0901000002', 'TP.HCM', '079196000002', 'ACTIVE'),

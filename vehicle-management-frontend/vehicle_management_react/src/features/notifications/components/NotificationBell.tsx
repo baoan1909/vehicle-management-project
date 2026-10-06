@@ -14,6 +14,8 @@ import {
 } from "@/features/notifications/api/notificationApi";
 import { subscribeNotificationRealtime } from "@/features/notifications/api/notificationRealtime";
 import { publishNotificationReceived } from "@/features/notifications/utils/notificationEvents";
+import { getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
+import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import { cn } from "@/lib/cn";
 
 type NotificationBellProps = {
@@ -178,7 +180,7 @@ function normalizeNotificationTarget(notification: NotificationUserResponse, rol
 }
 
 export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
-  const { user } = useAuth();
+  const { setUser, user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -187,6 +189,17 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  const refreshCurrentUserAvatar = useCallback(async () => {
+    try {
+      const response = await getMyAccountProfile();
+      setUser((currentUser) => currentUser
+        ? mergeCurrentUserWithAccountProfile(currentUser, response.data)
+        : currentUser);
+    } catch {
+      // The notification remains visible and can be replayed; a later profile load reconciles the avatar.
+    }
+  }, [setUser]);
 
   const loadNotifications = useCallback(async () => {
     if (!user) return;
@@ -213,6 +226,9 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
     return subscribeNotificationRealtime({
       onNotification: (notification) => {
         publishNotificationReceived(notification);
+        if (["AVATAR_APPROVED", "AVATAR_REJECTED"].includes(notification.notificationType)) {
+          void refreshCurrentUserAvatar();
+        }
         toast.notification(
           notification.message || "Bạn có thông báo mới.",
           notification.title || "Thông báo mới",
@@ -228,7 +244,7 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
         }
       },
     });
-  }, [toast, user]);
+  }, [refreshCurrentUserAvatar, toast, user]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {

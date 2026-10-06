@@ -31,7 +31,7 @@ public class UserProfilePolicy {
         userProfile.setFullName(TextValidationUtils.normalizeRequiredText(userProfile.getFullName(), "fullName", 150));
         userProfile.setGender(TextValidationUtils.normalizeNullableText(userProfile.getGender(), "gender", 20));
         userProfile.setPhoneNumber(TextValidationUtils.normalizePhoneNumber(userProfile.getPhoneNumber(), "phoneNumber", 20));
-        userProfile.setAddress(TextValidationUtils.normalizeNullableText(userProfile.getAddress(), "address", 0));
+        normalizeDisplayOnlyAddress(userProfile);
         userProfile.setIdentifyCard(TextValidationUtils.normalizeAlphaNumeric(userProfile.getIdentifyCard(), "identifyCard", 20));
         if (userProfile.getStatus() == null) {
             userProfile.setStatus(UserProfileStatus.ACTIVE);
@@ -62,7 +62,7 @@ public class UserProfilePolicy {
         userProfile.setFullName(TextValidationUtils.normalizeRequiredText(userProfile.getFullName(), "fullName", 150));
         userProfile.setGender(TextValidationUtils.normalizeNullableText(userProfile.getGender(), "gender", 20));
         userProfile.setPhoneNumber(TextValidationUtils.normalizePhoneNumber(userProfile.getPhoneNumber(), "phoneNumber", 20));
-        userProfile.setAddress(TextValidationUtils.normalizeNullableText(userProfile.getAddress(), "address", 0));
+        normalizeDisplayOnlyAddress(userProfile);
         userProfile.setIdentifyCard(TextValidationUtils.normalizeAlphaNumeric(userProfile.getIdentifyCard(), "identifyCard", 20));
         requireField(userProfile.getStatus(), "status");
 
@@ -79,6 +79,16 @@ public class UserProfilePolicy {
         if (structuredAddress != null && vietnamAddressPolicy != null) {
             vietnamAddressPolicy.validateAndBuildDisplay(structuredAddress);
             userProfile.setStructuredAddress(structuredAddress);
+        }
+    }
+
+    private void normalizeDisplayOnlyAddress(UserProfile userProfile) {
+        if (userProfile.getStructuredAddress() == null) {
+            userProfile.setAddressDisplay(TextValidationUtils.normalizeNullableText(
+                    userProfile.getAddressDisplay(),
+                    "addressDisplay",
+                    0
+            ));
         }
     }
 
