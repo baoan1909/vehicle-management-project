@@ -3,6 +3,7 @@ import { apiClient } from "@/core/api/apiClient";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
 import { localizeApiMessage, localizeApiResponseBody } from "@/core/api/apiMessage";
 import { getValidAccessToken, refreshAccessToken } from "@/core/auth/tokenRefresh";
+import type { VietnamAddressValue } from "@/components/ui";
 
 type ApiResponse<T> = {
   data: T;
@@ -38,7 +39,11 @@ export type AccountProfileStatusResponse = {
   };
   onboardingRequired: boolean;
   profile?: {
-    address?: string;
+    addressDetail?: string;
+    provinceCode?: string;
+    wardCode?: string;
+    districtCode?: string | null;
+    addressDisplay?: string;
     avatarUrl?: string;
     dateOfBirth?: string;
     fullName?: string;
@@ -51,13 +56,25 @@ export type AccountProfileStatusResponse = {
 };
 
 export type UpdateAccountProfileRequest = {
-  address?: string;
+  structuredAddress?: VietnamAddressValue;
   avatarUrl?: string;
   dateOfBirth?: string;
   fullName?: string;
   gender?: string;
   identifyCard?: string;
   phoneNumber?: string;
+};
+
+export type AvatarModerationStatus = {
+  avatarId: string;
+  approvalRequestId: string;
+  userProfileId: string;
+  ownerAccountId: string;
+  approvalStatus: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
+  reviewNote?: string | null;
+  displayedAvatarUrl?: string | null;
+  candidatePreviewUrl?: string | null;
+  submittedAt: string;
 };
 
 export type CompleteAccountProfileRequest = UpdateAccountProfileRequest;
@@ -116,6 +133,12 @@ export async function uploadMyAccountAvatar(file: File) {
   }
 
   return localizeApiResponseBody(responseBody, response.status) as ApiResponse<AccountProfileStatusResponse>;
+}
+
+export async function getMyAvatarModerationStatus() {
+  return apiClient<ApiResponse<AvatarModerationStatus | null>>(
+    apiEndpoints.iam.accountProfile.avatarStatus,
+  );
 }
 
 function sendAvatarUploadRequest(formData: FormData, accessToken: string | null) {

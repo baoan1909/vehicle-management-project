@@ -4,6 +4,8 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
+import com.ban.vehicle_management.domain.shared.address.VietnamAddress;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
@@ -35,6 +38,9 @@ class UserProfileUseCaseImplTest {
     @Mock
     private UserProfileAvatarPortIn userProfileAvatarPortIn;
 
+    @Spy
+    private UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
+
     @InjectMocks
     private UserProfileUseCaseImpl userProfileUseCase;
 
@@ -52,7 +58,7 @@ class UserProfileUseCaseImplTest {
         requestUserProfile.setFullName("  Nguyen Van A  ");
         requestUserProfile.setGender(" male ");
         requestUserProfile.setPhoneNumber(" 0901234567 ");
-        requestUserProfile.setAddress("  Ho Chi Minh City ");
+        requestUserProfile.setAddressDisplay("  Ho Chi Minh City ");
         requestUserProfile.setIdentifyCard(" 079123456789 ");
         requestUserProfile.setAvatarUrl(" https://example.com/avatar.jpg ");
         requestUserProfile.setDateOfBirth(LocalDate.of(1995, 1, 10));
@@ -66,7 +72,7 @@ class UserProfileUseCaseImplTest {
         assertEquals("Nguyen Van A", createdUserProfile.getFullName());
         assertEquals("male", createdUserProfile.getGender());
         assertEquals("0901234567", createdUserProfile.getPhoneNumber());
-        assertEquals("Ho Chi Minh City", createdUserProfile.getAddress());
+        assertEquals("Ho Chi Minh City", createdUserProfile.getAddressDisplay());
         assertEquals("079123456789", createdUserProfile.getIdentifyCard());
         assertNull(createdUserProfile.getAvatarUrl());
         assertEquals(UserProfileStatus.ACTIVE, createdUserProfile.getStatus());
@@ -106,7 +112,7 @@ class UserProfileUseCaseImplTest {
         existingUserProfile.setDateOfBirth(LocalDate.of(1995, 1, 10));
         existingUserProfile.setGender("male");
         existingUserProfile.setPhoneNumber("0901234567");
-        existingUserProfile.setAddress("Old address");
+        existingUserProfile.setAddressDisplay("Old address");
         existingUserProfile.setIdentifyCard("079123456789");
         existingUserProfile.setAvatarUrl("https://example.com/old.jpg");
         existingUserProfile.setStatus(UserProfileStatus.ACTIVE);
@@ -116,7 +122,13 @@ class UserProfileUseCaseImplTest {
         requestUserProfile.setDateOfBirth(LocalDate.of(1998, 6, 15));
         requestUserProfile.setGender("female");
         requestUserProfile.setPhoneNumber("0912345678");
-        requestUserProfile.setAddress("New address");
+        requestUserProfile.setStructuredAddress(new VietnamAddress(
+                "79",
+                "760",
+                "26740",
+                "New address",
+                "New address"
+        ));
         requestUserProfile.setIdentifyCard("012345678901");
         requestUserProfile.setAvatarUrl("https://example.com/new.jpg");
         requestUserProfile.setStatus(UserProfileStatus.SUSPENDED);
@@ -132,7 +144,7 @@ class UserProfileUseCaseImplTest {
         assertEquals(LocalDate.of(1998, 6, 15), updatedUserProfile.getDateOfBirth());
         assertEquals("female", updatedUserProfile.getGender());
         assertEquals("0912345678", updatedUserProfile.getPhoneNumber());
-        assertEquals("New address", updatedUserProfile.getAddress());
+        assertEquals("New address", updatedUserProfile.getAddressDisplay());
         assertEquals("012345678901", updatedUserProfile.getIdentifyCard());
         assertEquals("https://example.com/old.jpg", updatedUserProfile.getAvatarUrl());
         assertEquals(UserProfileStatus.SUSPENDED, updatedUserProfile.getStatus());

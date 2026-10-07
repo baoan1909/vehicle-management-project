@@ -16,6 +16,7 @@ import com.ban.vehicle_management.application.people.userprofile.port.in.UserPro
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
@@ -51,6 +53,9 @@ class CustomerAdminProfileUseCaseImplTest {
 
     @Mock
     private UserProfileAvatarPortIn userProfileAvatarPortIn;
+
+    @Spy
+    private UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
 
     @InjectMocks
     private CustomerAdminProfileUseCaseImpl customerAdminProfileUseCase;
@@ -148,7 +153,7 @@ class CustomerAdminProfileUseCaseImplTest {
         userProfile.setDateOfBirth(LocalDate.of(1995, 1, 10));
         userProfile.setGender("male");
         userProfile.setPhoneNumber("0901234567");
-        userProfile.setAddress("Ho Chi Minh City");
+        userProfile.setAddressDisplay("Ho Chi Minh City");
         userProfile.setIdentifyCard("079123456789");
         userProfile.setAvatarUrl("https://example.com/avatar.jpg");
         userProfile.setStatus(UserProfileStatus.ACTIVE);

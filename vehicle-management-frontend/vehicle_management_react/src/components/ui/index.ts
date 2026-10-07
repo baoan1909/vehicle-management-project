@@ -18,4 +18,6 @@ export { SearchInput } from "./SearchInput";
 export { SelectMenu } from "./SelectMenu";
 export { StatusTabs } from "./StatusTabs";
 export { ToastProvider, useToast } from "./ToastProvider";
+export { VietnamAddressPicker } from "./VietnamAddressPicker";
 export type { SelectMenuOption } from "./SelectMenu";
+export type { VietnamAddressValue } from "./VietnamAddressPicker";

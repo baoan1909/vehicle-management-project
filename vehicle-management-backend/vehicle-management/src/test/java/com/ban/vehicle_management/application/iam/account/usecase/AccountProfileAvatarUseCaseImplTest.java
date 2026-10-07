@@ -14,6 +14,7 @@ import com.ban.vehicle_management.application.iam.account.model.result.AccountPr
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
+import com.ban.vehicle_management.application.operations.approvalrequest.port.in.CustomerOnboardingApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
@@ -47,6 +48,9 @@ class AccountProfileAvatarUseCaseImplTest {
 
     @Mock
     private CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
+
+    @Mock
+    private CustomerOnboardingApprovalPortIn customerOnboardingApprovalPortIn;
 
     @Mock
     private InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
@@ -97,6 +101,12 @@ class AccountProfileAvatarUseCaseImplTest {
         verify(userProfileAvatarPortIn).uploadAvatar(userProfileId, file, accountId);
         verify(accountProfilePortOut, never()).updateProfile(eq(accountId), any(UserProfile.class));
         assertEquals(publicAvatar, result.profile().avatarUrl());
+        assertEquals("25 Nguyễn Đỗ Cung", result.profile().addressDetail());
+        assertEquals("79", result.profile().provinceCode());
+        assertEquals("760", result.profile().districtCode());
+        assertEquals("26740", result.profile().wardCode());
+        assertEquals("25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh",
+                result.profile().addressDisplay());
     }
 
     @Test
@@ -202,7 +212,11 @@ class AccountProfileAvatarUseCaseImplTest {
                         LocalDate.of(2003, 9, 19),
                         "MALE",
                         "0901234567",
-                        "Ho Chi Minh City",
+                        "25 Nguyễn Đỗ Cung",
+                        "79",
+                        "26740",
+                        "760",
+                        "25 Nguyễn Đỗ Cung, Phường Tây Thạnh, Quận Tân Phú, Thành phố Hồ Chí Minh",
                         "079203001234",
                         avatarUrl,
                         "ACTIVE"

@@ -33,7 +33,7 @@ class CustomerApiMapperTest {
         userProfile.setDateOfBirth(LocalDate.of(1998, 3, 20));
         userProfile.setGender("Male");
         userProfile.setPhoneNumber("0987001002");
-        userProfile.setAddress("Thu Duc, Ho Chi Minh City");
+        userProfile.setAddressDisplay("Thu Duc, Ho Chi Minh City");
         userProfile.setIdentifyCard("079123450254");
         userProfile.setAvatarUrl("https://cdn.example.com/customer-avatar.png");
         userProfile.setStatus(UserProfileStatus.ACTIVE);

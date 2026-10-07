@@ -48,7 +48,10 @@ export type NotificationType =
   | "INTERNAL_EMPLOYEE_RESUBMITTED"
   | "SYSTEM_ADMIN_APPROVED"
   | "SYSTEM_ADMIN_REJECTED"
-  | "SYSTEM_ADMIN_RESUBMITTED";
+  | "SYSTEM_ADMIN_RESUBMITTED"
+  | "AVATAR_APPROVAL_SUBMITTED"
+  | "AVATAR_APPROVED"
+  | "AVATAR_REJECTED";
 
 export type NotificationStatus = "PENDING" | "SENT" | "READ" | "FAILED";
 export type NotificationChannel = "WEB" | "EMAIL" | "PUSH" | "SMS";

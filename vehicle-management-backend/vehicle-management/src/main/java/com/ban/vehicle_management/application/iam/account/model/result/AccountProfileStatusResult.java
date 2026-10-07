@@ -38,11 +38,42 @@ public record AccountProfileStatusResult(
             LocalDate dateOfBirth,
             String gender,
             String phoneNumber,
-            String address,
+            String addressDetail,
+            String provinceCode,
+            String wardCode,
+            String districtCode,
+            String addressDisplay,
             String identifyCard,
             String avatarUrl,
             String userProfileStatus
     ) {
+        public ProfileInfoResult(
+                UUID userProfileId,
+                String fullName,
+                LocalDate dateOfBirth,
+                String gender,
+                String phoneNumber,
+                String addressDisplay,
+                String identifyCard,
+                String avatarUrl,
+                String userProfileStatus
+        ) {
+            this(
+                    userProfileId,
+                    fullName,
+                    dateOfBirth,
+                    gender,
+                    phoneNumber,
+                    null,
+                    null,
+                    null,
+                    null,
+                    addressDisplay,
+                    identifyCard,
+                    avatarUrl,
+                    userProfileStatus
+            );
+        }
     }
 
     public record EmployeeInfoResult(

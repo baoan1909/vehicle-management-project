@@ -10,8 +10,29 @@ public record CustomerOnboardingApprovalCandidate(
         UUID userProfileId,
         UUID customerId,
         String roleCode,
+        String keycloakUserId,
         AccountStatus accountStatus,
         CustomerStatus customerStatus,
         CustomerApprovalStatus customerApprovalStatus
 ) {
+    public CustomerOnboardingApprovalCandidate(
+            UUID accountId,
+            UUID userProfileId,
+            UUID customerId,
+            String roleCode,
+            AccountStatus accountStatus,
+            CustomerStatus customerStatus,
+            CustomerApprovalStatus customerApprovalStatus
+    ) {
+        this(
+                accountId,
+                userProfileId,
+                customerId,
+                roleCode,
+                null,
+                accountStatus,
+                customerStatus,
+                customerApprovalStatus
+        );
+    }
 }

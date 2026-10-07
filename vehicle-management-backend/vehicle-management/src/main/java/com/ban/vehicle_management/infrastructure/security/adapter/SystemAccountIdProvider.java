@@ -1,9 +1,7 @@
 package com.ban.vehicle_management.infrastructure.security.adapter;
 
-import java.util.UUID;
+import com.ban.vehicle_management.application.iam.account.port.out.SystemAccountIdPortOut;
 
-public interface SystemAccountIdProvider {
-
-    UUID getSystemAccountId();
+public interface SystemAccountIdProvider extends SystemAccountIdPortOut {
 }
 

@@ -1,5 +1,6 @@
 import { apiClient } from "@/core/api/apiClient";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
+import type { VietnamAddressValue } from "@/components/ui";
 
 type ApiResponse<T> = {
   data: T;
@@ -14,7 +15,11 @@ export type CustomerType = "REGISTERED" | "VIP";
 export type CustomerVehicleStatus = "ACTIVE" | "INACTIVE" | "BLOCKED";
 
 export type UserProfileAdminResponse = {
-  address?: string | null;
+  addressDetail?: string | null;
+  provinceCode?: string | null;
+  wardCode?: string | null;
+  districtCode?: string | null;
+  addressDisplay?: string | null;
   avatarUrl?: string | null;
   createdAt?: string | null;
   dateOfBirth?: string | null;
@@ -145,7 +150,7 @@ export type UpdateCustomerAdminProfilePayload = {
     customerType: CustomerType;
   };
   userProfile: {
-    address?: string | null;
+    structuredAddress?: VietnamAddressValue | null;
     dateOfBirth?: string | null;
     fullName?: string | null;
     gender?: string | null;

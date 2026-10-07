@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.iam.partnerregistration.usecase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -15,24 +16,39 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.iam.account.port.out.AccountRegistrationPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
-import com.ban.vehicle_management.application.iam.organization.port.in.OrganizationPortIn;
+import com.ban.vehicle_management.application.iam.account.port.out.SystemAccountIdPortOut;
+import com.ban.vehicle_management.application.catalog.seed.port.out.PartnerCatalogSeedPortOut;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.command.CreatePartnerRegistrationCommand;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.command.ReviewPartnerRegistrationCommand;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.result.PartnerRegistrationSubmissionResult;
 import com.ban.vehicle_management.application.iam.partnerregistration.port.out.PartnerRegistrationPortOut;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.application.operations.approvalrequest.usecase.OnboardingApprovalPolicyEvaluator;
+import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
+import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.iam.account.policy.PublicAuthPolicy;
 import com.ban.vehicle_management.domain.iam.organization.model.Organization;
+import com.ban.vehicle_management.domain.iam.partnerregistration.policy.PartnerApprovalValidator;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
+import com.ban.vehicle_management.domain.operations.approvalrequest.model.OnboardingApprovalPolicy;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.people.userprofile.model.UserProfileAvatar;
+import com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy;
+import com.ban.vehicle_management.domain.iam.organization.policy.OrganizationPolicy;
 import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.OnboardingApprovalPolicyType;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileAvatarStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -53,10 +69,17 @@ class PartnerRegistrationUseCaseImplTest {
     @Mock private AccountRegistrationPortOut accountRegistrationPortOut;
     @Mock private IdentityProviderAdminPortOut identityProviderAdminPortOut;
     @Mock private ProvisionedAccountPortOut provisionedAccountPortOut;
-    @Mock private OrganizationPortIn organizationPortIn;
+    @Mock private SystemAccountIdPortOut systemAccountIdPortOut;
     @Mock private OrganizationPortOut organizationPortOut;
+    @Mock private PartnerCatalogSeedPortOut partnerCatalogSeedPortOut;
+    @Mock private OnboardingApprovalPolicyEvaluator onboardingApprovalPolicyEvaluator;
     @Mock private VehicleMailService vehicleMailService;
     @Mock private NotificationPortIn notificationPortIn;
+    @Mock private com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut userProfilePortOut;
+    @Mock private com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn userProfileAvatarPortIn;
+    @Mock private com.ban.vehicle_management.domain.people.userprofile.policy.UserProfilePolicy userProfilePolicy;
+    @Mock private com.ban.vehicle_management.domain.iam.organization.policy.OrganizationPolicy organizationPolicy;
+    @Mock private com.ban.vehicle_management.domain.iam.partnerregistration.policy.PartnerApprovalValidator partnerApprovalValidator;
 
     private PartnerRegistrationUseCaseImpl useCase;
 
@@ -68,11 +91,18 @@ class PartnerRegistrationUseCaseImplTest {
                 accountRegistrationPortOut,
                 identityProviderAdminPortOut,
                 provisionedAccountPortOut,
-                organizationPortIn,
+                systemAccountIdPortOut,
                 organizationPortOut,
+                partnerCatalogSeedPortOut,
+                onboardingApprovalPolicyEvaluator,
                 new PublicAuthPolicy(),
                 vehicleMailService,
-                notificationPortIn
+                notificationPortIn,
+                userProfilePortOut,
+                userProfileAvatarPortIn,
+                userProfilePolicy,
+                organizationPolicy,
+                partnerApprovalValidator
         );
     }
 
@@ -144,16 +174,29 @@ class PartnerRegistrationUseCaseImplTest {
     void shouldAllowNonSystemAdminReviewerWithOrganizationCreatePermission() {
         UUID reviewerId = UUID.randomUUID();
         UUID applicantId = UUID.randomUUID();
-        ApprovalRequest approval = pendingApproval(applicantId);
+        UUID userProfileId = UUID.randomUUID();
+        ApprovalRequest approval = pendingApproval(applicantId, userProfileId);
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(reviewerId);
         when(partnerRegistrationPortOut.findByIdForUpdate(approval.getApprovalRequestId()))
                 .thenReturn(Optional.of(approval));
         when(provisionedAccountPortOut.findProvisionedAccountById(applicantId))
-                .thenReturn(Optional.of(pendingPartnerApplicant(applicantId)));
+                .thenReturn(Optional.of(pendingPartnerApplicant(applicantId, userProfileId)));
         when(identityProviderAdminPortOut.isEmailVerified("partner-keycloak-id")).thenReturn(true);
         Organization organization = new Organization();
         organization.setOrganizationId(UUID.randomUUID());
-        when(organizationPortIn.createOrganization(any(), eq(applicantId))).thenReturn(organization);
+        when(organizationPortOut.save(any())).thenReturn(organization);
+
+        // Mock user profile with all required fields
+        UserProfile userProfile = completeUserProfile(userProfileId);
+        when(userProfilePortOut.findById(userProfileId)).thenReturn(Optional.of(userProfile));
+
+        // Mock active avatar
+        UserProfileAvatar avatar = new UserProfileAvatar();
+        avatar.setAvatarId(UUID.randomUUID());
+        avatar.setUserProfileId(userProfileId);
+        avatar.setStatus(UserProfileAvatarStatus.ACTIVE);
+        avatar.setCurrent(true);
+        when(userProfileAvatarPortIn.findAllByUserProfileId(userProfileId)).thenReturn(List.of(avatar));
 
         useCase.approveRegistration(approval.getApprovalRequestId(), new ReviewPartnerRegistrationCommand("Đủ điều kiện"));
 
@@ -161,19 +204,20 @@ class PartnerRegistrationUseCaseImplTest {
         verify(provisionedAccountPortOut).updateProvisionedAccountStatus(
                 eq(applicantId), eq(AccountStatus.ACTIVE), any(), eq(null), eq(null), eq(reviewerId), any()
         );
-        verify(organizationPortIn).createOrganization(any(), eq(applicantId));
+        verify(organizationPortOut).createActiveMembership(organization.getOrganizationId(), applicantId);
         assertEquals(ApprovalRequestStatus.APPROVED, approval.getStatus());
     }
 
     @Test
     void shouldRejectApprovalWhenApplicantEmailIsNotVerified() {
         UUID applicantId = UUID.randomUUID();
-        ApprovalRequest approval = pendingApproval(applicantId);
+        UUID userProfileId = UUID.randomUUID();
+        ApprovalRequest approval = pendingApproval(applicantId, userProfileId);
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
         when(partnerRegistrationPortOut.findByIdForUpdate(approval.getApprovalRequestId()))
                 .thenReturn(Optional.of(approval));
         when(provisionedAccountPortOut.findProvisionedAccountById(applicantId))
-                .thenReturn(Optional.of(pendingPartnerApplicant(applicantId)));
+                .thenReturn(Optional.of(pendingPartnerApplicant(applicantId, userProfileId)));
 
         assertThrows(
                 ConflictException.class,
@@ -181,7 +225,54 @@ class PartnerRegistrationUseCaseImplTest {
         );
 
         verify(provisionedAccountPortOut, never()).updateProvisionedAccountStatus(any(), any(), any(), any(), any(), any(), any());
-        verify(organizationPortIn, never()).createOrganization(any(), any());
+        verify(organizationPortOut, never()).save(any());
+    }
+
+    @Test
+    void shouldAutoApproveEligibleVerifiedPartnerUsingSystemActor() {
+        UUID applicantId = UUID.randomUUID();
+        UUID systemAccountId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+        ApprovalRequest approval = pendingApproval(applicantId, userProfileId);
+        OnboardingApprovalPolicy policy = enabledPartnerPolicy(approval.getCreatedAt().minusSeconds(1));
+        Organization organization = new Organization();
+        organization.setOrganizationId(UUID.randomUUID());
+
+        when(partnerRegistrationPortOut.findByIdForUpdate(approval.getApprovalRequestId()))
+                .thenReturn(Optional.of(approval));
+        when(onboardingApprovalPolicyEvaluator.findEligiblePolicy(
+                OnboardingApprovalPolicyType.PARTNER_REGISTRATION,
+                approval.getCreatedAt()
+        )).thenReturn(Optional.of(policy));
+        when(provisionedAccountPortOut.findProvisionedAccountById(applicantId))
+                .thenReturn(Optional.of(pendingPartnerApplicant(applicantId, userProfileId)));
+        when(identityProviderAdminPortOut.isEmailVerified("partner-keycloak-id")).thenReturn(true);
+        when(systemAccountIdPortOut.getSystemAccountId()).thenReturn(systemAccountId);
+        when(organizationPortOut.save(any())).thenReturn(organization);
+
+        // Mock user profile with all required fields
+        UserProfile userProfile = completeUserProfile(userProfileId);
+        when(userProfilePortOut.findById(userProfileId)).thenReturn(Optional.of(userProfile));
+
+        // Mock active avatar
+        UserProfileAvatar avatar = new UserProfileAvatar();
+        avatar.setAvatarId(UUID.randomUUID());
+        avatar.setUserProfileId(userProfileId);
+        avatar.setStatus(UserProfileAvatarStatus.ACTIVE);
+        avatar.setCurrent(true);
+        when(userProfileAvatarPortIn.findAllByUserProfileId(userProfileId)).thenReturn(List.of(avatar));
+
+        var result = useCase.tryAutoApproveRegistration(approval.getApprovalRequestId());
+
+        assertTrue(result.isPresent());
+        assertEquals(ApprovalRequestStatus.APPROVED, approval.getStatus());
+        assertEquals("AUTO", approval.getDecisionData().get("decisionMode"));
+        verify(provisionedAccountPortOut).updateProvisionedAccountStatus(
+                eq(applicantId), eq(AccountStatus.ACTIVE), any(), eq(null), eq(null), eq(systemAccountId), any()
+        );
+        verify(organizationPortOut).createActiveMembership(organization.getOrganizationId(), applicantId);
+        verify(partnerCatalogSeedPortOut).copyInternalCatalog(organization.getOrganizationId());
+        verify(currentAccountPortIn, never()).getCurrentAccountIdOrThrow();
     }
 
     @Test
@@ -238,9 +329,14 @@ class PartnerRegistrationUseCaseImplTest {
     }
 
     private ProvisionedAccountResult pendingPartnerApplicant(UUID accountId) {
+        return pendingPartnerApplicant(accountId, UUID.randomUUID());
+    }
+
+    private ProvisionedAccountResult pendingPartnerApplicant(UUID accountId, UUID userProfileId) {
         return new ProvisionedAccountResult(
                 new ProvisionedAccountResult.AccountInfoResult(
                         accountId,
+                        userProfileId,
                         "partner-keycloak-id",
                         "partner.admin",
                         "partner@example.com",
@@ -258,6 +354,10 @@ class PartnerRegistrationUseCaseImplTest {
     }
 
     private ApprovalRequest pendingApproval(UUID applicantId) {
+        return pendingApproval(applicantId, UUID.randomUUID());
+    }
+
+    private ApprovalRequest pendingApproval(UUID applicantId, UUID userProfileId) {
         ApprovalRequest approval = new ApprovalRequest();
         approval.setApprovalRequestId(UUID.randomUUID());
         approval.setRequestType(PartnerRegistrationUseCaseImpl.REQUEST_TYPE);
@@ -273,9 +373,39 @@ class PartnerRegistrationUseCaseImplTest {
                 "organizationName", "Bãi xe ABC",
                 "representativeName", "Nguyễn Văn A",
                 "email", "partner@example.com",
-                "phoneNumber", "0901234567"
+                "phoneNumber", "0901234567",
+                "organizationAddressDetail", "123 Đường ABC",
+                "organizationWardCode", "ward-001",
+                "organizationDistrictCode", "district-001",
+                "organizationAddressDisplay", "123 Đường ABC, Phường ABC, Quận ABC, Thành phố ABC"
         ));
         return approval;
+    }
+
+    private UserProfile completeUserProfile(UUID userProfileId) {
+        UserProfile userProfile = new UserProfile();
+        userProfile.setUserProfileId(userProfileId);
+        userProfile.setFullName("Nguyễn Văn A");
+        userProfile.setDateOfBirth(java.time.LocalDate.of(1990, 1, 1));
+        userProfile.setGender("Nam");
+        userProfile.setPhoneNumber("0901234567");
+        userProfile.setIdentifyCard("123456789012");
+        userProfile.setAddressDetail("123 Đường ABC");
+        userProfile.setWardCode("ward-001");
+        userProfile.setDistrictCode("district-001");
+        userProfile.setAddressDisplay("123 Đường ABC, Phường ABC, Quận ABC, Thành phố ABC");
+        userProfile.setStatus(UserProfileStatus.ACTIVE);
+        return userProfile;
+    }
+
+    private OnboardingApprovalPolicy enabledPartnerPolicy(Instant effectiveFrom) {
+        OnboardingApprovalPolicy policy = new OnboardingApprovalPolicy();
+        policy.setPolicyId(UUID.randomUUID());
+        policy.setPolicyType(OnboardingApprovalPolicyType.PARTNER_REGISTRATION);
+        policy.setAutoApproveEnabled(true);
+        policy.setEffectiveFrom(effectiveFrom);
+        policy.setVersion(1L);
+        return policy;
     }
 
     @SuppressWarnings("unused")

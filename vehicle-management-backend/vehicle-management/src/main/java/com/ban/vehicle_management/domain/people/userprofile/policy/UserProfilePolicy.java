@@ -1,20 +1,37 @@
 package com.ban.vehicle_management.domain.people.userprofile.policy;
 
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.shared.address.VietnamAddress;
+import com.ban.vehicle_management.domain.shared.address.VietnamAddressPolicy;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.LocalDate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+@Component
 public class UserProfilePolicy {
+
+    private final VietnamAddressPolicy vietnamAddressPolicy;
+
+    @Autowired
+    public UserProfilePolicy(VietnamAddressPolicy vietnamAddressPolicy) {
+        this.vietnamAddressPolicy = vietnamAddressPolicy;
+    }
+
+    // Constructor for backward compatibility - VietnamAddressPolicy is optional
+    public UserProfilePolicy() {
+        this.vietnamAddressPolicy = null;
+    }
 
     public void initialize(UserProfile userProfile) {
         requireUserProfile(userProfile);
         userProfile.setFullName(TextValidationUtils.normalizeRequiredText(userProfile.getFullName(), "fullName", 150));
         userProfile.setGender(TextValidationUtils.normalizeNullableText(userProfile.getGender(), "gender", 20));
         userProfile.setPhoneNumber(TextValidationUtils.normalizePhoneNumber(userProfile.getPhoneNumber(), "phoneNumber", 20));
-        userProfile.setAddress(TextValidationUtils.normalizeNullableText(userProfile.getAddress(), "address", 0));
+        normalizeDisplayOnlyAddress(userProfile);
         userProfile.setIdentifyCard(TextValidationUtils.normalizeAlphaNumeric(userProfile.getIdentifyCard(), "identifyCard", 20));
         if (userProfile.getStatus() == null) {
             userProfile.setStatus(UserProfileStatus.ACTIVE);
@@ -45,13 +62,33 @@ public class UserProfilePolicy {
         userProfile.setFullName(TextValidationUtils.normalizeRequiredText(userProfile.getFullName(), "fullName", 150));
         userProfile.setGender(TextValidationUtils.normalizeNullableText(userProfile.getGender(), "gender", 20));
         userProfile.setPhoneNumber(TextValidationUtils.normalizePhoneNumber(userProfile.getPhoneNumber(), "phoneNumber", 20));
-        userProfile.setAddress(TextValidationUtils.normalizeNullableText(userProfile.getAddress(), "address", 0));
+        normalizeDisplayOnlyAddress(userProfile);
         userProfile.setIdentifyCard(TextValidationUtils.normalizeAlphaNumeric(userProfile.getIdentifyCard(), "identifyCard", 20));
         requireField(userProfile.getStatus(), "status");
 
         if (userProfile.getDateOfBirth() != null
                 && userProfile.getDateOfBirth().isAfter(LocalDate.now(DateTimeUtils.getAppZone()))) {
             throw new BadRequestException("dateOfBirth must not be in the future");
+        }
+
+        validateStructuredAddress(userProfile);
+    }
+
+    private void validateStructuredAddress(UserProfile userProfile) {
+        VietnamAddress structuredAddress = userProfile.getStructuredAddress();
+        if (structuredAddress != null && vietnamAddressPolicy != null) {
+            vietnamAddressPolicy.validateAndBuildDisplay(structuredAddress);
+            userProfile.setStructuredAddress(structuredAddress);
+        }
+    }
+
+    private void normalizeDisplayOnlyAddress(UserProfile userProfile) {
+        if (userProfile.getStructuredAddress() == null) {
+            userProfile.setAddressDisplay(TextValidationUtils.normalizeNullableText(
+                    userProfile.getAddressDisplay(),
+                    "addressDisplay",
+                    0
+            ));
         }
     }
 

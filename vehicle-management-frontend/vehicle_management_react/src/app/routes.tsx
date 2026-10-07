@@ -17,6 +17,7 @@ import {
   ProfilePage,
   PartnerRegistrationPage,
   PartnerApplicationStatusPage,
+  PartnerProfileCompletionPage,
   SubscriptionPage,
   SupportPage,
   VehiclePage,
@@ -25,7 +26,7 @@ import { CustomerFormPage, CustomerListPage } from "@/features/customers";
 import { DashboardPage } from "@/features/dashboard";
 import { EmployeeListPage, ShiftSchedulePage } from "@/features/employees";
 import { DeviceManagementPage } from "@/features/hardware";
-import { AccountFormPage, AccountListPage, InternalProfilePage, PartnerRegistrationManagementPage, RoleFormPage, RoleListPage } from "@/features/iam";
+import { AccountFormPage, AccountListPage, AvatarApprovalManagementPage, InternalProfilePage, PartnerRegistrationManagementPage, RoleFormPage, RoleListPage } from "@/features/iam";
 import { AiKnowledgeAdminPage, AiModelManagementPage } from "@/features/ai";
 import { AnnouncementManagementPage } from "@/features/notifications";
 import { NearbyParkingLotsPage, ParkingOperationsPage, ParkingSessionPage, SwipeEntryPage, SwipeListPage } from "@/features/parking";
@@ -71,6 +72,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/account", title: "Tài khoản", layout: "admin", element: <AccountListPage /> },
   { path: "/admin/account/form", title: "Thong tin tai khoan", layout: "admin", element: <AccountFormPage /> },
   { path: "/admin/partner-registrations", title: "Duyệt đăng ký đối tác", layout: "admin", element: <PartnerRegistrationManagementPage /> },
+  { path: "/admin/avatar-approvals", title: "Duyệt ảnh đại diện", layout: "admin", element: <AvatarApprovalManagementPage /> },
   { path: "/admin/onboarding-approvals", title: "Duyet onboarding", layout: "admin", element: <Navigate to="/admin/account?tab=onboarding" replace /> },
   { path: "/admin/profile", title: "Thong tin tai khoan ca nhan", layout: "admin", element: <InternalProfilePage /> },
   { path: "/admin/customer", title: "Quản lý khách hàng", layout: "admin", element: <CustomerListPage /> },
@@ -89,8 +91,9 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },
   { path: "/guide", title: "Huong dan", layout: "client", element: <GuidePage /> },
   { path: "/contact", title: "Lien he", layout: "client", element: <ContactPage /> },
-  { path: "/become-a-partner", title: "Trở thành đối tác CoParking", layout: "auth", element: <PartnerRegistrationPage /> },
+{ path: "/become-a-partner", title: "Trở thành đối tác CoParking", layout: "auth", element: <PartnerRegistrationPage /> },
   { path: "/partner/application-status", title: "Trạng thái hồ sơ đối tác", layout: "client", element: <PartnerApplicationStatusPage /> },
+  { path: "/partner/profile-completion", title: "Hoàn thiện hồ sơ đối tác", layout: "client", element: <PartnerProfileCompletionPage /> },
   { path: "/payment/vnpay-return", title: "Ket qua thanh toan", layout: "client", element: <VnpayReturnPage /> },
   { path: "/customerTicket/customer-infor", title: "Lich su gui xe", layout: "client", element: <CustomerHistoryPage /> },
   { path: "/customerTicket/customer-infor-detail", title: "Thong tin tai khoan", layout: "client", element: <ProfilePage /> },

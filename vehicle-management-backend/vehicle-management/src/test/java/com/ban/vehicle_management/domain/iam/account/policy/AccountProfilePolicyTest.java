@@ -17,7 +17,6 @@ class AccountProfilePolicyTest {
         assertEquals("Nguyen Bao An", policy.normalizeNullableFullName("  Nguyen Bao An  "));
         assertEquals("+84901234567", policy.normalizeNullablePhoneNumber(" +84901234567 "));
         assertEquals("MALE", policy.normalizeNullableGender("  MALE "));
-        assertEquals("Ho Chi Minh City", policy.normalizeNullableAddress("  Ho Chi Minh City  "));
         assertEquals("079203001234", policy.normalizeNullableIdentifyCard(" 079203001234 "));
     }
 

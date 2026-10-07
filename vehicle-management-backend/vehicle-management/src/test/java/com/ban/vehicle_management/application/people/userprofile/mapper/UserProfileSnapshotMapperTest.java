@@ -32,7 +32,7 @@ class UserProfileSnapshotMapperTest {
         userProfile.setDateOfBirth(LocalDate.of(1998, 5, 20));
         userProfile.setGender("MALE");
         userProfile.setPhoneNumber("0901234567");
-        userProfile.setAddress("Thu Duc, Ho Chi Minh City");
+        userProfile.setAddressDisplay("Thu Duc, Ho Chi Minh City");
         userProfile.setIdentifyCard("079203001234");
         userProfile.setAvatarUrl("av/2026/06/23/avatar.jpg");
         userProfile.setStatus(UserProfileStatus.ACTIVE);
@@ -49,7 +49,7 @@ class UserProfileSnapshotMapperTest {
         assertEquals(LocalDate.of(1998, 5, 20), snapshotUserProfile.getDateOfBirth());
         assertEquals("MALE", snapshotUserProfile.getGender());
         assertEquals("0901234567", snapshotUserProfile.getPhoneNumber());
-        assertEquals("Thu Duc, Ho Chi Minh City", snapshotUserProfile.getAddress());
+        assertEquals("Thu Duc, Ho Chi Minh City", snapshotUserProfile.getAddressDisplay());
         assertEquals("079203001234", snapshotUserProfile.getIdentifyCard());
         assertEquals("av/2026/06/23/avatar.jpg", snapshotUserProfile.getAvatarUrl());
         assertEquals(UserProfileStatus.ACTIVE, snapshotUserProfile.getStatus());

@@ -42,7 +42,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
     private final UserProfileAvatarPortIn userProfileAvatarPortIn;
     private final UserProfilePortOut userProfilePortOut;
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
-    private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
+    private final UserProfilePolicy userProfilePolicy;
 
     public EmployeeUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
@@ -50,7 +50,8 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
             EmployeePortOut employeePortOut,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
             UserProfileAvatarPortIn userProfileAvatarPortIn,
-            UserProfilePortOut userProfilePortOut
+            UserProfilePortOut userProfilePortOut,
+            UserProfilePolicy userProfilePolicy
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.employeeAccessGuard = employeeAccessGuard;
@@ -58,6 +59,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
         this.userProfilePortOut = userProfilePortOut;
+        this.userProfilePolicy = userProfilePolicy;
     }
 
     @Override
@@ -144,7 +146,9 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         existingUserProfile.setDateOfBirth(updatedUserProfile.getDateOfBirth());
         existingUserProfile.setGender(updatedUserProfile.getGender());
         existingUserProfile.setPhoneNumber(updatedUserProfile.getPhoneNumber());
-        existingUserProfile.setAddress(updatedUserProfile.getAddress());
+        if (updatedUserProfile.getStructuredAddress() != null) {
+            existingUserProfile.setStructuredAddress(updatedUserProfile.getStructuredAddress());
+        }
         existingUserProfile.setIdentifyCard(updatedUserProfile.getIdentifyCard());
         if (updatedUserProfile.getStatus() != null) {
             existingUserProfile.setStatus(updatedUserProfile.getStatus());
@@ -165,7 +169,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
                 || userProfile.getDateOfBirth() != null
                 || userProfile.getGender() != null
                 || userProfile.getPhoneNumber() != null
-                || userProfile.getAddress() != null
+                || userProfile.getStructuredAddress() != null
                 || userProfile.getIdentifyCard() != null
                 || userProfile.getStatus() != null);
     }

@@ -13,7 +13,11 @@ import com.ban.vehicle_management.application.people.userprofile.mapper.UserProf
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring", uses = {UserProfileApiMapper.class, CustomerApiMapper.class, CustomerVehicleApiMapper.class})
+@Mapper(componentModel = "spring", uses = {
+        UserProfileApiMapper.class,
+        CustomerApiMapper.class,
+        CustomerVehicleApiMapper.class
+})
 public interface CustomerAdminProfileApiMapper {
 
     default UpdateCustomerAdminProfileCommand toUpdateCommand(UpdateCustomerAdminProfileRequest request) {
@@ -32,6 +36,12 @@ public interface CustomerAdminProfileApiMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "avatarUrl", ignore = true)
+    @Mapping(target = "addressDetail", ignore = true)
+    @Mapping(target = "provinceCode", ignore = true)
+    @Mapping(target = "wardCode", ignore = true)
+    @Mapping(target = "districtCode", ignore = true)
+    @Mapping(target = "addressDisplay", ignore = true)
+    @Mapping(target = "structuredAddress", source = "structuredAddress")
     UserProfile toDomain(UpdateUserProfileRequest request);
 
     @Mapping(target = "customerId", ignore = true)
@@ -50,4 +60,5 @@ public interface CustomerAdminProfileApiMapper {
     Customer toDomain(UpdateCustomerAdminRequest request);
 
     CustomerAdminProfileResponse toResponse(CustomerAdminProfileResult result);
+
 }

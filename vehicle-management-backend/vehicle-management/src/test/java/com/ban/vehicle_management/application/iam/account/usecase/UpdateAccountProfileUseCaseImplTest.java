@@ -6,6 +6,7 @@ import com.ban.vehicle_management.application.iam.account.model.result.AccountPr
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.CustomerOnboardingApprovalPortOut;
+import com.ban.vehicle_management.application.operations.approvalrequest.port.in.CustomerOnboardingApprovalPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.SystemAdminApprovalPortOut;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
@@ -13,6 +14,7 @@ import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
 import com.ban.vehicle_management.domain.iam.account.policy.AccountOnboardingPolicy;
 import com.ban.vehicle_management.domain.iam.account.policy.AccountProfilePolicy;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
+import com.ban.vehicle_management.domain.shared.address.VietnamAddress;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
@@ -48,6 +50,9 @@ class UpdateAccountProfileUseCaseImplTest {
 
     @Mock
     private CustomerOnboardingApprovalPortOut customerOnboardingApprovalPortOut;
+
+    @Mock
+    private CustomerOnboardingApprovalPortIn customerOnboardingApprovalPortIn;
 
     @Mock
     private InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
@@ -236,9 +241,9 @@ class UpdateAccountProfileUseCaseImplTest {
                 null,
                 null,
                 null,
-                "Thu Duc, Ho Chi Minh City",
                 null,
-                null
+                null,
+                new VietnamAddress("79", "760", "26740", "Thu Duc", "Thu Duc, Ho Chi Minh City")
         ));
 
         ArgumentCaptor<UserProfile> userProfileCaptor = ArgumentCaptor.forClass(UserProfile.class);
@@ -247,11 +252,11 @@ class UpdateAccountProfileUseCaseImplTest {
         UserProfile mergedProfile = userProfileCaptor.getValue();
         assertEquals("Nguyen Bao An", mergedProfile.getFullName());
         assertEquals("+84901234567", mergedProfile.getPhoneNumber());
-        assertEquals("Thu Duc, Ho Chi Minh City", mergedProfile.getAddress());
+        assertEquals("Thu Duc, Ho Chi Minh City", mergedProfile.getAddressDisplay());
 
         assertEquals(accountId, result.account().accountId());
         assertEquals(userProfileId, result.profile().userProfileId());
-        assertEquals("Thu Duc, Ho Chi Minh City", result.profile().address());
+        assertEquals("Thu Duc, Ho Chi Minh City", result.profile().addressDisplay());
     }
 
     private AccountProfileState stateWithoutProfile(UUID accountId) {
@@ -331,7 +336,7 @@ class UpdateAccountProfileUseCaseImplTest {
         userProfile.setPhoneNumber(phoneNumber);
         userProfile.setDateOfBirth(dateOfBirth);
         userProfile.setGender(gender);
-        userProfile.setAddress(address);
+        userProfile.setAddressDisplay(address);
         userProfile.setIdentifyCard(identifyCard);
         userProfile.setAvatarUrl(avatarUrl);
         userProfile.setStatus(status);

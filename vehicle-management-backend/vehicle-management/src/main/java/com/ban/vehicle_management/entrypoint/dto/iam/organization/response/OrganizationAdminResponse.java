@@ -16,6 +16,11 @@ public class OrganizationAdminResponse {
     private String code;
     private String name;
     private String address;
+    private String addressDetail;
+    private String provinceCode;
+    private String wardCode;
+    private String districtCode;
+    private String addressDisplay;
     private OrganizationStatus status;
     private Instant createdAt;
     private UUID createdBy;

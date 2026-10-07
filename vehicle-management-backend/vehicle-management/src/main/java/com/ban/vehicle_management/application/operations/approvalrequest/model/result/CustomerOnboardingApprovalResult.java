@@ -38,7 +38,7 @@ public record CustomerOnboardingApprovalResult(
             String phoneNumber,
             LocalDate dateOfBirth,
             String gender,
-            String address,
+            String addressDisplay,
             String identifyCard
     ) {
         public ProfileInfoResult(

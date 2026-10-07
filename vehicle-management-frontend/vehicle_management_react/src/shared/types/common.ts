@@ -34,7 +34,7 @@ export interface CurrentUser {
   jobTitle?: string;
   onboardingRequired?: boolean;
   partnerApplicationStatus?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
-  partnerNextAction?: "VERIFY_EMAIL" | "WAIT_FOR_REVIEW" | "REVIEW_REJECTED" | "ACCESS_PARTNER_PORTAL";
+  partnerNextAction?: "VERIFY_EMAIL" | "COMPLETE_PROFILE" | "WAIT_FOR_REVIEW" | "REVIEW_REJECTED" | "ACCESS_PARTNER_PORTAL";
   permissionCodes?: string[];
   profileStatus?: string;
   roleLabel?: string;

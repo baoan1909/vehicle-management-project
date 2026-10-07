@@ -24,6 +24,7 @@ public interface UserProfilePersistenceMapper {
     void updateEntityFromDomain(UserProfile domain, @MappingTarget UserProfileEntity entity);
 
     @Mapping(target = "avatarUrl", ignore = true)
+    @Mapping(target = "structuredAddress", ignore = true)
     UserProfile toDomain(UserProfileEntity entity);
 }
 

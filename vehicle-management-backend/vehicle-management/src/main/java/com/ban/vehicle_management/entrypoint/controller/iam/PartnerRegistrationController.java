@@ -4,9 +4,11 @@ import com.ban.vehicle_management.application.iam.partnerregistration.mapper.Par
 import com.ban.vehicle_management.application.iam.partnerregistration.model.result.PartnerRegistrationResult;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.result.PartnerRegistrationSubmissionResult;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.result.PartnerApplicationStatusResult;
+import com.ban.vehicle_management.application.iam.partnerregistration.model.command.CompletePartnerProfileCommand;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.command.ReviewPartnerRegistrationCommand;
 import com.ban.vehicle_management.application.iam.partnerregistration.port.in.PartnerRegistrationPortIn;
 import com.ban.vehicle_management.entrypoint.dto.iam.partnerregistration.request.CreatePartnerRegistrationRequest;
+import com.ban.vehicle_management.entrypoint.dto.iam.partnerregistration.request.CompletePartnerProfileRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.partnerregistration.request.ReviewPartnerRegistrationRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.partnerregistration.response.PartnerRegistrationResponse;
 import com.ban.vehicle_management.entrypoint.dto.iam.partnerregistration.response.PartnerApplicationStatusResponse;
@@ -42,11 +44,22 @@ public class PartnerRegistrationController {
         ));
     }
 
-    @GetMapping("/api/iam/partner-registrations/me")
+@GetMapping("/api/iam/partner-registrations/me")
     public ResponseEntity<ApiResponse<PartnerApplicationStatusResponse>> getMyRegistrationStatus() {
         PartnerApplicationStatusResult result = partnerRegistrationPortIn.getMyRegistrationStatus();
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched current partner registration successfully",
+                partnerRegistrationApiMapper.toResponse(result)
+        ));
+    }
+
+    @PostMapping("/api/iam/partner-registrations/me/profile")
+    public ResponseEntity<ApiResponse<PartnerApplicationStatusResponse>> completeProfile(@RequestBody CompletePartnerProfileRequest request) {
+        PartnerApplicationStatusResult result = partnerRegistrationPortIn.completeMyProfile(
+                partnerRegistrationApiMapper.toCommand(request)
+        );
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Partner profile updated successfully",
                 partnerRegistrationApiMapper.toResponse(result)
         ));
     }

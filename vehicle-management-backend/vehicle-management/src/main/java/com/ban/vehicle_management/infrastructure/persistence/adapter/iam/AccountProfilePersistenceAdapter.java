@@ -146,13 +146,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         UserProfileEntity existingUserProfileEntity = userProfileRepository.findById(userProfileId)
                 .orElseThrow(() -> new NotFoundException("User profile does not exist"));
 
-        existingUserProfileEntity.setFullName(userProfile.getFullName());
-        existingUserProfileEntity.setPhoneNumber(userProfile.getPhoneNumber());
-        existingUserProfileEntity.setDateOfBirth(userProfile.getDateOfBirth());
-        existingUserProfileEntity.setGender(userProfile.getGender());
-        existingUserProfileEntity.setAddress(userProfile.getAddress());
-        existingUserProfileEntity.setIdentifyCard(userProfile.getIdentifyCard());
-        existingUserProfileEntity.setStatus(userProfile.getStatus());
+        applyUserProfileChanges(existingUserProfileEntity, userProfile);
 
         userProfileRepository.save(existingUserProfileEntity);
         return toProfileState(accountEntity);
@@ -173,7 +167,11 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         userProfileEntity.setPhoneNumber(userProfile.getPhoneNumber());
         userProfileEntity.setDateOfBirth(userProfile.getDateOfBirth());
         userProfileEntity.setGender(userProfile.getGender());
-        userProfileEntity.setAddress(userProfile.getAddress());
+        userProfileEntity.setAddressDetail(userProfile.getAddressDetail());
+        userProfileEntity.setProvinceCode(userProfile.getProvinceCode());
+        userProfileEntity.setWardCode(userProfile.getWardCode());
+        userProfileEntity.setDistrictCode(userProfile.getDistrictCode());
+        userProfileEntity.setAddressDisplay(userProfile.getAddressDisplay());
         userProfileEntity.setIdentifyCard(userProfile.getIdentifyCard());
         userProfileEntity.setStatus(userProfile.getStatus());
         return userProfileEntity;
@@ -197,7 +195,11 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 userProfileEntity == null ? null : userProfileEntity.getDateOfBirth(),
                 userProfileEntity == null ? null : userProfileEntity.getGender(),
                 userProfileEntity == null ? null : userProfileEntity.getPhoneNumber(),
-                userProfileEntity == null ? null : userProfileEntity.getAddress(),
+                userProfileEntity == null ? null : userProfileEntity.getAddressDetail(),
+                userProfileEntity == null ? null : userProfileEntity.getProvinceCode(),
+                userProfileEntity == null ? null : userProfileEntity.getWardCode(),
+                userProfileEntity == null ? null : userProfileEntity.getDistrictCode(),
+                userProfileEntity == null ? null : userProfileEntity.getAddressDisplay(),
                 userProfileEntity == null ? null : userProfileEntity.getIdentifyCard(),
                 null,
                 userProfileEntity == null ? null : userProfileEntity.getStatus(),
