@@ -8,7 +8,6 @@ public record CreateParkingLotRequest(
         UUID organizationId,
         String code,
         String name,
-        String address,
         AddressInputScheme addressInputScheme,
         String addressDisplay,
         String currentWardCode,

@@ -39,7 +39,7 @@ public final class ParkingLotSpecifications {
             return criteriaBuilder.or(
                     criteriaBuilder.like(criteriaBuilder.lower(root.get("code")), pattern),
                     criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), pattern),
-                    criteriaBuilder.like(criteriaBuilder.lower(root.get("address")), pattern)
+                    criteriaBuilder.like(criteriaBuilder.lower(root.get("addressDisplay")), pattern)
             );
         };
     }

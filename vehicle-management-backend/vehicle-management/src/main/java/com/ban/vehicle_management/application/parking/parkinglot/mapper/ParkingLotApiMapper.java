@@ -59,7 +59,7 @@ public interface ParkingLotApiMapper {
         return new ParkingLotPublicResponse(
                 parkingLot.parkingLotId(),
                 parkingLot.name(),
-                parkingLot.address(),
+                parkingLot.addressDisplay(),
                 parkingLot.latitude(),
                 parkingLot.longitude(),
                 distanceMeters,

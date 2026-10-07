@@ -22,7 +22,6 @@ public class ParkingLot extends AuditableDomainModel {
     private UUID organizationId;
     private String code;
     private String name;
-    private String address;
     private AddressInputScheme addressInputScheme;
     private String addressDisplay;
     private String currentWardCode;

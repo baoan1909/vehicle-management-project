@@ -105,7 +105,7 @@ class NearbyParkingLotIntegrationTest {
                 .andExpect(jsonPath("$.data.length()").value(20))
                 .andExpect(jsonPath("$.data[0].parkingLotId").value(parkingLotId.toString()))
                 .andExpect(jsonPath("$.data[0].name").value("Nearby " + parkingLotId))
-                .andExpect(jsonPath("$.data[0].address").value("Nearby integration test"))
+                .andExpect(jsonPath("$.data[0].addressDisplay").value("Nearby integration test"))
                 .andExpect(jsonPath("$.data[0].latitude").isNumber())
                 .andExpect(jsonPath("$.data[0].longitude").isNumber())
                 .andExpect(jsonPath("$.data[0].distanceMeters").value(1_240))

@@ -23,7 +23,6 @@ public class OrganizationPolicy {
         }
         organization.setCode(TextValidationUtils.normalizeCode(organization.getCode(), "code", 50));
         organization.setName(TextValidationUtils.normalizeRequiredText(organization.getName(), "name", 150));
-        organization.setAddress(TextValidationUtils.normalizeNullableText(organization.getAddress(), "address", 1000));
         if (organization.getStatus() == null) {
             organization.setStatus(OrganizationStatus.ACTIVE);
         }

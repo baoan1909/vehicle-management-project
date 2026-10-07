@@ -74,6 +74,26 @@ class SpatialFreshDatabaseContainerTest {
     }
 
     @Test
+    void shouldKeepOnlyCanonicalDisplayAddressColumns() throws SQLException {
+        try (Connection connection = connection()) {
+            assertEquals(0, scalar(connection, """
+                    SELECT count(*)
+                    FROM information_schema.columns
+                    WHERE table_schema IN ('people', 'iam', 'parking')
+                      AND table_name IN ('user_profiles', 'organizations', 'parking_lots')
+                      AND column_name = 'address'
+                    """));
+            assertEquals(3, scalar(connection, """
+                    SELECT count(*)
+                    FROM information_schema.columns
+                    WHERE table_schema IN ('people', 'iam', 'parking')
+                      AND table_name IN ('user_profiles', 'organizations', 'parking_lots')
+                      AND column_name = 'address_display'
+                    """));
+        }
+    }
+
+    @Test
     void shouldSynchronizeLocationRunSpatialQueryAndUseGistIndex() throws SQLException {
         UUID first = UUID.randomUUID();
         UUID second = UUID.randomUUID();

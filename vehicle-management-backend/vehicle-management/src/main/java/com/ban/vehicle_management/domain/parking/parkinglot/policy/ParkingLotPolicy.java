@@ -14,7 +14,6 @@ public class ParkingLotPolicy {
         requireParkingLot(parkingLot);
         parkingLot.setCode(TextValidationUtils.normalizeCode(parkingLot.getCode(), "code", 50));
         parkingLot.setName(TextValidationUtils.normalizeRequiredText(parkingLot.getName(), "name", 150));
-        parkingLot.setAddress(TextValidationUtils.normalizeNullableText(parkingLot.getAddress(), "address", 0));
         normalizeAddress(parkingLot);
         validateCoordinates(parkingLot);
 
@@ -57,7 +56,6 @@ public class ParkingLotPolicy {
         requireParkingLot(parkingLot);
         parkingLot.setCode(TextValidationUtils.normalizeCode(parkingLot.getCode(), "code", 50));
         parkingLot.setName(TextValidationUtils.normalizeRequiredText(parkingLot.getName(), "name", 150));
-        parkingLot.setAddress(TextValidationUtils.normalizeNullableText(parkingLot.getAddress(), "address", 0));
         normalizeAddress(parkingLot);
         validateCoordinates(parkingLot);
         requireField(parkingLot.getStatus(), "status");
@@ -90,14 +88,11 @@ public class ParkingLotPolicy {
 
     private void normalizeAddress(ParkingLot parkingLot) {
         String display = TextValidationUtils.normalizeNullableText(
-                parkingLot.getAddressDisplay() == null
-                        ? parkingLot.getAddress()
-                        : parkingLot.getAddressDisplay(),
+                parkingLot.getAddressDisplay(),
                 "addressDisplay",
                 500
         );
         parkingLot.setAddressDisplay(display);
-        parkingLot.setAddress(display);
         parkingLot.setCurrentWardCode(normalizeCode(parkingLot.getCurrentWardCode()));
         parkingLot.setLegacyWardCode(normalizeCode(parkingLot.getLegacyWardCode()));
 

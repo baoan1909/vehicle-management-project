@@ -30,9 +30,6 @@ public class OrganizationEntity extends AuditableEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "address")
-    private String address;
-
     @Column(name = "address_detail")
     private String addressDetail;
 

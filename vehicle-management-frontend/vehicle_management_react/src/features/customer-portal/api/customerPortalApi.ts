@@ -208,7 +208,7 @@ export async function createMySubscription(payload: CreateMySubscriptionRequest)
 export type CustomerPortalParkingLot = {
   parkingLotId: string;
   name: string;
-  address?: string | null;
+  addressDisplay?: string | null;
 };
 
 export async function getCustomerPortalParkingLots() {

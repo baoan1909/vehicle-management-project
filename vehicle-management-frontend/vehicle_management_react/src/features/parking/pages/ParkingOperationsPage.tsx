@@ -64,8 +64,7 @@ type LaneDirection = LaneDirectionApi | "VIP";
 type DrawerPhase = "opening" | "open" | "closing";
 
 type ParkingLot = {
-  address: string;
-  addressDisplay?: string;
+  addressDisplay: string;
   addressInputScheme?: AddressInputSchemeApi;
   currentWardCode?: string | null;
   legacyWardCode?: string | null;
@@ -142,7 +141,7 @@ function isUuid(value: string) {
 
 const mockParkingLots: ParkingLot[] = [
   {
-    address: "12 Nguyễn Văn Linh, Quận 7, TP. HCM",
+    addressDisplay: "12 Nguyễn Văn Linh, Quận 7, TP. HCM",
     activationRequestedAt: null,
     activationRequestedBy: null,
     code: "CP-LOT-A",
@@ -158,7 +157,7 @@ const mockParkingLots: ParkingLot[] = [
     used: 428,
   },
   {
-    address: "88 Võ Chí Công, TP. Thủ Đức",
+    addressDisplay: "88 Võ Chí Công, TP. Thủ Đức",
     activationRequestedAt: null,
     activationRequestedBy: null,
     code: "CP-LOT-B",
@@ -174,7 +173,7 @@ const mockParkingLots: ParkingLot[] = [
     used: 231,
   },
   {
-    address: "22 Cộng Hòa, Tân Bình",
+    addressDisplay: "22 Cộng Hòa, Tân Bình",
     activationRequestedAt: null,
     activationRequestedBy: null,
     code: "CP-LOT-C",
@@ -388,8 +387,7 @@ const statusOptions = [
 ];
 function toParkingLotView(lot: ParkingLotApiResponse): ParkingLot {
   return {
-    address: lot.address ?? "",
-    addressDisplay: lot.addressDisplay ?? lot.address ?? "",
+    addressDisplay: lot.addressDisplay ?? "",
     addressInputScheme: lot.addressInputScheme ?? "CURRENT",
     currentWardCode: lot.currentWardCode,
     legacyWardCode: lot.legacyWardCode,
@@ -414,8 +412,7 @@ function toParkingLotView(lot: ParkingLotApiResponse): ParkingLot {
 
 function toParkingLotPayload(lot: ParkingLot) {
   return {
-    address: lot.address,
-    addressDisplay: lot.addressDisplay ?? lot.address,
+    addressDisplay: lot.addressDisplay,
     addressInputScheme: lot.addressInputScheme ?? "CURRENT",
     currentWardCode: lot.currentWardCode ?? null,
     legacyWardCode: lot.legacyWardCode ?? null,
@@ -1044,7 +1041,6 @@ function ParkingLotDrawer({
   saving: boolean;
 }) {
   const [form, setForm] = useState<ParkingLot>(() => lot ?? {
-    address: "",
     addressDisplay: "",
     addressInputScheme: "CURRENT",
     currentWardCode: null,
@@ -1073,7 +1069,6 @@ function ParkingLotDrawer({
 
   useEffect(() => {
     setForm(lot ?? {
-      address: "",
       addressDisplay: "",
       addressInputScheme: "CURRENT",
       currentWardCode: null,
@@ -1111,7 +1106,7 @@ function ParkingLotDrawer({
       return;
     }
 
-    if (!form.address.trim()) {
+    if (!form.addressDisplay.trim()) {
       setFormError("Vui lòng nhập địa chỉ và bấm “Xác định vị trí”.");
       return;
     }
@@ -1143,7 +1138,7 @@ function ParkingLotDrawer({
 
     await onSubmit({
       ...form,
-      address: form.address.trim(),
+      addressDisplay: form.addressDisplay.trim(),
       code: form.code.trim(),
       name: form.name.trim(),
       totalCapacity: Number(form.totalCapacity),
@@ -1151,7 +1146,7 @@ function ParkingLotDrawer({
   }
 
   async function handleSearchLocation() {
-    const query = form.address.trim();
+    const query = form.addressDisplay.trim();
     if (!query) {
       setLocationSearchError("Vui lòng nhập địa chỉ trước khi xác định vị trí.");
       return;
@@ -1169,7 +1164,6 @@ function ParkingLotDrawer({
 
       setForm((current) => ({
         ...current,
-        address: result.displayName,
         addressDisplay: result.displayName,
         latitude: Number(result.latitude),
         longitude: Number(result.longitude),
@@ -1196,7 +1190,7 @@ function ParkingLotDrawer({
       setReverseAddress(resolved);
       const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .toLowerCase().replace(/[^a-z0-9 ]/g, " ");
-      const expectedTokens = new Set(normalize(form.addressDisplay ?? form.address).split(/\s+/).filter((token) => token.length >= 4));
+      const expectedTokens = new Set(normalize(form.addressDisplay).split(/\s+/).filter((token) => token.length >= 4));
       const resolvedTokens = new Set(normalize(resolved).split(/\s+/).filter(Boolean));
       const matches = [...expectedTokens].filter((token) => resolvedTokens.has(token)).length;
       if (resolved && expectedTokens.size > 0 && matches / expectedTokens.size < 0.25) {
@@ -1247,7 +1241,7 @@ function ParkingLotDrawer({
               </div>
               <ParkingAddressPicker
                 value={{
-                  addressDisplay: form.addressDisplay ?? form.address,
+                  addressDisplay: form.addressDisplay,
                   addressInputScheme: form.addressInputScheme ?? "CURRENT",
                   currentWardCode: form.currentWardCode ?? null,
                   legacyWardCode: form.legacyWardCode ?? null,
@@ -1259,7 +1253,6 @@ function ParkingLotDrawer({
                   setForm((current) => ({
                     ...current,
                     ...address,
-                    address: address.addressDisplay,
                     latitude: null,
                     longitude: null,
                     locationResolution: "NONE",
@@ -1267,13 +1260,13 @@ function ParkingLotDrawer({
                 }}
               />
               <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3">
-                <Button disabled={!form.address.trim() || searchingLocation} loading={searchingLocation} type="button" onClick={() => void handleSearchLocation()}>
+                <Button disabled={!form.addressDisplay.trim() || searchingLocation} loading={searchingLocation} type="button" onClick={() => void handleSearchLocation()}>
                   <i className="fas fa-location-arrow" />
                   Tìm tọa độ tự động
                 </Button>
                 <a
                   className="tw-inline-flex tw-items-center tw-gap-2 tw-text-[0.78rem] tw-font-extrabold tw-text-vm-primary hover:tw-text-vm-primary-hover hover:tw-no-underline"
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.address)}`}
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.addressDisplay)}`}
                   rel="noreferrer"
                   target="_blank"
                 >
@@ -1422,7 +1415,7 @@ function ParkingManagerAssignmentDrawer({
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-blue-100 tw-bg-blue-50 tw-p-4">
               <span className="tw-text-[0.72rem] tw-font-extrabold tw-uppercase tw-tracking-[0.08em] tw-text-vm-slate-500">Bãi xe được phân công</span>
               <strong className="tw-mt-1 tw-block tw-text-[1rem] tw-font-extrabold tw-text-vm-slate-900">{selectedLot?.name ?? "Chưa chọn bãi xe"}</strong>
-              <span className="tw-mt-1 tw-block tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-600">{selectedLot?.address ?? "Chọn bãi xe trước khi phân công."}</span>
+              <span className="tw-mt-1 tw-block tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-600">{selectedLot?.addressDisplay ?? "Chọn bãi xe trước khi phân công."}</span>
               {selectedLot?.latitude != null && selectedLot?.longitude != null ? (
                 <span className="tw-mt-2 tw-inline-flex tw-items-center tw-gap-1 tw-text-[0.75rem] tw-font-bold tw-text-vm-primary">
                   <i className="fas fa-map-marker-alt" /> Đã định vị
