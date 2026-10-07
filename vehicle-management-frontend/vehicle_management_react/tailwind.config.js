@@ -17,6 +17,13 @@ export default {
   theme: {
     extend: {
       colors: {
+        slate: {
+          950: "#020617",
+        },
+        blue: {
+          700: "#1D4ED8",
+          950: "#172554",
+        },
         brand: {
           50: "#eff6ff",
           100: "#dbeafe",
@@ -24,6 +31,7 @@ export default {
           500: "#2563eb",
           600: "#1d4ed8",
           700: "#1e40af",
+          950: "#172554",
         },
         vm: {
           primary: "#2563EB",
@@ -43,6 +51,7 @@ export default {
             500: "#64748B",
             700: "#334155",
             900: "#0F172A",
+            950: "#020617",
           },
         },
       },

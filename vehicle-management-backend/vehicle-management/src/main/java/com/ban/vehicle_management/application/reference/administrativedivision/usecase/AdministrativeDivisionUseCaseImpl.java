@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.reference.administrativedivision.
 import com.ban.vehicle_management.application.reference.administrativedivision.port.in.AdministrativeDivisionPortIn;
 import com.ban.vehicle_management.application.reference.administrativedivision.port.out.AdministrativeDivisionQueryPortOut;
 import com.ban.vehicle_management.domain.reference.administrativedivision.model.AdministrativeDivision;
+import com.ban.vehicle_management.domain.reference.administrativedivision.model.AdministrativeDivisionPath;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,12 @@ public class AdministrativeDivisionUseCaseImpl implements AdministrativeDivision
     }
 
     @Override
+    public AdministrativeDivisionPath getCurrentWardPath(String wardCode) {
+        return queryPort.findCurrentWardPath(wardCode)
+                .orElseThrow(() -> new NotFoundException("Current ward not found"));
+    }
+
+    @Override
     public List<AdministrativeDivision> getLegacyProvinces() {
         return queryPort.findLegacyProvinces();
     }
@@ -50,5 +57,11 @@ public class AdministrativeDivisionUseCaseImpl implements AdministrativeDivision
             throw new NotFoundException("Legacy district not found");
         }
         return queryPort.findLegacyWards(districtCode);
+    }
+
+    @Override
+    public AdministrativeDivisionPath getLegacyWardPath(String wardCode) {
+        return queryPort.findLegacyWardPath(wardCode)
+                .orElseThrow(() -> new NotFoundException("Legacy ward not found"));
     }
 }
