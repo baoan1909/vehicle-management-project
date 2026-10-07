@@ -2,6 +2,7 @@ package com.ban.vehicle_management.entrypoint.controller.reference;
 
 import com.ban.vehicle_management.application.reference.administrativedivision.mapper.AdministrativeDivisionApiMapper;
 import com.ban.vehicle_management.application.reference.administrativedivision.port.in.AdministrativeDivisionPortIn;
+import com.ban.vehicle_management.entrypoint.dto.reference.response.AdministrativeDivisionPathResponse;
 import com.ban.vehicle_management.entrypoint.dto.reference.response.AdministrativeDivisionResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import jakarta.validation.constraints.Pattern;
@@ -41,6 +42,16 @@ public class AdministrativeDivisionController {
         return ok(mapper.toResponses(administrativeDivisionPortIn.getCurrentWards(code)));
     }
 
+    @GetMapping("/current/wards/{code}/path")
+    public ResponseEntity<ApiResponse<AdministrativeDivisionPathResponse>> getCurrentWardPath(
+            @PathVariable @Pattern(regexp = "\\d{5}") String code
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched administrative division path successfully",
+                mapper.toPathResponse(administrativeDivisionPortIn.getCurrentWardPath(code))
+        ));
+    }
+
     @GetMapping("/legacy/provinces")
     public ResponseEntity<ApiResponse<List<AdministrativeDivisionResponse>>> getLegacyProvinces() {
         return ok(mapper.toResponses(administrativeDivisionPortIn.getLegacyProvinces()));
@@ -58,6 +69,16 @@ public class AdministrativeDivisionController {
             @PathVariable @Pattern(regexp = "\\d{3}") String code
     ) {
         return ok(mapper.toResponses(administrativeDivisionPortIn.getLegacyWards(code)));
+    }
+
+    @GetMapping("/legacy/wards/{code}/path")
+    public ResponseEntity<ApiResponse<AdministrativeDivisionPathResponse>> getLegacyWardPath(
+            @PathVariable @Pattern(regexp = "\\d{5}") String code
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched administrative division path successfully",
+                mapper.toPathResponse(administrativeDivisionPortIn.getLegacyWardPath(code))
+        ));
     }
 
     private ResponseEntity<ApiResponse<List<AdministrativeDivisionResponse>>> ok(

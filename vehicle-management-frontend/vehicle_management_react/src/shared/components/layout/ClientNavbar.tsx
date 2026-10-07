@@ -194,9 +194,12 @@ export function ClientNavbar() {
               <Link
                 key={`${item.label}-${item.href}-${index}`}
                 to={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "tw-relative tw-inline-flex tw-min-h-[72px] tw-items-center tw-p-0 tw-text-[0.92rem] tw-font-extrabold tw-text-vm-slate-700 tw-transition hover:tw-text-vm-primary hover:tw-no-underline max-[992px]:tw-min-h-[42px] max-[992px]:tw-rounded-vm-sm max-[992px]:tw-px-3",
-                  active && "tw-text-vm-primary after:tw-absolute after:tw-bottom-[15px] after:tw-left-0 after:tw-right-0 after:tw-h-[3px] after:tw-rounded-full after:tw-bg-vm-primary max-[992px]:after:tw-hidden",
+                  "tw-relative tw-inline-flex tw-min-h-[44px] tw-items-center tw-rounded-vm-md tw-px-5 tw-text-[0.92rem] tw-font-extrabold tw-transition hover:tw-bg-brand-50 hover:tw-text-vm-primary hover:tw-no-underline max-[992px]:tw-min-h-[42px] max-[992px]:tw-w-full",
+                  active
+                    ? "tw-bg-brand-50 tw-px-7 tw-text-vm-primary after:tw-absolute after:tw-bottom-[7px] after:tw-left-7 after:tw-right-7 after:tw-h-[3px] after:tw-rounded-full after:tw-bg-vm-primary after:tw-content-[''] max-[992px]:after:tw-hidden"
+                    : "tw-text-vm-slate-700",
                 )}
                 onClick={() => setOpen(false)}
               >

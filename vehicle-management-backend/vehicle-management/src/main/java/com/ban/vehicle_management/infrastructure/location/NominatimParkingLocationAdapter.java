@@ -157,17 +157,22 @@ public class NominatimParkingLocationAdapter implements ParkingLocationPortOut {
             String path,
             Function<UriBuilder, UriBuilder> uriCustomizer
     ) throws IOException {
-        try (InputStream response = restClient.get()
+        return restClient.get()
                 .uri(uriBuilder -> uriCustomizer.apply(uriBuilder.path(path)).build())
-                .retrieve()
-                .body(InputStream.class)) {
-            if (response == null) return "";
-            byte[] body = response.readNBytes(properties.getMaxResponseBytes() + 1);
-            if (body.length > properties.getMaxResponseBytes()) {
-                throw new IOException("provider_response_too_large");
-            }
-            return new String(body, StandardCharsets.UTF_8);
-        }
+                .exchange((request, response) -> {
+                    String body;
+                    try (InputStream responseBody = response.getBody()) {
+                        byte[] bytes = responseBody.readNBytes(properties.getMaxResponseBytes() + 1);
+                        if (bytes.length > properties.getMaxResponseBytes()) {
+                            throw new IOException("provider_response_too_large");
+                        }
+                        body = new String(bytes, StandardCharsets.UTF_8);
+                    }
+                    if (!response.getStatusCode().is2xxSuccessful()) {
+                        throw new IOException("provider_http_status_" + response.getStatusCode().value());
+                    }
+                    return body;
+                }, false);
     }
 
     private List<ParkingLocationSearchResult> parseResponse(String path, String response)

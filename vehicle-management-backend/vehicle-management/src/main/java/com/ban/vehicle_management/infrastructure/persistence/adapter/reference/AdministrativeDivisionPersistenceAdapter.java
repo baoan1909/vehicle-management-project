@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.adapter.reference;
 
 import com.ban.vehicle_management.application.reference.administrativedivision.port.out.AdministrativeDivisionQueryPortOut;
 import com.ban.vehicle_management.domain.reference.administrativedivision.model.AdministrativeDivision;
+import com.ban.vehicle_management.domain.reference.administrativedivision.model.AdministrativeDivisionPath;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.reference.LegacyDistrictEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.reference.LegacyProvinceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.reference.LegacyWardEntity;
@@ -13,6 +14,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.reference.ProvinceRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.reference.WardRepository;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -54,6 +56,13 @@ public class AdministrativeDivisionPersistenceAdapter implements AdministrativeD
     }
 
     @Override
+    public Optional<AdministrativeDivisionPath> findCurrentWardPath(String wardCode) {
+        return wardRepository.findById(wardCode).flatMap(ward ->
+                provinceRepository.findById(ward.getProvinceCode()).map(province ->
+                        new AdministrativeDivisionPath(toDomain(province), null, toDomain(ward))));
+    }
+
+    @Override
     public List<AdministrativeDivision> findLegacyProvinces() {
         return legacyProvinceRepository.findAllByOrderByNameAsc().stream().map(this::toDomain).toList();
     }
@@ -76,6 +85,18 @@ public class AdministrativeDivisionPersistenceAdapter implements AdministrativeD
     @Override
     public List<AdministrativeDivision> findLegacyWards(String districtCode) {
         return legacyWardRepository.findAllByDistrictCodeOrderByNameAsc(districtCode).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public Optional<AdministrativeDivisionPath> findLegacyWardPath(String wardCode) {
+        return legacyWardRepository.findById(wardCode).flatMap(ward ->
+                legacyDistrictRepository.findById(ward.getDistrictCode()).flatMap(district ->
+                        legacyProvinceRepository.findById(district.getProvinceCode()).map(province ->
+                                new AdministrativeDivisionPath(
+                                        toDomain(province),
+                                        toDomain(district),
+                                        toDomain(ward)
+                                ))));
     }
 
     private AdministrativeDivision toDomain(ProvinceEntity entity) {

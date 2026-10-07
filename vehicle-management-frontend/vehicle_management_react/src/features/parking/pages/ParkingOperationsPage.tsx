@@ -1240,6 +1240,7 @@ function ParkingLotDrawer({
                 </p>
               </div>
               <ParkingAddressPicker
+                key={form.id || "new-parking-lot"}
                 value={{
                   addressDisplay: form.addressDisplay,
                   addressInputScheme: form.addressInputScheme ?? "CURRENT",

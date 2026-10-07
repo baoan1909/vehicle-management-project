@@ -265,7 +265,10 @@ export function NearbyParkingLotsPage() {
   return (
     <main className="tw-min-h-[calc(100vh-72px)] tw-bg-slate-50 tw-px-4 tw-py-8 sm:tw-px-6 lg:tw-px-8">
       <div className="tw-mx-auto tw-max-w-[1440px]">
-        <section className="tw-overflow-hidden tw-rounded-[28px] tw-bg-gradient-to-br tw-from-slate-950 tw-via-blue-950 tw-to-blue-700 tw-p-6 tw-text-white tw-shadow-xl sm:tw-p-9">
+        <section
+          className="tw-overflow-hidden tw-rounded-[28px] tw-p-6 tw-text-white tw-shadow-xl sm:tw-p-9"
+          style={{ background: "linear-gradient(to bottom right, #020617, #172554, #1D4ED8)" }}
+        >
           <div className="tw-max-w-3xl">
             <span className="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-bg-white/10 tw-px-3 tw-py-1 tw-text-xs tw-font-extrabold tw-uppercase tw-tracking-wider">
               <i className="fas fa-location-arrow" aria-hidden="true" /> Tìm bãi xe

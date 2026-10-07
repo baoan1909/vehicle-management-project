@@ -9,6 +9,12 @@ export type AdministrativeDivision = {
   fullName: string;
 };
 
+export type AdministrativeDivisionPath = {
+  province: AdministrativeDivision;
+  district: AdministrativeDivision | null;
+  ward: AdministrativeDivision;
+};
+
 type ApiResponse<T> = {
   success: boolean;
   message: string;
@@ -20,6 +26,8 @@ let legacyProvinces: AdministrativeDivision[] | null = null;
 const currentWards = new Map<string, AdministrativeDivision[]>();
 const legacyDistricts = new Map<string, AdministrativeDivision[]>();
 const legacyWards = new Map<string, AdministrativeDivision[]>();
+const currentWardPaths = new Map<string, AdministrativeDivisionPath>();
+const legacyWardPaths = new Map<string, AdministrativeDivisionPath>();
 
 export const emptyAddressOption: VietnamAddressOption = {
   label: "Chọn",
@@ -28,6 +36,11 @@ export const emptyAddressOption: VietnamAddressOption = {
 
 async function load(path: string) {
   const response = await apiClient<ApiResponse<AdministrativeDivision[]>>(path, { skipAuth: true });
+  return response.data;
+}
+
+async function loadPath(path: string) {
+  const response = await apiClient<ApiResponse<AdministrativeDivisionPath>>(path, { skipAuth: true });
   return response.data;
 }
 
@@ -41,6 +54,13 @@ export async function loadCurrentWards(provinceCode: string) {
     currentWards.set(provinceCode, await load(apiEndpoints.public.administrativeDivisions.currentWards(provinceCode)));
   }
   return currentWards.get(provinceCode) ?? [];
+}
+
+export async function loadCurrentWardPath(wardCode: string) {
+  if (!currentWardPaths.has(wardCode)) {
+    currentWardPaths.set(wardCode, await loadPath(apiEndpoints.public.administrativeDivisions.currentWardPath(wardCode)));
+  }
+  return currentWardPaths.get(wardCode)!;
 }
 
 export async function loadLegacyProvinces() {
@@ -60,6 +80,13 @@ export async function loadLegacyWards(districtCode: string) {
     legacyWards.set(districtCode, await load(apiEndpoints.public.administrativeDivisions.legacyWards(districtCode)));
   }
   return legacyWards.get(districtCode) ?? [];
+}
+
+export async function loadLegacyWardPath(wardCode: string) {
+  if (!legacyWardPaths.has(wardCode)) {
+    legacyWardPaths.set(wardCode, await loadPath(apiEndpoints.public.administrativeDivisions.legacyWardPath(wardCode)));
+  }
+  return legacyWardPaths.get(wardCode)!;
 }
 
 export function toAddressOptions(divisions: AdministrativeDivision[]): VietnamAddressOption[] {

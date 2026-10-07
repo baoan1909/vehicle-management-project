@@ -83,7 +83,7 @@ class AdministrativeDivisionIntegrationTest {
     }
 
     @Test
-    void shouldExposeExactlyTheFivePublicHierarchyEndpointsWithoutAuthentication() throws Exception {
+    void shouldExposePublicHierarchyEndpointsWithoutAuthentication() throws Exception {
         assertEndpointMatchesQuery(
                 "/api/public/administrative-divisions/current/provinces",
                 "SELECT code FROM reference.provinces"
@@ -107,6 +107,21 @@ class AdministrativeDivisionIntegrationTest {
     }
 
     @Test
+    void shouldResolveCurrentAndLegacyWardPathsForEditingAddressForms() throws Exception {
+        mockMvc.perform(get("/api/public/administrative-divisions/current/wards/00004/path"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.province.code").value("01"))
+                .andExpect(jsonPath("$.data.district").doesNotExist())
+                .andExpect(jsonPath("$.data.ward.code").value("00004"));
+
+        mockMvc.perform(get("/api/public/administrative-divisions/legacy/wards/27013/path"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.province.code").value("79"))
+                .andExpect(jsonPath("$.data.district.code").value("767"))
+                .andExpect(jsonPath("$.data.ward.code").value("27013"));
+    }
+
+    @Test
     void shouldRejectInvalidCodesAndReturnNotFoundForUnknownParents() throws Exception {
         mockMvc.perform(get("/api/public/administrative-divisions/current/provinces/1/wards"))
                 .andExpect(status().isBadRequest());
@@ -118,6 +133,10 @@ class AdministrativeDivisionIntegrationTest {
         mockMvc.perform(get("/api/public/administrative-divisions/legacy/provinces/00/districts"))
                 .andExpect(status().isNotFound());
         mockMvc.perform(get("/api/public/administrative-divisions/legacy/districts/000/wards"))
+                .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/public/administrative-divisions/current/wards/123/path"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/public/administrative-divisions/legacy/wards/99999/path"))
                 .andExpect(status().isNotFound());
     }
 

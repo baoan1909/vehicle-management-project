@@ -5,12 +5,15 @@ import {
   emptyAddressOption,
   getDivisionName,
   loadCurrentProvinces,
+  loadCurrentWardPath,
   loadCurrentWards,
   loadLegacyDistricts,
   loadLegacyProvinces,
+  loadLegacyWardPath,
   loadLegacyWards,
   toAddressOptions,
   type AdministrativeDivision,
+  type AdministrativeDivisionPath,
 } from "@/shared/data/vietnamAddress";
 
 export type ParkingAddressValue = {
@@ -25,13 +28,25 @@ type Props = {
   onChange: (value: ParkingAddressValue) => void;
 };
 
+export function extractAddressDetail(addressDisplay: string, path: AdministrativeDivisionPath) {
+  const suffix = [path.ward.fullName, path.district?.fullName, path.province.fullName]
+    .filter(Boolean)
+    .join(", ");
+  if (addressDisplay === suffix) return "";
+  const suffixWithSeparator = `, ${suffix}`;
+  return addressDisplay.endsWith(suffixWithSeparator)
+    ? addressDisplay.slice(0, -suffixWithSeparator.length).trim()
+    : addressDisplay;
+}
+
 export function ParkingAddressPicker({ value, onChange }: Props) {
   const [provinces, setProvinces] = useState<AdministrativeDivision[]>([]);
   const [districts, setDistricts] = useState<AdministrativeDivision[]>([]);
   const [wards, setWards] = useState<AdministrativeDivision[]>([]);
   const [provinceCode, setProvinceCode] = useState("");
   const [districtCode, setDistrictCode] = useState("");
-  const [wardCode, setWardCode] = useState(value.legacyWardCode ?? value.currentWardCode ?? "");
+  const selectedWardCode = value.addressInputScheme === "LEGACY" ? value.legacyWardCode : value.currentWardCode;
+  const [wardCode, setWardCode] = useState(selectedWardCode ?? "");
   const [detail, setDetail] = useState(value.addressDisplay);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -51,6 +66,28 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
       .finally(() => mounted && setLoading(false));
     return () => { mounted = false; };
   }, [value.addressInputScheme]);
+
+  useEffect(() => {
+    let mounted = true;
+    if (!selectedWardCode) return () => { mounted = false; };
+
+    setLoading(true);
+    setLoadError(null);
+    const loader = value.addressInputScheme === "LEGACY"
+      ? loadLegacyWardPath(selectedWardCode)
+      : loadCurrentWardPath(selectedWardCode);
+    loader.then((path) => {
+      if (!mounted) return;
+      setProvinceCode(path.province.code);
+      setDistrictCode(path.district?.code ?? "");
+      setWardCode(path.ward.code);
+      setDetail(extractAddressDetail(value.addressDisplay, path));
+    }).catch(() => {
+      if (mounted) setLoadError("Không khôi phục được tỉnh/huyện/xã từ mã phường. Vui lòng chọn lại địa chỉ.");
+    }).finally(() => mounted && setLoading(false));
+
+    return () => { mounted = false; };
+  }, [selectedWardCode, value.addressInputScheme]);
 
   useEffect(() => {
     let mounted = true;
@@ -90,12 +127,17 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
     wards: toAddressOptions(wards),
   }), [districts, provinces, wards]);
 
-  function commit(nextDetail: string, nextWardCode: string) {
+  function commit(
+    nextDetail: string,
+    nextWardCode: string,
+    nextProvinceCode = provinceCode,
+    nextDistrictCode = districtCode,
+  ) {
     const addressDisplay = [
       nextDetail.trim(),
       getDivisionName(wards, nextWardCode),
-      value.addressInputScheme === "LEGACY" ? getDivisionName(districts, districtCode) : "",
-      getDivisionName(provinces, provinceCode),
+      value.addressInputScheme === "LEGACY" ? getDivisionName(districts, nextDistrictCode) : "",
+      getDivisionName(provinces, nextProvinceCode),
     ].filter(Boolean).join(", ");
     onChange({
       addressDisplay,
@@ -123,11 +165,11 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
         ))}
       </div>
       <SelectMenu ariaLabel="Tỉnh hoặc thành phố" clearValue="" value={provinceCode}
-        onChange={(code) => { setProvinceCode(code); setDistrictCode(""); setWardCode(""); commit(detail, ""); }}
+        onChange={(code) => { setProvinceCode(code); setDistrictCode(""); setWardCode(""); commit(detail, "", code, ""); }}
         options={[{ ...emptyAddressOption, label: loading ? "Đang tải..." : "Chọn tỉnh/thành" }, ...options.provinces]} />
       {value.addressInputScheme === "LEGACY" ? (
         <SelectMenu ariaLabel="Quận hoặc huyện" clearValue="" value={districtCode}
-          onChange={(code) => { setDistrictCode(code); setWardCode(""); commit(detail, ""); }}
+          onChange={(code) => { setDistrictCode(code); setWardCode(""); commit(detail, "", provinceCode, code); }}
           options={[{ ...emptyAddressOption, label: provinceCode ? "Chọn quận/huyện" : "Chọn tỉnh trước" }, ...options.districts]} />
       ) : null}
       <div className={value.addressInputScheme === "CURRENT" ? "tw-col-span-full" : ""}>

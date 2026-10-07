@@ -15,9 +15,11 @@ export const apiEndpoints = {
     administrativeDivisions: {
       currentProvinces: "/public/administrative-divisions/current/provinces",
       currentWards: (provinceCode: string) => `/public/administrative-divisions/current/provinces/${provinceCode}/wards`,
+      currentWardPath: (wardCode: string) => `/public/administrative-divisions/current/wards/${wardCode}/path`,
       legacyProvinces: "/public/administrative-divisions/legacy/provinces",
       legacyDistricts: (provinceCode: string) => `/public/administrative-divisions/legacy/provinces/${provinceCode}/districts`,
       legacyWards: (districtCode: string) => `/public/administrative-divisions/legacy/districts/${districtCode}/wards`,
+      legacyWardPath: (wardCode: string) => `/public/administrative-divisions/legacy/wards/${wardCode}/path`,
     },
     pricing: {
       pricePlans: "/public/pricing/price-plans",
