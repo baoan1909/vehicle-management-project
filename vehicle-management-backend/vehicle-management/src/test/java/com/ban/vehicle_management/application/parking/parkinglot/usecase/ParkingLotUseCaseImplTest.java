@@ -171,7 +171,7 @@ class ParkingLotUseCaseImplTest {
         ParkingLot request = new ParkingLot();
         request.setCode(" hcmute-main ");
         request.setName(" Bai xe HCMUTE Main ");
-        request.setAddress(" Dia chi moi ");
+        request.setAddressDisplay(" Dia chi moi ");
         request.setTotalCapacity(1200);
 
         when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
@@ -186,7 +186,7 @@ class ParkingLotUseCaseImplTest {
 
         assertEquals("HCMUTE-MAIN", updatedParkingLot.getCode());
         assertEquals("Bai xe HCMUTE Main", updatedParkingLot.getName());
-        assertEquals("Dia chi moi", updatedParkingLot.getAddress());
+        assertEquals("Dia chi moi", updatedParkingLot.getAddressDisplay());
         assertEquals(1200, updatedParkingLot.getTotalCapacity());
         assertEquals(ParkingLotStatus.MAINTENANCE, updatedParkingLot.getStatus());
     }
@@ -381,7 +381,7 @@ class ParkingLotUseCaseImplTest {
         parkingLot.setOrganizationId(UUID.randomUUID());
         parkingLot.setCode("HCMUTE");
         parkingLot.setName("Bai xe HCMUTE");
-        parkingLot.setAddress("So 1 Vo Van Ngan");
+        parkingLot.setAddressDisplay("So 1 Vo Van Ngan");
         parkingLot.setTotalCapacity(1000);
         return parkingLot;
     }

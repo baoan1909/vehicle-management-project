@@ -22,7 +22,7 @@ export function getParkingMapFeatures() {
 export type NearbyParkingLot = {
   parkingLotId: string;
   name: string;
-  address: string | null;
+  addressDisplay: string | null;
   latitude: number;
   longitude: number;
   distanceMeters: number;

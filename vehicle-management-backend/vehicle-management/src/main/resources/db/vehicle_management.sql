@@ -470,7 +470,7 @@ CREATE TABLE parking.parking_lots (
     parking_lot_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(150) NOT NULL,
-    address TEXT,
+    address_display VARCHAR(500),
     total_capacity INT NOT NULL DEFAULT 0,
     status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -1276,7 +1276,7 @@ VALUES
     ('50000000-0000-0000-0000-000000000001', '30000000-0000-0000-0000-000000000001', '40000000-0000-0000-0000-000000000002', '60K8-2301', 'Honda', 'Đen', TRUE);
 
 -- Dữ liệu mẫu: bãi xe, khu, ô đỗ và làn xe.
-INSERT INTO parking.parking_lots (parking_lot_id, code, name, address, total_capacity)
+INSERT INTO parking.parking_lots (parking_lot_id, code, name, address_display, total_capacity)
 VALUES
     ('60000000-0000-0000-0000-000000000001', 'LOT-HCMUTE', 'Bãi xe HCMUTE', 'Số 1 Võ Văn Ngân, TP Thủ Đức', 500);
 

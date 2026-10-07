@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.domain.parking.parkinglot.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
@@ -21,7 +20,7 @@ class ParkingLotPolicyTest {
         ParkingLot parkingLot = validParkingLot();
         parkingLot.setCode(" hcmute ");
         parkingLot.setName(" Bai xe HCMUTE ");
-        parkingLot.setAddress(" So 1 Vo Van Ngan ");
+        parkingLot.setAddressDisplay(" So 1 Vo Van Ngan ");
         parkingLot.setTotalCapacity(null);
         parkingLot.setStatus(null);
 
@@ -29,7 +28,7 @@ class ParkingLotPolicyTest {
 
         assertEquals("HCMUTE", parkingLot.getCode());
         assertEquals("Bai xe HCMUTE", parkingLot.getName());
-        assertEquals("So 1 Vo Van Ngan", parkingLot.getAddress());
+        assertEquals("So 1 Vo Van Ngan", parkingLot.getAddressDisplay());
         assertEquals(0, parkingLot.getTotalCapacity());
         assertEquals(ParkingLotStatus.SETUP, parkingLot.getStatus());
     }
@@ -117,11 +116,11 @@ class ParkingLotPolicyTest {
     @Test
     void shouldNormalizeAddressToNullWhenBlank() {
         ParkingLot parkingLot = validParkingLot();
-        parkingLot.setAddress(" ");
+        parkingLot.setAddressDisplay(" ");
 
         parkingLotPolicy.initialize(parkingLot);
 
-        assertTrue(parkingLot.getAddress() == null);
+        assertEquals(null, parkingLot.getAddressDisplay());
     }
 
     @Test
@@ -155,7 +154,7 @@ class ParkingLotPolicyTest {
         ParkingLot parkingLot = new ParkingLot();
         parkingLot.setCode("HCMUTE");
         parkingLot.setName("Bai xe HCMUTE");
-        parkingLot.setAddress("So 1 Vo Van Ngan");
+        parkingLot.setAddressDisplay("So 1 Vo Van Ngan");
         parkingLot.setTotalCapacity(1000);
         parkingLot.setStatus(ParkingLotStatus.SETUP);
         return parkingLot;

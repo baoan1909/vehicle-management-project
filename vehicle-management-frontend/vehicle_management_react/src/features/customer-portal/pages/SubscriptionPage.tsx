@@ -633,7 +633,7 @@ export function SubscriptionPage() {
           {subscriptionFormError ? <div className="tw-mt-3 tw-flex tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-[0.76rem] tw-font-medium tw-text-red-700" role="alert"><i className="fas fa-exclamation-circle tw-mt-0.5" /><span>{subscriptionFormError}</span></div> : null}
           <div className="tw-mt-3 tw-grid tw-gap-2.5">
             <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Bãi xe đăng ký
-              <select className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-px-3 tw-text-[0.78rem] tw-text-[#273345]" value={form.parkingLotId} onChange={(event) => { void changeParkingLot(event.target.value); }}><option value="">Chọn bãi xe</option>{parkingLots.map((lot) => <option key={lot.parkingLotId} value={lot.parkingLotId}>{lot.name}{lot.address ? ` · ${lot.address}` : ""}</option>)}</select>
+              <select className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-px-3 tw-text-[0.78rem] tw-text-[#273345]" value={form.parkingLotId} onChange={(event) => { void changeParkingLot(event.target.value); }}><option value="">Chọn bãi xe</option>{parkingLots.map((lot) => <option key={lot.parkingLotId} value={lot.parkingLotId}>{lot.name}{lot.addressDisplay ? ` · ${lot.addressDisplay}` : ""}</option>)}</select>
               {lotLookupsLoading ? <small className="tw-text-[#64748b]">Đang tải giá vé của bãi...</small> : null}
               {!loading && parkingLots.length === 0 ? <small className="tw-text-amber-700">Hiện chưa có bãi xe đang hoạt động để đăng ký.</small> : null}
             </label>

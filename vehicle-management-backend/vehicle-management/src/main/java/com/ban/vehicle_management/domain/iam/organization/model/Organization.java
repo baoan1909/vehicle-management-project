@@ -16,7 +16,6 @@ public class Organization extends AuditableDomainModel {
     private UUID organizationId;
     private String code;
     private String name;
-    private String address;
     private String addressDetail;
     private String provinceCode;
     private String wardCode;
@@ -51,7 +50,6 @@ public class Organization extends AuditableDomainModel {
         this.wardCode = address.getWardCode();
         this.districtCode = address.getDistrictCode();
         this.addressDisplay = address.getAddressDisplay();
-        this.address = address.getAddressDisplay();
     }
 
     @Getter

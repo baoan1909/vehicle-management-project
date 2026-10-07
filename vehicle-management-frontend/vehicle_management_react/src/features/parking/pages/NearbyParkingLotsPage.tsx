@@ -436,7 +436,7 @@ export function NearbyParkingLotsPage() {
                             <span className="tw-grid tw-h-9 tw-w-9 tw-flex-none tw-place-items-center tw-rounded-full tw-bg-teal-700 tw-font-black tw-text-white" aria-hidden="true">{index + 1}</span>
                             <span className="tw-min-w-0 tw-flex-1">
                               <strong className="tw-block tw-text-base tw-font-black tw-text-slate-950">{lot.name}</strong>
-                              <span className="tw-mt-1 tw-block tw-text-sm tw-leading-5 tw-text-slate-600">{lot.address || "Địa chỉ đang cập nhật"}</span>
+                              <span className="tw-mt-1 tw-block tw-text-sm tw-leading-5 tw-text-slate-600">{lot.addressDisplay || "Địa chỉ đang cập nhật"}</span>
                             </span>
                             <span className="tw-whitespace-nowrap tw-rounded-full tw-bg-blue-50 tw-px-3 tw-py-1 tw-text-sm tw-font-black tw-text-blue-800">{formatDistance(lot)}</span>
                           </div>

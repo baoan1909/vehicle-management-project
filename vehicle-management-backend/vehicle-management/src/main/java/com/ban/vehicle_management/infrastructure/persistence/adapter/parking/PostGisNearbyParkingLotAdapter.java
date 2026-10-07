@@ -21,7 +21,7 @@ public class PostGisNearbyParkingLotAdapter implements NearbyParkingLotPortOut {
             SELECT
                 pl.parking_lot_id,
                 pl.name,
-                COALESCE(NULLIF(pl.address_display, ''), pl.address) AS address,
+                pl.address_display,
                 pl.latitude,
                 pl.longitude,
                 public.ST_Distance(pl.location, search_point.location) AS distance_meters
@@ -56,7 +56,7 @@ public class PostGisNearbyParkingLotAdapter implements NearbyParkingLotPortOut {
                 (resultSet, rowNumber) -> new NearbyParkingLotResult(
                         resultSet.getObject("parking_lot_id", UUID.class),
                         resultSet.getString("name"),
-                        resultSet.getString("address"),
+                        resultSet.getString("address_display"),
                         resultSet.getBigDecimal("latitude"),
                         resultSet.getBigDecimal("longitude"),
                         resultSet.getDouble("distance_meters")

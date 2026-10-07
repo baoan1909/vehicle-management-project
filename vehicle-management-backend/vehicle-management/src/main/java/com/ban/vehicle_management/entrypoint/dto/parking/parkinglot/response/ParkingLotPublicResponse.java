@@ -6,7 +6,7 @@ import java.util.UUID;
 public record ParkingLotPublicResponse(
         UUID parkingLotId,
         String name,
-        String address,
+        String addressDisplay,
         BigDecimal latitude,
         BigDecimal longitude,
         Long distanceMeters,

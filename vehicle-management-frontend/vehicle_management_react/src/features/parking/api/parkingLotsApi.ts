@@ -13,7 +13,6 @@ export type AddressInputSchemeApi = "CURRENT" | "LEGACY";
 export type GeocodingStatusApi = "NOT_REQUESTED" | "RESOLVED" | "MANUAL_CONFIRMED" | "FAILED" | "NEEDS_REVIEW";
 
 export type ParkingLotApiResponse = {
-  address: string | null;
   addressDisplay: string | null;
   addressInputScheme: AddressInputSchemeApi | null;
   currentWardCode: string | null;
@@ -42,7 +41,6 @@ export type ParkingLotFilter = {
 };
 
 export type UpsertParkingLotRequest = {
-  address: string;
   addressDisplay: string;
   addressInputScheme: AddressInputSchemeApi;
   currentWardCode: string | null;

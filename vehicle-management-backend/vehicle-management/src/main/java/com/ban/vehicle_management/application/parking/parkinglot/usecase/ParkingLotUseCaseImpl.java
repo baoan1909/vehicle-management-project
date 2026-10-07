@@ -122,7 +122,6 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         Map<String, Object> before = locationSnapshot(existingParkingLot);
         existingParkingLot.setCode(parkingLot.getCode());
         existingParkingLot.setName(parkingLot.getName());
-        existingParkingLot.setAddress(parkingLot.getAddress());
         existingParkingLot.setAddressInputScheme(parkingLot.getAddressInputScheme());
         existingParkingLot.setAddressDisplay(parkingLot.getAddressDisplay());
         existingParkingLot.setCurrentWardCode(parkingLot.getCurrentWardCode());

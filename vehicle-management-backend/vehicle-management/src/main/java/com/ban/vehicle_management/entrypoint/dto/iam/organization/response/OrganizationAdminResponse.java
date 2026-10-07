@@ -15,7 +15,6 @@ public class OrganizationAdminResponse {
     private UUID organizationId;
     private String code;
     private String name;
-    private String address;
     private String addressDetail;
     private String provinceCode;
     private String wardCode;

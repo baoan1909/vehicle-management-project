@@ -6,7 +6,6 @@ import com.ban.vehicle_management.shared.enumeration.parking.AddressInputScheme;
 public record UpdateParkingLotRequest(
         String code,
         String name,
-        String address,
         AddressInputScheme addressInputScheme,
         String addressDisplay,
         String currentWardCode,

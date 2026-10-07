@@ -6,16 +6,7 @@ import java.util.UUID;
 public record CreateOrganizationRequest(
         String code,
         String name,
-        String address,
         UUID partnerAdminAccountId,
         VietnamAddressRequest structuredAddress
 ) {
-    public CreateOrganizationRequest(
-            String code,
-            String name,
-            String address,
-            UUID partnerAdminAccountId
-    ) {
-        this(code, name, address, partnerAdminAccountId, null);
-    }
 }

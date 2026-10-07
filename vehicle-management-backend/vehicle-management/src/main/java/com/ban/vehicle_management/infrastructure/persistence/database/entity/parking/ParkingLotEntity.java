@@ -44,9 +44,6 @@ public class ParkingLotEntity extends AuditableEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "address")
-    private String address;
-
     @Enumerated(EnumType.STRING)
     @Column(name = "address_input_scheme")
     private AddressInputScheme addressInputScheme;
