@@ -449,10 +449,10 @@ function StatusPanel({ onChangePassword, profile }: { onChangePassword: () => vo
   const approvalStatus = approvalStatusValue(profile);
 
   return (
-    <Card className="tw-min-w-0 tw-rounded-vm-lg tw-border tw-border-solid !tw-border-vm-slate-100 tw-p-4 tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)] max-[1320px]:tw-col-span-full max-[900px]:tw-col-auto">
+    <Card className="tw-min-w-0 tw-rounded-vm-lg tw-border tw-border-solid !tw-border-vm-slate-100 tw-p-4 tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
       <h3 className="tw-m-0 tw-text-vm-section-title tw-font-black tw-text-vm-slate-900">Trạng thái hệ thống</h3>
 
-      <div className="tw-mt-4 tw-grid tw-gap-3 min-[1321px]:tw-grid-cols-1 max-[1320px]:tw-grid-cols-4 max-[900px]:tw-grid-cols-1">
+      <div className="tw-mt-4 tw-grid tw-grid-cols-1 tw-gap-3">
         <article className="tw-grid tw-min-h-[74px] tw-grid-cols-[48px_minmax(0,1fr)] tw-items-center tw-gap-3.5 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
           <i className="fas fa-user-check tw-inline-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-vm-lg tw-bg-brand-50 tw-text-[1.2rem] tw-text-vm-primary" />
           <div>
@@ -868,9 +868,13 @@ export function InternalProfilePage() {
               </div>
             ) : null}
 
-            <div className="tw-grid tw-grid-cols-[minmax(250px,290px)_minmax(0,1fr)_minmax(270px,300px)] tw-items-start tw-gap-[0.9rem] max-[1320px]:tw-grid-cols-[minmax(240px,280px)_minmax(0,1fr)] max-[900px]:tw-grid-cols-1">
-              <IdentityCard avatarModeration={avatarModeration} avatarUrl={avatarUrl} displayName={displayName} onAvatarChange={handleAvatarChange} onAvatarDelete={handleAvatarDelete} profile={profile} />
+            <div className="tw-grid tw-grid-cols-[minmax(250px,290px)_minmax(0,1fr)] tw-items-start tw-gap-[0.9rem] max-[900px]:tw-grid-cols-1">
+              <div className="tw-grid tw-min-w-0 tw-gap-[0.9rem]">
+                <IdentityCard avatarModeration={avatarModeration} avatarUrl={avatarUrl} displayName={displayName} onAvatarChange={handleAvatarChange} onAvatarDelete={handleAvatarDelete} profile={profile} />
+                <StatusPanel profile={profile} onChangePassword={() => setPasswordOpen(true)} />
+              </div>
 
+              <div className="tw-grid tw-min-w-0 tw-gap-[0.9rem]">
               <Card className="tw-min-w-0 tw-rounded-vm-lg tw-border tw-border-solid !tw-border-vm-slate-100 tw-p-4 tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
                 <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-gap-4 max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
                   <div>
@@ -926,10 +930,7 @@ export function InternalProfilePage() {
                 </div>
               </Card>
 
-              <StatusPanel profile={profile} onChangePassword={() => setPasswordOpen(true)} />
-            </div>
-
-            {isPartner ? (
+              {isPartner && profile.organization ? (
               <Card className="tw-min-w-0 tw-rounded-vm-lg tw-border tw-border-solid !tw-border-vm-slate-100 tw-p-4 tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
                 <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-gap-4 max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
                   <div>
@@ -985,7 +986,9 @@ export function InternalProfilePage() {
                   </div>
                 </div>
               </Card>
-            ) : null}
+              ) : null}
+              </div>
+            </div>
 
             <ChangePasswordModal open={passwordOpen} onClose={closePasswordModal} onSubmit={handleChangePassword} />
           </div>
