@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.notification.notification.usecase
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
@@ -35,10 +36,39 @@ class RequiresNewNotificationSenderTest {
     }
 
     @Test
-    void shouldAlwaysStartIndependentTransaction() throws NoSuchMethodException {
-        Method method = RequiresNewNotificationSender.class.getMethod("send", SendNotificationCommand.class);
-        Transactional transactional = method.getAnnotation(Transactional.class);
+    void shouldDelegateBroadcastWebNotification() {
+        NotificationPortIn notificationPortIn = org.mockito.Mockito.mock(NotificationPortIn.class);
+        RequiresNewNotificationSender sender = new RequiresNewNotificationSender(notificationPortIn);
+        BroadcastNotificationCommand command = new BroadcastNotificationCommand(
+                true,
+                null,
+                null,
+                null,
+                NotificationType.ACCOUNT_PROFILE_SUBMITTED,
+                "Có hồ sơ cần duyệt",
+                "Có yêu cầu phê duyệt mới cần xử lý.",
+                "/admin/partner-registrations",
+                "operations",
+                "approval_requests",
+                UUID.randomUUID()
+        );
 
-        assertEquals(Propagation.REQUIRES_NEW, transactional.propagation());
+        sender.sendBroadcast(command);
+
+        verify(notificationPortIn).sendBroadcastWebNotification(command);
+    }
+
+    @Test
+    void shouldAlwaysStartIndependentTransaction() throws NoSuchMethodException {
+        Method sendMethod = RequiresNewNotificationSender.class.getMethod("send", SendNotificationCommand.class);
+        Method broadcastMethod = RequiresNewNotificationSender.class.getMethod(
+                "sendBroadcast",
+                BroadcastNotificationCommand.class
+        );
+        Transactional sendTransactional = sendMethod.getAnnotation(Transactional.class);
+        Transactional broadcastTransactional = broadcastMethod.getAnnotation(Transactional.class);
+
+        assertEquals(Propagation.REQUIRES_NEW, sendTransactional.propagation());
+        assertEquals(Propagation.REQUIRES_NEW, broadcastTransactional.propagation());
     }
 }

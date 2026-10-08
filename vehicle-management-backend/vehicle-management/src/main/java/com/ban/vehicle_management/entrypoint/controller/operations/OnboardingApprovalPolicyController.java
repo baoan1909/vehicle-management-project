@@ -20,7 +20,7 @@ public class OnboardingApprovalPolicyController {
 
     private static final String REQUIRED_PERMISSIONS =
             "@permissionAuthorizer.hasPermission('ORGANIZATION_CREATE_ALL') "
-                    + "and @permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL')";
+                    + "or @permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL')";
 
     private final OnboardingApprovalPolicyPortIn policyPortIn;
 

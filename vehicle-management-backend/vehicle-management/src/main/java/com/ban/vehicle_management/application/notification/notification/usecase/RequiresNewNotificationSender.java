@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.notification.notification.usecase;
 
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import org.springframework.stereotype.Service;
@@ -26,5 +27,10 @@ public class RequiresNewNotificationSender {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void send(SendNotificationCommand command) {
         notificationPortIn.sendWebNotification(command);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void sendBroadcast(BroadcastNotificationCommand command) {
+        notificationPortIn.sendBroadcastWebNotification(command);
     }
 }

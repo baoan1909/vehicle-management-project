@@ -126,8 +126,6 @@ iam: {
     accounts: "/accounts",
     organizations: "/iam/organizations",
     partnerRegistrations: "/iam/partner-registrations",
-    myPartnerRegistration: "/iam/partner-registrations/me",
-    completePartnerProfile: "/iam/partner-registrations/me/profile",
     provisionedAccounts: "/iam/accounts/provisioned",
     accountProfile: {
       currentAccess: "/iam/accounts/current-access",

@@ -25,7 +25,6 @@ const initialForm = {
   confirmPassword: "",
   organizationCode: "",
   organizationName: "",
-  representativeName: "",
   phoneNumber: "",
 };
 
@@ -51,7 +50,7 @@ function validatePartnerForm(form: PartnerForm): FieldErrors {
     errors.organizationCode = "Mã đơn vị không được vượt quá 50 ký tự.";
   }
   if (!form.organizationName.trim()) errors.organizationName = "Vui lòng nhập tên đơn vị.";
-  if (!form.representativeName.trim()) errors.representativeName = "Vui lòng nhập tên người đại diện.";
+  if (!form.fullName.trim()) errors.fullName = "Vui lòng nhập họ và tên.";
   if (!/^\+?\d+$/.test(form.phoneNumber.trim())) {
     errors.phoneNumber = "Số điện thoại chỉ gồm chữ số và có thể bắt đầu bằng dấu +.";
   }
@@ -115,7 +114,6 @@ export function PartnerRegistrationPage() {
         organizationName: form.organizationName.trim(),
         password: form.password,
         phoneNumber: form.phoneNumber.trim(),
-        representativeName: form.representativeName.trim(),
         username: form.username.trim(),
       });
       setRegisteredEmail(normalizedEmail);
@@ -193,12 +191,17 @@ export function PartnerRegistrationPage() {
               </section>
 
               <section className="tw-grid tw-gap-3">
+                <AuthFormSectionTitle>Thông tin cá nhân</AuthFormSectionTitle>
+                <div className="tw-grid tw-grid-cols-2 tw-gap-4 max-[680px]:tw-grid-cols-1">
+                  <AuthFormField id="phoneNumber" icon="fas fa-phone-alt" label="Số điện thoại" error={fieldErrors.phoneNumber} maxLength={20} required type="tel" value={form.phoneNumber} onChange={(value) => updateField("phoneNumber", value)} />
+                </div>
+              </section>
+
+              <section className="tw-grid tw-gap-3">
                 <AuthFormSectionTitle>Thông tin đối tác</AuthFormSectionTitle>
                 <div className="tw-grid tw-grid-cols-2 tw-gap-4 max-[680px]:tw-grid-cols-1">
                   <AuthFormField id="organizationCode" icon="fas fa-fingerprint" label="Mã đơn vị" error={fieldErrors.organizationCode} maxLength={50} placeholder="VD: PARKING_ABC" required value={form.organizationCode} onChange={(value) => updateField("organizationCode", value.toUpperCase())} />
                   <AuthFormField id="organizationName" icon="far fa-building" label="Tên đơn vị" error={fieldErrors.organizationName} maxLength={150} required value={form.organizationName} onChange={(value) => updateField("organizationName", value)} />
-                  <AuthFormField id="representativeName" icon="far fa-address-card" label="Người đại diện" error={fieldErrors.representativeName} maxLength={150} required value={form.representativeName} onChange={(value) => updateField("representativeName", value)} />
-                  <AuthFormField id="phoneNumber" icon="fas fa-phone-alt" label="Số điện thoại" error={fieldErrors.phoneNumber} maxLength={20} required type="tel" value={form.phoneNumber} onChange={(value) => updateField("phoneNumber", value)} />
                 </div>
               </section>
 

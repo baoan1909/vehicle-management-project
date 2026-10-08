@@ -12,15 +12,15 @@ import com.ban.vehicle_management.application.iam.organization.port.out.Organiza
 import com.ban.vehicle_management.application.iam.partnerregistration.model.command.CompletePartnerProfileCommand;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.command.CreatePartnerRegistrationCommand;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.command.ReviewPartnerRegistrationCommand;
-import com.ban.vehicle_management.application.iam.partnerregistration.model.result.PartnerAddressResult;
-import com.ban.vehicle_management.application.iam.partnerregistration.model.result.PartnerApplicationStatusResult;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.result.PartnerRegistrationResult;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.result.PartnerRegistrationSubmissionResult;
 import com.ban.vehicle_management.application.iam.partnerregistration.port.in.PartnerRegistrationPortIn;
 import com.ban.vehicle_management.application.iam.partnerregistration.port.out.PartnerRegistrationPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.usecase.OnboardingApprovalPolicyEvaluator;
+import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
+import com.ban.vehicle_management.application.notification.notification.model.NotificationRecipientCriteria;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
-import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.application.notification.notification.usecase.RequiresNewNotificationSender;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.out.UserProfilePortOut;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
@@ -72,10 +73,6 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
     private static final String ORGANIZATION_READ_ALL = "ORGANIZATION_READ_ALL";
     private static final String ORGANIZATION_CREATE_ALL = "ORGANIZATION_CREATE_ALL";
     private static final String NEXT_VERIFY_EMAIL = "VERIFY_EMAIL";
-    private static final String NEXT_COMPLETE_PROFILE = "COMPLETE_PROFILE";
-    private static final String NEXT_WAIT_FOR_REVIEW = "WAIT_FOR_REVIEW";
-    private static final String NEXT_REVIEW_REJECTED = "REVIEW_REJECTED";
-    private static final String NEXT_ACCESS_PARTNER_PORTAL = "ACCESS_PARTNER_PORTAL";
     private static final Logger LOGGER = LoggerFactory.getLogger(PartnerRegistrationUseCaseImpl.class);
 
     private final PartnerRegistrationPortOut partnerRegistrationPortOut;
@@ -89,7 +86,7 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
     private final OnboardingApprovalPolicyEvaluator onboardingApprovalPolicyEvaluator;
     private final PublicAuthPolicy publicAuthPolicy;
     private final VehicleMailService vehicleMailService;
-    private final NotificationPortIn notificationPortIn;
+    private final RequiresNewNotificationSender notificationSender;
     private final UserProfilePortOut userProfilePortOut;
     private final UserProfileAvatarPortIn userProfileAvatarPortIn;
     private final PartnerRegistrationPolicy partnerRegistrationPolicy = new PartnerRegistrationPolicy();
@@ -110,7 +107,7 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
             OnboardingApprovalPolicyEvaluator onboardingApprovalPolicyEvaluator,
             PublicAuthPolicy publicAuthPolicy,
             VehicleMailService vehicleMailService,
-            NotificationPortIn notificationPortIn,
+            RequiresNewNotificationSender notificationSender,
             UserProfilePortOut userProfilePortOut,
             UserProfileAvatarPortIn userProfileAvatarPortIn,
             UserProfilePolicy userProfilePolicy,
@@ -128,7 +125,7 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         this.onboardingApprovalPolicyEvaluator = onboardingApprovalPolicyEvaluator;
         this.publicAuthPolicy = publicAuthPolicy;
         this.vehicleMailService = vehicleMailService;
-        this.notificationPortIn = notificationPortIn;
+        this.notificationSender = notificationSender;
         this.userProfilePortOut = userProfilePortOut;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
         this.userProfilePolicy = userProfilePolicy;
@@ -157,12 +154,12 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
             Account account = accountRegistrationPortOut.registerPendingAccount(
                     normalizedAccount,
                     keycloakUserId,
-                    buildMinimalUserProfile(normalizedAccount.fullName()),
+                    buildMinimalUserProfile(normalizedAccount.fullName(), normalizedPartner.phoneNumber()),
                     AdminProvisionableAccountRoleCode.PARTNER_ADMIN
             );
             identityProviderAdminPortOut.updateAccountIdAttribute(keycloakUserId, account.getAccountId());
 
-            ApprovalRequest approval = buildPendingApprovalRequest(account.getAccountId(), normalizedPartner, normalizedAccount);
+            ApprovalRequest approval = buildPendingApprovalRequest(account.getAccountId(), normalizedPartner);
             partnerRegistrationPortOut.save(approval);
             TransactionalEvents.runAfterCommit(() -> {
                 sendVerificationEmailSafely(keycloakUserId, account.getAccountId());
@@ -185,72 +182,6 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
             deleteKeycloakUserSafely(keycloakUserId, keycloakUserDeleted);
             throw exception;
         }
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PartnerApplicationStatusResult getMyRegistrationStatus() {
-        UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
-        ApprovalRequest approval = partnerRegistrationPortOut.findLatestByApplicantAccountId(accountId)
-                .orElseThrow(() -> new NotFoundException("Partner registration not found"));
-        if (!accountId.equals(approval.getRequestedBy())) {
-            throw new NotFoundException("Partner registration not found");
-        }
-        ProvisionedAccountResult applicant = getApplicantAccount(accountId);
-        boolean emailVerified = identityProviderAdminPortOut.isEmailVerified(applicant.account().keycloakUserId());
-
-        UserProfile userProfile = getApplicantUserProfile(accountId);
-        UserProfile resolvedProfile = userProfileAvatarPortIn.withResolvedAvatarUrl(userProfile);
-        boolean hasCompletePersonalProfile = userProfile != null
-                && userProfile.getFullName() != null && !userProfile.getFullName().isBlank()
-                && userProfile.getDateOfBirth() != null
-                && userProfile.getGender() != null && !userProfile.getGender().isBlank()
-                && userProfile.getPhoneNumber() != null && !userProfile.getPhoneNumber().isBlank()
-                && userProfile.getIdentifyCard() != null && !userProfile.getIdentifyCard().isBlank();
-        boolean hasAvatar = resolvedProfile.getAvatarUrl() != null
-                && !resolvedProfile.getAvatarUrl().isBlank();
-        boolean hasPersonalAddress = userProfile != null && userProfile.getStructuredAddress() != null;
-
-        Map<String, String> data = approval.getRequestData();
-        boolean hasOrganizationAddress = data.get("organizationAddressDetail") != null
-                && data.get("organizationWardCode") != null;
-
-        String nextAction = resolveNextAction(
-                emailVerified,
-                approval.getStatus(),
-                applicant.account().accountStatus(),
-                hasCompletePersonalProfile,
-                hasAvatar,
-                hasPersonalAddress,
-                hasOrganizationAddress
-        );
-
-        return new PartnerApplicationStatusResult(
-                accountId,
-                approval.getApprovalRequestId(),
-                applicant.account().accountStatus(),
-                approval.getStatus(),
-                emailVerified,
-                nextAction,
-                hasCompletePersonalProfile,
-                hasAvatar,
-                hasPersonalAddress,
-                hasOrganizationAddress,
-                userProfile.getFullName(),
-                userProfile.getDateOfBirth(),
-                userProfile.getGender(),
-                userProfile.getPhoneNumber(),
-                userProfile.getIdentifyCard(),
-                resolvedProfile.getAvatarUrl(),
-                toAddressResult(userProfile.getStructuredAddress()),
-                data.get("organizationCode"),
-                data.get("organizationName"),
-                data.get("representativeName"),
-                firstNonBlank(data.get("representativePhoneNumber"), data.get("phoneNumber")),
-                toAddressResult(toOrganizationAddress(data)),
-                approval.getNote(),
-                approval.getCreatedAt()
-        );
     }
 
     @Override
@@ -350,10 +281,14 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
     @Transactional
     public PartnerRegistrationResult rejectRegistration(UUID approvalRequestId, ReviewPartnerRegistrationCommand command) {
         currentAccountPortIn.requirePermission(ORGANIZATION_CREATE_ALL);
+        String reviewNote = normalizeReviewNote(command);
+        if (reviewNote == null || reviewNote.isBlank()) {
+            throw new BadRequestException("Review note is required when rejecting a partner registration");
+        }
         ApprovalRequest approvalRequest = getPendingRegistrationForUpdate(approvalRequestId);
         ProvisionedAccountResult applicant = getApplicantAccount(requireApplicantAccountId(approvalRequest));
         ensurePendingPartnerAdmin(applicant);
-        approvalRequestPolicy.reject(approvalRequest, normalizeReviewNote(command));
+        approvalRequestPolicy.reject(approvalRequest, reviewNote);
         partnerRegistrationPortOut.save(approvalRequest);
         scheduleReviewOutcome(approvalRequest, applicant, false);
         return toResult(approvalRequest);
@@ -369,8 +304,8 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         if (accountRegistrationPortOut.existsByEmail(account.email())) {
             throw new ConflictException("Email đã tồn tại.");
         }
-        if (partnerRegistrationPortOut.existsPendingByEmail(account.email())) {
-            throw new ConflictException("A partner registration with this email is already pending");
+        if (userProfilePortOut.existsByPhoneNumber(partner.phoneNumber())) {
+            throw new ConflictException("Số điện thoại đã được sử dụng.");
         }
         if (partnerRegistrationPortOut.existsPendingByOrganizationCode(partner.organizationCode())) {
             throw new ConflictException("A partner registration with this organization code is already pending");
@@ -382,8 +317,7 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
 
     private ApprovalRequest buildPendingApprovalRequest(
             UUID accountId,
-            CreatePartnerRegistrationCommand partner,
-            RegisterAccountCommand account
+            CreatePartnerRegistrationCommand partner
     ) {
         ApprovalRequest approval = new ApprovalRequest();
         approval.setApprovalRequestId(UUID.randomUUID());
@@ -394,23 +328,18 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         approval.setRequestedBy(accountId);
         approval.setStatus(ApprovalRequestStatus.PENDING);
         approval.setRequestData(Map.ofEntries(
-                Map.entry("fullName", account.fullName()),
-                Map.entry("username", account.username()),
                 Map.entry("organizationCode", partner.organizationCode()),
-                Map.entry("organizationName", partner.organizationName()),
-                Map.entry("representativeName", partner.representativeName()),
-                Map.entry("representativePhoneNumber", partner.phoneNumber()),
-                Map.entry("email", account.email()),
-                Map.entry("phoneNumber", partner.phoneNumber())
+                Map.entry("organizationName", partner.organizationName())
         ));
         approvalRequestPolicy.initialize(approval);
         return approval;
     }
 
-    private UserProfile buildMinimalUserProfile(String fullName) {
+    private UserProfile buildMinimalUserProfile(String fullName, String phoneNumber) {
         UserProfile userProfile = new UserProfile();
         userProfile.setUserProfileId(UUID.randomUUID());
         userProfile.setFullName(fullName);
+        userProfile.setPhoneNumber(phoneNumber);
         userProfile.setStatus(UserProfileStatus.ACTIVE);
         userProfilePolicy.initialize(userProfile);
         return userProfile;
@@ -531,8 +460,6 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         // Get organization data from requestData
         String organizationCode = approvalRequest.getRequestData().get("organizationCode");
         String organizationName = approvalRequest.getRequestData().get("organizationName");
-        String representativeName = approvalRequest.getRequestData().get("representativeName");
-        String representativePhoneNumber = approvalRequest.getRequestData().get("representativePhoneNumber");
 
         // Build organization address from requestData
         VietnamAddress structuredOrganizationAddress = toOrganizationAddress(approvalRequest.getRequestData());
@@ -567,8 +494,6 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
                 avatars,
                 organizationCode,
                 organizationName,
-                representativeName,
-                representativePhoneNumber,
                 orgAddress
         );
     }
@@ -589,33 +514,9 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         return TextValidationUtils.normalizeNullableText(command == null ? null : command.note(), "note", 0);
     }
 
-    private String resolveNextAction(
-            boolean emailVerified,
-            ApprovalRequestStatus approvalStatus,
-            AccountStatus accountStatus,
-            boolean hasCompletePersonalProfile,
-            boolean hasAvatar,
-            boolean hasPersonalAddress,
-            boolean hasOrganizationAddress
-    ) {
-        if (!emailVerified) {
-            return NEXT_VERIFY_EMAIL;
-        }
-        if (ApprovalRequestStatus.REJECTED.equals(approvalStatus)) {
-            return NEXT_REVIEW_REJECTED;
-        }
-        if (!hasCompletePersonalProfile || !hasPersonalAddress || !hasOrganizationAddress) {
-            return NEXT_COMPLETE_PROFILE;
-        }
-        if (ApprovalRequestStatus.APPROVED.equals(approvalStatus) && AccountStatus.ACTIVE.equals(accountStatus)) {
-            return NEXT_ACCESS_PARTNER_PORTAL;
-        }
-        return NEXT_WAIT_FOR_REVIEW;
-    }
-
     @Override
     @Transactional
-    public PartnerApplicationStatusResult completeMyProfile(CompletePartnerProfileCommand command) {
+    public void completeMyProfile(CompletePartnerProfileCommand command) {
         UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         ApprovalRequest approval = partnerRegistrationPortOut.findLatestByApplicantAccountId(accountId)
                 .orElseThrow(() -> new NotFoundException("Partner registration not found"));
@@ -683,12 +584,6 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         if (normalized.organizationName() != null) {
             requestData.put("organizationName", normalized.organizationName());
         }
-        if (normalized.representativeName() != null) {
-            requestData.put("representativeName", normalized.representativeName());
-        }
-        if (normalized.representativePhoneNumber() != null) {
-            requestData.put("representativePhoneNumber", normalized.representativePhoneNumber());
-        }
         if (normalized.organizationAddress() != null) {
             VietnamAddress orgAddr = organizationDraft.getStructuredAddress();
             requestData.put("organizationAddressDetail", orgAddr.getAddressDetail());
@@ -704,9 +599,9 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         if (approval.getStatus() == ApprovalRequestStatus.PENDING) {
             tryAutoApproveRegistration(approval.getApprovalRequestId());
         }
-
-        // Refresh and return status
-        return getMyRegistrationStatus();
+        if (approval.getStatus() == ApprovalRequestStatus.PENDING) {
+            schedulePartnerSubmissionNotifications(approval, accountId);
+        }
     }
 
     private CompletePartnerProfileCommand normalizeCompleteCommand(CompletePartnerProfileCommand command) {
@@ -722,8 +617,6 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
                 command.personalAddress(),
                 TextValidationUtils.normalizeCode(command.organizationCode(), "organizationCode", 50),
                 TextValidationUtils.normalizeRequiredText(command.organizationName(), "organizationName", 150),
-                TextValidationUtils.normalizeRequiredText(command.representativeName(), "representativeName", 150),
-                TextValidationUtils.normalizePhoneNumber(command.representativePhoneNumber(), "representativePhoneNumber", 20),
                 command.organizationAddress()
         );
     }
@@ -744,19 +637,6 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         return address;
     }
 
-    private PartnerAddressResult toAddressResult(VietnamAddress address) {
-        if (address == null) {
-            return null;
-        }
-        return new PartnerAddressResult(
-                address.getProvinceCode(),
-                address.getDistrictCode(),
-                address.getWardCode(),
-                address.getAddressDetail(),
-                address.getAddressDisplay()
-        );
-    }
-
     private void putOrRemove(Map<String, String> data, String key, String value) {
         if (value == null || value.isBlank()) {
             data.remove(key);
@@ -765,8 +645,59 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         data.put(key, value);
     }
 
-    private String firstNonBlank(String primary, String fallback) {
-        return primary == null || primary.isBlank() ? fallback : primary;
+    private void schedulePartnerSubmissionNotifications(ApprovalRequest approvalRequest, UUID applicantAccountId) {
+        UUID approvalRequestId = approvalRequest.getApprovalRequestId();
+        TransactionalEvents.runAfterCommit(() -> {
+            notifyApplicantSafely(
+                    applicantAccountId,
+                    NotificationType.ACCOUNT_PROFILE_SUBMITTED,
+                    "Hồ sơ đối tác đã được gửi duyệt",
+                    "Hồ sơ cá nhân và thông tin đơn vị của bạn đang chờ xét duyệt.",
+                    approvalRequestId
+            );
+            notifyPartnerReviewers(
+                    approvalRequestId,
+                    approvalRequest.getTargetSchema(),
+                    approvalRequest.getTargetTable(),
+                    applicantAccountId,
+                    "Có hồ sơ đối tác cần duyệt"
+            );
+        });
+    }
+
+    private void notifyPartnerReviewers(
+            UUID approvalRequestId,
+            String targetSchema,
+            String targetTable,
+            UUID applicantAccountId,
+            String title
+    ) {
+        if (notificationSender == null) {
+            return;
+        }
+        try {
+            notificationSender.sendBroadcast(new BroadcastNotificationCommand(
+                    true,
+                    null,
+                    null,
+                    null,
+                    NotificationType.ACCOUNT_PROFILE_SUBMITTED,
+                    title,
+                    "Có yêu cầu phê duyệt mới cần xử lý.",
+                    "/admin/partner-registrations",
+                    targetSchema,
+                    targetTable,
+                    approvalRequestId,
+                    new NotificationRecipientCriteria(
+                            true,
+                            Set.of(ORGANIZATION_CREATE_ALL),
+                            applicantAccountId == null ? Set.of() : Set.of(applicantAccountId),
+                            true
+                    )
+            ));
+        } catch (RuntimeException exception) {
+            LOGGER.warn("Could not send partner reviewer notification for approval {}", approvalRequestId, exception);
+        }
     }
 
     private void scheduleReviewOutcome(
@@ -774,10 +705,21 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
             ProvisionedAccountResult applicant,
             boolean approved
     ) {
-        String fullName = approvalRequest.getRequestData().get("fullName");
+        String fullName = applicantFullName(applicant);
         String email = applicant.account().email();
+        UUID approvalRequestId = approvalRequest.getApprovalRequestId();
+        String targetSchema = approvalRequest.getTargetSchema();
+        String targetTable = approvalRequest.getTargetTable();
+        UUID applicantAccountId = applicant.account().accountId();
         TransactionalEvents.runAfterCommit(() -> {
             sendReviewEmailSafely(email, fullName, approvalRequest.getNote(), approved);
+            notifyPartnerReviewers(
+                    approvalRequestId,
+                    targetSchema,
+                    targetTable,
+                    applicantAccountId,
+                    approved ? "Đã duyệt một hồ sơ đối tác" : "Đã từ chối một hồ sơ đối tác"
+            );
             if (approved) {
                 notifyApplicantSafely(
                         applicant.account().accountId(),
@@ -796,6 +738,18 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
                     approvalRequest.getApprovalRequestId()
             );
         });
+    }
+
+    private String applicantFullName(ProvisionedAccountResult applicant) {
+        try {
+            UserProfile userProfile = getApplicantUserProfile(applicant.account().accountId());
+            if (userProfile.getFullName() != null && !userProfile.getFullName().isBlank()) {
+                return userProfile.getFullName();
+            }
+        } catch (RuntimeException lookupFailure) {
+            LOGGER.warn("Could not resolve applicant full name for account {}", applicant.account().accountId(), lookupFailure);
+        }
+        return applicant.account().username();
     }
 
     private void sendReviewEmailSafely(String email, String fullName, String note, boolean approved) {
@@ -829,16 +783,16 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
             String message,
             UUID approvalRequestId
     ) {
-        if (notificationPortIn == null) {
+        if (notificationSender == null) {
             return;
         }
         try {
-            notificationPortIn.sendWebNotification(new SendNotificationCommand(
+            notificationSender.send(new SendNotificationCommand(
                     accountId,
                     type,
                     title,
                     message,
-                    "/partner/application-status",
+                    "/admin/profile",
                     "operations",
                     "approval_requests",
                     approvalRequestId
@@ -861,16 +815,36 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
 
     private PartnerRegistrationResult toResult(ApprovalRequest approvalRequest) {
         Map<String, String> data = approvalRequest.getRequestData();
+        String applicantFullName = "";
+        String applicantPhoneNumber = "";
+        String applicantEmail = "";
+        UUID applicantAccountId = approvalRequest.getRequestedBy();
+        if (applicantAccountId != null) {
+            try {
+                ProvisionedAccountResult applicant = getApplicantAccount(applicantAccountId);
+                applicantEmail = defaultString(applicant.account().email());
+                UserProfile userProfile = getApplicantUserProfile(applicantAccountId);
+                applicantFullName = defaultString(userProfile.getFullName());
+                applicantPhoneNumber = defaultString(userProfile.getPhoneNumber());
+            } catch (RuntimeException lookupFailure) {
+                LOGGER.warn("Could not resolve applicant info for approval {}", approvalRequest.getApprovalRequestId(), lookupFailure);
+            }
+        }
         return new PartnerRegistrationResult(
                 approvalRequest.getApprovalRequestId(),
                 data.get("organizationCode"),
                 data.get("organizationName"),
-                data.get("representativeName"),
-                data.get("email"),
-                data.get("phoneNumber"),
+                data.get("organizationAddressDisplay"),
+                applicantFullName,
+                applicantPhoneNumber,
+                applicantEmail,
+                approvalRequest.getCreatedAt(),
                 approvalRequest.getStatus(),
-                approvalRequest.getNote(),
-                approvalRequest.getCreatedAt()
+                approvalRequest.getNote()
         );
+    }
+
+    private String defaultString(String value) {
+        return value == null ? "" : value;
     }
 }

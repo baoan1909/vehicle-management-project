@@ -5,8 +5,12 @@ import com.ban.vehicle_management.application.iam.partnerregistration.port.out.P
 import com.ban.vehicle_management.application.iam.partnerregistration.usecase.PartnerRegistrationUseCaseImpl;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.infrastructure.mapper.operations.ApprovalRequestPersistenceMapper;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ApprovalRequestEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ApprovalRequestRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import java.util.List;
 import java.util.Map;
@@ -22,18 +26,18 @@ import org.springframework.stereotype.Component;
 public class PartnerRegistrationPersistenceAdapter implements PartnerRegistrationPortOut {
     private final ApprovalRequestRepository approvalRequestRepository;
     private final ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper;
+    private final AccountRepository accountRepository;
+    private final UserProfileRepository userProfileRepository;
 
-    public PartnerRegistrationPersistenceAdapter(ApprovalRequestRepository approvalRequestRepository, ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper) {
+    public PartnerRegistrationPersistenceAdapter(ApprovalRequestRepository approvalRequestRepository, ApprovalRequestPersistenceMapper approvalRequestPersistenceMapper, AccountRepository accountRepository, UserProfileRepository userProfileRepository) {
         this.approvalRequestRepository = approvalRequestRepository;
         this.approvalRequestPersistenceMapper = approvalRequestPersistenceMapper;
+        this.accountRepository = accountRepository;
+        this.userProfileRepository = userProfileRepository;
     }
 
     @Override public void save(ApprovalRequest approvalRequest) {
         approvalRequestRepository.saveAndFlush(approvalRequestPersistenceMapper.toEntity(approvalRequest));
-    }
-
-    @Override public boolean existsPendingByEmail(String email) {
-        return entities(ApprovalRequestStatus.PENDING).stream().anyMatch(item -> email.equalsIgnoreCase(value(item.getRequestData(), "email")));
     }
 
     @Override public boolean existsPendingByOrganizationCode(String organizationCode) {
@@ -134,8 +138,47 @@ public class PartnerRegistrationPersistenceAdapter implements PartnerRegistratio
 
     private PartnerRegistrationResult toResult(ApprovalRequestEntity entity) {
         Map<String, String> data = entity.getRequestData();
-        return new PartnerRegistrationResult(entity.getApprovalRequestId(), value(data, "organizationCode"), value(data, "organizationName"), value(data, "representativeName"), value(data, "email"), value(data, "phoneNumber"), entity.getStatus(), entity.getNote(), entity.getCreatedAt());
+        ApplicantInfo applicant = resolveApplicant(entity.getRequestedBy());
+        return new PartnerRegistrationResult(
+                entity.getApprovalRequestId(),
+                value(data, "organizationCode"),
+                value(data, "organizationName"),
+                value(data, "organizationAddressDisplay"),
+                applicant.fullName(),
+                applicant.phoneNumber(),
+                applicant.email(),
+                entity.getCreatedAt(),
+                entity.getStatus(),
+                entity.getNote()
+        );
     }
+
+    private ApplicantInfo resolveApplicant(UUID accountId) {
+        if (accountId == null) {
+            return new ApplicantInfo("", "", "");
+        }
+        return accountRepository.findById(accountId)
+                .map(account -> {
+                    String email = defaultString(account.getEmail());
+                    UUID userProfileId = account.getUserProfileId();
+                    if (userProfileId == null) {
+                        return new ApplicantInfo("", "", email);
+                    }
+                    return userProfileRepository.findById(userProfileId)
+                            .map(profile -> new ApplicantInfo(
+                                    defaultString(profile.getFullName()),
+                                    defaultString(profile.getPhoneNumber()),
+                                    email
+                            ))
+                            .orElse(new ApplicantInfo("", "", email));
+                })
+                .orElse(new ApplicantInfo("", "", ""));
+    }
+
+    private record ApplicantInfo(String fullName, String phoneNumber, String email) {
+    }
+
+    private String defaultString(String value) { return value == null ? "" : value; }
 
     private String value(Map<String, String> data, String key) { return data == null ? "" : data.getOrDefault(key, ""); }
 }

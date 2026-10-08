@@ -21,6 +21,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.peo
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ApprovalRequestRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
@@ -56,6 +57,9 @@ class AccountProfilePersistenceAdapterTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
+
+    @Mock
+    private ApprovalRequestRepository approvalRequestRepository;
 
     @Mock
     private AccountPersistenceMapper accountPersistenceMapper;

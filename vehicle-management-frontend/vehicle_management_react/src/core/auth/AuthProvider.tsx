@@ -3,7 +3,6 @@ import { getCurrentUserFromStoredToken, saveCurrentUserSnapshot } from "@/core/a
 import { getValidAccessToken } from "@/core/auth/tokenRefresh";
 import { getMyAccountAccess } from "@/features/iam/api/currentAccountAccessApi";
 import { mergeCurrentUserWithCurrentAccess } from "@/features/iam/utils/accountProfileMapper";
-import { getMyPartnerRegistrationStatus } from "@/features/iam/api/partnerRegistrationApi";
 import type { CurrentUser } from "@/shared/types/common";
 
 const ACCESS_HYDRATION_TIMEOUT_MS = 2500;
@@ -100,24 +99,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
     );
 
     request.promise
-      .then(async (response) => {
+      .then((response) => {
         if (!active || accessRequestIdRef.current !== requestId) return;
-        const accessUser = mergeCurrentUserWithCurrentAccess(user, response.data);
-        if (accessUser.accountStatus !== "PENDING") {
-          setUser((currentUser) => (currentUser ? mergeCurrentUserWithCurrentAccess(currentUser, response.data) : currentUser));
-          return;
-        }
-        try {
-          const partnerResponse = await getMyPartnerRegistrationStatus();
-          if (!active || accessRequestIdRef.current !== requestId) return;
-          setUser((currentUser) => currentUser ? {
-            ...mergeCurrentUserWithCurrentAccess(currentUser, response.data),
-            partnerApplicationStatus: partnerResponse.data.approvalStatus,
-            partnerNextAction: partnerResponse.data.nextAction,
-          } : currentUser);
-        } catch {
-          setUser((currentUser) => (currentUser ? mergeCurrentUserWithCurrentAccess(currentUser, response.data) : currentUser));
-        }
+        setUser((currentUser) => (currentUser ? mergeCurrentUserWithCurrentAccess(currentUser, response.data) : currentUser));
       })
       .catch(() => {
         if (!active || accessRequestIdRef.current !== requestId) return;

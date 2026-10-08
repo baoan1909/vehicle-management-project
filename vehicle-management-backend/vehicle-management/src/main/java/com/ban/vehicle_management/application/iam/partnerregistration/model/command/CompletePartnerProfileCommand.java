@@ -13,8 +13,6 @@ public record CompletePartnerProfileCommand(
         VietnamAddress personalAddress,
         String organizationCode,
         String organizationName,
-        String representativeName,
-        String representativePhoneNumber,
         VietnamAddress organizationAddress
 ) {
 }

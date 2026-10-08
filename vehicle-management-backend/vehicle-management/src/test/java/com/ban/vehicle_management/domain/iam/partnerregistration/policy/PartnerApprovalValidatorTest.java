@@ -31,8 +31,6 @@ class PartnerApprovalValidatorTest {
                 List.of(fixture.avatar()),
                 "PARTNER_ABC",
                 "Đối tác ABC",
-                "Nguyễn Văn A",
-                "0901234567",
                 fixture.organizationAddress()
         ));
     }
@@ -49,8 +47,6 @@ class PartnerApprovalValidatorTest {
                 List.of(fixture.avatar()),
                 "PARTNER_ABC",
                 "Đối tác ABC",
-                "Nguyễn Văn A",
-                "0901234567",
                 fixture.organizationAddress()
         ));
     }

@@ -23,8 +23,6 @@ public class PartnerApprovalValidator {
             List<UserProfileAvatar> avatars,
             String organizationCode,
             String organizationName,
-            String representativeName,
-            String representativePhoneNumber,
             Organization.OrganizationAddress organizationAddress
     ) {
         // 1. ApprovalRequest must be PENDING
@@ -90,12 +88,6 @@ public class PartnerApprovalValidator {
         }
         if (organizationName == null || organizationName.isBlank()) {
             throw new BadRequestException("Organization name is required");
-        }
-        if (representativeName == null || representativeName.isBlank()) {
-            throw new BadRequestException("Representative name is required");
-        }
-        if (representativePhoneNumber == null || representativePhoneNumber.isBlank()) {
-            throw new BadRequestException("Representative phone number is required");
         }
 
         // 15. Organization address must be valid

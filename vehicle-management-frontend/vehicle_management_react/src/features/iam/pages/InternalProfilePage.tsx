@@ -19,7 +19,8 @@ import {
   type OnboardingApprovalKind,
   type OnboardingApprovalResponse
 } from "@/features/iam/api/onboardingApprovalApi";
-import { Badge, Button, Card, DatePicker, Input, Modal, SelectMenu, VietnamAddressPicker, type VietnamAddressValue } from "@/components/ui";
+import { resendVerificationEmail } from "@/features/auth/api/authApi";
+import { Badge, Button, Card, DatePicker, Input, Modal, SelectMenu, VietnamAddressPicker, useToast, type VietnamAddressValue } from "@/components/ui";
 import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
 import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta, type StatusTone } from "@/shared/utils/accountStatus";
@@ -35,6 +36,23 @@ type ProfileFormState = {
   identifyCard: string;
   phoneNumber: string;
 };
+
+type OrganizationFormState = {
+  organizationCode: string;
+  organizationName: string;
+  organizationAddress: VietnamAddressValue;
+};
+
+const emptyOrganizationAddress: VietnamAddressValue = {
+  provinceCode: "",
+  districtCode: null,
+  wardCode: "",
+  addressDetail: "",
+};
+
+function isPartnerAdminProfile(profile: AccountProfileStatusResponse) {
+  return profile.account?.roleCode === "PARTNER_ADMIN";
+}
 
 type PasswordFormState = {
   confirmPassword: string;
@@ -89,6 +107,19 @@ function normalizeProfile(profile: AccountProfileStatusResponse): ProfileFormSta
     gender: normalizeGender(profile.profile?.gender),
     identifyCard: profile.profile?.identifyCard ?? "",
     phoneNumber: profile.profile?.phoneNumber ?? ""
+  };
+}
+
+function normalizeOrganization(profile: AccountProfileStatusResponse): OrganizationFormState {
+  return {
+    organizationCode: profile.organization?.organizationCode ?? "",
+    organizationName: profile.organization?.organizationName ?? "",
+    organizationAddress: {
+      provinceCode: profile.organization?.provinceCode ?? "",
+      districtCode: profile.organization?.districtCode ?? null,
+      wardCode: profile.organization?.wardCode ?? "",
+      addressDetail: profile.organization?.addressDetail ?? "",
+    },
   };
 }
 
@@ -478,20 +509,59 @@ function StatusPanel({ onChangePassword, profile }: { onChangePassword: () => vo
 
 export function InternalProfilePage() {
   const { user, setUser } = useAuth();
+  const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState<AccountProfileStatusResponse>(() => buildFallbackProfile(user));
   const [avatarModeration, setAvatarModeration] = useState<AvatarModerationStatus | null>(null);
   const [latestApproval, setLatestApproval] = useState<OnboardingApprovalResponse | null>(null);
   const [form, setForm] = useState<ProfileFormState>(() => normalizeProfile(buildFallbackProfile(user)));
+  const [orgForm, setOrgForm] = useState<OrganizationFormState>(() => normalizeOrganization(buildFallbackProfile(user)));
+  const isPartner = isPartnerAdminProfile(profile);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
+  const [resending, setResending] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(() => searchParams.get("action") === "change-password");
   const [notice, setNotice] = useState<string | null>(null);
+  const missingPartnerFields = useMemo(() => {
+    if (!isPartner) return [];
+    const missing: string[] = [];
+    if (!form.fullName.trim() || !form.dateOfBirth || !form.gender || !form.phoneNumber.trim() || !form.identifyCard.trim()) {
+      missing.push("Thông tin cá nhân (họ tên, ngày sinh, giới tính, số điện thoại, CCCD)");
+    }
+    if (!profile.profile?.avatarUrl) {
+      missing.push("Ảnh đại diện");
+    }
+    if (!form.structuredAddress.provinceCode || !form.structuredAddress.wardCode || !form.structuredAddress.addressDetail.trim()) {
+      missing.push("Địa chỉ liên hệ cá nhân");
+    }
+    if (!orgForm.organizationName.trim()) {
+      missing.push("Thông tin đơn vị (tên đơn vị)");
+    }
+    if (!orgForm.organizationAddress.provinceCode || !orgForm.organizationAddress.wardCode || !orgForm.organizationAddress.addressDetail.trim()) {
+      missing.push("Địa chỉ đơn vị");
+    }
+    return missing;
+  }, [isPartner, form, orgForm, profile.profile?.avatarUrl]);
+
+  async function handleResendVerificationEmail() {
+    const email = profile.account?.email;
+    if (!email || resending) return;
+    setResending(true);
+    try {
+      const response = await resendVerificationEmail({ email });
+      setNotice(response.message || "Đã gửi lại email xác thực.");
+    } catch (cause) {
+      setNotice(cause instanceof Error ? cause.message : "Không thể gửi lại email xác thực.");
+    } finally {
+      setResending(false);
+    }
+  }
 
   const displayName = form.fullName || profile.profile?.fullName || user?.fullName || "Nguyễn Văn Admin";
   const avatarUrl = resolvePublicMediaUrl(profile.profile?.avatarUrl) || resolvePublicMediaUrl(user?.avatarUrl) || DEFAULT_USER_AVATAR_URL;
-  const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(normalizeProfile(profile)), [form, profile]);
+  const dirty = useMemo(() => JSON.stringify(form) !== JSON.stringify(normalizeProfile(profile))
+    || (isPartner && JSON.stringify(orgForm) !== JSON.stringify(normalizeOrganization(profile))), [form, orgForm, isPartner, profile]);
   const currentApprovalStatus = latestApproval?.request?.approvalRequestStatus ?? approvalStatusValue(profile);
   const profileReady = !profile.onboardingRequired && currentApprovalStatus !== "PENDING" && currentApprovalStatus !== "REJECTED";
   const showSaveProfileButton = currentApprovalStatus === "APPROVED";
@@ -519,6 +589,7 @@ export function InternalProfilePage() {
         if (!mounted) return;
         setProfile(response.data);
         setForm(normalizeProfile(response.data));
+        setOrgForm(normalizeOrganization(response.data));
         setNotice(null);
         void refreshLatestApproval(response.data);
       })
@@ -527,6 +598,7 @@ export function InternalProfilePage() {
         const fallback = buildFallbackProfile(user);
         setProfile(fallback);
         setForm(normalizeProfile(fallback));
+        setOrgForm(normalizeOrganization(fallback));
         setLatestApproval(null);
         setNotice("Chưa tải được hồ sơ mới nhất. Đang hiển thị thông tin tạm thời.");
       })
@@ -546,6 +618,10 @@ export function InternalProfilePage() {
   }, [user]);
 
   useEffect(() => subscribeNotificationReceived((notification) => {
+    const isPartnerReviewOutcome = ["ACCOUNT_STATUS_CHANGED", "SYSTEM_NOTICE"].includes(notification.notificationType)
+      && notification.redirectUrl === "/admin/profile"
+      && notification.relatedSchema === "operations"
+      && notification.relatedTable === "approval_requests";
     if (![
       "INTERNAL_EMPLOYEE_APPROVED",
       "INTERNAL_EMPLOYEE_REJECTED",
@@ -553,18 +629,26 @@ export function InternalProfilePage() {
       "SYSTEM_ADMIN_REJECTED",
       "AVATAR_APPROVED",
       "AVATAR_REJECTED",
-    ].includes(notification.notificationType)) return;
+    ].includes(notification.notificationType) && !isPartnerReviewOutcome) return;
 
     void getMyAccountProfile().then((response) => {
       setProfile(response.data);
       setForm(normalizeProfile(response.data));
+      setOrgForm(normalizeOrganization(response.data));
       setUser((currentUser) => currentUser
         ? mergeCurrentUserWithAccountProfile(currentUser, response.data)
         : currentUser);
       void refreshLatestApproval(response.data);
+      if (isPartnerReviewOutcome) {
+        if (response.data.account?.accountStatus === "ACTIVE") {
+          toast.success("Hồ sơ đối tác đã được duyệt. Quyền quản trị đã được kích hoạt.", "Đã phê duyệt");
+        } else if (response.data.partnerApplication?.approvalStatus === "REJECTED") {
+          toast.warning("Hồ sơ đối tác chưa được duyệt. Vui lòng xem phản hồi của reviewer.", "Bị từ chối");
+        }
+      }
     });
     void getMyAvatarModerationStatus().then((response) => setAvatarModeration(response.data));
-  }), [setUser]);
+  }), [setUser, toast]);
 
   useEffect(() => {
     if (searchParams.get("action") === "change-password") {
@@ -579,6 +663,7 @@ export function InternalProfilePage() {
   const applyProfileResponse = (nextProfile: AccountProfileStatusResponse) => {
     setProfile(nextProfile);
     setForm(normalizeProfile(nextProfile));
+    setOrgForm(normalizeOrganization(nextProfile));
     setUser(user ? mergeCurrentUserWithAccountProfile(user, nextProfile) : user);
   };
 
@@ -592,7 +677,16 @@ export function InternalProfilePage() {
       fullName: form.fullName,
       gender: form.gender || undefined,
       identifyCard: form.identifyCard || undefined,
-      phoneNumber: form.phoneNumber
+      phoneNumber: form.phoneNumber,
+      ...(isPartner ? {
+        organizationCode: orgForm.organizationCode || undefined,
+        organizationName: orgForm.organizationName || undefined,
+        organizationAddress: orgForm.organizationAddress.provinceCode
+          && orgForm.organizationAddress.wardCode
+          && orgForm.organizationAddress.addressDetail.trim()
+          ? orgForm.organizationAddress
+          : undefined,
+      } : {}),
   });
 
   const saveProfileChanges = async () => {
@@ -733,7 +827,7 @@ export function InternalProfilePage() {
                 ) : null}
               </div>
               <div className="tw-flex tw-items-center tw-gap-3 max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
-                <Button className="tw-min-h-11 tw-font-extrabold" variant="secondary" disabled={!dirty || saving || resubmitting} type="button" onClick={() => setForm(normalizeProfile(profile))}>
+                <Button className="tw-min-h-11 tw-font-extrabold" variant="secondary" disabled={!dirty || saving || resubmitting} type="button" onClick={() => { setForm(normalizeProfile(profile)); setOrgForm(normalizeOrganization(profile)); }}>
                   <i className="fas fa-undo" />
                   <span>Hoàn tác</span>
                 </Button>
@@ -754,6 +848,23 @@ export function InternalProfilePage() {
               <div className="tw-flex tw-min-h-11 tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-brand-100 tw-bg-brand-50 tw-px-4 tw-text-[0.86rem] tw-font-bold tw-text-blue-900">
                 <i className="fas fa-info-circle" />
                 <span>{notice}</span>
+              </div>
+            ) : null}
+
+            {isPartner && profile.account?.emailVerified === false ? (
+              <div className="tw-flex tw-min-h-11 tw-flex-wrap tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-3 tw-text-[0.86rem] tw-font-bold tw-text-amber-800">
+                <i className="fas fa-envelope-open-text" />
+                <span className="tw-min-w-0 tw-flex-1">Email chưa được xác minh. Hồ sơ chỉ có thể hoàn tất sau khi xác minh email.</span>
+                <Button loading={resending} size="sm" type="button" variant="secondary" onClick={() => void handleResendVerificationEmail()}>Gửi lại email xác thực</Button>
+              </div>
+            ) : null}
+
+            {isPartner && missingPartnerFields.length > 0 ? (
+              <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-4">
+                <strong className="tw-text-sm tw-font-black tw-text-vm-slate-900">Thiếu thông tin:</strong>
+                <ul className="tw-mb-0 tw-mt-2 tw-ml-4 tw-list-disc tw-space-y-1 tw-text-sm tw-text-vm-slate-700">
+                  {missingPartnerFields.map((field) => <li key={field}>{field}</li>)}
+                </ul>
               </div>
             ) : null}
 
@@ -817,6 +928,64 @@ export function InternalProfilePage() {
 
               <StatusPanel profile={profile} onChangePassword={() => setPasswordOpen(true)} />
             </div>
+
+            {isPartner ? (
+              <Card className="tw-min-w-0 tw-rounded-vm-lg tw-border tw-border-solid !tw-border-vm-slate-100 tw-p-4 tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+                <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-gap-4 max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
+                  <div>
+                    <h3 className="tw-m-0 tw-text-vm-section-title tw-font-black tw-text-[#111827]">Thông tin doanh nghiệp</h3>
+                    <p className="tw-mb-0 tw-mt-1.5 tw-text-[0.88rem] tw-font-semibold tw-text-vm-slate-500">Thông tin đơn vị dùng để xét duyệt hồ sơ đối tác. Mã đơn vị không thể thay đổi sau khi đăng ký.</p>
+                  </div>
+                  {profile.partnerApplication?.approvalStatus ? (
+                    <StatusPill tone={profile.partnerApplication.approvalStatus === "APPROVED" ? "green" : profile.partnerApplication.approvalStatus === "REJECTED" ? "red" : "blue"}>
+                      {profile.partnerApplication.approvalStatus === "APPROVED" ? "Đã phê duyệt" : profile.partnerApplication.approvalStatus === "REJECTED" ? "Bị từ chối" : "Chờ phê duyệt"}
+                    </StatusPill>
+                  ) : null}
+                </div>
+
+                {profile.partnerApplication?.reviewNote ? (
+                  <div className="tw-mb-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
+                    <strong className="tw-text-sm tw-font-black tw-text-vm-slate-900">Phản hồi của reviewer</strong>
+                    <p className="tw-m-0 tw-mt-1 tw-whitespace-pre-wrap tw-text-[0.84rem] tw-leading-6 tw-text-vm-slate-700">{profile.partnerApplication.reviewNote}</p>
+                  </div>
+                ) : null}
+
+                <div className="tw-grid tw-grid-cols-2 tw-gap-3.5 max-[900px]:tw-grid-cols-1">
+                  <label className="tw-grid tw-gap-2">
+                    <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Mã đơn vị</span>
+                    <Input
+                      className="tw-h-[42px] tw-text-[0.95rem]"
+                      value={orgForm.organizationCode}
+                      placeholder="Nhập mã đơn vị"
+                      readOnly={!!profile.organization?.organizationCode}
+                      onChange={(event) => setOrgForm((current) => ({ ...current, organizationCode: event.target.value.toUpperCase() }))}
+                    />
+                  </label>
+                  <label className="tw-grid tw-gap-2">
+                    <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Tên đơn vị</span>
+                    <Input
+                      className="tw-h-[42px] tw-text-[0.95rem]"
+                      value={orgForm.organizationName}
+                      placeholder="Nhập tên đơn vị"
+                      onChange={(event) => setOrgForm((current) => ({ ...current, organizationName: event.target.value }))}
+                    />
+                  </label>
+                  <div className="tw-col-span-full tw-grid tw-gap-2">
+                    <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Địa chỉ đơn vị</span>
+                    <VietnamAddressPicker
+                      mode="auto"
+                      value={orgForm.organizationAddress}
+                      onChange={(organizationAddress) => setOrgForm((current) => ({ ...current, organizationAddress }))}
+                    />
+                    {profile.organization?.addressDisplay && !orgForm.organizationAddress.provinceCode ? (
+                      <span className="tw-text-xs tw-font-semibold tw-text-amber-700">
+                        Địa chỉ chưa chuẩn hóa: {profile.organization.addressDisplay}. Vui lòng chọn lại theo danh mục địa giới.
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              </Card>
+            ) : null}
 
             <ChangePasswordModal open={passwordOpen} onClose={closePasswordModal} onSubmit={handleChangePassword} />
           </div>

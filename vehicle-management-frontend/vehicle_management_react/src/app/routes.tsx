@@ -16,8 +16,6 @@ import {
   PricingPage,
   ProfilePage,
   PartnerRegistrationPage,
-  PartnerApplicationStatusPage,
-  PartnerProfileCompletionPage,
   SubscriptionPage,
   SupportPage,
   VehiclePage,
@@ -92,8 +90,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/guide", title: "Huong dan", layout: "client", element: <GuidePage /> },
   { path: "/contact", title: "Lien he", layout: "client", element: <ContactPage /> },
 { path: "/become-a-partner", title: "Trở thành đối tác CoParking", layout: "auth", element: <PartnerRegistrationPage /> },
-  { path: "/partner/application-status", title: "Trạng thái hồ sơ đối tác", layout: "client", element: <PartnerApplicationStatusPage /> },
-  { path: "/partner/profile-completion", title: "Hoàn thiện hồ sơ đối tác", layout: "client", element: <PartnerProfileCompletionPage /> },
+
   { path: "/payment/vnpay-return", title: "Ket qua thanh toan", layout: "client", element: <VnpayReturnPage /> },
   { path: "/customerTicket/customer-infor", title: "Lich su gui xe", layout: "client", element: <CustomerHistoryPage /> },
   { path: "/customerTicket/customer-infor-detail", title: "Thong tin tai khoan", layout: "client", element: <ProfilePage /> },

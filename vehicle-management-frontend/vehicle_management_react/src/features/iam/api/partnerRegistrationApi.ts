@@ -10,13 +10,6 @@ type ApiResponse<T> = {
 
 export type PartnerRegistrationStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 
-export type VietnamAddressValue = {
-  provinceCode: string;
-  districtCode: string | null;
-  wardCode: string;
-  addressDetail: string;
-};
-
 export type PartnerRegistrationRequest = {
   email: string;
   fullName: string;
@@ -24,7 +17,6 @@ export type PartnerRegistrationRequest = {
   organizationName: string;
   password: string;
   phoneNumber: string;
-  representativeName: string;
   username: string;
 };
 
@@ -36,57 +28,17 @@ export type PartnerRegistrationSubmission = {
   nextAction: "VERIFY_EMAIL";
 };
 
-export type PartnerApplicationStatus = {
-  accountId: string;
-  accountStatus: string;
-  approvalRequestId: string;
-  approvalStatus: PartnerRegistrationStatus;
-  emailVerified: boolean;
-  nextAction: "VERIFY_EMAIL" | "COMPLETE_PROFILE" | "WAIT_FOR_REVIEW" | "REVIEW_REJECTED" | "ACCESS_PARTNER_PORTAL";
-  hasCompletePersonalProfile: boolean;
-  hasAvatar: boolean;
-  hasPersonalAddress: boolean;
-  hasOrganizationAddress: boolean;
-  fullName: string;
-  dateOfBirth?: string | null;
-  gender?: string | null;
-  phoneNumber?: string | null;
-  identifyCard?: string | null;
-  avatarUrl?: string | null;
-  personalAddress?: (VietnamAddressValue & { addressDisplay?: string | null }) | null;
-  organizationCode: string;
-  organizationName: string;
-  representativeName: string;
-  representativePhoneNumber: string;
-  organizationAddress?: (VietnamAddressValue & { addressDisplay?: string | null }) | null;
-  reviewNote?: string | null;
-  submittedAt: string;
-};
-
 export type PartnerRegistration = {
   approvalRequestId: string;
-  createdAt: string;
-  email: string;
+  submittedAt: string;
+  applicantFullName: string;
+  applicantPhoneNumber: string;
+  applicantEmail: string;
   note?: string | null;
   organizationCode: string;
   organizationName: string;
-  phoneNumber: string;
-  representativeName: string;
+  organizationAddressDisplay: string;
   status: PartnerRegistrationStatus;
-};
-
-export type CompletePartnerProfileRequest = {
-  fullName: string;
-  dateOfBirth: string;
-  gender: string;
-  phoneNumber: string;
-  identifyCard: string;
-  personalAddress: VietnamAddressValue;
-  organizationCode: string;
-  organizationName: string;
-  representativeName: string;
-  representativePhoneNumber: string;
-  organizationAddress: VietnamAddressValue;
 };
 
 export async function fetchPartnerRegistrations(status?: PartnerRegistrationStatus) {
@@ -100,19 +52,6 @@ export async function submitPartnerRegistration(request: PartnerRegistrationRequ
     body: request,
     method: "POST",
     skipAuth: true,
-  });
-}
-
-export async function getMyPartnerRegistrationStatus(options: { signal?: AbortSignal } = {}) {
-  return apiClient<ApiResponse<PartnerApplicationStatus>>(apiEndpoints.iam.myPartnerRegistration, {
-    signal: options.signal,
-  });
-}
-
-export async function completePartnerProfile(request: CompletePartnerProfileRequest) {
-  return apiClient<ApiResponse<PartnerApplicationStatus>>(apiEndpoints.iam.completePartnerProfile, {
-    body: request,
-    method: "POST",
   });
 }
 

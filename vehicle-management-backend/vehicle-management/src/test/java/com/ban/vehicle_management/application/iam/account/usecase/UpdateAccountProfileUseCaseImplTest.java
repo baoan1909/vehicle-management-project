@@ -61,6 +61,15 @@ class UpdateAccountProfileUseCaseImplTest {
     private SystemAdminApprovalPortOut systemAdminApprovalPortOut;
 
     @Mock
+    private com.ban.vehicle_management.application.iam.partnerregistration.port.out.PartnerRegistrationPortOut partnerRegistrationPortOut;
+
+    @Mock
+    private com.ban.vehicle_management.application.iam.partnerregistration.port.in.PartnerRegistrationPortIn partnerRegistrationPortIn;
+
+    @Mock
+    private com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut identityProviderAdminPortOut;
+
+    @Mock
     private AccountProfileResultMapper accountProfileResultMapper;
 
     @Spy
@@ -91,6 +100,9 @@ class UpdateAccountProfileUseCaseImplTest {
                         null,
                         null,
                         null,
+                        null,
+                        null,
+                        null,
                         null
                 ))
         );
@@ -106,6 +118,9 @@ class UpdateAccountProfileUseCaseImplTest {
         assertThrows(
                 BadRequestException.class,
                 () -> useCase.updateMyProfile(new UpdateAccountProfileCommand(
+                        null,
+                        null,
+                        null,
                         null,
                         null,
                         null,
@@ -146,6 +161,9 @@ class UpdateAccountProfileUseCaseImplTest {
                 () -> useCase.updateMyProfile(new UpdateAccountProfileCommand(
                         null,
                         "+84909999999",
+                        null,
+                        null,
+                        null,
                         null,
                         null,
                         null,
@@ -233,7 +251,8 @@ class UpdateAccountProfileUseCaseImplTest {
                         "REGISTERED",
                         "INACTIVE",
                         "PENDING"
-                )
+                ),
+                null
         ));
 
         AccountProfileStatusResult result = useCase.updateMyProfile(new UpdateAccountProfileCommand(
@@ -243,7 +262,10 @@ class UpdateAccountProfileUseCaseImplTest {
                 null,
                 null,
                 null,
-                new VietnamAddress("79", "760", "26740", "Thu Duc", "Thu Duc, Ho Chi Minh City")
+                new VietnamAddress("79", "760", "26740", "Thu Duc", "Thu Duc, Ho Chi Minh City"),
+                null,
+                null,
+                null
         ));
 
         ArgumentCaptor<UserProfile> userProfileCaptor = ArgumentCaptor.forClass(UserProfile.class);
@@ -257,6 +279,115 @@ class UpdateAccountProfileUseCaseImplTest {
         assertEquals(accountId, result.account().accountId());
         assertEquals(userProfileId, result.profile().userProfileId());
         assertEquals("Thu Duc, Ho Chi Minh City", result.profile().addressDisplay());
+    }
+
+    @Test
+    void shouldUpdatePartnerOrganizationDraftAndRetryAutoApprove() {
+        UUID accountId = UUID.randomUUID();
+        UUID userProfileId = UUID.fromString("ec761405-c091-4a65-b1dd-c8fb23f0d6bd");
+        AccountProfileState initialState = new AccountProfileState(
+                accountId,
+                "partner.admin",
+                "partner@example.com",
+                "kc-partner-1",
+                "PARTNER_ADMIN",
+                userProfileId,
+                "Nguyen Van A",
+                LocalDate.of(1990, 1, 1),
+                "MALE",
+                "+84901234567",
+                "Ho Chi Minh City",
+                "079203001234",
+                "https://cdn.example.com/avatars/partner.jpg",
+                UserProfileStatus.ACTIVE,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                AccountStatus.PENDING
+        );
+        com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest approval =
+                new com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest();
+        approval.setApprovalRequestId(UUID.randomUUID());
+        approval.setStatus(com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus.PENDING);
+        approval.setRequestData(new java.util.HashMap<>(java.util.Map.of(
+                "organizationCode", "PARTNER_ABC",
+                "organizationName", "Bai xe ABC"
+        )));
+
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
+        when(accountProfilePortOut.findProfileStateByAccountId(accountId)).thenReturn(Optional.of(initialState));
+        when(accountProfileResultMapper.mergeProfile(
+                org.mockito.ArgumentMatchers.any(AccountProfileState.class),
+                org.mockito.ArgumentMatchers.any(UpdateAccountProfileCommand.class)
+        )).thenReturn(buildUserProfile(
+                userProfileId,
+                "Nguyen Van A",
+                "+84901234567",
+                LocalDate.of(1990, 1, 1),
+                "MALE",
+                "Ho Chi Minh City",
+                "079203001234",
+                "https://cdn.example.com/avatars/partner.jpg",
+                UserProfileStatus.ACTIVE
+        ));
+        when(accountProfilePortOut.updateProfile(eq(accountId), any(UserProfile.class))).thenReturn(initialState);
+        when(partnerRegistrationPortOut.findLatestByApplicantAccountId(accountId))
+                .thenReturn(Optional.of(approval));
+        when(accountProfileResultMapper.toStatusResult(any(AccountProfileState.class), eq(true)))
+                .thenReturn(new AccountProfileStatusResult(
+                        true,
+                        new AccountProfileStatusResult.AccountInfoResult(
+                                accountId,
+                                "PENDING",
+                                "partner.admin",
+                                "partner@example.com",
+                                "kc-partner-1",
+                                "PARTNER_ADMIN"
+                        ),
+                        new AccountProfileStatusResult.ProfileInfoResult(
+                                userProfileId,
+                                "Nguyen Van A",
+                                LocalDate.of(1990, 1, 1),
+                                "MALE",
+                                "+84901234567",
+                                "Ho Chi Minh City",
+                                "079203001234",
+                                "https://cdn.example.com/avatars/partner.jpg",
+                                "ACTIVE"
+                        ),
+                        null,
+                        null,
+                        null
+                ));
+
+        com.ban.vehicle_management.domain.shared.address.VietnamAddress organizationAddress =
+                com.ban.vehicle_management.domain.shared.address.VietnamAddress.ofCurrent("79", "26734", "123 Duong ABC");
+        organizationAddress.setAddressDisplay("123 Duong ABC, Phuong Tan Thoi, Thanh pho Ho Chi Minh");
+        useCase.updateMyProfile(new UpdateAccountProfileCommand(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                "PARTNER_ABC",
+                "Bai xe ABC Updated",
+                organizationAddress
+        ));
+
+        assertEquals("Bai xe ABC Updated", approval.getRequestData().get("organizationName"));
+        assertEquals("123 Duong ABC", approval.getRequestData().get("organizationAddressDetail"));
+        assertEquals("79", approval.getRequestData().get("organizationProvinceCode"));
+        verify(partnerRegistrationPortOut).save(approval);
+        verify(partnerRegistrationPortIn).tryAutoApproveRegistration(approval.getApprovalRequestId());
     }
 
     private AccountProfileState stateWithoutProfile(UUID accountId) {

@@ -35,13 +35,25 @@ public record AccountProfileState(
         String jobTitle,
         LocalDate employeeHiredAt,
         EmployeeStatus employeeStatus,
-        UUID customerId,
-        String customerCode,
-        CustomerType customerType,
-        CustomerStatus customerStatus,
-        CustomerApprovalStatus customerApprovalStatus,
-        AccountStatus accountStatus,
-        List<String> permissionCodes
+         UUID customerId,
+         String customerCode,
+         CustomerType customerType,
+         CustomerStatus customerStatus,
+         CustomerApprovalStatus customerApprovalStatus,
+         AccountStatus accountStatus,
+         List<String> permissionCodes,
+         UUID partnerApprovalRequestId,
+         String partnerApprovalStatus,
+         String partnerReviewNote,
+         String organizationCode,
+         String organizationName,
+         String organizationAddressDetail,
+         String organizationProvinceCode,
+         String organizationWardCode,
+         String organizationDistrictCode,
+         String organizationAddressDisplay,
+         UUID organizationId,
+         String organizationStatus
 ) {
     public AccountProfileState(
             UUID accountId,
@@ -100,7 +112,19 @@ public record AccountProfileState(
                 customerStatus,
                 customerApprovalStatus,
                 accountStatus,
-                List.of()
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
     }
 }

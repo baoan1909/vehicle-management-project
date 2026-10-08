@@ -7,7 +7,7 @@ const paths = {
   navbar: new URL("../src/shared/components/layout/ClientNavbar.tsx", import.meta.url),
   router: new URL("../src/app/router/index.tsx", import.meta.url),
   routes: new URL("../src/app/routes.tsx", import.meta.url),
-  status: new URL("../src/features/customer-portal/pages/PartnerApplicationStatusPage.tsx", import.meta.url),
+  adminProfile: new URL("../src/features/iam/pages/InternalProfilePage.tsx", import.meta.url),
 };
 
 const entries = await Promise.all(
@@ -23,27 +23,28 @@ for (const field of [
   "confirmPassword",
   "organizationCode",
   "organizationName",
-  "representativeName",
   "phoneNumber",
 ]) {
   assert.match(files.form, new RegExp(`\\b${field}\\b`), `Missing Partner form field ${field}`);
 }
+assert.ok(!files.form.includes("representativeName") && !files.form.includes("Người đại diện"),
+  "Partner form must not request a representative");
 
 const submissionBlock = files.form.match(/submitPartnerRegistration\(\{[\s\S]*?\n\s*\}\);/)?.[0] ?? "";
 assert.ok(submissionBlock, "Partner submission payload was not found");
-assert.doesNotMatch(submissionBlock, /confirmPassword|roleCode|accountStatus/);
+assert.doesNotMatch(submissionBlock, /confirmPassword|roleCode|accountStatus|representativeName|representativePhoneNumber/);
 assert.match(submissionBlock, /organizationCode: form\.organizationCode\.trim\(\)\.toUpperCase\(\)/);
 assert.match(submissionBlock, /email: normalizedEmail/);
 assert.match(files.navbar, /to="\/become-a-partner">Trở thành đối tác<\/Link>/);
-assert.match(files.routes, /path: "\/partner\/application-status"/);
-assert.match(files.login, /partnerApplicationStatus[\s\S]*\/partner\/application-status/);
-assert.match(files.router, /user\.partnerApplicationStatus && user\.accountStatus !== "ACTIVE"/);
-assert.match(files.status, /Gửi lại email xác thực/);
-assert.match(files.status, /reviewNote/);
-assert.match(files.status, /subscribeNotificationReceived/);
-assert.match(files.status, /relatedSchema === "operations"/);
-assert.match(files.status, /relatedTable === "approval_requests"/);
-assert.match(files.status, /void loadStatus\(\)/);
+assert.ok(!files.routes.includes("/partner/application-status"), "Standalone partner status route must be removed");
+assert.ok(!files.routes.includes("/partner/profile-completion"), "Standalone partner completion route must be removed");
+assert.match(files.login, /PARTNER_ADMIN[\s\S]*\/admin\/profile/);
+assert.match(files.router, /PARTNER_ADMIN/);
+assert.ok(files.router.includes('"/admin/profile"'), "Pending partners must land on the admin profile page");
+assert.match(files.adminProfile, /Thông tin doanh nghiệp/);
+assert.match(files.adminProfile, /organizationCode/);
+assert.match(files.adminProfile, /organizationAddress/);
+assert.match(files.adminProfile, /PARTNER_ADMIN/);
 
 assert.ok(!files.form.includes('id="address"') && !files.form.includes("form.address"), "Partner form must not request an address");
 assert.ok(!files.form.includes("expectedParkingLotCount"), "Partner form must not request a parking lot count");
@@ -66,5 +67,22 @@ assert.ok(
   "Successful Partner registration must use the exact toast message",
 );
 assert.ok(!files.form.includes('AuthInlineNotice tone="success"'), "Successful Partner registration must not render an inline success banner");
+
+// Reviewer page must show applicant info from accounts/profiles, never representative fields.
+const reviewerPath = new URL("../src/features/iam/pages/PartnerRegistrationManagementPage.tsx", import.meta.url);
+const reviewer = await readFile(reviewerPath, "utf8");
+assert.ok(!reviewer.includes("representativeName"), "Reviewer page must not reference representativeName");
+assert.ok(!reviewer.includes("Người đại diện"), "Reviewer page must not render a representative label");
+assert.match(reviewer, /applicantFullName/, "Reviewer page must show the applicant full name");
+assert.match(reviewer, /applicantPhoneNumber/, "Reviewer page must show the applicant phone number");
+assert.match(reviewer, /applicantEmail/, "Reviewer page must show the applicant email");
+assert.match(reviewer, /ORGANIZATION_CREATE_ALL/, "Reviewer approve/reject must be gated by ORGANIZATION_CREATE_ALL");
+assert.match(reviewer, /subscribeNotificationReceived/, "Reviewer page must subscribe to realtime updates");
+
+// Admin profile must expose the organization section without representative fields,
+// reading approval state from the partnerApplication block.
+assert.ok(!files.adminProfile.includes("representativeName"), "Admin profile must not reference representativeName");
+assert.match(files.adminProfile, /partnerApplication\?\.approvalStatus/, "Admin profile must read approval status from the partnerApplication block");
+assert.match(files.adminProfile, /partnerApplication\?\.reviewNote/, "Admin profile must show the reviewer note from the partnerApplication block");
 
 console.log("Partner registration form, workflow redirect, and status-page checks passed.");

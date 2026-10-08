@@ -10,7 +10,10 @@ public record UpdateAccountProfileCommand(
         String gender,
         String identifyCard,
         String avatarUrl,
-        VietnamAddress structuredAddress
+        VietnamAddress structuredAddress,
+        String organizationCode,
+        String organizationName,
+        VietnamAddress organizationAddress
 ) {
     public UpdateAccountProfileCommand(
             String fullName,
@@ -20,6 +23,6 @@ public record UpdateAccountProfileCommand(
             String identifyCard,
             String avatarUrl
     ) {
-        this(fullName, phoneNumber, dateOfBirth, gender, identifyCard, avatarUrl, null);
+        this(fullName, phoneNumber, dateOfBirth, gender, identifyCard, avatarUrl, null, null, null, null);
     }
 }

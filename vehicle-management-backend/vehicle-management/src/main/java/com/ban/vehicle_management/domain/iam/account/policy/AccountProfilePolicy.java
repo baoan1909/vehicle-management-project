@@ -52,6 +52,17 @@ public class AccountProfilePolicy {
         return TextValidationUtils.normalizeAlphaNumeric(identifyCard, "identifyCard", 50);
     }
 
+    public String normalizeNullableOrganizationCode(String organizationCode) {
+        if (organizationCode == null || organizationCode.isBlank()) {
+            return null;
+        }
+        return TextValidationUtils.normalizeCode(organizationCode, "organizationCode", 50);
+    }
+
+    public String normalizeNullableOrganizationName(String organizationName) {
+        return TextValidationUtils.normalizeNullableText(organizationName, "organizationName", 150);
+    }
+
     public VietnamAddress validateStructuredAddress(VietnamAddress address) {
         if (address == null) {
             return null;
@@ -73,12 +84,30 @@ public class AccountProfilePolicy {
             VietnamAddress structuredAddress,
             String identifyCard
     ) {
+        ensurePatchHasAtLeastOneField(fullName, phoneNumber, dateOfBirth, gender, structuredAddress, identifyCard,
+                null, null, null);
+    }
+
+    public void ensurePatchHasAtLeastOneField(
+            String fullName,
+            String phoneNumber,
+            LocalDate dateOfBirth,
+            String gender,
+            VietnamAddress structuredAddress,
+            String identifyCard,
+            String organizationCode,
+            String organizationName,
+            VietnamAddress organizationAddress
+    ) {
         if (fullName == null
                 && phoneNumber == null
                 && dateOfBirth == null
                 && gender == null
                 && structuredAddress == null
-                && identifyCard == null) {
+                && identifyCard == null
+                && organizationCode == null
+                && organizationName == null
+                && organizationAddress == null) {
             throw new BadRequestException("At least one profile field must be provided");
         }
     }

@@ -38,6 +38,19 @@ public class AccountOnboardingPolicy {
                 && AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.equals(resolveProvisionableRole(state.roleCode()));
     }
 
+    public boolean needsPartnerApprovalLookup(AccountProfileState state) {
+        requireState(state);
+        return AdminProvisionableAccountRoleCode.PARTNER_ADMIN.equals(resolveProvisionableRole(state.roleCode()));
+    }
+
+    public boolean isPartnerOnboardingRequired(AccountProfileState state, boolean partnerApproved) {
+        requireState(state);
+        if (!AdminProvisionableAccountRoleCode.PARTNER_ADMIN.equals(resolveProvisionableRole(state.roleCode()))) {
+            return false;
+        }
+        return state.userProfileId() == null || !partnerApproved;
+    }
+
     public boolean requiresEmployeeRecord(AdminProvisionableAccountRoleCode roleCode) {
         return roleCode != null && roleCode.requiresEmployeeRecord();
     }

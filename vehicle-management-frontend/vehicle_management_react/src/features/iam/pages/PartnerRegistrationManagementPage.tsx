@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { Badge, Button, Card, InfoBanner, Modal, SearchInput, SelectMenu, useToast } from "@/components/ui";
+import { useAuth } from "@/core/auth/useAuth";
 import { getApplicationTimeZone } from "@/shared/time/applicationTime";
+import { hasAnyPermission } from "@/shared/auth/permissions";
+import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import {
   fetchPartnerRegistrations,
   reviewPartnerRegistration,
@@ -59,6 +62,7 @@ function DetailField({ label, value, wide = false }: { label: string; value?: st
 }
 
 function RegistrationModal({
+  canDecide,
   error,
   isSaving,
   item,
@@ -67,6 +71,7 @@ function RegistrationModal({
   onNoteChange,
   onReview,
 }: {
+  canDecide: boolean;
   error: string;
   isSaving: boolean;
   item: PartnerRegistration | null;
@@ -76,7 +81,7 @@ function RegistrationModal({
   onReview: (decision: ReviewDecision) => void;
 }) {
   if (!item) return null;
-  const canReview = item.status === "PENDING";
+  const canReview = canDecide && item.status === "PENDING";
 
   return (
     <Modal
@@ -113,24 +118,26 @@ function RegistrationModal({
         </div>
 
         <section>
-          <h5 className="tw-m-0 tw-mb-3 tw-text-[0.8rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Thông tin đối tác</h5>
+          <h5 className="tw-m-0 tw-mb-3 tw-text-[0.8rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Thông tin đơn vị</h5>
           <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[560px]:tw-grid-cols-1">
-            <DetailField label="Mã đối tác" value={item.organizationCode} />
+            <DetailField label="Mã đơn vị" value={item.organizationCode} />
+            <DetailField label="Tên đơn vị" value={item.organizationName} />
+            <DetailField label="Địa chỉ đơn vị" value={item.organizationAddressDisplay} wide />
           </div>
         </section>
 
         <section>
-          <h5 className="tw-m-0 tw-mb-3 tw-text-[0.8rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Người đại diện & tài khoản đã đăng ký</h5>
+          <h5 className="tw-m-0 tw-mb-3 tw-text-[0.8rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Người đăng ký</h5>
           <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[560px]:tw-grid-cols-1">
-            <DetailField label="Người đại diện" value={item.representativeName} />
-            <DetailField label="Số điện thoại" value={item.phoneNumber} />
-            <DetailField label="Email tài khoản" value={item.email} wide />
-            <DetailField label="Thời điểm gửi yêu cầu" value={formatDateTime(item.createdAt)} wide />
+            <DetailField label="Họ và tên" value={item.applicantFullName} />
+            <DetailField label="Số điện thoại" value={item.applicantPhoneNumber} />
+            <DetailField label="Email tài khoản" value={item.applicantEmail} wide />
+            <DetailField label="Thời điểm gửi yêu cầu" value={formatDateTime(item.submittedAt)} wide />
           </div>
         </section>
 
         <label className="tw-grid tw-gap-1.5">
-          <span className="tw-text-[0.75rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Ghi chú xét duyệt{canReview ? "" : ""}</span>
+          <span className="tw-text-[0.75rem] tw-font-black tw-uppercase tw-text-vm-slate-700">Ghi chú xét duyệt</span>
           <textarea
             className="tw-min-h-[88px] tw-resize-none tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-py-2 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_4px_rgba(37,99,235,0.08)] disabled:tw-bg-vm-slate-25"
             disabled={isSaving || !canReview}
@@ -148,6 +155,8 @@ function RegistrationModal({
 
 export function PartnerRegistrationManagementPage() {
   const toast = useToast();
+  const { user } = useAuth();
+  const canDecide = hasAnyPermission(user, ["ORGANIZATION_CREATE_ALL"]);
   const [registrations, setRegistrations] = useState<PartnerRegistration[]>([]);
   const [status, setStatus] = useState<PartnerRegistrationStatus | "all">("PENDING");
   const [keyword, setKeyword] = useState("");
@@ -158,7 +167,7 @@ export function PartnerRegistrationManagementPage() {
   const [reviewError, setReviewError] = useState("");
   const [isReviewSaving, setIsReviewSaving] = useState(false);
 
-  async function loadRegistrations() {
+  const loadRegistrations = useCallback(async () => {
     setIsLoading(true);
     setError("");
     try {
@@ -169,11 +178,36 @@ export function PartnerRegistrationManagementPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [status]);
 
   useEffect(() => {
     void loadRegistrations();
-  }, [status]);
+  }, [loadRegistrations]);
+
+  useEffect(() => subscribeNotificationReceived((notification) => {
+    const isPartnerRegistrationEvent = notification.relatedSchema === "operations"
+      && notification.relatedTable === "approval_requests"
+      && ["ACCOUNT_PROFILE_SUBMITTED", "ACCOUNT_STATUS_CHANGED", "SYSTEM_NOTICE"].includes(notification.notificationType);
+    if (!isPartnerRegistrationEvent) return;
+    const relatedId = notification.relatedId;
+    void fetchPartnerRegistrations(status === "all" ? undefined : status)
+      .then((fresh) => {
+        setRegistrations(fresh);
+        setSelectedRegistration((current) => {
+          if (!current) return current;
+          const updated = fresh.find((item) => item.approvalRequestId === current.approvalRequestId);
+          if (!updated) return current;
+          if (updated.approvalRequestId === relatedId && updated.status !== "PENDING") {
+            toast.info("Hồ sơ này vừa được reviewer khác xử lý. Vui lòng kiểm tra trạng thái mới.");
+          }
+          return updated;
+        });
+        if (!relatedId && notification.notificationType !== "ACCOUNT_PROFILE_SUBMITTED") {
+          toast.info("Danh sách hồ sơ đối tác đã được làm mới.");
+        }
+      })
+      .catch(() => undefined);
+  }), [status, toast]);
 
   const visibleRegistrations = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLocaleLowerCase("vi-VN");
@@ -181,10 +215,10 @@ export function PartnerRegistrationManagementPage() {
     return registrations.filter((item) => [
       item.organizationCode,
       item.organizationName,
-      item.representativeName,
-      item.email,
-      item.phoneNumber,
-    ].some((value) => value.toLocaleLowerCase("vi-VN").includes(normalizedKeyword)));
+      item.applicantFullName,
+      item.applicantEmail,
+      item.applicantPhoneNumber,
+    ].some((value) => (value ?? "").toLocaleLowerCase("vi-VN").includes(normalizedKeyword)));
   }, [keyword, registrations]);
 
   const metrics = useMemo(() => ({
@@ -202,6 +236,10 @@ export function PartnerRegistrationManagementPage() {
 
   async function handleReview(decision: ReviewDecision) {
     if (!selectedRegistration) return;
+    if (!canDecide) {
+      setReviewError("Bạn không có quyền duyệt hoặc từ chối hồ sơ đối tác.");
+      return;
+    }
     if (decision === "reject" && !reviewNote.trim()) {
       setReviewError("Vui lòng nhập lý do từ chối để đối tác biết cách xử lý tiếp theo.");
       return;
@@ -268,7 +306,7 @@ export function PartnerRegistrationManagementPage() {
               aria-label="Tìm hồ sơ đối tác"
               containerClassName="tw-h-[42px]"
               onChange={setKeyword}
-              placeholder="Tìm mã, tên đối tác, người đại diện..."
+              placeholder="Tìm mã, tên đơn vị, tên/email/SĐT người đăng ký..."
               value={keyword}
             />
             <SelectMenu ariaLabel="Trạng thái hồ sơ" value={status} options={statusOptions} onChange={(value) => setStatus(value as PartnerRegistrationStatus | "all")} />
@@ -282,7 +320,7 @@ export function PartnerRegistrationManagementPage() {
         <Card className="tw-mt-4 tw-overflow-hidden">
           <div className="tw-grid tw-grid-cols-[minmax(230px,1.1fr)_minmax(220px,1fr)_135px_110px] tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-4 tw-py-3 tw-text-[0.72rem] tw-font-extrabold tw-uppercase tw-text-vm-slate-500 max-[1080px]:tw-hidden">
             <span>Đơn vị đối tác</span>
-            <span>Người đại diện</span>
+            <span>Người đăng ký</span>
             <span>Trạng thái</span>
             <span className="tw-text-right">Thao tác</span>
           </div>
@@ -293,9 +331,9 @@ export function PartnerRegistrationManagementPage() {
             <article key={item.approvalRequestId} className="tw-grid tw-grid-cols-[minmax(230px,1.1fr)_minmax(220px,1fr)_135px_110px] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-py-3 last:tw-border-b-0 max-[1080px]:tw-grid-cols-1">
               <div className="tw-min-w-0">
                 <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2"><strong className="tw-truncate tw-text-[0.92rem] tw-font-black tw-text-vm-slate-900">{item.organizationName}</strong><Badge tone="neutral" className="tw-rounded-full tw-px-2.5">{item.organizationCode}</Badge></div>
-                <p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.77rem] tw-font-semibold tw-text-vm-slate-500">Gửi lúc {formatDateTime(item.createdAt)}</p>
+                <p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.77rem] tw-font-semibold tw-text-vm-slate-500">Gửi lúc {formatDateTime(item.submittedAt)}</p>
               </div>
-              <div className="tw-min-w-0"><strong className="tw-block tw-truncate tw-text-[0.88rem] tw-font-bold tw-text-vm-slate-900">{item.representativeName}</strong><p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.77rem] tw-font-semibold tw-text-vm-slate-500">{item.email} · {item.phoneNumber}</p></div>
+              <div className="tw-min-w-0"><strong className="tw-block tw-truncate tw-text-[0.88rem] tw-font-bold tw-text-vm-slate-900">{item.applicantFullName}</strong><p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.77rem] tw-font-semibold tw-text-vm-slate-500">{item.applicantEmail} · {item.applicantPhoneNumber}</p></div>
               <Badge tone={statusTone(item.status)} className="tw-w-fit tw-rounded-full tw-px-3">{statusLabel(item.status)}</Badge>
               <div className="tw-justify-self-end max-[1080px]:tw-justify-self-start"><Button className="tw-w-[104px] tw-gap-1.5 tw-px-2 tw-text-[0.78rem]" size="sm" variant={item.status === "PENDING" ? "primary" : "secondary"} onClick={() => openRegistration(item)}><i className="fas fa-eye" />{item.status === "PENDING" ? "Xét duyệt" : "Chi tiết"}</Button></div>
             </article>
@@ -304,6 +342,7 @@ export function PartnerRegistrationManagementPage() {
       </section>
 
       <RegistrationModal
+        canDecide={canDecide}
         error={reviewError}
         isSaving={isReviewSaving}
         item={selectedRegistration}

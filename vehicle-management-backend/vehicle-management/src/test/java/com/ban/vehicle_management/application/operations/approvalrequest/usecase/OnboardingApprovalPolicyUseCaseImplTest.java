@@ -63,8 +63,8 @@ class OnboardingApprovalPolicyUseCaseImplTest {
 
         var result = useCase.updatePolicies(new UpdateOnboardingApprovalPoliciesCommand(true, true, true));
 
-        verify(currentAccountPortIn).requirePermission("ORGANIZATION_CREATE_ALL");
-        verify(currentAccountPortIn).requirePermission("ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL");
+        verify(currentAccountPortIn, org.mockito.Mockito.atLeastOnce()).requirePermission("ORGANIZATION_CREATE_ALL");
+        verify(currentAccountPortIn, org.mockito.Mockito.atLeastOnce()).requirePermission("ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL");
         assertTrue(result.customerAutoApproveEnabled());
         assertTrue(result.partnerAutoApproveEnabled());
         assertTrue(result.avatarAutoApproveEnabled());
@@ -74,6 +74,53 @@ class OnboardingApprovalPolicyUseCaseImplTest {
         verify(auditLogPortOut, org.mockito.Mockito.times(3)).save(auditCaptor.capture());
         assertTrue(auditCaptor.getAllValues().stream()
                 .allMatch(audit -> "ONBOARDING_AUTO_APPROVAL_POLICY_UPDATED".equals(audit.getAction())));
+    }
+
+    @Test
+    void shouldAllowPartnerOnlyReviewerToChangePartnerPolicy() {
+        UUID actorAccountId = UUID.randomUUID();
+        OnboardingApprovalPolicy customer = policy(OnboardingApprovalPolicyType.CUSTOMER_ONBOARDING);
+        OnboardingApprovalPolicy partner = policy(OnboardingApprovalPolicyType.PARTNER_REGISTRATION);
+        AvatarApprovalPolicy avatar = avatarPolicy();
+        org.mockito.Mockito.lenient().when(currentAccountPortIn.hasPermission("ORGANIZATION_CREATE_ALL")).thenReturn(true);
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(actorAccountId);
+        when(policyPortOut.findByTypeForUpdate(OnboardingApprovalPolicyType.CUSTOMER_ONBOARDING))
+                .thenReturn(Optional.of(customer));
+        when(policyPortOut.findByTypeForUpdate(OnboardingApprovalPolicyType.PARTNER_REGISTRATION))
+                .thenReturn(Optional.of(partner));
+        when(avatarPolicyPortOut.findPolicyForUpdate()).thenReturn(Optional.of(avatar));
+        when(policyPortOut.save(partner)).thenReturn(partner);
+
+        var result = useCase.updatePolicies(new UpdateOnboardingApprovalPoliciesCommand(false, true, false));
+
+        assertFalse(result.customerAutoApproveEnabled());
+        assertTrue(result.partnerAutoApproveEnabled());
+        assertFalse(result.avatarAutoApproveEnabled());
+        verify(policyPortOut, never()).save(customer);
+        verify(policyPortOut).save(partner);
+        verify(avatarPolicyPortOut, never()).save(org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
+    void shouldRejectCustomerPolicyChangeWithoutCustomerReviewPermission() {
+        OnboardingApprovalPolicy customer = policy(OnboardingApprovalPolicyType.CUSTOMER_ONBOARDING);
+        OnboardingApprovalPolicy partner = policy(OnboardingApprovalPolicyType.PARTNER_REGISTRATION);
+        AvatarApprovalPolicy avatar = avatarPolicy();
+        org.mockito.Mockito.lenient().when(currentAccountPortIn.hasPermission("ORGANIZATION_CREATE_ALL")).thenReturn(true);
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
+        when(policyPortOut.findByTypeForUpdate(OnboardingApprovalPolicyType.CUSTOMER_ONBOARDING))
+                .thenReturn(Optional.of(customer));
+        when(policyPortOut.findByTypeForUpdate(OnboardingApprovalPolicyType.PARTNER_REGISTRATION))
+                .thenReturn(Optional.of(partner));
+        when(avatarPolicyPortOut.findPolicyForUpdate()).thenReturn(Optional.of(avatar));
+        org.mockito.Mockito.doThrow(new org.springframework.security.access.AccessDeniedException("Access is denied"))
+                .when(currentAccountPortIn).requirePermission("ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL");
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> useCase.updatePolicies(new UpdateOnboardingApprovalPoliciesCommand(true, false, false))
+        );
+        verify(policyPortOut, never()).save(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

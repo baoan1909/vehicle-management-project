@@ -265,11 +265,11 @@ export function ClientNavbar() {
                       </Link>
                     ) : null}
 
-                    <Link to={user.partnerApplicationStatus ? "/partner/application-status" : "/customer/profile"} className={profileItemClassName} onClick={() => setProfileOpen(false)}>
-                      <HeaderItemIcon icon={user.partnerApplicationStatus ? "fas fa-clipboard-check" : "fas fa-user-circle"} />
+                    <Link to={user?.role === "PARTNER_ADMIN" ? "/admin/profile" : "/customer/profile"} className={profileItemClassName} onClick={() => setProfileOpen(false)}>
+                      <HeaderItemIcon icon={user?.role === "PARTNER_ADMIN" ? "fas fa-clipboard-check" : "fas fa-user-circle"} />
                       <HeaderItemCopy
-                        title={user.partnerApplicationStatus ? "Trạng thái hồ sơ đối tác" : "Hồ sơ cá nhân"}
-                        meta={user.partnerApplicationStatus ? "Theo dõi xác thực và xét duyệt" : "Cập nhật thông tin tài khoản"}
+                        title={user?.role === "PARTNER_ADMIN" ? "Hồ sơ đối tác" : "Hồ sơ cá nhân"}
+                        meta={user?.role === "PARTNER_ADMIN" ? "Hoàn thiện hồ sơ và theo dõi xét duyệt" : "Cập nhật thông tin tài khoản"}
                       />
                     </Link>
 

@@ -10,7 +10,6 @@ import java.util.UUID;
 
 public interface PartnerRegistrationPortOut {
     void save(ApprovalRequest approvalRequest);
-    boolean existsPendingByEmail(String email);
 
     boolean existsPendingByOrganizationCode(String organizationCode);
     List<PartnerRegistrationResult> findAll(ApprovalRequestStatus status);

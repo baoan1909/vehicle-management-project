@@ -222,6 +222,7 @@ class AccountProfileAvatarUseCaseImplTest {
                         "ACTIVE"
                 ),
                 null,
+                null,
                 null
         );
     }

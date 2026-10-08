@@ -18,7 +18,6 @@ public class PartnerRegistrationPolicy {
                 command.password(),
                 TextValidationUtils.normalizeCode(command.organizationCode(), "organizationCode", 50),
                 TextValidationUtils.normalizeRequiredText(command.organizationName(), "organizationName", 150),
-                TextValidationUtils.normalizeRequiredText(command.representativeName(), "representativeName", 150),
                 email,
                 phone
         );

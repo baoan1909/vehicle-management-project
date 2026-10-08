@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.iam.account.usecase;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +29,7 @@ import com.ban.vehicle_management.domain.iam.account.policy.AccountOnboardingPol
 import com.ban.vehicle_management.domain.iam.account.policy.AccountProfilePolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
@@ -65,6 +67,15 @@ class AccountProfileUseCaseImplTest {
 
     @Mock
     private SystemAdminApprovalPortOut systemAdminApprovalPortOut;
+
+    @Mock
+    private com.ban.vehicle_management.application.iam.partnerregistration.port.out.PartnerRegistrationPortOut partnerRegistrationPortOut;
+
+    @Mock
+    private com.ban.vehicle_management.application.iam.partnerregistration.port.in.PartnerRegistrationPortIn partnerRegistrationPortIn;
+
+    @Mock
+    private com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut identityProviderAdminPortOut;
 
     @Mock
     private AccountProfileResultMapper accountProfileResultMapper;
@@ -144,7 +155,8 @@ class AccountProfileUseCaseImplTest {
                         "REGISTERED",
                         "INACTIVE",
                         "PENDING"
-                )
+                ),
+                null
         ));
 
         AccountProfileStatusResult result = accountProfileUseCase.getMyProfile();
@@ -174,6 +186,7 @@ class AccountProfileUseCaseImplTest {
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(null, null, null, null, null, null, null, null, null),
                 new AccountProfileStatusResult.EmployeeInfoResult(null, null, null, null, null),
+                null,
                 null
         ));
 
@@ -219,6 +232,7 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE"
                 ),
                 null,
+                null,
                 null
         ));
 
@@ -247,6 +261,7 @@ class AccountProfileUseCaseImplTest {
                         AdminProvisionableAccountRoleCode.EMPLOYEE.name()
                 ),
                 new AccountProfileStatusResult.ProfileInfoResult(null, null, null, null, null, null, null, null, null),
+                null,
                 null,
                 null
         ));
@@ -329,6 +344,7 @@ class AccountProfileUseCaseImplTest {
                         null,
                         "INACTIVE"
                 ),
+                null,
                 null
         ));
 
@@ -432,7 +448,8 @@ class AccountProfileUseCaseImplTest {
                         "REGISTERED",
                         "INACTIVE",
                         "PENDING"
-                )
+                ),
+                null
         ));
 
         AccountProfileStatusResult result = accountProfileUseCase.completeMyProfile(
@@ -538,7 +555,8 @@ class AccountProfileUseCaseImplTest {
                         "REGISTERED",
                         "INACTIVE",
                         "PENDING"
-                )
+                ),
+                null
         ));
 
         AccountProfileStatusResult result = accountProfileUseCase.completeMyProfile(
@@ -629,6 +647,7 @@ class AccountProfileUseCaseImplTest {
                         null,
                         "INACTIVE"
                 ),
+                null,
                 null
         ));
 
@@ -711,6 +730,7 @@ class AccountProfileUseCaseImplTest {
                         "https://example.com/avatars/sysadmin.jpg",
                         "ACTIVE"
                 ),
+                null,
                 null,
                 null
         ));
@@ -804,6 +824,7 @@ class AccountProfileUseCaseImplTest {
                         "ACTIVE"
                 ),
                 null,
+                null,
                 null
         ));
 
@@ -874,6 +895,50 @@ class AccountProfileUseCaseImplTest {
                         null
                 ))
         );
+    }
+
+    @Test
+    void shouldDelegatePartnerAdminOnboardingToPartnerRegistrationFlow() {
+        UUID accountId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+        AccountProfileState initialState = profileOnlyState(accountId, AdminProvisionableAccountRoleCode.PARTNER_ADMIN, userProfileId);
+
+        ApprovalRequest approval = new ApprovalRequest();
+        approval.setApprovalRequestId(UUID.randomUUID());
+        approval.setStatus(ApprovalRequestStatus.PENDING);
+
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(accountId);
+        when(accountProfilePortOut.findProfileStateByAccountId(accountId))
+                .thenReturn(Optional.of(initialState), Optional.of(initialState));
+        when(partnerRegistrationPortOut.findLatestByApplicantAccountId(accountId))
+                .thenReturn(Optional.of(approval));
+        when(accountProfilePortOut.existsByPhoneNumberAndUserProfileIdNot("+84901234567", userProfileId)).thenReturn(false);
+        when(accountProfilePortOut.existsByIdentifyCardAndUserProfileIdNot("079203001234", userProfileId)).thenReturn(false);
+        AccountProfileStatusResult expected = new AccountProfileStatusResult(false, null, null, null, null, null);
+        when(accountProfileResultMapper.toStatusResult(eq(initialState), eq(true))).thenReturn(expected);
+
+        AccountProfileStatusResult result = accountProfileUseCase.completeMyProfile(
+                new CompleteAccountProfileCommand(
+                        "Nguyen Partner Admin",
+                        "+84901234567",
+                        LocalDate.of(1990, 1, 1),
+                        "MALE",
+                        "079203001234",
+                        null,
+                        null,
+                        "PARTNER_ABC",
+                        "Bai xe ABC",
+                        null
+                )
+        );
+
+        assertSame(expected, result);
+        ArgumentCaptor<com.ban.vehicle_management.application.iam.partnerregistration.model.command.CompletePartnerProfileCommand> captor =
+                ArgumentCaptor.forClass(com.ban.vehicle_management.application.iam.partnerregistration.model.command.CompletePartnerProfileCommand.class);
+        verify(partnerRegistrationPortIn).completeMyProfile(captor.capture());
+        assertEquals("Nguyen Partner Admin", captor.getValue().fullName());
+        assertEquals("PARTNER_ABC", captor.getValue().organizationCode());
+        assertEquals("Bai xe ABC", captor.getValue().organizationName());
     }
 
     private AccountProfileState onboardingPendingState(UUID accountId, AdminProvisionableAccountRoleCode roleCode) {

@@ -10,7 +10,10 @@ public record UpdateAccountProfileRequest(
         String gender,
         String identifyCard,
         String avatarUrl,
-        VietnamAddressRequest structuredAddress
+        VietnamAddressRequest structuredAddress,
+        String organizationCode,
+        String organizationName,
+        VietnamAddressRequest organizationAddress
 ) {
     public UpdateAccountProfileRequest(
             String fullName,
@@ -20,6 +23,6 @@ public record UpdateAccountProfileRequest(
             String identifyCard,
             String avatarUrl
     ) {
-        this(fullName, phoneNumber, dateOfBirth, gender, identifyCard, avatarUrl, null);
+        this(fullName, phoneNumber, dateOfBirth, gender, identifyCard, avatarUrl, null, null, null, null);
     }
 }

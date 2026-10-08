@@ -164,10 +164,25 @@ class AccountProfileResultMapperTest {
                 CustomerStatus.ACTIVE,
                 CustomerApprovalStatus.APPROVED,
                 AccountStatus.ACTIVE,
-                java.util.List.of()
+                java.util.List.of(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
         UpdateAccountProfileCommand command = new UpdateAccountProfileCommand(
                 "Customer User Updated",
+                null,
+                null,
+                null,
                 null,
                 null,
                 null,

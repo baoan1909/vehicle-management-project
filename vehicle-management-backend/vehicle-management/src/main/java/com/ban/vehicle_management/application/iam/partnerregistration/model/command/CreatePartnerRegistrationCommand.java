@@ -6,7 +6,6 @@ public record CreatePartnerRegistrationCommand(
         String password,
         String organizationCode,
         String organizationName,
-        String representativeName,
         String email,
         String phoneNumber
 ) {

@@ -11,12 +11,16 @@ import com.ban.vehicle_management.infrastructure.mapper.people.CustomerPersisten
 import com.ban.vehicle_management.infrastructure.mapper.people.EmployeePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.people.UserProfilePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ApprovalRequestEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.OrganizationEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ApprovalRequestRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
@@ -33,12 +37,18 @@ import org.springframework.stereotype.Component;
 @Component
 public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
 
+    private static final String PARTNER_REGISTRATION_REQUEST_TYPE = "PARTNER_REGISTRATION";
+    private static final String PARTNER_REGISTRATION_TARGET_SCHEMA = "iam";
+    private static final String PARTNER_REGISTRATION_TARGET_TABLE = "accounts";
+
     private final AccountRepository accountRepository;
     private final RoleRepository roleRepository;
     private final RolePermissionRepository rolePermissionRepository;
     private final UserProfileRepository userProfileRepository;
     private final CustomerRepository customerRepository;
     private final EmployeeRepository employeeRepository;
+    private final ApprovalRequestRepository approvalRequestRepository;
+    private final OrganizationRepository organizationRepository;
     private final AccountPersistenceMapper accountPersistenceMapper;
     private final UserProfilePersistenceMapper userProfilePersistenceMapper;
     private final CustomerPersistenceMapper customerPersistenceMapper;
@@ -51,6 +61,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
             UserProfileRepository userProfileRepository,
             CustomerRepository customerRepository,
             EmployeeRepository employeeRepository,
+            ApprovalRequestRepository approvalRequestRepository,
+            OrganizationRepository organizationRepository,
             AccountPersistenceMapper accountPersistenceMapper,
             UserProfilePersistenceMapper userProfilePersistenceMapper,
             CustomerPersistenceMapper customerPersistenceMapper,
@@ -62,6 +74,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         this.userProfileRepository = userProfileRepository;
         this.customerRepository = customerRepository;
         this.employeeRepository = employeeRepository;
+        this.approvalRequestRepository = approvalRequestRepository;
+        this.organizationRepository = organizationRepository;
         this.accountPersistenceMapper = accountPersistenceMapper;
         this.userProfilePersistenceMapper = userProfilePersistenceMapper;
         this.customerPersistenceMapper = customerPersistenceMapper;
@@ -183,6 +197,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         EmployeeEntity employeeEntity = resolveEmployee(userProfileId);
         CustomerEntity customerEntity = resolveCustomer(userProfileId);
         String roleCode = resolveRoleCode(accountEntity.getRoleId());
+        ApprovalRequestEntity partnerApproval = resolveLatestPartnerApproval(accountEntity.getAccountId(), roleCode);
 
         return new AccountProfileState(
                 accountEntity.getAccountId(),
@@ -214,8 +229,128 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 customerEntity == null ? null : customerEntity.getStatus(),
                 customerEntity == null ? null : customerEntity.getApprovalStatus(),
                 accountEntity.getStatus(),
-                resolveEffectivePermissionCodes(accountEntity, roleCode, employeeEntity)
+                resolveEffectivePermissionCodes(accountEntity, roleCode, employeeEntity),
+                partnerApproval == null ? null : partnerApproval.getApprovalRequestId(),
+                partnerApproval == null ? null : enumName(partnerApproval.getStatus()),
+                partnerApproval == null ? null : partnerApproval.getNote(),
+                organizationCode(partnerApproval),
+                organizationName(partnerApproval),
+                organizationAddressDetail(partnerApproval),
+                organizationProvinceCode(partnerApproval),
+                organizationWardCode(partnerApproval),
+                organizationDistrictCode(partnerApproval),
+                organizationAddressDisplay(partnerApproval),
+                approvedOrganizationId(partnerApproval),
+                approvedOrganizationStatus(partnerApproval)
         );
+    }
+
+    private OrganizationEntity resolveApprovedOrganization(ApprovalRequestEntity approval) {
+        if (approval == null
+                || !com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus.APPROVED.equals(approval.getStatus())
+                || approval.getDecisionData() == null) {
+            return null;
+        }
+        String organizationId = approval.getDecisionData().get("organizationId");
+        if (organizationId == null || organizationId.isBlank()) {
+            return null;
+        }
+        try {
+            return organizationRepository.findById(UUID.fromString(organizationId)).orElse(null);
+        } catch (IllegalArgumentException invalidUuid) {
+            return null;
+        }
+    }
+
+    private String organizationCode(ApprovalRequestEntity approval) {
+        OrganizationEntity organization = resolveApprovedOrganization(approval);
+        if (organization != null) {
+            return organization.getCode();
+        }
+        return valueOf(approval, "organizationCode");
+    }
+
+    private String organizationName(ApprovalRequestEntity approval) {
+        OrganizationEntity organization = resolveApprovedOrganization(approval);
+        if (organization != null) {
+            return organization.getName();
+        }
+        return valueOf(approval, "organizationName");
+    }
+
+    private String organizationAddressDetail(ApprovalRequestEntity approval) {
+        OrganizationEntity organization = resolveApprovedOrganization(approval);
+        if (organization != null) {
+            return organization.getAddressDetail();
+        }
+        return valueOf(approval, "organizationAddressDetail");
+    }
+
+    private String organizationProvinceCode(ApprovalRequestEntity approval) {
+        OrganizationEntity organization = resolveApprovedOrganization(approval);
+        if (organization != null) {
+            return organization.getProvinceCode();
+        }
+        return valueOf(approval, "organizationProvinceCode");
+    }
+
+    private String organizationWardCode(ApprovalRequestEntity approval) {
+        OrganizationEntity organization = resolveApprovedOrganization(approval);
+        if (organization != null) {
+            return organization.getWardCode();
+        }
+        return valueOf(approval, "organizationWardCode");
+    }
+
+    private String organizationDistrictCode(ApprovalRequestEntity approval) {
+        OrganizationEntity organization = resolveApprovedOrganization(approval);
+        if (organization != null) {
+            return organization.getDistrictCode();
+        }
+        return valueOf(approval, "organizationDistrictCode");
+    }
+
+    private String organizationAddressDisplay(ApprovalRequestEntity approval) {
+        OrganizationEntity organization = resolveApprovedOrganization(approval);
+        if (organization != null) {
+            return organization.getAddressDisplay();
+        }
+        return valueOf(approval, "organizationAddressDisplay");
+    }
+
+    private UUID approvedOrganizationId(ApprovalRequestEntity approval) {
+        OrganizationEntity organization = resolveApprovedOrganization(approval);
+        return organization == null ? null : organization.getOrganizationId();
+    }
+
+    private String approvedOrganizationStatus(ApprovalRequestEntity approval) {
+        OrganizationEntity organization = resolveApprovedOrganization(approval);
+        return organization == null ? null : enumName(organization.getStatus());
+    }
+
+    private ApprovalRequestEntity resolveLatestPartnerApproval(UUID accountId, String roleCode) {
+        if (accountId == null || !AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name().equals(roleCode)) {
+            return null;
+        }
+        return approvalRequestRepository
+                .findTopByRequestedByAndRequestTypeAndTargetSchemaAndTargetTableOrderByCreatedAtDesc(
+                        accountId,
+                        PARTNER_REGISTRATION_REQUEST_TYPE,
+                        PARTNER_REGISTRATION_TARGET_SCHEMA,
+                        PARTNER_REGISTRATION_TARGET_TABLE
+                )
+                .orElse(null);
+    }
+
+    private String valueOf(ApprovalRequestEntity approval, String key) {
+        if (approval == null || approval.getRequestData() == null) {
+            return null;
+        }
+        return approval.getRequestData().get(key);
+    }
+
+    private String enumName(Enum<?> value) {
+        return value == null ? null : value.name();
     }
 
     private String resolveRoleCode(UUID roleId) {

@@ -8,11 +8,12 @@ public record PartnerRegistrationResult(
         UUID approvalRequestId,
         String organizationCode,
         String organizationName,
-        String representativeName,
-        String email,
-        String phoneNumber,
+        String organizationAddressDisplay,
+        String applicantFullName,
+        String applicantPhoneNumber,
+        String applicantEmail,
+        Instant submittedAt,
         ApprovalRequestStatus status,
-        String note,
-        Instant createdAt
+        String note
 ) {
 }

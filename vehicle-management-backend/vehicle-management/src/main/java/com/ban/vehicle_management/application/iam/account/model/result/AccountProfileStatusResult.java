@@ -9,8 +9,20 @@ public record AccountProfileStatusResult(
         AccountInfoResult account,
         ProfileInfoResult profile,
         EmployeeInfoResult employee,
-        CustomerInfoResult customer
+        CustomerInfoResult customer,
+        PartnerApplicationInfoResult partnerApplication,
+        OrganizationInfoResult organization
 ) {
+    public AccountProfileStatusResult(
+            boolean onboardingRequired,
+            AccountInfoResult account,
+            ProfileInfoResult profile,
+            EmployeeInfoResult employee,
+            CustomerInfoResult customer,
+            OrganizationInfoResult organization
+    ) {
+        this(onboardingRequired, account, profile, employee, customer, null, organization);
+    }
     public record AccountInfoResult(
             UUID accountId,
             String accountStatus,
@@ -18,7 +30,8 @@ public record AccountProfileStatusResult(
             String email,
             String keycloakUserId,
             String roleCode,
-            List<String> permissionCodes
+            List<String> permissionCodes,
+            Boolean emailVerified
     ) {
         public AccountInfoResult(
                 UUID accountId,
@@ -28,7 +41,7 @@ public record AccountProfileStatusResult(
                 String keycloakUserId,
                 String roleCode
         ) {
-            this(accountId, accountStatus, username, email, keycloakUserId, roleCode, List.of());
+            this(accountId, accountStatus, username, email, keycloakUserId, roleCode, List.of(), null);
         }
     }
 
@@ -91,6 +104,26 @@ public record AccountProfileStatusResult(
             String customerType,
             String customerStatus,
             String customerApprovalStatus
+    ) {
+    }
+
+    public record PartnerApplicationInfoResult(
+            UUID approvalRequestId,
+            String approvalStatus,
+            String reviewNote
+    ) {
+    }
+
+    public record OrganizationInfoResult(
+            UUID organizationId,
+            String organizationCode,
+            String organizationName,
+            String addressDetail,
+            String provinceCode,
+            String wardCode,
+            String districtCode,
+            String addressDisplay,
+            String organizationStatus
     ) {
     }
 }

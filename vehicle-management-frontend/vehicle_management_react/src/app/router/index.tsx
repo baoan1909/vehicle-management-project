@@ -22,6 +22,7 @@ import {
   Navigate,
   Outlet,
   RouterProvider,
+  useLocation,
   useMatches,
 } from "react-router-dom";
 
@@ -59,6 +60,7 @@ function RouteDocument({ layout }: { layout: AppLayout }) {
 
 function AdminShell() {
   const { user } = useAuth();
+  const location = useLocation();
 
   if (!user) {
     if (isLogoutRedirectGuardActive()) {
@@ -68,8 +70,8 @@ function AdminShell() {
     return <Navigate to="/login" replace />;
   }
 
-  if (user.partnerApplicationStatus && user.accountStatus !== "ACTIVE") {
-    return <Navigate to="/partner/application-status" replace />;
+  if (user?.role === "PARTNER_ADMIN" && user?.accountStatus !== "ACTIVE" && location.pathname !== "/admin/profile") {
+    return <Navigate to="/admin/profile" replace />;
   }
 
   if (user?.role === "CUSTOMER") {

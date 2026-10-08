@@ -1,7 +1,5 @@
 export { AboutPage } from "./pages/AboutPage";
 export { PartnerRegistrationPage } from "./pages/PartnerRegistrationPage";
-export { PartnerApplicationStatusPage } from "./pages/PartnerApplicationStatusPage";
-export { PartnerProfileCompletionPage } from "./pages/PartnerProfileCompletionPage";
 export { PricingPage } from "./pages/PricingPage";
 export { GuidePage } from "./pages/GuidePage";
 export { ContactPage } from "./pages/ContactPage";

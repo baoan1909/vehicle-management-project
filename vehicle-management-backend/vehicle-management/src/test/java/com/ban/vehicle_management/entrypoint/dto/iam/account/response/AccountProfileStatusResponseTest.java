@@ -42,6 +42,7 @@ class AccountProfileStatusResponseTest {
                         null
                 ),
                 new AccountProfileStatusResponse.EmployeeInfoResponse(null, null, null, null, null),
+                null,
                 null
         );
 
@@ -73,7 +74,8 @@ class AccountProfileStatusResponseTest {
                         null
                 ),
                 null,
-                new AccountProfileStatusResponse.CustomerInfoResponse(null, null, null, null, null)
+                new AccountProfileStatusResponse.CustomerInfoResponse(null, null, null, null, null),
+                null
         );
 
         assertNull(response.employee());

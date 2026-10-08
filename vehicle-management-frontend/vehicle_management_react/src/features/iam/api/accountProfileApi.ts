@@ -17,6 +17,7 @@ export type AccountProfileStatusResponse = {
     accountId?: string;
     accountStatus?: string;
     email?: string;
+    emailVerified?: boolean | null;
     keycloakUserId?: string;
     permissionCodes?: string[];
     roleCode?: string;
@@ -53,6 +54,28 @@ export type AccountProfileStatusResponse = {
     userProfileId?: string;
     userProfileStatus?: string;
   };
+  partnerApplication?: {
+    approvalRequestId?: string;
+    approvalStatus?: string;
+    reviewNote?: string | null;
+  } | null;
+  organization?: {
+    organizationId?: string;
+    organizationCode?: string;
+    organizationName?: string;
+    addressDetail?: string;
+    provinceCode?: string;
+    wardCode?: string;
+    districtCode?: string | null;
+    addressDisplay?: string;
+    organizationStatus?: string;
+  } | null;
+};
+
+export type OrganizationProfileValue = {
+  organizationCode?: string;
+  organizationName?: string;
+  organizationAddress?: VietnamAddressValue;
 };
 
 export type UpdateAccountProfileRequest = {
@@ -63,7 +86,7 @@ export type UpdateAccountProfileRequest = {
   gender?: string;
   identifyCard?: string;
   phoneNumber?: string;
-};
+} & OrganizationProfileValue;
 
 export type AvatarModerationStatus = {
   avatarId: string;

@@ -7,6 +7,10 @@ import com.ban.vehicle_management.application.iam.account.model.result.AccountPr
 import com.ban.vehicle_management.application.iam.account.port.in.AccountProfilePortIn;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
+import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
+import com.ban.vehicle_management.application.iam.partnerregistration.model.command.CompletePartnerProfileCommand;
+import com.ban.vehicle_management.application.iam.partnerregistration.port.in.PartnerRegistrationPortIn;
+import com.ban.vehicle_management.application.iam.partnerregistration.port.out.PartnerRegistrationPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.authorization.CustomerOnboardingApprovalAccessGuard;
 import com.ban.vehicle_management.application.operations.approvalrequest.authorization.InternalEmployeeApprovalAccessGuard;
 import com.ban.vehicle_management.application.operations.approvalrequest.authorization.SystemAdminApprovalAccessGuard;
@@ -41,6 +45,8 @@ import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -56,6 +62,9 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
     private final CustomerOnboardingApprovalPortIn customerOnboardingApprovalPortIn;
     private final InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut;
     private final SystemAdminApprovalPortOut systemAdminApprovalPortOut;
+    private final PartnerRegistrationPortOut partnerRegistrationPortOut;
+    private final PartnerRegistrationPortIn partnerRegistrationPortIn;
+    private final IdentityProviderAdminPortOut identityProviderAdminPortOut;
     private final UserProfileAvatarPortIn userProfileAvatarPortIn;
     private final AccountProfileResultMapper accountProfileResultMapper;
     private final NotificationPortIn notificationPortIn;
@@ -71,6 +80,9 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             CustomerOnboardingApprovalPortIn customerOnboardingApprovalPortIn,
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
             SystemAdminApprovalPortOut systemAdminApprovalPortOut,
+            PartnerRegistrationPortOut partnerRegistrationPortOut,
+            PartnerRegistrationPortIn partnerRegistrationPortIn,
+            IdentityProviderAdminPortOut identityProviderAdminPortOut,
             UserProfileAvatarPortIn userProfileAvatarPortIn,
             AccountProfileResultMapper accountProfileResultMapper,
             NotificationPortIn notificationPortIn,
@@ -83,6 +95,9 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         this.customerOnboardingApprovalPortIn = customerOnboardingApprovalPortIn;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
         this.systemAdminApprovalPortOut = systemAdminApprovalPortOut;
+        this.partnerRegistrationPortOut = partnerRegistrationPortOut;
+        this.partnerRegistrationPortIn = partnerRegistrationPortIn;
+        this.identityProviderAdminPortOut = identityProviderAdminPortOut;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
         this.accountProfileResultMapper = accountProfileResultMapper;
         this.notificationPortIn = notificationPortIn;
@@ -154,6 +169,8 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ khách hàng đã gửi duyệt", "/customer/profile");
                 notifyApprovalReviewers(approvalRequest, null, "Có hồ sơ khách hàng cần duyệt");
             }
+        } else if (AdminProvisionableAccountRoleCode.PARTNER_ADMIN.equals(roleCode)) {
+            return completePartnerOnboarding(accountId, normalizedCommand);
         } else {
             updatedAccount = accountProfilePortOut.completeProfileOnly(accountId, userProfile);
             if (accountOnboardingPolicy.shouldCreateSystemAdminApproval(state)) {
@@ -199,7 +216,10 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 command.dateOfBirth(),
                 command.gender(),
                 command.structuredAddress(),
-                command.identifyCard()
+                command.identifyCard(),
+                command.organizationCode(),
+                command.organizationName(),
+                command.organizationAddress()
         );
         UpdateAccountProfileCommand normalizedCommand = normalizeUpdateCommand(command);
         UserProfile updatedProfile = accountProfileResultMapper.mergeProfile(state, normalizedCommand);
@@ -218,7 +238,60 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         );
 
         AccountProfileState updatedState = accountProfilePortOut.updateProfile(accountId, updatedProfile);
+        if (updatePartnerOrganizationIfPresent(accountId, updatedState, normalizedCommand)) {
+            AccountProfileState refreshedState = accountProfilePortOut.findProfileStateByAccountId(accountId)
+                    .orElse(updatedState);
+            return toStatusResult(refreshedState, isOnboardingRequired(refreshedState));
+        }
         return toStatusResult(updatedState, isOnboardingRequired(updatedState));
+    }
+
+    private boolean updatePartnerOrganizationIfPresent(
+            UUID accountId,
+            AccountProfileState state,
+            UpdateAccountProfileCommand normalizedCommand
+    ) {
+        if (!AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name().equals(state.roleCode())) {
+            return false;
+        }
+        if (normalizedCommand.organizationCode() == null
+                && normalizedCommand.organizationName() == null
+                && normalizedCommand.organizationAddress() == null) {
+            return false;
+        }
+        return partnerRegistrationPortOut.findLatestByApplicantAccountId(accountId).map(approval -> {
+            if (!ApprovalRequestStatus.PENDING.equals(approval.getStatus())) {
+                return false;
+            }
+            Map<String, String> requestData = new HashMap<>(approval.getRequestData());
+            if (normalizedCommand.organizationCode() != null
+                    && !normalizedCommand.organizationCode().equals(requestData.get("organizationCode"))) {
+                throw new ConflictException("Organization code cannot be changed after registration");
+            }
+            putIfPresent(requestData, "organizationName", normalizedCommand.organizationName());
+            if (normalizedCommand.organizationAddress() != null) {
+                VietnamAddress orgAddr = normalizedCommand.organizationAddress();
+                requestData.put("organizationAddressDetail", orgAddr.getAddressDetail());
+                requestData.put("organizationProvinceCode", orgAddr.getProvinceCode());
+                requestData.put("organizationWardCode", orgAddr.getWardCode());
+                if (orgAddr.getDistrictCode() != null) {
+                    requestData.put("organizationDistrictCode", orgAddr.getDistrictCode());
+                } else {
+                    requestData.remove("organizationDistrictCode");
+                }
+                requestData.put("organizationAddressDisplay", orgAddr.getAddressDisplay());
+            }
+            approval.setRequestData(Map.copyOf(requestData));
+            partnerRegistrationPortOut.save(approval);
+            partnerRegistrationPortIn.tryAutoApproveRegistration(approval.getApprovalRequestId());
+            return true;
+        }).orElse(false);
+    }
+
+    private void putIfPresent(Map<String, String> requestData, String key, String value) {
+        if (value != null) {
+            requestData.put(key, value);
+        }
     }
 
     @Override
@@ -279,6 +352,23 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
         return employee;
     }
 
+    private AccountProfileStatusResult completePartnerOnboarding(UUID accountId, CompleteAccountProfileCommand normalizedCommand) {
+        partnerRegistrationPortIn.completeMyProfile(new CompletePartnerProfileCommand(
+                normalizedCommand.fullName(),
+                normalizedCommand.dateOfBirth(),
+                normalizedCommand.gender(),
+                normalizedCommand.phoneNumber(),
+                normalizedCommand.identifyCard(),
+                normalizedCommand.structuredAddress(),
+                normalizedCommand.organizationCode(),
+                normalizedCommand.organizationName(),
+                normalizedCommand.organizationAddress()
+        ));
+        AccountProfileState refreshedState = accountProfilePortOut.findProfileStateByAccountId(accountId)
+                .orElseThrow(() -> new NotFoundException("Current account does not exist"));
+        return toStatusResult(refreshedState, isOnboardingRequired(refreshedState));
+    }
+
     private Customer buildOnboardingCustomer(UUID userProfileId) {
         UUID customerId = UUID.randomUUID();
         Customer customer = new Customer();
@@ -293,6 +383,7 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
     private CompleteAccountProfileCommand normalizeCompleteCommand(CompleteAccountProfileCommand command) {
         requireField(command, "command");
         VietnamAddress structuredAddress = accountProfilePolicy.validateStructuredAddress(command.structuredAddress());
+        VietnamAddress organizationAddress = accountProfilePolicy.validateStructuredAddress(command.organizationAddress());
         return new CompleteAccountProfileCommand(
                 accountProfilePolicy.normalizeRequiredFullName(command.fullName()),
                 accountProfilePolicy.normalizeRequiredPhoneNumber(command.phoneNumber()),
@@ -300,12 +391,16 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 accountProfilePolicy.normalizeNullableGender(command.gender()),
                 accountProfilePolicy.normalizeNullableIdentifyCard(command.identifyCard()),
                 null,
-                structuredAddress
+                structuredAddress,
+                accountProfilePolicy.normalizeNullableOrganizationCode(command.organizationCode()),
+                accountProfilePolicy.normalizeNullableOrganizationName(command.organizationName()),
+                organizationAddress
         );
     }
 
     private UpdateAccountProfileCommand normalizeUpdateCommand(UpdateAccountProfileCommand command) {
         VietnamAddress structuredAddress = accountProfilePolicy.validateStructuredAddress(command.structuredAddress());
+        VietnamAddress organizationAddress = accountProfilePolicy.validateStructuredAddress(command.organizationAddress());
         return new UpdateAccountProfileCommand(
                 accountProfilePolicy.normalizeNullableFullName(command.fullName()),
                 accountProfilePolicy.normalizeNullablePhoneNumber(command.phoneNumber()),
@@ -313,7 +408,10 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 accountProfilePolicy.normalizeNullableGender(command.gender()),
                 accountProfilePolicy.normalizeNullableIdentifyCard(command.identifyCard()),
                 null,
-                structuredAddress
+                structuredAddress,
+                accountProfilePolicy.normalizeNullableOrganizationCode(command.organizationCode()),
+                accountProfilePolicy.normalizeNullableOrganizationName(command.organizationName()),
+                organizationAddress
         );
     }
 
@@ -323,6 +421,12 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             latestSystemAdminApprovalRequestExists = systemAdminApprovalPortOut
                     .findLatestSystemAdminApprovalRequest(state.accountId())
                     .isPresent();
+        }
+        if (accountOnboardingPolicy.needsPartnerApprovalLookup(state)) {
+            boolean partnerApproved = partnerRegistrationPortOut.findLatestByApplicantAccountId(state.accountId())
+                    .map(approval -> ApprovalRequestStatus.APPROVED.equals(approval.getStatus()))
+                    .orElse(false);
+            return accountOnboardingPolicy.isPartnerOnboardingRequired(state, partnerApproved);
         }
         return accountOnboardingPolicy.isOnboardingRequired(state, latestSystemAdminApprovalRequestExists);
     }
@@ -378,7 +482,42 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
     }
 
     private AccountProfileStatusResult toStatusResult(AccountProfileState state, boolean onboardingRequired) {
-        return resolvePublicAvatarUrl(accountProfileResultMapper.toStatusResult(state, onboardingRequired));
+        return withEmailVerified(resolvePublicAvatarUrl(accountProfileResultMapper.toStatusResult(state, onboardingRequired)), state);
+    }
+
+    private AccountProfileStatusResult withEmailVerified(AccountProfileStatusResult result, AccountProfileState state) {
+        if (result == null
+                || result.account() == null
+                || !AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name().equals(state.roleCode())
+                || state.keycloakUserId() == null
+                || state.keycloakUserId().isBlank()) {
+            return result;
+        }
+        final Boolean emailVerified;
+        try {
+            emailVerified = identityProviderAdminPortOut.isEmailVerified(state.keycloakUserId());
+        } catch (RuntimeException exception) {
+            return result;
+        }
+        AccountProfileStatusResult.AccountInfoResult account = result.account();
+        return new AccountProfileStatusResult(
+                result.onboardingRequired(),
+                new AccountProfileStatusResult.AccountInfoResult(
+                        account.accountId(),
+                        account.accountStatus(),
+                        account.username(),
+                        account.email(),
+                        account.keycloakUserId(),
+                        account.roleCode(),
+                        account.permissionCodes(),
+                        emailVerified
+                ),
+                result.profile(),
+                result.employee(),
+                result.customer(),
+                result.partnerApplication(),
+                result.organization()
+        );
     }
 
     private AccountProfileStatusResult resolvePublicAvatarUrl(AccountProfileStatusResult result) {
@@ -417,7 +556,9 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                         profile.userProfileStatus()
                 ),
                 result.employee(),
-                result.customer()
+                result.customer(),
+                result.partnerApplication(),
+                result.organization()
         );
     }
 

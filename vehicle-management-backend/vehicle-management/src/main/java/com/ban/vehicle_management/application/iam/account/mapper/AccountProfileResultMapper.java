@@ -21,6 +21,8 @@ public interface AccountProfileResultMapper {
     @Mapping(target = "profile", source = "state")
     @Mapping(target = "employee", expression = "java(toEmployeeInfoResult(state))")
     @Mapping(target = "customer", expression = "java(toCustomerInfoResult(state))")
+    @Mapping(target = "partnerApplication", expression = "java(toPartnerApplicationInfoResult(state))")
+    @Mapping(target = "organization", expression = "java(toOrganizationInfoResult(state))")
     AccountProfileStatusResult toStatusResult(AccountProfileState state, boolean onboardingRequired);
 
     @Mapping(target = "onboardingRequired", constant = "false")
@@ -28,6 +30,8 @@ public interface AccountProfileResultMapper {
     @Mapping(target = "profile", expression = "java(toProfileInfoResult(userProfile, userProfileId))")
     @Mapping(target = "employee", expression = "java(toEmployeeInfoResult(employee, employeeId))")
     @Mapping(target = "customer", expression = "java(toCustomerInfoResult(customer, customerId))")
+    @Mapping(target = "partnerApplication", ignore = true)
+    @Mapping(target = "organization", ignore = true)
     AccountProfileStatusResult toStatusResult(
             Account updatedAccount,
             UserProfile userProfile,
@@ -84,7 +88,8 @@ public interface AccountProfileResultMapper {
                 state.email(),
                 state.keycloakUserId(),
                 state.roleCode(),
-                state.permissionCodes()
+                state.permissionCodes(),
+                null
         );
     }
 
@@ -94,6 +99,7 @@ public interface AccountProfileResultMapper {
     @Mapping(target = "accountStatus", source = "status")
     @Mapping(target = "roleCode", ignore = true)
     @Mapping(target = "permissionCodes", ignore = true)
+    @Mapping(target = "emailVerified", ignore = true)
     AccountProfileStatusResult.AccountInfoResult toAccountInfoResult(Account account);
 
     @Mapping(target = "userProfileId", source = "userProfileId")
@@ -138,6 +144,34 @@ public interface AccountProfileResultMapper {
                 enumName(state.customerType()),
                 enumName(state.customerStatus()),
                 enumName(state.customerApprovalStatus())
+        );
+    }
+
+    default AccountProfileStatusResult.PartnerApplicationInfoResult toPartnerApplicationInfoResult(AccountProfileState state) {
+        if (state == null || state.partnerApprovalRequestId() == null) {
+            return null;
+        }
+        return new AccountProfileStatusResult.PartnerApplicationInfoResult(
+                state.partnerApprovalRequestId(),
+                state.partnerApprovalStatus(),
+                state.partnerReviewNote()
+        );
+    }
+
+    default AccountProfileStatusResult.OrganizationInfoResult toOrganizationInfoResult(AccountProfileState state) {
+        if (state == null || state.organizationCode() == null) {
+            return null;
+        }
+        return new AccountProfileStatusResult.OrganizationInfoResult(
+                state.organizationId(),
+                state.organizationCode(),
+                state.organizationName(),
+                state.organizationAddressDetail(),
+                state.organizationProvinceCode(),
+                state.organizationWardCode(),
+                state.organizationDistrictCode(),
+                state.organizationAddressDisplay(),
+                state.organizationStatus()
         );
     }
 

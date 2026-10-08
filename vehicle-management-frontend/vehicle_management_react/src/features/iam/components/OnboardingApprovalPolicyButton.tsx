@@ -60,7 +60,10 @@ export function OnboardingApprovalPolicyButton() {
   const { user } = useAuth();
   const toast = useToast();
   const canManagePolicies = hasAnyPermission(user, ["ORGANIZATION_CREATE_ALL"])
-    && hasAnyPermission(user, ["ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL"]);
+    || hasAnyPermission(user, ["ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL"]);
+  const canManageCustomerPolicy = hasAnyPermission(user, ["ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL"]);
+  const canManagePartnerPolicy = hasAnyPermission(user, ["ORGANIZATION_CREATE_ALL"]);
+  const canManageAvatarPolicy = canManageCustomerPolicy && canManagePartnerPolicy;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -123,21 +126,21 @@ export function OnboardingApprovalPolicyButton() {
             <PolicySwitch
               checked={policies.customerAutoApproveEnabled}
               description="Tự động kích hoạt Customer sau khi hoàn tất hồ sơ và email đã được xác minh."
-              disabled={saving}
+              disabled={saving || !canManageCustomerPolicy}
               label="Tự động duyệt khách hàng mới"
               onChange={(checked) => setPolicies((current) => ({ ...current, customerAutoApproveEnabled: checked }))}
             />
             <PolicySwitch
               checked={policies.avatarAutoApproveEnabled}
               description="Tự động duyệt ảnh đại diện mới sau kiểm tra định dạng. Luồng này độc lập với onboarding và trạng thái tài khoản."
-              disabled={saving}
+              disabled={saving || !canManageAvatarPolicy}
               label="Tự động duyệt ảnh đại diện"
               onChange={(checked) => setPolicies((current) => ({ ...current, avatarAutoApproveEnabled: checked }))}
             />
             <PolicySwitch
               checked={policies.partnerAutoApproveEnabled}
               description="Tự động tạo đơn vị, membership và kích hoạt Partner sau khi email đã được xác minh."
-              disabled={saving}
+              disabled={saving || !canManagePartnerPolicy}
               label="Tự động duyệt đối tác mới"
               onChange={(checked) => setPolicies((current) => ({ ...current, partnerAutoApproveEnabled: checked }))}
             />
