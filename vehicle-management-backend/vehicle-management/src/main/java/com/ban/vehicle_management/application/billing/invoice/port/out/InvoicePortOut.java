@@ -16,6 +16,8 @@ public interface InvoicePortOut {
 
     Optional<Invoice> findById(UUID invoiceId);
 
+    Optional<Invoice> findByIdForUpdate(UUID invoiceId);
+
     List<Invoice> findAll(
             UUID customerId,
             UUID parkingSessionId,

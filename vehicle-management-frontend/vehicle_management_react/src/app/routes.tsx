@@ -5,6 +5,11 @@ import type { AppLayout } from "@/shared/types/common";
 import { LoginPage } from "@/features/auth";
 import { VnpayReturnPage } from "@/features/billing/pages/VnpayReturnPage";
 import { InvoiceManagementPage } from "@/features/billing/pages/InvoiceManagementPage";
+import { CustomerWalletPage } from "@/features/billing/pages/CustomerWalletPage";
+import { WalletTopUpPage } from "@/features/billing/pages/WalletTopUpPage";
+import { WalletTopupResultPage } from "@/features/billing/pages/WalletTopupResultPage";
+import { PartnerWalletPage } from "@/features/billing/pages/PartnerWalletPage";
+import { WalletManagementPage } from "@/features/billing/pages/WalletManagementPage";
 import { CardFormPage, CardListPage, LostCardCreatePage, LostCardDetailPage, LostCardListPage } from "@/features/cards";
 import { SubscriptionApprovalPage, TicketFormPage, TicketListPage, VehicleFormPage, VehicleListPage } from "@/features/catalog";
 import {
@@ -62,6 +67,8 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/price-rules", title: "Quy tac gia", layout: "admin", element: <PriceRuleListPage /> },
   { path: "/admin/vouchers", title: "Quan ly voucher", layout: "admin", element: <VoucherManagementPage /> },
   { path: "/admin/invoices", title: "Quản lý hóa đơn", layout: "admin", element: <InvoiceManagementPage /> },
+  { path: "/admin/wallets", title: "Quản trị ví", layout: "admin", element: <WalletManagementPage /> },
+  { path: "/admin/partner-wallet", title: "Ví đối tác", layout: "admin", element: <PartnerWalletPage /> },
   { path: "/admin/visitorParkingFee", title: "Phi vang lai", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
   { path: "/admin/parkingFeeOfCustomer", title: "Phi dang ky", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
   { path: "/admin/employee", title: "Nhân viên", layout: "admin", element: <EmployeeListPage /> },
@@ -92,6 +99,9 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
 { path: "/become-a-partner", title: "Trở thành đối tác CoParking", layout: "auth", element: <PartnerRegistrationPage /> },
 
   { path: "/payment/vnpay-return", title: "Ket qua thanh toan", layout: "client", element: <VnpayReturnPage /> },
+  { path: "/customer/wallet", title: "Ví của tôi", layout: "client", element: <CustomerWalletPage /> },
+  { path: "/customer/wallet/topup", title: "Nạp tiền ví", layout: "client", element: <WalletTopUpPage /> },
+  { path: "/customer/wallet/topup-result", title: "Kết quả nạp tiền", layout: "client", element: <WalletTopupResultPage /> },
   { path: "/customerTicket/customer-infor", title: "Lich su gui xe", layout: "client", element: <CustomerHistoryPage /> },
   { path: "/customerTicket/customer-infor-detail", title: "Thong tin tai khoan", layout: "client", element: <ProfilePage /> },
   { path: "/customer/dashboard", title: "Tong quan khach hang", layout: "client", element: <CustomerDashboardPage /> },

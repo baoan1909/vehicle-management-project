@@ -34,5 +34,9 @@ public class Payment {
     private String bankCode;
     private String cardType;
     private String failureReason;
+    private String idempotencyKey;
+    private java.util.UUID walletId;
+    private java.util.UUID reversedPaymentId;
+    private BigDecimal refundedAmount;
 }
 

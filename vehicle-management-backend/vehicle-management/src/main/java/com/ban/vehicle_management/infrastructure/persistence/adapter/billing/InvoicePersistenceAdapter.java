@@ -62,6 +62,12 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
     }
 
     @Override
+    public Optional<Invoice> findByIdForUpdate(UUID invoiceId) {
+        return invoiceRepository.findByIdForUpdate(invoiceId)
+                .map(invoicePersistenceMapper::toDomain);
+    }
+
+    @Override
     public List<Invoice> findAll(
             UUID customerId,
             UUID parkingSessionId,

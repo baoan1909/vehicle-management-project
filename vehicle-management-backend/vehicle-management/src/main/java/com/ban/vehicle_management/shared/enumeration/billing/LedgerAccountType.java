@@ -1,0 +1,13 @@
+package com.ban.vehicle_management.shared.enumeration.billing;
+
+public enum LedgerAccountType {
+    CUSTOMER_WALLET_LIABILITY,
+    PARTNER_PAYABLE,
+    PLATFORM_CASH_CLEARING,
+    PLATFORM_REVENUE,
+    PLATFORM_VOUCHER_EXPENSE,
+    VOUCHER_ISSUER_PAYABLE,
+    PAYMENT_GATEWAY_FEE_EXPENSE,
+    SPONSOR_RECEIVABLE,
+    PARTNER_RECEIVABLE
+}
