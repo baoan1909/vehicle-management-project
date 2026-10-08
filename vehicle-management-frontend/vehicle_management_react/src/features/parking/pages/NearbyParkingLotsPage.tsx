@@ -266,10 +266,19 @@ export function NearbyParkingLotsPage() {
     <main className="tw-min-h-[calc(100vh-72px)] tw-bg-slate-50 tw-px-4 tw-py-8 sm:tw-px-6 lg:tw-px-8">
       <div className="tw-mx-auto tw-max-w-[1440px]">
         <section
-          className="tw-overflow-hidden tw-rounded-[28px] tw-p-6 tw-text-white tw-shadow-xl sm:tw-p-9"
-          style={{ background: "linear-gradient(to bottom right, #020617, #172554, #1D4ED8)" }}
+          className="tw-relative tw-isolate tw-overflow-hidden tw-rounded-[28px] tw-bg-[#020617] tw-p-6 tw-text-white tw-shadow-xl sm:tw-p-9"
         >
-          <div className="tw-max-w-3xl">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-object-center max-[640px]:tw-opacity-45"
+            src="/assets/customer/portal/nearby-parking-hero-v1.png"
+          />
+          <div
+            aria-hidden="true"
+            className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(2,6,23,.98)_0%,rgba(2,6,23,.9)_42%,rgba(23,37,84,.44)_68%,rgba(29,78,216,.12)_100%)] max-[640px]:tw-bg-[linear-gradient(90deg,rgba(2,6,23,.96),rgba(2,6,23,.78))]"
+          />
+          <div className="tw-relative tw-z-[1] tw-max-w-3xl">
             <span className="tw-inline-flex tw-items-center tw-gap-2 tw-rounded-full tw-bg-white/10 tw-px-3 tw-py-1 tw-text-xs tw-font-extrabold tw-uppercase tw-tracking-wider">
               <i className="fas fa-location-arrow" aria-hidden="true" /> Tìm bãi xe
             </span>
