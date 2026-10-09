@@ -141,6 +141,110 @@ class SpatialFreshDatabaseContainerTest {
         }
     }
 
+    @Test
+    void shouldInstallParkingSpaceFoundationConstraints() throws SQLException {
+        try (Connection connection = connection()) {
+            assertEquals(15, scalar(connection, """
+                    SELECT count(*)
+                    FROM pg_constraint
+                    WHERE conname IN (
+                        'fk_parking_sessions_space',
+                        'ck_parking_levels_canvas_positive',
+                        'ck_parking_levels_floor_height_positive',
+                        'ck_parking_spaces_geometry_complete',
+                        'ck_parking_spaces_geometry_non_negative',
+                        'ck_parking_spaces_rotation_range',
+                        'ck_parking_space_layout_items_geometry_positive',
+                        'ck_parking_space_layout_items_position_non_negative',
+                        'ck_parking_space_layout_items_rotation_range',
+                        'ex_parking_space_allocations_no_overlap',
+                        'fk_parking_space_allocations_space',
+                        'fk_parking_space_allocations_subscription',
+                        'uq_parking_levels_lot_code',
+                        'uq_parking_spaces_zone_code',
+                        'uq_parking_space_layout_items_version_space'
+                    )
+                    """));
+            assertEquals(7, scalar(connection, """
+                    SELECT count(*)
+                    FROM pg_trigger
+                    WHERE NOT tgisinternal
+                      AND tgname IN (
+                        'trg_zones_check_level_topology',
+                        'trg_layout_items_check_topology',
+                        'trg_space_allocations_check_topology',
+                        'trg_parking_sessions_check_space_topology',
+                        'trg_parking_spaces_prevent_referenced_zone_move',
+                        'trg_parking_spaces_set_updated_at',
+                        'trg_parking_space_allocations_set_updated_at'
+                      )
+                    """));
+            assertEquals(3, scalar(connection, """
+                    SELECT count(*)
+                    FROM pg_constraint
+                    WHERE conname IN (
+                        'fk_parking_space_allocations_space',
+                        'fk_parking_space_allocations_subscription',
+                        'fk_parking_space_layout_items_space'
+                    )
+                      AND confdeltype = 'r'
+                    """));
+        }
+    }
+
+    @Test
+    void shouldRejectInvalidParkingGeometryAndCrossZoneLayoutItem() throws SQLException {
+        UUID lotId = UUID.randomUUID();
+        UUID levelId = UUID.randomUUID();
+        UUID zoneId = UUID.randomUUID();
+        UUID otherZoneId = UUID.randomUUID();
+        UUID spaceId = UUID.randomUUID();
+        UUID otherSpaceId = UUID.randomUUID();
+        UUID layoutVersionId = UUID.randomUUID();
+        try (Connection connection = connection(); Statement statement = connection.createStatement()) {
+            insertActiveParkingLot(statement, lotId, 106.700806, 10.776889);
+            statement.executeUpdate("""
+                    INSERT INTO parking.parking_levels (
+                        parking_level_id, parking_lot_id, code, name, canvas_width, canvas_height, status
+                    ) VALUES ('%s', '%s', 'L1', 'Level 1', 100, 100, 'ACTIVE')
+                    """.formatted(levelId, lotId));
+            statement.executeUpdate("""
+                    INSERT INTO parking.zones (
+                        zone_id, parking_lot_id, parking_level_id, code, name, capacity, status, tracking_mode
+                    ) VALUES
+                        ('%s', '%s', '%s', 'Z1', 'Zone 1', 0, 'ACTIVE', 'SPACE'),
+                        ('%s', '%s', '%s', 'Z2', 'Zone 2', 0, 'ACTIVE', 'SPACE')
+                    """.formatted(zoneId, lotId, levelId, otherZoneId, lotId, levelId));
+            statement.executeUpdate("""
+                    INSERT INTO parking.parking_spaces (
+                        parking_space_id, zone_id, code, status, lifecycle_status, status_source, version, rotation
+                    ) VALUES
+                        ('%s', '%s', 'A-01', 'AVAILABLE', 'ACTIVE', 'MANUAL', 0, 0),
+                        ('%s', '%s', 'B-01', 'AVAILABLE', 'ACTIVE', 'MANUAL', 0, 0)
+                    """.formatted(spaceId, zoneId, otherSpaceId, otherZoneId));
+
+            assertThrows(SQLException.class, () -> statement.executeUpdate("""
+                    INSERT INTO parking.parking_spaces (
+                        parking_space_id, zone_id, code, status, lifecycle_status, status_source,
+                        version, x, y, width, height, rotation
+                    ) VALUES (gen_random_uuid(), '%s', 'INVALID', 'AVAILABLE', 'ACTIVE', 'MANUAL',
+                        0, -1, 0, 2, 2, 0)
+                    """.formatted(zoneId)));
+
+            statement.executeUpdate("""
+                    INSERT INTO parking.parking_layout_versions (layout_version_id, zone_id, version, status)
+                    VALUES ('%s', '%s', 1, 'DRAFT')
+                    """.formatted(layoutVersionId, zoneId));
+            assertThrows(SQLException.class, () -> statement.executeUpdate("""
+                    INSERT INTO parking.parking_space_layout_items (
+                        layout_item_id, layout_version_id, parking_space_id, x, y, width, height, rotation
+                    ) VALUES (gen_random_uuid(), '%s', '%s', 1, 1, 2, 2, 0)
+                    """.formatted(layoutVersionId, otherSpaceId)));
+
+            statement.executeUpdate("DELETE FROM parking.parking_lots WHERE parking_lot_id = '%s'".formatted(lotId));
+        }
+    }
+
     private static void insertActiveParkingLot(
             Statement statement,
             UUID parkingLotId,

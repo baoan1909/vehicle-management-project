@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.pa
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.CardEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.LostCardReportEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.SubscriptionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.InvoiceEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
@@ -106,6 +107,21 @@ public class ParkingSessionEntity extends AuditableEntity {
 
     @Column(name = "total_price", precision = 12, scale = 2)
     private BigDecimal totalPrice;
+
+    @Column(name = "parking_space_id")
+    private UUID parkingSpaceId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parking_space_id", referencedColumnName = "parking_space_id",
+            insertable = false, updatable = false)
+    private ParkingSpaceEntity parkingSpace;
+
+    @Column(name = "subscription_id")
+    private UUID subscriptionId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subscription_id", referencedColumnName = "subscription_id", insertable = false, updatable = false)
+    private SubscriptionEntity subscription;
 
     @OneToMany(mappedBy = "parkingSession")
     private Set<ParkingEventEntity> parkingEvents = new HashSet<>();

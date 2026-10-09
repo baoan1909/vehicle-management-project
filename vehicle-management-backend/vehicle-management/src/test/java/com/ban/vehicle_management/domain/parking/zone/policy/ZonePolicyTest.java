@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
+import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.UUID;
@@ -131,6 +133,9 @@ class ZonePolicyTest {
         zone.setName("Area A1");
         zone.setCapacity(100);
         zone.setStatus(ZoneStatus.ACTIVE);
+        zone.setTrackingMode(TrackingMode.CAPACITY);
+        zone.setLayoutStatus(LayoutStatus.NOT_CONFIGURED);
+        zone.setLayoutVersion(0L);
         return zone;
     }
 }

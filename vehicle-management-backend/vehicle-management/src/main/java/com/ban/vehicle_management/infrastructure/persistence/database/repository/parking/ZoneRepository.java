@@ -1,13 +1,16 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.repository.parking;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ZoneEntity;
-import java.util.UUID;
-
+import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 public interface ZoneRepository extends JpaRepository<ZoneEntity, UUID>, JpaSpecificationExecutor<ZoneEntity> {
 
@@ -20,6 +23,12 @@ public interface ZoneRepository extends JpaRepository<ZoneEntity, UUID>, JpaSpec
     boolean existsByZoneIdAndStatus(UUID zoneId, ZoneStatus status);
 
     boolean existsByVehicleTypeIdsContainsAndStatus(UUID vehicleTypeId, ZoneStatus status);
+
+    List<ZoneEntity> findByParkingLevelId(UUID parkingLevelId);
+
+    List<ZoneEntity> findByParkingLotIdAndTrackingMode(UUID parkingLotId, TrackingMode trackingMode);
+
+    Optional<ZoneEntity> findByParkingLotIdAndCodeAndTrackingMode(UUID parkingLotId, String code, TrackingMode trackingMode);
 
     @Query("""
         select coalesce(sum(zone.capacity), 0)
@@ -38,4 +47,6 @@ public interface ZoneRepository extends JpaRepository<ZoneEntity, UUID>, JpaSpec
           and zone.status = com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus.ACTIVE
         """)
     long sumActiveCapacityByVehicleTypeIdAndParkingLotId(UUID vehicleTypeId, UUID parkingLotId);
+
+    long countByParkingLotIdAndTrackingModeAndLayoutStatus(UUID parkingLotId, TrackingMode trackingMode, LayoutStatus layoutStatus);
 }
