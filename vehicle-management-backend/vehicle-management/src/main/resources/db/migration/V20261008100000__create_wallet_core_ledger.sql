@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS billing.wallets (
     CONSTRAINT wallets_pkey PRIMARY KEY (wallet_id),
     CONSTRAINT ck_wallets_owner_type CHECK (owner_type IN ('CUSTOMER','ORGANIZATION','PLATFORM')),
     CONSTRAINT ck_wallets_status CHECK (status IN ('ACTIVE','DEBIT_BLOCKED','LOCKED','CLOSED')),
+    CONSTRAINT ck_wallets_currency CHECK (currency = 'VND'),
     CONSTRAINT ck_wallets_customer_owner CHECK (
         (owner_type = 'CUSTOMER' AND customer_id IS NOT NULL AND organization_id IS NULL)
         OR (owner_type = 'ORGANIZATION' AND organization_id IS NOT NULL AND customer_id IS NULL)
@@ -31,7 +32,20 @@ CREATE TABLE IF NOT EXISTS billing.wallets (
     ),
     CONSTRAINT ck_wallets_available_non_negative CHECK (available_balance >= 0),
     CONSTRAINT ck_wallets_pending_non_negative CHECK (pending_balance >= 0),
-    CONSTRAINT ck_wallets_held_non_negative CHECK (held_balance >= 0)
+    CONSTRAINT ck_wallets_held_non_negative CHECK (held_balance >= 0),
+    CONSTRAINT ck_wallets_vnd_whole_amounts CHECK (
+        available_balance = trunc(available_balance)
+        AND pending_balance = trunc(pending_balance)
+        AND held_balance = trunc(held_balance)
+    ),
+    CONSTRAINT fk_wallets_customer FOREIGN KEY (customer_id)
+        REFERENCES people.customers (customer_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_wallets_organization FOREIGN KEY (organization_id)
+        REFERENCES iam.organizations (organization_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_wallets_created_by FOREIGN KEY (created_by)
+        REFERENCES iam.accounts (account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_wallets_updated_by FOREIGN KEY (updated_by)
+        REFERENCES iam.accounts (account_id) ON DELETE SET NULL
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_wallets_customer_currency_purpose
@@ -65,7 +79,12 @@ CREATE TABLE IF NOT EXISTS billing.financial_transactions (
     CONSTRAINT financial_transactions_pkey PRIMARY KEY (financial_transaction_id),
     CONSTRAINT uq_financial_transactions_code UNIQUE (transaction_code),
     CONSTRAINT uq_financial_transactions_idempotency UNIQUE (idempotency_key),
-    CONSTRAINT ck_financial_transactions_status CHECK (status IN ('PENDING','POSTED','REVERSED','FAILED'))
+    CONSTRAINT ck_financial_transactions_status CHECK (status IN ('PENDING','POSTED','REVERSED','FAILED')),
+    CONSTRAINT ck_financial_transactions_currency CHECK (currency = 'VND'),
+    CONSTRAINT fk_financial_transactions_reversed FOREIGN KEY (reversed_transaction_id)
+        REFERENCES billing.financial_transactions (financial_transaction_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_financial_transactions_created_by FOREIGN KEY (created_by)
+        REFERENCES iam.accounts (account_id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_financial_transactions_reference
@@ -82,7 +101,12 @@ CREATE TABLE IF NOT EXISTS billing.ledger_accounts (
     created_at timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT ledger_accounts_pkey PRIMARY KEY (ledger_account_id),
     CONSTRAINT uq_ledger_accounts_code UNIQUE (account_code),
-    CONSTRAINT ck_ledger_accounts_status CHECK (status IN ('ACTIVE','CLOSED'))
+    CONSTRAINT ck_ledger_accounts_status CHECK (status IN ('ACTIVE','CLOSED')),
+    CONSTRAINT ck_ledger_accounts_currency CHECK (currency = 'VND'),
+    CONSTRAINT fk_ledger_accounts_wallet FOREIGN KEY (wallet_id)
+        REFERENCES billing.wallets (wallet_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_ledger_accounts_organization FOREIGN KEY (organization_id)
+        REFERENCES iam.organizations (organization_id) ON DELETE RESTRICT
 );
 
 CREATE TABLE IF NOT EXISTS billing.ledger_entries (
@@ -97,6 +121,7 @@ CREATE TABLE IF NOT EXISTS billing.ledger_entries (
     CONSTRAINT ledger_entries_pkey PRIMARY KEY (ledger_entry_id),
     CONSTRAINT ck_ledger_entries_side CHECK (entry_side IN ('DEBIT','CREDIT')),
     CONSTRAINT ck_ledger_entries_amount_positive CHECK (amount > 0),
+    CONSTRAINT ck_ledger_entries_vnd_whole_amount CHECK (amount = trunc(amount)),
     CONSTRAINT fk_ledger_entries_transaction FOREIGN KEY (financial_transaction_id)
         REFERENCES billing.financial_transactions (financial_transaction_id) ON DELETE RESTRICT,
     CONSTRAINT fk_ledger_entries_account FOREIGN KEY (ledger_account_id)
@@ -143,10 +168,15 @@ CREATE TABLE IF NOT EXISTS billing.wallet_adjustments (
     CONSTRAINT ck_wallet_adjustments_direction CHECK (direction IN ('CREDIT','DEBIT')),
     CONSTRAINT ck_wallet_adjustments_status CHECK (status IN ('PENDING','APPROVED','REJECTED')),
     CONSTRAINT ck_wallet_adjustments_amount_positive CHECK (amount > 0),
+    CONSTRAINT ck_wallet_adjustments_vnd_whole_amount CHECK (amount = trunc(amount)),
     CONSTRAINT fk_wallet_adjustments_wallet FOREIGN KEY (wallet_id)
         REFERENCES billing.wallets (wallet_id) ON DELETE RESTRICT,
     CONSTRAINT fk_wallet_adjustments_transaction FOREIGN KEY (financial_transaction_id)
-        REFERENCES billing.financial_transactions (financial_transaction_id) ON DELETE RESTRICT
+        REFERENCES billing.financial_transactions (financial_transaction_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_wallet_adjustments_requested_by FOREIGN KEY (requested_by)
+        REFERENCES iam.accounts (account_id) ON DELETE RESTRICT,
+    CONSTRAINT fk_wallet_adjustments_decided_by FOREIGN KEY (decided_by)
+        REFERENCES iam.accounts (account_id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_wallet_adjustments_wallet_status
@@ -172,8 +202,10 @@ ON CONFLICT (account_code) DO NOTHING;
 -- =====================================================================
 
 INSERT INTO iam.permission_modules (module_id, code, name, description, created_at)
-VALUES ('00000000-0000-0000-0000-000000001042', 'WALLET', 'Vi tai chinh', 'Quan ly vi khach hang, vi doi tac, so cai va doi soat.', now())
-ON CONFLICT (module_id) DO NOTHING;
+VALUES ('00000000-0000-0000-0000-000000001045', 'WALLET', 'Vi tai chinh', 'Quan ly vi khach hang, vi doi tac, so cai va doi soat.', now())
+ON CONFLICT (code) DO UPDATE
+SET name = EXCLUDED.name,
+    description = EXCLUDED.description;
 
 -- New actions (idempotent by code).
 INSERT INTO iam.permission_actions (action_id, code, name, description, created_at)
@@ -183,7 +215,17 @@ VALUES
     ('00000000-0000-0000-0000-000000002103', 'ADJUST', 'Dieu chinh', 'Cho phep tao yeu cau dieu chinh so du vi.', now()),
     ('00000000-0000-0000-0000-000000002104', 'PAYOUT', 'Chi ho', 'Cho phep tao yeu cau payout ve ngan hang.', now()),
     ('00000000-0000-0000-0000-000000002105', 'SETTLE', 'Quyet toan', 'Cho phep xu ly settlement doanh thu doi tac.', now()),
-    ('00000000-0000-0000-0000-000000002106', 'RECONCILE', 'Doi soat', 'Cho phep doi soat tai chinh.', now())
+    ('00000000-0000-0000-0000-000000002106', 'RECONCILE', 'Doi soat', 'Cho phep doi soat tai chinh.', now()),
+    ('00000000-0000-0000-0000-000000002107', 'READ_WALLET', 'Xem vi', 'Cho phep xem thong tin vi.', now()),
+    ('00000000-0000-0000-0000-000000002108', 'READ_TRANSACTION', 'Xem giao dich vi', 'Cho phep xem lich su giao dich vi.', now()),
+    ('00000000-0000-0000-0000-000000002109', 'TOP_UP', 'Nap tien vi', 'Cho phep nap tien vao vi.', now()),
+    ('00000000-0000-0000-0000-000000002110', 'PAY_INVOICE', 'Thanh toan hoa don', 'Cho phep thanh toan hoa don bang vi.', now()),
+    ('00000000-0000-0000-0000-000000002111', 'READ_REFUND', 'Xem hoan tien', 'Cho phep xem giao dich hoan tien.', now()),
+    ('00000000-0000-0000-0000-000000002112', 'ACCESS_SCOPE', 'Truy cap pham vi vi', 'Cho phep truy cap vi trong pham vi duoc cap.', now()),
+    ('00000000-0000-0000-0000-000000002113', 'READ_SETTLEMENT', 'Xem doi soat Partner', 'Cho phep xem settlement cua Partner.', now()),
+    ('00000000-0000-0000-0000-000000002114', 'MANAGE_BANK_ACCOUNT', 'Quan ly tai khoan ngan hang', 'Cho phep quan ly tai khoan ngan hang payout.', now()),
+    ('00000000-0000-0000-0000-000000002115', 'APPROVE_ADJUSTMENT', 'Duyet dieu chinh vi', 'Cho phep duyet hoac tu choi yeu cau dieu chinh vi.', now()),
+    ('00000000-0000-0000-0000-000000002116', 'APPROVE_PAYOUT', 'Duyet payout', 'Cho phep duyet hoac tu choi yeu cau payout.', now())
 ON CONFLICT (action_id) DO NOTHING;
 
 -- New scopes PARTNER / PLATFORM (idempotent by code via conditional insert).
@@ -199,13 +241,19 @@ WHERE NOT EXISTS (SELECT 1 FROM iam.permission_scopes WHERE code = 'PLATFORM');
 -- Helper: resolve ids by code so migration is portable across environments.
 WITH module_cte AS (SELECT module_id FROM iam.permission_modules WHERE code = 'WALLET'),
      act(action_code, action_id) AS (
-        SELECT 'READ', action_id FROM iam.permission_actions WHERE code = 'READ'
-        UNION ALL SELECT 'CREATE', action_id FROM iam.permission_actions WHERE code = 'CREATE'
-        UNION ALL SELECT 'UPDATE', action_id FROM iam.permission_actions WHERE code = 'UPDATE'
+        SELECT 'READ_WALLET', action_id FROM iam.permission_actions WHERE code = 'READ_WALLET'
+        UNION ALL SELECT 'READ_TRANSACTION', action_id FROM iam.permission_actions WHERE code = 'READ_TRANSACTION'
+        UNION ALL SELECT 'TOP_UP', action_id FROM iam.permission_actions WHERE code = 'TOP_UP'
+        UNION ALL SELECT 'PAY_INVOICE', action_id FROM iam.permission_actions WHERE code = 'PAY_INVOICE'
+        UNION ALL SELECT 'READ_REFUND', action_id FROM iam.permission_actions WHERE code = 'READ_REFUND'
+        UNION ALL SELECT 'ACCESS_SCOPE', action_id FROM iam.permission_actions WHERE code = 'ACCESS_SCOPE'
+        UNION ALL SELECT 'READ_SETTLEMENT', action_id FROM iam.permission_actions WHERE code = 'READ_SETTLEMENT'
+        UNION ALL SELECT 'MANAGE_BANK_ACCOUNT', action_id FROM iam.permission_actions WHERE code = 'MANAGE_BANK_ACCOUNT'
         UNION ALL SELECT 'LOCK', action_id FROM iam.permission_actions WHERE code = 'LOCK'
         UNION ALL SELECT 'UNLOCK', action_id FROM iam.permission_actions WHERE code = 'UNLOCK'
         UNION ALL SELECT 'ADJUST', action_id FROM iam.permission_actions WHERE code = 'ADJUST'
-        UNION ALL SELECT 'APPROVE', action_id FROM iam.permission_actions WHERE code = 'APPROVE'
+        UNION ALL SELECT 'APPROVE_ADJUSTMENT', action_id FROM iam.permission_actions WHERE code = 'APPROVE_ADJUSTMENT'
+        UNION ALL SELECT 'APPROVE_PAYOUT', action_id FROM iam.permission_actions WHERE code = 'APPROVE_PAYOUT'
         UNION ALL SELECT 'REJECT', action_id FROM iam.permission_actions WHERE code = 'REJECT'
         UNION ALL SELECT 'REFUND', action_id FROM iam.permission_actions WHERE code = 'REFUND'
         UNION ALL SELECT 'PROCESS', action_id FROM iam.permission_actions WHERE code = 'PROCESS'
@@ -221,29 +269,29 @@ WITH module_cte AS (SELECT module_id FROM iam.permission_modules WHERE code = 'W
      ),
      new_perms(permission_code, action_code, scope_code) AS (
         VALUES
-            ('WALLET_READ_OWN', 'READ', 'OWN'),
-            ('WALLET_TRANSACTION_READ_OWN', 'READ', 'OWN'),
-            ('WALLET_TOP_UP_OWN', 'CREATE', 'OWN'),
-            ('WALLET_PAY_INVOICE_OWN', 'CREATE', 'OWN'),
-            ('WALLET_REFUND_READ_OWN', 'READ', 'OWN'),
-            ('WALLET_SCOPE_OWN', 'READ', 'OWN'),
-            ('WALLET_READ_PARTNER', 'READ', 'PARTNER'),
-            ('WALLET_TRANSACTION_READ_PARTNER', 'READ', 'PARTNER'),
-            ('WALLET_SETTLEMENT_READ_PARTNER', 'READ', 'PARTNER'),
+            ('WALLET_READ_OWN', 'READ_WALLET', 'OWN'),
+            ('WALLET_TRANSACTION_READ_OWN', 'READ_TRANSACTION', 'OWN'),
+            ('WALLET_TOP_UP_OWN', 'TOP_UP', 'OWN'),
+            ('WALLET_PAY_INVOICE_OWN', 'PAY_INVOICE', 'OWN'),
+            ('WALLET_REFUND_READ_OWN', 'READ_REFUND', 'OWN'),
+            ('WALLET_SCOPE_OWN', 'ACCESS_SCOPE', 'OWN'),
+            ('WALLET_READ_PARTNER', 'READ_WALLET', 'PARTNER'),
+            ('WALLET_TRANSACTION_READ_PARTNER', 'READ_TRANSACTION', 'PARTNER'),
+            ('WALLET_SETTLEMENT_READ_PARTNER', 'READ_SETTLEMENT', 'PARTNER'),
             ('WALLET_PAYOUT_CREATE_PARTNER', 'PAYOUT', 'PARTNER'),
-            ('WALLET_BANK_ACCOUNT_MANAGE_PARTNER', 'UPDATE', 'PARTNER'),
-            ('WALLET_SCOPE_PARTNER', 'READ', 'PARTNER'),
-            ('WALLET_READ_ALL', 'READ', 'ALL'),
-            ('WALLET_TRANSACTION_READ_ALL', 'READ', 'ALL'),
+            ('WALLET_BANK_ACCOUNT_MANAGE_PARTNER', 'MANAGE_BANK_ACCOUNT', 'PARTNER'),
+            ('WALLET_SCOPE_PARTNER', 'ACCESS_SCOPE', 'PARTNER'),
+            ('WALLET_READ_ALL', 'READ_WALLET', 'ALL'),
+            ('WALLET_TRANSACTION_READ_ALL', 'READ_TRANSACTION', 'ALL'),
             ('WALLET_LOCK_ALL', 'LOCK', 'ALL'),
             ('WALLET_UNLOCK_ALL', 'UNLOCK', 'ALL'),
             ('WALLET_ADJUST_REQUEST_ALL', 'ADJUST', 'ALL'),
-            ('WALLET_ADJUST_APPROVE_ALL', 'APPROVE', 'ALL'),
+            ('WALLET_ADJUST_APPROVE_ALL', 'APPROVE_ADJUSTMENT', 'ALL'),
             ('WALLET_REFUND_ALL', 'REFUND', 'ALL'),
             ('WALLET_SETTLEMENT_PROCESS_ALL', 'SETTLE', 'ALL'),
-            ('WALLET_PAYOUT_APPROVE_ALL', 'APPROVE', 'ALL'),
+            ('WALLET_PAYOUT_APPROVE_ALL', 'APPROVE_PAYOUT', 'ALL'),
             ('WALLET_RECONCILIATION_READ_ALL', 'RECONCILE', 'ALL'),
-            ('WALLET_SCOPE_PLATFORM', 'READ', 'PLATFORM')
+            ('WALLET_SCOPE_PLATFORM', 'ACCESS_SCOPE', 'PLATFORM')
      )
 INSERT INTO iam.permissions (permission_id, permission_code, name, description, created_at, module_id, action_id, scope_id)
 SELECT gen_random_uuid(), np.permission_code, np.permission_code,

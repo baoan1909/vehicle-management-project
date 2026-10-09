@@ -32,7 +32,6 @@ import com.ban.vehicle_management.shared.enumeration.billing.WalletStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.WalletTopupStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
-import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;
@@ -40,9 +39,10 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 /**
@@ -93,6 +93,7 @@ public class WalletTopupUseCaseImpl implements WalletTopupPortIn {
         topupPolicy.requireValidAmount(amount);
         String normalizedKey = TextValidationUtils.normalizeRequiredText(idempotencyKey, "idempotencyKey", 100);
 
+        topupPortOut.lockIdempotencyKey(normalizedKey);
         var existingByKey = topupPortOut.findByIdempotencyKey(normalizedKey);
         if (existingByKey.isPresent()) {
             return existingByKey.get();
@@ -126,12 +127,7 @@ public class WalletTopupUseCaseImpl implements WalletTopupPortIn {
         order.setIdempotencyKey(normalizedKey);
         order.setCreatedAt(now);
         order.setCreatedBy(currentAccountPortIn.getCurrentAccountId().orElse(null));
-        try {
-            return topupPortOut.save(order);
-        } catch (DataIntegrityViolationException exception) {
-            return topupPortOut.findByIdempotencyKey(normalizedKey)
-                    .orElseThrow(() -> new ConflictException("Top-up order already exists"));
-        }
+        return topupPortOut.save(order);
     }
 
     @Override
@@ -262,7 +258,7 @@ public class WalletTopupUseCaseImpl implements WalletTopupPortIn {
         order.setProviderTransactionStatus(callback.transactionStatus());
         topupPortOut.save(order);
 
-        notifyTopupSucceeded(order);
+        notifyTopupSucceededAfterCommit(order);
     }
 
     private Wallet provisionWallet(UUID customerId) {
@@ -277,7 +273,7 @@ public class WalletTopupUseCaseImpl implements WalletTopupPortIn {
         wallet.setHeldBalance(BigDecimal.ZERO);
         wallet.setStatus(WalletStatus.ACTIVE);
         wallet.setCreatedAt(Instant.now());
-        return walletPortOut.save(wallet);
+        return walletPortOut.createIfAbsent(wallet);
     }
 
     private void ensureOwnOrder(WalletTopupOrder order) {
@@ -331,18 +327,26 @@ public class WalletTopupUseCaseImpl implements WalletTopupPortIn {
         return entry;
     }
 
+    private void notifyTopupSucceededAfterCommit(WalletTopupOrder order) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            notifyTopupSucceeded(order);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                notifyTopupSucceeded(order);
+            }
+        });
+    }
+
     private void notifyTopupSucceeded(WalletTopupOrder order) {
         try {
-            if (notificationPortIn == null) {
+            if (notificationPortIn == null || order.getCreatedBy() == null) {
                 return;
             }
-            Wallet wallet = walletPortOut.findById(order.getWalletId()).orElse(null);
-            if (wallet == null || wallet.getCustomerId() == null) {
-                return;
-            }
-            // Resolve account via wallet customer lazily; best-effort notification after commit.
             notificationPortIn.sendWebNotification(new SendNotificationCommand(
-                    order.getCreatedBy() == null ? UUID.randomUUID() : order.getCreatedBy(),
+                    order.getCreatedBy(),
                     NotificationType.PAYMENT_SUCCEEDED, "Nạp ví thành công",
                     "Nạp " + order.getAmount().toPlainString() + " VND vào ví thành công.",
                     "billing", "wallet-topups", order.getTopupOrderId()));

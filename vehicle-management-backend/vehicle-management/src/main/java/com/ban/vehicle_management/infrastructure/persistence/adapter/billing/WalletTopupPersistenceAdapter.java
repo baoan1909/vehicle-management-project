@@ -4,6 +4,7 @@ import com.ban.vehicle_management.application.billing.wallet.port.out.WalletTopu
 import com.ban.vehicle_management.domain.billing.wallet.model.WalletTopupOrder;
 import com.ban.vehicle_management.infrastructure.mapper.billing.WalletPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.WalletTopupOrderRepository;
+import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -17,10 +18,23 @@ public class WalletTopupPersistenceAdapter implements WalletTopupPortOut {
 
     private final WalletTopupOrderRepository repository;
     private final WalletPersistenceMapper mapper;
+    private final EntityManager entityManager;
 
-    public WalletTopupPersistenceAdapter(WalletTopupOrderRepository repository, WalletPersistenceMapper mapper) {
+    public WalletTopupPersistenceAdapter(
+            WalletTopupOrderRepository repository,
+            WalletPersistenceMapper mapper,
+            EntityManager entityManager) {
         this.repository = repository;
         this.mapper = mapper;
+        this.entityManager = entityManager;
+    }
+
+    @Override
+    public void lockIdempotencyKey(String idempotencyKey) {
+        entityManager.createNativeQuery(
+                        "SELECT pg_advisory_xact_lock(hashtextextended(CAST(:idempotencyKey AS text), 0))")
+                .setParameter("idempotencyKey", idempotencyKey)
+                .getSingleResult();
     }
 
     @Override

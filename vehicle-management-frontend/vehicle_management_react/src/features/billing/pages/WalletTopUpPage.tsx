@@ -29,7 +29,12 @@ export function WalletTopUpPage() {
       const res = await createWalletTopup(Math.round(finalAmount));
       const paymentUrl = res.data?.paymentUrl;
       if (paymentUrl) {
-        sessionStorage.setItem("wallet-topup-pending-invoice", invoiceId ?? "");
+        sessionStorage.setItem("wallet-topup-pending-order", res.data.topupOrderId);
+        if (invoiceId) {
+          sessionStorage.setItem("wallet-topup-pending-invoice", invoiceId);
+        } else {
+          sessionStorage.removeItem("wallet-topup-pending-invoice");
+        }
         window.location.href = paymentUrl;
       } else {
         setError("Không tạo được đơn nạp tiền");

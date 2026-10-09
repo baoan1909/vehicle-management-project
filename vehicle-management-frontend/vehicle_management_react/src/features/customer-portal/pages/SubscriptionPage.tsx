@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 import {
@@ -8,6 +8,7 @@ import {
   type InvoiceSummaryResponse,
   VNPAY_MINIMUM_AMOUNT,
 } from "@/features/billing/api/invoicePaymentsApi";
+import { getMyWallet, payInvoiceByWallet } from "@/features/billing/api/walletApi";
 import {
   createMySubscription,
   getCustomerPortalLookups,
@@ -44,7 +45,7 @@ type SubscriptionForm = {
   voucherCode: string;
 };
 
-type CustomerPaymentChoice = "VNPAY" | "AT_COUNTER";
+type CustomerPaymentChoice = "WALLET" | "VNPAY" | "AT_COUNTER";
 
 function formatCurrency(value?: number | string | null) {
   const numberValue = Number(value ?? 0);
@@ -174,6 +175,7 @@ function SubscriptionProgress({ percent }: { percent: number }) {
 
 export function SubscriptionPage() {
   const toast = useToast();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const voucherCodeFromUrl = searchParams.get("voucherCode")?.trim().toUpperCase() ?? "";
   const handledVnpayReturnRef = useRef(false);
@@ -215,6 +217,7 @@ export function SubscriptionPage() {
   const [paymentInvoice, setPaymentInvoice] = useState<InvoiceSummaryResponse | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   const openRegistrationModal = () => {
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -340,6 +343,17 @@ export function SubscriptionPage() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (searchParams.get("walletPayment") === "success") {
+      toast.success(
+        "Hồ sơ đang được hoàn tất sau khi thanh toán.",
+        "Thanh toán bằng ví thành công",
+      );
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("walletPayment");
+      setSearchParams(nextParams, { replace: true });
+      void loadData();
+      return;
+    }
     const vnpayResult = searchParams.get("vnpayResult");
     if (!vnpayResult || handledVnpayReturnRef.current) return;
     handledVnpayReturnRef.current = true;
@@ -479,17 +493,22 @@ export function SubscriptionPage() {
 
   const handleOpenPayment = async (subscription: CustomerPortalSubscription) => {
     setPaymentModalOpen(true);
-    setPaymentChoice("VNPAY");
+    setPaymentChoice("WALLET");
     setPaymentInvoice(null);
+    setWalletBalance(null);
     setPaymentError("");
     setPaymentLoading(true);
 
     try {
-      const invoice = await getSubscriptionInvoice(subscription.subscriptionId);
+      const [invoice, walletResponse] = await Promise.all([
+        getSubscriptionInvoice(subscription.subscriptionId),
+        getMyWallet(),
+      ]);
       if (!invoice || invoice.status !== "UNPAID") {
         throw new Error("Không tìm thấy hóa đơn đang chờ thanh toán của đăng ký này.");
       }
       setPaymentInvoice(invoice);
+      setWalletBalance(Number(walletResponse.data.availableBalance));
     } catch (requestError) {
       setPaymentError(requestError instanceof Error ? requestError.message : "Không thể tải hóa đơn đăng ký.");
     } finally {
@@ -506,6 +525,37 @@ export function SubscriptionPage() {
         `Hóa đơn ${paymentInvoice.invoiceNo} sẽ được nhân viên xác nhận sau khi nhận tiền.`,
         "Đã chọn thanh toán tại quầy",
       );
+      return;
+    }
+
+    if (paymentChoice === "WALLET") {
+      const amount = Number(paymentInvoice.finalAmount);
+      if (walletBalance === null) {
+        setPaymentError("Không tải được số dư ví. Vui lòng thử lại.");
+        return;
+      }
+      if (walletBalance < amount) {
+        setPaymentModalOpen(false);
+        navigate(`/customer/wallet/topup?invoiceId=${encodeURIComponent(paymentInvoice.invoiceId)}`);
+        return;
+      }
+
+      setPaymentLoading(true);
+      setPaymentError("");
+      const keyName = `wallet-payment-idempotency:${paymentInvoice.invoiceId}`;
+      const paymentKey = sessionStorage.getItem(keyName) ?? crypto.randomUUID();
+      sessionStorage.setItem(keyName, paymentKey);
+      try {
+        await payInvoiceByWallet(paymentInvoice.invoiceId, paymentKey);
+        sessionStorage.removeItem(keyName);
+        setPaymentModalOpen(false);
+        toast.success("Hồ sơ đang được hoàn tất sau khi thanh toán.", "Thanh toán bằng ví thành công");
+        await loadData();
+      } catch (requestError) {
+        setPaymentError(requestError instanceof Error ? requestError.message : "Không thể thanh toán bằng ví.");
+      } finally {
+        setPaymentLoading(false);
+      }
       return;
     }
 
@@ -708,13 +758,15 @@ export function SubscriptionPage() {
             >
               {paymentLoading
                 ? "Đang xử lý..."
-                : paymentChoice === "VNPAY"
+                : paymentChoice === "WALLET"
+                  ? "Thanh toán bằng ví"
+                  : paymentChoice === "VNPAY"
                   ? "Thanh toán qua VNPay"
                   : "Xác nhận trả tại quầy"}
             </button>
           </div>
         )}
-        description="Chọn thanh toán trực tuyến hoặc thanh toán trực tiếp với nhân viên tại quầy."
+        description="Chọn thanh toán bằng ví, VNPay hoặc trực tiếp với nhân viên tại quầy."
         onClose={() => setPaymentModalOpen(false)}
         open={paymentModalOpen}
         title="Thanh toán đăng ký vé"
@@ -732,7 +784,21 @@ export function SubscriptionPage() {
             </strong>
             {paymentInvoice ? <span className="tw-mt-1 tw-block tw-text-xs tw-font-semibold tw-text-[#71819a]">{paymentInvoice.invoiceNo}</span> : null}
           </div>
-          <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-3">
+            <button
+              className={`tw-min-h-[92px] tw-rounded-md tw-border tw-border-solid tw-p-3 tw-text-left ${paymentChoice === "WALLET" ? "tw-border-[#1263e9] tw-bg-[#edf4ff]" : "tw-border-[#dce5f0] tw-bg-white"}`}
+              type="button"
+              onClick={() => {
+                setPaymentChoice("WALLET");
+                setPaymentError("");
+              }}
+            >
+              <i className="fas fa-wallet tw-mr-2 tw-text-[#1263e9]" />
+              <strong>Ví CoParking</strong>
+              <span className="tw-mt-2 tw-block tw-text-xs tw-font-semibold tw-text-[#71819a]">
+                {walletBalance === null ? "Đang tải số dư..." : `Khả dụng: ${formatCurrency(walletBalance)}`}
+              </span>
+            </button>
             <button
               className={`tw-min-h-[92px] tw-rounded-md tw-border tw-border-solid tw-p-3 tw-text-left ${paymentChoice === "VNPAY" ? "tw-border-[#1263e9] tw-bg-[#edf4ff]" : "tw-border-[#dce5f0] tw-bg-white"}`}
               type="button"

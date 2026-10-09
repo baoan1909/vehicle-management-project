@@ -11,6 +11,8 @@ public interface WalletPortOut {
 
     Wallet save(Wallet wallet);
 
+    Wallet createIfAbsent(Wallet wallet);
+
     Optional<Wallet> findById(UUID walletId);
 
     Optional<Wallet> findByIdForUpdate(UUID walletId);

@@ -6,6 +6,7 @@ import com.ban.vehicle_management.infrastructure.mapper.billing.WalletPersistenc
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.WalletRepository;
 import com.ban.vehicle_management.shared.enumeration.billing.WalletOwnerType;
 import com.ban.vehicle_management.shared.enumeration.billing.WalletPurpose;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +27,33 @@ public class WalletPersistenceAdapter implements WalletPortOut {
     @Override
     public Wallet save(Wallet wallet) {
         return mapper.toDomain(walletRepository.saveAndFlush(mapper.toEntity(wallet)));
+    }
+
+    @Override
+    public Wallet createIfAbsent(Wallet wallet) {
+        walletRepository.insertIfAbsent(
+                wallet.getWalletId(),
+                wallet.getOwnerType().name(),
+                wallet.getCustomerId(),
+                wallet.getOrganizationId(),
+                wallet.getWalletPurpose().name(),
+                wallet.getCurrency(),
+                wallet.getAvailableBalance(),
+                wallet.getPendingBalance(),
+                wallet.getHeldBalance(),
+                wallet.getStatus().name(),
+                wallet.getCreatedAt(),
+                wallet.getCreatedBy());
+
+        return switch (wallet.getOwnerType()) {
+            case CUSTOMER -> findCustomerWallet(
+                            wallet.getCustomerId(), wallet.getCurrency(), wallet.getWalletPurpose())
+                    .orElseThrow(() -> new ConflictException("Customer wallet could not be provisioned"));
+            case ORGANIZATION -> findOrganizationWallet(
+                            wallet.getOrganizationId(), wallet.getCurrency(), wallet.getWalletPurpose())
+                    .orElseThrow(() -> new ConflictException("Partner wallet could not be provisioned"));
+            case PLATFORM -> throw new ConflictException("Platform personal wallet is not supported");
+        };
     }
 
     @Override

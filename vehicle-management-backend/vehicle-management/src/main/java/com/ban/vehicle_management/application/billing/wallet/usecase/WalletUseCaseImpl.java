@@ -17,13 +17,11 @@ import com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
-import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,13 +71,7 @@ public class WalletUseCaseImpl implements WalletPortIn {
         }
         Wallet wallet = newWallet(
                 WalletOwnerType.CUSTOMER, customerId, null, WalletPurpose.PERSONAL);
-        try {
-            return walletPortOut.save(wallet);
-        } catch (DataIntegrityViolationException exception) {
-            return walletPortOut
-                    .findCustomerWallet(customerId, CURRENCY, WalletPurpose.PERSONAL)
-                    .orElseThrow(() -> new ConflictException("Wallet already exists"));
-        }
+        return walletPortOut.createIfAbsent(wallet);
     }
 
     @Override
@@ -100,13 +92,7 @@ public class WalletUseCaseImpl implements WalletPortIn {
         }
         Wallet wallet = newWallet(
                 WalletOwnerType.ORGANIZATION, null, organizationId, WalletPurpose.ORGANIZATION_SETTLEMENT);
-        try {
-            return walletPortOut.save(wallet);
-        } catch (DataIntegrityViolationException exception) {
-            return walletPortOut
-                    .findOrganizationWallet(organizationId, CURRENCY, WalletPurpose.ORGANIZATION_SETTLEMENT)
-                    .orElseThrow(() -> new ConflictException("Wallet already exists"));
-        }
+        return walletPortOut.createIfAbsent(wallet);
     }
 
     @Override

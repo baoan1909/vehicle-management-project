@@ -61,10 +61,10 @@ export function getTopupOrder(topupOrderId: string) {
   return apiClient<ApiResponse<WalletTopupResponse>>(`/billing/wallets/me/topups/${topupOrderId}`);
 }
 
-export function payInvoiceByWallet(invoiceId: string) {
+export function payInvoiceByWallet(invoiceId: string, idempotencyKey: string = crypto.randomUUID()) {
   return apiClient<ApiResponse<unknown>>("/billing/wallets/me/payments", {
     method: "POST",
-    body: { invoiceId, idempotencyKey: crypto.randomUUID() },
+    body: { invoiceId, idempotencyKey },
   });
 }
 

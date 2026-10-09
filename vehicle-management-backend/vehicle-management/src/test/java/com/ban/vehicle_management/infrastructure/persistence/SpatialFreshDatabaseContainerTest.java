@@ -10,6 +10,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -94,6 +97,120 @@ class SpatialFreshDatabaseContainerTest {
     }
 
     @Test
+    void shouldInstallWalletPermissionsWithDistinctIamTuples() throws SQLException {
+        try (Connection connection = connection()) {
+            assertEquals(1, scalar(connection, """
+                    SELECT count(*)
+                    FROM iam.permission_modules
+                    WHERE module_id = '00000000-0000-0000-0000-000000001045'
+                      AND code = 'WALLET'
+                    """));
+            assertEquals(23, scalar(connection, """
+                    SELECT count(*)
+                    FROM iam.permissions permission
+                    JOIN iam.permission_modules module ON module.module_id = permission.module_id
+                    WHERE module.code = 'WALLET'
+                    """));
+            assertEquals(23, scalar(connection, """
+                    SELECT count(DISTINCT (permission.module_id, permission.action_id, permission.scope_id))
+                    FROM iam.permissions permission
+                    JOIN iam.permission_modules module ON module.module_id = permission.module_id
+                    WHERE module.code = 'WALLET'
+                    """));
+            assertEquals(6, walletRolePermissionCount(connection, "CUSTOMER"));
+            assertEquals(6, walletRolePermissionCount(connection, "PARTNER_ADMIN"));
+            assertEquals(11, walletRolePermissionCount(connection, "SYSTEM_ADMIN"));
+        }
+    }
+
+    @Test
+    void shouldEnforceWalletOwnershipUniquenessAndVndAmounts() throws SQLException {
+        UUID walletId = UUID.randomUUID();
+        try (Connection connection = connection(); Statement statement = connection.createStatement()) {
+            statement.executeUpdate("""
+                    INSERT INTO billing.wallets (
+                        wallet_id, owner_type, organization_id, wallet_purpose, currency
+                    ) VALUES (
+                        '%s', 'ORGANIZATION', '00000000-0000-0000-0000-000000009001',
+                        'ORGANIZATION_SETTLEMENT', 'VND'
+                    )
+                    """.formatted(walletId));
+        }
+
+        assertSqlFails("""
+                INSERT INTO billing.wallets (
+                    wallet_id, owner_type, organization_id, wallet_purpose, currency
+                ) VALUES (
+                    '%s', 'ORGANIZATION', '00000000-0000-0000-0000-000000009001',
+                    'ORGANIZATION_SETTLEMENT', 'VND'
+                )
+                """.formatted(UUID.randomUUID()));
+        assertSqlFails("""
+                INSERT INTO billing.wallets (
+                    wallet_id, owner_type, organization_id, wallet_purpose, currency
+                ) VALUES ('%s', 'ORGANIZATION', '%s', 'ORGANIZATION_SETTLEMENT', 'VND')
+                """.formatted(UUID.randomUUID(), UUID.randomUUID()));
+        assertSqlFails("""
+                INSERT INTO billing.wallets (
+                    wallet_id, owner_type, wallet_purpose, currency, available_balance
+                ) VALUES ('%s', 'PLATFORM', 'DECIMAL_TEST', 'VND', 0.50)
+                """.formatted(UUID.randomUUID()));
+    }
+
+    @Test
+    void shouldKeepPostedLedgerEntriesImmutable() throws SQLException {
+        UUID transactionId = UUID.randomUUID();
+        UUID entryId = UUID.randomUUID();
+        try (Connection connection = connection(); Statement statement = connection.createStatement()) {
+            statement.executeUpdate("""
+                    INSERT INTO billing.financial_transactions (
+                        financial_transaction_id, transaction_code, transaction_type, status,
+                        idempotency_key, currency
+                    ) VALUES ('%s', '%s', 'WALLET_ADJUSTMENT', 'POSTED', '%s', 'VND')
+                    """.formatted(transactionId, "TEST-" + transactionId, "TEST-" + transactionId));
+            statement.executeUpdate("""
+                    INSERT INTO billing.ledger_entries (
+                        ledger_entry_id, financial_transaction_id, ledger_account_id,
+                        entry_side, amount, description
+                    ) VALUES (
+                        '%s', '%s', '00000000-0000-0000-0000-000000011003',
+                        'DEBIT', 1000, 'immutability test'
+                    )
+                    """.formatted(entryId, transactionId));
+        }
+
+        assertSqlFails("""
+                UPDATE billing.ledger_entries SET amount = 2000
+                WHERE ledger_entry_id = '%s'
+                """.formatted(entryId));
+        assertSqlFails("""
+                DELETE FROM billing.ledger_entries WHERE ledger_entry_id = '%s'
+                """.formatted(entryId));
+    }
+
+    @Test
+    void shouldProvisionOneWalletWhenTwoRequestsRace() throws Exception {
+        String purpose = "RACE_" + UUID.randomUUID().toString().replace("-", "").substring(0, 12);
+        CountDownLatch start = new CountDownLatch(1);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            Future<Integer> first = executor.submit(() -> insertOrganizationWalletOnConflict(purpose, start));
+            Future<Integer> second = executor.submit(() -> insertOrganizationWalletOnConflict(purpose, start));
+            start.countDown();
+
+            assertEquals(1, first.get() + second.get());
+        }
+
+        try (Connection connection = connection()) {
+            assertEquals(1, scalar(connection, """
+                    SELECT count(*) FROM billing.wallets
+                    WHERE organization_id = '00000000-0000-0000-0000-000000009001'
+                      AND currency = 'VND'
+                      AND wallet_purpose = '%s'
+                    """.formatted(purpose)));
+        }
+    }
+
+    @Test
     void shouldSynchronizeLocationRunSpatialQueryAndUseGistIndex() throws SQLException {
         UUID first = UUID.randomUUID();
         UUID second = UUID.randomUUID();
@@ -167,6 +284,41 @@ class SpatialFreshDatabaseContainerTest {
         try (Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(sql)) {
             assertTrue(resultSet.next());
             return resultSet.getInt(1);
+        }
+    }
+
+    private static int walletRolePermissionCount(Connection connection, String roleCode) throws SQLException {
+        return scalar(connection, """
+                SELECT count(*)
+                FROM iam.role_permissions role_permission
+                JOIN iam.roles role ON role.role_id = role_permission.role_id
+                JOIN iam.permissions permission ON permission.permission_id = role_permission.permission_id
+                JOIN iam.permission_modules module ON module.module_id = permission.module_id
+                WHERE role.code = '%s'
+                  AND module.code = 'WALLET'
+                  AND role_permission.is_active = true
+                """.formatted(roleCode));
+    }
+
+    private static void assertSqlFails(String sql) {
+        assertThrows(SQLException.class, () -> {
+            try (Connection connection = connection(); Statement statement = connection.createStatement()) {
+                statement.executeUpdate(sql);
+            }
+        });
+    }
+
+    private static int insertOrganizationWalletOnConflict(String purpose, CountDownLatch start) throws Exception {
+        start.await();
+        try (Connection connection = connection(); Statement statement = connection.createStatement()) {
+            return statement.executeUpdate("""
+                    INSERT INTO billing.wallets (
+                        wallet_id, owner_type, organization_id, wallet_purpose, currency
+                    ) VALUES (
+                        '%s', 'ORGANIZATION', '00000000-0000-0000-0000-000000009001', '%s', 'VND'
+                    )
+                    ON CONFLICT DO NOTHING
+                    """.formatted(UUID.randomUUID(), purpose));
         }
     }
 

@@ -8,6 +8,8 @@ import java.util.UUID;
 
 public interface WalletTopupPortOut {
 
+    void lockIdempotencyKey(String idempotencyKey);
+
     WalletTopupOrder save(WalletTopupOrder order);
 
     Optional<WalletTopupOrder> findById(UUID topupOrderId);
