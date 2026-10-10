@@ -19,6 +19,8 @@ public interface ParkingLayoutPortOut {
 
     List<ParkingLayoutVersion> findAllByZoneId(UUID zoneId);
 
+    Optional<ParkingLayoutVersion> findByZoneIdAndVersion(UUID zoneId, Long version);
+
     List<ParkingSpaceLayoutItem> saveLayoutItems(List<ParkingSpaceLayoutItem> items);
 
     List<ParkingSpaceLayoutItem> findLayoutItemsByVersionId(UUID layoutVersionId);
