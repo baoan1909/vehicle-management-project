@@ -1,16 +1,21 @@
 package com.ban.vehicle_management.application.parking.parkinglevel.usecase;
 
+import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPortOut;
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.parking.parkinglevel.port.in.ParkingLevelPortIn;
 import com.ban.vehicle_management.application.parking.parkinglevel.port.out.ParkingLevelPortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.domain.audit.auditlog.model.AuditLog;
 import com.ban.vehicle_management.domain.parking.parkinglevel.model.ParkingLevel;
 import com.ban.vehicle_management.domain.parking.parkinglevel.policy.ParkingLevelPolicy;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLevelStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,17 +27,23 @@ public class ParkingLevelUseCaseImpl implements ParkingLevelPortIn {
     private final ParkingLevelPortOut parkingLevelPortOut;
     private final ParkingLotPortOut parkingLotPortOut;
     private final OrganizationAccessGuard organizationAccessGuard;
+    private final AuditLogPortOut auditLogPortOut;
+    private final CurrentAccountPortIn currentAccountPortIn;
     private final ParkingLevelPolicy parkingLevelPolicy = new ParkingLevelPolicy();
 
     @Autowired
     public ParkingLevelUseCaseImpl(
             ParkingLevelPortOut parkingLevelPortOut,
             ParkingLotPortOut parkingLotPortOut,
-            OrganizationAccessGuard organizationAccessGuard
+            OrganizationAccessGuard organizationAccessGuard,
+            AuditLogPortOut auditLogPortOut,
+            CurrentAccountPortIn currentAccountPortIn
     ) {
         this.parkingLevelPortOut = parkingLevelPortOut;
         this.parkingLotPortOut = parkingLotPortOut;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.auditLogPortOut = auditLogPortOut;
+        this.currentAccountPortIn = currentAccountPortIn;
     }
 
     @Override
@@ -45,7 +56,9 @@ public class ParkingLevelUseCaseImpl implements ParkingLevelPortIn {
             throw new ConflictException("Parking level code already exists in this parking lot");
         }
         parkingLevel.setParkingLevelId(UUID.randomUUID());
-        return parkingLevelPortOut.save(parkingLevel);
+        ParkingLevel saved = parkingLevelPortOut.save(parkingLevel);
+        writeAudit(saved, "CREATE_PARKING_LEVEL", null, snapshot(saved));
+        return saved;
     }
 
     @Override
@@ -85,7 +98,10 @@ public class ParkingLevelUseCaseImpl implements ParkingLevelPortIn {
                 existing.getParkingLotId(), existing.getCode(), parkingLevelId)) {
             throw new ConflictException("Parking level code already exists in this parking lot");
         }
-        return parkingLevelPortOut.save(existing);
+        Map<String, Object> oldData = snapshot(existing);
+        ParkingLevel saved = parkingLevelPortOut.save(existing);
+        writeAudit(saved, "UPDATE_PARKING_LEVEL", oldData, snapshot(saved));
+        return saved;
     }
 
     @Override
@@ -96,6 +112,7 @@ public class ParkingLevelUseCaseImpl implements ParkingLevelPortIn {
         if (parkingLevelPortOut.countZonesByParkingLevelId(parkingLevelId) > 0) {
             throw new ConflictException("Parking level still has zones");
         }
+        writeAudit(existing, "ARCHIVE_PARKING_LEVEL", snapshot(existing), Map.of("deleted", "true"));
         parkingLevelPortOut.delete(parkingLevelId);
     }
 
@@ -104,8 +121,11 @@ public class ParkingLevelUseCaseImpl implements ParkingLevelPortIn {
     public ParkingLevel activateParkingLevel(UUID parkingLevelId) {
         ParkingLevel parkingLevel = getParkingLevelById(parkingLevelId);
         ensureCanConfigureParkingLot(parkingLevel.getParkingLotId());
+        Map<String, Object> oldData = snapshot(parkingLevel);
         parkingLevelPolicy.activate(parkingLevel);
-        return parkingLevelPortOut.save(parkingLevel);
+        ParkingLevel saved = parkingLevelPortOut.save(parkingLevel);
+        writeAudit(saved, "UPDATE_PARKING_LEVEL_STATUS", oldData, snapshot(saved));
+        return saved;
     }
 
     @Override
@@ -113,8 +133,11 @@ public class ParkingLevelUseCaseImpl implements ParkingLevelPortIn {
     public ParkingLevel markParkingLevelMaintenance(UUID parkingLevelId) {
         ParkingLevel parkingLevel = getParkingLevelById(parkingLevelId);
         ensureCanConfigureParkingLot(parkingLevel.getParkingLotId());
+        Map<String, Object> oldData = snapshot(parkingLevel);
         parkingLevelPolicy.markMaintenance(parkingLevel);
-        return parkingLevelPortOut.save(parkingLevel);
+        ParkingLevel saved = parkingLevelPortOut.save(parkingLevel);
+        writeAudit(saved, "UPDATE_PARKING_LEVEL_STATUS", oldData, snapshot(saved));
+        return saved;
     }
 
     @Override
@@ -122,8 +145,11 @@ public class ParkingLevelUseCaseImpl implements ParkingLevelPortIn {
     public ParkingLevel closeParkingLevel(UUID parkingLevelId) {
         ParkingLevel parkingLevel = getParkingLevelById(parkingLevelId);
         ensureCanConfigureParkingLot(parkingLevel.getParkingLotId());
+        Map<String, Object> oldData = snapshot(parkingLevel);
         parkingLevelPolicy.close(parkingLevel);
-        return parkingLevelPortOut.save(parkingLevel);
+        ParkingLevel saved = parkingLevelPortOut.save(parkingLevel);
+        writeAudit(saved, "UPDATE_PARKING_LEVEL_STATUS", oldData, snapshot(saved));
+        return saved;
     }
 
     private void ensureCanAccessParkingLot(UUID parkingLotId) {
@@ -144,5 +170,35 @@ public class ParkingLevelUseCaseImpl implements ParkingLevelPortIn {
                 parkingLotPortOut.findById(parkingLotId)
                         .orElseThrow(() -> new NotFoundException("Parking lot not found"))
         );
+    }
+
+    private Map<String, Object> snapshot(ParkingLevel parkingLevel) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("parkingLotId", text(parkingLevel.getParkingLotId()));
+        values.put("code", text(parkingLevel.getCode()));
+        values.put("name", text(parkingLevel.getName()));
+        values.put("status", text(parkingLevel.getStatus()));
+        return values;
+    }
+
+    private String text(Object value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private void writeAudit(ParkingLevel parkingLevel, String action,
+            Map<String, Object> oldData, Map<String, Object> newData) {
+        if (auditLogPortOut == null || currentAccountPortIn == null) {
+            return;
+        }
+        AuditLog auditLog = new AuditLog();
+        auditLog.setAuditLogId(UUID.randomUUID());
+        auditLog.setActorAccountId(currentAccountPortIn.getCurrentAccountIdOrThrow());
+        auditLog.setAction(action);
+        auditLog.setTargetSchema("parking");
+        auditLog.setTargetTable("parking_levels");
+        auditLog.setTargetId(parkingLevel.getParkingLevelId());
+        auditLog.setOldData(oldData);
+        auditLog.setNewData(newData);
+        auditLogPortOut.save(auditLog);
     }
 }
