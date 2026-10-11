@@ -17,6 +17,7 @@ const customerNavItems = [
   { label: "Hồ sơ", to: "/customer/profile", icon: "far fa-user" },
   { label: "Xe của tôi", to: "/customer/vehicles", icon: "fas fa-motorcycle" },
   { label: "Vé tháng", to: "/customer/subscriptions", icon: "far fa-calendar-check" },
+  { label: "Ví của tôi", to: "/customer/wallet", icon: "fas fa-wallet" },
   { label: "Lịch sử gửi xe", to: "/customer/parking-history", icon: "far fa-clock" },
   { label: "Hỗ trợ", to: "/customer/support", icon: "far fa-question-circle" },
 ];
@@ -149,7 +150,7 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { user } = useAuth();
   const visibleNavItems = customerNavItems.filter((item) => canAccessCustomerRoute(user, item.to));
-  const isReferencePage = ["/customer/dashboard", "/customer/profile", "/customer/vehicles", "/customer/subscriptions", "/customer/parking-history", "/customerTicket/customer-infor", "/customerTicket/customer-infor-detail"].includes(location.pathname);
+  const isReferencePage = ["/customer/dashboard", "/customer/profile", "/customer/vehicles", "/customer/subscriptions", "/customer/wallet", "/customer/wallet/topup", "/customer/parking-history", "/customerTicket/customer-infor", "/customerTicket/customer-infor-detail"].includes(location.pathname);
   const displayName = user?.fullName?.trim() || user?.username?.trim() || "Khách hàng";
 
   return (
@@ -164,7 +165,7 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
           {visibleNavItems.map((item) => {
-            const active = location.pathname === item.to;
+            const active = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
             return (
               <Link aria-current={active ? "page" : undefined} className={`vm-customer-nav-item ${isReferencePage ? "!tw-min-h-[52px] !tw-text-[0.9rem] !tw-font-medium !tw-gap-3 hover:tw-bg-blue-50 hover:tw-no-underline max-[760px]:tw-shrink-0 max-[760px]:!tw-mb-0 [&>i]:!tw-text-xl" : ""} ${active ? "active" : ""}`} to={item.to} key={item.to}>
                 <i className={item.icon} />
