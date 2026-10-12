@@ -1,9 +1,11 @@
 package com.ban.vehicle_management.application.parking.parkingspace.port.in;
 
 import com.ban.vehicle_management.domain.parking.parkingspace.model.ParkingSpace;
+import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
 import com.ban.vehicle_management.shared.enumeration.parking.ManualOccupancyType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ParkingSpacePortIn {
@@ -33,4 +35,6 @@ public interface ParkingSpacePortIn {
     ParkingSpace setAutomaticStatus(UUID parkingSpaceId, ParkingSpaceStatus targetStatus, ManualOccupancyType occupancyType);
 
     ParkingSpace archiveParkingSpace(UUID parkingSpaceId);
+
+    Optional<ParkingSession> findOpenSessionBySpace(UUID parkingSpaceId);
 }

@@ -469,7 +469,9 @@ public class ParkingLayoutUseCaseImpl implements ParkingLayoutPortIn {
         draft.setLayoutVersionId(UUID.randomUUID());
         draft.setZoneId(zone.getZoneId());
         draft.setVersion(nextVersion);
-        draft.setRevision(0L);
+        // Keep revision null so Hibernate seeds the @Version column on persist.
+        // Pre-setting 0L makes Spring Data route save() to merge(), which issues
+        // an UPDATE for a row that does not exist yet and surfaces as a 409.
         layoutPolicy.initialize(draft);
         return layoutPortOut.saveLayoutVersion(draft);
     }
