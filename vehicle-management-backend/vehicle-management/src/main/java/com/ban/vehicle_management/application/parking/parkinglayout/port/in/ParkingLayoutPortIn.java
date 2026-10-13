@@ -23,7 +23,9 @@ public interface ParkingLayoutPortIn {
 
     ZoneLayoutResult publishLayout(UUID zoneId, Long expectedDraftRevision);
 
-    PublishPreviewResult previewPublish(UUID zoneId);
+    void discardDraftLayout(UUID zoneId, Long expectedDraftRevision);
+
+    PublishPreviewResult previewPublish(UUID zoneId, Long expectedDraftRevision);
 
     ParkingLayoutVersion archiveLayout(UUID zoneId, Long version);
 }

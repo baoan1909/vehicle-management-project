@@ -6,6 +6,7 @@ import com.ban.vehicle_management.application.parking.parkinglayout.model.result
 import com.ban.vehicle_management.application.parking.parkinglayout.model.result.ZoneLayoutResult;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.request.LayoutElementRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.request.LayoutSpaceItemRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.response.LayoutElementResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.response.LayoutSpaceItemResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.response.PublishPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.response.ZoneLayoutResponse;
@@ -13,7 +14,7 @@ import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = ParkingLayoutJsonValueMapper.class)
 public interface ParkingLayoutApiMapper {
 
     @Mapping(target = "layoutVersionId", source = "version.layoutVersionId")
@@ -32,11 +33,18 @@ public interface ParkingLayoutApiMapper {
 
     List<LayoutSpaceItemResponse> toItemResponses(List<ZoneLayoutResult.LayoutItemView> views);
 
+    @Mapping(target = "code", source = "spaceCode")
     SaveLayoutItemCommand toItemCommand(LayoutSpaceItemRequest request);
 
     List<SaveLayoutItemCommand> toItemCommands(List<LayoutSpaceItemRequest> requests);
 
+    @Mapping(target = "geometry", source = "geometry", qualifiedByName = "toLegacyJsonNode")
+    @Mapping(target = "style", source = "style", qualifiedByName = "toLegacyJsonNode")
     SaveLayoutElementCommand toElementCommand(LayoutElementRequest request);
 
     List<SaveLayoutElementCommand> toElementCommands(List<LayoutElementRequest> requests);
+
+    @Mapping(target = "geometry", source = "geometry", qualifiedByName = "toHttpJsonValue")
+    @Mapping(target = "style", source = "style", qualifiedByName = "toHttpJsonValue")
+    LayoutElementResponse toElementResponse(ZoneLayoutResult.LayoutElementView view);
 }

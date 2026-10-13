@@ -28,7 +28,7 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.domain.parking.parkingspace.model.ParkingSpace;
 import com.ban.vehicle_management.domain.parking.parkingspace.policy.ParkingSpacePolicy;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
-import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
+import com.ban.vehicle_management.domain.parking.zone.policy.ZonePolicy;
 import com.ban.vehicle_management.shared.enumeration.parking.LayoutVersionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
@@ -41,6 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -68,6 +69,7 @@ public class ParkingLayoutUseCaseImpl implements ParkingLayoutPortIn {
     private final ParkingRealtimePublisherPortOut parkingRealtimePublisher;
     private final ParkingLayoutPolicy layoutPolicy = new ParkingLayoutPolicy();
     private final ParkingSpacePolicy spacePolicy = new ParkingSpacePolicy();
+    private final ZonePolicy zonePolicy = new ZonePolicy();
 
     public ParkingLayoutUseCaseImpl(
             ParkingLayoutPortOut layoutPortOut,
@@ -101,7 +103,7 @@ public class ParkingLayoutUseCaseImpl implements ParkingLayoutPortIn {
         Zone zone = findConfigurableZone(zoneId);
         return layoutPortOut.findDraftByZoneId(zoneId)
                 .map(this::toResult)
-                .orElseGet(() -> toResult(newDraftVersion(zone)));
+                .orElseGet(() -> createDraftFromPublished(zone));
     }
 
     @Override
@@ -186,6 +188,7 @@ public class ParkingLayoutUseCaseImpl implements ParkingLayoutPortIn {
         ParkingLayoutVersion draft = layoutPortOut.findDraftByZoneId(zoneId)
                 .orElseThrow(() -> new NotFoundException("Draft layout not found"));
         requireRevision(draft, expectedDraftRevision);
+        ensureCanSwitchToSpaceTracking(zone);
 
         List<ParkingSpaceLayoutItem> items =
                 layoutPortOut.findLayoutItemsByVersionId(draft.getLayoutVersionId());
@@ -248,11 +251,7 @@ public class ParkingLayoutUseCaseImpl implements ParkingLayoutPortIn {
         layoutPolicy.publish(draft, currentAccountPortIn.getCurrentAccountIdOrThrow());
         ParkingLayoutVersion published = layoutPortOut.saveLayoutVersion(draft);
 
-        zone.setLayoutStatus(LayoutStatus.PUBLISHED);
-        zone.setLayoutVersion(published.getVersion());
-        if (zone.getTrackingMode() == TrackingMode.SPACE) {
-            zone.setCapacity(materialized.size());
-        }
+        zonePolicy.publishSpaceLayout(zone, published.getVersion(), materialized.size());
         zonePortOut.save(zone);
         syncLotCapacity(zone.getParkingLotId());
 
@@ -287,13 +286,35 @@ public class ParkingLayoutUseCaseImpl implements ParkingLayoutPortIn {
     }
 
     @Override
+    @Transactional
+    public void discardDraftLayout(UUID zoneId, Long expectedDraftRevision) {
+        Zone zone = findConfigurableZone(zoneId);
+        ParkingLayoutVersion draft = layoutPortOut.findDraftByZoneId(zone.getZoneId())
+                .orElseThrow(() -> new NotFoundException("Draft layout not found"));
+        requireRevision(draft, expectedDraftRevision);
+        layoutPolicy.archive(draft);
+        ParkingLayoutVersion archived = layoutPortOut.saveLayoutVersion(draft);
+        writeAudit(archived, "DISCARD_PARKING_LAYOUT_DRAFT", null, Map.of(
+                "zoneId", zoneId.toString(),
+                "version", archived.getVersion().toString(),
+                "revision", archived.getRevision().toString()));
+        LOGGER.info("draft discarded zone={} version={} revision={}",
+                zoneId, archived.getVersion(), archived.getRevision());
+    }
+
+    @Override
     @Transactional(readOnly = true)
-    public PublishPreviewResult previewPublish(UUID zoneId) {
+    public PublishPreviewResult previewPublish(UUID zoneId, Long expectedDraftRevision) {
         Zone zone = findReadableZone(zoneId);
         ParkingLayoutVersion draft = layoutPortOut.findDraftByZoneId(zone.getZoneId())
                 .orElseThrow(() -> new NotFoundException("Draft layout not found"));
+        requireRevision(draft, expectedDraftRevision);
+        ensureCanSwitchToSpaceTracking(zone);
         List<ParkingSpaceLayoutItem> items =
                 layoutPortOut.findLayoutItemsByVersionId(draft.getLayoutVersionId());
+        if (items.isEmpty()) {
+            throw new BadRequestException("Draft layout has no parking spaces");
+        }
         List<ParkingLayoutElement> elements =
                 layoutPortOut.findLayoutElementsByVersionId(draft.getLayoutVersionId());
         Map<String, ParkingSpace> activeByCode = activeSpacesByCode(zone.getZoneId());
@@ -320,9 +341,7 @@ public class ParkingLayoutUseCaseImpl implements ParkingLayoutPortIn {
                 archivedSpaces++;
             }
         }
-        int capacityAfterPublish = zone.getTrackingMode() == TrackingMode.SPACE
-                ? items.size()
-                : (zone.getCapacity() == null ? 0 : zone.getCapacity());
+        int capacityAfterPublish = items.size();
         return new PublishPreviewResult(
                 zone.getZoneId(),
                 draft.getVersion(),
@@ -476,6 +495,43 @@ public class ParkingLayoutUseCaseImpl implements ParkingLayoutPortIn {
         return layoutPortOut.saveLayoutVersion(draft);
     }
 
+    private ZoneLayoutResult createDraftFromPublished(Zone zone) {
+        ParkingLayoutVersion draft = newDraftVersion(zone);
+        Optional<ParkingLayoutVersion> published = layoutPortOut.findPublishedByZoneId(zone.getZoneId());
+        if (published.isEmpty()) {
+            return toResult(draft, List.of(), List.of());
+        }
+
+        UUID draftVersionId = draft.getLayoutVersionId();
+        UUID publishedVersionId = published.get().getLayoutVersionId();
+        List<ParkingSpaceLayoutItem> clonedItems = layoutPortOut.findLayoutItemsByVersionId(publishedVersionId)
+                .stream()
+                .map(source -> new ParkingSpaceLayoutItem(
+                        UUID.randomUUID(), draftVersionId, source.getParkingSpaceId(), source.getCode(),
+                        source.getVehicleTypeId(), source.getX(), source.getY(), source.getWidth(),
+                        source.getHeight(), source.getRotation()))
+                .toList();
+        List<ParkingLayoutElement> clonedElements = layoutPortOut.findLayoutElementsByVersionId(publishedVersionId)
+                .stream()
+                .map(source -> new ParkingLayoutElement(
+                        UUID.randomUUID(), draftVersionId, source.getElementType(),
+                        source.getGeometry() == null ? null : source.getGeometry().deepCopy(),
+                        source.getStyle() == null ? null : source.getStyle().deepCopy(),
+                        source.getLabel(), source.getDisplayOrder()))
+                .toList();
+
+        List<ParkingSpaceLayoutItem> savedItems = clonedItems.isEmpty()
+                ? List.of()
+                : layoutPortOut.saveLayoutItems(clonedItems);
+        List<ParkingLayoutElement> savedElements = clonedElements.isEmpty()
+                ? List.of()
+                : layoutPortOut.saveLayoutElements(clonedElements);
+        LOGGER.info("draft created from published layout zone={} sourceVersion={} draftVersion={} spaces={} elements={}",
+                zone.getZoneId(), published.get().getVersion(), draft.getVersion(),
+                savedItems.size(), savedElements.size());
+        return toResult(draft, savedItems, savedElements);
+    }
+
     private ZoneLayoutResult toResult(ParkingLayoutVersion version) {
         return toResult(version,
                 layoutPortOut.findLayoutItemsByVersionId(version.getLayoutVersionId()),
@@ -501,6 +557,14 @@ public class ParkingLayoutUseCaseImpl implements ParkingLayoutPortIn {
     private void ensureNoOpenSession(UUID parkingSpaceId) {
         if (parkingSessionPortOut.existsOpenByParkingSpaceId(parkingSpaceId)) {
             throw new ConflictException("Parking space has an open parking session");
+        }
+    }
+
+    private void ensureCanSwitchToSpaceTracking(Zone zone) {
+        if (zone.getTrackingMode() != TrackingMode.SPACE
+                && parkingSessionPortOut.countOpenByZoneId(zone.getZoneId()) > 0) {
+            throw new ConflictException(
+                    "Cannot switch zone to SPACE tracking while parking sessions are open");
         }
     }
 
