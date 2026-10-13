@@ -403,9 +403,12 @@ jobs:
 
       # Dependency lockfiles are assessed by the dedicated npm/OWASP jobs.
       # This filesystem scan catches secrets and infrastructure misconfiguration
-      # before an image reaches a registry.
+      # before an image reaches a registry. Each scan is allowed to finish so
+      # its JSON report is retained; the final gate below still fails the job.
       - name: Scan repository filesystem with Trivy
+        id: trivy_filesystem
         uses: aquasecurity/trivy-action@v0.36.0
+        continue-on-error: true
         with:
           scan-type: fs
           scan-ref: .
@@ -413,7 +416,8 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-          format: table
+          format: json
+          output: trivy-filesystem-report.json
 
       - name: Build images locally for vulnerability scanning
         shell: bash
@@ -422,22 +426,53 @@ jobs:
           docker build --tag coparking-frontend:security --file "${{ env.FRONTEND_DIR }}/Dockerfile" "${{ env.FRONTEND_DIR }}"
 
       - name: Scan backend image with Trivy
+        id: trivy_backend_image
         uses: aquasecurity/trivy-action@v0.36.0
+        continue-on-error: true
         with:
           image-ref: coparking-backend:security
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-          format: table
+          format: json
+          output: trivy-backend-image-report.json
 
       - name: Scan frontend image with Trivy
+        id: trivy_frontend_image
         uses: aquasecurity/trivy-action@v0.36.0
+        continue-on-error: true
         with:
           image-ref: coparking-frontend:security
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-          format: table
+          format: json
+          output: trivy-frontend-image-report.json
+
+      # Keep every report even when a scanner found a blocking issue. This
+      # makes remediation auditable and avoids losing later scan results.
+      - name: Upload Trivy security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-security-reports
+          path: |
+            trivy-filesystem-report.json
+            trivy-backend-image-report.json
+            trivy-frontend-image-report.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Enforce Trivy security gate
+        if: >-
+          steps.trivy_filesystem.outcome == 'failure' ||
+          steps.trivy_backend_image.outcome == 'failure' ||
+          steps.trivy_frontend_image.outcome == 'failure'
+        shell: bash
+        run: |
+          echo "One or more Trivy scans found HIGH or CRITICAL security findings." >&2
+          echo "Download the trivy-security-reports artifact to identify and remediate them." >&2
+          exit 1
 
   cd-images:
     name: CD - Build and Publish Docker Images

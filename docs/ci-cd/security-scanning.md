@@ -8,7 +8,7 @@ bằng chứng (report/log) để nhóm có thể kiểm tra lại khi báo cáo
 | `01 - Secret scan` | Gitleaks | Bất kỳ secret bị phát hiện | Log GitHub Actions |
 | `08 - Frontend dependency scan` | npm audit | HIGH/CRITICAL trong dependency runtime | `frontend-npm-audit-report` |
 | `09 - Backend dependency scan` | OWASP Dependency-Check | CVSS >= 7.0 | `backend-dependency-check-report` |
-| `10 - Container and filesystem security scan` | Trivy (FS secret/misconfig, image CVE) | HIGH/CRITICAL đã có bản vá | Log GitHub Actions |
+| `10 - Container and filesystem security scan` | Trivy (FS secret/misconfig, image CVE) | HIGH/CRITICAL đã có bản vá | `trivy-security-reports` |
 
 ## Vì sao frontend chỉ chặn dependency runtime?
 
@@ -56,6 +56,11 @@ thời gian commit-to-staging.
    nhiệm trong issue/AI Usage Log — không tự ý thêm ignore file.
 4. Sau khi sửa, rerun workflow hoặc push commit mới. Ba job bảo mật phải xanh
    trước khi job publish Docker image được chạy.
+
+Trivy hoàn tất cả lượt quét filesystem, backend image và frontend image trước
+khi chặn job. Vì vậy khi job `10` đỏ, tải artifact
+`trivy-security-reports` để biết chính xác file, image hoặc cấu hình bị phát
+hiện; không tắt scanner chỉ để làm pipeline xanh.
 
 ## Chạy tại máy cá nhân
 
