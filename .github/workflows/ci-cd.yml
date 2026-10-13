@@ -405,7 +405,7 @@ jobs:
       # This filesystem scan catches secrets and infrastructure misconfiguration
       # before an image reaches a registry.
       - name: Scan repository filesystem with Trivy
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -422,7 +422,7 @@ jobs:
           docker build --tag coparking-frontend:security --file "${{ env.FRONTEND_DIR }}/Dockerfile" "${{ env.FRONTEND_DIR }}"
 
       - name: Scan backend image with Trivy
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: coparking-backend:security
           severity: HIGH,CRITICAL
@@ -431,7 +431,7 @@ jobs:
           format: table
 
       - name: Scan frontend image with Trivy
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: coparking-frontend:security
           severity: HIGH,CRITICAL
