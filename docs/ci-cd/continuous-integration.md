@@ -36,7 +36,8 @@ với cấu hình và kế hoạch xử lý vi phạm riêng.
 
 Một số test backend cần migration, PostGIS và pgvector. GitHub Actions sẽ build
 image từ docker/postgres/Dockerfile, chạy PostgreSQL tạm trên runner và đợi
-container healthy trước khi chạy Maven test. Runner là máy tạm nên database này
+script kiểm tra PostgreSQL, PostGIS và pgvector thành công trước khi chạy Maven
+test. Runner là máy tạm nên database này
 và toàn bộ dữ liệu kiểm thử sẽ bị xóa sau job.
 
 ## Kiểm tra trước khi push

@@ -263,8 +263,11 @@ jobs:
             --env POSTGRES_PASSWORD="$DB_PASSWORD" \
             --publish 5432:5432 \
             coparking-ci-postgres
+          # The image keeps its health probe as a reusable script. Execute it
+          # directly here because this CI-only docker run does not inherit the
+          # healthcheck declared by the local Docker Compose file.
           for attempt in {1..30}; do
-            if docker inspect --format='{{.State.Health.Status}}' coparking-ci-postgres | grep -q healthy; then
+            if docker exec coparking-ci-postgres /usr/local/bin/vehicle-postgres-healthcheck; then
               exit 0
             fi
             sleep 2
