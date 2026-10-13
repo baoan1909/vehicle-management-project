@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.parking.parkingspaceallocation.policy;
 import com.ban.vehicle_management.domain.parking.parkingspaceallocation.model.ParkingSpaceAllocation;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -94,7 +95,7 @@ public class ParkingSpaceAllocationPolicy {
             boolean intersects = !existing.getEffectiveFrom().isAfter(allocation.getEffectiveTo())
                     && !existing.getEffectiveTo().isBefore(allocation.getEffectiveFrom());
             if (intersects) {
-                throw new BadRequestException("Parking space already allocated for an overlapping period");
+                throw new ConflictException("Parking space already allocated for an overlapping period");
             }
         }
     }

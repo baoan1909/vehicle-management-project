@@ -17,6 +17,8 @@ public class ParkingSpaceLayoutItem extends AuditableDomainModel {
     private UUID layoutItemId;
     private UUID layoutVersionId;
     private UUID parkingSpaceId;
+    private String code;
+    private UUID vehicleTypeId;
     private BigDecimal x;
     private BigDecimal y;
     private BigDecimal width;

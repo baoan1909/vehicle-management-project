@@ -34,12 +34,18 @@ public class ParkingSpaceLayoutItemEntity extends AuditableEntity {
     @JoinColumn(name = "layout_version_id", referencedColumnName = "layout_version_id", insertable = false, updatable = false)
     private ParkingLayoutVersionEntity layoutVersion;
 
-    @Column(name = "parking_space_id", nullable = false)
+    @Column(name = "parking_space_id")
     private UUID parkingSpaceId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parking_space_id", referencedColumnName = "parking_space_id", insertable = false, updatable = false)
     private ParkingSpaceEntity parkingSpace;
+
+    @Column(name = "code", nullable = false)
+    private String code;
+
+    @Column(name = "vehicle_type_id")
+    private UUID vehicleTypeId;
 
     @Column(name = "x", precision = 10, scale = 2, nullable = false)
     private BigDecimal x;

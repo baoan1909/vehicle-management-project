@@ -2,17 +2,17 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
 const pickerPath = new URL("../src/features/parking/components/ParkingAddressPicker.tsx", import.meta.url);
-const pagePath = new URL("../src/features/parking/pages/ParkingOperationsPage.tsx", import.meta.url);
+const lotFormPath = new URL("../src/features/parking/components/ParkingLotInfoForm.tsx", import.meta.url);
 const dataPath = new URL("../src/shared/data/vietnamAddress.ts", import.meta.url);
 const endpointsPath = new URL("../src/core/api/apiEndpoints.ts", import.meta.url);
-const [picker, page, data, endpoints] = await Promise.all([
+const [picker, lotForm, data, endpoints] = await Promise.all([
   readFile(pickerPath, "utf8"),
-  readFile(pagePath, "utf8"),
+  readFile(lotFormPath, "utf8"),
   readFile(dataPath, "utf8"),
   readFile(endpointsPath, "utf8"),
 ]);
 
-assert.match(page, /key=\{form\.id \|\| "new-parking-lot"\}/);
+assert.match(lotForm, /key=\{formKey\}/);
 assert.match(picker, /loadLegacyWardPath\(selectedWardCode\)/);
 assert.match(picker, /loadCurrentWardPath\(selectedWardCode\)/);
 assert.match(picker, /setProvinceCode\(path\.province\.code\)/);

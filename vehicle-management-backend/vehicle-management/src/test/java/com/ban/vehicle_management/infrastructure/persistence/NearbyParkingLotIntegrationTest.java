@@ -30,7 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-class NearbyParkingLotIntegrationTest {
+class NearbyParkingLotIntegrationTest extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
     private static final UUID DEFAULT_ORGANIZATION_ID =
             UUID.fromString("00000000-0000-0000-0000-000000009001");

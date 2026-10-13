@@ -9,11 +9,13 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 @Component
+@ConditionalOnProperty(name = "app.rabbitmq.listener-enabled", havingValue = "true", matchIfMissing = true)
 public class ChatRealtimeRabbitConsumer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ChatRealtimeRabbitConsumer.class);

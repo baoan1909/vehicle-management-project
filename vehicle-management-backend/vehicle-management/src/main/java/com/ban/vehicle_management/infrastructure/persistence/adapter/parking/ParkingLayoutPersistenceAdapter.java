@@ -33,7 +33,7 @@ public class ParkingLayoutPersistenceAdapter implements ParkingLayoutPortOut {
     @Transactional
     public ParkingLayoutVersion saveLayoutVersion(ParkingLayoutVersion layoutVersion) {
         var entity = versionMapper.toEntity(layoutVersion);
-        var saved = versionRepository.save(entity);
+        var saved = versionRepository.saveAndFlush(entity);
         return versionMapper.toDomain(saved);
     }
 
@@ -66,6 +66,12 @@ public class ParkingLayoutPersistenceAdapter implements ParkingLayoutPortOut {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<ParkingLayoutVersion> findByZoneIdAndVersion(UUID zoneId, Long version) {
+        return versionRepository.findByZoneIdAndVersion(zoneId, version).map(versionMapper::toDomain);
+    }
+
+    @Override
     @Transactional
     public List<ParkingSpaceLayoutItem> saveLayoutItems(List<ParkingSpaceLayoutItem> items) {
         var entities = items.stream().map(layoutItemMapper::toEntity).toList();
@@ -83,6 +89,10 @@ public class ParkingLayoutPersistenceAdapter implements ParkingLayoutPortOut {
     @Transactional
     public void deleteLayoutItemsByVersionId(UUID layoutVersionId) {
         layoutItemRepository.deleteByLayoutVersionId(layoutVersionId);
+        // Hibernate executes inserts before queued entity deletes. Flush the
+        // snapshot removal now so reusing the same (version, code) cannot hit
+        // uq_layout_items_version_code during the replacement insert.
+        layoutItemRepository.flush();
     }
 
     @Override
@@ -103,6 +113,9 @@ public class ParkingLayoutPersistenceAdapter implements ParkingLayoutPortOut {
     @Transactional
     public void deleteLayoutElementsByVersionId(UUID layoutVersionId) {
         layoutElementRepository.deleteByLayoutVersionId(layoutVersionId);
+        // Keep snapshot replacement deterministic and ensure subsequent reads
+        // in the same transaction cannot observe elements pending deletion.
+        layoutElementRepository.flush();
     }
 
     @Override

@@ -11,6 +11,7 @@ import com.ban.vehicle_management.entrypoint.dto.parking.lane.response.LaneRespo
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +30,7 @@ public class LaneController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<LaneResponse>> createLane(@RequestBody CreateLaneRequest request){
         Lane createdLane = lanePortIn.createLane(laneApiMapper.toDomain(request));
         return  ResponseEntity.status(HttpStatus.CREATED)
@@ -36,6 +38,7 @@ public class LaneController {
     }
 
     @GetMapping("/{laneId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_READ_ALL')")
     public ResponseEntity<ApiResponse<LaneResponse>> getLaneById(@PathVariable UUID laneId){
         Lane lane = lanePortIn.getLaneById(laneId);
         return ResponseEntity.ok(ApiResponse.ok("Fetched lane successfully", laneApiMapper.toAdminResponse(lane)));
@@ -43,6 +46,7 @@ public class LaneController {
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_READ_ALL')")
     public  ResponseEntity<ApiResponse<List<LaneResponse>>> getLanes(@ModelAttribute LaneFilterRequest request){
         List<Lane> lanes = lanePortIn.getLanes(
                 request.gateId(),
@@ -54,6 +58,7 @@ public class LaneController {
     }
 
     @PutMapping("/{laneId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<LaneResponse>> updateLane(
             @PathVariable UUID laneId,
             @RequestBody UpdateLaneRequest request
@@ -63,30 +68,35 @@ public class LaneController {
     }
 
     @DeleteMapping("/{laneId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteLane(@PathVariable UUID laneId) {
         lanePortIn.deleteLane(laneId);
         return ResponseEntity.ok(ApiResponse.ok("Lane closed successfully"));
     }
 
     @PatchMapping("/{laneId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<LaneResponse>> activateLane(@PathVariable UUID laneId) {
         Lane lane = lanePortIn.activateLane(laneId);
         return ResponseEntity.ok(ApiResponse.ok("Lane activated successfully", laneApiMapper.toAdminResponse(lane)));
     }
 
     @PatchMapping("/{laneId}/maintenance")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<LaneResponse>> markLaneMaintenance(@PathVariable UUID laneId) {
         Lane lane = lanePortIn.markLaneMaintenance(laneId);
         return ResponseEntity.ok(ApiResponse.ok("Lane marked as maintenance successfully", laneApiMapper.toAdminResponse(lane)));
     }
 
     @PatchMapping("/{laneId}/force-maintenance")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<LaneResponse>> forceLaneMaintenance(@PathVariable UUID laneId) {
         Lane lane = lanePortIn.forceLaneMaintenance(laneId);
         return ResponseEntity.ok(ApiResponse.ok("Lane force maintenance successfully", laneApiMapper.toAdminResponse(lane)));
     }
 
     @PatchMapping("/{laneId}/close")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<LaneResponse>> closeLane(@PathVariable UUID laneId) {
         Lane lane = lanePortIn.closeLane(laneId);
         return ResponseEntity.ok(ApiResponse.ok("Lane closed successfully", laneApiMapper.toAdminResponse(lane)));

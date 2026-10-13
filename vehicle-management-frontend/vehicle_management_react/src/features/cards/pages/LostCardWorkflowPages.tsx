@@ -27,6 +27,7 @@ import {
   type LostCardReportFieldErrors,
 } from "@/features/cards/utils/lostCardReportValidation";
 import { Modal } from "@/shared/components/ui/Modal";
+import { ConfirmDialog } from "@/components/ui";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 import { formatApplicationDateTime, toApplicationLocalDateTimeInput } from "@/shared/time/applicationTime";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
@@ -1188,6 +1189,7 @@ export function LostCardDetailPage() {
   const [isPaymentSubmitting, setIsPaymentSubmitting] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (!reportId) {
@@ -1409,7 +1411,6 @@ export function LostCardDetailPage() {
 
   const handleCancelReport = async () => {
     if (!report) return;
-    if (!window.confirm("Xác nhận đã tìm thấy thẻ? Phiếu báo mất và hóa đơn chưa thanh toán sẽ bị hủy, thẻ cũ được kích hoạt lại.")) return;
 
     setIsCancelling(true);
     setActionError("");
@@ -1417,11 +1418,13 @@ export function LostCardDetailPage() {
     try {
       await cancelLostCardReport(report.lostCardReportId, "Đã tìm thấy thẻ");
       await refreshDetail(report.lostCardReportId);
+      setCancelConfirmOpen(false);
       setActionMessage("Đã kích hoạt lại thẻ cũ và hủy phiếu báo mất.");
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Không thể kích hoạt lại thẻ.");
     } finally {
       setIsCancelling(false);
+      setCancelConfirmOpen(false);
     }
   };
 
@@ -1606,11 +1609,21 @@ export function LostCardDetailPage() {
                 selectedNewCardId={selectedNewCardId}
                 state={paymentState}
               />
-              <LostCardCancelPanel hidden={isPaid || report.status !== "OPEN"} isCancelling={isCancelling} onCancel={handleCancelReport} />
+              <LostCardCancelPanel hidden={isPaid || report.status !== "OPEN"} isCancelling={isCancelling} onCancel={() => setCancelConfirmOpen(true)} />
             </aside>
           </div>
         </div>
       </section>
+      <ConfirmDialog
+        cancelLabel="Chưa tìm thấy"
+        confirmLabel="Kích hoạt lại thẻ"
+        loading={isCancelling}
+        message="Phiếu báo mất và hóa đơn chưa thanh toán sẽ bị hủy; thẻ cũ sẽ được kích hoạt lại."
+        onCancel={() => setCancelConfirmOpen(false)}
+        onConfirm={() => void handleCancelReport()}
+        open={cancelConfirmOpen}
+        title="Xác nhận đã tìm thấy thẻ?"
+      />
     </div>
   );
 }

@@ -1,9 +1,13 @@
 package com.ban.vehicle_management.domain.parking.parkinglayout.policy;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.ban.vehicle_management.domain.parking.parkinglayout.model.ParkingLayoutVersion;
 import com.ban.vehicle_management.domain.parking.parkinglayout.model.ParkingSpaceLayoutItem;
+import com.ban.vehicle_management.shared.enumeration.parking.LayoutVersionStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
 import java.util.List;
@@ -13,6 +17,18 @@ import org.junit.jupiter.api.Test;
 class ParkingLayoutPolicyTest {
 
     private final ParkingLayoutPolicy policy = new ParkingLayoutPolicy();
+
+    @Test
+    void shouldLeaveRevisionNullForHibernateVersionSeeding() {
+        ParkingLayoutVersion layoutVersion = new ParkingLayoutVersion();
+        layoutVersion.setZoneId(UUID.randomUUID());
+        layoutVersion.setVersion(1L);
+
+        policy.initialize(layoutVersion);
+
+        assertNull(layoutVersion.getRevision());
+        assertEquals(LayoutVersionStatus.DRAFT, layoutVersion.getStatus());
+    }
 
     @Test
     void shouldDetectRotatedOverlap() {
@@ -51,6 +67,7 @@ class ParkingLayoutPolicyTest {
         item.setLayoutItemId(UUID.randomUUID());
         item.setLayoutVersionId(UUID.randomUUID());
         item.setParkingSpaceId(UUID.randomUUID());
+        item.setCode("A-01");
         item.setX(BigDecimal.valueOf(x));
         item.setY(BigDecimal.valueOf(y));
         item.setWidth(BigDecimal.valueOf(width));

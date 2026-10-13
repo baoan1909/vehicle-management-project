@@ -11,11 +11,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.domain.Persistable;
 
 @Entity
 @Table(name = "parking_layout_versions", schema = "parking")
@@ -23,7 +26,7 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class ParkingLayoutVersionEntity extends AuditableEntity {
+public class ParkingLayoutVersionEntity extends AuditableEntity implements Persistable<UUID> {
 
     @Id
     @Column(name = "layout_version_id", nullable = false)
@@ -48,4 +51,24 @@ public class ParkingLayoutVersionEntity extends AuditableEntity {
 
     @Column(name = "published_by")
     private UUID publishedBy;
+
+    @Version
+    @Column(name = "revision", nullable = false)
+    private Long revision;
+
+    @Column(name = "last_saved_at")
+    private Instant lastSavedAt;
+
+    @Override
+    public UUID getId() {
+        return layoutVersionId;
+    }
+
+    @Override
+    public boolean isNew() {
+        // New drafts keep revision null until the first persist seeds it, so
+        // Spring Data uses persist() instead of merge() and avoids a phantom
+        // optimistic-locking conflict on insert.
+        return revision == null;
+    }
 }

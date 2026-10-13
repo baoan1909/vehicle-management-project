@@ -24,7 +24,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class ParkingLocationApiSecurityIntegrationTest {
+class ParkingLocationApiSecurityIntegrationTest extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
     @Autowired
     private MockMvc mockMvc;

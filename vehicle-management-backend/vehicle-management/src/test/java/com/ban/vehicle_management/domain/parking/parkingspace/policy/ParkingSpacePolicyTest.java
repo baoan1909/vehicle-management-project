@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.domain.parking.parkingspace.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.parking.parkingspace.model.ParkingSpace;
@@ -24,6 +25,7 @@ class ParkingSpacePolicyTest {
 
         assertEquals("P-01", parkingSpace.getCode());
         assertEquals(ParkingSpaceStatus.AVAILABLE, parkingSpace.getStatus());
+        assertNull(parkingSpace.getVersion());
     }
 
     @Test

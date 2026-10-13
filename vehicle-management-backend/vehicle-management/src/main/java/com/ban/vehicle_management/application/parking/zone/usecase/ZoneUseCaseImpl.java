@@ -2,10 +2,15 @@ package com.ban.vehicle_management.application.parking.zone.usecase;
 
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.application.parking.parkinglevel.port.out.ParkingLevelPortOut;
+import com.ban.vehicle_management.application.parking.parkingspace.port.out.ParkingSpacePortOut;
 import com.ban.vehicle_management.application.parking.zone.port.in.ZonePortIn;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
+import com.ban.vehicle_management.domain.parking.parkinglevel.model.ParkingLevel;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.domain.parking.zone.policy.ZonePolicy;
+import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -23,6 +28,8 @@ public class ZoneUseCaseImpl implements ZonePortIn {
 
     private final ZonePortOut zonePortOut;
     private final ParkingLotPortOut parkingLotPortOut;
+    private final ParkingLevelPortOut parkingLevelPortOut;
+    private final ParkingSpacePortOut parkingSpacePortOut;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final ZonePolicy zonePolicy = new ZonePolicy();
 
@@ -30,16 +37,20 @@ public class ZoneUseCaseImpl implements ZonePortIn {
     public ZoneUseCaseImpl(
             ZonePortOut zonePortOut,
             ParkingLotPortOut parkingLotPortOut,
+            ParkingLevelPortOut parkingLevelPortOut,
+            ParkingSpacePortOut parkingSpacePortOut,
             OrganizationAccessGuard organizationAccessGuard
     ) {
         this.zonePortOut = zonePortOut;
         this.parkingLotPortOut = parkingLotPortOut;
+        this.parkingLevelPortOut = parkingLevelPortOut;
+        this.parkingSpacePortOut = parkingSpacePortOut;
         this.organizationAccessGuard = organizationAccessGuard;
     }
 
     // Kept for focused legacy unit tests that exercise only the domain policy.
     public ZoneUseCaseImpl(ZonePortOut zonePortOut) {
-        this(zonePortOut, null, null);
+        this(zonePortOut, null, null, null, null);
     }
 
     @Override
@@ -48,7 +59,9 @@ public class ZoneUseCaseImpl implements ZonePortIn {
         ensureCanConfigureParkingLot(zone.getParkingLotId());
         zonePolicy.initialize(zone);
         validateConfigurableParkingLot(zone.getParkingLotId());
+        ensureLevelBelongsToParkingLot(zone.getParkingLotId(), zone.getParkingLevelId());
         normalizeAndValidateVehicleTypes(zone);
+        validateTrackingModeCapacity(zone, null);
 
         if (zonePortOut.existsByParkingLotIdAndCode(zone.getParkingLotId(), zone.getCode())) {
             throw new ConflictException("Zone code already exists in this parking lot");
@@ -77,15 +90,26 @@ public class ZoneUseCaseImpl implements ZonePortIn {
         Zone existingZone = getZoneById(zoneId);
         ensureCanConfigureParkingLot(existingZone.getParkingLotId());
 
+        TrackingMode previousTrackingMode = existingZone.getTrackingMode();
         existingZone.setCode(zone.getCode());
         existingZone.setName(zone.getName());
+        if (zone.getParkingLevelId() != null) {
+            existingZone.setParkingLevelId(zone.getParkingLevelId());
+        }
         existingZone.setVehicleTypeId(zone.getVehicleTypeId());
         existingZone.setVehicleTypeIds(zone.getVehicleTypeIds());
-        existingZone.setCapacity(zone.getCapacity());
+        if (zone.getCapacity() != null) {
+            existingZone.setCapacity(zone.getCapacity());
+        }
+        if (zone.getTrackingMode() != null) {
+            existingZone.setTrackingMode(zone.getTrackingMode());
+        }
 
         zonePolicy.initialize(existingZone);
+        ensureLevelBelongsToParkingLot(existingZone.getParkingLotId(), existingZone.getParkingLevelId());
         normalizeAndValidateVehicleTypes(existingZone);
         validateCapacity(existingZone);
+        validateTrackingModeCapacity(existingZone, previousTrackingMode);
 
         if (zonePortOut.existsByParkingLotIdAndCodeAndZoneIdNot(
                 existingZone.getParkingLotId(),
@@ -168,6 +192,70 @@ public class ZoneUseCaseImpl implements ZonePortIn {
         if (zone.getCapacity() < openSessions) {
             throw new BadRequestException("capacity must not be less than current open sessions");
         }
+    }
+
+    /**
+     * A zone must reference a level of the same parking lot. This application-layer
+     * check runs before the {@code trg_zones_check_level_topology} database trigger
+     * so callers receive a clear business error instead of a raw trigger failure.
+     */
+    private void ensureLevelBelongsToParkingLot(UUID parkingLotId, UUID parkingLevelId) {
+        if (parkingLevelId == null || parkingLevelPortOut == null) {
+            return;
+        }
+        ParkingLevel level = parkingLevelPortOut.findById(parkingLevelId)
+                .orElseThrow(() -> new NotFoundException("Parking level not found"));
+        if (!parkingLotId.equals(level.getParkingLotId())) {
+            throw new BadRequestException("Zone level belongs to another parking lot");
+        }
+    }
+
+    /**
+     * Enforces tracking-mode capacity invariants without touching parking spaces,
+     * allocations or sessions:
+     * <ul>
+     *   <li>CAPACITY: capacity is entered manually and must cover open sessions.</li>
+     *   <li>SPACE: capacity must reflect the active spaces of the published layout;
+     *   a new SPACE zone without a layout may keep capacity 0.</li>
+     * </ul>
+     * Unsafe mode transitions fail with 409 and a business message.
+     */
+    private void validateTrackingModeCapacity(Zone zone, TrackingMode previousTrackingMode) {
+        if (zone.getTrackingMode() != TrackingMode.SPACE) {
+            return;
+        }
+        long activeSpaces = countActiveSpaces(zone.getZoneId());
+        int capacity = zone.getCapacity() == null ? 0 : zone.getCapacity();
+        if (activeSpaces == 0) {
+            if (capacity != 0 && !isNewZone(zone.getZoneId())) {
+                throw new ConflictException(
+                        "SPACE zone without a published layout must keep capacity at 0 until the layout is published");
+            }
+            return;
+        }
+        if (capacity != activeSpaces) {
+            if (previousTrackingMode != null && previousTrackingMode != TrackingMode.SPACE) {
+                throw new ConflictException(
+                        "Cannot switch to SPACE tracking mode: capacity must equal the number of active "
+                                + "parking spaces from the published layout (" + activeSpaces + ")");
+            }
+            if (zone.getLayoutStatus() == LayoutStatus.PUBLISHED) {
+                throw new ConflictException(
+                        "SPACE zone capacity must reflect the number of active parking spaces "
+                                + "from the published layout (" + activeSpaces + ")");
+            }
+        }
+    }
+
+    private long countActiveSpaces(UUID zoneId) {
+        if (zoneId == null || parkingSpacePortOut == null) {
+            return 0;
+        }
+        return parkingSpacePortOut.countByZoneIdAndLifecycleStatus(zoneId, "ACTIVE");
+    }
+
+    private boolean isNewZone(UUID zoneId) {
+        return zoneId == null || zonePortOut.findById(zoneId).isEmpty();
     }
 
     private void ensureNoOpenSessions(UUID zoneId) {

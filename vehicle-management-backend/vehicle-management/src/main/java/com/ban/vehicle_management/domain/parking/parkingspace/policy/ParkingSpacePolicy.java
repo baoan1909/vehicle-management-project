@@ -23,13 +23,12 @@ public class ParkingSpacePolicy {
         if (parkingSpace.getStatusSource() == null) {
             parkingSpace.setStatusSource(ParkingSpaceStatusSource.MANUAL);
         }
-        if (parkingSpace.getVersion() == null) {
-            parkingSpace.setVersion(0L);
-        }
         if (parkingSpace.getRotation() == null) {
             parkingSpace.setRotation(BigDecimal.ZERO);
         }
-        validateState(parkingSpace);
+        // A null @Version is how Spring Data/Hibernate recognizes an entity
+        // with an assigned UUID as new. Hibernate seeds version 0 on INSERT.
+        validateState(parkingSpace, false);
     }
 
     public void occupy(ParkingSpace parkingSpace, ManualOccupancyType occupancyType, String reason) {
@@ -70,6 +69,8 @@ public class ParkingSpacePolicy {
 
     public void setManualStatus(ParkingSpace parkingSpace, ParkingSpaceStatus targetStatus, ManualOccupancyType occupancyType, String reason) {
         requireParkingSpace(parkingSpace);
+        requireField(targetStatus, "targetStatus");
+        TextValidationUtils.normalizeRequiredText(reason, "reason", 500);
         validateManualTransition(parkingSpace.getStatus(), targetStatus);
         parkingSpace.setStatus(targetStatus);
         parkingSpace.setManualOccupancyType(occupancyType);
@@ -97,13 +98,19 @@ public class ParkingSpacePolicy {
     }
 
     public void validateState(ParkingSpace parkingSpace) {
+        validateState(parkingSpace, true);
+    }
+
+    private void validateState(ParkingSpace parkingSpace, boolean requirePersistedVersion) {
         requireParkingSpace(parkingSpace);
         parkingSpace.setCode(TextValidationUtils.normalizeCode(parkingSpace.getCode(), "code", 50));
         requireField(parkingSpace.getZoneId(), "zoneId");
         requireField(parkingSpace.getStatus(), "status");
         requireField(parkingSpace.getLifecycleStatus(), "lifecycleStatus");
         requireField(parkingSpace.getStatusSource(), "statusSource");
-        requireField(parkingSpace.getVersion(), "version");
+        if (requirePersistedVersion) {
+            requireField(parkingSpace.getVersion(), "version");
+        }
 
         if (parkingSpace.getRotation() == null) {
             parkingSpace.setRotation(BigDecimal.ZERO);

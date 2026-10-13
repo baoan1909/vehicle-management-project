@@ -17,7 +17,7 @@ export function PlatformMonitoringScopePicker() {
       && entry.monitoring
       && entry.matches.some((match) => location.pathname === match || location.pathname.startsWith(`${match}/`)));
     if (isMonitoringPage && nextScope.level !== "ALL"
-      && !["/admin/parking-lots", "/admin/swipe/sessions", "/admin/card"].includes(location.pathname)) {
+      && !["/admin/parking-lots", "/admin/parking-structure", "/admin/parking-layouts", "/admin/parking-live", "/admin/swipe/sessions", "/admin/card"].includes(location.pathname)) {
       navigate("/admin/parking-lots");
     }
   };

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,6 +28,7 @@ public class GateController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<GateAdminResponse>> createGate(@RequestBody CreateGateRequest request) {
         Gate createdGate = gatePortIn.createGate(gateApiMapper.toDomain(request));
 
@@ -37,6 +39,7 @@ public class GateController {
     }
 
     @GetMapping("/{gateId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_READ_ALL')")
     public ResponseEntity<ApiResponse<GateAdminResponse>> getGateById(@PathVariable UUID gateId) {
         Gate gate = gatePortIn.getGateById(gateId);
 
@@ -47,6 +50,7 @@ public class GateController {
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_READ_ALL')")
     public ResponseEntity<ApiResponse<List<GateAdminResponse>>> getGates(@ModelAttribute GateFilterRequest request) {
         List<Gate> gates = gatePortIn.getGates(request.zoneId(), request.status(), request.keyword());
 
@@ -57,6 +61,7 @@ public class GateController {
     }
 
     @PutMapping("/{gateId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<GateAdminResponse>> updateGate(
             @PathVariable UUID gateId,
             @RequestBody UpdateGateRequest request
@@ -70,6 +75,7 @@ public class GateController {
     }
 
     @DeleteMapping("/{gateId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteGate(@PathVariable UUID gateId) {
         gatePortIn.deleteGate(gateId);
 
@@ -77,6 +83,7 @@ public class GateController {
     }
 
     @PatchMapping("/{gateId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<GateAdminResponse>> activateGate(@PathVariable UUID gateId) {
         Gate activatedGate = gatePortIn.activateGate(gateId);
 
@@ -87,6 +94,7 @@ public class GateController {
     }
 
     @PatchMapping("/{gateId}/maintenance")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<GateAdminResponse>> markGateMaintenance(@PathVariable UUID gateId) {
         Gate gate = gatePortIn.markGateMaintenance(gateId);
 
@@ -97,6 +105,7 @@ public class GateController {
     }
 
     @PatchMapping("/{gateId}/close")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<GateAdminResponse>> closeGate(@PathVariable UUID gateId) {
         Gate closedGate = gatePortIn.closeGate(gateId);
 

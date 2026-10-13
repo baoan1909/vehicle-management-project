@@ -29,7 +29,7 @@ import org.springframework.test.context.ActiveProfiles;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-class AiRedisCacheIT {
+class AiRedisCacheIT extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
     @Autowired(required = false)
     private DistributedCachePortOut distributedCache;

@@ -14,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class PostgresSessionTimeZoneIT {
+class PostgresSessionTimeZoneIT extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
     @Autowired
     private DataSource dataSource;

@@ -16,6 +16,7 @@ import java.time.Duration;
 import java.time.OffsetDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
@@ -77,6 +78,17 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleOptimisticLockingFailureException(
+            OptimisticLockingFailureException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(
+                HttpStatus.CONFLICT,
+                "Draft layout was changed by another editor; reload before saving again",
+                request.getRequestURI()
+        );
+    }
     @ExceptionHandler(FeatureDisabledException.class)
     public ResponseEntity<ApiResponse<Map<String, Object>>> handleFeatureDisabledException(
             FeatureDisabledException exception,

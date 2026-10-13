@@ -54,6 +54,16 @@ public class ParkingSpaceAllocationPersistenceAdapter implements ParkingSpaceAll
 
     @Override
     @Transactional(readOnly = true)
+    public List<ParkingSpaceAllocation> findActiveAllocationsForSpacesOnDate(List<UUID> parkingSpaceIds, LocalDate date) {
+        if (parkingSpaceIds == null || parkingSpaceIds.isEmpty()) {
+            return List.of();
+        }
+        return repository.findActiveAllocationsForSpacesOnDate(parkingSpaceIds, date).stream()
+                .map(mapper::toDomain).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ParkingSpaceAllocation> findActiveAllocationsBySubscription(UUID subscriptionId) {
         return repository.findActiveAllocationsBySubscription(subscriptionId).stream().map(mapper::toDomain).toList();
     }
@@ -62,6 +72,12 @@ public class ParkingSpaceAllocationPersistenceAdapter implements ParkingSpaceAll
     @Transactional(readOnly = true)
     public List<ParkingSpaceAllocation> findExpiredHolds(UUID parkingSpaceId, Instant now) {
         return repository.findExpiredHolds(parkingSpaceId, now).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
+    @Transactional
+    public int cancelExpiredHoldsGlobal(Instant now) {
+        return repository.cancelExpiredHoldsGlobal(now);
     }
 
     @Override

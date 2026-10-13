@@ -83,6 +83,31 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
     }
 
     @Override
+    public boolean existsOpenByParkingSpaceId(UUID parkingSpaceId) {
+        return parkingSessionRepository.existsByParkingSpaceIdAndStatus(
+                parkingSpaceId, ParkingSessionStatus.OPEN);
+    }
+
+    @Override
+    public Optional<ParkingSession> findOpenByParkingSpaceId(UUID parkingSpaceId) {
+        return parkingSessionRepository.findFirstByParkingSpaceIdAndStatus(
+                        parkingSpaceId, ParkingSessionStatus.OPEN)
+                .map(parkingSessionPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public List<ParkingSession> findOpenByParkingSpaceIds(List<UUID> parkingSpaceIds) {
+        if (parkingSpaceIds == null || parkingSpaceIds.isEmpty()) {
+            return List.of();
+        }
+        return parkingSessionRepository.findByParkingSpaceIdInAndStatus(
+                        parkingSpaceIds, ParkingSessionStatus.OPEN)
+                .stream()
+                .map(parkingSessionPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<ParkingSessionManagementResult> findManagementSessions(
             ParkingSessionStatus status,
             UUID vehicleTypeId,

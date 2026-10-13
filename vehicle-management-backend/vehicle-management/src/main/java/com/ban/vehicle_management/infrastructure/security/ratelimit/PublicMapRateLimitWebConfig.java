@@ -18,6 +18,7 @@ public class PublicMapRateLimitWebConfig implements WebMvcConfigurer {
         registry.addInterceptor(interceptor)
                 .addPathPatterns(
                         "/api/public/parking-lots/nearby",
+                        "/api/public/parking-lots/*/space-availability",
                         "/api/public/parking-lots/telemetry/**",
                         "/api/public/parking-locations/**"
                 );

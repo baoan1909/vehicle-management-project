@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.ban.vehicle_management.domain.parking.parkingspaceallocation.model.ParkingSpaceAllocation;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -24,7 +25,7 @@ class ParkingSpaceAllocationPolicyTest {
         ParkingSpaceAllocation existing = allocation(spaceId,
                 LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31));
 
-        assertThrows(BadRequestException.class,
+        assertThrows(ConflictException.class,
                 () -> policy.validateNoOverlap(requested, List.of(existing)));
     }
 

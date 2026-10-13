@@ -14,6 +14,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "parking_layout_elements", schema = "parking")
@@ -37,9 +39,11 @@ public class ParkingLayoutElementEntity extends AuditableEntity {
     @Column(name = "element_type", nullable = false)
     private String elementType;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "geometry", columnDefinition = "jsonb", nullable = false)
     private JsonNode geometry;
 
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "style", columnDefinition = "jsonb")
     private JsonNode style;
 

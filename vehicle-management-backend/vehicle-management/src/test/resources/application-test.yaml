@@ -4,8 +4,17 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://127.0.0.1/__test__/jwks
+  rabbitmq:
+    listener:
+      simple:
+        auto-startup: false
+      direct:
+        auto-startup: false
+
 
 app:
+  rabbitmq:
+    listener-enabled: false
   features:
     parking-location:
       admin-address-v2-enabled: true

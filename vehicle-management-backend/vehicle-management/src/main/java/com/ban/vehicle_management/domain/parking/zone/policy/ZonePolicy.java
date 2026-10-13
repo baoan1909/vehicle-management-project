@@ -70,6 +70,19 @@ public class ZonePolicy {
         validateState(zone);
     }
 
+    public void publishSpaceLayout(Zone zone, Long layoutVersion, int capacity) {
+        requireZone(zone);
+        requireField(layoutVersion, "layoutVersion");
+        if (capacity <= 0) {
+            throw new BadRequestException("Published SPACE layout must contain at least one parking space");
+        }
+        zone.setTrackingMode(TrackingMode.SPACE);
+        zone.setLayoutStatus(LayoutStatus.PUBLISHED);
+        zone.setLayoutVersion(layoutVersion);
+        zone.setCapacity(capacity);
+        validateState(zone);
+    }
+
     public void validateState(Zone zone) {
         requireZone(zone);
         zone.setCode(TextValidationUtils.normalizeCode(zone.getCode(), "code", 50));
@@ -86,7 +99,9 @@ public class ZonePolicy {
         }
         zone.setCapacity(capacity);
 
-        if (zone.getTrackingMode() == TrackingMode.SPACE && zone.getLayoutStatus() == LayoutStatus.NOT_CONFIGURED) {
+        if (zone.getTrackingMode() == TrackingMode.SPACE
+                && zone.getLayoutStatus() == LayoutStatus.NOT_CONFIGURED
+                && capacity != 0) {
             throw new BadRequestException("Zone with SPACE tracking mode must have layout configured");
         }
     }

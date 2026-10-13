@@ -5,11 +5,22 @@ import com.ban.vehicle_management.domain.parking.parkinglayout.model.ParkingSpac
 import com.ban.vehicle_management.domain.parking.parkinglayout.model.ParkingLayoutElement;
 import com.ban.vehicle_management.shared.enumeration.parking.LayoutVersionStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 public class ParkingLayoutPolicy {
+
+    public static final Set<String> ALLOWED_ELEMENT_TYPES = Set.of(
+            "WALL", "COLUMN", "DRIVE_LANE", "ENTRY", "EXIT", "TEXT", "LABEL",
+            "BACKGROUND", "IMAGE_OVERLAY");
+    private static final int MAX_GEOMETRY_JSON_CHARS = 8192;
+    private static final int MAX_STYLE_JSON_CHARS = 4096;
+    private static final int MAX_LABEL_CHARS = 200;
 
     public void initialize(ParkingLayoutVersion layoutVersion) {
         requireLayoutVersion(layoutVersion);
@@ -19,6 +30,10 @@ public class ParkingLayoutPolicy {
         if (layoutVersion.getStatus() == null) {
             layoutVersion.setStatus(LayoutVersionStatus.DRAFT);
         }
+        // Revision maps to the JPA @Version column and must stay null until the
+        // first persist so Hibernate can seed it. Defaulting it to 0L here would
+        // make Spring Data treat the insert as a merge and fail with an
+        // optimistic-locking conflict on brand-new drafts.
         validateState(layoutVersion);
     }
 
@@ -48,8 +63,7 @@ public class ParkingLayoutPolicy {
 
     public void validateLayoutItem(ParkingSpaceLayoutItem item) {
         requireLayoutItem(item);
-        requireField(item.getLayoutVersionId(), "layoutVersionId");
-        requireField(item.getParkingSpaceId(), "parkingSpaceId");
+        item.setCode(TextValidationUtils.normalizeCode(item.getCode(), "code", 50));
         requireField(item.getX(), "x");
         requireField(item.getY(), "y");
         requireField(item.getWidth(), "width");
@@ -97,6 +111,23 @@ public class ParkingLayoutPolicy {
         }
     }
 
+    public void validateUniqueCodes(List<ParkingSpaceLayoutItem> items) {
+        Set<String> seen = new HashSet<>();
+        for (ParkingSpaceLayoutItem item : items) {
+            requireLayoutItem(item);
+            String code = item.getCode() == null
+                    ? null
+                    : item.getCode().trim().toUpperCase(Locale.ROOT);
+            if (code == null || code.isEmpty()) {
+                throw new BadRequestException("code must not be null");
+            }
+            item.setCode(code);
+            if (!seen.add(code)) {
+                throw new BadRequestException("Duplicate space code in layout: " + code);
+            }
+        }
+    }
+
     public void validateNoOverlap(List<ParkingSpaceLayoutItem> items) {
         for (int i = 0; i < items.size(); i++) {
             for (int j = i + 1; j < items.size(); j++) {
@@ -109,9 +140,59 @@ public class ParkingLayoutPolicy {
 
     public void validateLayoutElement(ParkingLayoutElement element) {
         requireLayoutElement(element);
-        requireField(element.getLayoutVersionId(), "layoutVersionId");
-        requireField(element.getElementType(), "elementType");
+        String elementType = element.getElementType() == null
+                ? null
+                : element.getElementType().trim().toUpperCase(Locale.ROOT);
+        if (elementType == null || !ALLOWED_ELEMENT_TYPES.contains(elementType)) {
+            throw new BadRequestException("Unsupported layout element type: " + element.getElementType());
+        }
+        element.setElementType(elementType);
         requireField(element.getGeometry(), "geometry");
+        String geometryText = element.getGeometry().toString();
+        if (geometryText.length() > MAX_GEOMETRY_JSON_CHARS) {
+            throw new BadRequestException("Layout element geometry is too large");
+        }
+        assertFiniteJsonNumbers(element.getGeometry(), "geometry");
+        if (element.getStyle() != null) {
+            String styleText = element.getStyle().toString();
+            if (styleText.length() > MAX_STYLE_JSON_CHARS) {
+                throw new BadRequestException("Layout element style is too large");
+            }
+            assertSafeStyle(styleText);
+        }
+        if (element.getLabel() != null) {
+            element.setLabel(TextValidationUtils.normalizeRequiredText(
+                    element.getLabel(), "label", MAX_LABEL_CHARS));
+        }
+        if (element.getDisplayOrder() == null) {
+            element.setDisplayOrder(0);
+        } else if (element.getDisplayOrder() < 0) {
+            throw new BadRequestException("displayOrder must not be negative");
+        }
+    }
+
+    private void assertFiniteJsonNumbers(com.fasterxml.jackson.databind.JsonNode node, String fieldName) {
+        if (node.isNumber() && !Double.isFinite(node.doubleValue())) {
+            throw new BadRequestException(fieldName + " must contain only finite numbers");
+        }
+        if (node.isTextual()) {
+            String text = node.asText().trim();
+            if ("NaN".equalsIgnoreCase(text) || "Infinity".equalsIgnoreCase(text)
+                    || "+Infinity".equalsIgnoreCase(text) || "-Infinity".equalsIgnoreCase(text)) {
+                throw new BadRequestException(fieldName + " must contain only finite numbers");
+            }
+        }
+        node.forEach(child -> assertFiniteJsonNumbers(child, fieldName));
+    }
+
+    private void assertSafeStyle(String styleText) {
+        String lowered = styleText.toLowerCase(Locale.ROOT);
+        for (String forbidden : new String[]{"<script", "javascript:", "expression(", "onload=",
+                "onerror=", "onclick=", "<svg", "<img", "<iframe"}) {
+            if (lowered.contains(forbidden)) {
+                throw new BadRequestException("Layout element style contains unsafe content");
+            }
+        }
     }
 
     /**

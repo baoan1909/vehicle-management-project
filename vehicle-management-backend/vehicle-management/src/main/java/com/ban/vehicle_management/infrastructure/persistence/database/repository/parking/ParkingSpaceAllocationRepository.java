@@ -17,14 +17,48 @@ public interface ParkingSpaceAllocationRepository extends JpaRepository<ParkingS
 
     List<ParkingSpaceAllocationEntity> findByParkingSpaceIdAndAllocationStatus(UUID parkingSpaceId, String allocationStatus);
 
-    @Query("SELECT psa FROM ParkingSpaceAllocationEntity psa WHERE psa.parkingSpaceId = :parkingSpaceId AND psa.allocationStatus IN ('HELD', 'ACTIVE') AND psa.effectiveFrom <= :date AND psa.effectiveTo >= :date")
+    @Query("""
+        SELECT psa FROM ParkingSpaceAllocationEntity psa
+        WHERE psa.parkingSpaceId = :parkingSpaceId
+          AND psa.effectiveFrom <= :date AND psa.effectiveTo >= :date
+          AND (psa.allocationStatus = com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.ACTIVE
+            OR (psa.allocationStatus = com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.HELD
+              AND (psa.holdExpiresAt IS NULL OR psa.holdExpiresAt > CURRENT_TIMESTAMP)))
+        """)
     List<ParkingSpaceAllocationEntity> findActiveAllocationsForSpaceOnDate(UUID parkingSpaceId, LocalDate date);
 
-    @Query("SELECT psa FROM ParkingSpaceAllocationEntity psa WHERE psa.subscriptionId = :subscriptionId AND psa.allocationStatus IN ('HELD', 'ACTIVE') ORDER BY psa.effectiveFrom")
+    @Query("""
+        SELECT psa FROM ParkingSpaceAllocationEntity psa
+        WHERE psa.parkingSpaceId IN :parkingSpaceIds
+          AND psa.effectiveFrom <= :date AND psa.effectiveTo >= :date
+          AND (psa.allocationStatus = com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.ACTIVE
+            OR (psa.allocationStatus = com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.HELD
+              AND (psa.holdExpiresAt IS NULL OR psa.holdExpiresAt > CURRENT_TIMESTAMP)))
+        """)
+    List<ParkingSpaceAllocationEntity> findActiveAllocationsForSpacesOnDate(
+            @Param("parkingSpaceIds") List<UUID> parkingSpaceIds, @Param("date") LocalDate date);
+
+    @Query("""
+        SELECT psa FROM ParkingSpaceAllocationEntity psa
+        WHERE psa.subscriptionId = :subscriptionId
+          AND (psa.allocationStatus = com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.ACTIVE
+            OR (psa.allocationStatus = com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.HELD
+              AND (psa.holdExpiresAt IS NULL OR psa.holdExpiresAt > CURRENT_TIMESTAMP)))
+        ORDER BY psa.effectiveFrom
+        """)
     List<ParkingSpaceAllocationEntity> findActiveAllocationsBySubscription(UUID subscriptionId);
 
     @Query("SELECT psa FROM ParkingSpaceAllocationEntity psa WHERE psa.parkingSpaceId = :parkingSpaceId AND psa.allocationStatus = 'HELD' AND psa.holdExpiresAt < :now")
     List<ParkingSpaceAllocationEntity> findExpiredHolds(UUID parkingSpaceId, java.time.Instant now);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("""
+        UPDATE ParkingSpaceAllocationEntity psa
+        SET psa.allocationStatus = com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.CANCELLED
+        WHERE psa.allocationStatus = com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.HELD
+          AND psa.holdExpiresAt < :now
+        """)
+    int cancelExpiredHoldsGlobal(java.time.Instant now);
 
     boolean existsByParkingSpaceIdAndEffectiveFromAndEffectiveTo(UUID parkingSpaceId, LocalDate effectiveFrom, LocalDate effectiveTo);
 

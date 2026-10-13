@@ -8,7 +8,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ban.vehicle_management.application.parking.parkinglevel.port.out.ParkingLevelPortOut;
+import com.ban.vehicle_management.application.parking.parkingspace.port.out.ParkingSpacePortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
+import com.ban.vehicle_management.domain.parking.parkinglevel.model.ParkingLevel;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
@@ -30,6 +33,12 @@ class ZoneUseCaseImplTest {
 
     @Mock
     private ZonePortOut zonePortOut;
+
+    @Mock
+    private ParkingLevelPortOut parkingLevelPortOut;
+
+    @Mock
+    private ParkingSpacePortOut parkingSpacePortOut;
 
     @InjectMocks
     private ZoneUseCaseImpl zoneUseCase;
@@ -325,6 +334,95 @@ class ZoneUseCaseImplTest {
         when(zonePortOut.hasActiveGates(zoneId)).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> zoneUseCase.closeZone(zoneId));
+        verify(zonePortOut, never()).save(any(Zone.class));
+    }
+
+    @Test
+    void shouldRejectCreateWhenLevelBelongsToAnotherParkingLot() {
+        UUID parkingLotId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+        UUID otherLevelId = UUID.randomUUID();
+        Zone request = validZone(parkingLotId, vehicleTypeId);
+        request.setParkingLevelId(otherLevelId);
+
+        ParkingLevel otherLevel = new ParkingLevel();
+        otherLevel.setParkingLevelId(otherLevelId);
+        otherLevel.setParkingLotId(UUID.randomUUID());
+
+        when(zonePortOut.existsActiveParkingLotById(parkingLotId)).thenReturn(true);
+        when(parkingLevelPortOut.findById(otherLevelId)).thenReturn(Optional.of(otherLevel));
+
+        assertThrows(BadRequestException.class, () -> zoneUseCase.createZone(request));
+        verify(zonePortOut, never()).save(any(Zone.class));
+    }
+
+    @Test
+    void shouldCreateZoneWhenLevelBelongsToSameParkingLot() {
+        UUID parkingLotId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+        UUID levelId = UUID.randomUUID();
+        Zone request = validZone(parkingLotId, vehicleTypeId);
+        request.setParkingLevelId(levelId);
+
+        ParkingLevel level = new ParkingLevel();
+        level.setParkingLevelId(levelId);
+        level.setParkingLotId(parkingLotId);
+
+        when(zonePortOut.existsActiveParkingLotById(parkingLotId)).thenReturn(true);
+        when(parkingLevelPortOut.findById(levelId)).thenReturn(Optional.of(level));
+        when(zonePortOut.existsActiveVehicleTypeById(vehicleTypeId)).thenReturn(true);
+        when(zonePortOut.existsByParkingLotIdAndCode(parkingLotId, "A1")).thenReturn(false);
+        when(zonePortOut.save(any(Zone.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Zone createdZone = zoneUseCase.createZone(request);
+
+        assertNotNull(createdZone.getZoneId());
+        assertEquals(levelId, createdZone.getParkingLevelId());
+    }
+
+    @Test
+    void shouldCreateNewSpaceZoneWithZeroCapacityAndNoLayout() {
+        UUID parkingLotId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+        Zone request = validZone(parkingLotId, vehicleTypeId);
+        request.setTrackingMode(TrackingMode.SPACE);
+        request.setCapacity(0);
+
+        when(zonePortOut.existsActiveParkingLotById(parkingLotId)).thenReturn(true);
+        when(zonePortOut.existsActiveVehicleTypeById(vehicleTypeId)).thenReturn(true);
+        when(zonePortOut.existsByParkingLotIdAndCode(parkingLotId, "A1")).thenReturn(false);
+        when(zonePortOut.save(any(Zone.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Zone createdZone = zoneUseCase.createZone(request);
+
+        assertNotNull(createdZone.getZoneId());
+        assertEquals(TrackingMode.SPACE, createdZone.getTrackingMode());
+        assertEquals(0, createdZone.getCapacity());
+    }
+
+    @Test
+    void shouldRejectUnsafeSwitchToSpaceTrackingMode() {
+        UUID zoneId = UUID.randomUUID();
+        UUID parkingLotId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+        Zone existingZone = validZone(parkingLotId, vehicleTypeId);
+        existingZone.setZoneId(zoneId);
+        existingZone.setTrackingMode(TrackingMode.CAPACITY);
+        existingZone.setLayoutStatus(LayoutStatus.PUBLISHED);
+
+        Zone request = new Zone();
+        request.setCode("A1");
+        request.setName("Area A1");
+        request.setVehicleTypeId(vehicleTypeId);
+        request.setCapacity(5);
+        request.setTrackingMode(TrackingMode.SPACE);
+
+        when(zonePortOut.findById(zoneId)).thenReturn(Optional.of(existingZone));
+        when(zonePortOut.existsActiveVehicleTypeById(vehicleTypeId)).thenReturn(true);
+        when(zonePortOut.countOpenSessions(zoneId)).thenReturn(0L);
+        when(parkingSpacePortOut.countByZoneIdAndLifecycleStatus(zoneId, "ACTIVE")).thenReturn(10L);
+
+        assertThrows(ConflictException.class, () -> zoneUseCase.updateZone(zoneId, request));
         verify(zonePortOut, never()).save(any(Zone.class));
     }
 }

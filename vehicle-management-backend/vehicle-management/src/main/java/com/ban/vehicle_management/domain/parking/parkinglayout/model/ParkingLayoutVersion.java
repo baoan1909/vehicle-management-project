@@ -20,4 +20,6 @@ public class ParkingLayoutVersion extends AuditableDomainModel {
     private LayoutVersionStatus status;
     private java.time.Instant publishedAt;
     private UUID publishedBy;
+    private Long revision;
+    private java.time.Instant lastSavedAt;
 }
