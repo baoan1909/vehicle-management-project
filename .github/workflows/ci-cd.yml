@@ -1,19 +1,17 @@
 name: CoParking CI/CD
 
 on:
+  # develop is the integration branch that will later deploy automatically to staging.
   push:
-    branches:
-      - main
-      - master
+    branches: [develop, main, master]
   pull_request:
-    branches:
-      - main
-      - master
+    branches: [develop, main, master]
   workflow_dispatch:
 
+# Every CI job starts with read-only repository access. Jobs that publish images
+# request their narrowly-scoped package permission in a later phase.
 permissions:
   contents: read
-  packages: write
 
 env:
   BACKEND_DIR: vehicle-management-backend/vehicle-management
@@ -21,10 +19,8 @@ env:
 
 jobs:
   secret-scan:
-    name: Secret scan
+    name: 01 - Secret scan
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
       - name: Checkout complete history
@@ -37,10 +33,111 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  backend-ci:
-    name: Backend CI
+  frontend-build:
+    name: 02 - Frontend build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.FRONTEND_DIR }}
 
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22 with npm cache
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+
+      - name: Install locked frontend dependencies
+        run: npm ci
+
+      # The summary and command duration make the commit-to-staging target measurable.
+      - name: Build frontend
+        shell: bash
+        run: |
+          echo "## Frontend build" >> "$GITHUB_STEP_SUMMARY"
+          /usr/bin/time -f "Duration: %E" npm run build
+
+      - name: Upload frontend bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: ${{ env.FRONTEND_DIR }}/dist
+          if-no-files-found: warn
+          retention-days: 7
+
+  frontend-lint:
+    name: 03 - Frontend static analysis
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22 with npm cache
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+
+      - name: Install locked frontend dependencies
+        run: npm ci
+
+      # tsc --noEmit validates strict TypeScript without changing project files.
+      - name: Check TypeScript types
+        shell: bash
+        run: |
+          echo "## Frontend static analysis" >> "$GITHUB_STEP_SUMMARY"
+          /usr/bin/time -f "Duration: %E" npm run lint
+
+  frontend-test:
+    name: 04 - Frontend test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22 with npm cache
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+
+      - name: Install locked frontend dependencies
+        run: npm ci
+
+      - name: Run frontend tests and save log
+        shell: bash
+        run: |
+          set -o pipefail
+          echo "## Frontend tests" >> "$GITHUB_STEP_SUMMARY"
+          /usr/bin/time -f "Duration: %E" npm test 2>&1 | tee frontend-test.log
+
+      - name: Upload frontend test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-log
+          path: ${{ env.FRONTEND_DIR }}/frontend-test.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  backend-build:
+    name: 05 - Backend build
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ${{ env.BACKEND_DIR }}
@@ -49,7 +146,7 @@ jobs:
       - name: Checkout source code
         uses: actions/checkout@v6
 
-      - name: Set up Java 21
+      - name: Set up Java 21 with Maven cache
         uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -59,42 +156,155 @@ jobs:
       - name: Grant Maven wrapper permission
         run: chmod +x mvnw
 
-      - name: Build backend
-        run: ./mvnw -B -DskipTests package
+      - name: Package backend without tests
+        shell: bash
+        run: |
+          echo "## Backend build" >> "$GITHUB_STEP_SUMMARY"
+          /usr/bin/time -f "Duration: %E" ./mvnw -B -DskipTests package
 
-  frontend-ci:
-    name: Frontend CI
+      - name: Upload backend package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-package
+          path: ${{ env.BACKEND_DIR }}/target/*.jar
+          if-no-files-found: warn
+          retention-days: 7
+
+  backend-static-analysis:
+    name: 06 - Backend static analysis
     runs-on: ubuntu-latest
-
     defaults:
       run:
-        working-directory: ${{ env.FRONTEND_DIR }}
+        working-directory: ${{ env.BACKEND_DIR }}
 
     steps:
       - name: Checkout source code
         uses: actions/checkout@v6
 
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v6
+      - name: Set up Java 21 with Maven cache
+        uses: actions/setup-java@v5
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+          distribution: temurin
+          java-version: 21
+          cache: maven
 
-      - name: Install frontend dependencies
-        run: npm ci
+      - name: Grant Maven wrapper permission
+        run: chmod +x mvnw
 
-      - name: Build frontend
-        run: npm run build
+      # This profile enables javac -Xlint:all; it reports static warnings
+      # without mass-reformatting existing backend source.
+      - name: Compile with Java static-analysis warnings
+        shell: bash
+        run: |
+          set -o pipefail
+          echo "## Backend static analysis" >> "$GITHUB_STEP_SUMMARY"
+          /usr/bin/time -f "Duration: %E" ./mvnw -B -Pstatic-analysis -DskipTests clean compile 2>&1 | tee backend-static-analysis.log
+
+      - name: Upload backend static-analysis log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-static-analysis-log
+          path: ${{ env.BACKEND_DIR }}/backend-static-analysis.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  backend-test:
+    name: 07 - Backend test
+    runs-on: ubuntu-latest
+    # Integration tests exercise Flyway, PostGIS and pgvector. These values
+    # create an isolated disposable database on the GitHub Actions runner.
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_NAME: vehicle_management_ci
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      JPA_SHOW_SQL: "false"
+      APP_MAIL_ENABLED: "false"
+      OCR_ENABLED: "false"
+      REDIS_ENABLED: "false"
+      AI_CACHE_ENABLED: "false"
+      AI_ASSISTANT_ENABLED: "false"
+      AI_EMBEDDING_ENABLED: "false"
+      AI_INGESTION_ENABLED: "false"
+    defaults:
+      run:
+        working-directory: ${{ env.BACKEND_DIR }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21 with Maven cache
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Grant Maven wrapper permission
+        run: chmod +x mvnw
+
+      # The project database image installs both extensions required by schema
+      # migrations. The runner is ephemeral, so no test data is retained.
+      - name: Start disposable PostgreSQL with PostGIS and pgvector
+        shell: bash
+        run: |
+          docker build \
+            --tag coparking-ci-postgres \
+            --file docker/postgres/Dockerfile \
+            .
+          docker run --detach \
+            --name coparking-ci-postgres \
+            --env POSTGRES_DB="$DB_NAME" \
+            --env POSTGRES_USER="$DB_USERNAME" \
+            --env POSTGRES_PASSWORD="$DB_PASSWORD" \
+            --publish 5432:5432 \
+            coparking-ci-postgres
+          for attempt in {1..30}; do
+            if docker inspect --format='{{.State.Health.Status}}' coparking-ci-postgres | grep -q healthy; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs coparking-ci-postgres
+          exit 1
+
+      - name: Run backend tests
+        shell: bash
+        run: |
+          set -o pipefail
+          echo "## Backend tests" >> "$GITHUB_STEP_SUMMARY"
+          /usr/bin/time -f "Duration: %E" ./mvnw -B test 2>&1 | tee backend-test.log
+
+      - name: Upload Surefire reports and test log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-report
+          path: |
+            ${{ env.BACKEND_DIR }}/target/surefire-reports/**
+            ${{ env.BACKEND_DIR }}/backend-test.log
+          if-no-files-found: warn
+          retention-days: 14
 
   cd-images:
     name: CD - Build and Publish Docker Images
     runs-on: ubuntu-latest
     needs:
       - secret-scan
-      - backend-ci
-      - frontend-ci
+      - frontend-build
+      - frontend-lint
+      - frontend-test
+      - backend-build
+      - backend-static-analysis
+      - backend-test
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout source code

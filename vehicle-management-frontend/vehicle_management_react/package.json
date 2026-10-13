@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc && vite build",
+    "lint": "tsc --noEmit",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node scripts/check-support-widget-messages.mjs && node scripts/check-nearby-parking-page.mjs && node scripts/check-partner-registration-flow.mjs && node scripts/check-parking-address-picker.mjs"
   },
