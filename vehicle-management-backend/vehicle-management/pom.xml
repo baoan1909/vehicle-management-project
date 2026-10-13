@@ -227,6 +227,32 @@
 				</plugins>
 			</build>
 		</profile>
+		<!--
+			Run dependency vulnerability analysis independently from build/test jobs.
+			The NVD API key is passed by CI only when its secret exists, so no secret
+			or unresolved environment placeholder is committed in this POM.
+		-->
+		<profile>
+			<id>dependency-security-scan</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.owasp</groupId>
+						<artifactId>dependency-check-maven</artifactId>
+						<version>12.2.2</version>
+						<configuration>
+							<!-- CVSS 7.0 is the conventional HIGH severity threshold. -->
+							<failBuildOnCVSS>7</failBuildOnCVSS>
+							<formats>
+								<format>HTML</format>
+								<format>JSON</format>
+							</formats>
+							<dataDirectory>${project.build.directory}/dependency-check-data</dataDirectory>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
 	</profiles>
 
 </project>

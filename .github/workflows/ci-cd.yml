@@ -293,6 +293,152 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  frontend-dependency-scan:
+    name: 08 - Frontend dependency scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.FRONTEND_DIR }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js 22 with npm cache
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
+
+      - name: Install locked frontend dependencies
+        run: npm ci
+
+      # Preserve the complete report for review, including development-only
+      # findings. The next step is the release gate for shipped dependencies.
+      - name: Export complete npm audit report
+        shell: bash
+        run: npm audit --json > npm-audit-full.json || true
+
+      - name: Block HIGH or CRITICAL vulnerabilities in runtime dependencies
+        shell: bash
+        run: |
+          echo "## Frontend dependency scan" >> "$GITHUB_STEP_SUMMARY"
+          # --omit=dev matches what is installed in the production image.
+          npm audit --omit=dev --audit-level=high
+
+      - name: Upload npm audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-npm-audit-report
+          path: ${{ env.FRONTEND_DIR }}/npm-audit-full.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  backend-dependency-scan:
+    name: 09 - Backend dependency scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.BACKEND_DIR }}
+    # An NVD key raises the API quota. Leaving the secret unset still uses the
+    # public API, but may be slower; its value is never printed in the logs.
+    env:
+      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      - name: Set up Java 21 with Maven cache
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+
+      - name: Restore OWASP vulnerability database cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.BACKEND_DIR }}/target/dependency-check-data
+          key: dependency-check-${{ runner.os }}-${{ hashFiles(format('{0}/pom.xml', env.BACKEND_DIR)) }}
+          restore-keys: |
+            dependency-check-${{ runner.os }}-
+
+      - name: Grant Maven wrapper permission
+        run: chmod +x mvnw
+
+      - name: Block backend dependencies with CVSS HIGH or CRITICAL findings
+        shell: bash
+        run: |
+          set -o pipefail
+          echo "## Backend dependency scan" >> "$GITHUB_STEP_SUMMARY"
+          # Do not pass an unresolved Maven property when a fork/branch has no
+          # repository secret. The scanner then falls back to NVD's public API.
+          nvd_argument=()
+          if [[ -n "${NVD_API_KEY:-}" ]]; then
+            nvd_argument=(-DnvdApiKey="$NVD_API_KEY")
+          fi
+          ./mvnw -B -Pdependency-security-scan -DskipTests "${nvd_argument[@]}" dependency-check:check 2>&1 | tee dependency-check.log
+
+      - name: Upload OWASP Dependency-Check report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dependency-check-report
+          path: |
+            ${{ env.BACKEND_DIR }}/target/dependency-check-report.*
+            ${{ env.BACKEND_DIR }}/dependency-check.log
+          if-no-files-found: warn
+          retention-days: 30
+
+  container-security-scan:
+    name: 10 - Container and filesystem security scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v6
+
+      # Dependency lockfiles are assessed by the dedicated npm/OWASP jobs.
+      # This filesystem scan catches secrets and infrastructure misconfiguration
+      # before an image reaches a registry.
+      - name: Scan repository filesystem with Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Build images locally for vulnerability scanning
+        shell: bash
+        run: |
+          docker build --tag coparking-backend:security --file "${{ env.BACKEND_DIR }}/Dockerfile" "${{ env.BACKEND_DIR }}"
+          docker build --tag coparking-frontend:security --file "${{ env.FRONTEND_DIR }}/Dockerfile" "${{ env.FRONTEND_DIR }}"
+
+      - name: Scan backend image with Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: coparking-backend:security
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
+      - name: Scan frontend image with Trivy
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: coparking-frontend:security
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: table
+
   cd-images:
     name: CD - Build and Publish Docker Images
     runs-on: ubuntu-latest
@@ -304,6 +450,9 @@ jobs:
       - backend-build
       - backend-static-analysis
       - backend-test
+      - frontend-dependency-scan
+      - backend-dependency-scan
+      - container-security-scan
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     permissions:
       contents: read
