@@ -342,59 +342,32 @@ jobs:
   backend-dependency-scan:
     name: 09 - Backend dependency scan
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.BACKEND_DIR }}
-    # The Maven plugin reads this secret by name. It is never interpolated into
-    # a command line, which prevents an accidental leak through debug logs.
-    # Without the secret, Dependency-Check falls back to NVD's slower public API.
-    env:
-      NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
     steps:
       - name: Checkout source code
         uses: actions/checkout@v6
 
-      - name: Set up Java 21 with Maven cache
-        uses: actions/setup-java@v5
+      # Trivy identifies vulnerable Java dependencies directly from the backend
+      # project. Unlike the NVD bulk sync used by Dependency-Check, it keeps
+      # the commit-to-staging path bounded and does not require an NVD key.
+      - name: Block HIGH or CRITICAL backend dependency findings
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          distribution: temurin
-          java-version: 21
-          cache: maven
+          scan-type: fs
+          scan-ref: ${{ env.BACKEND_DIR }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          format: json
+          output: trivy-backend-dependency-report.json
 
-      - name: Restore OWASP vulnerability database cache
-        uses: actions/cache@v4
-        with:
-          path: ${{ env.BACKEND_DIR }}/target/dependency-check-data
-          # Keep this key independent from application dependencies. The cache
-          # contains NVD's vulnerability database, not Maven artifacts; tying
-          # it to pom.xml forced a complete 400k+ CVE re-download after every
-          # dependency change.
-          key: dependency-check-v12-${{ runner.os }}
-          # The second prefix lets this stable key adopt a complete cache from
-          # the former key scheme on its first successful run.
-          restore-keys: |
-            dependency-check-v12-${{ runner.os }}-
-            dependency-check-${{ runner.os }}-
-
-      - name: Grant Maven wrapper permission
-        run: chmod +x mvnw
-
-      - name: Block backend dependencies with CVSS HIGH or CRITICAL findings
-        shell: bash
-        run: |
-          set -o pipefail
-          echo "## Backend dependency scan" >> "$GITHUB_STEP_SUMMARY"
-          ./mvnw -B -Pdependency-security-scan -DskipTests dependency-check:check 2>&1 | tee dependency-check.log
-
-      - name: Upload OWASP Dependency-Check report
+      - name: Upload backend dependency report
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: backend-dependency-check-report
-          path: |
-            ${{ env.BACKEND_DIR }}/target/dependency-check-report.*
-            ${{ env.BACKEND_DIR }}/dependency-check.log
+          name: backend-trivy-dependency-report
+          path: trivy-backend-dependency-report.json
           if-no-files-found: warn
           retention-days: 30
 

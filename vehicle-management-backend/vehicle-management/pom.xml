@@ -230,9 +230,9 @@
 			</build>
 		</profile>
 		<!--
-			Run dependency vulnerability analysis independently from build/test jobs.
-			The NVD API key is passed by CI only when its secret exists, so no secret
-			or unresolved environment placeholder is committed in this POM.
+			Keep OWASP Dependency-Check available for an optional, deep local or
+			scheduled audit. The NVD API key is read only from the environment, so no
+			secret or unresolved placeholder is committed in this POM.
 		-->
 		<profile>
 			<id>dependency-security-scan</id>
