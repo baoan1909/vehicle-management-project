@@ -4,17 +4,15 @@ spring:
       resourceserver:
         jwt:
           jwk-set-uri: http://127.0.0.1/__test__/jwks
-  rabbitmq:
-    listener:
-      simple:
-        auto-startup: false
-      direct:
-        auto-startup: false
-
 
 app:
-  rabbitmq:
-    listener-enabled: false
+  storage:
+    minio:
+      # Test-only placeholders. They allow the MinIO client bean to be created
+      # without exposing or depending on a real storage service credential.
+      endpoint: http://127.0.0.1:9000
+      access-key: test-minio-access
+      secret-key: test-minio-secret
   features:
     parking-location:
       admin-address-v2-enabled: true

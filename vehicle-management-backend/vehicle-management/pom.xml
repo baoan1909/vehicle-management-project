@@ -5,7 +5,8 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.5</version>
+		<!-- Stay on the Spring Boot 4.0 patch line to receive security fixes. -->
+		<version>4.0.8</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.ban</groupId>
@@ -30,7 +31,39 @@
 		<java.version>21</java.version>
 		<mapstruct.version>1.6.3</mapstruct.version>
 		<lombok.version>1.18.38</lombok.version>
+		<!-- Security fixes within the current Spring Boot 4.0.x release line. -->
+		<tomcat.version>11.0.25</tomcat.version>
+		<jackson-bom.version>3.1.7</jackson-bom.version>
 	</properties>
+	<!--
+		Keep transitive dependency remediation in one place. These versions are
+		verified by the CI Trivy report and can be removed after Spring Boot or
+		the direct parent library manages an equal-or-newer safe version.
+	-->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.rabbitmq</groupId>
+				<artifactId>amqp-client</artifactId>
+				<version>5.34.0</version>
+			</dependency>
+			<dependency>
+				<groupId>org.bouncycastle</groupId>
+				<artifactId>bcprov-jdk18on</artifactId>
+				<version>1.85</version>
+			</dependency>
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-core</artifactId>
+				<version>2.21.7</version>
+			</dependency>
+			<dependency>
+				<groupId>com.fasterxml.jackson.core</groupId>
+				<artifactId>jackson-databind</artifactId>
+				<version>2.21.7</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -107,12 +140,23 @@
 		<dependency>
 			<groupId>io.minio</groupId>
 			<artifactId>minio</artifactId>
-			<version>8.5.17</version>
+			<version>8.6.0</version>
+		</dependency>
+		<!--
+			MinIO 8.6.0 publishes the generic Kotlin Multiplatform OkHttp artifact.
+			Maven needs the JVM variant explicitly so MinioClient's HttpUrl dependency
+			is available at compile time.
+		-->
+		<dependency>
+			<groupId>com.squareup.okhttp3</groupId>
+			<artifactId>okhttp-jvm</artifactId>
+			<version>5.1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.pdfbox</groupId>
 			<artifactId>pdfbox</artifactId>
-			<version>3.0.5</version>
+			<!-- 3.0.8 includes fixes for vulnerabilities reported in CI. -->
+			<version>3.0.8</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
@@ -122,7 +166,7 @@
 		<dependency>
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
-			<version>1.19.1</version>
+			<version>1.23.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.commonmark</groupId>
@@ -203,5 +247,68 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<!--
+			This lightweight static-analysis profile keeps existing source formatting
+			unchanged while asking javac to surface suspicious constructs in CI.
+			A stricter rule engine can be introduced later after the baseline is clean.
+		-->
+		<profile>
+			<id>static-analysis</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<configuration>
+							<showWarnings>true</showWarnings>
+							<compilerArgs>
+								<arg>-Xlint:all</arg>
+							</compilerArgs>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<!--
+			Keep OWASP Dependency-Check available for an optional, deep local or
+			scheduled audit. The NVD API key is read only from the environment, so no
+			secret or unresolved placeholder is committed in this POM.
+		-->
+		<profile>
+			<id>dependency-security-scan</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.owasp</groupId>
+						<artifactId>dependency-check-maven</artifactId>
+						<version>12.2.2</version>
+						<configuration>
+							<!-- CVSS 7.0 is the conventional HIGH severity threshold. -->
+							<failBuildOnCVSS>7</failBuildOnCVSS>
+							<!--
+								Read the CI secret directly from the runner environment. This is
+								the plugin-recommended approach because Maven command-line
+								properties can be exposed when debug logging is enabled.
+							-->
+							<nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+							<!--
+								The cached NVD database may be up to one day old. This avoids
+								re-downloading the full NVD catalogue for every pull request;
+								the next run after that period refreshes the data.
+							-->
+							<nvdValidForHours>24</nvdValidForHours>
+							<formats>
+								<format>HTML</format>
+								<format>JSON</format>
+							</formats>
+							<dataDirectory>${project.build.directory}/dependency-check-data</dataDirectory>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>
