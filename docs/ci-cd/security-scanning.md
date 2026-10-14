@@ -10,6 +10,10 @@ bằng chứng (report/log) để nhóm có thể kiểm tra lại khi báo cáo
 | `09 - Backend dependency scan` | Trivy (backend Java dependency scan) | HIGH/CRITICAL đã có bản vá | `backend-trivy-dependency-report` |
 | `10 - Container and filesystem security scan` | Trivy (FS secret/misconfig, image CVE) | HIGH/CRITICAL đã có bản vá | `trivy-security-reports` |
 
+Job `09` chờ backend build hoàn tất và dùng cùng Maven cache (`~/.m2/repository`)
+trước khi Trivy phân giải dependency. Điều này tránh việc runner mới gửi hàng loạt
+yêu cầu đến Maven Central, vốn có thể trả về `429 Too Many Requests`.
+
 ## Vì sao frontend chỉ chặn dependency runtime?
 
 `npm audit --omit=dev` phản ánh chính xác dependency được mang vào Docker image

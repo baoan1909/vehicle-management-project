@@ -342,10 +342,36 @@ jobs:
   backend-dependency-scan:
     name: 09 - Backend dependency scan
     runs-on: ubuntu-latest
+    # Wait for the package job so its Maven cache has been saved before Trivy
+    # resolves the backend dependency graph on this fresh runner.
+    needs: backend-build
 
     steps:
       - name: Checkout source code
         uses: actions/checkout@v6
+
+      - name: Set up Java 21 with Maven cache
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          # setup-java caches ~/.m2/repository using the backend pom.xml key.
+          # This is the same cache strategy as the backend build job.
+          cache: maven
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/pom.xml
+
+      - name: Grant Maven wrapper permission
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: chmod +x mvnw
+
+      - name: Resolve backend dependencies from Maven cache
+        working-directory: ${{ env.BACKEND_DIR }}
+        shell: bash
+        run: |
+          # Trivy reads Maven metadata while building the dependency graph.
+          # Resolve it first so Trivy does not make a burst of requests to
+          # Maven Central from an ephemeral GitHub-hosted runner.
+          ./mvnw -B -DskipTests dependency:go-offline
 
       # Trivy identifies vulnerable Java dependencies directly from the backend
       # project. Unlike the NVD bulk sync used by Dependency-Check, it keeps
