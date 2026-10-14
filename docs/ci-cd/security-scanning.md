@@ -70,6 +70,15 @@ khi chặn job. Vì vậy khi job `10` đỏ, tải artifact
 `trivy-security-reports` để biết chính xác file, image hoặc cấu hình bị phát
 hiện; không tắt scanner chỉ để làm pipeline xanh.
 
+### Bài học từ lần quét đầu tiên
+
+Artifact của lần quét đầu tiên đã chỉ ra các dependency/backend image có bản
+vá. Nhóm đã nâng các dependency trực tiếp (`minio`, `jsoup`), các dependency
+transitive do Spring Boot/MinIO kéo vào (Tomcat, Jackson, RabbitMQ và
+Bouncy Castle), đồng thời chuyển image Nginx runtime sang Alpine mới hơn. Đây
+là cách xử lý đúng: nâng phiên bản có bản vá, build/test lại, sau đó để Trivy
+xác nhận — không thêm ngoại lệ để làm pipeline xanh giả tạo.
+
 ## Chạy tại máy cá nhân
 
 ```powershell

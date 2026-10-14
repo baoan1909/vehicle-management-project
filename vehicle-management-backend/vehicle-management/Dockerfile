@@ -1,4 +1,5 @@
-FROM eclipse-temurin:21-jdk-alpine AS build
+# Pin the Alpine family so Trivy results stay reproducible between CI runs.
+FROM eclipse-temurin:21-jdk-alpine-3.24 AS build
 
 WORKDIR /workspace
 
@@ -13,7 +14,7 @@ RUN ./mvnw -B -DskipTests package \
     && JAR_FILE="$(find target -maxdepth 1 -type f -name '*.jar' ! -name '*.original' -print -quit)" \
     && cp "$JAR_FILE" /workspace/app.jar
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:21-jre-alpine-3.24
 
 WORKDIR /app
 
