@@ -371,10 +371,10 @@ jobs:
           # it to pom.xml forced a complete 400k+ CVE re-download after every
           # dependency change.
           key: dependency-check-v12-${{ runner.os }}
+          # The second prefix lets this stable key adopt a complete cache from
+          # the former key scheme on its first successful run.
           restore-keys: |
             dependency-check-v12-${{ runner.os }}-
-            # Reuse a complete database produced by the previous cache-key
-            # scheme once, then save it under the stable v12 key above.
             dependency-check-${{ runner.os }}-
 
       - name: Grant Maven wrapper permission
