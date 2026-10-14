@@ -403,10 +403,30 @@ jobs:
   container-security-scan:
     name: 10 - Container and filesystem security scan
     runs-on: ubuntu-latest
+    # The backend build warms the same Maven cache first. This prevents the
+    # filesystem scanner from resolving every Maven POM from a fresh runner.
+    needs: backend-build
 
     steps:
       - name: Checkout source code
         uses: actions/checkout@v6
+
+      - name: Set up Java 21 with Maven cache
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: maven
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/pom.xml
+
+      - name: Populate Maven cache for filesystem scan
+        working-directory: ${{ env.BACKEND_DIR }}
+        shell: bash
+        run: |
+          chmod +x mvnw
+          # Resolve Maven metadata once with Maven's cache before Trivy reads
+          # the project. This avoids a rate-limit burst to Maven Central.
+          ./mvnw -B -DskipTests dependency:go-offline
 
       # Dependency lockfiles are assessed by the dedicated npm/OWASP jobs.
       # This filesystem scan catches secrets and infrastructure misconfiguration
@@ -426,6 +446,9 @@ jobs:
           exit-code: "1"
           format: json
           output: trivy-filesystem-report.json
+          # Flyway SQL is covered by Gitleaks; excluding the very large history
+          # here keeps this secret/misconfiguration scan memory-bounded.
+          skip-files: vehicle-management-backend/vehicle-management/src/main/resources/db/migration/**
 
       - name: Build images locally for vulnerability scanning
         shell: bash

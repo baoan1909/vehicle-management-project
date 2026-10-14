@@ -14,6 +14,11 @@ Job `09` chờ backend build hoàn tất và dùng cùng Maven cache (`~/.m2/rep
 trước khi Trivy phân giải dependency. Điều này tránh việc runner mới gửi hàng loạt
 yêu cầu đến Maven Central, vốn có thể trả về `429 Too Many Requests`.
 
+Job `10` cũng chờ backend build và làm nóng Maven cache trước khi quét filesystem.
+Mục tiêu là để Trivy dùng metadata đã có thay vì tạo thêm lượt tải từ Maven Central.
+Các migration SQL Flyway dung lượng lớn không thuộc phạm vi dependency scan của job
+này nên được bỏ qua tại đây; Gitleaks vẫn quét chúng ở job `01`.
+
 ## Vì sao frontend chỉ chặn dependency runtime?
 
 `npm audit --omit=dev` phản ánh chính xác dependency được mang vào Docker image
