@@ -345,8 +345,9 @@ jobs:
     defaults:
       run:
         working-directory: ${{ env.BACKEND_DIR }}
-    # An NVD key raises the API quota. Leaving the secret unset still uses the
-    # public API, but may be slower; its value is never printed in the logs.
+    # The Maven plugin reads this secret by name. It is never interpolated into
+    # a command line, which prevents an accidental leak through debug logs.
+    # Without the secret, Dependency-Check falls back to NVD's slower public API.
     env:
       NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
 
@@ -365,8 +366,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.BACKEND_DIR }}/target/dependency-check-data
-          key: dependency-check-${{ runner.os }}-${{ hashFiles(format('{0}/pom.xml', env.BACKEND_DIR)) }}
+          # Keep this key independent from application dependencies. The cache
+          # contains NVD's vulnerability database, not Maven artifacts; tying
+          # it to pom.xml forced a complete 400k+ CVE re-download after every
+          # dependency change.
+          key: dependency-check-v12-${{ runner.os }}
           restore-keys: |
+            dependency-check-v12-${{ runner.os }}-
+            # Reuse a complete database produced by the previous cache-key
+            # scheme once, then save it under the stable v12 key above.
             dependency-check-${{ runner.os }}-
 
       - name: Grant Maven wrapper permission
@@ -377,13 +385,7 @@ jobs:
         run: |
           set -o pipefail
           echo "## Backend dependency scan" >> "$GITHUB_STEP_SUMMARY"
-          # Do not pass an unresolved Maven property when a fork/branch has no
-          # repository secret. The scanner then falls back to NVD's public API.
-          nvd_argument=()
-          if [[ -n "${NVD_API_KEY:-}" ]]; then
-            nvd_argument=(-DnvdApiKey="$NVD_API_KEY")
-          fi
-          ./mvnw -B -Pdependency-security-scan -DskipTests "${nvd_argument[@]}" dependency-check:check 2>&1 | tee dependency-check.log
+          ./mvnw -B -Pdependency-security-scan -DskipTests dependency-check:check 2>&1 | tee dependency-check.log
 
       - name: Upload OWASP Dependency-Check report
         if: always()

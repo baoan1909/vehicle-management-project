@@ -245,6 +245,18 @@
 						<configuration>
 							<!-- CVSS 7.0 is the conventional HIGH severity threshold. -->
 							<failBuildOnCVSS>7</failBuildOnCVSS>
+							<!--
+								Read the CI secret directly from the runner environment. This is
+								the plugin-recommended approach because Maven command-line
+								properties can be exposed when debug logging is enabled.
+							-->
+							<nvdApiKeyEnvironmentVariable>NVD_API_KEY</nvdApiKeyEnvironmentVariable>
+							<!--
+								The cached NVD database may be up to one day old. This avoids
+								re-downloading the full NVD catalogue for every pull request;
+								the next run after that period refreshes the data.
+							-->
+							<nvdValidForHours>24</nvdValidForHours>
 							<formats>
 								<format>HTML</format>
 								<format>JSON</format>
