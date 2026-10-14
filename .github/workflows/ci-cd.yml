@@ -221,6 +221,9 @@ jobs:
       DB_NAME: vehicle_management_ci
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
+      # SpatialFreshDatabaseContainerTest reuses the image built by the setup
+      # step below. This avoids pulling an unpublished image from Docker Hub.
+      POSTGRES_SPATIAL_TEST_IMAGE: coparking-ci-postgres
       JPA_SHOW_SQL: "false"
       APP_MAIL_ENABLED: "false"
       OCR_ENABLED: "false"
