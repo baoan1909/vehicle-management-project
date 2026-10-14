@@ -353,6 +353,9 @@ jobs:
       - name: Block HIGH or CRITICAL backend dependency findings
         uses: aquasecurity/trivy-action@v0.36.0
         with:
+          # Pin the scanner binary independently from the action release.
+          # v0.70.0 is rejected by Trivy's current version check on runners.
+          version: v0.75.0
           scan-type: fs
           scan-ref: ${{ env.BACKEND_DIR }}
           scanners: vuln
@@ -388,6 +391,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         continue-on-error: true
         with:
+          version: v0.75.0
           scan-type: fs
           scan-ref: .
           scanners: secret,misconfig
@@ -408,6 +412,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         continue-on-error: true
         with:
+          version: v0.75.0
           image-ref: coparking-backend:security
           severity: HIGH,CRITICAL
           ignore-unfixed: true
@@ -420,6 +425,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         continue-on-error: true
         with:
+          version: v0.75.0
           image-ref: coparking-frontend:security
           severity: HIGH,CRITICAL
           ignore-unfixed: true
