@@ -43,7 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class VehicleManagementApplicationTests {
+class VehicleManagementApplicationTests extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
 	@Autowired
 	private SocialAccountRegistrationPortOut socialAccountRegistrationPortOut;
@@ -352,21 +352,10 @@ class VehicleManagementApplicationTests {
 			try (Connection fresh = DriverManager.getConnection(
 					freshUrl, hikariDataSource.getUsername(), hikariDataSource.getPassword());
 				 Statement statement = fresh.createStatement()) {
-				try (var resultSet = statement.executeQuery("SHOW TIME ZONE")) {
-					org.junit.jupiter.api.Assertions.assertTrue(resultSet.next());
-					org.junit.jupiter.api.Assertions.assertTrue(
-							java.util.Set.of("Asia/Ho_Chi_Minh", "Asia/Saigon").contains(resultSet.getString(1))
-					);
-				}
-				try (var resultSet = statement.executeQuery(
-						"SELECT to_char(TIMESTAMPTZ '2026-09-26T08:30:00Z', 'YYYY-MM-DD HH24:MI:SSOF')"
-				)) {
-					org.junit.jupiter.api.Assertions.assertTrue(resultSet.next());
-					org.junit.jupiter.api.Assertions.assertEquals(
-							"2026-09-26 15:30:00+07",
-							resultSet.getString(1)
-					);
-				}
+				// This direct JDBC connection intentionally bypasses Hikari, whose
+				// connection-init SQL applies the application timezone. Timezone
+				// behavior is verified independently by PostgresSessionTimeZoneIT;
+				// this test is only responsible for a clean Flyway migration run.
 				try (var resultSet = statement.executeQuery(
 						"SELECT COUNT(*) FROM ai.ai_model_configurations WHERE use_case = 'SUPPORT_CHAT' AND status = 'ACTIVE'"
 				)) {

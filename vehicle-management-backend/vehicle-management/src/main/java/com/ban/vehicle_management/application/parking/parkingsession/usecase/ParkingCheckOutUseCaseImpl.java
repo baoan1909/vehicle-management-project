@@ -8,6 +8,11 @@ import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
 import com.ban.vehicle_management.application.parking.lane.port.out.LanePortOut;
 import com.ban.vehicle_management.application.parking.parkingevent.port.out.ParkingEventPortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.application.parking.parkingspace.port.out.ParkingSpacePortOut;
+import com.ban.vehicle_management.application.parking.parkingspaceallocation.port.out.ParkingSpaceAllocationPortOut;
+import com.ban.vehicle_management.application.parking.realtime.ParkingRealtimeAfterCommit;
+import com.ban.vehicle_management.application.parking.realtime.model.ParkingRealtimeEvent;
+import com.ban.vehicle_management.application.parking.realtime.port.out.ParkingRealtimePublisherPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.authorization.ParkingSessionAccessGuard;
 import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingCheckOutMapper;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckOutCommand;
@@ -33,6 +38,8 @@ import com.ban.vehicle_management.domain.parking.lane.model.Lane;
 import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent;
 import com.ban.vehicle_management.domain.parking.parkingevent.policy.ParkingEventPolicy;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
+import com.ban.vehicle_management.domain.parking.parkingspace.model.ParkingSpace;
+import com.ban.vehicle_management.domain.parking.parkingspace.policy.ParkingSpacePolicy;
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
 import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingCheckOutPolicy;
 import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingCheckoutPricePolicy;
@@ -42,6 +49,7 @@ import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageBucket;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageFolder;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -58,6 +66,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import io.micrometer.core.instrument.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -97,6 +106,10 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     private final ParkingCheckOutMapper parkingCheckOutMapper;
     private final FileStoragePort fileStoragePort;
     private final FileAccessPort fileAccessPort;
+    private final ParkingSpacePortOut parkingSpacePortOut;
+    private final ParkingSpaceAllocationPortOut allocationPortOut;
+    private final ParkingRealtimePublisherPortOut parkingRealtimePublisher;
+    private final ParkingSpacePolicy parkingSpacePolicy = new ParkingSpacePolicy();
     private int parkingImageReadUrlExpirySeconds = 900;
     private final CardPolicy cardPolicy = new CardPolicy();
     private final ParkingCheckOutPolicy parkingCheckOutPolicy = new ParkingCheckOutPolicy();
@@ -123,6 +136,32 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
             FileStoragePort fileStoragePort,
             FileAccessPort fileAccessPort
     ) {
+        this(parkingSessionAccessGuard, currentAccountPortIn, cardPortOut, lanePortOut, gatePortOut,
+                zonePortOut, parkingLotPortOut, parkingSessionPortOut, parkingEventPortOut,
+                priceRulePortOut, invoicePortOut, parkingCheckOutMapper, fileStoragePort,
+                fileAccessPort, null, null, null);
+    }
+
+    @Autowired
+    public ParkingCheckOutUseCaseImpl(
+            ParkingSessionAccessGuard parkingSessionAccessGuard,
+            CurrentAccountPortIn currentAccountPortIn,
+            CardPortOut cardPortOut,
+            LanePortOut lanePortOut,
+            GatePortOut gatePortOut,
+            ZonePortOut zonePortOut,
+            ParkingLotPortOut parkingLotPortOut,
+            ParkingSessionPortOut parkingSessionPortOut,
+            ParkingEventPortOut parkingEventPortOut,
+            PriceRulePortOut priceRulePortOut,
+            InvoicePortOut invoicePortOut,
+            ParkingCheckOutMapper parkingCheckOutMapper,
+            FileStoragePort fileStoragePort,
+            FileAccessPort fileAccessPort,
+            ParkingSpacePortOut parkingSpacePortOut,
+            ParkingSpaceAllocationPortOut allocationPortOut,
+            ParkingRealtimePublisherPortOut parkingRealtimePublisher
+    ) {
         this.parkingSessionAccessGuard = parkingSessionAccessGuard;
         this.currentAccountPortIn = currentAccountPortIn;
         this.cardPortOut = cardPortOut;
@@ -137,6 +176,9 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         this.parkingCheckOutMapper = parkingCheckOutMapper;
         this.fileStoragePort = fileStoragePort;
         this.fileAccessPort = fileAccessPort;
+        this.parkingSpacePortOut = parkingSpacePortOut;
+        this.allocationPortOut = allocationPortOut;
+        this.parkingRealtimePublisher = parkingRealtimePublisher;
     }
 
     @Autowired
@@ -192,6 +234,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         try {
             parkingSessionPolicy.checkOut(parkingSession, now, licensePlate, totalPrice);
             ParkingSession savedParkingSession = parkingSessionPortOut.save(parkingSession);
+            releaseSpaceForCheckOut(savedParkingSession);
 
             if (subscriptionSession) {
                 cardPolicy.markAssignedFromInUse(card);
@@ -348,6 +391,37 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         }
     }
 
+    private void releaseSpaceForCheckOut(ParkingSession session) {
+        if (session.getParkingSpaceId() == null || parkingSpacePortOut == null) {
+            return;
+        }
+        ParkingSpace space = parkingSpacePortOut.findById(session.getParkingSpaceId()).orElse(null);
+        if (space == null || space.getStatus() != ParkingSpaceStatus.OCCUPIED) {
+            return;
+        }
+        boolean stillAllocated = false;
+        if (allocationPortOut != null) {
+            stillAllocated = !allocationPortOut.findActiveAllocationsForSpaceOnDate(
+                    space.getParkingSpaceId(), DateTimeUtils.toAppLocalDate(Instant.now())).isEmpty();
+        }
+        ParkingSpaceStatus target = stillAllocated ? ParkingSpaceStatus.RESERVED : ParkingSpaceStatus.AVAILABLE;
+        parkingSpacePolicy.setAutomaticStatus(space, target, null);
+        parkingSpacePortOut.save(space);
+        Metrics.counter("parking.space.checkout.released").increment();
+        LOGGER.info("check-out released space session={} space={} status={}",
+                session.getParkingSessionId(), space.getParkingSpaceId(), target);
+        ParkingRealtimeAfterCommit.publishAfterCommit(parkingRealtimePublisher,
+                new ParkingRealtimeEvent(
+                        "PARKING_SPACE_STATUS_CHANGED",
+                        session.getParkingLotId(),
+                        null,
+                        session.getZoneId(),
+                        space.getParkingSpaceId(),
+                        target.name(),
+                        null,
+                        Map.of("reason", "CHECK_OUT")));
+    }
+
     @Transactional(readOnly = true)
     public CheckOutResult getCheckOutByInvoice(UUID invoiceId) {
         parkingSessionAccessGuard.ensureCanCheckOut();
@@ -404,6 +478,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
                 invoice.getFinalAmount()
         );
         parkingSessionPortOut.save(parkingSession);
+        releaseSpaceForCheckOut(parkingSession);
 
         Card card = cardPortOut.findByIdForUpdate(parkingSession.getCardId())
                 .orElseThrow(() -> new NotFoundException("Card not found"));

@@ -9,6 +9,11 @@ import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
 import com.ban.vehicle_management.application.parking.lane.port.out.LanePortOut;
 import com.ban.vehicle_management.application.parking.parkingevent.port.out.ParkingEventPortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.application.parking.parkingspace.port.out.ParkingSpacePortOut;
+import com.ban.vehicle_management.application.parking.parkingspaceallocation.port.out.ParkingSpaceAllocationPortOut;
+import com.ban.vehicle_management.application.parking.realtime.ParkingRealtimeAfterCommit;
+import com.ban.vehicle_management.application.parking.realtime.model.ParkingRealtimeEvent;
+import com.ban.vehicle_management.application.parking.realtime.port.out.ParkingRealtimePublisherPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.authorization.ParkingSessionAccessGuard;
 import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingCheckInMapper;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInCommand;
@@ -30,6 +35,8 @@ import com.ban.vehicle_management.domain.parking.lane.model.Lane;
 import com.ban.vehicle_management.domain.parking.parkingevent.model.ParkingEvent;
 import com.ban.vehicle_management.domain.parking.parkingevent.policy.ParkingEventPolicy;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
+import com.ban.vehicle_management.domain.parking.parkingspace.model.ParkingSpace;
+import com.ban.vehicle_management.domain.parking.parkingspace.policy.ParkingSpacePolicy;
 import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingCheckInPolicy;
 import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingLicensePlatePolicy;
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
@@ -40,6 +47,9 @@ import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVe
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.enumeration.parking.ManualOccupancyType;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageBucket;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageFolder;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
@@ -48,8 +58,11 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
 import java.util.UUID;
+import io.micrometer.core.instrument.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -79,6 +92,10 @@ public class ParkingCheckInUseCaseImpl {
     private final ParkingEventPortOut parkingEventPortOut;
     private final ParkingCheckInMapper parkingCheckInMapper;
     private final FileStoragePort fileStoragePort;
+    private final ParkingSpacePortOut parkingSpacePortOut;
+    private final ParkingSpaceAllocationPortOut allocationPortOut;
+    private final ParkingRealtimePublisherPortOut parkingRealtimePublisher;
+    private final ParkingSpacePolicy parkingSpacePolicy = new ParkingSpacePolicy();
     private final CardPolicy cardPolicy = new CardPolicy();
     private final ParkingCheckInPolicy parkingCheckInPolicy = new ParkingCheckInPolicy();
     private final ParkingLicensePlatePolicy licensePlatePolicy = new ParkingLicensePlatePolicy();
@@ -103,6 +120,34 @@ public class ParkingCheckInUseCaseImpl {
             ParkingCheckInMapper parkingCheckInMapper,
             FileStoragePort fileStoragePort
     ) {
+        this(parkingSessionAccessGuard, currentAccountPortIn, cardPortOut, cardTypePortOut,
+                subscriptionPortOut, customerPortOut, customerVehiclePortOut, lanePortOut, gatePortOut,
+                zonePortOut, parkingLotPortOut, catalogAvailabilityPortOut, parkingSessionPortOut,
+                parkingEventPortOut, parkingCheckInMapper, fileStoragePort, null, null, null);
+    }
+
+    @Autowired
+    public ParkingCheckInUseCaseImpl(
+            ParkingSessionAccessGuard parkingSessionAccessGuard,
+            CurrentAccountPortIn currentAccountPortIn,
+            CardPortOut cardPortOut,
+            CardTypePortOut cardTypePortOut,
+            SubscriptionPortOut subscriptionPortOut,
+            CustomerPortOut customerPortOut,
+            CustomerVehiclePortOut customerVehiclePortOut,
+            LanePortOut lanePortOut,
+            GatePortOut gatePortOut,
+            ZonePortOut zonePortOut,
+            ParkingLotPortOut parkingLotPortOut,
+            ParkingLotCatalogAvailabilityPortOut catalogAvailabilityPortOut,
+            ParkingSessionPortOut parkingSessionPortOut,
+            ParkingEventPortOut parkingEventPortOut,
+            ParkingCheckInMapper parkingCheckInMapper,
+            FileStoragePort fileStoragePort,
+            ParkingSpacePortOut parkingSpacePortOut,
+            ParkingSpaceAllocationPortOut allocationPortOut,
+            ParkingRealtimePublisherPortOut parkingRealtimePublisher
+    ) {
         this.parkingSessionAccessGuard = parkingSessionAccessGuard;
         this.currentAccountPortIn = currentAccountPortIn;
         this.cardPortOut = cardPortOut;
@@ -119,6 +164,9 @@ public class ParkingCheckInUseCaseImpl {
         this.parkingEventPortOut = parkingEventPortOut;
         this.parkingCheckInMapper = parkingCheckInMapper;
         this.fileStoragePort = fileStoragePort;
+        this.parkingSpacePortOut = parkingSpacePortOut;
+        this.allocationPortOut = allocationPortOut;
+        this.parkingRealtimePublisher = parkingRealtimePublisher;
     }
 
     @Transactional
@@ -176,6 +224,8 @@ public class ParkingCheckInUseCaseImpl {
             throw new ConflictException("Vehicle type is not accepted at this parking lot");
         }
         parkingCheckInPolicy.validateVehicleTypeAccepted(resolvedVehicleTypeId, zone);
+        ParkingSpace assignedSpace = resolveCheckInSpace(
+                zone, command.parkingSpaceId(), customerContext.subscription(), resolvedVehicleTypeId);
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         UUID parkingEventId = UUID.randomUUID();
         StoredFile storedLicensePlateImage = null;
@@ -195,7 +245,23 @@ public class ParkingCheckInUseCaseImpl {
                     now
             );
             parkingSessionPolicy.initialize(parkingSession);
-            ParkingSession savedParkingSession = parkingSessionPortOut.save(parkingSession);
+            if (assignedSpace != null) {
+                parkingSession.setParkingSpaceId(assignedSpace.getParkingSpaceId());
+            }
+            ParkingSession savedParkingSession;
+            try {
+                savedParkingSession = parkingSessionPortOut.save(parkingSession);
+            } catch (DataIntegrityViolationException spaceRace) {
+                Metrics.counter("parking.space.checkin.assignment.conflict").increment();
+                LOGGER.warn("Check-in space race for space {}", command.parkingSpaceId());
+                throw new ConflictException("Parking space was just occupied by another check-in");
+            }
+            if (assignedSpace != null) {
+                occupySpaceForCheckIn(zone, parkingLot, assignedSpace,
+                        customerContext.subscription() == null
+                                ? ManualOccupancyType.VISITOR
+                                : ManualOccupancyType.REGISTERED);
+            }
 
             storedLicensePlateImage = storeLicensePlateImage(
                     command.licensePlateImage(),
@@ -383,6 +449,80 @@ public class ParkingCheckInUseCaseImpl {
                 .orElseThrow(() -> new NotFoundException("Parking lot not found"));
         parkingSessionAccessGuard.ensureCanOperateParkingLot(parkingLot);
         return parkingLot;
+    }
+
+    private ParkingSpace resolveCheckInSpace(
+            Zone zone,
+            UUID parkingSpaceId,
+            Subscription subscription,
+            UUID resolvedVehicleTypeId
+    ) {
+        if (parkingSpaceId == null) {
+            return null;
+        }
+        if (parkingSpacePortOut == null) {
+            throw new BadRequestException("Parking space assignment is not available");
+        }
+        if (zone.getTrackingMode() != TrackingMode.SPACE) {
+            throw new BadRequestException("Parking space can only be assigned in SPACE tracking zones");
+        }
+        ParkingSpace space = parkingSpacePortOut.findById(parkingSpaceId)
+                .orElseThrow(() -> new NotFoundException("Parking space not found"));
+        if (!zone.getZoneId().equals(space.getZoneId())) {
+            throw new BadRequestException("Parking space does not belong to the check-in zone");
+        }
+        if (!"ACTIVE".equals(space.getLifecycleStatus())) {
+            throw new ConflictException("Only an active parking space can be assigned");
+        }
+        if (space.getStatus() != ParkingSpaceStatus.AVAILABLE) {
+            throw new ConflictException("Parking space is not available for check-in");
+        }
+        if (space.getVehicleTypeId() != null && !space.getVehicleTypeId().equals(resolvedVehicleTypeId)) {
+            throw new ConflictException("Parking space does not support this vehicle type");
+        }
+        if (parkingSessionPortOut.existsOpenByParkingSpaceId(parkingSpaceId)) {
+            throw new ConflictException("Parking space is already occupied");
+        }
+        if (allocationPortOut != null) {
+            LocalDate today = DateTimeUtils.toAppLocalDate(Instant.now());
+            var effective = allocationPortOut.findActiveAllocationsForSpaceOnDate(parkingSpaceId, today);
+            if (subscription == null) {
+                if (!effective.isEmpty()) {
+                    throw new ConflictException("Parking space is reserved for a subscription");
+                }
+            } else {
+                boolean ownAllocation = effective.stream()
+                        .anyMatch(allocation -> subscription.getSubscriptionId()
+                                .equals(allocation.getSubscriptionId()));
+                if (!effective.isEmpty() && !ownAllocation) {
+                    throw new ConflictException("Parking space is allocated to another subscription");
+                }
+            }
+        }
+        return space;
+    }
+
+    private void occupySpaceForCheckIn(
+            Zone zone,
+            ParkingLot parkingLot,
+            ParkingSpace space,
+            ManualOccupancyType occupancyType
+    ) {
+        parkingSpacePolicy.setAutomaticStatus(space, ParkingSpaceStatus.OCCUPIED, occupancyType);
+        parkingSpacePortOut.save(space);
+        Metrics.counter("parking.space.checkin.assigned").increment();
+        LOGGER.info("check-in assigned space zone={} space={} occupancy={}",
+                zone.getZoneId(), space.getParkingSpaceId(), occupancyType);
+        ParkingRealtimeAfterCommit.publishAfterCommit(parkingRealtimePublisher,
+                new ParkingRealtimeEvent(
+                        "PARKING_SPACE_STATUS_CHANGED",
+                        parkingLot.getParkingLotId(),
+                        zone.getParkingLevelId(),
+                        zone.getZoneId(),
+                        space.getParkingSpaceId(),
+                        ParkingSpaceStatus.OCCUPIED.name(),
+                        zone.getLayoutVersion(),
+                        Map.of("occupancyType", occupancyType.name())));
     }
 
     private void requireCommand(CheckInCommand command) {

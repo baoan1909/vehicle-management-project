@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional
-class PostGisParkingLotIntegrationTest {
+class PostGisParkingLotIntegrationTest extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
     private static final UUID DEFAULT_ORGANIZATION_ID =
             UUID.fromString("00000000-0000-0000-0000-000000009001");

@@ -1,6 +1,7 @@
 export { AddressPicker } from "./AddressPicker";
 export { Badge } from "./Badge";
 export { Button } from "./Button";
+export { ConfirmDialog } from "./ConfirmDialog";
 export { Card, CardContent, CardFooter, CardHeader } from "./Card";
 export { DatePicker } from "./DatePicker";
 export { DateTimePicker, DateTimeScheduleField, formatDateTimeLabel, nowLocalDateTime } from "./DateTimePicker";

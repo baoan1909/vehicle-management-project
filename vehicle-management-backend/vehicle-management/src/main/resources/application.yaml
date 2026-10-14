@@ -18,7 +18,7 @@ spring:
   datasource:
     url: "jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:vehicle_management_db}"
     username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    password: ${DB_PASSWORD:}
     driver-class-name: ${DB_DRIVER_CLASS_NAME:org.postgresql.Driver}
 
   jpa:
@@ -104,12 +104,12 @@ app:
     frontend-client-id: ${KEYCLOAK_FRONTEND_CLIENT_ID:vehicle-management-frontend}
     post-action-redirect-uri: ${KEYCLOAK_ACTION_REDIRECT_URI:http://localhost:5173/login}
     admin-client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:vehicle-management-admin-service}
-    admin-client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:DayLaMotChuKyBiMatCucKyDaiVaAnToanChoUngDungSpring2024}
+    admin-client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:}
   storage:
     minio:
       endpoint: ${MINIO_ENDPOINT:http://localhost:9000}
       access-key: ${MINIO_ACCESS_KEY:minioadmin}
-      secret-key: ${MINIO_SECRET_KEY:minioadmin}
+      secret-key: ${MINIO_SECRET_KEY:}
       public-bucket: ${MINIO_PUBLIC_BUCKET:vehicle-public}
       private-bucket: ${MINIO_PRIVATE_BUCKET:vehicle-private}
       public-url-base: ${MINIO_PUBLIC_URL_BASE:}
@@ -119,7 +119,7 @@ app:
   ocr:
     enabled: ${OCR_ENABLED:true}
     base-url: ${OCR_BASE_URL:http://localhost:8010}
-    internal-token: ${OCR_INTERNAL_TOKEN:dev-ocr-internal-token}
+    internal-token: ${OCR_INTERNAL_TOKEN:}
     confidence-threshold: ${OCR_CONFIDENCE_THRESHOLD:0.70}
   payment:
     vnpay:

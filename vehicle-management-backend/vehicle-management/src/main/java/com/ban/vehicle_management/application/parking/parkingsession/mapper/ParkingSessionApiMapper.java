@@ -51,7 +51,8 @@ public interface ParkingSessionApiMapper {
                 personImage,
                 command.note(),
                 command.plateFormatConfirmed(),
-                command.plateIdentityOverride()
+                command.plateIdentityOverride(),
+                command.parkingSpaceId()
         );
     }
 

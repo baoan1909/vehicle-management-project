@@ -41,11 +41,13 @@ public class ChatRealtimeRabbitConfig {
     @Bean
     public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
             ConnectionFactory connectionFactory,
-            MessageConverter chatRabbitMessageConverter
+            MessageConverter chatRabbitMessageConverter,
+            @Value("${spring.rabbitmq.listener.simple.auto-startup:true}") boolean autoStartup
     ) {
         SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
         factory.setConnectionFactory(connectionFactory);
         factory.setMessageConverter(chatRabbitMessageConverter);
+        factory.setAutoStartup(autoStartup);
         return factory;
     }
 

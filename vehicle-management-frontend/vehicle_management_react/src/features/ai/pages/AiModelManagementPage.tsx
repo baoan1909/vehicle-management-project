@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Button } from "@/components/ui";
+import { Button, ConfirmDialog } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import {
@@ -33,6 +33,7 @@ export function AiModelManagementPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState("");
+  const [statusChange, setStatusChange] = useState<{ config: AiModelConfigurationResponse; status: AiModelStatus } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,15 +69,16 @@ export function AiModelManagementPage() {
   }, [warnings]);
 
   async function changeStatus(config: AiModelConfigurationResponse, status: AiModelStatus) {
-    if (!window.confirm(`Cập nhật ${config.modelId} sang ${status}?`)) return;
     setSavingId(config.configurationId);
     try {
       await updateAiModelStatus(config.configurationId, status);
+      setStatusChange(null);
       await load();
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Không thể cập nhật trạng thái model.");
     } finally {
       setSavingId("");
+      setStatusChange(null);
     }
   }
 
@@ -140,7 +142,7 @@ export function AiModelManagementPage() {
                     <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-bold tw-text-slate-600">{config.requiresFunctionCalling ? "Function" : "Text"} / {config.requiresStructuredOutput ? "Structured" : "Free text"} / {config.freeTierApproved ? "Free tier OK" : "Paid only"}</td>
                     <td className="tw-px-3 tw-py-3 tw-text-xs tw-font-semibold tw-text-slate-600">{model ? (model.supportedActions.join(", ") || "No actions") : "Not seen"}</td>
                     <td className="tw-px-3 tw-py-3">{configWarnings.length ? <span className="tw-rounded tw-bg-red-50 tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-red-700">{configWarnings.length} warning</span> : <span className="tw-text-xs tw-font-bold tw-text-emerald-600">OK</span>}</td>
-                    <td className="tw-px-3 tw-py-3"><div className="tw-flex tw-flex-wrap tw-gap-1.5"><button className="tw-rounded tw-border tw-border-solid tw-border-emerald-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-emerald-700 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "ACTIVE"} onClick={() => void changeStatus(config, "ACTIVE")} type="button">Active</button><button className="tw-rounded tw-border tw-border-solid tw-border-amber-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-amber-700 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "FALLBACK"} onClick={() => void changeStatus(config, "FALLBACK")} type="button">Fallback</button><button className="tw-rounded tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-slate-600 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "DISABLED"} onClick={() => void changeStatus(config, "DISABLED")} type="button">Disable</button></div></td>
+                    <td className="tw-px-3 tw-py-3"><div className="tw-flex tw-flex-wrap tw-gap-1.5"><button className="tw-rounded tw-border tw-border-solid tw-border-emerald-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-emerald-700 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "ACTIVE"} onClick={() => setStatusChange({ config, status: "ACTIVE" })} type="button">Active</button><button className="tw-rounded tw-border tw-border-solid tw-border-amber-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-amber-700 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "FALLBACK"} onClick={() => setStatusChange({ config, status: "FALLBACK" })} type="button">Fallback</button><button className="tw-rounded tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-2 tw-py-1 tw-text-xs tw-font-black tw-text-slate-600 disabled:tw-opacity-50" disabled={busy || !canManage || config.status === "DISABLED"} onClick={() => setStatusChange({ config, status: "DISABLED" })} type="button">Disable</button></div></td>
                   </tr>
                 );
               })}
@@ -148,6 +150,18 @@ export function AiModelManagementPage() {
           </table>
         </div>
       </section>
+      <ConfirmDialog
+        cancelLabel="Giữ nguyên"
+        confirmLabel="Cập nhật"
+        loading={Boolean(statusChange && savingId === statusChange.config.configurationId)}
+        message={statusChange ? `Model ${statusChange.config.modelId} sẽ chuyển sang trạng thái ${statusChange.status}.` : ""}
+        onCancel={() => setStatusChange(null)}
+        onConfirm={() => {
+          if (statusChange) void changeStatus(statusChange.config, statusChange.status);
+        }}
+        open={statusChange != null}
+        title="Xác nhận đổi trạng thái model"
+      />
     </main>
   );
 }

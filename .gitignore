@@ -41,8 +41,10 @@ node_modules/
 dist/
 
 
-.env
-.env.local
+# Never commit runtime environment files. Only the safe template is tracked.
+**/.env
+**/.env.*
+!**/.env.example
 
 # Keycloak runtime exports and private key material must never be committed.
 **/keycloak/export/
@@ -54,5 +56,10 @@ dist/
 *.pfx
 *.jks
 
-# Local analysis and design artifacts at the repository root
-/docs/
+# Local analysis and design artifacts at the repository root.
+# Project-control and CI/CD guidance are intentional, versioned documentation.
+/docs/*
+!/docs/project-control/
+!/docs/project-control/**
+!/docs/ci-cd/
+!/docs/ci-cd/**

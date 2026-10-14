@@ -6,6 +6,7 @@ import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.user.SimpSession;
 import org.springframework.messaging.simp.user.SimpSubscription;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
+@ConditionalOnProperty(name = "app.rabbitmq.listener-enabled", havingValue = "true", matchIfMissing = true)
 public class NotificationRealtimeRabbitConsumer {
 
     public static final String USER_QUEUE_DESTINATION = "/user/queue/notifications";

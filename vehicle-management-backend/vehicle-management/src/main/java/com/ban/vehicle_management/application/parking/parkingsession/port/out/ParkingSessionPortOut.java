@@ -26,6 +26,12 @@ public interface ParkingSessionPortOut {
 
     Optional<ParkingSession> findByIdForUpdate(UUID parkingSessionId);
 
+    boolean existsOpenByParkingSpaceId(UUID parkingSpaceId);
+
+    Optional<ParkingSession> findOpenByParkingSpaceId(UUID parkingSpaceId);
+
+    List<ParkingSession> findOpenByParkingSpaceIds(List<UUID> parkingSpaceIds);
+
     List<ParkingSessionManagementResult> findManagementSessions(
             ParkingSessionStatus status,
             UUID vehicleTypeId,

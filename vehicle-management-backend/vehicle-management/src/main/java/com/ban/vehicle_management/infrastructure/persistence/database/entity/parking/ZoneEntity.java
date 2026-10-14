@@ -2,6 +2,8 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.pa
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
+import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.CollectionTable;
@@ -41,6 +43,13 @@ public class ZoneEntity extends AuditableEntity {
     @JoinColumn(name = "parking_lot_id", referencedColumnName = "parking_lot_id", insertable = false, updatable = false)
     private ParkingLotEntity parkingLot;
 
+    @Column(name = "parking_level_id")
+    private UUID parkingLevelId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parking_level_id", referencedColumnName = "parking_level_id", insertable = false, updatable = false)
+    private ParkingLevelEntity parkingLevel;
+
     @Column(name = "code", nullable = false)
     private String code;
 
@@ -65,6 +74,17 @@ public class ZoneEntity extends AuditableEntity {
 
     @Column(name = "capacity", nullable = false)
     private Integer capacity;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tracking_mode", nullable = false)
+    private TrackingMode trackingMode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "layout_status", nullable = false)
+    private LayoutStatus layoutStatus;
+
+    @Column(name = "layout_version", nullable = false)
+    private Long layoutVersion;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
