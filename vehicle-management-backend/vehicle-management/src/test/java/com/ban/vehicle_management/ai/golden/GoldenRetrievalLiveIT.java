@@ -28,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @SpringBootTest
 @ActiveProfiles("test")
-class GoldenRetrievalLiveIT {
+class GoldenRetrievalLiveIT extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
     @Autowired
     private KnowledgeRetrievalService retrievalService;

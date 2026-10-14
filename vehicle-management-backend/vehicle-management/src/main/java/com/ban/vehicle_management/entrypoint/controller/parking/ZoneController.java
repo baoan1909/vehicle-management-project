@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -27,6 +28,7 @@ public class ZoneController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<ZoneAdminResponse>> createZone(@RequestBody CreateZoneRequest request) {
         Zone createdZone = zonePortIn.createZone(zoneApiMapper.toDomain(request));
 
@@ -37,6 +39,7 @@ public class ZoneController {
     }
 
     @GetMapping("/{zoneId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_READ_ALL')")
     public ResponseEntity<ApiResponse<ZoneAdminResponse>> getZoneById(@PathVariable UUID zoneId) {
         Zone zone = zonePortIn.getZoneById(zoneId);
 
@@ -47,6 +50,7 @@ public class ZoneController {
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_READ_ALL')")
     public ResponseEntity<ApiResponse<List<ZoneAdminResponse>>> getZones(@ModelAttribute ZoneFilterRequest request) {
         List<Zone> zones = zonePortIn.getZones(
                 request.parkingLotId(),
@@ -62,6 +66,7 @@ public class ZoneController {
     }
 
     @PutMapping("/{zoneId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<ZoneAdminResponse>> updateZone(
             @PathVariable UUID zoneId,
             @RequestBody UpdateZoneRequest request
@@ -75,6 +80,7 @@ public class ZoneController {
     }
 
     @DeleteMapping("/{zoneId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteZone(@PathVariable UUID zoneId) {
         zonePortIn.deleteZone(zoneId);
 
@@ -82,6 +88,7 @@ public class ZoneController {
     }
 
     @PatchMapping("/{zoneId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<ZoneAdminResponse>> activateZone(@PathVariable UUID zoneId) {
         Zone activatedZone = zonePortIn.activateZone(zoneId);
 
@@ -92,6 +99,7 @@ public class ZoneController {
     }
 
     @PatchMapping("/{zoneId}/maintenance")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<ZoneAdminResponse>> markZoneMaintenance(@PathVariable UUID zoneId) {
         Zone zone = zonePortIn.markZoneMaintenance(zoneId);
 
@@ -102,6 +110,7 @@ public class ZoneController {
     }
 
     @PatchMapping("/{zoneId}/close")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<ZoneAdminResponse>> closeZone(@PathVariable UUID zoneId) {
         Zone closedZone = zonePortIn.closeZone(zoneId);
 

@@ -43,7 +43,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 @ActiveProfiles("test")
-class VehicleManagementApplicationTests {
+class VehicleManagementApplicationTests extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
 	@Autowired
 	private SocialAccountRegistrationPortOut socialAccountRegistrationPortOut;

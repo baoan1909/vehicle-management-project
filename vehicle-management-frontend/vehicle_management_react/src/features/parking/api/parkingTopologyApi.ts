@@ -20,6 +20,10 @@ export type ZoneApiResponse = {
   createdBy?: string | null;
   name: string;
   parkingLotId: string;
+  parkingLevelId?: string | null;
+  trackingMode?: "CAPACITY" | "SPACE" | null;
+  layoutStatus?: "DRAFT" | "PUBLISHED" | "ARCHIVED" | null;
+  layoutVersion?: number | null;
   status: ZoneStatusApi;
   updatedAt?: string | null;
   updatedBy?: string | null;
@@ -77,6 +81,8 @@ export type UpdateZoneRequest = {
   capacity: number;
   code: string;
   name: string;
+  parkingLevelId?: string | null;
+  trackingMode?: "CAPACITY" | "SPACE" | null;
   vehicleTypeId: string | null;
   vehicleTypeIds: string[];
 };
@@ -115,6 +121,10 @@ function buildQuery(filter: Record<string, string | number | boolean | null | un
 
   const query = params.toString();
   return query ? `?${query}` : "";
+}
+
+export function getZoneById(zoneId: string) {
+  return apiClient<ApiResponse<ZoneApiResponse>>(`${apiEndpoints.parking.zones}/${zoneId}`);
 }
 
 export function getZones(filter: ZoneFilter = {}) {
@@ -167,6 +177,16 @@ export function closeZone(zoneId: string) {
   });
 }
 
+export function deleteZone(zoneId: string) {
+  return apiClient<ApiResponse<unknown>>(`${apiEndpoints.parking.zones}/${zoneId}`, {
+    method: "DELETE",
+  });
+}
+
+export function getGateById(gateId: string) {
+  return apiClient<ApiResponse<GateApiResponse>>(`${apiEndpoints.parking.gates}/${gateId}`);
+}
+
 export function createGate(payload: CreateGateRequest) {
   return apiClient<ApiResponse<GateApiResponse>>(apiEndpoints.parking.gates, {
     body: payload,
@@ -199,6 +219,16 @@ export function closeGate(gateId: string) {
   });
 }
 
+export function deleteGate(gateId: string) {
+  return apiClient<ApiResponse<unknown>>(`${apiEndpoints.parking.gates}/${gateId}`, {
+    method: "DELETE",
+  });
+}
+
+export function getLaneById(laneId: string) {
+  return apiClient<ApiResponse<LaneApiResponse>>(`${apiEndpoints.parking.lanes}/${laneId}`);
+}
+
 export function createLane(payload: CreateLaneRequest) {
   return apiClient<ApiResponse<LaneApiResponse>>(apiEndpoints.parking.lanes, {
     body: payload,
@@ -228,5 +258,11 @@ export function markLaneMaintenance(laneId: string) {
 export function closeLane(laneId: string) {
   return apiClient<ApiResponse<LaneApiResponse>>(`${apiEndpoints.parking.lanes}/${laneId}/close`, {
     method: "PATCH",
+  });
+}
+
+export function deleteLane(laneId: string) {
+  return apiClient<ApiResponse<unknown>>(`${apiEndpoints.parking.lanes}/${laneId}`, {
+    method: "DELETE",
   });
 }

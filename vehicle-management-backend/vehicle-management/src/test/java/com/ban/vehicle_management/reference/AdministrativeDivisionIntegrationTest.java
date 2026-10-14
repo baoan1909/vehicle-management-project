@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
-class AdministrativeDivisionIntegrationTest {
+class AdministrativeDivisionIntegrationTest extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;

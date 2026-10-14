@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 import { PlatformMonitoringScopePicker } from "./PlatformMonitoringScopePicker";
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
 
-const scopedMonitoringPaths = new Set(["/admin/parking-lots", "/admin/swipe/sessions", "/admin/card"]);
+const scopedMonitoringPaths = new Set(["/admin/parking-lots", "/admin/parking-structure", "/admin/parking-layouts", "/admin/parking-live", "/admin/swipe/sessions", "/admin/card"]);
 
 function isPathMatch(pathname: string, matches: string[]) {
   return matches.some((match) => pathname === match || pathname.startsWith(`${match}/`));

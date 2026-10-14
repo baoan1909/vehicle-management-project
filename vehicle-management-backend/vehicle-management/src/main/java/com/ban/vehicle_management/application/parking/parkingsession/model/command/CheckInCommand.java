@@ -12,7 +12,8 @@ public record CheckInCommand(
         MultipartFile personImage,
         String note,
         Boolean plateFormatConfirmed,
-        Boolean plateIdentityOverride
+        Boolean plateIdentityOverride,
+        UUID parkingSpaceId
 ) {
     public CheckInCommand(
             String cardUid,
@@ -23,6 +24,6 @@ public record CheckInCommand(
             MultipartFile personImage,
             String note
     ) {
-        this(cardUid, laneId, vehicleTypeId, licensePlate, licensePlateImage, personImage, note, false, false);
+        this(cardUid, laneId, vehicleTypeId, licensePlate, licensePlateImage, personImage, note, false, false, null);
     }
 }

@@ -2,7 +2,7 @@ import { useLocation } from "react-router-dom";
 
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
 
-const scopedPages = new Set(["/admin/parking-lots", "/admin/swipe/sessions", "/admin/card"]);
+const scopedPages = new Set(["/admin/parking-lots", "/admin/parking-structure", "/admin/parking-layouts", "/admin/parking-live", "/admin/swipe/sessions", "/admin/card"]);
 
 export function MonitoringScopeBanner() {
   const { pathname } = useLocation();

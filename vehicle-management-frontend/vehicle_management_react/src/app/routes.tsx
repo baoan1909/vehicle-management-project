@@ -27,7 +27,7 @@ import { DeviceManagementPage } from "@/features/hardware";
 import { AccountFormPage, AccountListPage, AvatarApprovalManagementPage, InternalProfilePage, PartnerRegistrationManagementPage, RoleFormPage, RoleListPage } from "@/features/iam";
 import { AiKnowledgeAdminPage, AiModelManagementPage } from "@/features/ai";
 import { AnnouncementManagementPage } from "@/features/notifications";
-import { NearbyParkingLotsPage, ParkingOperationsPage, ParkingSessionPage, SwipeEntryPage, SwipeListPage } from "@/features/parking";
+import { NearbyParkingLotsPage, ParkingLiveMapPage, ParkingLayoutEditorPage, ParkingLotOverviewPage, ParkingLotStructurePage, ParkingSessionPage, SwipeEntryPage, SwipeListPage } from "@/features/parking";
 import { PricePlanListPage, PriceRuleListPage, VoucherManagementPage } from "@/features/pricing";
 import { OperationsSupportCenterPage, SupportCategoryWorkflowPage, SupportTicketManagementPage } from "@/features/support";
 
@@ -56,7 +56,10 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/subscription-approvals", title: "Duyet dang ky ve thang va gan the", layout: "admin", element: <SubscriptionApprovalPage /> },
   { path: "/admin/vehicle", title: "Quan ly phuong tien", layout: "admin", element: <VehicleListPage /> },
   { path: "/admin/vehicle/form", title: "Thong tin phuong tien", layout: "admin", element: <VehicleFormPage /> },
-  { path: "/admin/parking-lots", title: "Bãi xe & Sơ đồ vận hành", layout: "admin", element: <ParkingOperationsPage /> },
+  { path: "/admin/parking-lots", title: "Tổng quan bãi xe", layout: "admin", element: <ParkingLotOverviewPage /> },
+  { path: "/admin/parking-structure", title: "Cấu trúc bãi xe", layout: "admin", element: <ParkingLotStructurePage /> },
+  { path: "/admin/parking-layouts", title: "Thiết kế sơ đồ bãi xe", layout: "admin", element: <ParkingLayoutEditorPage /> },
+  { path: "/admin/parking-live", title: "Sơ đồ vận hành trực tiếp", layout: "admin", element: <ParkingLiveMapPage /> },
   { path: "/admin/devices", title: "Quản lý thiết bị", layout: "admin", element: <DeviceManagementPage /> },
   { path: "/admin/price-plans", title: "Ke hoach gia", layout: "admin", element: <PricePlanListPage /> },
   { path: "/admin/price-rules", title: "Quy tac gia", layout: "admin", element: <PriceRuleListPage /> },

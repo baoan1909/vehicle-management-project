@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
+import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.UUID;
@@ -123,6 +125,25 @@ class ZonePolicyTest {
         assertNull(zone.getVehicleTypeId());
     }
 
+    @Test
+    void shouldPublishLayoutAsSpaceTrackingWithMaterializedCapacity() {
+        Zone zone = validZone();
+
+        zonePolicy.publishSpaceLayout(zone, 3L, 28);
+
+        assertEquals(TrackingMode.SPACE, zone.getTrackingMode());
+        assertEquals(LayoutStatus.PUBLISHED, zone.getLayoutStatus());
+        assertEquals(3L, zone.getLayoutVersion());
+        assertEquals(28, zone.getCapacity());
+    }
+
+    @Test
+    void shouldRejectPublishingEmptySpaceLayout() {
+        Zone zone = validZone();
+
+        assertThrows(BadRequestException.class, () -> zonePolicy.publishSpaceLayout(zone, 1L, 0));
+    }
+
     private Zone validZone() {
         Zone zone = new Zone();
         zone.setParkingLotId(UUID.randomUUID());
@@ -131,6 +152,9 @@ class ZonePolicyTest {
         zone.setName("Area A1");
         zone.setCapacity(100);
         zone.setStatus(ZoneStatus.ACTIVE);
+        zone.setTrackingMode(TrackingMode.CAPACITY);
+        zone.setLayoutStatus(LayoutStatus.NOT_CONFIGURED);
+        zone.setLayoutVersion(0L);
         return zone;
     }
 }

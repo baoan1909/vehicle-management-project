@@ -34,7 +34,9 @@ export const adminNavigation: AdminSidebarEntry[] = [
     label: "Bãi xe & thiết bị",
     icon: "parking",
     items: [
-      { label: "Bãi xe", to: "/admin/parking-lots", matches: ["/admin/parking-lots"] },
+      { label: "Bãi xe", to: "/admin/parking-lots", matches: ["/admin/parking-lots", "/admin/parking-structure"] },
+      { label: "Thiết kế sơ đồ", to: "/admin/parking-layouts", matches: ["/admin/parking-layouts"] },
+      { label: "Sơ đồ trực tiếp", to: "/admin/parking-live", matches: ["/admin/parking-live"] },
       { label: "Thiết bị", to: "/admin/devices", matches: ["/admin/devices"] },
     ],
   },
@@ -102,7 +104,7 @@ export const adminNavigation: AdminSidebarEntry[] = [
 export const platformAdminNavigation: AdminSidebarEntry[] = [
   { kind: "section", label: "Giám sát dữ liệu" },
   { kind: "link", label: "Tổng quan", to: "/admin/dashboard", matches: ["/admin/dashboard"], icon: "dashboard", monitoring: true },
-  { kind: "link", label: "Đối tác và bãi xe", to: "/admin/parking-lots", matches: ["/admin/parking-lots"], icon: "parking", monitoring: true },
+  { kind: "link", label: "Đối tác và bãi xe", to: "/admin/parking-lots", matches: ["/admin/parking-lots", "/admin/parking-structure", "/admin/parking-layouts", "/admin/parking-live"], icon: "parking", monitoring: true },
   { kind: "link", label: "Lượt xe, mức lấp đầy", to: "/admin/swipe/sessions", matches: ["/admin/swipe/sessions"], icon: "swipe", monitoring: true },
   { kind: "link", label: "Vé đăng ký", to: "/admin/subscription-approvals", matches: ["/admin/subscription-approvals"], icon: "catalog", monitoring: true },
   { kind: "link", label: "Thẻ", to: "/admin/card", matches: ["/admin/card"], icon: "card", monitoring: true },

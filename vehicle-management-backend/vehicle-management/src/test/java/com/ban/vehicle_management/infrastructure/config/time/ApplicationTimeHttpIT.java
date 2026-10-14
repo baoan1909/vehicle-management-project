@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest(properties = "app.time-zone=Asia/Ho_Chi_Minh")
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-class ApplicationTimeHttpIT {
+class ApplicationTimeHttpIT extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
