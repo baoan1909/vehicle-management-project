@@ -58,7 +58,8 @@ Set-Location vehicle-management-backend/vehicle-management
 Lệnh backend test cần Docker Desktop đang chạy vì nó cần PostgreSQL có PostGIS và
 pgvector. Trên GitHub Actions, Docker đã có sẵn trên Ubuntu runner.
 
-## Giới hạn hiện tại
+## Phạm vi sau Giai đoạn 3
 
-Giai đoạn này chưa bao gồm quét dependency/Docker image, deploy staging, rollback
-hoặc alert. Các nội dung đó lần lượt thuộc Giai đoạn 3, 4, 5 và 7.
+Quét dependency và Docker image đã được bổ sung ở Giai đoạn 3; xem
+[`security-scanning.md`](security-scanning.md). Deploy staging, rollback và
+giám sát/alert vẫn thuộc các giai đoạn tiếp theo.

@@ -21,7 +21,8 @@ services:
     pull_policy: always
     restart: unless-stopped
     ports:
-      - "${FRONTEND_HOST_PORT:-8088}:80"
+      # The frontend image runs Nginx as an unprivileged user on port 8080.
+      - "${FRONTEND_HOST_PORT:-8088}:8080"
     depends_on:
       backend:
         condition: service_healthy
