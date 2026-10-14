@@ -19,6 +19,11 @@ Mục tiêu là để Trivy dùng metadata đã có thay vì tạo thêm lượt
 Các migration SQL Flyway dung lượng lớn không thuộc phạm vi dependency scan của job
 này nên được bỏ qua tại đây; Gitleaks vẫn quét chúng ở job `01`.
 
+Image scanner cũng kiểm tra cấu hình runtime, không chỉ CVE. Vì vậy image
+PostgreSQL phải chạy bằng tài khoản `postgres`, còn frontend chạy Nginx bằng
+tài khoản `nginx` trên cổng nội bộ `8080`. Docker Compose ánh xạ cổng public
+vào cổng nội bộ này, nên người dùng staging vẫn dùng cùng địa chỉ frontend.
+
 ## Vì sao frontend chỉ chặn dependency runtime?
 
 `npm audit --omit=dev` phản ánh chính xác dependency được mang vào Docker image

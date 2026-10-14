@@ -14,3 +14,7 @@ COPY docker/postgres/initdb/001-enable-required-extensions.sql /docker-entrypoin
 
 RUN chmod 0555 /usr/local/bin/vehicle-postgres-healthcheck \
     && chmod 0444 /docker-entrypoint-initdb.d/001-enable-required-extensions.sql
+
+# The official entrypoint still initializes PostgreSQL as this account; running
+# the final container as postgres prevents the database server from using root.
+USER postgres
