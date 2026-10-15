@@ -26,7 +26,7 @@ export function VehicleVisual({ color, size = "compact", typeName }: VehicleVisu
   const description = `Hình minh họa phương tiện${paint.recognized ? "" : " · Màu minh họa trung tính"}`;
 
   return (
-    <span aria-label={`${label}${color ? ` màu ${color}` : ""}`} className={`tw-inline-grid tw-grid-rows-[minmax(0,1fr)] tw-max-w-full tw-min-w-0 tw-place-items-center ${sizeClass}`} role="img" title={description}>
+    <span aria-label={`${label}${color ? ` màu ${color}` : ""}`} className={`vm-vehicle-visual vm-vehicle-visual-${size} tw-inline-grid tw-grid-rows-[minmax(0,1fr)] tw-max-w-full tw-min-w-0 tw-place-items-center ${size === "dashboard" ? "tw-overflow-hidden" : ""} ${sizeClass}`} role="img" title={description}>
       {model ? (
         <svg aria-hidden="true" className={`tw-min-h-0 tw-h-full tw-w-full ${size === "dashboard" ? "[transform:scale(1.35)]" : ""}`} viewBox="0 0 1536 1024" preserveAspectRatio="xMidYMid meet">
           <defs>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getTopupOrder, payInvoiceByWallet } from "@/features/billing/api/walletApi";
+import { CustomerPortalLayout } from "@/features/customer-portal/pages/PortalShared";
 
 const POLL_INTERVAL_MS = 2_000;
 const MAX_POLL_ATTEMPTS = 30;
@@ -88,13 +89,19 @@ export function WalletTopupResultPage() {
   }, [navigate]);
 
   return (
-    <main className="tw-p-6 tw-max-w-xl tw-mx-auto tw-text-center tw-space-y-4">
-      <h1 className="tw-text-xl tw-font-bold">Kết quả nạp tiền</h1>
-      <p>{status}</p>
-      <div className="tw-flex tw-gap-2 tw-justify-center">
-        <Link to="/customer/wallet" className="tw-rounded tw-border tw-px-4 tw-py-2">Về ví</Link>
-        <Link to="/customer/wallet/topup" className="tw-rounded tw-bg-vm-primary tw-px-4 tw-py-2 tw-text-white">Nạp tiếp</Link>
-      </div>
-    </main>
+    <CustomerPortalLayout>
+      <main className="vm-wallet-topup-result tw-mx-auto tw-grid tw-w-full tw-max-w-xl tw-justify-items-center tw-gap-4 tw-rounded-2xl tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-p-8 tw-text-center tw-shadow-[0_14px_36px_rgba(15,55,100,0.08)]">
+        <span className="tw-grid tw-h-16 tw-w-16 tw-place-items-center tw-rounded-full tw-bg-blue-50 tw-text-2xl tw-text-vm-primary" aria-hidden="true"><i className="fas fa-wallet" /></span>
+        <div>
+          <span className="tw-text-xs tw-font-black tw-uppercase tw-tracking-[0.08em] tw-text-vm-primary">Ví CoParking</span>
+          <h1 className="tw-m-0 tw-mt-2 tw-text-2xl tw-font-bold tw-text-slate-900">Kết quả nạp tiền</h1>
+        </div>
+        <p className="tw-m-0 tw-max-w-md tw-text-sm tw-font-semibold tw-leading-6 tw-text-slate-600" role="status" aria-live="polite">{status}</p>
+        <div className="vm-wallet-topup-result-actions tw-flex tw-w-full tw-justify-center tw-gap-3">
+          <Link to="/customer/wallet" className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-rounded-lg tw-border tw-border-solid tw-border-blue-200 tw-bg-white tw-px-5 tw-font-bold tw-text-blue-700 hover:tw-no-underline">Về ví</Link>
+          <Link to="/customer/wallet/topup" className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-rounded-lg tw-bg-vm-primary tw-px-5 tw-font-bold tw-text-white hover:tw-text-white hover:tw-no-underline">Nạp tiếp</Link>
+        </div>
+      </main>
+    </CustomerPortalLayout>
   );
 }

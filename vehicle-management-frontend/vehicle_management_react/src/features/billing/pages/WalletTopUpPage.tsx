@@ -93,7 +93,7 @@ export function WalletTopUpPage() {
             <h1 className="tw-m-0 tw-font-[Cambria,Georgia,serif] tw-text-[1.75rem] tw-font-bold tw-leading-tight tw-text-[#071738]">Nạp tiền vào ví</h1>
             <p className="tw-mb-0 tw-mt-1 tw-text-[0.82rem] tw-text-[#6f809b]">Chọn số tiền và thanh toán an toàn qua cổng VNPay</p>
           </div>
-          <div className="tw-flex tw-min-w-[210px] tw-items-center tw-gap-3 tw-rounded-xl tw-border tw-border-solid tw-border-[#dce6f3] tw-bg-white tw-px-4 tw-py-3 tw-shadow-[0_4px_15px_rgba(15,55,100,0.04)]">
+          <div className="vm-wallet-topup-balance tw-flex tw-min-w-[210px] tw-items-center tw-gap-3 tw-rounded-xl tw-border tw-border-solid tw-border-[#dce6f3] tw-bg-white tw-px-4 tw-py-3 tw-shadow-[0_4px_15px_rgba(15,55,100,0.04)]">
             <span className="tw-grid tw-h-10 tw-w-10 tw-place-items-center tw-rounded-lg tw-bg-blue-50 tw-text-[#0868ee]"><i className="fas fa-wallet" /></span>
             <span>
               <small className="tw-block tw-text-[0.68rem] tw-font-medium tw-text-[#71819a]">Số dư hiện tại</small>

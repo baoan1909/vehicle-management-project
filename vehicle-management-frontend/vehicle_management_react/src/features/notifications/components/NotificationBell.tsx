@@ -259,6 +259,15 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, []);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closePanel();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open]);
+
   const groupedItems = useMemo(
     () =>
       notificationGroups.reduce<Record<NotificationGroupKey, NotificationUserResponse[]>>(
@@ -322,7 +331,7 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
       : "vm-customer-bell";
 
   return (
-    <div className={variant === "admin" ? "tw-relative" : "vm-customer-action-wrap"} ref={rootRef}>
+    <div className={cn("vm-notification-root", variant === "admin" ? "tw-relative" : "vm-customer-action-wrap")} ref={rootRef}>
       <button
         aria-expanded={open}
         aria-label="Thông báo"
@@ -347,9 +356,13 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
       </button>
 
       {open ? (
+        <>
+        <button className="vm-header-popover-backdrop" type="button" aria-label="Đóng thông báo" onClick={closePanel} />
         <div
+          aria-label="Danh sách thông báo"
+          role="dialog"
           className={cn(
-            "tw-overflow-hidden",
+            "vm-notification-popover tw-overflow-hidden",
             variant === "admin"
               ? "tw-absolute tw-right-0 tw-top-[calc(100%+12px)] tw-z-[1080] tw-w-[360px] tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-shadow-[0_18px_42px_rgba(15,23,42,0.16)]"
               : "vm-customer-popover vm-customer-notifications tw-w-[360px] tw-max-w-[calc(100vw-1rem)] !tw-p-0",
@@ -492,6 +505,7 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
             </section>
           </div>
         </div>
+        </>
       ) : null}
     </div>
   );

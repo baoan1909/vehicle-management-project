@@ -53,11 +53,20 @@ type ActionCardPayload = {
   toolName?: string;
 };
 
+function getBottomClearance() {
+  if (typeof window === "undefined" || typeof document === "undefined") return WIDGET_CONFIG.marginY;
+  const mobileNavigation = document.querySelector<HTMLElement>(".vm-customer-mobile-nav");
+  if (mobileNavigation && window.getComputedStyle(mobileNavigation).display !== "none") {
+    return mobileNavigation.getBoundingClientRect().height + 12;
+  }
+  return window.innerWidth <= 768 ? 16 : WIDGET_CONFIG.marginY;
+}
+
 function getDefaultPosition(): Position {
   if (typeof window === "undefined") return { x: 0, y: 0 };
   return {
     x: window.innerWidth - WIDGET_CONFIG.size - WIDGET_CONFIG.marginX,
-    y: window.innerHeight - WIDGET_CONFIG.size - WIDGET_CONFIG.marginY,
+    y: window.innerHeight - WIDGET_CONFIG.size - getBottomClearance(),
   };
 }
 
@@ -65,7 +74,7 @@ function clampPosition(position: Position): Position {
   if (typeof window === "undefined") return position;
   return {
     x: Math.min(Math.max(position.x, 0), window.innerWidth - WIDGET_CONFIG.size),
-    y: Math.min(Math.max(position.y, 0), window.innerHeight - WIDGET_CONFIG.size),
+    y: Math.min(Math.max(position.y, 0), window.innerHeight - WIDGET_CONFIG.size - getBottomClearance()),
   };
 }
 
@@ -437,7 +446,7 @@ export function SupportFloatingWidget() {
   return (
     <>
       {isPanelOpen ? (
-        <section aria-label="Trợ lý hỗ trợ CoParking" className="tw-fixed tw-bottom-28 tw-right-6 tw-z-[1079] tw-flex tw-h-[min(620px,calc(100vh-9rem))] tw-w-[min(410px,calc(100vw-2rem))] tw-flex-col tw-overflow-hidden tw-rounded-2xl tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-shadow-[0_24px_70px_rgba(15,23,42,0.28)] max-[480px]:tw-bottom-24 max-[480px]:tw-left-2 max-[480px]:tw-right-2 max-[480px]:tw-w-auto" role="dialog">
+        <section data-support-floating-panel aria-label="Trợ lý hỗ trợ CoParking" className="vm-support-floating-panel tw-fixed tw-bottom-28 tw-right-6 tw-z-[1079] tw-flex tw-h-[min(620px,calc(100vh-9rem))] tw-w-[min(410px,calc(100vw-2rem))] tw-flex-col tw-overflow-hidden tw-rounded-2xl tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-shadow-[0_24px_70px_rgba(15,23,42,0.28)] max-[480px]:tw-bottom-24 max-[480px]:tw-left-2 max-[480px]:tw-right-2 max-[480px]:tw-w-auto" role="dialog">
           <header className="tw-flex tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-slate-100 tw-bg-white tw-px-4 tw-py-3">
             <span className="tw-flex tw-h-10 tw-w-10 tw-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-bg-cyan-50 tw-p-2"><SupportSparkleIcon /></span>
             <div className="tw-min-w-0 tw-flex-1"><h2 className="tw-m-0 tw-text-sm tw-font-extrabold tw-text-slate-900">Trợ lý hỗ trợ CoParking</h2><p className="tw-m-0 tw-text-xs tw-font-medium tw-text-slate-500">Luôn sẵn sàng tiếp nhận yêu cầu của bạn</p></div>
@@ -514,9 +523,9 @@ export function SupportFloatingWidget() {
         title="Phiếu yêu cầu của tôi"
       />
 
-      <div className={`tw-group tw-fixed tw-z-[1080] ${isReturningToDock ? "tw-transition-all tw-duration-300 tw-ease-in-out" : ""}`} style={{ left: position.x, top: position.y, touchAction: "none" }}>
+      <div className={`vm-support-floating-dock tw-group tw-fixed tw-z-[1280] ${isReturningToDock ? "tw-transition-all tw-duration-300 tw-ease-in-out" : ""}`} style={{ left: position.x, top: position.y, touchAction: "none" }}>
         <div className="tw-pointer-events-none tw-absolute tw-right-full tw-top-1/2 tw-mr-3 tw-w-max tw--translate-y-1/2 tw-rounded tw-bg-slate-800 tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-text-white tw-opacity-0 tw-shadow-sm tw-transition-opacity tw-duration-300 group-hover:tw-opacity-100">Trợ lý hỗ trợ CoParking<span className="tw-absolute tw--right-1 tw-top-1/2 tw-h-2 tw-w-2 tw--translate-y-1/2 tw-rotate-45 tw-bg-slate-800" /></div>
-        <button type="button" aria-expanded={isPanelOpen} aria-label={isPanelOpen ? "Đóng Trợ lý hỗ trợ CoParking" : "Mở Trợ lý hỗ trợ CoParking"} title="Trợ lý hỗ trợ CoParking" onClick={handleWidgetClick} onMouseDown={startDrag} onTouchStart={startDrag} className={`tw-relative tw-inline-flex tw-h-14 tw-w-14 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-text-slate-700 tw-shadow-[0_4px_12px_rgba(15,23,42,0.15)] tw-transition-transform tw-duration-300 active:tw-scale-95 focus:tw-outline-none focus:tw-ring-4 focus:tw-ring-cyan-100 ${isPanelOpen ? "tw-cursor-pointer" : isDragging ? "tw-cursor-grabbing tw-scale-105" : "tw-cursor-grab hover:tw-scale-110"}`}>{isOpeningAssistant ? <i className="fas fa-spinner fa-spin tw-text-lg tw-text-slate-500" /> : isPanelOpen ? <i className="fas fa-times tw-text-lg tw-text-slate-600" /> : <span className="tw-h-7 tw-w-7"><SupportSparkleIcon /></span>}</button>
+        <button data-support-floating-button type="button" aria-expanded={isPanelOpen} aria-label={isPanelOpen ? "Đóng Trợ lý hỗ trợ CoParking" : "Mở Trợ lý hỗ trợ CoParking"} title="Trợ lý hỗ trợ CoParking" onClick={handleWidgetClick} onMouseDown={startDrag} onTouchStart={startDrag} className={`vm-support-floating-button tw-relative tw-inline-flex tw-h-14 tw-w-14 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-text-slate-700 tw-shadow-[0_4px_12px_rgba(15,23,42,0.15)] tw-transition-transform tw-duration-300 active:tw-scale-95 focus:tw-outline-none focus:tw-ring-4 focus:tw-ring-cyan-100 ${isPanelOpen ? "tw-cursor-pointer" : isDragging ? "tw-cursor-grabbing tw-scale-105" : "tw-cursor-grab hover:tw-scale-110"}`}>{isOpeningAssistant ? <i className="fas fa-spinner fa-spin tw-text-lg tw-text-slate-500" /> : isPanelOpen ? <i className="fas fa-times tw-text-lg tw-text-slate-600" /> : <span className="tw-h-7 tw-w-7"><SupportSparkleIcon /></span>}</button>
       </div>
     </>
   );

@@ -4,7 +4,6 @@ import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/a
 
 import {
   createVnpayInvoicePayment,
-  getSubscriptionInvoice,
   type InvoiceSummaryResponse,
   VNPAY_MINIMUM_AMOUNT,
 } from "@/features/billing/api/invoicePaymentsApi";
@@ -16,6 +15,8 @@ import {
   getCustomerPortalProfile,
   getCustomerPortalVoucherBanners,
   getMyCustomerVehicles,
+  getMySubscriptionInvoice,
+  getMySubscriptionInvoices,
   getMySubscriptions,
   quoteMySubscriptionVoucher,
   type CustomerPortalPriceRule,
@@ -35,7 +36,9 @@ import { VoucherPromotionBanner } from "../components/VoucherPromotionBanner";
 import { parsePortalDate } from "../utils/portalDate";
 import { getSubscriptionPeriod } from "../utils/subscriptionPeriod";
 import { CustomerPortalLayout, PortalPagination } from "./PortalShared";
-import { DatePicker, Modal, useToast } from "@/components/ui";
+import { DatePicker, Modal, SelectMenu, useToast } from "@/components/ui";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 
 type SubscriptionForm = {
   parkingLotId: string;
@@ -176,6 +179,9 @@ function SubscriptionProgress({ percent }: { percent: number }) {
 export function SubscriptionPage() {
   const toast = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canRegisterSubscription = hasAnyPermission(user, ["SUBSCRIPTION_CREATE_OWN", "SUBSCRIPTION_CREATE_ALL"]);
+  const canPaySubscription = hasAnyPermission(user, ["WALLET_PAY_INVOICE_OWN", "INVOICE_PAY_OWN", "SUBSCRIPTION_PAY_OWN", "WALLET_TOP_UP_OWN"]);
   const [searchParams, setSearchParams] = useSearchParams();
   const voucherCodeFromUrl = searchParams.get("voucherCode")?.trim().toUpperCase() ?? "";
   const handledVnpayReturnRef = useRef(false);
@@ -281,8 +287,8 @@ export function SubscriptionPage() {
     try {
       const nextProfile = await getCustomerPortalProfile();
       const [nextVehicles, nextSubscriptions, nextParkingLots, globalLookups, nextVoucherBanners] = await Promise.all([
-        getMyCustomerVehicles(nextProfile),
-        getMySubscriptions(nextProfile),
+        getMyCustomerVehicles(),
+        getMySubscriptions(),
         getCustomerPortalParkingLots(),
         getCustomerPortalLookups(),
         getCustomerPortalVoucherBanners().catch(() => []),
@@ -290,20 +296,29 @@ export function SubscriptionPage() {
       const parkingLotId = nextParkingLots.find((lot) => lot.parkingLotId === form.parkingLotId)?.parkingLotId
         ?? nextParkingLots[0]?.parkingLotId ?? "";
       const lookups = parkingLotId ? await getCustomerPortalLookups(parkingLotId) : { priceRules: [], ticketTypes: [], vehicleTypes: [] };
-      const invoiceEntries = await Promise.all(nextSubscriptions.map(async (subscription) => {
-        try {
-          const invoice = await getSubscriptionInvoice(subscription.subscriptionId);
-          return invoice ? [subscription.subscriptionId, invoice] as const : null;
-        } catch {
-          return null;
-        }
-      }));
+      let invoiceEntries: Array<readonly [string, InvoiceSummaryResponse]> = [];
+      try {
+        const invoices = await getMySubscriptionInvoices(nextSubscriptions.map((subscription) => subscription.subscriptionId));
+        const bySubscription = new Map<string, InvoiceSummaryResponse[]>();
+        invoices.forEach((invoice) => {
+          if (!invoice.subscriptionId) return;
+          const group = bySubscription.get(invoice.subscriptionId) ?? [];
+          group.push(invoice as InvoiceSummaryResponse);
+          bySubscription.set(invoice.subscriptionId, group);
+        });
+        invoiceEntries = [...bySubscription].map(([subscriptionId, group]) => [
+          subscriptionId,
+          group.find((invoice) => invoice.status === "UNPAID")
+            ?? group.find((invoice) => invoice.status === "PAID")
+            ?? group[0],
+        ] as const).filter((entry): entry is readonly [string, InvoiceSummaryResponse] => entry[1] !== undefined);
+      } catch {
+        invoiceEntries = [];
+      }
       setProfile(nextProfile);
       setVehicles(nextVehicles);
       setSubscriptions(nextSubscriptions);
-      setInvoiceBySubscriptionId(Object.fromEntries(
-        invoiceEntries.filter((entry): entry is readonly [string, InvoiceSummaryResponse] => entry !== null),
-      ));
+      setInvoiceBySubscriptionId(Object.fromEntries(invoiceEntries));
       setVoucherBanners(nextVoucherBanners);
       setParkingLots(nextParkingLots);
       setPriceRules(lookups.priceRules);
@@ -453,6 +468,7 @@ export function SubscriptionPage() {
   };
 
   const handleCreate = async () => {
+    if (saving) return;
     setSaving(true);
     setSubscriptionFormError("");
     try {
@@ -468,13 +484,13 @@ export function SubscriptionPage() {
       if (!form.requestedEffectiveFrom) {
         throw new Error("Vui lòng chọn ngày bắt đầu.");
       }
-      await createMySubscription(form);
+      await createMySubscription(form, typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
       toast.success(
         "Yêu cầu đang chờ nhân viên phê duyệt.",
         "Đã gửi đăng ký vé",
       );
       if (profile) {
-        setSubscriptions(await getMySubscriptions(profile));
+        setSubscriptions(await getMySubscriptions());
       }
       closeRegistrationModal();
     } catch (requestError) {
@@ -501,7 +517,7 @@ export function SubscriptionPage() {
 
     try {
       const [invoice, walletResponse] = await Promise.all([
-        getSubscriptionInvoice(subscription.subscriptionId),
+        getMySubscriptionInvoice(subscription.subscriptionId),
         getMyWallet(),
       ]);
       if (!invoice || invoice.status !== "UNPAID") {
@@ -597,15 +613,15 @@ export function SubscriptionPage() {
           <h1 className="tw-m-0 tw-mt-1.5 tw-font-[Cambria,Georgia,serif] tw-text-[clamp(2.25rem,3.4vw,3.25rem)] tw-font-bold tw-leading-[1.1] tw-text-[#0b1c3d]">Vé tháng của tôi</h1>
           <p className="tw-m-0 tw-mt-1 tw-text-[0.94rem] tw-font-medium tw-text-[#61738e]">Quản lý hành trình định kỳ trong một không gian rõ ràng.</p>
         </div>
-        <button className="tw-inline-flex tw-h-11 tw-shrink-0 tw-items-center tw-gap-2 tw-rounded-md tw-border-0 tw-bg-[linear-gradient(135deg,#146cf3,#0756d8)] tw-px-5 tw-text-[0.84rem] tw-font-semibold tw-text-white tw-shadow-[0_10px_20px_rgba(20,99,230,0.2)] disabled:tw-opacity-60" type="button" disabled={!profile} onClick={openRegistrationModal}><i className="fas fa-plus" />Đăng ký vé mới</button>
+        {canRegisterSubscription ? <button className="tw-inline-flex tw-h-11 tw-shrink-0 tw-items-center tw-gap-2 tw-rounded-md tw-border-0 tw-bg-[linear-gradient(135deg,#146cf3,#0756d8)] tw-px-5 tw-text-[0.84rem] tw-font-semibold tw-text-white tw-shadow-[0_10px_20px_rgba(20,99,230,0.2)] disabled:tw-opacity-60" type="button" disabled={!profile || saving} onClick={openRegistrationModal}><i className="fas fa-plus" />Đăng ký vé mới</button> : null}
       </header>
 
       {loadError ? <div role="alert" className="tw-mb-4 tw-rounded-lg tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-text-red-700">{loadError}</div> : null}
       <section aria-label="Tổng quan vé tháng" className="tw-grid tw-grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] tw-gap-4 max-[1100px]:tw-grid-cols-1">
         <article aria-label="Thông tin vé tháng" className="tw-relative tw-min-w-0 tw-text-white [filter:drop-shadow(0_6px_9px_rgba(4,24,64,0.16))]">
           <SubscriptionTicketFrame />
-          <div className="tw-relative tw-grid tw-min-h-[296px] tw-grid-cols-[52%_48%]">
-            <div className="tw-min-w-0 tw-py-6 tw-pl-7 tw-pr-4">
+          <div className="vm-subscription-ticket-layout tw-relative tw-grid tw-min-h-[296px] tw-grid-cols-[52%_48%]">
+            <div className="vm-subscription-ticket-main tw-min-w-0 tw-py-6 tw-pl-7 tw-pr-4">
               <span className="tw-inline-flex tw-items-center tw-gap-2 tw-text-[0.84rem] tw-font-normal tw-text-[#f7ce68]"><SubscriptionIcon name="ticket" className="!tw-h-6 !tw-w-6" />{detailSubscription && !isDetailSubscriptionActive ? "Chi tiết vé tháng" : "Vé tháng đang sử dụng"}</span>
               <h2 className="tw-m-0 tw-mt-2 tw-text-[1.18rem] tw-font-semibold tw-leading-snug tw-text-white">{loading ? "Đang tải vé đăng ký..." : currentTicketType?.name ?? (detailSubscription ? "Vé đăng ký" : "Chưa có vé đăng ký")}</h2>
               {detailSubscription?.parkingLotId ? <p className="tw-m-0 tw-mt-1 tw-text-[0.72rem] tw-text-[#b8c6db]">Bãi xe: {parkingLotById.get(detailSubscription.parkingLotId)?.name ?? "Không còn hoạt động"}</p> : null}
@@ -623,7 +639,7 @@ export function SubscriptionPage() {
                 {detailInvoice && detailInvoice.discountAmount > 0 ? <small className="tw-mt-1 tw-block tw-text-[0.68rem] tw-font-normal tw-text-[#b8c6db]">Giá gốc {formatCurrency(detailInvoice.amount)} · Giảm {formatCurrency(detailInvoice.discountAmount)}</small> : null}
               </div>
             </div>
-            <div className="tw-relative tw-flex tw-min-w-0 tw-flex-col tw-py-5 tw-pl-4 tw-pr-6">
+            <div className="vm-subscription-ticket-aside tw-relative tw-flex tw-min-w-0 tw-flex-col tw-py-5 tw-pl-4 tw-pr-6">
               <div className="tw-flex tw-min-h-8 tw-justify-end">{detailSubscription ? <SubscriptionStatusPill status={detailSubscription.status} onTicket /> : null}</div>
               <div className="tw-relative tw-z-[1] tw-mt-5 tw-flex tw-items-center tw-justify-center tw-gap-3"><span className="!tw-font-[Cambria,Georgia,serif] tw-text-[4.5rem] tw-font-normal tw-leading-none tw-text-[#f7ce68]">{detailDaysLeft ?? "--"}</span><span className="tw-text-[1.05rem] tw-font-normal tw-leading-6 tw-text-white">ngày<br />còn lại</span></div>
               <div className="tw-mt-auto tw-h-[62px] tw-overflow-hidden"><PortalTicketArtwork className="tw-pointer-events-none tw-h-full tw-w-full tw-text-[#c9b170]/30 [transform:scaleX(1.8)]" /></div>
@@ -633,7 +649,7 @@ export function SubscriptionPage() {
             </div>
           </div>
         </article>
-        <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+        <div className="vm-subscription-stat-grid tw-grid tw-grid-cols-2 tw-gap-3">
           <SubscriptionStat icon="ticket" label="Vé đang hoạt động" value={String(subscriptions.filter((item) => item.status === "ACTIVE").length).padStart(2, "0")} />
           <SubscriptionStat icon="calendar" label="Ngày còn lại" value={activeDaysLeft ?? "--"} />
           <SubscriptionStat icon="clock" label="Chờ xử lý" value={String(pendingCount).padStart(2, "0")} />
@@ -647,7 +663,7 @@ export function SubscriptionPage() {
           <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
             <h2 className="tw-m-0 tw-text-[1.05rem] tw-font-bold tw-text-[#12213d]">Lịch sử đăng ký</h2>
             <div className="tw-flex tw-min-w-0 tw-flex-wrap tw-items-center tw-gap-3">
-              <select aria-label="Lọc trạng thái vé" className="tw-h-10 tw-rounded-md tw-border tw-border-solid tw-border-[#dce5f0] tw-bg-white tw-px-3 tw-text-[0.78rem] tw-font-normal tw-text-[#344766]" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}><option value="ALL">Tất cả trạng thái</option><option value="ACTIVE">Đang hoạt động</option><option value="PENDING">Chờ duyệt</option><option value="PENDING_PAYMENT">Chờ thanh toán</option><option value="PENDING_CARD">Chờ gán thẻ</option><option value="EXPIRED">Hết hạn</option><option value="CANCELLED">Đã hủy</option><option value="REJECTED">Từ chối</option></select>
+              <SelectMenu ariaLabel="Lọc trạng thái vé" className="!tw-w-[190px] max-[640px]:!tw-w-full" options={[{ label: "Tất cả trạng thái", value: "ALL" }, { label: "Đang hoạt động", value: "ACTIVE" }, { label: "Chờ duyệt", value: "PENDING" }, { label: "Chờ thanh toán", value: "PENDING_PAYMENT" }, { label: "Chờ gán thẻ", value: "PENDING_CARD" }, { label: "Hết hạn", value: "EXPIRED" }, { label: "Đã hủy", value: "CANCELLED" }, { label: "Từ chối", value: "REJECTED" }]} portal searchable={false} triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" value={statusFilter} onChange={setStatusFilter} />
               <label className="tw-relative"><i className="fas fa-search tw-pointer-events-none tw-absolute tw-left-3 tw-top-1/2 [transform:translateY(-50%)] tw-text-[#7a8ba4]" /><input aria-label="Tìm biển số hoặc mã vé" className="tw-h-10 tw-w-[218px] max-[1300px]:tw-w-[180px] max-[640px]:tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce5f0] tw-pl-9 tw-pr-3 tw-text-[0.78rem] tw-font-normal tw-text-[#334a6e] placeholder:tw-text-[#91a0b6]" value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm biển số, mã vé..." /></label>
             </div>
           </div>
@@ -666,7 +682,7 @@ export function SubscriptionPage() {
                     <span className="tw-flex tw-flex-wrap tw-gap-x-1 tw-text-[0.7rem] tw-font-semibold tw-leading-5 tw-text-[#17233e]"><span className="tw-whitespace-nowrap">{formatDate(toDateInputValue(getDisplayEffectiveFrom(subscription)) ?? subscription.requestedEffectiveFrom)}</span><span className="tw-whitespace-nowrap">— {subscription.effectiveTo ? formatDate(subscription.effectiveTo) : "Chưa xác định"}</span></span>
                     <small className="tw-mt-1 tw-block tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{getSubscriptionTotal(subscription) != null ? formatCurrency(getSubscriptionTotal(subscription)) : "Chưa xác định phí"}</small>
                   </span>
-                  <span className="tw-grid tw-justify-items-end tw-gap-1.5"><SubscriptionStatusPill status={subscription.status} />{subscription.status === "PENDING_PAYMENT" ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.74rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription); }}>Thanh toán</button> : null}</span>
+                  <span className="tw-grid tw-justify-items-end tw-gap-1.5"><SubscriptionStatusPill status={subscription.status} />{subscription.status === "PENDING_PAYMENT" && canPaySubscription ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.74rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription); }}>Thanh toán</button> : null}</span>
                   <i aria-hidden="true" className="fas fa-chevron-right tw-text-[0.6rem] tw-text-[#5c7090] max-[640px]:tw-hidden" />
                 </article>
               );
@@ -682,18 +698,18 @@ export function SubscriptionPage() {
         <div className="tw-min-w-0 [&_select]:tw-w-full [&_input]:tw-w-full [&_label]:tw-min-w-0">
           {subscriptionFormError ? <div className="tw-mt-3 tw-flex tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-[0.76rem] tw-font-medium tw-text-red-700" role="alert"><i className="fas fa-exclamation-circle tw-mt-0.5" /><span>{subscriptionFormError}</span></div> : null}
           <div className="tw-mt-3 tw-grid tw-gap-2.5">
-            <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Bãi xe đăng ký
-              <select className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-px-3 tw-text-[0.78rem] tw-text-[#273345]" value={form.parkingLotId} onChange={(event) => { void changeParkingLot(event.target.value); }}><option value="">Chọn bãi xe</option>{parkingLots.map((lot) => <option key={lot.parkingLotId} value={lot.parkingLotId}>{lot.name}{lot.addressDisplay ? ` · ${lot.addressDisplay}` : ""}</option>)}</select>
+            <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Bãi xe đăng ký</span>
+              <SelectMenu ariaLabel="Chọn bãi xe" options={[{ label: "Chọn bãi xe", value: "" }, ...parkingLots.map((lot) => ({ label: `${lot.name}${lot.addressDisplay ? ` · ${lot.addressDisplay}` : ""}`, value: lot.parkingLotId }))]} portal portalFitContent triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" value={form.parkingLotId} onChange={(value) => { void changeParkingLot(value); }} />
               {lotLookupsLoading ? <small className="tw-text-[#64748b]">Đang tải giá vé của bãi...</small> : null}
               {!loading && parkingLots.length === 0 ? <small className="tw-text-amber-700">Hiện chưa có bãi xe đang hoạt động để đăng ký.</small> : null}
-            </label>
-            <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Phương tiện
-              <span className="tw-relative"><SubscriptionIcon name="vehicle" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-2.5 !tw-h-4 !tw-w-4 tw-text-[#677181]" /><select className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-pl-10 tw-pr-3 tw-text-[0.78rem] tw-font-normal tw-text-[#273345]" value={form.customerVehicleId} onChange={(event) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, customerVehicleId: event.target.value })); }}><option value="">Chọn xe</option>{activeVehicles.map((vehicle) => <option key={vehicle.customerVehicleId} value={vehicle.customerVehicleId}>{vehicleLabel(vehicle, vehicleTypeById)}</option>)}</select></span>
-            </label>
-            <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Loại vé
-              <span className="tw-relative"><SubscriptionIcon name="ticket" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-2.5 !tw-h-4 !tw-w-4 tw-text-[#677181]" /><select className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-pl-10 tw-pr-3 tw-text-[0.78rem] tw-font-normal tw-text-[#273345]" value={form.ticketTypeId} onChange={(event) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, ticketTypeId: event.target.value })); }}><option value="">Chọn loại vé</option>{ticketTypes.map((ticketType) => <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>{ticketType.name}</option>)}</select></span>
-            </label>
-            <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Ngày bắt đầu
+            </div>
+            <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Phương tiện</span>
+              <span className="tw-relative"><SubscriptionIcon name="vehicle" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn xe đăng ký vé" options={[{ label: "Chọn xe", value: "" }, ...activeVehicles.map((vehicle) => ({ label: vehicleLabel(vehicle, vehicleTypeById), value: vehicle.customerVehicleId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.customerVehicleId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, customerVehicleId: value })); }} /></span>
+            </div>
+            <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Loại vé</span>
+              <span className="tw-relative"><SubscriptionIcon name="ticket" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn loại vé" options={[{ label: "Chọn loại vé", value: "" }, ...ticketTypes.map((ticketType) => ({ label: ticketType.name, value: ticketType.ticketTypeId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.ticketTypeId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, ticketTypeId: value })); }} /></span>
+            </div>
+            <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Ngày bắt đầu</span>
               <DatePicker
                 ariaDescribedBy={subscriptionFormError.includes("Ngày bắt đầu") ? "subscription-effective-from-error" : undefined}
                 ariaInvalid={subscriptionFormError.includes("Ngày bắt đầu")}
@@ -708,7 +724,7 @@ export function SubscriptionPage() {
                 }}
               />
               {subscriptionFormError.includes("Ngày bắt đầu") ? <small className="tw-text-[0.7rem] tw-font-medium tw-text-red-600" id="subscription-effective-from-error">{subscriptionFormError}</small> : null}
-            </label>
+            </div>
             <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Mã ưu đãi <span className="tw-font-normal tw-text-[#7b879b]">(nếu có)</span>
               <span className="tw-grid tw-grid-cols-[minmax(0,1fr)_auto] tw-gap-2"><span className="tw-relative"><i className="fas fa-tag tw-pointer-events-none tw-absolute tw-left-3 tw-top-2.5 tw-text-[0.75rem] tw-text-[#677181]" /><input className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-pl-9 tw-pr-3 tw-text-[0.78rem] tw-font-normal tw-uppercase tw-text-[#273345] placeholder:tw-normal-case placeholder:tw-text-[#93a0b3]" maxLength={50} value={form.voucherCode} onChange={(event) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, voucherCode: event.target.value.toUpperCase() })); }} placeholder="Ví dụ: WELCOME10" /></span><button className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#1263e9] tw-bg-[#1263e9] tw-px-3 tw-text-[0.74rem] tw-font-medium tw-text-white tw-transition hover:tw-bg-[#0751cf] disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={voucherQuoteLoading || !form.voucherCode.trim()} onClick={() => { void handleQuoteVoucher(); }}>{voucherQuoteLoading ? "Đang kiểm tra" : "Áp dụng"}</button></span>
               {voucherQuoteLoading ? <small className="tw-text-[0.66rem] tw-font-normal tw-text-[#64748b]"><i className="fas fa-spinner fa-spin tw-mr-1" />Đang kiểm tra mã ưu đãi...</small> : null}

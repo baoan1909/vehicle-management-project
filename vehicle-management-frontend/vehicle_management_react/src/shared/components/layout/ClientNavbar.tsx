@@ -21,7 +21,7 @@ const publicNavigation = [
 ];
 
 const profilePanelClassName =
-  "tw-absolute tw-right-0 tw-top-[calc(100%+12px)] tw-z-[1080] tw-w-[330px] tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-p-2 tw-shadow-[0_18px_42px_rgba(15,23,42,0.16)]";
+  "vm-profile-popover tw-absolute tw-right-0 tw-top-[calc(100%+12px)] tw-z-[1080] tw-w-[330px] tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-p-2 tw-shadow-[0_18px_42px_rgba(15,23,42,0.16)]";
 
 const profileItemClassName =
   "tw-my-1 tw-grid tw-grid-cols-[40px_minmax(0,1fr)] tw-items-center tw-gap-3 tw-rounded-vm-md tw-px-2.5 tw-py-2 tw-text-left tw-text-slate-900 tw-transition hover:tw-bg-brand-50 hover:tw-text-slate-900 hover:tw-no-underline";
@@ -98,6 +98,8 @@ export function ClientNavbar() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const loginUrlPromiseRef = useRef<Promise<string> | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileDrawerRef = useRef<HTMLElement | null>(null);
   const usernameLabel = user?.username?.trim() || user?.email?.trim() || "";
   const displayName = user?.fullName?.trim() || usernameLabel || "Khách hàng";
   const roleLabel = getRoleLabel(user?.role, user?.roleLabel);
@@ -116,6 +118,54 @@ export function ClientNavbar() {
     document.addEventListener("mousedown", handlePointerDown);
     return () => document.removeEventListener("mousedown", handlePointerDown);
   }, []);
+
+  useEffect(() => {
+    if (!profileOpen) return undefined;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [profileOpen]);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    mobileDrawerRef.current?.querySelector<HTMLElement>("a, button")?.focus();
+
+    function handleDrawerKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+        requestAnimationFrame(() => menuButtonRef.current?.focus());
+        return;
+      }
+
+      if (event.key !== "Tab" || !mobileDrawerRef.current) return;
+      const focusable = Array.from(mobileDrawerRef.current.querySelectorAll<HTMLElement>("a, button:not([disabled])"));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+
+    document.addEventListener("keydown", handleDrawerKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleDrawerKeyDown);
+    };
+  }, [open]);
 
   function prepareLoginRedirect() {
     preconnectKeycloakLoginOrigin();
@@ -159,31 +209,33 @@ export function ClientNavbar() {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     setProfileOpen(false);
+    setOpen(false);
     logoutCurrentUser(setUser);
   }
 
   return (
     <header className="tw-sticky tw-top-0 tw-z-[1050] tw-block tw-min-h-[72px] tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white/95 tw-shadow-[0_8px_24px_rgba(15,23,42,0.04)] tw-backdrop-blur-[16px]">
       {isLoginRedirecting ? <FullPageCarLoader label="Đang chuyển đến đăng nhập..." /> : null}
-      <div className="tw-grid tw-min-h-[72px] tw-w-full tw-grid-cols-[auto_minmax(0,1fr)_auto] tw-items-center tw-gap-[2.1rem] tw-px-[1.15rem] max-[992px]:tw-grid-cols-[auto_auto_1fr] max-[992px]:tw-gap-3 max-[992px]:tw-px-4 max-[640px]:tw-grid-cols-[112px_42px_1fr] max-[640px]:tw-px-3">
+      <div className="vm-client-header-row tw-grid tw-min-h-[72px] tw-w-full tw-grid-cols-[auto_minmax(0,1fr)_auto] tw-items-center tw-gap-[2.1rem] tw-px-[1.15rem] max-[992px]:tw-grid-cols-[auto_minmax(0,1fr)_auto] max-[992px]:tw-gap-2 max-[992px]:tw-px-4 max-[640px]:tw-px-3">
         <Link to="/" className="tw-inline-flex tw-w-fit tw-items-center hover:tw-no-underline" aria-label="CoParking">
           <img className="tw-block tw-h-[62px] tw-w-28 tw-object-contain max-[992px]:tw-w-24 max-[640px]:tw-w-[88px]" src="/assets/admin/dist/img/AdminLTELogo.png" alt="CoParking" />
         </Link>
 
         <button
-          className="tw-hidden tw-h-[42px] tw-w-[42px] tw-place-items-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-slate-900 max-[992px]:tw-grid"
+          ref={menuButtonRef}
+          className="vm-client-menu-button tw-hidden tw-h-[44px] tw-w-[44px] tw-shrink-0 tw-place-items-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-slate-900 max-[992px]:tw-grid"
           type="button"
           onClick={() => setOpen((value) => !value)}
           aria-label="Mở menu điều hướng"
           aria-expanded={open}
+          aria-controls="vm-client-mobile-drawer"
         >
           <i className="fas fa-bars" />
         </button>
 
         <nav
           className={cn(
-            "tw-flex tw-min-w-0 tw-items-center tw-justify-start tw-gap-[2.35rem] max-[992px]:tw-absolute max-[992px]:tw-left-4 max-[992px]:tw-right-4 max-[992px]:tw-top-[calc(100%+8px)] max-[992px]:tw-hidden max-[992px]:tw-flex-col max-[992px]:tw-items-stretch max-[992px]:tw-gap-0 max-[992px]:tw-rounded-vm-md max-[992px]:tw-border max-[992px]:tw-border-solid max-[992px]:tw-border-vm-slate-100 max-[992px]:tw-bg-white max-[992px]:tw-p-2 max-[992px]:tw-shadow-soft",
-            open && "max-[992px]:tw-flex",
+            "vm-client-desktop-nav tw-flex tw-min-w-0 tw-items-center tw-justify-start tw-gap-[2.35rem] max-[992px]:tw-hidden",
           )}
           aria-label="Điều hướng chính"
         >
@@ -209,12 +261,12 @@ export function ClientNavbar() {
           })}
         </nav>
 
-        <div className="tw-flex tw-items-center tw-justify-end tw-gap-3 tw-justify-self-end max-[640px]:tw-gap-2">
+        <div className="vm-client-header-actions tw-flex tw-min-w-0 tw-items-center tw-justify-end tw-gap-3 tw-justify-self-end max-[640px]:tw-gap-1">
           {user ? (
             <>
-              <ChatInboxButton />
+              <span className="vm-header-chat-action"><ChatInboxButton /></span>
               <NotificationBell variant="admin" />
-              <div className="tw-relative" ref={profileRef}>
+              <div className="vm-profile-popover-root tw-relative" ref={profileRef}>
                 <button
                   type="button"
                   className={cn(
@@ -234,7 +286,9 @@ export function ClientNavbar() {
                 </button>
 
                 {profileOpen ? (
-                  <div className={profilePanelClassName}>
+                  <>
+                  <button className="vm-header-popover-backdrop" type="button" aria-label="Đóng menu hồ sơ" onClick={() => setProfileOpen(false)} />
+                  <div className={profilePanelClassName} role="dialog" aria-label="Menu hồ sơ">
                     <div className="tw-flex tw-items-center tw-gap-3 tw-rounded-vm-md tw-bg-brand-50 tw-p-3">
                       <UserAvatar src={avatarUrl} alt={displayName} status={approvalStatus} className="tw-h-12 tw-w-12" />
                       <div className="tw-min-w-0">
@@ -291,6 +345,7 @@ export function ClientNavbar() {
                       <HeaderItemCopy title={isLoggingOut ? "Đang đăng xuất" : "Đăng xuất"} meta="Thoát khỏi phiên làm việc hiện tại" />
                     </button>
                   </div>
+                  </>
                 ) : null}
               </div>
             </>
@@ -313,6 +368,60 @@ export function ClientNavbar() {
           )}
         </div>
       </div>
+      <button
+        className="vm-client-drawer-backdrop"
+        data-open={open ? "true" : "false"}
+        type="button"
+        aria-label="Đóng menu điều hướng"
+        tabIndex={open ? 0 : -1}
+        onClick={() => setOpen(false)}
+      />
+      <aside
+        ref={mobileDrawerRef}
+        id="vm-client-mobile-drawer"
+        className="vm-client-mobile-drawer"
+        data-open={open ? "true" : "false"}
+        role="dialog"
+        aria-modal="true"
+        aria-hidden={!open}
+        aria-labelledby="vm-client-mobile-drawer-title"
+      >
+        <header>
+          <span>
+            <small>ĐIỀU HƯỚNG</small>
+            <strong id="vm-client-mobile-drawer-title">Khám phá CoParking</strong>
+          </span>
+          <button type="button" aria-label="Đóng menu" onClick={() => setOpen(false)}>
+            <i className="fas fa-times" aria-hidden="true" />
+          </button>
+        </header>
+        <nav aria-label="Khám phá CoParking">
+          {publicNavigation.map((item) => {
+            const active = item.href === "/" ? location.pathname === "/" : location.pathname === item.href;
+            return (
+              <Link key={item.href} to={item.href} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}>
+                <span><i className={item.href === "/" ? "far fa-building" : item.href === "/parking-lots/nearby" ? "fas fa-map-marker-alt" : item.href === "/pricing" ? "fas fa-tags" : item.href === "/guide" ? "far fa-compass" : "far fa-envelope"} aria-hidden="true" /></span>
+                {item.label}
+                <i className="fas fa-chevron-right" aria-hidden="true" />
+              </Link>
+            );
+          })}
+        </nav>
+        {user ? (
+          <section aria-label="Tài khoản">
+            <small>TÀI KHOẢN</small>
+            <Link to="/customer/profile" onClick={() => setOpen(false)}><i className="far fa-user" aria-hidden="true" />Hồ sơ cá nhân</Link>
+            {canAccessCustomerRoute(user, "/customer/support") ? <Link to="/customer/support" onClick={() => setOpen(false)}><i className="far fa-life-ring" aria-hidden="true" />Hỗ trợ</Link> : null}
+            <button type="button" disabled={isLoggingOut} onClick={handleLogout}><i className="fas fa-sign-out-alt" aria-hidden="true" />{isLoggingOut ? "Đang đăng xuất..." : "Đăng xuất"}</button>
+          </section>
+        ) : (
+          <section aria-label="Tài khoản">
+            <small>TÀI KHOẢN</small>
+            <button type="button" disabled={isLoginRedirecting} onClick={handleLoginRedirect}><i className="fas fa-sign-in-alt" aria-hidden="true" />Đăng nhập</button>
+            <Link to="/register" onClick={() => setOpen(false)}><i className="far fa-user-circle" aria-hidden="true" />Đăng ký</Link>
+          </section>
+        )}
+      </aside>
     </header>
   );
 }

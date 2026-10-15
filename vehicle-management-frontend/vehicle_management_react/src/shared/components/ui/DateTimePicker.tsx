@@ -134,7 +134,11 @@ export function DateTimePicker({
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        setOpen(false);
+      }
     };
 
     window.addEventListener("mousedown", handlePointerDown);
@@ -170,7 +174,7 @@ export function DateTimePicker({
   }
 
   return (
-    <div className="tw-relative" ref={rootRef}>
+    <div className="vm-date-time-picker-root tw-relative" ref={rootRef}>
       <button
         aria-expanded={open}
         className={cn(
@@ -194,7 +198,7 @@ export function DateTimePicker({
       {open ? (
         <div
           className={cn(
-            "tw-absolute tw-top-[calc(100%+8px)] tw-z-[2600] tw-w-[min(520px,calc(100vw-2rem))] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_24px_70px_rgba(15,23,42,0.2)]",
+            "vm-date-time-picker-panel tw-absolute tw-top-[calc(100%+8px)] tw-z-[2600] tw-w-[min(520px,calc(100vw-2rem))] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_24px_70px_rgba(15,23,42,0.2)]",
             menuAlign === "right" ? "tw-right-0" : "tw-left-0",
           )}
         >

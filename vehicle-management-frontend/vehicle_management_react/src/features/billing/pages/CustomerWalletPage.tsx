@@ -275,7 +275,7 @@ export function CustomerWalletPage() {
             </div>
           </div>
 
-          <div className="tw-mx-5 tw-mt-3 tw-overflow-x-auto tw-rounded-t-md tw-border tw-border-solid tw-border-[#e2e9f2]">
+          <div className="vm-wallet-desktop-table tw-mx-5 tw-mt-3 tw-overflow-x-auto tw-rounded-t-md tw-border tw-border-solid tw-border-[#e2e9f2]">
             <table className="tw-w-full tw-min-w-[790px] tw-border-collapse tw-text-left">
               <thead className="tw-bg-[#f6f8fb] tw-text-[0.7rem] tw-font-semibold tw-text-[#405170]">
                 <tr>
@@ -313,6 +313,28 @@ export function CustomerWalletPage() {
               </tbody>
             </table>
           </div>
+          <ul className="vm-wallet-mobile-cards" aria-label="Lịch sử giao dịch">
+            {visibleTransactions.map((transaction) => {
+              const meta = transactionMeta(transaction, topupById);
+              const status = transactionStatus(transaction.status);
+              const date = formatDateTime(transaction.occurredAt);
+              const prefix = meta.amount == null ? "" : meta.direction === "credit" ? "+" : meta.direction === "debit" ? "−" : "";
+              const amountStyle = meta.direction === "credit" ? "tw-text-emerald-600" : meta.direction === "debit" ? "tw-text-rose-500" : "tw-text-slate-600";
+              return (
+                <li className="vm-support-mobile-card" key={transaction.financialTransactionId}>
+                  <div className="tw-flex tw-items-center tw-justify-between tw-gap-2">
+                    <strong>{date.date} · {date.time}</strong>
+                    <span className={`tw-inline-flex tw-items-center tw-gap-1.5 tw-whitespace-nowrap tw-rounded-full tw-px-2.5 tw-py-1 tw-text-[0.66rem] tw-font-semibold ${status.style}`}><i className={status.icon} />{status.label}</span>
+                  </div>
+                  <span className="tw-text-[0.9rem] tw-font-bold tw-text-slate-900">{meta.title}</span>
+                  <span className="tw-truncate tw-text-[0.78rem] tw-font-semibold tw-text-slate-500" title={transaction.transactionCode}>{meta.subtitle} · {transaction.transactionCode}</span>
+                  <strong className={`tw-text-right tw-text-[1.05rem] ${amountStyle}`}>{prefix}{formatCurrency(meta.amount)}</strong>
+                </li>
+              );
+            })}
+            {!loading && visibleTransactions.length === 0 ? <li className="vm-support-mobile-card">Chưa có giao dịch phù hợp.</li> : null}
+            {loading ? <li className="vm-support-mobile-card">Đang tải lịch sử giao dịch...</li> : null}
+          </ul>
           <WalletPagination currentPage={safePage} totalPages={totalPages} totalRecords={filtered.length} onPageChange={setPage} />
         </section>
       </section>
