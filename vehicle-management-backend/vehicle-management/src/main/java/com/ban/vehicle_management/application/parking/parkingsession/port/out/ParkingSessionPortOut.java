@@ -42,4 +42,16 @@ public interface ParkingSessionPortOut {
             List<UUID> customerVehicleIds,
             Set<UUID> parkingLotIds
     );
+
+    List<ParkingSessionManagementResult> findOwnManagementSessions(
+            ParkingSessionStatus status,
+            UUID vehicleTypeId,
+            UUID zoneId,
+            Instant checkInFrom,
+            Instant checkInTo,
+            String keyword,
+            List<UUID> customerVehicleIds,
+            Set<UUID> parkingLotIds,
+            int limit
+    );
 }

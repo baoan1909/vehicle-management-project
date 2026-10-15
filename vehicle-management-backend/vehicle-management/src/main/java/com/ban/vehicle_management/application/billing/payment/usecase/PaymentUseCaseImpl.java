@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePo
 import com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuard;
 import com.ban.vehicle_management.application.billing.payment.port.in.PaymentPortIn;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
@@ -37,6 +38,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
     private final SubscriptionPortIn subscriptionPortIn;
     private final ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
     private final NotificationPortIn notificationPortIn;
+    private final SettlementPortIn settlementPortIn;
 
     public PaymentUseCaseImpl(
             PaymentPortOut paymentPortOut,
@@ -44,7 +46,8 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
             PaymentAccessGuard paymentAccessGuard,
             SubscriptionPortIn subscriptionPortIn,
             ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn,
-            NotificationPortIn notificationPortIn
+            NotificationPortIn notificationPortIn,
+            SettlementPortIn settlementPortIn
     ) {
         this.paymentPortOut = paymentPortOut;
         this.invoicePortOut = invoicePortOut;
@@ -52,6 +55,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
         this.subscriptionPortIn = subscriptionPortIn;
         this.parkingCheckoutCompletionPortIn = parkingCheckoutCompletionPortIn;
         this.notificationPortIn = notificationPortIn;
+        this.settlementPortIn = settlementPortIn;
     }
 
     @Override
@@ -81,6 +85,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
 
         if (invoice.getSubscriptionId() != null) {
             subscriptionPortIn.markSubscriptionPaymentCompleted(invoice.getSubscriptionId());
+            settlementPortIn.allocateForCompletedPayment(savedPayment.getPaymentId());
         }
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());
 
@@ -179,6 +184,9 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
     private void validateManualPaymentMethod(Payment payment) {
         if (PaymentMethod.VNPAY.equals(payment.getPaymentMethod())) {
             throw new BadRequestException("Use the VNPAY payment endpoint for VNPAY transactions");
+        }
+        if (PaymentMethod.WALLET.equals(payment.getPaymentMethod())) {
+            throw new BadRequestException("Use the wallet payment endpoint for WALLET transactions");
         }
     }
 

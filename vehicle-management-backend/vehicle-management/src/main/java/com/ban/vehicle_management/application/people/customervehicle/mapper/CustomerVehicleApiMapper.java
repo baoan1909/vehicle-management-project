@@ -9,6 +9,7 @@ import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.
 import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.UpdateCustomerVehicleBatchRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.UpdateCustomerVehicleRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.response.CustomerVehicleAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.response.CustomerVehicleUserResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
@@ -67,6 +68,13 @@ public interface CustomerVehicleApiMapper {
 
     List<CustomerVehicleAdminResponse> toAdminResponses(List<CustomerVehicle> customerVehicles);
 
+    @Mapping(target = "licensePlateNormalized", ignore = true)
+    @Mapping(target = "licensePlateDisplay", ignore = true)
+    @Mapping(target = "vehicleIdentifier", ignore = true)
+    CustomerVehicleUserResponse toUserResponse(CustomerVehicle customerVehicle);
+
+    List<CustomerVehicleUserResponse> toUserResponses(List<CustomerVehicle> customerVehicles);
+
     @AfterMapping
     default void addLicensePlateView(CustomerVehicle source, @MappingTarget CustomerVehicleAdminResponse target) {
         LicensePlateResolution resolution = new LicensePlatePolicy().resolve(
@@ -81,6 +89,19 @@ public interface CustomerVehicleApiMapper {
         target.setPlateFormat(resolution.format().name());
         target.setValidFormat(resolution.validFormat());
         target.setNeedsReview(resolution.needsReview());
+    }
+
+    @AfterMapping
+    default void addLicensePlateView(CustomerVehicle source, @MappingTarget CustomerVehicleUserResponse target) {
+        LicensePlateResolution resolution = new LicensePlatePolicy().resolve(
+                source.getLicensePlate(),
+                source.getLicensePlate() == null ? "BICYCLE" : null
+        );
+        target.setLicensePlateNormalized(resolution.normalized());
+        target.setLicensePlateDisplay(resolution.display());
+        target.setVehicleIdentifier(source.getLicensePlate() == null && source.getCustomerVehicleId() != null
+                ? "BICYCLE-" + source.getCustomerVehicleId().toString().substring(0, 8).toUpperCase()
+                : null);
     }
 
 }

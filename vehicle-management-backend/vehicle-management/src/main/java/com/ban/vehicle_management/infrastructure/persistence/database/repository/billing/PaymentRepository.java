@@ -27,6 +27,12 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, UUID>, J
 
     Optional<PaymentEntity> findByTransactionRef(String transactionRef);
 
+    Optional<PaymentEntity> findByIdempotencyKey(String idempotencyKey);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from PaymentEntity p where p.paymentId = :paymentId")
+    Optional<PaymentEntity> findByIdForUpdate(@Param("paymentId") UUID paymentId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select payment

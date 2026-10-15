@@ -224,6 +224,8 @@ export function DateRangeInput({ ariaLabel = "Khoảng ngày", className, label,
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
         setOpen(false);
       }
     };
@@ -294,13 +296,13 @@ export function DateRangeInput({ ariaLabel = "Khoảng ngày", className, label,
   };
 
   return (
-    <div className={cn("tw-grid tw-w-full tw-gap-1.5", className)}>
+    <div className={cn("tw-grid tw-min-w-0 tw-w-full tw-gap-1.5", className)}>
       {label ? <span className="tw-text-[0.76rem] tw-font-black tw-text-vm-slate-600">{label}</span> : null}
       <button
         aria-expanded={open}
         aria-label={ariaLabel}
         className={cn(
-          "tw-group tw-flex tw-h-[42px] tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-0 tw-pl-[0.95rem] tw-pr-[0.8rem] tw-text-left tw-text-[0.86rem] tw-font-semibold tw-text-[#111827] tw-shadow-[0_4px_10px_rgba(15,23,42,0.025)] tw-transition focus-visible:tw-outline-none",
+          "tw-group tw-flex tw-h-[42px] tw-min-w-0 tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-0 tw-pl-[0.95rem] tw-pr-[0.8rem] tw-text-left tw-text-[0.86rem] tw-font-semibold tw-text-[#111827] tw-shadow-[0_4px_10px_rgba(15,23,42,0.025)] tw-transition focus-visible:tw-outline-none",
           "hover:tw-border-vm-slate-200 hover:tw-shadow-[0_0_0_3px_rgba(148,163,184,0.08)] focus-visible:tw-border-brand-200 focus-visible:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]",
           open ? "tw-border-brand-200 tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]" : "",
         )}
@@ -343,7 +345,7 @@ export function DateRangeInput({ ariaLabel = "Khoảng ngày", className, label,
       {open
         ? createPortal(
             <div
-              className="tw-fixed tw-z-[2400] tw-flex tw-max-h-[min(520px,calc(100vh-20px))] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_24px_70px_rgba(15,23,42,0.2)]"
+              className="vm-date-range-panel tw-fixed tw-z-[2400] tw-flex tw-max-h-[min(520px,calc(100vh-20px))] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_24px_70px_rgba(15,23,42,0.2)]"
               ref={panelRef}
               style={{
                 left: position.left,

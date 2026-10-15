@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
@@ -102,6 +103,20 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
                 keyword
         ).and(CustomerVehicleSpecifications.inParkingLots(parkingLotIds));
         return customerVehicleRepository.findAll(specification).stream()
+                .map(customerVehiclePersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<CustomerVehicle> findOwnVehicles(UUID customerId, int limit) {
+        Specification<CustomerVehicleEntity> specification = CustomerVehicleSpecifications.withFilters(
+                customerId,
+                null,
+                null,
+                null,
+                null
+        );
+        return customerVehicleRepository.findAll(specification, PageRequest.of(0, limit)).stream()
                 .map(customerVehiclePersistenceMapper::toDomain)
                 .toList();
     }

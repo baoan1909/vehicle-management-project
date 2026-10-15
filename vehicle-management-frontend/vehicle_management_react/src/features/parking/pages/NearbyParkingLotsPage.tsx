@@ -273,6 +273,8 @@ export function NearbyParkingLotsPage() {
             aria-hidden="true"
             className="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-object-center max-[640px]:tw-opacity-45"
             src="/assets/customer/portal/nearby-parking-hero-v1.png"
+            decoding="async"
+            fetchPriority="low"
           />
           <div
             aria-hidden="true"

@@ -49,6 +49,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,6 +66,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             InvoiceStatus.UNPAID,
             InvoiceStatus.PAID
     );
+
+    private static final int DEFAULT_OWN_LIST_LIMIT = 100;
+    private static final int MAX_OWN_LIST_LIMIT = 200;
 
     private final SubscriptionPortOut subscriptionPortOut;
     private final CustomerVehiclePortOut customerVehiclePortOut;
@@ -119,10 +123,32 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     @Override
     @Transactional
     public Subscription createOwnSubscription(Subscription subscription) {
+        return createOwnSubscription(subscription, null);
+    }
+
+    @Override
+    @Transactional
+    public Subscription createOwnSubscription(Subscription subscription, String idempotencyKey) {
         subscriptionAccessGuard.ensureCanCreateOwn();
         UUID customerId = subscriptionAccessGuard.resolveCurrentApprovedCustomerId();
         subscription.setCustomerId(customerId);
-        return createPendingSubscription(subscription);
+
+        String normalizedKey = normalizeIdempotencyKey(idempotencyKey);
+        Subscription existing = findIdempotentSubscription(customerId, normalizedKey);
+        if (existing != null) {
+            return existing;
+        }
+
+        subscription.setIdempotencyKey(normalizedKey);
+        try {
+            return createPendingSubscription(subscription);
+        } catch (DataIntegrityViolationException idempotentConflict) {
+            Subscription raced = findIdempotentSubscription(customerId, normalizedKey);
+            if (raced != null) {
+                return raced;
+            }
+            throw idempotentConflict;
+        }
     }
 
     @Override
@@ -165,6 +191,14 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         Subscription subscription = findSubscriptionOrThrow(subscriptionId);
         subscriptionAccessGuard.ensureCanRead(subscription);
         return subscription;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Subscription> getMySubscriptions(Integer limit) {
+        UUID customerId = subscriptionAccessGuard.resolveCustomerIdForList(null);
+        int resolvedLimit = limit == null ? DEFAULT_OWN_LIST_LIMIT : Math.min(Math.max(limit, 1), MAX_OWN_LIST_LIMIT);
+        return subscriptionPortOut.findOwnSubscriptions(customerId, resolvedLimit);
     }
 
     @Override
@@ -603,6 +637,24 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private Subscription findSubscriptionOrThrow(UUID subscriptionId) {
         return subscriptionPortOut.findById(subscriptionId)
                 .orElseThrow(() -> new NotFoundException("Subscription not found"));
+    }
+
+    private Subscription findIdempotentSubscription(UUID customerId, String idempotencyKey) {
+        if (idempotencyKey == null) {
+            return null;
+        }
+        return subscriptionPortOut.findByCustomerIdAndIdempotencyKey(customerId, idempotencyKey).orElse(null);
+    }
+
+    private String normalizeIdempotencyKey(String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            return null;
+        }
+        String normalized = idempotencyKey.trim();
+        if (normalized.length() > 100) {
+            throw new BadRequestException("Idempotency-Key must not exceed 100 characters");
+        }
+        return normalized;
     }
 
     private LocalDate currentDate() {

@@ -16,6 +16,8 @@ public interface InvoicePortOut {
 
     Optional<Invoice> findById(UUID invoiceId);
 
+    Optional<Invoice> findByIdForUpdate(UUID invoiceId);
+
     List<Invoice> findAll(
             UUID customerId,
             UUID parkingSessionId,
@@ -31,6 +33,16 @@ public interface InvoicePortOut {
             UUID customerId, UUID parkingSessionId, UUID subscriptionId, UUID lostCardReportId,
             InvoiceStatus status, Instant fromDate, Instant toDate, String keyword,
             Set<UUID> parkingLotIds
+    );
+
+    List<Invoice> findOwnInvoices(
+            UUID customerId,
+            List<UUID> subscriptionIds,
+            InvoiceStatus status,
+            Instant fromDate,
+            Instant toDate,
+            String keyword,
+            int limit
     );
 
     boolean existsCustomerById(UUID customerId);

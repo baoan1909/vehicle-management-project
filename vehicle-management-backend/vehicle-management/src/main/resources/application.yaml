@@ -81,6 +81,9 @@ spring:
         enabled: false
 
 app:
+  billing:
+    platform-fee:
+      max-partner-total-rate: ${PLATFORM_FEE_MAX_PARTNER_TOTAL_RATE:0.30}
   features:
     parking-location:
       admin-address-v2-enabled: ${ADMIN_ADDRESS_V2_ENABLED:false}

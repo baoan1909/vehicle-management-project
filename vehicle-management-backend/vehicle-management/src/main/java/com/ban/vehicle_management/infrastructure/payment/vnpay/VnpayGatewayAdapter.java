@@ -49,7 +49,7 @@ public class VnpayGatewayAdapter implements VnpayGatewayPortOut {
         parameters.put("vnp_OrderInfo", request.orderInfo());
         parameters.put("vnp_OrderType", properties.getOrderType());
         parameters.put("vnp_Locale", normalizeLocale(request.locale()));
-        parameters.put("vnp_ReturnUrl", properties.getReturnUrl());
+        parameters.put("vnp_ReturnUrl", resolveReturnUrl(request));
         parameters.put("vnp_IpAddr", normalizeClientIp(request.clientIp()));
         parameters.put("vnp_CreateDate", formatDate(request.createdAt()));
         parameters.put("vnp_ExpireDate", formatDate(expiresAt));
@@ -175,6 +175,13 @@ public class VnpayGatewayAdapter implements VnpayGatewayPortOut {
 
     private String encode(String value) {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
+    private String resolveReturnUrl(com.ban.vehicle_management.application.billing.payment.model.VnpayPaymentRequest request) {
+        if (request.returnUrlOverride() != null && !request.returnUrlOverride().isBlank()) {
+            return request.returnUrlOverride().trim();
+        }
+        return properties.getReturnUrl();
     }
 
     private void validateConfiguration() {

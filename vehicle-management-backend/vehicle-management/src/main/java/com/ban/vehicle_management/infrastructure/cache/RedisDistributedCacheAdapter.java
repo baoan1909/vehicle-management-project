@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 
 /**
@@ -24,6 +25,15 @@ import org.springframework.stereotype.Component;
 public class RedisDistributedCacheAdapter implements DistributedCachePortOut {
 
     private static final Logger log = LoggerFactory.getLogger(RedisDistributedCacheAdapter.class);
+    private static final DefaultRedisScript<Long> INCREMENT_WITH_TTL_SCRIPT = new DefaultRedisScript<>(
+            """
+            local count = redis.call('INCR', KEYS[1])
+            if count == 1 then
+                redis.call('PEXPIRE', KEYS[1], ARGV[1])
+            end
+            return count
+            """,
+            Long.class);
 
     private final ObjectProvider<StringRedisTemplate> redisTemplateProvider;
     private final RedisProperties redisProperties;
@@ -127,6 +137,44 @@ public class RedisDistributedCacheAdapter implements DistributedCachePortOut {
         } catch (Exception exception) {
             metrics.error(cacheOf(key), "putIfAbsent");
             return false;
+        }
+    }
+
+    @Override
+    public Optional<Long> increment(String key, Duration ttl) {
+        if (!usable() || key == null || key.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            Duration effectiveTtl = ttl == null || ttl.isZero() || ttl.isNegative()
+                    ? Duration.ofMinutes(5)
+                    : ttl;
+            Long count = redisTemplateProvider.getObject().execute(
+                    INCREMENT_WITH_TTL_SCRIPT,
+                    List.of(key),
+                    Long.toString(Math.max(1L, effectiveTtl.toMillis())));
+            return Optional.ofNullable(count);
+        } catch (Exception exception) {
+            metrics.error(cacheOf(key), "increment");
+            log.debug("Redis increment failed keyHash={} error={}", sha(key),
+                    exception.getClass().getSimpleName());
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public Optional<Long> getCounter(String key) {
+        if (!usable() || key == null || key.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            String raw = redisTemplateProvider.getObject().opsForValue().get(key);
+            return raw == null || raw.isBlank() ? Optional.empty() : Optional.of(Long.parseLong(raw));
+        } catch (Exception exception) {
+            metrics.error(cacheOf(key), "getCounter");
+            log.debug("Redis counter read failed keyHash={} error={}", sha(key),
+                    exception.getClass().getSimpleName());
+            return Optional.empty();
         }
     }
 

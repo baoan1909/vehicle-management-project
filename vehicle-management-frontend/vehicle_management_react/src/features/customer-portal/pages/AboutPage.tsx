@@ -350,7 +350,7 @@ export function AboutPage() {
       <main className="tw-overflow-hidden tw-bg-white tw-text-[#071b38]">
         <section className="tw-relative tw-mx-auto tw-w-full tw-max-w-[1600px] tw-px-4 tw-pb-[62px] tw-pt-5 min-[992px]:tw-px-9 min-[992px]:tw-pt-7">
           <div className="tw-relative tw-min-h-[850px] tw-overflow-hidden tw-rounded-[28px] tw-bg-[#03152f] tw-shadow-[0_26px_60px_rgba(4,28,66,0.2)] max-[900px]:tw-min-h-[1040px] max-[640px]:tw-min-h-[1320px]">
-            <img className="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-object-center" src="/assets/customer/about/about-hero-operations-hub.webp" alt="Trung tâm điều hành bãi xe thông minh CoParking về đêm" />
+            <img className="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-object-center" src="/assets/customer/about/about-hero-operations-hub.webp" alt="Trung tâm điều hành bãi xe thông minh CoParking về đêm" decoding="async" fetchPriority="high" />
             <div className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(2,15,35,.98)_0%,rgba(2,18,42,.91)_32%,rgba(2,18,42,.28)_66%,rgba(2,18,42,.18)_100%)] max-[900px]:tw-bg-[linear-gradient(180deg,rgba(2,15,35,.97)_0%,rgba(2,18,42,.73)_55%,rgba(2,18,42,.4)_100%)]" />
             <div className="tw-pointer-events-none tw-absolute -tw-left-20 tw-bottom-4 tw-h-52 tw-w-[470px] tw-rounded-[50%] tw-border tw-border-solid tw-border-[#b88a3a]/40" />
             <div className="tw-pointer-events-none tw-absolute -tw-left-32 tw-bottom-16 tw-h-52 tw-w-[520px] tw-rounded-[50%] tw-border tw-border-solid tw-border-[#b88a3a]/25" />
@@ -484,7 +484,7 @@ export function AboutPage() {
                   tabIndex={0}
                 >
                   <div className="tw-flex tw-items-start tw-gap-3"><i className={cn(item.icon, "tw-grid tw-h-11 tw-w-11 tw-flex-none tw-place-items-center tw-rounded-full tw-bg-[#0d3977] tw-text-[#4a98ff]")} /><div><h3 className="tw-m-0 tw-text-[1.1rem] tw-font-black">{item.title}</h3><p className="tw-m-0 tw-mt-2 tw-text-[0.84rem] tw-font-semibold tw-leading-5 tw-text-[#b7cae4]">{item.text}</p></div></div>
-                  {item.image ? <img className="tw-absolute tw-bottom-0 tw-left-0 tw-h-[116px] tw-w-full tw-object-cover tw-opacity-85 tw-transition tw-duration-500 group-hover:tw-scale-105" src={item.image} alt="Hệ thống kiểm soát xe ra vào" /> : item.featured ? (
+                  {item.image ? <img className="tw-absolute tw-bottom-0 tw-left-0 tw-h-[116px] tw-w-full tw-object-cover tw-opacity-85 tw-transition tw-duration-500 group-hover:tw-scale-105" src={item.image} alt="Hệ thống kiểm soát xe ra vào" loading="lazy" decoding="async" /> : item.featured ? (
                     <div className="tw-mt-7 tw-rounded-[11px] tw-border tw-border-solid tw-border-white/10 tw-bg-[#051a3b] tw-p-4">
                       <span className="tw-flex tw-items-center tw-justify-between tw-text-[0.75rem] tw-font-bold tw-text-[#a9c5e9]"><span><i className="far fa-calendar-check tw-mr-2 tw-text-[#4a98ff]" />Vé tháng</span><b className="tw-text-white">51A-123.45</b><small>Còn 3 ngày</small></span><span className="tw-mt-4 tw-block tw-h-2 tw-rounded-full tw-bg-white/10"><i className="tw-block tw-h-full tw-w-[72%] tw-rounded-full tw-bg-[#1c73ff]" /></span>
                     </div>
@@ -509,7 +509,7 @@ export function AboutPage() {
               </Reveal>
             ))}
           </div>
-          <Reveal className="tw-mt-8 tw-overflow-hidden tw-rounded-[14px] tw-shadow-[0_18px_35px_rgba(20,54,96,.14)]"><img className="tw-block tw-h-[118px] tw-w-full tw-object-cover tw-object-center min-[900px]:tw-h-[142px]" src="/assets/customer/about/about-workflow-parking-lane.webp" alt="Làn xe vận hành tự động của CoParking" /></Reveal>
+          <Reveal className="tw-mt-8 tw-overflow-hidden tw-rounded-[14px] tw-shadow-[0_18px_35px_rgba(20,54,96,.14)]"><img className="tw-block tw-h-[118px] tw-w-full tw-object-cover tw-object-center min-[900px]:tw-h-[142px]" src="/assets/customer/about/about-workflow-parking-lane.webp" alt="Làn xe vận hành tự động của CoParking" loading="lazy" decoding="async" /></Reveal>
         </section>
 
         <section className="tw-mx-auto tw-w-[min(1460px,calc(100%_-_32px))] tw-pb-14">
@@ -518,7 +518,7 @@ export function AboutPage() {
             {deploymentModels.map((item, index) => (
               <Reveal delay={index * 50} key={item.title}>
                 <article className="tw-group tw-h-full tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-border-[#deE8f5] tw-bg-white tw-shadow-[0_12px_28px_rgba(25,57,99,.07)] tw-transition tw-duration-300 hover:-tw-translate-y-1 hover:tw-shadow-[0_18px_38px_rgba(25,91,184,.14)]">
-                  <div className="tw-h-[120px] tw-overflow-hidden"><img className="tw-h-full tw-w-full tw-object-cover tw-transition tw-duration-500 group-hover:tw-scale-105" src={item.image} alt={item.title} /></div>
+                  <div className="tw-h-[120px] tw-overflow-hidden"><img className="tw-h-full tw-w-full tw-object-cover tw-transition tw-duration-500 group-hover:tw-scale-105" src={item.image} alt={item.title} loading="lazy" decoding="async" /></div>
                   <div className="tw-p-4"><h3 className="tw-m-0 tw-text-[1rem] tw-font-black tw-text-[#102541]">{item.title}</h3><b className="tw-mt-1 tw-block tw-text-[0.75rem] tw-font-black tw-text-[#2778ff]">{item.value}</b><p className="tw-m-0 tw-mt-2 tw-text-[0.74rem] tw-font-semibold tw-leading-5 tw-text-[#71849d]">{item.text}</p></div>
                 </article>
               </Reveal>

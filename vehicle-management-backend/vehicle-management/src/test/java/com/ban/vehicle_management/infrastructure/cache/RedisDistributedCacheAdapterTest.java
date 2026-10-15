@@ -57,6 +57,8 @@ class RedisDistributedCacheAdapterTest {
         // Must not throw.
         adapter.put("vm:k", "v", Duration.ofMinutes(1));
         adapter.putIfAbsent("vm:k", "v", Duration.ofMinutes(1));
+        assertTrue(adapter.increment("vm:counter", Duration.ofMinutes(1)).isEmpty());
+        assertTrue(adapter.getCounter("vm:counter").isEmpty());
         adapter.delete("vm:k");
         adapter.deleteAll(List.of("vm:k"));
     }
@@ -91,6 +93,8 @@ class RedisDistributedCacheAdapterTest {
         try {
             Optional<String> result = adapter.get("vm:k", String.class);
             assertTrue(result.isEmpty());
+            assertTrue(adapter.increment("vm:counter", Duration.ofMinutes(1)).isEmpty());
+            assertTrue(adapter.getCounter("vm:counter").isEmpty());
         } catch (Exception exception) {
             // Acceptable only if fail-open guard missed; fail the test to surface it.
             assertTrue(false, "Cache get must fail open, got " + exception);

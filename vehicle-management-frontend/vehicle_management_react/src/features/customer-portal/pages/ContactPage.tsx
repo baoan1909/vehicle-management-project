@@ -1,4 +1,5 @@
 import { ClientPage } from "@/shared/components/layout/ClientPage";
+import { SelectMenu } from "@/components/ui";
 import { publicContactItems, PublicFooter, PublicHero } from "./PortalShared";
 
 const quickSupport = [
@@ -44,7 +45,7 @@ export function ContactPage() {
               <label>Họ và tên<input placeholder="Nguyễn Văn A" /></label>
               <label>Email<input placeholder="email@example.com" /></label>
               <label>Số điện thoại<input placeholder="0901 234 567" /></label>
-              <label>Chủ đề<select defaultValue="Tư vấn đăng ký vé"><option>Tư vấn đăng ký vé</option></select></label>
+              <div><span>Chủ đề</span><SelectMenu ariaLabel="Chọn chủ đề liên hệ" options={[{ label: "Tư vấn đăng ký vé", value: "subscription" }]} searchable={false} value="subscription" onChange={() => undefined} /></div>
               <label>Nội dung<textarea placeholder="Nhập nội dung cần hỗ trợ..." /></label>
               <button type="button">Gửi liên hệ</button>
             </div>

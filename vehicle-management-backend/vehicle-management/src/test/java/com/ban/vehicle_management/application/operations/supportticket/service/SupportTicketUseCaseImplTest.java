@@ -96,7 +96,7 @@ class SupportTicketUseCaseImplTest {
         UUID customerId = UUID.randomUUID();
         SupportTicket owned = ticket(customerId);
         when(accessGuard.resolveCustomerIdForOwnTickets()).thenReturn(customerId);
-        when(supportTicketPortOut.findAll(customerId, null, null, SupportTicketStatus.OPEN, null, "gate"))
+        when(supportTicketPortOut.findOwnTickets(customerId, SupportTicketStatus.OPEN, "gate", 100))
                 .thenReturn(List.of(owned));
 
         List<SupportTicket> result = useCase.getMyTickets(SupportTicketStatus.OPEN, " gate ");

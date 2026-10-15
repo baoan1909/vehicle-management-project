@@ -36,4 +36,5 @@ public class Subscription extends AuditableDomainModel {
     private UUID rejectedBy;
     private Instant rejectedAt;
     private LocalDate cardReceiptDate;
+    private String idempotencyKey;
 }
