@@ -5,7 +5,6 @@ import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
 import {
-  PLATFORM_FEE_MAX_TOTAL_RATE,
   activatePlatformFeeType,
   archivePlatformFeeType,
   deactivatePlatformFeeType,
@@ -17,6 +16,7 @@ import {
   type PlatformFeeTypeDetailResponse,
   type PlatformFeeVersionResponse,
 } from "@/features/billing/api/platformFeeApi";
+import { usePlatformFeeConfiguration } from "@/features/billing/components/PlatformFeeConfigurationContext";
 import { FeeFieldLabel, FeeLockedInput, FeeToggle } from "@/features/billing/components/PlatformFeeControls";
 import { PlatformFeeStatusPill } from "@/features/billing/components/PlatformFeeStatusPill";
 import { PlatformFeeVersionsSection } from "@/features/billing/components/PlatformFeeVersionsSection";
@@ -39,6 +39,7 @@ type DetailSectionProps = {
   feeTypeId: string;
   initialTab?: FeeDetailTab;
   onBack: () => void;
+  onTabChange?: (tab: FeeDetailTab) => void;
 };
 
 type HistoryEvent = {
@@ -86,7 +87,7 @@ function ConditionRow({ description, met, title }: { description: string; met: b
   );
 }
 
-export function PlatformFeeDetailSection({ feeTypeId, initialTab = "info", onBack }: DetailSectionProps) {
+export function PlatformFeeDetailSection({ feeTypeId, initialTab = "info", onBack, onTabChange }: DetailSectionProps) {
   const toast = useToast();
   const { user } = useAuth();
 
@@ -96,6 +97,7 @@ export function PlatformFeeDetailSection({ feeTypeId, initialTab = "info", onBac
   const canPreview = hasAnyPermission(user, platformFeePermissions.preview);
 
   const [tab, setTab] = useState<FeeDetailTab>(initialTab);
+  const { maxPartnerTotalRate } = usePlatformFeeConfiguration();
   const [detail, setDetail] = useState<PlatformFeeTypeDetailResponse | null>(null);
   const [versions, setVersions] = useState<PlatformFeeVersionResponse[]>([]);
   const [totalRate, setTotalRate] = useState<number | null>(null);
@@ -169,7 +171,10 @@ export function PlatformFeeDetailSection({ feeTypeId, initialTab = "info", onBac
     }
     return false;
   }, [versions]);
-  const withinLimit = totalRate !== null && totalRate <= PLATFORM_FEE_MAX_TOTAL_RATE;
+  const withinLimit = totalRate !== null
+    && maxPartnerTotalRate !== null
+    && totalRate <= maxPartnerTotalRate;
+  const maxTotalPercent = maxPartnerTotalRate === null ? null : maxPartnerTotalRate * 100;
 
   const historyEvents = useMemo<HistoryEvent[]>(() => {
     if (!detail) return [];
@@ -353,7 +358,10 @@ export function PlatformFeeDetailSection({ feeTypeId, initialTab = "info", onBac
               key={item.value}
               role="tab"
               type="button"
-              onClick={() => setTab(item.value)}
+              onClick={() => {
+                setTab(item.value);
+                onTabChange?.(item.value);
+              }}
             >
               {item.label}
               {active ? <span className="tw-absolute tw-inset-x-0 tw--bottom-px tw-h-[3px] tw-rounded-full tw-bg-vm-primary" /> : null}
@@ -448,9 +456,11 @@ export function PlatformFeeDetailSection({ feeTypeId, initialTab = "info", onBac
                 title="Không trùng khoảng hiệu lực"
               />
               <ConditionRow
-                description={totalRate === null ? "Chưa xác định tổng phí hiện tại." : `Tổng phí đối tác đang chịu: ${formatFeePercent(totalRate)} (≤ 30%).`}
+                description={totalRate === null || maxTotalPercent === null
+                  ? "Chưa xác định tổng phí hoặc giới hạn hiện tại."
+                  : `Tổng phí đối tác đang chịu: ${formatFeePercent(totalRate)} (≤ ${maxTotalPercent}%).`}
                 met={withinLimit}
-                title="Tổng phí không vượt 30%"
+                title={maxTotalPercent === null ? "Tổng phí trong giới hạn" : `Tổng phí không vượt ${maxTotalPercent}%`}
               />
               {feeType && feeType.status === "ACTIVE" && canActivate ? (
                 <Button variant="secondary" onClick={() => setConfirmKind("deactivate")}>

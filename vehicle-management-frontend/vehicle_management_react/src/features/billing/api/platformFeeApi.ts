@@ -72,6 +72,10 @@ export type PlatformFeePageResponse = {
   totalPages: number;
 };
 
+export type PlatformFeeConfigurationResponse = {
+  maxPartnerTotalRate: number;
+};
+
 export type PlatformFeePreviewLineResponse = {
   feeTypeId: string;
   ruleVersionId: string;
@@ -136,13 +140,6 @@ export type PreviewPlatformFeesRequest = {
   customerPaidAmount: number;
 };
 
-/**
- * Trần tổng tỷ lệ phí toàn sàn. Backend kiểm soát bằng cấu hình
- * `app.billing.platform-fee.max-partner-total-rate` (mặc định 0.30);
- * frontend chỉ dùng để hiển thị thang đo, mọi kiểm tra nghiệp vụ do backend thực hiện.
- */
-export const PLATFORM_FEE_MAX_TOTAL_RATE = 0.3;
-
 function buildQuery(filter: PlatformFeeTypeFilter) {
   const params = new URLSearchParams();
   Object.entries(filter).forEach(([key, value]) => {
@@ -158,6 +155,10 @@ const base = () => apiEndpoints.billing.platformFees;
 
 export function searchPlatformFeeTypes(filter: PlatformFeeTypeFilter = {}) {
   return apiClient<ApiResponse<PlatformFeePageResponse>>(`${base()}${buildQuery(filter)}`);
+}
+
+export function getPlatformFeeConfiguration() {
+  return apiClient<ApiResponse<PlatformFeeConfigurationResponse>>(`${base()}/configuration`);
 }
 
 export function createPlatformFeeType(payload: CreatePlatformFeeTypeRequest) {

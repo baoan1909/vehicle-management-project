@@ -5,10 +5,10 @@ import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
 import {
-  PLATFORM_FEE_MAX_TOTAL_RATE,
   previewPlatformFees,
   type PlatformFeePreviewResponse,
 } from "@/features/billing/api/platformFeeApi";
+import { usePlatformFeeConfiguration } from "@/features/billing/components/PlatformFeeConfigurationContext";
 import { PlatformFeeDateTimeInput } from "@/features/billing/components/PlatformFeeDateTimeInput";
 import {
   formatFeePercent,
@@ -62,6 +62,7 @@ function MoneyField({
 export function PlatformFeePreviewSection({ onBack }: PreviewSectionProps) {
   const toast = useToast();
   const { user } = useAuth();
+  const { maxPartnerTotalRate } = usePlatformFeeConfiguration();
   const canPreview = hasAnyPermission(user, platformFeePermissions.preview);
 
   const [gross, setGross] = useState(1000000);
@@ -116,9 +117,15 @@ export function PlatformFeePreviewSection({ onBack }: PreviewSectionProps) {
     }
   }, []);
 
-  const maxTotalPercent = PLATFORM_FEE_MAX_TOTAL_RATE * 100;
-  const overLimit = result ? result.effectiveTotalRate > PLATFORM_FEE_MAX_TOTAL_RATE : false;
-  const progressWidth = result ? Math.min(100, (result.effectiveTotalRate / PLATFORM_FEE_MAX_TOTAL_RATE) * 100) : 0;
+  const maxTotalPercent = maxPartnerTotalRate === null ? null : maxPartnerTotalRate * 100;
+  const overLimit = result && maxPartnerTotalRate !== null
+    ? result.effectiveTotalRate > maxPartnerTotalRate
+    : false;
+  const progressWidth = result && maxPartnerTotalRate !== null
+    ? maxPartnerTotalRate === 0
+      ? (result.effectiveTotalRate > 0 ? 100 : 0)
+      : Math.min(100, (result.effectiveTotalRate / maxPartnerTotalRate) * 100)
+    : 0;
 
   return (
     <div className="tw-grid tw-gap-4">
@@ -259,7 +266,9 @@ export function PlatformFeePreviewSection({ onBack }: PreviewSectionProps) {
                   <i className={cn("fas fa-info-circle tw-text-[1rem]", overLimit ? "tw-text-red-500" : "tw-text-vm-primary")} aria-hidden="true" />
                   <span>
                     Tổng tỷ lệ <strong className={overLimit ? "tw-text-red-600" : "tw-text-vm-primary"}>{formatFeePercent(result.effectiveTotalRate)}</strong>
-                    {overLimit ? " — Vượt giới hạn" : " — Trong giới hạn"} {maxTotalPercent}%
+                    {maxTotalPercent === null
+                      ? " — Chưa tải được giới hạn"
+                      : `${overLimit ? " — Vượt giới hạn" : " — Trong giới hạn"} ${maxTotalPercent}%`}
                   </span>
                 </p>
                 <div>
@@ -271,7 +280,7 @@ export function PlatformFeePreviewSection({ onBack }: PreviewSectionProps) {
                   </div>
                   <div className="tw-mt-1 tw-flex tw-items-center tw-justify-between tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-500">
                     <span>{formatFeePercent(result.effectiveTotalRate)}</span>
-                    <span>{maxTotalPercent}%</span>
+                    <span>{maxTotalPercent === null ? "—" : `${maxTotalPercent}%`}</span>
                   </div>
                 </div>
                 <p className="tw-m-0 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">

@@ -6,7 +6,6 @@ import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
 import {
-  PLATFORM_FEE_MAX_TOTAL_RATE,
   activatePlatformFeeType,
   archivePlatformFeeType,
   deactivatePlatformFeeType,
@@ -16,6 +15,7 @@ import {
   type PlatformFeeTypeResponse,
   type PlatformFeeTypeStatus,
 } from "@/features/billing/api/platformFeeApi";
+import { usePlatformFeeConfiguration } from "@/features/billing/components/PlatformFeeConfigurationContext";
 import { PlatformFeePager } from "@/features/billing/components/PlatformFeePager";
 import { PlatformFeeStatusPill } from "@/features/billing/components/PlatformFeeStatusPill";
 import {
@@ -44,7 +44,6 @@ type ListSectionProps = {
 };
 
 const ACTION_MENU_WIDTH = 208;
-const SUMMARY_PAGE_SIZE = 100;
 const NOMINAL_PREVIEW_AMOUNT = 1000000;
 
 const statusOptions = [
@@ -78,6 +77,7 @@ function KpiCard({ icon, iconClassName, label, value }: { icon: string; iconClas
 export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: ListSectionProps) {
   const toast = useToast();
   const { user } = useAuth();
+  const { maxPartnerTotalRate } = usePlatformFeeConfiguration();
 
   const canCreate = hasAnyPermission(user, platformFeePermissions.create);
   const canUpdate = hasAnyPermission(user, platformFeePermissions.update);
@@ -147,11 +147,14 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
   useEffect(() => {
     let cancelled = false;
     setSummaryLoading(true);
-    searchPlatformFeeTypes({ page: 0, size: SUMMARY_PAGE_SIZE, transactionType: "SUBSCRIPTION_PURCHASE" })
-      .then((response) => {
+    Promise.all([
+      searchPlatformFeeTypes({ page: 0, size: 1, status: "ACTIVE", transactionType: "SUBSCRIPTION_PURCHASE" }),
+      searchPlatformFeeTypes({ page: 0, size: 1, status: "DRAFT", transactionType: "SUBSCRIPTION_PURCHASE" }),
+    ])
+      .then(([activeResponse, draftResponse]) => {
         if (cancelled) return;
-        setActiveCount(response.data.items.filter((item) => item.status === "ACTIVE").length);
-        setDraftCount(response.data.items.filter((item) => item.status === "DRAFT").length);
+        setActiveCount(activeResponse.data.totalElements);
+        setDraftCount(draftResponse.data.totalElements);
       })
       .catch(() => {
         if (!cancelled) {
@@ -273,10 +276,13 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
       .catch((error: unknown) => {
         toast.error(getErrorMessage(error, "Không thể tải danh sách phí sàn."), "Tải dữ liệu thất bại");
       });
-    searchPlatformFeeTypes({ page: 0, size: SUMMARY_PAGE_SIZE, transactionType: "SUBSCRIPTION_PURCHASE" })
-      .then((response) => {
-        setActiveCount(response.data.items.filter((item) => item.status === "ACTIVE").length);
-        setDraftCount(response.data.items.filter((item) => item.status === "DRAFT").length);
+    Promise.all([
+      searchPlatformFeeTypes({ page: 0, size: 1, status: "ACTIVE", transactionType: "SUBSCRIPTION_PURCHASE" }),
+      searchPlatformFeeTypes({ page: 0, size: 1, status: "DRAFT", transactionType: "SUBSCRIPTION_PURCHASE" }),
+    ])
+      .then(([activeResponse, draftResponse]) => {
+        setActiveCount(activeResponse.data.totalElements);
+        setDraftCount(draftResponse.data.totalElements);
       })
       .catch(() => undefined);
   }
@@ -399,7 +405,12 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
         <KpiCard icon="fas fa-database" iconClassName="tw-bg-brand-50 tw-text-vm-primary" label="Phí đang áp dụng" value={summaryLoading ? "—" : String(activeCount)} />
         <KpiCard icon="far fa-file-alt" iconClassName="tw-bg-amber-50 tw-text-amber-500" label="Bản nháp" value={summaryLoading ? "—" : String(draftCount)} />
         <KpiCard icon="fas fa-chart-pie" iconClassName="tw-bg-green-50 tw-text-green-500" label="Tổng tỷ lệ hiện tại" value={totalRate === null ? "—" : formatFeePercent(totalRate)} />
-        <KpiCard icon="fas fa-exclamation-triangle" iconClassName="tw-bg-red-50 tw-text-red-500" label="Giới hạn tối đa" value={`${PLATFORM_FEE_MAX_TOTAL_RATE * 100}%`} />
+        <KpiCard
+          icon="fas fa-exclamation-triangle"
+          iconClassName="tw-bg-red-50 tw-text-red-500"
+          label="Giới hạn tối đa"
+          value={maxPartnerTotalRate === null ? "—" : formatFeePercent(maxPartnerTotalRate)}
+        />
       </section>
 
       <Card className="tw-overflow-hidden">

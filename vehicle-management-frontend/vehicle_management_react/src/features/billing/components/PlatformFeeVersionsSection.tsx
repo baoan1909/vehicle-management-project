@@ -6,7 +6,6 @@ import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
 import {
-  PLATFORM_FEE_MAX_TOTAL_RATE,
   activatePlatformFeeVersion,
   archivePlatformFeeVersion,
   createPlatformFeeVersion,
@@ -19,6 +18,7 @@ import {
   type PlatformFeeVersionResponse,
   type SavePlatformFeeVersionRequest,
 } from "@/features/billing/api/platformFeeApi";
+import { usePlatformFeeConfiguration } from "@/features/billing/components/PlatformFeeConfigurationContext";
 import { PlatformFeeVersionDrawer } from "@/features/billing/components/PlatformFeeVersionDrawer";
 import {
   formatFeeDate,
@@ -61,6 +61,7 @@ function ActorCell({ time, user, userId }: { time: string | null; user: CurrentU
 export function PlatformFeeVersionsSection({ bare = false, feeTypeId, onBack }: VersionsSectionProps) {
   const toast = useToast();
   const { user } = useAuth();
+  const { maxPartnerTotalRate } = usePlatformFeeConfiguration();
   const [detail, setDetail] = useState<PlatformFeeTypeDetailResponse | null>(null);
   const [versions, setVersions] = useState<PlatformFeeVersionResponse[]>([]);
   const [totalRate, setTotalRate] = useState<number | null>(null);
@@ -272,7 +273,7 @@ export function PlatformFeeVersionsSection({ bare = false, feeTypeId, onBack }: 
   const feeType = detail?.feeType ?? null;
   const effectiveVersion = detail?.effectiveVersion ?? null;
   const upcomingVersion = detail?.upcomingVersion ?? null;
-  const maxTotalPercent = PLATFORM_FEE_MAX_TOTAL_RATE * 100;
+  const maxTotalPercent = maxPartnerTotalRate === null ? null : maxPartnerTotalRate * 100;
 
   return (
     <div className="tw-grid tw-gap-4">
@@ -344,7 +345,7 @@ export function PlatformFeeVersionsSection({ bare = false, feeTypeId, onBack }: 
             <span className="tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500">Tổng phí toàn sàn</span>
             <strong className="tw-text-[1.5rem] tw-font-black tw-leading-none">
               <span className="tw-text-green-600">{loading || totalRate === null ? "—" : formatFeePercent(totalRate)}</span>
-              <span className="tw-text-[1.1rem] tw-font-bold tw-text-vm-slate-500"> / {maxTotalPercent}%</span>
+              <span className="tw-text-[1.1rem] tw-font-bold tw-text-vm-slate-500"> / {maxTotalPercent === null ? "—" : `${maxTotalPercent}%`}</span>
             </strong>
           </span>
         </div>

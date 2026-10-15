@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { Button, Drawer } from "@/components/ui";
+import { usePlatformFeeConfiguration } from "@/features/billing/components/PlatformFeeConfigurationContext";
 import { PlatformFeeDateTimeInput } from "@/features/billing/components/PlatformFeeDateTimeInput";
 import {
   getErrorMessage,
@@ -46,6 +47,8 @@ function FieldLabel({ required, text }: { required?: boolean; text: string }) {
 }
 
 export function PlatformFeeVersionDrawer({ editingVersion, onClose, onSaveAndActivate, onSaveDraft, onUpdate, open }: PlatformFeeVersionDrawerProps) {
+  const { maxPartnerTotalRate } = usePlatformFeeConfiguration();
+  const maxTotalPercent = maxPartnerTotalRate === null ? null : maxPartnerTotalRate * 100;
   const isEdit = Boolean(editingVersion);
   const [form, setForm] = useState<VersionFormState>(() => getInitialForm(editingVersion));
   const [fieldError, setFieldError] = useState("");
@@ -185,7 +188,7 @@ export function PlatformFeeVersionDrawer({ editingVersion, onClose, onSaveAndAct
             </span>
           </span>
           <span className="tw-text-[0.78rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">
-            Áp dụng toàn sàn cho giao dịch mua vé tháng. Tổng phí do đối tác thu không vượt quá 30%.
+            Áp dụng toàn sàn cho giao dịch mua vé tháng. Tổng phí do đối tác chịu không vượt quá {maxTotalPercent === null ? "giới hạn hệ thống" : `${maxTotalPercent}%`}.
           </span>
         </label>
 

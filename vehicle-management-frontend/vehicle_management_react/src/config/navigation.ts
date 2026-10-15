@@ -70,6 +70,7 @@ export const adminNavigation: AdminSidebarEntry[] = [
       { label: "Kế hoạch giá", to: "/admin/price-plans", matches: ["/admin/price-plans"] },
       { label: "Quy tắc giá", to: "/admin/price-rules", matches: ["/admin/price-rules"] },
       { label: "Voucher", to: "/admin/vouchers", matches: ["/admin/vouchers"] },
+      { label: "Phí sàn", to: "/admin/platform-fees", matches: ["/admin/platform-fees"] },
       { label: "Hóa đơn", to: "/admin/invoices", matches: ["/admin/invoices"] },
       { label: "Quản lý ví & giao dịch", to: "/admin/wallets", matches: ["/admin/wallets"] },
       { label: "Ví đối tác", to: "/admin/partner-wallet", matches: ["/admin/partner-wallet"] },
