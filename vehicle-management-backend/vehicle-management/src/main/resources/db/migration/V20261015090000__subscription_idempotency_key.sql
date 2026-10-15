@@ -4,11 +4,15 @@
 -- instead of creating duplicates. Mirrors operations.support_tickets handling.
 
 ALTER TABLE access_control.subscriptions
-    ADD COLUMN idempotency_key VARCHAR(100);
+    ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(100);
 
-CREATE UNIQUE INDEX uq_subscriptions_customer_idempotency
+CREATE UNIQUE INDEX IF NOT EXISTS uq_subscriptions_customer_idempotency
     ON access_control.subscriptions (customer_id, idempotency_key)
     WHERE idempotency_key IS NOT NULL;
 
-CREATE INDEX idx_subscriptions_customer_effective_from
-    ON access_control.subscriptions (customer_id, effective_from DESC, subscription_id DESC);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_customer_effective_from
+    ON access_control.subscriptions (
+    customer_id,
+    effective_from DESC,
+    subscription_id DESC
+    );
