@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -58,6 +59,12 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
     @Override
     public Optional<Subscription> findById(UUID subscriptionId) {
         return subscriptionRepository.findById(subscriptionId)
+                .map(subscriptionPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Subscription> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey) {
+        return subscriptionRepository.findByCustomerIdAndIdempotencyKey(customerId, idempotencyKey)
                 .map(subscriptionPersistenceMapper::toDomain);
     }
 
@@ -118,6 +125,27 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
                                 keyword,
                                 parkingLotIds
                         )
+                )
+                .stream()
+                .map(subscriptionPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Subscription> findOwnSubscriptions(UUID customerId, int limit) {
+        return subscriptionRepository.findAll(
+                        SubscriptionSpecifications.withFilters(
+                                customerId,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                null
+                        ),
+                        PageRequest.of(0, limit)
                 )
                 .stream()
                 .map(subscriptionPersistenceMapper::toDomain)

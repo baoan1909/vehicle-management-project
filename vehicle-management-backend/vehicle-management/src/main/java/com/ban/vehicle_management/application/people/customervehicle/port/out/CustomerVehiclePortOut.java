@@ -28,6 +28,8 @@ public interface CustomerVehiclePortOut {
             Boolean isDefault, String keyword, Set<UUID> parkingLotIds
     );
 
+    List<CustomerVehicle> findOwnVehicles(UUID customerId, int limit);
+
     boolean existsInParkingLots(UUID customerVehicleId, Set<UUID> parkingLotIds);
 
     boolean existsByLicensePlate(String licensePlate);

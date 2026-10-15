@@ -105,6 +105,30 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
     }
 
     @Override
+    public List<Invoice> findOwnInvoices(
+            UUID customerId,
+            List<UUID> subscriptionIds,
+            InvoiceStatus status,
+            Instant fromDate,
+            Instant toDate,
+            String keyword,
+            int limit
+    ){
+        return invoiceRepository.findAll(InvoiceSpecifications.withOwnFilters(
+                customerId,
+                subscriptionIds,
+                status,
+                fromDate,
+                toDate,
+                keyword
+            ),
+                org.springframework.data.domain.PageRequest.of(0, limit)
+            ).stream()
+                .map(invoicePersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public  boolean existsCustomerById(UUID customerId){
         return  customerRepository.existsById(customerId);
     }

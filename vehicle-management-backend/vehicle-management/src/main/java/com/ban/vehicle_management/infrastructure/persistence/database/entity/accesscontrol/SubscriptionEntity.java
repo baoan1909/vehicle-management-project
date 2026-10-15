@@ -125,6 +125,9 @@ public class SubscriptionEntity extends AuditableEntity {
     @Column(name = "card_receipt_date")
     private LocalDate cardReceiptDate;
 
+    @Column(name = "idempotency_key", length = 100)
+    private String idempotencyKey;
+
     @OneToMany(mappedBy = "subscription")
     private Set<InvoiceEntity> invoices = new HashSet<>();
 

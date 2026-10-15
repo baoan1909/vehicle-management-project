@@ -9,6 +9,7 @@ import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.requ
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.SubscriptionFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.UpdateSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionVoucherQuoteResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
@@ -23,7 +24,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -42,16 +45,30 @@ public class SubscriptionController {
     }
 
     @PostMapping("/me")
-    public ResponseEntity<ApiResponse<SubscriptionAdminResponse>> createOwnSubscription(
-            @RequestBody CreateSubscriptionRequest request
+    public ResponseEntity<ApiResponse<SubscriptionUserResponse>> createOwnSubscription(
+            @RequestBody CreateSubscriptionRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
         Subscription createdSubscription = subscriptionPortIn.createOwnSubscription(
-                subscriptionApiMapper.toDomain(request)
+                subscriptionApiMapper.toDomain(request),
+                idempotencyKey
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Subscription created successfully",
-                subscriptionApiMapper.toAdminResponse(createdSubscription)
+                subscriptionApiMapper.toUserResponse(createdSubscription)
+        ));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<List<SubscriptionUserResponse>>> getMySubscriptions(
+            @RequestParam(required = false) Integer limit
+    ) {
+        List<Subscription> subscriptions = subscriptionPortIn.getMySubscriptions(limit);
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched current customer subscriptions successfully",
+                subscriptionApiMapper.toUserResponses(subscriptions)
         ));
     }
 

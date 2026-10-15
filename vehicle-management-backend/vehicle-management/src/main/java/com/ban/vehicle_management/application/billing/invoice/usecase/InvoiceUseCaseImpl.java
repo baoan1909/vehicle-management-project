@@ -153,6 +153,31 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Invoice> getOwnInvoices(
+            List<UUID> subscriptionIds,
+            InvoiceStatus status,
+            Instant fromDate,
+            Instant toDate,
+            String keyword,
+            Integer limit
+    ) {
+        UUID customerId = invoiceAccessGuard.resolveCustomerIdForList(null);
+        List<UUID> scopedSubscriptionIds = subscriptionIds == null ? List.of()
+                : subscriptionIds.stream().filter(id -> id != null).distinct().limit(50).toList();
+        int resolvedLimit = limit == null ? 100 : Math.min(Math.max(limit, 1), 200);
+        return invoicePortOut.findOwnInvoices(
+                customerId,
+                scopedSubscriptionIds,
+                status,
+                fromDate,
+                toDate,
+                normalizeKeyword(keyword),
+                resolvedLimit
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public InvoiceManagementPageResult getManagementInvoices(
             InvoiceStatus status,
             PaymentMethod paymentMethod,

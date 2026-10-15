@@ -20,6 +20,7 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
 
     boolean existsByCardId(UUID cardId);
 
+    Optional<SubscriptionEntity> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
     boolean existsByCardIdAndStatusIn(UUID cardId, Collection<SubscriptionStatus> statuses);
 
     boolean existsByPriceRuleId(UUID priceRuleId);

@@ -35,6 +35,16 @@ public interface InvoicePortOut {
             Set<UUID> parkingLotIds
     );
 
+    List<Invoice> findOwnInvoices(
+            UUID customerId,
+            List<UUID> subscriptionIds,
+            InvoiceStatus status,
+            Instant fromDate,
+            Instant toDate,
+            String keyword,
+            int limit
+    );
+
     boolean existsCustomerById(UUID customerId);
     boolean existsParkingSessionById(UUID parkingSeeionId);
     boolean existsSubcriptionById(UUID subcriptionId);

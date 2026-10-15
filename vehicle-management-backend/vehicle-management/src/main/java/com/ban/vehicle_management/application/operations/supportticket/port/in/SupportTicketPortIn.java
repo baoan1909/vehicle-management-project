@@ -14,6 +14,7 @@ public interface SupportTicketPortIn {
     ChatConversation openAssistantConversation();
     SupportTicket createTicketFromConversation(SupportTicket supportTicket, UUID conversationId, String idempotencyKey);
     List<SupportTicket> getMyTickets(SupportTicketStatus status, String keyword);
+    List<SupportTicket> getMyTickets(SupportTicketStatus status, String keyword, Integer limit);
     List<SupportTicket> getConversationTicketHistory(UUID conversationId, SupportTicketStatus status, String keyword);
     SupportTicket shareTicketWithAssistant(UUID supportTicketId);
     SupportTicket getTicketById(UUID supportTicketId);

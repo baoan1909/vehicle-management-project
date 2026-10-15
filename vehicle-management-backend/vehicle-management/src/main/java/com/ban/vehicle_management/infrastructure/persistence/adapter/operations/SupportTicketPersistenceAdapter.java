@@ -80,6 +80,22 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
     }
 
     @Override
+    public List<SupportTicket> findOwnTickets(
+            UUID customerId,
+            SupportTicketStatus status,
+            String keyword,
+            int limit
+    ) {
+        return supportTicketRepository.findAll(
+                        SupportTicketSpecifications.withFilters(customerId, null, null, status, null, keyword),
+                        org.springframework.data.domain.PageRequest.of(0, limit)
+                )
+                .stream()
+                .map(this::mapToDomain)
+                .toList();
+    }
+
+    @Override
     public boolean existsActiveCategoryById(UUID categoryId) {
         return categoryRepository.existsByCategoryIdAndStatus(categoryId, SupportTicketCategoryStatus.ACTIVE);
     }
