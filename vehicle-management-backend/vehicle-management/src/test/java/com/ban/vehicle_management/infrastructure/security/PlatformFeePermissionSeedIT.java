@@ -34,7 +34,14 @@ class PlatformFeePermissionSeedIT extends com.ban.vehicle_management.testsupport
 
         for (String code : codes) {
             Integer count = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM iam.permissions WHERE permission_code = ?", Integer.class, code);
+                    """
+                    SELECT COUNT(*)
+                    FROM iam.permissions permission
+                    JOIN iam.permission_modules module ON module.module_id = permission.module_id
+                    WHERE permission.permission_code = ?
+                      AND module.code = 'PLATFORM_FEE'
+                    """,
+                    Integer.class, code);
             assertEquals(1, count, "Missing permission " + code);
 
             List<String> grantedRoles = jdbcTemplate.queryForList(

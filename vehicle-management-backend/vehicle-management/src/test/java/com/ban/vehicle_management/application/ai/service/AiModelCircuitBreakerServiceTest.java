@@ -49,6 +49,19 @@ class AiModelCircuitBreakerServiceTest {
         }
 
         @Override
+        public Optional<Long> increment(String key, Duration ttl) {
+            Object count = store.compute(key, (ignored, current) ->
+                    current == null ? 1L : ((Long) current) + 1L);
+            return Optional.of((Long) count);
+        }
+
+        @Override
+        public Optional<Long> getCounter(String key) {
+            Object value = store.get(key);
+            return value instanceof Long count ? Optional.of(count) : Optional.empty();
+        }
+
+        @Override
         public void delete(String key) {
             store.remove(key);
         }
