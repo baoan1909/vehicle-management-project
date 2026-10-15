@@ -18,6 +18,7 @@ function lazyPage(
 const LoginPage = lazyPage(() => import("@/features/auth"), "LoginPage");
 const VnpayReturnPage = lazyPage(() => import("@/features/billing/pages/VnpayReturnPage"), "VnpayReturnPage");
 const InvoiceManagementPage = lazyPage(() => import("@/features/billing/pages/InvoiceManagementPage"), "InvoiceManagementPage");
+const PlatformFeePage = lazyPage(() => import("@/features/billing/pages/PlatformFeePage"), "PlatformFeePage");
 const CustomerWalletPage = lazyPage(() => import("@/features/billing/pages/CustomerWalletPage"), "CustomerWalletPage");
 const WalletTopUpPage = lazyPage(() => import("@/features/billing/pages/WalletTopUpPage"), "WalletTopUpPage");
 const WalletTopupResultPage = lazyPage(() => import("@/features/billing/pages/WalletTopupResultPage"), "WalletTopupResultPage");
@@ -109,6 +110,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/price-rules", title: "Quy tac gia", layout: "admin", element: <PriceRuleListPage /> },
   { path: "/admin/vouchers", title: "Quan ly voucher", layout: "admin", element: <VoucherManagementPage /> },
   { path: "/admin/invoices", title: "Quản lý hóa đơn", layout: "admin", element: <InvoiceManagementPage /> },
+  { path: "/admin/platform-fees", title: "Phí sàn", layout: "admin", element: <PlatformFeePage /> },
   { path: "/admin/wallets", title: "Quản trị ví", layout: "admin", element: <WalletManagementPage /> },
   { path: "/admin/partner-wallet", title: "Ví đối tác", layout: "admin", element: <PartnerWalletPage /> },
   { path: "/admin/visitorParkingFee", title: "Phi vang lai", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },

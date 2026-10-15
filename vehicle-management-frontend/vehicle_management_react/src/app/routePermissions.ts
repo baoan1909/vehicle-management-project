@@ -33,6 +33,7 @@ export const adminRoutePermissions = {
   "/admin/price-rules": ["PRICE_RULE_READ_ALL"],
   "/admin/vouchers": ["VOUCHER_READ_ALL"],
   "/admin/invoices": ["INVOICE_READ_ALL"],
+  "/admin/platform-fees": ["PLATFORM_FEE_READ_ALL"],
   "/admin/wallets": ["WALLET_READ_ALL"],
   "/admin/partner-wallet": ["WALLET_READ_PARTNER"],
   "/admin/visitorParkingFee": ["PRICE_RULE_READ_ALL"],

@@ -120,7 +120,7 @@ export const platformAdminNavigation: AdminSidebarEntry[] = [
   { kind: "link", label: "Duyệt ảnh đại diện", to: "/admin/avatar-approvals", matches: ["/admin/avatar-approvals"], icon: "members" },
   { kind: "link", label: "Khách hàng toàn sàn", to: "/admin/customer", matches: ["/admin/customer"], icon: "members" },
   { kind: "link", label: "Voucher toàn sàn", to: "/admin/vouchers", matches: ["/admin/vouchers"], icon: "catalog" },
-  { kind: "planned", label: "Phí dịch vụ sàn" },
+  { kind: "link", label: "Phí sàn", to: "/admin/platform-fees", matches: ["/admin/platform-fees"], icon: "pricing" },
   { kind: "link", label: "Quản lý ví & giao dịch", to: "/admin/wallets", matches: ["/admin/wallets"], icon: "pricing" },
   { kind: "planned", label: "Giao dịch & đối soát" },
   { kind: "link", label: "Tài khoản", to: "/admin/account", matches: ["/admin/account"], icon: "role" },
