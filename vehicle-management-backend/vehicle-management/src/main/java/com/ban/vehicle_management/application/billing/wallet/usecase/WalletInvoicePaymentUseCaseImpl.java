@@ -4,6 +4,7 @@ import com.ban.vehicle_management.application.accesscontrol.subscription.port.in
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.billing.wallet.authorization.WalletAccessGuard;
+import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.billing.wallet.port.in.WalletPaymentPortIn;
 import com.ban.vehicle_management.application.billing.wallet.port.out.LedgerPortOut;
 import com.ban.vehicle_management.application.billing.wallet.port.out.WalletPortOut;
@@ -57,6 +58,7 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final SubscriptionPortIn subscriptionPortIn;
     private final ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
+    private final SettlementPortIn settlementPortIn;
     private final WalletPolicy walletPolicy = new WalletPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
     private final LedgerPostingPolicy postingPolicy = new LedgerPostingPolicy();
@@ -69,7 +71,8 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
             WalletAccessGuard walletAccessGuard,
             CurrentAccountPortIn currentAccountPortIn,
             SubscriptionPortIn subscriptionPortIn,
-            ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn) {
+            ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn,
+            SettlementPortIn settlementPortIn) {
         this.walletPortOut = walletPortOut;
         this.invoicePortOut = invoicePortOut;
         this.paymentPortOut = paymentPortOut;
@@ -78,6 +81,7 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
         this.currentAccountPortIn = currentAccountPortIn;
         this.subscriptionPortIn = subscriptionPortIn;
         this.parkingCheckoutCompletionPortIn = parkingCheckoutCompletionPortIn;
+        this.settlementPortIn = settlementPortIn;
     }
 
     @Override
@@ -162,6 +166,7 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
         invoicePortOut.save(invoice);
         if (invoice.getSubscriptionId() != null) {
             subscriptionPortIn.markSubscriptionPaymentCompleted(invoice.getSubscriptionId());
+            settlementPortIn.allocateForCompletedPayment(saved.getPaymentId());
         }
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());
         return saved;

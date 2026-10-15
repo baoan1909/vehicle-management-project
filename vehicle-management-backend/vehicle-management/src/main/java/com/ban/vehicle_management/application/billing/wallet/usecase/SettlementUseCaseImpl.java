@@ -2,15 +2,18 @@ package com.ban.vehicle_management.application.billing.wallet.usecase;
 
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.billing.platformfee.port.in.PlatformFeeResolverPortIn;
 import com.ban.vehicle_management.application.billing.wallet.authorization.WalletAccessGuard;
 import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.billing.wallet.port.out.LedgerPortOut;
 import com.ban.vehicle_management.application.billing.wallet.port.out.SettlementPortOut;
 import com.ban.vehicle_management.application.billing.wallet.port.out.WalletPortOut;
+import com.ban.vehicle_management.application.catalog.voucher.port.out.VoucherPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
+import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeResolution;
 import com.ban.vehicle_management.domain.billing.wallet.model.FinancialTransaction;
 import com.ban.vehicle_management.domain.billing.wallet.model.LedgerAccount;
 import com.ban.vehicle_management.domain.billing.wallet.model.LedgerEntry;
@@ -26,6 +29,8 @@ import com.ban.vehicle_management.shared.enumeration.billing.FinancialTransactio
 import com.ban.vehicle_management.shared.enumeration.billing.LedgerAccountType;
 import com.ban.vehicle_management.shared.enumeration.billing.LedgerEntrySide;
 import com.ban.vehicle_management.shared.enumeration.billing.PayoutStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeChargedTo;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.RevenueAllocationStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.WalletPurpose;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -33,7 +38,9 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,6 +65,8 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
     private final OrganizationPortOut organizationPortOut;
     private final WalletAccessGuard walletAccessGuard;
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final PlatformFeeResolverPortIn platformFeeResolverPortIn;
+    private final VoucherPortOut voucherPortOut;
     private final BigDecimal platformFeeRate;
     private final int settlementDelayDays;
     private final RevenueAllocationPolicy allocationPolicy = new RevenueAllocationPolicy();
@@ -73,6 +82,8 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
             OrganizationPortOut organizationPortOut,
             WalletAccessGuard walletAccessGuard,
             CurrentAccountPortIn currentAccountPortIn,
+            PlatformFeeResolverPortIn platformFeeResolverPortIn,
+            VoucherPortOut voucherPortOut,
             @Value("${app.wallet.platform-fee-rate:0.05}") BigDecimal platformFeeRate,
             @Value("${app.wallet.settlement-delay-days:7}") int settlementDelayDays) {
         this.walletPortOut = walletPortOut;
@@ -83,6 +94,8 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
         this.organizationPortOut = organizationPortOut;
         this.walletAccessGuard = walletAccessGuard;
         this.currentAccountPortIn = currentAccountPortIn;
+        this.platformFeeResolverPortIn = platformFeeResolverPortIn;
+        this.voucherPortOut = voucherPortOut;
         this.platformFeeRate = platformFeeRate;
         this.settlementDelayDays = settlementDelayDays;
     }
@@ -91,6 +104,16 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
     @Transactional
     public RevenueAllocation allocateForWalletPayment(UUID paymentId, UUID voucherId) {
         currentAccountPortIn.requirePermission("WALLET_SETTLEMENT_PROCESS_ALL");
+        return allocatePayment(paymentId, voucherId);
+    }
+
+    @Override
+    @Transactional
+    public RevenueAllocation allocateForCompletedPayment(UUID paymentId) {
+        return allocatePayment(paymentId, null);
+    }
+
+    private RevenueAllocation allocatePayment(UUID paymentId, UUID voucherId) {
         Payment payment = paymentPortOut.findByIdForUpdate(paymentId)
                 .orElseThrow(() -> new NotFoundException("Payment not found"));
         var existing = settlementPortOut.findAllocationByPayment(paymentId);
@@ -100,12 +123,23 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
         Invoice invoice = invoicePortOut.findById(payment.getInvoiceId())
                 .orElseThrow(() -> new NotFoundException("Invoice not found"));
         UUID organizationId = resolveOrganizationId(invoice);
-        VoucherFinancialTerm term = voucherId == null ? null
-                : settlementPortOut.findActiveTerm(voucherId, Instant.now()).orElse(null);
-        RevenueAllocation allocation = allocationPolicy.allocate(
-                paymentId, invoice.getInvoiceId(), invoice.getParkingLotId(), organizationId, voucherId,
-                invoice.getAmount(), invoice.getDiscountAmount(), invoice.getFinalAmount(),
-                platformFeeRate, BigDecimal.ZERO, term, settlementDelayDays, payment.getPaidAt());
+        UUID resolvedVoucherId = resolveVoucherId(invoice, voucherId);
+        Instant allocationTime = payment.getPaidAt() == null ? Instant.now() : payment.getPaidAt();
+        VoucherFinancialTerm term = resolvedVoucherId == null ? null
+                : settlementPortOut.findActiveTerm(resolvedVoucherId, allocationTime).orElse(null);
+        RevenueAllocation allocation;
+        if (invoice.getSubscriptionId() != null) {
+            BigDecimal resolvedPlatformFee = resolveSubscriptionPlatformFee(invoice, payment.getPaidAt());
+            allocation = allocationPolicy.allocateWithPlatformFeeAmount(
+                    paymentId, invoice.getInvoiceId(), invoice.getParkingLotId(), organizationId, resolvedVoucherId,
+                    invoice.getAmount(), invoice.getDiscountAmount(), invoice.getFinalAmount(),
+                    resolvedPlatformFee, BigDecimal.ZERO, term, settlementDelayDays, payment.getPaidAt());
+        } else {
+            allocation = allocationPolicy.allocate(
+                    paymentId, invoice.getInvoiceId(), invoice.getParkingLotId(), organizationId, resolvedVoucherId,
+                    invoice.getAmount(), invoice.getDiscountAmount(), invoice.getFinalAmount(),
+                    platformFeeRate, BigDecimal.ZERO, term, settlementDelayDays, payment.getPaidAt());
+        }
 
         // Partner wallet pending increases; ledger mirrors revenue split.
         if (organizationId != null) {
@@ -335,8 +369,41 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
         }
     }
 
+    private UUID resolveVoucherId(Invoice invoice, UUID requestedVoucherId) {
+        if (requestedVoucherId != null) {
+            return requestedVoucherId;
+        }
+        if (invoice.getSubscriptionId() == null) {
+            return null;
+        }
+        return voucherPortOut.findRedemptionBySubscriptionId(invoice.getSubscriptionId())
+                .map(redemption -> redemption.getVoucherId())
+                .orElse(null);
+    }
+
+    private BigDecimal resolveSubscriptionPlatformFee(Invoice invoice, Instant paidAt) {
+        PlatformFeeResolution resolution = platformFeeResolverPortIn.resolveFees(
+                PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE,
+                paidAt,
+                toWholeVnd(invoice.getAmount()),
+                toWholeVnd(invoice.getFinalAmount()));
+        long partnerChargedFee = resolution.getFeeLines().stream()
+                .filter(line -> PlatformFeeChargedTo.PARTNER.equals(line.getChargedTo()))
+                .mapToLong(line -> line.getFeeAmount())
+                .sum();
+        return BigDecimal.valueOf(partnerChargedFee).setScale(2, RoundingMode.UNNECESSARY);
+    }
+
+    private long toWholeVnd(BigDecimal amount) {
+        if (amount == null) {
+            return 0L;
+        }
+        return amount.setScale(0, RoundingMode.HALF_UP).longValueExact();
+    }
+
     private void postAllocationLedger(RevenueAllocation allocation, UUID paymentId) {
-        // Example from spec (partner-funded): DEBIT customer liability / CREDIT partner payable, platform revenue, issuer payable.
+        // Allocate the payment clearing balance to partner payable, platform revenue and voucher issuer payable.
+        // Wallet payments already debit customer liability and credit this clearing account in the payment transaction.
         FinancialTransaction tx = settlementTransaction(paymentId, FinancialTransactionType.REVENUE_ALLOCATION);
         tx.setIdempotencyKey("ALLOC-" + paymentId);
         tx.setReferenceType("REVENUE_ALLOCATION");
@@ -346,21 +413,37 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
         if (platformRevenue.compareTo(BigDecimal.ZERO) < 0) {
             platformRevenue = BigDecimal.ZERO;
         }
-        LedgerEntry debit = newEntry(tx, LedgerAccountType.CUSTOMER_WALLET_LIABILITY.name(),
+        BigDecimal platformExpense = allocation.getVoucherCommissionAmount()
+                .subtract(allocation.getPlatformFeeAmount());
+        if (platformExpense.compareTo(BigDecimal.ZERO) < 0) {
+            platformExpense = BigDecimal.ZERO;
+        }
+        if ("PLATFORM".equals(allocation.getFundingSourceSnapshot())) {
+            platformExpense = platformExpense.add(allocation.getDiscountAmount());
+        }
+        List<LedgerEntry> entries = new ArrayList<>();
+        LedgerEntry debit = newEntry(tx, LedgerAccountType.PLATFORM_CASH_CLEARING.name(),
                 LedgerEntrySide.DEBIT, allocation.getCustomerPaidAmount());
-        LedgerEntry partnerCredit = newEntry(tx, LedgerAccountType.PARTNER_PAYABLE.name(),
-                LedgerEntrySide.CREDIT, allocation.getPartnerPayableAmount());
-        LedgerEntry revenueCredit = newEntry(tx, LedgerAccountType.PLATFORM_REVENUE.name(),
-                LedgerEntrySide.CREDIT, platformRevenue);
+        entries.add(debit);
+        if (platformExpense.compareTo(BigDecimal.ZERO) > 0) {
+            entries.add(newEntry(tx, LedgerAccountType.PLATFORM_VOUCHER_EXPENSE.name(),
+                    LedgerEntrySide.DEBIT, platformExpense));
+        }
+        if (allocation.getPartnerPayableAmount().compareTo(BigDecimal.ZERO) > 0) {
+            entries.add(newEntry(tx, LedgerAccountType.PARTNER_PAYABLE.name(),
+                    LedgerEntrySide.CREDIT, allocation.getPartnerPayableAmount()));
+        }
+        if (platformRevenue.compareTo(BigDecimal.ZERO) > 0) {
+            entries.add(newEntry(tx, LedgerAccountType.PLATFORM_REVENUE.name(),
+                    LedgerEntrySide.CREDIT, platformRevenue));
+        }
         if (allocation.getVoucherCommissionAmount().compareTo(BigDecimal.ZERO) > 0) {
             LedgerEntry issuerCredit = newEntry(tx, LedgerAccountType.VOUCHER_ISSUER_PAYABLE.name(),
                     LedgerEntrySide.CREDIT, allocation.getVoucherCommissionAmount());
-            postingPolicy.requireBalanced(List.of(debit, partnerCredit, revenueCredit, issuerCredit));
-            ledgerPortOut.postBalancedTransaction(tx, List.of(debit, partnerCredit, revenueCredit, issuerCredit));
-        } else {
-            postingPolicy.requireBalanced(List.of(debit, partnerCredit, revenueCredit));
-            ledgerPortOut.postBalancedTransaction(tx, List.of(debit, partnerCredit, revenueCredit));
+            entries.add(issuerCredit);
         }
+        postingPolicy.requireBalanced(entries);
+        ledgerPortOut.postBalancedTransaction(tx, List.copyOf(entries));
     }
 
     private FinancialTransaction settlementTransaction(UUID refId, FinancialTransactionType type) {

@@ -11,6 +11,8 @@ public interface SettlementPortIn {
 
     RevenueAllocation allocateForWalletPayment(UUID paymentId, UUID voucherId);
 
+    RevenueAllocation allocateForCompletedPayment(UUID paymentId);
+
     int releaseDueSettlements(int batchSize);
 
     PayoutRequest requestPayout(UUID bankAccountId, BigDecimal amount, String idempotencyKey);

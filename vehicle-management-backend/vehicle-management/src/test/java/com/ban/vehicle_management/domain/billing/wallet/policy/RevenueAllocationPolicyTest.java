@@ -68,6 +68,17 @@ class RevenueAllocationPolicyTest {
     }
 
     @Test
+    void resolvedPlatformFeeAmountIsSnapshottedWithoutRecalculatingItsBasis() {
+        var allocation = policy.allocateWithPlatformFeeAmount(
+                UUID.randomUUID(), UUID.randomUUID(), null, UUID.randomUUID(), null,
+                new BigDecimal("200000"), new BigDecimal("20000"), new BigDecimal("180000"),
+                new BigDecimal("12000"), BigDecimal.ZERO, null, 7, Instant.now());
+
+        assertEquals(new BigDecimal("12000.00"), allocation.getPlatformFeeAmount());
+        assertEquals(new BigDecimal("168000.00"), allocation.getPartnerPayableAmount());
+    }
+
+    @Test
     void changingTermDoesNotRewriteOldAllocation() {
         VoucherFinancialTerm oldTerm = new VoucherFinancialTerm();
         oldTerm.setFundingSource(VoucherFundingSource.PARTNER);

@@ -67,6 +67,14 @@ class PlatformFeeManagementUseCaseImplTest {
     private PlatformFeeManagementUseCaseImpl useCase;
 
     @Test
+    void shouldReturnConfiguredMaximumPartnerRate() {
+        when(properties.maxPartnerTotalRate()).thenReturn(new BigDecimal("0.275"));
+
+        assertEquals(new BigDecimal("0.275"), useCase.getMaxPartnerTotalRate());
+        verify(accessGuard).ensureCanRead();
+    }
+
+    @Test
     void shouldPropagateForbiddenWhenGuardDenies() {
         doThrow(new AccessDeniedException("Access is denied")).when(accessGuard).ensureCanCreate();
 

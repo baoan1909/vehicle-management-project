@@ -14,6 +14,7 @@ import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.request.Pre
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.request.UpdatePlatformFeeTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.request.UpdatePlatformFeeVersionRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeePageResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeeConfigurationResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeePreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeeTypeAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeeTypeDetailResponse;
@@ -71,6 +72,14 @@ public class PlatformFeeAdminController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched platform fee types successfully",
                 apiMapper.toPageResponse(result)));
+    }
+
+    @GetMapping("/configuration")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PLATFORM_FEE_READ_ALL')")
+    public ResponseEntity<ApiResponse<PlatformFeeConfigurationResponse>> getConfiguration() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched platform fee configuration successfully",
+                new PlatformFeeConfigurationResponse(managementPortIn.getMaxPartnerTotalRate())));
     }
 
     @PostMapping("/preview")

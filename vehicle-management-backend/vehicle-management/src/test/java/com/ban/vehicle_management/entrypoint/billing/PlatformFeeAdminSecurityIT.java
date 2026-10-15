@@ -27,6 +27,9 @@ class PlatformFeeAdminSecurityIT extends com.ban.vehicle_management.testsupport.
         mockMvc.perform(get("/api/billing/admin/platform-fees"))
                 .andExpect(status().isUnauthorized());
 
+        mockMvc.perform(get("/api/billing/admin/platform-fees/configuration"))
+                .andExpect(status().isUnauthorized());
+
         mockMvc.perform(post("/api/billing/admin/platform-fees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -41,6 +44,9 @@ class PlatformFeeAdminSecurityIT extends com.ban.vehicle_management.testsupport.
     @Test
     void shouldRejectAuthenticatedWithoutPermission() throws Exception {
         mockMvc.perform(get("/api/billing/admin/platform-fees").with(jwt()))
+                .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/billing/admin/platform-fees/configuration").with(jwt()))
                 .andExpect(status().isForbidden());
 
         mockMvc.perform(post("/api/billing/admin/platform-fees")

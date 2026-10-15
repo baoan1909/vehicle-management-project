@@ -34,10 +34,55 @@ public class RevenueAllocationPolicy {
         if (grossAmount == null || customerPaidAmount == null || platformFeeRate == null) {
             throw new BadRequestException("Allocation inputs must not be null");
         }
+        BigDecimal platformFee = vnd(customerPaidAmount.multiply(platformFeeRate));
+        return allocateWithResolvedPlatformFee(
+                paymentId, invoiceId, parkingLotId, organizationId, voucherId,
+                grossAmount, discountAmount, customerPaidAmount, platformFee, gatewayFee,
+                term, defaultSettlementDelayDays, paidAt);
+    }
+
+    public RevenueAllocation allocateWithPlatformFeeAmount(
+            UUID paymentId,
+            UUID invoiceId,
+            UUID parkingLotId,
+            UUID organizationId,
+            UUID voucherId,
+            BigDecimal grossAmount,
+            BigDecimal discountAmount,
+            BigDecimal customerPaidAmount,
+            BigDecimal platformFeeAmount,
+            BigDecimal gatewayFee,
+            VoucherFinancialTerm term,
+            int defaultSettlementDelayDays,
+            Instant paidAt) {
+        if (grossAmount == null || customerPaidAmount == null || platformFeeAmount == null) {
+            throw new BadRequestException("Allocation inputs must not be null");
+        }
+        if (platformFeeAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("Platform fee amount must not be negative");
+        }
+        return allocateWithResolvedPlatformFee(
+                paymentId, invoiceId, parkingLotId, organizationId, voucherId,
+                grossAmount, discountAmount, customerPaidAmount, vnd(platformFeeAmount), gatewayFee,
+                term, defaultSettlementDelayDays, paidAt);
+    }
+
+    private RevenueAllocation allocateWithResolvedPlatformFee(
+            UUID paymentId,
+            UUID invoiceId,
+            UUID parkingLotId,
+            UUID organizationId,
+            UUID voucherId,
+            BigDecimal grossAmount,
+            BigDecimal discountAmount,
+            BigDecimal customerPaidAmount,
+            BigDecimal platformFee,
+            BigDecimal gatewayFee,
+            VoucherFinancialTerm term,
+            int defaultSettlementDelayDays,
+            Instant paidAt) {
         BigDecimal discount = discountAmount == null ? BigDecimal.ZERO : discountAmount;
         BigDecimal gwFee = gatewayFee == null ? BigDecimal.ZERO : gatewayFee;
-
-        BigDecimal platformFee = vnd(customerPaidAmount.multiply(platformFeeRate));
 
         VoucherFundingSource funding = term == null || term.getFundingSource() == null
                 ? VoucherFundingSource.PLATFORM : term.getFundingSource();

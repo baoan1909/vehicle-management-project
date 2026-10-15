@@ -20,6 +20,8 @@ public interface PlatformFeeManagementPortIn {
     PlatformFeePageResult searchFeeTypes(String keyword, PlatformFeeTypeStatus status,
             PlatformFeeTransactionType transactionType, PlatformFeeBasis feeBasis, int page, int size);
 
+    BigDecimal getMaxPartnerTotalRate();
+
     PlatformFeeTypeDetailResult getFeeTypeById(UUID feeTypeId);
 
     PlatformFeeType updateDraftFeeType(UUID feeTypeId, PlatformFeeType changes);

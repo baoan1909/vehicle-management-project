@@ -104,6 +104,13 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
 
     @Override
     @Transactional(readOnly = true)
+    public BigDecimal getMaxPartnerTotalRate() {
+        accessGuard.ensureCanRead();
+        return properties.maxPartnerTotalRate();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PlatformFeeTypeDetailResult getFeeTypeById(UUID feeTypeId) {
         accessGuard.ensureCanRead();
         PlatformFeeType feeType = findTypeOrThrow(feeTypeId);
