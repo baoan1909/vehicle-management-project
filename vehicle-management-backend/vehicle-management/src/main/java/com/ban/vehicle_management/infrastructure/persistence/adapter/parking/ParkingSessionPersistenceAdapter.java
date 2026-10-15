@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
@@ -131,6 +132,34 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
                 ),
                 Sort.by(Sort.Direction.DESC, "checkInTime")
         );
+        return parkingSessionManagementPersistenceMapper.toResults(entities);
+    }
+
+    @Override
+    public List<ParkingSessionManagementResult> findOwnManagementSessions(
+            ParkingSessionStatus status,
+            UUID vehicleTypeId,
+            UUID zoneId,
+            Instant checkInFrom,
+            Instant checkInTo,
+            String keyword,
+            List<UUID> customerVehicleIds,
+            Set<UUID> parkingLotIds,
+            int limit
+    ) {
+        List<ParkingSessionEntity> entities = parkingSessionRepository.findAll(
+                ParkingSessionSpecifications.withFilters(
+                        status,
+                        vehicleTypeId,
+                        zoneId,
+                        checkInFrom,
+                        checkInTo,
+                        keyword,
+                        customerVehicleIds,
+                        parkingLotIds
+                ),
+                PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "checkInTime"))
+        ).stream().toList();
         return parkingSessionManagementPersistenceMapper.toResults(entities);
     }
 }

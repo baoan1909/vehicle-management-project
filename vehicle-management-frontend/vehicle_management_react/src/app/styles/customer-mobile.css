@@ -1,0 +1,1715 @@
+/* Customer mobile responsive foundation (additive-only).
+ * Desktop-first preservation: every layout override below lives inside a
+ * max-width media query, so 1280px/1440px rendering is untouched. Mobile-only
+ * JSX helpers default to hidden and are revealed only under their breakpoint.
+ */
+
+:root {
+  --vm-customer-mobile-nav-height: 64px;
+  --vm-customer-mobile-gutter: 16px;
+  --vm-customer-mobile-tap: 44px;
+}
+
+/* Helpers: mobile-only content stays hidden on desktop. */
+.vm-mobile-only,
+.vm-customer-mobile-nav,
+.vm-support-mobile-cards,
+.vm-wallet-mobile-cards,
+.vm-history-mobile-cards,
+.vm-chat-back,
+.vm-customer-more-sheet,
+.vm-customer-more-backdrop,
+.vm-client-mobile-drawer,
+.vm-client-drawer-backdrop {
+  display: none;
+}
+
+.vm-header-popover-backdrop {
+  display: none;
+}
+
+.vm-desktop-only {
+  display: revert;
+}
+
+/* Media is bounded locally; horizontal overflow must remain detectable in tests. */
+.vm-client-shell img,
+.vm-client-shell video,
+.vm-client-shell canvas,
+.vm-customer-shell svg {
+  max-width: 100%;
+}
+
+.vm-customer-content,
+.vm-customer-card,
+.vm-customer-page-header,
+.vm-support-side,
+.vm-ticket-detail {
+  min-width: 0;
+}
+
+.vm-wrap-anywhere {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* ------------------------------------------------------------------ */
+/* <=1024px: tablet landscape tightening (desktop layout preserved).   */
+/* ------------------------------------------------------------------ */
+@media (max-width: 1024px) {
+  .vm-support-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 340px);
+  }
+
+  .vm-customer-table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .vm-customer-table thead,
+  .vm-customer-table tbody {
+    min-width: 640px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* <=992px: compact app header and public-navigation drawer.           */
+/* ------------------------------------------------------------------ */
+@media (max-width: 992px) {
+  .vm-client-header-row > a[aria-label="CoParking"] {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .vm-client-header-actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .vm-client-menu-button {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .vm-header-chat-action {
+    display: none;
+  }
+
+  .vm-client-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    border: 0;
+    background: rgba(2, 15, 35, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+  }
+
+  .vm-client-drawer-backdrop[data-open="true"] {
+    display: block;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .vm-client-mobile-drawer {
+    display: flex;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1510;
+    width: min(88vw, 360px);
+    flex-direction: column;
+    overflow-y: auto;
+    background: #fff;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    box-shadow: -20px 0 60px rgba(2, 15, 35, 0.2);
+    transform: translateX(105%);
+    visibility: hidden;
+    transition: transform 230ms cubic-bezier(0.22, 1, 0.36, 1), visibility 230ms;
+  }
+
+  .vm-client-mobile-drawer[data-open="true"] {
+    transform: translateX(0);
+    visibility: visible;
+  }
+
+  .vm-client-mobile-drawer > header {
+    display: flex;
+    position: static;
+    min-height: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .vm-client-mobile-drawer > header small,
+  .vm-client-mobile-drawer > header strong {
+    display: block;
+  }
+
+  .vm-client-mobile-drawer > header small,
+  .vm-client-mobile-drawer > section > small {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 0.09em;
+  }
+
+  .vm-client-mobile-drawer > header strong {
+    margin-top: 3px;
+    color: #082551;
+    font-size: 21px;
+  }
+
+  .vm-client-mobile-drawer > header button {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    flex: 0 0 44px;
+    place-items: center;
+    border: 0;
+    border-radius: 14px;
+    background: #f1f5f9;
+    color: #334155;
+  }
+
+  .vm-client-mobile-drawer > nav {
+    display: grid;
+    gap: 6px;
+    margin-top: 18px;
+  }
+
+  .vm-client-mobile-drawer > nav a {
+    display: grid;
+    min-height: 54px;
+    grid-template-columns: 40px minmax(0, 1fr) 16px;
+    align-items: center;
+    gap: 11px;
+    border-radius: 14px;
+    color: #203554;
+    font-size: 14px;
+    font-weight: 750;
+    padding: 7px 10px;
+    text-decoration: none;
+    transition: background-color 160ms ease, color 160ms ease;
+  }
+
+  .vm-client-mobile-drawer > nav a > span {
+    display: grid;
+    width: 40px;
+    height: 40px;
+    place-items: center;
+    border-radius: 12px;
+    background: #edf4ff;
+    color: #1263e9;
+    font-size: 17px;
+  }
+
+  .vm-client-mobile-drawer > nav a > i {
+    color: #94a3b8;
+    font-size: 10px;
+  }
+
+  .vm-client-mobile-drawer > nav a[aria-current="page"] {
+    background: #edf4ff;
+    color: #0759d8;
+  }
+
+  .vm-client-mobile-drawer > nav a[aria-current="page"] > span {
+    background: linear-gradient(135deg, #1675f2, #0754d5);
+    color: #fff;
+  }
+
+  .vm-client-mobile-drawer > section {
+    display: grid;
+    gap: 6px;
+    margin-top: 18px;
+    border-top: 1px solid #e6ebf2;
+    padding-top: 16px;
+  }
+
+  .vm-client-mobile-drawer > section > small {
+    margin: 0 8px 4px;
+  }
+
+  .vm-client-mobile-drawer > section a,
+  .vm-client-mobile-drawer > section button {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    gap: 12px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 750;
+    padding: 9px 12px;
+    text-align: left;
+    text-decoration: none;
+  }
+
+  .vm-client-mobile-drawer > section i {
+    width: 22px;
+    flex: 0 0 22px;
+    color: #0759d8;
+    text-align: center;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* <=768px: tablet portrait + large phones.                            */
+/* ------------------------------------------------------------------ */
+@media (max-width: 768px) {
+  @keyframes vm-mobile-modal-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .vm-customer-shell section[class*="tw-grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)_minmax(0,1fr)_auto]"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .vm-client-shell .content-wrapper {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .vm-client-shell .container-fluid {
+    padding-left: var(--vm-customer-mobile-gutter);
+    padding-right: var(--vm-customer-mobile-gutter);
+  }
+
+  /* Keep the desktop's angled watermark language without enlarging the canvas. */
+  .vm-public-footer-shell {
+    contain: paint;
+  }
+
+  .vm-public-footer-watermark {
+    top: -20px !important;
+    left: -32% !important;
+    width: 164% !important;
+    gap: 34px !important;
+    transform: rotate(-12deg) !important;
+    transform-origin: center;
+    overflow: visible;
+  }
+
+  .vm-public-footer-watermark-row {
+    display: flex !important;
+    width: max-content !important;
+    overflow: visible;
+    font-size: clamp(1.65rem, 8vw, 2.65rem) !important;
+    line-height: 1 !important;
+  }
+
+  .vm-public-footer-watermark-row > span {
+    display: inline-block !important;
+    margin-right: 36px !important;
+  }
+
+  .vm-public-footer-watermark-row > span:first-child {
+    display: inline-block;
+    width: auto;
+    text-align: left;
+  }
+
+  .vm-public-footer-watermark-row:nth-child(odd) {
+    transform: translateX(-54px);
+  }
+
+  /* Header popovers become viewport-safe mobile sheets. Disabling the header
+   * backdrop filter prevents it from becoming a fixed-position containing block. */
+  .vm-client-shell > header {
+    backdrop-filter: none !important;
+  }
+
+  .vm-header-popover-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1070;
+    min-height: 100dvh !important;
+    border: 0;
+    background: rgba(2, 15, 35, 0.44);
+    backdrop-filter: blur(2px);
+  }
+
+  .vm-client-shell .vm-notification-popover,
+  .vm-client-shell .vm-profile-popover,
+  .vm-chat-shell-mobile .vm-notification-popover,
+  .vm-chat-shell-mobile .vm-profile-popover {
+    position: fixed !important;
+    top: auto !important;
+    right: 12px !important;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 12px !important;
+    z-index: 1080 !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: min(72dvh, 560px);
+    border-radius: 20px !important;
+    animation: vm-mobile-sheet-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .vm-client-shell:has(.vm-customer-mobile-nav) .vm-notification-popover,
+  .vm-client-shell:has(.vm-customer-mobile-nav) .vm-profile-popover {
+    bottom: calc(var(--vm-customer-mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 12px) !important;
+  }
+
+  .vm-profile-popover {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .vm-notification-popover > div > section {
+    max-height: min(72dvh, 560px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .vm-select-menu-panel {
+    max-height: min(45dvh, 320px) !important;
+    border-radius: 14px !important;
+    overscroll-behavior: contain;
+  }
+
+  .vm-select-menu-option {
+    min-height: var(--vm-customer-mobile-tap) !important;
+  }
+
+  .vm-date-picker-panel,
+  .vm-date-time-picker-panel {
+    position: fixed !important;
+    top: auto !important;
+    right: 12px !important;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    left: 12px !important;
+    z-index: 2600 !important;
+    width: auto !important;
+    max-height: calc(100dvh - 24px - env(safe-area-inset-bottom, 0px));
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    border-radius: 18px !important;
+    animation: vm-mobile-sheet-in 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Customer shell stacks; room for the mobile bottom navigation. */
+  .vm-customer-shell {
+    padding-bottom: calc(var(--vm-customer-mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 12px);
+  }
+
+  .vm-customer-body {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .vm-customer-sidebar {
+    display: none !important;
+  }
+
+  .vm-customer-nav-item {
+    flex-shrink: 0;
+    margin-bottom: 0 !important;
+    min-height: var(--vm-customer-mobile-tap);
+    align-items: center;
+  }
+
+  .vm-customer-content {
+    padding: 12px !important;
+    overflow-x: visible !important;
+  }
+
+  .vm-customer-page-header {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .vm-customer-page-header button,
+  .vm-customer-page-header a {
+    min-height: var(--vm-customer-mobile-tap);
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+
+  /* Tap targets and iOS zoom prevention (mobile only). */
+  .vm-customer-shell button,
+  .vm-customer-shell a.vm-customer-nav-item,
+  .vm-client-shell button,
+  .vm-client-shell a {
+    min-height: 24px;
+  }
+
+  .vm-customer-shell button:not(.vm-page-btn),
+  .vm-customer-card button:not(.vm-page-btn),
+  .vm-customer-page-header button {
+    min-height: var(--vm-customer-mobile-tap);
+  }
+
+  .vm-customer-shell input:not([type="checkbox"]):not([type="radio"]),
+  .vm-customer-shell select,
+  .vm-customer-shell textarea,
+  .vm-client-shell input:not([type="checkbox"]):not([type="radio"]),
+  .vm-client-shell select,
+  .vm-client-shell textarea {
+    font-size: 16px !important;
+    line-height: 1.5;
+    max-width: 100%;
+  }
+
+  /* Two-column customer forms collapse to one column. */
+  .vm-customer-shell .tw-grid-cols-2,
+  .vm-client-shell .tw-grid-cols-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Generic customer/portal grids collapse gracefully. */
+  .vm-stat-grid,
+  .vm-stat-grid-three,
+  .vm-public-contact-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* Guide steps + two-column/guide-contact layouts stack on mobile. */
+  .vm-guide-step-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  .vm-guide-two-columns,
+  .vm-contact-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .vm-quick-support > div {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .vm-quick-support .vm-public-card {
+    min-width: 0;
+  }
+
+  /* Shared controls reach 44px tap targets inside customer scopes only. */
+  .vm-customer-shell button.tw-h-9,
+  .vm-customer-shell a.tw-h-9,
+  .vm-client-shell button.tw-h-9,
+  .vm-client-shell a.tw-h-9,
+  .vm-chat-shell-mobile button.tw-h-9 {
+    min-height: var(--vm-customer-mobile-tap);
+    min-width: var(--vm-customer-mobile-tap);
+  }
+
+  .vm-customer-shell input,
+  .vm-customer-shell select,
+  .vm-customer-shell textarea,
+  .vm-chat-shell-mobile input,
+  .vm-chat-shell-mobile select,
+  .vm-chat-shell-mobile textarea {
+    max-width: 100%;
+  }
+
+  .vm-table-filters {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px;
+  }
+
+  .vm-table-filters label,
+  .vm-table-filters select,
+  .vm-table-filters input {
+    min-height: var(--vm-customer-mobile-tap);
+    width: 100%;
+  }
+
+  /* Support master-detail stacks vertically. */
+  .vm-support-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .vm-support-side {
+    min-width: 0;
+  }
+
+  .vm-ticket-steps {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px;
+  }
+
+  .vm-ticket-steps span {
+    min-height: var(--vm-customer-mobile-tap);
+  }
+
+  .vm-table-footer,
+  .vm-table-footer-lite {
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 12px;
+  }
+
+  .vm-table-footer-controls {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* Dashboard KPI/stat cards: two-up on tablet, one-up handled at 480px. */
+  .vm-dashboard-cards,
+  .vm-dashboard-cards-polished {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  /* Floating support widget docks above the bottom navigation. */
+  .vm-support-floating-dock {
+    top: auto !important;
+    right: 12px !important;
+    bottom: calc(var(--vm-customer-mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 12px) !important;
+    left: auto !important;
+    width: 56px;
+    height: 56px;
+    pointer-events: none;
+  }
+
+  .vm-support-floating-dock .vm-support-floating-button,
+  .vm-support-floating-dock [data-support-floating-button] {
+    position: static !important;
+    inset: auto !important;
+    pointer-events: auto;
+  }
+
+  .vm-support-floating-panel,
+  [data-support-floating-panel] {
+    max-height: calc(100dvh - var(--vm-customer-mobile-nav-height) - env(safe-area-inset-bottom, 0px) - 32px);
+    bottom: calc(var(--vm-customer-mobile-nav-height) + env(safe-area-inset-bottom, 0px) + 64px) !important;
+    z-index: 1270 !important;
+  }
+
+  .vm-support-floating-dock > div:first-child {
+    display: none;
+  }
+
+  /* Chat/fullscreen layouts use dynamic viewport units on mobile. */
+  .vm-chat-shell,
+  .vm-chat-shell-mobile,
+  .vm-support-chat-shell,
+  [data-chat-shell] {
+    height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  /* Support center master-detail collapses to list-first on mobile. */
+  .vm-chat-shell-mobile .vm-chat-cols {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .vm-chat-shell-mobile[data-mobile-view="chat"] .vm-chat-inbox {
+    display: none !important;
+  }
+
+  .vm-chat-shell-mobile[data-mobile-view="list"] .vm-chat-workspace {
+    display: none !important;
+  }
+
+  .vm-chat-shell-mobile .vm-chat-inbox {
+    border-right: 0 !important;
+  }
+
+  .vm-chat-topbar {
+    min-width: 0;
+    padding-inline: 12px !important;
+  }
+
+  .vm-chat-topbar h1 {
+    min-width: 0;
+    font-size: 18px !important;
+    line-height: 1.2;
+  }
+
+  .vm-chat-topbar-actions {
+    flex-shrink: 0;
+    gap: 4px !important;
+  }
+
+  .vm-chat-topbar-status,
+  .vm-chat-shift,
+  .vm-chat-help {
+    display: none !important;
+  }
+
+  .vm-chat-topbar-actions > button,
+  .vm-chat-topbar-actions .vm-notification-root > button {
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0 !important;
+  }
+
+  .vm-chat-inbox-header {
+    padding: 12px !important;
+  }
+
+  .vm-chat-filter-grid {
+    gap: 6px !important;
+  }
+
+  .vm-chat-inbox-tabs {
+    gap: 18px !important;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .vm-chat-inbox-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .vm-chat-inbox-tabs > button {
+    flex: 0 0 auto;
+  }
+
+  .vm-chat-thread-header {
+    height: auto !important;
+    min-height: 68px;
+    gap: 8px;
+    padding: 10px 12px !important;
+  }
+
+  .vm-chat-thread-header > div:first-child {
+    min-width: 0;
+  }
+
+  .vm-chat-thread-header p {
+    gap: 4px 12px !important;
+  }
+
+  .vm-chat-thread-actions {
+    flex-shrink: 0;
+    gap: 0 !important;
+  }
+
+  .vm-chat-ticket-strip {
+    height: auto !important;
+    min-height: 48px;
+    overflow-x: auto;
+    padding: 8px 12px !important;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+
+  .vm-chat-ticket-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Shared dialogs use a reachable bottom-sheet presentation on phones/tablets. */
+  .vm-shared-modal-layer,
+  .vm-shared-drawer-layer {
+    align-items: flex-end !important;
+    justify-content: center !important;
+    padding: 0 !important;
+  }
+
+  .vm-shared-modal-panel,
+  .vm-shared-drawer-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: 92dvh !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-radius: 20px 20px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    /* A transformed ancestor changes the containing block of fixed calendar
+       panels. Keep the mobile entrance smooth without retaining transform. */
+    transform: none !important;
+    animation: vm-mobile-modal-fade-in 180ms ease-out both !important;
+  }
+
+  .vm-shared-modal-panel > header,
+  .vm-shared-drawer-panel > header {
+    padding: 14px 16px !important;
+  }
+
+  .vm-shared-modal-panel > div,
+  .vm-shared-drawer-panel > div {
+    padding: 14px 16px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .vm-shared-modal-panel > footer,
+  .vm-shared-drawer-panel > footer {
+    position: sticky;
+    bottom: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+    background: #fff;
+  }
+
+  .vm-chat-back {
+    display: block !important;
+    border: 0;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    padding: 4px 8px calc(4px + env(safe-area-inset-top, 0px));
+    padding-top: calc(4px + env(safe-area-inset-top, 0px));
+  }
+
+  .vm-chat-back button {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 8px;
+    min-height: var(--vm-customer-mobile-tap);
+    min-width: var(--vm-customer-mobile-tap);
+    border: 0;
+    background: transparent;
+    color: #1d4ed8;
+    font-size: 14px;
+    font-weight: 800;
+    padding: 6px 12px 6px 8px;
+  }
+
+  /* Composer stays above the keyboard with safe-area padding. */
+  .vm-chat-composer {
+    padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .vm-chat-composer .vm-chat-input {
+    font-size: 16px !important;
+    min-height: var(--vm-customer-mobile-tap);
+  }
+
+  .vm-chat-composer button {
+    min-height: var(--vm-customer-mobile-tap);
+  }
+
+  .vm-chat-composer .tw-h-9,
+  .vm-chat-composer button.tw-h-9 {
+    min-height: var(--vm-customer-mobile-tap);
+    min-width: var(--vm-customer-mobile-tap);
+  }
+
+  .vm-chat-sending {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 12px;
+  }
+
+  .vm-chat-send-error {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 8px 8px 12px;
+  }
+
+  .vm-chat-send-error button {
+    flex-shrink: 0;
+    min-height: var(--vm-customer-mobile-tap);
+    border: 0;
+    border-radius: 8px;
+    background: #dc2626;
+    color: #fff;
+    font-weight: 800;
+    padding: 6px 14px;
+  }
+
+  /* Bottom navigation: one compact, stable app-navigation layer on mobile. */
+  .vm-customer-mobile-nav {
+    display: flex !important;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1200;
+    min-height: calc(var(--vm-customer-mobile-nav-height) + env(safe-area-inset-bottom, 0px));
+    padding: 7px 6px calc(7px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1px solid #e2e8f0;
+    box-shadow: 0 -12px 32px rgba(15, 23, 42, 0.11);
+    backdrop-filter: blur(18px);
+  }
+
+  .vm-customer-mobile-nav-list {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .vm-customer-mobile-nav-link {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: var(--vm-customer-mobile-tap);
+    min-width: var(--vm-customer-mobile-tap);
+    border: 0;
+    border-radius: 14px;
+    background: transparent;
+    color: #334155;
+    font-size: 11.5px;
+    font-weight: 750;
+    line-height: 1;
+    white-space: nowrap;
+    text-decoration: none;
+    padding: 5px 2px;
+    transition: color 180ms ease, background-color 180ms ease, transform 180ms ease;
+  }
+
+  .vm-customer-mobile-nav-link i {
+    display: grid;
+    width: 25px;
+    height: 25px;
+    flex: 0 0 25px;
+    place-items: center;
+    border-radius: 9px;
+    font-size: 19px;
+    line-height: 1;
+    transition: color 180ms ease, background-color 180ms ease, transform 180ms ease;
+  }
+
+  .vm-customer-mobile-nav-link[aria-current="page"],
+  .vm-customer-mobile-nav-active {
+    color: #1d4ed8;
+    background: #f5f8ff;
+  }
+
+  .vm-customer-mobile-nav-link[aria-current="page"] i,
+  .vm-customer-mobile-nav-active i {
+    color: #fff;
+    background: linear-gradient(135deg, #1675f2, #0754d5);
+    box-shadow: 0 6px 14px rgba(9, 91, 219, 0.24);
+    transform: translateY(-1px);
+  }
+
+  .vm-customer-more-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1280;
+    border: 0;
+    background: rgba(2, 15, 35, 0.48);
+    backdrop-filter: blur(3px);
+    animation: vm-mobile-fade-in 200ms ease-out both;
+  }
+
+  .vm-customer-more-sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 1300;
+    border-radius: 24px 24px 0 0;
+    background: #fff;
+    box-shadow: 0 -18px 48px rgba(15, 23, 42, 0.2);
+    padding: 10px 16px calc(18px + env(safe-area-inset-bottom, 0px));
+    max-height: min(78dvh, 680px);
+    overflow-y: auto;
+    animation: vm-mobile-sheet-in 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .vm-customer-more-sheet[data-open="true"] {
+    display: block !important;
+  }
+
+  .vm-customer-more-handle {
+    display: block;
+    width: 42px;
+    height: 4px;
+    margin: 0 auto 12px;
+    border-radius: 999px;
+    background: #cbd5e1;
+  }
+
+  .vm-customer-more-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 14px;
+  }
+
+  .vm-customer-more-header small,
+  .vm-customer-more-header strong {
+    display: block;
+  }
+
+  .vm-customer-more-header small {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+  }
+
+  .vm-customer-more-header strong {
+    margin-top: 3px;
+    color: #0f274c;
+    font-size: 20px;
+  }
+
+  .vm-customer-more-header .vm-customer-more-close {
+    display: grid !important;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    place-items: center;
+    border: 0;
+    border-radius: 14px;
+    background: #f1f5f9;
+    color: #334155;
+  }
+
+  .vm-customer-more-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .vm-customer-more-grid a {
+    display: flex !important;
+    min-width: 0;
+    min-height: 64px;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #e4eaf3;
+    border-radius: 15px;
+    background: #fbfdff;
+    color: #183153;
+    font-size: 13px;
+    font-weight: 750;
+    line-height: 1.25;
+    padding: 10px;
+    text-decoration: none;
+  }
+
+  .vm-customer-more-grid a > span {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    place-items: center;
+    border-radius: 12px;
+    background: #eaf2ff;
+    color: #0759d8;
+    font-size: 17px;
+  }
+
+  .vm-customer-more-sheet .vm-customer-more-logout {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: var(--vm-customer-mobile-tap);
+    margin-top: 12px;
+    border: 1px solid #fecaca;
+    border-radius: 14px;
+    background: #fff7f7;
+    color: #b42318;
+    font-weight: 750;
+    padding: 10px 14px;
+  }
+}
+
+@keyframes vm-mobile-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes vm-mobile-sheet-in {
+  from { opacity: 0; transform: translateY(28px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ------------------------------------------------------------------ */
+/* <=640px: phones. Desktop table stays; mobile cards take over.       */
+/* ------------------------------------------------------------------ */
+@media (max-width: 640px) {
+  .vm-client-shell header {
+    min-height: 64px;
+  }
+
+  .vm-client-header-row {
+    min-height: 64px !important;
+  }
+
+  .vm-announcement-ticker {
+    top: 64px !important;
+  }
+
+  .vm-announcement-ticker-row {
+    gap: 8px !important;
+  }
+
+  .vm-announcement-ticker-label {
+    gap: 7px !important;
+    padding-inline: 10px !important;
+    font-size: 11px !important;
+  }
+
+  .vm-announcement-ticker-label > span {
+    width: 24px !important;
+    height: 24px !important;
+  }
+
+  .vm-announcement-ticker-viewport {
+    margin-right: 6px !important;
+  }
+
+  .vm-announcement-ticker-card {
+    gap: 8px !important;
+    padding: 5px 10px !important;
+  }
+
+  .vm-announcement-ticker-card strong,
+  .vm-announcement-ticker-card > span:last-child {
+    font-size: 12px !important;
+  }
+
+  .vm-client-header-row > a[aria-label="CoParking"] img {
+    width: 78px !important;
+    height: 54px !important;
+  }
+
+  .vm-client-shell header a[href="/become-a-partner"] {
+    display: none !important;
+  }
+
+  .vm-client-header-actions > span,
+  .vm-client-header-actions > div {
+    flex: 0 0 auto;
+  }
+
+  .vm-client-header-actions button[aria-label="Thông báo"],
+  .vm-client-header-actions button[aria-label^="Mở hồ sơ"] {
+    width: 44px !important;
+    min-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 4px !important;
+  }
+
+  /* Dashboard: avoid compressed three-up content and keep CTAs readable. */
+  .vm-dashboard-mobile-hero {
+    min-height: 0 !important;
+  }
+
+  .vm-dashboard-hero-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 10px !important;
+  }
+
+  .vm-dashboard-hero-stats > div {
+    min-width: 0;
+    grid-template-columns: 38px minmax(0, 1fr) !important;
+    grid-template-rows: auto auto;
+    gap: 2px 8px !important;
+    border: 1px solid rgba(153, 193, 255, 0.18) !important;
+    border-radius: 10px;
+    background: rgba(3, 23, 61, 0.54);
+    padding: 9px !important;
+  }
+
+  .vm-dashboard-hero-stats > div:last-child {
+    grid-column: 1 / -1;
+  }
+
+  .vm-dashboard-hero-stats > div > i {
+    grid-row: 1 / span 2;
+    align-self: center;
+    flex-shrink: 0;
+  }
+
+  .vm-dashboard-hero-stats > div > strong,
+  .vm-dashboard-hero-stats > div > span {
+    min-width: 0;
+  }
+
+  .vm-dashboard-ticket-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(92px, 0.75fr) !important;
+    padding: 18px !important;
+  }
+
+  .vm-dashboard-support-banner {
+    align-items: flex-start !important;
+    flex-wrap: wrap;
+    padding: 16px !important;
+  }
+
+  .vm-dashboard-support-banner > span {
+    flex: 0 0 42px;
+  }
+
+  .vm-dashboard-support-banner > div {
+    flex: 1 1 calc(100% - 58px);
+  }
+
+  .vm-dashboard-support-banner > a {
+    width: 100%;
+    margin-left: 0 !important;
+    white-space: normal !important;
+    text-align: center;
+  }
+
+  /* Subscription: dedicated phone ticket instead of squeezing desktop art. */
+  [data-customer-route="/customer/subscriptions"] article[aria-label="Thông tin vé tháng"] {
+    overflow: hidden;
+    border: 1px solid #1d3966;
+    border-radius: 18px;
+    background: linear-gradient(145deg, #061d45, #082d61 58%, #061936);
+    filter: drop-shadow(0 10px 18px rgba(4, 24, 64, 0.18)) !important;
+  }
+
+  [data-customer-route="/customer/subscriptions"] article[aria-label="Thông tin vé tháng"] > svg {
+    display: none;
+  }
+
+  .vm-subscription-ticket-layout {
+    min-height: 0 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .vm-subscription-ticket-main,
+  .vm-subscription-ticket-aside {
+    padding: 18px !important;
+  }
+
+  .vm-subscription-ticket-aside {
+    border-top: 1px dashed rgba(255, 255, 255, 0.28);
+  }
+
+  .vm-subscription-ticket-aside > div:nth-child(2) > span:first-child {
+    font-size: clamp(3rem, 18vw, 4.2rem) !important;
+  }
+
+  .vm-subscription-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .vm-subscription-stat-grid article {
+    min-height: 118px;
+    padding: 12px !important;
+  }
+
+  .vm-subscription-stat-grid strong {
+    white-space: normal !important;
+    overflow-wrap: break-word;
+  }
+
+  [data-customer-route="/customer/subscriptions"] article[aria-label^="Xem chi tiết vé"] {
+    grid-template-columns: 40px minmax(0, 1fr) !important;
+    padding: 12px !important;
+  }
+
+  [data-customer-route="/customer/subscriptions"] article[aria-label^="Xem chi tiết vé"] > :nth-child(1) {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+  }
+
+  [data-customer-route="/customer/subscriptions"] article[aria-label^="Xem chi tiết vé"] > :nth-child(2) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  [data-customer-route="/customer/subscriptions"] article[aria-label^="Xem chi tiết vé"] > :nth-child(3) {
+    grid-column: 2;
+    grid-row: 2;
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  [data-customer-route="/customer/subscriptions"] article[aria-label^="Xem chi tiết vé"] > :nth-child(4) {
+    grid-column: 1 / -1 !important;
+    grid-row: 3;
+    border-top: 1px solid #edf0f3;
+    border-left: 0;
+    padding: 9px 0 0;
+  }
+
+  [data-customer-route="/customer/subscriptions"] article[aria-label^="Xem chi tiết vé"] > :nth-child(5) {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    justify-items: stretch;
+  }
+
+  [data-customer-route="/customer/subscriptions"] article[aria-label^="Xem chi tiết vé"] > :nth-child(5) > span {
+    justify-self: start;
+  }
+
+  [data-customer-route="/customer/subscriptions"] select[aria-label="Lọc trạng thái vé"],
+  [data-customer-route="/customer/subscriptions"] input[aria-label="Tìm biển số hoặc mã vé"] {
+    width: 100% !important;
+  }
+
+  [data-customer-route="/customer/subscriptions"] span:has(> span > input[placeholder="Ví dụ: WELCOME10"]) {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* Vehicle cards become vertical at phone widths so actions never crush copy. */
+  [data-customer-route="/customer/vehicles"] .vm-customer-content article {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  [data-customer-route="/customer/vehicles"] .vm-customer-content article > span[role="img"] {
+    width: min(220px, 100%) !important;
+    max-width: 220px;
+    margin: 0 auto;
+  }
+
+  [data-customer-route="/customer/vehicles"] .vm-customer-content article > div:last-child {
+    grid-column: 1 !important;
+    width: 100%;
+    justify-content: center !important;
+    border-top: 1px solid #edf0f5;
+    padding-top: 8px;
+  }
+
+  /* Result page shares the same shell and stacks CTAs on narrow phones. */
+  .vm-wallet-topup-result {
+    padding: 24px 18px !important;
+  }
+
+  .vm-mobile-only {
+    display: revert !important;
+  }
+
+  .vm-support-desktop-table,
+  .vm-wallet-desktop-table,
+  .vm-history-desktop-timeline {
+    display: none !important;
+  }
+
+  .vm-support-mobile-cards,
+  .vm-wallet-mobile-cards,
+  .vm-history-mobile-cards {
+    display: grid !important;
+    gap: 12px;
+    margin: 12px 20px 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .vm-support-mobile-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #fff;
+    padding: 12px;
+    display: grid;
+    gap: 8px;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+  }
+
+  .vm-support-mobile-card button {
+    min-height: var(--vm-customer-mobile-tap);
+    width: 100%;
+  }
+
+  /* Guide steps go single-column on phones. */
+  .vm-guide-step-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* Auth screens: 16px inputs + 44px targets (outside client shell). */
+  .vm-auth-shell input:not([type="checkbox"]):not([type="radio"]),
+  .vm-auth-shell select,
+  .vm-auth-shell textarea {
+    font-size: 16px !important;
+  }
+
+  .vm-auth-shell button {
+    min-height: var(--vm-customer-mobile-tap);
+  }
+
+  .vm-dashboard-cards,
+  .vm-dashboard-cards-polished {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .vm-customer-hero-card,
+  .vm-customer-hero-copy {
+    max-width: 100% !important;
+  }
+
+  .vm-customer-hero-actions {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  .vm-customer-hero-actions a,
+  .vm-customer-hero-actions button {
+    width: 100%;
+    min-height: var(--vm-customer-mobile-tap);
+    text-align: center;
+  }
+
+  /* Shared modal becomes a bottom sheet on phones. */
+  .tw-fixed.tw-inset-0.tw-z-\[2200\] {
+    place-items: end center !important;
+    padding: 0 !important;
+  }
+
+  .tw-fixed.tw-inset-0.tw-z-\[2200\] > section {
+    width: 100% !important;
+    max-height: 92dvh !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .tw-fixed.tw-inset-0.tw-z-\[2200\] > section > div {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tw-fixed.tw-inset-0.tw-z-\[2200\] footer {
+    position: sticky;
+    bottom: 0;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+    background: #fff;
+  }
+
+  /* Wallet/history/session detail sheets scroll safely with keyboard. */
+  .vm-customer-card,
+  .vm-ticket-detail {
+    padding: 12px !important;
+  }
+
+  .vm-info-list {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 4px 0;
+  }
+
+  .vm-info-list dt {
+    margin-top: 8px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* <=480px: small phones (320-390px guard).                            */
+/* ------------------------------------------------------------------ */
+@media (max-width: 480px) {
+  .vm-client-shell .container-fluid {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .vm-public-page {
+    width: 100%;
+    min-width: 0;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .vm-public-card,
+  .vm-guide-section,
+  .vm-contact-layout > article {
+    min-width: 0;
+  }
+
+  .vm-public-card,
+  .vm-guide-section {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .vm-guide-tabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .vm-guide-tabs button {
+    min-width: 0;
+    padding: 8px 4px;
+    font-size: 11px;
+    line-height: 1.25;
+    white-space: normal;
+  }
+
+  .vm-guide-tabs button i {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .vm-contact-form {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .vm-contact-form label,
+  .vm-contact-form button {
+    grid-column: 1 !important;
+    min-width: 0;
+  }
+
+  .vm-public-contact-item {
+    min-width: 0;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .vm-public-contact-item > span:last-child {
+    min-width: 0;
+  }
+
+  .vm-public-contact-item b {
+    overflow-wrap: anywhere;
+  }
+
+  .vm-customer-content {
+    padding: 8px !important;
+  }
+
+  /* Authenticated header cluster must fit 320px viewports. */
+  .vm-client-shell header .tw-min-w-\[238px\] {
+    min-width: 0 !important;
+  }
+
+  /* Fixed-width popovers become viewport-relative sheets. */
+  .tw-w-\[330px\],
+  .tw-w-\[360px\] {
+    width: calc(100vw - 16px) !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  .vm-customer-popover {
+    position: fixed !important;
+    left: 8px !important;
+    right: 8px !important;
+    top: auto !important;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    width: auto !important;
+    max-height: 70dvh;
+    overflow-y: auto;
+  }
+
+  /* Profile hero becomes a readable vertical identity card on small phones. */
+  .vm-profile-hero-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-items: center;
+    text-align: center;
+  }
+
+  .vm-profile-hero-avatar {
+    width: 96px !important;
+    height: 96px !important;
+  }
+
+  .vm-profile-hero-identity {
+    width: 100%;
+  }
+
+  .vm-profile-hero-identity > div:first-child,
+  .vm-profile-hero-identity span {
+    justify-content: center;
+  }
+
+  .vm-profile-hero-identity .tw-truncate {
+    max-width: calc(100vw - 76px);
+  }
+
+  .vm-profile-hero-meta {
+    grid-column: auto !important;
+    width: 100%;
+    padding-top: 14px !important;
+  }
+
+  .vm-profile-support-banner {
+    flex-direction: column;
+    align-items: stretch !important;
+    text-align: center;
+    padding: 18px !important;
+  }
+
+  .vm-profile-support-banner > span:first-child {
+    align-self: center;
+  }
+
+  .vm-profile-support-banner > span:nth-last-child(2) {
+    margin-left: 0 !important;
+  }
+
+  .vm-profile-support-banner > a {
+    min-height: var(--vm-customer-mobile-tap);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .vm-form-actions {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+
+  .vm-form-actions button,
+  .vm-form-actions a {
+    width: 100%;
+    min-height: var(--vm-customer-mobile-tap);
+  }
+
+  .vm-pagination {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .vm-pagination .vm-page-btn {
+    min-height: var(--vm-customer-mobile-tap);
+    min-width: var(--vm-customer-mobile-tap);
+  }
+
+  /* Chat panes breathe at 320-390px. */
+  .vm-chat-shell-mobile .vm-chat-composer {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .vm-chat-conversation-item {
+    grid-template-columns: 40px minmax(0, 1fr) !important;
+    gap: 8px 10px !important;
+  }
+
+  .vm-chat-conversation-meta {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px !important;
+  }
+
+  .vm-chat-inbox-footer > span:last-child {
+    display: none !important;
+  }
+
+  .vm-chat-thread-actions > button:nth-child(-n+2) {
+    display: none !important;
+  }
+
+  .vm-chat-shell-mobile .vm-chat-workspace .tw-px-6 {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  .vm-chat-toolbar {
+    gap: 4px !important;
+  }
+
+  .vm-chat-toolbar > button {
+    flex: 0 0 40px;
+    width: 40px !important;
+    height: 40px !important;
+  }
+
+  .vm-chat-toolbar > button:disabled {
+    display: none !important;
+  }
+
+  .vm-chat-send-button {
+    width: 48px !important;
+    min-width: 48px !important;
+    padding-inline: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  .vm-chat-send-label,
+  .vm-chat-send-separator,
+  .vm-chat-send-chevron {
+    display: none !important;
+  }
+
+  .vm-history-event-row {
+    grid-template-columns: 18px minmax(0, 1fr) !important;
+    column-gap: 8px !important;
+  }
+
+  .vm-history-event-row > :last-child {
+    grid-column: 2;
+    margin-top: -10px;
+  }
+
+  .vm-history-evidence-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .vm-wallet-topup-balance {
+    min-width: 0 !important;
+    width: 100%;
+  }
+
+  .vm-customer-mobile-nav-link {
+    font-size: 10px;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* <=400px: very small phones — hide the secondary partner CTA so the  */
+/* header cluster (logo + menu + login/register) fits 320px. The page  */
+/* remains reachable via direct URL and footer links.                  */
+/* ------------------------------------------------------------------ */
+@media (max-width: 400px) {
+  .vm-client-shell header a[href="/become-a-partner"] {
+    display: none !important;
+  }
+}
+
+/* Landscape phones: keep content reachable, avoid fixed heroes. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .vm-customer-hero-card {
+    min-height: 0 !important;
+  }
+
+  .vm-customer-mobile-nav {
+    min-height: calc(56px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .tw-fixed.tw-inset-0.tw-z-\[2200\] > section {
+    max-height: 96dvh !important;
+  }
+}
+
+/* Motion + keyboard accessibility (all widths; no visual change otherwise). */
+@media (prefers-reduced-motion: reduce) {
+  .vm-customer-shell *,
+  .vm-client-shell *,
+  .vm-customer-mobile-nav *,
+  .tw-animate-vm-modal-enter {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.vm-customer-shell :focus-visible,
+.vm-client-shell :focus-visible,
+.vm-customer-mobile-nav :focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.55);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@media (prefers-contrast: more) {
+  .vm-customer-mobile-nav-link[aria-current="page"] {
+    outline: 2px solid currentColor;
+  }
+}

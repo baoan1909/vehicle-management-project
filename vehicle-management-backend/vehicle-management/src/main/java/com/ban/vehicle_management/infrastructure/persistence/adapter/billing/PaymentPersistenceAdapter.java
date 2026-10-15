@@ -108,4 +108,16 @@ public class PaymentPersistenceAdapter implements PaymentPortOut {
         return paymentRepository.findByTransactionRefForUpdate(transactionRef)
                 .map(paymentPersistenceMapper::toDomain);
     }
+
+    @Override
+    public Optional<Payment> findByIdempotencyKey(String idempotencyKey) {
+        return paymentRepository.findByIdempotencyKey(idempotencyKey)
+                .map(paymentPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Payment> findByIdForUpdate(UUID paymentId) {
+        return paymentRepository.findByIdForUpdate(paymentId)
+                .map(paymentPersistenceMapper::toDomain);
+    }
 }

@@ -10,6 +10,17 @@ public record VnpayPaymentRequest(
         String clientIp,
         String bankCode,
         String locale,
-        Instant createdAt
+        Instant createdAt,
+        String returnUrlOverride
 ) {
+    public VnpayPaymentRequest(
+            String transactionRef,
+            BigDecimal amount,
+            String orderInfo,
+            String clientIp,
+            String bankCode,
+            String locale,
+            Instant createdAt) {
+        this(transactionRef, amount, orderInfo, clientIp, bankCode, locale, createdAt, null);
+    }
 }

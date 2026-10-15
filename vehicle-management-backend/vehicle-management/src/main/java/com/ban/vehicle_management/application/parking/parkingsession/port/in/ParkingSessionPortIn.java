@@ -30,7 +30,8 @@ public interface ParkingSessionPortIn {
             LocalDate fromDate,
             LocalDate toDate,
             String keyword,
-            UUID parkingLotId
+            UUID parkingLotId,
+            Integer limit
     );
 
     CheckInResult checkIn(CheckInCommand command);

@@ -71,6 +71,8 @@ export const adminNavigation: AdminSidebarEntry[] = [
       { label: "Quy tắc giá", to: "/admin/price-rules", matches: ["/admin/price-rules"] },
       { label: "Voucher", to: "/admin/vouchers", matches: ["/admin/vouchers"] },
       { label: "Hóa đơn", to: "/admin/invoices", matches: ["/admin/invoices"] },
+      { label: "Quản lý ví & giao dịch", to: "/admin/wallets", matches: ["/admin/wallets"] },
+      { label: "Ví đối tác", to: "/admin/partner-wallet", matches: ["/admin/partner-wallet"] },
     ],
   },
   {
@@ -119,7 +121,7 @@ export const platformAdminNavigation: AdminSidebarEntry[] = [
   { kind: "link", label: "Khách hàng toàn sàn", to: "/admin/customer", matches: ["/admin/customer"], icon: "members" },
   { kind: "link", label: "Voucher toàn sàn", to: "/admin/vouchers", matches: ["/admin/vouchers"], icon: "catalog" },
   { kind: "planned", label: "Phí dịch vụ sàn" },
-  { kind: "planned", label: "Ví điện tử" },
+  { kind: "link", label: "Quản lý ví & giao dịch", to: "/admin/wallets", matches: ["/admin/wallets"], icon: "pricing" },
   { kind: "planned", label: "Giao dịch & đối soát" },
   { kind: "link", label: "Tài khoản", to: "/admin/account", matches: ["/admin/account"], icon: "role" },
   { kind: "link", label: "Vai trò & phân quyền", to: "/admin/role", matches: ["/admin/role"], icon: "settings" },

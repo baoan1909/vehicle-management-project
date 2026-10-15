@@ -24,6 +24,8 @@ public interface CustomerVehiclePortIn {
             String keyword
     );
 
+    List<CustomerVehicle> getMyCustomerVehicles(Integer limit);
+
     void deleteCustomerVehicle(UUID customerVehicleId);
 
     CustomerVehicle activateCustomerVehicle(UUID customerVehicleId);

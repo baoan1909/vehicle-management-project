@@ -13,6 +13,7 @@ import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.reques
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.request.UpdateSupportTicketRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.response.SupportTicketAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.response.SupportTicketChatIntakeResponse;
+import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.response.SupportTicketUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatConversationUserResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
@@ -43,7 +44,7 @@ public class SupportTicketController {
     }
 
     @PostMapping
-    public ResponseEntity<ApiResponse<SupportTicketAdminResponse>> createTicket(
+    public ResponseEntity<ApiResponse<SupportTicketUserResponse>> createTicket(
             @RequestBody CreateSupportTicketRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
@@ -53,7 +54,7 @@ public class SupportTicketController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Support ticket created successfully",
-                supportTicketApiMapper.toAdminResponse(createdTicket)
+                supportTicketApiMapper.toUserResponse(createdTicket)
         ));
     }
 
@@ -82,7 +83,7 @@ public class SupportTicketController {
     }
 
     @PostMapping("/from-conversations/{conversationId}")
-    public ResponseEntity<ApiResponse<SupportTicketAdminResponse>> createTicketFromConversation(
+    public ResponseEntity<ApiResponse<SupportTicketUserResponse>> createTicketFromConversation(
             @PathVariable UUID conversationId,
             @RequestBody CreateSupportTicketRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
@@ -94,18 +95,19 @@ public class SupportTicketController {
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Support ticket created from conversation successfully",
-                supportTicketApiMapper.toAdminResponse(createdTicket)
+                supportTicketApiMapper.toUserResponse(createdTicket)
         ));
     }
 
     @GetMapping("/mine")
-    public ResponseEntity<ApiResponse<List<SupportTicketAdminResponse>>> getMyTickets(
+    public ResponseEntity<ApiResponse<List<SupportTicketUserResponse>>> getMyTickets(
             @RequestParam(required = false) com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus status,
-            @RequestParam(required = false) String keyword
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer limit
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched current customer support tickets successfully",
-                supportTicketApiMapper.toAdminResponses(supportTicketPortIn.getMyTickets(status, keyword))
+                supportTicketApiMapper.toUserResponses(supportTicketPortIn.getMyTickets(status, keyword, limit))
         ));
     }
 

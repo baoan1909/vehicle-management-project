@@ -1,35 +1,79 @@
-import type { ReactNode } from "react";
+import { lazy, type ComponentType, type ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 import { getRoutePermissions } from "@/app/routePermissions";
 import type { AppLayout } from "@/shared/types/common";
-import { LoginPage } from "@/features/auth";
-import { VnpayReturnPage } from "@/features/billing/pages/VnpayReturnPage";
-import { InvoiceManagementPage } from "@/features/billing/pages/InvoiceManagementPage";
-import { CardFormPage, CardListPage, LostCardCreatePage, LostCardDetailPage, LostCardListPage } from "@/features/cards";
-import { SubscriptionApprovalPage, TicketFormPage, TicketListPage, VehicleFormPage, VehicleListPage } from "@/features/catalog";
-import {
-  AboutPage,
-  ContactPage,
-  CustomerDashboardPage,
-  CustomerHistoryPage,
-  GuidePage,
-  PricingPage,
-  ProfilePage,
-  PartnerRegistrationPage,
-  SubscriptionPage,
-  SupportPage,
-  VehiclePage,
-} from "@/features/customer-portal";
-import { CustomerFormPage, CustomerListPage } from "@/features/customers";
-import { DashboardPage } from "@/features/dashboard";
-import { EmployeeListPage, ShiftSchedulePage } from "@/features/employees";
-import { DeviceManagementPage } from "@/features/hardware";
-import { AccountFormPage, AccountListPage, AvatarApprovalManagementPage, InternalProfilePage, PartnerRegistrationManagementPage, RoleFormPage, RoleListPage } from "@/features/iam";
-import { AiKnowledgeAdminPage, AiModelManagementPage } from "@/features/ai";
-import { AnnouncementManagementPage } from "@/features/notifications";
-import { NearbyParkingLotsPage, ParkingLiveMapPage, ParkingLayoutEditorPage, ParkingLotOverviewPage, ParkingLotStructurePage, ParkingSessionPage, SwipeEntryPage, SwipeListPage } from "@/features/parking";
-import { PricePlanListPage, PriceRuleListPage, VoucherManagementPage } from "@/features/pricing";
-import { OperationsSupportCenterPage, SupportCategoryWorkflowPage, SupportTicketManagementPage } from "@/features/support";
+
+function lazyPage(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  loader: () => Promise<any>,
+  name: string,
+) {
+  return lazy(() =>
+    loader().then((module: Record<string, ComponentType<any>>) => ({ default: module[name] })),
+  );
+}
+
+// Route-level code splitting: each feature barrel becomes its own chunk so
+// Customer sessions never download Admin-only code (and vice versa).
+const LoginPage = lazyPage(() => import("@/features/auth"), "LoginPage");
+const VnpayReturnPage = lazyPage(() => import("@/features/billing/pages/VnpayReturnPage"), "VnpayReturnPage");
+const InvoiceManagementPage = lazyPage(() => import("@/features/billing/pages/InvoiceManagementPage"), "InvoiceManagementPage");
+const CustomerWalletPage = lazyPage(() => import("@/features/billing/pages/CustomerWalletPage"), "CustomerWalletPage");
+const WalletTopUpPage = lazyPage(() => import("@/features/billing/pages/WalletTopUpPage"), "WalletTopUpPage");
+const WalletTopupResultPage = lazyPage(() => import("@/features/billing/pages/WalletTopupResultPage"), "WalletTopupResultPage");
+const PartnerWalletPage = lazyPage(() => import("@/features/billing/pages/PartnerWalletPage"), "PartnerWalletPage");
+const WalletManagementPage = lazyPage(() => import("@/features/billing/pages/WalletManagementPage"), "WalletManagementPage");
+const CardFormPage = lazyPage(() => import("@/features/cards"), "CardFormPage");
+const CardListPage = lazyPage(() => import("@/features/cards"), "CardListPage");
+const LostCardCreatePage = lazyPage(() => import("@/features/cards"), "LostCardCreatePage");
+const LostCardDetailPage = lazyPage(() => import("@/features/cards"), "LostCardDetailPage");
+const LostCardListPage = lazyPage(() => import("@/features/cards"), "LostCardListPage");
+const SubscriptionApprovalPage = lazyPage(() => import("@/features/catalog"), "SubscriptionApprovalPage");
+const TicketFormPage = lazyPage(() => import("@/features/catalog"), "TicketFormPage");
+const TicketListPage = lazyPage(() => import("@/features/catalog"), "TicketListPage");
+const VehicleFormPage = lazyPage(() => import("@/features/catalog"), "VehicleFormPage");
+const VehicleListPage = lazyPage(() => import("@/features/catalog"), "VehicleListPage");
+const AboutPage = lazyPage(() => import("@/features/customer-portal"), "AboutPage");
+const ContactPage = lazyPage(() => import("@/features/customer-portal"), "ContactPage");
+const CustomerDashboardPage = lazyPage(() => import("@/features/customer-portal"), "CustomerDashboardPage");
+const CustomerHistoryPage = lazyPage(() => import("@/features/customer-portal"), "CustomerHistoryPage");
+const GuidePage = lazyPage(() => import("@/features/customer-portal"), "GuidePage");
+const PricingPage = lazyPage(() => import("@/features/customer-portal"), "PricingPage");
+const ProfilePage = lazyPage(() => import("@/features/customer-portal"), "ProfilePage");
+const PartnerRegistrationPage = lazyPage(() => import("@/features/customer-portal"), "PartnerRegistrationPage");
+const SubscriptionPage = lazyPage(() => import("@/features/customer-portal"), "SubscriptionPage");
+const SupportPage = lazyPage(() => import("@/features/customer-portal"), "SupportPage");
+const VehiclePage = lazyPage(() => import("@/features/customer-portal"), "VehiclePage");
+const CustomerFormPage = lazyPage(() => import("@/features/customers"), "CustomerFormPage");
+const CustomerListPage = lazyPage(() => import("@/features/customers"), "CustomerListPage");
+const DashboardPage = lazyPage(() => import("@/features/dashboard"), "DashboardPage");
+const EmployeeListPage = lazyPage(() => import("@/features/employees"), "EmployeeListPage");
+const ShiftSchedulePage = lazyPage(() => import("@/features/employees"), "ShiftSchedulePage");
+const DeviceManagementPage = lazyPage(() => import("@/features/hardware"), "DeviceManagementPage");
+const AccountFormPage = lazyPage(() => import("@/features/iam"), "AccountFormPage");
+const AccountListPage = lazyPage(() => import("@/features/iam"), "AccountListPage");
+const AvatarApprovalManagementPage = lazyPage(() => import("@/features/iam"), "AvatarApprovalManagementPage");
+const InternalProfilePage = lazyPage(() => import("@/features/iam"), "InternalProfilePage");
+const PartnerRegistrationManagementPage = lazyPage(() => import("@/features/iam"), "PartnerRegistrationManagementPage");
+const RoleFormPage = lazyPage(() => import("@/features/iam"), "RoleFormPage");
+const RoleListPage = lazyPage(() => import("@/features/iam"), "RoleListPage");
+const AiKnowledgeAdminPage = lazyPage(() => import("@/features/ai"), "AiKnowledgeAdminPage");
+const AiModelManagementPage = lazyPage(() => import("@/features/ai"), "AiModelManagementPage");
+const AnnouncementManagementPage = lazyPage(() => import("@/features/notifications"), "AnnouncementManagementPage");
+const NearbyParkingLotsPage = lazyPage(() => import("@/features/parking"), "NearbyParkingLotsPage");
+const ParkingLiveMapPage = lazyPage(() => import("@/features/parking"), "ParkingLiveMapPage");
+const ParkingLayoutEditorPage = lazyPage(() => import("@/features/parking"), "ParkingLayoutEditorPage");
+const ParkingLotOverviewPage = lazyPage(() => import("@/features/parking"), "ParkingLotOverviewPage");
+const ParkingLotStructurePage = lazyPage(() => import("@/features/parking"), "ParkingLotStructurePage");
+const ParkingSessionPage = lazyPage(() => import("@/features/parking"), "ParkingSessionPage");
+const SwipeEntryPage = lazyPage(() => import("@/features/parking"), "SwipeEntryPage");
+const SwipeListPage = lazyPage(() => import("@/features/parking"), "SwipeListPage");
+const PricePlanListPage = lazyPage(() => import("@/features/pricing"), "PricePlanListPage");
+const PriceRuleListPage = lazyPage(() => import("@/features/pricing"), "PriceRuleListPage");
+const VoucherManagementPage = lazyPage(() => import("@/features/pricing"), "VoucherManagementPage");
+const OperationsSupportCenterPage = lazyPage(() => import("@/features/support"), "OperationsSupportCenterPage");
+const SupportCategoryWorkflowPage = lazyPage(() => import("@/features/support"), "SupportCategoryWorkflowPage");
+const SupportTicketManagementPage = lazyPage(() => import("@/features/support"), "SupportTicketManagementPage");
 
 export interface RouteDefinition {
   path: string;
@@ -65,6 +109,8 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/price-rules", title: "Quy tac gia", layout: "admin", element: <PriceRuleListPage /> },
   { path: "/admin/vouchers", title: "Quan ly voucher", layout: "admin", element: <VoucherManagementPage /> },
   { path: "/admin/invoices", title: "Quản lý hóa đơn", layout: "admin", element: <InvoiceManagementPage /> },
+  { path: "/admin/wallets", title: "Quản trị ví", layout: "admin", element: <WalletManagementPage /> },
+  { path: "/admin/partner-wallet", title: "Ví đối tác", layout: "admin", element: <PartnerWalletPage /> },
   { path: "/admin/visitorParkingFee", title: "Phi vang lai", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
   { path: "/admin/parkingFeeOfCustomer", title: "Phi dang ky", layout: "admin", element: <Navigate to="/admin/price-rules" replace /> },
   { path: "/admin/employee", title: "Nhân viên", layout: "admin", element: <EmployeeListPage /> },
@@ -95,6 +141,9 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
 { path: "/become-a-partner", title: "Trở thành đối tác CoParking", layout: "auth", element: <PartnerRegistrationPage /> },
 
   { path: "/payment/vnpay-return", title: "Ket qua thanh toan", layout: "client", element: <VnpayReturnPage /> },
+  { path: "/customer/wallet", title: "Ví của tôi", layout: "client", element: <CustomerWalletPage /> },
+  { path: "/customer/wallet/topup", title: "Nạp tiền ví", layout: "client", element: <WalletTopUpPage /> },
+  { path: "/customer/wallet/topup-result", title: "Kết quả nạp tiền", layout: "client", element: <WalletTopupResultPage /> },
   { path: "/customerTicket/customer-infor", title: "Lich su gui xe", layout: "client", element: <CustomerHistoryPage /> },
   { path: "/customerTicket/customer-infor-detail", title: "Thong tin tai khoan", layout: "client", element: <ProfilePage /> },
   { path: "/customer/dashboard", title: "Tong quan khach hang", layout: "client", element: <CustomerDashboardPage /> },

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { Modal, useToast } from "@/components/ui";
+import { Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
@@ -10,8 +10,8 @@ import {
 import {
   closeSupportTicket,
   createSupportTicket,
+  getMySupportTickets,
   getSupportTicketCategories,
-  getSupportTickets,
   reopenSupportTicket,
   type SupportTicketCategoryResponse,
   type SupportTicketPriority,
@@ -103,6 +103,7 @@ export function SupportPage() {
   const toast = useToast();
   const canCloseOwnTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CLOSE_OWN", "SUPPORT_TICKET_CLOSE_ALL"]);
   const canReopenOwnTicket = hasAnyPermission(user, ["SUPPORT_TICKET_REOPEN_OWN", "SUPPORT_TICKET_REOPEN_ALL"]);
+  const canCreateTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CREATE_OWN", "SUPPORT_TICKET_CREATE_ALL"]);
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [tickets, setTickets] = useState<SupportTicketResponse[]>([]);
   const [categories, setCategories] = useState<SupportTicketCategoryResponse[]>([]);
@@ -122,13 +123,9 @@ export function SupportPage() {
     setLoading(true);
     try {
       const nextProfile = await getCustomerPortalProfile();
-      const customerId = nextProfile.customer?.customerId;
-      if (!customerId) {
-        throw new Error("Tài khoản hiện tại chưa liên kết hồ sơ khách hàng.");
-      }
 
       const [ticketResponse, categoryResponse] = await Promise.all([
-        getSupportTickets({ customerId }),
+        getMySupportTickets(),
         getSupportTicketCategories({ status: "ACTIVE" }),
       ]);
       const nextTickets = ticketResponse.data ?? [];
@@ -196,6 +193,9 @@ export function SupportPage() {
   const selectedCategory = categories.find((category) => category.categoryId === form.categoryId);
 
   const handleSubmit = async () => {
+    if (saving) {
+      return;
+    }
     setFormError("");
     const title = form.title.trim();
     const content = form.content.trim();
@@ -207,11 +207,14 @@ export function SupportPage() {
 
     setSaving(true);
     try {
+      const idempotencyKey = typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const response = await createSupportTicket({
         categoryId: form.categoryId,
         content,
         title,
-      });
+      }, idempotencyKey);
       setForm(emptyForm);
       setCreateFormOpen(false);
       toast.success("Đã gửi yêu cầu hỗ trợ.");
@@ -277,7 +280,7 @@ export function SupportPage() {
       <CustomerPageHeader
         title="Hỗ trợ"
         subtitle="Gửi yêu cầu và theo dõi tình trạng xử lý hỗ trợ."
-        action={<button type="button" onClick={handleOpenCreateForm}><i className="fas fa-plus" /> Tạo yêu cầu mới</button>}
+        action={canCreateTicket ? <button type="button" onClick={handleOpenCreateForm}><i className="fas fa-plus" /> Tạo yêu cầu mới</button> : undefined}
       />
 
       <div className="vm-support-layout">
@@ -294,15 +297,10 @@ export function SupportPage() {
                 <i className="fas fa-search" />
                 <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm theo tiêu đề, nội dung..." />
               </label>
-              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as SupportTicketStatus | "ALL")}>
-                <option value="ALL">Tất cả trạng thái</option>
-                {workflow.map((status) => <option key={status} value={status}>{statusLabels[status]}</option>)}
-              </select>
-              <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value as SupportTicketPriority | "ALL")}>
-                <option value="ALL">Tất cả mức độ</option>
-                {Object.entries(priorityLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
+              <SelectMenu ariaLabel="Lọc trạng thái yêu cầu" options={[{ label: "Tất cả trạng thái", value: "ALL" }, ...workflow.map((status) => ({ label: statusLabels[status], value: status }))]} portal searchable={false} value={statusFilter} onChange={(value) => setStatusFilter(value as SupportTicketStatus | "ALL")} />
+              <SelectMenu ariaLabel="Lọc mức độ yêu cầu" options={[{ label: "Tất cả mức độ", value: "ALL" }, ...Object.entries(priorityLabels).map(([value, label]) => ({ label, value }))]} portal searchable={false} value={priorityFilter} onChange={(value) => setPriorityFilter(value as SupportTicketPriority | "ALL")} />
             </div>
+            <div className="vm-support-desktop-table">
             <table className="vm-customer-table">
               <thead>
                 <tr>
@@ -355,6 +353,30 @@ export function SupportPage() {
                 )}
               </tbody>
             </table>
+            </div>
+            <ul className="vm-support-mobile-cards" aria-label="Danh sách yêu cầu hỗ trợ">
+              {pagedTickets.map((ticket) => {
+                const selected = selectedTicket?.supportTicketId === ticket.supportTicketId;
+                return (
+                  <li key={ticket.supportTicketId} className="vm-support-mobile-card">
+                    <div className="tw-flex tw-items-center tw-justify-between tw-gap-2">
+                      <strong>{shortCode(ticket.supportTicketId)}</strong>
+                      <StatusPill tone={statusTone[ticket.status]}>{statusLabels[ticket.status]}</StatusPill>
+                    </div>
+                    <span className="tw-text-[0.95rem] tw-font-bold tw-text-slate-900">{ticket.title}</span>
+                    <span className="tw-text-[0.8rem] tw-font-semibold tw-text-slate-500">{ticket.categoryName ?? ticket.categoryCode ?? "--"} · {formatDateTime(ticket.createdAt)}</span>
+                    <span><StatusPill tone={priorityTone[ticket.priority]}>{priorityLabels[ticket.priority]}</StatusPill></span>
+                    <button type="button" aria-pressed={selected} onClick={() => setSelectedTicketId(ticket.supportTicketId)}>
+                      {selected ? "Đang xem chi tiết" : "Xem chi tiết"}
+                    </button>
+                  </li>
+                );
+              })}
+              {!loading && filteredTickets.length === 0 && (
+                <li className="vm-support-mobile-card">Chưa có yêu cầu hỗ trợ phù hợp với bộ lọc.</li>
+              )}
+              {loading && <li className="vm-support-mobile-card">Đang tải dữ liệu hỗ trợ...</li>}
+            </ul>
             <PaginationLite
               currentPage={safeCurrentPage}
               pageSize={pageSize}
@@ -371,7 +393,7 @@ export function SupportPage() {
             {selectedTicket ? (
               <>
                 <dl className="vm-info-list">
-                  <dt>Khách hàng:</dt><dd>{profile?.profile?.fullName ?? profile?.account?.username ?? selectedTicket.customerId}</dd>
+                  <dt>Khách hàng:</dt><dd>{profile?.profile?.fullName ?? profile?.account?.username ?? "--"}</dd>
                   <dt>Trạng thái:</dt><dd><StatusPill tone={statusTone[selectedTicket.status]}>{statusLabels[selectedTicket.status]}</StatusPill></dd>
                   <dt>Mức độ:</dt><dd><StatusPill tone={priorityTone[selectedTicket.priority]}>{priorityLabels[selectedTicket.priority]}</StatusPill></dd>
                   <dt>Loại yêu cầu:</dt><dd>{selectedTicket.categoryName ?? selectedTicket.categoryCode ?? "--"}</dd>
@@ -447,12 +469,7 @@ export function SupportPage() {
           ) : null}
           <div className="tw-grid tw-grid-cols-1 tw-gap-4 sm:tw-grid-cols-2">
             <Field label="Loại yêu cầu">
-              <select value={form.categoryId} onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value }))}>
-                <option value="">Chọn loại yêu cầu</option>
-                {categories.map((category) => (
-                  <option key={category.categoryId} value={category.categoryId}>{category.name}</option>
-                ))}
-              </select>
+              <SelectMenu ariaLabel="Chọn loại yêu cầu" options={[{ label: "Chọn loại yêu cầu", value: "" }, ...categories.map((category) => ({ label: category.name, value: category.categoryId }))]} portal portalFitContent value={form.categoryId} onChange={(value) => setForm((current) => ({ ...current, categoryId: value }))} />
             </Field>
             <Field label="Mức độ ưu tiên">
               <input value={selectedCategory ? priorityLabels[selectedCategory.priority] : "Tự động theo loại yêu cầu"} readOnly />

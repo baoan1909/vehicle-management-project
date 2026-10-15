@@ -100,6 +100,18 @@ public class PaymentEntity {
 
     @Column(name = "failure_reason", length = 255)
     private String failureReason;
+
+    @Column(name = "idempotency_key", length = 100)
+    private String idempotencyKey;
+
+    @Column(name = "wallet_id")
+    private UUID walletId;
+
+    @Column(name = "reversed_payment_id")
+    private UUID reversedPaymentId;
+
+    @Column(name = "refunded_amount", precision = 19, scale = 2)
+    private BigDecimal refundedAmount;
 }
 
 

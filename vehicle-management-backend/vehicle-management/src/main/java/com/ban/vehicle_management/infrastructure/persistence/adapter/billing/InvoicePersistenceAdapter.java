@@ -62,6 +62,12 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
     }
 
     @Override
+    public Optional<Invoice> findByIdForUpdate(UUID invoiceId) {
+        return invoiceRepository.findByIdForUpdate(invoiceId)
+                .map(invoicePersistenceMapper::toDomain);
+    }
+
+    @Override
     public List<Invoice> findAll(
             UUID customerId,
             UUID parkingSessionId,
@@ -94,6 +100,30 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
                 parkingLotIds
             )
         ).stream()
+                .map(invoicePersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Invoice> findOwnInvoices(
+            UUID customerId,
+            List<UUID> subscriptionIds,
+            InvoiceStatus status,
+            Instant fromDate,
+            Instant toDate,
+            String keyword,
+            int limit
+    ){
+        return invoiceRepository.findAll(InvoiceSpecifications.withOwnFilters(
+                customerId,
+                subscriptionIds,
+                status,
+                fromDate,
+                toDate,
+                keyword
+            ),
+                org.springframework.data.domain.PageRequest.of(0, limit)
+            ).stream()
                 .map(invoicePersistenceMapper::toDomain)
                 .toList();
     }

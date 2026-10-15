@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import type { ReactNode } from "react";
 import {
   canAccessAdminRoute,
@@ -58,6 +58,10 @@ function RouteDocument({ layout }: { layout: AppLayout }) {
   return null;
 }
 
+function RouteFallback() {
+  return <FullPageCarLoader label="Đang tải trang..." />;
+}
+
 function AdminShell() {
   const { user } = useAuth();
   const location = useLocation();
@@ -83,7 +87,9 @@ function AdminShell() {
       <RouteDocument layout="admin" />
       <PageTransitionLoader />
       <AdminLayout>
-        <Outlet />
+        <Suspense fallback={<RouteFallback />}>
+          <Outlet />
+        </Suspense>
       </AdminLayout>
     </>
   );
@@ -167,7 +173,9 @@ function ClientShell() {
       <RouteDocument layout="client" />
       <PageTransitionLoader />
       <ClientLayout>
-        <Outlet />
+        <Suspense fallback={<RouteFallback />}>
+          <Outlet />
+        </Suspense>
       </ClientLayout>
     </>
   );
@@ -178,7 +186,9 @@ function AuthShell() {
     <>
       <RouteDocument layout="auth" />
       <PageTransitionLoader />
-      <Outlet />
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
     </>
   );
 }
@@ -188,7 +198,9 @@ function FullscreenShell() {
     <>
       <RouteDocument layout="fullscreen" />
       <PageTransitionLoader />
-      <Outlet />
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
     </>
   );
 }

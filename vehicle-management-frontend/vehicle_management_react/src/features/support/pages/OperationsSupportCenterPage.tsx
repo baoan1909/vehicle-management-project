@@ -653,24 +653,32 @@ function InfoLineView({ item }: { item: InfoLine }) {
 }
 
 function TopBar() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const isCustomer = user?.role === "CUSTOMER";
+
   return (
-    <header className="tw-flex tw-h-[64px] tw-items-center tw-justify-between tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6">
-      <h1 className="tw-m-0 tw-text-[1.35rem] tw-font-extrabold tw-text-vm-slate-900">Trung tâm hỗ trợ vận hành</h1>
-      <div className="tw-flex tw-items-center tw-gap-5">
-        <span className="tw-flex tw-items-center tw-gap-2 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-700">
+    <header className="vm-chat-topbar tw-flex tw-h-[64px] tw-items-center tw-justify-between tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6">
+      <h1 className="tw-m-0 tw-text-[1.35rem] tw-font-extrabold tw-text-vm-slate-900">{isCustomer ? "Chat hỗ trợ" : "Trung tâm hỗ trợ vận hành"}</h1>
+      <div className="vm-chat-topbar-actions tw-flex tw-items-center tw-gap-5">
+        <span className="vm-chat-topbar-status tw-flex tw-items-center tw-gap-2 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-700">
           <span className="tw-h-2.5 tw-w-2.5 tw-rounded-full tw-bg-green-500" />
           Hệ thống hoạt động bình thường
         </span>
-        <button type="button" className="tw-flex tw-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">
+        {!isCustomer ? <button type="button" className="vm-chat-shift tw-flex tw-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">
           <i className="far fa-clock" />
           Ca làm việc: 08:00 - 17:00
           <i className="fas fa-chevron-down tw-text-[0.65rem]" />
-        </button>
+        </button> : null}
         <NotificationBell variant="admin" />
-        <button type="button" className="tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" aria-label="Trợ giúp">
+        {!isCustomer ? <button type="button" className="vm-chat-help tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" aria-label="Trợ giúp">
           <i className="far fa-question-circle tw-text-[1.1rem]" />
-        </button>
-        <AdminAccountMenu />
+        </button> : null}
+        {isCustomer ? (
+          <button type="button" className="vm-chat-home tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-vm-primary" aria-label="Về trang khách hàng" onClick={() => navigate("/customer/dashboard")}>
+            <i className="fas fa-home" />
+          </button>
+        ) : <AdminAccountMenu />}
       </div>
     </header>
   );
@@ -689,7 +697,7 @@ function ConversationItem({
     <button
       type="button"
       className={cn(
-        "tw-grid tw-w-full tw-grid-cols-[40px_minmax(0,1fr)_auto] tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-bg-white tw-p-3 tw-text-left tw-transition",
+        "vm-chat-conversation-item tw-grid tw-w-full tw-grid-cols-[40px_minmax(0,1fr)_auto] tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-bg-white tw-p-3 tw-text-left tw-transition",
         active
           ? "tw-border-vm-primary tw-bg-brand-50 tw-shadow-[inset_3px_0_0_#2563EB,0_12px_22px_rgba(37,99,235,0.08)]"
           : "tw-border-vm-slate-100 hover:tw-border-brand-100 hover:tw-bg-vm-slate-25",
@@ -705,7 +713,7 @@ function ConversationItem({
         <span className="tw-mt-1 tw-block tw-truncate tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-700">{conversation.lastMessage}</span>
         <span className="tw-mt-2 tw-block tw-text-[0.74rem] tw-font-bold tw-text-vm-slate-500">{conversation.ticketCode}</span>
       </span>
-      <span className="tw-grid tw-justify-items-end tw-gap-4">
+      <span className="vm-chat-conversation-meta tw-grid tw-justify-items-end tw-gap-4">
         <small className="tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">{conversation.time}</small>
         <Badge tone={priorityTone(conversation.priority)} className="tw-rounded-vm-sm tw-px-2 tw-text-[0.66rem]">
           {conversation.priorityLabel}
@@ -760,8 +768,8 @@ function ConversationList({
   const waitingCount = summaryConversations.filter((conversation) => conversation.status === "waiting").length;
 
   return (
-    <aside className="tw-flex tw-min-h-0 tw-flex-col tw-border-0 tw-border-r tw-border-solid tw-border-vm-slate-100 tw-bg-white">
-      <div className="tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-5">
+    <aside className="vm-chat-inbox tw-flex tw-min-h-0 tw-flex-col tw-border-0 tw-border-r tw-border-solid tw-border-vm-slate-100 tw-bg-white">
+      <div className="vm-chat-inbox-header tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-5">
         <div className="tw-flex tw-items-center tw-justify-between">
           <h2 className="tw-m-0 tw-text-[1.05rem] tw-font-extrabold tw-text-vm-slate-900">Hộp thoại</h2>
           <button type="button" className="tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" aria-label="Tải lại hội thoại" onClick={onRefresh}>
@@ -787,12 +795,12 @@ function ConversationList({
             Đang dùng dữ liệu mẫu vì backend chưa có hội thoại trả về cho tài khoản hiện tại.
           </div>
         ) : null}
-        <div className="tw-mt-3 tw-grid tw-grid-cols-3 tw-gap-2">
+        <div className="vm-chat-filter-grid tw-mt-3 tw-grid tw-grid-cols-3 tw-gap-2">
           <SelectMenu ariaLabel="Kênh hội thoại" className="!tw-w-full" onChange={onChannelFilterChange} options={channelOptions} portal portalFitContent searchable={false} triggerClassName="!tw-h-9 !tw-px-2 !tw-text-[0.72rem]" triggerLabel={channelFilter === "all" ? "Kênh" : undefined} value={channelFilter} />
           <SelectMenu ariaLabel="Trạng thái hội thoại" className="!tw-w-full" onChange={(value) => onStatusFilterChange(value as "all" | ConversationStatus)} options={[{ label: "Tất cả trạng thái", value: "all" }, { label: "Đang xử lý", value: "processing" }, { label: "Chờ phản hồi", value: "waiting" }, { label: "Đã đóng", value: "closed" }]} portal portalFitContent searchable={false} triggerClassName="!tw-h-9 !tw-px-2 !tw-text-[0.72rem]" triggerLabel={statusFilter === "all" ? "Trạng thái" : undefined} value={statusFilter} />
           <SelectMenu ariaLabel="Ưu tiên hội thoại" className="!tw-w-full" onChange={(value) => onPriorityFilterChange(value as "all" | Priority)} options={[{ label: "Tất cả ưu tiên", value: "all" }, { label: "Cao", value: "high" }, { label: "Trung bình", value: "medium" }, { label: "Thấp", value: "low" }]} portal portalFitContent searchable={false} triggerClassName="!tw-h-9 !tw-px-2 !tw-text-[0.72rem]" triggerLabel={priorityFilter === "all" ? "Ưu tiên" : undefined} value={priorityFilter} />
         </div>
-        <div className="tw-mt-4 tw-flex tw-gap-5 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100">
+        <div className="vm-chat-inbox-tabs tw-mt-4 tw-flex tw-gap-5 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100">
           {[
             ["all", "Tất cả", String(summaryConversations.length)],
             ["processing", "Ticket đang xử lý", String(processingCount)],
@@ -834,7 +842,7 @@ function ConversationList({
           />
         ))}
       </div>
-      <div className="tw-flex tw-h-[52px] tw-items-center tw-justify-between tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-700">
+      <div className="vm-chat-inbox-footer tw-flex tw-h-[52px] tw-items-center tw-justify-between tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-px-4 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-700">
         <span>Hiển thị {conversations.length ? `1 - ${conversations.length}` : "0"} / {conversations.length} hội thoại</span>
         <span className="tw-flex tw-items-center tw-gap-3">
           <i className="fas fa-chevron-left tw-text-vm-slate-500" />
@@ -849,7 +857,7 @@ function ConversationList({
 
 function ChatHeader({ conversation }: { conversation: Conversation }) {
   return (
-    <div className="tw-flex tw-h-[72px] tw-items-center tw-justify-between tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6">
+    <div className="vm-chat-thread-header tw-flex tw-h-[72px] tw-items-center tw-justify-between tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6">
       <div className="tw-flex tw-min-w-0 tw-items-center tw-gap-3">
         <EntityAvatar initials={conversation.initials} src={conversation.avatarUrl} tone={conversation.tone} size="lg" />
         <div className="tw-min-w-0">
@@ -866,7 +874,7 @@ function ChatHeader({ conversation }: { conversation: Conversation }) {
           </p>
         </div>
       </div>
-      <div className="tw-flex tw-items-center tw-gap-2">
+      <div className="vm-chat-thread-actions tw-flex tw-items-center tw-gap-2">
         {["fas fa-phone", "fas fa-video", "fas fa-ellipsis-v"].map((icon) => (
           <button key={icon} type="button" className="tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" aria-label="Tác vụ hội thoại">
             <i className={icon} />
@@ -879,7 +887,7 @@ function ChatHeader({ conversation }: { conversation: Conversation }) {
 
 function TicketStrip({ conversation }: { conversation: Conversation }) {
   return (
-    <div className="tw-flex tw-h-[52px] tw-items-center tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6 tw-text-[0.82rem] tw-font-extrabold">
+    <div className="vm-chat-ticket-strip tw-flex tw-h-[52px] tw-items-center tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6 tw-text-[0.82rem] tw-font-extrabold">
       <Badge tone="danger" className="tw-rounded-vm-sm tw-px-3">{conversation.ticketTitle}</Badge>
       <span className="tw-text-vm-slate-400">|</span>
       <span className="tw-text-vm-slate-500">{conversation.ticketCode}</span>
@@ -1446,20 +1454,24 @@ function Composer({
   disabledReason,
   focusSignal,
   isSending,
+  sendError,
   canCreateTicket,
   onCreateTicket,
   onOpenHistory,
   onSend,
+  onRetrySend,
 }: {
   canAttach: boolean;
   canSend: boolean;
   disabledReason?: string;
   focusSignal: string;
   isSending: boolean;
+  sendError: string;
   canCreateTicket: boolean;
   onCreateTicket: () => void;
   onOpenHistory: () => void;
   onSend: (content: string, files: File[]) => Promise<void>;
+  onRetrySend: () => void;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -1516,9 +1528,21 @@ function Composer({
   }
 
   return (
-    <div className="tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-pb-4 tw-pt-3">
+    <div className="vm-chat-composer tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-pb-4 tw-pt-3">
       <input ref={fileInputRef} className="tw-hidden" type="file" accept="image/*" multiple onChange={handleFileChange} />
-      <div className="tw-relative tw-flex tw-h-11 tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-2 tw-text-vm-slate-700">
+      {isSending ? (
+        <div className="vm-chat-sending" role="status" aria-live="polite">
+          <i className="fas fa-spinner fa-spin" aria-hidden="true" />
+          Đang gửi{files.length ? ` ${files.length} ảnh` : " tin nhắn"}...
+        </div>
+      ) : null}
+      {sendError && !isSending ? (
+        <div className="vm-chat-send-error" role="alert">
+          <span><i className="fas fa-exclamation-circle" aria-hidden="true" /> Gửi thất bại: {sendError}</span>
+          <button type="button" onClick={onRetrySend}>Thử lại</button>
+        </div>
+      ) : null}
+      <div className="vm-chat-toolbar tw-relative tw-flex tw-h-11 tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-2 tw-text-vm-slate-700">
           <button
             type="button"
             className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white hover:tw-bg-vm-slate-25 disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
@@ -1560,17 +1584,17 @@ function Composer({
       <div className="tw-mt-3 tw-flex tw-items-stretch tw-gap-3">
         <textarea
           ref={textareaRef}
-          className="tw-h-11 tw-min-w-0 tw-flex-1 tw-resize-none tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-py-2.5 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-vm-focus disabled:tw-bg-vm-slate-25"
+          className="vm-chat-input tw-h-11 tw-min-w-0 tw-flex-1 tw-resize-none tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-py-2.5 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-vm-focus disabled:tw-bg-vm-slate-25"
           disabled={!canSend || isSending}
           placeholder={disabledReason || "Nhập nội dung trả lời..."}
           value={content}
           onChange={(event) => setContent(event.target.value)}
         />
-        <Button className="tw-h-11 tw-w-[140px] tw-flex-shrink-0" disabled={!canSubmit} loading={isSending} onClick={handleSubmit}>
+        <Button className="vm-chat-send-button tw-h-11 tw-w-[140px] tw-flex-shrink-0" disabled={!canSubmit} loading={isSending} onClick={handleSubmit}>
           <i className="far fa-paper-plane" />
-          Gửi
-          <span className="tw-ml-2 tw-h-6 tw-border-0 tw-border-l tw-border-solid tw-border-white/25" />
-          <i className="fas fa-chevron-down tw-text-[0.65rem]" />
+          <span className="vm-chat-send-label">Gửi</span>
+          <span className="vm-chat-send-separator tw-ml-2 tw-h-6 tw-border-0 tw-border-l tw-border-solid tw-border-white/25" />
+          <i className="vm-chat-send-chevron fas fa-chevron-down tw-text-[0.65rem]" />
         </Button>
       </div>
       {files.length ? (
@@ -1611,6 +1635,9 @@ function ChatWorkspace({
   onOpenAttachment,
   onViewTicket,
   onSend,
+  onRetrySend,
+  sendError,
+  onBackToList,
   onCreateTicket,
   onOpenHistory,
   contextTicket,
@@ -1634,6 +1661,9 @@ function ChatWorkspace({
   onOpenAttachment: (attachment: ChatAttachmentResponse) => void;
   onViewTicket: (ticket: SupportTicketResponse) => void;
   onSend: (content: string, files: File[]) => Promise<void>;
+  onRetrySend: () => void;
+  sendError: string;
+  onBackToList: () => void;
   onCreateTicket: () => void;
   onOpenHistory: () => void;
   contextTicket: SupportTicketResponse | null;
@@ -1641,7 +1671,13 @@ function ChatWorkspace({
   usingMockData: boolean;
 }) {
   return (
-    <main className="tw-flex tw-min-h-0 tw-flex-col tw-bg-white">
+    <main className="vm-chat-workspace tw-flex tw-min-h-0 tw-flex-col tw-bg-white">
+      <div className="vm-chat-back">
+        <button type="button" onClick={onBackToList} aria-label="Quay lại danh sách hội thoại">
+          <i className="fas fa-chevron-left" aria-hidden="true" />
+          Danh sách
+        </button>
+      </div>
       <ChatHeader conversation={conversation} />
       <TicketStrip conversation={conversation} />
       {conversation.conversationType === "CUSTOMER_DIRECT" ? (
@@ -1673,7 +1709,9 @@ function ChatWorkspace({
         disabledReason={disabledReason}
         focusSignal={conversation.id}
         isSending={isSending}
+        sendError={sendError}
         onSend={onSend}
+        onRetrySend={onRetrySend}
         onCreateTicket={onCreateTicket}
         onOpenHistory={onOpenHistory}
       />
@@ -1830,6 +1868,10 @@ export function OperationsSupportCenterPage() {
   const [contextTicketId, setContextTicketId] = useState<string | null>(requestedTicketId);
   const [isTicketDetailModalOpen, setIsTicketDetailModalOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState("");
+  const [mobileChatView, setMobileChatView] = useState<"list" | "chat">("list");
+  const chatShellRef = useRef<HTMLDivElement | null>(null);
+  const lastFailedPayloadRef = useRef<{ content: string; files: File[] } | null>(null);
   const [isUpdatingTicket, setIsUpdatingTicket] = useState(false);
   const [isChatTicketModalOpen, setIsChatTicketModalOpen] = useState(false);
   const [isTicketHistoryOpen, setIsTicketHistoryOpen] = useState(false);
@@ -2104,6 +2146,33 @@ export function OperationsSupportCenterPage() {
       return resolvePreferredConversationId(sourceConversations);
     });
   }, [resolvePreferredConversationId, sourceConversations]);
+
+  useEffect(() => {
+    const shell = chatShellRef.current;
+    const viewport = window.visualViewport;
+    if (!shell || !viewport) return undefined;
+
+    const shellElement: HTMLDivElement = shell;
+    const visualViewport: VisualViewport = viewport;
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    function syncShellHeight() {
+      if (!mediaQuery.matches) {
+        shellElement.style.height = "";
+        return;
+      }
+
+      shellElement.style.height = `${visualViewport.height}px`;
+    }
+
+    syncShellHeight();
+    visualViewport.addEventListener("resize", syncShellHeight);
+    mediaQuery.addEventListener("change", syncShellHeight);
+    return () => {
+      visualViewport.removeEventListener("resize", syncShellHeight);
+      mediaQuery.removeEventListener("change", syncShellHeight);
+      shell.style.height = "";
+    };
+  }, []);
 
   const selectedBaseConversation = filteredConversations.find((conversation) => conversation.id === selectedId)
     ?? filteredConversations[0]
@@ -2390,19 +2459,31 @@ export function OperationsSupportCenterPage() {
       return;
     }
 
+    if (isSending) return;
     setIsSending(true);
+    setSendError("");
     try {
       const response = files.length
         ? await sendChatImageMessage(selectedConversation.id, content, files, activeContextTicketId)
         : await sendChatTextMessage(selectedConversation.id, content, undefined, activeContextTicketId);
 
+      lastFailedPayloadRef.current = null;
       setMessages((currentMessages) => upsertChatMessages(currentMessages, [response.data]));
       await loadInbox({ showLoading: false });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Không gửi được tin nhắn.", "Gửi thất bại");
+      const message = error instanceof Error ? error.message : "Không gửi được tin nhắn.";
+      lastFailedPayloadRef.current = { content, files };
+      setSendError(message);
+      toast.error(message, "Gửi thất bại");
     } finally {
       setIsSending(false);
     }
+  }
+
+  async function handleRetrySendMessage() {
+    const failedPayload = lastFailedPayloadRef.current;
+    if (!failedPayload || isSending) return;
+    await handleSendMessage(failedPayload.content, failedPayload.files);
   }
 
   const resolveAttachmentUrl = useCallback(async (attachment: ChatAttachmentResponse) => {
@@ -2601,10 +2682,10 @@ export function OperationsSupportCenterPage() {
   );
 
   return (
-    <div className="tw-h-screen tw-overflow-hidden tw-bg-white tw-text-vm-slate-700">
+    <div ref={chatShellRef} data-mobile-view={mobileChatView} className="vm-chat-shell-mobile tw-h-screen tw-overflow-hidden tw-bg-white tw-text-vm-slate-700">
       <div className="tw-grid tw-h-full tw-min-h-0 tw-min-w-0 tw-grid-rows-[64px_minmax(0,1fr)]">
         <TopBar />
-        <div className="tw-grid tw-min-h-0 tw-grid-cols-[390px_minmax(0,1fr)] max-[1280px]:tw-grid-cols-[360px_minmax(0,1fr)]">
+        <div className="vm-chat-cols tw-grid tw-min-h-0 tw-grid-cols-[390px_minmax(0,1fr)] max-[1280px]:tw-grid-cols-[360px_minmax(0,1fr)]">
           <ConversationList
             channelFilter={channelFilter}
             channelOptions={channelOptions}
@@ -2628,6 +2709,8 @@ export function OperationsSupportCenterPage() {
               setSelectedId(conversationId);
               setContextTicketId(null);
               setSelectedTicket(null);
+              setSendError("");
+              setMobileChatView("chat");
             }}
           />
           <ChatWorkspace
@@ -2652,6 +2735,9 @@ export function OperationsSupportCenterPage() {
             onOpenAttachment={handleOpenAttachment}
             onViewTicket={handleViewTicket}
             onSend={handleSendMessage}
+            onRetrySend={handleRetrySendMessage}
+            sendError={sendError}
+            onBackToList={() => setMobileChatView("list")}
             onCreateTicket={handleOpenChatTicketModal}
             onOpenHistory={() => setIsTicketHistoryOpen(true)}
             resolveAttachmentUrl={resolveAttachmentUrl}

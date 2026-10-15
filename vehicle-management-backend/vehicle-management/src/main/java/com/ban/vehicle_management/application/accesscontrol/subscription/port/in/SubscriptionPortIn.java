@@ -11,6 +11,8 @@ public interface SubscriptionPortIn {
 
     Subscription createOwnSubscription(Subscription subscription);
 
+    Subscription createOwnSubscription(Subscription subscription, String idempotencyKey);
+
     SubscriptionVoucherQuote quoteOwnSubscriptionVoucher(Subscription subscription);
 
     Subscription createSubscriptionForCustomer(Subscription subscription);
@@ -27,6 +29,8 @@ public interface SubscriptionPortIn {
             LocalDate effectiveTo,
             String keyword
     );
+
+    List<Subscription> getMySubscriptions(Integer limit);
 
     Subscription updatePendingSubscription(UUID subscriptionId, Subscription subscription);
 

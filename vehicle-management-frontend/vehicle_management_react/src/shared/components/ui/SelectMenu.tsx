@@ -75,6 +75,8 @@ export function SelectMenu({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
         setOpen(false);
       }
     };
@@ -140,7 +142,7 @@ export function SelectMenu({
   const menu = open ? (
     <div
       className={cn(
-        "tw-z-[2500] tw-max-h-60 tw-overflow-y-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_10px_26px_rgba(15,23,42,0.14)] tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden",
+        "vm-select-menu-panel tw-z-[2500] tw-max-h-60 tw-overflow-y-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_10px_26px_rgba(15,23,42,0.14)] tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden",
         shouldShowSearch ? "tw-pb-[0.35rem] tw-pt-0" : "tw-py-[0.35rem]",
         portal
           ? "tw-fixed"
@@ -181,7 +183,7 @@ export function SelectMenu({
         return (
           <button
             className={cn(
-              "tw-flex tw-min-h-[38px] tw-w-full tw-items-center tw-gap-[0.65rem] tw-border-0 tw-bg-transparent tw-px-[0.85rem] tw-py-[0.55rem] tw-text-left tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 hover:tw-text-vm-primary",
+              "vm-select-menu-option tw-flex tw-min-h-[38px] tw-w-full tw-items-center tw-gap-[0.65rem] tw-border-0 tw-bg-transparent tw-px-[0.85rem] tw-py-[0.55rem] tw-text-left tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 hover:tw-text-vm-primary",
               selectedOption ? "tw-font-extrabold tw-text-[#111827]" : "",
               optionClassName,
             )}
@@ -221,7 +223,7 @@ export function SelectMenu({
         aria-expanded={open}
         aria-label={ariaLabel}
         className={cn(
-          "tw-group tw-flex tw-h-[42px] tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-0 tw-pl-[0.95rem] tw-pr-[0.8rem] tw-text-left tw-text-[0.92rem] tw-font-semibold tw-text-[#111827] tw-shadow-[0_4px_10px_rgba(15,23,42,0.025)] tw-transition focus-visible:tw-outline-none",
+          "vm-select-menu-trigger tw-group tw-flex tw-h-[42px] tw-w-full tw-items-center tw-justify-between tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-0 tw-pl-[0.95rem] tw-pr-[0.8rem] tw-text-left tw-text-[0.92rem] tw-font-semibold tw-text-[#111827] tw-shadow-[0_4px_10px_rgba(15,23,42,0.025)] tw-transition focus-visible:tw-outline-none",
           "hover:tw-border-vm-slate-200 hover:tw-shadow-[0_0_0_3px_rgba(148,163,184,0.08)] focus-visible:tw-border-brand-200 focus-visible:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]",
           disabled ? "tw-cursor-not-allowed tw-bg-vm-slate-25 tw-text-vm-slate-500 hover:tw-border-vm-slate-100 hover:tw-shadow-none" : "",
           open ? "tw-border-brand-200 tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]" : "",

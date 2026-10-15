@@ -22,6 +22,13 @@ public interface SupportTicketPortOut {
             String keyword
     );
 
+    List<SupportTicket> findOwnTickets(
+            UUID customerId,
+            SupportTicketStatus status,
+            String keyword,
+            int limit
+    );
+
     boolean existsActiveCategoryById(UUID categoryId);
     boolean existsAssignableAccountById(UUID accountId);
     boolean existsActiveWorkflowByCustomerIdAndCategoryId(UUID customerId, UUID categoryId);

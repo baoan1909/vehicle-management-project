@@ -19,6 +19,7 @@ import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionManagementResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
@@ -84,6 +85,14 @@ public interface ParkingSessionApiMapper {
 
     List<ParkingSessionManagementResponse> toManagementResponses(List<ParkingSessionManagementResult> result);
 
+    @Mapping(target = "licensePlateInDisplay", ignore = true)
+    @Mapping(target = "licensePlateOutDisplay", ignore = true)
+    ParkingSessionUserResponse toUserResponse(ParkingSessionManagementResult result);
+
+    List<ParkingSessionUserResponse> toUserResponses(List<ParkingSessionManagementResult> result);
+
+    @Mapping(target = "licensePlateDetectedDisplay", ignore = true)
+    ParkingSessionUserResponse.EventUserResponse toUserEventResponse(ParkingSessionManagementResult.EventResult result);
     @Mapping(target = "licensePlateInNormalized", ignore = true)
     @Mapping(target = "licensePlateInDisplay", ignore = true)
     @Mapping(target = "licensePlateInFormat", ignore = true)
@@ -165,6 +174,19 @@ public interface ParkingSessionApiMapper {
         target.setLicensePlateFormat(resolution.format().name());
         target.setValidFormat(resolution.validFormat());
         target.setNeedsReview(resolution.needsReview());
+    }
+
+    @AfterMapping
+    default void addPlateView(ParkingSessionManagementResult source,
+                              @MappingTarget ParkingSessionUserResponse target) {
+        target.setLicensePlateInDisplay(resolve(source.licensePlateIn(), source.vehicleTypeCode()).display());
+        target.setLicensePlateOutDisplay(resolve(source.licensePlateOut(), source.vehicleTypeCode()).display());
+    }
+
+    @AfterMapping
+    default void addPlateView(ParkingSessionManagementResult.EventResult source,
+                              @MappingTarget ParkingSessionUserResponse.EventUserResponse target) {
+        target.setLicensePlateDetectedDisplay(resolve(source.licensePlateDetected(), null).display());
     }
 
     private void applySessionPlateView(String in, String out, String vehicleTypeCode, ParkingSessionResponse target) {

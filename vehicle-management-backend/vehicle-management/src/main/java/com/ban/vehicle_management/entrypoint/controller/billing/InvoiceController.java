@@ -8,6 +8,9 @@ import com.ban.vehicle_management.entrypoint.dto.billing.invoice.request.CreateI
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.request.InvoiceFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.request.InvoiceManagementFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceUserResponse;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import java.time.Instant;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceDetailResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementDetailResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementPageResponse;
@@ -17,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -55,6 +59,39 @@ public class InvoiceController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched invoice successfully",
                 invoiceApiMapper.toDetailResponse(invoiceDetail)
+        ));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<List<InvoiceUserResponse>>> getMyInvoices(
+            @RequestParam(required = false) UUID subscriptionId,
+            @RequestParam(required = false) List<UUID> subscriptionIds,
+            @RequestParam(required = false) InvoiceStatus status,
+            @RequestParam(required = false) Instant fromDate,
+            @RequestParam(required = false) Instant toDate,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Integer limit
+    ) {
+        List<UUID> scopedSubscriptionIds = new ArrayList<>();
+        if (subscriptionId != null) {
+            scopedSubscriptionIds.add(subscriptionId);
+        }
+        if (subscriptionIds != null) {
+            scopedSubscriptionIds.addAll(subscriptionIds);
+        }
+
+        List<Invoice> invoices = invoicePortIn.getOwnInvoices(
+                scopedSubscriptionIds,
+                status,
+                fromDate,
+                toDate,
+                keyword,
+                limit
+        );
+
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched current customer invoices successfully",
+                invoiceApiMapper.toUserResponses(invoices)
         ));
     }
 

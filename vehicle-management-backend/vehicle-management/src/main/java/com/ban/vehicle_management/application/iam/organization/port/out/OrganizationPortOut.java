@@ -35,4 +35,6 @@ public interface OrganizationPortOut {
 
     boolean allParkingLotsBelongToOrganization(UUID organizationId, Set<UUID> parkingLotIds);
 
+    Optional<UUID> findOrganizationIdByParkingLotId(UUID parkingLotId);
+
 }
