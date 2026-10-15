@@ -23,14 +23,15 @@ class PlatformFeePermissionSeedIT extends com.ban.vehicle_management.testsupport
     }
 
     @Test
-    void shouldSeedSixPermissionsGrantedOnlyToSystemAdmin() {
+    void shouldSeedSevenPermissionsGrantedOnlyToSystemAdmin() {
         List<String> codes = List.of(
                 "PLATFORM_FEE_CREATE_ALL",
                 "PLATFORM_FEE_READ_ALL",
                 "PLATFORM_FEE_UPDATE_ALL",
                 "PLATFORM_FEE_ACTIVATE_ALL",
                 "PLATFORM_FEE_ARCHIVE_ALL",
-                "PLATFORM_FEE_PREVIEW_ALL");
+                "PLATFORM_FEE_PREVIEW_ALL",
+                "PLATFORM_FEE_CONFIGURE_ALL");
 
         for (String code : codes) {
             Integer count = jdbcTemplate.queryForObject(

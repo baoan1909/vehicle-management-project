@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { Button, Card, ConfirmDialog, SelectMenu, useToast } from "@/components/ui";
@@ -16,6 +16,7 @@ import {
   type PlatformFeeTypeStatus,
 } from "@/features/billing/api/platformFeeApi";
 import { usePlatformFeeConfiguration } from "@/features/billing/components/PlatformFeeConfigurationContext";
+import { PlatformFeeConfigurationDialog } from "@/features/billing/components/PlatformFeeConfigurationDialog";
 import { PlatformFeePager } from "@/features/billing/components/PlatformFeePager";
 import { PlatformFeeStatusPill } from "@/features/billing/components/PlatformFeeStatusPill";
 import {
@@ -60,14 +61,17 @@ const feeBasisOptions = [
   { label: "Sau giảm giá", value: "AFTER_DISCOUNT" },
 ];
 
-function KpiCard({ icon, iconClassName, label, value }: { icon: string; iconClassName: string; label: string; value: string }) {
+function KpiCard({ action, icon, iconClassName, label, value }: { action?: ReactNode; icon: string; iconClassName: string; label: string; value: string }) {
   return (
     <Card className="tw-flex tw-items-center tw-gap-3.5 tw-p-4">
       <span className={cn("tw-flex tw-h-12 tw-w-12 tw-flex-none tw-items-center tw-justify-center tw-rounded-vm-md tw-text-[1.2rem]", iconClassName)}>
         <i className={icon} aria-hidden="true" />
       </span>
-      <span className="tw-grid tw-min-w-0 tw-gap-1">
-        <span className="tw-truncate tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-500">{label}</span>
+      <span className="tw-grid tw-min-w-0 tw-flex-1 tw-gap-1">
+        <span className="tw-flex tw-items-center tw-justify-between tw-gap-2">
+          <span className="tw-truncate tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-500">{label}</span>
+          {action}
+        </span>
         <strong className="tw-text-[1.6rem] tw-font-black tw-leading-none tw-text-vm-slate-900">{value}</strong>
       </span>
     </Card>
@@ -84,6 +88,7 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
   const canActivate = hasAnyPermission(user, platformFeePermissions.activate);
   const canArchive = hasAnyPermission(user, platformFeePermissions.archive);
   const canPreview = hasAnyPermission(user, platformFeePermissions.preview);
+  const canConfigure = hasAnyPermission(user, platformFeePermissions.configure);
 
   const [items, setItems] = useState<PlatformFeeTypeResponse[]>([]);
   const [status, setStatus] = useState("all");
@@ -103,6 +108,7 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
   const [menuPosition, setMenuPosition] = useState<{ left: number; top: number } | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [configurationOpen, setConfigurationOpen] = useState(false);
   const menuRootRef = useRef<HTMLDivElement | null>(null);
 
   const pageSize = 10;
@@ -406,12 +412,25 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
         <KpiCard icon="far fa-file-alt" iconClassName="tw-bg-amber-50 tw-text-amber-500" label="Bản nháp" value={summaryLoading ? "—" : String(draftCount)} />
         <KpiCard icon="fas fa-chart-pie" iconClassName="tw-bg-green-50 tw-text-green-500" label="Tổng tỷ lệ hiện tại" value={totalRate === null ? "—" : formatFeePercent(totalRate)} />
         <KpiCard
+          action={canConfigure ? (
+            <button
+              aria-label="Chỉnh sửa giới hạn phí sàn"
+              className="tw-grid tw-h-7 tw-w-7 tw-flex-none tw-place-items-center tw-rounded-vm-sm tw-border-0 tw-bg-red-50 tw-text-red-600 tw-transition hover:tw-bg-red-100 focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus"
+              title="Chỉnh sửa giới hạn"
+              type="button"
+              onClick={() => setConfigurationOpen(true)}
+            >
+              <i className="fas fa-pen tw-text-[0.7rem]" aria-hidden="true" />
+            </button>
+          ) : null}
           icon="fas fa-exclamation-triangle"
           iconClassName="tw-bg-red-50 tw-text-red-500"
           label="Giới hạn tối đa"
           value={maxPartnerTotalRate === null ? "—" : formatFeePercent(maxPartnerTotalRate)}
         />
       </section>
+
+      <PlatformFeeConfigurationDialog open={configurationOpen} onClose={() => setConfigurationOpen(false)} />
 
       <Card className="tw-overflow-hidden">
         <div className="tw-grid tw-grid-cols-[minmax(220px,1fr)_200px_200px_auto] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-4 max-[1000px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">

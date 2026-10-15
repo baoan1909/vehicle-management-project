@@ -13,6 +13,7 @@ import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.request.Pla
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.request.PreviewPlatformFeesRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.request.UpdatePlatformFeeTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.request.UpdatePlatformFeeVersionRequest;
+import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.request.UpdatePlatformFeeConfigurationRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeePageResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeeConfigurationResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeePreviewResponse;
@@ -77,9 +78,25 @@ public class PlatformFeeAdminController {
     @GetMapping("/configuration")
     @PreAuthorize("@permissionAuthorizer.hasPermission('PLATFORM_FEE_READ_ALL')")
     public ResponseEntity<ApiResponse<PlatformFeeConfigurationResponse>> getConfiguration() {
+        var configuration = managementPortIn.getConfiguration();
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched platform fee configuration successfully",
-                new PlatformFeeConfigurationResponse(managementPortIn.getMaxPartnerTotalRate())));
+                toConfigurationResponse(configuration)));
+    }
+
+    @PutMapping("/configuration")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PLATFORM_FEE_CONFIGURE_ALL')")
+    public ResponseEntity<ApiResponse<PlatformFeeConfigurationResponse>> updateConfiguration(
+            @RequestBody UpdatePlatformFeeConfigurationRequest request
+    ) {
+        if (request.maxPartnerTotalRate() == null || request.version() == null) {
+            throw new BadRequestException("maxPartnerTotalRate and version must not be null");
+        }
+        var configuration = managementPortIn.updateConfiguration(
+                request.maxPartnerTotalRate(), request.version());
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Platform fee configuration updated successfully",
+                toConfigurationResponse(configuration)));
     }
 
     @PostMapping("/preview")
@@ -215,5 +232,15 @@ public class PlatformFeeAdminController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Platform fee rule version archived successfully",
                 apiMapper.toVersionResponse(archived)));
+    }
+
+    private PlatformFeeConfigurationResponse toConfigurationResponse(
+            com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeeConfigurationResult configuration
+    ) {
+        return new PlatformFeeConfigurationResponse(
+                configuration.maxPartnerTotalRate(),
+                configuration.version(),
+                configuration.updatedAt(),
+                configuration.updatedBy());
     }
 }

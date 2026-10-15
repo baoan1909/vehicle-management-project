@@ -12,6 +12,7 @@ public class PlatformFeeAccessGuard {
     public static final String ACTIVATE_PERMISSION = "PLATFORM_FEE_ACTIVATE_ALL";
     public static final String ARCHIVE_PERMISSION = "PLATFORM_FEE_ARCHIVE_ALL";
     public static final String PREVIEW_PERMISSION = "PLATFORM_FEE_PREVIEW_ALL";
+    public static final String CONFIGURE_PERMISSION = "PLATFORM_FEE_CONFIGURE_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
 
@@ -41,5 +42,9 @@ public class PlatformFeeAccessGuard {
 
     public void ensureCanPreview() {
         currentAccountPortIn.requirePermission(PREVIEW_PERMISSION);
+    }
+
+    public void ensureCanConfigure() {
+        currentAccountPortIn.requirePermission(CONFIGURE_PERMISSION);
     }
 }
