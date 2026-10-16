@@ -74,6 +74,14 @@ export type PlatformFeePageResponse = {
 
 export type PlatformFeeConfigurationResponse = {
   maxPartnerTotalRate: number;
+  version: number;
+  updatedAt: string | null;
+  updatedBy: string | null;
+};
+
+export type UpdatePlatformFeeConfigurationRequest = {
+  maxPartnerTotalRate: number;
+  version: number;
 };
 
 export type PlatformFeePreviewLineResponse = {
@@ -159,6 +167,13 @@ export function searchPlatformFeeTypes(filter: PlatformFeeTypeFilter = {}) {
 
 export function getPlatformFeeConfiguration() {
   return apiClient<ApiResponse<PlatformFeeConfigurationResponse>>(`${base()}/configuration`);
+}
+
+export function updatePlatformFeeConfiguration(payload: UpdatePlatformFeeConfigurationRequest) {
+  return apiClient<ApiResponse<PlatformFeeConfigurationResponse>>(`${base()}/configuration`, {
+    body: payload,
+    method: "PUT",
+  });
 }
 
 export function createPlatformFeeType(payload: CreatePlatformFeeTypeRequest) {

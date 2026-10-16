@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.billing.platformfee.usecase;
 import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPortOut;
 import com.ban.vehicle_management.application.billing.platformfee.authorization.PlatformFeeAccessGuard;
 import com.ban.vehicle_management.application.billing.platformfee.config.PlatformFeeProperties;
+import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeeConfigurationResult;
 import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeePageResult;
 import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeePreviewResult;
 import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeeTypeDetailResult;
@@ -10,6 +11,7 @@ import com.ban.vehicle_management.application.billing.platformfee.port.in.Platfo
 import com.ban.vehicle_management.application.billing.platformfee.port.in.PlatformFeeResolverPortIn;
 import com.ban.vehicle_management.application.billing.platformfee.port.out.PlatformFeeRuleVersionPortOut;
 import com.ban.vehicle_management.application.billing.platformfee.port.out.PlatformFeeTypePortOut;
+import com.ban.vehicle_management.application.billing.platformfee.port.out.PlatformFeeConfigurationPortOut;
 import com.ban.vehicle_management.domain.audit.auditlog.model.AuditLog;
 import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeLine;
 import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeResolution;
@@ -43,12 +45,15 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
 
     private static final int MAX_PAGE_SIZE = 100;
     private static final int MAX_KEYWORD_LENGTH = 100;
+    private static final UUID CONFIGURATION_AUDIT_ID =
+            UUID.fromString("00000000-0000-0000-0000-000000005101");
 
     private final PlatformFeeTypePortOut feeTypePortOut;
     private final PlatformFeeRuleVersionPortOut ruleVersionPortOut;
     private final PlatformFeeAccessGuard accessGuard;
     private final PlatformFeeResolverPortIn resolverPortIn;
     private final PlatformFeeProperties properties;
+    private final PlatformFeeConfigurationPortOut configurationPortOut;
     private final AuditLogPortOut auditLogPortOut;
     private final CurrentAccountPortIn currentAccountPortIn;
     private final PlatformFeeTypePolicy typePolicy = new PlatformFeeTypePolicy();
@@ -61,6 +66,7 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
             PlatformFeeAccessGuard accessGuard,
             PlatformFeeResolverPortIn resolverPortIn,
             PlatformFeeProperties properties,
+            PlatformFeeConfigurationPortOut configurationPortOut,
             AuditLogPortOut auditLogPortOut,
             CurrentAccountPortIn currentAccountPortIn) {
         this.feeTypePortOut = feeTypePortOut;
@@ -68,6 +74,7 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
         this.accessGuard = accessGuard;
         this.resolverPortIn = resolverPortIn;
         this.properties = properties;
+        this.configurationPortOut = configurationPortOut;
         this.auditLogPortOut = auditLogPortOut;
         this.currentAccountPortIn = currentAccountPortIn;
     }
@@ -106,7 +113,47 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
     @Transactional(readOnly = true)
     public BigDecimal getMaxPartnerTotalRate() {
         accessGuard.ensureCanRead();
-        return properties.maxPartnerTotalRate();
+        return currentConfiguration().maxPartnerTotalRate();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PlatformFeeConfigurationResult getConfiguration() {
+        accessGuard.ensureCanRead();
+        return currentConfiguration();
+    }
+
+    @Override
+    @Transactional
+    public PlatformFeeConfigurationResult updateConfiguration(
+            BigDecimal maxPartnerTotalRate,
+            long expectedVersion
+    ) {
+        accessGuard.ensureCanConfigure();
+        validateMaximumRate(maxPartnerTotalRate);
+        if (expectedVersion < 0) {
+            throw new BadRequestException("version must not be negative");
+        }
+
+        feeTypePortOut.lockByTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE);
+        PlatformFeeConfigurationResult existing = currentConfiguration();
+        if (existing.version() != expectedVersion) {
+            throw new ConflictException("Platform fee configuration was changed; reload before saving again");
+        }
+        requireActivePartnerFeesWithinLimit(maxPartnerTotalRate);
+
+        UUID actorId = currentAccountPortIn.getCurrentAccountIdOrThrow();
+        PlatformFeeConfigurationResult updated = configurationPortOut.updateGlobal(
+                        maxPartnerTotalRate, expectedVersion, Instant.now(), actorId)
+                .orElseThrow(() -> new ConflictException(
+                        "Platform fee configuration was changed; reload before saving again"));
+        writeAudit(
+                "UPDATE_PLATFORM_FEE_CONFIGURATION",
+                "platform_fee_configuration",
+                CONFIGURATION_AUDIT_ID,
+                configurationSnapshot(existing),
+                configurationSnapshot(updated));
+        return updated;
     }
 
     @Override
@@ -418,7 +465,58 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
                         .ifPresent(rates::add);
             }
             calculationPolicy.requireTotalRateWithinLimit(
-                    calculationPolicy.totalRate(rates), properties.maxPartnerTotalRate());
+                    calculationPolicy.totalRate(rates), currentConfiguration().maxPartnerTotalRate());
+        }
+    }
+
+    private PlatformFeeConfigurationResult currentConfiguration() {
+        return configurationPortOut.findGlobal()
+                .orElseGet(() -> new PlatformFeeConfigurationResult(
+                        properties.maxPartnerTotalRate(), 0L, null, null));
+    }
+
+    private void validateMaximumRate(BigDecimal maxPartnerTotalRate) {
+        if (maxPartnerTotalRate == null) {
+            throw new BadRequestException("maxPartnerTotalRate must not be null");
+        }
+        if (maxPartnerTotalRate.compareTo(BigDecimal.ZERO) < 0
+                || maxPartnerTotalRate.compareTo(BigDecimal.ONE) > 0) {
+            throw new BadRequestException("maxPartnerTotalRate must be between 0 and 1");
+        }
+        if (maxPartnerTotalRate.scale() > 6) {
+            throw new BadRequestException("maxPartnerTotalRate must not exceed 6 decimal places");
+        }
+    }
+
+    private void requireActivePartnerFeesWithinLimit(BigDecimal maximumRate) {
+        Instant now = Instant.now();
+        List<PlatformFeeType> partnerTypes = feeTypePortOut
+                .findActiveByTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE)
+                .stream()
+                .filter(type -> PlatformFeeChargedTo.PARTNER.equals(type.getChargedTo()))
+                .toList();
+        TreeSet<Instant> checkpoints = new TreeSet<>();
+        checkpoints.add(now);
+        for (PlatformFeeType type : partnerTypes) {
+            for (PlatformFeeRuleVersion version :
+                    ruleVersionPortOut.findActiveByFeeTypeId(type.getPlatformFeeTypeId())) {
+                if (version.getEffectiveFrom() != null && version.getEffectiveFrom().isAfter(now)) {
+                    checkpoints.add(version.getEffectiveFrom());
+                }
+                if (version.getEffectiveTo() != null && version.getEffectiveTo().isAfter(now)) {
+                    checkpoints.add(version.getEffectiveTo());
+                }
+            }
+        }
+        for (Instant checkpoint : checkpoints) {
+            List<BigDecimal> rates = new java.util.ArrayList<>();
+            for (PlatformFeeType type : partnerTypes) {
+                ruleVersionPortOut.findEffectiveVersion(type.getPlatformFeeTypeId(), checkpoint)
+                        .map(PlatformFeeRuleVersion::getFeeRate)
+                        .ifPresent(rates::add);
+            }
+            calculationPolicy.requireTotalRateWithinLimit(
+                    calculationPolicy.totalRate(rates), maximumRate);
         }
     }
 
@@ -461,6 +559,15 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
         values.put("effectiveFrom", text(version.getEffectiveFrom()));
         values.put("effectiveTo", text(version.getEffectiveTo()));
         values.put("status", text(version.getStatus()));
+        return values;
+    }
+
+    private Map<String, Object> configurationSnapshot(PlatformFeeConfigurationResult configuration) {
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("maxPartnerTotalRate", text(configuration.maxPartnerTotalRate()));
+        values.put("version", String.valueOf(configuration.version()));
+        values.put("updatedAt", text(configuration.updatedAt()));
+        values.put("updatedBy", text(configuration.updatedBy()));
         return values;
     }
 

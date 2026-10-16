@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.billing.platformfee.port.in;
 
 import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeePageResult;
+import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeeConfigurationResult;
 import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeePreviewResult;
 import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeeTypeDetailResult;
 import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeRuleVersion;
@@ -21,6 +22,10 @@ public interface PlatformFeeManagementPortIn {
             PlatformFeeTransactionType transactionType, PlatformFeeBasis feeBasis, int page, int size);
 
     BigDecimal getMaxPartnerTotalRate();
+
+    PlatformFeeConfigurationResult getConfiguration();
+
+    PlatformFeeConfigurationResult updateConfiguration(BigDecimal maxPartnerTotalRate, long expectedVersion);
 
     PlatformFeeTypeDetailResult getFeeTypeById(UUID feeTypeId);
 

@@ -16,6 +16,7 @@ export const platformFeePermissions = {
   activate: ["PLATFORM_FEE_ACTIVATE_ALL"],
   archive: ["PLATFORM_FEE_ARCHIVE_ALL"],
   preview: ["PLATFORM_FEE_PREVIEW_ALL"],
+  configure: ["PLATFORM_FEE_CONFIGURE_ALL"],
 };
 
 export const transactionTypeLabels: Record<PlatformFeeTransactionType, string> = {

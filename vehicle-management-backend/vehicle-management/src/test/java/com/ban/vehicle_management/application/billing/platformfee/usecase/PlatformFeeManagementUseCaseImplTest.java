@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -11,8 +12,10 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPortOut;
 import com.ban.vehicle_management.application.billing.platformfee.authorization.PlatformFeeAccessGuard;
 import com.ban.vehicle_management.application.billing.platformfee.config.PlatformFeeProperties;
+import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeeConfigurationResult;
 import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeePreviewResult;
 import com.ban.vehicle_management.application.billing.platformfee.port.in.PlatformFeeResolverPortIn;
+import com.ban.vehicle_management.application.billing.platformfee.port.out.PlatformFeeConfigurationPortOut;
 import com.ban.vehicle_management.application.billing.platformfee.port.out.PlatformFeeRuleVersionPortOut;
 import com.ban.vehicle_management.application.billing.platformfee.port.out.PlatformFeeTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
@@ -58,6 +61,9 @@ class PlatformFeeManagementUseCaseImplTest {
     private PlatformFeeProperties properties;
 
     @Mock
+    private PlatformFeeConfigurationPortOut configurationPortOut;
+
+    @Mock
     private AuditLogPortOut auditLogPortOut;
 
     @Mock
@@ -68,10 +74,60 @@ class PlatformFeeManagementUseCaseImplTest {
 
     @Test
     void shouldReturnConfiguredMaximumPartnerRate() {
-        when(properties.maxPartnerTotalRate()).thenReturn(new BigDecimal("0.275"));
+        when(configurationPortOut.findGlobal()).thenReturn(Optional.of(configuration("0.275", 3L)));
 
         assertEquals(new BigDecimal("0.275"), useCase.getMaxPartnerTotalRate());
         verify(accessGuard).ensureCanRead();
+    }
+
+    @Test
+    void shouldUpdateMaximumPartnerRateWithOptimisticVersion() {
+        UUID actorId = UUID.randomUUID();
+        PlatformFeeConfigurationResult existing = configuration("0.30", 2L);
+        PlatformFeeConfigurationResult updated = new PlatformFeeConfigurationResult(
+                new BigDecimal("0.25"), 3L, Instant.parse("2026-10-16T02:00:00Z"), actorId);
+        when(configurationPortOut.findGlobal()).thenReturn(Optional.of(existing));
+        when(feeTypePortOut.findActiveByTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE))
+                .thenReturn(List.of());
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(actorId);
+        when(configurationPortOut.updateGlobal(any(), anyLong(), any(), any()))
+                .thenReturn(Optional.of(updated));
+
+        PlatformFeeConfigurationResult result = useCase.updateConfiguration(new BigDecimal("0.25"), 2L);
+
+        assertEquals(updated, result);
+        verify(accessGuard).ensureCanConfigure();
+        verify(configurationPortOut).updateGlobal(eq(new BigDecimal("0.25")), eq(2L), any(), eq(actorId));
+        verify(auditLogPortOut).save(any(AuditLog.class));
+    }
+
+    @Test
+    void shouldRejectStaleConfigurationVersion() {
+        when(configurationPortOut.findGlobal()).thenReturn(Optional.of(configuration("0.30", 4L)));
+
+        assertThrows(ConflictException.class,
+                () -> useCase.updateConfiguration(new BigDecimal("0.25"), 3L));
+    }
+
+    @Test
+    void shouldRejectMaximumBelowAnEffectivePartnerFee() {
+        PlatformFeeType activeType = draftType();
+        activeType.setStatus(PlatformFeeTypeStatus.ACTIVE);
+        PlatformFeeRuleVersion activeVersion = draftVersion(activeType.getPlatformFeeTypeId());
+        activeVersion.setStatus(PlatformFeeRuleVersionStatus.ACTIVE);
+        activeVersion.setFeeRate(new BigDecimal("0.20"));
+        activeVersion.setEffectiveFrom(Instant.parse("2020-01-01T00:00:00Z"));
+
+        when(configurationPortOut.findGlobal()).thenReturn(Optional.of(configuration("0.30", 2L)));
+        when(feeTypePortOut.findActiveByTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE))
+                .thenReturn(List.of(activeType));
+        when(ruleVersionPortOut.findActiveByFeeTypeId(activeType.getPlatformFeeTypeId()))
+                .thenReturn(List.of(activeVersion));
+        when(ruleVersionPortOut.findEffectiveVersion(eq(activeType.getPlatformFeeTypeId()), any()))
+                .thenReturn(Optional.of(activeVersion));
+
+        assertThrows(ConflictException.class,
+                () -> useCase.updateConfiguration(new BigDecimal("0.15"), 2L));
     }
 
     @Test
@@ -135,7 +191,7 @@ class PlatformFeeManagementUseCaseImplTest {
                 .thenReturn(List.of(other));
         when(ruleVersionPortOut.findEffectiveVersion(any(), any()))
                 .thenReturn(Optional.of(otherVersion));
-        when(properties.maxPartnerTotalRate()).thenReturn(new BigDecimal("0.30"));
+        when(configurationPortOut.findGlobal()).thenReturn(Optional.of(configuration("0.30", 0L)));
 
         assertThrows(ConflictException.class, () -> useCase.activateRuleVersion(
                 feeTypeId, candidateVersion.getPlatformFeeRuleVersionId()));
@@ -176,7 +232,7 @@ class PlatformFeeManagementUseCaseImplTest {
             Instant at = invocation.getArgument(1);
             return at.isBefore(future.getEffectiveFrom()) ? Optional.of(current) : Optional.of(future);
         });
-        when(properties.maxPartnerTotalRate()).thenReturn(new BigDecimal("0.30"));
+        when(configurationPortOut.findGlobal()).thenReturn(Optional.of(configuration("0.30", 0L)));
 
         assertThrows(ConflictException.class, () -> useCase.activateRuleVersion(
                 feeTypeId, candidateVersion.getPlatformFeeRuleVersionId()));
@@ -211,7 +267,7 @@ class PlatformFeeManagementUseCaseImplTest {
         when(ruleVersionPortOut.findActiveByFeeTypeId(feeTypeId)).thenReturn(List.of());
         when(feeTypePortOut.findActiveByTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE))
                 .thenReturn(List.of());
-        when(properties.maxPartnerTotalRate()).thenReturn(new BigDecimal("0.30"));
+        when(configurationPortOut.findGlobal()).thenReturn(Optional.of(configuration("0.30", 0L)));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
         when(ruleVersionPortOut.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -263,5 +319,9 @@ class PlatformFeeManagementUseCaseImplTest {
         version.setEffectiveFrom(Instant.parse("2026-11-01T00:00:00Z"));
         version.setStatus(PlatformFeeRuleVersionStatus.DRAFT);
         return version;
+    }
+
+    private PlatformFeeConfigurationResult configuration(String rate, long version) {
+        return new PlatformFeeConfigurationResult(new BigDecimal(rate), version, null, null);
     }
 }

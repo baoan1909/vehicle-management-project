@@ -64,6 +64,13 @@ class PlatformFeeAccessGuardTest {
     }
 
     @Test
+    void shouldRequireConfigurePermission() {
+        guard.ensureCanConfigure();
+
+        verify(currentAccountPortIn).requirePermission("PLATFORM_FEE_CONFIGURE_ALL");
+    }
+
+    @Test
     void shouldPropagateDeniedWhenPermissionRevoked() {
         doThrow(new AccessDeniedException("Access is denied"))
                 .when(currentAccountPortIn).requirePermission("PLATFORM_FEE_READ_ALL");

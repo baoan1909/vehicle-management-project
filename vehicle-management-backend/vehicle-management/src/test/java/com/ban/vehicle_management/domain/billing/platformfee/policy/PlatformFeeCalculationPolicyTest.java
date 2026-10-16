@@ -43,13 +43,13 @@ class PlatformFeeCalculationPolicyTest {
     @Test
     void shouldRejectTotalRateAboveLimit() {
         assertThrows(ConflictException.class, () -> policy.requireTotalRateWithinLimit(
-                new BigDecimal("0.31"), PlatformFeeLimits.MAX_PARTNER_TOTAL_RATE));
+                new BigDecimal("0.26"), new BigDecimal("0.25")));
     }
 
     @Test
     void shouldAllowTotalRateAtLimit() {
         policy.requireTotalRateWithinLimit(
-                new BigDecimal("0.30"), PlatformFeeLimits.MAX_PARTNER_TOTAL_RATE);
+                new BigDecimal("0.25"), new BigDecimal("0.25"));
     }
 
     @Test
