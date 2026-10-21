@@ -129,6 +129,8 @@ export function DatePicker({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
         setOpen(false);
       }
     };
@@ -180,7 +182,7 @@ export function DatePicker({
   };
 
   return (
-    <div className={cn("tw-relative tw-w-full", className)} ref={rootRef}>
+    <div className={cn("vm-date-picker-root tw-relative tw-w-full", className)} ref={rootRef}>
       <button
         className={cn(
           iconVariant === "trailingButton"
@@ -190,6 +192,7 @@ export function DatePicker({
           triggerClassName,
         )}
         type="button"
+        aria-expanded={open}
         aria-describedby={ariaDescribedBy}
         aria-invalid={ariaInvalid || undefined}
         aria-label={ariaLabel}
@@ -236,7 +239,7 @@ export function DatePicker({
       {open ? (
         <div
           className={cn(
-            "tw-absolute tw-top-[calc(100%+8px)] tw-z-[95] tw-w-[min(304px,calc(100vw-2rem))] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3.5 tw-shadow-vm-dropdown",
+            "vm-date-picker-panel tw-absolute tw-top-[calc(100%+8px)] tw-z-[95] tw-w-[min(304px,calc(100vw-2rem))] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3.5 tw-shadow-vm-dropdown",
             menuAlign === "right" ? "tw-right-0" : "tw-left-0",
           )}
         >

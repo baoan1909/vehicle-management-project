@@ -7,6 +7,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -31,6 +33,10 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID>, J
             UUID parkingSessionId,
             Collection<InvoiceStatus> statuses
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select i from InvoiceEntity i where i.invoiceId = :invoiceId")
+    Optional<InvoiceEntity> findByIdForUpdate(@Param("invoiceId") UUID invoiceId);
 
     @Query("""
         SELECT account.accountId

@@ -41,9 +41,9 @@ function sortActiveAnnouncements(left: BroadcastAnnouncementResponse, right: Bro
 
 function TickerItems({ announcements }: { announcements: BroadcastAnnouncementResponse[] }) {
   return (
-    <span className="tw-inline-flex tw-items-center tw-gap-7 tw-pr-7">
+    <span className="vm-announcement-ticker-items tw-inline-flex tw-items-center tw-gap-7 tw-pr-7">
       {announcements.map((announcement) => (
-        <span className="tw-inline-flex tw-items-center tw-gap-3 tw-rounded-full tw-bg-white/75 tw-py-1.5 tw-pl-3 tw-pr-4 tw-ring-1 tw-ring-[#d4e3f4]/80 tw-backdrop-blur" key={announcement.broadcastId}>
+        <span className="vm-announcement-ticker-card tw-inline-flex tw-items-center tw-gap-3 tw-rounded-full tw-bg-white/75 tw-py-1.5 tw-pl-3 tw-pr-4 tw-ring-1 tw-ring-[#d4e3f4]/80 tw-backdrop-blur" key={announcement.broadcastId}>
           <span className="tw-h-2 tw-w-2 tw-flex-none tw-rounded-full tw-bg-[#2f80ed] tw-shadow-[0_0_0_4px_rgba(47,128,237,0.12)]" />
           <strong className="tw-text-[0.86rem] tw-font-black tw-text-[#16324f]">{announcement.title}</strong>
           <span className="tw-h-4 tw-w-px tw-bg-[#c9d9ec]" />
@@ -94,7 +94,7 @@ export function AdminAnnouncementTicker({ onVisibleChange, topClassName = "tw-to
   if (!visible) return null;
 
   return (
-    <div className={cn("tw-fixed tw-inset-x-0 tw-z-[1045] tw-h-10 tw-overflow-hidden tw-border-0 tw-border-y tw-border-solid tw-border-[#d3e3f4]/90 tw-bg-[linear-gradient(90deg,#eaf4ff_0%,#f6faff_42%,#edf7f4_100%)] tw-shadow-[0_8px_22px_rgba(31,78,121,0.09)]", topClassName)}>
+    <div className={cn("vm-announcement-ticker tw-fixed tw-inset-x-0 tw-z-[1045] tw-h-10 tw-overflow-hidden tw-border-0 tw-border-y tw-border-solid tw-border-[#d3e3f4]/90 tw-bg-[linear-gradient(90deg,#eaf4ff_0%,#f6faff_42%,#edf7f4_100%)] tw-shadow-[0_8px_22px_rgba(31,78,121,0.09)]", topClassName)}>
       <style>
         {`
           @keyframes vm-admin-announcement-marquee {
@@ -103,14 +103,14 @@ export function AdminAnnouncementTicker({ onVisibleChange, topClassName = "tw-to
           }
         `}
       </style>
-      <div className="tw-flex tw-h-full tw-items-center tw-gap-3 tw-bg-[linear-gradient(180deg,rgba(255,255,255,0.38),rgba(255,255,255,0.08))]">
-        <span className="tw-relative tw-z-[1] tw-flex tw-h-full tw-flex-none tw-items-center tw-gap-2.5 tw-border-0 tw-border-r tw-border-solid tw-border-[#c8dbef]/90 tw-bg-white/70 tw-px-5 tw-text-[0.78rem] tw-font-black tw-uppercase tw-tracking-normal tw-text-[#17446f] tw-backdrop-blur">
+      <div className="vm-announcement-ticker-row tw-flex tw-h-full tw-items-center tw-gap-3 tw-bg-[linear-gradient(180deg,rgba(255,255,255,0.38),rgba(255,255,255,0.08))]">
+        <span className="vm-announcement-ticker-label tw-relative tw-z-[1] tw-flex tw-h-full tw-flex-none tw-items-center tw-gap-2.5 tw-border-0 tw-border-r tw-border-solid tw-border-[#c8dbef]/90 tw-bg-white/70 tw-px-5 tw-text-[0.78rem] tw-font-black tw-uppercase tw-tracking-normal tw-text-[#17446f] tw-backdrop-blur">
           <span className="tw-inline-flex tw-h-6 tw-w-6 tw-items-center tw-justify-center tw-rounded-full tw-bg-[#d8eaff] tw-text-[#2563eb] tw-ring-1 tw-ring-[#c4daf5]">
             <i className="fas fa-bullhorn tw-text-[0.72rem]" />
           </span>
           Thông báo
         </span>
-        <div className="tw-relative tw-mr-2 tw-min-w-0 tw-flex-1 tw-overflow-hidden tw-rounded-full">
+        <div className="vm-announcement-ticker-viewport tw-relative tw-mr-2 tw-min-w-0 tw-flex-1 tw-overflow-hidden tw-rounded-full">
           <span className="tw-pointer-events-none tw-absolute tw-inset-y-0 tw-left-0 tw-z-[2] tw-w-14 tw-rounded-l-full tw-bg-[linear-gradient(90deg,#f6faff_0%,rgba(246,250,255,0)_100%)]" />
           <span className="tw-pointer-events-none tw-absolute tw-inset-y-0 tw-right-0 tw-z-[2] tw-w-14 tw-rounded-r-full tw-bg-[linear-gradient(270deg,#edf7f4_0%,rgba(237,247,244,0)_100%)]" />
           <div

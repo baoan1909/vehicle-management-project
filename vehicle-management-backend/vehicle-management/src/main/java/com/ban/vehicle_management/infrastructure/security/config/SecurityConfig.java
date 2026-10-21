@@ -91,6 +91,7 @@ public class SecurityConfig {
                                 "/api/public/administrative-divisions/**",
                                 "/api/public/pricing/**",
                                 "/api/public/payments/vnpay/**",
+                                "/api/public/wallet-topups/vnpay/**",
                                 "/api/notifications/broadcast-announcements/active"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST,

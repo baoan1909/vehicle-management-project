@@ -4,7 +4,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { canAccessCustomerRoute } from "@/app/routePermissions";
 import { useAuth } from "@/core/auth/useAuth";
 import {
-  getSubscriptionInvoice,
   type InvoiceSummaryResponse,
 } from "@/features/billing/api/invoicePaymentsApi";
 import {
@@ -12,6 +11,7 @@ import {
   getCustomerPortalProfile,
   getCustomerPortalVoucherBanners,
   getMyCustomerVehicles,
+  getMySubscriptionInvoices,
   getMySubscriptions,
   type CustomerPortalProfile,
   type CustomerPortalSubscription,
@@ -149,26 +149,35 @@ export function CustomerDashboardPage() {
           return;
         }
         const [nextVehicles, nextSubscriptions, lookups, nextVoucherBanners] = await Promise.all([
-          getMyCustomerVehicles(nextProfile),
-          getMySubscriptions(nextProfile),
+          getMyCustomerVehicles(),
+          getMySubscriptions(),
           getCustomerPortalLookups(),
           getCustomerPortalVoucherBanners().catch(() => []),
         ]);
-        const invoiceEntries = await Promise.all(nextSubscriptions.map(async (subscription) => {
-          try {
-            const invoice = await getSubscriptionInvoice(subscription.subscriptionId);
-            return invoice ? [subscription.subscriptionId, invoice] as const : null;
-          } catch {
-            return null;
-          }
-        }));
+        let invoiceEntries: Array<readonly [string, InvoiceSummaryResponse]> = [];
+        try {
+          const invoices = await getMySubscriptionInvoices(nextSubscriptions.map((subscription) => subscription.subscriptionId));
+          const bySubscription = new Map<string, InvoiceSummaryResponse[]>();
+          invoices.forEach((invoice) => {
+            if (!invoice.subscriptionId) return;
+            const group = bySubscription.get(invoice.subscriptionId) ?? [];
+            group.push(invoice as InvoiceSummaryResponse);
+            bySubscription.set(invoice.subscriptionId, group);
+          });
+          invoiceEntries = [...bySubscription].map(([subscriptionId, group]) => [
+            subscriptionId,
+            group.find((invoice) => invoice.status === "UNPAID")
+              ?? group.find((invoice) => invoice.status === "PAID")
+              ?? group[0],
+          ] as const).filter((entry): entry is readonly [string, InvoiceSummaryResponse] => entry[1] !== undefined);
+        } catch {
+          invoiceEntries = [];
+        }
         if (ignore) return;
         setProfile(nextProfile);
         setVehicles(nextVehicles);
         setSubscriptions(nextSubscriptions);
-        setInvoiceBySubscriptionId(Object.fromEntries(
-          invoiceEntries.filter((entry): entry is readonly [string, InvoiceSummaryResponse] => entry !== null),
-        ));
+        setInvoiceBySubscriptionId(Object.fromEntries(invoiceEntries));
         setVoucherBanners(nextVoucherBanners);
         setTicketTypes(lookups.ticketTypes);
         setVehicleTypes(lookups.vehicleTypes);
@@ -231,7 +240,7 @@ export function CustomerDashboardPage() {
 
       {dashboardVoucherBanners.length > 0 ? <div className="tw-mb-4"><VoucherPromotionBanner vouchers={dashboardVoucherBanners} /></div> : null}
 
-      <section className="tw-relative tw-min-h-[374px] max-[1100px]:tw-min-h-[370px] tw-overflow-hidden tw-rounded-[14px] tw-bg-[#031632] tw-px-10 tw-py-8 tw-pb-[7.5rem] max-[1100px]:tw-px-6 max-[640px]:tw-px-4 max-[640px]:tw-pb-8 tw-text-white tw-shadow-sm">
+      <section className="vm-dashboard-mobile-hero tw-relative tw-min-h-[374px] max-[1100px]:tw-min-h-[370px] tw-overflow-hidden tw-rounded-[14px] tw-bg-[#031632] tw-px-10 tw-py-8 tw-pb-[7.5rem] max-[1100px]:tw-px-6 max-[640px]:tw-px-4 max-[640px]:tw-pb-8 tw-text-white tw-shadow-sm">
         <img alt="" aria-hidden="true" src="/assets/customer/portal/smart-parking-hero-full-car-v2.png" className="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-object-[center_60%] max-[640px]:tw-opacity-40" />
         <div aria-hidden="true" className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(2,17,49,.8),rgba(2,17,49,.3)_48%,transparent_70%)]" />
         <div className="tw-relative tw-z-[1] tw-max-w-[510px]">
@@ -242,7 +251,7 @@ export function CustomerDashboardPage() {
             <Link className="tw-inline-flex tw-min-h-12 tw-items-center tw-gap-3 tw-rounded-[9px] tw-border tw-border-solid tw-border-white/45 tw-bg-[#03183d]/40 tw-px-[1.05rem] tw-py-3 tw-font-semibold tw-text-white tw-shadow-[0_10px_18px_rgba(0,0,0,0.18)] hover:tw-translate-y-[-1px] hover:tw-text-white hover:tw-no-underline" to="/customer/vehicles"><i className="fas fa-car-side" />Quản lý xe<i className="fas fa-chevron-right tw-ml-2 tw-text-[0.75rem]" /></Link>
           </div>
         </div>
-        <div className="tw-absolute tw-bottom-4 tw-left-10 max-[1100px]:tw-left-6 max-[640px]:tw-static max-[640px]:tw-mt-6 max-[640px]:tw-w-full tw-z-[2] tw-flex tw-w-[min(690px,calc(100%_-_5.5rem))] tw-rounded-xl tw-border tw-border-solid tw-border-[#99c1ff]/30 tw-bg-[#03173d]/80 tw-px-3.5 tw-py-4 tw-backdrop-blur">
+        <div className="vm-dashboard-hero-stats tw-absolute tw-bottom-4 tw-left-10 max-[1100px]:tw-left-6 max-[640px]:tw-static max-[640px]:tw-mt-6 max-[640px]:tw-w-full tw-z-[2] tw-flex tw-w-[min(690px,calc(100%_-_5.5rem))] tw-rounded-xl tw-border tw-border-solid tw-border-[#99c1ff]/30 tw-bg-[#03173d]/80 tw-px-3.5 tw-py-4 tw-backdrop-blur">
           {[["fas fa-car-side", String(vehicles.length).padStart(2, "0"), "Xe đã đăng ký"], ["fas fa-ticket-alt", String(subscriptions.filter((item) => item.status === "ACTIVE").length).padStart(2, "0"), "Vé đang hoạt động"], ["far fa-file-alt", String(pendingSubscriptions.length).padStart(2, "0"), "Yêu cầu đang xử lý"]].map(([icon, value, label], index) => <div className={`tw-grid tw-flex-1 tw-grid-cols-[42px_minmax(0,1fr)] max-[640px]:tw-grid-cols-1 tw-grid-rows-2 tw-items-center tw-gap-x-2.5 tw-px-4 ${index < 2 ? "tw-border-0 tw-border-r tw-border-solid tw-border-white/20" : ""}`} key={label}><i className={`${icon} tw-row-span-2 tw-grid tw-h-[38px] tw-w-[38px] tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-white/40 tw-text-[1.1rem] tw-text-[#dceaff]`} /><strong className="tw-text-[1.55rem] tw-leading-none">{value}</strong><span className="tw-text-[0.76rem] tw-font-bold tw-text-[#cbdaf1]">{label}</span></div>)}
         </div>
       </section>
@@ -255,7 +264,7 @@ export function CustomerDashboardPage() {
               <div className="tw-relative tw-isolate tw-min-h-[200px] tw-text-white">
                 <PortalTicketFrame />
                 <PortalTicketArtwork className="tw-pointer-events-none tw-absolute tw-bottom-5 tw-left-8 tw-h-[90px] tw-w-[38%] tw-text-[#b9a366]/20" />
-                <div className="tw-relative tw-grid tw-grid-cols-[minmax(0,2.15fr)_minmax(100px,1fr)_minmax(116px,1.15fr)_minmax(64px,.65fr)] tw-gap-y-5 tw-px-9 tw-py-7 max-[1100px]:tw-px-6 max-[640px]:tw-grid-cols-2 max-[640px]:tw-gap-y-6">
+                <div className="vm-dashboard-ticket-grid tw-relative tw-grid tw-grid-cols-[minmax(0,2.15fr)_minmax(100px,1fr)_minmax(116px,1.15fr)_minmax(64px,.65fr)] tw-gap-y-5 tw-px-9 tw-py-7 max-[1100px]:tw-px-6 max-[640px]:tw-grid-cols-2 max-[640px]:tw-gap-y-6">
                   <div className="tw-row-span-2 tw-min-w-0 tw-border-0 tw-border-r tw-border-solid tw-border-white/15 tw-pr-5 max-[640px]:tw-row-span-1">
                     <span className="tw-block tw-text-[0.66rem] tw-font-normal tw-leading-4 tw-text-[#c5cee0]">LOẠI VÉ</span>
                     <strong className="tw-mt-1.5 tw-block !tw-font-[Cambria,Georgia,serif] tw-text-[1.2rem] tw-font-semibold tw-leading-[1.3] tw-text-[#f1d178]">{ticketTypeById.get(activeSubscription.ticketTypeId)?.name ?? "Vé tháng CoParking"}</strong>
@@ -340,7 +349,7 @@ export function CustomerDashboardPage() {
         </aside>
       </div>
 
-      <section className="tw-mt-4 tw-flex tw-items-center tw-gap-4 tw-rounded-[11px] tw-bg-[linear-gradient(100deg,#051d4d,#072969)] tw-px-[1.4rem] tw-py-4 tw-text-white"><span className="tw-grid tw-h-[42px] tw-w-[42px] tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-[#d7ad5a] tw-text-[#f2cc76]"><i className="fas fa-headset" /></span><div className="tw-min-w-0"><strong className="tw-text-[0.98rem]">Chúng tôi luôn sẵn sàng hỗ trợ bạn</strong><p className="tw-m-0 tw-mt-0.5 tw-text-[0.78rem] tw-text-[#bccce7]">Đội ngũ CoParking luôn đồng hành cùng bạn trên mọi hành trình.</p></div>{canViewSupport ? <Link className="tw-ml-auto tw-whitespace-nowrap tw-rounded-[7px] tw-border tw-border-solid tw-border-[#d7ad5a] tw-px-4 tw-py-2.5 tw-text-[0.82rem] tw-font-semibold tw-text-[#f5ce7d] hover:tw-text-[#f5ce7d] hover:tw-no-underline" to="/customer/support">Liên hệ hỗ trợ <i className="fas fa-chevron-right tw-ml-2 tw-text-[0.7rem]" /></Link> : null}</section>
+      <section className="vm-dashboard-support-banner tw-mt-4 tw-flex tw-items-center tw-gap-4 tw-rounded-[11px] tw-bg-[linear-gradient(100deg,#051d4d,#072969)] tw-px-[1.4rem] tw-py-4 tw-text-white"><span className="tw-grid tw-h-[42px] tw-w-[42px] tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-[#d7ad5a] tw-text-[#f2cc76]"><i className="fas fa-headset" /></span><div className="tw-min-w-0"><strong className="tw-text-[0.98rem]">Chúng tôi luôn sẵn sàng hỗ trợ bạn</strong><p className="tw-m-0 tw-mt-0.5 tw-text-[0.78rem] tw-text-[#bccce7]">Đội ngũ CoParking luôn đồng hành cùng bạn trên mọi hành trình.</p></div>{canViewSupport ? <Link className="tw-ml-auto tw-whitespace-nowrap tw-rounded-[7px] tw-border tw-border-solid tw-border-[#d7ad5a] tw-px-4 tw-py-2.5 tw-text-[0.82rem] tw-font-semibold tw-text-[#f5ce7d] hover:tw-text-[#f5ce7d] hover:tw-no-underline" to="/customer/support">Liên hệ hỗ trợ <i className="fas fa-chevron-right tw-ml-2 tw-text-[0.7rem]" /></Link> : null}</section>
 
     </CustomerPortalLayout>
   );

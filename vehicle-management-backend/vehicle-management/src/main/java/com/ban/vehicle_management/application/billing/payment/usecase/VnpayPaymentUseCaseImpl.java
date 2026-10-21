@@ -14,6 +14,7 @@ import com.ban.vehicle_management.application.billing.payment.model.result.Vnpay
 import com.ban.vehicle_management.application.billing.payment.port.in.VnpayPaymentPortIn;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.VnpayGatewayPortOut;
+import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
@@ -47,6 +48,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
     private final SubscriptionPortIn subscriptionPortIn;
     private final ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
     private final NotificationPortIn notificationPortIn;
+    private final SettlementPortIn settlementPortIn;
     private final BigDecimal vnpayMinimumAmount;
     private final PaymentPolicy paymentPolicy = new PaymentPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
@@ -59,6 +61,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
             SubscriptionPortIn subscriptionPortIn,
             ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn,
             NotificationPortIn notificationPortIn,
+            SettlementPortIn settlementPortIn,
             @Value("${app.payment.vnpay.minimum-amount:10000}") BigDecimal vnpayMinimumAmount
     ) {
         this.paymentPortOut = paymentPortOut;
@@ -68,6 +71,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
         this.subscriptionPortIn = subscriptionPortIn;
         this.parkingCheckoutCompletionPortIn = parkingCheckoutCompletionPortIn;
         this.notificationPortIn = notificationPortIn;
+        this.settlementPortIn = settlementPortIn;
         this.vnpayMinimumAmount = vnpayMinimumAmount;
     }
 
@@ -289,6 +293,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
         invoicePortOut.save(invoice);
         if (invoice.getSubscriptionId() != null) {
             subscriptionPortIn.markSubscriptionPaymentCompleted(invoice.getSubscriptionId());
+            settlementPortIn.allocateForCompletedPayment(payment.getPaymentId());
         }
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());
         notifyPaymentSucceeded(invoice, payment);

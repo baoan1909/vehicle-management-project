@@ -29,6 +29,15 @@ public interface InvoicePortIn {
             String keyword
     );
 
+    List<Invoice> getOwnInvoices(
+            List<UUID> subscriptionIds,
+            InvoiceStatus status,
+            Instant fromDate,
+            Instant toDate,
+            String keyword,
+            Integer limit
+    );
+
     InvoiceManagementPageResult getManagementInvoices(
             InvoiceStatus status,
             PaymentMethod paymentMethod,

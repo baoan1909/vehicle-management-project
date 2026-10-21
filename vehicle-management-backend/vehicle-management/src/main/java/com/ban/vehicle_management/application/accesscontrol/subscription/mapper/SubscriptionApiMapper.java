@@ -6,6 +6,7 @@ import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.requ
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.CreateSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.UpdateSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionVoucherQuoteResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
@@ -35,6 +36,7 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "idempotencyKey", ignore = true)
     Subscription toDomain(CreateSubscriptionRequest request);
 
     @Mapping(target = "subscriptionId", ignore = true)
@@ -55,6 +57,7 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "idempotencyKey", ignore = true)
     Subscription toDomain(CreateSubscriptionAdminRequest request);
 
     @Mapping(target = "subscriptionId", ignore = true)
@@ -76,6 +79,7 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "createdBy", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
+    @Mapping(target = "idempotencyKey", ignore = true)
     Subscription toDomain(UpdateSubscriptionRequest request);
 
     SubscriptionAdminResponse toAdminResponse(Subscription subscription);
@@ -83,5 +87,9 @@ public interface SubscriptionApiMapper {
     SubscriptionVoucherQuoteResponse toVoucherQuoteResponse(SubscriptionVoucherQuote quote);
 
     List<SubscriptionAdminResponse> toAdminResponses(List<Subscription> subscriptions);
+
+    SubscriptionUserResponse toUserResponse(Subscription subscription);
+
+    List<SubscriptionUserResponse> toUserResponses(List<Subscription> subscriptions);
 
 }

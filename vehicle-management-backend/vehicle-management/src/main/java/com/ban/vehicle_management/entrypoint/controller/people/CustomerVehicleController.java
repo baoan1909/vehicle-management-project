@@ -3,10 +3,12 @@ package com.ban.vehicle_management.entrypoint.controller.people;
 import com.ban.vehicle_management.application.people.customervehicle.mapper.CustomerVehicleApiMapper;
 import com.ban.vehicle_management.application.people.customervehicle.port.in.CustomerVehiclePortIn;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
+import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.CreateCustomerVehicleRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.CustomerVehicleBatchRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.CustomerVehicleFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.request.UpdateCustomerVehicleRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.response.CustomerVehicleAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.people.customervehicle.response.CustomerVehicleUserResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -37,6 +40,32 @@ public class CustomerVehicleController {
     ) {
         this.customerVehiclePortIn = customerVehiclePortIn;
         this.customerVehicleApiMapper = customerVehicleApiMapper;
+    }
+
+    @PostMapping("/me")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_CREATE_ALL', 'CUSTOMER_VEHICLE_CREATE_OWN')")
+    public ResponseEntity<ApiResponse<CustomerVehicleUserResponse>> createMyCustomerVehicle(
+            @RequestBody CreateCustomerVehicleRequest request
+    ) {
+        CustomerVehicle createdCustomerVehicle = customerVehiclePortIn.createCustomerVehicle(
+                customerVehicleApiMapper.toDomain(request)
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                "Customer vehicle created successfully",
+                customerVehicleApiMapper.toUserResponse(createdCustomerVehicle)
+        ));
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('CUSTOMER_VEHICLE_READ_ALL', 'CUSTOMER_VEHICLE_READ_OWN')")
+    public ResponseEntity<ApiResponse<List<CustomerVehicleUserResponse>>> getMyCustomerVehicles(
+            @RequestParam(required = false) Integer limit
+    ) {
+        List<CustomerVehicle> customerVehicles = customerVehiclePortIn.getMyCustomerVehicles(limit);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched current customer vehicles successfully",
+                customerVehicleApiMapper.toUserResponses(customerVehicles)
+        ));
     }
 
     @PostMapping

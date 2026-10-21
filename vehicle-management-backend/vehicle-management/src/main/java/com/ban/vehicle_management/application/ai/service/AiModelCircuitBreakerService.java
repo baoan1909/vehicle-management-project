@@ -42,7 +42,8 @@ public class AiModelCircuitBreakerService implements AiModelCircuitBreakerPortOu
     public CircuitBreakerDecision shouldAllow(String circuitKey) {
         LocalCircuit local = localCircuits.computeIfAbsent(circuitKey, ignored -> new LocalCircuit());
         Optional<CircuitRecord> remote = readRemote(circuitKey);
-        CircuitRecord effective = remote.orElse(local.toRecord());
+        CircuitRecord localRecord = local.toRecord();
+        CircuitRecord effective = isBlocking(localRecord) ? localRecord : remote.orElse(localRecord);
         Instant now = Instant.now();
         Instant effectiveRetryAfter = parseInstant(effective.retryAfter());
         if (CircuitState.OPEN.name().equals(effective.state())) {
@@ -52,7 +53,7 @@ public class AiModelCircuitBreakerService implements AiModelCircuitBreakerPortOu
             // Transition to HALF_OPEN: only one probe may proceed (distributed).
             if (tryAcquireProbe(circuitKey, effective)) {
                 metrics.circuitHalfOpen(providerOf(circuitKey), "support_chat");
-                local.state = CircuitState.HALF_OPEN;
+                local.halfOpen();
                 return new CircuitBreakerDecision(true, CircuitState.HALF_OPEN, null);
             }
             return new CircuitBreakerDecision(false, CircuitState.OPEN, effectiveRetryAfter);
@@ -67,6 +68,7 @@ public class AiModelCircuitBreakerService implements AiModelCircuitBreakerPortOu
     public void recordSuccess(String circuitKey) {
         LocalCircuit local = localCircuits.computeIfAbsent(circuitKey, ignored -> new LocalCircuit());
         local.reset();
+        distributedCache.delete(failureCounterKey(circuitKey));
         writeRemote(circuitKey, new CircuitRecord(CircuitState.CLOSED.name(), 0, null, null, Instant.now().toString()));
         metrics.circuitClose(providerOf(circuitKey), "support_chat");
     }
@@ -77,33 +79,28 @@ public class AiModelCircuitBreakerService implements AiModelCircuitBreakerPortOu
             return;
         }
         LocalCircuit local = localCircuits.computeIfAbsent(circuitKey, ignored -> new LocalCircuit());
-        local.onFailure();
+        int localFailures = local.onFailure();
         try {
-            CircuitRecord current = readRemote(circuitKey).orElse(new CircuitRecord(
-                    CircuitState.CLOSED.name(), 0, null, null, Instant.now().toString()));
-            int failures = current.failureCount() + 1;
-            Instant windowStart = current.windowStart() == null ? Instant.now() : Instant.parse(current.windowStart());
-            if (Duration.between(windowStart, Instant.now()).compareTo(window()) > 0) {
-                failures = 1;
-                windowStart = Instant.now();
+            Optional<Long> remoteFailures = distributedCache.increment(failureCounterKey(circuitKey), window());
+            if (remoteFailures.isEmpty()) {
+                openLocalWhenThresholdReached(local, localFailures, retryAfter);
+                return;
             }
+            long failures = remoteFailures.get();
             if (failures >= threshold()) {
                 Duration openDuration = clampOpen(retryAfter);
-                Instant retryAt = Instant.now().plus(openDuration);
-                CircuitRecord opened = new CircuitRecord(CircuitState.OPEN.name(), failures,
-                        Instant.now().toString(), retryAt.toString(), windowStart.toString());
+                Instant now = Instant.now();
+                Instant retryAt = now.plus(openDuration);
+                CircuitRecord opened = new CircuitRecord(CircuitState.OPEN.name(),
+                        Math.toIntExact(Math.min(failures, Integer.MAX_VALUE)),
+                        now.toString(), retryAt.toString(), now.toString());
                 writeRemote(circuitKey, opened);
                 local.open(retryAt);
                 metrics.circuitOpen(providerOf(circuitKey), "support_chat");
-            } else {
-                writeRemote(circuitKey, new CircuitRecord(CircuitState.CLOSED.name(), failures,
-                        null, null, windowStart.toString()));
             }
         } catch (Exception exception) {
             log.debug("Circuit breaker record failed error={}", exception.getClass().getSimpleName());
-            if (local.failureCount >= threshold()) {
-                local.open(Instant.now().plus(clampOpen(retryAfter)));
-            }
+            openLocalWhenThresholdReached(local, localFailures, retryAfter);
         }
     }
 
@@ -127,7 +124,11 @@ public class AiModelCircuitBreakerService implements AiModelCircuitBreakerPortOu
         }
         try {
             CircuitState state = CircuitState.valueOf(record.state());
-            return Optional.of(new CircuitBreakerSnapshot(state, record.failureCount(),
+            int failureCount = distributedCache.getCounter(failureCounterKey(circuitKey))
+                    .map(count -> Math.toIntExact(Math.min(count, Integer.MAX_VALUE)))
+                    .map(count -> Math.max(count, record.failureCount()))
+                    .orElse(record.failureCount());
+            return Optional.of(new CircuitBreakerSnapshot(state, failureCount,
                     record.openedAt() == null ? null : Instant.parse(record.openedAt()),
                     record.retryAfter() == null ? null : Instant.parse(record.retryAfter())));
         } catch (Exception exception) {
@@ -154,11 +155,26 @@ public class AiModelCircuitBreakerService implements AiModelCircuitBreakerPortOu
         }
         // Redis unavailable: allow at most one local probe per open window.
         LocalCircuit local = localCircuits.get(circuitKey);
-        if (local != null && local.state == CircuitState.OPEN) {
-            local.state = CircuitState.HALF_OPEN;
-            return true;
+        return local != null && local.tryHalfOpen();
+    }
+
+    private void openLocalWhenThresholdReached(
+            LocalCircuit local,
+            int localFailures,
+            Duration retryAfter
+    ) {
+        if (localFailures >= threshold()) {
+            local.open(Instant.now().plus(clampOpen(retryAfter)));
         }
-        return false;
+    }
+
+    private String failureCounterKey(String circuitKey) {
+        return circuitKey + ":failure-count";
+    }
+
+    private boolean isBlocking(CircuitRecord record) {
+        return CircuitState.OPEN.name().equals(record.state())
+                || CircuitState.HALF_OPEN.name().equals(record.state());
     }
 
     private Optional<CircuitRecord> readRemote(String circuitKey) {
@@ -251,8 +267,8 @@ public class AiModelCircuitBreakerService implements AiModelCircuitBreakerPortOu
         private int failureCount;
         private Instant retryAfter;
 
-        synchronized void onFailure() {
-            failureCount++;
+        synchronized int onFailure() {
+            return ++failureCount;
         }
 
         synchronized void open(Instant retryAt) {
@@ -264,6 +280,18 @@ public class AiModelCircuitBreakerService implements AiModelCircuitBreakerPortOu
             state = CircuitState.CLOSED;
             failureCount = 0;
             retryAfter = null;
+        }
+
+        synchronized void halfOpen() {
+            state = CircuitState.HALF_OPEN;
+        }
+
+        synchronized boolean tryHalfOpen() {
+            if (state != CircuitState.OPEN) {
+                return false;
+            }
+            state = CircuitState.HALF_OPEN;
+            return true;
         }
 
         synchronized CircuitRecord toRecord() {

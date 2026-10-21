@@ -105,7 +105,8 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
             LocalDate fromDate,
             LocalDate toDate,
             String keyword,
-            UUID parkingLotId
+            UUID parkingLotId,
+            Integer limit
     ) {
         UUID customerId = subscriptionAccessGuard.resolveCurrentApprovedCustomerId();
         List<UUID> customerVehicleIds = customerVehiclePortOut.findAll(customerId, null, null, null, null)
@@ -120,7 +121,8 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
         Instant checkInFrom = DateTimeUtils.startOfDayInVietnam(fromDate);
         Instant checkInTo = DateTimeUtils.startOfNextDayInVietnam(toDate);
         String normalizedKeyword = TextValidationUtils.normalizeNullableText(keyword, "keyword", 100);
-        List<ParkingSessionManagementResult> sessions = parkingSessionPortOut.findManagementSessions(
+        int resolvedLimit = limit == null ? 100 : Math.min(Math.max(limit, 1), 200);
+        List<ParkingSessionManagementResult> sessions = parkingSessionPortOut.findOwnManagementSessions(
                 status,
                 vehicleTypeId,
                 zoneId,
@@ -128,7 +130,8 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
                 checkInTo,
                 normalizedKeyword,
                 customerVehicleIds,
-                parkingLotId == null ? null : Set.of(parkingLotId)
+                parkingLotId == null ? null : Set.of(parkingLotId),
+                resolvedLimit
         );
         return parkingSessionManagementResultMapper.withResolvedEventImageUrls(sessions, fileAccessPort);
     }

@@ -7,8 +7,6 @@ import {
   type UpdateAccountProfileRequest,
 } from "@/features/iam/api/accountProfileApi";
 import {
-  createCustomerVehicle,
-  fetchCustomerVehicles,
   type CustomerVehicleAdminResponse,
   type CustomerVehiclePayload,
 } from "@/features/customers/api/customerApi";
@@ -144,12 +142,22 @@ export function requireCustomerId(profile: CustomerPortalProfile) {
   return customerId;
 }
 
-export async function getMyCustomerVehicles(profile: CustomerPortalProfile) {
-  return fetchCustomerVehicles(requireCustomerId(profile));
+export async function getMyCustomerVehicles() {
+  const response = await apiClient<ApiResponse<CustomerPortalVehicle[]>>(
+    `${apiEndpoints.customers.customerVehicles}/me`,
+  );
+  return response.data ?? [];
 }
 
-export async function saveMyCustomerVehicle(profile: CustomerPortalProfile, payload: CustomerVehiclePayload) {
-  return createCustomerVehicle(requireCustomerId(profile), payload);
+export async function saveMyCustomerVehicle(payload: CustomerVehiclePayload) {
+  const response = await apiClient<ApiResponse<CustomerPortalVehicle>>(
+    `${apiEndpoints.customers.customerVehicles}/me`,
+    {
+      body: payload,
+      method: "POST",
+    },
+  );
+  return response.data;
 }
 
 export async function updateMyCustomerVehicle(customerVehicleId: string, payload: CustomerVehiclePayload) {
@@ -187,18 +195,19 @@ export async function markMyCustomerVehicleAsDefault(customerVehicleId: string) 
   return response.data;
 }
 
-export async function getMySubscriptions(profile: CustomerPortalProfile) {
+export async function getMySubscriptions() {
   const response = await apiClient<ApiResponse<CustomerPortalSubscription[]>>(
-    `${apiEndpoints.accessControl.subscriptions}${buildQuery({ customerId: requireCustomerId(profile) })}`,
+    `${apiEndpoints.accessControl.subscriptions}/me`,
   );
   return response.data ?? [];
 }
 
-export async function createMySubscription(payload: CreateMySubscriptionRequest) {
+export async function createMySubscription(payload: CreateMySubscriptionRequest, idempotencyKey?: string) {
   const response = await apiClient<ApiResponse<CustomerPortalSubscription>>(
     `${apiEndpoints.accessControl.subscriptions}/me`,
     {
       body: payload,
+      headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
       method: "POST",
     },
   );
@@ -249,6 +258,38 @@ export async function quoteMySubscriptionVoucher(payload: CreateMySubscriptionRe
     },
   );
   return response.data;
+}
+
+export type CustomerPortalInvoice = {
+  amount: number;
+  discountAmount: number;
+  finalAmount: number;
+  invoiceId: string;
+  invoiceNo: string;
+  issuedAt?: string | null;
+  paidAt?: string | null;
+  status: "UNPAID" | "PAID" | "CANCELLED" | "REFUNDED";
+  subscriptionId?: string | null;
+};
+
+export async function getMySubscriptionInvoices(subscriptionIds: string[]) {
+  const params = new URLSearchParams();
+  subscriptionIds.filter(Boolean).slice(0, 50).forEach((id) => params.append("subscriptionIds", id));
+  const query = params.toString();
+  const response = await apiClient<ApiResponse<CustomerPortalInvoice[]>>(
+    `${apiEndpoints.billing.invoices}/me${query ? `?${query}` : ""}`,
+  );
+  return response.data ?? [];
+}
+
+export async function getMySubscriptionInvoice(subscriptionId: string) {
+  const invoices = await getMySubscriptionInvoices([subscriptionId]);
+  return (
+    invoices.find((invoice) => invoice.status === "UNPAID")
+    ?? invoices.find((invoice) => invoice.status === "PAID")
+    ?? invoices[0]
+    ?? null
+  );
 }
 
 export async function getCustomerPortalVoucherBanners() {

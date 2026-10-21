@@ -3,7 +3,7 @@ package com.ban.vehicle_management.entrypoint.dto.operations.supportticket.respo
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatConversationUserResponse;
 
 public record SupportTicketChatIntakeResponse(
-        SupportTicketAdminResponse ticket,
+        SupportTicketUserResponse ticket,
         ChatConversationUserResponse conversation,
         boolean reusedActiveTicket
 ) {

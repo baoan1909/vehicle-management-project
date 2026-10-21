@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { canAccessCustomerRoute } from "@/app/routePermissions";
 import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
+import { CustomerMobileNav } from "@/features/customer-portal/components/CustomerMobileNav";
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 
 export const publicContactItems = [
   { icon: "fas fa-phone-alt", title: "Hotline", value: "1900 1234", note: "Hỗ trợ 24/7" },
@@ -17,6 +19,7 @@ const customerNavItems = [
   { label: "Hồ sơ", to: "/customer/profile", icon: "far fa-user" },
   { label: "Xe của tôi", to: "/customer/vehicles", icon: "fas fa-motorcycle" },
   { label: "Vé tháng", to: "/customer/subscriptions", icon: "far fa-calendar-check" },
+  { label: "Ví của tôi", to: "/customer/wallet", icon: "fas fa-wallet" },
   { label: "Lịch sử gửi xe", to: "/customer/parking-history", icon: "far fa-clock" },
   { label: "Hỗ trợ", to: "/customer/support", icon: "far fa-question-circle" },
 ];
@@ -58,15 +61,16 @@ export function PublicFooter() {
   const watermarkRows = Array.from({ length: 9 });
 
   return (
-    <footer className="tw-relative tw-isolate tw-block tw-w-full tw-overflow-hidden tw-bg-[#052a5a] tw-text-brand-100">
+    <footer className="vm-public-footer-shell tw-relative tw-isolate tw-block tw-w-full tw-overflow-hidden tw-bg-[#052a5a] tw-text-brand-100">
       <div
-        className="tw-pointer-events-none tw-absolute -tw-left-[42%] -tw-top-24 tw-z-0 tw-flex tw-w-[195%] tw-origin-center tw-flex-col tw-gap-16 tw-opacity-100"
+        className="vm-public-footer-watermark tw-pointer-events-none tw-absolute -tw-left-[42%] -tw-top-24 tw-z-0 tw-flex tw-w-[195%] tw-origin-center tw-flex-col tw-gap-16 tw-opacity-100"
         aria-hidden="true"
         style={{ transform: "rotate(-16deg)" }}
       >
         {watermarkRows.map((_, index) => (
           <div
             className={cn(
+              "vm-public-footer-watermark-row",
               "tw-flex tw-w-full tw-whitespace-nowrap tw-text-[clamp(3.25rem,5.4vw,6.8rem)] tw-font-black tw-leading-none",
               index % 2 === 0 ? "tw-text-brand-500/[0.14]" : "tw-text-brand-500/[0.08]",
             )}
@@ -149,11 +153,11 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { user } = useAuth();
   const visibleNavItems = customerNavItems.filter((item) => canAccessCustomerRoute(user, item.to));
-  const isReferencePage = ["/customer/dashboard", "/customer/profile", "/customer/vehicles", "/customer/subscriptions", "/customer/parking-history", "/customerTicket/customer-infor", "/customerTicket/customer-infor-detail"].includes(location.pathname);
+  const isReferencePage = ["/customer/dashboard", "/customer/profile", "/customer/vehicles", "/customer/subscriptions", "/customer/wallet", "/customer/wallet/topup", "/customer/parking-history", "/customerTicket/customer-infor", "/customerTicket/customer-infor-detail"].includes(location.pathname);
   const displayName = user?.fullName?.trim() || user?.username?.trim() || "Khách hàng";
 
   return (
-    <div className={cn("vm-customer-shell", isReferencePage && "[&_h1]:!tw-font-[Cambria,Georgia,serif] [&_input]:tw-min-w-0 [&_select]:tw-min-w-0 [&_label]:tw-mb-0 [&_button]:tw-cursor-pointer [&_button:disabled]:tw-cursor-not-allowed")}>
+    <div data-customer-route={location.pathname} className={cn("vm-customer-shell", isReferencePage && "[&_h1]:!tw-font-[Cambria,Georgia,serif] [&_input]:tw-min-w-0 [&_select]:tw-min-w-0 [&_label]:tw-mb-0 [&_button]:tw-cursor-pointer [&_button:disabled]:tw-cursor-not-allowed")}>
       <div className={cn("vm-customer-body", isReferencePage && "!tw-grid-cols-[212px_minmax(0,1fr)] max-[1100px]:!tw-grid-cols-[184px_minmax(0,1fr)] max-[760px]:!tw-grid-cols-1")}>
         <aside className={cn("vm-customer-sidebar", isReferencePage && "!tw-px-3 !tw-py-5 max-[760px]:!tw-min-h-0 max-[760px]:tw-flex max-[760px]:tw-overflow-x-auto max-[760px]:!tw-py-2")}>
           <div className={`${isReferencePage && location.pathname !== "/customer/vehicles" ? "tw-hidden" : "tw-grid"} max-[760px]:tw-hidden tw-mx-1 tw-mb-5 tw-grid-cols-[48px_minmax(0,1fr)] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-slate-100 tw-px-1 tw-pb-5`}>
@@ -164,7 +168,7 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
           {visibleNavItems.map((item) => {
-            const active = location.pathname === item.to;
+            const active = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
             return (
               <Link aria-current={active ? "page" : undefined} className={`vm-customer-nav-item ${isReferencePage ? "!tw-min-h-[52px] !tw-text-[0.9rem] !tw-font-medium !tw-gap-3 hover:tw-bg-blue-50 hover:tw-no-underline max-[760px]:tw-shrink-0 max-[760px]:!tw-mb-0 [&>i]:!tw-text-xl" : ""} ${active ? "active" : ""}`} to={item.to} key={item.to}>
                 <i className={item.icon} />
@@ -175,6 +179,7 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
         </aside>
         <main className={cn("vm-customer-content", isReferencePage && "!tw-overflow-x-visible !tw-p-5 max-[1100px]:!tw-p-4 max-[760px]:!tw-p-3")}>{children}</main>
       </div>
+      <CustomerMobileNav />
     </div>
   );
 }
@@ -270,13 +275,16 @@ export function PaginationLite({
       <div className="vm-table-footer-controls">
         <label className="vm-table-length">
           <span>Số dòng mỗi trang</span>
-          <select
-            aria-label="Số dòng mỗi trang"
-            value={pageSize}
-            onChange={(event) => onPageSizeChange?.(Number(event.target.value))}
-          >
-            {[5, 10, 20].map((option) => <option key={option} value={option}>{option}</option>)}
-          </select>
+          <SelectMenu
+            ariaLabel="Số dòng mỗi trang"
+            className="!tw-w-20"
+            options={[5, 10, 20].map((option) => ({ label: String(option), value: String(option) }))}
+            portal
+            searchable={false}
+            triggerClassName="!tw-h-9 !tw-min-h-9 !tw-px-2"
+            value={String(pageSize)}
+            onChange={(value) => onPageSizeChange?.(Number(value))}
+          />
         </label>
         <div className="vm-pagination">
           <button
@@ -321,9 +329,7 @@ export function PortalPagination({
     <footer className="tw-mt-4 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-slate-100 tw-pt-4">
       <label className="tw-flex tw-items-center tw-gap-2 tw-text-xs tw-font-normal tw-text-slate-600">
         Hiển thị
-        <select aria-label="Số dòng mỗi trang" className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-2" value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
-          {[5, 10, 20].map((size) => <option key={size} value={size}>{size}</option>)}
-        </select>
+        <SelectMenu ariaLabel="Số dòng mỗi trang" className="!tw-w-20" options={[5, 10, 20].map((size) => ({ label: String(size), value: String(size) }))} portal searchable={false} triggerClassName="!tw-h-9 !tw-min-h-9 !tw-px-2" value={String(pageSize)} onChange={(value) => onPageSizeChange(Number(value))} />
         trên mỗi trang
       </label>
       <nav aria-label="Phân trang" className="tw-flex tw-items-center tw-gap-2">

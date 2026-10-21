@@ -15,6 +15,7 @@ public interface SubscriptionPortOut {
 
     Optional<Subscription> findById(UUID subscriptionId);
 
+    Optional<Subscription> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
     Optional<Subscription> findActiveByCardId(UUID cardId, LocalDate businessDate);
 
     Optional<Subscription> findLatestActiveByCardId(UUID cardId);
@@ -35,6 +36,8 @@ public interface SubscriptionPortOut {
     List<Subscription> findAll(UUID customerId, UUID customerVehicleId, UUID cardId, UUID ticketTypeId,
             SubscriptionStatus status, LocalDate effectiveFrom, LocalDate effectiveTo,
             String keyword, Set<UUID> parkingLotIds);
+
+    List<Subscription> findOwnSubscriptions(UUID customerId, int limit);
 
     boolean existsOverlappingSubscription(
             UUID customerVehicleId,

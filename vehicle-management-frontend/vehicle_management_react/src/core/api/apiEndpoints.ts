@@ -114,6 +114,11 @@ modelConfigurations: "/ai/models/configurations",
   billing: {
     invoices: "/billing/invoices",
     payments: "/billing/payments",
+    platformFees: "/billing/admin/platform-fees",
+    partnerWalletCurrent: "/billing/partner-wallets/current",
+    partnerWalletTransactions: "/billing/partner-wallets/current/transactions",
+    partnerAllocations: "/billing/partner-wallets/current/allocations",
+    partnerPayouts: "/billing/partner-wallets/current/payouts",
   },
   catalog: {
     cardTypes: "/catalog/card-types",
