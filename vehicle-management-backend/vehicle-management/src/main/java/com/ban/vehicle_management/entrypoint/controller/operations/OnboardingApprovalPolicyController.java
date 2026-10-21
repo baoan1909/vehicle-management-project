@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class OnboardingApprovalPolicyController {
 
     private static final String REQUIRED_PERMISSIONS =
-            "@permissionAuthorizer.hasPermission('ORGANIZATION_CREATE_ALL') "
+            "@permissionAuthorizer.hasPermission('ORGANIZATION_REGISTRATION_REVIEW_ALL') "
                     + "or @permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL')";
 
     private final OnboardingApprovalPolicyPortIn policyPortIn;

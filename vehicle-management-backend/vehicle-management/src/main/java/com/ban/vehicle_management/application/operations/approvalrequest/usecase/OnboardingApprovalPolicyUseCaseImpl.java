@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OnboardingApprovalPolicyUseCaseImpl implements OnboardingApprovalPolicyPortIn {
 
-    public static final String ORGANIZATION_CREATE_ALL = "ORGANIZATION_CREATE_ALL";
+    public static final String REVIEW_PARTNER_REGISTRATION_ALL = "ORGANIZATION_REGISTRATION_REVIEW_ALL";
     public static final String REVIEW_CUSTOMER_ALL = "ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL";
     private static final String AUDIT_ACTION = "ONBOARDING_AUTO_APPROVAL_POLICY_UPDATED";
 
@@ -57,7 +57,7 @@ public class OnboardingApprovalPolicyUseCaseImpl implements OnboardingApprovalPo
     @Transactional
     public OnboardingApprovalPoliciesResult updatePolicies(UpdateOnboardingApprovalPoliciesCommand command) {
         boolean canManageCustomer = currentAccountPortIn.hasPermission(REVIEW_CUSTOMER_ALL);
-        boolean canManagePartner = currentAccountPortIn.hasPermission(ORGANIZATION_CREATE_ALL);
+        boolean canManagePartner = currentAccountPortIn.hasPermission(REVIEW_PARTNER_REGISTRATION_ALL);
         if (!canManageCustomer && !canManagePartner) {
             currentAccountPortIn.requirePermission(REVIEW_CUSTOMER_ALL);
         }
@@ -72,19 +72,19 @@ public class OnboardingApprovalPolicyUseCaseImpl implements OnboardingApprovalPo
             updatePolicy(customer, command.customerAutoApproveEnabled(), actorAccountId, changedAt);
         }
         if (command.partnerAutoApproveEnabled() != partner.isAutoApproveEnabled()) {
-            currentAccountPortIn.requirePermission(ORGANIZATION_CREATE_ALL);
+            currentAccountPortIn.requirePermission(REVIEW_PARTNER_REGISTRATION_ALL);
             updatePolicy(partner, command.partnerAutoApproveEnabled(), actorAccountId, changedAt);
         }
         if (command.avatarAutoApproveEnabled() != avatar.isAutoApproveEnabled()) {
             currentAccountPortIn.requirePermission(REVIEW_CUSTOMER_ALL);
-            currentAccountPortIn.requirePermission(ORGANIZATION_CREATE_ALL);
+            currentAccountPortIn.requirePermission(REVIEW_PARTNER_REGISTRATION_ALL);
             updateAvatarPolicy(avatar, command.avatarAutoApproveEnabled(), actorAccountId, changedAt);
         }
         return toResult(customer, partner, avatar);
     }
 
     private void requireConfigurationPermissions() {
-        if (currentAccountPortIn.hasPermission(ORGANIZATION_CREATE_ALL)) {
+        if (currentAccountPortIn.hasPermission(REVIEW_PARTNER_REGISTRATION_ALL)) {
             return;
         }
         currentAccountPortIn.requirePermission(REVIEW_CUSTOMER_ALL);

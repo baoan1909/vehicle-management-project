@@ -189,7 +189,7 @@ class PartnerRegistrationUseCaseImplTest {
         verify(notificationSender).sendBroadcast(argThat(command ->
                 NotificationType.ACCOUNT_PROFILE_SUBMITTED.equals(command.notificationType())
                         && approval.getApprovalRequestId().equals(command.relatedId())
-                        && command.recipientCriteria().requiredAnyPermissionCodes().contains("ORGANIZATION_CREATE_ALL")
+                        && command.recipientCriteria().requiredAnyPermissionCodes().contains("ORGANIZATION_REGISTRATION_REVIEW_ALL")
         ));
     }
 

@@ -76,7 +76,7 @@ assert.ok(!reviewer.includes("Người đại diện"), "Reviewer page must not 
 assert.match(reviewer, /applicantFullName/, "Reviewer page must show the applicant full name");
 assert.match(reviewer, /applicantPhoneNumber/, "Reviewer page must show the applicant phone number");
 assert.match(reviewer, /applicantEmail/, "Reviewer page must show the applicant email");
-assert.match(reviewer, /ORGANIZATION_CREATE_ALL/, "Reviewer approve/reject must be gated by ORGANIZATION_CREATE_ALL");
+assert.match(reviewer, /ORGANIZATION_REGISTRATION_REVIEW_ALL/, "Reviewer approve/reject must be gated by the Partner-registration review permission");
 assert.match(reviewer, /subscribeNotificationReceived/, "Reviewer page must subscribe to realtime updates");
 
 // Admin profile must expose the organization section without representative fields,

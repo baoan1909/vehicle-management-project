@@ -320,10 +320,10 @@ export function ClientNavbar() {
                     ) : null}
 
                     <Link to={user?.role === "PARTNER_ADMIN" ? "/admin/profile" : "/customer/profile"} className={profileItemClassName} onClick={() => setProfileOpen(false)}>
-                      <HeaderItemIcon icon={user?.role === "PARTNER_ADMIN" ? "fas fa-clipboard-check" : "fas fa-user-circle"} />
+                      <HeaderItemIcon icon="fas fa-user-circle" />
                       <HeaderItemCopy
-                        title={user?.role === "PARTNER_ADMIN" ? "Hồ sơ đối tác" : "Hồ sơ cá nhân"}
-                        meta={user?.role === "PARTNER_ADMIN" ? "Hoàn thiện hồ sơ và theo dõi xét duyệt" : "Cập nhật thông tin tài khoản"}
+                        title="Hồ sơ cá nhân"
+                        meta="Cập nhật thông tin tài khoản"
                       />
                     </Link>
 
