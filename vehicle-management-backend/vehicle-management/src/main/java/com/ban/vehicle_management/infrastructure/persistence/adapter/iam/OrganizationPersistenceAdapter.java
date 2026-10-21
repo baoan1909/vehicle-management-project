@@ -162,4 +162,14 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
                 ) == parkingLotIds.size();
     }
 
+    @Override
+    public long countParkingLotsByOrganizationId(UUID organizationId) {
+        return parkingLotRepository.countByOrganizationId(organizationId);
+    }
+
+    @Override
+    public long countParkingLotsByOrganizationIdAndStatus(UUID organizationId, ParkingLotStatus status) {
+        return parkingLotRepository.countByOrganizationIdAndStatus(organizationId, status);
+    }
+
 }

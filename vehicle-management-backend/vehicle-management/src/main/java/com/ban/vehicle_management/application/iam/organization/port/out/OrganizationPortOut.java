@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.iam.organization.port.out;
 
 import com.ban.vehicle_management.domain.iam.organization.model.Organization;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -34,5 +35,9 @@ public interface OrganizationPortOut {
     void replaceParkingLotScopes(UUID organizationMembershipId, Set<UUID> parkingLotIds);
 
     boolean allParkingLotsBelongToOrganization(UUID organizationId, Set<UUID> parkingLotIds);
+
+    long countParkingLotsByOrganizationId(UUID organizationId);
+
+    long countParkingLotsByOrganizationIdAndStatus(UUID organizationId, ParkingLotStatus status);
 
 }

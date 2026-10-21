@@ -917,7 +917,7 @@ export function InternalProfilePage() {
                   <div className="tw-col-span-full tw-grid tw-gap-2">
                     <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Địa chỉ liên hệ</span>
                     <VietnamAddressPicker
-                      mode="auto"
+                      mode="current"
                       value={form.structuredAddress}
                       onChange={(structuredAddress) => setForm((current) => ({ ...current, structuredAddress }))}
                     />
@@ -974,7 +974,7 @@ export function InternalProfilePage() {
                   <div className="tw-col-span-full tw-grid tw-gap-2">
                     <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Địa chỉ đơn vị</span>
                     <VietnamAddressPicker
-                      mode="auto"
+                      mode="current"
                       value={orgForm.organizationAddress}
                       onChange={(organizationAddress) => setOrgForm((current) => ({ ...current, organizationAddress }))}
                     />

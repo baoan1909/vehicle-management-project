@@ -90,6 +90,7 @@ export const adminNavigation: AdminSidebarEntry[] = [
     items: [
       { label: "Tài khoản", to: "/admin/account", matches: ["/admin/account"] },
       { label: "Đăng ký đối tác", to: "/admin/partner-registrations", matches: ["/admin/partner-registrations"] },
+      { label: "Hồ sơ đối tác", to: "/admin/organization-profile", matches: ["/admin/organization-profile"] },
       { label: "Duyệt ảnh đại diện", to: "/admin/avatar-approvals", matches: ["/admin/avatar-approvals"] },
       { label: "Vai trò & Quyền", to: "/admin/role", matches: ["/admin/role"] },
       { label: "Model AI", to: "/admin/ai-models", matches: ["/admin/ai-models"] },
@@ -115,6 +116,7 @@ export const platformAdminNavigation: AdminSidebarEntry[] = [
   { kind: "divider" },
   { kind: "section", label: "Quản trị nền tảng" },
   { kind: "link", label: "Đăng ký đối tác", to: "/admin/partner-registrations", matches: ["/admin/partner-registrations"], icon: "parking" },
+  { kind: "link", label: "Duyệt cập nhật hồ sơ đối tác", to: "/admin/organization-profile-approvals", matches: ["/admin/organization-profile-approvals"], icon: "parking" },
   { kind: "link", label: "Duyệt ảnh đại diện", to: "/admin/avatar-approvals", matches: ["/admin/avatar-approvals"], icon: "members" },
   { kind: "link", label: "Khách hàng toàn sàn", to: "/admin/customer", matches: ["/admin/customer"], icon: "members" },
   { kind: "link", label: "Voucher toàn sàn", to: "/admin/vouchers", matches: ["/admin/vouchers"], icon: "catalog" },
