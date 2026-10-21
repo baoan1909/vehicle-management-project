@@ -1,6 +1,8 @@
 package com.ban.vehicle_management.ai.cache;
 
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.ban.vehicle_management.application.ai.cache.model.CachedGroundedAnswer;
 import com.ban.vehicle_management.application.ai.port.out.AiModelCircuitBreakerPortOut;
@@ -91,7 +93,11 @@ class AiRedisCacheIT extends com.ban.vehicle_management.testsupport.PostgresInte
                 Thread.currentThread().interrupt();
             }
         });
-        assert !circuitBreaker.shouldAllow(key).allowed() : "Circuit should be OPEN after concurrent failures";
+        assertFalse(circuitBreaker.shouldAllow(key).allowed(),
+                "Circuit should be OPEN after concurrent failures");
+        var snapshot = circuitBreaker.snapshot(key).orElseThrow();
+        assertEquals(8, snapshot.failureCount(),
+                "Every concurrent failure must be counted exactly once");
     }
 
     @Test

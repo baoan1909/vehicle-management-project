@@ -12,6 +12,7 @@ import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionManagementResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionUserResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -68,19 +69,21 @@ public class ParkingSessionController {
 
     @GetMapping("/me")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<ParkingSessionManagementResponse>>> getMyParkingSessions(
-            @ModelAttribute ParkingSessionFilterRequest request
+    public ResponseEntity<ApiResponse<List<ParkingSessionUserResponse>>> getMyParkingSessions(
+            @ModelAttribute ParkingSessionFilterRequest request,
+            @RequestParam(required = false) Integer limit
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched customer parking sessions successfully",
-                parkingSessionApiMapper.toManagementResponses(parkingSessionPortIn.getOwnSessions(
+                parkingSessionApiMapper.toUserResponses(parkingSessionPortIn.getOwnSessions(
                         request.status(),
                         request.vehicleTypeId(),
                         request.zoneId(),
                         request.fromDate(),
                         request.toDate(),
                         request.keyword(),
-                        request.parkingLotId()
+                        request.parkingLotId(),
+                        limit
                 ))
         ));
     }

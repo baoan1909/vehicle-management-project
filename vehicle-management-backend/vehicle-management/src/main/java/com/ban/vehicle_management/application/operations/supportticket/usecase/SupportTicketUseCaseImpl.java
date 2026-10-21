@@ -167,8 +167,15 @@ public class SupportTicketUseCaseImpl implements SupportTicketPortIn {
     @Override
     @Transactional(readOnly = true)
     public List<SupportTicket> getMyTickets(SupportTicketStatus status, String keyword) {
+        return getMyTickets(status, keyword, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SupportTicket> getMyTickets(SupportTicketStatus status, String keyword, Integer limit) {
         UUID customerId = accessGuard.resolveCustomerIdForOwnTickets();
-        return supportTicketPortOut.findAll(customerId, null, null, status, null, normalizeKeyword(keyword));
+        int resolvedLimit = limit == null ? 100 : Math.min(Math.max(limit, 1), 200);
+        return supportTicketPortOut.findOwnTickets(customerId, status, normalizeKeyword(keyword), resolvedLimit);
     }
 
     @Override

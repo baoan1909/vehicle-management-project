@@ -275,7 +275,7 @@ function RegisterScreenV2() {
   }
 
   return (
-    <div className="tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-flex-col tw-overflow-y-auto tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-px-5 tw-py-2 tw-text-vm-slate-700">
+    <div className="vm-auth-shell tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-flex-col tw-overflow-y-auto tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-px-5 tw-py-2 tw-text-vm-slate-700">
       <main className="tw-mx-auto tw-flex tw-w-full tw-max-w-[920px] tw-flex-1 tw-flex-col tw-items-stretch tw-justify-center">
         <section className="tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d9e2f2] tw-bg-white tw-px-8 tw-pb-4 tw-pt-4 tw-shadow-[0_18px_45px_rgba(15,23,42,0.08)] max-[768px]:tw-px-5">
           <header className="tw-mx-auto tw-mb-4 tw-text-center">
@@ -460,7 +460,7 @@ function ForgotPasswordScreen() {
   }
 
   return (
-    <div className="tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-flex-col tw-overflow-y-auto tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-px-5 tw-py-4 tw-text-vm-slate-700">
+    <div className="vm-auth-shell tw-fixed tw-inset-0 tw-flex tw-min-h-screen tw-min-h-[100dvh] tw-w-screen tw-flex-col tw-overflow-y-auto tw-bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] tw-px-5 tw-py-4 tw-text-vm-slate-700">
       <main className="tw-mx-auto tw-flex tw-w-full tw-max-w-[520px] tw-flex-1 tw-flex-col tw-items-stretch tw-justify-center">
         <section className="tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d9e2f2] tw-bg-white tw-px-8 tw-pb-6 tw-pt-6 tw-shadow-[0_18px_45px_rgba(15,23,42,0.08)] max-[480px]:tw-px-5">
           <header className="tw-mx-auto tw-mb-5 tw-text-center">

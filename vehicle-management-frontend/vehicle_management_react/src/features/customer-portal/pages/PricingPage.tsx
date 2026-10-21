@@ -249,12 +249,12 @@ function PriceCard({ audience, featured = false, rule }: { audience: PricingAudi
           </span>
         ) : null}
         <p className="tw-relative tw-m-0 tw-text-[0.65rem] tw-font-black tw-uppercase tw-tracking-[0.14em] tw-text-brand-200">Gói gửi xe theo chu kỳ</p>
-        <h3 className="tw-relative tw-m-0 tw-mt-2 tw-pr-36 tw-text-[1rem] tw-font-black tw-text-white">{rule.ruleName || ticketName}</h3>
+        <h3 className="tw-relative tw-m-0 tw-mt-2 tw-pr-36 tw-text-[1rem] tw-font-black tw-text-white max-[480px]:tw-pr-0">{rule.ruleName || ticketName}</h3>
         <div className="tw-relative tw-mt-3 tw-flex tw-items-baseline tw-gap-2">
           <strong className="tw-text-[2.45rem] tw-font-black tw-leading-none tw-tracking-[-0.035em] tw-text-[#72a7ff]">{formatCurrency(rule.basePrice)}</strong>
           <span className="tw-text-[0.9rem] tw-font-bold tw-text-slate-300">{unitLabel(audience, rule.unit, rule.ticketType)}</span>
         </div>
-        <div className="tw-relative tw-mt-3 tw-grid tw-grid-cols-3 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-white/20 tw-pt-3">
+        <div className="tw-relative tw-mt-3 tw-grid tw-grid-cols-3 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-white/20 tw-pt-3 max-[480px]:tw-grid-cols-1">
           <span className="tw-flex tw-items-center tw-gap-2 tw-text-[0.7rem] tw-font-semibold tw-leading-4 tw-text-slate-100"><i className="fas fa-infinity tw-grid tw-h-9 tw-w-9 tw-flex-none tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-white/25 tw-bg-white/[0.035] tw-text-brand-200" /> Ra vào không giới hạn</span>
           <span className="tw-flex tw-items-center tw-gap-2 tw-text-[0.7rem] tw-font-semibold tw-leading-4 tw-text-slate-100"><i className="far fa-id-card tw-grid tw-h-9 tw-w-9 tw-flex-none tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-white/25 tw-bg-white/[0.035] tw-text-brand-200" /> Quản lý vé trực tuyến</span>
           <span className="tw-flex tw-items-center tw-gap-2 tw-text-[0.7rem] tw-font-semibold tw-leading-4 tw-text-slate-100"><i className="fas fa-headset tw-grid tw-h-9 tw-w-9 tw-flex-none tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-white/25 tw-bg-white/[0.035] tw-text-brand-200" /> Hỗ trợ ưu tiên</span>
@@ -438,10 +438,10 @@ export function PricingPage() {
       <div className="tw-bg-[#f7faff] tw-pb-10">
         <main className="tw-mx-auto tw-w-full tw-max-w-[1600px] tw-px-4 tw-pt-5 min-[992px]:tw-px-9 min-[992px]:tw-pt-8">
           <section className="tw-relative tw-min-h-[382px] tw-overflow-hidden tw-rounded-[10px] tw-bg-[#061a36] tw-shadow-[0_24px_60px_rgba(5,27,64,0.2)]">
-            <img className="tw-absolute tw-bottom-0 tw-right-0 tw-top-0 tw-h-full tw-w-[72%] tw-object-cover tw-object-[50%_38%] max-[767px]:tw-w-full" src="/assets/customer/pricing-hero-smart-parking.png" alt="Bãi xe thông minh CoParking về đêm" />
+            <img className="tw-absolute tw-bottom-0 tw-right-0 tw-top-0 tw-h-full tw-w-[72%] tw-object-cover tw-object-[50%_38%] max-[767px]:tw-w-full" src="/assets/customer/pricing-hero-smart-parking.png" alt="Bãi xe thông minh CoParking về đêm" decoding="async" fetchPriority="high" />
             <div className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(5,22,47,0.99)_0%,rgba(5,22,47,0.94)_29%,rgba(5,22,47,0.6)_42%,rgba(5,22,47,0.08)_64%,rgba(5,22,47,0.05)_100%)]" />
             <div className="tw-relative tw-z-10 tw-flex tw-min-h-[382px] tw-max-w-[720px] tw-flex-col tw-justify-center tw-p-7 min-[768px]:tw-justify-start min-[768px]:tw-px-[70px] min-[768px]:tw-pt-[51px]">
-              <h1 className="tw-m-0 tw-max-w-[600px] tw-font-[Cambria] !tw-text-[4.1rem] tw-font-bold tw-leading-[1.02] tw-text-white max-[1200px]:!tw-text-[3.65rem] max-[768px]:!tw-text-[3rem]">Bảng giá gửi xe <span className="tw-block tw-text-[#176fff]">minh bạch</span></h1>
+              <h1 className="tw-m-0 tw-max-w-[600px] tw-font-[Cambria] !tw-text-[4.1rem] tw-font-bold tw-leading-[1.02] tw-text-white max-[1200px]:!tw-text-[3.65rem] max-[768px]:!tw-text-[3rem] max-[480px]:!tw-text-[2.1rem]">Bảng giá gửi xe <span className="tw-block tw-text-[#176fff]">minh bạch</span></h1>
               <p className="tw-m-0 tw-mt-4 tw-max-w-[480px] tw-text-[1.05rem] tw-font-semibold tw-leading-7 tw-text-brand-100">Chọn gói phù hợp. Quản lý hành trình an tâm.</p>
               <div className="tw-mt-7 tw-flex tw-flex-wrap tw-items-center tw-gap-7">
                 <a className="tw-inline-flex tw-min-h-[50px] tw-min-w-[198px] tw-items-center tw-justify-center tw-gap-5 tw-rounded-vm-md tw-bg-[linear-gradient(135deg,#1557dd,#1875ff)] tw-px-5 tw-text-[0.9rem] tw-font-black tw-text-white tw-shadow-[0_10px_22px_rgba(21,87,221,0.28)] tw-transition hover:tw-bg-vm-primary-hover hover:tw-text-white hover:tw-no-underline" href="#pricing-rates">Xem bảng giá <i className="fas fa-arrow-right" /></a>
@@ -488,7 +488,7 @@ export function PricingPage() {
                       <button
                         aria-expanded={customerMenuOpen}
                         aria-haspopup="listbox"
-                        className="tw-inline-flex tw-h-10 tw-w-[176px] tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-px-3.5 tw-text-left tw-text-[0.72rem] tw-font-bold tw-text-vm-slate-700 tw-shadow-[0_6px_16px_rgba(37,99,235,0.08)] tw-outline-none tw-transition hover:tw-border-brand-400 focus:tw-ring-2 focus:tw-ring-brand-100"
+                        className="tw-inline-flex tw-h-10 tw-w-[176px] tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-px-3.5 tw-text-left tw-text-[0.72rem] tw-font-bold tw-text-vm-slate-700 tw-shadow-[0_6px_16px_rgba(37,99,235,0.08)] tw-outline-none tw-transition hover:tw-border-brand-400 focus:tw-ring-2 focus:tw-ring-brand-100 max-[480px]:tw-w-[150px]"
                         onClick={() => setCustomerMenuOpen((value) => !value)}
                         type="button"
                       >
@@ -496,7 +496,7 @@ export function PricingPage() {
                         <i className={`fas fa-chevron-down tw-text-[0.65rem] tw-text-vm-primary tw-transition ${customerMenuOpen ? "tw-rotate-180" : ""}`} />
                       </button>
                       {customerMenuOpen ? (
-                        <div className="tw-absolute tw-right-0 tw-top-[calc(100%+8px)] tw-z-40 tw-w-[250px] tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-1.5 tw-shadow-[0_18px_42px_rgba(31,66,116,0.2)]" role="listbox" aria-label="Chọn gói vé đăng ký">
+                        <div className="tw-absolute tw-right-0 tw-top-[calc(100%+8px)] tw-z-40 tw-w-[250px] tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-1.5 tw-shadow-[0_18px_42px_rgba(31,66,116,0.2)] max-[480px]:tw-fixed max-[480px]:tw-left-4 max-[480px]:tw-right-4 max-[480px]:tw-w-auto" role="listbox" aria-label="Chọn gói vé đăng ký">
                           {filteredCustomerRules.map((rule) => {
                             const selected = rule.priceRuleId === selectedCustomerRule?.priceRuleId;
                             return (

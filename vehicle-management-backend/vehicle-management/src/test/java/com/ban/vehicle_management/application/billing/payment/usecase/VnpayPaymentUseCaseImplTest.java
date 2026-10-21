@@ -20,6 +20,7 @@ import com.ban.vehicle_management.application.billing.payment.model.result.Vnpay
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayReturnResult;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.VnpayGatewayPortOut;
+import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
@@ -56,6 +57,8 @@ class VnpayPaymentUseCaseImplTest {
     private ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
     @Mock
     private NotificationPortIn notificationPortIn;
+    @Mock
+    private SettlementPortIn settlementPortIn;
 
     private VnpayPaymentUseCaseImpl useCase;
 
@@ -69,6 +72,7 @@ class VnpayPaymentUseCaseImplTest {
                 subscriptionPortIn,
                 parkingCheckoutCompletionPortIn,
                 notificationPortIn,
+                settlementPortIn,
                 new BigDecimal("10000")
         );
     }
@@ -198,6 +202,7 @@ class VnpayPaymentUseCaseImplTest {
         assertEquals(InvoiceStatus.PAID, invoice.getStatus());
         assertEquals(paidAt, invoice.getPaidAt());
         verify(subscriptionPortIn).markSubscriptionPaymentCompleted(subscriptionId);
+        verify(settlementPortIn).allocateForCompletedPayment(payment.getPaymentId());
     }
 
     @Test
@@ -235,6 +240,7 @@ class VnpayPaymentUseCaseImplTest {
         assertEquals(InvoiceStatus.PAID, invoice.getStatus());
         assertEquals(paidAt, invoice.getPaidAt());
         verify(subscriptionPortIn).markSubscriptionPaymentCompleted(subscriptionId);
+        verify(settlementPortIn).allocateForCompletedPayment(payment.getPaymentId());
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import java.util.Set;
 
@@ -57,6 +58,28 @@ public final class InvoiceSpecifications {
 
     private static Specification<InvoiceEntity> hasSubscriptionId(UUID subscriptionId){
         return ((root, query, cb) -> subscriptionId == null ? null : cb.equal(root.get("subscriptionId"), subscriptionId) );
+    }
+
+    public static Specification<InvoiceEntity> withOwnFilters(
+            UUID customerId,
+            List<UUID> subscriptionIds,
+            InvoiceStatus status,
+            Instant fromDate,
+            Instant toDate,
+            String keyword
+    ){
+        return Specification
+                .where(hasCustomerId(customerId))
+                .and(hasSubscriptionIds(subscriptionIds))
+                .and(hasStatus(status))
+                .and(issuedAtFrom(fromDate))
+                .and(issuedTo(toDate))
+                .and(containsKeyword(keyword));
+    }
+
+    private static Specification<InvoiceEntity> hasSubscriptionIds(List<UUID> subscriptionIds){
+        return ((root, query, cb) -> subscriptionIds == null || subscriptionIds.isEmpty()
+                ? null : root.get("subscriptionId").in(subscriptionIds));
     }
 
     private static Specification<InvoiceEntity> hasLostCardReportId(UUID lostCardReportId){

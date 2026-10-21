@@ -10,6 +10,7 @@ import com.ban.vehicle_management.application.billing.invoice.model.result.Invoi
 import com.ban.vehicle_management.application.billing.invoice.model.result.InvoiceManagementSummaryResult;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.request.CreateInvoiceRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceDetailResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceLineItemResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementDetailResponse;
@@ -46,6 +47,10 @@ public interface InvoiceApiMapper {
     InvoiceAdminResponse toAdminResponse(Invoice invoice);
 
     List<InvoiceAdminResponse> toAdminResponses(List<Invoice> invoices);
+
+    InvoiceUserResponse toUserResponse(Invoice invoice);
+
+    List<InvoiceUserResponse> toUserResponses(List<Invoice> invoices);
 
     PaymentResponse toPaymentResponse(Payment payment);
 
