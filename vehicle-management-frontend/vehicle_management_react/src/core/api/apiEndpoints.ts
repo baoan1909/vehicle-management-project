@@ -142,6 +142,11 @@ modelConfigurations: "/ai/models/configurations",
 iam: {
     accounts: "/accounts",
     organizations: "/iam/organizations",
+    organizationProfile: {
+      mine: "/iam/organizations/my-profile",
+      updateRequests: "/iam/organizations/my-profile/update-requests",
+      reviewRequests: "/iam/organization-profile-update-requests",
+    },
     partnerRegistrations: "/iam/partner-registrations",
     provisionedAccounts: "/iam/accounts/provisioned",
     accountProfile: {

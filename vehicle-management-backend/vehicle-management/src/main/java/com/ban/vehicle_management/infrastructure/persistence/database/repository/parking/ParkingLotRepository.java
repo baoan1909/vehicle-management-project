@@ -21,6 +21,10 @@ public interface ParkingLotRepository extends JpaRepository<ParkingLotEntity, UU
 
     long countByOrganizationIdAndParkingLotIdIn(UUID organizationId, Collection<UUID> parkingLotIds);
 
+    long countByOrganizationId(UUID organizationId);
+
+    long countByOrganizationIdAndStatus(UUID organizationId, ParkingLotStatus status);
+
     boolean existsByParkingLotIdAndStatus(UUID parkingLotId, ParkingLotStatus status);
 
     boolean existsByParkingLotIdAndStatusIn(UUID parkingLotId, Set<ParkingLotStatus> statuses);

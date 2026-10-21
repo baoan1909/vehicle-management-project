@@ -167,8 +167,19 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
         if (parkingLotId == null) {
             return Optional.empty();
         }
+
         return parkingLotRepository.findById(parkingLotId)
                 .map(com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity::getOrganizationId);
+    }
+
+    @Override
+    public long countParkingLotsByOrganizationId(UUID organizationId) {
+        return parkingLotRepository.countByOrganizationId(organizationId);
+    }
+
+    @Override
+    public long countParkingLotsByOrganizationIdAndStatus(UUID organizationId, ParkingLotStatus status) {
+        return parkingLotRepository.countByOrganizationIdAndStatus(organizationId, status);
     }
 
 }

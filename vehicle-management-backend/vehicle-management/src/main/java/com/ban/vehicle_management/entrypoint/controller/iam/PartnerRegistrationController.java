@@ -41,13 +41,13 @@ public class PartnerRegistrationController {
     }
 
     @GetMapping("/api/iam/partner-registrations")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_REGISTRATION_REVIEW_ALL')")
     public ResponseEntity<ApiResponse<List<PartnerRegistrationResult>>> list(@RequestParam(required = false) ApprovalRequestStatus status) {
         return ResponseEntity.ok(ApiResponse.ok("Fetched partner registrations successfully", partnerRegistrationPortIn.getPartnerRegistrations(status)));
     }
 
     @GetMapping("/api/iam/partner-registrations/{approvalRequestId}")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_READ_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_REGISTRATION_REVIEW_ALL')")
     public ResponseEntity<ApiResponse<PartnerRegistrationResult>> detail(@PathVariable UUID approvalRequestId) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched partner registration successfully",
@@ -56,7 +56,7 @@ public class PartnerRegistrationController {
     }
 
     @PostMapping("/api/iam/partner-registrations/{approvalRequestId}/approve")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_CREATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_REGISTRATION_REVIEW_ALL')")
     public ResponseEntity<ApiResponse<PartnerRegistrationResult>> approve(
             @PathVariable UUID approvalRequestId,
             @RequestBody(required = false) ReviewPartnerRegistrationRequest request
@@ -69,7 +69,7 @@ public class PartnerRegistrationController {
     }
 
     @PostMapping("/api/iam/partner-registrations/{approvalRequestId}/reject")
-    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_CREATE_ALL')")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_REGISTRATION_REVIEW_ALL')")
     public ResponseEntity<ApiResponse<PartnerRegistrationResult>> reject(
             @PathVariable UUID approvalRequestId,
             @RequestBody(required = false) ReviewPartnerRegistrationRequest request

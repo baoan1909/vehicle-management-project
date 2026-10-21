@@ -70,6 +70,7 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
     public static final String TARGET_SCHEMA = "iam";
     public static final String TARGET_TABLE = "accounts";
     public static final String LEGACY_TARGET_TABLE = "organizations";
+    private static final String ORGANIZATION_REGISTRATION_REVIEW_ALL = "ORGANIZATION_REGISTRATION_REVIEW_ALL";
     private static final String ORGANIZATION_READ_ALL = "ORGANIZATION_READ_ALL";
     private static final String ORGANIZATION_CREATE_ALL = "ORGANIZATION_CREATE_ALL";
     private static final String NEXT_VERIFY_EMAIL = "VERIFY_EMAIL";
@@ -187,14 +188,14 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
     @Override
     @Transactional(readOnly = true)
     public List<PartnerRegistrationResult> getPartnerRegistrations(ApprovalRequestStatus status) {
-        currentAccountPortIn.requirePermission(ORGANIZATION_READ_ALL);
+        currentAccountPortIn.requirePermission(ORGANIZATION_REGISTRATION_REVIEW_ALL);
         return partnerRegistrationPortOut.findAll(status);
     }
 
     @Override
     @Transactional(readOnly = true)
     public PartnerRegistrationResult getPartnerRegistration(UUID approvalRequestId) {
-        currentAccountPortIn.requirePermission(ORGANIZATION_READ_ALL);
+        currentAccountPortIn.requirePermission(ORGANIZATION_REGISTRATION_REVIEW_ALL);
         if (approvalRequestId == null) {
             throw new NotFoundException("Partner registration not found");
         }
@@ -260,7 +261,7 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
     @Override
     @Transactional
     public PartnerRegistrationResult approveRegistration(UUID approvalRequestId, ReviewPartnerRegistrationCommand command) {
-        currentAccountPortIn.requirePermission(ORGANIZATION_CREATE_ALL);
+        currentAccountPortIn.requirePermission(ORGANIZATION_REGISTRATION_REVIEW_ALL);
         UUID reviewerId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         ApprovalRequest approvalRequest = getPendingRegistrationForUpdate(approvalRequestId);
         ProvisionedAccountResult applicant = getApplicantAccount(requireApplicantAccountId(approvalRequest));
@@ -280,7 +281,7 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
     @Override
     @Transactional
     public PartnerRegistrationResult rejectRegistration(UUID approvalRequestId, ReviewPartnerRegistrationCommand command) {
-        currentAccountPortIn.requirePermission(ORGANIZATION_CREATE_ALL);
+        currentAccountPortIn.requirePermission(ORGANIZATION_REGISTRATION_REVIEW_ALL);
         String reviewNote = normalizeReviewNote(command);
         if (reviewNote == null || reviewNote.isBlank()) {
             throw new BadRequestException("Review note is required when rejecting a partner registration");
