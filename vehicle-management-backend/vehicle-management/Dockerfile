@@ -18,7 +18,11 @@ FROM eclipse-temurin:21-jre-alpine-3.24
 
 WORKDIR /app
 
-RUN apk add --no-cache wget \
+# The base image can retain an older Alpine package set. Upgrade it during the
+# image build so the runtime includes the patched libexpat package (CVE-2026-77214)
+# detected by the container security gate.
+RUN apk upgrade --no-cache \
+    && apk add --no-cache wget \
     && addgroup -S coparking \
     && adduser -S coparking -G coparking
 
