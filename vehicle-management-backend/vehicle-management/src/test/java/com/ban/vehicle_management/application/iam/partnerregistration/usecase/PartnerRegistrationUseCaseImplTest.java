@@ -285,7 +285,7 @@ class PartnerRegistrationUseCaseImplTest {
 
         useCase.approveRegistration(approval.getApprovalRequestId(), new ReviewPartnerRegistrationCommand("Đủ điều kiện"));
 
-        verify(currentAccountPortIn).requirePermission("ORGANIZATION_CREATE_ALL");
+        verify(currentAccountPortIn).requirePermission("ORGANIZATION_REGISTRATION_REVIEW_ALL");
         verify(provisionedAccountPortOut).updateProvisionedAccountStatus(
                 eq(applicantId), eq(AccountStatus.ACTIVE), any(), eq(null), eq(null), eq(reviewerId), any()
         );
@@ -418,9 +418,9 @@ class PartnerRegistrationUseCaseImplTest {
     }
 
     @Test
-    void shouldDenyReviewerWithoutOrganizationCreatePermissionRegardlessOfRole() {
+    void shouldDenyReviewerWithoutOrganizationRegistrationReviewPermissionRegardlessOfRole() {
         doThrow(new AccessDeniedException("missing permission"))
-                .when(currentAccountPortIn).requirePermission("ORGANIZATION_CREATE_ALL");
+                .when(currentAccountPortIn).requirePermission("ORGANIZATION_REGISTRATION_REVIEW_ALL");
 
         assertThrows(
                 AccessDeniedException.class,
