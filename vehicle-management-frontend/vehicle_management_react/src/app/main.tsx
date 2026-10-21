@@ -4,6 +4,7 @@ import App from "@/app/App";
 import { AppProviders } from "@/app/providers/AppProviders";
 import { initializeApplicationTime } from "@/shared/time/applicationTime";
 import "@/app/styles/globals.css";
+import "@/app/styles/user-guide.css";
 
 async function bootstrap() {
   try {

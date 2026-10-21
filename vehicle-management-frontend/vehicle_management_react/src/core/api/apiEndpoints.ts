@@ -77,6 +77,21 @@ modelConfigurations: "/ai/models/configurations",
     readAll: "/notifications/read-all",
     unreadCount: "/notifications/unread/count",
   },
+  userGuides: {
+    adminGuides: "/notifications/user-guides",
+    adminGuide: (guideId: string) => `/notifications/user-guides/${guideId}`,
+    adminVersions: (guideId: string) => `/notifications/user-guides/${guideId}/versions`,
+    adminVersion: (guideId: string, versionNumber: number) =>
+      `/notifications/user-guides/${guideId}/versions/${versionNumber}`,
+    adminPublish: (guideId: string, versionNumber: number) =>
+      `/notifications/user-guides/${guideId}/versions/${versionNumber}/publish`,
+    adminArchive: (guideId: string) => `/notifications/user-guides/${guideId}/archive`,
+    features: "/notifications/user-guide-features",
+    feature: (featureId: string) => `/notifications/user-guide-features/${featureId}`,
+    resolve: "/user-guides/resolve",
+    published: (guideCode: string) => `/user-guides/${guideCode}`,
+    events: (guideId: string) => `/user-guides/${guideId}/events`,
+  },
   parking: {
     gates: "/parking/gates",
     lanes: "/parking/lanes",
