@@ -1,6 +1,8 @@
 import { useCallback, useState, type PropsWithChildren } from "react";
 import { useLocation } from "react-router-dom";
 import { AdminAnnouncementTicker } from "@/features/notifications/components/AdminAnnouncementTicker";
+import { UserGuideBackendHost } from "@/features/user-guide/components/UserGuideBackendHost";
+import { deriveGuideContext } from "@/features/user-guide/utils/guideContext";
 import { cn } from "@/lib/cn";
 import { ClientNavbar } from "./ClientNavbar";
 import { SupportFloatingWidget } from "@/features/support/components/SupportFloatingWidget";
@@ -8,6 +10,7 @@ import { SupportFloatingWidget } from "@/features/support/components/SupportFloa
 export function ClientLayout({ children }: PropsWithChildren) {
   const location = useLocation();
   const isCustomerPortal = location.pathname.startsWith("/customer");
+  const guideContext = deriveGuideContext(location.pathname);
   const [announcementTickerVisible, setAnnouncementTickerVisible] = useState(false);
 
   const handleTickerVisibleChange = useCallback((visible: boolean) => {
@@ -30,6 +33,13 @@ export function ClientLayout({ children }: PropsWithChildren) {
         {children}
       </div>
       <SupportFloatingWidget />
+      {guideContext.featureCode ? (
+        <UserGuideBackendHost
+          key={location.pathname}
+          contextKey={guideContext.contextKey}
+          featureCode={guideContext.featureCode}
+        />
+      ) : null}
     </div>
   );
 }

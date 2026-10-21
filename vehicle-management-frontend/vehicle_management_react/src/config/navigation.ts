@@ -49,6 +49,7 @@ export const adminNavigation: AdminSidebarEntry[] = [
       { label: "Khách hàng", to: "/admin/customer", matches: ["/admin/customer"] },
       { label: "Danh mục hỗ trợ", to: "/admin/support-categories", matches: ["/admin/support-categories"] },
       { label: "Thông báo", to: "/admin/announcements", matches: ["/admin/announcements"] },
+      { label: "Hướng dẫn sử dụng", to: "/admin/user-guides", matches: ["/admin/user-guides"] },
     ],
   },
   {
@@ -128,6 +129,7 @@ export const platformAdminNavigation: AdminSidebarEntry[] = [
   { kind: "link", label: "Vai trò & phân quyền", to: "/admin/role", matches: ["/admin/role"], icon: "settings" },
   { kind: "planned", label: "Nhật ký hệ thống" },
   { kind: "link", label: "Hỗ trợ", to: "/admin/support-tickets", matches: ["/admin/support-tickets"], icon: "support" },
+  { kind: "link", label: "Hướng dẫn sử dụng", to: "/admin/user-guides", matches: ["/admin/user-guides"], icon: "support" },
   { kind: "link", label: "Model AI", to: "/admin/ai-models", matches: ["/admin/ai-models"], icon: "settings" },
   { kind: "link", label: "Knowledge AI", to: "/admin/ai-knowledge", matches: ["/admin/ai-knowledge", "/admin/ai-knowledge-index"], icon: "catalog" },
 ];
