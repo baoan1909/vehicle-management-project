@@ -1,0 +1,35 @@
+.vm-user-guide { position: fixed; inset: 0; z-index: 1080; pointer-events: none; }
+.vm-user-guide__backdrop { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.58); backdrop-filter: blur(2px); pointer-events: auto; }
+.vm-user-guide__spotlight { position: fixed; z-index: 1; border: 2px solid #60a5fa; border-radius: 8px; box-shadow: 0 0 0 9999px rgba(15, 23, 42, 0.62), 0 0 0 5px rgba(96, 165, 250, 0.22); transition: inset 180ms ease, width 180ms ease, height 180ms ease; }
+.vm-user-guide__surface { position: fixed; z-index: 2; width: min(380px, calc(100vw - 32px)); pointer-events: auto; }
+.vm-user-guide--modal .vm-user-guide__surface { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.vm-user-guide--bottom-sheet .vm-user-guide__surface { right: 24px; bottom: 24px; width: min(520px, calc(100vw - 48px)); }
+.vm-user-guide--banner .vm-user-guide__surface { top: 16px; left: 50%; width: min(720px, calc(100vw - 32px)); transform: translateX(-50%); }
+
+.vm-user-guide__card { overflow: hidden; border: 1px solid #dbeafe; border-radius: 10px; background: #fff; box-shadow: 0 24px 70px rgba(15, 23, 42, 0.3); color: #334155; outline: none; }
+.vm-user-guide__card:focus-visible { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25), 0 24px 70px rgba(15, 23, 42, 0.3); }
+.vm-user-guide__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 20px 20px 8px; }
+.vm-user-guide__eyebrow { display: block; margin-bottom: 4px; color: #2563eb; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.vm-user-guide__header h2 { margin: 0; color: #0f172a; font-size: 1.2rem; line-height: 1.35; }
+.vm-user-guide__close { display: inline-flex; flex: 0 0 34px; align-items: center; justify-content: center; width: 34px; height: 34px; border: 0; border-radius: 8px; background: #f1f5f9; color: #64748b; cursor: pointer; }
+.vm-user-guide__close:hover { background: #e2e8f0; color: #0f172a; }
+.vm-user-guide__media { display: block; width: calc(100% - 40px); max-height: 220px; margin: 8px 20px 0; border-radius: 8px; object-fit: cover; }
+.vm-user-guide__body { margin: 0; padding: 10px 20px 16px; color: #475569; font-size: 0.94rem; line-height: 1.6; white-space: pre-line; }
+.vm-user-guide__progress { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 20px 16px; color: #64748b; font-size: 0.78rem; }
+.vm-user-guide__progress > div { display: flex; align-items: center; gap: 5px; }
+.vm-user-guide__progress i { display: block; width: 7px; height: 7px; border-radius: 9999px; background: #cbd5e1; }
+.vm-user-guide__progress i.active { width: 20px; background: #2563eb; }
+.vm-user-guide__actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-top: 1px solid #e2e8f0; padding: 14px 20px; background: #f8fafc; }
+.vm-user-guide__actions > div { display: flex; align-items: center; gap: 8px; }
+
+@media (max-width: 640px) {
+  .vm-user-guide--bottom-sheet .vm-user-guide__surface,
+  .vm-user-guide--anchored .vm-user-guide__surface,
+  .vm-user-guide--modal .vm-user-guide__surface { right: 12px !important; bottom: 12px !important; left: 12px !important; top: auto !important; width: auto; transform: none; }
+  .vm-user-guide__actions { align-items: stretch; flex-direction: column-reverse; }
+  .vm-user-guide__actions > div, .vm-user-guide__actions button { flex: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vm-user-guide__spotlight { transition: none; }
+}

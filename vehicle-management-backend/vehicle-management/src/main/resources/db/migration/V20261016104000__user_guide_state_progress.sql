@@ -14,4 +14,3 @@ ALTER TABLE notification.user_guide_user_states
         ON DELETE SET NULL;
 
 
-

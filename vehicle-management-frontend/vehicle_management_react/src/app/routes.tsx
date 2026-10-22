@@ -60,6 +60,8 @@ const RoleListPage = lazyPage(() => import("@/features/iam"), "RoleListPage");
 const AiKnowledgeAdminPage = lazyPage(() => import("@/features/ai"), "AiKnowledgeAdminPage");
 const AiModelManagementPage = lazyPage(() => import("@/features/ai"), "AiModelManagementPage");
 const AnnouncementManagementPage = lazyPage(() => import("@/features/notifications"), "AnnouncementManagementPage");
+const UserGuideManagementPage = lazyPage(() => import("@/features/user-guide"), "UserGuideManagementPage");
+const UserGuidePublicPage = lazyPage(() => import("@/features/user-guide"), "UserGuidePublicPage");
 const NearbyParkingLotsPage = lazyPage(() => import("@/features/parking"), "NearbyParkingLotsPage");
 const ParkingLiveMapPage = lazyPage(() => import("@/features/parking"), "ParkingLiveMapPage");
 const ParkingLayoutEditorPage = lazyPage(() => import("@/features/parking"), "ParkingLayoutEditorPage");
@@ -129,6 +131,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/support-categories", title: "Danh muc ho tro va quy trinh xu ly yeu cau", layout: "admin", element: <SupportCategoryWorkflowPage /> },
   { path: "/admin/support-tickets", title: "Yeu cau ho tro", layout: "admin", element: <SupportTicketManagementPage /> },
   { path: "/admin/announcements", title: "Quản lý thông báo", layout: "admin", element: <AnnouncementManagementPage /> },
+  { path: "/admin/user-guides", title: "Hướng dẫn sử dụng", layout: "admin", element: <UserGuideManagementPage /> },
   { path: "/admin/ai-models", title: "Quan tri model AI", layout: "admin", element: <AiModelManagementPage /> },
   { path: "/admin/ai-knowledge", title: "Quan ly tri thuc AI", layout: "admin", element: <AiKnowledgeAdminPage /> },
   { path: "/admin/ai-knowledge-index", title: "Quan ly tri thuc AI", layout: "admin", element: <Navigate to="/admin/ai-knowledge" replace /> },
@@ -137,6 +140,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/parking-lots/nearby", title: "Tìm bãi xe gần tôi", layout: "client", element: <NearbyParkingLotsPage /> },
   { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },
   { path: "/guide", title: "Huong dan", layout: "client", element: <GuidePage /> },
+  { path: "/guide/:code", title: "Hướng dẫn sử dụng", layout: "client", element: <UserGuidePublicPage /> },
   { path: "/contact", title: "Lien he", layout: "client", element: <ContactPage /> },
 { path: "/become-a-partner", title: "Trở thành đối tác CoParking", layout: "auth", element: <PartnerRegistrationPage /> },
 

@@ -1,9 +1,12 @@
 import type { PropsWithChildren } from "react";
 import { useCallback, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { AdminHeader } from "./AdminHeader";
 import { AdminSidebar } from "./AdminSidebar";
 import { cn } from "@/lib/cn";
 import { AdminAnnouncementTicker } from "@/features/notifications/components/AdminAnnouncementTicker";
+import { UserGuideBackendHost } from "@/features/user-guide/components/UserGuideBackendHost";
+import { deriveGuideContext } from "@/features/user-guide/utils/guideContext";
 import { PlatformMonitoringScopeProvider } from "@/shared/monitoring/PlatformMonitoringScope";
 import { MonitoringScopeBanner } from "./MonitoringScopeBanner";
 
@@ -11,6 +14,8 @@ interface AdminLayoutProps extends PropsWithChildren {
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
+  const location = useLocation();
+  const guideContext = deriveGuideContext(location.pathname);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [announcementTickerVisible, setAnnouncementTickerVisible] = useState(false);
   const handleTickerVisibleChange = useCallback((visible: boolean) => {
@@ -36,6 +41,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         >
           <MonitoringScopeBanner />
           {children}
+          {guideContext.featureCode ? (
+            <UserGuideBackendHost
+              key={location.pathname}
+              contextKey={guideContext.contextKey}
+              featureCode={guideContext.featureCode}
+            />
+          ) : null}
         </div>
       </div>
     </PlatformMonitoringScopeProvider>
