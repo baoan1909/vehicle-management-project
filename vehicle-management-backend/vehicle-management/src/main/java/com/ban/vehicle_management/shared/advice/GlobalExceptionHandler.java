@@ -8,6 +8,7 @@ import com.ban.vehicle_management.shared.exception.MapRequestLimitException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.exception.ServiceUnavailableException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
+import com.ban.vehicle_management.shared.exception.UserGuideException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
@@ -76,6 +77,24 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(UserGuideException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleUserGuideException(
+            UserGuideException exception,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = exception.getErrorCode().httpStatus();
+        ApiResponse<Map<String, Object>> response = ApiResponse.fail(
+                exception.getMessage(),
+                Map.of(
+                        "status", status.value(),
+                        "error", status.getReasonPhrase(),
+                        "path", request.getRequestURI(),
+                        "code", exception.getErrorCode().name()
+                )
+        );
+        return ResponseEntity.status(status).body(response);
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
