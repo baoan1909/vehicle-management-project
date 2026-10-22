@@ -1,4 +1,4 @@
-CREATE TABLE notification.user_guide_features (
+CREATE TABLE IF NOT EXISTS notification.user_guide_features (
     feature_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code VARCHAR(80) NOT NULL UNIQUE,
     name VARCHAR(150) NOT NULL,
@@ -15,7 +15,7 @@ CREATE TABLE notification.user_guide_features (
         REFERENCES iam.accounts(account_id) ON DELETE SET NULL
 );
 
-CREATE TABLE notification.user_guides (
+CREATE TABLE IF NOT EXISTS notification.user_guides (
     guide_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     feature_id UUID NOT NULL,
     code VARCHAR(120) NOT NULL UNIQUE,
@@ -54,10 +54,10 @@ CREATE TABLE notification.user_guides (
     CONSTRAINT ck_user_guides_schedule CHECK (end_at IS NULL OR end_at >= start_at)
 );
 
-CREATE INDEX idx_user_guides_feature_id
+CREATE INDEX IF NOT EXISTS idx_user_guides_feature_id
     ON notification.user_guides(feature_id);
 
-CREATE TABLE notification.user_guide_versions (
+CREATE TABLE IF NOT EXISTS notification.user_guide_versions (
     guide_version_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     guide_id UUID NOT NULL,
     version_number INTEGER NOT NULL,
@@ -86,7 +86,7 @@ CREATE TABLE notification.user_guide_versions (
     ))
 );
 
-CREATE TABLE notification.user_guide_steps (
+CREATE TABLE IF NOT EXISTS notification.user_guide_steps (
     step_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     guide_version_id UUID NOT NULL,
     display_order INTEGER NOT NULL,
@@ -107,7 +107,7 @@ CREATE TABLE notification.user_guide_steps (
     )
 );
 
-CREATE TABLE notification.user_guide_audiences (
+CREATE TABLE IF NOT EXISTS notification.user_guide_audiences (
     audience_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     guide_version_id UUID NOT NULL,
     target_type VARCHAR(20) NOT NULL,
@@ -130,15 +130,15 @@ CREATE TABLE notification.user_guide_audiences (
     )
 );
 
-CREATE UNIQUE INDEX uq_user_guide_audiences_version_role
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_guide_audiences_version_role
     ON notification.user_guide_audiences(guide_version_id, role_id)
     WHERE target_type = 'ROLE';
 
-CREATE UNIQUE INDEX uq_user_guide_audiences_version_permission
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_guide_audiences_version_permission
     ON notification.user_guide_audiences(guide_version_id, permission_id)
     WHERE target_type = 'PERMISSION';
 
-CREATE TABLE notification.user_guide_user_states (
+CREATE TABLE IF NOT EXISTS notification.user_guide_user_states (
     user_guide_state_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_id UUID NOT NULL,
     guide_id UUID NOT NULL,
@@ -176,6 +176,6 @@ CREATE TABLE notification.user_guide_user_states (
     )
 );
 
-CREATE INDEX idx_user_guide_user_states_guide_id
+CREATE INDEX IF NOT EXISTS idx_user_guide_user_states_guide_id
     ON notification.user_guide_user_states(guide_id);
 

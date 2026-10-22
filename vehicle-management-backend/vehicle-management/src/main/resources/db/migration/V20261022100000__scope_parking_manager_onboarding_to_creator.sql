@@ -14,7 +14,8 @@ INSERT INTO iam.permissions (
     '4a7d0100-0000-4000-8000-000000000001',
     '4a7d0200-0000-4000-8000-000000000002',
     '00000000-0000-0000-0000-000000003002'
-);
+)
+ON CONFLICT DO NOTHING;
 
 INSERT INTO iam.role_permissions (
     id, role_id, permission_id, created_at, created_by, updated_at, updated_by, is_active, is_system
