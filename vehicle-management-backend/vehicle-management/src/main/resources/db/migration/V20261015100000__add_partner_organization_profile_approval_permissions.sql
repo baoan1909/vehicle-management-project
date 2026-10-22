@@ -40,7 +40,10 @@ FROM (
 JOIN iam.permission_modules module ON module.code = seed.module_code
 JOIN iam.permission_actions action ON action.code = seed.action_code
 JOIN iam.permission_scopes scope ON scope.code = seed.scope_code
-ON CONFLICT (permission_code) DO NOTHING;
+-- A permission may already exist either by permission_code or by the unique
+-- (module_id, action_id, scope_id) combination. In both cases, keep the
+-- existing record and do not insert a duplicate.
+ON CONFLICT DO NOTHING;
 
 INSERT INTO iam.role_permissions (id, role_id, permission_id, created_at, is_active, is_system)
 SELECT gen_random_uuid(), role.role_id, permission.permission_id, now(), true, true

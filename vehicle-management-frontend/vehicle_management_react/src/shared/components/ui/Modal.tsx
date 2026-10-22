@@ -14,7 +14,14 @@ type ModalProps = {
 
 export function Modal({ actions, children, description, onClose, open, title, width = "md" }: ModalProps) {
   const panelRef = useRef<HTMLElement | null>(null);
+  // Parents commonly provide an inline onClose callback. Keep its latest value
+  // in a ref so the focus-trap effect does not restart on every form keystroke.
+  const onCloseRef = useRef(onClose);
   const titleId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -27,7 +34,7 @@ export function Modal({ actions, children, description, onClose, open, title, wi
             ".vm-select-menu-panel, .vm-date-picker-panel, .vm-date-time-picker-panel, .vm-date-range-panel",
           );
         if (nestedPopupOpen) return;
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab" || !panelRef.current) return;
@@ -50,7 +57,7 @@ export function Modal({ actions, children, description, onClose, open, title, wi
       window.removeEventListener("keydown", handleKeyDown, true);
       previousFocus?.focus();
     };
-  }, [onClose, open]);
+  }, [open]);
 
   if (!open) return null;
 

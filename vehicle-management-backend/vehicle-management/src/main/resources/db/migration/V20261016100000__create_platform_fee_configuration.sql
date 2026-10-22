@@ -1,7 +1,7 @@
 -- Persist the global platform-fee ceiling so authorized administrators can
 -- change it at runtime without restarting the application.
 
-CREATE TABLE billing.platform_fee_configuration (
+CREATE TABLE IF NOT EXISTS billing.platform_fee_configuration (
     configuration_key VARCHAR(30) NOT NULL,
     max_partner_total_rate NUMERIC(9, 6) NOT NULL,
     row_version BIGINT NOT NULL DEFAULT 0,
