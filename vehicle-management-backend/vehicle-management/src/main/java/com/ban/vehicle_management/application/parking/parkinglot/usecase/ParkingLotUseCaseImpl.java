@@ -269,10 +269,6 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         ParkingLot existingParkingLot = getParkingLotById(parkingLotId);
         organizationAccessGuard.ensureCanManageParkingLot(existingParkingLot);
 
-        if (existingParkingLot.getActivationRequestedAt() == null) {
-            throw new ConflictException("Parking manager must request activation before the Partner Admin can activate this parking lot");
-        }
-
         if (!parkingLotPortOut.isReadyForActivation(parkingLotId)) {
             throw new ConflictException(
                     "Parking lot needs at least one active zone, gate, IN lane, and OUT lane before activation"

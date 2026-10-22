@@ -150,10 +150,14 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
                 currentAccountPortIn.getCurrentAccountIdOrThrow(),
                 normalizedCommand.reason()
         );
+        updateParkingManagerMembershipLifecycle(existingRole, accountId, targetStatus);
         identityProviderAdminPortOut.updateUserEnabled(
                 existingAccount.account().keycloakUserId(),
                 AccountStatus.ACTIVE.equals(targetStatus)
         );
+        if (!AccountStatus.ACTIVE.equals(targetStatus)) {
+            identityProviderAdminPortOut.logoutUserSessions(existingAccount.account().keycloakUserId());
+        }
 
         ProvisionedAccountResult result = provisionedAccountPortOut.findProvisionedAccountById(accountId)
                 .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
@@ -372,8 +376,23 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         if (currentOrganizationIds.isEmpty()) {
             return false;
         }
-        return organizationPortOut.findActiveOrganizationIdsByAccountId(account.account().accountId()).stream()
+        return organizationPortOut.findOrganizationIdsByAccountId(account.account().accountId()).stream()
                 .anyMatch(currentOrganizationIds::contains);
+    }
+
+    private void updateParkingManagerMembershipLifecycle(
+            AdminProvisionableAccountRoleCode roleCode,
+            UUID accountId,
+            AccountStatus targetStatus
+    ) {
+        if (!AdminProvisionableAccountRoleCode.PARKING_MANAGER.equals(roleCode)) {
+            return;
+        }
+        if (AccountStatus.ACTIVE.equals(targetStatus)) {
+            organizationPortOut.activateMemberships(accountId);
+            return;
+        }
+        organizationPortOut.deactivateMembershipsAndClearParkingLotScopes(accountId);
     }
 
     private String normalizeRequiredEmail(String email) {

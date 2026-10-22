@@ -15,7 +15,7 @@ for (const tab of ["Tổng quan", "Cấu trúc", "Thiết kế sơ đồ", "Tr�
   assert.ok(header.includes(tab), `Thiếu tab ${tab}`);
 }
 
-for (const integration of ["getParkingLots", "getLevelsByLot", "getLotSpaceSummary", "getZones", "getGates", "getLanes"]) {
+for (const integration of ["getParkingLots", "getLevelsByLot", "getLotSpaceSummary", "getZones", "getGates", "getLanes", "activateParkingLot", "requestParkingLotActivation"]) {
   assert.ok(overview.includes(integration), `Trang Tổng quan chưa tích hợp ${integration}`);
 }
 
@@ -29,5 +29,8 @@ assert.doesNotMatch(overview, /<select/);
 assert.match(header, /SelectMenu/);
 assert.match(overview, /parkingLots=\{lots\}/);
 assert.match(overview, /onParkingLotChange=\{setSelectedLotId\}/);
+assert.match(overview, /Bãi xe chưa đủ điều kiện hoạt động/);
+assert.match(overview, /Kích hoạt bãi/);
+assert.match(overview, /Yêu cầu kích hoạt/);
 
 console.log("Parking lot overview checks passed.");

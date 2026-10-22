@@ -6,12 +6,14 @@ import com.ban.vehicle_management.domain.iam.organization.model.Organization;
 import com.ban.vehicle_management.entrypoint.dto.iam.organization.request.AssignParkingManagerRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.organization.request.CreateOrganizationRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.organization.response.OrganizationAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.iam.organization.response.ParkingManagerScopeAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -92,5 +94,34 @@ public class OrganizationController {
     ) {
         organizationPortIn.assignParkingManagerToParkingLot(organizationId, parkingManagerAccountId, parkingLotId);
         return ResponseEntity.ok(ApiResponse.ok("Parking manager assigned to parking lot successfully"));
+    }
+
+    @GetMapping("/{organizationId}/parking-lots/{parkingLotId}/parking-managers")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_MEMBERSHIP_MANAGE_ALL')")
+    public ResponseEntity<ApiResponse<ParkingManagerScopeAdminResponse>> getAssignedParkingManagers(
+            @PathVariable UUID organizationId,
+            @PathVariable UUID parkingLotId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched parking manager assignments successfully",
+                new ParkingManagerScopeAdminResponse(
+                        organizationPortIn.getAssignedParkingManagerAccountIds(organizationId, parkingLotId)
+                )
+        ));
+    }
+
+    @DeleteMapping("/{organizationId}/parking-lots/{parkingLotId}/parking-managers/{parkingManagerAccountId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_MEMBERSHIP_MANAGE_ALL')")
+    public ResponseEntity<ApiResponse<Void>> unassignParkingManagerFromParkingLot(
+            @PathVariable UUID organizationId,
+            @PathVariable UUID parkingLotId,
+            @PathVariable UUID parkingManagerAccountId
+    ) {
+        organizationPortIn.unassignParkingManagerFromParkingLot(
+                organizationId,
+                parkingManagerAccountId,
+                parkingLotId
+        );
+        return ResponseEntity.ok(ApiResponse.ok("Parking manager unassigned from parking lot successfully"));
     }
 }

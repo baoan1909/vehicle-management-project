@@ -381,9 +381,9 @@ class ProvisionedAccountUseCaseImplTest {
         ));
         when(organizationPortOut.findActiveOrganizationIdsByAccountId(currentPartnerId))
                 .thenReturn(Set.of(organizationId));
-        when(organizationPortOut.findActiveOrganizationIdsByAccountId(ownManagerId))
+        when(organizationPortOut.findOrganizationIdsByAccountId(ownManagerId))
                 .thenReturn(Set.of(organizationId));
-        when(organizationPortOut.findActiveOrganizationIdsByAccountId(otherManagerId))
+        when(organizationPortOut.findOrganizationIdsByAccountId(otherManagerId))
                 .thenReturn(Set.of(UUID.randomUUID()));
 
         List<ProvisionedAccountResult> accounts = provisionedAccountUseCase.getProvisionedAccounts(
@@ -550,6 +550,40 @@ class ProvisionedAccountUseCaseImplTest {
                 eq("Policy violation")
         );
         verify(identityProviderAdminPortOut).updateUserEnabled("kc-employee-id", false);
+    }
+
+    @Test
+    void shouldRevokeParkingManagerMembershipScopesAndSessionsWhenDisabledByPartnerAdmin() {
+        UUID partnerAdminId = UUID.randomUUID();
+        UUID managerAccountId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
+        ProvisionedAccountResult existingAccount = buildResult(
+                managerAccountId,
+                UUID.randomUUID(),
+                AdminProvisionableAccountRoleCode.PARKING_MANAGER,
+                "manager.01",
+                "manager01@example.com"
+        );
+        UpdateProvisionedAccountStatusCommand command =
+                new UpdateProvisionedAccountStatusCommand(AccountStatus.DISABLED, "Manager left the organization");
+
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount(
+                partnerAdminId,
+                AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name()
+        ));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(partnerAdminId);
+        when(provisionedAccountPortOut.findProvisionedAccountById(managerAccountId))
+                .thenReturn(Optional.of(existingAccount));
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(partnerAdminId))
+                .thenReturn(Set.of(organizationId));
+        when(organizationPortOut.findOrganizationIdsByAccountId(managerAccountId))
+                .thenReturn(Set.of(organizationId));
+
+        provisionedAccountUseCase.updateProvisionedAccountStatus(managerAccountId, command);
+
+        verify(organizationPortOut).deactivateMembershipsAndClearParkingLotScopes(managerAccountId);
+        verify(identityProviderAdminPortOut).updateUserEnabled("kc-employee-id", false);
+        verify(identityProviderAdminPortOut).logoutUserSessions("kc-employee-id");
     }
 
     private ProvisionedAccountResult buildResult(UUID accountId, UUID roleId) {

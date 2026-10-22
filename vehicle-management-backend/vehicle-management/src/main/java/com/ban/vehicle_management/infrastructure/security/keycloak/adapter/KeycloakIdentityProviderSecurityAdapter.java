@@ -155,6 +155,27 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
         updateUser(keycloakUserId, enabled, null);
     }
 
+    @Override
+    public void logoutUserSessions(String keycloakUserId) {
+        if (!StringUtils.hasText(keycloakUserId)) {
+            throw new BadRequestException("Keycloak user id is required");
+        }
+        try {
+            restClient.post()
+                    .uri(baseUrl + "/admin/realms/" + realm + "/users/{userId}/logout", keycloakUserId)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + getAdminAccessToken())
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (HttpClientErrorException.Forbidden exception) {
+            throw new AccessDeniedException(buildKeycloakAdminForbiddenMessage("logout user sessions"));
+        } catch (HttpClientErrorException exception) {
+            throw new BadRequestException(buildKeycloakClientErrorMessage(
+                    "Failed to logout Keycloak user sessions",
+                    exception
+            ));
+        }
+    }
+
     private String createKeycloakUser(Map<String, Object> requestBody) {
         try {
             URI location = restClient.post()

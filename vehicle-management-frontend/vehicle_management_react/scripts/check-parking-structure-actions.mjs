@@ -99,6 +99,9 @@ assert.ok(structure.includes("ParkingLotEditModal"), "Tab Cấu trúc chưa gắ
 assert.ok(structure.includes("ParkingManagerAssignmentModal"), "Tab Cấu trúc chưa gắn modal gán Manager mới");
 assert.ok(lotEditModal.includes("updateParkingLot"), "Modal sửa bãi chưa gọi API cập nhật");
 assert.ok(managerAssignmentModal.includes("assignParkingManagerToParkingLot"), "Modal Manager chưa gọi API phân công");
+assert.ok(managerAssignmentModal.includes("getAssignedParkingManagers"), "Modal Manager chưa đọc phân công hiện tại");
+assert.ok(managerAssignmentModal.includes("unassignParkingManagerFromParkingLot"), "Modal Manager thiếu thao tác gỡ khỏi bãi");
+assert.ok(managerAssignmentModal.includes("Gỡ khỏi bãi"), "Modal Manager thiếu nút gỡ phân công");
 assert.ok(managerAssignmentModal.includes("Thử lại"), "Modal Manager thiếu retry tải danh sách");
 assert.ok(workspaceHeader.includes('ariaLabel="Chọn bãi xe"'), "Header chung thiếu dropdown bãi");
 assert.ok(!lotWizard.includes('>Để sau</Button>'), "Wizard vẫn cho bỏ qua toàn bộ bước tạo tầng");

@@ -17,6 +17,8 @@ public interface IdentityProviderAdminPortOut {
 
     void updateUserEnabled(String keycloakUserId, boolean enabled);
 
+    void logoutUserSessions(String keycloakUserId);
+
     void sendVerifyEmail(String keycloakUserId);
 
     void sendUpdatePasswordEmail(String keycloakUserId);

@@ -10,7 +10,6 @@ import com.ban.vehicle_management.domain.iam.organization.model.Organization;
 import com.ban.vehicle_management.domain.iam.organization.policy.OrganizationPolicy;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -107,14 +106,55 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
     @Override
     @Transactional
     public void assignParkingManagerToParkingLot(UUID organizationId, UUID parkingManagerAccountId, UUID parkingLotId) {
-        Set<UUID> parkingLotIds = new HashSet<>(
-                organizationPortOut.findScopedParkingLotIdsByOrganizationIdAndAccountId(
-                        organizationId,
-                        parkingManagerAccountId
-                )
-        );
-        parkingLotIds.add(parkingLotId);
-        assignParkingManager(organizationId, parkingManagerAccountId, parkingLotIds);
+        currentAccountPortIn.requirePermission(ORGANIZATION_MEMBERSHIP_MANAGE_ALL);
+        organizationAccessGuard.ensureCanManageOrganization(organizationId);
+        if (!organizationPortOut.isActiveAccountWithRole(
+                parkingManagerAccountId,
+                OrganizationAccessGuard.PARKING_MANAGER
+        )) {
+            throw new NotFoundException("Active PARKING_MANAGER account not found");
+        }
+        if (!organizationPortOut.allParkingLotsBelongToOrganization(organizationId, Set.of(parkingLotId))) {
+            throw new ConflictException("Assigned parking lot must belong to the organization");
+        }
+        UUID membershipId = findOrCreateActiveMembership(organizationId, parkingManagerAccountId);
+        organizationPortOut.addParkingLotScope(membershipId, parkingLotId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<UUID> getAssignedParkingManagerAccountIds(UUID organizationId, UUID parkingLotId) {
+        currentAccountPortIn.requirePermission(ORGANIZATION_MEMBERSHIP_MANAGE_ALL);
+        organizationAccessGuard.ensureCanManageOrganization(organizationId);
+        if (!organizationPortOut.allParkingLotsBelongToOrganization(organizationId, Set.of(parkingLotId))) {
+            throw new NotFoundException("Parking lot not found in organization");
+        }
+        return organizationPortOut.findActiveParkingManagerAccountIdsByParkingLotId(parkingLotId);
+    }
+
+    @Override
+    @Transactional
+    public void unassignParkingManagerFromParkingLot(
+            UUID organizationId,
+            UUID parkingManagerAccountId,
+            UUID parkingLotId
+    ) {
+        currentAccountPortIn.requirePermission(ORGANIZATION_MEMBERSHIP_MANAGE_ALL);
+        organizationAccessGuard.ensureCanManageOrganization(organizationId);
+        if (!organizationPortOut.allParkingLotsBelongToOrganization(organizationId, Set.of(parkingLotId))) {
+            throw new NotFoundException("Parking lot not found in organization");
+        }
+        organizationPortOut.findActiveMembershipId(organizationId, parkingManagerAccountId)
+                .ifPresent(membershipId -> organizationPortOut.removeParkingLotScope(membershipId, parkingLotId));
+    }
+
+    private UUID findOrCreateActiveMembership(UUID organizationId, UUID parkingManagerAccountId) {
+        return organizationPortOut.findActiveMembershipId(organizationId, parkingManagerAccountId)
+                .orElseGet(() -> {
+                    organizationPortOut.createActiveMembership(organizationId, parkingManagerAccountId);
+                    return organizationPortOut.findActiveMembershipId(organizationId, parkingManagerAccountId)
+                            .orElseThrow(() -> new IllegalStateException("Organization membership was not created"));
+                });
     }
 
 }

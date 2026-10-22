@@ -113,6 +113,11 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
     }
 
     @Override
+    public Set<UUID> findOrganizationIdsByAccountId(UUID accountId) {
+        return organizationMembershipRepository.findOrganizationIdsByAccountId(accountId);
+    }
+
+    @Override
     public Set<UUID> findScopedParkingLotIdsByAccountId(UUID accountId) {
         return memberParkingLotScopeRepository.findActiveParkingLotIdsByAccountId(
                 accountId,
@@ -141,15 +146,69 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
 
     @Override
     public void replaceParkingLotScopes(UUID organizationMembershipId, Set<UUID> parkingLotIds) {
-        memberParkingLotScopeRepository.deleteByOrganizationMembershipId(organizationMembershipId);
-        List<MemberParkingLotScopeEntity> scopes = parkingLotIds.stream().map(parkingLotId -> {
-            MemberParkingLotScopeEntity scope = new MemberParkingLotScopeEntity();
-            scope.setMemberParkingLotScopeId(UUID.randomUUID());
-            scope.setOrganizationMembershipId(organizationMembershipId);
-            scope.setParkingLotId(parkingLotId);
-            return scope;
-        }).toList();
-        memberParkingLotScopeRepository.saveAll(scopes);
+        Set<UUID> requestedParkingLotIds = parkingLotIds == null ? Set.of() : Set.copyOf(parkingLotIds);
+        Set<UUID> currentParkingLotIds = memberParkingLotScopeRepository
+                .findByOrganizationMembershipId(organizationMembershipId)
+                .stream()
+                .map(MemberParkingLotScopeEntity::getParkingLotId)
+                .collect(java.util.stream.Collectors.toSet());
+
+        Set<UUID> removedParkingLotIds = new java.util.HashSet<>(currentParkingLotIds);
+        removedParkingLotIds.removeAll(requestedParkingLotIds);
+        if (!removedParkingLotIds.isEmpty()) {
+            memberParkingLotScopeRepository.deleteByOrganizationMembershipIdAndParkingLotIdIn(
+                    organizationMembershipId,
+                    removedParkingLotIds
+            );
+        }
+
+        requestedParkingLotIds.stream()
+                .filter(parkingLotId -> !currentParkingLotIds.contains(parkingLotId))
+                .forEach(parkingLotId -> addParkingLotScope(organizationMembershipId, parkingLotId));
+    }
+
+    @Override
+    public void addParkingLotScope(UUID organizationMembershipId, UUID parkingLotId) {
+        memberParkingLotScopeRepository.insertIfAbsent(
+                UUID.randomUUID(),
+                organizationMembershipId,
+                parkingLotId
+        );
+    }
+
+    @Override
+    public void removeParkingLotScope(UUID organizationMembershipId, UUID parkingLotId) {
+        memberParkingLotScopeRepository.deleteByOrganizationMembershipIdAndParkingLotId(
+                organizationMembershipId,
+                parkingLotId
+        );
+    }
+
+    @Override
+    public Set<UUID> findActiveParkingManagerAccountIdsByParkingLotId(UUID parkingLotId) {
+        return memberParkingLotScopeRepository.findActiveAccountIdsByParkingLotId(
+                parkingLotId,
+                OrganizationMembershipStatus.ACTIVE,
+                AccountStatus.ACTIVE,
+                "PARKING_MANAGER"
+        );
+    }
+
+    @Override
+    public void deactivateMembershipsAndClearParkingLotScopes(UUID accountId) {
+        memberParkingLotScopeRepository.deleteAllByAccountId(accountId);
+        organizationMembershipRepository.updateStatusByAccountId(
+                accountId,
+                OrganizationMembershipStatus.INACTIVE
+        );
+    }
+
+    @Override
+    public void activateMemberships(UUID accountId) {
+        organizationMembershipRepository.updateStatusByAccountId(
+                accountId,
+                OrganizationMembershipStatus.ACTIVE
+        );
     }
 
     @Override

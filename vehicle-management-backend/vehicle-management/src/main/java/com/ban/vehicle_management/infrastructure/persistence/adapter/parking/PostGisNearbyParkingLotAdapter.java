@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.adapter.parking;
 
 import com.ban.vehicle_management.application.parking.parkinglot.model.result.NearbyParkingLotResult;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.NearbyParkingLotPortOut;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -24,10 +25,11 @@ public class PostGisNearbyParkingLotAdapter implements NearbyParkingLotPortOut {
                 pl.address_display,
                 pl.latitude,
                 pl.longitude,
+                pl.status,
                 public.ST_Distance(pl.location, search_point.location) AS distance_meters
             FROM parking.parking_lots pl
             CROSS JOIN search_point
-            WHERE pl.status = 'ACTIVE'
+            WHERE pl.status IN ('ACTIVE', 'SETUP', 'MAINTENANCE')
               AND pl.location IS NOT NULL
               AND public.ST_DWithin(
                     pl.location,
@@ -59,6 +61,7 @@ public class PostGisNearbyParkingLotAdapter implements NearbyParkingLotPortOut {
                         resultSet.getString("address_display"),
                         resultSet.getBigDecimal("latitude"),
                         resultSet.getBigDecimal("longitude"),
+                        ParkingLotStatus.valueOf(resultSet.getString("status")),
                         resultSet.getDouble("distance_meters")
                 ),
                 longitude,
