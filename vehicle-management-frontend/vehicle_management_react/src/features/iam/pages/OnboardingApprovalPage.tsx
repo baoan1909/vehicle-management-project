@@ -33,6 +33,14 @@ type BadgeTone = "primary" | "success" | "warning" | "danger" | "neutral";
 
 type OnboardingApprovalWorkspaceProps = {
   embedded?: boolean;
+  /** Limits this shared workspace to one approved onboarding category. */
+  fixedKind?: OnboardingApprovalKind;
+  /** The Account workspace supplies the page title when this is enabled. */
+  hideHeading?: boolean;
+  /** The Account workspace supplies the System Admin / Partner / Customer tabs. */
+  hideKindSelector?: boolean;
+  /** Optional shared category tabs, rendered above this category's filters. */
+  categoryTabs?: ReactNode;
   onPendingSummaryChange?: (summary: OnboardingApprovalSummaryResponse) => void;
 };
 
@@ -48,7 +56,7 @@ const approvalTabs: ApprovalTab[] = [
     kind: "internal-employee",
     label: "Nhân sự nội bộ",
     permissions: [
-      "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL",
+      "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_OWN",
       "ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL",
     ],
   },
@@ -144,7 +152,7 @@ function canReviewItem(item: OnboardingApprovalResponse, tab: ApprovalTab, curre
 function reviewPermissionsForItem(item: OnboardingApprovalResponse, tab: ApprovalTab) {
   if (tab.kind !== "internal-employee") return tab.permissions;
   return item.account?.roleCode === "PARKING_MANAGER"
-    ? ["ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL"]
+    ? ["ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_OWN"]
     : ["ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL"];
 }
 
@@ -383,16 +391,23 @@ function ReviewModal({
   );
 }
 
-export function OnboardingApprovalWorkspace({ embedded = false, onPendingSummaryChange }: OnboardingApprovalWorkspaceProps = {}) {
+export function OnboardingApprovalWorkspace({
+  embedded = false,
+  fixedKind,
+  hideHeading = false,
+  hideKindSelector = false,
+  categoryTabs,
+  onPendingSummaryChange,
+}: OnboardingApprovalWorkspaceProps = {}) {
   const { user } = useAuth();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const visibleTabs = useMemo(() => approvalTabs
-    .filter((tab) => hasAnyPermission(user, tab.permissions))
+    .filter((tab) => (!fixedKind || tab.kind === fixedKind) && hasAnyPermission(user, tab.permissions))
     .map((tab) => user?.role === "PARTNER_ADMIN" && tab.kind === "internal-employee"
       ? { ...tab, label: "Duyệt Parking Manager" }
-      : tab), [user]);
-  const requestedKind = isOnboardingApprovalKind(searchParams.get("kind")) ? searchParams.get("kind") as OnboardingApprovalKind : null;
+      : tab), [fixedKind, user]);
+  const requestedKind = fixedKind ?? (isOnboardingApprovalKind(searchParams.get("kind")) ? searchParams.get("kind") as OnboardingApprovalKind : null);
   const [activeKind, setActiveKind] = useState<OnboardingApprovalKind>(() =>
     (requestedKind && visibleTabs.some((tab) => tab.kind === requestedKind) ? requestedKind : visibleTabs[0]?.kind) ?? "internal-employee",
   );
@@ -420,6 +435,7 @@ export function OnboardingApprovalWorkspace({ embedded = false, onPendingSummary
   }, [activeKind, requestedKind, visibleTabs]);
 
   function selectApprovalKind(kind: OnboardingApprovalKind) {
+    if (fixedKind) return;
     setActiveKind(kind);
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.set("tab", "onboarding");
@@ -529,9 +545,11 @@ export function OnboardingApprovalWorkspace({ embedded = false, onPendingSummary
       <div className={embedded ? "" : "tw-px-4 tw-py-4 lg:tw-px-5"}>
         <section className={embedded ? "tw-grid tw-gap-4" : "tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1500px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card"}>
           <div className="tw-mb-5 tw-flex tw-items-center tw-justify-between tw-gap-4 max-[900px]:tw-flex-col max-[900px]:tw-items-stretch">
-            <div>
-              <h1 className={cn("tw-m-0 tw-text-vm-slate-900", embedded ? "tw-text-[1.1rem] tw-font-black" : "tw-text-vm-page-title")}>Duyệt onboarding</h1>
-            </div>
+            {!hideHeading ? (
+              <div>
+                <h1 className={cn("tw-m-0 tw-text-vm-slate-900", embedded ? "tw-text-[1.1rem] tw-font-black" : "tw-text-vm-page-title")}>Duyệt onboarding</h1>
+              </div>
+            ) : <span />}
             <Button variant="secondary" onClick={() => void loadApprovals()}>
               <i className="fas fa-sync-alt" />
               Làm mới
@@ -546,7 +564,7 @@ export function OnboardingApprovalWorkspace({ embedded = false, onPendingSummary
           </div>
 
           <Card className="tw-mt-5 tw-p-4">
-            <div className="tw-flex tw-flex-wrap tw-gap-2">
+            {!hideKindSelector ? <div className="tw-flex tw-flex-wrap tw-gap-2">
               {visibleTabs.map((tab) => {
                 const selected = activeTab?.kind === tab.kind;
                 return (
@@ -569,9 +587,9 @@ export function OnboardingApprovalWorkspace({ embedded = false, onPendingSummary
                   </button>
                 );
               })}
-            </div>
+            </div> : categoryTabs}
 
-            <div className="tw-mt-4 tw-grid tw-grid-cols-[minmax(260px,1fr)_220px_auto] tw-gap-3 max-[900px]:tw-grid-cols-1">
+            <div className={cn("tw-grid tw-grid-cols-[minmax(260px,1fr)_220px_auto] tw-gap-3 max-[900px]:tw-grid-cols-1", !hideKindSelector || categoryTabs ? "tw-mt-4" : "")}>
               <SearchInput
                 aria-label="Tìm hồ sơ onboarding"
                 containerClassName="tw-h-[42px]"

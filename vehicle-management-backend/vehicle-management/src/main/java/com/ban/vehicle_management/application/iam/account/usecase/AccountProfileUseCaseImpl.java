@@ -156,7 +156,11 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             ApprovalRequest approvalRequest = buildInternalEmployeeApprovalRequest(employee.getEmployeeId(), accountId);
             internalEmployeeApprovalPortOut.saveInternalEmployeeApprovalRequest(approvalRequest);
             notifyApprovalSubmitted(updatedAccount, approvalRequest, "Hồ sơ nhân sự đã gửi duyệt", "/admin/profile");
-            notifyApprovalReviewers(approvalRequest, roleCode.name(), "Có hồ sơ nhân sự cần duyệt");
+            if (AdminProvisionableAccountRoleCode.PARKING_MANAGER.equals(roleCode)) {
+                notifyParkingManagerCreator(updatedAccount.getCreatedBy(), approvalRequest, "Có hồ sơ Parking Manager cần duyệt");
+            } else {
+                notifyApprovalReviewers(approvalRequest, roleCode.name(), "Có hồ sơ nhân sự cần duyệt");
+            }
         } else if (AdminProvisionableAccountRoleCode.CUSTOMER.equals(roleCode)) {
             customer = buildOnboardingCustomer(userProfileId);
             updatedAccount = accountProfilePortOut.completeProfile(accountId, userProfile, customer);
@@ -601,6 +605,23 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
                 targetRoleCode,
                 NotificationType.ACCOUNT_PROFILE_SUBMITTED,
                 title
+        );
+    }
+
+    private void notifyParkingManagerCreator(UUID creatorAccountId, ApprovalRequest approvalRequest, String title) {
+        if (creatorAccountId == null) {
+            return;
+        }
+        ApprovalNotificationSupport.notifyAccount(
+                notificationPortIn,
+                creatorAccountId,
+                NotificationType.ACCOUNT_PROFILE_SUBMITTED,
+                title,
+                "Parking Manager do bạn tạo đã hoàn tất hồ sơ và cần được duyệt.",
+                "/admin/account?tab=onboarding&kind=internal-employee",
+                approvalRequest.getTargetSchema(),
+                approvalRequest.getTargetTable(),
+                approvalRequest.getTargetId()
         );
     }
 }

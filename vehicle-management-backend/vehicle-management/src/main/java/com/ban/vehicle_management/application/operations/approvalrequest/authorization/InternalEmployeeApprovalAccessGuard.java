@@ -1,10 +1,12 @@
 package com.ban.vehicle_management.application.operations.approvalrequest.authorization;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
@@ -18,14 +20,17 @@ public class InternalEmployeeApprovalAccessGuard {
     public static final String TARGET_TABLE = "employees";
 
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final AccountAuthorizationPortOut accountAuthorizationPortOut;
     private final OrganizationPortOut organizationPortOut;
     private final OnboardingApprovalPolicy onboardingApprovalPolicy = new OnboardingApprovalPolicy();
 
     public InternalEmployeeApprovalAccessGuard(
             CurrentAccountPortIn currentAccountPortIn,
+            AccountAuthorizationPortOut accountAuthorizationPortOut,
             OrganizationPortOut organizationPortOut
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
+        this.accountAuthorizationPortOut = accountAuthorizationPortOut;
         this.organizationPortOut = organizationPortOut;
     }
 
@@ -74,6 +79,15 @@ public class InternalEmployeeApprovalAccessGuard {
         if (!canAccessTargetRole(currentAccount, targetRoleCode)) {
             return false;
         }
+        if (OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE.equals(targetRoleCode)
+                && OrganizationAccessGuard.PARTNER_ADMIN.equals(currentAccount.roleCode())) {
+            // A Partner Admin can only review the Manager account that they
+            // personally provisioned. Organization membership alone is too
+            // broad when an organization has more than one Partner Admin.
+            return findCreatorAccountId(targetAccountId)
+                    .map(currentAccount.accountId()::equals)
+                    .orElse(false);
+        }
         if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(currentAccount.roleCode())
                 && !OrganizationAccessGuard.PARKING_MANAGER.equals(currentAccount.roleCode())) {
             return true;
@@ -90,6 +104,18 @@ public class InternalEmployeeApprovalAccessGuard {
         }
         return organizationPortOut.findActiveOrganizationIdsByAccountId(targetAccountId).stream()
                 .anyMatch(partnerOrganizationIds::contains);
+    }
+
+    /**
+     * Used only to send an approval notification to the Manager's creating
+     * Partner Admin. Returning an empty value intentionally prevents a broad
+     * fallback broadcast for legacy accounts without creation provenance.
+     */
+    public Optional<UUID> findCreatorAccountId(UUID targetAccountId) {
+        if (targetAccountId == null) {
+            return Optional.empty();
+        }
+        return accountAuthorizationPortOut.findCreatedByAccountId(targetAccountId);
     }
 
     private boolean hasAnyInternalReviewPermission() {

@@ -31,13 +31,14 @@ public class OnboardingApprovalSummaryPersistenceAdapter implements OnboardingAp
     }
 
     @Override
-    public long countPendingParkingManagerApprovals() {
-        return approvalRequestRepository.countPendingInternalEmployeeApprovalsByTargetRole(
+    public long countPendingParkingManagerApprovalsCreatedBy(UUID partnerAdminAccountId) {
+        return approvalRequestRepository.countPendingInternalEmployeeApprovalsByTargetRoleAndAccountCreator(
                 InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
                 InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
                 InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
                 ApprovalRequestStatus.PENDING,
-                OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE
+                OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE,
+                partnerAdminAccountId
         );
     }
 

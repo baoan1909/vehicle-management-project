@@ -5,8 +5,8 @@ import { Badge, Button, Card, EntityAvatar, InfoBanner, SearchInput, SelectMenu 
 import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import { AccountCreateDrawer } from "../components/AccountCreateDrawer";
-import { OnboardingApprovalWorkspace } from "./OnboardingApprovalPage";
-import { fetchOnboardingApprovalSummary } from "@/features/iam/api/onboardingApprovalApi";
+import { OnboardingApprovalHub } from "./OnboardingApprovalHub";
+import { fetchPartnerRegistrations } from "@/features/iam/api/partnerRegistrationApi";
 import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { openSupportCenterConversation } from "@/features/support/utils";
 import {
@@ -605,10 +605,13 @@ export function AccountListPage() {
   const [actionErrorMessage, setActionErrorMessage] = useState("");
   const [onboardingPendingCount, setOnboardingPendingCount] = useState(0);
   const canReadProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_READ_ALL"]);
-  const canReadOnboardingApprovals = hasAnyPermission(user, [
+  // Each onboarding category is gated independently inside the shared workspace.
+  // Do not infer access from a role name.
+  const canReadPartnerOnboarding = hasAnyPermission(user, ["ORGANIZATION_REGISTRATION_REVIEW_ALL"]);
+  const canReadOnboarding = hasAnyPermission(user, [
     "ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL",
-    "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL",
-    "ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL",
+    "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_OWN",
+    "ORGANIZATION_REGISTRATION_REVIEW_ALL",
     "ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL",
   ]);
   const canCreateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_CREATE_ALL"]);
@@ -617,7 +620,7 @@ export function AccountListPage() {
   const canCreateChatConversation = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN", "CHAT_CONVERSATION_CREATE_ALL"]);
   const requestedWorkspaceTab = searchParams.get("tab") === "onboarding" ? "onboarding" : "accounts";
   const activeWorkspaceTab: AccountWorkspaceTab =
-    requestedWorkspaceTab === "onboarding" && canReadOnboardingApprovals ? "onboarding" : canReadProvisionedAccount ? "accounts" : "onboarding";
+    requestedWorkspaceTab === "onboarding" && canReadOnboarding ? "onboarding" : canReadProvisionedAccount ? "accounts" : "onboarding";
 
   function setWorkspaceTab(tab: AccountWorkspaceTab) {
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -630,28 +633,29 @@ export function AccountListPage() {
     setSearchParams(nextSearchParams, { replace: true });
   }
 
-  async function loadOnboardingPendingCount() {
-    if (!canReadOnboardingApprovals) {
+  async function loadPartnerOnboardingPendingCount() {
+    if (!canReadPartnerOnboarding) {
       setOnboardingPendingCount(0);
       return;
     }
     try {
-      const summary = await fetchOnboardingApprovalSummary();
-      setOnboardingPendingCount(summary.totalPending);
+      const registrations = await fetchPartnerRegistrations("PENDING");
+      setOnboardingPendingCount(registrations.length);
     } catch {
+      // A failed badge request must not block the account workspace itself.
       setOnboardingPendingCount(0);
     }
   }
 
   useEffect(() => {
-    void loadOnboardingPendingCount();
-  }, [canReadOnboardingApprovals, user?.id, user?.permissionCodes]);
+    void loadPartnerOnboardingPendingCount();
+  }, [canReadPartnerOnboarding, user?.id, user?.permissionCodes]);
 
   useEffect(() => subscribeNotificationReceived((notification) => {
-    if (notification.redirectUrl?.includes("tab=onboarding")) {
-      void loadOnboardingPendingCount();
+    if (notification.redirectUrl?.includes("/admin/account?tab=onboarding")) {
+      void loadPartnerOnboardingPendingCount();
     }
-  }), [canReadOnboardingApprovals, user?.id]);
+  }), [canReadPartnerOnboarding, user?.id]);
 
   async function loadAccounts() {
     if (!canReadProvisionedAccount) return;
@@ -845,7 +849,7 @@ export function AccountListPage() {
                 Danh sách tài khoản
               </button>
             ) : null}
-            {canReadOnboardingApprovals ? (
+            {canReadOnboarding ? (
               <button
                 className={cn(
                   "tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-transition",
@@ -1044,10 +1048,7 @@ export function AccountListPage() {
           />
             </>
           ) : (
-            <OnboardingApprovalWorkspace
-              embedded
-              onPendingSummaryChange={(summary) => setOnboardingPendingCount(summary.totalPending)}
-            />
+            <OnboardingApprovalHub onPartnerPendingCountChange={setOnboardingPendingCount} />
           )}
         </section>
       </div>

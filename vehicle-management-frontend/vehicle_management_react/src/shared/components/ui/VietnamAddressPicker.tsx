@@ -183,12 +183,14 @@ export function VietnamAddressPicker({
     if (newMode === currentMode) return;
     setCurrentMode(newMode);
     onModeChange?.(newMode);
-    // Reset all fields when mode changes
+    // Các mã tỉnh, huyện và phường thuộc hai bộ dữ liệu địa giới khác nhau,
+    // nên phải chọn lại khi đổi sơ đồ. Địa chỉ cụ thể là nội dung tự nhập,
+    // không phụ thuộc sơ đồ và được giữ lại cho người dùng.
     commit({
       provinceCode: "",
       districtCode: null,
       wardCode: "",
-      addressDetail: ""
+      addressDetail: value.addressDetail
     });
   };
 

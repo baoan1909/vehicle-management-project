@@ -55,16 +55,6 @@ const AccountFormPage = lazyPage(() => import("@/features/iam"), "AccountFormPag
 const AccountListPage = lazyPage(() => import("@/features/iam"), "AccountListPage");
 const AvatarApprovalManagementPage = lazyPage(() => import("@/features/iam"), "AvatarApprovalManagementPage");
 const InternalProfilePage = lazyPage(() => import("@/features/iam"), "InternalProfilePage");
-  const OrganizationProfilePage = lazyPage(
-  () => import("@/features/iam"),
-  "OrganizationProfilePage",
-);
-
-const OrganizationProfileApprovalPage = lazyPage(
-  () => import("@/features/iam"),
-  "OrganizationProfileApprovalPage",
-);
-const PartnerRegistrationManagementPage = lazyPage(() => import("@/features/iam"), "PartnerRegistrationManagementPage");
 const RoleFormPage = lazyPage(() => import("@/features/iam"), "RoleFormPage");
 const RoleListPage = lazyPage(() => import("@/features/iam"), "RoleListPage");
 const AiKnowledgeAdminPage = lazyPage(() => import("@/features/ai"), "AiKnowledgeAdminPage");
@@ -131,9 +121,6 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/shifts", title: "Ca trực & Phân công", layout: "admin", element: <ShiftSchedulePage /> },
   { path: "/admin/account", title: "Tài khoản", layout: "admin", element: <AccountListPage /> },
   { path: "/admin/account/form", title: "Thong tin tai khoan", layout: "admin", element: <AccountFormPage /> },
-  { path: "/admin/partner-registrations", title: "Duyệt đăng ký đối tác", layout: "admin", element: <PartnerRegistrationManagementPage /> },
-  { path: "/admin/organization-profile", title: "Hồ sơ đối tác", layout: "admin", element: <OrganizationProfilePage /> },
-  { path: "/admin/organization-profile-approvals", title: "Duyệt cập nhật hồ sơ đối tác", layout: "admin", element: <OrganizationProfileApprovalPage /> },
   { path: "/admin/avatar-approvals", title: "Duyệt ảnh đại diện", layout: "admin", element: <AvatarApprovalManagementPage /> },
   { path: "/admin/onboarding-approvals", title: "Duyet onboarding", layout: "admin", element: <Navigate to="/admin/account?tab=onboarding" replace /> },
   { path: "/admin/profile", title: "Thong tin tai khoan ca nhan", layout: "admin", element: <InternalProfilePage /> },

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { Badge, Button, Card, InfoBanner, Modal, SearchInput, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
@@ -153,10 +153,30 @@ function RegistrationModal({
   );
 }
 
-export function PartnerRegistrationManagementPage() {
+type PartnerRegistrationManagementPageProps = {
+  /** Renders inside the System Admin account workspace instead of as a standalone page. */
+  embedded?: boolean;
+  /** The shared Account workspace renders the main onboarding heading. */
+  hideHeading?: boolean;
+  /** The shared Account workspace renders the selected category tab. */
+  hideCategoryFilter?: boolean;
+  /** Optional shared category tabs, rendered above the Partner filters. */
+  categoryTabs?: ReactNode;
+  /** Keeps the Account → Onboarding badge in sync with pending Partner registrations. */
+  onPendingCountChange?: (count: number) => void;
+};
+
+export function PartnerRegistrationManagementPage({
+  embedded = false,
+  hideHeading = false,
+  hideCategoryFilter = false,
+  categoryTabs,
+  onPendingCountChange,
+}: PartnerRegistrationManagementPageProps = {}) {
   const toast = useToast();
   const { user } = useAuth();
-  const canDecide = hasAnyPermission(user, ["ORGANIZATION_CREATE_ALL"]);
+  // The same permission protects the API. Do not infer this from a role name.
+  const canDecide = hasAnyPermission(user, ["ORGANIZATION_REGISTRATION_REVIEW_ALL"]);
   const [registrations, setRegistrations] = useState<PartnerRegistration[]>([]);
   const [status, setStatus] = useState<PartnerRegistrationStatus | "all">("PENDING");
   const [keyword, setKeyword] = useState("");
@@ -228,6 +248,10 @@ export function PartnerRegistrationManagementPage() {
     rejected: registrations.filter((item) => item.status === "REJECTED").length,
   }), [registrations]);
 
+  useEffect(() => {
+    onPendingCountChange?.(metrics.pending);
+  }, [metrics.pending, onPendingCountChange]);
+
   function openRegistration(item: PartnerRegistration) {
     setSelectedRegistration(item);
     setReviewNote("");
@@ -264,16 +288,23 @@ export function PartnerRegistrationManagementPage() {
   }
 
   return (
-    <div className="tw-px-4 tw-py-4 lg:tw-px-5">
-      <section className="tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1500px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
+    <div className={embedded ? "" : "tw-px-4 tw-py-4 lg:tw-px-5"}>
+      <section className={cn(
+        "tw-bg-white",
+        embedded
+          ? "tw-grid tw-gap-4"
+          : "tw-mx-auto tw-min-h-[calc(100vh-104px)] tw-w-[min(100%,1500px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-p-5 tw-shadow-vm-card",
+      )}>
         <div className="tw-flex tw-items-start tw-justify-between tw-gap-4 max-[760px]:tw-flex-col max-[760px]:tw-items-stretch">
-          <div>
-            <p className="tw-m-0 tw-text-[0.74rem] tw-font-black tw-uppercase tw-tracking-[0.12em] tw-text-vm-primary">Nền tảng CoParking</p>
-            <h1 className="tw-m-0 tw-mt-1 tw-text-vm-page-title tw-text-vm-slate-900">Đăng ký đối tác</h1>
-            <p className="tw-m-0 tw-mt-2 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-500">Xét duyệt đơn vị vận hành trước khi kích hoạt quyền quản trị đối tác.</p>
-          </div>
+          {!hideHeading ? (
+            <div>
+              {!embedded ? <p className="tw-m-0 tw-text-[0.74rem] tw-font-black tw-uppercase tw-tracking-[0.12em] tw-text-vm-primary">Nền tảng CoParking</p> : null}
+              <h1 className={cn("tw-m-0 tw-text-vm-slate-900", embedded ? "tw-text-[1.1rem] tw-font-black" : "tw-mt-1 tw-text-vm-page-title")}>Duyệt onboarding</h1>
+              <p className="tw-m-0 tw-mt-2 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-500">Xét duyệt đơn vị vận hành trước khi kích hoạt quyền quản trị đối tác.</p>
+            </div>
+          ) : <span />}
           <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3">
-            <OnboardingApprovalPolicyButton />
+            <OnboardingApprovalPolicyButton scope="partner" />
             <Button variant="secondary" disabled={isLoading} onClick={() => void loadRegistrations()}>
               <i className="fas fa-sync-alt" />
               Làm mới
@@ -301,7 +332,15 @@ export function PartnerRegistrationManagementPage() {
         </div>
 
         <Card className="tw-mt-5 tw-p-4">
-          <div className="tw-grid tw-grid-cols-[minmax(260px,1fr)_220px_auto] tw-gap-3 max-[780px]:tw-grid-cols-1">
+          {!hideCategoryFilter ? (
+            <div className="tw-flex tw-flex-wrap tw-gap-2">
+              <span className="tw-inline-flex tw-min-h-10 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-primary tw-bg-brand-50 tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-text-vm-primary">
+                <i className="fas fa-handshake" />
+                Đối tác
+              </span>
+            </div>
+          ) : categoryTabs}
+          <div className={cn("tw-grid tw-grid-cols-[minmax(260px,1fr)_220px_auto] tw-gap-3 max-[780px]:tw-grid-cols-1", !hideCategoryFilter || categoryTabs ? "tw-mt-4" : "")}>
             <SearchInput
               aria-label="Tìm hồ sơ đối tác"
               containerClassName="tw-h-[42px]"

@@ -178,3 +178,4 @@ CREATE TABLE notification.user_guide_user_states (
 
 CREATE INDEX idx_user_guide_user_states_guide_id
     ON notification.user_guide_user_states(guide_id);
+

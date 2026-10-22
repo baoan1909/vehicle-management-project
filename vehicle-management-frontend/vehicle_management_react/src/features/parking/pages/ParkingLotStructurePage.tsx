@@ -874,11 +874,14 @@ export function ParkingLotStructurePage() {
     () => lots.find((l) => l.parkingLotId === paramLotId) ?? lots[0] ?? null,
     [lots, paramLotId],
   );
+  const hasActiveLot = activeLot !== null;
   const activeLotId = activeLot?.parkingLotId ?? "";
-  const lotCode = activeLot?.code ?? "—";
-  const lotName = activeLot?.name?.trim() ? activeLot.name : "Bãi xe";
-  const lotAddress = activeLot?.addressDisplay?.trim() ? activeLot.addressDisplay : "Chưa có địa chỉ";
-  const lotActive = (activeLot?.status ?? "ACTIVE") === "ACTIVE";
+  const lotCode = activeLot?.code ?? "CHƯA THIẾT LẬP";
+  const lotName = activeLot?.name?.trim() ? activeLot.name : "Chưa có bãi xe";
+  const lotAddress = activeLot?.addressDisplay?.trim()
+    ? activeLot.addressDisplay
+    : "Tạo bãi xe đầu tiên để bắt đầu thiết lập cấu trúc và vận hành.";
+  const lotActive = activeLot?.status === "ACTIVE";
   const canDeleteLot = hasAnyPermission(user, ["PARKING_LOT_UPDATE_ALL"]);
   const canCreateLot = hasAnyPermission(user, ["PARKING_LOT_CREATE_ALL"]);
   const canEditLot = hasAnyPermission(user, ["PARKING_LOT_UPDATE_ALL"]);
@@ -1581,9 +1584,12 @@ export function ParkingLotStructurePage() {
         <h1 className="tw-m-0 tw-text-[1.7rem] tw-font-extrabold tw-leading-tight tw-text-[#0f172a]">
           {lotName} <span className="tw-font-extrabold tw-text-[#0f172a]">· {lotCode}</span>
         </h1>
-        <span className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-[#dcfce7] tw-px-3 tw-py-[7px] tw-text-[0.78rem] tw-font-bold tw-text-[#15803d]">
-          <span className="tw-h-2 tw-w-2 tw-rounded-full tw-bg-[#16a34a]" />
-          {lotActive ? "Đang hoạt động" : "Bảo trì"}
+        <span className={cn(
+          "tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-px-3 tw-py-[7px] tw-text-[0.78rem] tw-font-bold",
+          hasActiveLot && lotActive ? "tw-bg-[#dcfce7] tw-text-[#15803d]" : "tw-bg-[#fef3c7] tw-text-[#a16207]",
+        )}>
+          <span className={cn("tw-h-2 tw-w-2 tw-rounded-full", hasActiveLot && lotActive ? "tw-bg-[#16a34a]" : "tw-bg-[#f59e0b]")} />
+          {!hasActiveLot ? "Chưa thiết lập" : lotActive ? "Đang hoạt động" : "Bảo trì"}
         </span>
         <span className="tw-ml-auto tw-flex tw-items-center tw-gap-3">
           {lots.length > 1 && activeLot ? (
@@ -1597,24 +1603,26 @@ export function ParkingLotStructurePage() {
               portal
             />
           ) : null}
-          {canDeleteLot && activeLot ? (
+          {canDeleteLot ? (
             <Button
               variant="danger"
               className="tw-h-10 tw-rounded-[8px] tw-px-4 tw-font-bold"
+              disabled={!hasActiveLot}
+              title={hasActiveLot ? undefined : "Tạo bãi xe trước khi có thể xóa bãi."}
               onClick={() => setDeleteTarget({ kind: "lot", id: activeLot.parkingLotId, label: activeLot.name })}
             >
               <i className="far fa-trash-alt tw-text-[0.9rem]" aria-hidden="true" />
               Xóa bãi
             </Button>
           ) : null}
-          {canEditLot && activeLot ? (
-            <Button variant="secondary" className="tw-h-10 tw-rounded-[8px] tw-border-[#dbe3f0] tw-px-4 tw-font-bold tw-text-[#0f172a]" onClick={() => setLotEditOpen(true)}>
+          {canEditLot ? (
+            <Button variant="secondary" className="tw-h-10 tw-rounded-[8px] tw-border-[#dbe3f0] tw-px-4 tw-font-bold tw-text-[#0f172a]" disabled={!hasActiveLot} title={hasActiveLot ? undefined : "Tạo bãi xe trước khi có thể chỉnh sửa."} onClick={() => setLotEditOpen(true)}>
               <i className="far fa-edit tw-text-[0.9rem]" aria-hidden="true" />
               Sửa bãi
             </Button>
           ) : null}
-          {canAssignManager && activeLot ? (
-            <Button variant="secondary" className="tw-h-10 tw-rounded-[8px] tw-border-[#dbe3f0] tw-px-4 tw-font-bold tw-text-[#0f172a]" onClick={() => setManagerAssignmentOpen(true)}>
+          {canAssignManager ? (
+            <Button variant="secondary" className="tw-h-10 tw-rounded-[8px] tw-border-[#dbe3f0] tw-px-4 tw-font-bold tw-text-[#0f172a]" disabled={!hasActiveLot} title={hasActiveLot ? undefined : "Tạo bãi xe trước khi phân công Parking Manager."} onClick={() => setManagerAssignmentOpen(true)}>
               <i className="fas fa-users-cog tw-text-[0.9rem]" aria-hidden="true" />
               Gán quản lý
             </Button>
@@ -1651,8 +1659,9 @@ export function ParkingLotStructurePage() {
               type="button"
               role="tab"
               aria-selected="false"
+              disabled={!hasActiveLot}
               onClick={() => goTab(t.to)}
-              className="tw-border-0 tw-bg-transparent tw-p-0 tw-pb-3 tw-text-[0.95rem] tw-font-medium tw-text-[#475569] hover:tw-text-[#2563eb]"
+              className="tw-border-0 tw-bg-transparent tw-p-0 tw-pb-3 tw-text-[0.95rem] tw-font-medium tw-text-[#475569] hover:tw-text-[#2563eb] disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
             >
               {t.label}
             </button>
@@ -1666,7 +1675,9 @@ export function ParkingLotStructurePage() {
           <i className="fas fa-info" aria-hidden="true" />
         </span>
         <p className="tw-m-0 tw-text-[0.88rem] tw-font-medium tw-text-[#1d4ed8]">
-          Thiết lập Tầng → Khu vực → Cổng → Làn trước khi thiết kế sơ đồ.
+          {hasActiveLot
+            ? "Thiết lập Tầng → Khu vực → Cổng → Làn trước khi thiết kế sơ đồ."
+            : "Bắt đầu bằng việc tạo bãi xe. Các bước cấu hình và phân công sẽ được mở sau khi bãi được tạo."}
         </p>
       </div>
 
@@ -1692,20 +1703,20 @@ export function ParkingLotStructurePage() {
           </div>
           <div className="tw-mt-3 tw-flex tw-flex-wrap tw-items-center tw-gap-2.5">
             <div className="tw-min-w-[220px] tw-flex-1">
-              <SearchInput value={keyword} onChange={setKeyword} placeholder="Tìm theo mã hoặc tên" aria-label="Tìm theo mã hoặc tên" />
+              <SearchInput disabled={!hasActiveLot} value={keyword} onChange={setKeyword} placeholder="Tìm theo mã hoặc tên" aria-label="Tìm theo mã hoặc tên" />
             </div>
             <div className="tw-w-[190px]">
-              <SelectMenu ariaLabel="Trạng thái" value={statusFilter} onChange={setStatusFilter} options={STATUS_FILTERS} />
+              <SelectMenu ariaLabel="Trạng thái" disabled={!hasActiveLot} value={statusFilter} onChange={setStatusFilter} options={STATUS_FILTERS} />
             </div>
             {canConfigureTopology ? (
               <>
-                <Button size="sm" className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "zone", mode: "create" })}>
+                <Button size="sm" disabled={!hasActiveLot} className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "zone", mode: "create" })}>
                   <i className="fas fa-plus tw-text-[0.75rem]" aria-hidden="true" /> Thêm khu
                 </Button>
-                <Button size="sm" className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "gate", mode: "create" })}>
+                <Button size="sm" disabled={!hasActiveLot} className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "gate", mode: "create" })}>
                   <i className="fas fa-plus tw-text-[0.75rem]" aria-hidden="true" /> Thêm cổng
                 </Button>
-                <Button size="sm" className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "lane", mode: "create" })}>
+                <Button size="sm" disabled={!hasActiveLot} className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "lane", mode: "create" })}>
                   <i className="fas fa-plus tw-text-[0.75rem]" aria-hidden="true" /> Thêm làn
                 </Button>
               </>
@@ -1713,7 +1724,18 @@ export function ParkingLotStructurePage() {
           </div>
 
           <div className="tw-mt-4 tw-grid tw-gap-2.5">
-            {bootLoading ? (
+            {!hasActiveLot ? (
+              <div className="tw-rounded-[8px] tw-border tw-border-dashed tw-border-[#93c5fd] tw-bg-[#eff6ff] tw-px-4 tw-py-8 tw-text-center">
+                <i className="fas fa-parking tw-text-3xl tw-text-[#2563eb]" aria-hidden="true" />
+                <p className="tw-m-0 tw-mt-3 tw-text-[0.95rem] tw-font-extrabold tw-text-[#0f172a]">Chưa có bãi xe để cấu hình</p>
+                <p className="tw-m-0 tw-mt-1 tw-text-[0.84rem] tw-font-medium tw-text-[#475569]">Tạo bãi xe đầu tiên, sau đó bạn có thể thiết lập tầng, khu vực, cổng, làn và phân công Parking Manager.</p>
+                {canCreateLot ? (
+                  <Button size="sm" className="tw-mt-4 tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => setLotWizardOpen(true)}>
+                    <i className="fas fa-plus tw-text-[0.75rem]" aria-hidden="true" /> Tạo bãi xe đầu tiên
+                  </Button>
+                ) : null}
+              </div>
+            ) : bootLoading ? (
               <div className="tw-grid tw-gap-2.5" aria-label="Đang tải cấu trúc bãi xe">
                 {[0, 1, 2].map((skeleton) => (
                   <div key={skeleton} className="tw-h-[52px] tw-animate-pulse tw-rounded-[8px] tw-bg-[#eef2f7]" />
@@ -2227,6 +2249,14 @@ export function ParkingLotStructurePage() {
                   </div>
                 ) : null}
               </>
+            ) : !hasActiveLot ? (
+              <div className="tw-px-2 tw-py-8 tw-text-center">
+                <i className="fas fa-lock tw-text-2xl tw-text-[#94a3b8]" aria-hidden="true" />
+                <p className="tw-m-0 tw-mt-3 tw-text-[0.95rem] tw-font-bold tw-text-[#0f172a]">Chi tiết sẽ mở sau khi tạo bãi</p>
+                <p className="tw-m-0 tw-mt-1 tw-text-[0.84rem] tw-font-medium tw-text-[#64748b]">
+                  Chọn “Thêm bãi” để tạo bãi đầu tiên, rồi tiếp tục phân công Manager và cấu hình vận hành.
+                </p>
+              </div>
             ) : (
               <div className="tw-px-2 tw-py-8 tw-text-center">
                 <p className="tw-m-0 tw-text-[0.95rem] tw-font-bold tw-text-[#0f172a]">Chưa chọn mục nào</p>
@@ -2242,8 +2272,9 @@ export function ParkingLotStructurePage() {
             <div className="tw-mt-3 tw-grid tw-gap-2.5">
               <button
                 type="button"
+                disabled={!hasActiveLot}
                 onClick={() => goTab("/admin/parking-layouts")}
-                className="tw-flex tw-h-[52px] tw-w-full tw-items-center tw-gap-3 tw-rounded-[8px] tw-border tw-border-solid tw-border-[#e2e8f0] tw-bg-white tw-px-4 tw-text-left tw-transition hover:tw-border-[#bfdbfe] hover:tw-bg-[#eff6ff]"
+                className="tw-flex tw-h-[52px] tw-w-full tw-items-center tw-gap-3 tw-rounded-[8px] tw-border tw-border-solid tw-border-[#e2e8f0] tw-bg-white tw-px-4 tw-text-left tw-transition hover:tw-border-[#bfdbfe] hover:tw-bg-[#eff6ff] disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
               >
                 <i className="far fa-map tw-text-[1.05rem] tw-text-[#2563eb]" aria-hidden="true" />
                 <span className="tw-flex-1 tw-text-[0.92rem] tw-font-bold tw-text-[#2563eb]">Mở thiết kế sơ đồ</span>
@@ -2251,8 +2282,9 @@ export function ParkingLotStructurePage() {
               </button>
               <button
                 type="button"
+                disabled={!hasActiveLot}
                 onClick={() => goTab("/admin/parking-live")}
-                className="tw-flex tw-h-[52px] tw-w-full tw-items-center tw-gap-3 tw-rounded-[8px] tw-border tw-border-solid tw-border-[#e2e8f0] tw-bg-white tw-px-4 tw-text-left tw-transition hover:tw-border-[#bfdbfe] hover:tw-bg-[#eff6ff]"
+                className="tw-flex tw-h-[52px] tw-w-full tw-items-center tw-gap-3 tw-rounded-[8px] tw-border tw-border-solid tw-border-[#e2e8f0] tw-bg-white tw-px-4 tw-text-left tw-transition hover:tw-border-[#bfdbfe] hover:tw-bg-[#eff6ff] disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
               >
                 <i className="far fa-camera tw-text-[1.05rem] tw-text-[#2563eb]" aria-hidden="true" />
                 <span className="tw-flex-1 tw-text-[0.92rem] tw-font-bold tw-text-[#2563eb]">Xem trực tiếp</span>

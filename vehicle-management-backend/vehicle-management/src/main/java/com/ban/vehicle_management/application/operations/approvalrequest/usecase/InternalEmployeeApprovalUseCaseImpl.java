@@ -15,6 +15,7 @@ import com.ban.vehicle_management.application.notification.notification.port.in.
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.model.ApprovalRequest;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.ApprovalRequestPolicy;
+import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.employee.policy.EmployeePolicy;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
@@ -233,13 +234,29 @@ public class InternalEmployeeApprovalUseCaseImpl implements InternalEmployeeAppr
                 "employees",
                 result.employee().employeeId()
         );
-        ApprovalNotificationSupport.notifyApprovers(
-                notificationPortIn,
-                approvalRequest,
-                candidate.roleCode(),
-                NotificationType.INTERNAL_EMPLOYEE_RESUBMITTED,
-                "Có hồ sơ nhân sự gửi lại cần duyệt"
-        );
+        if (OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE.equals(candidate.roleCode())) {
+            internalEmployeeApprovalAccessGuard.findCreatorAccountId(candidate.accountId()).ifPresent(creatorAccountId ->
+                    ApprovalNotificationSupport.notifyAccount(
+                            notificationPortIn,
+                            creatorAccountId,
+                            NotificationType.INTERNAL_EMPLOYEE_RESUBMITTED,
+                            "Có hồ sơ Parking Manager gửi lại cần duyệt",
+                            "Parking Manager do bạn tạo đã gửi lại hồ sơ để duyệt.",
+                            "/admin/account?tab=onboarding&kind=internal-employee",
+                            approvalRequest.getTargetSchema(),
+                            approvalRequest.getTargetTable(),
+                            approvalRequest.getTargetId()
+                    )
+            );
+        } else {
+            ApprovalNotificationSupport.notifyApprovers(
+                    notificationPortIn,
+                    approvalRequest,
+                    candidate.roleCode(),
+                    NotificationType.INTERNAL_EMPLOYEE_RESUBMITTED,
+                    "Có hồ sơ nhân sự gửi lại cần duyệt"
+            );
+        }
         return result;
     }
 

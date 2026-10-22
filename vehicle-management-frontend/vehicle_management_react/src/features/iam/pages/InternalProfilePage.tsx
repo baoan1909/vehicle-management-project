@@ -523,6 +523,9 @@ export function InternalProfilePage() {
   const [resending, setResending] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(() => searchParams.get("action") === "change-password");
   const [notice, setNotice] = useState<string | null>(null);
+  // Keep API validation failures visible where the onboarding form is submitted.
+  // A failed request must never be presented as an optimistic profile update.
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const missingPartnerFields = useMemo(() => {
     if (!isPartner) return [];
     const missing: string[] = [];
@@ -657,6 +660,7 @@ export function InternalProfilePage() {
   }, [searchParams]);
 
   const updateField = (name: keyof ProfileFormState, value: string) => {
+    setSubmissionError(null);
     setForm((current) => ({ ...current, [name]: value }));
   };
 
@@ -705,24 +709,18 @@ export function InternalProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     setNotice(null);
-
-    const payload = buildProfilePayload();
+    setSubmissionError(null);
 
     try {
       const result = await saveProfileChanges();
       void refreshLatestApproval(result.profile);
       setNotice(result.shouldCompleteOnboarding ? "Đã gửi hồ sơ để chờ phê duyệt." : "Đã lưu hồ sơ cá nhân thành công.");
-    } catch {
-      const fallbackProfile: AccountProfileStatusResponse = {
-        ...profile,
-        profile: {
-          ...profile.profile,
-          ...payload,
-          userProfileStatus: profile.profile?.userProfileStatus ?? "ACTIVE"
-        }
-      };
-      applyProfileResponse(fallbackProfile);
-      setNotice("Đã cập nhật thông tin trên giao diện. Vui lòng thử lại nếu dữ liệu chưa được lưu.");
+    } catch (cause) {
+      setSubmissionError(
+        cause instanceof Error
+          ? cause.message
+          : "Không thể gửi hồ sơ. Vui lòng kiểm tra lại thông tin và thử lại.",
+      );
     } finally {
       setSaving(false);
     }
@@ -737,6 +735,7 @@ export function InternalProfilePage() {
 
     setResubmitting(true);
     setNotice(null);
+    setSubmissionError(null);
 
     try {
       let nextProfile = profile;
@@ -750,8 +749,12 @@ export function InternalProfilePage() {
       applyProfileResponse(response.data);
       void refreshLatestApproval(response.data ?? nextProfile);
       setNotice("Đã gửi lại hồ sơ để chờ phê duyệt.");
-    } catch {
-      setNotice("Không thể gửi lại hồ sơ để duyệt. Vui lòng kiểm tra thông tin và thử lại.");
+    } catch (cause) {
+      setSubmissionError(
+        cause instanceof Error
+          ? cause.message
+          : "Không thể gửi lại hồ sơ để duyệt. Vui lòng kiểm tra thông tin và thử lại.",
+      );
     } finally {
       setResubmitting(false);
     }
@@ -851,6 +854,16 @@ export function InternalProfilePage() {
               </div>
             ) : null}
 
+            {submissionError ? (
+              <div className="tw-flex tw-min-h-11 tw-items-start tw-gap-3 tw-rounded-vm-md tw-border tw-border-red-200 tw-bg-red-50 tw-px-4 tw-py-3 tw-text-[0.86rem] tw-font-bold tw-text-red-800" role="alert">
+                <i className="fas fa-exclamation-circle tw-mt-0.5" />
+                <div>
+                  <strong className="tw-block">Không thể gửi hồ sơ</strong>
+                  <span className="tw-mt-0.5 tw-block tw-font-semibold">{submissionError}</span>
+                </div>
+              </div>
+            ) : null}
+
             {isPartner && profile.account?.emailVerified === false ? (
               <div className="tw-flex tw-min-h-11 tw-flex-wrap tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-3 tw-text-[0.86rem] tw-font-bold tw-text-amber-800">
                 <i className="fas fa-envelope-open-text" />
@@ -917,7 +930,7 @@ export function InternalProfilePage() {
                   <div className="tw-col-span-full tw-grid tw-gap-2">
                     <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Địa chỉ liên hệ</span>
                     <VietnamAddressPicker
-                      mode="current"
+                      mode="auto"
                       value={form.structuredAddress}
                       onChange={(structuredAddress) => setForm((current) => ({ ...current, structuredAddress }))}
                     />
@@ -959,7 +972,10 @@ export function InternalProfilePage() {
                       value={orgForm.organizationCode}
                       placeholder="Nhập mã đơn vị"
                       readOnly={!!profile.organization?.organizationCode}
-                      onChange={(event) => setOrgForm((current) => ({ ...current, organizationCode: event.target.value.toUpperCase() }))}
+                      onChange={(event) => {
+                        setSubmissionError(null);
+                        setOrgForm((current) => ({ ...current, organizationCode: event.target.value.toUpperCase() }));
+                      }}
                     />
                   </label>
                   <label className="tw-grid tw-gap-2">
@@ -968,15 +984,21 @@ export function InternalProfilePage() {
                       className="tw-h-[42px] tw-text-[0.95rem]"
                       value={orgForm.organizationName}
                       placeholder="Nhập tên đơn vị"
-                      onChange={(event) => setOrgForm((current) => ({ ...current, organizationName: event.target.value }))}
+                      onChange={(event) => {
+                        setSubmissionError(null);
+                        setOrgForm((current) => ({ ...current, organizationName: event.target.value }));
+                      }}
                     />
                   </label>
                   <div className="tw-col-span-full tw-grid tw-gap-2">
                     <span className="tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700">Địa chỉ đơn vị</span>
                     <VietnamAddressPicker
-                      mode="current"
+                      mode="auto"
                       value={orgForm.organizationAddress}
-                      onChange={(organizationAddress) => setOrgForm((current) => ({ ...current, organizationAddress }))}
+                      onChange={(organizationAddress) => {
+                        setSubmissionError(null);
+                        setOrgForm((current) => ({ ...current, organizationAddress }));
+                      }}
                     />
                     {profile.organization?.addressDisplay && !orgForm.organizationAddress.provinceCode ? (
                       <span className="tw-text-xs tw-font-semibold tw-text-amber-700">

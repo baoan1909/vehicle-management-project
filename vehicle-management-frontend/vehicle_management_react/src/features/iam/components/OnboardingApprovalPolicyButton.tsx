@@ -56,13 +56,21 @@ function PolicySwitch({
   );
 }
 
-export function OnboardingApprovalPolicyButton() {
+type OnboardingApprovalPolicyButtonProps = {
+  /** Keeps a feature workspace focused on its own approval policy. */
+  scope?: "all" | "partner";
+};
+
+export function OnboardingApprovalPolicyButton({ scope = "all" }: OnboardingApprovalPolicyButtonProps = {}) {
   const { user } = useAuth();
   const toast = useToast();
-  const canManagePolicies = hasAnyPermission(user, ["ORGANIZATION_CREATE_ALL"])
-    || hasAnyPermission(user, ["ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL"]);
+  const canManagePolicies = scope === "partner"
+    ? hasAnyPermission(user, ["ORGANIZATION_REGISTRATION_REVIEW_ALL"])
+    : hasAnyPermission(user, ["ORGANIZATION_REGISTRATION_REVIEW_ALL"])
+      || hasAnyPermission(user, ["ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL"]);
   const canManageCustomerPolicy = hasAnyPermission(user, ["ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL"]);
-  const canManagePartnerPolicy = hasAnyPermission(user, ["ORGANIZATION_CREATE_ALL"]);
+  // Partner registration policy follows the same permission as manual review.
+  const canManagePartnerPolicy = hasAnyPermission(user, ["ORGANIZATION_REGISTRATION_REVIEW_ALL"]);
   const canManageAvatarPolicy = canManageCustomerPolicy && canManagePartnerPolicy;
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -117,26 +125,30 @@ export function OnboardingApprovalPolicyButton() {
         description="Cấu hình áp dụng cho hồ sơ được tạo sau thời điểm bật. Hồ sơ đang chờ vẫn cần xét duyệt thủ công."
         onClose={saving ? () => undefined : () => setOpen(false)}
         open={open}
-        title="Chính sách tự động duyệt"
+        title={scope === "partner" ? "Tự động duyệt đối tác" : "Chính sách tự động duyệt"}
       >
         {loading ? (
           <InfoBanner tone="info" title="Đang tải cấu hình" description="Vui lòng chờ trong giây lát." icon={<i className="fas fa-spinner fa-spin" />} />
         ) : (
           <div className="tw-grid tw-gap-3">
-            <PolicySwitch
-              checked={policies.customerAutoApproveEnabled}
-              description="Tự động kích hoạt Customer sau khi hoàn tất hồ sơ và email đã được xác minh."
-              disabled={saving || !canManageCustomerPolicy}
-              label="Tự động duyệt khách hàng mới"
-              onChange={(checked) => setPolicies((current) => ({ ...current, customerAutoApproveEnabled: checked }))}
-            />
-            <PolicySwitch
-              checked={policies.avatarAutoApproveEnabled}
-              description="Tự động duyệt ảnh đại diện mới sau kiểm tra định dạng. Luồng này độc lập với onboarding và trạng thái tài khoản."
-              disabled={saving || !canManageAvatarPolicy}
-              label="Tự động duyệt ảnh đại diện"
-              onChange={(checked) => setPolicies((current) => ({ ...current, avatarAutoApproveEnabled: checked }))}
-            />
+            {scope === "all" ? (
+              <>
+                <PolicySwitch
+                  checked={policies.customerAutoApproveEnabled}
+                  description="Tự động kích hoạt Customer sau khi hoàn tất hồ sơ và email đã được xác minh."
+                  disabled={saving || !canManageCustomerPolicy}
+                  label="Tự động duyệt khách hàng mới"
+                  onChange={(checked) => setPolicies((current) => ({ ...current, customerAutoApproveEnabled: checked }))}
+                />
+                <PolicySwitch
+                  checked={policies.avatarAutoApproveEnabled}
+                  description="Tự động duyệt ảnh đại diện mới sau kiểm tra định dạng. Luồng này độc lập với onboarding và trạng thái tài khoản."
+                  disabled={saving || !canManageAvatarPolicy}
+                  label="Tự động duyệt ảnh đại diện"
+                  onChange={(checked) => setPolicies((current) => ({ ...current, avatarAutoApproveEnabled: checked }))}
+                />
+              </>
+            ) : null}
             <PolicySwitch
               checked={policies.partnerAutoApproveEnabled}
               description="Tự động tạo đơn vị, membership và kích hoạt Partner sau khi email đã được xác minh."

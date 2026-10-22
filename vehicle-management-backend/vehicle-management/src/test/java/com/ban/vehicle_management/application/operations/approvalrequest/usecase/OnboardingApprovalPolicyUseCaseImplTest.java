@@ -63,7 +63,7 @@ class OnboardingApprovalPolicyUseCaseImplTest {
 
         var result = useCase.updatePolicies(new UpdateOnboardingApprovalPoliciesCommand(true, true, true));
 
-        verify(currentAccountPortIn, org.mockito.Mockito.atLeastOnce()).requirePermission("ORGANIZATION_CREATE_ALL");
+        verify(currentAccountPortIn, org.mockito.Mockito.atLeastOnce()).requirePermission("ORGANIZATION_REGISTRATION_REVIEW_ALL");
         verify(currentAccountPortIn, org.mockito.Mockito.atLeastOnce()).requirePermission("ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL");
         assertTrue(result.customerAutoApproveEnabled());
         assertTrue(result.partnerAutoApproveEnabled());
@@ -82,7 +82,7 @@ class OnboardingApprovalPolicyUseCaseImplTest {
         OnboardingApprovalPolicy customer = policy(OnboardingApprovalPolicyType.CUSTOMER_ONBOARDING);
         OnboardingApprovalPolicy partner = policy(OnboardingApprovalPolicyType.PARTNER_REGISTRATION);
         AvatarApprovalPolicy avatar = avatarPolicy();
-        org.mockito.Mockito.lenient().when(currentAccountPortIn.hasPermission("ORGANIZATION_CREATE_ALL")).thenReturn(true);
+        org.mockito.Mockito.lenient().when(currentAccountPortIn.hasPermission("ORGANIZATION_REGISTRATION_REVIEW_ALL")).thenReturn(true);
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(actorAccountId);
         when(policyPortOut.findByTypeForUpdate(OnboardingApprovalPolicyType.CUSTOMER_ONBOARDING))
                 .thenReturn(Optional.of(customer));
@@ -106,7 +106,7 @@ class OnboardingApprovalPolicyUseCaseImplTest {
         OnboardingApprovalPolicy customer = policy(OnboardingApprovalPolicyType.CUSTOMER_ONBOARDING);
         OnboardingApprovalPolicy partner = policy(OnboardingApprovalPolicyType.PARTNER_REGISTRATION);
         AvatarApprovalPolicy avatar = avatarPolicy();
-        org.mockito.Mockito.lenient().when(currentAccountPortIn.hasPermission("ORGANIZATION_CREATE_ALL")).thenReturn(true);
+        org.mockito.Mockito.lenient().when(currentAccountPortIn.hasPermission("ORGANIZATION_REGISTRATION_REVIEW_ALL")).thenReturn(true);
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
         when(policyPortOut.findByTypeForUpdate(OnboardingApprovalPolicyType.CUSTOMER_ONBOARDING))
                 .thenReturn(Optional.of(customer));

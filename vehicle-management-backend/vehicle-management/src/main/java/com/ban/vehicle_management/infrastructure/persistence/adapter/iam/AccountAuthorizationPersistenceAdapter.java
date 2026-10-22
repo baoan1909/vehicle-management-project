@@ -50,6 +50,12 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
     }
 
     @Override
+    public Optional<UUID> findCreatedByAccountId(UUID accountId) {
+        return accountRepository.findById(accountId)
+                .map(AccountEntity::getCreatedBy);
+    }
+
+    @Override
     public Set<String> findPermissionCodesByAccountId(UUID accountId) {
         return accountRepository.findById(accountId)
                 .map(AccountEntity::getRoleId)

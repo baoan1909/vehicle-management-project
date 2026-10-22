@@ -72,7 +72,6 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
     public static final String LEGACY_TARGET_TABLE = "organizations";
     private static final String ORGANIZATION_REGISTRATION_REVIEW_ALL = "ORGANIZATION_REGISTRATION_REVIEW_ALL";
     private static final String ORGANIZATION_READ_ALL = "ORGANIZATION_READ_ALL";
-    private static final String ORGANIZATION_CREATE_ALL = "ORGANIZATION_CREATE_ALL";
     private static final String NEXT_VERIFY_EMAIL = "VERIFY_EMAIL";
     private static final Logger LOGGER = LoggerFactory.getLogger(PartnerRegistrationUseCaseImpl.class);
 
@@ -685,13 +684,13 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
                     NotificationType.ACCOUNT_PROFILE_SUBMITTED,
                     title,
                     "Có yêu cầu phê duyệt mới cần xử lý.",
-                    "/admin/partner-registrations",
+                    "/admin/account?tab=onboarding",
                     targetSchema,
                     targetTable,
                     approvalRequestId,
                     new NotificationRecipientCriteria(
                             true,
-                            Set.of(ORGANIZATION_CREATE_ALL),
+                            Set.of(ORGANIZATION_REGISTRATION_REVIEW_ALL),
                             applicantAccountId == null ? Set.of() : Set.of(applicantAccountId),
                             true
                     )

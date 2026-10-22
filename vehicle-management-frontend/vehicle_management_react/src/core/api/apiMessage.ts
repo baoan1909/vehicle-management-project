@@ -42,6 +42,7 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Active invoice already exists for subscription": "Vé đăng ký đã có hóa đơn đang hoạt động.",
   "Active invoice already exists for lost card report": "Phiếu báo mất thẻ đã có hóa đơn đang hoạt động.",
   "Invalid user credentials": "Tên đăng nhập hoặc mật khẩu không đúng.",
+  "Identity card already exists": "Số CCCD/CMND này đã được sử dụng cho một tài khoản khác.",
   "Account is not fully set up": "Tài khoản chưa hoàn tất thiết lập.",
   "Voucher code already exists": "Mã voucher này đã tồn tại. Vui lòng chọn một mã khác.",
   "Voucher code not found": "Mã ưu đãi không tồn tại. Vui lòng kiểm tra lại mã.",

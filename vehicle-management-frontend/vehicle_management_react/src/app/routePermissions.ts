@@ -41,11 +41,10 @@ export const adminRoutePermissions = {
   "/admin/employee": ["EMPLOYEE_READ_ALL"],
   "/admin/employee/form": ["EMPLOYEE_CREATE_ALL", "EMPLOYEE_UPDATE_ALL"],
   "/admin/shifts": ["SHIFT_READ_ALL", "SHIFT_ASSIGNMENT_READ_ALL"],
-  "/admin/account": ["ACCOUNT_READ_ALL"],
+  // Either account administration or Partner-registration review may open this
+  // shared workspace; each tab still checks its own permission before rendering.
+  "/admin/account": ["ACCOUNT_READ_ALL", "ORGANIZATION_REGISTRATION_REVIEW_ALL"],
   "/admin/account/form": ["ACCOUNT_CREATE_ALL", "ACCOUNT_UPDATE_ALL"],
-  "/admin/partner-registrations": ["ORGANIZATION_REGISTRATION_REVIEW_ALL"],
-  "/admin/organization-profile": ["ORGANIZATION_PROFILE_READ_OWN"],
-  "/admin/organization-profile-approvals": ["ORGANIZATION_PROFILE_REVIEW_ALL"],
   "/admin/avatar-approvals": ["USER_PROFILE_READ_ALL"],
   "/admin/onboarding-approvals": ["ACCOUNT_READ_ALL"],
   "/admin/profile": [],

@@ -77,3 +77,4 @@ BEGIN
         RAISE EXCEPTION 'USER_GUIDE permissions must only be granted to SYSTEM_ADMIN by default';
     END IF;
 END $$;
+

@@ -31,7 +31,7 @@ class OnboardingApprovalSummaryUseCaseImplTest {
         UUID accountId = UUID.randomUUID();
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(access(accountId));
         when(onboardingApprovalSummaryPortOut.countPendingSystemAdminApprovalsExcluding(accountId)).thenReturn(2L);
-        when(onboardingApprovalSummaryPortOut.countPendingParkingManagerApprovals()).thenReturn(3L);
+        when(onboardingApprovalSummaryPortOut.countPendingParkingManagerApprovalsCreatedBy(accountId)).thenReturn(3L);
 
         OnboardingApprovalSummaryResult result = useCase.getMyPendingSummary();
 
