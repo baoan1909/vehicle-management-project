@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 
 public interface OrganizationMembershipRepository extends JpaRepository<OrganizationMembershipEntity, UUID> {
@@ -23,6 +24,24 @@ public interface OrganizationMembershipRepository extends JpaRepository<Organiza
           and membership.status = :status
         """)
     Set<UUID> findActiveOrganizationIdsByAccountId(
+            @Param("accountId") UUID accountId,
+            @Param("status") OrganizationMembershipStatus status
+    );
+
+    @Query("""
+        select membership.organizationId
+        from OrganizationMembershipEntity membership
+        where membership.accountId = :accountId
+        """)
+    Set<UUID> findOrganizationIdsByAccountId(@Param("accountId") UUID accountId);
+
+    @Modifying
+    @Query("""
+        update OrganizationMembershipEntity membership
+        set membership.status = :status
+        where membership.accountId = :accountId
+        """)
+    int updateStatusByAccountId(
             @Param("accountId") UUID accountId,
             @Param("status") OrganizationMembershipStatus status
     );

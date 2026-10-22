@@ -62,6 +62,7 @@ public interface ParkingLotApiMapper {
                 parkingLot.addressDisplay(),
                 parkingLot.latitude(),
                 parkingLot.longitude(),
+                parkingLot.status(),
                 distanceMeters,
                 distanceKm
         );

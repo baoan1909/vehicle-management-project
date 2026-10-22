@@ -22,6 +22,7 @@ import {
 } from "@/features/employees/api/employeesApi";
 import {
   getProvisionedAccounts,
+  updateProvisionedAccountStatus,
   type AdminProvisionableAccountRoleCode,
   type ProvisionedAccountResponse
 } from "@/features/iam/api/provisionedAccountApi";
@@ -170,18 +171,21 @@ function getRoleLabel(role?: string | null, fallback?: string | null) {
 
 function getJobTitleOptionsForOperator(role?: CurrentOperatorRole | null) {
   if (role === "SYSTEM_ADMIN") return assignableJobTitleOptions.filter((option) => option.role === "SYSTEM_ADMIN" || option.role === "PARKING_MANAGER");
+  if (role === "PARTNER_ADMIN") return assignableJobTitleOptions.filter((option) => option.role === "PARKING_MANAGER" || option.role === "EMPLOYEE");
   if (role === "PARKING_MANAGER") return assignableJobTitleOptions.filter((option) => option.role === "EMPLOYEE");
   return [];
 }
 
 function canManageEmployeeForOperator(operatorRole: CurrentOperatorRole | undefined, employeeRole: EmployeeRole) {
   if (operatorRole === "SYSTEM_ADMIN") return employeeRole === "SYSTEM_ADMIN" || employeeRole === "PARKING_MANAGER";
+  if (operatorRole === "PARTNER_ADMIN") return employeeRole === "PARKING_MANAGER" || employeeRole === "EMPLOYEE";
   if (operatorRole === "PARKING_MANAGER") return employeeRole === "EMPLOYEE";
   return false;
 }
 
 function getRoleFilterOptionsForOperator(role?: CurrentOperatorRole | null) {
   if (role === "SYSTEM_ADMIN") return roleOptions;
+  if (role === "PARTNER_ADMIN") return roleOptions.filter((option) => option.value === "all" || option.value === "PARKING_MANAGER" || option.value === "EMPLOYEE");
   if (role === "PARKING_MANAGER") return roleOptions.filter((option) => option.value === "all" || option.value === "EMPLOYEE");
   return roleOptions.filter((option) => option.value === "all");
 }
@@ -851,6 +855,8 @@ export function EmployeeListPage() {
   const [recentShifts, setRecentShifts] = useState<EmployeeRecentShiftApiResponse[]>([]);
   const [activityTimeline, setActivityTimeline] = useState<EmployeeActivityTimelineApiResponse[]>([]);
   const [permissionModalState, setPermissionModalState] = useState<EmployeePermissionModalState | null>(null);
+  const [pendingEmployeeAction, setPendingEmployeeAction] = useState<"activate" | "inactivate" | "suspend" | null>(null);
+  const [employeeActionSaving, setEmployeeActionSaving] = useState(false);
 
   const loadEmployees = async () => {
     setIsLoading(true);
@@ -926,6 +932,9 @@ export function EmployeeListPage() {
   const paginatedEmployees = filteredEmployees.slice(pageStartIndex, pageEndIndex);
 
   const selectedEmployee = filteredEmployees.find((employee) => employee.id === selectedId) ?? filteredEmployees[0] ?? emptyEmployee;
+  const selectedEmployeeIsActive = selectedEmployee.role === "PARKING_MANAGER"
+    ? selectedEmployee.accountStatus === "ACTIVE"
+    : selectedEmployee.status === "ACTIVE";
   const canManageSelectedEmployee = canManageEmployeeForOperator(user?.role, selectedEmployee.role);
   const canReadProvisionedAccounts = hasAnyPermission(user, ["ACCOUNT_READ_ALL"]);
   const canOpenSupportCenter = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
@@ -1065,7 +1074,22 @@ export function EmployeeListPage() {
   const handleEmployeeAction = async (action: "activate" | "inactivate" | "suspend") => {
     if (!selectedEmployee.id) return;
 
+    setEmployeeActionSaving(true);
     try {
+      if (selectedEmployee.role === "PARKING_MANAGER" && selectedEmployee.accountId) {
+        const status = action === "activate" ? "ACTIVE" : action === "inactivate" ? "DISABLED" : "LOCKED";
+        const reason = action === "activate"
+          ? "Partner Admin kích hoạt lại Parking Manager"
+          : action === "inactivate"
+            ? "Parking Manager đã ngừng làm việc"
+            : "Partner Admin tạm khóa Parking Manager";
+        const response = await updateProvisionedAccountStatus(selectedEmployee.accountId, { reason, status });
+        toast.success(response.message || "Đã cập nhật trạng thái Parking Manager.", "Cập nhật thành công");
+        setPendingEmployeeAction(null);
+        await loadEmployees();
+        return;
+      }
+
       const response =
         action === "activate"
           ? await activateEmployee(selectedEmployee.id)
@@ -1076,8 +1100,11 @@ export function EmployeeListPage() {
       upsertEmployee(mapEmployee(response.data));
       toast.success(response.message || "Đã cập nhật trạng thái nhân viên.", "Cập nhật thành công");
       void loadEmployeeDetails(selectedEmployee.id);
+      setPendingEmployeeAction(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không thể cập nhật trạng thái nhân viên.", "Thao tác thất bại");
+    } finally {
+      setEmployeeActionSaving(false);
     }
   };
 
@@ -1250,19 +1277,19 @@ export function EmployeeListPage() {
                   <i className="fas fa-pen" />
                   Cập nhật
                 </Button>
-                {selectedEmployee.status === "ACTIVE" ? (
+                {selectedEmployeeIsActive ? (
                   <>
-                    <Button variant="secondary" disabled={!selectedEmployee.id || !canManageSelectedEmployee} onClick={() => void handleEmployeeAction("inactivate")}>
+                    <Button variant="secondary" disabled={!selectedEmployee.id || !canManageSelectedEmployee} onClick={() => setPendingEmployeeAction("inactivate")}>
                       <i className="fas fa-user-slash" />
-                      Ngừng hoạt động
+                      {selectedEmployee.role === "PARKING_MANAGER" ? "Ngừng làm việc" : "Ngừng hoạt động"}
                     </Button>
-                    <Button variant="danger" disabled={!selectedEmployee.id || !canManageSelectedEmployee} onClick={() => void handleEmployeeAction("suspend")}>
+                    <Button variant="danger" disabled={!selectedEmployee.id || !canManageSelectedEmployee} onClick={() => setPendingEmployeeAction("suspend")}>
                       <i className="fas fa-lock" />
                       Tạm khóa
                     </Button>
                   </>
                 ) : (
-                  <Button variant="primary" disabled={!selectedEmployee.id || !canManageSelectedEmployee} onClick={() => void handleEmployeeAction("activate")}>
+                  <Button variant="primary" disabled={!selectedEmployee.id || !canManageSelectedEmployee} onClick={() => setPendingEmployeeAction("activate")}>
                     <i className="fas fa-user-check" />
                     Kích hoạt
                   </Button>
@@ -1326,6 +1353,42 @@ export function EmployeeListPage() {
 
         <EmployeeEditDrawer employee={editingEmployee} jobTitleOptions={jobTitleOptions} open={isEditOpen} onClose={closeEditDrawer} onSave={handleUpdateEmployee} />
         <EmployeePermissionModal open={Boolean(permissionModalState)} state={permissionModalState} onClose={closePermissionModal} />
+        <Modal
+          open={pendingEmployeeAction !== null}
+          title={pendingEmployeeAction === "activate"
+            ? "Kích hoạt lại tài khoản"
+            : pendingEmployeeAction === "suspend"
+              ? "Tạm khóa tài khoản"
+              : selectedEmployee.role === "PARKING_MANAGER"
+                ? "Xác nhận ngừng làm việc"
+                : "Xác nhận ngừng hoạt động"}
+          description={pendingEmployeeAction === "inactivate" && selectedEmployee.role === "PARKING_MANAGER"
+            ? "Manager sẽ bị đăng xuất, khóa tài khoản và gỡ khỏi toàn bộ bãi xe. Khi kích hoạt lại, Partner Admin cần phân công bãi lại."
+            : "Vui lòng xác nhận thay đổi trạng thái tài khoản nhân sự này."}
+          onClose={() => { if (!employeeActionSaving) setPendingEmployeeAction(null); }}
+          actions={(
+            <div className="tw-flex tw-justify-end tw-gap-2">
+              <Button variant="secondary" disabled={employeeActionSaving} onClick={() => setPendingEmployeeAction(null)}>Hủy</Button>
+              <Button
+                variant={pendingEmployeeAction === "activate" ? "primary" : "danger"}
+                loading={employeeActionSaving}
+                onClick={() => pendingEmployeeAction && void handleEmployeeAction(pendingEmployeeAction)}
+              >
+                {pendingEmployeeAction === "activate"
+                  ? "Kích hoạt"
+                  : pendingEmployeeAction === "suspend"
+                    ? "Tạm khóa"
+                    : selectedEmployee.role === "PARKING_MANAGER"
+                      ? "Ngừng làm việc"
+                      : "Ngừng hoạt động"}
+              </Button>
+            </div>
+          )}
+        >
+          <p className="tw-m-0 tw-text-sm tw-font-semibold tw-text-vm-slate-700">
+            {selectedEmployee.name} · {selectedEmployee.username}
+          </p>
+        </Modal>
       </section>
     </div>
   );

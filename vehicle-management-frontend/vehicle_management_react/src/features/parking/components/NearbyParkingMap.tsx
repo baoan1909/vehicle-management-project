@@ -23,6 +23,20 @@ type Props = {
 
 const VIETNAM_CENTER: [number, number] = [16.047079, 108.20623];
 
+function getLotMarkerColor(lot: NearbyParkingLot, selectedLotId: string | null) {
+  if (lot.parkingLotId === selectedLotId) return "#dc2626";
+  if (lot.status === "ACTIVE") return "#0f766e";
+  if (lot.status === "SETUP") return "#d97706";
+  return "#475569";
+}
+
+function getLotStatusLabel(status: NearbyParkingLot["status"]) {
+  if (status === "ACTIVE") return "Đang hoạt động";
+  if (status === "SETUP") return "Đang thiết lập";
+  if (status === "MAINTENANCE") return "Đang bảo trì";
+  return "Đã đóng";
+}
+
 function ViewportController({ lots, selectedLotId, userLocation }: Pick<Props, "lots" | "selectedLotId" | "userLocation">) {
   const map = useMap();
 
@@ -80,7 +94,7 @@ export function NearbyParkingMap({
     lot.parkingLotId,
     L.divIcon({
       className: "",
-      html: `<div aria-hidden="true" style="display:grid;place-items:center;width:36px;height:42px;border:3px solid white;border-radius:18px 18px 18px 4px;transform:rotate(-45deg);background:${lot.parkingLotId === selectedLotId ? "#dc2626" : "#0f766e"};color:white;font-weight:900;box-shadow:0 3px 12px rgba(15,23,42,.35)"><span style="transform:rotate(45deg)">${index + 1}</span></div>`,
+      html: `<div aria-hidden="true" style="display:grid;place-items:center;width:36px;height:42px;border:3px solid white;border-radius:18px 18px 18px 4px;transform:rotate(-45deg);background:${getLotMarkerColor(lot, selectedLotId)};color:white;font-weight:900;box-shadow:0 3px 12px rgba(15,23,42,.35)"><span style="transform:rotate(45deg)">${index + 1}</span></div>`,
       iconAnchor: [18, 40],
     }),
   ])), [lots, selectedLotId]);
@@ -129,7 +143,7 @@ export function NearbyParkingMap({
           title={`Bãi xe ${index + 1}: ${lot.name}`}
           eventHandlers={{ click: () => onSelectLot(lot.parkingLotId) }}
         >
-          <Tooltip>{index + 1}. {lot.name}</Tooltip>
+          <Tooltip>{index + 1}. {lot.name} · {getLotStatusLabel(lot.status)}</Tooltip>
         </Marker>
       ))}
     </MapContainer>

@@ -2315,10 +2315,7 @@ export function ParkingLotStructurePage() {
         lot={activeLot}
         open={managerAssignmentOpen}
         onClose={() => setManagerAssignmentOpen(false)}
-        onCompleted={(manager) => {
-          setManagerAssignmentOpen(false);
-          toast.success(`Đã phân công ${manager.account.username} cho bãi ${activeLot?.code ?? "đã chọn"}.`);
-        }}
+        onChanged={(message) => toast.success(message)}
       />
 
       <Modal

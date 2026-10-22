@@ -126,7 +126,7 @@ public class EmployeeAccessGuard {
             return false;
         }
         return employeePortOut.findAccountIdByEmployeeId(employee.getEmployeeId())
-                .map(organizationPortOut::findActiveOrganizationIdsByAccountId)
+                .map(organizationPortOut::findOrganizationIdsByAccountId)
                 .stream()
                 .flatMap(Set::stream)
                 .anyMatch(actorOrganizations::contains);

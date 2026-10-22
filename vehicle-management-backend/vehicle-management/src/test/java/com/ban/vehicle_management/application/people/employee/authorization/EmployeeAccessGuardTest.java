@@ -60,7 +60,7 @@ class EmployeeAccessGuardTest {
                 .thenReturn(Set.of(UUID.randomUUID()));
         when(employeePortOut.findAccountIdByEmployeeId(staff.getEmployeeId()))
                 .thenReturn(Optional.of(staffAccountId));
-        when(organizationPortOut.findActiveOrganizationIdsByAccountId(staffAccountId))
+        when(organizationPortOut.findOrganizationIdsByAccountId(staffAccountId))
                 .thenReturn(Set.of(UUID.randomUUID()));
 
         assertThrows(AccessDeniedException.class, () -> employeeAccessGuard.ensureCanRead(staff));
@@ -141,7 +141,7 @@ class EmployeeAccessGuardTest {
                 .thenReturn(Set.of(organizationId));
         when(employeePortOut.findAccountIdByEmployeeId(target.getEmployeeId()))
                 .thenReturn(Optional.of(targetAccountId));
-        when(organizationPortOut.findActiveOrganizationIdsByAccountId(targetAccountId))
+        when(organizationPortOut.findOrganizationIdsByAccountId(targetAccountId))
                 .thenReturn(Set.of(organizationId));
     }
 

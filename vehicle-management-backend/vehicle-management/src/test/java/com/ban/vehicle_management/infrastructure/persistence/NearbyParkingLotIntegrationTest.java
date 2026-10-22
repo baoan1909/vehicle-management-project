@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.ban.vehicle_management.application.parking.parkinglot.model.result.NearbyParkingLotResult;
 import com.ban.vehicle_management.application.parking.parkinglot.port.in.NearbyParkingLotPortIn;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -52,14 +53,18 @@ class NearbyParkingLotIntegrationTest extends com.ban.vehicle_management.testsup
         UUID middleId = UUID.randomUUID();
         UUID boundaryId = UUID.randomUUID();
         UUID outsideId = UUID.randomUUID();
-        UUID inactiveId = UUID.randomUUID();
+        UUID setupId = UUID.randomUUID();
+        UUID maintenanceId = UUID.randomUUID();
+        UUID closedId = UUID.randomUUID();
         UUID nullLocationId = UUID.randomUUID();
 
         insertParkingLotAtDistance(nearestId, "ACTIVE", 1_000);
         insertParkingLotAtDistance(middleId, "ACTIVE", 3_000);
         insertParkingLotAtDistance(boundaryId, "ACTIVE", 4_999);
         insertParkingLotAtDistance(outsideId, "ACTIVE", 5_001);
-        insertParkingLotAtDistance(inactiveId, "SETUP", 500);
+        insertParkingLotAtDistance(setupId, "SETUP", 500);
+        insertParkingLotAtDistance(maintenanceId, "MAINTENANCE", 2_000);
+        insertParkingLotAtDistance(closedId, "CLOSED", 750);
         insertParkingLotWithoutLocation(nullLocationId);
 
         List<NearbyParkingLotResult> results = nearbyParkingLotPortIn.findNearby(
@@ -70,12 +75,24 @@ class NearbyParkingLotIntegrationTest extends com.ban.vehicle_management.testsup
         );
 
         assertEquals(
-                List.of(nearestId, middleId, boundaryId),
+                List.of(setupId, nearestId, maintenanceId, middleId, boundaryId),
                 results.stream().map(NearbyParkingLotResult::parkingLotId).toList()
         );
-        assertEquals(1_000, results.get(0).distanceMeters(), 0.05);
-        assertEquals(3_000, results.get(1).distanceMeters(), 0.05);
-        assertEquals(4_999, results.get(2).distanceMeters(), 0.05);
+        assertEquals(
+                List.of(
+                        ParkingLotStatus.SETUP,
+                        ParkingLotStatus.ACTIVE,
+                        ParkingLotStatus.MAINTENANCE,
+                        ParkingLotStatus.ACTIVE,
+                        ParkingLotStatus.ACTIVE
+                ),
+                results.stream().map(NearbyParkingLotResult::status).toList()
+        );
+        assertEquals(500, results.get(0).distanceMeters(), 0.05);
+        assertEquals(1_000, results.get(1).distanceMeters(), 0.05);
+        assertEquals(2_000, results.get(2).distanceMeters(), 0.05);
+        assertEquals(3_000, results.get(3).distanceMeters(), 0.05);
+        assertEquals(4_999, results.get(4).distanceMeters(), 0.05);
 
         List<NearbyParkingLotResult> limited = nearbyParkingLotPortIn.findNearby(
                 ORIGIN_LATITUDE,
@@ -84,7 +101,7 @@ class NearbyParkingLotIntegrationTest extends com.ban.vehicle_management.testsup
                 2
         );
         assertEquals(
-                List.of(nearestId, middleId),
+                List.of(setupId, nearestId),
                 limited.stream().map(NearbyParkingLotResult::parkingLotId).toList()
         );
     }
@@ -108,6 +125,7 @@ class NearbyParkingLotIntegrationTest extends com.ban.vehicle_management.testsup
                 .andExpect(jsonPath("$.data[0].addressDisplay").value("Nearby integration test"))
                 .andExpect(jsonPath("$.data[0].latitude").isNumber())
                 .andExpect(jsonPath("$.data[0].longitude").isNumber())
+                .andExpect(jsonPath("$.data[0].status").value("ACTIVE"))
                 .andExpect(jsonPath("$.data[0].distanceMeters").value(1_240))
                 .andExpect(jsonPath("$.data[0].distanceKm").value(1.24))
                 .andExpect(jsonPath("$.data[0].organizationId").doesNotExist());
@@ -146,7 +164,7 @@ class NearbyParkingLotIntegrationTest extends com.ban.vehicle_management.testsup
                 EXPLAIN (ANALYZE, COSTS OFF, SUMMARY OFF)
                 SELECT pl.parking_lot_id
                 FROM parking.parking_lots pl
-                WHERE pl.status = 'ACTIVE'
+                WHERE pl.status IN ('ACTIVE', 'SETUP', 'MAINTENANCE')
                   AND pl.location IS NOT NULL
                   AND public.ST_DWithin(
                         pl.location,
@@ -161,7 +179,7 @@ class NearbyParkingLotIntegrationTest extends com.ban.vehicle_management.testsup
                 .map(row -> String.valueOf(row.values().iterator().next()))
                 .reduce("", (left, right) -> left + System.lineSeparator() + right);
 
-        assertTrue(plan.contains("idx_parking_lots_active_location_gist"), plan);
+        assertTrue(plan.contains("idx_parking_lots_public_location_gist"), plan);
     }
 
     @Test

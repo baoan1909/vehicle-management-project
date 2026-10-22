@@ -26,6 +26,8 @@ public interface OrganizationPortOut {
 
     Set<UUID> findActiveOrganizationIdsByAccountId(UUID accountId);
 
+    Set<UUID> findOrganizationIdsByAccountId(UUID accountId);
+
     Set<UUID> findScopedParkingLotIdsByAccountId(UUID accountId);
 
     Set<UUID> findScopedParkingLotIdsByOrganizationIdAndAccountId(UUID organizationId, UUID accountId);
@@ -33,6 +35,16 @@ public interface OrganizationPortOut {
     void createActiveMembership(UUID organizationId, UUID accountId);
 
     void replaceParkingLotScopes(UUID organizationMembershipId, Set<UUID> parkingLotIds);
+
+    void addParkingLotScope(UUID organizationMembershipId, UUID parkingLotId);
+
+    void removeParkingLotScope(UUID organizationMembershipId, UUID parkingLotId);
+
+    Set<UUID> findActiveParkingManagerAccountIdsByParkingLotId(UUID parkingLotId);
+
+    void deactivateMembershipsAndClearParkingLotScopes(UUID accountId);
+
+    void activateMemberships(UUID accountId);
 
     boolean allParkingLotsBelongToOrganization(UUID organizationId, Set<UUID> parkingLotIds);
 

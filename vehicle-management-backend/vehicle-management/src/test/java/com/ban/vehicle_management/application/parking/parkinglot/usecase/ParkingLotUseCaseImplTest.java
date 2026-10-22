@@ -242,12 +242,11 @@ class ParkingLotUseCaseImplTest {
     }
 
     @Test
-    void shouldActivateParkingLot() {
+    void shouldAllowPartnerAdminToActivateParkingLotWithoutPriorManagerRequest() {
         UUID parkingLotId = UUID.randomUUID();
         ParkingLot existingParkingLot = validParkingLot();
         existingParkingLot.setParkingLotId(parkingLotId);
         existingParkingLot.setStatus(ParkingLotStatus.SETUP);
-        existingParkingLot.setActivationRequestedAt(Instant.now());
         existingParkingLot.setAddressDisplay("So 1 Vo Van Ngan");
         existingParkingLot.setCurrentWardCode("00001");
         existingParkingLot.setLatitude(BigDecimal.valueOf(10.85));

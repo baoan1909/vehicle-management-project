@@ -20,6 +20,32 @@ import {
 
 const RADIUS_OPTIONS = [1, 3, 5] as const;
 const LOW_ACCURACY_THRESHOLD_METERS = 500;
+const PARKING_LOT_STATUS_META = {
+  ACTIVE: {
+    label: "Đang hoạt động",
+    badgeClass: "tw-bg-emerald-100 tw-text-emerald-800",
+    numberClass: "tw-bg-teal-700",
+  },
+  SETUP: {
+    label: "Đang thiết lập",
+    badgeClass: "tw-bg-amber-100 tw-text-amber-900",
+    numberClass: "tw-bg-amber-600",
+  },
+  MAINTENANCE: {
+    label: "Đang bảo trì",
+    badgeClass: "tw-bg-slate-200 tw-text-slate-800",
+    numberClass: "tw-bg-slate-600",
+  },
+  CLOSED: {
+    label: "Đã đóng",
+    badgeClass: "tw-bg-red-100 tw-text-red-800",
+    numberClass: "tw-bg-red-700",
+  },
+} satisfies Record<NearbyParkingLot["status"], {
+  label: string;
+  badgeClass: string;
+  numberClass: string;
+}>;
 
 type MapErrorBoundaryProps = {
   children: ReactNode;
@@ -65,6 +91,15 @@ function createDirectionsUrl(origin: MapPoint, destination: NearbyParkingLot) {
     origin: `${origin.latitude},${origin.longitude}`,
     destination: `${destination.latitude},${destination.longitude}`,
     travelmode: "driving",
+  }).toString();
+  return url.toString();
+}
+
+function createLocationUrl(destination: NearbyParkingLot) {
+  const url = new URL("https://www.google.com/maps/search/");
+  url.search = new URLSearchParams({
+    api: "1",
+    query: `${destination.latitude},${destination.longitude}`,
   }).toString();
   return url.toString();
 }
@@ -437,6 +472,7 @@ export function NearbyParkingLotsPage() {
               <ol className="tw-m-0 tw-grid tw-list-none tw-gap-3 tw-p-0" aria-label="Danh sách bãi xe theo khoảng cách tăng dần">
                 {lots.map((lot, index) => {
                   const selected = lot.parkingLotId === selectedLotId;
+                  const statusMeta = PARKING_LOT_STATUS_META[lot.status];
                   return (
                     <li key={lot.parkingLotId}>
                       <article className={`tw-rounded-vm-lg tw-border tw-border-solid tw-bg-white tw-p-4 tw-shadow-sm tw-transition ${selected ? "tw-border-blue-500 tw-ring-2 tw-ring-blue-100" : "tw-border-slate-200"}`}>
@@ -447,9 +483,14 @@ export function NearbyParkingLotsPage() {
                           onClick={() => setSelectedLotId(lot.parkingLotId)}
                         >
                           <div className="tw-flex tw-items-start tw-gap-3">
-                            <span className="tw-grid tw-h-9 tw-w-9 tw-flex-none tw-place-items-center tw-rounded-full tw-bg-teal-700 tw-font-black tw-text-white" aria-hidden="true">{index + 1}</span>
+                            <span className={`tw-grid tw-h-9 tw-w-9 tw-flex-none tw-place-items-center tw-rounded-full tw-font-black tw-text-white ${statusMeta.numberClass}`} aria-hidden="true">{index + 1}</span>
                             <span className="tw-min-w-0 tw-flex-1">
-                              <strong className="tw-block tw-text-base tw-font-black tw-text-slate-950">{lot.name}</strong>
+                              <span className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                                <strong className="tw-text-base tw-font-black tw-text-slate-950">{lot.name}</strong>
+                                <span className={`tw-rounded-full tw-px-2.5 tw-py-1 tw-text-xs tw-font-black ${statusMeta.badgeClass}`}>
+                                  {statusMeta.label}
+                                </span>
+                              </span>
                               <span className="tw-mt-1 tw-block tw-text-sm tw-leading-5 tw-text-slate-600">{lot.addressDisplay || "Địa chỉ đang cập nhật"}</span>
                             </span>
                             <span className="tw-whitespace-nowrap tw-rounded-full tw-bg-blue-50 tw-px-3 tw-py-1 tw-text-sm tw-font-black tw-text-blue-800">{formatDistance(lot)}</span>
@@ -457,14 +498,20 @@ export function NearbyParkingLotsPage() {
                         </button>
                         {selected && userLocation ? (
                           <div className="tw-mt-4 tw-border-0 tw-border-t tw-border-solid tw-border-slate-100 tw-pt-4">
+                            {lot.status !== "ACTIVE" ? (
+                              <p className="tw-mb-3 tw-mt-0 tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-sm tw-font-bold tw-text-amber-900">
+                                Bãi xe {statusMeta.label.toLocaleLowerCase("vi-VN")} và chưa nhận xe. Bạn có thể xem vị trí để tham khảo cho lần sau.
+                              </p>
+                            ) : null}
                             <a
                               className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-2 tw-rounded-full tw-bg-slate-950 tw-px-4 tw-font-black tw-text-white hover:tw-bg-blue-700 hover:tw-text-white hover:tw-no-underline"
-                              href={createDirectionsUrl(userLocation, lot)}
+                              href={lot.status === "ACTIVE" ? createDirectionsUrl(userLocation, lot) : createLocationUrl(lot)}
                               target="_blank"
                               rel="noopener noreferrer"
-                              aria-label={`Mở Google Maps chỉ đường đến ${lot.name}`}
+                              aria-label={lot.status === "ACTIVE" ? `Mở Google Maps chỉ đường đến ${lot.name}` : `Xem vị trí ${lot.name} trên Google Maps`}
                             >
-                              <i className="fas fa-directions" aria-hidden="true" /> Chỉ đường bằng Google Maps
+                              <i className={`fas ${lot.status === "ACTIVE" ? "fa-directions" : "fa-map-marker-alt"}`} aria-hidden="true" />
+                              {lot.status === "ACTIVE" ? "Chỉ đường bằng Google Maps" : "Xem vị trí trên Google Maps"}
                             </a>
                           </div>
                         ) : null}
@@ -477,7 +524,9 @@ export function NearbyParkingLotsPage() {
 
             {selectedLot && userLocation ? (
               <p className="tw-mb-0 tw-mt-4 tw-text-center tw-text-xs tw-leading-5 tw-text-slate-500">
-                Google Maps sẽ mở ở tab mới với chế độ lái xe. Liên kết chỉ đường không cần API key.
+                {selectedLot.status === "ACTIVE"
+                  ? "Google Maps sẽ mở ở tab mới với chế độ lái xe. Liên kết chỉ đường không cần API key."
+                  : "Bãi chưa hoạt động chỉ được hiển thị để tham khảo vị trí và khoảng cách."}
               </p>
             ) : null}
           </div>

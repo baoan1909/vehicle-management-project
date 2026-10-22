@@ -25,6 +25,7 @@ export type NearbyParkingLot = {
   addressDisplay: string | null;
   latitude: number;
   longitude: number;
+  status: "SETUP" | "ACTIVE" | "MAINTENANCE" | "CLOSED";
   distanceMeters: number;
   distanceKm: number;
 };
