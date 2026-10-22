@@ -314,6 +314,11 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ env.FRONTEND_DIR }}/package-lock.json
 
+      # npm 11 uses npm's current bulk advisory API instead of the retired
+      # quick endpoint used by some npm clients bundled with Node 22.
+      - name: Use npm 11 for the dependency security scan
+        run: npm install --global "npm@11"
+
       - name: Install locked frontend dependencies
         run: npm ci
 
