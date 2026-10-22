@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button, Card } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
@@ -226,6 +226,12 @@ export function ParkingLotOverviewPage() {
   }
 
   if (!selectedLot) {
+    // Dùng chung workspace cấu trúc khi chưa có bãi. Trang này đã có wizard
+    // tạo bãi và sẽ hiển thị các thao tác còn lại ở trạng thái bị khóa.
+    // Nhờ vậy Partner Admin biết toàn bộ quy trình nhưng chỉ có thể bắt đầu
+    // đúng từ bước tạo bãi xe đầu tiên.
+    if (!error) return <Navigate to="/admin/parking-structure" replace />;
+
     return (
       <div className="tw-px-5 tw-py-6">
         <Card className="tw-mx-auto tw-max-w-[780px] tw-p-10 tw-text-center">

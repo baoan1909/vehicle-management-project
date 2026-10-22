@@ -17,5 +17,12 @@ public interface AccountAuthorizationPortOut {
 
     Optional<CurrentAccountAccess> findByKeycloakUserId(String keycloakUserId);
 
+    /**
+     * Returns the account that provisioned the target account. This ownership
+     * information is used by scoped approval flows; it is not a client-visible
+     * field.
+     */
+    Optional<UUID> findCreatedByAccountId(UUID accountId);
+
     Set<String> findPermissionCodesByAccountId(UUID accountId);
 }

@@ -610,6 +610,7 @@ export function AccountListPage() {
   const canReadPartnerOnboarding = hasAnyPermission(user, ["ORGANIZATION_REGISTRATION_REVIEW_ALL"]);
   const canReadOnboarding = hasAnyPermission(user, [
     "ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL",
+    "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_OWN",
     "ORGANIZATION_REGISTRATION_REVIEW_ALL",
     "ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL",
   ]);

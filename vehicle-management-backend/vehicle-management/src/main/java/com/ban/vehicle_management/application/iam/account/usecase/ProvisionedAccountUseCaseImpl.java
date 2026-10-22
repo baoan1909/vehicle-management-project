@@ -256,6 +256,11 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         account.setUserProfileId(UUID.randomUUID());
         account.setKeycloakUserId(keycloakUserId);
         account.setRoleId(roleId);
+        // Keep creator provenance explicitly. The approval flow later uses it
+        // to give the request only to the Partner Admin who created a Manager.
+        if (isPartnerAdmin() && AdminProvisionableAccountRoleCode.PARKING_MANAGER.equals(roleCode)) {
+            account.setCreatedBy(currentAccountPortIn.getCurrentAccountIdOrThrow());
+        }
         account.setStatus(provisionedAccountPolicy.initialAccountStatus(roleCode));
         account.setFailedLoginCount(0);
         return account;

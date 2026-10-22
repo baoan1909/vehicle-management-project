@@ -13,7 +13,7 @@ public class OnboardingApprovalPolicy {
     public static final String REVIEW_SYSTEM_ADMIN_PERMISSION =
             "ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL";
     public static final String REVIEW_PARKING_MANAGER_PERMISSION =
-            "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL";
+            "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_OWN";
     public static final String REVIEW_EMPLOYEE_PERMISSION =
             "ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL";
     public static final String REVIEW_CUSTOMER_PERMISSION =

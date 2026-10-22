@@ -7,7 +7,7 @@ import { hasAnyPermission } from "@/shared/auth/permissions";
 import { OnboardingApprovalWorkspace } from "./OnboardingApprovalPage";
 import { PartnerRegistrationManagementPage } from "./PartnerRegistrationManagementPage";
 
-type OnboardingCategory = "system-admin" | "partner" | "customer";
+type OnboardingCategory = "system-admin" | "partner" | "parking-manager" | "customer";
 
 type OnboardingCategoryTab = {
   icon: string;
@@ -28,6 +28,12 @@ const categoryTabs: OnboardingCategoryTab[] = [
     label: "Đối tác",
     permissions: ["ORGANIZATION_REGISTRATION_REVIEW_ALL"],
     value: "partner",
+  },
+  {
+    icon: "fas fa-parking",
+    label: "Quản lý bãi xe",
+    permissions: ["ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_OWN"],
+    value: "parking-manager",
   },
   {
     icon: "fas fa-user-check",
@@ -99,7 +105,7 @@ export function OnboardingApprovalHub({ onPartnerPendingCountChange }: Onboardin
         <OnboardingApprovalWorkspace
           categoryTabs={categoryTabControls}
           embedded
-          fixedKind={selectedCategory}
+          fixedKind={selectedCategory === "parking-manager" ? "internal-employee" : selectedCategory}
           hideHeading
           hideKindSelector
         />

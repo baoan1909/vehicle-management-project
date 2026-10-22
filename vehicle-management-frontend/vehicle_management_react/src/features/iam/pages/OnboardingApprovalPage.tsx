@@ -56,7 +56,7 @@ const approvalTabs: ApprovalTab[] = [
     kind: "internal-employee",
     label: "Nhân sự nội bộ",
     permissions: [
-      "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL",
+      "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_OWN",
       "ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL",
     ],
   },
@@ -152,7 +152,7 @@ function canReviewItem(item: OnboardingApprovalResponse, tab: ApprovalTab, curre
 function reviewPermissionsForItem(item: OnboardingApprovalResponse, tab: ApprovalTab) {
   if (tab.kind !== "internal-employee") return tab.permissions;
   return item.account?.roleCode === "PARKING_MANAGER"
-    ? ["ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL"]
+    ? ["ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_OWN"]
     : ["ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL"];
 }
 

@@ -8,6 +8,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.authori
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ApprovalRequestRepository;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,12 +23,14 @@ class OnboardingApprovalSummaryPersistenceAdapterTest {
 
     @Test
     void countPendingInternalEmployeeApprovals_shouldSeparateManagerAndEmployeeLikeTargets() {
-        when(approvalRequestRepository.countPendingInternalEmployeeApprovalsByTargetRole(
+        UUID partnerAdminAccountId = UUID.randomUUID();
+        when(approvalRequestRepository.countPendingInternalEmployeeApprovalsByTargetRoleAndAccountCreator(
                 InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
                 InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
                 InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
                 ApprovalRequestStatus.PENDING,
-                OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE
+                OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE,
+                partnerAdminAccountId
         )).thenReturn(2L);
         when(approvalRequestRepository.countPendingInternalEmployeeApprovalsByTargetRoleNot(
                 InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
@@ -37,17 +40,18 @@ class OnboardingApprovalSummaryPersistenceAdapterTest {
                 OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE
         )).thenReturn(4L);
 
-        long managerResult = adapter.countPendingParkingManagerApprovals();
+        long managerResult = adapter.countPendingParkingManagerApprovalsCreatedBy(partnerAdminAccountId);
         long employeeResult = adapter.countPendingEmployeeLikeApprovals();
 
         assertEquals(2L, managerResult);
         assertEquals(4L, employeeResult);
-        verify(approvalRequestRepository).countPendingInternalEmployeeApprovalsByTargetRole(
+        verify(approvalRequestRepository).countPendingInternalEmployeeApprovalsByTargetRoleAndAccountCreator(
                 InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
                 InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
                 InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
                 ApprovalRequestStatus.PENDING,
-                OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE
+                OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE,
+                partnerAdminAccountId
         );
         verify(approvalRequestRepository).countPendingInternalEmployeeApprovalsByTargetRoleNot(
                 InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,

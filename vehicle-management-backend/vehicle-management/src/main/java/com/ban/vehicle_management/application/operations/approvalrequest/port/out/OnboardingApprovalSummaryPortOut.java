@@ -6,7 +6,7 @@ public interface OnboardingApprovalSummaryPortOut {
 
     long countPendingSystemAdminApprovalsExcluding(UUID currentAccountId);
 
-    long countPendingParkingManagerApprovals();
+    long countPendingParkingManagerApprovalsCreatedBy(UUID partnerAdminAccountId);
 
     long countPendingEmployeeLikeApprovals();
 

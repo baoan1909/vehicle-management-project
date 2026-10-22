@@ -40,7 +40,8 @@ public class OnboardingApprovalSummaryUseCaseImpl implements OnboardingApprovalS
                 : 0L;
         long internalEmployeePending = 0L;
         if (scope.canReviewParkingManager()) {
-            internalEmployeePending += onboardingApprovalSummaryPortOut.countPendingParkingManagerApprovals();
+            internalEmployeePending += onboardingApprovalSummaryPortOut
+                    .countPendingParkingManagerApprovalsCreatedBy(currentAccount.accountId());
         }
         if (scope.canReviewEmployee()) {
             internalEmployeePending += onboardingApprovalSummaryPortOut.countPendingEmployeeLikeApprovals();

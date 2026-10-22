@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
@@ -26,6 +27,9 @@ class InternalEmployeeApprovalAccessGuardTest {
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
+
+    @Mock
+    private AccountAuthorizationPortOut accountAuthorizationPortOut;
 
     @Mock
     private OrganizationPortOut organizationPortOut;
@@ -60,11 +64,10 @@ class InternalEmployeeApprovalAccessGuardTest {
     }
 
     @Test
-    void shouldAllowPartnerAdminToReviewOnlyParkingManagersInSameOrganization() {
+    void shouldAllowPartnerAdminToReviewOnlyParkingManagersItCreated() {
         UUID partnerAdminAccountId = UUID.randomUUID();
         UUID ownManagerAccountId = UUID.randomUUID();
         UUID otherManagerAccountId = UUID.randomUUID();
-        UUID organizationId = UUID.randomUUID();
         CurrentAccountAccess partnerAdmin = new CurrentAccountAccess(
                 partnerAdminAccountId,
                 "sub-partner-admin",
@@ -76,12 +79,10 @@ class InternalEmployeeApprovalAccessGuardTest {
                 null,
                 Set.of(OnboardingApprovalPolicy.REVIEW_PARKING_MANAGER_PERMISSION)
         );
-        when(organizationPortOut.findActiveOrganizationIdsByAccountId(partnerAdminAccountId))
-                .thenReturn(Set.of(organizationId));
-        when(organizationPortOut.findActiveOrganizationIdsByAccountId(ownManagerAccountId))
-                .thenReturn(Set.of(organizationId));
-        when(organizationPortOut.findActiveOrganizationIdsByAccountId(otherManagerAccountId))
-                .thenReturn(Set.of(UUID.randomUUID()));
+        when(accountAuthorizationPortOut.findCreatedByAccountId(ownManagerAccountId))
+                .thenReturn(java.util.Optional.of(partnerAdminAccountId));
+        when(accountAuthorizationPortOut.findCreatedByAccountId(otherManagerAccountId))
+                .thenReturn(java.util.Optional.of(UUID.randomUUID()));
 
         assertTrue(internalEmployeeApprovalAccessGuard.canAccessTarget(
                 partnerAdmin,
@@ -119,6 +120,21 @@ class InternalEmployeeApprovalAccessGuardTest {
 
         assertTrue(internalEmployeeApprovalAccessGuard.canAccessTarget(partner, ownEmployeeId, "EMPLOYEE"));
         assertFalse(internalEmployeeApprovalAccessGuard.canAccessTarget(partner, otherEmployeeId, "EMPLOYEE"));
+    }
+
+    @Test
+    void systemAdminCannotReviewParkingManagerWithRetiredGlobalPermission() {
+        CurrentAccountAccess systemAdmin = new CurrentAccountAccess(
+                UUID.randomUUID(), "system-sub", "system.admin", "system@example.com", UUID.randomUUID(),
+                "SYSTEM_ADMIN", AccountStatus.ACTIVE, null,
+                Set.of("ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_ALL")
+        );
+
+        assertFalse(internalEmployeeApprovalAccessGuard.canAccessTarget(
+                systemAdmin,
+                UUID.randomUUID(),
+                OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE
+        ));
     }
 
     @Test
