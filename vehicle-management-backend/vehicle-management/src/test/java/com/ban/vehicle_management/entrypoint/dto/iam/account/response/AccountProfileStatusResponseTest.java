@@ -5,10 +5,49 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class AccountProfileStatusResponseTest {
+
+    @Test
+    void shouldKeepOnboardingTopLevelContractFields() {
+        List<String> componentNames = Arrays.stream(AccountProfileStatusResponse.class.getRecordComponents())
+                .map(component -> component.getName())
+                .toList();
+
+        assertEquals(List.of(
+                "onboardingRequired",
+                "account",
+                "profile",
+                "employee",
+                "customer",
+                "partnerApplication",
+                "organization"
+        ), componentNames);
+    }
+
+    @Test
+    void shouldKeepOnboardingAccountContractFields() {
+        List<String> componentNames = Arrays.stream(
+                        AccountProfileStatusResponse.AccountInfoResponse.class.getRecordComponents()
+                )
+                .map(component -> component.getName())
+                .toList();
+
+        assertEquals(List.of(
+                "accountId",
+                "accountStatus",
+                "username",
+                "email",
+                "keycloakUserId",
+                "roleCode",
+                "permissionCodes",
+                "emailVerified"
+        ), componentNames);
+    }
 
     @Test
     void shouldDeclareNonNullJsonInclusionAtResponseLevel() {

@@ -3,6 +3,7 @@ package com.ban.vehicle_management.infrastructure.persistence.adapter.iam;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RoleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
@@ -66,9 +67,8 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
     private CurrentAccountAccess toCurrentAccountAccess(AccountEntity accountEntity) {
         Set<String> permissionCodes = rolePermissionRepository
                 .findActivePermissionCodesByRoleId(accountEntity.getRoleId());
-        String roleCode = roleRepository.findById(accountEntity.getRoleId())
-                .map(role -> role.getCode())
-                .orElse(null);
+        RoleEntity role = roleRepository.findById(accountEntity.getRoleId()).orElse(null);
+        String roleCode = role == null ? null : role.getCode();
 
         return new CurrentAccountAccess(
                 accountEntity.getAccountId(),
@@ -77,6 +77,7 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
                 accountEntity.getEmail(),
                 accountEntity.getRoleId(),
                 roleCode,
+                role != null && Boolean.TRUE.equals(role.getIsActive()),
                 accountEntity.getStatus(),
                 resolveEmployeeStatus(accountEntity),
                 resolveCustomerStatus(accountEntity),

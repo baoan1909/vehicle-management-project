@@ -32,6 +32,8 @@ import com.ban.vehicle_management.shared.enumeration.notification.UserGuideError
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideEventType;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideReplayPolicy;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.exception.UserGuideException;
 import java.time.Instant;
 import java.util.List;
@@ -247,7 +249,8 @@ class UserGuideRuntimeUseCaseImplTest {
     private void mockAccount(Set<String> permissions, UUID roleId) {
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(new CurrentAccountAccess(
                 ACCOUNT_ID, "sub", "user", "user@example.com", roleId, "CUSTOMER",
-                AccountStatus.ACTIVE, null, null, null, permissions));
+                AccountStatus.ACTIVE, null, CustomerStatus.ACTIVE,
+                CustomerApprovalStatus.APPROVED, permissions));
     }
 
     private UserGuideFeature enabledFeature() {

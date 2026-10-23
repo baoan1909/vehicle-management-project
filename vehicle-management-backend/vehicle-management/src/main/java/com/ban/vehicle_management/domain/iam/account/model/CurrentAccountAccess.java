@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.domain.iam.account.model;
 
-import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
+import com.ban.vehicle_management.domain.iam.account.policy.EffectiveAccountAccessPolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
@@ -16,12 +16,45 @@ public record CurrentAccountAccess(
         String email,
         UUID roleId,
         String roleCode,
+        boolean roleActive,
         AccountStatus status,
         EmployeeStatus employeeStatus,
         CustomerStatus customerStatus,
         CustomerApprovalStatus customerApprovalStatus,
         Set<String> permissionCodes
 ) {
+    private static final EffectiveAccountAccessPolicy EFFECTIVE_ACCESS_POLICY =
+            new EffectiveAccountAccessPolicy();
+
+    public CurrentAccountAccess(
+            UUID accountId,
+            String subject,
+            String username,
+            String email,
+            UUID roleId,
+            String roleCode,
+            AccountStatus status,
+            EmployeeStatus employeeStatus,
+            CustomerStatus customerStatus,
+            CustomerApprovalStatus customerApprovalStatus,
+            Set<String> permissionCodes
+    ) {
+        this(
+                accountId,
+                subject,
+                username,
+                email,
+                roleId,
+                roleCode,
+                true,
+                status,
+                employeeStatus,
+                customerStatus,
+                customerApprovalStatus,
+                permissionCodes
+        );
+    }
+
     public CurrentAccountAccess(
             UUID accountId,
             String subject,
@@ -33,43 +66,25 @@ public record CurrentAccountAccess(
             EmployeeStatus employeeStatus,
             Set<String> permissionCodes
     ) {
-        this(accountId, subject, username, email, roleId, roleCode, status, employeeStatus, null, null, permissionCodes);
+        this(accountId, subject, username, email, roleId, roleCode, true, status, employeeStatus, null, null, permissionCodes);
     }
 
     public boolean canUseBusinessPermissions() {
-        if (!AccountStatus.ACTIVE.equals(status)) {
-            return false;
-        }
-
-        if (employeeStatus != null && !EmployeeStatus.ACTIVE.equals(employeeStatus)) {
-            return false;
-        }
-        if ((customerStatus != null || customerApprovalStatus != null)
-                && (!CustomerStatus.ACTIVE.equals(customerStatus)
-                || !CustomerApprovalStatus.APPROVED.equals(customerApprovalStatus))) {
-            return false;
-        }
-
-        AdminProvisionableAccountRoleCode provisionableRole = resolveProvisionableRole(roleCode);
-        if (provisionableRole == null || !provisionableRole.requiresEmployeeRecord()) {
-            return true;
-        }
-
-        return EmployeeStatus.ACTIVE.equals(employeeStatus);
+        return EFFECTIVE_ACCESS_POLICY.canUseBusinessPermissions(toAccessState());
     }
 
     public Set<String> getEffectivePermissionCodes() {
-        return canUseBusinessPermissions() ? permissionCodes : Set.of();
+        return EFFECTIVE_ACCESS_POLICY.resolveEffectivePermissionCodes(toAccessState(), permissionCodes);
     }
 
-    private static AdminProvisionableAccountRoleCode resolveProvisionableRole(String roleCode) {
-        if (roleCode == null || roleCode.isBlank()) {
-            return null;
-        }
-        try {
-            return AdminProvisionableAccountRoleCode.valueOf(roleCode);
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
+    private EffectiveAccountAccessPolicy.AccessState toAccessState() {
+        return new EffectiveAccountAccessPolicy.AccessState(
+                roleCode,
+                roleActive,
+                status,
+                employeeStatus,
+                customerStatus,
+                customerApprovalStatus
+        );
     }
 }

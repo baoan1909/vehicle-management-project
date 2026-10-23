@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
+import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.infrastructure.mapper.iam.AccountPersistenceMapper;
@@ -16,9 +17,12 @@ import com.ban.vehicle_management.infrastructure.mapper.people.CustomerPersisten
 import com.ban.vehicle_management.infrastructure.mapper.people.EmployeePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.people.UserProfilePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RoleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ApprovalRequestRepository;
@@ -26,12 +30,20 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -62,6 +74,9 @@ class AccountProfilePersistenceAdapterTest {
     private ApprovalRequestRepository approvalRequestRepository;
 
     @Mock
+    private OrganizationRepository organizationRepository;
+
+    @Mock
     private AccountPersistenceMapper accountPersistenceMapper;
 
     @Mock
@@ -75,6 +90,75 @@ class AccountProfilePersistenceAdapterTest {
 
     @InjectMocks
     private AccountProfilePersistenceAdapter adapter;
+
+    @ParameterizedTest
+    @MethodSource("permissionParityStates")
+    void onboardingPermissionsShouldMatchCurrentAccessForSameLifecycleState(
+            String roleCode,
+            boolean roleActive,
+            AccountStatus accountStatus,
+            EmployeeStatus employeeStatus,
+            CustomerStatus customerStatus,
+            CustomerApprovalStatus customerApprovalStatus
+    ) {
+        UUID accountId = UUID.randomUUID();
+        UUID roleId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+        Set<String> assignedPermissions = Set.of("ROLE_UPDATE_ALL", "ACCOUNT_READ_ALL");
+
+        AccountEntity accountEntity = new AccountEntity();
+        accountEntity.setAccountId(accountId);
+        accountEntity.setRoleId(roleId);
+        accountEntity.setUserProfileId(userProfileId);
+        accountEntity.setStatus(accountStatus);
+
+        RoleEntity roleEntity = new RoleEntity();
+        roleEntity.setRoleId(roleId);
+        roleEntity.setCode(roleCode);
+        roleEntity.setIsActive(roleActive);
+
+        when(accountRepository.findById(accountId)).thenReturn(Optional.of(accountEntity));
+        when(roleRepository.findById(roleId)).thenReturn(Optional.of(roleEntity));
+
+        if (employeeStatus != null) {
+            EmployeeEntity employeeEntity = new EmployeeEntity();
+            employeeEntity.setEmployeeId(UUID.randomUUID());
+            employeeEntity.setUserProfileId(userProfileId);
+            employeeEntity.setStatus(employeeStatus);
+            when(employeeRepository.findByUserProfileId(userProfileId)).thenReturn(Optional.of(employeeEntity));
+        }
+        if (customerStatus != null || customerApprovalStatus != null) {
+            CustomerEntity customerEntity = new CustomerEntity();
+            customerEntity.setCustomerId(UUID.randomUUID());
+            customerEntity.setUserProfileId(userProfileId);
+            customerEntity.setStatus(customerStatus);
+            customerEntity.setApprovalStatus(customerApprovalStatus);
+            when(customerRepository.findByUserProfileId(userProfileId)).thenReturn(Optional.of(customerEntity));
+        }
+
+        CurrentAccountAccess currentAccess = new CurrentAccountAccess(
+                accountId,
+                "subject",
+                "user",
+                "user@example.com",
+                roleId,
+                roleCode,
+                roleActive,
+                accountStatus,
+                employeeStatus,
+                customerStatus,
+                customerApprovalStatus,
+                assignedPermissions
+        );
+        if (currentAccess.canUseBusinessPermissions()) {
+            when(rolePermissionRepository.findActivePermissionCodesByRoleId(roleId))
+                    .thenReturn(assignedPermissions);
+        }
+
+        AccountProfileState onboarding = adapter.findProfileStateByAccountId(accountId).orElseThrow();
+
+        assertEquals(List.copyOf(currentAccess.getEffectivePermissionCodes()), onboarding.permissionCodes());
+    }
 
     @Test
     void completeProfileShouldUpdateExistingUserProfileWithoutReplacingAuditFields() {
@@ -180,5 +264,38 @@ class AccountProfilePersistenceAdapterTest {
         assertEquals("79", result.provinceCode());
         assertEquals("760", result.districtCode());
         assertEquals("26740", result.wardCode());
+    }
+
+    private static java.util.stream.Stream<Arguments> permissionParityStates() {
+        return java.util.stream.Stream.of(
+                Arguments.of("SYSTEM_ADMIN", true, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("SYSTEM_ADMIN", false, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("PARTNER_ADMIN", true, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("PARKING_MANAGER", true, AccountStatus.ACTIVE,
+                        EmployeeStatus.ACTIVE, null, null),
+                Arguments.of("PARKING_MANAGER", true, AccountStatus.ACTIVE,
+                        EmployeeStatus.SUSPENDED, null, null),
+                Arguments.of("EMPLOYEE", true, AccountStatus.ACTIVE, EmployeeStatus.ACTIVE, null, null),
+                Arguments.of("EMPLOYEE", true, AccountStatus.ACTIVE, EmployeeStatus.INACTIVE, null, null),
+                Arguments.of("EMPLOYEE", true, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null,
+                        CustomerStatus.ACTIVE, CustomerApprovalStatus.APPROVED),
+                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null,
+                        CustomerStatus.INACTIVE, CustomerApprovalStatus.APPROVED),
+                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null,
+                        CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING),
+                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null,
+                        CustomerStatus.ACTIVE, CustomerApprovalStatus.REJECTED),
+                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null,
+                        CustomerStatus.ACTIVE, CustomerApprovalStatus.SUSPENDED),
+                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("SYSTEM_ADMIN", true, AccountStatus.PENDING, null, null, null),
+                Arguments.of("SYSTEM_ADMIN", true, AccountStatus.LOCKED, null, null, null),
+                Arguments.of("SYSTEM_ADMIN", true, AccountStatus.DISABLED, null, null, null),
+                Arguments.of("CUSTOM_OPERATOR", true, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("CUSTOM_OPERATOR", true, AccountStatus.ACTIVE,
+                        EmployeeStatus.INACTIVE, null, null),
+                Arguments.of("custom_operator", true, AccountStatus.ACTIVE, null, null, null)
+        );
     }
 }
