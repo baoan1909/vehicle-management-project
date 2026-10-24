@@ -65,7 +65,7 @@ export const adminRoutePermissions = {
   "/admin/ai-knowledge-index": ["AI_KNOWLEDGE_READ_ALL"],
 } satisfies Record<string, string[]>;
 
-const adminFallbackRoute = "/admin/profile";
+export const adminFallbackRoute = "/admin/profile";
 const unmappedAdminRoutePermission = "__UNMAPPED_ADMIN_ROUTE__";
 
 export const customerFallbackRoute = "/customer/profile";
@@ -167,16 +167,68 @@ export function getVisibleAdminNavigation(user: CurrentUser | null | undefined) 
   return entries;
 }
 
-export function getFirstAccessibleAdminPath(user: CurrentUser | null | undefined) {
+export function getFirstPermissionedAdminPath(user: CurrentUser | null | undefined) {
   for (const entry of getVisibleAdminNavigation(user)) {
     if (entry.kind === "link") {
-      return entry.to;
+      if (entry.to !== adminFallbackRoute) return entry.to;
+      continue;
     }
 
     if (entry.kind === "group") {
-      return entry.items[0]?.to ?? adminFallbackRoute;
+      const firstItem = entry.items.find((item) => item.to !== adminFallbackRoute);
+      if (firstItem) return firstItem.to;
     }
   }
 
+  // Navigation is curated, so fall back to the route permission map for custom
+  // roles whose permissions are not represented in the current menu variant.
+  for (const path of Object.keys(adminRoutePermissions)) {
+    if (path === adminFallbackRoute || path.startsWith("/api/")) continue;
+    if (canAccessAdminRoute(user, path)) return path;
+  }
+
+  return null;
+}
+
+export function getFirstPermissionedCustomerPath(user: CurrentUser | null | undefined) {
+  for (const [path, permissionGroups] of Object.entries(customerRoutePermissionGroups)) {
+    if (path === customerFallbackRoute || permissionGroups.length === 0) continue;
+    if (permissionGroups.every((permissionGroup) => hasAnyPermission(user, permissionGroup))) {
+      return path;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Role may classify which safe profile surface is appropriate, but it never
+ * grants portal access. Portal access is decided by effective permissions.
+ */
+export function getProfileRoute(user: CurrentUser | null | undefined) {
+  if (user?.role === "CUSTOMER") return customerFallbackRoute;
+  if (user && !getFirstPermissionedAdminPath(user) && getFirstPermissionedCustomerPath(user)) {
+    return customerFallbackRoute;
+  }
   return adminFallbackRoute;
+}
+
+/**
+ * Chooses a landing route using effective permissions. Role is only a
+ * tie-breaker between two already-authorized portals and a profile classifier.
+ */
+export function getAccessibleLandingPath(user: CurrentUser | null | undefined) {
+  const adminPath = getFirstPermissionedAdminPath(user);
+  const customerPath = getFirstPermissionedCustomerPath(user);
+
+  if (adminPath && customerPath) {
+    return user?.role === "CUSTOMER" ? customerPath : adminPath;
+  }
+  if (adminPath) return adminPath;
+  if (customerPath) return customerPath;
+  return getProfileRoute(user);
+}
+
+export function getFirstAccessibleAdminPath(user: CurrentUser | null | undefined) {
+  return getFirstPermissionedAdminPath(user) ?? adminFallbackRoute;
 }

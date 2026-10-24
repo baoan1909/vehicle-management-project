@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { canAccessAdminRoute } from "@/app/routePermissions";
+import { canAccessAdminRoute, canAccessCustomerRoute, getProfileRoute } from "@/app/routePermissions";
 import { useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { getApplicationTimeZone } from "@/shared/time/applicationTime";
@@ -15,8 +15,9 @@ import {
 import { subscribeNotificationRealtime } from "@/features/notifications/api/notificationRealtime";
 import { publishNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
-import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
+import { mergeProfileDetails } from "@/features/iam/utils/accountProfileMapper";
 import { cn } from "@/lib/cn";
+import type { CurrentUser } from "@/shared/types/common";
 
 type NotificationBellProps = {
   variant?: "admin" | "customer";
@@ -142,15 +143,30 @@ function getGroupKey(type: NotificationType): NotificationGroupKey {
   return "service";
 }
 
-function normalizeNotificationTarget(notification: NotificationUserResponse, role?: string) {
+function canOpenNotificationTarget(user: CurrentUser | null | undefined, target: string) {
+  const routePath = target.split(/[?#]/, 1)[0];
+  if (routePath.startsWith("/admin/") || routePath.startsWith("/api/")) {
+    return canAccessAdminRoute(user, routePath);
+  }
+  if (routePath.startsWith("/customer/") || routePath.startsWith("/customerTicket/")) {
+    return canAccessCustomerRoute(user, routePath);
+  }
+  return true;
+}
+
+function firstAccessibleTarget(user: CurrentUser | null | undefined, targets: string[]) {
+  return targets.find((target) => canOpenNotificationTarget(user, target)) ?? getProfileRoute(user);
+}
+
+function normalizeNotificationTarget(notification: NotificationUserResponse, user: CurrentUser | null | undefined) {
   const redirectUrl = notification.redirectUrl?.trim();
-  if (redirectUrl) return redirectUrl;
+  if (redirectUrl) return canOpenNotificationTarget(user, redirectUrl) ? redirectUrl : getProfileRoute(user);
 
   if (notification.notificationType.startsWith("SUPPORT_TICKET")) {
-    return role === "CUSTOMER" ? "/customer/support" : "/admin/support-center";
+    return firstAccessibleTarget(user, ["/admin/support-center", "/customer/support"]);
   }
   if (notification.notificationType.startsWith("SUBSCRIPTION") || notification.notificationType.startsWith("PAYMENT") || notification.notificationType === "INVOICE_CREATED") {
-    return role === "CUSTOMER" ? "/customer/subscriptions" : "/admin/subscription-approvals";
+    return firstAccessibleTarget(user, ["/admin/subscription-approvals", "/customer/subscriptions"]);
   }
   if (notification.notificationType.startsWith("SHIFT")) {
     return "/admin/shifts";
@@ -162,25 +178,23 @@ function normalizeNotificationTarget(notification: NotificationUserResponse, rol
     return "/admin/price-plans";
   }
   if (notification.notificationType.includes("ONBOARDING") || notification.notificationType.includes("EMPLOYEE") || notification.notificationType.includes("SYSTEM_ADMIN")) {
-    if (role === "CUSTOMER") return "/customer/profile";
-    if (notification.relatedTable === "accounts") return "/admin/account?tab=onboarding&kind=system-admin";
-    if (notification.relatedTable === "employees") return "/admin/account?tab=onboarding&kind=internal-employee";
-    if (notification.relatedTable === "customers") return "/admin/account?tab=onboarding&kind=customer";
-    return "/admin/profile";
+    if (notification.relatedTable === "accounts") return firstAccessibleTarget(user, ["/admin/account?tab=onboarding&kind=system-admin"]);
+    if (notification.relatedTable === "employees") return firstAccessibleTarget(user, ["/admin/account?tab=onboarding&kind=internal-employee"]);
+    if (notification.relatedTable === "customers") return firstAccessibleTarget(user, ["/admin/account?tab=onboarding&kind=customer"]);
+    return getProfileRoute(user);
   }
   if (notification.notificationType.startsWith("ACCOUNT")) {
-    if (role === "CUSTOMER") return "/customer/profile";
-    if (notification.relatedTable === "accounts") return "/admin/account?tab=onboarding&kind=system-admin";
-    if (notification.relatedTable === "employees") return "/admin/account?tab=onboarding&kind=internal-employee";
-    if (notification.relatedTable === "customers") return "/admin/account?tab=onboarding&kind=customer";
-    return "/admin/profile";
+    if (notification.relatedTable === "accounts") return firstAccessibleTarget(user, ["/admin/account?tab=onboarding&kind=system-admin"]);
+    if (notification.relatedTable === "employees") return firstAccessibleTarget(user, ["/admin/account?tab=onboarding&kind=internal-employee"]);
+    if (notification.relatedTable === "customers") return firstAccessibleTarget(user, ["/admin/account?tab=onboarding&kind=customer"]);
+    return getProfileRoute(user);
   }
 
   return null;
 }
 
 export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
-  const { setUser, user } = useAuth();
+  const { invalidateAndRefreshAccess, setUser, user } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -194,7 +208,7 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
     try {
       const response = await getMyAccountProfile();
       setUser((currentUser) => currentUser
-        ? mergeCurrentUserWithAccountProfile(currentUser, response.data)
+        ? mergeProfileDetails(currentUser, response.data)
         : currentUser);
     } catch {
       // The notification remains visible and can be replayed; a later profile load reconciles the avatar.
@@ -226,6 +240,14 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
     return subscribeNotificationRealtime({
       onNotification: (notification) => {
         publishNotificationReceived(notification);
+        if (
+          notification.notificationType === "ACCOUNT_STATUS_CHANGED"
+          || notification.notificationType.includes("ONBOARDING")
+          || notification.notificationType.includes("EMPLOYEE")
+          || notification.notificationType.includes("SYSTEM_ADMIN")
+        ) {
+          void invalidateAndRefreshAccess("access-related-notification");
+        }
         if (["AVATAR_APPROVED", "AVATAR_REJECTED"].includes(notification.notificationType)) {
           void refreshCurrentUserAvatar();
         }
@@ -244,7 +266,7 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
         }
       },
     });
-  }, [refreshCurrentUserAvatar, toast, user]);
+  }, [invalidateAndRefreshAccess, refreshCurrentUserAvatar, toast, user]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -289,10 +311,8 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
   }
 
   async function handleItemClick(notification: NotificationUserResponse) {
-    const target = normalizeNotificationTarget(notification, user?.role);
-    const canNavigate =
-      target &&
-      (!target.startsWith("/admin/") || canAccessAdminRoute(user, target));
+    const target = normalizeNotificationTarget(notification, user);
+    const canNavigate = target && canOpenNotificationTarget(user, target);
 
     closePanel();
     if (isUnread(notification)) {

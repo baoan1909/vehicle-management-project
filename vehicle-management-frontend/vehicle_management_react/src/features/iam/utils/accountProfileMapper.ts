@@ -5,69 +5,66 @@ import { DEFAULT_USER_AVATAR_URL, getRoleLabel } from "@/shared/utils/accountSta
 import type { CurrentUser } from "@/shared/types/common";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 
-export function mergeCurrentUserWithAccountProfile(currentUser: CurrentUser, profile: AccountProfileStatusResponse): CurrentUser {
-  const username = profile.account?.username?.trim() || currentUser.username?.trim() || currentUser.email?.trim() || "user";
+/**
+ * Merges onboarding/profile data only. Authorization fields stay owned by
+ * current-access; a profile reload must never restore a stale role, status,
+ * permission list, access state, or revision.
+ */
+export function mergeProfileDetails(currentUser: CurrentUser, profile: AccountProfileStatusResponse): CurrentUser {
+  const username = currentUser.username?.trim() || currentUser.email?.trim() || "user";
   const fullName = profile.profile?.fullName?.trim() || currentUser.fullName?.trim() || username;
   const avatarUrl = resolvePublicMediaUrl(profile.profile?.avatarUrl) || resolvePublicMediaUrl(currentUser.avatarUrl) || DEFAULT_USER_AVATAR_URL;
-  const role = resolveProfileRole(profile.account?.roleCode) ?? resolveProfileRole(profile.account?.roleName) ?? inferRoleFromProfile(profile) ?? currentUser.role;
 
   return {
     ...currentUser,
-    accountStatus: profile.account?.accountStatus ?? currentUser.accountStatus,
+    addressDisplay: profile.profile?.addressDisplay ?? currentUser.addressDisplay,
     avatarUrl,
-    customerApprovalStatus: profile.customer?.customerApprovalStatus ?? currentUser.customerApprovalStatus,
-    customerStatus: profile.customer?.customerStatus ?? currentUser.customerStatus,
-    email: profile.account?.email ?? currentUser.email,
-    employeeStatus: profile.employee?.employeeStatus ?? currentUser.employeeStatus,
+    dateOfBirth: profile.profile?.dateOfBirth ?? currentUser.dateOfBirth,
     fullName,
-    id: profile.account?.accountId ?? currentUser.id,
+    gender: profile.profile?.gender ?? currentUser.gender,
+    identifyCard: profile.profile?.identifyCard ?? currentUser.identifyCard,
     jobTitle: profile.employee?.jobTitle ?? currentUser.jobTitle,
-    onboardingRequired: profile.onboardingRequired,
-    permissionCodes: normalizePermissionCodes(profile.account?.permissionCodes ?? []),
+    phoneNumber: profile.profile?.phoneNumber ?? currentUser.phoneNumber,
     profileStatus: profile.profile?.userProfileStatus ?? currentUser.profileStatus,
-    role,
-    roleLabel: getRoleLabel(role),
-    username
-  };
-}
-
-export function mergeCurrentUserWithCurrentAccess(currentUser: CurrentUser, access: CurrentAccountAccessResponse): CurrentUser {
-  const username = access.username?.trim() || currentUser.username?.trim() || currentUser.email?.trim() || "user";
-  const role = resolveProfileRole(access.roleCode) ?? currentUser.role;
-
-  return {
-    ...currentUser,
-    accountStatus: access.accountStatus ?? currentUser.accountStatus,
-    customerApprovalStatus: access.customerApprovalStatus ?? currentUser.customerApprovalStatus,
-    customerStatus: access.customerStatus ?? currentUser.customerStatus,
-    email: access.email ?? currentUser.email,
-    employeeStatus: access.employeeStatus ?? currentUser.employeeStatus,
-    fullName: currentUser.fullName?.trim() || username,
-    id: access.accountId ?? currentUser.id,
-    permissionCodes: normalizePermissionCodes(access.permissionCodes ?? []),
-    role,
-    roleLabel: getRoleLabel(role),
     username,
   };
 }
 
-function inferRoleFromProfile(profile: AccountProfileStatusResponse): CurrentUser["role"] | null {
-  if (profile.customer?.customerId || profile.customer?.customerCode || profile.customer?.customerStatus || profile.customer?.customerApprovalStatus) {
-    return "CUSTOMER";
-  }
+/**
+ * Replaces the authorization snapshot atomically from the authoritative
+ * current-access endpoint. No field falls back to token, cache, or onboarding.
+ */
+export function mergeAuthorizationSnapshot(currentUser: CurrentUser, access: CurrentAccountAccessResponse): CurrentUser {
+  const username = access.username?.trim() || currentUser.username?.trim() || currentUser.email?.trim() || "user";
+  const roleCode = access.roleCode.trim();
+  const role = resolveProfileRole(roleCode) ?? "UNKNOWN";
 
-  if (profile.employee?.employeeId || profile.employee?.employeeCode || profile.employee?.employeeStatus || profile.employee?.jobTitle) {
-    const jobTitle = normalizeRoleText(profile.employee?.jobTitle);
-    if (jobTitle === "SYSTEM ADMIN" || jobTitle === "QUAN TRI HE THONG" || jobTitle === "QUAN TRI") {
-      return "SYSTEM_ADMIN";
-    }
-    if (jobTitle === "PARKING MANAGER" || jobTitle === "MANAGER" || jobTitle === "QUAN LY") {
-      return "PARKING_MANAGER";
-    }
-    return "EMPLOYEE";
-  }
+  return {
+    ...currentUser,
+    accountStatus: access.accountStatus,
+    customerApprovalStatus: access.customerApprovalStatus ?? undefined,
+    customerStatus: access.customerStatus ?? undefined,
+    email: access.email ?? currentUser.email,
+    employeeStatus: access.employeeStatus ?? undefined,
+    id: access.accountId,
+    permissionCodes: normalizePermissionCodes(access.permissionCodes),
+    onboardingRequired: access.onboardingRequired,
+    accessState: access.accessState,
+    requiredAction: access.requiredAction ?? null,
+    accessRevision: access.accessRevision,
+    role,
+    roleCode,
+    roleLabel: role === "UNKNOWN" ? formatRoleCode(roleCode) : getRoleLabel(role),
+    username,
+  };
+}
 
-  return null;
+function formatRoleCode(roleCode: string) {
+  return roleCode
+    .replace(/^ROLE_/, "")
+    .replace(/_/g, " ")
+    .trim()
+    .toUpperCase();
 }
 
 function resolveProfileRole(roleCode?: string): CurrentUser["role"] | null {

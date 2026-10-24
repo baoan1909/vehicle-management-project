@@ -422,7 +422,7 @@ function Field({ children, label }: { children: ReactNode; label: string }) {
 
 export function CustomerListPage() {
   const toast = useToast();
-  const { user } = useAuth();
+  const { invalidateAndRefreshAccess, user } = useAuth();
   const canManageCustomer = hasAnyPermission(user, ["CUSTOMER_UPDATE_ALL"])
     && hasAnyPermission(user, ["PARKING_SCOPE_PLATFORM"]);
   const canApproveCustomer = hasAnyPermission(user, ["ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL"])
@@ -672,6 +672,7 @@ export function CustomerListPage() {
       }
 
       await approveCustomerOnboardingApproval(approval.request.approvalRequestId);
+      await invalidateAndRefreshAccess("customer-approval-transition");
       await loadCustomers();
       toast.success("Đã duyệt đăng ký khách hàng.", "Duyệt thành công");
     } catch (error) {

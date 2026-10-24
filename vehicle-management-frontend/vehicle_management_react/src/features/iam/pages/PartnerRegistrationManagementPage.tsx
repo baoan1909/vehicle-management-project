@@ -174,7 +174,7 @@ export function PartnerRegistrationManagementPage({
   onPendingCountChange,
 }: PartnerRegistrationManagementPageProps = {}) {
   const toast = useToast();
-  const { user } = useAuth();
+  const { invalidateAndRefreshAccess, user } = useAuth();
   // The same permission protects the API. Do not infer this from a role name.
   const canDecide = hasAnyPermission(user, ["ORGANIZATION_REGISTRATION_REVIEW_ALL"]);
   const [registrations, setRegistrations] = useState<PartnerRegistration[]>([]);
@@ -273,6 +273,7 @@ export function PartnerRegistrationManagementPage({
     setReviewError("");
     try {
       await reviewPartnerRegistration(selectedRegistration.approvalRequestId, decision, reviewNote);
+      await invalidateAndRefreshAccess("partner-registration-transition");
       toast.success(
         decision === "approve" ? "Đã tạo đơn vị và kích hoạt tài khoản quản trị viên đối tác." : "Đã từ chối yêu cầu đăng ký đối tác.",
         decision === "approve" ? "Duyệt thành công" : "Đã từ chối",

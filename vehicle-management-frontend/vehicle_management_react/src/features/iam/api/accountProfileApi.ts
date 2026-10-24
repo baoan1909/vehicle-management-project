@@ -2,7 +2,7 @@ import { appConfig } from "@/config/env";
 import { apiClient } from "@/core/api/apiClient";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
 import { localizeApiMessage, localizeApiResponseBody } from "@/core/api/apiMessage";
-import { getValidAccessToken, refreshAccessToken } from "@/core/auth/tokenRefresh";
+import { getValidAccessToken, refreshAccessToken } from "@/core/auth/oidcSession";
 import type { VietnamAddressValue } from "@/components/ui";
 
 type ApiResponse<T> = {
@@ -110,14 +110,21 @@ export type SocialAccountBootstrapResponse = {
   created: boolean;
 };
 
-export async function getMyAccountProfile() {
-  return apiClient<ApiResponse<AccountProfileStatusResponse>>(apiEndpoints.iam.accountProfile.onboarding);
+export async function getMyAccountProfile(options: { signal?: AbortSignal; timeoutMs?: number } = {}) {
+  return apiClient<ApiResponse<AccountProfileStatusResponse>>(apiEndpoints.iam.accountProfile.onboarding, {
+    signal: options.signal,
+    timeoutMs: options.timeoutMs,
+  });
 }
 
-export async function bootstrapSocialAccount() {
+export async function bootstrapSocialAccount(options: { signal?: AbortSignal; timeoutMs?: number } = {}) {
   return apiClient<ApiResponse<SocialAccountBootstrapResponse>>(
     apiEndpoints.iam.accountProfile.socialBootstrap,
-    { method: "POST" },
+    {
+      method: "POST",
+      signal: options.signal,
+      timeoutMs: options.timeoutMs,
+    },
   );
 }
 

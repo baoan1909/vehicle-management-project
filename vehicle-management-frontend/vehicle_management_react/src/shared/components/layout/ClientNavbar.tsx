@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-import { canAccessCustomerRoute } from "@/app/routePermissions";
+import { canAccessCustomerRoute, getProfileRoute } from "@/app/routePermissions";
 import { logoutCurrentUser } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
-import { preconnectKeycloakLoginOrigin, prepareKeycloakLoginUrl } from "@/features/auth/api/authApi";
+import { preconnectKeycloakLoginOrigin } from "@/features/auth/api/authApi";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { ChatInboxButton } from "@/features/support/components/ChatInboxButton";
 import { cn } from "@/lib/cn";
@@ -96,7 +96,6 @@ export function ClientNavbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [isLoginRedirecting, setIsLoginRedirecting] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const loginUrlPromiseRef = useRef<Promise<string> | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const mobileDrawerRef = useRef<HTMLElement | null>(null);
@@ -169,14 +168,6 @@ export function ClientNavbar() {
 
   function prepareLoginRedirect() {
     preconnectKeycloakLoginOrigin();
-    if (!loginUrlPromiseRef.current) {
-      loginUrlPromiseRef.current = prepareKeycloakLoginUrl().catch((error) => {
-        loginUrlPromiseRef.current = null;
-        throw error;
-      });
-    }
-
-    return loginUrlPromiseRef.current;
   }
 
   useEffect(() => {
@@ -197,8 +188,8 @@ export function ClientNavbar() {
     setIsLoginRedirecting(true);
 
     try {
-      const loginUrl = await prepareLoginRedirect();
-      window.location.assign(loginUrl);
+      prepareLoginRedirect();
+      window.location.assign("/login");
     } catch (error) {
       console.error(error);
       window.location.assign("/login");
@@ -319,7 +310,7 @@ export function ClientNavbar() {
                       </Link>
                     ) : null}
 
-                    <Link to={user?.role === "PARTNER_ADMIN" ? "/admin/profile" : "/customer/profile"} className={profileItemClassName} onClick={() => setProfileOpen(false)}>
+                    <Link to={getProfileRoute(user)} className={profileItemClassName} onClick={() => setProfileOpen(false)}>
                       <HeaderItemIcon icon="fas fa-user-circle" />
                       <HeaderItemCopy
                         title="Hồ sơ cá nhân"

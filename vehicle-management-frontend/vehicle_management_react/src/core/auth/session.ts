@@ -1,245 +1,46 @@
+import type { User } from "oidc-client-ts";
 import type { CurrentUser } from "@/shared/types/common";
-import { DEFAULT_USER_AVATAR_URL, getRoleLabel } from "@/shared/utils/accountStatus";
+import { DEFAULT_USER_AVATAR_URL } from "@/shared/utils/accountStatus";
 
-const ACCESS_TOKEN_KEY = "vm_access_token";
-const REFRESH_TOKEN_KEY = "vm_refresh_token";
-const ID_TOKEN_KEY = "vm_id_token";
-const CURRENT_USER_KEY = "vm_current_user";
-const AUTH_LOGOUT_IN_PROGRESS_KEY = "vm_auth_logout_in_progress";
-const AUTH_LOGOUT_STALE_MS = 5 * 60 * 1000;
+const LEGACY_AUTH_KEYS = [
+  "vm_access_token",
+  "vm_refresh_token",
+  "vm_id_token",
+  "vm_current_user",
+  "vm_pkce_code_verifier",
+  "vm_oauth_state",
+  "vm_keycloak_processed_authorization_code",
+];
 
-export type AuthTokenSet = {
-  accessToken: string;
-  refreshToken?: string;
-  idToken?: string;
-};
+export function createCurrentUserFromOidcUser(user: User): CurrentUser {
+  const profile = user.profile;
+  const username = textClaim(profile.preferred_username) || textClaim(profile.email) || profile.sub;
+  const fullName = textClaim(profile.name)
+    || [textClaim(profile.given_name), textClaim(profile.family_name)].filter(Boolean).join(" ")
+    || username;
 
-type JwtPayload = {
-  account_id?: string;
-  authorities?: string[];
-  email?: string;
-  exp?: number;
-  family_name?: string;
-  given_name?: string;
-  groups?: string[];
-  identity_provider?: string;
-  name?: string;
-  preferred_username?: string;
-  role?: string;
-  role_code?: string;
-  roleCode?: string;
-  roles?: string[];
-  realm_access?: {
-    roles?: string[];
+  return {
+    id: profile.sub,
+    username,
+    fullName,
+    role: "UNKNOWN",
+    avatarUrl: DEFAULT_USER_AVATAR_URL,
+    email: textClaim(profile.email) || undefined,
+    permissionCodes: undefined,
   };
-  resource_access?: Record<
-    string,
-    {
-      roles?: string[];
-    }
-  >;
-};
-
-export function getIdentityProviderFromAccessToken(accessToken: string) {
-  return decodeJwtPayload(accessToken)?.identity_provider?.trim().toLowerCase() ?? null;
 }
 
-export function getAccessToken() {
-  return localStorage.getItem(ACCESS_TOKEN_KEY) ?? sessionStorage.getItem(ACCESS_TOKEN_KEY);
+export function getIdentityProvider(user: User) {
+  const profile = user.profile as typeof user.profile & { identity_provider?: unknown };
+  return textClaim(profile.identity_provider).toLowerCase() || null;
 }
 
-export function getRefreshToken() {
-  return localStorage.getItem(REFRESH_TOKEN_KEY) ?? sessionStorage.getItem(REFRESH_TOKEN_KEY);
-}
-
-export function getIdToken() {
-  return localStorage.getItem(ID_TOKEN_KEY) ?? sessionStorage.getItem(ID_TOKEN_KEY);
-}
-
-export function saveAuthTokens(tokens: AuthTokenSet, remember = true) {
-  const storage = remember ? localStorage : sessionStorage;
-  clearAuthLogoutInProgress();
-  clearAuthTokens();
-  storage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-  if (tokens.refreshToken) storage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
-  if (tokens.idToken) storage.setItem(ID_TOKEN_KEY, tokens.idToken);
-}
-
-export function saveRefreshedAuthTokens(tokens: AuthTokenSet) {
-  if (isAuthLogoutInProgress()) return;
-
-  const storage = getTokenStorage();
-  storage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
-  if (tokens.refreshToken) storage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
-  if (tokens.idToken) storage.setItem(ID_TOKEN_KEY, tokens.idToken);
-}
-
-export function clearAuthTokens() {
+export function clearLegacyAuthStorage() {
   [localStorage, sessionStorage].forEach((storage) => {
-    storage.removeItem(ACCESS_TOKEN_KEY);
-    storage.removeItem(REFRESH_TOKEN_KEY);
-    storage.removeItem(ID_TOKEN_KEY);
-    storage.removeItem(CURRENT_USER_KEY);
+    LEGACY_AUTH_KEYS.forEach((key) => storage.removeItem(key));
   });
 }
 
-export function markAuthLogoutInProgress() {
-  const startedAt = Date.now().toString();
-  sessionStorage.setItem(AUTH_LOGOUT_IN_PROGRESS_KEY, startedAt);
-  localStorage.setItem(AUTH_LOGOUT_IN_PROGRESS_KEY, startedAt);
-}
-
-export function clearAuthLogoutInProgress() {
-  sessionStorage.removeItem(AUTH_LOGOUT_IN_PROGRESS_KEY);
-  localStorage.removeItem(AUTH_LOGOUT_IN_PROGRESS_KEY);
-}
-
-export function isAuthLogoutInProgress() {
-  const rawValue =
-    sessionStorage.getItem(AUTH_LOGOUT_IN_PROGRESS_KEY) ??
-    localStorage.getItem(AUTH_LOGOUT_IN_PROGRESS_KEY);
-
-  if (!rawValue) return false;
-
-  const startedAt = Number(rawValue);
-  if (!Number.isFinite(startedAt) || Date.now() - startedAt > AUTH_LOGOUT_STALE_MS) {
-    clearAuthLogoutInProgress();
-    return false;
-  }
-
-  return true;
-}
-
-export function getCurrentUserFromStoredToken(): CurrentUser | null {
-  const accessToken = getAccessToken();
-  if (!accessToken) return null;
-  const tokenUser = getCurrentUserFromAccessToken(accessToken);
-  if (!tokenUser) return null;
-
-  const cachedUser = getStoredCurrentUserSnapshot(tokenUser);
-  if (!cachedUser) return tokenUser;
-
-  const role = tokenUser.role !== "UNKNOWN" ? tokenUser.role : cachedUser.role ?? tokenUser.role;
-
-  return {
-    ...tokenUser,
-    ...cachedUser,
-    permissionCodes: undefined,
-    role,
-    roleLabel: role !== "UNKNOWN" ? getRoleLabel(role) : getRoleLabel(role, cachedUser.roleLabel ?? tokenUser.roleLabel)
-  };
-}
-
-export function getCurrentUserFromAccessToken(accessToken: string): CurrentUser | null {
-  const payload = decodeJwtPayload(accessToken);
-  if (!payload) return null;
-
-  const username = payload.preferred_username?.trim() || payload.email?.trim() || "user";
-  const tokenFullName = payload.name?.trim() || [payload.given_name, payload.family_name].filter(Boolean).join(" ").trim();
-  const fullName = tokenFullName || username;
-
-  const role = resolveAppRole(getTokenRoles(payload));
-
-  return {
-    id: payload.account_id ?? username,
-    username,
-    fullName,
-    role,
-    avatarUrl: DEFAULT_USER_AVATAR_URL,
-    email: payload.email,
-    permissionCodes: undefined,
-    roleLabel: getRoleLabel(role),
-  };
-}
-
-function decodeJwtPayload(token: string): JwtPayload | null {
-  const [, encodedPayload] = token.split(".");
-  if (!encodedPayload) return null;
-
-  try {
-    const base64 = encodedPayload.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
-    const json = decodeURIComponent(
-      atob(padded)
-        .split("")
-        .map((character) => `%${character.charCodeAt(0).toString(16).padStart(2, "0")}`)
-        .join(""),
-    );
-    return JSON.parse(json) as JwtPayload;
-  } catch {
-    return null;
-  }
-}
-
-export function isAccessTokenExpiringWithin(seconds: number) {
-  const accessToken = getAccessToken();
-  if (!accessToken) return false;
-
-  const payload = decodeJwtPayload(accessToken);
-  if (!payload?.exp) return true;
-
-  const expiresAtMs = payload.exp * 1000;
-  return expiresAtMs - Date.now() <= seconds * 1000;
-}
-
-function getTokenRoles(payload: JwtPayload) {
-  return [
-    payload.role,
-    payload.roleCode,
-    payload.role_code,
-    ...(payload.roles ?? []),
-    ...(payload.groups ?? []),
-    ...(payload.authorities ?? []),
-    ...(payload.realm_access?.roles ?? []),
-    ...Object.values(payload.resource_access ?? {}).flatMap((resource) => resource.roles ?? [])
-  ].filter((role): role is string => typeof role === "string" && role.trim().length > 0);
-}
-
-function resolveAppRole(roles: string[]): CurrentUser["role"] {
-  const normalizedRoles = new Set(roles.map((role) => role.replace(/^ROLE_/, "").trim().toUpperCase()));
-
-  if (normalizedRoles.has("SYSTEM_ADMIN")) return "SYSTEM_ADMIN";
-  if (normalizedRoles.has("PARTNER_ADMIN")) return "PARTNER_ADMIN";
-  if (normalizedRoles.has("PARKING_MANAGER")) return "PARKING_MANAGER";
-  if (normalizedRoles.has("EMPLOYEE")) return "EMPLOYEE";
-  if (normalizedRoles.has("CUSTOMER")) return "CUSTOMER";
-  return "UNKNOWN";
-}
-
-export function saveCurrentUserSnapshot(user: CurrentUser | null) {
-  if (!user) {
-    localStorage.removeItem(CURRENT_USER_KEY);
-    sessionStorage.removeItem(CURRENT_USER_KEY);
-    return;
-  }
-
-  const storage = getTokenStorage();
-  storage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-
-  const otherStorage = storage === localStorage ? sessionStorage : localStorage;
-  otherStorage.removeItem(CURRENT_USER_KEY);
-}
-
-function getStoredCurrentUserSnapshot(tokenUser: CurrentUser) {
-  const storage = getTokenStorage();
-  const rawUser = storage.getItem(CURRENT_USER_KEY);
-  if (!rawUser) return null;
-
-  try {
-    const cachedUser = JSON.parse(rawUser) as CurrentUser;
-    const isSameUser =
-      cachedUser.username === tokenUser.username ||
-      Boolean(cachedUser.email && tokenUser.email && cachedUser.email === tokenUser.email);
-
-    return isSameUser ? cachedUser : null;
-  } catch {
-    storage.removeItem(CURRENT_USER_KEY);
-    return null;
-  }
-}
-
-function getTokenStorage() {
-  if (localStorage.getItem(ACCESS_TOKEN_KEY)) return localStorage;
-  if (sessionStorage.getItem(ACCESS_TOKEN_KEY)) return sessionStorage;
-  return localStorage;
+function textClaim(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
 }

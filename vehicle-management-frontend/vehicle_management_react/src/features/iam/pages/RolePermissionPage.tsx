@@ -1065,7 +1065,7 @@ function RoleAuditHistoryModal({
 }
 
 export function RolePermissionPage() {
-  const { user } = useAuth();
+  const { invalidateAndRefreshAccess, user } = useAuth();
   const canReadPermissionCatalog = hasAnyPermission(user, ["PERMISSION_READ_ALL"]);
   const canReadRolePermissions = hasAnyPermission(user, ["ROLE_READ_ALL"]);
   const canCreateRole = hasAnyPermission(user, ["ROLE_CREATE_ALL"]);
@@ -1461,6 +1461,7 @@ export function RolePermissionPage() {
           ...payload,
           isActive: true
         });
+        await invalidateAndRefreshAccess("role-lifecycle-changed");
 
         setSaveStatus("Đã cập nhật role tùy chỉnh.");
         setRoleEditor(null);
@@ -1469,6 +1470,7 @@ export function RolePermissionPage() {
       }
 
       const response = await createIamRole(payload);
+      await invalidateAndRefreshAccess("role-created");
       const createdRole = mapCreatedRoleToEditableRecord(response.data);
       const createdRoleId = createdRole.id;
       let copiedPermissionCodes: string[] = [];
@@ -1490,6 +1492,7 @@ export function RolePermissionPage() {
           createdRoleId,
           copiedPermissionIds,
         );
+        await invalidateAndRefreshAccess("role-permissions-changed");
       }
 
       setSaveStatus(roleForm.copyPermissionSourceRoleId ? "Đã tạo role tùy chỉnh và copy quyền." : "Đã tạo role tùy chỉnh.");
@@ -1538,6 +1541,7 @@ export function RolePermissionPage() {
 
     try {
       await deleteIamRole(deactivatingRole.id);
+      await invalidateAndRefreshAccess("role-lifecycle-changed");
       setSaveStatus("Đã ngừng dùng role tùy chỉnh.");
       setDeactivatingRole(null);
       setRoleFilter("inactive");
@@ -1561,6 +1565,7 @@ export function RolePermissionPage() {
 
     try {
       const response = await syncIamRolePermissions(selectedRole.id, Array.from(selectedPermissionIds));
+      await invalidateAndRefreshAccess("role-permissions-changed");
       const responsePermissions = getRoleResponsePermissions(response.data);
       const permissionCount = countResolvedPermissions(responsePermissions, response.data.permissionCount ?? 0);
       const permissionSelection = resolvePermissionIdsFromResponse(responsePermissions, allPermissions);

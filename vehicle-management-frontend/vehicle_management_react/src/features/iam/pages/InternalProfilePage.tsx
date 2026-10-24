@@ -19,9 +19,14 @@ import {
   type OnboardingApprovalKind,
   type OnboardingApprovalResponse
 } from "@/features/iam/api/onboardingApprovalApi";
+import {
+  fetchMyPartnerRegistration,
+  resubmitMyPartnerRegistration,
+  type PartnerRegistration,
+} from "@/features/iam/api/partnerRegistrationApi";
 import { resendVerificationEmail } from "@/features/auth/api/authApi";
 import { Badge, Button, Card, DatePicker, Input, Modal, SelectMenu, VietnamAddressPicker, useToast, type VietnamAddressValue } from "@/components/ui";
-import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
+import { mergeProfileDetails } from "@/features/iam/utils/accountProfileMapper";
 import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta, type StatusTone } from "@/shared/utils/accountStatus";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
@@ -81,12 +86,26 @@ function approvalStatusValue(profile: AccountProfileStatusResponse) {
   });
 }
 
-function resolveMyOnboardingKind(profile: AccountProfileStatusResponse): OnboardingApprovalKind | null {
+type MyOnboardingKind = OnboardingApprovalKind | "partner";
+
+function resolveMyOnboardingKind(profile: AccountProfileStatusResponse): MyOnboardingKind | null {
   const roleCode = profile.account?.roleCode;
   if (roleCode === "CUSTOMER") return "customer";
   if (roleCode === "SYSTEM_ADMIN") return "system-admin";
+  if (roleCode === "PARTNER_ADMIN") return "partner";
   if (roleCode === "PARKING_MANAGER" || roleCode === "EMPLOYEE") return "internal-employee";
   return null;
+}
+
+function partnerRegistrationAsOnboardingApproval(registration: PartnerRegistration): OnboardingApprovalResponse {
+  return {
+    request: {
+      approvalRequestId: registration.approvalRequestId,
+      approvalRequestStatus: registration.status,
+      createdAt: registration.submittedAt,
+      note: registration.note,
+    },
+  };
 }
 
 function normalizeGender(value?: string) {
@@ -508,7 +527,7 @@ function StatusPanel({ onChangePassword, profile }: { onChangePassword: () => vo
 }
 
 export function InternalProfilePage() {
-  const { user, setUser } = useAuth();
+  const { invalidateAndRefreshAccess, user, setUser } = useAuth();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState<AccountProfileStatusResponse>(() => buildFallbackProfile(user));
@@ -577,7 +596,9 @@ export function InternalProfilePage() {
     }
 
     try {
-      const approval = await fetchMyOnboardingApproval(kind);
+      const approval = kind === "partner"
+        ? partnerRegistrationAsOnboardingApproval(await fetchMyPartnerRegistration())
+        : await fetchMyOnboardingApproval(kind);
       setLatestApproval(approval);
     } catch {
       setLatestApproval(null);
@@ -634,12 +655,16 @@ export function InternalProfilePage() {
       "AVATAR_REJECTED",
     ].includes(notification.notificationType) && !isPartnerReviewOutcome) return;
 
+    if (!["AVATAR_APPROVED", "AVATAR_REJECTED"].includes(notification.notificationType)) {
+      void invalidateAndRefreshAccess("onboarding-notification");
+    }
+
     void getMyAccountProfile().then((response) => {
       setProfile(response.data);
       setForm(normalizeProfile(response.data));
       setOrgForm(normalizeOrganization(response.data));
       setUser((currentUser) => currentUser
-        ? mergeCurrentUserWithAccountProfile(currentUser, response.data)
+        ? mergeProfileDetails(currentUser, response.data)
         : currentUser);
       void refreshLatestApproval(response.data);
       if (isPartnerReviewOutcome) {
@@ -651,7 +676,7 @@ export function InternalProfilePage() {
       }
     });
     void getMyAvatarModerationStatus().then((response) => setAvatarModeration(response.data));
-  }), [setUser, toast]);
+  }), [invalidateAndRefreshAccess, setUser, toast]);
 
   useEffect(() => {
     if (searchParams.get("action") === "change-password") {
@@ -668,7 +693,7 @@ export function InternalProfilePage() {
     setProfile(nextProfile);
     setForm(normalizeProfile(nextProfile));
     setOrgForm(normalizeOrganization(nextProfile));
-    setUser(user ? mergeCurrentUserWithAccountProfile(user, nextProfile) : user);
+    setUser((currentUser) => currentUser ? mergeProfileDetails(currentUser, nextProfile) : currentUser);
   };
 
   const buildProfilePayload = (): UpdateAccountProfileRequest => ({
@@ -700,6 +725,7 @@ export function InternalProfilePage() {
       ? await completeMyAccountProfile(payload)
       : await updateMyAccountProfile(payload);
     applyProfileResponse(response.data);
+    await invalidateAndRefreshAccess(shouldCompleteOnboarding ? "profile-completed" : "profile-updated");
     return {
       profile: response.data,
       shouldCompleteOnboarding
@@ -743,7 +769,10 @@ export function InternalProfilePage() {
         const result = await saveProfileChanges();
         nextProfile = result.profile;
       }
-      const approval = await resubmitMyOnboardingApproval(kind);
+      const approval = kind === "partner"
+        ? partnerRegistrationAsOnboardingApproval(await resubmitMyPartnerRegistration())
+        : await resubmitMyOnboardingApproval(kind);
+      await invalidateAndRefreshAccess("onboarding-resubmitted");
       const response = await getMyAccountProfile();
       setLatestApproval(approval);
       applyProfileResponse(response.data);

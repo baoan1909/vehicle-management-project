@@ -399,7 +399,7 @@ export function OnboardingApprovalWorkspace({
   categoryTabs,
   onPendingSummaryChange,
 }: OnboardingApprovalWorkspaceProps = {}) {
-  const { user } = useAuth();
+  const { invalidateAndRefreshAccess, user } = useAuth();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const visibleTabs = useMemo(() => approvalTabs
@@ -512,6 +512,7 @@ export function OnboardingApprovalWorkspace({
     setReviewError("");
     try {
       await reviewOnboardingApproval(activeTab.kind, reviewModal.item.request.approvalRequestId, decision, reviewNote);
+      await invalidateAndRefreshAccess("onboarding-approval-transition");
       toast.success(decision === "approve" ? "Đã duyệt hồ sơ." : "Đã từ chối hồ sơ.", "Cập nhật thành công");
       setReviewModal(null);
       setReviewNote("");

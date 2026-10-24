@@ -52,7 +52,7 @@ export function ParkingLotCreateWizard({ open, onClose, onCompleted }: {
   onClose: () => void;
   onCompleted: (lot: ParkingLotApiResponse) => void;
 }) {
-  const { user } = useAuth();
+  const { invalidateAndRefreshAccess, user } = useAuth();
   const toast = useToast();
 
   const [step, setStep] = useState(1);
@@ -241,6 +241,7 @@ export function ParkingLotCreateWizard({ open, onClose, onCompleted }: {
     setAssignError(null);
     try {
       await assignParkingManagerToParkingLot(createdLot.organizationId, createdLot.parkingLotId, managerId);
+      await invalidateAndRefreshAccess("parking-lot-assignment-changed");
       toast.success("Đã phân công Parking Manager cho bãi xe.");
       finish(createdLot);
     } catch (requestError) {
