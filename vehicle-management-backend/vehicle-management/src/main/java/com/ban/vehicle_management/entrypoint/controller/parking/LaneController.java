@@ -50,6 +50,7 @@ public class LaneController {
     public  ResponseEntity<ApiResponse<List<LaneResponse>>> getLanes(@ModelAttribute LaneFilterRequest request){
         List<Lane> lanes = lanePortIn.getLanes(
                 request.gateId(),
+                request.parkingLotId(),
                 request.direction(),
                 request.status(),
                 request.keyword()

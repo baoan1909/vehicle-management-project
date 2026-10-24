@@ -31,6 +31,17 @@ assert.match(overview, /parkingLots=\{lots\}/);
 assert.match(overview, /onParkingLotChange=\{setSelectedLotId\}/);
 assert.match(overview, /Bãi xe chưa đủ điều kiện hoạt động/);
 assert.match(overview, /Kích hoạt bãi/);
+assert.match(overview, /<ParkingLotActionsMenu items=\{parkingLotActions\}/);
+assert.match(overview, /<ParkingLotEditModal/);
+assert.match(overview, /<ParkingManagerAssignmentModal/);
+assert.match(overview, /onSelect: \(\) => setLotEditOpen\(true\)/);
+assert.match(overview, /onSelect: \(\) => setManagerAssignmentOpen\(true\)/);
+assert.match(overview, /PARKING_LOT_CREATE_ALL/);
+assert.match(overview, /action=create/);
+assert.match(overview, /Thêm bãi/);
+assert.match(overview, /markParkingLotMaintenance\(selectedLot\.parkingLotId\)/);
+assert.match(overview, /closeParkingLot\(selectedLot\.parkingLotId\)/);
+assert.match(overview, /deleteParkingLot\(selectedLot\.parkingLotId\)/);
 assert.match(overview, /Yêu cầu kích hoạt/);
 
 console.log("Parking lot overview checks passed.");

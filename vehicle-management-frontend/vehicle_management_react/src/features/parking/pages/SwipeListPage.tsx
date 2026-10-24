@@ -8,6 +8,7 @@ import {
   VNPAY_MINIMUM_AMOUNT,
 } from "@/features/parking/api/parkingPaymentApi";
 import { getDevices, type DeviceApiResponse, type DeviceStatusApi } from "@/features/hardware/api/deviceApi";
+import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 import {
   checkInParkingSession,
   checkOutParkingSession,
@@ -252,6 +253,8 @@ export function SwipeListPage() {
   const [checkOutPaymentMethod, setCheckOutPaymentMethod] = useState<CheckOutPaymentMethod>("CASH");
   const [cardTypes, setCardTypes] = useState<CardTypeResponse[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeResponse[]>([]);
+  const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
+  const [parkingLotId, setParkingLotId] = useState("");
   const [cards, setCards] = useState<ParkingCardResponse[]>([]);
   const [lanes, setLanes] = useState<LaneResponse[]>([]);
   const [laneId, setLaneId] = useState("");
@@ -268,6 +271,7 @@ export function SwipeListPage() {
   const [checkOutPreview, setCheckOutPreview] = useState<ParkingSessionCheckOutPreviewResponse | null>(null);
   const [parkingSessionResult, setParkingSessionResult] = useState<ParkingSessionOperationResponse | null>(null);
   const [cardError, setCardError] = useState("");
+  const [parkingLotError, setParkingLotError] = useState("");
   const [vehicleTypeError, setVehicleTypeError] = useState("");
   const [cardsLoaded, setCardsLoaded] = useState(false);
   const [isLoadingCards, setIsLoadingCards] = useState(false);
@@ -310,6 +314,7 @@ export function SwipeListPage() {
             }
           : pendingCheckOut.result;
       setMode("check-out");
+      setParkingLotId(pendingCheckOut.result.parkingSession?.parkingLotId ?? "");
       setParkingSessionResult(restoredResult);
       setCheckOutPaymentMethod("CASH");
       setPendingPaymentError("");
@@ -386,6 +391,14 @@ export function SwipeListPage() {
     if (options.length) return options;
     return [{ label: isLoadingLanes ? "Đang tải làn..." : "Chưa có làn active", value: "" }];
   }, [isLoadingLanes, lanes]);
+  const parkingLotOptions = useMemo(() => {
+    const options = parkingLots.map((parkingLot) => ({
+      label: `${parkingLot.code} — ${parkingLot.name}`,
+      value: parkingLot.parkingLotId,
+    }));
+    if (options.length) return options;
+    return [{ label: "Chưa có bãi xe đang hoạt động", value: "" }];
+  }, [parkingLots]);
   const cameraOptions = useMemo(() => {
     const options = cameraDevices.map((device) => ({
       label: getCameraOptionLabel(device),
@@ -529,6 +542,34 @@ export function SwipeListPage() {
   useEffect(() => {
     let active = true;
 
+    async function loadParkingLots() {
+      setParkingLotError("");
+      try {
+        const response = await getParkingLots({ status: "ACTIVE" });
+        if (!active) return;
+        const nextParkingLots = response.data ?? [];
+        setParkingLots(nextParkingLots);
+        setParkingLotId((current) => {
+          if (nextParkingLots.some((parkingLot) => parkingLot.parkingLotId === current)) return current;
+          return nextParkingLots[0]?.parkingLotId ?? "";
+        });
+      } catch (error) {
+        if (!active) return;
+        setParkingLots([]);
+        setParkingLotId("");
+        setParkingLotError(error instanceof Error ? error.message : "Không tải được danh sách bãi xe.");
+      }
+    }
+
+    void loadParkingLots();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
     async function loadCardTypes() {
       try {
         const nextCardTypes = await fetchCardTypes();
@@ -571,9 +612,15 @@ export function SwipeListPage() {
 
     async function loadCameras() {
       setCameraError("");
+      if (!parkingLotId) {
+        setCameraDevices([]);
+        setCameraId(LOCAL_CAMERA_ID);
+        setIsLoadingCameras(false);
+        return;
+      }
       setIsLoadingCameras(true);
       try {
-        const response = await getDevices({ deviceType: "CAMERA" });
+        const response = await getDevices({ deviceType: "CAMERA", parkingLotId });
         const nextCameras = (response.data ?? []).filter((device) => device.status !== "RETIRED");
         if (!active) return;
 
@@ -596,16 +643,22 @@ export function SwipeListPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [parkingLotId]);
 
   useEffect(() => {
     let active = true;
 
     async function loadLanes() {
       setLaneError("");
+      if (!parkingLotId) {
+        setLanes([]);
+        setLaneId("");
+        setIsLoadingLanes(false);
+        return;
+      }
       setIsLoadingLanes(true);
       try {
-        const nextLanes = await fetchParkingLanes(laneDirection);
+        const nextLanes = await fetchParkingLanes(laneDirection, parkingLotId);
         const operationalLanes = nextLanes.filter((lane) => Boolean(lane.gateId));
         if (!active) return;
         setLanes(operationalLanes);
@@ -630,7 +683,7 @@ export function SwipeListPage() {
     return () => {
       active = false;
     };
-  }, [laneDirection]);
+  }, [laneDirection, parkingLotId]);
 
   useEffect(() => {
     let active = true;
@@ -638,9 +691,16 @@ export function SwipeListPage() {
     async function loadCards() {
       setCardError("");
       setCardsLoaded(false);
+      if (!parkingLotId) {
+        setCards([]);
+        setIsLoadingCards(false);
+        return;
+      }
       setIsLoadingCards(true);
       try {
-        const cardGroups = await Promise.all(cardStatuses.map((status) => fetchParkingCards(status)));
+        const cardGroups = await Promise.all(
+          cardStatuses.map((status) => fetchParkingCards(status, parkingLotId)),
+        );
         if (!active) return;
         setCards(cardGroups.flat());
         setCardsLoaded(true);
@@ -657,7 +717,18 @@ export function SwipeListPage() {
     return () => {
       active = false;
     };
-  }, [mode]);
+  }, [mode, parkingLotId]);
+
+  useEffect(() => {
+    setCardUid("");
+    setVehicleTypeId("");
+    setCheckOutPreview(null);
+    setParkingSessionResult(null);
+    setSubmitError("");
+    setValidationShown(false);
+    lastAutoCapturedCardRef.current = "";
+    resetOcrState();
+  }, [parkingLotId]);
 
   useEffect(() => {
     if (skipInitialModeResetRef.current) {
@@ -951,6 +1022,11 @@ export function SwipeListPage() {
       return;
     }
 
+    if (!parkingLotId) {
+      setSubmitError("Vui lòng chọn bãi xe đang hoạt động trước khi vận hành.");
+      return;
+    }
+
     if (!laneId) {
       setSubmitError("Vui lòng chọn làn xe active từ backend.");
       return;
@@ -1106,13 +1182,14 @@ export function SwipeListPage() {
   return (
     <main className="tw-px-4 tw-pb-5 tw-pt-3 lg:tw-px-5">
       <section className="tw-mx-auto tw-grid tw-min-h-[calc(100vh-124px)] tw-w-[min(100%,1660px)] tw-grid-rows-[auto_minmax(0,1fr)] tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
-        <div className="tw-grid tw-grid-cols-[minmax(260px,470px)_minmax(420px,1fr)_minmax(220px,300px)] tw-items-end tw-gap-3 max-[1280px]:tw-grid-cols-1">
+        <div className="tw-grid tw-grid-cols-[minmax(260px,390px)_minmax(620px,1fr)_minmax(220px,300px)] tw-items-end tw-gap-3 max-[1380px]:tw-grid-cols-1">
           <div className="tw-grid tw-gap-2">
             <h1 className="tw-m-0 tw-text-[1.36rem] tw-font-black tw-leading-tight tw-text-slate-950">Vận hành vào / ra bãi</h1>
             <OperationModeTabs mode={mode} onChange={setMode} />
           </div>
 
-          <div className="tw-grid tw-min-w-0 tw-grid-cols-[minmax(180px,0.7fr)_minmax(240px,1.3fr)] tw-gap-2.5 max-[720px]:tw-grid-cols-1">
+          <div className="tw-grid tw-min-w-0 tw-grid-cols-[minmax(220px,1.15fr)_minmax(150px,0.7fr)_minmax(220px,1.15fr)] tw-gap-2.5 max-[860px]:tw-grid-cols-1">
+            <FilterSelect className="tw-w-full" ariaLabel="Chọn bãi xe vận hành" icon="fas fa-parking" label="Bãi xe" options={parkingLotOptions} value={parkingLotId} onChange={setParkingLotId} />
             <FilterSelect className="tw-w-full" ariaLabel="Chọn làn xe" label="Làn xe" options={laneOptions} value={laneId} onChange={setLaneId} />
             <FilterSelect className="tw-w-full" ariaLabel="Chọn camera" icon="fas fa-video" label="Camera" options={cameraOptions} value={cameraId} onChange={setCameraId} />
           </div>
@@ -1162,7 +1239,7 @@ export function SwipeListPage() {
             checkOutCustomerType={checkOutPreview?.customerType}
             checkOutPaymentMethod={checkOutPaymentMethod}
             estimatedPaymentAmount={checkOutPreview?.estimatedTotalPrice}
-            error={submitError || laneError || cardError || vehicleTypeError}
+            error={submitError || parkingLotError || laneError || cardError || vehicleTypeError}
             isLoadingCards={isLoadingCards}
             isSubmitting={isSubmitting}
             laneId={laneId}

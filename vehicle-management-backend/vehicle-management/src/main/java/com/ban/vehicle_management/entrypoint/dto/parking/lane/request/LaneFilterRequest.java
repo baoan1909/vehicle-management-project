@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public record LaneFilterRequest (
         UUID gateId,
+        UUID parkingLotId,
         LaneDirection direction,
         LaneStatus status,
         String keyword

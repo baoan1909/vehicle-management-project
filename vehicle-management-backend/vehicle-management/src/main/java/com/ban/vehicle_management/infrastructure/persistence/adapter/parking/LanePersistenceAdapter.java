@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -51,6 +52,22 @@ public class LanePersistenceAdapter implements LanePortOut {
     @Override
     public List<Lane> findAll(UUID gateId, LaneDirection direction, LaneStatus status, String keyword) {
         return laneRepository.findAll(LaneSpecifications.withFilters(gateId, direction, status, keyword))
+                .stream()
+                .map(lanePersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Lane> findAll(
+            UUID gateId,
+            LaneDirection direction,
+            LaneStatus status,
+            String keyword,
+            Set<UUID> parkingLotIds
+    ) {
+        return laneRepository.findAll(
+                        LaneSpecifications.withFilters(gateId, direction, status, keyword, parkingLotIds)
+                )
                 .stream()
                 .map(lanePersistenceMapper::toDomain)
                 .toList();

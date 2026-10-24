@@ -98,14 +98,28 @@ public class CardUseCaseImpl implements CardPortIn, CardLifecyclePortIn, CardBat
 
     @Override
     @Transactional(readOnly = true)
-    public List<Card> getCards(CardStatus status, UUID cardTypeId, String keyword) {
+    public List<Card> getCards(CardStatus status, UUID cardTypeId, UUID parkingLotId, String keyword) {
         requireCardReadForOperation();
         ensureManagerHasParkingLotAssignment();
         String normalizedKeyword = cardPolicy.normalizeKeyword(keyword);
         if (organizationAccessGuard == null) {
+            return parkingLotId == null
+                    ? cardPort.findAll(status, cardTypeId, normalizedKeyword)
+                    : cardPort.findAll(status, cardTypeId, normalizedKeyword, Set.of(parkingLotId));
+        }
+        Set<UUID> accessibleParkingLotIds = resolveScopedParkingLotIds();
+        if (parkingLotId != null) {
+            if (accessibleParkingLotIds != null && !accessibleParkingLotIds.contains(parkingLotId)) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Không có quyền truy cập thẻ của bãi xe đã chọn"
+                );
+            }
+            return cardPort.findAll(status, cardTypeId, normalizedKeyword, Set.of(parkingLotId));
+        }
+        if (accessibleParkingLotIds == null) {
             return cardPort.findAll(status, cardTypeId, normalizedKeyword);
         }
-        return cardPort.findAll(status, cardTypeId, normalizedKeyword, resolveScopedParkingLotIds());
+        return cardPort.findAll(status, cardTypeId, normalizedKeyword, accessibleParkingLotIds);
     }
 
     @Override

@@ -6,6 +6,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.UUID;
+import java.util.Set;
 
 public final class LaneSpecifications {
     private LaneSpecifications(){
@@ -16,11 +17,22 @@ public final class LaneSpecifications {
             LaneDirection direction,
             LaneStatus status,
             String keyword
+    ) {
+        return withFilters(gateId, direction, status, keyword, null);
+    }
+
+    public static Specification<LaneEntity> withFilters(
+            UUID gateId,
+            LaneDirection direction,
+            LaneStatus status,
+            String keyword,
+            Set<UUID> parkingLotIds
     ){
         return  Specification
                 .where(hasGateId(gateId))
                 .and(hasDirection(direction))
                 .and(hasStatus(status))
+                .and(hasParkingLotIdIn(parkingLotIds))
                 .and(containsKeyword(keyword));
     }
 
@@ -34,6 +46,18 @@ public final class LaneSpecifications {
 
     private static Specification<LaneEntity> hasStatus(LaneStatus status){
         return (root, query, cb) -> status == null ? null : cb.equal(root.get("status"), status);
+    }
+
+    private static Specification<LaneEntity> hasParkingLotIdIn(Set<UUID> parkingLotIds) {
+        return (root, query, cb) -> {
+            if (parkingLotIds == null) {
+                return null;
+            }
+            if (parkingLotIds.isEmpty()) {
+                return cb.disjunction();
+            }
+            return root.join("gate").join("zone").get("parkingLotId").in(parkingLotIds);
+        };
     }
 
     private static Specification<LaneEntity> containsKeyword(String keyword) {
