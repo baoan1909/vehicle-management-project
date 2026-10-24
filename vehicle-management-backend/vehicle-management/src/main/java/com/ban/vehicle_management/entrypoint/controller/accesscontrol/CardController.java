@@ -113,6 +113,7 @@ public class CardController {
         List<Card> cards = cardPortIn.getCards(
                 request.status(),
                 request.cardTypeId(),
+                request.parkingLotId(),
                 request.keyword()
         );
         List<CardAdminResponse> response = cardApiMapper.toAdminResponses(cards);

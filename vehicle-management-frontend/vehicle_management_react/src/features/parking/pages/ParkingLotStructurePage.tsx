@@ -1102,8 +1102,13 @@ export function ParkingLotStructurePage() {
 
   useEffect(() => {
     const action = searchParams.get("action");
-    if (!action || !activeLot) return;
-    if (action === "edit") {
+    if (!action) return;
+    if (action === "create") {
+      if (canCreateLot) setLotWizardOpen(true);
+      else toast.error("Bạn không có quyền tạo bãi xe.");
+    } else if (!activeLot) {
+      return;
+    } else if (action === "edit") {
       if (canEditLot) setLotEditOpen(true);
       else toast.error("Bạn không có quyền sửa thông tin bãi xe.");
     } else if (action === "manager") {
@@ -1113,7 +1118,7 @@ export function ParkingLotStructurePage() {
     const next = new URLSearchParams(searchParams);
     next.delete("action");
     setSearchParams(next, { replace: true });
-  }, [activeLot, canAssignManager, canEditLot, searchParams, setSearchParams, toast]);
+  }, [activeLot, canAssignManager, canCreateLot, canEditLot, searchParams, setSearchParams, toast]);
 
   const normalizedKeyword = keyword.trim().toLowerCase();
   const matchStatus = (s: string) => statusFilter === "all" || s === statusFilter;

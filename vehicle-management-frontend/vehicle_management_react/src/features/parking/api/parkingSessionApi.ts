@@ -292,9 +292,10 @@ export type LicensePlateOcrContext = {
   laneId?: string;
 };
 
-export async function fetchParkingLanes(direction?: LaneDirection) {
+export async function fetchParkingLanes(direction?: LaneDirection, parkingLotId?: string) {
   const query = new URLSearchParams();
   if (direction) query.set("direction", direction);
+  if (parkingLotId) query.set("parkingLotId", parkingLotId);
   query.set("status", "ACTIVE");
 
   const response = await apiClient<ApiResponse<LaneResponse[]>>(
@@ -304,9 +305,10 @@ export async function fetchParkingLanes(direction?: LaneDirection) {
   return response.data;
 }
 
-export async function fetchParkingCards(status?: ParkingCardStatus) {
+export async function fetchParkingCards(status?: ParkingCardStatus, parkingLotId?: string) {
   const query = new URLSearchParams();
   if (status) query.set("status", status);
+  if (parkingLotId) query.set("parkingLotId", parkingLotId);
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const response = await apiClient<ApiResponse<ParkingCardResponse[]>>(

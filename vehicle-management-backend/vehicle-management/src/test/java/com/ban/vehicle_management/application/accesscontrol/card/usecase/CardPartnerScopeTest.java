@@ -75,4 +75,27 @@ class CardPartnerScopeTest {
         verify(cardPort).findAll(CardStatus.AVAILABLE, null, null, ownLots);
     }
 
+    @Test
+    void partnerCanFilterOperationalCardsToOneOwnedParkingLot() {
+        UUID selectedLotId = UUID.randomUUID();
+        Set<UUID> ownLots = Set.of(selectedLotId, UUID.randomUUID());
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut)).thenReturn(ownLots);
+
+        cardUseCase.getCards(CardStatus.AVAILABLE, null, selectedLotId, null);
+
+        verify(cardPort).findAll(CardStatus.AVAILABLE, null, null, Set.of(selectedLotId));
+    }
+
+    @Test
+    void partnerCannotFilterOperationalCardsToAnotherOrganizationParkingLot() {
+        UUID otherLotId = UUID.randomUUID();
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut))
+                .thenReturn(Set.of(UUID.randomUUID()));
+
+        assertThrows(
+                AccessDeniedException.class,
+                () -> cardUseCase.getCards(CardStatus.AVAILABLE, null, otherLotId, null)
+        );
+    }
+
 }

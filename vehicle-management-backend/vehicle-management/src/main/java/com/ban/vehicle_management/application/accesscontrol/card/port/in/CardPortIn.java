@@ -11,7 +11,11 @@ public interface CardPortIn {
 
     Card getCardById(UUID cardId);
 
-    List<Card> getCards(CardStatus status, UUID cardTypeId, String keyword);
+    default List<Card> getCards(CardStatus status, UUID cardTypeId, String keyword) {
+        return getCards(status, cardTypeId, null, keyword);
+    }
+
+    List<Card> getCards(CardStatus status, UUID cardTypeId, UUID parkingLotId, String keyword);
 
     Card updateCard(UUID cardId, Card card);
 

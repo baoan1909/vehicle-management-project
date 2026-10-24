@@ -13,7 +13,22 @@ public interface LanePortIn {
 
     Lane getLaneById(UUID laneId);
 
-    List<Lane> getLanes(UUID gateId, LaneDirection direction, LaneStatus laneStatus, String keyword);
+    default List<Lane> getLanes(
+            UUID gateId,
+            LaneDirection direction,
+            LaneStatus laneStatus,
+            String keyword
+    ) {
+        return getLanes(gateId, null, direction, laneStatus, keyword);
+    }
+
+    List<Lane> getLanes(
+            UUID gateId,
+            UUID parkingLotId,
+            LaneDirection direction,
+            LaneStatus laneStatus,
+            String keyword
+    );
 
     Lane updateLane(UUID laneId, Lane lane);
 

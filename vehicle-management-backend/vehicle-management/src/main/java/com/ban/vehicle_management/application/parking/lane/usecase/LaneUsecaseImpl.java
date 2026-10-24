@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -81,9 +82,23 @@ public class LaneUsecaseImpl implements LanePortIn {
 
     @Override
     @Transactional(readOnly = true)
-    public List<Lane> getLanes(UUID gateId, LaneDirection direction, LaneStatus status, String keyword){
-        ensureCanListGateResources(gateId);
-        return lanePortOut.findAll(gateId, direction, status,normalizeKeyword(keyword));
+    public List<Lane> getLanes(
+            UUID gateId,
+            UUID parkingLotId,
+            LaneDirection direction,
+            LaneStatus status,
+            String keyword
+    ) {
+        if (gateId != null) {
+            ensureCanAccessGate(gateId);
+        }
+
+        Set<UUID> scopedParkingLotIds = resolveLaneParkingLotScope(parkingLotId);
+        String normalizedKeyword = normalizeKeyword(keyword);
+        if (scopedParkingLotIds == null) {
+            return lanePortOut.findAll(gateId, direction, status, normalizedKeyword);
+        }
+        return lanePortOut.findAll(gateId, direction, status, normalizedKeyword, scopedParkingLotIds);
     }
 
     @Override
@@ -250,18 +265,26 @@ public class LaneUsecaseImpl implements LanePortIn {
         return lane;
     }
 
-    private void ensureCanListGateResources(UUID gateId) {
-        if (organizationAccessGuard == null) {
-            return;
+    private Set<UUID> resolveLaneParkingLotScope(UUID requestedParkingLotId) {
+        if (organizationAccessGuard == null || parkingLotPortOut == null) {
+            return requestedParkingLotId == null ? null : Set.of(requestedParkingLotId);
         }
-        if (gateId == null && organizationAccessGuard.isCurrentParkingManager()) {
+
+        Set<UUID> accessibleParkingLotIds = organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut);
+        if (requestedParkingLotId == null) {
+            return accessibleParkingLotIds;
+        }
+
+        if (accessibleParkingLotIds != null && !accessibleParkingLotIds.contains(requestedParkingLotId)) {
             throw new org.springframework.security.access.AccessDeniedException(
-                    "Parking manager must select a gate in an assigned parking lot"
+                    "Current account cannot access the requested parking lot"
             );
         }
-        if (gateId != null) {
-            ensureCanAccessGate(gateId);
-        }
+        organizationAccessGuard.ensureCanAccessParkingLot(
+                parkingLotPortOut.findById(requestedParkingLotId)
+                        .orElseThrow(() -> new NotFoundException("Parking lot not found"))
+        );
+        return Set.of(requestedParkingLotId);
     }
 
     private void ensureCanAccessGate(UUID gateId) {

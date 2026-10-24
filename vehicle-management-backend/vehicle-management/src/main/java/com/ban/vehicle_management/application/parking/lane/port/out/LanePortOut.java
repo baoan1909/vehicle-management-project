@@ -6,6 +6,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface LanePortOut {
@@ -15,6 +16,16 @@ public interface LanePortOut {
     Optional<Lane> findById(UUID laneId);
 
     List<Lane> findAll(UUID gateId, LaneDirection laneDirection, LaneStatus laneStatus, String keyword);
+
+    default List<Lane> findAll(
+            UUID gateId,
+            LaneDirection laneDirection,
+            LaneStatus laneStatus,
+            String keyword,
+            Set<UUID> parkingLotIds
+    ) {
+        return findAll(gateId, laneDirection, laneStatus, keyword);
+    }
 
     boolean existsOperationalGateById(UUID gateId);
 
