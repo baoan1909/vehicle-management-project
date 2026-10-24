@@ -52,10 +52,12 @@ public interface MemberParkingLotScopeRepository extends JpaRepository<MemberPar
 
     @Query("""
         select scope.parkingLotId
-        from MemberParkingLotScopeEntity scope, OrganizationMembershipEntity membership
+        from MemberParkingLotScopeEntity scope, OrganizationMembershipEntity membership, OrganizationEntity organization
         where scope.organizationMembershipId = membership.organizationMembershipId
           and membership.accountId = :accountId
           and membership.status = :status
+          and organization.organizationId = membership.organizationId
+          and organization.status = com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus.ACTIVE
         """)
     Set<UUID> findActiveParkingLotIdsByAccountId(
             @Param("accountId") UUID accountId,

@@ -2,6 +2,9 @@ package com.ban.vehicle_management.infrastructure.realtime.chat;
 
 import com.ban.vehicle_management.infrastructure.security.jwt.JwtAuthenticationConverter;
 import com.ban.vehicle_management.infrastructure.security.principal.AuthenticatedAccountPrincipal;
+import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
+import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.infrastructure.realtime.security.WebSocketActorPrincipal;
 import java.util.Optional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
@@ -28,13 +31,16 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtDecoder jwtDecoder;
     private final JwtAuthenticationConverter jwtAuthenticationConverter;
+    private final AccountAuthorizationPortOut accountAuthorizationPortOut;
 
     public ChatWebSocketConfig(
             JwtDecoder jwtDecoder,
-            JwtAuthenticationConverter jwtAuthenticationConverter
+            JwtAuthenticationConverter jwtAuthenticationConverter,
+            AccountAuthorizationPortOut accountAuthorizationPortOut
     ) {
         this.jwtDecoder = jwtDecoder;
         this.jwtAuthenticationConverter = jwtAuthenticationConverter;
+        this.accountAuthorizationPortOut = accountAuthorizationPortOut;
     }
 
     @Override
@@ -60,9 +66,8 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 StompCommand command = accessor.getCommand();
                 if (StompCommand.CONNECT.equals(command)) {
                     accessor.setUser(authenticate(accessor));
-                } else if ((StompCommand.SUBSCRIBE.equals(command) || StompCommand.SEND.equals(command))
-                        && accessor.getUser() == null) {
-                    throw new AccessDeniedException("Access is denied");
+                } else if (StompCommand.SUBSCRIBE.equals(command) || StompCommand.SEND.equals(command)) {
+                    revalidate(accessor);
                 }
 
                 return message;
@@ -76,19 +81,50 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns("*");
     }
 
-    private Authentication authenticate(StompHeaderAccessor accessor) {
+    Authentication authenticate(StompHeaderAccessor accessor) {
         String token = resolveBearerToken(accessor)
                 .orElseThrow(() -> new AccessDeniedException("Missing websocket access token"));
-        AbstractAuthenticationToken authentication = jwtAuthenticationConverter.convert(jwtDecoder.decode(token));
-        String principalName = resolveAccountId(authentication)
-                .orElseThrow(() -> new AccessDeniedException("Websocket account_id is required"));
+        AbstractAuthenticationToken authentication;
+        try {
+            authentication = jwtAuthenticationConverter.convert(jwtDecoder.decode(token));
+        } catch (RuntimeException exception) {
+            throw new AccessDeniedException("Invalid websocket access token", exception);
+        }
+        AuthenticatedAccountPrincipal authenticatedPrincipal = resolvePrincipal(authentication)
+                .orElseThrow(() -> new AccessDeniedException("Websocket account access is required"));
+        CurrentAccountAccess snapshot = Optional.ofNullable(authenticatedPrincipal.accessSnapshot())
+                .orElseThrow(() -> new AccessDeniedException("Websocket account access is required"));
+        WebSocketActorPrincipal actor = new WebSocketActorPrincipal(
+                snapshot.accountId(), snapshot, snapshot.accessRevision());
         UsernamePasswordAuthenticationToken websocketAuthentication = new UsernamePasswordAuthenticationToken(
-                principalName,
+                actor,
                 authentication.getCredentials(),
                 authentication.getAuthorities()
         );
-        websocketAuthentication.setDetails(authentication.getDetails());
+        websocketAuthentication.setDetails(actor);
         return websocketAuthentication;
+    }
+
+    void revalidate(StompHeaderAccessor accessor) {
+        WebSocketActorPrincipal actor = resolveActor(accessor.getUser())
+                .orElseThrow(() -> new AccessDeniedException("Access is denied"));
+        CurrentAccountAccess current = accountAuthorizationPortOut.findByAccountId(actor.accountId())
+                .orElseThrow(() -> new AccessDeniedException("Access is denied"));
+        if (!actor.accessRevision().equals(current.accessRevision())) {
+            throw new AccessDeniedException("Websocket access changed; reconnect is required");
+        }
+    }
+
+    private Optional<WebSocketActorPrincipal> resolveActor(java.security.Principal user) {
+        if (user instanceof Authentication authentication) {
+            if (authentication.getDetails() instanceof WebSocketActorPrincipal actor) {
+                return Optional.of(actor);
+            }
+            if (authentication.getPrincipal() instanceof WebSocketActorPrincipal actor) {
+                return Optional.of(actor);
+            }
+        }
+        return user instanceof WebSocketActorPrincipal actor ? Optional.of(actor) : Optional.empty();
     }
 
     private Optional<String> resolveBearerToken(StompHeaderAccessor accessor) {
@@ -103,10 +139,9 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .filter(StringUtils::hasText);
     }
 
-    private Optional<String> resolveAccountId(AbstractAuthenticationToken authentication) {
-        if (authentication.getDetails() instanceof AuthenticatedAccountPrincipal principal
-                && principal.accountId() != null) {
-            return Optional.of(principal.accountId().toString());
+    private Optional<AuthenticatedAccountPrincipal> resolvePrincipal(AbstractAuthenticationToken authentication) {
+        if (authentication.getDetails() instanceof AuthenticatedAccountPrincipal principal) {
+            return Optional.of(principal);
         }
         return Optional.empty();
     }

@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.OrganizationMembershipEntity;
 import com.ban.vehicle_management.shared.enumeration.iam.OrganizationMembershipStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -19,9 +20,11 @@ public interface OrganizationMembershipRepository extends JpaRepository<Organiza
 
     @Query("""
         select membership.organizationId
-        from OrganizationMembershipEntity membership
+        from OrganizationMembershipEntity membership, OrganizationEntity organization
         where membership.accountId = :accountId
           and membership.status = :status
+          and organization.organizationId = membership.organizationId
+          and organization.status = com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus.ACTIVE
         """)
     Set<UUID> findActiveOrganizationIdsByAccountId(
             @Param("accountId") UUID accountId,
@@ -34,6 +37,30 @@ public interface OrganizationMembershipRepository extends JpaRepository<Organiza
         where membership.accountId = :accountId
         """)
     Set<UUID> findOrganizationIdsByAccountId(@Param("accountId") UUID accountId);
+
+    @Query("""
+        select count(membership)
+        from OrganizationMembershipEntity membership
+        join OrganizationEntity organization
+            on organization.organizationId = membership.organizationId
+        where membership.accountId = :accountId
+          and membership.status = :membershipStatus
+          and organization.status = :organizationStatus
+        """)
+    long countByAccountIdAndMembershipStatusAndOrganizationStatus(
+            @Param("accountId") UUID accountId,
+            @Param("membershipStatus") OrganizationMembershipStatus membershipStatus,
+            @Param("organizationStatus") OrganizationStatus organizationStatus
+    );
+
+    default boolean hasActiveMembershipInActiveOrganization(UUID accountId) {
+        return accountId != null
+                && countByAccountIdAndMembershipStatusAndOrganizationStatus(
+                        accountId,
+                        OrganizationMembershipStatus.ACTIVE,
+                        OrganizationStatus.ACTIVE
+                ) > 0;
+    }
 
     @Modifying
     @Query("""

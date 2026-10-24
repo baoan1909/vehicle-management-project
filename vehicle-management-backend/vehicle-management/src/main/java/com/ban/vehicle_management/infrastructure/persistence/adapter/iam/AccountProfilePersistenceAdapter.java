@@ -19,6 +19,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.peo
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.OrganizationEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationMembershipRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.MemberParkingLotScopeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
@@ -27,11 +29,13 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
+import com.ban.vehicle_management.shared.enumeration.iam.OrganizationMembershipStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -52,6 +56,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     private final EmployeeRepository employeeRepository;
     private final ApprovalRequestRepository approvalRequestRepository;
     private final OrganizationRepository organizationRepository;
+    private final OrganizationMembershipRepository organizationMembershipRepository;
+    private final MemberParkingLotScopeRepository memberParkingLotScopeRepository;
     private final AccountPersistenceMapper accountPersistenceMapper;
     private final UserProfilePersistenceMapper userProfilePersistenceMapper;
     private final CustomerPersistenceMapper customerPersistenceMapper;
@@ -66,6 +72,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
             EmployeeRepository employeeRepository,
             ApprovalRequestRepository approvalRequestRepository,
             OrganizationRepository organizationRepository,
+            OrganizationMembershipRepository organizationMembershipRepository,
+            MemberParkingLotScopeRepository memberParkingLotScopeRepository,
             AccountPersistenceMapper accountPersistenceMapper,
             UserProfilePersistenceMapper userProfilePersistenceMapper,
             CustomerPersistenceMapper customerPersistenceMapper,
@@ -79,6 +87,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         this.employeeRepository = employeeRepository;
         this.approvalRequestRepository = approvalRequestRepository;
         this.organizationRepository = organizationRepository;
+        this.organizationMembershipRepository = organizationMembershipRepository;
+        this.memberParkingLotScopeRepository = memberParkingLotScopeRepository;
         this.accountPersistenceMapper = accountPersistenceMapper;
         this.userProfilePersistenceMapper = userProfilePersistenceMapper;
         this.customerPersistenceMapper = customerPersistenceMapper;
@@ -399,9 +409,23 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
             EmployeeEntity employeeEntity,
             CustomerEntity customerEntity
     ) {
+        Set<String> assignedPermissions = rolePermissionRepository
+                .findActivePermissionCodesByRoleId(accountEntity.getRoleId());
+        Set<UUID> activeOrganizationIds = assignedPermissions.stream()
+                .anyMatch(this::requiresOrganizationScope)
+                ? safeSet(organizationMembershipRepository.findActiveOrganizationIdsByAccountId(
+                        accountEntity.getAccountId(), OrganizationMembershipStatus.ACTIVE))
+                : Set.of();
+        Set<UUID> assignedParkingLotIds = assignedPermissions.contains("PARKING_SCOPE_ASSIGNED")
+                ? safeSet(memberParkingLotScopeRepository.findActiveParkingLotIdsByAccountId(
+                        accountEntity.getAccountId(), OrganizationMembershipStatus.ACTIVE))
+                : Set.of();
         EffectiveAccountAccessPolicy.AccessState accessState = new EffectiveAccountAccessPolicy.AccessState(
                 roleCode,
                 roleActive,
+                !activeOrganizationIds.isEmpty(),
+                activeOrganizationIds,
+                assignedParkingLotIds,
                 accountEntity.getStatus(),
                 employeeEntity == null ? null : employeeEntity.getStatus(),
                 customerEntity == null ? null : customerEntity.getStatus(),
@@ -413,9 +437,21 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
 
         return EFFECTIVE_ACCESS_POLICY.resolveEffectivePermissionCodes(
                         accessState,
-                        rolePermissionRepository.findActivePermissionCodesByRoleId(accountEntity.getRoleId())
+                        assignedPermissions
                 )
                 .stream()
                 .toList();
+    }
+
+    private boolean requiresOrganizationScope(String permissionCode) {
+        return "PARKING_SCOPE_PARTNER".equals(permissionCode)
+                || "WALLET_SCOPE_PARTNER".equals(permissionCode)
+                || (permissionCode != null && permissionCode.endsWith("_PARTNER"))
+                || "ORGANIZATION_PROFILE_READ_OWN".equals(permissionCode)
+                || "ORGANIZATION_PROFILE_UPDATE_REQUEST_OWN".equals(permissionCode);
+    }
+
+    private <T> Set<T> safeSet(Set<T> values) {
+        return values == null ? Set.of() : Set.copyOf(values);
     }
 }

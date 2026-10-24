@@ -3,7 +3,6 @@ package com.ban.vehicle_management.application.operations.approvalrequest.author
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
-import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -38,7 +37,8 @@ public class CustomerOnboardingApprovalAccessGuard {
 
     public CurrentAccountAccess requireCurrentCustomer() {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (!AdminProvisionableAccountRoleCode.CUSTOMER.name().equals(currentAccount.roleCode())) {
+        if (currentAccount.customerStatus() == null
+                && currentAccount.customerApprovalStatus() == null) {
             throw new AccessDeniedException("Access is denied");
         }
         return currentAccount;

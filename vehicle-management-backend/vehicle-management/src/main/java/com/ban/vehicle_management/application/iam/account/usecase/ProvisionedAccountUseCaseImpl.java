@@ -305,10 +305,26 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
 
     private Set<AdminProvisionableAccountRoleCode> managedTargetRolesForCurrentAccount() {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        AdminProvisionableAccountRoleCode currentRoleCode =
-                provisionedAccountPolicy.requireProvisionableRole(currentAccount.roleCode());
-        Set<AdminProvisionableAccountRoleCode> managedRoleCodes =
-                provisionedAccountPolicy.managedTargetRoles(currentRoleCode);
+        Set<String> permissions = currentAccount.getEffectivePermissionCodes();
+        Set<AdminProvisionableAccountRoleCode> managedRoleCodes;
+        if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PLATFORM)) {
+            managedRoleCodes = Set.of(
+                    AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
+                    AdminProvisionableAccountRoleCode.PARTNER_ADMIN
+            );
+        } else if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)) {
+            managedRoleCodes = Set.of(
+                    AdminProvisionableAccountRoleCode.PARKING_MANAGER,
+                    AdminProvisionableAccountRoleCode.EMPLOYEE
+            );
+        } else if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
+            managedRoleCodes = Set.of(
+                    AdminProvisionableAccountRoleCode.EMPLOYEE,
+                    AdminProvisionableAccountRoleCode.CUSTOMER
+            );
+        } else {
+            managedRoleCodes = Set.of();
+        }
         if (managedRoleCodes.isEmpty()) {
             throw new AccessDeniedException("Current account is not allowed to manage provisioned accounts");
         }
@@ -320,18 +336,14 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     }
 
     private void ensureCanManageTargetRole(AdminProvisionableAccountRoleCode targetRoleCode) {
-        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        AdminProvisionableAccountRoleCode currentRoleCode =
-                provisionedAccountPolicy.requireProvisionableRole(currentAccount.roleCode());
-        if (!provisionedAccountPolicy.canManageTargetRole(currentRoleCode, targetRoleCode)) {
+        if (!managedTargetRolesForCurrentAccount().contains(targetRoleCode)) {
             throw new AccessDeniedException("Current account is not allowed to manage target role");
         }
     }
 
     private boolean isPartnerAdmin() {
-        return OrganizationAccessGuard.PARTNER_ADMIN.equals(
-                currentAccountPortIn.getCurrentAccountOrThrow().roleCode()
-        );
+        return currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes()
+                .contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER);
     }
 
     /**
@@ -356,9 +368,9 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         if (!AdminProvisionableAccountRoleCode.EMPLOYEE.equals(roleCode)) {
             return;
         }
-        String creatorRole = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
-        if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(creatorRole)
-                && !OrganizationAccessGuard.PARKING_MANAGER.equals(creatorRole)) {
+        Set<String> permissions = currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes();
+        if (!permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
+                && !permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
             return;
         }
         Set<UUID> organizationIds = organizationPortOut.findActiveOrganizationIdsByAccountId(

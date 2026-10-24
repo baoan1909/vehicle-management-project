@@ -16,13 +16,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class OrganizationAccessGuard {
 
-    public static final String SYSTEM_ADMIN = "SYSTEM_ADMIN";
+    // Target-account role codes used by organization assignment workflows; never actor authorization.
     public static final String PARTNER_ADMIN = "PARTNER_ADMIN";
     public static final String PARKING_MANAGER = "PARKING_MANAGER";
     public static final String PARKING_TOPOLOGY_CONFIGURE_ALL = "PARKING_TOPOLOGY_CONFIGURE_ALL";
     public static final String PARKING_SCOPE_PLATFORM = "PARKING_SCOPE_PLATFORM";
     public static final String PARKING_SCOPE_PARTNER = "PARKING_SCOPE_PARTNER";
     public static final String PARKING_SCOPE_ASSIGNED = "PARKING_SCOPE_ASSIGNED";
+    public static final String PARKING_LOT_CREATE_ALL = "PARKING_LOT_CREATE_ALL";
+    public static final String ORGANIZATION_MEMBERSHIP_MANAGE_ALL = "ORGANIZATION_MEMBERSHIP_MANAGE_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
     private final OrganizationPortOut organizationPortOut;
@@ -37,15 +39,10 @@ public class OrganizationAccessGuard {
 
     public UUID resolveOrganizationIdForParkingLotCreation(UUID requestedOrganizationId) {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (isSystemAdmin(currentAccount)) {
-            throw new AccessDeniedException("System Admin cannot create a Partner parking lot");
-        }
+        requirePermission(currentAccount, PARKING_LOT_CREATE_ALL);
+        requirePermission(currentAccount, PARKING_SCOPE_PARTNER);
 
-        if (!PARTNER_ADMIN.equals(currentAccount.roleCode())) {
-            throw new AccessDeniedException("Current account cannot create parking lots");
-        }
-
-        Set<UUID> organizationIds = organizationPortOut.findActiveOrganizationIdsByAccountId(currentAccount.accountId());
+        Set<UUID> organizationIds = currentAccount.activeOrganizationIds();
         if (requestedOrganizationId != null && organizationIds.contains(requestedOrganizationId)) {
             requireActiveOrganization(requestedOrganizationId);
             return requestedOrganizationId;
@@ -67,7 +64,7 @@ public class OrganizationAccessGuard {
         if (permissions.contains(PARKING_SCOPE_PARTNER)) {
             return new ParkingLotAccessScope(
                     false,
-                    organizationPortOut.findActiveOrganizationIdsByAccountId(currentAccount.accountId()),
+                    currentAccount.activeOrganizationIds(),
                     Set.of()
             );
         }
@@ -75,7 +72,7 @@ public class OrganizationAccessGuard {
             return new ParkingLotAccessScope(
                     false,
                     Set.of(),
-                    organizationPortOut.findScopedParkingLotIdsByAccountId(currentAccount.accountId())
+                    currentAccount.assignedParkingLotIds()
             );
         }
         throw new AccessDeniedException("Current account is not assigned to a parking organization");
@@ -97,9 +94,7 @@ public class OrganizationAccessGuard {
     public void ensureCanManageParkingLot(ParkingLot parkingLot) {
         ensureCanAccessParkingLot(parkingLot);
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (!PARTNER_ADMIN.equals(currentAccount.roleCode())) {
-            throw new AccessDeniedException("Current account cannot manage this parking lot");
-        }
+        requirePermission(currentAccount, PARKING_SCOPE_PARTNER);
     }
 
     /** Null means platform-wide access; an empty set means no accessible lots. */
@@ -122,8 +117,9 @@ public class OrganizationAccessGuard {
     /** Operational writes are reserved for the owning Partner or an assigned Manager. */
     public void ensureCanOperateParkingLot(ParkingLot parkingLot) {
         ensureCanAccessParkingLot(parkingLot);
-        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
-        if (!PARTNER_ADMIN.equals(roleCode) && !PARKING_MANAGER.equals(roleCode)) {
+        Set<String> permissions = currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes();
+        if (!permissions.contains(PARKING_SCOPE_PARTNER)
+                && !permissions.contains(PARKING_SCOPE_ASSIGNED)) {
             throw new AccessDeniedException("Current account cannot operate this parking lot");
         }
     }
@@ -135,11 +131,10 @@ public class OrganizationAccessGuard {
     public void ensureCanConfigureParkingLot(ParkingLot parkingLot) {
         ensureCanAccessParkingLot(parkingLot);
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (isSystemAdmin(currentAccount)) {
-            throw new AccessDeniedException("System Admin can view but cannot configure a partner parking lot");
-        }
-        if ((PARTNER_ADMIN.equals(currentAccount.roleCode()) || PARKING_MANAGER.equals(currentAccount.roleCode()))
-                && currentAccount.getEffectivePermissionCodes().contains(PARKING_TOPOLOGY_CONFIGURE_ALL)) {
+        Set<String> permissions = currentAccount.getEffectivePermissionCodes();
+        if (permissions.contains(PARKING_TOPOLOGY_CONFIGURE_ALL)
+                && (permissions.contains(PARKING_SCOPE_PARTNER)
+                || permissions.contains(PARKING_SCOPE_ASSIGNED))) {
             return;
         }
         throw new AccessDeniedException("Current account cannot configure this parking lot");
@@ -148,8 +143,9 @@ public class OrganizationAccessGuard {
     public void ensureCanManageOrganization(UUID organizationId) {
         requireActiveOrganization(organizationId);
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (PARTNER_ADMIN.equals(currentAccount.roleCode())
-                && organizationPortOut.findActiveOrganizationIdsByAccountId(currentAccount.accountId()).contains(organizationId)) {
+        if (currentAccount.getEffectivePermissionCodes().contains(ORGANIZATION_MEMBERSHIP_MANAGE_ALL)
+                && currentAccount.getEffectivePermissionCodes().contains(PARKING_SCOPE_PARTNER)
+                && currentAccount.activeOrganizationIds().contains(organizationId)) {
             return;
         }
         throw new AccessDeniedException("Current account cannot manage this organization");
@@ -162,10 +158,10 @@ public class OrganizationAccessGuard {
      */
     public void ensureCurrentManagerHasParkingLotAssignment() {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (!PARKING_MANAGER.equals(currentAccount.roleCode())) {
+        if (!currentAccount.permissionCodes().contains(PARKING_SCOPE_ASSIGNED)) {
             return;
         }
-        if (organizationPortOut.findScopedParkingLotIdsByAccountId(currentAccount.accountId()).isEmpty()) {
+        if (currentAccount.assignedParkingLotIds().isEmpty()) {
             throw new AccessDeniedException(
                     "Parking manager has not been assigned to a parking lot. Please contact the Partner Admin."
             );
@@ -173,14 +169,17 @@ public class OrganizationAccessGuard {
     }
 
     public boolean isCurrentParkingManager() {
-        return PARKING_MANAGER.equals(currentAccountPortIn.getCurrentAccountOrThrow().roleCode());
+        return currentAccountPortIn.getCurrentAccountOrThrow().permissionCodes()
+                .contains(PARKING_SCOPE_ASSIGNED);
     }
 
     public void ensureCanAccessOrganization(UUID organizationId) {
         requireActiveOrganization(organizationId);
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
-        if (isSystemAdmin(currentAccount)
-                || organizationPortOut.findActiveOrganizationIdsByAccountId(currentAccount.accountId()).contains(organizationId)) {
+        Set<String> permissions = currentAccount.getEffectivePermissionCodes();
+        if (permissions.contains(PARKING_SCOPE_PLATFORM)
+                || (permissions.contains(PARKING_SCOPE_PARTNER)
+                && currentAccount.activeOrganizationIds().contains(organizationId))) {
             return;
         }
         throw new AccessDeniedException("Current account cannot access this organization");
@@ -195,7 +194,9 @@ public class OrganizationAccessGuard {
         }
     }
 
-    private boolean isSystemAdmin(CurrentAccountAccess currentAccount) {
-        return SYSTEM_ADMIN.equals(currentAccount.roleCode());
+    private void requirePermission(CurrentAccountAccess account, String permissionCode) {
+        if (!account.getEffectivePermissionCodes().contains(permissionCode)) {
+            throw new AccessDeniedException("Access is denied");
+        }
     }
 }

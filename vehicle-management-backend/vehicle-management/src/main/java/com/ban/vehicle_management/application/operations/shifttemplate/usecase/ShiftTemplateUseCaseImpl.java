@@ -93,16 +93,11 @@ public class ShiftTemplateUseCaseImpl implements ShiftTemplatePortIn {
             requireLotScope(parkingLotId, false);
             return shiftTemplatePortOut.findAll(parkingLotId, shiftType, status, normalizedKeyword);
         }
-        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
-        if (OrganizationAccessGuard.SYSTEM_ADMIN.equals(roleCode)) {
+        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
+        if (scope.unrestricted()) {
             return shiftTemplatePortOut.findAll(null, shiftType, status, normalizedKeyword);
         }
-        if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
-                && !OrganizationAccessGuard.PARKING_MANAGER.equals(roleCode)) {
-            throw new AccessDeniedException("Current account has no parking lot monitoring scope");
-        }
-        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
-        Set<UUID> lotIds = OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
+        Set<UUID> lotIds = !scope.organizationIds().isEmpty()
                 ? parkingLotPortOut.findAll(null, null, scope.organizationIds(), null).stream()
                         .map(ParkingLot::getParkingLotId).collect(Collectors.toSet())
                 : scope.parkingLotIds();

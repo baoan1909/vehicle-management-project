@@ -80,7 +80,8 @@ public class InternalEmployeeApprovalAccessGuard {
             return false;
         }
         if (OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE.equals(targetRoleCode)
-                && OrganizationAccessGuard.PARTNER_ADMIN.equals(currentAccount.roleCode())) {
+                && currentAccount.getEffectivePermissionCodes().contains(
+                OnboardingApprovalPolicy.REVIEW_PARKING_MANAGER_PERMISSION)) {
             // A Partner Admin can only review the Manager account that they
             // personally provisioned. Organization membership alone is too
             // broad when an organization has more than one Partner Admin.
@@ -88,17 +89,18 @@ public class InternalEmployeeApprovalAccessGuard {
                     .map(currentAccount.accountId()::equals)
                     .orElse(false);
         }
-        if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(currentAccount.roleCode())
-                && !OrganizationAccessGuard.PARKING_MANAGER.equals(currentAccount.roleCode())) {
+        Set<String> permissions = currentAccount.getEffectivePermissionCodes();
+        if (!permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
+                && !permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
             return true;
         }
         if (targetAccountId == null) {
             return false;
         }
 
-        Set<UUID> partnerOrganizationIds = organizationPortOut.findActiveOrganizationIdsByAccountId(
-                currentAccount.accountId()
-        );
+        Set<UUID> partnerOrganizationIds = permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
+                ? currentAccount.activeOrganizationIds()
+                : organizationPortOut.findActiveOrganizationIdsByAccountId(currentAccount.accountId());
         if (partnerOrganizationIds.isEmpty()) {
             return false;
         }
@@ -119,8 +121,9 @@ public class InternalEmployeeApprovalAccessGuard {
     }
 
     private boolean hasAnyInternalReviewPermission() {
-        return currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_PARKING_MANAGER_PERMISSION)
-                || currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION);
+        Set<String> permissions = currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes();
+        return permissions.contains(OnboardingApprovalPolicy.REVIEW_PARKING_MANAGER_PERMISSION)
+                || permissions.contains(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION);
     }
 
     private CurrentAccountAccess requireActiveReviewer() {

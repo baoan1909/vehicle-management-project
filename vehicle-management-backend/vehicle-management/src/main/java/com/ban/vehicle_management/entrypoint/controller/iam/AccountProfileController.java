@@ -44,7 +44,7 @@ public class AccountProfileController {
         CurrentAccountAccess access = currentAccountPortIn.getCurrentAccountOrThrow();
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched current account access successfully",
-                accountProfileApiMapper.toCurrentAccessResponse(access)
+                accountProfileApiMapper.toCurrentAccessResponse(access, access.onboardingRequired())
         ));
     }
 
