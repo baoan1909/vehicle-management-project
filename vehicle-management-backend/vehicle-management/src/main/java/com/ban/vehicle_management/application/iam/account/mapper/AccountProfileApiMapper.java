@@ -45,7 +45,7 @@ public interface AccountProfileApiMapper {
                 onboardingRequired,
                 decision.state().name(),
                 decision.requiredAction() == null ? null : decision.requiredAction().name(),
-                access.accessRevision(onboardingRequired)
+                access.accessRevision()
         );
     }
 

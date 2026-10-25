@@ -55,6 +55,22 @@ public class PartnerRegistrationController {
         ));
     }
 
+    @GetMapping("/api/iam/partner-registrations/me")
+    public ResponseEntity<ApiResponse<PartnerRegistrationResult>> getMyLatestRegistration() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched current partner registration successfully",
+                partnerRegistrationPortIn.getMyLatestRegistration()
+        ));
+    }
+
+    @PostMapping("/api/iam/partner-registrations/me/resubmit")
+    public ResponseEntity<ApiResponse<PartnerRegistrationResult>> resubmitMyRegistration() {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Partner registration resubmitted successfully",
+                partnerRegistrationPortIn.resubmitMyRegistration()
+        ));
+    }
+
     @PostMapping("/api/iam/partner-registrations/{approvalRequestId}/approve")
     @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_REGISTRATION_REVIEW_ALL')")
     public ResponseEntity<ApiResponse<PartnerRegistrationResult>> approve(

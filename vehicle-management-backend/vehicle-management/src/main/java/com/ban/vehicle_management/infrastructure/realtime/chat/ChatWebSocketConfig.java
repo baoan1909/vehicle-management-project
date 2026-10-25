@@ -5,6 +5,7 @@ import com.ban.vehicle_management.infrastructure.security.principal.Authenticate
 import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.realtime.security.WebSocketActorPrincipal;
+import com.ban.vehicle_management.infrastructure.realtime.parking.ParkingRealtimeSubscriptionGuard;
 import java.util.Optional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
@@ -32,15 +33,18 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
     private final JwtDecoder jwtDecoder;
     private final JwtAuthenticationConverter jwtAuthenticationConverter;
     private final AccountAuthorizationPortOut accountAuthorizationPortOut;
+    private final ParkingRealtimeSubscriptionGuard destinationAccessGuard;
 
     public ChatWebSocketConfig(
             JwtDecoder jwtDecoder,
             JwtAuthenticationConverter jwtAuthenticationConverter,
-            AccountAuthorizationPortOut accountAuthorizationPortOut
+            AccountAuthorizationPortOut accountAuthorizationPortOut,
+            ParkingRealtimeSubscriptionGuard destinationAccessGuard
     ) {
         this.jwtDecoder = jwtDecoder;
         this.jwtAuthenticationConverter = jwtAuthenticationConverter;
         this.accountAuthorizationPortOut = accountAuthorizationPortOut;
+        this.destinationAccessGuard = destinationAccessGuard;
     }
 
     @Override
@@ -62,17 +66,23 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 if (accessor == null || accessor.getCommand() == null) {
                     return message;
                 }
-
-                StompCommand command = accessor.getCommand();
-                if (StompCommand.CONNECT.equals(command)) {
-                    accessor.setUser(authenticate(accessor));
-                } else if (StompCommand.SUBSCRIBE.equals(command) || StompCommand.SEND.equals(command)) {
-                    revalidate(accessor);
-                }
-
+                authorizeFrame(accessor);
                 return message;
             }
         });
+    }
+
+    void authorizeFrame(StompHeaderAccessor accessor) {
+        StompCommand command = accessor.getCommand();
+        if (StompCommand.CONNECT.equals(command)) {
+            accessor.setUser(authenticate(accessor));
+        } else if (StompCommand.SUBSCRIBE.equals(command)) {
+            CurrentAccountAccess current = revalidate(accessor);
+            destinationAccessGuard.authorizeSubscription(current, accessor.getDestination());
+        } else if (StompCommand.SEND.equals(command)) {
+            revalidate(accessor);
+            throw new AccessDeniedException("Client SEND destinations are not enabled");
+        }
     }
 
     @Override
@@ -105,7 +115,7 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
         return websocketAuthentication;
     }
 
-    void revalidate(StompHeaderAccessor accessor) {
+    CurrentAccountAccess revalidate(StompHeaderAccessor accessor) {
         WebSocketActorPrincipal actor = resolveActor(accessor.getUser())
                 .orElseThrow(() -> new AccessDeniedException("Access is denied"));
         CurrentAccountAccess current = accountAuthorizationPortOut.findByAccountId(actor.accountId())
@@ -113,6 +123,7 @@ public class ChatWebSocketConfig implements WebSocketMessageBrokerConfigurer {
         if (!actor.accessRevision().equals(current.accessRevision())) {
             throw new AccessDeniedException("Websocket access changed; reconnect is required");
         }
+        return current;
     }
 
     private Optional<WebSocketActorPrincipal> resolveActor(java.security.Principal user) {

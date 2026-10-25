@@ -24,6 +24,7 @@ public final class PermissionAccessPrerequisitePolicy {
     private static final Set<String> EMPLOYEE_PERMISSIONS = Set.of(
             "EMPLOYEE_READ_OWN", "SHIFT_OPEN_OWN", "SHIFT_ASSIGNMENT_READ_OWN", "PARKING_SCOPE_ASSIGNED"
     );
+    private static final Set<String> EMPLOYEE_OWN_PREFIXES = Set.of("EMPLOYEE_", "SHIFT_");
     private static final Set<String> PARTNER_MEMBERSHIP_PERMISSIONS = Set.of(
             "PARKING_SCOPE_PARTNER", "WALLET_SCOPE_PARTNER",
             "ORGANIZATION_PROFILE_READ_OWN", "ORGANIZATION_PROFILE_UPDATE_REQUEST_OWN",
@@ -53,25 +54,43 @@ public final class PermissionAccessPrerequisitePolicy {
         if (permissionCode == null || state == null) {
             return false;
         }
-        if (requiresCustomerLifecycle(permissionCode)) {
-            return CustomerStatus.ACTIVE.equals(state.customerStatus())
+        return switch (classificationFor(permissionCode)) {
+            case CUSTOMER_LIFECYCLE -> CustomerStatus.ACTIVE.equals(state.customerStatus())
                     && CustomerApprovalStatus.APPROVED.equals(state.customerApprovalStatus());
-        }
-        if (REVIEW_EMPLOYEE_PERMISSION.equals(permissionCode)) {
-            return (!state.activeOrganizationIds().isEmpty()
-                    && state.hasActivePartnerOrganizationMembership())
-                    || EmployeeStatus.ACTIVE.equals(state.employeeStatus());
-        }
-        if (EMPLOYEE_PERMISSIONS.contains(permissionCode)) {
-            return EmployeeStatus.ACTIVE.equals(state.employeeStatus())
+            case EMPLOYEE_LIFECYCLE -> EmployeeStatus.ACTIVE.equals(state.employeeStatus())
                     && (!"PARKING_SCOPE_ASSIGNED".equals(permissionCode)
                     || !state.assignedParkingLotIds().isEmpty());
+            case PARTNER_ORGANIZATION -> state.hasActivePartnerOrganizationMembership()
+                    && !state.activeOrganizationIds().isEmpty();
+            case EMPLOYEE_OR_PARTNER_REVIEW -> (!state.activeOrganizationIds().isEmpty()
+                    && state.hasActivePartnerOrganizationMembership())
+                    || EmployeeStatus.ACTIVE.equals(state.employeeStatus());
+            case COMMON_ACCOUNT_ROLE, RESOURCE_OWNERSHIP -> true;
+        };
+    }
+
+    public PermissionPrerequisite classificationFor(String permissionCode) {
+        if (permissionCode == null) {
+            return PermissionPrerequisite.COMMON_ACCOUNT_ROLE;
+        }
+        if (requiresCustomerLifecycle(permissionCode)) {
+            return PermissionPrerequisite.CUSTOMER_LIFECYCLE;
+        }
+        if (REVIEW_EMPLOYEE_PERMISSION.equals(permissionCode)) {
+            return PermissionPrerequisite.EMPLOYEE_OR_PARTNER_REVIEW;
+        }
+        if (EMPLOYEE_PERMISSIONS.contains(permissionCode)
+                || (permissionCode.endsWith("_OWN")
+                && EMPLOYEE_OWN_PREFIXES.stream().anyMatch(permissionCode::startsWith))) {
+            return PermissionPrerequisite.EMPLOYEE_LIFECYCLE;
         }
         if (requiresPartnerMembership(permissionCode)) {
-            return state.hasActivePartnerOrganizationMembership()
-                    && !state.activeOrganizationIds().isEmpty();
+            return PermissionPrerequisite.PARTNER_ORGANIZATION;
         }
-        return true;
+        if (permissionCode.endsWith("_OWN")) {
+            return PermissionPrerequisite.RESOURCE_OWNERSHIP;
+        }
+        return PermissionPrerequisite.COMMON_ACCOUNT_ROLE;
     }
 
     private boolean requiresCustomerLifecycle(String permissionCode) {
@@ -85,5 +104,14 @@ public final class PermissionAccessPrerequisitePolicy {
     private boolean requiresPartnerMembership(String permissionCode) {
         return permissionCode.endsWith("_PARTNER")
                 || PARTNER_MEMBERSHIP_PERMISSIONS.contains(permissionCode);
+    }
+
+    public enum PermissionPrerequisite {
+        COMMON_ACCOUNT_ROLE,
+        CUSTOMER_LIFECYCLE,
+        EMPLOYEE_LIFECYCLE,
+        PARTNER_ORGANIZATION,
+        EMPLOYEE_OR_PARTNER_REVIEW,
+        RESOURCE_OWNERSHIP
     }
 }

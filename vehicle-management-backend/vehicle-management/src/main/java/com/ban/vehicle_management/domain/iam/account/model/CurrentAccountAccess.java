@@ -83,7 +83,8 @@ public record CurrentAccountAccess(
 
     /** Stable opaque equality token; no PII is included in the canonical input. */
     public String accessRevision() {
-        String canonical = String.join("|", value(accountId), value(roleId), Boolean.toString(roleActive),
+        String canonical = String.join("|", value(accountId), value(roleId), value(roleCode),
+                Boolean.toString(roleActive), Boolean.toString(hasActivePartnerOrganizationMembership),
                 value(status), value(employeeStatus), value(customerStatus), value(customerApprovalStatus),
                 Boolean.toString(onboardingRequired), sorted(permissionCodes),
                 sorted(activeOrganizationIds), sorted(assignedParkingLotIds));
@@ -94,10 +95,6 @@ public record CurrentAccountAccess(
         } catch (NoSuchAlgorithmException exception) {
             throw new IllegalStateException("SHA-256 is not available", exception);
         }
-    }
-
-    public String accessRevision(boolean onboardingRequired) {
-        return accessRevision();
     }
 
     private EffectiveAccountAccessPolicy.AccessState toAccessState() {

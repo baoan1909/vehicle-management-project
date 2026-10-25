@@ -24,5 +24,9 @@ public interface PartnerRegistrationPortIn {
 
     PartnerRegistrationResult rejectRegistration(UUID approvalRequestId, ReviewPartnerRegistrationCommand command);
 
+    PartnerRegistrationResult getMyLatestRegistration();
+
+    PartnerRegistrationResult resubmitMyRegistration();
+
     void completeMyProfile(CompletePartnerProfileCommand command);
 }
