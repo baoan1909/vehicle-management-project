@@ -17,6 +17,7 @@ import com.ban.vehicle_management.application.iam.account.model.result.Provision
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
@@ -628,16 +629,26 @@ class ProvisionedAccountUseCaseImplTest {
     }
 
     private CurrentAccountAccess currentAccount(UUID accountId, String roleCode) {
+        boolean platform = "SYSTEM_ADMIN".equals(roleCode);
+        boolean partner = "PARTNER_ADMIN".equals(roleCode);
+        boolean assigned = "PARKING_MANAGER".equals(roleCode);
+        Set<String> permissions = new java.util.HashSet<>(Set.of(
+                "ACCOUNT_CREATE_ALL", "ACCOUNT_UPDATE_ALL"));
+        permissions.add(platform ? OrganizationAccessGuard.PARKING_SCOPE_PLATFORM
+                : partner ? OrganizationAccessGuard.PARKING_SCOPE_PARTNER
+                : assigned ? OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED : "ACCOUNT_READ_ALL");
         return new CurrentAccountAccess(
                 accountId,
                 "subject",
                 "current.user",
                 "current@example.com",
                 UUID.randomUUID(),
-                roleCode,
+                roleCode, true, partner,
+                partner ? Set.of(UUID.randomUUID()) : Set.of(),
+                assigned ? Set.of(UUID.randomUUID()) : Set.of(),
                 AccountStatus.ACTIVE,
-                "PARKING_MANAGER".equals(roleCode) ? EmployeeStatus.ACTIVE : null,
-                Set.of("ACCOUNT_CREATE_ALL", "ACCOUNT_UPDATE_ALL")
+                assigned ? EmployeeStatus.ACTIVE : null,
+                null, null, false, permissions
         );
     }
 }

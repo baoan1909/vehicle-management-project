@@ -122,8 +122,12 @@ class OnboardingApprovalPolicyTest {
     }
 
     private CurrentAccountAccess access(String roleCode, EmployeeStatus employeeStatus, Set<String> permissions) {
+        boolean hasPartnerReviewScope = permissions.contains(
+                OnboardingApprovalPolicy.REVIEW_PARKING_MANAGER_PERMISSION);
         return new CurrentAccountAccess(
                 UUID.randomUUID(), "subject", "reviewer", "reviewer@example.com", UUID.randomUUID(),
-                roleCode, AccountStatus.ACTIVE, employeeStatus, null, null, permissions);
+                roleCode, true, hasPartnerReviewScope,
+                hasPartnerReviewScope ? Set.of(UUID.randomUUID()) : Set.of(), Set.of(),
+                AccountStatus.ACTIVE, employeeStatus, null, null, false, permissions);
     }
 }

@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.iam.partnerregistration.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +24,7 @@ import com.ban.vehicle_management.application.iam.organization.port.out.Organiza
 import com.ban.vehicle_management.application.iam.partnerregistration.model.command.CreatePartnerRegistrationCommand;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.command.CompletePartnerProfileCommand;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.command.ReviewPartnerRegistrationCommand;
+import com.ban.vehicle_management.application.iam.partnerregistration.model.result.PartnerRegistrationResult;
 import com.ban.vehicle_management.application.iam.partnerregistration.model.result.PartnerRegistrationSubmissionResult;
 import com.ban.vehicle_management.application.iam.partnerregistration.port.out.PartnerRegistrationPortOut;
 import com.ban.vehicle_management.application.notification.notification.usecase.RequiresNewNotificationSender;
@@ -446,6 +448,36 @@ class PartnerRegistrationUseCaseImplTest {
         );
 
         verify(partnerRegistrationPortOut, never()).save(any());
+    }
+
+    @Test
+    void shouldResubmitRejectedPartnerRegistrationWithoutGrantingEarlyAccess() {
+        UUID applicantId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+        ApprovalRequest rejected = pendingApproval(applicantId, userProfileId);
+        rejected.setStatus(ApprovalRequestStatus.REJECTED);
+        rejected.setNote("Please update the organization address");
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(applicantId);
+        when(partnerRegistrationPortOut.findLatestByApplicantAccountId(applicantId))
+                .thenReturn(Optional.of(rejected));
+        when(partnerRegistrationPortOut.findByIdForUpdate(rejected.getApprovalRequestId()))
+                .thenReturn(Optional.of(rejected));
+        when(provisionedAccountPortOut.findProvisionedAccountById(applicantId))
+                .thenReturn(Optional.of(pendingPartnerApplicant(applicantId, userProfileId)));
+        when(identityProviderAdminPortOut.isEmailVerified("partner-keycloak-id")).thenReturn(true);
+        when(userProfilePortOut.findById(userProfileId)).thenReturn(Optional.of(completeUserProfile(userProfileId)));
+
+        PartnerRegistrationResult result = useCase.resubmitMyRegistration();
+
+        assertEquals(ApprovalRequestStatus.PENDING, result.status());
+        assertNotEquals(rejected.getApprovalRequestId(), result.approvalRequestId());
+        ArgumentCaptor<ApprovalRequest> approvalCaptor = ArgumentCaptor.forClass(ApprovalRequest.class);
+        verify(partnerRegistrationPortOut).save(approvalCaptor.capture());
+        assertEquals(ApprovalRequestStatus.PENDING, approvalCaptor.getValue().getStatus());
+        assertEquals(rejected.getRequestData(), approvalCaptor.getValue().getRequestData());
+        verify(provisionedAccountPortOut, never()).updateProvisionedAccountStatus(
+                any(), any(), any(), any(), any(), any(), any());
+        verify(organizationPortOut, never()).createActiveMembership(any(), any());
     }
 
     private CreatePartnerRegistrationCommand validCommand() {

@@ -47,14 +47,14 @@ class JwtAuthenticationConverterTest {
                         "EMPLOYEE",
                         AccountStatus.ACTIVE,
                         EmployeeStatus.INACTIVE,
-                        Set.of("EMPLOYEE_READ_ALL")
+                        Set.of("EMPLOYEE_READ_OWN")
                 )
         ));
 
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) jwtAuthenticationConverter.convert(jwt);
 
         assertFalse(authenticationToken.getAuthorities().stream()
-                .anyMatch(authority -> "EMPLOYEE_READ_ALL".equals(authority.getAuthority())));
+                .anyMatch(authority -> "EMPLOYEE_READ_OWN".equals(authority.getAuthority())));
     }
 
     @Test
@@ -77,14 +77,14 @@ class JwtAuthenticationConverterTest {
                         "EMPLOYEE",
                         AccountStatus.ACTIVE,
                         EmployeeStatus.ACTIVE,
-                        Set.of("EMPLOYEE_READ_ALL")
+                        Set.of("EMPLOYEE_READ_OWN")
                 )
         ));
 
         JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) jwtAuthenticationConverter.convert(jwt);
 
         assertTrue(authenticationToken.getAuthorities().stream()
-                .anyMatch(authority -> "EMPLOYEE_READ_ALL".equals(authority.getAuthority())));
+                .anyMatch(authority -> "EMPLOYEE_READ_OWN".equals(authority.getAuthority())));
     }
 
     @Test
@@ -133,7 +133,11 @@ class JwtAuthenticationConverterTest {
                         "partner@example.com",
                         UUID.randomUUID(),
                         "PARTNER_ADMIN",
+                        true,
+                        true,
                         AccountStatus.ACTIVE,
+                        null,
+                        null,
                         null,
                         Set.of("ORGANIZATION_READ_ALL")
                 )

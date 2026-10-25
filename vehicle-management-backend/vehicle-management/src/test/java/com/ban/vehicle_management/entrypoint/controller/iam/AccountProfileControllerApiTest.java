@@ -79,7 +79,13 @@ class AccountProfileControllerApiTest {
                 .andExpect(jsonPath("$.data.roleId").value(roleId.toString()))
                 .andExpect(jsonPath("$.data.roleCode").value("SYSTEM_ADMIN"))
                 .andExpect(jsonPath("$.data.accountStatus").value("ACTIVE"))
-                .andExpect(jsonPath("$.data.permissionCodes[0]").value("ACCOUNT_READ_ALL"));
+                .andExpect(jsonPath("$.data.permissionCodes[0]").value("ACCOUNT_READ_ALL"))
+                .andExpect(jsonPath("$.data.onboardingRequired").value(false))
+                .andExpect(jsonPath("$.data.accessState").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.requiredAction").isEmpty())
+                .andExpect(jsonPath("$.data.accessRevision").isString())
+                .andExpect(jsonPath("$.data.roleActive").doesNotExist())
+                .andExpect(jsonPath("$.data.activeOrganizationIds").doesNotExist());
     }
 
     @Test
@@ -103,6 +109,33 @@ class AccountProfileControllerApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.roleCode").value("CUSTOMER"))
                 .andExpect(jsonPath("$.data.permissionCodes").isEmpty());
+    }
+
+    @Test
+    void currentAccessShouldHideAssignedPermissionsForPartnerWithoutActiveOrganization() throws Exception {
+        CurrentAccountAccess access = new CurrentAccountAccess(
+                UUID.randomUUID(),
+                "partner-subject",
+                "partner.admin",
+                "partner@example.com",
+                UUID.randomUUID(),
+                "PARTNER_ADMIN",
+                true,
+                false,
+                AccountStatus.ACTIVE,
+                null,
+                null,
+                null,
+                Set.of("PARKING_SCOPE_PARTNER")
+        );
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(access);
+
+        mockMvc.perform(get("/api/iam/accounts/current-access"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.roleCode").value("PARTNER_ADMIN"))
+                .andExpect(jsonPath("$.data.accountStatus").value("ACTIVE"))
+                .andExpect(jsonPath("$.data.permissionCodes").isEmpty())
+                .andExpect(jsonPath("$.data.accessState").value("ORGANIZATION_ACCESS_REQUIRED"));
     }
 
     @Test

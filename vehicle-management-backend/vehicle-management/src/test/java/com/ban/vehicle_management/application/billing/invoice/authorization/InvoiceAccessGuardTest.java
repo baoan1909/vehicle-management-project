@@ -97,8 +97,14 @@ class InvoiceAccessGuardTest {
     }
 
     private CurrentAccountAccess account(Set<String> permissions) {
+        boolean partner = permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER);
+        boolean assigned = permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED);
         return new CurrentAccountAccess(UUID.randomUUID(), "subject", "user", "user@example.com",
-                UUID.randomUUID(), "TEST_ROLE", AccountStatus.ACTIVE, null, permissions);
+                UUID.randomUUID(), "TEST_ROLE", true, partner,
+                partner ? Set.of(UUID.randomUUID()) : Set.of(),
+                assigned ? Set.of(UUID.randomUUID()) : Set.of(), AccountStatus.ACTIVE,
+                assigned ? com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.ACTIVE : null,
+                null, null, false, permissions);
     }
 
     private Invoice invoice(UUID lotId) {

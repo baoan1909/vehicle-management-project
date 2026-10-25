@@ -1,194 +1,144 @@
 package com.ban.vehicle_management.domain.iam.account.model;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Stream;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.api.Test;
 
 class CurrentAccountAccessTest {
+    private static final UUID ACCOUNT_ID = UUID.randomUUID();
+    private static final UUID ROLE_ID = UUID.randomUUID();
 
-    private static final Set<String> ASSIGNED_PERMISSIONS = Set.of("ACCOUNT_READ_ALL");
-
-    @ParameterizedTest
-    @MethodSource("accountOnlyRoleLifecycle")
-    void accountOnlyRolesShouldRequireActiveAccount(
-            String roleCode,
-            AccountStatus accountStatus,
-            boolean expected
-    ) {
-        CurrentAccountAccess access = access(
-                roleCode,
-                accountStatus,
-                null,
-                null,
-                null
-        );
-
-        assertEquals(expected, access.canUseBusinessPermissions());
-        assertEquals(expected ? ASSIGNED_PERMISSIONS : Set.of(), access.getEffectivePermissionCodes());
+    @Test
+    void standardAndCustomRolesWithSameStateHaveSameEffectivePermissions() {
+        CurrentAccountAccess standard = access("SYSTEM_ADMIN", Set.of("ACCOUNT_READ_ALL"),
+                Set.of(), Set.of(), null, null, null, false);
+        CurrentAccountAccess custom = access("CUSTOM_PLATFORM", Set.of("ACCOUNT_READ_ALL"),
+                Set.of(), Set.of(), null, null, null, false);
+        assertEquals(standard.getEffectivePermissionCodes(), custom.getEffectivePermissionCodes());
     }
 
-    @ParameterizedTest
-    @MethodSource("employeeRoleLifecycle")
-    void employeeBackedRolesShouldRequireActiveAccountAndEmployee(
+    @Test
+    void inactiveAccountOrRoleHasNoEffectivePermissions() {
+        CurrentAccountAccess inactiveRole = new CurrentAccountAccess(
+                ACCOUNT_ID, "subject", "user", "user@example.com", ROLE_ID, "CUSTOM", false,
+                false, Set.of(), Set.of(), AccountStatus.ACTIVE, null, null, null, false,
+                Set.of("ACCOUNT_READ_ALL"));
+        CurrentAccountAccess locked = new CurrentAccountAccess(
+                ACCOUNT_ID, "subject", "user", "user@example.com", ROLE_ID, "CUSTOM", true,
+                false, Set.of(), Set.of(), AccountStatus.LOCKED, null, null, null, false,
+                Set.of("ACCOUNT_READ_ALL"));
+        assertFalse(inactiveRole.canUseBusinessPermissions());
+        assertTrue(inactiveRole.getEffectivePermissionCodes().isEmpty());
+        assertTrue(locked.getEffectivePermissionCodes().isEmpty());
+    }
+
+    @Test
+    void customerLifecycleFiltersOnlyCustomerCapability() {
+        CurrentAccountAccess pending = access("CUSTOMER",
+                Set.of("ACCOUNT_READ_ALL", "CUSTOMER_VEHICLE_READ_OWN"), Set.of(), Set.of(),
+                null, CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, true);
+        assertEquals(Set.of("ACCOUNT_READ_ALL"), pending.getEffectivePermissionCodes());
+    }
+
+    @Test
+    void accessRevisionIsStableAcrossSetOrderAndIgnoresPresentationIdentityFields() {
+        Set<String> first = new LinkedHashSet<>(java.util.List.of("ROLE_READ_ALL", "ACCOUNT_READ_ALL"));
+        Set<String> second = new LinkedHashSet<>(java.util.List.of("ACCOUNT_READ_ALL", "ROLE_READ_ALL"));
+        CurrentAccountAccess one = access("ROLE_A", first, Set.of(), Set.of(), null, null, null, false);
+        CurrentAccountAccess two = new CurrentAccountAccess(
+                ACCOUNT_ID, "different-subject", "different-name", "different@example.com", ROLE_ID,
+                "ROLE_A", true, false, Set.of(), Set.of(), AccountStatus.ACTIVE, null, null, null,
+                false, second);
+        assertEquals(one.accessRevision(), two.accessRevision());
+    }
+
+    @Test
+    void accessRevisionChangesForEveryAuthorizationAndNavigationInput() {
+        UUID organizationId = UUID.randomUUID();
+        UUID parkingLotId = UUID.randomUUID();
+        CurrentAccountAccess base = access("CUSTOM", Set.of("ACCOUNT_READ_ALL"),
+                Set.of(), Set.of(), EmployeeStatus.ACTIVE, null, null, false);
+        assertNotEquals(base.accessRevision(), copy(base, UUID.randomUUID(), base.roleId(), base.roleCode(),
+                base.roleActive(), base.hasActivePartnerOrganizationMembership(), base.status(),
+                base.employeeStatus(), base.customerStatus(), base.customerApprovalStatus(),
+                base.onboardingRequired(), base.permissionCodes(), base.activeOrganizationIds(),
+                base.assignedParkingLotIds()).accessRevision());
+        assertNotEquals(base.accessRevision(), copy(base, base.accountId(), UUID.randomUUID(), base.roleCode(),
+                base.roleActive(), base.hasActivePartnerOrganizationMembership(), base.status(),
+                base.employeeStatus(), base.customerStatus(), base.customerApprovalStatus(),
+                base.onboardingRequired(), base.permissionCodes(), base.activeOrganizationIds(),
+                base.assignedParkingLotIds()).accessRevision());
+        assertNotEquals(base.accessRevision(), copy(base, base.accountId(), base.roleId(), "RENAMED_ROLE",
+                base.roleActive(), base.hasActivePartnerOrganizationMembership(), base.status(),
+                base.employeeStatus(), base.customerStatus(), base.customerApprovalStatus(),
+                base.onboardingRequired(), base.permissionCodes(), base.activeOrganizationIds(),
+                base.assignedParkingLotIds()).accessRevision());
+        assertNotEquals(base.accessRevision(), copy(base, base.accountId(), base.roleId(), base.roleCode(),
+                false, base.hasActivePartnerOrganizationMembership(), base.status(), base.employeeStatus(),
+                base.customerStatus(), base.customerApprovalStatus(), base.onboardingRequired(),
+                base.permissionCodes(), base.activeOrganizationIds(), base.assignedParkingLotIds()).accessRevision());
+        assertNotEquals(base.accessRevision(), copy(base, base.accountId(), base.roleId(), base.roleCode(),
+                base.roleActive(), true, base.status(), base.employeeStatus(), base.customerStatus(),
+                base.customerApprovalStatus(), base.onboardingRequired(), base.permissionCodes(),
+                base.activeOrganizationIds(), base.assignedParkingLotIds()).accessRevision());
+        assertNotEquals(base.accessRevision(), copy(base, base.accountId(), base.roleId(), base.roleCode(),
+                base.roleActive(), base.hasActivePartnerOrganizationMembership(), AccountStatus.LOCKED,
+                base.employeeStatus(), base.customerStatus(), base.customerApprovalStatus(),
+                base.onboardingRequired(), base.permissionCodes(), base.activeOrganizationIds(),
+                base.assignedParkingLotIds()).accessRevision());
+        assertNotEquals(base.accessRevision(), access("CUSTOM", Set.of("ROLE_READ_ALL"),
+                Set.of(), Set.of(), EmployeeStatus.ACTIVE, null, null, false).accessRevision());
+        assertNotEquals(base.accessRevision(), access("CUSTOM", Set.of("ACCOUNT_READ_ALL"),
+                Set.of(), Set.of(), EmployeeStatus.INACTIVE, null, null, false).accessRevision());
+        assertNotEquals(base.accessRevision(), access("CUSTOM", Set.of("ACCOUNT_READ_ALL"),
+                Set.of(), Set.of(), EmployeeStatus.ACTIVE, CustomerStatus.ACTIVE,
+                null, false).accessRevision());
+        assertNotEquals(base.accessRevision(), access("CUSTOM", Set.of("ACCOUNT_READ_ALL"),
+                Set.of(), Set.of(), EmployeeStatus.ACTIVE, null,
+                CustomerApprovalStatus.PENDING, false).accessRevision());
+        assertNotEquals(base.accessRevision(), access("CUSTOM", Set.of("ACCOUNT_READ_ALL"),
+                Set.of(organizationId), Set.of(), EmployeeStatus.ACTIVE, null, null, false).accessRevision());
+        assertNotEquals(base.accessRevision(), access("CUSTOM", Set.of("ACCOUNT_READ_ALL"),
+                Set.of(), Set.of(parkingLotId), EmployeeStatus.ACTIVE, null, null, false).accessRevision());
+        assertNotEquals(base.accessRevision(), access("CUSTOM", Set.of("ACCOUNT_READ_ALL"),
+                Set.of(), Set.of(), EmployeeStatus.ACTIVE, null, null, true).accessRevision());
+    }
+
+    private CurrentAccountAccess copy(
+            CurrentAccountAccess source,
+            UUID accountId,
+            UUID roleId,
             String roleCode,
-            AccountStatus accountStatus,
+            boolean roleActive,
+            boolean partnerMembership,
+            AccountStatus status,
             EmployeeStatus employeeStatus,
-            boolean expected
-    ) {
-        CurrentAccountAccess access = access(
-                roleCode,
-                accountStatus,
-                employeeStatus,
-                null,
-                null
-        );
-
-        assertEquals(expected, access.canUseBusinessPermissions());
-        assertEquals(expected ? ASSIGNED_PERMISSIONS : Set.of(), access.getEffectivePermissionCodes());
-    }
-
-    @ParameterizedTest
-    @MethodSource("customerLifecycle")
-    void customerShouldRequireActiveApprovedCustomerRecord(
-            AccountStatus accountStatus,
             CustomerStatus customerStatus,
-            CustomerApprovalStatus approvalStatus,
-            boolean expected
+            CustomerApprovalStatus customerApprovalStatus,
+            boolean onboardingRequired,
+            Set<String> permissions,
+            Set<UUID> organizationIds,
+            Set<UUID> parkingLotIds
     ) {
-        CurrentAccountAccess access = access(
-                "CUSTOMER",
-                accountStatus,
-                null,
-                customerStatus,
-                approvalStatus
-        );
-
-        assertEquals(expected, access.canUseBusinessPermissions());
-        assertEquals(expected ? ASSIGNED_PERMISSIONS : Set.of(), access.getEffectivePermissionCodes());
-    }
-
-    @ParameterizedTest
-    @MethodSource("invalidBusinessRoles")
-    void invalidBusinessRoleShouldFailClosed(String roleCode) {
-        CurrentAccountAccess access = access(
-                roleCode,
-                AccountStatus.ACTIVE,
-                null,
-                null,
-                null
-        );
-
-        assertFalse(access.canUseBusinessPermissions());
-        assertTrue(access.getEffectivePermissionCodes().isEmpty());
-    }
-
-    @Test
-    void inactiveRoleShouldFailClosed() {
-        CurrentAccountAccess access = new CurrentAccountAccess(
-                UUID.randomUUID(),
-                "subject",
-                "system.admin",
-                "system.admin@example.com",
-                UUID.randomUUID(),
-                "SYSTEM_ADMIN",
-                false,
-                AccountStatus.ACTIVE,
-                null,
-                null,
-                null,
-                ASSIGNED_PERMISSIONS
-        );
-
-        assertFalse(access.canUseBusinessPermissions());
-        assertTrue(access.getEffectivePermissionCodes().isEmpty());
-    }
-
-    private static Stream<Arguments> accountOnlyRoleLifecycle() {
-        return Stream.of("SYSTEM_ADMIN", "PARTNER_ADMIN")
-                .flatMap(roleCode -> Stream.of(
-                        Arguments.of(roleCode, AccountStatus.ACTIVE, true),
-                        Arguments.of(roleCode, AccountStatus.PENDING, false),
-                        Arguments.of(roleCode, AccountStatus.LOCKED, false),
-                        Arguments.of(roleCode, AccountStatus.DISABLED, false)
-                ));
-    }
-
-    private static Stream<Arguments> employeeRoleLifecycle() {
-        return Stream.of("PARKING_MANAGER", "EMPLOYEE")
-                .flatMap(roleCode -> Stream.of(
-                        Arguments.of(roleCode, AccountStatus.ACTIVE, EmployeeStatus.ACTIVE, true),
-                        Arguments.of(roleCode, AccountStatus.ACTIVE, EmployeeStatus.INACTIVE, false),
-                        Arguments.of(roleCode, AccountStatus.ACTIVE, EmployeeStatus.SUSPENDED, false),
-                        Arguments.of(roleCode, AccountStatus.ACTIVE, null, false),
-                        Arguments.of(roleCode, AccountStatus.PENDING, EmployeeStatus.ACTIVE, false),
-                        Arguments.of(roleCode, AccountStatus.LOCKED, EmployeeStatus.ACTIVE, false),
-                        Arguments.of(roleCode, AccountStatus.DISABLED, EmployeeStatus.ACTIVE, false)
-                ));
-    }
-
-    private static Stream<Arguments> customerLifecycle() {
-        return Stream.of(
-                Arguments.of(AccountStatus.ACTIVE, CustomerStatus.ACTIVE, CustomerApprovalStatus.APPROVED, true),
-                Arguments.of(AccountStatus.ACTIVE, CustomerStatus.INACTIVE, CustomerApprovalStatus.APPROVED, false),
-                Arguments.of(AccountStatus.ACTIVE, CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, false),
-                Arguments.of(AccountStatus.ACTIVE, CustomerStatus.ACTIVE, CustomerApprovalStatus.REJECTED, false),
-                Arguments.of(AccountStatus.ACTIVE, CustomerStatus.ACTIVE, CustomerApprovalStatus.SUSPENDED, false),
-                Arguments.of(AccountStatus.ACTIVE, null, null, false),
-                Arguments.of(AccountStatus.PENDING, CustomerStatus.ACTIVE, CustomerApprovalStatus.APPROVED, false),
-                Arguments.of(AccountStatus.LOCKED, CustomerStatus.ACTIVE, CustomerApprovalStatus.APPROVED, false),
-                Arguments.of(AccountStatus.DISABLED, CustomerStatus.ACTIVE, CustomerApprovalStatus.APPROVED, false)
-        );
-    }
-
-    private static Stream<String> invalidBusinessRoles() {
-        return Stream.of(null, "", "   ", "custom_role", " CUSTOM_ROLE ");
-    }
-
-    @Test
-    void activeCustomRoleShouldKeepAssignedPermissions() {
-        CurrentAccountAccess access = access(
-                "CUSTOM_OPERATOR",
-                AccountStatus.ACTIVE,
-                null,
-                null,
-                null
-        );
-
-        assertTrue(access.canUseBusinessPermissions());
-        assertEquals(ASSIGNED_PERMISSIONS, access.getEffectivePermissionCodes());
+        return new CurrentAccountAccess(accountId, source.subject(), source.username(), source.email(), roleId,
+                roleCode, roleActive, partnerMembership, organizationIds, parkingLotIds, status, employeeStatus,
+                customerStatus, customerApprovalStatus, onboardingRequired, permissions);
     }
 
     private CurrentAccountAccess access(
-            String roleCode,
-            AccountStatus accountStatus,
-            EmployeeStatus employeeStatus,
-            CustomerStatus customerStatus,
-            CustomerApprovalStatus approvalStatus
-    ) {
+            String roleCode, Set<String> permissions, Set<UUID> organizationIds, Set<UUID> lotIds,
+            EmployeeStatus employeeStatus, CustomerStatus customerStatus,
+            CustomerApprovalStatus approvalStatus, boolean onboardingRequired) {
         return new CurrentAccountAccess(
-                UUID.randomUUID(),
-                "subject",
-                "user",
-                "user@example.com",
-                UUID.randomUUID(),
-                roleCode,
-                accountStatus,
-                employeeStatus,
-                customerStatus,
-                approvalStatus,
-                ASSIGNED_PERMISSIONS
-        );
+                ACCOUNT_ID, "subject", "user", "user@example.com", ROLE_ID, roleCode, true,
+                !organizationIds.isEmpty(), organizationIds, lotIds, AccountStatus.ACTIVE,
+                employeeStatus, customerStatus, approvalStatus, onboardingRequired, permissions);
     }
 }

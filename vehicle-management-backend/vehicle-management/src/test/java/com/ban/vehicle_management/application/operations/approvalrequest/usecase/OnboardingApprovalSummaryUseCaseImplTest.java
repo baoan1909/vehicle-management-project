@@ -45,7 +45,8 @@ class OnboardingApprovalSummaryUseCaseImplTest {
     private CurrentAccountAccess access(UUID accountId) {
         return new CurrentAccountAccess(
                 accountId, "subject", "admin", "admin@example.com", UUID.randomUUID(), "CUSTOM_APPROVER",
-                AccountStatus.ACTIVE, null, null, null,
+                true, true, Set.of(UUID.randomUUID()), Set.of(),
+                AccountStatus.ACTIVE, null, null, null, false,
                 Set.of(
                         OnboardingApprovalPolicy.REVIEW_SYSTEM_ADMIN_PERMISSION,
                         OnboardingApprovalPolicy.REVIEW_PARKING_MANAGER_PERMISSION

@@ -71,16 +71,12 @@ class ParkingSessionPartnerScopeTest {
     }
 
     @Test
-    void unassignedManagerQueriesNoLots() {
-        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account("PARKING_MANAGER", OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED));
-        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut))
-                .thenReturn(Set.of());
-        when(parkingSessionPortOut.findManagementSessions(null, null, null, null, null, null, null, Set.of()))
-                .thenReturn(List.of());
-        when(parkingSessionManagementResultMapper.withResolvedEventImageUrls(anyList(), eq(fileAccessPort)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+    void unassignedManagerIsDeniedBeforeQuery() {
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(unassignedManager());
 
-        assertEquals(List.of(), useCase.getSessions(null, null, null, null, null, null, null));
+        assertThrows(AccessDeniedException.class,
+                () -> useCase.getSessions(null, null, null, null, null, null, null));
+        verifyNoInteractions(parkingSessionPortOut);
     }
 
     @Test
@@ -115,11 +111,24 @@ class ParkingSessionPartnerScopeTest {
     }
 
     private CurrentAccountAccess account(String roleCode, String scopePermission) {
+        boolean partner = OrganizationAccessGuard.PARKING_SCOPE_PARTNER.equals(scopePermission);
+        boolean assigned = OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED.equals(scopePermission);
         return new CurrentAccountAccess(
                 UUID.randomUUID(), "subject", "partner", "partner@example.com", UUID.randomUUID(),
-                roleCode, AccountStatus.ACTIVE,
-                "PARKING_MANAGER".equals(roleCode) ? EmployeeStatus.ACTIVE : null,
-                Set.of(scopePermission)
+                roleCode, true, partner,
+                partner ? Set.of(UUID.randomUUID()) : Set.of(),
+                assigned ? Set.of(UUID.randomUUID()) : Set.of(),
+                AccountStatus.ACTIVE, assigned ? EmployeeStatus.ACTIVE : null,
+                null, null, false, Set.of(scopePermission)
+        );
+    }
+
+    private CurrentAccountAccess unassignedManager() {
+        return new CurrentAccountAccess(
+                UUID.randomUUID(), "subject", "manager", "manager@example.com", UUID.randomUUID(),
+                "PARKING_MANAGER", true, false, Set.of(), Set.of(), AccountStatus.ACTIVE,
+                EmployeeStatus.ACTIVE, null, null, false,
+                Set.of(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)
         );
     }
 }

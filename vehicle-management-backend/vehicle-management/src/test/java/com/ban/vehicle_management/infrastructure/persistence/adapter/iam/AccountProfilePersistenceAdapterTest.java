@@ -22,6 +22,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.peo
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationMembershipRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.MemberParkingLotScopeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
@@ -77,6 +79,12 @@ class AccountProfilePersistenceAdapterTest {
     private OrganizationRepository organizationRepository;
 
     @Mock
+    private OrganizationMembershipRepository organizationMembershipRepository;
+
+    @Mock
+    private MemberParkingLotScopeRepository memberParkingLotScopeRepository;
+
+    @Mock
     private AccountPersistenceMapper accountPersistenceMapper;
 
     @Mock
@@ -96,6 +104,7 @@ class AccountProfilePersistenceAdapterTest {
     void onboardingPermissionsShouldMatchCurrentAccessForSameLifecycleState(
             String roleCode,
             boolean roleActive,
+            boolean hasActivePartnerOrganizationMembership,
             AccountStatus accountStatus,
             EmployeeStatus employeeStatus,
             CustomerStatus customerStatus,
@@ -135,7 +144,6 @@ class AccountProfilePersistenceAdapterTest {
             customerEntity.setApprovalStatus(customerApprovalStatus);
             when(customerRepository.findByUserProfileId(userProfileId)).thenReturn(Optional.of(customerEntity));
         }
-
         CurrentAccountAccess currentAccess = new CurrentAccountAccess(
                 accountId,
                 "subject",
@@ -144,6 +152,7 @@ class AccountProfilePersistenceAdapterTest {
                 roleId,
                 roleCode,
                 roleActive,
+                hasActivePartnerOrganizationMembership,
                 accountStatus,
                 employeeStatus,
                 customerStatus,
@@ -268,34 +277,36 @@ class AccountProfilePersistenceAdapterTest {
 
     private static java.util.stream.Stream<Arguments> permissionParityStates() {
         return java.util.stream.Stream.of(
-                Arguments.of("SYSTEM_ADMIN", true, AccountStatus.ACTIVE, null, null, null),
-                Arguments.of("SYSTEM_ADMIN", false, AccountStatus.ACTIVE, null, null, null),
-                Arguments.of("PARTNER_ADMIN", true, AccountStatus.ACTIVE, null, null, null),
-                Arguments.of("PARKING_MANAGER", true, AccountStatus.ACTIVE,
+                Arguments.of("SYSTEM_ADMIN", true, false, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("SYSTEM_ADMIN", false, false, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("PARTNER_ADMIN", true, true, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("PARTNER_ADMIN", true, false, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("PARTNER_ADMIN", true, true, AccountStatus.PENDING, null, null, null),
+                Arguments.of("PARKING_MANAGER", true, false, AccountStatus.ACTIVE,
                         EmployeeStatus.ACTIVE, null, null),
-                Arguments.of("PARKING_MANAGER", true, AccountStatus.ACTIVE,
+                Arguments.of("PARKING_MANAGER", true, true, AccountStatus.ACTIVE,
                         EmployeeStatus.SUSPENDED, null, null),
-                Arguments.of("EMPLOYEE", true, AccountStatus.ACTIVE, EmployeeStatus.ACTIVE, null, null),
-                Arguments.of("EMPLOYEE", true, AccountStatus.ACTIVE, EmployeeStatus.INACTIVE, null, null),
-                Arguments.of("EMPLOYEE", true, AccountStatus.ACTIVE, null, null, null),
-                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null,
+                Arguments.of("EMPLOYEE", true, false, AccountStatus.ACTIVE, EmployeeStatus.ACTIVE, null, null),
+                Arguments.of("EMPLOYEE", true, true, AccountStatus.ACTIVE, EmployeeStatus.INACTIVE, null, null),
+                Arguments.of("EMPLOYEE", true, true, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("CUSTOMER", true, false, AccountStatus.ACTIVE, null,
                         CustomerStatus.ACTIVE, CustomerApprovalStatus.APPROVED),
-                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null,
+                Arguments.of("CUSTOMER", true, true, AccountStatus.ACTIVE, null,
                         CustomerStatus.INACTIVE, CustomerApprovalStatus.APPROVED),
-                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null,
+                Arguments.of("CUSTOMER", true, true, AccountStatus.ACTIVE, null,
                         CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING),
-                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null,
+                Arguments.of("CUSTOMER", true, true, AccountStatus.ACTIVE, null,
                         CustomerStatus.ACTIVE, CustomerApprovalStatus.REJECTED),
-                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null,
+                Arguments.of("CUSTOMER", true, true, AccountStatus.ACTIVE, null,
                         CustomerStatus.ACTIVE, CustomerApprovalStatus.SUSPENDED),
-                Arguments.of("CUSTOMER", true, AccountStatus.ACTIVE, null, null, null),
-                Arguments.of("SYSTEM_ADMIN", true, AccountStatus.PENDING, null, null, null),
-                Arguments.of("SYSTEM_ADMIN", true, AccountStatus.LOCKED, null, null, null),
-                Arguments.of("SYSTEM_ADMIN", true, AccountStatus.DISABLED, null, null, null),
-                Arguments.of("CUSTOM_OPERATOR", true, AccountStatus.ACTIVE, null, null, null),
-                Arguments.of("CUSTOM_OPERATOR", true, AccountStatus.ACTIVE,
+                Arguments.of("CUSTOMER", true, true, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("SYSTEM_ADMIN", true, false, AccountStatus.PENDING, null, null, null),
+                Arguments.of("SYSTEM_ADMIN", true, false, AccountStatus.LOCKED, null, null, null),
+                Arguments.of("SYSTEM_ADMIN", true, true, AccountStatus.DISABLED, null, null, null),
+                Arguments.of("CUSTOM_OPERATOR", true, false, AccountStatus.ACTIVE, null, null, null),
+                Arguments.of("CUSTOM_OPERATOR", true, true, AccountStatus.ACTIVE,
                         EmployeeStatus.INACTIVE, null, null),
-                Arguments.of("custom_operator", true, AccountStatus.ACTIVE, null, null, null)
+                Arguments.of("custom_operator", true, true, AccountStatus.ACTIVE, null, null, null)
         );
     }
 }

@@ -103,7 +103,13 @@ class CatalogAccessGuardTest {
     }
 
     private CurrentAccountAccess account(UUID accountId, Set<String> permissions) {
+        boolean partner = permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER);
+        boolean assigned = permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED);
         return new CurrentAccountAccess(accountId, "subject", "user", "user@example.com",
-                UUID.randomUUID(), "TEST_ROLE", AccountStatus.ACTIVE, null, permissions);
+                UUID.randomUUID(), "TEST_ROLE", true, partner,
+                partner ? Set.of(UUID.randomUUID()) : Set.of(),
+                assigned ? Set.of(UUID.randomUUID()) : Set.of(), AccountStatus.ACTIVE,
+                assigned ? com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.ACTIVE : null,
+                null, null, false, permissions);
     }
 }

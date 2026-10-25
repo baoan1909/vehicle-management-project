@@ -9,6 +9,8 @@ import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -115,9 +117,9 @@ class CustomerOnboardingApprovalAccessGuardTest {
                 "customer",
                 "customer@example.com",
                 UUID.randomUUID(),
-                "CUSTOMER",
-                AccountStatus.ACTIVE,
-                null,
+                "CUSTOMER", true, false,
+                AccountStatus.ACTIVE, null,
+                CustomerStatus.ACTIVE, CustomerApprovalStatus.APPROVED,
                 Set.of()
         );
     }
