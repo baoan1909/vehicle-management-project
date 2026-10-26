@@ -182,6 +182,17 @@ app:
       key-hmac-secret: ${AI_CACHE_KEY_HMAC_SECRET:}
     circuit-breaker:
       failure-threshold: ${AI_CIRCUIT_BREAKER_FAILURE_THRESHOLD:3}
+  public-support:
+    rate-window: ${PUBLIC_SUPPORT_RATE_WINDOW:1h}
+    max-requests-per-ip: ${PUBLIC_SUPPORT_MAX_REQUESTS_PER_IP:20}
+    max-requests-per-contact: ${PUBLIC_SUPPORT_MAX_REQUESTS_PER_CONTACT:5}
+    max-requests-per-session: ${PUBLIC_SUPPORT_MAX_REQUESTS_PER_SESSION:10}
+    max-assistant-messages-per-window: ${PUBLIC_SUPPORT_MAX_ASSISTANT_MESSAGES_PER_WINDOW:20}
+    max-assistant-rate-keys: ${PUBLIC_SUPPORT_MAX_ASSISTANT_RATE_KEYS:100000}
+    capability-ttl: ${PUBLIC_SUPPORT_CAPABILITY_TTL:7d}
+    retention: ${PUBLIC_SUPPORT_RETENTION:90d}
+    capability-secret: ${PUBLIC_SUPPORT_CAPABILITY_SECRET:}
+    retention-cleanup-cron: ${PUBLIC_SUPPORT_RETENTION_CLEANUP_CRON:0 30 3 * * *}
   redis:
     enabled: ${REDIS_ENABLED:true}
     host: ${REDIS_HOST:localhost}

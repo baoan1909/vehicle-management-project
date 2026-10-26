@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.iam.rolepermission.usecase;
 
 import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.iam.permission.port.out.PermissionPortOut;
 import com.ban.vehicle_management.application.iam.role.port.out.RolePortOut;
 import com.ban.vehicle_management.application.iam.rolepermission.model.command.RevokePermissionFromRoleCommand;
@@ -33,6 +34,7 @@ public class RevokePermissionFromRolePortInImpl implements RevokePermissionFromR
     private final GetRolePermissionsPortIn getRolePermissionsPortIn;
     private final AuditLogPortOut auditLogPortOut;
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
 
     public RevokePermissionFromRolePortInImpl(
             RolePortOut rolePortOut,
@@ -40,7 +42,8 @@ public class RevokePermissionFromRolePortInImpl implements RevokePermissionFromR
             RolePermissionPortOut rolePermissionPortOut,
             GetRolePermissionsPortIn getRolePermissionsPortIn,
             AuditLogPortOut auditLogPortOut,
-            CurrentAccountPortIn currentAccountPortIn
+            CurrentAccountPortIn currentAccountPortIn,
+            AccountAccessInvalidationPortIn accountAccessInvalidationPortIn
     ) {
         this.rolePortOut = rolePortOut;
         this.permissionPortOut = permissionPortOut;
@@ -48,6 +51,7 @@ public class RevokePermissionFromRolePortInImpl implements RevokePermissionFromR
         this.getRolePermissionsPortIn = getRolePermissionsPortIn;
         this.auditLogPortOut = auditLogPortOut;
         this.currentAccountPortIn = currentAccountPortIn;
+        this.accountAccessInvalidationPortIn = accountAccessInvalidationPortIn;
     }
 
     @Override
@@ -66,6 +70,11 @@ public class RevokePermissionFromRolePortInImpl implements RevokePermissionFromR
 
         if (revoked) {
             writeRevokeAuditLog(role, permission);
+            accountAccessInvalidationPortIn.invalidateActiveAccountsForRole(
+                    role.getCode(),
+                    role.getRoleId(),
+                    "Quyền của vai trò " + role.getName() + " đã được cập nhật."
+            );
         }
 
         return getRolePermissionsPortIn.getRolePermissions(role.getRoleId());

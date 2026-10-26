@@ -73,7 +73,7 @@ public class UserGuideRuntimeUseCaseImpl implements UserGuideRuntimePortIn {
     @Override
     @Transactional(readOnly = true)
     public List<ResolvedUserGuide> resolveGuides(String featureCode, String contextKey) {
-        CurrentAccountAccess account = currentAccountPortIn.getCurrentAccountOrThrow();
+        CurrentAccountAccess account = currentAccountPortIn.getCurrentAccount().orElse(null);
         if (featureCode == null || featureCode.isBlank()) {
             return List.of();
         }
@@ -102,8 +102,9 @@ public class UserGuideRuntimeUseCaseImpl implements UserGuideRuntimePortIn {
             if (version == null || !isEligible(account, guide, version)) {
                 continue;
             }
-            UserGuideUserState state =
-                    statePortOut.findByAccountIdAndGuideId(account.accountId(), guide.getGuideId()).orElse(null);
+            UserGuideUserState state = account == null
+                    ? null
+                    : statePortOut.findByAccountIdAndGuideId(account.accountId(), guide.getGuideId()).orElse(null);
             if (!isReplayEligible(guide.getReplayPolicy(), version.getVersionNumber(), state)) {
                 continue;
             }
@@ -120,7 +121,7 @@ public class UserGuideRuntimeUseCaseImpl implements UserGuideRuntimePortIn {
     @Override
     @Transactional(readOnly = true)
     public ResolvedUserGuide getPublishedGuide(String guideCode) {
-        CurrentAccountAccess account = currentAccountPortIn.getCurrentAccountOrThrow();
+        CurrentAccountAccess account = currentAccountPortIn.getCurrentAccount().orElse(null);
         if (guideCode == null || guideCode.isBlank()) {
             throw new UserGuideException(
                     UserGuideErrorCode.USER_GUIDE_NOT_FOUND, "Guide code must not be blank");
@@ -138,8 +139,9 @@ public class UserGuideRuntimeUseCaseImpl implements UserGuideRuntimePortIn {
                     UserGuideErrorCode.USER_GUIDE_NOT_ELIGIBLE,
                     "Current account is not eligible for guide: " + guideCode);
         }
-        UserGuideUserState state =
-                statePortOut.findByAccountIdAndGuideId(account.accountId(), guide.getGuideId()).orElse(null);
+        UserGuideUserState state = account == null
+                ? null
+                : statePortOut.findByAccountIdAndGuideId(account.accountId(), guide.getGuideId()).orElse(null);
         return new ResolvedUserGuide(guide, version, state, resolveMediaUrls(version));
     }
 
@@ -290,10 +292,10 @@ public class UserGuideRuntimeUseCaseImpl implements UserGuideRuntimePortIn {
 
     private boolean isEligible(CurrentAccountAccess account, UserGuide guide, UserGuideVersion version) {
         UserGuideAudienceMode mode = version.getAudienceMode();
-        if (mode == null || mode == UserGuideAudienceMode.PUBLIC) {
+        if (mode == UserGuideAudienceMode.PUBLIC) {
             return true;
         }
-        if (account == null) {
+        if (mode == null || account == null) {
             return false;
         }
         if (mode == UserGuideAudienceMode.ALL_AUTHENTICATED) {

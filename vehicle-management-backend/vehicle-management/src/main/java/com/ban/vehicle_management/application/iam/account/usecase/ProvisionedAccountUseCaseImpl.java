@@ -6,6 +6,7 @@ import com.ban.vehicle_management.application.iam.account.model.command.UpdatePr
 import com.ban.vehicle_management.application.iam.account.model.command.UpdateProvisionedAccountStatusCommand;
 import com.ban.vehicle_management.application.iam.account.model.result.ProvisionedAccountResult;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.iam.account.port.in.ProvisionedAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
@@ -47,6 +48,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     private final ProvisionedAccountPolicy provisionedAccountPolicy;
     private final NotificationPortIn notificationPortIn;
     private final OrganizationPortOut organizationPortOut;
+    private final AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
     private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
 
     public ProvisionedAccountUseCaseImpl(
@@ -55,7 +57,8 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             IdentityProviderAdminPortOut identityProviderAdminPortOut,
             ProvisionedAccountPolicy provisionedAccountPolicy,
             NotificationPortIn notificationPortIn,
-            OrganizationPortOut organizationPortOut
+            OrganizationPortOut organizationPortOut,
+            AccountAccessInvalidationPortIn accountAccessInvalidationPortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.provisionedAccountPortOut = provisionedAccountPortOut;
@@ -63,6 +66,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         this.provisionedAccountPolicy = provisionedAccountPolicy;
         this.notificationPortIn = notificationPortIn;
         this.organizationPortOut = organizationPortOut;
+        this.accountAccessInvalidationPortIn = accountAccessInvalidationPortIn;
     }
 
     @Override
@@ -182,9 +186,16 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
         );
         UUID roleId = provisionedAccountPortOut.findActiveRoleIdByCode(normalizedCommand.roleCode());
         provisionedAccountPortOut.updateProvisionedAccountRole(accountId, roleId);
-
-        return provisionedAccountPortOut.findProvisionedAccountById(accountId)
+        ProvisionedAccountResult result = provisionedAccountPortOut.findProvisionedAccountById(accountId)
                 .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
+        accountAccessInvalidationPortIn.invalidateAccount(
+                accountId,
+                "Vai trò tài khoản của bạn đã được cập nhật.",
+                "iam",
+                "accounts",
+                accountId
+        );
+        return result;
     }
 
     private void ensureCreateNoConflict(CreateProvisionedAccountCommand command) {
