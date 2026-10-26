@@ -40,6 +40,7 @@ import { deleteParkingLevel, createParkingLevel, getLevelsByLot, type ParkingLev
 import { ParkingLotCreateWizard } from "@/features/parking/components/ParkingLotCreateWizard";
 import { ParkingLotEditModal } from "@/features/parking/components/ParkingLotEditModal";
 import { ParkingManagerAssignmentModal } from "@/features/parking/components/ParkingManagerAssignmentModal";
+import { ParkingLotWorkspaceHeader } from "@/features/parking/components/ParkingLotWorkspaceHeader";
 import { getVehicleTypes } from "@/features/catalog/api/vehicleTypesApi";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 
@@ -1584,95 +1585,44 @@ export function ParkingLotStructurePage() {
         <span className="tw-font-semibold tw-text-[#0f172a]">{lotName}</span>
       </nav>
 
-      {/* Title row */}
-      <div className="tw-mt-2 tw-flex tw-flex-wrap tw-items-center tw-gap-3">
-        <h1 className="tw-m-0 tw-text-[1.7rem] tw-font-extrabold tw-leading-tight tw-text-[#0f172a]">
-          {lotName} <span className="tw-font-extrabold tw-text-[#0f172a]">· {lotCode}</span>
-        </h1>
-        <span className={cn(
-          "tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-px-3 tw-py-[7px] tw-text-[0.78rem] tw-font-bold",
-          hasActiveLot && lotActive ? "tw-bg-[#dcfce7] tw-text-[#15803d]" : "tw-bg-[#fef3c7] tw-text-[#a16207]",
-        )}>
-          <span className={cn("tw-h-2 tw-w-2 tw-rounded-full", hasActiveLot && lotActive ? "tw-bg-[#16a34a]" : "tw-bg-[#f59e0b]")} />
-          {!hasActiveLot ? "Chưa thiết lập" : lotActive ? "Đang hoạt động" : "Bảo trì"}
-        </span>
-        <span className="tw-ml-auto tw-flex tw-items-center tw-gap-3">
-          {lots.length > 1 && activeLot ? (
-            <SelectMenu
-              ariaLabel="Chọn bãi xe"
-              className="!tw-w-[260px]"
-              triggerClassName="!tw-h-10 !tw-rounded-[8px] !tw-border-[#dbe3f0] !tw-text-[0.82rem] !tw-font-bold !tw-shadow-none"
-              value={activeLotId}
-              onChange={(parkingLotId) => navigate(`/admin/parking-structure?lotId=${encodeURIComponent(parkingLotId)}`)}
-              options={lots.map((lot) => ({ label: `${lot.code} — ${lot.name}`, value: lot.parkingLotId }))}
-              portal
-            />
-          ) : null}
-          {canDeleteLot ? (
-            <Button
-              variant="danger"
-              className="tw-h-10 tw-rounded-[8px] tw-px-4 tw-font-bold"
-              disabled={!hasActiveLot}
-              title={hasActiveLot ? undefined : "Tạo bãi xe trước khi có thể xóa bãi."}
-              onClick={() => setDeleteTarget({ kind: "lot", id: activeLot.parkingLotId, label: activeLot.name })}
-            >
-              <i className="far fa-trash-alt tw-text-[0.9rem]" aria-hidden="true" />
-              Xóa bãi
-            </Button>
-          ) : null}
-          {canEditLot ? (
-            <Button variant="secondary" className="tw-h-10 tw-rounded-[8px] tw-border-[#dbe3f0] tw-px-4 tw-font-bold tw-text-[#0f172a]" disabled={!hasActiveLot} title={hasActiveLot ? undefined : "Tạo bãi xe trước khi có thể chỉnh sửa."} onClick={() => setLotEditOpen(true)}>
-              <i className="far fa-edit tw-text-[0.9rem]" aria-hidden="true" />
-              Sửa bãi
-            </Button>
-          ) : null}
-          {canAssignManager ? (
-            <Button variant="secondary" className="tw-h-10 tw-rounded-[8px] tw-border-[#dbe3f0] tw-px-4 tw-font-bold tw-text-[#0f172a]" disabled={!hasActiveLot} title={hasActiveLot ? undefined : "Tạo bãi xe trước khi phân công Parking Manager."} onClick={() => setManagerAssignmentOpen(true)}>
-              <i className="fas fa-users-cog tw-text-[0.9rem]" aria-hidden="true" />
-              Gán quản lý
-            </Button>
-          ) : null}
-          {canCreateLot ? (
-            <Button className="tw-h-10 tw-rounded-[8px] tw-px-4 tw-font-bold" onClick={() => setLotWizardOpen(true)}>
-              <i className="fas fa-plus tw-text-[0.85rem]" aria-hidden="true" />
-              Thêm bãi
-            </Button>
-          ) : null}
-        </span>
-      </div>
-      <p className="tw-m-0 tw-mt-1.5 tw-flex tw-items-center tw-gap-1.5 tw-text-[0.86rem] tw-text-[#64748b]">
-        <i className="far fa-map-marker-alt tw-text-[0.9rem]" aria-hidden="true" />
-        {lotAddress}
-      </p>
-
-      {/* Tabs */}
-      <div className="tw-mt-4 tw-flex tw-items-center tw-gap-8 tw-border-0 tw-border-b tw-border-solid tw-border-[#e2e8f0]" role="tablist" aria-label="Điều hướng bãi xe">
-        {[
-          { label: "Tổng quan", to: "/admin/parking-lots", active: false },
-          { label: "Cấu trúc", to: "", active: true },
-          { label: "Thiết kế sơ đồ", to: "/admin/parking-layouts", active: false },
-          { label: "Trực tiếp", to: "/admin/parking-live", active: false },
-        ].map((t) =>
-          t.active ? (
-            <span key={t.label} role="tab" aria-selected="true" className="tw-relative tw-inline-block tw-pb-3 tw-text-[0.95rem] tw-font-bold tw-text-[#2563eb]">
-              {t.label}
-              <span className="tw-absolute tw-inset-x-0 tw--bottom-px tw-h-[2.5px] tw-rounded-full tw-bg-[#2563eb]" />
-            </span>
-          ) : (
-            <button
-              key={t.label}
-              type="button"
-              role="tab"
-              aria-selected="false"
-              disabled={!hasActiveLot}
-              onClick={() => goTab(t.to)}
-              className="tw-border-0 tw-bg-transparent tw-p-0 tw-pb-3 tw-text-[0.95rem] tw-font-medium tw-text-[#475569] hover:tw-text-[#2563eb] disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
-            >
-              {t.label}
-            </button>
-          ),
-        )}
-      </div>
+      {activeLot ? (
+        <ParkingLotWorkspaceHeader
+          activeTab="structure"
+          parkingLot={activeLot}
+          parkingLots={lots}
+          onParkingLotChange={(parkingLotId) => navigate(`/admin/parking-structure?lotId=${encodeURIComponent(parkingLotId)}`)}
+          actions={(
+            <>
+              {canDeleteLot ? (
+                <Button variant="danger" onClick={() => setDeleteTarget({ kind: "lot", id: activeLot.parkingLotId, label: activeLot.name })}>
+                  <i className="far fa-trash-alt" aria-hidden="true" />Xóa bãi
+                </Button>
+              ) : null}
+              {canEditLot ? <Button variant="secondary" onClick={() => setLotEditOpen(true)}><i className="far fa-edit" aria-hidden="true" />Sửa bãi</Button> : null}
+              {canAssignManager ? <Button variant="secondary" onClick={() => setManagerAssignmentOpen(true)}><i className="fas fa-users-cog" aria-hidden="true" />Gán quản lý</Button> : null}
+              {canCreateLot ? <Button onClick={() => setLotWizardOpen(true)}><i className="fas fa-plus" aria-hidden="true" />Thêm bãi</Button> : null}
+            </>
+          )}
+        />
+      ) : (
+        <>
+          <div className="tw-mt-2 tw-flex tw-min-h-[86px] tw-items-center tw-justify-between tw-gap-4">
+            <div className="tw-flex tw-min-w-0 tw-items-center tw-gap-4">
+              <span className="tw-flex tw-size-[62px] tw-flex-none tw-items-center tw-justify-center tw-rounded-vm-lg tw-border tw-border-solid tw-border-blue-100 tw-bg-gradient-to-br tw-from-blue-50 tw-to-white tw-shadow-sm">
+                <span className="tw-flex tw-size-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-bg-vm-primary tw-text-xl tw-font-black tw-text-white">P</span>
+              </span>
+              <div className="tw-min-w-0">
+                <h1 className="tw-m-0 tw-text-[1.7rem] tw-font-extrabold tw-text-vm-slate-900">{lotName} · {lotCode}</h1>
+                <p className="tw-m-0 tw-mt-1.5 tw-flex tw-items-center tw-gap-2 tw-text-[0.86rem] tw-text-vm-slate-500"><i className="fas fa-map-marker-alt" aria-hidden="true" />{lotAddress}</p>
+              </div>
+            </div>
+            {canCreateLot ? <Button onClick={() => setLotWizardOpen(true)}><i className="fas fa-plus" aria-hidden="true" />Thêm bãi</Button> : null}
+          </div>
+          <div className="tw-mt-1 tw-flex tw-h-[52px] tw-items-end tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100" aria-label="Điều hướng quản lý bãi xe">
+            {["Tổng quan", "Cấu trúc", "Thiết kế sơ đồ", "Trực tiếp"].map((label) => <span key={label} className={cn("tw-inline-flex tw-h-[52px] tw-items-center tw-px-4 tw-text-[0.9rem] tw-font-bold", label === "Cấu trúc" ? "tw-text-vm-primary" : "tw-text-vm-slate-300")}>{label}</span>)}
+          </div>
+        </>
+      )}
 
       {/* Info banner */}
       <div className="tw-mt-4 tw-flex tw-items-center tw-gap-3 tw-rounded-[8px] tw-border tw-border-solid tw-border-[#dbeafe] tw-bg-[#eff6ff] tw-px-4 tw-py-3">
