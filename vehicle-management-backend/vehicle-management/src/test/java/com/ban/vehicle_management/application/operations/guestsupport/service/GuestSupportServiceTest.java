@@ -35,6 +35,7 @@ class GuestSupportServiceTest {
     @Mock GuestSupportRequestPortOut requestPort;
     @Mock SupportTicketCategoryPortIn categoryPort;
     @Mock AuditLogPortOut auditPort;
+    @Mock CaptchaProofService captchaProofService;
     private GuestSupportService service;
     private GuestSupportProperties properties;
     private UUID categoryId;
@@ -44,7 +45,8 @@ class GuestSupportServiceTest {
         properties = new GuestSupportProperties();
         properties.setCapabilitySecret("unit-test-secret-with-at-least-32-bytes");
         GuestSupportTokenService tokenService = new GuestSupportTokenService(properties);
-        service = new GuestSupportService(requestPort, categoryPort, auditPort, tokenService, properties);
+        service = new GuestSupportService(
+                requestPort, categoryPort, auditPort, tokenService, properties, captchaProofService);
         categoryId = UUID.randomUUID();
         SupportTicketCategory category = new SupportTicketCategory();
         category.setCategoryId(categoryId);

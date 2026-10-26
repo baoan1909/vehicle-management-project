@@ -13,6 +13,8 @@ import com.ban.vehicle_management.application.ai.service.AiModelRouter;
 import com.ban.vehicle_management.application.ai.service.KnowledgeRetrievalService;
 import com.ban.vehicle_management.application.ai.service.PiiRedactionService;
 import com.ban.vehicle_management.application.operations.guestsupport.config.GuestSupportProperties;
+import com.ban.vehicle_management.application.operations.guestsupport.model.GuestRateLimitDecision;
+import com.ban.vehicle_management.application.operations.guestsupport.port.out.GuestRateLimitPortOut;
 import com.ban.vehicle_management.domain.ai.model.AiModelConfiguration;
 import com.ban.vehicle_management.domain.ai.model.AiRequest;
 import com.ban.vehicle_management.domain.ai.model.AiResponse;
@@ -37,6 +39,8 @@ class GuestPublicAssistantServiceTest {
     @Mock KnowledgeRetrievalService retrievalService;
     @Mock AiModelRouter modelRouter;
     @Mock AiProviderPortOut provider;
+    @Mock GuestRateLimitPortOut rateLimitPortOut;
+    @Mock CaptchaProofService captchaProofService;
     private GuestPublicAssistantService service;
 
     @BeforeEach
@@ -47,14 +51,17 @@ class GuestPublicAssistantServiceTest {
         assistantProperties.setAssistantEnabled(true);
         assistantProperties.setAllowUnpaidSupportData(true);
         when(provider.provider()).thenReturn(AiProvider.GEMINI);
+        when(rateLimitPortOut.consume(any(), any(), any(Integer.class), any()))
+                .thenReturn(new GuestRateLimitDecision(true, 60));
         service = new GuestPublicAssistantService(
                 retrievalService,
                 modelRouter,
                 List.of(provider),
                 assistantProperties,
                 new PiiRedactionService(),
-                new GuestAssistantRateLimiter(guestProperties),
-                new GuestSupportTokenService(guestProperties));
+                new GuestAssistantRateLimiter(guestProperties, rateLimitPortOut),
+                new GuestSupportTokenService(guestProperties),
+                captchaProofService);
     }
 
     @Test
@@ -73,7 +80,7 @@ class GuestPublicAssistantServiceTest {
         when(provider.generate(any(), eq(configuration)))
                 .thenReturn(AiResponse.success("Bạn mở trang đăng ký [C1].", "{}", 10, 10));
 
-        GuestAssistantResponse answer = service.answer("Cách đăng ký?", "session", "127.0.0.1");
+        GuestAssistantResponse answer = service.answer("Cách đăng ký?", "session", null, "127.0.0.1");
 
         assertEquals("Bạn mở trang đăng ký [C1].", answer.answer());
         ArgumentCaptor<AiRequest> requestCaptor = ArgumentCaptor.forClass(AiRequest.class);

@@ -93,6 +93,36 @@ class AuthorizationActorMatrixSqlStatementCountIT extends PostgresIntegrationTes
     }
 
     @Test
+    void pendingCustomerUsesOneFiveStatementAggregateLoadWithSupportOnly() {
+        UUID roleId = createRole("QUERY_PENDING_CUSTOMER", true,
+                Set.of("SUPPORT_TICKET_READ_OWN", "CUSTOMER_VEHICLE_READ_OWN"));
+        UUID profileId = createProfile();
+        createCustomer(profileId, "INACTIVE", "PENDING");
+        UUID accountId = createAccount(roleId, AccountStatus.PENDING, profileId);
+
+        CurrentAccountAccess access = assertLoad(accountId, 5L);
+
+        assertEquals(Set.of("SUPPORT_TICKET_READ_OWN"), access.getEffectivePermissionCodes());
+        assertTrue(access.canUseEffectivePermissions());
+        assertTrue(!access.canUseBusinessPermissions());
+    }
+
+    @Test
+    void rejectedCustomerUsesOneFiveStatementAggregateLoadWithSupportOnly() {
+        UUID roleId = createRole("QUERY_REJECTED_CUSTOMER", true,
+                Set.of("CHAT_CONVERSATION_READ_OWN", "WALLET_READ_OWN"));
+        UUID profileId = createProfile();
+        createCustomer(profileId, "INACTIVE", "REJECTED");
+        UUID accountId = createAccount(roleId, AccountStatus.PENDING, profileId);
+
+        CurrentAccountAccess access = assertLoad(accountId, 5L);
+
+        assertEquals(Set.of("CHAT_CONVERSATION_READ_OWN"), access.getEffectivePermissionCodes());
+        assertTrue(access.canUseEffectivePermissions());
+        assertTrue(!access.canUseBusinessPermissions());
+    }
+
+    @Test
     void customRoleLockedAccountAndInactiveRoleEachUseOneThreeStatementAggregateLoad() {
         UUID customRoleId = createRole("QUERY_CUSTOM", true, Set.of("ACCOUNT_READ_ALL"));
         UUID customAccount = createAccount(customRoleId, AccountStatus.ACTIVE, null);

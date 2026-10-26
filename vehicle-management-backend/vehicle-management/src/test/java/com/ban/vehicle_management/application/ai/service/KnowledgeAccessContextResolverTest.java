@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -41,6 +43,24 @@ class KnowledgeAccessContextResolverTest {
         List<String> scopes = new KnowledgeAccessContextResolver(currentAccountPortIn).resolveScopes();
 
         assertEquals(List.of("PUBLIC"), scopes);
+    }
+
+    @Test
+    void pendingCustomerWithAssignedCustomerKnowledgeStillOnlySeesPublicScope() {
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.of(customerApplicant(
+                CustomerApprovalStatus.PENDING)));
+
+        assertEquals(List.of("PUBLIC"),
+                new KnowledgeAccessContextResolver(currentAccountPortIn).resolveScopes());
+    }
+
+    @Test
+    void rejectedCustomerWithAssignedCustomerKnowledgeStillOnlySeesPublicScope() {
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.of(customerApplicant(
+                CustomerApprovalStatus.REJECTED)));
+
+        assertEquals(List.of("PUBLIC"),
+                new KnowledgeAccessContextResolver(currentAccountPortIn).resolveScopes());
     }
 
     @Test
@@ -110,5 +130,21 @@ class KnowledgeAccessContextResolverTest {
                 AccountStatus.ACTIVE,
                 null,
                 permissions);
+    }
+
+    private CurrentAccountAccess customerApplicant(CustomerApprovalStatus approvalStatus) {
+        return new CurrentAccountAccess(
+                UUID.randomUUID(),
+                "subject",
+                "user",
+                "user@test.local",
+                UUID.randomUUID(),
+                "CUSTOM_APPLICANT_ROLE",
+                true,
+                AccountStatus.PENDING,
+                null,
+                CustomerStatus.INACTIVE,
+                approvalStatus,
+                Set.of("SUPPORT_WIDGET_ACCESS_OWN", "AI_KNOWLEDGE_READ_CUSTOMER"));
     }
 }

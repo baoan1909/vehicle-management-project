@@ -40,6 +40,85 @@ class EffectiveAccountAccessPolicyTest {
     }
 
     @Test
+    void pendingCustomerReceivesOnlyExplicitSupportPermissions() {
+        Set<String> assigned = Set.of(
+                "SUPPORT_WIDGET_ACCESS_OWN",
+                "SUPPORT_TICKET_READ_OWN",
+                "AI_KNOWLEDGE_READ_CUSTOMER",
+                "CUSTOMER_VEHICLE_READ_OWN",
+                "WALLET_READ_OWN");
+        var pending = new EffectiveAccountAccessPolicy.AccessState(
+                "CUSTOM_SUPPORT", true, false, Set.of(), Set.of(), AccountStatus.PENDING, null,
+                CustomerStatus.INACTIVE, CustomerApprovalStatus.PENDING);
+        Set<String> expected = Set.of("SUPPORT_WIDGET_ACCESS_OWN", "SUPPORT_TICKET_READ_OWN");
+        assertEquals(expected, policy.resolveEffectivePermissionCodes(pending, assigned));
+        assertFalse(policy.canUseBusinessPermissions(pending));
+        assertTrue(policy.canUseEffectivePermissions(pending));
+    }
+
+    @Test
+    void rejectedCustomerReceivesOnlyExplicitSupportPermissions() {
+        Set<String> assigned = Set.of(
+                "SUPPORT_WIDGET_ACCESS_OWN",
+                "SUPPORT_TICKET_READ_OWN",
+                "AI_KNOWLEDGE_READ_CUSTOMER",
+                "CUSTOMER_VEHICLE_READ_OWN",
+                "WALLET_READ_OWN");
+        var rejected = new EffectiveAccountAccessPolicy.AccessState(
+                "ANOTHER_CUSTOM_ROLE", true, false, Set.of(), Set.of(), AccountStatus.PENDING, null,
+                CustomerStatus.INACTIVE, CustomerApprovalStatus.REJECTED);
+
+        assertEquals(Set.of("SUPPORT_WIDGET_ACCESS_OWN", "SUPPORT_TICKET_READ_OWN"),
+                policy.resolveEffectivePermissionCodes(rejected, assigned));
+        assertFalse(policy.canUseBusinessPermissions(rejected));
+        assertTrue(policy.canUseEffectivePermissions(rejected));
+    }
+
+    @Test
+    void pendingNonCustomerAccountCannotUseAnyAssignedPermission() {
+        var pendingPartner = new EffectiveAccountAccessPolicy.AccessState(
+                "PARTNER_ADMIN", true, true, Set.of(UUID.randomUUID()), Set.of(),
+                AccountStatus.PENDING, null, null, null);
+
+        assertFalse(policy.canUseEffectivePermissions(pendingPartner));
+        assertTrue(policy.resolveEffectivePermissionCodes(
+                pendingPartner,
+                Set.of("SUPPORT_WIDGET_ACCESS_OWN", "ORGANIZATION_READ_ALL"))
+                .isEmpty());
+    }
+
+    @Test
+    void activeNonCustomerAccountRetainsMembershipBoundChatPermission() {
+        var internalActor = state("CUSTOM_INTERNAL_ROLE", true, AccountStatus.ACTIVE);
+
+        assertEquals(Set.of("CHAT_CONVERSATION_READ_OWN"),
+                policy.resolveEffectivePermissionCodes(
+                        internalActor, Set.of("CHAT_CONVERSATION_READ_OWN")));
+    }
+
+    @Test
+    void inactiveApprovedCustomerLosesSupportAndBusinessPermissions() {
+        var inactiveCustomer = new EffectiveAccountAccessPolicy.AccessState(
+                "CUSTOM_ROLE", true, false, Set.of(), Set.of(), AccountStatus.ACTIVE, null,
+                CustomerStatus.INACTIVE, CustomerApprovalStatus.APPROVED);
+
+        assertTrue(policy.resolveEffectivePermissionCodes(
+                inactiveCustomer,
+                Set.of("CHAT_CONVERSATION_READ_OWN", "CUSTOMER_VEHICLE_READ_OWN"))
+                .isEmpty());
+    }
+
+    @Test
+    void approvedCustomRoleReceivesCustomerKnowledgeAndBusinessPermissions() {
+        var approved = new EffectiveAccountAccessPolicy.AccessState(
+                "CUSTOM_NON_DEFAULT_ROLE", true, false, Set.of(), Set.of(), AccountStatus.ACTIVE, null,
+                CustomerStatus.ACTIVE, CustomerApprovalStatus.APPROVED);
+        assertEquals(Set.of("AI_KNOWLEDGE_READ_CUSTOMER", "CUSTOMER_VEHICLE_READ_OWN"),
+                policy.resolveEffectivePermissionCodes(approved,
+                        Set.of("AI_KNOWLEDGE_READ_CUSTOMER", "CUSTOMER_VEHICLE_READ_OWN")));
+    }
+
+    @Test
     void assignedScopeRequiresActiveEmployeeAndAtLeastOneAssignment() {
         UUID lotId = UUID.randomUUID();
         var activeAssigned = new EffectiveAccountAccessPolicy.AccessState(

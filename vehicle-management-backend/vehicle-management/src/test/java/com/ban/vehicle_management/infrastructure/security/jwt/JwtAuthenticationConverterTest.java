@@ -118,6 +118,42 @@ class JwtAuthenticationConverterTest {
     }
 
     @Test
+    void shouldGrantOnlySupportAuthorityWhileCustomerAccountIsPending() {
+        UUID accountId = UUID.randomUUID();
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .subject("pending-customer-subject")
+                .claim("account_id", accountId.toString())
+                .build();
+        when(accountAuthorizationPortOut.findByAccountId(accountId)).thenReturn(java.util.Optional.of(
+                new CurrentAccountAccess(
+                        accountId,
+                        "pending-customer-subject",
+                        "pending.customer",
+                        "pending.customer@example.com",
+                        UUID.randomUUID(),
+                        "CUSTOM_SUPPORT_ROLE",
+                        true,
+                        false,
+                        AccountStatus.PENDING,
+                        null,
+                        com.ban.vehicle_management.shared.enumeration.people.CustomerStatus.INACTIVE,
+                        com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus.PENDING,
+                        Set.of("SUPPORT_TICKET_READ_OWN", "CUSTOMER_VEHICLE_READ_OWN", "ACCOUNT_READ_ALL")
+                )
+        ));
+
+        JwtAuthenticationToken authenticationToken = (JwtAuthenticationToken) jwtAuthenticationConverter.convert(jwt);
+
+        assertTrue(authenticationToken.getAuthorities().stream()
+                .anyMatch(authority -> "SUPPORT_TICKET_READ_OWN".equals(authority.getAuthority())));
+        assertFalse(authenticationToken.getAuthorities().stream()
+                .anyMatch(authority -> "CUSTOMER_VEHICLE_READ_OWN".equals(authority.getAuthority())));
+        assertFalse(authenticationToken.getAuthorities().stream()
+                .anyMatch(authority -> "ACCOUNT_READ_ALL".equals(authority.getAuthority())));
+    }
+
+    @Test
     void shouldGrantMappedPartnerPermissionsAfterAccountActivation() {
         UUID accountId = UUID.randomUUID();
         Jwt jwt = Jwt.withTokenValue("token")
