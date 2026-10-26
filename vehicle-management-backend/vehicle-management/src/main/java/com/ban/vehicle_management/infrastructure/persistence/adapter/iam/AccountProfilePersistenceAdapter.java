@@ -431,7 +431,7 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 customerEntity == null ? null : customerEntity.getStatus(),
                 customerEntity == null ? null : customerEntity.getApprovalStatus()
         );
-        if (accountEntity.getRoleId() == null || !EFFECTIVE_ACCESS_POLICY.canUseBusinessPermissions(accessState)) {
+        if (accountEntity.getRoleId() == null || !EFFECTIVE_ACCESS_POLICY.canUseEffectivePermissions(accessState)) {
             return List.of();
         }
 

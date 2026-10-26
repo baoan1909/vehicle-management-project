@@ -71,7 +71,7 @@ public class CurrentAccountSecurityAdapter implements CurrentAccountPortIn {
         String normalizedPermissionCode = normalizePermissionCode(permissionCode);
 
         return getCurrentAccount()
-                .filter(CurrentAccountAccess::canUseBusinessPermissions)
+                .filter(CurrentAccountAccess::canUseEffectivePermissions)
                 .map(CurrentAccountAccess::getEffectivePermissionCodes)
                 .orElseGet(Set::of)
                 .contains(normalizedPermissionCode);

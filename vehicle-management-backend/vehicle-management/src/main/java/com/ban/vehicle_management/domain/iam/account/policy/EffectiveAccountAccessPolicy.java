@@ -23,11 +23,21 @@ public final class EffectiveAccountAccessPolicy {
                 && AccountStatus.ACTIVE.equals(state.accountStatus());
     }
 
+    /** Allows a pending customer account to use only lifecycle-filtered support permissions. */
+    public boolean canUseEffectivePermissions(AccessState state) {
+        return canUseBusinessPermissions(state)
+                || (state != null
+                && state.roleActive()
+                && AccountStatus.PENDING.equals(state.accountStatus())
+                && (CustomerApprovalStatus.PENDING.equals(state.customerApprovalStatus())
+                || CustomerApprovalStatus.REJECTED.equals(state.customerApprovalStatus())));
+    }
+
     public Set<String> resolveEffectivePermissionCodes(
             AccessState state,
             Collection<String> assignedPermissionCodes
     ) {
-        if (!canUseBusinessPermissions(state)
+        if (!canUseEffectivePermissions(state)
                 || assignedPermissionCodes == null
                 || assignedPermissionCodes.isEmpty()) {
             return Set.of();
@@ -36,6 +46,9 @@ public final class EffectiveAccountAccessPolicy {
         Set<String> normalizedAssignedPermissions = prerequisitePolicy
                 .normalizeAssignedPermissions(assignedPermissionCodes);
         LinkedHashSet<String> effectivePermissions = normalizedAssignedPermissions.stream()
+                .filter(permissionCode -> canUseBusinessPermissions(state)
+                        || PermissionAccessPrerequisitePolicy.PermissionPrerequisite.CUSTOMER_SUPPORT.equals(
+                        prerequisitePolicy.classificationFor(permissionCode)))
                 .filter(permissionCode -> prerequisitePolicy.isSatisfied(permissionCode, state))
                 .sorted()
                 .collect(Collectors.toCollection(LinkedHashSet::new));

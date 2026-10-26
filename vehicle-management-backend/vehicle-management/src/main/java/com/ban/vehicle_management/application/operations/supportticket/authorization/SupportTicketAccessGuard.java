@@ -1,11 +1,8 @@
 package com.ban.vehicle_management.application.operations.supportticket.authorization;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
-import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
-import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
+import com.ban.vehicle_management.application.people.customer.authorization.CustomerIdentityResolver;
 import com.ban.vehicle_management.domain.operations.supportticket.model.SupportTicket;
-import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
-import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.UUID;
@@ -36,34 +33,30 @@ public class SupportTicketAccessGuard {
     private static final String ESCALATION_REVIEW_ALL_PERMISSION = "SUPPORT_TICKET_ESCALATION_REVIEW_ALL";
 
     private final CurrentAccountPortIn currentAccountPortIn;
-    private final AccountProfilePortOut accountProfilePortOut;
+    private final CustomerIdentityResolver customerIdentityResolver;
 
     public SupportTicketAccessGuard(
             CurrentAccountPortIn currentAccountPortIn,
-            AccountProfilePortOut accountProfilePortOut
+            CustomerIdentityResolver customerIdentityResolver
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
-        this.accountProfilePortOut = accountProfilePortOut;
+        this.customerIdentityResolver = customerIdentityResolver;
     }
 
     public UUID resolveCustomerIdForCreate() {
-        currentAccountPortIn.requirePermission(CREATE_OWN_PERMISSION);
-        return resolveCurrentApprovedCustomerId();
+        return resolveCurrentSupportCustomerId(CREATE_OWN_PERMISSION);
     }
 
     public UUID resolveCustomerIdForAssistant() {
-        currentAccountPortIn.requirePermission(ASSISTANT_ACCESS_OWN_PERMISSION);
-        return resolveCurrentApprovedCustomerId();
+        return resolveCurrentSupportCustomerId(ASSISTANT_ACCESS_OWN_PERMISSION);
     }
 
     public UUID resolveCustomerIdForCreateFromChat() {
-        currentAccountPortIn.requirePermission(CREATE_FROM_CHAT_OWN_PERMISSION);
-        return resolveCurrentApprovedCustomerId();
+        return resolveCurrentSupportCustomerId(CREATE_FROM_CHAT_OWN_PERMISSION);
     }
 
     public UUID resolveCustomerIdForOwnTickets() {
-        currentAccountPortIn.requirePermission(READ_OWN_PERMISSION);
-        return resolveCurrentApprovedCustomerId();
+        return resolveCurrentSupportCustomerId(READ_OWN_PERMISSION);
     }
 
     public void ensureCanRead(SupportTicket ticket) {
@@ -78,8 +71,7 @@ public class SupportTicketAccessGuard {
             return;
         }
 
-        currentAccountPortIn.requirePermission(READ_OWN_PERMISSION);
-        UUID customerId = resolveCurrentApprovedCustomerId();
+        UUID customerId = resolveCurrentSupportCustomerId(READ_OWN_PERMISSION);
         if (!customerId.equals(ticket.getCustomerId())) {
             throw new AccessDeniedException("Access is denied");
         }
@@ -90,8 +82,7 @@ public class SupportTicketAccessGuard {
             return;
         }
 
-        currentAccountPortIn.requirePermission(UPDATE_OWN_PERMISSION);
-        UUID customerId = resolveCurrentApprovedCustomerId();
+        UUID customerId = resolveCurrentSupportCustomerId(UPDATE_OWN_PERMISSION);
         if (!customerId.equals(ticket.getCustomerId())) {
             throw new AccessDeniedException("Access is denied");
         }
@@ -102,8 +93,7 @@ public class SupportTicketAccessGuard {
     }
 
     public UUID ensureCanCreateOrReadOwnEscalation(SupportTicket ticket) {
-        currentAccountPortIn.requirePermission(ESCALATION_CREATE_OWN_PERMISSION);
-        UUID customerId = resolveCurrentApprovedCustomerId();
+        UUID customerId = resolveCurrentSupportCustomerId(ESCALATION_CREATE_OWN_PERMISSION);
         if (!customerId.equals(ticket.getCustomerId())) {
             throw new AccessDeniedException("Access is denied");
         }
@@ -118,8 +108,7 @@ public class SupportTicketAccessGuard {
     }
 
     public UUID ensureCanReadOwnCustomerConversation(SupportTicket ticket) {
-        currentAccountPortIn.requirePermission(READ_OWN_PERMISSION);
-        UUID customerId = resolveCurrentApprovedCustomerId();
+        UUID customerId = resolveCurrentSupportCustomerId(READ_OWN_PERMISSION);
         if (!customerId.equals(ticket.getCustomerId())) {
             throw new AccessDeniedException("Access is denied");
         }
@@ -166,8 +155,7 @@ public class SupportTicketAccessGuard {
             return;
         }
 
-        currentAccountPortIn.requirePermission(REOPEN_OWN_PERMISSION);
-        UUID customerId = resolveCurrentApprovedCustomerId();
+        UUID customerId = resolveCurrentSupportCustomerId(REOPEN_OWN_PERMISSION);
         if (!customerId.equals(ticket.getCustomerId())) {
             throw new AccessDeniedException("Access is denied");
         }
@@ -180,8 +168,7 @@ public class SupportTicketAccessGuard {
             return accountId;
         }
 
-        currentAccountPortIn.requirePermission(CLOSE_OWN_PERMISSION);
-        UUID customerId = resolveCurrentApprovedCustomerId();
+        UUID customerId = resolveCurrentSupportCustomerId(CLOSE_OWN_PERMISSION);
         if (!customerId.equals(ticket.getCustomerId())) {
             throw new AccessDeniedException("Access is denied");
         }
@@ -193,18 +180,7 @@ public class SupportTicketAccessGuard {
         return currentAccountPortIn.getCurrentAccountIdOrThrow();
     }
 
-    private UUID resolveCurrentApprovedCustomerId() {
-        UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
-
-        AccountProfileState profileState = accountProfilePortOut.findProfileStateByAccountId(accountId)
-                .orElseThrow(() -> new AccessDeniedException("Access is denied"));
-
-        if (profileState.customerId() == null
-                || !CustomerStatus.ACTIVE.equals(profileState.customerStatus())
-                || !CustomerApprovalStatus.APPROVED.equals(profileState.customerApprovalStatus())) {
-            throw new AccessDeniedException("Access is denied");
-        }
-
-        return profileState.customerId();
+    private UUID resolveCurrentSupportCustomerId(String permissionCode) {
+        return customerIdentityResolver.resolveCurrentCustomerIdForSupport(permissionCode);
     }
 }

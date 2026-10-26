@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Size;
 
 public record GuestAssistantMessageRequest(
         @NotBlank @Size(max = 1000) String message,
-        @Size(max = 100) String sessionId
+        @Size(max = 100) String sessionId,
+        @Size(max = 512) String captchaProof
 ) {
 }

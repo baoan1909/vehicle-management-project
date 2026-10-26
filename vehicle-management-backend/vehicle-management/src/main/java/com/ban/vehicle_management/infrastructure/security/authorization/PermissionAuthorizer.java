@@ -23,7 +23,7 @@ public class PermissionAuthorizer {
 
     public boolean hasAnyPermission(String... permissionCodes) {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccount().orElse(null);
-        if (currentAccount == null || !currentAccount.canUseBusinessPermissions()) {
+        if (currentAccount == null || !currentAccount.canUseEffectivePermissions()) {
             return false;
         }
         Set<String> effectivePermissions = currentAccount.getEffectivePermissionCodes();

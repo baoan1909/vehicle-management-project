@@ -19,10 +19,29 @@ public final class PermissionAccessPrerequisitePolicy {
             "CUSTOMER_VEHICLE_", "SUBSCRIPTION_", "WALLET_"
     );
     private static final Set<String> CUSTOMER_OWN_PERMISSIONS = Set.of(
-            "PARKING_SESSION_READ_OWN", "INVOICE_READ_OWN", "PAYMENT_CREATE_OWN"
+            "PARKING_SESSION_READ_OWN", "PARKING_EVENT_READ_OWN", "INVOICE_READ_OWN", "PAYMENT_CREATE_OWN",
+            "AI_KNOWLEDGE_READ_CUSTOMER"
+    );
+    private static final Set<String> PRE_APPROVAL_SUPPORT_PERMISSIONS = Set.of(
+            "SUPPORT_WIDGET_ACCESS_OWN",
+            "SUPPORT_TICKET_CREATE_OWN",
+            "SUPPORT_TICKET_CREATE_FROM_CHAT_OWN",
+            "SUPPORT_TICKET_READ_OWN",
+            "SUPPORT_TICKET_UPDATE_OWN",
+            "SUPPORT_TICKET_CLOSE_OWN",
+            "SUPPORT_TICKET_REOPEN_OWN",
+            "SUPPORT_TICKET_ESCALATION_CREATE_OWN",
+            "CHAT_CONVERSATION_CREATE_OWN",
+            "CHAT_CONVERSATION_READ_OWN",
+            "CHAT_MESSAGE_SEND_OWN",
+            "CHAT_MESSAGE_DELETE_OWN",
+            "CHAT_ATTACHMENT_CREATE_OWN",
+            "CHAT_ATTACHMENT_READ_OWN",
+            "CHAT_ATTACHMENT_DELETE_OWN"
     );
     private static final Set<String> EMPLOYEE_PERMISSIONS = Set.of(
-            "EMPLOYEE_READ_OWN", "SHIFT_OPEN_OWN", "SHIFT_ASSIGNMENT_READ_OWN", "PARKING_SCOPE_ASSIGNED"
+            "EMPLOYEE_READ_OWN", "SHIFT_OPEN_OWN", "SHIFT_ASSIGNMENT_READ_OWN", "PARKING_SCOPE_ASSIGNED",
+            "SUPPORT_TICKET_CLAIM_OWN"
     );
     private static final Set<String> EMPLOYEE_OWN_PREFIXES = Set.of("EMPLOYEE_", "SHIFT_");
     private static final Set<String> PARTNER_MEMBERSHIP_PERMISSIONS = Set.of(
@@ -55,8 +74,14 @@ public final class PermissionAccessPrerequisitePolicy {
             return false;
         }
         return switch (classificationFor(permissionCode)) {
-            case CUSTOMER_LIFECYCLE -> CustomerStatus.ACTIVE.equals(state.customerStatus())
+            case CUSTOMER_APPROVED -> CustomerStatus.ACTIVE.equals(state.customerStatus())
                     && CustomerApprovalStatus.APPROVED.equals(state.customerApprovalStatus());
+            case CUSTOMER_SUPPORT -> (state.customerStatus() == null
+                    && state.customerApprovalStatus() == null)
+                    || CustomerApprovalStatus.PENDING.equals(state.customerApprovalStatus())
+                    || CustomerApprovalStatus.REJECTED.equals(state.customerApprovalStatus())
+                    || (CustomerApprovalStatus.APPROVED.equals(state.customerApprovalStatus())
+                    && CustomerStatus.ACTIVE.equals(state.customerStatus()));
             case EMPLOYEE_LIFECYCLE -> EmployeeStatus.ACTIVE.equals(state.employeeStatus())
                     && (!"PARKING_SCOPE_ASSIGNED".equals(permissionCode)
                     || !state.assignedParkingLotIds().isEmpty());
@@ -73,8 +98,11 @@ public final class PermissionAccessPrerequisitePolicy {
         if (permissionCode == null) {
             return PermissionPrerequisite.COMMON_ACCOUNT_ROLE;
         }
+        if (PRE_APPROVAL_SUPPORT_PERMISSIONS.contains(permissionCode)) {
+            return PermissionPrerequisite.CUSTOMER_SUPPORT;
+        }
         if (requiresCustomerLifecycle(permissionCode)) {
-            return PermissionPrerequisite.CUSTOMER_LIFECYCLE;
+            return PermissionPrerequisite.CUSTOMER_APPROVED;
         }
         if (REVIEW_EMPLOYEE_PERMISSION.equals(permissionCode)) {
             return PermissionPrerequisite.EMPLOYEE_OR_PARTNER_REVIEW;
@@ -94,7 +122,9 @@ public final class PermissionAccessPrerequisitePolicy {
     }
 
     private boolean requiresCustomerLifecycle(String permissionCode) {
-        if (!permissionCode.endsWith("_OWN") && !"WALLET_SCOPE_OWN".equals(permissionCode)) {
+        if (!permissionCode.endsWith("_OWN")
+                && !"WALLET_SCOPE_OWN".equals(permissionCode)
+                && !"AI_KNOWLEDGE_READ_CUSTOMER".equals(permissionCode)) {
             return false;
         }
         return CUSTOMER_OWN_PERMISSIONS.contains(permissionCode)
@@ -108,7 +138,8 @@ public final class PermissionAccessPrerequisitePolicy {
 
     public enum PermissionPrerequisite {
         COMMON_ACCOUNT_ROLE,
-        CUSTOMER_LIFECYCLE,
+        CUSTOMER_SUPPORT,
+        CUSTOMER_APPROVED,
         EMPLOYEE_LIFECYCLE,
         PARTNER_ORGANIZATION,
         EMPLOYEE_OR_PARTNER_REVIEW,

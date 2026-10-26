@@ -34,7 +34,7 @@ public class JwtAuthenticationConverter implements Converter<Jwt, AbstractAuthen
                 .orElseGet(List::of));
         Optional<CurrentAccountAccess> currentAccount = resolveCurrentAccount(jwt);
         currentAccount
-                .filter(CurrentAccountAccess::canUseBusinessPermissions)
+                .filter(CurrentAccountAccess::canUseEffectivePermissions)
                 .ifPresent(account -> account.getEffectivePermissionCodes().forEach(permissionCode ->
                         authorities.add(new SimpleGrantedAuthority(permissionCode))
                 ));

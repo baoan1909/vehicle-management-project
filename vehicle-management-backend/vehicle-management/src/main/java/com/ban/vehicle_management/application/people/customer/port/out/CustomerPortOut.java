@@ -40,5 +40,8 @@ public interface CustomerPortOut {
     boolean existsUserProfileById(UUID userProfileId);
 
     Optional<UUID> findAccountIdByCustomerId(UUID customerId);
+
+    /** Narrow identity lookup; it must not fetch the account/role/permission graph. */
+    Optional<UUID> findCustomerIdByAccountId(UUID accountId);
 }
 

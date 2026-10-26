@@ -1,49 +1,33 @@
 package com.ban.vehicle_management.application.operations.guestsupport.service;
 
 import com.ban.vehicle_management.application.operations.guestsupport.config.GuestSupportProperties;
-import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
-import java.time.Instant;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import com.ban.vehicle_management.application.operations.guestsupport.model.GuestRateLimitBucket;
+import com.ban.vehicle_management.application.operations.guestsupport.model.GuestRateLimitDecision;
+import com.ban.vehicle_management.application.operations.guestsupport.port.out.GuestRateLimitPortOut;
+import com.ban.vehicle_management.shared.exception.PublicSupportRateLimitException;
 import org.springframework.stereotype.Component;
 
 @Component
 public class GuestAssistantRateLimiter {
     private final GuestSupportProperties properties;
-    private final ConcurrentHashMap<String, Window> windows = new ConcurrentHashMap<>();
-    private final AtomicLong requestCount = new AtomicLong();
+    private final GuestRateLimitPortOut rateLimitPortOut;
 
-    public GuestAssistantRateLimiter(GuestSupportProperties properties) {
+    public GuestAssistantRateLimiter(GuestSupportProperties properties, GuestRateLimitPortOut rateLimitPortOut) {
         this.properties = properties;
+        this.rateLimitPortOut = rateLimitPortOut;
     }
 
-    public void requireAllowed(String key) {
-        Instant now = Instant.now();
-        if ((requestCount.incrementAndGet() & 255L) == 0L) {
-            windows.entrySet().removeIf(entry -> isExpired(entry.getValue(), now));
+    public void requireAllowed(GuestRateLimitBucket bucket, String hashedIdentity) {
+        GuestRateLimitDecision decision = rateLimitPortOut.consume(
+                bucket,
+                hashedIdentity,
+                properties.getMaxAssistantMessagesPerWindow(),
+                properties.getRateWindow());
+        if (!decision.allowed()) {
+            throw new PublicSupportRateLimitException(
+                    "PUBLIC_SUPPORT_RATE_LIMITED",
+                    "Bạn đã gửi quá nhiều câu hỏi. Vui lòng thử lại sau",
+                    decision.retryAfterSeconds());
         }
-        if (!windows.containsKey(key) && windows.size() >= properties.getMaxAssistantRateKeys()) {
-            throw rateLimitExceeded();
-        }
-        Window current = windows.compute(key, (ignored, previous) -> {
-            if (previous == null || isExpired(previous, now)) {
-                return new Window(now, 1);
-            }
-            return new Window(previous.startedAt(), previous.count() + 1);
-        });
-        if (current.count() > properties.getMaxAssistantMessagesPerWindow()) {
-            throw rateLimitExceeded();
-        }
-    }
-
-    private boolean isExpired(Window window, Instant now) {
-        return !window.startedAt().plus(properties.getRateWindow()).isAfter(now);
-    }
-
-    private TooManyRequestsException rateLimitExceeded() {
-        return new TooManyRequestsException("Bạn đã gửi quá nhiều câu hỏi. Vui lòng thử lại sau");
-    }
-
-    private record Window(Instant startedAt, int count) {
     }
 }

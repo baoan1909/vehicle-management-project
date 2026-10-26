@@ -77,6 +77,10 @@ public record CurrentAccountAccess(
         return EFFECTIVE_ACCESS_POLICY.canUseBusinessPermissions(toAccessState());
     }
 
+    public boolean canUseEffectivePermissions() {
+        return EFFECTIVE_ACCESS_POLICY.canUseEffectivePermissions(toAccessState());
+    }
+
     public Set<String> getEffectivePermissionCodes() {
         return EFFECTIVE_ACCESS_POLICY.resolveEffectivePermissionCodes(toAccessState(), permissionCodes);
     }

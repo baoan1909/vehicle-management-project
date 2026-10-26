@@ -13,6 +13,8 @@ import com.ban.vehicle_management.domain.ai.model.KnowledgeRetrievalContext;
 import com.ban.vehicle_management.domain.ai.model.KnowledgeRetrievalResult;
 import com.ban.vehicle_management.domain.ai.model.KnowledgeSearchResult;
 import com.ban.vehicle_management.entrypoint.dto.operations.guestsupport.response.GuestAssistantResponse;
+import com.ban.vehicle_management.application.operations.guestsupport.model.GuestRateLimitBucket;
+import com.ban.vehicle_management.application.operations.guestsupport.model.CaptchaPurpose;
 import com.ban.vehicle_management.shared.enumeration.ai.AiProvider;
 import com.ban.vehicle_management.shared.enumeration.ai.AiUseCase;
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeAccessScope;
@@ -44,6 +46,7 @@ public class GuestPublicAssistantService {
     private final PiiRedactionService redactionService;
     private final GuestAssistantRateLimiter rateLimiter;
     private final GuestSupportTokenService tokenService;
+    private final CaptchaProofService captchaProofService;
 
     public GuestPublicAssistantService(
             KnowledgeRetrievalService retrievalService,
@@ -52,7 +55,8 @@ public class GuestPublicAssistantService {
             AiAssistantProperties assistantProperties,
             PiiRedactionService redactionService,
             GuestAssistantRateLimiter rateLimiter,
-            GuestSupportTokenService tokenService
+            GuestSupportTokenService tokenService,
+            CaptchaProofService captchaProofService
     ) {
         this.retrievalService = retrievalService;
         this.modelRouter = modelRouter;
@@ -61,20 +65,27 @@ public class GuestPublicAssistantService {
         this.redactionService = redactionService;
         this.rateLimiter = rateLimiter;
         this.tokenService = tokenService;
+        this.captchaProofService = captchaProofService;
     }
 
     public boolean isEnabled() {
         return assistantProperties.isProviderCallAllowed();
     }
 
-    public GuestAssistantResponse answer(String question, String sessionId, String remoteAddress) {
+    public GuestAssistantResponse answer(
+            String question,
+            String sessionId,
+            String captchaProof,
+            String remoteAddress
+    ) {
         if (!isEnabled()) throw new ServiceUnavailableException("Trợ lý công khai đang tạm ngưng");
-        String ipRateKey = "ip:" + tokenService.hash(remoteAddress == null ? "unknown" : remoteAddress);
-        rateLimiter.requireAllowed(ipRateKey);
+        String ipHash = tokenService.hash(remoteAddress == null ? "unknown" : remoteAddress);
+        rateLimiter.requireAllowed(GuestRateLimitBucket.ASSISTANT_IP, ipHash);
         String normalizedSession = sessionId == null ? "" : sessionId.strip();
         if (!normalizedSession.isBlank()) {
-            rateLimiter.requireAllowed("session:" + tokenService.hash(normalizedSession));
+            rateLimiter.requireAllowed(GuestRateLimitBucket.ASSISTANT_SESSION, tokenService.hash(normalizedSession));
         }
+        captchaProofService.requireProof(CaptchaPurpose.ASSISTANT, captchaProof, sessionId, remoteAddress);
 
         // Scope is server-owned and intentionally cannot be supplied by the client.
         KnowledgeRetrievalResult retrieval = retrievalService.search(
@@ -91,7 +102,7 @@ public class GuestPublicAssistantService {
                     retrieval.diagnosticCode());
         }
 
-        UUID stableSession = UUID.nameUUIDFromBytes((ipRateKey + ":" + normalizedSession).getBytes(StandardCharsets.UTF_8));
+        UUID stableSession = UUID.nameUUIDFromBytes((ipHash + ":" + normalizedSession).getBytes(StandardCharsets.UTF_8));
         AiRequest request = new AiRequest(
                 SYSTEM_INSTRUCTION,
                 List.of(

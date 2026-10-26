@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.operations.guestsupport.service;
 
 import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPortOut;
 import com.ban.vehicle_management.application.operations.guestsupport.config.GuestSupportProperties;
+import com.ban.vehicle_management.application.operations.guestsupport.model.CaptchaPurpose;
 import com.ban.vehicle_management.application.operations.guestsupport.port.out.GuestSupportRequestPortOut;
 import com.ban.vehicle_management.application.operations.supportticketcategory.port.in.SupportTicketCategoryPortIn;
 import com.ban.vehicle_management.domain.audit.auditlog.model.AuditLog;
@@ -30,6 +31,7 @@ public class GuestSupportService {
     private final AuditLogPortOut auditLogPortOut;
     private final GuestSupportTokenService tokenService;
     private final GuestSupportProperties properties;
+    private final CaptchaProofService captchaProofService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public GuestSupportService(
@@ -37,13 +39,15 @@ public class GuestSupportService {
             SupportTicketCategoryPortIn categoryPortIn,
             AuditLogPortOut auditLogPortOut,
             GuestSupportTokenService tokenService,
-            GuestSupportProperties properties
+            GuestSupportProperties properties,
+            CaptchaProofService captchaProofService
     ) {
         this.requestPortOut = requestPortOut;
         this.categoryPortIn = categoryPortIn;
         this.auditLogPortOut = auditLogPortOut;
         this.tokenService = tokenService;
         this.properties = properties;
+        this.captchaProofService = captchaProofService;
     }
 
     @Transactional
@@ -64,6 +68,12 @@ public class GuestSupportService {
             ensureSameRequest(replay, input);
             return new CreatedRequest(replay, token, true);
         }
+
+        captchaProofService.requireProof(
+                CaptchaPurpose.INTAKE,
+                input.captchaProof(),
+                input.sessionId(),
+                remoteAddress);
 
         SupportTicketCategory category = categoryPortIn.getCategoryById(input.categoryId());
         if (category.getStatus() != SupportTicketCategoryStatus.ACTIVE) {
