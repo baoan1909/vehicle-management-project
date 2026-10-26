@@ -3,6 +3,8 @@ package com.ban.vehicle_management.application.ai.service;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class AiToolExecutionServiceTest {
@@ -67,5 +70,16 @@ class AiToolExecutionServiceTest {
                 "create_support_ticket", objectMapper.readTree(arguments)));
 
         verify(currentAccountPortIn).requirePermission("SUPPORT_TICKET_CREATE_OWN");
+    }
+
+    @Test
+    void revokedBusinessPermissionFailsClosedAtWorkerExecutionTime() throws Exception {
+        doThrow(new AccessDeniedException("revoked"))
+                .when(currentAccountPortIn).requirePermission("SUBSCRIPTION_READ_OWN");
+
+        assertThrows(AccessDeniedException.class, () -> service.executeFromAssistantWorker(
+                "get_my_subscription_status", objectMapper.readTree("{}")));
+
+        verifyNoInteractions(subscriptionPortIn);
     }
 }

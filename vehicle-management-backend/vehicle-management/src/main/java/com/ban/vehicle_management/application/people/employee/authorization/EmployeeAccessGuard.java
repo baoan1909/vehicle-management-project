@@ -50,12 +50,12 @@ public class EmployeeAccessGuard {
     public void ensureCanManage(Employee employee) {
         CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccountOrThrow();
         String targetRole = resolveTargetRole(employee);
-        if (isPartnerAdmin(currentAccount)
+        if (hasPartnerScope(currentAccount)
                 && isPartnerManagedTarget(targetRole)
                 && sharesActiveOrganization(currentAccount, employee)) {
             return;
         }
-        if (isParkingManager(currentAccount)
+        if (hasAssignedScope(currentAccount)
                 && AdminProvisionableAccountRoleCode.EMPLOYEE.name().equals(targetRole)
                 && hasParkingLotAssignment(currentAccount)
                 && sharesActiveOrganization(currentAccount, employee)) {
@@ -85,29 +85,32 @@ public class EmployeeAccessGuard {
     }
 
     private boolean canRead(CurrentAccountAccess currentAccount, Employee employee) {
-        if (isSystemAdmin(currentAccount)) {
+        if (hasPlatformScope(currentAccount)) {
             return true;
         }
-        if (isPartnerAdmin(currentAccount)) {
+        if (hasPartnerScope(currentAccount)) {
             return isPartnerManagedTarget(resolveTargetRole(employee))
                     && sharesActiveOrganization(currentAccount, employee);
         }
-        return isParkingManager(currentAccount)
+        return hasAssignedScope(currentAccount)
                 && hasParkingLotAssignment(currentAccount)
                 && isEmployeeTarget(employee)
                 && sharesActiveOrganization(currentAccount, employee);
     }
 
-    private boolean isParkingManager(CurrentAccountAccess currentAccount) {
-        return AdminProvisionableAccountRoleCode.PARKING_MANAGER.name().equals(currentAccount.roleCode());
+    private boolean hasAssignedScope(CurrentAccountAccess currentAccount) {
+        return currentAccount.getEffectivePermissionCodes()
+                .contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED);
     }
 
-    private boolean isSystemAdmin(CurrentAccountAccess currentAccount) {
-        return AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name().equals(currentAccount.roleCode());
+    private boolean hasPlatformScope(CurrentAccountAccess currentAccount) {
+        return currentAccount.getEffectivePermissionCodes()
+                .contains(OrganizationAccessGuard.PARKING_SCOPE_PLATFORM);
     }
 
-    private boolean isPartnerAdmin(CurrentAccountAccess currentAccount) {
-        return AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name().equals(currentAccount.roleCode());
+    private boolean hasPartnerScope(CurrentAccountAccess currentAccount) {
+        return currentAccount.getEffectivePermissionCodes()
+                .contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER);
     }
 
     private boolean isPartnerManagedTarget(String roleCode) {

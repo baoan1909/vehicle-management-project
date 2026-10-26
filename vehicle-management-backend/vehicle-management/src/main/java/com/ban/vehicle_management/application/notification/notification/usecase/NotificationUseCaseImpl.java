@@ -123,6 +123,11 @@ public class NotificationUseCaseImpl implements NotificationPortIn {
         if (criteria == null) {
             return candidateAccountIds;
         }
+        if (!criteria.requireBusinessAccess()
+                && criteria.requiredAnyPermissionCodes().isEmpty()
+                && criteria.excludedAccountIds().isEmpty()) {
+            return candidateAccountIds.stream().distinct().toList();
+        }
         return candidateAccountIds.stream()
                 .distinct()
                 .filter(accountId -> !criteria.excludedAccountIds().contains(accountId))

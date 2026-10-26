@@ -264,7 +264,8 @@ public class AccountProfileUseCaseImpl implements AccountProfilePortIn {
             return false;
         }
         return partnerRegistrationPortOut.findLatestByApplicantAccountId(accountId).map(approval -> {
-            if (!ApprovalRequestStatus.PENDING.equals(approval.getStatus())) {
+            if (!ApprovalRequestStatus.PENDING.equals(approval.getStatus())
+                    && !ApprovalRequestStatus.REJECTED.equals(approval.getStatus())) {
                 return false;
             }
             Map<String, String> requestData = new HashMap<>(approval.getRequestData());

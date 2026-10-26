@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
@@ -41,10 +42,6 @@ class InternalEmployeeApprovalAccessGuardTest {
     void shouldAllowReadWhenCallerHasEmployeeReadPermission() {
         CurrentAccountAccess currentAccount = currentParkingManager(UUID.randomUUID());
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount);
-        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_PARKING_MANAGER_PERMISSION))
-                .thenReturn(false);
-        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION))
-                .thenReturn(true);
 
         CurrentAccountAccess result = internalEmployeeApprovalAccessGuard.requireReadAccess();
 
@@ -55,10 +52,6 @@ class InternalEmployeeApprovalAccessGuardTest {
     void shouldRejectWriteWhenCallerHasNoApprovalWritePermission() {
         CurrentAccountAccess currentAccount = currentEmployee(UUID.randomUUID());
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount);
-        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_PARKING_MANAGER_PERMISSION))
-                .thenReturn(false);
-        when(currentAccountPortIn.hasPermission(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION))
-                .thenReturn(false);
 
         assertThrows(AccessDeniedException.class, () -> internalEmployeeApprovalAccessGuard.requireWriteAccess());
     }
@@ -75,8 +68,11 @@ class InternalEmployeeApprovalAccessGuardTest {
                 "partner.admin@example.com",
                 UUID.randomUUID(),
                 "PARTNER_ADMIN",
-                AccountStatus.ACTIVE,
-                null,
+                true,
+                true,
+                Set.of(UUID.randomUUID()),
+                Set.of(),
+                AccountStatus.ACTIVE, null, null, null, false,
                 Set.of(OnboardingApprovalPolicy.REVIEW_PARKING_MANAGER_PERMISSION)
         );
         when(accountAuthorizationPortOut.findCreatedByAccountId(ownManagerAccountId))
@@ -109,10 +105,10 @@ class InternalEmployeeApprovalAccessGuardTest {
         UUID organizationId = UUID.randomUUID();
         CurrentAccountAccess partner = new CurrentAccountAccess(
                 partnerId, "partner-sub", "partner", "partner@example.com", UUID.randomUUID(),
-                "PARTNER_ADMIN", AccountStatus.ACTIVE, null,
-                Set.of(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION));
-        when(organizationPortOut.findActiveOrganizationIdsByAccountId(partnerId))
-                .thenReturn(Set.of(organizationId));
+                "PARTNER_ADMIN", true, true, Set.of(organizationId), Set.of(),
+                AccountStatus.ACTIVE, null, null, null, false,
+                Set.of(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION,
+                        OrganizationAccessGuard.PARKING_SCOPE_PARTNER));
         when(organizationPortOut.findActiveOrganizationIdsByAccountId(ownEmployeeId))
                 .thenReturn(Set.of(organizationId));
         when(organizationPortOut.findActiveOrganizationIdsByAccountId(otherEmployeeId))
@@ -151,16 +147,17 @@ class InternalEmployeeApprovalAccessGuardTest {
     }
 
     private CurrentAccountAccess currentParkingManager(UUID accountId) {
+        UUID assignedLotId = UUID.randomUUID();
         return new CurrentAccountAccess(
                 accountId,
                 "sub-manager",
                 "parking.manager",
                 "parking.manager@example.com",
                 UUID.randomUUID(),
-                "PARKING_MANAGER",
-                AccountStatus.ACTIVE,
-                EmployeeStatus.ACTIVE,
-                Set.of(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION)
+                "PARKING_MANAGER", true, false, Set.of(), Set.of(assignedLotId),
+                AccountStatus.ACTIVE, EmployeeStatus.ACTIVE, null, null, false,
+                Set.of(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION,
+                        OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)
         );
     }
 

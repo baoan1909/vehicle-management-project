@@ -151,11 +151,12 @@ export function ParkingLotOverviewPage() {
   const [lifecycleAction, setLifecycleAction] = useState<LifecycleAction | null>(null);
   const [lifecycleSaving, setLifecycleSaving] = useState(false);
 
-  const canManageLots = hasAnyPermission(user, ["PARKING_LOT_UPDATE_ALL"]);
+  const canManageLots = hasAnyPermission(user, ["PARKING_LOT_UPDATE_ALL"])
+    && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const canCreateLots = hasAnyPermission(user, ["PARKING_LOT_CREATE_ALL"]);
   const canManageAssignments = hasAnyPermission(user, ["ORGANIZATION_MEMBERSHIP_MANAGE_ALL"]);
-  const isParkingManager = user?.role === "PARKING_MANAGER";
-  const canDirectlyActivate = user?.role === "PARTNER_ADMIN" && canManageLots;
+  const isParkingManager = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"]);
+  const canDirectlyActivate = canManageLots;
   const selectedLot = useMemo(
     () => lots.find((lot) => lot.parkingLotId === selectedLotId) ?? lots[0] ?? null,
     [lots, selectedLotId],

@@ -3,6 +3,7 @@ package com.ban.vehicle_management.infrastructure.security.adapter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.out.AccountAuthorizationPortOut;
@@ -96,7 +97,7 @@ class CurrentAccountSecurityAdapterTest {
                 "EMPLOYEE",
                 AccountStatus.ACTIVE,
                 EmployeeStatus.INACTIVE,
-                Set.of("EMPLOYEE_READ_ALL")
+                Set.of("EMPLOYEE_READ_OWN")
         );
         when(accountAuthorizationPortOut.findByAccountId(accountId)).thenReturn(Optional.of(currentAccountAccess));
 
@@ -113,7 +114,28 @@ class CurrentAccountSecurityAdapterTest {
         ));
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
-        assertFalse(currentAccountSecurityAdapter.hasPermission("EMPLOYEE_READ_ALL"));
+        assertFalse(currentAccountSecurityAdapter.hasPermission("EMPLOYEE_READ_OWN"));
+    }
+
+    @Test
+    void shouldReuseValidSnapshotWithoutPersistenceLoad() {
+        CurrentAccountAccess snapshot = activeAccess(UUID.randomUUID(), Set.of("ACCOUNT_READ_ALL"));
+        bindSnapshot(snapshot, snapshot.accountId());
+
+        assertEquals(snapshot, currentAccountSecurityAdapter.getCurrentAccountOrThrow());
+        assertTrue(currentAccountSecurityAdapter.hasPermission("ACCOUNT_READ_ALL"));
+        org.mockito.Mockito.verifyNoInteractions(accountAuthorizationPortOut);
+    }
+
+    @Test
+    void shouldFailClosedForSnapshotAccountMismatchWithoutSchedulerFallback() {
+        CurrentAccountAccess snapshot = activeAccess(UUID.randomUUID(), Set.of("ACCOUNT_READ_ALL"));
+        bindSnapshot(snapshot, UUID.randomUUID());
+        org.mockito.Mockito.lenient().when(assistantActorScope.currentActorAccountId())
+                .thenReturn(Optional.of(UUID.randomUUID()));
+
+        assertTrue(currentAccountSecurityAdapter.getCurrentAccount().isEmpty());
+        org.mockito.Mockito.verifyNoInteractions(accountAuthorizationPortOut);
     }
 
     @Test
@@ -146,6 +168,37 @@ class CurrentAccountSecurityAdapterTest {
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
         assertFalse(currentAccountSecurityAdapter.hasPermission("ORGANIZATION_READ_ALL"));
+    }
+
+    @Test
+    void shouldAllowOnlyEffectiveSupportPermissionForPendingCustomer() {
+        UUID accountId = UUID.randomUUID();
+        CurrentAccountAccess currentAccountAccess = new CurrentAccountAccess(
+                accountId,
+                "pending-customer-sub",
+                "pending.customer",
+                "pending.customer@example.com",
+                UUID.randomUUID(),
+                "CUSTOM_SUPPORT_ROLE",
+                true,
+                false,
+                AccountStatus.PENDING,
+                null,
+                com.ban.vehicle_management.shared.enumeration.people.CustomerStatus.INACTIVE,
+                com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus.PENDING,
+                Set.of("SUPPORT_TICKET_READ_OWN", "CUSTOMER_VEHICLE_READ_OWN", "ACCOUNT_READ_ALL")
+        );
+        when(accountAuthorizationPortOut.findByAccountId(accountId)).thenReturn(Optional.of(currentAccountAccess));
+
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
+                "user", "pass", java.util.List.of());
+        authenticationToken.setDetails(new AuthenticatedAccountPrincipal(
+                accountId, "pending-customer-sub", "pending.customer", "pending.customer@example.com"));
+        SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+
+        assertTrue(currentAccountSecurityAdapter.hasPermission("SUPPORT_TICKET_READ_OWN"));
+        assertFalse(currentAccountSecurityAdapter.hasPermission("CUSTOMER_VEHICLE_READ_OWN"));
+        assertFalse(currentAccountSecurityAdapter.hasPermission("ACCOUNT_READ_ALL"));
     }
 
     @Test
@@ -196,6 +249,19 @@ class CurrentAccountSecurityAdapterTest {
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
         assertEquals(httpAccountId, currentAccountSecurityAdapter.getCurrentAccountIdOrThrow());
+    }
+
+    private CurrentAccountAccess activeAccess(UUID accountId, Set<String> permissions) {
+        return new CurrentAccountAccess(accountId, "subject", "user", "user@example.com",
+                UUID.randomUUID(), "CUSTOM", AccountStatus.ACTIVE, null, permissions);
+    }
+
+    private void bindSnapshot(CurrentAccountAccess snapshot, UUID principalAccountId) {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                "user", "pass", java.util.List.of());
+        authentication.setDetails(new AuthenticatedAccountPrincipal(
+                principalAccountId, snapshot.subject(), snapshot.username(), snapshot.email(), snapshot));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }
 

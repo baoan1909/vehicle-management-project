@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.infrastructure.security.principal;
 
+import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import java.util.UUID;
 
 /**
@@ -10,6 +11,21 @@ public record AuthenticatedAccountPrincipal(
         UUID accountId,
         String keycloakUserId,
         String preferredUsername,
-        String email
+        String email,
+        CurrentAccountAccess accessSnapshot
 ) {
+
+    public AuthenticatedAccountPrincipal(
+            UUID accountId,
+            String keycloakUserId,
+            String preferredUsername,
+            String email
+    ) {
+        this(accountId, keycloakUserId, preferredUsername, email, null);
+    }
+
+    public boolean hasConsistentSnapshot() {
+        return accessSnapshot == null
+                || (accountId != null && accountId.equals(accessSnapshot.accountId()));
+    }
 }

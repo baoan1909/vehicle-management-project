@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.people.customer.usecase;
 
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.people.customer.port.in.CustomerPortIn;
 import com.ban.vehicle_management.application.people.customer.authorization.CustomerAccessGuard;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
@@ -25,16 +26,19 @@ public class CustomerUseCaseImpl implements CustomerPortIn {
     private final CustomerPortOut customerPortOut;
     private final CustomerAccessGuard customerAccessGuard;
     private final UserProfileAvatarPortIn userProfileAvatarPortIn;
+    private final AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
     private final CustomerPolicy customerPolicy = new CustomerPolicy();
 
     public CustomerUseCaseImpl(
             CustomerPortOut customerPortOut,
             UserProfileAvatarPortIn userProfileAvatarPortIn,
-            CustomerAccessGuard customerAccessGuard
+            CustomerAccessGuard customerAccessGuard,
+            AccountAccessInvalidationPortIn accountAccessInvalidationPortIn
     ) {
         this.customerPortOut = customerPortOut;
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
         this.customerAccessGuard = customerAccessGuard;
+        this.accountAccessInvalidationPortIn = accountAccessInvalidationPortIn;
     }
 
     @Override
@@ -66,7 +70,9 @@ public class CustomerUseCaseImpl implements CustomerPortIn {
         Customer customer = customerPortOut.findById(customerId)
                 .orElseThrow(() -> new NotFoundException("Customer not found"));
         customerPolicy.activate(customer);
-        return withResolvedAvatarUrl(customerPortOut.save(customer));
+        Customer result = withResolvedAvatarUrl(customerPortOut.save(customer));
+        invalidateCustomerAccess(customerId);
+        return result;
     }
 
     @Override
@@ -76,7 +82,21 @@ public class CustomerUseCaseImpl implements CustomerPortIn {
         Customer customer = customerPortOut.findById(customerId)
                 .orElseThrow(() -> new NotFoundException("Customer not found"));
         customerPolicy.inactivate(customer);
-        return withResolvedAvatarUrl(customerPortOut.save(customer));
+        Customer result = withResolvedAvatarUrl(customerPortOut.save(customer));
+        invalidateCustomerAccess(customerId);
+        return result;
+    }
+
+    private void invalidateCustomerAccess(UUID customerId) {
+        customerPortOut.findAccountIdByCustomerId(customerId).ifPresent(accountId ->
+                accountAccessInvalidationPortIn.invalidateAccount(
+                        accountId,
+                        "Trạng thái khách hàng của tài khoản đã thay đổi.",
+                        "people",
+                        "customers",
+                        customerId
+                )
+        );
     }
 
     private Customer withResolvedAvatarUrl(Customer customer) {

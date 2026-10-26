@@ -69,3 +69,18 @@ export async function reviewPartnerRegistration(
   );
   return response.data;
 }
+
+export async function fetchMyPartnerRegistration() {
+  const response = await apiClient<ApiResponse<PartnerRegistration>>(
+    `${apiEndpoints.iam.partnerRegistrations}/me`,
+  );
+  return response.data;
+}
+
+export async function resubmitMyPartnerRegistration() {
+  const response = await apiClient<ApiResponse<PartnerRegistration>>(
+    `${apiEndpoints.iam.partnerRegistrations}/me/resubmit`,
+    { method: "POST" },
+  );
+  return response.data;
+}

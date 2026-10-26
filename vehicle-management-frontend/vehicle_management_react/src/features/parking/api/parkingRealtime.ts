@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Client } from "@stomp/stompjs";
 import { appConfig } from "@/config/env";
-import { getValidAccessToken } from "@/core/auth/tokenRefresh";
+import { getValidAccessToken, subscribeAccessTokenChanged } from "@/core/auth/oidcSession";
 
 export type ParkingRealtimeEvent = {
   eventId: string;
@@ -79,9 +79,18 @@ export function useParkingRealtime({
       },
     });
 
+    const unsubscribeTokenChange = subscribeAccessTokenChanged(() => {
+      if (!active) return;
+      void client.deactivate().then(() => {
+        if (!active) return;
+        client.reconnectDelay = 5000;
+        client.activate();
+      });
+    });
     client.activate();
     return () => {
       active = false;
+      unsubscribeTokenChange();
       client.reconnectDelay = 0;
       void client.deactivate();
     };

@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.iam.role.usecase;
 
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.iam.role.port.in.RolePortIn;
 import com.ban.vehicle_management.application.iam.role.port.out.RolePortOut;
 import com.ban.vehicle_management.domain.iam.role.model.Role;
@@ -19,10 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class RoleUseCaseImpl implements RolePortIn {
 
     private final RolePortOut rolePortOut;
+    private final AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
     private final RolePolicy rolePolicy = new RolePolicy();
 
-    public RoleUseCaseImpl(RolePortOut rolePortOut) {
+    public RoleUseCaseImpl(
+            RolePortOut rolePortOut,
+            AccountAccessInvalidationPortIn accountAccessInvalidationPortIn
+    ) {
         this.rolePortOut = rolePortOut;
+        this.accountAccessInvalidationPortIn = accountAccessInvalidationPortIn;
     }
 
     @Override
@@ -62,7 +68,13 @@ public class RoleUseCaseImpl implements RolePortIn {
             throw new ConflictException("Role code already exists");
         }
 
-        return rolePortOut.save(existingRole);
+        Role savedRole = rolePortOut.save(existingRole);
+        accountAccessInvalidationPortIn.invalidateActiveAccountsForRole(
+                savedRole.getCode(),
+                savedRole.getRoleId(),
+                "Thông tin hoặc trạng thái vai trò " + savedRole.getName() + " đã được cập nhật."
+        );
+        return savedRole;
     }
 
     @Override

@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -30,6 +31,7 @@ public class SupportTicketCategoryController {
     }
 
     @PostMapping
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<SupportTicketCategoryAdminResponse>> createCategory(
             @RequestBody CreateSupportTicketCategoryRequest request
     ) {
@@ -42,6 +44,7 @@ public class SupportTicketCategoryController {
     }
 
     @GetMapping("/{categoryId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_READ_ALL')")
     public ResponseEntity<ApiResponse<SupportTicketCategoryAdminResponse>> getCategoryById(
             @PathVariable UUID categoryId
     ) {
@@ -54,6 +57,7 @@ public class SupportTicketCategoryController {
     }
 
     @GetMapping
+    @PreAuthorize("@permissionAuthorizer.hasAnyPermission('SUPPORT_TICKET_READ_ALL', 'SUPPORT_TICKET_READ_ASSIGNED')")
     public ResponseEntity<ApiResponse<List<SupportTicketCategoryAdminResponse>>> getCategories(
             @ModelAttribute SupportTicketCategoryFilterRequest request
     ) {
@@ -70,6 +74,7 @@ public class SupportTicketCategoryController {
     }
 
     @PutMapping("/{categoryId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<SupportTicketCategoryAdminResponse>> updateCategory(
             @PathVariable UUID categoryId,
             @RequestBody UpdateSupportTicketCategoryRequest request
@@ -86,6 +91,7 @@ public class SupportTicketCategoryController {
     }
 
     @DeleteMapping("/{categoryId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable UUID categoryId) {
         categoryPortIn.deleteCategory(categoryId);
 
@@ -93,6 +99,7 @@ public class SupportTicketCategoryController {
     }
 
     @PatchMapping("/{categoryId}/activate")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('SUPPORT_TICKET_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<SupportTicketCategoryAdminResponse>> activateCategory(
             @PathVariable UUID categoryId
     ) {

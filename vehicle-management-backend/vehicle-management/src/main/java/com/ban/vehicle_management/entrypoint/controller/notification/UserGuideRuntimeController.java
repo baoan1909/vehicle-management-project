@@ -33,7 +33,7 @@ public class UserGuideRuntimeController {
     }
 
     @GetMapping("/resolve")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<List<UserGuideUserResponse>>> resolveGuides(
             @RequestParam(required = false) String featureCode,
             @RequestParam(required = false) String contextKey
@@ -45,7 +45,7 @@ public class UserGuideRuntimeController {
     }
 
     @GetMapping("/{guideCode}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<ApiResponse<UserGuideUserResponse>> getPublishedGuide(
             @PathVariable String guideCode
     ) {

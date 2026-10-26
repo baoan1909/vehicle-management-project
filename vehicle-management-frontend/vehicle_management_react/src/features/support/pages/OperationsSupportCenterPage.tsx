@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ReactNode } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 
 import { Badge, Button, EntityAvatar, Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
@@ -653,9 +653,9 @@ function InfoLineView({ item }: { item: InfoLine }) {
 }
 
 function TopBar() {
-  const { user } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
-  const isCustomer = user?.role === "CUSTOMER";
+  const isCustomer = location.pathname.startsWith("/customer/");
 
   return (
     <header className="vm-chat-topbar tw-flex tw-h-[64px] tw-items-center tw-justify-between tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-6">

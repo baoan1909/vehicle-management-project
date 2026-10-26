@@ -106,4 +106,9 @@ public class CustomerPersistenceAdapter implements CustomerPortOut {
     public Optional<UUID> findAccountIdByCustomerId(UUID customerId) {
         return customerRepository.findAccountIdByCustomerId(customerId);
     }
+
+    @Override
+    public Optional<UUID> findCustomerIdByAccountId(UUID accountId) {
+        return customerRepository.findCustomerIdByAccountId(accountId);
+    }
 }

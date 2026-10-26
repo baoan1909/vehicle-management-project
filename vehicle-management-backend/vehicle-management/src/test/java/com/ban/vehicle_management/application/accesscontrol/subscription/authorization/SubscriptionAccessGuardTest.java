@@ -33,7 +33,7 @@ class SubscriptionAccessGuardTest {
         UUID ownLot = UUID.randomUUID();
         UUID otherLot = UUID.randomUUID();
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account(Set.of(
-                OrganizationAccessGuard.PARKING_SCOPE_PARTNER)));
+                OrganizationAccessGuard.PARKING_SCOPE_PARTNER), ownLot));
         when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut)).thenReturn(Set.of(ownLot));
 
         assertDoesNotThrow(() -> guard.ensureCanCreateAtParkingLot(ownLot));
@@ -46,7 +46,7 @@ class SubscriptionAccessGuardTest {
     void assignedManagerCannotOperateAnotherLot() {
         UUID assignedLot = UUID.randomUUID();
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account(Set.of(
-                OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)));
+                OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED), assignedLot));
         when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut)).thenReturn(Set.of(assignedLot));
 
         assertDoesNotThrow(() -> guard.ensureCanOperate(subscription(assignedLot)));
@@ -57,7 +57,7 @@ class SubscriptionAccessGuardTest {
     void platformScopeCanReadButCannotOperateSubscription() {
         UUID lotId = UUID.randomUUID();
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account(Set.of(
-                OrganizationAccessGuard.PARKING_SCOPE_PLATFORM)));
+                OrganizationAccessGuard.PARKING_SCOPE_PLATFORM), null));
         when(currentAccountPortIn.hasPermission(SubscriptionAccessGuard.READ_ALL)).thenReturn(true);
         when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut)).thenReturn(null);
 
@@ -65,9 +65,16 @@ class SubscriptionAccessGuardTest {
         assertThrows(AccessDeniedException.class, () -> guard.ensureCanOperate(subscription(lotId)));
     }
 
-    private CurrentAccountAccess account(Set<String> permissions) {
+    private CurrentAccountAccess account(Set<String> permissions, UUID scopeId) {
+        boolean partnerScope = permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER);
+        boolean assignedScope = permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED);
         return new CurrentAccountAccess(UUID.randomUUID(), "subject", "user", "user@example.com",
-                UUID.randomUUID(), "TEST_ROLE", AccountStatus.ACTIVE, null, permissions);
+                UUID.randomUUID(), "TEST_ROLE", true, partnerScope,
+                partnerScope ? Set.of(UUID.randomUUID()) : Set.of(),
+                assignedScope && scopeId != null ? Set.of(scopeId) : Set.of(),
+                AccountStatus.ACTIVE,
+                assignedScope ? com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.ACTIVE : null,
+                null, null, false, permissions);
     }
 
     private Subscription subscription(UUID lotId) {

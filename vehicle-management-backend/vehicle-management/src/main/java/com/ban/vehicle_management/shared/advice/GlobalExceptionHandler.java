@@ -1,11 +1,14 @@
 package com.ban.vehicle_management.shared.advice;
 
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.CaptchaValidationException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.CustomerIdentityRequiredException;
 import com.ban.vehicle_management.shared.exception.FeatureDisabledException;
 import com.ban.vehicle_management.shared.exception.KnowledgeFileValidationException;
 import com.ban.vehicle_management.shared.exception.MapRequestLimitException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.exception.PublicSupportRateLimitException;
 import com.ban.vehicle_management.shared.exception.ServiceUnavailableException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import com.ban.vehicle_management.shared.exception.UserGuideException;
@@ -54,6 +57,23 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.BAD_REQUEST, exception.getMessage(), request.getRequestURI());
     }
 
+    @ExceptionHandler(CaptchaValidationException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleCaptchaValidationException(
+            CaptchaValidationException exception,
+            HttpServletRequest request
+    ) {
+        ApiResponse<Map<String, Object>> response = ApiResponse.fail(
+                exception.getMessage(),
+                Map.of(
+                        "status", HttpStatus.BAD_REQUEST.value(),
+                        "error", HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                        "path", request.getRequestURI(),
+                        "code", exception.code()
+                )
+        );
+        return ResponseEntity.badRequest().body(response);
+    }
+
     @ExceptionHandler(KnowledgeFileValidationException.class)
     public ResponseEntity<ApiResponse<Map<String, Object>>> handleKnowledgeFileValidationException(
             KnowledgeFileValidationException exception,
@@ -77,6 +97,14 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(CustomerIdentityRequiredException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleCustomerIdentityRequiredException(
+            CustomerIdentityRequiredException exception,
+            HttpServletRequest request
+    ) {
+        return buildErrorResponse(HttpStatus.UNPROCESSABLE_ENTITY, exception.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(UserGuideException.class)
@@ -139,6 +167,26 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(PublicSupportRateLimitException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handlePublicSupportRateLimitException(
+            PublicSupportRateLimitException exception,
+            HttpServletRequest request
+    ) {
+        ApiResponse<Map<String, Object>> response = ApiResponse.fail(
+                exception.getMessage(),
+                Map.of(
+                        "status", HttpStatus.TOO_MANY_REQUESTS.value(),
+                        "error", HttpStatus.TOO_MANY_REQUESTS.getReasonPhrase(),
+                        "path", request.getRequestURI(),
+                        "code", exception.code(),
+                        "retryAfterSeconds", exception.retryAfterSeconds()
+                )
+        );
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header("Retry-After", String.valueOf(exception.retryAfterSeconds()))
+                .body(response);
     }
 
     @ExceptionHandler(MapRequestLimitException.class)

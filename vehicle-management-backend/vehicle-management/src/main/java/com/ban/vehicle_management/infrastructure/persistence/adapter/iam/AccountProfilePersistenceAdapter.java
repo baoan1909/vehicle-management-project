@@ -3,6 +3,7 @@ package com.ban.vehicle_management.infrastructure.persistence.adapter.iam;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountProfilePortOut;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
+import com.ban.vehicle_management.domain.iam.account.policy.EffectiveAccountAccessPolicy;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
@@ -11,12 +12,15 @@ import com.ban.vehicle_management.infrastructure.mapper.people.CustomerPersisten
 import com.ban.vehicle_management.infrastructure.mapper.people.EmployeePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.mapper.people.UserProfilePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RoleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ApprovalRequestEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.OrganizationEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationMembershipRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.MemberParkingLotScopeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
@@ -25,12 +29,13 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
+import com.ban.vehicle_management.shared.enumeration.iam.OrganizationMembershipStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
-import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -40,6 +45,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     private static final String PARTNER_REGISTRATION_REQUEST_TYPE = "PARTNER_REGISTRATION";
     private static final String PARTNER_REGISTRATION_TARGET_SCHEMA = "iam";
     private static final String PARTNER_REGISTRATION_TARGET_TABLE = "accounts";
+    private static final EffectiveAccountAccessPolicy EFFECTIVE_ACCESS_POLICY =
+            new EffectiveAccountAccessPolicy();
 
     private final AccountRepository accountRepository;
     private final RoleRepository roleRepository;
@@ -49,6 +56,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     private final EmployeeRepository employeeRepository;
     private final ApprovalRequestRepository approvalRequestRepository;
     private final OrganizationRepository organizationRepository;
+    private final OrganizationMembershipRepository organizationMembershipRepository;
+    private final MemberParkingLotScopeRepository memberParkingLotScopeRepository;
     private final AccountPersistenceMapper accountPersistenceMapper;
     private final UserProfilePersistenceMapper userProfilePersistenceMapper;
     private final CustomerPersistenceMapper customerPersistenceMapper;
@@ -63,6 +72,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
             EmployeeRepository employeeRepository,
             ApprovalRequestRepository approvalRequestRepository,
             OrganizationRepository organizationRepository,
+            OrganizationMembershipRepository organizationMembershipRepository,
+            MemberParkingLotScopeRepository memberParkingLotScopeRepository,
             AccountPersistenceMapper accountPersistenceMapper,
             UserProfilePersistenceMapper userProfilePersistenceMapper,
             CustomerPersistenceMapper customerPersistenceMapper,
@@ -76,6 +87,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         this.employeeRepository = employeeRepository;
         this.approvalRequestRepository = approvalRequestRepository;
         this.organizationRepository = organizationRepository;
+        this.organizationMembershipRepository = organizationMembershipRepository;
+        this.memberParkingLotScopeRepository = memberParkingLotScopeRepository;
         this.accountPersistenceMapper = accountPersistenceMapper;
         this.userProfilePersistenceMapper = userProfilePersistenceMapper;
         this.customerPersistenceMapper = customerPersistenceMapper;
@@ -196,7 +209,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         UserProfileEntity userProfileEntity = resolveUserProfile(userProfileId);
         EmployeeEntity employeeEntity = resolveEmployee(userProfileId);
         CustomerEntity customerEntity = resolveCustomer(userProfileId);
-        String roleCode = resolveRoleCode(accountEntity.getRoleId());
+        RoleEntity roleEntity = resolveRole(accountEntity.getRoleId());
+        String roleCode = roleEntity == null ? null : roleEntity.getCode();
         ApprovalRequestEntity partnerApproval = resolveLatestPartnerApproval(accountEntity.getAccountId(), roleCode);
 
         return new AccountProfileState(
@@ -229,7 +243,13 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 customerEntity == null ? null : customerEntity.getStatus(),
                 customerEntity == null ? null : customerEntity.getApprovalStatus(),
                 accountEntity.getStatus(),
-                resolveEffectivePermissionCodes(accountEntity, roleCode, employeeEntity),
+                resolveEffectivePermissionCodes(
+                        accountEntity,
+                        roleCode,
+                        roleEntity != null && Boolean.TRUE.equals(roleEntity.getIsActive()),
+                        employeeEntity,
+                        customerEntity
+                ),
                 partnerApproval == null ? null : partnerApproval.getApprovalRequestId(),
                 partnerApproval == null ? null : enumName(partnerApproval.getStatus()),
                 partnerApproval == null ? null : partnerApproval.getNote(),
@@ -353,14 +373,12 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
         return value == null ? null : value.name();
     }
 
-    private String resolveRoleCode(UUID roleId) {
+    private RoleEntity resolveRole(UUID roleId) {
         if (roleId == null) {
             return null;
         }
 
-        return roleRepository.findById(roleId)
-                .map(role -> role.getCode())
-                .orElse(null);
+        return roleRepository.findById(roleId).orElse(null);
     }
 
     private UserProfileEntity resolveUserProfile(UUID userProfileId) {
@@ -387,44 +405,53 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     private List<String> resolveEffectivePermissionCodes(
             AccountEntity accountEntity,
             String roleCode,
-            EmployeeEntity employeeEntity
+            boolean roleActive,
+            EmployeeEntity employeeEntity,
+            CustomerEntity customerEntity
     ) {
-        if (accountEntity.getRoleId() == null || !canUseBusinessPermissions(accountEntity, roleCode, employeeEntity)) {
+        Set<String> assignedPermissions = rolePermissionRepository
+                .findActivePermissionCodesByRoleId(accountEntity.getRoleId());
+        Set<UUID> activeOrganizationIds = assignedPermissions.stream()
+                .anyMatch(this::requiresOrganizationScope)
+                ? safeSet(organizationMembershipRepository.findActiveOrganizationIdsByAccountId(
+                        accountEntity.getAccountId(), OrganizationMembershipStatus.ACTIVE))
+                : Set.of();
+        Set<UUID> assignedParkingLotIds = assignedPermissions.contains("PARKING_SCOPE_ASSIGNED")
+                ? safeSet(memberParkingLotScopeRepository.findActiveParkingLotIdsByAccountId(
+                        accountEntity.getAccountId(), OrganizationMembershipStatus.ACTIVE))
+                : Set.of();
+        EffectiveAccountAccessPolicy.AccessState accessState = new EffectiveAccountAccessPolicy.AccessState(
+                roleCode,
+                roleActive,
+                !activeOrganizationIds.isEmpty(),
+                activeOrganizationIds,
+                assignedParkingLotIds,
+                accountEntity.getStatus(),
+                employeeEntity == null ? null : employeeEntity.getStatus(),
+                customerEntity == null ? null : customerEntity.getStatus(),
+                customerEntity == null ? null : customerEntity.getApprovalStatus()
+        );
+        if (accountEntity.getRoleId() == null || !EFFECTIVE_ACCESS_POLICY.canUseEffectivePermissions(accessState)) {
             return List.of();
         }
 
-        return rolePermissionRepository.findActivePermissionCodesByRoleId(accountEntity.getRoleId())
+        return EFFECTIVE_ACCESS_POLICY.resolveEffectivePermissionCodes(
+                        accessState,
+                        assignedPermissions
+                )
                 .stream()
-                .sorted()
                 .toList();
     }
 
-    private boolean canUseBusinessPermissions(
-            AccountEntity accountEntity,
-            String roleCode,
-            EmployeeEntity employeeEntity
-    ) {
-        if (!AccountStatus.ACTIVE.equals(accountEntity.getStatus())) {
-            return false;
-        }
-
-        AdminProvisionableAccountRoleCode provisionableRole = resolveProvisionableRole(roleCode);
-        if (provisionableRole == null || !provisionableRole.requiresEmployeeRecord()) {
-            return true;
-        }
-
-        return employeeEntity != null && EmployeeStatus.ACTIVE.equals(employeeEntity.getStatus());
+    private boolean requiresOrganizationScope(String permissionCode) {
+        return "PARKING_SCOPE_PARTNER".equals(permissionCode)
+                || "WALLET_SCOPE_PARTNER".equals(permissionCode)
+                || (permissionCode != null && permissionCode.endsWith("_PARTNER"))
+                || "ORGANIZATION_PROFILE_READ_OWN".equals(permissionCode)
+                || "ORGANIZATION_PROFILE_UPDATE_REQUEST_OWN".equals(permissionCode);
     }
 
-    private AdminProvisionableAccountRoleCode resolveProvisionableRole(String roleCode) {
-        if (roleCode == null || roleCode.isBlank()) {
-            return null;
-        }
-
-        try {
-            return AdminProvisionableAccountRoleCode.valueOf(roleCode);
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
+    private <T> Set<T> safeSet(Set<T> values) {
+        return values == null ? Set.of() : Set.copyOf(values);
     }
 }

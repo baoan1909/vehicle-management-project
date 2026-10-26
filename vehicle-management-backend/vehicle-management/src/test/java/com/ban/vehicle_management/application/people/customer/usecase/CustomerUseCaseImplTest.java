@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.customer.authorization.CustomerAccessGuard;
 import com.ban.vehicle_management.application.people.userprofile.port.in.UserProfileAvatarPortIn;
@@ -37,6 +38,9 @@ class CustomerUseCaseImplTest {
 
     @Mock
     private CustomerAccessGuard customerAccessGuard;
+
+    @Mock
+    private AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
 
     @InjectMocks
     private CustomerUseCaseImpl customerUseCase;
@@ -81,28 +85,46 @@ class CustomerUseCaseImplTest {
     @Test
     void shouldActivateCustomer() {
         UUID customerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
         Customer customer = validApprovedCustomer(customerId);
         customer.setStatus(CustomerStatus.INACTIVE);
 
         when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
         when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(customerPortOut.findAccountIdByCustomerId(customerId)).thenReturn(Optional.of(accountId));
 
         Customer activatedCustomer = customerUseCase.activateCustomer(customerId);
 
         assertEquals(CustomerStatus.ACTIVE, activatedCustomer.getStatus());
+        verify(accountAccessInvalidationPortIn).invalidateAccount(
+                accountId,
+                "Trạng thái khách hàng của tài khoản đã thay đổi.",
+                "people",
+                "customers",
+                customerId
+        );
     }
 
     @Test
     void shouldInactivateCustomer() {
         UUID customerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
         Customer customer = validPendingCustomer(customerId);
 
         when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
         when(customerPortOut.save(any(Customer.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(customerPortOut.findAccountIdByCustomerId(customerId)).thenReturn(Optional.of(accountId));
 
         Customer inactivatedCustomer = customerUseCase.inactivateCustomer(customerId);
 
         assertEquals(CustomerStatus.INACTIVE, inactivatedCustomer.getStatus());
+        verify(accountAccessInvalidationPortIn).invalidateAccount(
+                accountId,
+                "Trạng thái khách hàng của tài khoản đã thay đổi.",
+                "people",
+                "customers",
+                customerId
+        );
     }
 
     @Test

@@ -154,10 +154,21 @@ class EmployeeAccessGuardTest {
     }
 
     private CurrentAccountAccess account(String roleCode) {
+        boolean platform = "SYSTEM_ADMIN".equals(roleCode);
+        boolean partner = "PARTNER_ADMIN".equals(roleCode);
+        boolean assigned = "PARKING_MANAGER".equals(roleCode);
+        Set<String> permissions = new java.util.HashSet<>(Set.of(
+                "EMPLOYEE_READ_ALL", "EMPLOYEE_UPDATE_ALL", "EMPLOYEE_DELETE_ALL"));
+        permissions.add(platform ? OrganizationAccessGuard.PARKING_SCOPE_PLATFORM
+                : partner ? OrganizationAccessGuard.PARKING_SCOPE_PARTNER
+                : assigned ? OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED : "EMPLOYEE_READ_OWN");
         return new CurrentAccountAccess(
                 UUID.randomUUID(), "subject", "username", "user@example.com",
-                UUID.randomUUID(), roleCode, AccountStatus.ACTIVE, EmployeeStatus.ACTIVE,
-                Set.of("EMPLOYEE_READ_ALL", "EMPLOYEE_UPDATE_ALL", "EMPLOYEE_DELETE_ALL")
+                UUID.randomUUID(), roleCode, true, partner,
+                partner ? Set.of(UUID.randomUUID()) : Set.of(),
+                assigned ? Set.of(UUID.randomUUID()) : Set.of(),
+                AccountStatus.ACTIVE, assigned ? EmployeeStatus.ACTIVE : null,
+                null, null, false, permissions
         );
     }
 }

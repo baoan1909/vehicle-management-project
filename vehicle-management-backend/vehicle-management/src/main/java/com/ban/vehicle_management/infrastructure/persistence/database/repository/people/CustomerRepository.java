@@ -29,6 +29,15 @@ public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID>,
         WHERE customer.customerId = :customerId
         """)
     Optional<UUID> findAccountIdByCustomerId(@Param("customerId") UUID customerId);
+
+    @Query("""
+        SELECT customer.customerId
+        FROM CustomerEntity customer
+        JOIN AccountEntity account
+          ON account.userProfileId = customer.userProfileId
+        WHERE account.accountId = :accountId
+        """)
+    Optional<UUID> findCustomerIdByAccountId(@Param("accountId") UUID accountId);
 }
 
 

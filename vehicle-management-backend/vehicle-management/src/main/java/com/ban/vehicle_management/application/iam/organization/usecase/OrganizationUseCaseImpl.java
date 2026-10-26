@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.iam.organization.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.catalog.seed.port.out.PartnerCatalogSeedPortOut;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.iam.organization.port.in.OrganizationPortIn;
@@ -28,19 +29,22 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
     private final OrganizationAccessGuard organizationAccessGuard;
     private final OrganizationPolicy organizationPolicy;
     private final PartnerCatalogSeedPortOut partnerCatalogSeedPortOut;
+    private final AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
 
     public OrganizationUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             OrganizationPortOut organizationPortOut,
             OrganizationAccessGuard organizationAccessGuard,
             OrganizationPolicy organizationPolicy,
-            PartnerCatalogSeedPortOut partnerCatalogSeedPortOut
+            PartnerCatalogSeedPortOut partnerCatalogSeedPortOut,
+            AccountAccessInvalidationPortIn accountAccessInvalidationPortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.organizationPortOut = organizationPortOut;
         this.organizationAccessGuard = organizationAccessGuard;
         this.organizationPolicy = organizationPolicy;
         this.partnerCatalogSeedPortOut = partnerCatalogSeedPortOut;
+        this.accountAccessInvalidationPortIn = accountAccessInvalidationPortIn;
     }
 
     @Override
@@ -58,6 +62,7 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
         Organization savedOrganization = organizationPortOut.save(organization);
         organizationPortOut.createActiveMembership(savedOrganization.getOrganizationId(), partnerAdminAccountId);
         partnerCatalogSeedPortOut.copyInternalCatalog(savedOrganization.getOrganizationId());
+        invalidateOrganizationAccess(partnerAdminAccountId, savedOrganization.getOrganizationId());
         return savedOrganization;
     }
 
@@ -101,6 +106,7 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
                             .orElseThrow(() -> new IllegalStateException("Organization membership was not created"));
                 });
         organizationPortOut.replaceParkingLotScopes(membershipId, Set.copyOf(parkingLotIds));
+        invalidateOrganizationAccess(parkingManagerAccountId, organizationId);
     }
 
     @Override
@@ -119,6 +125,7 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
         }
         UUID membershipId = findOrCreateActiveMembership(organizationId, parkingManagerAccountId);
         organizationPortOut.addParkingLotScope(membershipId, parkingLotId);
+        invalidateOrganizationAccess(parkingManagerAccountId, organizationId);
     }
 
     @Override
@@ -145,7 +152,10 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
             throw new NotFoundException("Parking lot not found in organization");
         }
         organizationPortOut.findActiveMembershipId(organizationId, parkingManagerAccountId)
-                .ifPresent(membershipId -> organizationPortOut.removeParkingLotScope(membershipId, parkingLotId));
+                .ifPresent(membershipId -> {
+                    organizationPortOut.removeParkingLotScope(membershipId, parkingLotId);
+                    invalidateOrganizationAccess(parkingManagerAccountId, organizationId);
+                });
     }
 
     private UUID findOrCreateActiveMembership(UUID organizationId, UUID parkingManagerAccountId) {
@@ -155,6 +165,16 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
                     return organizationPortOut.findActiveMembershipId(organizationId, parkingManagerAccountId)
                             .orElseThrow(() -> new IllegalStateException("Organization membership was not created"));
                 });
+    }
+
+    private void invalidateOrganizationAccess(UUID accountId, UUID organizationId) {
+        accountAccessInvalidationPortIn.invalidateAccount(
+                accountId,
+                "Phạm vi đơn vị hoặc bãi xe được phân công cho tài khoản đã thay đổi.",
+                "iam",
+                "organizations",
+                organizationId
+        );
     }
 
 }

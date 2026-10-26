@@ -30,11 +30,11 @@ import { openSupportCenterConversation } from "@/features/support";
 import { cn } from "@/lib/cn";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
+import type { CurrentUser } from "@/shared/types/common";
 
 type EmployeeRole = Exclude<EmployeeRoleCodeApi, "CUSTOMER"> | "UNKNOWN";
 type EmployeeStatus = EmployeeStatusApi;
 type AccountStatus = EmployeeAccountStatusApi | "UNLINKED";
-type CurrentOperatorRole = "SYSTEM_ADMIN" | "PARTNER_ADMIN" | "PARKING_MANAGER" | "EMPLOYEE" | "CUSTOMER" | "UNKNOWN";
 type JobTitleOption = {
   label: string;
   role: EmployeeRole;
@@ -169,24 +169,36 @@ function getRoleLabel(role?: string | null, fallback?: string | null) {
   return "Chưa có vai trò";
 }
 
-function getJobTitleOptionsForOperator(role?: CurrentOperatorRole | null) {
-  if (role === "SYSTEM_ADMIN") return assignableJobTitleOptions.filter((option) => option.role === "SYSTEM_ADMIN" || option.role === "PARKING_MANAGER");
-  if (role === "PARTNER_ADMIN") return assignableJobTitleOptions.filter((option) => option.role === "PARKING_MANAGER" || option.role === "EMPLOYEE");
-  if (role === "PARKING_MANAGER") return assignableJobTitleOptions.filter((option) => option.role === "EMPLOYEE");
+type OperatorScope = "platform" | "partner" | "assigned" | "none";
+
+function getOperatorScope(user?: CurrentUser | null): OperatorScope {
+  if (hasAnyPermission(user, ["PARKING_SCOPE_PLATFORM"])) return "platform";
+  if (hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"])) return "partner";
+  if (hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"])) return "assigned";
+  return "none";
+}
+
+function getJobTitleOptionsForOperator(user?: CurrentUser | null) {
+  const scope = getOperatorScope(user);
+  if (scope === "platform") return assignableJobTitleOptions.filter((option) => option.role === "SYSTEM_ADMIN" || option.role === "PARKING_MANAGER");
+  if (scope === "partner") return assignableJobTitleOptions.filter((option) => option.role === "PARKING_MANAGER" || option.role === "EMPLOYEE");
+  if (scope === "assigned") return assignableJobTitleOptions.filter((option) => option.role === "EMPLOYEE");
   return [];
 }
 
-function canManageEmployeeForOperator(operatorRole: CurrentOperatorRole | undefined, employeeRole: EmployeeRole) {
-  if (operatorRole === "SYSTEM_ADMIN") return employeeRole === "SYSTEM_ADMIN" || employeeRole === "PARKING_MANAGER";
-  if (operatorRole === "PARTNER_ADMIN") return employeeRole === "PARKING_MANAGER" || employeeRole === "EMPLOYEE";
-  if (operatorRole === "PARKING_MANAGER") return employeeRole === "EMPLOYEE";
+function canManageEmployeeForOperator(user: CurrentUser | null | undefined, employeeRole: EmployeeRole) {
+  const scope = getOperatorScope(user);
+  if (scope === "platform") return employeeRole === "SYSTEM_ADMIN" || employeeRole === "PARKING_MANAGER";
+  if (scope === "partner") return employeeRole === "PARKING_MANAGER" || employeeRole === "EMPLOYEE";
+  if (scope === "assigned") return employeeRole === "EMPLOYEE";
   return false;
 }
 
-function getRoleFilterOptionsForOperator(role?: CurrentOperatorRole | null) {
-  if (role === "SYSTEM_ADMIN") return roleOptions;
-  if (role === "PARTNER_ADMIN") return roleOptions.filter((option) => option.value === "all" || option.value === "PARKING_MANAGER" || option.value === "EMPLOYEE");
-  if (role === "PARKING_MANAGER") return roleOptions.filter((option) => option.value === "all" || option.value === "EMPLOYEE");
+function getRoleFilterOptionsForOperator(user?: CurrentUser | null) {
+  const scope = getOperatorScope(user);
+  if (scope === "platform") return roleOptions;
+  if (scope === "partner") return roleOptions.filter((option) => option.value === "all" || option.value === "PARKING_MANAGER" || option.value === "EMPLOYEE");
+  if (scope === "assigned") return roleOptions.filter((option) => option.value === "all" || option.value === "EMPLOYEE");
   return roleOptions.filter((option) => option.value === "all");
 }
 
@@ -835,7 +847,7 @@ function EmployeeEditDrawer({
 export function EmployeeListPage() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { user } = useAuth();
+  const { invalidateAndRefreshAccess, user } = useAuth();
   const canFilterByParkingLot = hasAnyPermission(user, ["EMPLOYEE_READ_ALL"])
     && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const [records, setRecords] = useState<Employee[]>([]);
@@ -922,8 +934,8 @@ export function EmployeeListPage() {
   const filteredEmployees = useMemo(() => {
     return records.filter((employee) => selectedRole === "all" || employee.role === selectedRole);
   }, [records, selectedRole]);
-  const roleFilterOptions = useMemo(() => getRoleFilterOptionsForOperator(user?.role), [user?.role]);
-  const jobTitleOptions = useMemo(() => getJobTitleOptionsForOperator(user?.role), [user?.role]);
+  const roleFilterOptions = useMemo(() => getRoleFilterOptionsForOperator(user), [user]);
+  const jobTitleOptions = useMemo(() => getJobTitleOptionsForOperator(user), [user]);
 
   const totalEmployeePages = Math.max(1, Math.ceil(filteredEmployees.length / employeePageSize));
   const currentEmployeePage = Math.min(currentPage, totalEmployeePages);
@@ -935,7 +947,8 @@ export function EmployeeListPage() {
   const selectedEmployeeIsActive = selectedEmployee.role === "PARKING_MANAGER"
     ? selectedEmployee.accountStatus === "ACTIVE"
     : selectedEmployee.status === "ACTIVE";
-  const canManageSelectedEmployee = canManageEmployeeForOperator(user?.role, selectedEmployee.role);
+  const canManageSelectedEmployee = hasAnyPermission(user, ["EMPLOYEE_UPDATE_ALL"])
+    && canManageEmployeeForOperator(user, selectedEmployee.role);
   const canReadProvisionedAccounts = hasAnyPermission(user, ["ACCOUNT_READ_ALL"]);
   const canOpenSupportCenter = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
   const canCreateChatConversation = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN", "CHAT_CONVERSATION_CREATE_ALL"]);
@@ -1084,6 +1097,7 @@ export function EmployeeListPage() {
             ? "Parking Manager đã ngừng làm việc"
             : "Partner Admin tạm khóa Parking Manager";
         const response = await updateProvisionedAccountStatus(selectedEmployee.accountId, { reason, status });
+        await invalidateAndRefreshAccess("employee-status-changed");
         toast.success(response.message || "Đã cập nhật trạng thái Parking Manager.", "Cập nhật thành công");
         setPendingEmployeeAction(null);
         await loadEmployees();

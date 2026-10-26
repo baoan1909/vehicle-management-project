@@ -4,6 +4,7 @@ import com.ban.vehicle_management.application.iam.account.model.command.Complete
 import com.ban.vehicle_management.application.iam.account.model.command.UpdateAccountProfileCommand;
 import com.ban.vehicle_management.application.iam.account.model.result.AccountProfileStatusResult;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.domain.iam.account.policy.CurrentAccessStatePolicy;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.request.CompleteAccountProfileRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.request.UpdateAccountProfileRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.response.AccountProfileStatusResponse;
@@ -24,9 +25,29 @@ public interface AccountProfileApiMapper {
 
     AccountProfileStatusResponse toResponse(AccountProfileStatusResult result);
 
-    @Mapping(target = "accountStatus", source = "status")
-    @Mapping(target = "permissionCodes", source = "effectivePermissionCodes")
-    CurrentAccountAccessResponse toCurrentAccessResponse(CurrentAccountAccess access);
+    default CurrentAccountAccessResponse toCurrentAccessResponse(
+            CurrentAccountAccess access,
+            boolean onboardingRequired
+    ) {
+        CurrentAccessStatePolicy.Decision decision = new CurrentAccessStatePolicy()
+                .resolve(access, onboardingRequired);
+        return new CurrentAccountAccessResponse(
+                access.accountId(),
+                access.username(),
+                access.email(),
+                access.roleId(),
+                access.roleCode(),
+                access.status() == null ? null : access.status().name(),
+                access.employeeStatus() == null ? null : access.employeeStatus().name(),
+                access.customerStatus() == null ? null : access.customerStatus().name(),
+                access.customerApprovalStatus() == null ? null : access.customerApprovalStatus().name(),
+                access.getEffectivePermissionCodes(),
+                onboardingRequired,
+                decision.state().name(),
+                decision.requiredAction() == null ? null : decision.requiredAction().name(),
+                access.accessRevision()
+        );
+    }
 
     default VietnamAddress toDomain(VietnamAddressRequest request) {
         return request == null ? null : new VietnamAddress(

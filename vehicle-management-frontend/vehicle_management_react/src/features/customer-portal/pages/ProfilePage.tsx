@@ -20,8 +20,8 @@ import { requestPasswordReset } from "@/features/auth/api/authApi";
 import { useAuth } from "@/core/auth/useAuth";
 import { completeMyAccountProfile, getMyAvatarModerationStatus, uploadMyAccountAvatar, type AvatarModerationStatus, type UpdateAccountProfileRequest } from "@/features/iam/api/accountProfileApi";
 import { AvatarModerationStatusCard } from "@/features/iam/components/AvatarModerationStatusCard";
-import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
-import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
+import { mergeProfileDetails } from "@/features/iam/utils/accountProfileMapper";
+import { useAccountStateSync } from "@/features/notifications/context/useAccountStateSync";
 import {
   fetchMyOnboardingApproval,
   resubmitMyOnboardingApproval,
@@ -127,7 +127,8 @@ function buildProfilePayload(form: ProfileForm): UpdateAccountProfileRequest {
 }
 
 export function ProfilePage() {
-  const { setUser } = useAuth();
+  const { invalidateAndRefreshAccess, setUser } = useAuth();
+  const { profileInvalidationVersion } = useAccountStateSync();
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [vehicles, setVehicles] = useState<CustomerPortalVehicle[]>([]);
   const [subscriptions, setSubscriptions] = useState<CustomerPortalSubscription[]>([]);
@@ -160,7 +161,7 @@ export function ProfilePage() {
         if (ignore) return;
         setProfile(nextProfile);
         setForm(profileToForm(nextProfile));
-        setUser((currentUser) => (currentUser ? mergeCurrentUserWithAccountProfile(currentUser, nextProfile) : currentUser));
+        setUser((currentUser) => (currentUser ? mergeProfileDetails(currentUser, nextProfile) : currentUser));
         if (nextProfile.customer?.customerId) {
           const [nextVehicles, nextSubscriptions, lookups] = await Promise.all([
             getMyCustomerVehicles(),
@@ -196,29 +197,7 @@ export function ProfilePage() {
     return () => {
       ignore = true;
     };
-  }, []);
-
-  useEffect(() => subscribeNotificationReceived((notification) => {
-    if (!["CUSTOMER_ONBOARDING_APPROVED", "CUSTOMER_ONBOARDING_REJECTED", "AVATAR_APPROVED", "AVATAR_REJECTED"].includes(notification.notificationType)) return;
-
-    void getCustomerPortalProfile().then(async (nextProfile) => {
-      setProfile(nextProfile);
-      setForm(profileToForm(nextProfile));
-      setUser((currentUser) => currentUser
-        ? mergeCurrentUserWithAccountProfile(currentUser, nextProfile)
-        : currentUser);
-      try {
-        setLatestApproval(await fetchMyOnboardingApproval("customer"));
-      } catch {
-        setLatestApproval(null);
-      }
-      try {
-        setAvatarModeration((await getMyAvatarModerationStatus()).data);
-      } catch {
-        setAvatarModeration(null);
-      }
-    });
-  }), [setUser]);
+  }, [profileInvalidationVersion, setUser]);
 
   const displayName = form.fullName || profile?.account?.username || "Khách hàng";
   const avatarUrl = profile?.profile?.avatarUrl?.trim();
@@ -265,7 +244,7 @@ export function ProfilePage() {
   const applyProfile = (nextProfile: CustomerPortalProfile) => {
     setProfile(nextProfile);
     setForm(profileToForm(nextProfile));
-    setUser((currentUser) => (currentUser ? mergeCurrentUserWithAccountProfile(currentUser, nextProfile) : currentUser));
+    setUser((currentUser) => (currentUser ? mergeProfileDetails(currentUser, nextProfile) : currentUser));
   };
 
   const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -290,7 +269,7 @@ export function ProfilePage() {
       const response = await uploadMyAccountAvatar(file);
       // Updating the avatar must preserve any unsaved personal information.
       setProfile(response.data);
-      setUser((currentUser) => (currentUser ? mergeCurrentUserWithAccountProfile(currentUser, response.data) : currentUser));
+      setUser((currentUser) => (currentUser ? mergeProfileDetails(currentUser, response.data) : currentUser));
       const moderation = await getMyAvatarModerationStatus();
       setAvatarModeration(moderation.data);
       setNotice(moderation.data?.approvalStatus === "APPROVED" ? "Ảnh đại diện đã được tự động duyệt." : "Ảnh đại diện đã được gửi duyệt.");
@@ -310,6 +289,7 @@ export function ProfilePage() {
       ? (await completeMyAccountProfile(payload)).data
       : await updateCustomerPortalProfile(payload);
     applyProfile(updatedProfile);
+    await invalidateAndRefreshAccess(shouldCompleteOnboarding ? "profile-completed" : "profile-updated");
     return {
       profile: updatedProfile,
       shouldCompleteOnboarding,
@@ -347,6 +327,7 @@ export function ProfilePage() {
         await saveProfileChanges();
       }
       const approval = await resubmitMyOnboardingApproval("customer");
+      await invalidateAndRefreshAccess("onboarding-resubmitted");
       const nextProfile = await getCustomerPortalProfile();
       setLatestApproval(approval);
       applyProfile(nextProfile);

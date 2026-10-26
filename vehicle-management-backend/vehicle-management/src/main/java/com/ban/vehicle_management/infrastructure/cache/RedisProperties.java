@@ -8,9 +8,9 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 /**
- * Shared Redis connection configuration. Redis is strictly an optimization and
- * resilience layer: PostgreSQL remains the source of truth. When disabled or
- * unreachable every caller must fail open to the legacy PostgreSQL/Gemini flow.
+ * Shared Redis connection configuration. PostgreSQL remains the source of truth.
+ * Each consumer owns its failure semantics: cache consumers may degrade, while
+ * security controls such as public rate limits and CAPTCHA proofs fail closed.
  */
 @Getter
 @Setter

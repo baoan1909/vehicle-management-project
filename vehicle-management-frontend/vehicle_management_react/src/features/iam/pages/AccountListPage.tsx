@@ -588,7 +588,7 @@ function AccountPermissionModal({
 }
 
 export function AccountListPage() {
-  const { user } = useAuth();
+  const { invalidateAndRefreshAccess, user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [accountItems, setAccountItems] = useState<ProvisionedAccount[]>([]);
@@ -773,6 +773,7 @@ export function AccountListPage() {
 
     try {
       const response = await updateProvisionedAccountRole(roleModal.account.accountId, { roleCode: roleModal.roleCode });
+      await invalidateAndRefreshAccess("account-role-changed");
       const mappedAccount = mapProvisionedAccount(response.data);
       setAccountItems((currentAccounts) => replaceAccount(currentAccounts, mappedAccount));
       setSelectedAccountId(mappedAccount.accountId);
@@ -795,6 +796,7 @@ export function AccountListPage() {
         reason: statusModal.reason.trim() || undefined,
         status: statusModal.status,
       });
+      await invalidateAndRefreshAccess("account-status-changed");
       const mappedAccount = mapProvisionedAccount(response.data);
       setAccountItems((currentAccounts) => replaceAccount(currentAccounts, mappedAccount));
       setSelectedAccountId(mappedAccount.accountId);

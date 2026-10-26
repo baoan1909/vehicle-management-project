@@ -15,8 +15,10 @@ import com.ban.vehicle_management.application.iam.account.model.command.UpdatePr
 import com.ban.vehicle_management.application.iam.account.model.command.UpdateProvisionedAccountStatusCommand;
 import com.ban.vehicle_management.application.iam.account.model.result.ProvisionedAccountResult;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
@@ -53,6 +55,9 @@ class ProvisionedAccountUseCaseImplTest {
 
     @Mock
     private OrganizationPortOut organizationPortOut;
+
+    @Mock
+    private AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
 
     @Spy
     private ProvisionedAccountPolicy provisionedAccountPolicy = new ProvisionedAccountPolicy();
@@ -520,6 +525,47 @@ class ProvisionedAccountUseCaseImplTest {
     }
 
     @Test
+    void shouldInvalidateTargetAccountAfterProvisionedRoleUpdate() {
+        UUID accountId = UUID.randomUUID();
+        UUID existingRoleId = UUID.randomUUID();
+        UUID targetRoleId = UUID.randomUUID();
+        ProvisionedAccountResult existingAccount = buildResult(
+                accountId,
+                existingRoleId,
+                AdminProvisionableAccountRoleCode.PARTNER_ADMIN,
+                "partner.admin.01",
+                "partner.admin01@example.com"
+        );
+        ProvisionedAccountResult updatedAccount = buildResult(
+                accountId,
+                targetRoleId,
+                AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
+                "partner.admin.01",
+                "partner.admin01@example.com"
+        );
+        UpdateProvisionedAccountRoleCommand command =
+                new UpdateProvisionedAccountRoleCommand(AdminProvisionableAccountRoleCode.SYSTEM_ADMIN);
+
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount("SYSTEM_ADMIN"));
+        when(provisionedAccountPortOut.findProvisionedAccountById(accountId))
+                .thenReturn(Optional.of(existingAccount), Optional.of(updatedAccount));
+        when(provisionedAccountPortOut.findActiveRoleIdByCode(AdminProvisionableAccountRoleCode.SYSTEM_ADMIN))
+                .thenReturn(targetRoleId);
+
+        ProvisionedAccountResult result = provisionedAccountUseCase.updateProvisionedAccountRole(accountId, command);
+
+        assertEquals(AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name(), result.role().roleCode());
+        verify(provisionedAccountPortOut).updateProvisionedAccountRole(accountId, targetRoleId);
+        verify(accountAccessInvalidationPortIn).invalidateAccount(
+                accountId,
+                "Vai trò tài khoản của bạn đã được cập nhật.",
+                "iam",
+                "accounts",
+                accountId
+        );
+    }
+
+    @Test
     void shouldUpdateEmployeeStatusWhenUpdatingInternalProvisionedAccountStatus() {
         UUID accountId = UUID.randomUUID();
         UUID roleId = UUID.randomUUID();
@@ -628,16 +674,26 @@ class ProvisionedAccountUseCaseImplTest {
     }
 
     private CurrentAccountAccess currentAccount(UUID accountId, String roleCode) {
+        boolean platform = "SYSTEM_ADMIN".equals(roleCode);
+        boolean partner = "PARTNER_ADMIN".equals(roleCode);
+        boolean assigned = "PARKING_MANAGER".equals(roleCode);
+        Set<String> permissions = new java.util.HashSet<>(Set.of(
+                "ACCOUNT_CREATE_ALL", "ACCOUNT_UPDATE_ALL"));
+        permissions.add(platform ? OrganizationAccessGuard.PARKING_SCOPE_PLATFORM
+                : partner ? OrganizationAccessGuard.PARKING_SCOPE_PARTNER
+                : assigned ? OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED : "ACCOUNT_READ_ALL");
         return new CurrentAccountAccess(
                 accountId,
                 "subject",
                 "current.user",
                 "current@example.com",
                 UUID.randomUUID(),
-                roleCode,
+                roleCode, true, partner,
+                partner ? Set.of(UUID.randomUUID()) : Set.of(),
+                assigned ? Set.of(UUID.randomUUID()) : Set.of(),
                 AccountStatus.ACTIVE,
-                "PARKING_MANAGER".equals(roleCode) ? EmployeeStatus.ACTIVE : null,
-                Set.of("ACCOUNT_CREATE_ALL", "ACCOUNT_UPDATE_ALL")
+                assigned ? EmployeeStatus.ACTIVE : null,
+                null, null, false, permissions
         );
     }
 }

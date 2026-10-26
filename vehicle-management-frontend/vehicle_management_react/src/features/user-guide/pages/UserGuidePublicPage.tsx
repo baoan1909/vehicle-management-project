@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/Button";
+import { useAuth } from "@/core/auth/useAuth";
 import { getPublishedUserGuide, recordUserGuideEvent } from "@/features/user-guide/api/userGuideApi";
 import { UserGuideHost } from "@/features/user-guide/components/UserGuideHost";
 import { UserGuideProvider, useUserGuide } from "@/features/user-guide/context/UserGuideContext";
@@ -63,6 +64,7 @@ function GuideReader({ guide }: { guide: UserGuidePresentation }) {
 }
 
 export function UserGuidePublicPage() {
+  const { user } = useAuth();
   const { code } = useParams<{ code: string }>();
   const [state, setState] = useState<PageState>({ status: "loading" });
 
@@ -99,6 +101,7 @@ export function UserGuidePublicPage() {
   }, [code]);
 
   const handleLifecycleEvent = useCallback((event: UserGuideLifecycleEvent) => {
+    if (!user) return;
     const guideId = event.guide.guideId;
     const eventPayload = { stepId: event.step.stepId, versionNumber: event.guide.versionNumber };
     switch (event.type) {
@@ -117,7 +120,7 @@ export function UserGuidePublicPage() {
       default:
         break;
     }
-  }, []);
+  }, [user]);
 
   if (state.status === "loading") {
     return <p className="tw-py-16 tw-text-center tw-font-semibold tw-text-vm-slate-500">Đang tải hướng dẫn...</p>;

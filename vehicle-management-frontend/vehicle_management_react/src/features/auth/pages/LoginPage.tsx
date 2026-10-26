@@ -1,20 +1,14 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { getLogoutRedirectPath, isLogoutRedirectGuardActive } from "@/core/auth/logout";
-import {
-  clearAuthTokens,
-  getCurrentUserFromAccessToken,
-  getIdentityProviderFromAccessToken,
-  saveAuthTokens,
-} from "@/core/auth/session";
+import { AccessErrorScreen } from "@/core/auth/AccessStatusScreens";
+import { resolvePostLoginPath } from "@/core/auth/landing";
+import { handleSigninCallback, isOidcSigninResponse, removeOidcUser, signinRedirect } from "@/core/auth/oidcSession";
 import { useAuth } from "@/core/auth/useAuth";
-import { bootstrapSocialAccount, getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
-import { mergeCurrentUserWithAccountProfile } from "@/features/iam/utils/accountProfileMapper";
-import type { CurrentUser } from "@/shared/types/common";
+import { getIdentityProvider } from "@/core/auth/session";
+import { bootstrapSocialAccount } from "@/features/iam/api/accountProfileApi";
 import {
-  buildKeycloakLogoutUrl,
-  exchangeKeycloakAuthorizationCode,
-  prepareKeycloakLoginUrl,
+  preconnectKeycloakLoginOrigin,
   registerAccount,
   resendVerificationEmail,
   requestPasswordReset,
@@ -27,7 +21,8 @@ import {
   validateRegisterValues,
   type RegisterFieldErrors,
 } from "@/features/auth/utils/authValidation";
-import { Button, useToast } from "@/components/ui";
+import { Button } from "@/components/ui";
+import type { AccessError } from "@/core/auth/accessState";
 import { FullPageCarLoader } from "@/shared/components/ui/PageTransitionLoader";
 
 type AuthMode = "login" | "register" | "forgot" | "otp" | "recover";
@@ -52,39 +47,8 @@ const initialRegisterForm: RegisterFormState = {
   confirmPassword: "",
 };
 
-const adminPostLoginRedirectPath = "/api/dashboard/overview";
-const customerPostLoginRedirectPath = "/customer/dashboard";
-const processedAuthorizationCodeKey = "vm_keycloak_processed_authorization_code";
 const forgotPasswordEmailStorageKey = "vm_forgot_password_email";
-let activeAuthorizationCode = "";
-
-function resolvePostLoginRedirectPath(user: CurrentUser | null) {
-  if (user?.role === "PARTNER_ADMIN" && user?.accountStatus !== "ACTIVE") {
-    return "/admin/profile";
-  }
-  if (user?.role === "CUSTOMER") {
-    return user.onboardingRequired ? "/customer/profile" : customerPostLoginRedirectPath;
-  }
-  return adminPostLoginRedirectPath;
-}
-
-async function resolveLoggedInUser(accessToken: string) {
-  const tokenUser = getCurrentUserFromAccessToken(accessToken);
-  if (!tokenUser) return null;
-
-  if (getIdentityProviderFromAccessToken(accessToken) === "google") {
-    await bootstrapSocialAccount();
-    const response = await getMyAccountProfile();
-    return mergeCurrentUserWithAccountProfile(tokenUser, response.data);
-  }
-
-  try {
-    const response = await getMyAccountProfile();
-    return mergeCurrentUserWithAccountProfile(tokenUser, response.data);
-  } catch {
-    return tokenUser;
-  }
-}
+const ACCESS_REQUEST_TIMEOUT_MS = 8000;
 
 export function LoginPage({ mode = "login" }: AuthPageProps) {
   if (mode === "login" && isLogoutRedirectGuardActive()) {
@@ -111,82 +75,122 @@ export function LoginPage({ mode = "login" }: AuthPageProps) {
 function KeycloakRedirectScreen({ label }: { label: string }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { setUser } = useAuth();
-  const toast = useToast();
-  const [isExchangingCode, setIsExchangingCode] = useState(false);
-  const [isReturningToLogin, setIsReturningToLogin] = useState(false);
+  const {
+    accessError,
+    accessStatus,
+    authenticationError,
+    authenticationStatus,
+    beginAuthenticatedSession,
+    retryAccess,
+    setUser,
+    user,
+  } = useAuth();
+  const callbackStarted = useRef(false);
+  const redirectStarted = useRef(false);
+  const [callbackFailure, setCallbackFailure] = useState<AccessError | null>(null);
+  const hasSigninResponse = isOidcSigninResponse(location.search);
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const code = searchParams.get("code");
-    const returnedState = searchParams.get("state");
-    if (!code || isExchangingCode || isReturningToLogin) return;
-    if (activeAuthorizationCode === code) return;
-    if (sessionStorage.getItem(processedAuthorizationCodeKey) === code) {
-      navigate("/login", { replace: true });
-      return;
-    }
-    const authorizationCode = code;
-    activeAuthorizationCode = authorizationCode;
-    sessionStorage.setItem(processedAuthorizationCodeKey, authorizationCode);
+    preconnectKeycloakLoginOrigin();
+  }, []);
 
-    async function exchangeCode() {
-      setIsExchangingCode(true);
-      let idToken: string | undefined;
+  useEffect(() => {
+    if (!hasSigninResponse || callbackStarted.current) return;
+    callbackStarted.current = true;
 
+    async function completeCallback() {
       try {
-        const tokenResponse = await exchangeKeycloakAuthorizationCode(authorizationCode, returnedState);
-        idToken = tokenResponse.id_token;
-        saveAuthTokens({
-          accessToken: tokenResponse.access_token,
-          refreshToken: tokenResponse.refresh_token,
-          idToken: tokenResponse.id_token,
+        const oidcUser = await handleSigninCallback();
+        if (getIdentityProvider(oidcUser) === "google") {
+          await bootstrapSocialAccount({ timeoutMs: ACCESS_REQUEST_TIMEOUT_MS });
+        }
+        beginAuthenticatedSession(oidcUser);
+        navigate("/login", { replace: true });
+      } catch (error) {
+        console.error(error);
+        await removeOidcUser();
+        setUser(null);
+        setCallbackFailure({
+          message: error instanceof Error && error.message
+            ? error.message
+            : "Không thể hoàn tất đăng nhập OIDC.",
+          retryable: false,
+          type: "invalid-response",
         });
-        const loggedInUser = await resolveLoggedInUser(tokenResponse.access_token);
-        setUser(loggedInUser);
-        activeAuthorizationCode = "";
-        navigate(resolvePostLoginRedirectPath(loggedInUser), { replace: true });
-      } catch (error) {
-        console.error(error);
-        activeAuthorizationCode = "";
-        const message = error instanceof Error ? error.message : "Không thể hoàn tất đăng nhập Google.";
-        clearAuthTokens();
-        toast.error(message, "Đăng nhập không thành công");
-        setIsReturningToLogin(true);
-
-        window.setTimeout(() => {
-          if (idToken) {
-            window.location.replace(buildKeycloakLogoutUrl(idToken, "/login"));
-            return;
-          }
-          navigate("/login", { replace: true });
-        }, 900);
-      } finally {
-        setIsExchangingCode(false);
       }
     }
 
-    void exchangeCode();
-  }, [isExchangingCode, isReturningToLogin, location.search, navigate, setUser, toast]);
+    void completeCallback();
+  }, [
+    beginAuthenticatedSession,
+    hasSigninResponse,
+    navigate,
+    setUser,
+  ]);
 
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const code = searchParams.get("code");
-    if (code || isReturningToLogin) return;
+    if (
+      hasSigninResponse
+      || callbackFailure
+      || authenticationStatus !== "unauthenticated"
+      || redirectStarted.current
+    ) return;
 
-    async function redirectToKeycloak() {
-      try {
-        const loginUrl = await prepareKeycloakLoginUrl();
-        window.location.replace(loginUrl);
-      } catch (error) {
-        console.error(error);
-      }
+    redirectStarted.current = true;
+    void signinRedirect().catch((error) => {
+      redirectStarted.current = false;
+      setCallbackFailure({
+        message: error instanceof Error && error.message
+          ? error.message
+          : "Không thể chuyển đến máy chủ đăng nhập.",
+        retryable: true,
+        type: "offline",
+      });
+    });
+  }, [authenticationStatus, callbackFailure, hasSigninResponse]);
+
+  useEffect(() => {
+    if (authenticationStatus === "authenticated" && accessStatus === "ready" && user) {
+      navigate(resolvePostLoginPath(user), { replace: true });
     }
+  }, [accessStatus, authenticationStatus, navigate, user]);
 
-    void redirectToKeycloak();
-  }, [isReturningToLogin, location.search]);
+  const screenError = callbackFailure
+    ?? accessError
+    ?? (authenticationError
+      ? {
+          message: authenticationError.message,
+          retryable: true,
+          type: "offline" as const,
+        }
+      : null);
 
-  return <FullPageCarLoader label={label} />;
+  if (screenError) {
+    return (
+      <AccessErrorScreen
+        error={screenError}
+        onLogout={() => {
+          void removeOidcUser().finally(() => {
+            setUser(null);
+            window.location.replace("/login");
+          });
+        }}
+        onRetry={screenError.retryable ? () => {
+          setCallbackFailure(null);
+          if (accessError) retryAccess();
+          else window.location.reload();
+        } : undefined}
+        title={callbackFailure ? "Không thể hoàn tất đăng nhập" : "Không thể tải phiên truy cập"}
+      />
+    );
+  }
+
+  const loadingLabel = authenticationStatus === "renewing"
+    ? "Đang làm mới phiên đăng nhập..."
+    : accessStatus === "loading"
+      ? "Đang tải quyền truy cập..."
+      : label;
+  return <FullPageCarLoader label={loadingLabel} />;
 }
 
 function RegisterScreenV2() {

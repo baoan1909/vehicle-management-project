@@ -18,4 +18,12 @@ public interface CurrentAccountPortIn {
     boolean hasPermission(String permissionCode);
 
     void requirePermission(String permissionCode);
+
+    default void invalidateCurrentAccountSnapshot() {
+        // Legacy/test adapters without an authentication snapshot need no invalidation.
+    }
+
+    default CurrentAccountAccess refreshCurrentAccountOrThrow() {
+        return getCurrentAccountOrThrow();
+    }
 }

@@ -385,8 +385,6 @@ class ShiftUseCaseImplTest {
     void managerListWithoutLotFilterReadsOnlyAssignedLots() {
         UUID assignedLotId = UUID.randomUUID();
         Shift shift = draftShift(assignedLotId);
-        when(currentAccountPortIn.getCurrentAccountOrThrow())
-                .thenReturn(managerAccess(UUID.randomUUID()));
         when(organizationAccessGuard.resolveParkingLotAccessScope())
                 .thenReturn(new ParkingLotAccessScope(false, Set.of(), Set.of(assignedLotId)));
         when(shiftPortOut.findAll(assignedLotId, null, null, null, null, null, null))

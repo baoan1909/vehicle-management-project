@@ -13,6 +13,10 @@ public record CurrentAccountAccessResponse(
         String employeeStatus,
         String customerStatus,
         String customerApprovalStatus,
-        Set<String> permissionCodes
+        Set<String> permissionCodes,
+        Boolean onboardingRequired,
+        String accessState,
+        String requiredAction,
+        String accessRevision
 ) {
 }

@@ -11,13 +11,12 @@ import {
   closeSupportTicket,
   createSupportTicket,
   getMySupportTickets,
-  getSupportTicketCategories,
   reopenSupportTicket,
-  type SupportTicketCategoryResponse,
   type SupportTicketPriority,
   type SupportTicketResponse,
   type SupportTicketStatus,
 } from "@/features/support/api/supportApi";
+import { getPublicSupportCategories, type PublicSupportCategory } from "@/features/support/api/guestSupportApi";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 
 import { CustomerPageHeader, CustomerPortalLayout, Field, PaginationLite, StatCard, StatusPill } from "./PortalShared";
@@ -106,7 +105,7 @@ export function SupportPage() {
   const canCreateTicket = hasAnyPermission(user, ["SUPPORT_TICKET_CREATE_OWN", "SUPPORT_TICKET_CREATE_ALL"]);
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [tickets, setTickets] = useState<SupportTicketResponse[]>([]);
-  const [categories, setCategories] = useState<SupportTicketCategoryResponse[]>([]);
+  const [categories, setCategories] = useState<PublicSupportCategory[]>([]);
   const [selectedTicketId, setSelectedTicketId] = useState<string>("");
   const [keyword, setKeyword] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -126,7 +125,7 @@ export function SupportPage() {
 
       const [ticketResponse, categoryResponse] = await Promise.all([
         getMySupportTickets(),
-        getSupportTicketCategories({ status: "ACTIVE" }),
+        getPublicSupportCategories(),
       ]);
       const nextTickets = ticketResponse.data ?? [];
 

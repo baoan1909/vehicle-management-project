@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.people.employee.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuard;
 import com.ban.vehicle_management.application.people.employee.model.command.UpdateEmployeeAdminProfileCommand;
@@ -43,6 +44,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
     private final UserProfilePortOut userProfilePortOut;
     private final EmployeePolicy employeePolicy = new EmployeePolicy();
     private final UserProfilePolicy userProfilePolicy;
+    private final AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
 
     public EmployeeUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
@@ -51,7 +53,8 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
             InternalEmployeeApprovalPortOut internalEmployeeApprovalPortOut,
             UserProfileAvatarPortIn userProfileAvatarPortIn,
             UserProfilePortOut userProfilePortOut,
-            UserProfilePolicy userProfilePolicy
+            UserProfilePolicy userProfilePolicy,
+            AccountAccessInvalidationPortIn accountAccessInvalidationPortIn
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.employeeAccessGuard = employeeAccessGuard;
@@ -60,6 +63,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         this.userProfileAvatarPortIn = userProfileAvatarPortIn;
         this.userProfilePortOut = userProfilePortOut;
         this.userProfilePolicy = userProfilePolicy;
+        this.accountAccessInvalidationPortIn = accountAccessInvalidationPortIn;
     }
 
     @Override
@@ -245,6 +249,7 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
 
         employeePolicy.inactivate(existingEmployee);
         employeePortOut.save(existingEmployee);
+        invalidateEmployeeAccess(employeeId);
     }
 
     @Override
@@ -255,7 +260,9 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         employeeAccessGuard.ensureCanManage(employee);
         ensureInternalOnboardingApprovalSatisfied(employeeId);
         employeePolicy.activate(employee);
-        return saveEmployeeAndReload(employee);
+        Employee result = saveEmployeeAndReload(employee);
+        invalidateEmployeeAccess(employeeId);
+        return result;
     }
 
     @Override
@@ -265,7 +272,9 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         Employee employee = getEmployeeById(employeeId);
         employeeAccessGuard.ensureCanManage(employee);
         employeePolicy.inactivate(employee);
-        return saveEmployeeAndReload(employee);
+        Employee result = saveEmployeeAndReload(employee);
+        invalidateEmployeeAccess(employeeId);
+        return result;
     }
 
     @Override
@@ -275,12 +284,26 @@ public class EmployeeUseCaseImpl implements EmployeePortIn {
         Employee employee = getEmployeeById(employeeId);
         employeeAccessGuard.ensureCanManage(employee);
         employeePolicy.suspend(employee);
-        return saveEmployeeAndReload(employee);
+        Employee result = saveEmployeeAndReload(employee);
+        invalidateEmployeeAccess(employeeId);
+        return result;
     }
 
     private Employee saveEmployeeAndReload(Employee employee) {
         Employee savedEmployee = employeePortOut.save(employee);
         return reloadEmployeeForResponse(savedEmployee.getEmployeeId());
+    }
+
+    private void invalidateEmployeeAccess(UUID employeeId) {
+        employeePortOut.findAccountIdByEmployeeId(employeeId).ifPresent(accountId ->
+                accountAccessInvalidationPortIn.invalidateAccount(
+                        accountId,
+                        "Trạng thái nhân sự của tài khoản đã thay đổi.",
+                        "people",
+                        "employees",
+                        employeeId
+                )
+        );
     }
 
     private Employee reloadEmployeeForResponse(UUID employeeId) {

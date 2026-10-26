@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { Button, ConfirmDialog, Modal } from "@/components/ui";
+import { useAuth } from "@/core/auth/useAuth";
 import {
   assignParkingManagerToParkingLot,
   getAssignedParkingManagers,
@@ -16,6 +17,7 @@ export function ParkingManagerAssignmentModal({ lot, open, onClose, onChanged }:
   onClose: () => void;
   onChanged: (message: string) => void;
 }) {
+  const { invalidateAndRefreshAccess } = useAuth();
   const [managers, setManagers] = useState<ProvisionedAccountResponse[]>([]);
   const [managerId, setManagerId] = useState("");
   const [assignedManagerIds, setAssignedManagerIds] = useState<string[]>([]);
@@ -67,6 +69,7 @@ export function ParkingManagerAssignmentModal({ lot, open, onClose, onChanged }:
     setError(null);
     try {
       await assignParkingManagerToParkingLot(lot.organizationId, lot.parkingLotId, managerId);
+      await invalidateAndRefreshAccess("parking-lot-assignment-changed");
       onChanged(`Đã phân công ${manager.account.username} cho bãi ${lot.code}.`);
       await loadManagers();
     } catch (requestError) {
@@ -86,6 +89,7 @@ export function ParkingManagerAssignmentModal({ lot, open, onClose, onChanged }:
         lot.parkingLotId,
         manager.account.accountId,
       );
+      await invalidateAndRefreshAccess("parking-lot-assignment-changed");
       setUnassignTarget(null);
       onChanged(`Đã gỡ ${manager.account.username} khỏi bãi ${lot.code}.`);
       await loadManagers();

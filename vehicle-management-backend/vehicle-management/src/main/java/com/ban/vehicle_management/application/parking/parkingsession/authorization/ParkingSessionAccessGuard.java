@@ -31,26 +31,14 @@ public class ParkingSessionAccessGuard {
 
     public void ensureCanCheckIn() {
         currentAccountPortIn.requirePermission(PARKING_SESSION_CHECK_IN_ALL);
-        ensureNotSystemAdmin();
     }
 
     public void ensureCanCheckOut() {
         currentAccountPortIn.requirePermission(PARKING_SESSION_CHECK_OUT_ALL);
-        ensureNotSystemAdmin();
     }
 
     public void ensureCanOperateParkingLot(ParkingLot parkingLot) {
-        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
-        if (OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
-                || OrganizationAccessGuard.PARKING_MANAGER.equals(roleCode)) {
-            organizationAccessGuard.ensureCanAccessParkingLot(parkingLot);
-            return;
-        }
-        if ("EMPLOYEE".equals(roleCode)) {
-            employeeParkingLotAccessGuard.ensureCanOperate(parkingLot.getParkingLotId());
-            return;
-        }
-        throw new AccessDeniedException("Current account cannot operate this parking lot");
+        organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
     }
 
     public void ensureCanUseCardInParkingLot(Card card, ParkingLot parkingLot) {
@@ -60,9 +48,9 @@ public class ParkingSessionAccessGuard {
     }
 
     public void ensureCanUseOcr() {
-        ensureNotSystemAdmin();
-        if (currentAccountPortIn.hasPermission(PARKING_SESSION_CHECK_IN_ALL)
-                || currentAccountPortIn.hasPermission(PARKING_SESSION_CHECK_OUT_ALL)) {
+        var permissions = currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes();
+        if (permissions.contains(PARKING_SESSION_CHECK_IN_ALL)
+                || permissions.contains(PARKING_SESSION_CHECK_OUT_ALL)) {
             return;
         }
         throw new AccessDeniedException("Access is denied");
@@ -70,17 +58,9 @@ public class ParkingSessionAccessGuard {
 
     public void ensureCanReviewUnknownPlate() {
         currentAccountPortIn.requirePermission(PARKING_SESSION_PLATE_REVIEW_ALL);
-        ensureNotSystemAdmin();
     }
 
     public void ensureCanOverridePlateIdentity() {
         currentAccountPortIn.requirePermission(PARKING_SESSION_PLATE_OVERRIDE_ALL);
-        ensureNotSystemAdmin();
-    }
-
-    private void ensureNotSystemAdmin() {
-        if (OrganizationAccessGuard.SYSTEM_ADMIN.equals(currentAccountPortIn.getCurrentAccountOrThrow().roleCode())) {
-            throw new AccessDeniedException("System Admin cannot operate partner parking lots");
-        }
     }
 }

@@ -6,37 +6,10 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
-import java.util.Set;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ProvisionedAccountPolicy {
-
-    public Set<AdminProvisionableAccountRoleCode> managedTargetRoles(AdminProvisionableAccountRoleCode currentRole) {
-        AdminProvisionableAccountRoleCode role = requireProvisionableRole(currentRole);
-        return switch (role) {
-            case SYSTEM_ADMIN -> Set.of(
-                    AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
-                    AdminProvisionableAccountRoleCode.PARTNER_ADMIN
-            );
-            case PARTNER_ADMIN -> Set.of(
-                    AdminProvisionableAccountRoleCode.PARKING_MANAGER,
-                    AdminProvisionableAccountRoleCode.EMPLOYEE
-            );
-            case PARKING_MANAGER -> Set.of(
-                    AdminProvisionableAccountRoleCode.EMPLOYEE,
-                    AdminProvisionableAccountRoleCode.CUSTOMER
-            );
-            case CUSTOMER, EMPLOYEE -> Set.of();
-        };
-    }
-
-    public boolean canManageTargetRole(
-            AdminProvisionableAccountRoleCode currentRole,
-            AdminProvisionableAccountRoleCode targetRole
-    ) {
-        return managedTargetRoles(currentRole).contains(requireProvisionableRole(targetRole));
-    }
 
     public AccountStatus initialAccountStatus(AdminProvisionableAccountRoleCode roleCode) {
         return AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.equals(requireProvisionableRole(roleCode))

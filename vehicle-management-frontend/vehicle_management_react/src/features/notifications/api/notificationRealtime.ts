@@ -1,17 +1,19 @@
 import { Client } from "@stomp/stompjs";
 import { appConfig } from "@/config/env";
-import { getValidAccessToken } from "@/core/auth/tokenRefresh";
+import { getValidAccessToken, subscribeAccessTokenChanged } from "@/core/auth/oidcSession";
 import type { NotificationUserResponse } from "@/features/notifications/api/notificationApi";
 
 type NotificationRealtimeOptions = {
+  onConnected?: (reconnected: boolean) => void;
   onError?: (error: Error) => void;
   onNotification: (notification: NotificationUserResponse) => void;
 };
 
 const NOTIFICATION_DESTINATION = "/user/queue/notifications";
 
-export function subscribeNotificationRealtime({ onError, onNotification }: NotificationRealtimeOptions) {
+export function subscribeNotificationRealtime({ onConnected, onError, onNotification }: NotificationRealtimeOptions) {
   let active = true;
+  let connectedOnce = false;
   const client = new Client({
     brokerURL: buildNotificationWebSocketUrl(),
     heartbeatIncoming: 10000,
@@ -35,6 +37,8 @@ export function subscribeNotificationRealtime({ onError, onNotification }: Notif
           onError?.(new Error("Invalid notification realtime message"));
         }
       });
+      onConnected?.(connectedOnce);
+      connectedOnce = true;
     },
     onStompError: (frame) => {
       onError?.(new Error(frame.body || frame.headers.message || "Notification realtime error"));
@@ -46,10 +50,19 @@ export function subscribeNotificationRealtime({ onError, onNotification }: Notif
     },
   });
 
+  const unsubscribeTokenChange = subscribeAccessTokenChanged(() => {
+    if (!active) return;
+    void client.deactivate().then(() => {
+      if (!active) return;
+      client.reconnectDelay = 5000;
+      client.activate();
+    });
+  });
   client.activate();
 
   return () => {
     active = false;
+    unsubscribeTokenChange();
     client.reconnectDelay = 0;
     void client.deactivate();
   };

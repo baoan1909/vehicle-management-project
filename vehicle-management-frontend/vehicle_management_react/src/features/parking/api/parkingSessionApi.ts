@@ -2,7 +2,7 @@ import { appConfig } from "@/config/env";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
 import { apiClient } from "@/core/api/apiClient";
 import { localizeApiMessage, localizeApiResponseBody } from "@/core/api/apiMessage";
-import { getValidAccessToken, refreshAccessToken } from "@/core/auth/tokenRefresh";
+import { getValidAccessToken, refreshAccessToken } from "@/core/auth/oidcSession";
 
 type ApiResponse<T> = {
   data: T;

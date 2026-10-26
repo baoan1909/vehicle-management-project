@@ -1,0 +1,16 @@
+package com.ban.vehicle_management.domain.iam.account.model;
+
+public enum CurrentAccessState {
+    ACTIVE,
+    ONBOARDING_REQUIRED,
+    PENDING_APPROVAL,
+    ACCOUNT_PENDING,
+    ACCOUNT_LOCKED,
+    ACCOUNT_DISABLED,
+    ROLE_DISABLED,
+    CUSTOMER_INACTIVE,
+    CUSTOMER_APPROVAL_REQUIRED,
+    EMPLOYEE_INACTIVE,
+    ORGANIZATION_ACCESS_REQUIRED,
+    NO_EFFECTIVE_PERMISSIONS
+}

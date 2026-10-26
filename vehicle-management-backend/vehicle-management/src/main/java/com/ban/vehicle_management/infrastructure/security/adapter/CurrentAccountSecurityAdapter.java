@@ -14,6 +14,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.Set;
@@ -21,6 +23,8 @@ import java.util.UUID;
 
 @Component
 public class CurrentAccountSecurityAdapter implements CurrentAccountPortIn {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CurrentAccountSecurityAdapter.class);
 
     private final AccountAuthorizationPortOut accountAuthorizationPortOut;
     private final AssistantActorScope assistantActorScope;
@@ -34,12 +38,9 @@ public class CurrentAccountSecurityAdapter implements CurrentAccountPortIn {
 
     @Override
     public Optional<CurrentAccountAccess> getCurrentAccount() {
-        Optional<CurrentAccountAccess> fromSecurityContext =
-                Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
-                        .filter(Authentication::isAuthenticated)
-                        .flatMap(this::resolveCurrentAccount);
-        if (fromSecurityContext.isPresent()) {
-            return fromSecurityContext;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            return resolveCurrentAccount(authentication);
         }
         // Scheduler threads (assistant/ingestion workers) have no SecurityContext:
         // fall back to the job-bound actor, resolved from persisted data only.
@@ -70,8 +71,8 @@ public class CurrentAccountSecurityAdapter implements CurrentAccountPortIn {
         String normalizedPermissionCode = normalizePermissionCode(permissionCode);
 
         return getCurrentAccount()
-                .filter(CurrentAccountAccess::canUseBusinessPermissions)
-                .map(CurrentAccountAccess::permissionCodes)
+                .filter(CurrentAccountAccess::canUseEffectivePermissions)
+                .map(CurrentAccountAccess::getEffectivePermissionCodes)
                 .orElseGet(Set::of)
                 .contains(normalizedPermissionCode);
     }
@@ -83,7 +84,50 @@ public class CurrentAccountSecurityAdapter implements CurrentAccountPortIn {
         }
     }
 
+    @Override
+    public void invalidateCurrentAccountSnapshot() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (!(authentication instanceof AbstractAuthenticationToken authenticationToken)) {
+            return;
+        }
+        if (authenticationToken.getDetails() instanceof AuthenticatedAccountPrincipal principal) {
+            authenticationToken.setDetails(new AuthenticatedAccountPrincipal(
+                    principal.accountId(),
+                    principal.keycloakUserId(),
+                    principal.preferredUsername(),
+                    principal.email()
+            ));
+        }
+    }
+
+    @Override
+    public CurrentAccountAccess refreshCurrentAccountOrThrow() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return getCurrentAccountOrThrow();
+        }
+        invalidateCurrentAccountSnapshot();
+        return loadAndEnrich(authentication)
+                .orElseThrow(() -> new AuthenticationCredentialsNotFoundException(
+                        "Authenticated account could not be resolved"
+                ));
+    }
+
     private Optional<CurrentAccountAccess> resolveCurrentAccount(Authentication authentication) {
+        Object details = authentication.getDetails();
+        if (details instanceof AuthenticatedAccountPrincipal principal
+                && principal.accessSnapshot() != null) {
+            if (!principal.hasConsistentSnapshot()
+                    || !authenticationMatchesSnapshot(authentication, principal.accessSnapshot())) {
+                LOGGER.warn("Rejected inconsistent current-account access snapshot");
+                return Optional.empty();
+            }
+            return Optional.of(principal.accessSnapshot());
+        }
+        return loadAndEnrich(authentication);
+    }
+
+    private Optional<CurrentAccountAccess> loadAndEnrich(Authentication authentication) {
         Optional<UUID> accountId = resolveAccountId(authentication);
         if (accountId.isPresent()) {
             return accountAuthorizationPortOut.findByAccountId(accountId.get())
@@ -118,6 +162,21 @@ public class CurrentAccountSecurityAdapter implements CurrentAccountPortIn {
         }
 
         return Optional.empty();
+    }
+
+    private boolean authenticationMatchesSnapshot(
+            Authentication authentication,
+            CurrentAccountAccess snapshot
+    ) {
+        Optional<UUID> authenticationAccountId = resolveAccountId(authentication);
+        if (authenticationAccountId.isPresent()
+                && !authenticationAccountId.get().equals(snapshot.accountId())) {
+            return false;
+        }
+        Optional<String> subject = resolveKeycloakUserId(authentication);
+        return subject.isEmpty()
+                || snapshot.subject() == null
+                || subject.get().equals(snapshot.subject());
     }
 
     private Optional<String> resolveKeycloakUserId(Authentication authentication) {
@@ -169,7 +228,8 @@ public class CurrentAccountSecurityAdapter implements CurrentAccountPortIn {
 
         Object details = authenticationToken.getDetails();
         if (details instanceof AuthenticatedAccountPrincipal principal
-                && accountAccess.accountId().equals(principal.accountId())) {
+                && accountAccess.accountId().equals(principal.accountId())
+                && principal.accessSnapshot() != null) {
             return;
         }
 
@@ -191,7 +251,8 @@ public class CurrentAccountSecurityAdapter implements CurrentAccountPortIn {
                 accountAccess.accountId(),
                 keycloakUserId,
                 preferredUsername,
-                email
+                email,
+                accountAccess
         ));
     }
 }

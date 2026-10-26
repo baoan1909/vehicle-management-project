@@ -34,8 +34,8 @@ public class JwtAuthenticationConverter implements Converter<Jwt, AbstractAuthen
                 .orElseGet(List::of));
         Optional<CurrentAccountAccess> currentAccount = resolveCurrentAccount(jwt);
         currentAccount
-                .filter(CurrentAccountAccess::canUseBusinessPermissions)
-                .ifPresent(account -> account.permissionCodes().forEach(permissionCode ->
+                .filter(CurrentAccountAccess::canUseEffectivePermissions)
+                .ifPresent(account -> account.getEffectivePermissionCodes().forEach(permissionCode ->
                         authorities.add(new SimpleGrantedAuthority(permissionCode))
                 ));
         AuthenticatedAccountPrincipal principal = new AuthenticatedAccountPrincipal(
@@ -44,7 +44,8 @@ public class JwtAuthenticationConverter implements Converter<Jwt, AbstractAuthen
                         .orElse(null),
                 jwt.getSubject(),
                 resolvePreferredUsername(jwt),
-                jwt.getClaimAsString("email")
+                jwt.getClaimAsString("email"),
+                currentAccount.orElse(null)
         );
 
         JwtAuthenticationToken authenticationToken = new JwtAuthenticationToken(

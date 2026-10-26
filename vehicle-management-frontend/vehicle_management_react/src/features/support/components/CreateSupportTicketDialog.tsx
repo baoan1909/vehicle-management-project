@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Modal } from "@/components/ui";
 import {
-  getSupportTicketCategories,
   type SaveSupportTicketRequest,
-  type SupportTicketCategoryResponse,
   type SupportTicketResponse,
 } from "@/features/support/api/supportApi";
+import { getPublicSupportCategories, type PublicSupportCategory } from "@/features/support/api/guestSupportApi";
 
 const priorityLabels = { LOW: "Thấp", NORMAL: "Bình thường", HIGH: "Cao", URGENT: "Khẩn cấp" } as const;
 const emptyForm: SaveSupportTicketRequest = { categoryId: "", content: "", title: "" };
@@ -28,7 +27,7 @@ export function CreateSupportTicketDialog({
   onCreated: (ticket: SupportTicketResponse) => void;
   open: boolean;
 }) {
-  const [categories, setCategories] = useState<SupportTicketCategoryResponse[]>([]);
+  const [categories, setCategories] = useState<PublicSupportCategory[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,7 +40,7 @@ export function CreateSupportTicketDialog({
     setError("");
     idempotencyKeyRef.current = globalThis.crypto.randomUUID();
     setLoading(true);
-    void getSupportTicketCategories({ status: "ACTIVE" })
+    void getPublicSupportCategories()
       .then((response) => setCategories(response.data ?? []))
       .catch((caught) => setError(getErrorMessage(caught, "Không thể tải danh mục hỗ trợ.")))
       .finally(() => setLoading(false));

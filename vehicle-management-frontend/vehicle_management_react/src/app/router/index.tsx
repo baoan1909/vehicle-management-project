@@ -1,18 +1,19 @@
 import { Suspense, useEffect } from "react";
 import type { ReactNode } from "react";
 import {
+  adminFallbackRoute,
   canAccessAdminRoute,
   canAccessCustomerRoute,
   customerFallbackRoute,
-  getCustomerRoutePermissionGroups,
   getFirstAccessibleAdminPath,
-  getRoutePermissions,
   isCustomerProtectedRoute,
 } from "@/app/routePermissions";
 import { routes } from "@/app/routes";
-import { consumeLogoutRedirectGuard, getLogoutRedirectPath, isLogoutRedirectGuardActive } from "@/core/auth/logout";
+import { AccessErrorScreen, NoAccessScreen } from "@/core/auth/AccessStatusScreens";
+import { isResolvedAccessStatus, type AccessError } from "@/core/auth/accessState";
+import { resolvePostLoginPath } from "@/core/auth/landing";
+import { consumeLogoutRedirectGuard, getLogoutRedirectPath, isLogoutRedirectGuardActive, logoutCurrentUser } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
-import { hasResolvedPermissions } from "@/shared/auth/permissions";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
 import { ClientLayout } from "@/shared/components/layout/ClientLayout";
 import { FullPageCarLoader, PageTransitionLoader } from "@/shared/components/ui/PageTransitionLoader";
@@ -62,9 +63,76 @@ function RouteFallback() {
   return <FullPageCarLoader label="Đang tải trang..." />;
 }
 
+const fallbackAccessError: AccessError = {
+  type: "server",
+  retryable: true,
+  message: "Không thể tải quyền truy cập của tài khoản.",
+};
+
+function AccessErrorGate() {
+  const { accessError, retryAccess, setUser } = useAuth();
+  const error = accessError ?? fallbackAccessError;
+
+  return (
+    <AccessErrorScreen
+      error={error}
+      onLogout={() => logoutCurrentUser(setUser)}
+      onRetry={error.retryable ? retryAccess : undefined}
+    />
+  );
+}
+
+function AuthenticationErrorGate() {
+  const { authenticationError, retryAuthentication, setUser } = useAuth();
+  return (
+    <AccessErrorScreen
+      error={{
+        message: authenticationError?.message ?? "Không thể khôi phục phiên đăng nhập.",
+        retryable: true,
+        type: "offline",
+      }}
+      onLogout={() => logoutCurrentUser(setUser)}
+      onRetry={() => void retryAuthentication()}
+      title="Không thể khôi phục phiên đăng nhập"
+    />
+  );
+}
+
+function AdminNoAccessGate() {
+  const { setUser } = useAuth();
+
+  return <NoAccessScreen onLogout={() => logoutCurrentUser(setUser)} />;
+}
+
+function CustomerNoAccessGate() {
+  const { setUser } = useAuth();
+
+  return (
+    <NoAccessScreen
+      onLogout={() => logoutCurrentUser(setUser)}
+      safeLabel="Về hồ sơ khách hàng"
+      safePath={customerFallbackRoute}
+    />
+  );
+}
+
+function getAccessStateRedirect(user: NonNullable<ReturnType<typeof useAuth>["user"]>, currentPath: string) {
+  const requiresSafeRoute = Boolean(user.requiredAction)
+    || Boolean(user.accessState && user.accessState !== "ACTIVE");
+  if (!requiresSafeRoute) return null;
+
+  const target = resolvePostLoginPath(user);
+  return target !== currentPath ? target : null;
+}
+
 function AdminShell() {
-  const { user } = useAuth();
+  const { accessStatus, authenticationStatus, user } = useAuth();
   const location = useLocation();
+
+  if (authenticationStatus === "initializing") return <AdminPermissionLoading />;
+  if (authenticationStatus === "error" && !isResolvedAccessStatus(accessStatus)) {
+    return <AuthenticationErrorGate />;
+  }
 
   if (!user) {
     if (isLogoutRedirectGuardActive()) {
@@ -74,13 +142,16 @@ function AdminShell() {
     return <Navigate to="/login" replace />;
   }
 
-  if (user?.role === "PARTNER_ADMIN" && user?.accountStatus !== "ACTIVE" && location.pathname !== "/admin/profile") {
-    return <Navigate to="/admin/profile" replace />;
+  if (accessStatus === "error") {
+    return <AccessErrorGate />;
   }
 
-  if (user?.role === "CUSTOMER") {
-    return <Navigate to="/customer/dashboard" replace />;
+  if (!isResolvedAccessStatus(accessStatus)) {
+    return <AdminPermissionLoading />;
   }
+
+  const accessStateRedirect = getAccessStateRedirect(user, location.pathname);
+  if (accessStateRedirect) return <Navigate to={accessStateRedirect} replace />;
 
   return (
     <>
@@ -100,7 +171,12 @@ function AdminPermissionLoading() {
 }
 
 function AdminIndexRedirect() {
-  const { isAccessLoading, user } = useAuth();
+  const { accessStatus, authenticationStatus, user } = useAuth();
+
+  if (authenticationStatus === "initializing") return <AdminPermissionLoading />;
+  if (authenticationStatus === "error" && !isResolvedAccessStatus(accessStatus)) {
+    return <AuthenticationErrorGate />;
+  }
 
   if (!user) {
     if (isLogoutRedirectGuardActive()) {
@@ -110,16 +186,24 @@ function AdminIndexRedirect() {
     return <Navigate to="/login" replace />;
   }
 
-  if (user && !hasResolvedPermissions(user) && isAccessLoading) {
+  if (accessStatus === "error") {
+    return <AccessErrorGate />;
+  }
+
+  if (!isResolvedAccessStatus(accessStatus)) {
     return <AdminPermissionLoading />;
   }
 
-  return <Navigate to={getFirstAccessibleAdminPath(user)} replace />;
+  return <Navigate to={resolvePostLoginPath(user)} replace />;
 }
 
 function AdminRouteGate({ element, path }: { element: ReactNode; path: string }) {
-  const { isAccessLoading, user } = useAuth();
-  const permissions = getRoutePermissions(path);
+  const { accessStatus, authenticationStatus, user } = useAuth();
+
+  if (authenticationStatus === "initializing") return <AdminPermissionLoading />;
+  if (authenticationStatus === "error" && !isResolvedAccessStatus(accessStatus)) {
+    return <AuthenticationErrorGate />;
+  }
 
   if (!user) {
     if (isLogoutRedirectGuardActive()) {
@@ -129,20 +213,36 @@ function AdminRouteGate({ element, path }: { element: ReactNode; path: string })
     return <Navigate to="/login" replace />;
   }
 
-  if (permissions.length > 0 && user && !hasResolvedPermissions(user) && isAccessLoading) {
+  if (accessStatus === "error") {
+    return <AccessErrorGate />;
+  }
+
+  if (!isResolvedAccessStatus(accessStatus)) {
     return <AdminPermissionLoading />;
   }
 
+  const accessStateRedirect = getAccessStateRedirect(user, path);
+  if (accessStateRedirect) return <Navigate to={accessStateRedirect} replace />;
+
   if (!canAccessAdminRoute(user, path)) {
-    return <Navigate to={getFirstAccessibleAdminPath(user)} replace />;
+    const fallbackPath = getFirstAccessibleAdminPath(user);
+    if (fallbackPath === adminFallbackRoute && path !== adminFallbackRoute) {
+      return <AdminNoAccessGate />;
+    }
+
+    return <Navigate to={fallbackPath} replace />;
   }
 
   return <>{element}</>;
 }
 
 function CustomerRouteGate({ element, path }: { element: ReactNode; path: string }) {
-  const { isAccessLoading, user } = useAuth();
-  const permissionGroups = getCustomerRoutePermissionGroups(path);
+  const { accessStatus, authenticationStatus, user } = useAuth();
+
+  if (authenticationStatus === "initializing") return <AdminPermissionLoading />;
+  if (authenticationStatus === "error" && !isResolvedAccessStatus(accessStatus)) {
+    return <AuthenticationErrorGate />;
+  }
 
   if (!user) {
     if (isLogoutRedirectGuardActive()) {
@@ -152,12 +252,23 @@ function CustomerRouteGate({ element, path }: { element: ReactNode; path: string
     return <Navigate to="/login" replace />;
   }
 
-  if (permissionGroups.length > 0 && !hasResolvedPermissions(user) && isAccessLoading) {
+  if (accessStatus === "error") {
+    return <AccessErrorGate />;
+  }
+
+  if (!isResolvedAccessStatus(accessStatus)) {
     return <AdminPermissionLoading />;
   }
 
+  const accessStateRedirect = getAccessStateRedirect(user, path);
+  if (accessStateRedirect) return <Navigate to={accessStateRedirect} replace />;
+
   if (!canAccessCustomerRoute(user, path)) {
-    return <Navigate to={customerFallbackRoute} replace />;
+    if (path !== customerFallbackRoute) {
+      return <CustomerNoAccessGate />;
+    }
+
+    return <Navigate to="/" replace />;
   }
 
   return <>{element}</>;

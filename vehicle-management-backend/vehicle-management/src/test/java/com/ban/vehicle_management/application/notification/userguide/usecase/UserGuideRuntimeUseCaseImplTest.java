@@ -32,6 +32,8 @@ import com.ban.vehicle_management.shared.enumeration.notification.UserGuideError
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideEventType;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideReplayPolicy;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.exception.UserGuideException;
 import java.time.Instant;
 import java.util.List;
@@ -94,6 +96,47 @@ class UserGuideRuntimeUseCaseImplTest {
 
         assertEquals(1, resolved.size());
         assertEquals(guide.getGuideId(), resolved.get(0).guide().getGuideId());
+    }
+
+    @Test
+    void shouldResolvePublicGuideForGuestWithoutLoadingAccountState() {
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.empty());
+        when(featurePortOut.findByCode("PARKING_CHECKIN")).thenReturn(Optional.of(enabledFeature()));
+        UserGuide guide = publishedGuide(UserGuideReplayPolicy.EVERY_SESSION);
+        when(guidePortOut.findByFeatureIdAndStatus(any(UUID.class), eq(UserGuideStatus.PUBLISHED)))
+                .thenReturn(List.of(guide));
+        when(versionPortOut.findByGuideIdAndVersionNumber(guide.getGuideId(), 1))
+                .thenReturn(Optional.of(publishedVersion(UserGuideAudienceMode.PUBLIC)));
+
+        assertEquals(1, useCase.resolveGuides("PARKING_CHECKIN", null).size());
+        verify(statePortOut, org.mockito.Mockito.never()).findByAccountIdAndGuideId(any(), any());
+    }
+
+    @Test
+    void shouldHidePermissionTargetedGuideFromGuest() {
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.empty());
+        when(featurePortOut.findByCode("PARKING_CHECKIN")).thenReturn(Optional.of(enabledFeature()));
+        UserGuide guide = publishedGuide(UserGuideReplayPolicy.EVERY_SESSION);
+        when(guidePortOut.findByFeatureIdAndStatus(any(UUID.class), eq(UserGuideStatus.PUBLISHED)))
+                .thenReturn(List.of(guide));
+        UserGuideVersion version = publishedVersion(UserGuideAudienceMode.PERMISSION_ANY);
+        version.setAudiences(List.of(permissionAudience(UUID.randomUUID())));
+        when(versionPortOut.findByGuideIdAndVersionNumber(guide.getGuideId(), 1)).thenReturn(Optional.of(version));
+
+        assertTrue(useCase.resolveGuides("PARKING_CHECKIN", null).isEmpty());
+    }
+
+    @Test
+    void shouldFailClosedForGuestWhenAudienceModeIsMissing() {
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.empty());
+        when(featurePortOut.findByCode("PARKING_CHECKIN")).thenReturn(Optional.of(enabledFeature()));
+        UserGuide guide = publishedGuide(UserGuideReplayPolicy.EVERY_SESSION);
+        when(guidePortOut.findByFeatureIdAndStatus(any(UUID.class), eq(UserGuideStatus.PUBLISHED)))
+                .thenReturn(List.of(guide));
+        when(versionPortOut.findByGuideIdAndVersionNumber(guide.getGuideId(), 1))
+                .thenReturn(Optional.of(publishedVersion(null)));
+
+        assertTrue(useCase.resolveGuides("PARKING_CHECKIN", null).isEmpty());
     }
 
     @Test
@@ -245,9 +288,12 @@ class UserGuideRuntimeUseCaseImplTest {
     }
 
     private void mockAccount(Set<String> permissions, UUID roleId) {
-        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(new CurrentAccountAccess(
+        CurrentAccountAccess account = new CurrentAccountAccess(
                 ACCOUNT_ID, "sub", "user", "user@example.com", roleId, "CUSTOMER",
-                AccountStatus.ACTIVE, null, null, null, permissions));
+                AccountStatus.ACTIVE, null, CustomerStatus.ACTIVE,
+                CustomerApprovalStatus.APPROVED, permissions);
+        org.mockito.Mockito.lenient().when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.of(account));
+        org.mockito.Mockito.lenient().when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account);
     }
 
     private UserGuideFeature enabledFeature() {

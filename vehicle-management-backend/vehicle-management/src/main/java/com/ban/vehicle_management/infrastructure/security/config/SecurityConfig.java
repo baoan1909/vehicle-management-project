@@ -84,6 +84,10 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET,
+                                "/api/user-guides/resolve",
+                                "/api/user-guides/*",
+                                "/api/public/support/categories",
+                                "/api/public/support/assistant/status",
                                 "/api/public/parking-lots",
                                 "/api/public/parking-lots/**",
                                 "/api/public/parking-map/**",
@@ -95,7 +99,10 @@ public class SecurityConfig {
                                 "/api/notifications/broadcast-announcements/active"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST,
-                                "/api/public/parking-lots/telemetry/geolocation"
+                                "/api/public/parking-lots/telemetry/geolocation",
+                                "/api/public/support/requests",
+                                "/api/public/support/requests/access",
+                                "/api/public/support/assistant/messages"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

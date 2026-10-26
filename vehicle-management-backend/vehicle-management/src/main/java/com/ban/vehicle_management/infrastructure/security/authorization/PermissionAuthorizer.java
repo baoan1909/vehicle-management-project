@@ -1,9 +1,12 @@
 package com.ban.vehicle_management.infrastructure.security.authorization;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
+import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.Set;
 
 @Component("permissionAuthorizer")
 public class PermissionAuthorizer {
@@ -19,7 +22,19 @@ public class PermissionAuthorizer {
     }
 
     public boolean hasAnyPermission(String... permissionCodes) {
-        return Arrays.stream(permissionCodes).anyMatch(currentAccountPortIn::hasPermission);
+        CurrentAccountAccess currentAccount = currentAccountPortIn.getCurrentAccount().orElse(null);
+        if (currentAccount == null || !currentAccount.canUseEffectivePermissions()) {
+            return false;
+        }
+        Set<String> effectivePermissions = currentAccount.getEffectivePermissionCodes();
+        return Arrays.stream(permissionCodes == null ? new String[0] : permissionCodes)
+                .filter(permissionCode -> permissionCode != null && !permissionCode.isBlank())
+                .map(permissionCode -> TextValidationUtils.normalizeCode(
+                        permissionCode,
+                        "permissionCode",
+                        100
+                ))
+                .anyMatch(effectivePermissions::contains);
     }
 
     public void requirePermission(String permissionCode) {

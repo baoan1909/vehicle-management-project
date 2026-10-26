@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.FeatureDisabledException;
 import com.ban.vehicle_management.shared.exception.MapRequestLimitException;
+import com.ban.vehicle_management.shared.exception.PublicSupportRateLimitException;
 import com.ban.vehicle_management.shared.exception.TooManyRequestsException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
@@ -141,6 +142,24 @@ class GlobalExceptionHandlerTest {
         assertEquals("MAP_DAILY_QUOTA_EXHAUSTED", response.getBody().getData().get("code"));
         assertEquals(retryAfter.toString(), response.getBody().getData().get("retryAfter"));
         assertFalse(response.getHeaders().getFirst("Retry-After").isBlank());
+    }
+
+    @Test
+    void shouldReturnStructuredPublicSupportRateLimitAndExactRetryAfterHeader() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setRequestURI("/api/public/support/assistant/messages");
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response =
+                globalExceptionHandler.handlePublicSupportRateLimitException(
+                        new PublicSupportRateLimitException(
+                                "GUEST_ASSISTANT_RATE_LIMITED", "Thử lại sau", 37),
+                        request
+                );
+
+        assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
+        assertEquals("37", response.getHeaders().getFirst("Retry-After"));
+        assertEquals("GUEST_ASSISTANT_RATE_LIMITED", response.getBody().getData().get("code"));
+        assertEquals(37L, response.getBody().getData().get("retryAfterSeconds"));
     }
 
     @Test

@@ -294,6 +294,49 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         return toResult(approvalRequest);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PartnerRegistrationResult getMyLatestRegistration() {
+        UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
+        ApprovalRequest approvalRequest = partnerRegistrationPortOut.findLatestByApplicantAccountId(accountId)
+                .filter(approval -> accountId.equals(approval.getRequestedBy()))
+                .orElseThrow(() -> new NotFoundException("Partner registration not found"));
+        return toResult(approvalRequest);
+    }
+
+    @Override
+    @Transactional
+    public PartnerRegistrationResult resubmitMyRegistration() {
+        UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
+        ApprovalRequest latest = partnerRegistrationPortOut.findLatestByApplicantAccountId(accountId)
+                .filter(approval -> accountId.equals(approval.getRequestedBy()))
+                .orElseThrow(() -> new NotFoundException("Partner registration not found"));
+        ApprovalRequest locked = partnerRegistrationPortOut.findByIdForUpdate(latest.getApprovalRequestId())
+                .filter(approval -> accountId.equals(approval.getRequestedBy()))
+                .orElseThrow(() -> new NotFoundException("Partner registration not found"));
+        if (ApprovalRequestStatus.PENDING.equals(locked.getStatus())) {
+            throw new ConflictException("A partner registration is already pending");
+        }
+        if (ApprovalRequestStatus.APPROVED.equals(locked.getStatus())) {
+            throw new ConflictException("Partner registration has already been approved");
+        }
+
+        ProvisionedAccountResult applicant = getApplicantAccount(accountId);
+        ensurePendingPartnerAdmin(applicant);
+        if (!identityProviderAdminPortOut.isEmailVerified(applicant.account().keycloakUserId())) {
+            throw new ConflictException("Partner email must be verified before resubmission");
+        }
+        String organizationCode = locked.getRequestData().get("organizationCode");
+        if (partnerRegistrationPortOut.existsPendingByOrganizationCode(organizationCode)) {
+            throw new ConflictException("A partner registration with this organization code is already pending");
+        }
+
+        ApprovalRequest resubmitted = buildResubmittedApprovalRequest(locked, accountId);
+        partnerRegistrationPortOut.save(resubmitted);
+        schedulePartnerSubmissionNotifications(resubmitted, accountId);
+        return toResult(resubmitted);
+    }
+
     private void ensureRegistrationHasNoConflict(
             CreatePartnerRegistrationCommand partner,
             RegisterAccountCommand account
@@ -331,6 +374,22 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
                 Map.entry("organizationCode", partner.organizationCode()),
                 Map.entry("organizationName", partner.organizationName())
         ));
+        approvalRequestPolicy.initialize(approval);
+        return approval;
+    }
+
+    private ApprovalRequest buildResubmittedApprovalRequest(ApprovalRequest previous, UUID accountId) {
+        ApprovalRequest approval = new ApprovalRequest();
+        approval.setApprovalRequestId(UUID.randomUUID());
+        approval.setRequestType(REQUEST_TYPE);
+        approval.setTargetSchema(TARGET_SCHEMA);
+        approval.setTargetTable(TARGET_TABLE);
+        approval.setTargetId(accountId);
+        approval.setRequestedBy(accountId);
+        approval.setStatus(ApprovalRequestStatus.PENDING);
+        approval.setRequestData(previous.getRequestData() == null
+                ? Map.of()
+                : Map.copyOf(previous.getRequestData()));
         approvalRequestPolicy.initialize(approval);
         return approval;
     }

@@ -292,16 +292,11 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
             organizationAccessGuard.ensureCanAccessParkingLot(findParkingLot(parkingLotId));
             return shiftPortOut.findAll(parkingLotId, fromDate, toDate, shiftType, status, employeeId, normalizedKeyword);
         }
-        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
-        if (OrganizationAccessGuard.SYSTEM_ADMIN.equals(roleCode)) {
+        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
+        if (scope.unrestricted()) {
             return shiftPortOut.findAll(null, fromDate, toDate, shiftType, status, employeeId, normalizedKeyword);
         }
-        if (!OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
-                && !OrganizationAccessGuard.PARKING_MANAGER.equals(roleCode)) {
-            throw new AccessDeniedException("Current account has no parking lot monitoring scope");
-        }
-        ParkingLotAccessScope scope = organizationAccessGuard.resolveParkingLotAccessScope();
-        Set<UUID> lotIds = OrganizationAccessGuard.PARTNER_ADMIN.equals(roleCode)
+        Set<UUID> lotIds = !scope.organizationIds().isEmpty()
                 ? parkingLotPortOut.findAll(null, null, scope.organizationIds(), null).stream()
                         .map(ParkingLot::getParkingLotId).collect(Collectors.toSet())
                 : scope.parkingLotIds();
@@ -899,7 +894,7 @@ public class ShiftUseCaseImpl implements ShiftPortIn {
         CurrentAccountAccess current =
                 currentAccountPortIn.getCurrentAccountOrThrow();
 
-        if (!"EMPLOYEE".equals(current.roleCode())) {
+        if (!current.getEffectivePermissionCodes().contains(OPEN_OWN_PERMISSION)) {
             return;
         }
 

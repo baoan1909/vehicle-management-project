@@ -1,6 +1,6 @@
 import { Client } from "@stomp/stompjs";
 import { appConfig } from "@/config/env";
-import { getValidAccessToken } from "@/core/auth/tokenRefresh";
+import { getValidAccessToken, subscribeAccessTokenChanged } from "@/core/auth/oidcSession";
 import type { ChatRealtimeEvent } from "@/features/support/api/chatApi";
 
 type ChatRealtimeOptions = {
@@ -50,10 +50,19 @@ export function subscribeChatRealtime({ conversationId, onError, onEvent }: Chat
     },
   });
 
+  const unsubscribeTokenChange = subscribeAccessTokenChanged(() => {
+    if (!active) return;
+    void client.deactivate().then(() => {
+      if (!active) return;
+      client.reconnectDelay = 5000;
+      client.activate();
+    });
+  });
   client.activate();
 
   return () => {
     active = false;
+    unsubscribeTokenChange();
     client.reconnectDelay = 0;
     void client.deactivate();
   };

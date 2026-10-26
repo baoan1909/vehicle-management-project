@@ -3,43 +3,17 @@ package com.ban.vehicle_management.domain.iam.account.policy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
-import java.util.Set;
 import org.junit.jupiter.api.Test;
 
 class ProvisionedAccountPolicyTest {
 
     private final ProvisionedAccountPolicy policy = new ProvisionedAccountPolicy();
-
-    @Test
-    void shouldResolveManagedTargetRolesByCurrentRole() {
-        assertEquals(
-                Set.of(
-                        AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
-                        AdminProvisionableAccountRoleCode.PARTNER_ADMIN
-                ),
-                policy.managedTargetRoles(AdminProvisionableAccountRoleCode.SYSTEM_ADMIN)
-        );
-        assertEquals(
-                Set.of(AdminProvisionableAccountRoleCode.PARKING_MANAGER,
-                        AdminProvisionableAccountRoleCode.EMPLOYEE),
-                policy.managedTargetRoles(AdminProvisionableAccountRoleCode.PARTNER_ADMIN)
-        );
-        assertEquals(
-                Set.of(
-                        AdminProvisionableAccountRoleCode.EMPLOYEE,
-                        AdminProvisionableAccountRoleCode.CUSTOMER
-                ),
-                policy.managedTargetRoles(AdminProvisionableAccountRoleCode.PARKING_MANAGER)
-        );
-        assertTrue(policy.managedTargetRoles(AdminProvisionableAccountRoleCode.EMPLOYEE).isEmpty());
-    }
 
     @Test
     void shouldMapAccountStatusToRelatedStatuses() {

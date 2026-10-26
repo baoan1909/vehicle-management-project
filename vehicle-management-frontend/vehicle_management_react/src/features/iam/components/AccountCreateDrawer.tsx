@@ -8,8 +8,8 @@ import {
   type AdminProvisionableAccountRoleCode,
   type ProvisionedAccountResponse,
 } from "@/features/iam/api/provisionedAccountApi";
+import { getManageableProvisionedAccountRoleCodes } from "@/features/iam/policies/provisionedAccountPolicy";
 import { hasAnyPermission } from "@/shared/auth/permissions";
-import type { CurrentUser } from "@/shared/types/common";
 
 type DrawerPhase = "opening" | "open" | "closing";
 
@@ -35,22 +35,6 @@ const initialForm = {
   username: "",
 };
 
-function getManageableRoleOptions(currentRole: CurrentUser["role"]) {
-  if (currentRole === "SYSTEM_ADMIN") {
-    return roleOptions.filter((role) => role.code === "SYSTEM_ADMIN" || role.code === "PARTNER_ADMIN");
-  }
-
-  if (currentRole === "PARTNER_ADMIN") {
-    return roleOptions.filter((role) => role.code === "PARKING_MANAGER" || role.code === "EMPLOYEE");
-  }
-
-  if (currentRole === "PARKING_MANAGER") {
-    return roleOptions.filter((role) => role.code === "EMPLOYEE" || role.code === "CUSTOMER");
-  }
-
-  return [];
-}
-
 function getDefaultRole(availableRoles: typeof roleOptions): AdminProvisionableAccountRoleCode {
   return availableRoles[0]?.code ?? "EMPLOYEE";
 }
@@ -59,7 +43,10 @@ export function AccountCreateDrawer({ isOpen, onClose, onCreated }: AccountCreat
   const { user } = useAuth();
   const toast = useToast();
   const canCreateProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_CREATE_ALL"]);
-  const manageableRoleOptions = useMemo(() => getManageableRoleOptions(user?.role ?? "UNKNOWN"), [user?.role]);
+  const manageableRoleOptions = useMemo(() => {
+    const manageableRoleCodes = new Set(getManageableProvisionedAccountRoleCodes(user));
+    return roleOptions.filter((role) => manageableRoleCodes.has(role.code));
+  }, [user]);
   const [isRendered, setIsRendered] = useState(isOpen);
   const [phase, setPhase] = useState<DrawerPhase>(isOpen ? "open" : "closing");
   const [selectedRole, setSelectedRole] = useState<AdminProvisionableAccountRoleCode>("EMPLOYEE");

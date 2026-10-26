@@ -8,6 +8,7 @@ const paths = {
   router: new URL("../src/app/router/index.tsx", import.meta.url),
   routes: new URL("../src/app/routes.tsx", import.meta.url),
   adminProfile: new URL("../src/features/iam/pages/InternalProfilePage.tsx", import.meta.url),
+  partnerRegistrationApi: new URL("../src/features/iam/api/partnerRegistrationApi.ts", import.meta.url),
 };
 
 const entries = await Promise.all(
@@ -38,9 +39,11 @@ assert.match(submissionBlock, /email: normalizedEmail/);
 assert.match(files.navbar, /to="\/become-a-partner">Trở thành đối tác<\/Link>/);
 assert.ok(!files.routes.includes("/partner/application-status"), "Standalone partner status route must be removed");
 assert.ok(!files.routes.includes("/partner/profile-completion"), "Standalone partner completion route must be removed");
-assert.match(files.login, /PARTNER_ADMIN[\s\S]*\/admin\/profile/);
-assert.match(files.router, /PARTNER_ADMIN/);
-assert.ok(files.router.includes('"/admin/profile"'), "Pending partners must land on the admin profile page");
+assert.match(files.login, /resolvePostLoginPath\(user\)/);
+assert.doesNotMatch(files.login, /PARTNER_ADMIN/);
+assert.doesNotMatch(files.router, /PARTNER_ADMIN/);
+assert.match(files.router, /getAccessStateRedirect/);
+assert.ok(files.routes.includes('"/admin/profile"'), "The safe internal profile route must remain available for pending partners");
 assert.match(files.adminProfile, /Thông tin doanh nghiệp/);
 assert.match(files.adminProfile, /organizationCode/);
 assert.match(files.adminProfile, /organizationAddress/);
@@ -84,5 +87,8 @@ assert.match(reviewer, /subscribeNotificationReceived/, "Reviewer page must subs
 assert.ok(!files.adminProfile.includes("representativeName"), "Admin profile must not reference representativeName");
 assert.match(files.adminProfile, /partnerApplication\?\.approvalStatus/, "Admin profile must read approval status from the partnerApplication block");
 assert.match(files.adminProfile, /partnerApplication\?\.reviewNote/, "Admin profile must show the reviewer note from the partnerApplication block");
+assert.match(files.adminProfile, /roleCode === "PARTNER_ADMIN"\) return "partner"/, "Partner profiles must resolve the partner resubmission workflow");
+assert.match(files.adminProfile, /resubmitMyPartnerRegistration/, "Partner profiles must call the partner resubmission API");
+assert.match(files.partnerRegistrationApi, /partnerRegistrations\}\/me\/resubmit/, "Partner resubmission API must remain wired");
 
 console.log("Partner registration form, workflow redirect, and status-page checks passed.");
