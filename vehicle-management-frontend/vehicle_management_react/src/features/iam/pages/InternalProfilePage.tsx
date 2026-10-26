@@ -27,7 +27,7 @@ import {
 import { resendVerificationEmail } from "@/features/auth/api/authApi";
 import { Badge, Button, Card, DatePicker, Input, Modal, SelectMenu, VietnamAddressPicker, useToast, type VietnamAddressValue } from "@/components/ui";
 import { mergeProfileDetails } from "@/features/iam/utils/accountProfileMapper";
-import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
+import { useAccountStateSync } from "@/features/notifications/context/useAccountStateSync";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta, type StatusTone } from "@/shared/utils/accountStatus";
 import { resolvePublicMediaUrl } from "@/shared/utils/mediaUrl";
 import { todayApplicationIsoDate } from "@/shared/time/applicationTime";
@@ -528,6 +528,7 @@ function StatusPanel({ onChangePassword, profile }: { onChangePassword: () => vo
 
 export function InternalProfilePage() {
   const { invalidateAndRefreshAccess, user, setUser } = useAuth();
+  const { profileInvalidationVersion } = useAccountStateSync();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [profile, setProfile] = useState<AccountProfileStatusResponse>(() => buildFallbackProfile(user));
@@ -639,44 +640,7 @@ export function InternalProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [user]);
-
-  useEffect(() => subscribeNotificationReceived((notification) => {
-    const isPartnerReviewOutcome = ["ACCOUNT_STATUS_CHANGED", "SYSTEM_NOTICE"].includes(notification.notificationType)
-      && notification.redirectUrl === "/admin/profile"
-      && notification.relatedSchema === "operations"
-      && notification.relatedTable === "approval_requests";
-    if (![
-      "INTERNAL_EMPLOYEE_APPROVED",
-      "INTERNAL_EMPLOYEE_REJECTED",
-      "SYSTEM_ADMIN_APPROVED",
-      "SYSTEM_ADMIN_REJECTED",
-      "AVATAR_APPROVED",
-      "AVATAR_REJECTED",
-    ].includes(notification.notificationType) && !isPartnerReviewOutcome) return;
-
-    if (!["AVATAR_APPROVED", "AVATAR_REJECTED"].includes(notification.notificationType)) {
-      void invalidateAndRefreshAccess("onboarding-notification");
-    }
-
-    void getMyAccountProfile().then((response) => {
-      setProfile(response.data);
-      setForm(normalizeProfile(response.data));
-      setOrgForm(normalizeOrganization(response.data));
-      setUser((currentUser) => currentUser
-        ? mergeProfileDetails(currentUser, response.data)
-        : currentUser);
-      void refreshLatestApproval(response.data);
-      if (isPartnerReviewOutcome) {
-        if (response.data.account?.accountStatus === "ACTIVE") {
-          toast.success("Hồ sơ đối tác đã được duyệt. Quyền quản trị đã được kích hoạt.", "Đã phê duyệt");
-        } else if (response.data.partnerApplication?.approvalStatus === "REJECTED") {
-          toast.warning("Hồ sơ đối tác chưa được duyệt. Vui lòng xem phản hồi của reviewer.", "Bị từ chối");
-        }
-      }
-    });
-    void getMyAvatarModerationStatus().then((response) => setAvatarModeration(response.data));
-  }), [invalidateAndRefreshAccess, setUser, toast]);
+  }, [profileInvalidationVersion, setUser, user?.id]);
 
   useEffect(() => {
     if (searchParams.get("action") === "change-password") {

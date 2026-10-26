@@ -4,14 +4,16 @@ import { getValidAccessToken, subscribeAccessTokenChanged } from "@/core/auth/oi
 import type { NotificationUserResponse } from "@/features/notifications/api/notificationApi";
 
 type NotificationRealtimeOptions = {
+  onConnected?: (reconnected: boolean) => void;
   onError?: (error: Error) => void;
   onNotification: (notification: NotificationUserResponse) => void;
 };
 
 const NOTIFICATION_DESTINATION = "/user/queue/notifications";
 
-export function subscribeNotificationRealtime({ onError, onNotification }: NotificationRealtimeOptions) {
+export function subscribeNotificationRealtime({ onConnected, onError, onNotification }: NotificationRealtimeOptions) {
   let active = true;
+  let connectedOnce = false;
   const client = new Client({
     brokerURL: buildNotificationWebSocketUrl(),
     heartbeatIncoming: 10000,
@@ -35,6 +37,8 @@ export function subscribeNotificationRealtime({ onError, onNotification }: Notif
           onError?.(new Error("Invalid notification realtime message"));
         }
       });
+      onConnected?.(connectedOnce);
+      connectedOnce = true;
     },
     onStompError: (frame) => {
       onError?.(new Error(frame.body || frame.headers.message || "Notification realtime error"));

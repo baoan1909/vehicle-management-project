@@ -1,21 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { canAccessAdminRoute, canAccessCustomerRoute, getProfileRoute } from "@/app/routePermissions";
-import { useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { getApplicationTimeZone } from "@/shared/time/applicationTime";
 import {
-  countMyUnreadNotifications,
-  getMyNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
   type NotificationType,
   type NotificationUserResponse,
 } from "@/features/notifications/api/notificationApi";
-import { subscribeNotificationRealtime } from "@/features/notifications/api/notificationRealtime";
-import { publishNotificationReceived } from "@/features/notifications/utils/notificationEvents";
-import { getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
-import { mergeProfileDetails } from "@/features/iam/utils/accountProfileMapper";
+import { useAccountStateSync } from "@/features/notifications/context/useAccountStateSync";
 import { cn } from "@/lib/cn";
 import type { CurrentUser } from "@/shared/types/common";
 
@@ -85,6 +77,7 @@ const typeMeta: Record<NotificationType, { icon: string; tone: string }> = {
   TICKET_TYPE_CHANGED: { icon: "fas fa-ticket-alt", tone: "tw-bg-brand-50 tw-text-vm-primary" },
   ACCOUNT_REGISTERED: { icon: "far fa-user", tone: "tw-bg-amber-50 tw-text-amber-700" },
   ACCOUNT_PROVISIONED: { icon: "fas fa-user-plus", tone: "tw-bg-emerald-50 tw-text-emerald-700" },
+  ACCOUNT_ACCESS_CHANGED: { icon: "fas fa-user-shield", tone: "tw-bg-brand-50 tw-text-vm-primary" },
   ACCOUNT_STATUS_CHANGED: { icon: "fas fa-user-cog", tone: "tw-bg-brand-50 tw-text-vm-primary" },
   ACCOUNT_PROFILE_SUBMITTED: { icon: "fas fa-id-card", tone: "tw-bg-amber-50 tw-text-amber-700" },
   CUSTOMER_ONBOARDING_APPROVED: { icon: "fas fa-user-check", tone: "tw-bg-emerald-50 tw-text-emerald-700" },
@@ -194,79 +187,19 @@ function normalizeNotificationTarget(notification: NotificationUserResponse, use
 }
 
 export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
-  const { invalidateAndRefreshAccess, setUser, user } = useAuth();
+  const { user } = useAuth();
+  const {
+    items,
+    loading,
+    markAllRead,
+    markRead,
+    reloadNotifications,
+    unreadCount,
+  } = useAccountStateSync();
   const navigate = useNavigate();
-  const toast = useToast();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [activeGroup, setActiveGroup] = useState<NotificationGroupKey | null>(null);
-  const [items, setItems] = useState<NotificationUserResponse[]>([]);
-  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  const refreshCurrentUserAvatar = useCallback(async () => {
-    try {
-      const response = await getMyAccountProfile();
-      setUser((currentUser) => currentUser
-        ? mergeProfileDetails(currentUser, response.data)
-        : currentUser);
-    } catch {
-      // The notification remains visible and can be replayed; a later profile load reconciles the avatar.
-    }
-  }, [setUser]);
-
-  const loadNotifications = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    try {
-      const [listResponse, countResponse] = await Promise.all([
-        getMyNotifications({ limit: 20 }),
-        countMyUnreadNotifications(),
-      ]);
-      setItems(listResponse.data ?? []);
-      setUnreadCount(countResponse.data?.unreadCount ?? 0);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    void loadNotifications();
-  }, [loadNotifications]);
-
-  useEffect(() => {
-    if (!user) return undefined;
-
-    return subscribeNotificationRealtime({
-      onNotification: (notification) => {
-        publishNotificationReceived(notification);
-        if (
-          notification.notificationType === "ACCOUNT_STATUS_CHANGED"
-          || notification.notificationType.includes("ONBOARDING")
-          || notification.notificationType.includes("EMPLOYEE")
-          || notification.notificationType.includes("SYSTEM_ADMIN")
-        ) {
-          void invalidateAndRefreshAccess("access-related-notification");
-        }
-        if (["AVATAR_APPROVED", "AVATAR_REJECTED"].includes(notification.notificationType)) {
-          void refreshCurrentUserAvatar();
-        }
-        toast.notification(
-          notification.message || "Bạn có thông báo mới.",
-          notification.title || "Thông báo mới",
-          formatDateTime(notification.createdAt ?? notification.sentAt),
-          isUnread(notification),
-        );
-        setItems((current) => [
-          notification,
-          ...current.filter((item) => item.notificationId !== notification.notificationId),
-        ].slice(0, 20));
-        if (isUnread(notification)) {
-          setUnreadCount((current) => current + 1);
-        }
-      },
-    });
-  }, [invalidateAndRefreshAccess, refreshCurrentUserAvatar, toast, user]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -316,15 +249,7 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
 
     closePanel();
     if (isUnread(notification)) {
-      setItems((current) =>
-        current.map((item) =>
-          item.notificationId === notification.notificationId
-            ? { ...item, readAt: new Date().toISOString(), status: "READ" }
-            : item,
-        ),
-      );
-      setUnreadCount((current) => Math.max(0, current - 1));
-      void markNotificationRead(notification.notificationId).catch(() => void loadNotifications());
+      void markRead(notification.notificationId);
     }
 
     if (canNavigate) {
@@ -338,11 +263,7 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
 
   async function handleMarkAllRead() {
     if (unreadCount === 0) return;
-    setItems((current) =>
-      current.map((item) => ({ ...item, readAt: item.readAt ?? new Date().toISOString(), status: "READ" })),
-    );
-    setUnreadCount(0);
-    await markAllNotificationsRead().catch(() => void loadNotifications());
+    await markAllRead();
   }
 
   const buttonClassName =
@@ -360,7 +281,7 @@ export function NotificationBell({ variant = "admin" }: NotificationBellProps) {
         onClick={() => {
           setOpen((current) => !current);
           setActiveGroup(null);
-          if (!open) void loadNotifications();
+          if (!open) void reloadNotifications();
         }}
       >
         <i className="far fa-bell" />

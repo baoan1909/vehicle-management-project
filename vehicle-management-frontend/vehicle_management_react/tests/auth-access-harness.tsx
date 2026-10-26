@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { User } from "oidc-client-ts";
+import { AppProviders } from "@/app/providers/AppProviders";
 import { canAccessAdminRoute } from "@/app/routePermissions";
-import { AuthProvider } from "@/core/auth/AuthProvider";
 import { apiClient } from "@/core/api/apiClient";
 import { resolvePostLoginPath } from "@/core/auth/landing";
 import { oidcSettings, oidcUserManager } from "@/core/auth/oidcClient";
 import { removeOidcUser } from "@/core/auth/oidcSession";
 import { useAuth } from "@/core/auth/useAuth";
+import { useAccountStateSync } from "@/features/notifications/context/useAccountStateSync";
 
 function tokenFor(accountId: string, username: string) {
   const encode = (value: object) => btoa(JSON.stringify(value))
@@ -42,6 +43,7 @@ function oidcUser(accountId: string, username: string, accessToken: string) {
 
 function Probe() {
   const auth = useAuth();
+  const accountStateSync = useAccountStateSync();
   const [snapshotChanges, setSnapshotChanges] = useState(0);
   const [requestResult, setRequestResult] = useState("idle");
   const previousResolvedUser = useRef(auth.user);
@@ -91,6 +93,8 @@ function Probe() {
       <output data-testid="user">{auth.user?.username ?? "none"}</output>
       <output data-testid="permissions">{auth.user?.permissionCodes?.join(",") ?? "unresolved"}</output>
       <output data-testid="revision">{auth.user?.accessRevision ?? "none"}</output>
+      <output data-testid="full-name">{auth.user?.fullName ?? "none"}</output>
+      <output data-testid="profile-version">{accountStateSync.profileInvalidationVersion}</output>
       <output data-testid="landing">{auth.user ? resolvePostLoginPath(auth.user) : "/login"}</output>
       <output data-testid="can-dashboard">{String(canAccessAdminRoute(auth.user, "/admin/dashboard"))}</output>
       <output data-testid="snapshot-changes">{snapshotChanges}</output>
@@ -104,10 +108,13 @@ function Probe() {
       <button data-testid="logout" onClick={() => void logout()}>logout</button>
       <button data-testid="request-once" onClick={() => void requestProtected(1)}>request once</button>
       <button data-testid="request-twice" onClick={() => void requestProtected(2)}>request twice</button>
+      <button data-testid="reload-notifications" onClick={() => void accountStateSync.reloadNotifications()}>
+        reload notifications
+      </button>
     </main>
   );
 }
 
 createRoot(document.getElementById("root")!).render(
-  <AuthProvider><Probe /></AuthProvider>,
+  <AppProviders><Probe /></AppProviders>,
 );

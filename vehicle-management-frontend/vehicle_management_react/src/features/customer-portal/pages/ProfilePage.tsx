@@ -21,7 +21,7 @@ import { useAuth } from "@/core/auth/useAuth";
 import { completeMyAccountProfile, getMyAvatarModerationStatus, uploadMyAccountAvatar, type AvatarModerationStatus, type UpdateAccountProfileRequest } from "@/features/iam/api/accountProfileApi";
 import { AvatarModerationStatusCard } from "@/features/iam/components/AvatarModerationStatusCard";
 import { mergeProfileDetails } from "@/features/iam/utils/accountProfileMapper";
-import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
+import { useAccountStateSync } from "@/features/notifications/context/useAccountStateSync";
 import {
   fetchMyOnboardingApproval,
   resubmitMyOnboardingApproval,
@@ -128,6 +128,7 @@ function buildProfilePayload(form: ProfileForm): UpdateAccountProfileRequest {
 
 export function ProfilePage() {
   const { invalidateAndRefreshAccess, setUser } = useAuth();
+  const { profileInvalidationVersion } = useAccountStateSync();
   const [profile, setProfile] = useState<CustomerPortalProfile | null>(null);
   const [vehicles, setVehicles] = useState<CustomerPortalVehicle[]>([]);
   const [subscriptions, setSubscriptions] = useState<CustomerPortalSubscription[]>([]);
@@ -196,33 +197,7 @@ export function ProfilePage() {
     return () => {
       ignore = true;
     };
-  }, []);
-
-  useEffect(() => subscribeNotificationReceived((notification) => {
-    if (!["CUSTOMER_ONBOARDING_APPROVED", "CUSTOMER_ONBOARDING_REJECTED", "AVATAR_APPROVED", "AVATAR_REJECTED"].includes(notification.notificationType)) return;
-
-    if (!["AVATAR_APPROVED", "AVATAR_REJECTED"].includes(notification.notificationType)) {
-      void invalidateAndRefreshAccess("onboarding-notification");
-    }
-
-    void getCustomerPortalProfile().then(async (nextProfile) => {
-      setProfile(nextProfile);
-      setForm(profileToForm(nextProfile));
-      setUser((currentUser) => currentUser
-        ? mergeProfileDetails(currentUser, nextProfile)
-        : currentUser);
-      try {
-        setLatestApproval(await fetchMyOnboardingApproval("customer"));
-      } catch {
-        setLatestApproval(null);
-      }
-      try {
-        setAvatarModeration((await getMyAvatarModerationStatus()).data);
-      } catch {
-        setAvatarModeration(null);
-      }
-    });
-  }), [invalidateAndRefreshAccess, setUser]);
+  }, [profileInvalidationVersion, setUser]);
 
   const displayName = form.fullName || profile?.account?.username || "Khách hàng";
   const avatarUrl = profile?.profile?.avatarUrl?.trim();

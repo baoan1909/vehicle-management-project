@@ -5,6 +5,13 @@ export const apiEndpoints = {
     forgotPassword: "/public/auth/forgot-password",
   },
   public: {
+    support: {
+      categories: "/public/support/categories",
+      requests: "/public/support/requests",
+      requestAccess: "/public/support/requests/access",
+      assistantStatus: "/public/support/assistant/status",
+      assistantMessages: "/public/support/assistant/messages",
+    },
     partnerRegistrations: "/public/partner-registrations",
     parkingLots: "/public/parking-lots",
     nearbyParkingLots: "/public/parking-lots/nearby",

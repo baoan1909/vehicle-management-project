@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 const accessUrl = "**/vehicle-management/api/iam/accounts/current-access";
 const profileUrl = "**/vehicle-management/api/iam/accounts/onboarding";
+const notificationsUrl = "**/vehicle-management/api/notifications**";
 const actorA = "00000000-0000-0000-0000-0000000000a1";
 const actorB = "00000000-0000-0000-0000-0000000000b2";
 
@@ -131,6 +132,14 @@ async function openWithResolvedAccess(page: Page, value = access()) {
   await page.goto("/tests/auth-access-harness.html");
   await expect(page.getByTestId("status")).toHaveText("ready");
 }
+
+test.beforeEach(async ({ page }) => {
+  await page.route(notificationsUrl, (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    const data = pathname.endsWith("/unread/count") ? { unreadCount: 0 } : [];
+    return route.fulfill({ contentType: "application/json", body: JSON.stringify(envelope(data)) });
+  });
+});
 
 test("1 fresh login resolves current-access before exposing permissions", async ({ page }) => {
   await mockProfile(page);
@@ -453,4 +462,59 @@ test("24 a 403 response never triggers token renewal", async ({ page }) => {
   await expect(page.getByTestId("request-result")).toHaveText("error:403");
   expect(tokenRequests).toBe(0);
   expect(apiRequests).toBe(1);
+});
+
+test("25 persisted access invalidation refreshes authorization without opening the bell", async ({ page }) => {
+  await seedToken(page);
+  let profileCalls = 0;
+  await page.route(profileUrl, (route) => {
+    profileCalls += 1;
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(envelope({
+        onboardingRequired: false,
+        profile: { fullName: profileCalls === 1 ? "Before approval" : "Updated name" },
+      })),
+    });
+  });
+  let accessCalls = 0;
+  await page.route(accessUrl, (route) => {
+    accessCalls += 1;
+    const value = accessCalls === 1
+      ? access()
+      : access({ accessRevision: "notification-revision", permissionCodes: ["ROLE_READ_ALL"] });
+    return route.fulfill({ contentType: "application/json", body: JSON.stringify(envelope(value)) });
+  });
+  await page.route("**/vehicle-management/api/notifications?**", (route) => route.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify(envelope([{
+      broadcastId: null,
+      channel: "WEB",
+      createdAt: new Date().toISOString(),
+      message: "Quyền truy cập đã thay đổi.",
+      notificationId: "00000000-0000-0000-0000-000000000025",
+      notificationType: "ACCOUNT_ACCESS_CHANGED",
+      readAt: null,
+      redirectUrl: null,
+      relatedId: actorA,
+      relatedSchema: "iam",
+      relatedTable: "accounts",
+      sentAt: new Date().toISOString(),
+      status: "SENT",
+      title: "Cập nhật quyền truy cập",
+    }])),
+  }));
+
+  await page.goto("/tests/auth-access-harness.html");
+
+  await expect(page.getByTestId("revision")).toHaveText("notification-revision");
+  await expect(page.getByTestId("permissions")).toHaveText("ROLE_READ_ALL");
+  await expect(page.getByTestId("full-name")).toHaveText("Updated name");
+  await expect(page.getByTestId("profile-version")).toHaveText("1");
+  expect(accessCalls).toBe(2);
+  expect(profileCalls).toBeGreaterThanOrEqual(2);
+
+  await page.getByTestId("reload-notifications").click();
+  await page.waitForTimeout(100);
+  expect(accessCalls).toBe(2);
 });

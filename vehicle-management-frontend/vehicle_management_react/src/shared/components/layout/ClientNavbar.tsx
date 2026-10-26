@@ -17,6 +17,7 @@ const publicNavigation = [
   { label: "Tìm bãi", href: "/parking-lots/nearby" },
   { label: "Bảng giá", href: "/pricing" },
   { label: "Hướng dẫn", href: "/guide" },
+  { label: "Trợ giúp", href: "/help" },
   { label: "Liên hệ", href: "/contact" },
 ];
 
