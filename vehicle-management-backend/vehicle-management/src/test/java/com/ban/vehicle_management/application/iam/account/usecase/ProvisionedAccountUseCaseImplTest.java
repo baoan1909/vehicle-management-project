@@ -15,6 +15,7 @@ import com.ban.vehicle_management.application.iam.account.model.command.UpdatePr
 import com.ban.vehicle_management.application.iam.account.model.command.UpdateProvisionedAccountStatusCommand;
 import com.ban.vehicle_management.application.iam.account.model.result.ProvisionedAccountResult;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
@@ -54,6 +55,9 @@ class ProvisionedAccountUseCaseImplTest {
 
     @Mock
     private OrganizationPortOut organizationPortOut;
+
+    @Mock
+    private AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
 
     @Spy
     private ProvisionedAccountPolicy provisionedAccountPolicy = new ProvisionedAccountPolicy();
@@ -518,6 +522,47 @@ class ProvisionedAccountUseCaseImplTest {
                 () -> provisionedAccountUseCase.updateProvisionedAccountRole(accountId, command)
         );
         verify(provisionedAccountPortOut, never()).updateProvisionedAccountRole(any(), any());
+    }
+
+    @Test
+    void shouldInvalidateTargetAccountAfterProvisionedRoleUpdate() {
+        UUID accountId = UUID.randomUUID();
+        UUID existingRoleId = UUID.randomUUID();
+        UUID targetRoleId = UUID.randomUUID();
+        ProvisionedAccountResult existingAccount = buildResult(
+                accountId,
+                existingRoleId,
+                AdminProvisionableAccountRoleCode.PARTNER_ADMIN,
+                "partner.admin.01",
+                "partner.admin01@example.com"
+        );
+        ProvisionedAccountResult updatedAccount = buildResult(
+                accountId,
+                targetRoleId,
+                AdminProvisionableAccountRoleCode.SYSTEM_ADMIN,
+                "partner.admin.01",
+                "partner.admin01@example.com"
+        );
+        UpdateProvisionedAccountRoleCommand command =
+                new UpdateProvisionedAccountRoleCommand(AdminProvisionableAccountRoleCode.SYSTEM_ADMIN);
+
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount("SYSTEM_ADMIN"));
+        when(provisionedAccountPortOut.findProvisionedAccountById(accountId))
+                .thenReturn(Optional.of(existingAccount), Optional.of(updatedAccount));
+        when(provisionedAccountPortOut.findActiveRoleIdByCode(AdminProvisionableAccountRoleCode.SYSTEM_ADMIN))
+                .thenReturn(targetRoleId);
+
+        ProvisionedAccountResult result = provisionedAccountUseCase.updateProvisionedAccountRole(accountId, command);
+
+        assertEquals(AdminProvisionableAccountRoleCode.SYSTEM_ADMIN.name(), result.role().roleCode());
+        verify(provisionedAccountPortOut).updateProvisionedAccountRole(accountId, targetRoleId);
+        verify(accountAccessInvalidationPortIn).invalidateAccount(
+                accountId,
+                "Vai trò tài khoản của bạn đã được cập nhật.",
+                "iam",
+                "accounts",
+                accountId
+        );
     }
 
     @Test

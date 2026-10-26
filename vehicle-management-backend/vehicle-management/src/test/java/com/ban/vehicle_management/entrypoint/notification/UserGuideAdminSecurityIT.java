@@ -89,12 +89,12 @@ class UserGuideAdminSecurityIT extends com.ban.vehicle_management.testsupport.Po
     }
 
     @Test
-    void shouldRejectUnauthenticatedRuntimeAccess() throws Exception {
+    void shouldAllowUnauthenticatedRuntimeReadsButProtectEventWrites() throws Exception {
         mockMvc.perform(get("/api/user-guides/resolve"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/user-guides/SOME_CODE"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isNotFound());
 
         mockMvc.perform(post("/api/user-guides/" + UUID.randomUUID() + "/events")
                         .contentType(MediaType.APPLICATION_JSON)

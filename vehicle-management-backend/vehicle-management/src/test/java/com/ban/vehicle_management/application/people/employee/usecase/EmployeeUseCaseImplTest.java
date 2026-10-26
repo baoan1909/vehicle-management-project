@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.InternalEmployeeApprovalCandidate;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.people.employee.authorization.EmployeeAccessGuard;
@@ -55,6 +56,9 @@ class EmployeeUseCaseImplTest {
 
     @Mock
     private UserProfilePortOut userProfilePortOut;
+
+    @Mock
+    private AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
 
     @Spy
     private UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
@@ -196,6 +200,7 @@ class EmployeeUseCaseImplTest {
     @Test
     void shouldActivateEmployee() {
         UUID employeeId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
         Employee employee = validEmployee(employeeId, EmployeeStatus.INACTIVE);
         ApprovalRequest approvalRequest = new ApprovalRequest();
         approvalRequest.setApprovalRequestId(UUID.randomUUID());
@@ -217,10 +222,18 @@ class EmployeeUseCaseImplTest {
         when(internalEmployeeApprovalPortOut.findLatestInternalEmployeeApprovalRequest(employeeId))
                 .thenReturn(Optional.of(approvalRequest));
         when(employeePortOut.save(any(Employee.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(employeePortOut.findAccountIdByEmployeeId(employeeId)).thenReturn(Optional.of(accountId));
 
         Employee updatedEmployee = employeeUseCase.activateEmployee(employeeId);
 
         assertEquals(EmployeeStatus.ACTIVE, updatedEmployee.getStatus());
+        verify(accountAccessInvalidationPortIn).invalidateAccount(
+                accountId,
+                "Trạng thái nhân sự của tài khoản đã thay đổi.",
+                "people",
+                "employees",
+                employeeId
+        );
     }
 
     @Test
@@ -253,16 +266,25 @@ class EmployeeUseCaseImplTest {
     @Test
     void shouldSuspendEmployee() {
         UUID employeeId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
         Employee employee = validEmployee(employeeId, EmployeeStatus.ACTIVE);
 
         org.mockito.Mockito.doNothing().when(currentAccountPortIn).requirePermission("EMPLOYEE_UPDATE_ALL");
         org.mockito.Mockito.doNothing().when(currentAccountPortIn).requirePermission("EMPLOYEE_READ_ALL");
         when(employeePortOut.findById(employeeId)).thenReturn(Optional.of(employee));
         when(employeePortOut.save(any(Employee.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(employeePortOut.findAccountIdByEmployeeId(employeeId)).thenReturn(Optional.of(accountId));
 
         Employee updatedEmployee = employeeUseCase.suspendEmployee(employeeId);
 
         assertEquals(EmployeeStatus.SUSPENDED, updatedEmployee.getStatus());
+        verify(accountAccessInvalidationPortIn).invalidateAccount(
+                accountId,
+                "Trạng thái nhân sự của tài khoản đã thay đổi.",
+                "people",
+                "employees",
+                employeeId
+        );
     }
 
     @Test

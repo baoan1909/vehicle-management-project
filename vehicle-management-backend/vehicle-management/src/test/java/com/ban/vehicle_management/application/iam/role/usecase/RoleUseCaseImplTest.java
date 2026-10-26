@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.iam.role.usecase;
 
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -23,6 +24,9 @@ class RoleUseCaseImplTest {
 
     @Mock
     private RolePortOut rolePortOut;
+
+    @Mock
+    private AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
 
     @InjectMocks
     private RoleUseCaseImpl roleUseCase;
@@ -56,6 +60,34 @@ class RoleUseCaseImplTest {
 
         assertThrows(ConflictException.class, () -> roleUseCase.createRole(requestRole));
         verify(rolePortOut, never()).save(any(Role.class));
+    }
+
+    @Test
+    void updatingRoleInvalidatesAccountsUsingItsNewAuthoritativeCode() {
+        UUID roleId = UUID.randomUUID();
+        Role existing = new Role();
+        existing.setRoleId(roleId);
+        existing.setCode("CUSTOM_OLD");
+        existing.setName("Custom old");
+        existing.setIsSystem(false);
+        existing.setIsActive(true);
+        Role update = new Role();
+        update.setCode(" custom-new ");
+        update.setName(" Custom new ");
+        update.setDescription(" Updated ");
+        update.setIsActive(false);
+
+        when(rolePortOut.findById(roleId)).thenReturn(java.util.Optional.of(existing));
+        when(rolePortOut.existsByCodeAndRoleIdNot("CUSTOM-NEW", roleId)).thenReturn(false);
+        when(rolePortOut.save(existing)).thenReturn(existing);
+
+        roleUseCase.updateRole(roleId, update);
+
+        verify(accountAccessInvalidationPortIn).invalidateActiveAccountsForRole(
+                "CUSTOM-NEW",
+                roleId,
+                "Thông tin hoặc trạng thái vai trò Custom new đã được cập nhật."
+        );
     }
 
     @Test

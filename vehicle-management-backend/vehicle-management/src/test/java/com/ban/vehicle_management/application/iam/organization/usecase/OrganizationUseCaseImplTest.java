@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.catalog.seed.port.out.PartnerCatalogSeedPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.account.port.in.AccountAccessInvalidationPortIn;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.domain.iam.organization.policy.OrganizationPolicy;
@@ -37,6 +38,9 @@ class OrganizationUseCaseImplTest {
     @Mock
     private PartnerCatalogSeedPortOut partnerCatalogSeedPortOut;
 
+    @Mock
+    private AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
+
     @InjectMocks
     private OrganizationUseCaseImpl organizationUseCase;
 
@@ -57,6 +61,13 @@ class OrganizationUseCaseImplTest {
 
         verify(organizationPortOut).addParkingLotScope(membershipId, parkingLotId);
         verify(organizationPortOut, never()).replaceParkingLotScopes(membershipId, Set.of(parkingLotId));
+        verify(accountAccessInvalidationPortIn).invalidateAccount(
+                managerAccountId,
+                "Phạm vi đơn vị hoặc bãi xe được phân công cho tài khoản đã thay đổi.",
+                "iam",
+                "organizations",
+                organizationId
+        );
     }
 
     @Test
@@ -92,6 +103,13 @@ class OrganizationUseCaseImplTest {
         organizationUseCase.unassignParkingManagerFromParkingLot(organizationId, managerAccountId, parkingLotId);
 
         verify(organizationPortOut).removeParkingLotScope(membershipId, parkingLotId);
+        verify(accountAccessInvalidationPortIn).invalidateAccount(
+                managerAccountId,
+                "Phạm vi đơn vị hoặc bãi xe được phân công cho tài khoản đã thay đổi.",
+                "iam",
+                "organizations",
+                organizationId
+        );
     }
 
     @Test

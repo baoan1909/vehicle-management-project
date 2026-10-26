@@ -278,6 +278,38 @@ class NotificationUseCaseImplTest {
     }
 
     @Test
+    void sendBroadcastWebNotification_shouldNotResolveAuthorizationForNoOpRecipientCriteria() {
+        UUID accountId = UUID.randomUUID();
+        BroadcastNotificationCommand command = new BroadcastNotificationCommand(
+                false,
+                Set.of("CUSTOM_ROLE"),
+                Set.of(),
+                null,
+                NotificationType.ACCOUNT_ACCESS_CHANGED,
+                "Quyền truy cập đã thay đổi",
+                "Quyền của vai trò đã được cập nhật.",
+                null,
+                "iam",
+                "roles",
+                UUID.randomUUID(),
+                new NotificationRecipientCriteria(false, Set.of(), Set.of(), true)
+        );
+        Notification notification = notification(accountId, "Quyền truy cập đã thay đổi");
+        notification.setNotificationType(NotificationType.ACCOUNT_ACCESS_CHANGED);
+
+        when(notificationPortOut.findActiveAccountIdsForBroadcast(false, List.of("CUSTOM_ROLE"), List.of()))
+                .thenReturn(List.of(accountId, accountId));
+        when(notificationCommandMapper.toDomain(any(BroadcastNotificationCommand.class), eq(accountId)))
+                .thenReturn(notification);
+        when(notificationPortOut.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<Notification> result = notificationUseCase.sendBroadcastWebNotification(command);
+
+        assertEquals(1, result.size());
+        verify(accountAuthorizationPortOut, never()).findByAccountId(any(UUID.class));
+    }
+
+    @Test
     void getMyNotifications_shouldMaterializeMissingActiveBroadcastAnnouncementsForCurrentRole() {
         UUID accountId = UUID.randomUUID();
         UUID broadcastId = UUID.randomUUID();

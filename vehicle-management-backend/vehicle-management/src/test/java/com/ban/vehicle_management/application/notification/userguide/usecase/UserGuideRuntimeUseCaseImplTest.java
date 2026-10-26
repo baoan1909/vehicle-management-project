@@ -99,6 +99,47 @@ class UserGuideRuntimeUseCaseImplTest {
     }
 
     @Test
+    void shouldResolvePublicGuideForGuestWithoutLoadingAccountState() {
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.empty());
+        when(featurePortOut.findByCode("PARKING_CHECKIN")).thenReturn(Optional.of(enabledFeature()));
+        UserGuide guide = publishedGuide(UserGuideReplayPolicy.EVERY_SESSION);
+        when(guidePortOut.findByFeatureIdAndStatus(any(UUID.class), eq(UserGuideStatus.PUBLISHED)))
+                .thenReturn(List.of(guide));
+        when(versionPortOut.findByGuideIdAndVersionNumber(guide.getGuideId(), 1))
+                .thenReturn(Optional.of(publishedVersion(UserGuideAudienceMode.PUBLIC)));
+
+        assertEquals(1, useCase.resolveGuides("PARKING_CHECKIN", null).size());
+        verify(statePortOut, org.mockito.Mockito.never()).findByAccountIdAndGuideId(any(), any());
+    }
+
+    @Test
+    void shouldHidePermissionTargetedGuideFromGuest() {
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.empty());
+        when(featurePortOut.findByCode("PARKING_CHECKIN")).thenReturn(Optional.of(enabledFeature()));
+        UserGuide guide = publishedGuide(UserGuideReplayPolicy.EVERY_SESSION);
+        when(guidePortOut.findByFeatureIdAndStatus(any(UUID.class), eq(UserGuideStatus.PUBLISHED)))
+                .thenReturn(List.of(guide));
+        UserGuideVersion version = publishedVersion(UserGuideAudienceMode.PERMISSION_ANY);
+        version.setAudiences(List.of(permissionAudience(UUID.randomUUID())));
+        when(versionPortOut.findByGuideIdAndVersionNumber(guide.getGuideId(), 1)).thenReturn(Optional.of(version));
+
+        assertTrue(useCase.resolveGuides("PARKING_CHECKIN", null).isEmpty());
+    }
+
+    @Test
+    void shouldFailClosedForGuestWhenAudienceModeIsMissing() {
+        when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.empty());
+        when(featurePortOut.findByCode("PARKING_CHECKIN")).thenReturn(Optional.of(enabledFeature()));
+        UserGuide guide = publishedGuide(UserGuideReplayPolicy.EVERY_SESSION);
+        when(guidePortOut.findByFeatureIdAndStatus(any(UUID.class), eq(UserGuideStatus.PUBLISHED)))
+                .thenReturn(List.of(guide));
+        when(versionPortOut.findByGuideIdAndVersionNumber(guide.getGuideId(), 1))
+                .thenReturn(Optional.of(publishedVersion(null)));
+
+        assertTrue(useCase.resolveGuides("PARKING_CHECKIN", null).isEmpty());
+    }
+
+    @Test
     void shouldExcludeManualOnlyFromAutoResolve() {
         mockAccount(Set.of());
         when(featurePortOut.findByCode("PARKING_CHECKIN")).thenReturn(Optional.of(enabledFeature()));
@@ -247,10 +288,12 @@ class UserGuideRuntimeUseCaseImplTest {
     }
 
     private void mockAccount(Set<String> permissions, UUID roleId) {
-        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(new CurrentAccountAccess(
+        CurrentAccountAccess account = new CurrentAccountAccess(
                 ACCOUNT_ID, "sub", "user", "user@example.com", roleId, "CUSTOMER",
                 AccountStatus.ACTIVE, null, CustomerStatus.ACTIVE,
-                CustomerApprovalStatus.APPROVED, permissions));
+                CustomerApprovalStatus.APPROVED, permissions);
+        org.mockito.Mockito.lenient().when(currentAccountPortIn.getCurrentAccount()).thenReturn(Optional.of(account));
+        org.mockito.Mockito.lenient().when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account);
     }
 
     private UserGuideFeature enabledFeature() {
