@@ -11,13 +11,15 @@ import {
   type GuestAssistantAnswer,
   type GuestSupportRequest,
   type PublicSupportCategory,
+  type PublicSupportStatus,
 } from "@/features/support/api/guestSupportApi";
+import { CaptchaChallenge } from "@/features/support/components/CaptchaChallenge";
 import { ClientPage } from "@/shared/components/layout/ClientPage";
 
 const SESSION_KEY = "coparking.guest-support.session";
 const CAPABILITY_KEY = "coparking.guest-support.capability";
 
-type ErrorState = { kind: "offline" | "rate-limited" | "expired" | "generic"; message: string } | null;
+type ErrorState = { kind: "offline" | "rate-limited" | "unavailable" | "expired" | "generic"; message: string } | null;
 
 function randomKey() {
   return crypto.randomUUID();
@@ -34,6 +36,7 @@ function getSessionId() {
 function classifyError(error: unknown): NonNullable<ErrorState> {
   if (isApiError(error)) {
     if (error.status === 429) return { kind: "rate-limited", message: error.message };
+    if (error.status === 503) return { kind: "unavailable", message: error.message };
     if (error.status === 404) return { kind: "expired", message: "Mã truy cập không đúng hoặc đã hết hạn." };
     if (error.kind === "network" || error.kind === "timeout") {
       return { kind: "offline", message: "Không thể kết nối máy chủ. Vui lòng kiểm tra mạng và thử lại." };
@@ -47,6 +50,11 @@ export function GuestSupportPage() {
   const [categories, setCategories] = useState<PublicSupportCategory[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [assistantEnabled, setAssistantEnabled] = useState<boolean | null>(null);
+  const [supportStatus, setSupportStatus] = useState<PublicSupportStatus | null>(null);
+  const [assistantCaptchaProof, setAssistantCaptchaProof] = useState<string | null>(null);
+  const [intakeCaptchaProof, setIntakeCaptchaProof] = useState<string | null>(null);
+  const [assistantCaptchaReset, setAssistantCaptchaReset] = useState(0);
+  const [intakeCaptchaReset, setIntakeCaptchaReset] = useState(0);
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<GuestAssistantAnswer | null>(null);
   const [assistantBusy, setAssistantBusy] = useState(false);
@@ -66,7 +74,10 @@ export function GuestSupportPage() {
       })
       .finally(() => setCategoriesLoading(false));
     void getGuestAssistantStatus()
-      .then((response) => setAssistantEnabled(response.data.enabled))
+      .then((response) => {
+        setAssistantEnabled(response.data.enabled);
+        setSupportStatus(response.data);
+      })
       .catch(() => setAssistantEnabled(false));
     const saved = sessionStorage.getItem(CAPABILITY_KEY);
     if (saved) {
@@ -86,12 +97,16 @@ export function GuestSupportPage() {
     setAssistantBusy(true);
     setAssistantError(null);
     try {
-      const response = await askGuestAssistant(question.trim(), sessionId);
+      const response = await askGuestAssistant(question.trim(), sessionId, assistantCaptchaProof ?? undefined);
       setAnswer(response.data);
     } catch (error) {
       setAssistantError(classifyError(error));
     } finally {
       setAssistantBusy(false);
+      if (supportStatus?.captchaRequiredForAssistant) {
+        setAssistantCaptchaProof(null);
+        setAssistantCaptchaReset((value) => value + 1);
+      }
     }
   }
 
@@ -109,6 +124,7 @@ export function GuestSupportPage() {
         email: String(form.get("email") ?? ""),
         phone: String(form.get("phone") ?? ""),
         sessionId,
+        captchaProof: intakeCaptchaProof ?? undefined,
       }, randomKey());
       setCreatedRequest(response.data);
       if (response.data.capabilityToken) {
@@ -122,6 +138,10 @@ export function GuestSupportPage() {
       setRequestError(classifyError(error));
     } finally {
       setRequestBusy(false);
+      if (supportStatus?.captchaRequiredForIntake) {
+        setIntakeCaptchaProof(null);
+        setIntakeCaptchaReset((value) => value + 1);
+      }
     }
   }
 
@@ -157,7 +177,16 @@ export function GuestSupportPage() {
             {assistantEnabled === false ? <p className="tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-font-semibold tw-text-amber-800">Trợ lý đang tạm ngưng. Bạn vẫn có thể gửi yêu cầu hỗ trợ.</p> : null}
             <form className="tw-grid tw-gap-3" onSubmit={submitQuestion}>
               <label className="tw-grid tw-gap-1 tw-font-bold">Câu hỏi<textarea className="tw-min-h-28 tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-300 tw-p-3" maxLength={1000} required value={question} onChange={(event) => setQuestion(event.target.value)} /></label>
-              <button className="tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-4 tw-py-2.5 tw-font-black tw-text-white disabled:tw-opacity-60" disabled={!assistantEnabled || assistantBusy} type="submit">{assistantBusy ? "Đang tìm câu trả lời..." : "Hỏi trợ lý"}</button>
+              {supportStatus?.captchaEnabled && supportStatus.captchaRequiredForAssistant ? (
+                <CaptchaChallenge
+                  onProof={setAssistantCaptchaProof}
+                  purpose="ASSISTANT"
+                  resetKey={assistantCaptchaReset}
+                  sessionId={sessionId}
+                  siteKey={supportStatus.captchaSiteKey ?? ""}
+                />
+              ) : null}
+              <button className="tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-4 tw-py-2.5 tw-font-black tw-text-white disabled:tw-opacity-60" disabled={!assistantEnabled || assistantBusy || Boolean(supportStatus?.captchaRequiredForAssistant && !assistantCaptchaProof)} type="submit">{assistantBusy ? "Đang tìm câu trả lời..." : "Hỏi trợ lý"}</button>
             </form>
             {assistantError ? <p className="tw-mt-3 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-red-700" role="alert">{assistantError.message}</p> : null}
             {answer ? <div className="tw-mt-4 tw-rounded-vm-md tw-bg-brand-50 tw-p-4"><p className="tw-whitespace-pre-wrap tw-text-slate-800">{answer.answer}</p>{answer.citations.length ? <ul className="tw-mb-0 tw-pl-5 tw-text-xs tw-text-slate-600">{answer.citations.map((citation) => <li key={`${citation.label}-${citation.title}`}>{citation.label}: {citation.title}</li>)}</ul> : null}{answer.handoffRecommended ? <p className="tw-mb-0 tw-font-bold">Bạn nên gửi yêu cầu hỗ trợ để được kiểm tra thêm.</p> : null}</div> : null}
@@ -172,7 +201,16 @@ export function GuestSupportPage() {
               <label className="tw-grid tw-gap-1 tw-font-bold">Tiêu đề<input className="tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-300 tw-p-2.5" name="title" maxLength={150} required /></label>
               <label className="tw-grid tw-gap-1 tw-font-bold">Nội dung<textarea className="tw-min-h-28 tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-300 tw-p-3" name="content" maxLength={4000} required /></label>
               <div className="tw-grid tw-gap-3 sm:tw-grid-cols-2"><label className="tw-grid tw-gap-1 tw-font-bold">Email<input className="tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-300 tw-p-2.5" name="email" type="email" maxLength={254} /></label><label className="tw-grid tw-gap-1 tw-font-bold">Điện thoại<input className="tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-300 tw-p-2.5" name="phone" inputMode="tel" /></label></div>
-              <button className="tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-4 tw-py-2.5 tw-font-black tw-text-white disabled:tw-opacity-60" disabled={requestBusy || categoriesLoading || categories.length === 0} type="submit">{requestBusy ? "Đang gửi..." : "Gửi yêu cầu"}</button>
+              {supportStatus?.captchaEnabled && supportStatus.captchaRequiredForIntake ? (
+                <CaptchaChallenge
+                  onProof={setIntakeCaptchaProof}
+                  purpose="INTAKE"
+                  resetKey={intakeCaptchaReset}
+                  sessionId={sessionId}
+                  siteKey={supportStatus.captchaSiteKey ?? ""}
+                />
+              ) : null}
+              <button className="tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-4 tw-py-2.5 tw-font-black tw-text-white disabled:tw-opacity-60" disabled={requestBusy || categoriesLoading || categories.length === 0 || Boolean(supportStatus?.captchaRequiredForIntake && !intakeCaptchaProof)} type="submit">{requestBusy ? "Đang gửi..." : "Gửi yêu cầu"}</button>
             </form>
             {requestError ? <p className="tw-mt-3 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-red-700" role="alert">{requestError.message}</p> : null}
             {createdRequest ? <div className="tw-mt-4 tw-rounded-vm-md tw-bg-emerald-50 tw-p-4 tw-text-emerald-900"><strong>Đã tiếp nhận: {createdRequest.referenceCode}</strong><p className="tw-mb-0 tw-mt-1">Mã truy cập chỉ được giữ trong tab này đến khi bạn đóng trình duyệt. Hãy lưu lại nếu cần tra cứu sau.</p></div> : null}

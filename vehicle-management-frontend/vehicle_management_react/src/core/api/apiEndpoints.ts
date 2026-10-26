@@ -11,6 +11,7 @@ export const apiEndpoints = {
       requestAccess: "/public/support/requests/access",
       assistantStatus: "/public/support/assistant/status",
       assistantMessages: "/public/support/assistant/messages",
+      captchaVerify: "/public/support/captcha/verify",
     },
     partnerRegistrations: "/public/partner-registrations",
     parkingLots: "/public/parking-lots",

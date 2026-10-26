@@ -8,9 +8,9 @@ import type { CurrentUser } from "@/shared/types/common";
  * 3. a safe profile route for workflow states;
  * 4. a safe profile route when no permissioned portal route exists.
  *
- * Role is never used to decide whether the user may enter a portal. It is only
- * used by getProfileRoute/getAccessibleLandingPath to classify the safe profile
- * surface or break a tie between two already-authorized portals.
+ * Role is never used to decide whether the user may enter a portal. The
+ * authoritative customer projection selects the safe profile surface; effective
+ * permissions select every functional route.
  */
 export function resolvePostLoginPath(user: CurrentUser | null) {
   if (!user) return "/login";

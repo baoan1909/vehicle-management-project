@@ -201,12 +201,25 @@ export function getFirstPermissionedCustomerPath(user: CurrentUser | null | unde
   return null;
 }
 
+function hasCustomerProfileContext(user: CurrentUser | null | undefined) {
+  return Boolean(
+    user
+    && (
+      user.customerApprovalStatus
+      || user.customerStatus
+    )
+  );
+}
+
 /**
- * Role may classify which safe profile surface is appropriate, but it never
- * grants portal access. Portal access is decided by effective permissions.
+ * The authoritative customer projection classifies the safe profile surface.
+ * Portal access is decided by effective permissions, never by a role label.
  */
 export function getProfileRoute(user: CurrentUser | null | undefined) {
-  if (user?.role === "CUSTOMER") return customerFallbackRoute;
+  // Custom roles must not decide the portal. The authoritative current-access
+  // customer projection identifies the safe profile surface even when a
+  // support permission is also mapped to an internal support screen.
+  if (hasCustomerProfileContext(user)) return customerFallbackRoute;
   if (user && !getFirstPermissionedAdminPath(user) && getFirstPermissionedCustomerPath(user)) {
     return customerFallbackRoute;
   }
@@ -214,15 +227,15 @@ export function getProfileRoute(user: CurrentUser | null | undefined) {
 }
 
 /**
- * Chooses a landing route using effective permissions. Role is only a
- * tie-breaker between two already-authorized portals and a profile classifier.
+ * Chooses a landing route using effective permissions and the authoritative
+ * customer projection as a tie-breaker between already-authorized portals.
  */
 export function getAccessibleLandingPath(user: CurrentUser | null | undefined) {
   const adminPath = getFirstPermissionedAdminPath(user);
   const customerPath = getFirstPermissionedCustomerPath(user);
 
   if (adminPath && customerPath) {
-    return user?.role === "CUSTOMER" ? customerPath : adminPath;
+    return hasCustomerProfileContext(user) ? customerPath : adminPath;
   }
   if (adminPath) return adminPath;
   if (customerPath) return customerPath;

@@ -11,6 +11,8 @@ type AccessOverrides = Partial<{
   accountStatus: string;
   accessRevision: string;
   accessState: string;
+  customerApprovalStatus: string | null;
+  customerStatus: string | null;
   onboardingRequired: boolean;
   permissionCodes: string[];
   requiredAction: string | null;
@@ -517,4 +519,103 @@ test("25 persisted access invalidation refreshes authorization without opening t
   await page.getByTestId("reload-notifications").click();
   await page.waitForTimeout(100);
   expect(accessCalls).toBe(2);
+});
+
+test("26 pending custom-role customer remains profile-first with support-only routes", async ({ page }) => {
+  await openWithResolvedAccess(page, access({
+    accountStatus: "PENDING",
+    accessRevision: "pending-support",
+    accessState: "PENDING_APPROVAL",
+    customerApprovalStatus: "PENDING",
+    customerStatus: "ACTIVE",
+    onboardingRequired: true,
+    permissionCodes: ["SUPPORT_TICKET_READ_OWN", "CHAT_CONVERSATION_READ_OWN"],
+    requiredAction: "WAIT_FOR_APPROVAL",
+    roleCode: "CUSTOM_SUPPORT_APPLICANT",
+  }));
+
+  await expect(page.getByTestId("landing")).toHaveText("/customer/profile");
+  await expect(page.getByTestId("can-customer-support")).toHaveText("true");
+  await expect(page.getByTestId("can-customer-chat")).toHaveText("true");
+  await expect(page.getByTestId("can-customer-vehicles")).toHaveText("false");
+  await expect(page.getByTestId("can-customer-wallet")).toHaveText("false");
+  await expect(page.getByTestId("can-dashboard")).toHaveText("false");
+});
+
+test("27 rejected custom-role customer remains profile-first with support-only routes", async ({ page }) => {
+  await openWithResolvedAccess(page, access({
+    accountStatus: "PENDING",
+    accessRevision: "rejected-support",
+    accessState: "CUSTOMER_APPROVAL_REQUIRED",
+    customerApprovalStatus: "REJECTED",
+    customerStatus: "ACTIVE",
+    onboardingRequired: true,
+    permissionCodes: ["SUPPORT_TICKET_READ_OWN", "CHAT_CONVERSATION_READ_OWN"],
+    requiredAction: "SUBMIT_FOR_APPROVAL",
+    roleCode: "ANOTHER_CUSTOM_SUPPORT_ROLE",
+  }));
+
+  await expect(page.getByTestId("landing")).toHaveText("/customer/profile");
+  await expect(page.getByTestId("can-customer-support")).toHaveText("true");
+  await expect(page.getByTestId("can-customer-chat")).toHaveText("true");
+  await expect(page.getByTestId("can-customer-vehicles")).toHaveText("false");
+  await expect(page.getByTestId("can-customer-wallet")).toHaveText("false");
+  await expect(page.getByTestId("can-dashboard")).toHaveText("false");
+});
+
+test("28 approval and revoke refresh effective routes without a reload", async ({ page }) => {
+  await seedToken(page);
+  await mockProfile(page);
+  let calls = 0;
+  await page.route(accessUrl, (route) => {
+    calls += 1;
+    const value = calls === 1
+      ? access({
+        accountStatus: "PENDING",
+        accessRevision: "before-approval",
+        accessState: "PENDING_APPROVAL",
+        customerApprovalStatus: "PENDING",
+        customerStatus: "ACTIVE",
+        onboardingRequired: true,
+        permissionCodes: ["SUPPORT_TICKET_READ_OWN"],
+        requiredAction: "WAIT_FOR_APPROVAL",
+        roleCode: "CUSTOM_CUSTOMER_ROLE",
+      })
+      : calls === 2
+        ? access({
+          accessRevision: "after-approval",
+          accessState: "ACTIVE",
+          customerApprovalStatus: "APPROVED",
+          customerStatus: "ACTIVE",
+          onboardingRequired: false,
+          permissionCodes: ["SUPPORT_TICKET_READ_OWN", "CUSTOMER_VEHICLE_READ_OWN", "WALLET_READ_OWN"],
+          requiredAction: null,
+          roleCode: "CUSTOM_CUSTOMER_ROLE",
+        })
+        : access({
+          accessRevision: "after-revoke",
+          accessState: "CUSTOMER_INACTIVE",
+          customerApprovalStatus: "APPROVED",
+          customerStatus: "INACTIVE",
+          permissionCodes: [],
+          requiredAction: "CONTACT_ADMIN",
+          roleCode: "CUSTOM_CUSTOMER_ROLE",
+        });
+    return route.fulfill({ contentType: "application/json", body: JSON.stringify(envelope(value)) });
+  });
+  await page.goto("/tests/auth-access-harness.html");
+
+  await expect(page.getByTestId("can-customer-support")).toHaveText("true");
+  await expect(page.getByTestId("can-customer-vehicles")).toHaveText("false");
+  await page.getByTestId("invalidate").click();
+  await expect(page.getByTestId("revision")).toHaveText("after-approval");
+  await expect(page.getByTestId("can-customer-vehicles")).toHaveText("true");
+  await expect(page.getByTestId("can-customer-wallet")).toHaveText("true");
+
+  await page.getByTestId("invalidate").click();
+  await expect(page.getByTestId("revision")).toHaveText("after-revoke");
+  await expect(page.getByTestId("landing")).toHaveText("/customer/profile");
+  await expect(page.getByTestId("can-customer-support")).toHaveText("false");
+  await expect(page.getByTestId("can-customer-vehicles")).toHaveText("false");
+  await expect(page.getByTestId("can-customer-wallet")).toHaveText("false");
 });

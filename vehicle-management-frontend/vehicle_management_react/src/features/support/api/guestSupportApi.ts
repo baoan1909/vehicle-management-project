@@ -35,17 +35,36 @@ export type GuestAssistantAnswer = {
   diagnosticCode: string | null;
 };
 
+export type PublicSupportStatus = {
+  enabled: boolean;
+  captchaEnabled?: boolean;
+  captchaProvider?: string | null;
+  captchaSiteKey?: string | null;
+  captchaRequiredForIntake?: boolean;
+  captchaRequiredForAssistant?: boolean;
+};
+
+export type CaptchaPurpose = "INTAKE" | "ASSISTANT";
+
 export function getPublicSupportCategories() {
   return apiClient<ApiResponse<PublicSupportCategory[]>>(apiEndpoints.public.support.categories, { skipAuth: true });
 }
 
 export function getGuestAssistantStatus() {
-  return apiClient<ApiResponse<{ enabled: boolean }>>(apiEndpoints.public.support.assistantStatus, { skipAuth: true });
+  return apiClient<ApiResponse<PublicSupportStatus>>(apiEndpoints.public.support.assistantStatus, { skipAuth: true });
 }
 
-export function askGuestAssistant(message: string, sessionId: string) {
+export function verifyGuestCaptcha(challengeToken: string, purpose: CaptchaPurpose, sessionId: string) {
+  return apiClient<ApiResponse<{ proof: string; expiresAt: string }>>(apiEndpoints.public.support.captchaVerify, {
+    body: { challengeToken, purpose, sessionId },
+    method: "POST",
+    skipAuth: true,
+  });
+}
+
+export function askGuestAssistant(message: string, sessionId: string, captchaProof?: string) {
   return apiClient<ApiResponse<GuestAssistantAnswer>>(apiEndpoints.public.support.assistantMessages, {
-    body: { message, sessionId },
+    body: { message, sessionId, captchaProof },
     method: "POST",
     skipAuth: true,
     timeoutMs: 30_000,
@@ -53,7 +72,15 @@ export function askGuestAssistant(message: string, sessionId: string) {
 }
 
 export function createGuestSupportRequest(
-  payload: { categoryId: string; title: string; content: string; email?: string; phone?: string; sessionId: string },
+  payload: {
+    categoryId: string;
+    title: string;
+    content: string;
+    email?: string;
+    phone?: string;
+    sessionId: string;
+    captchaProof?: string;
+  },
   idempotencyKey: string,
 ) {
   return apiClient<ApiResponse<GuestSupportRequest>>(apiEndpoints.public.support.requests, {

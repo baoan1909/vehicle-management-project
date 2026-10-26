@@ -23,7 +23,7 @@ function supportRequest(token: string | null = capabilityToken) {
   };
 }
 
-async function mockBootstrap(page: Page, assistantEnabled = true) {
+async function mockBootstrap(page: Page, assistantEnabled = true, captcha = false) {
   await page.route(`${apiBase}/notifications/broadcast-announcements/active`, (route) => route.fulfill({
     contentType: "application/json",
     body: JSON.stringify(envelope([])),
@@ -44,7 +44,14 @@ async function mockBootstrap(page: Page, assistantEnabled = true) {
   }));
   await page.route(`${apiBase}/public/support/assistant/status`, (route) => route.fulfill({
     contentType: "application/json",
-    body: JSON.stringify(envelope({ enabled: assistantEnabled })),
+    body: JSON.stringify(envelope({
+      enabled: assistantEnabled,
+      captchaEnabled: captcha,
+      captchaProvider: captcha ? "TURNSTILE" : null,
+      captchaSiteKey: captcha ? "test-site-key" : null,
+      captchaRequiredForAssistant: captcha,
+      captchaRequiredForIntake: captcha,
+    })),
   }));
 }
 
@@ -175,4 +182,56 @@ test("guest sees an offline state while support intake remains available", async
 
   await expect(page.getByRole("alert")).toContainText("Không thể kết nối máy chủ");
   await expect(page.getByRole("button", { name: "Gửi yêu cầu" })).toBeEnabled();
+});
+
+test("required CAPTCHA is verified for distinct assistant and intake purposes and reset after use", async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as unknown as { turnstile: unknown }).turnstile = {
+      render: (_element: HTMLElement, options: Record<string, unknown>) => {
+        const callback = options.callback as (token: string) => void;
+        queueMicrotask(() => callback(`${String(options.action)}-provider-token`));
+        return String(options.action);
+      },
+      remove: () => undefined,
+    };
+  });
+  await mockBootstrap(page, true, true);
+  const issuedPurposes: string[] = [];
+  await page.route(`${apiBase}/public/support/captcha/verify`, async (route) => {
+    const body = route.request().postDataJSON() as { purpose: string; challengeToken: string };
+    issuedPurposes.push(body.purpose);
+    expect(body.challengeToken).toContain(body.purpose === "INTAKE" ? "support_intake" : "support_assistant");
+    await route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify(envelope({ proof: `${body.purpose.toLowerCase()}-proof`, expiresAt: new Date(Date.now() + 60_000).toISOString() })),
+    });
+  });
+  let assistantProof = "";
+  await page.route(`${apiBase}/public/support/assistant/messages`, async (route) => {
+    assistantProof = (route.request().postDataJSON() as { captchaProof: string }).captchaProof;
+    await route.fulfill({ contentType: "application/json", body: JSON.stringify(envelope({
+      answer: "PUBLIC only", citations: [], diagnosticCode: null, handoffRecommended: false,
+    })) });
+  });
+  let intakeProof = "";
+  await page.route(`${apiBase}/public/support/requests`, async (route) => {
+    intakeProof = (route.request().postDataJSON() as { captchaProof: string }).captchaProof;
+    await route.fulfill({ contentType: "application/json", status: 201, body: JSON.stringify(envelope(supportRequest())) });
+  });
+
+  await page.goto("/help");
+  await expect(page.getByText("CAPTCHA đã xác minh.")).toHaveCount(2);
+  await page.getByLabel("Câu hỏi").fill("Cách đăng ký?");
+  await page.getByRole("button", { name: "Hỏi trợ lý" }).click();
+  await expect(page.getByText("PUBLIC only")).toBeVisible();
+  expect(assistantProof).toBe("assistant-proof");
+
+  await page.getByLabel("Danh mục").selectOption(categoryId);
+  await page.getByLabel("Tiêu đề").fill("Hỗ trợ đăng ký");
+  await page.getByLabel("Nội dung").fill("Tôi cần hướng dẫn đăng ký.");
+  await page.getByLabel("Email").fill("baoan@example.com");
+  await page.getByRole("button", { name: "Gửi yêu cầu" }).click();
+  await expect(page.getByText(`Đã tiếp nhận: ${referenceCode}`)).toBeVisible();
+  expect(intakeProof).toBe("intake-proof");
+  expect(issuedPurposes).toEqual(expect.arrayContaining(["ASSISTANT", "INTAKE"]));
 });

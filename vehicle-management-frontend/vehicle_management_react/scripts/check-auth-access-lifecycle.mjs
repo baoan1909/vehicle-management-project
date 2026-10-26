@@ -104,12 +104,12 @@ assert.match(files.provisionedPolicy, /ACCOUNT_CREATE_ALL[\s\S]*?PARKING_SCOPE_P
 assert.match(files.notificationBell, /canOpenNotificationTarget\(user, redirectUrl\)/);
 assert.doesNotMatch(files.supportCenter, /user\?\.role === "CUSTOMER"/);
 
-// Documented exceptions in routePermissions: profile classification and a tie-break
-// between two routes that have already independently passed permission checks.
+// Route selection also stays role-agnostic. Customer profile projection and
+// effective permissions are the only accepted routing inputs.
 const allowedRouteRoleChecks = files.routePermissions.match(/user\?\.role === "CUSTOMER"/g) ?? [];
-assert.equal(allowedRouteRoleChecks.length, 2);
-assert.match(files.routePermissions, /Role may classify which safe profile surface/);
-assert.match(files.routePermissions, /Role is only a[\s\S]*?tie-breaker between two already-authorized portals/);
+assert.equal(allowedRouteRoleChecks.length, 0);
+assert.match(files.routePermissions, /authoritative customer projection classifies the safe profile surface/);
+assert.match(files.routePermissions, /never by a role label/);
 
 // Access-changing self-service mutations must immediately refresh current-access.
 assert.match(files.internalProfile, /completeMyAccountProfile[\s\S]*?invalidateAndRefreshAccess\(shouldCompleteOnboarding \? "profile-completed" : "profile-updated"\)/);

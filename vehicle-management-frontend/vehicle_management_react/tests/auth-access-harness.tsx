@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { User } from "oidc-client-ts";
 import { AppProviders } from "@/app/providers/AppProviders";
-import { canAccessAdminRoute } from "@/app/routePermissions";
+import { canAccessAdminRoute, canAccessCustomerRoute } from "@/app/routePermissions";
 import { apiClient } from "@/core/api/apiClient";
 import { resolvePostLoginPath } from "@/core/auth/landing";
 import { oidcSettings, oidcUserManager } from "@/core/auth/oidcClient";
@@ -97,6 +97,10 @@ function Probe() {
       <output data-testid="profile-version">{accountStateSync.profileInvalidationVersion}</output>
       <output data-testid="landing">{auth.user ? resolvePostLoginPath(auth.user) : "/login"}</output>
       <output data-testid="can-dashboard">{String(canAccessAdminRoute(auth.user, "/admin/dashboard"))}</output>
+      <output data-testid="can-customer-support">{String(canAccessCustomerRoute(auth.user, "/customer/support"))}</output>
+      <output data-testid="can-customer-chat">{String(canAccessCustomerRoute(auth.user, "/customer/support/chat"))}</output>
+      <output data-testid="can-customer-vehicles">{String(canAccessCustomerRoute(auth.user, "/customer/vehicles"))}</output>
+      <output data-testid="can-customer-wallet">{String(canAccessCustomerRoute(auth.user, "/customer/wallet"))}</output>
       <output data-testid="snapshot-changes">{snapshotChanges}</output>
       <output data-testid="token-present">{String(Boolean(sessionStorage.getItem(oidcUserStorageKey)))}</output>
       <output data-testid="request-result">{requestResult}</output>
