@@ -6,6 +6,7 @@ import java.util.UUID;
 public record CardFilterRequest(
         CardStatus status,
         UUID cardTypeId,
+        UUID parkingLotId,
         String keyword
 ) {
 }

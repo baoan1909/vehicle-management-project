@@ -13,7 +13,10 @@ import {
 } from "@/features/parking/api/parkingLayoutApi";
 import {
   activateParkingLot,
+  closeParkingLot,
+  deleteParkingLot,
   getParkingLots,
+  markParkingLotMaintenance,
   requestParkingLotActivation,
   type ParkingLotApiResponse,
 } from "@/features/parking/api/parkingLotsApi";
@@ -26,6 +29,9 @@ import {
   type ZoneApiResponse,
 } from "@/features/parking/api/parkingTopologyApi";
 import { ParkingLocationMap } from "@/features/parking/components/ParkingLocationMap";
+import { ParkingLotActionsMenu, type ParkingLotActionItem } from "@/features/parking/components/ParkingLotActionsMenu";
+import { ParkingLotEditModal } from "@/features/parking/components/ParkingLotEditModal";
+import { ParkingManagerAssignmentModal } from "@/features/parking/components/ParkingManagerAssignmentModal";
 import {
   ParkingLotWorkspaceHeader,
   parkingWorkspaceHref,
@@ -45,6 +51,8 @@ type OverviewData = {
   summary: SpaceSummaryApi | null;
   zones: ZoneApiResponse[];
 };
+
+type LifecycleAction = "close" | "delete" | "maintenance";
 
 const EMPTY_DATA: OverviewData = {
   availableManagerCount: 0,
@@ -138,9 +146,14 @@ export function ParkingLotOverviewPage() {
   const [error, setError] = useState("");
   const [activationAction, setActivationAction] = useState<"activate" | "request" | null>(null);
   const [activationSaving, setActivationSaving] = useState(false);
+  const [lotEditOpen, setLotEditOpen] = useState(false);
+  const [managerAssignmentOpen, setManagerAssignmentOpen] = useState(false);
+  const [lifecycleAction, setLifecycleAction] = useState<LifecycleAction | null>(null);
+  const [lifecycleSaving, setLifecycleSaving] = useState(false);
 
   const canManageLots = hasAnyPermission(user, ["PARKING_LOT_UPDATE_ALL"])
     && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
+  const canCreateLots = hasAnyPermission(user, ["PARKING_LOT_CREATE_ALL"]);
   const canManageAssignments = hasAnyPermission(user, ["ORGANIZATION_MEMBERSHIP_MANAGE_ALL"]);
   const isParkingManager = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"]);
   const canDirectlyActivate = canManageLots;
@@ -294,6 +307,110 @@ export function ParkingLotOverviewPage() {
     }
   }
 
+  async function handleLifecycleAction() {
+    if (!selectedLot || !lifecycleAction) return;
+    setLifecycleSaving(true);
+    try {
+      if (lifecycleAction === "delete") {
+        await deleteParkingLot(selectedLot.parkingLotId);
+        toast.success("Bãi xe đã được xóa khỏi hoạt động.", "Đã xóa bãi xe");
+        setLifecycleAction(null);
+        await loadLots();
+        return;
+      }
+
+      const response = lifecycleAction === "maintenance"
+        ? await markParkingLotMaintenance(selectedLot.parkingLotId)
+        : await closeParkingLot(selectedLot.parkingLotId);
+      setLots((current) => current.map((lot) => lot.parkingLotId === selectedLot.parkingLotId ? response.data : lot));
+      toast.success(
+        response.message || (lifecycleAction === "maintenance" ? "Bãi xe đã chuyển sang bảo trì." : "Bãi xe đã được đóng."),
+        lifecycleAction === "maintenance" ? "Đã chuyển sang bảo trì" : "Đã đóng bãi xe",
+      );
+      setLifecycleAction(null);
+    } catch (requestError) {
+      toast.error(
+        requestError instanceof Error ? requestError.message : "Không thể cập nhật trạng thái bãi xe.",
+        "Thao tác không thành công",
+      );
+    } finally {
+      setLifecycleSaving(false);
+    }
+  }
+
+  const parkingLotActions = useMemo<ParkingLotActionItem[]>(() => {
+    if (!selectedLot) return [];
+    const actions: ParkingLotActionItem[] = [];
+    if (canManageLots && selectedLot.status !== "CLOSED") {
+      actions.push({
+        description: "Cập nhật tên, sức chứa, địa chỉ và tọa độ.",
+        icon: "fas fa-pencil-alt",
+        id: "edit",
+        label: "Sửa bãi",
+        onSelect: () => setLotEditOpen(true),
+      });
+    }
+    if (canManageAssignments && selectedLot.status !== "CLOSED") {
+      actions.push({
+        description: "Gán hoặc gỡ Parking Manager phụ trách bãi.",
+        icon: "fas fa-users-cog",
+        id: "manager",
+        label: "Phân công Manager",
+        onSelect: () => setManagerAssignmentOpen(true),
+      });
+    }
+    if (canDirectlyActivate && (selectedLot.status === "SETUP" || selectedLot.status === "MAINTENANCE")) {
+      actions.push({
+        description: selectedLot.status === "MAINTENANCE" ? "Đưa bãi hoạt động trở lại." : "Đưa bãi vào hoạt động khi đã cấu hình đủ.",
+        icon: "fas fa-play",
+        id: "activate",
+        label: selectedLot.activationRequestedAt ? "Duyệt & kích hoạt" : selectedLot.status === "MAINTENANCE" ? "Kích hoạt lại" : "Kích hoạt bãi",
+        onSelect: () => beginActivation("activate"),
+      });
+    }
+    if (selectedLot.status === "SETUP" && isParkingManager) {
+      actions.push({
+        description: selectedLot.activationRequestedAt ? "Yêu cầu đang chờ Partner Admin xử lý." : "Gửi Partner Admin kiểm tra và kích hoạt.",
+        disabled: Boolean(selectedLot.activationRequestedAt),
+        icon: selectedLot.activationRequestedAt ? "fas fa-clock" : "fas fa-paper-plane",
+        id: "request-activation",
+        label: selectedLot.activationRequestedAt ? "Đang chờ kích hoạt" : "Yêu cầu kích hoạt",
+        onSelect: () => beginActivation("request"),
+      });
+    }
+    if (canManageLots && selectedLot.status === "ACTIVE") {
+      actions.push({
+        description: "Tạm ngừng vận hành bãi để kiểm tra hoặc sửa chữa.",
+        icon: "fas fa-tools",
+        id: "maintenance",
+        label: "Chuyển sang bảo trì",
+        onSelect: () => setLifecycleAction("maintenance"),
+      });
+    }
+    if (canManageLots && (selectedLot.status === "ACTIVE" || selectedLot.status === "MAINTENANCE")) {
+      actions.push({
+        danger: true,
+        description: "Đóng bãi sau khi không còn khu vực đang hoạt động.",
+        icon: "fas fa-ban",
+        id: "close",
+        label: "Đóng bãi",
+        onSelect: () => setLifecycleAction("close"),
+      });
+    }
+    if (canManageLots && selectedLot.status === "SETUP") {
+      actions.push({
+        danger: true,
+        description: "Loại bãi đang thiết lập khỏi hoạt động; cần đóng các khu vực trước.",
+        icon: "far fa-trash-alt",
+        id: "delete",
+        label: "Xóa bãi",
+        onSelect: () => setLifecycleAction("delete"),
+      });
+    }
+
+    return actions;
+  }, [canDirectlyActivate, canManageAssignments, canManageLots, isParkingManager, navigate, selectedLot]);
+
   if (loading && !selectedLot) {
     return <div className="tw-flex tw-min-h-[420px] tw-items-center tw-justify-center tw-text-sm tw-font-semibold tw-text-vm-slate-500"><i className="fas fa-spinner fa-spin tw-mr-2" />Đang tải bãi xe…</div>;
   }
@@ -330,24 +447,16 @@ export function ParkingLotOverviewPage() {
           onParkingLotChange={setSelectedLotId}
           actions={(
             <>
-              {canManageLots ? <Button variant="secondary" onClick={() => navigate(`/admin/parking-structure?lot=${encodeURIComponent(selectedLot.parkingLotId)}&action=edit`)}><i className="fas fa-pencil-alt" />Sửa bãi</Button> : null}
-              {canManageAssignments ? <Button variant="secondary" onClick={() => navigate(`/admin/parking-structure?lot=${encodeURIComponent(selectedLot.parkingLotId)}&action=manager`)}><i className="fas fa-users-cog" />Phân công Manager</Button> : null}
-              {selectedLot.status === "SETUP" && canDirectlyActivate ? (
-                <Button onClick={() => beginActivation("activate")}>
-                  <i className="fas fa-play" />{selectedLot.activationRequestedAt ? "Duyệt & kích hoạt" : "Kích hoạt bãi"}
-                </Button>
-              ) : null}
-              {selectedLot.status === "SETUP" && isParkingManager ? (
-                <Button
-                  variant={selectedLot.activationRequestedAt ? "secondary" : "primary"}
-                  disabled={Boolean(selectedLot.activationRequestedAt)}
-                  onClick={() => beginActivation("request")}
-                >
-                  <i className={selectedLot.activationRequestedAt ? "fas fa-clock" : "fas fa-paper-plane"} />
-                  {selectedLot.activationRequestedAt ? "Đang chờ kích hoạt" : "Yêu cầu kích hoạt"}
-                </Button>
-              ) : null}
+              <ParkingLotActionsMenu items={parkingLotActions} />
               <Button onClick={() => navigate(parkingWorkspaceHref("live", selectedLot.parkingLotId))}><i className="fas fa-desktop" />Xem trực tiếp</Button>
+              {canCreateLots ? (
+                <div className="tw-flex tw-basis-full tw-justify-end">
+                  <Button onClick={() => navigate(`/admin/parking-structure?lot=${encodeURIComponent(selectedLot.parkingLotId)}&action=create`)}>
+                    <i className="fas fa-plus" aria-hidden="true" />
+                    Thêm bãi
+                  </Button>
+                </div>
+              ) : null}
             </>
           )}
         />
@@ -433,7 +542,7 @@ export function ParkingLotOverviewPage() {
               {!isParkingManager && data.managers.length === 0 ? <div className="tw-flex tw-h-[124px] tw-items-center tw-justify-center tw-text-center tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500">Bãi xe chưa được phân công Manager.</div> : null}
               {isParkingManager && data.managers.length === 0 ? <div className="tw-flex tw-h-[124px] tw-items-center tw-justify-center tw-rounded-vm-md tw-bg-emerald-50 tw-px-4 tw-text-center tw-text-[0.76rem] tw-font-semibold tw-text-emerald-700"><span><i className="fas fa-user-check tw-mb-2 tw-block tw-text-xl" />Bạn đang được phân công phụ trách bãi xe này.</span></div> : null}
             </div>
-            {canManageAssignments ? <Button variant="secondary" className="tw-mt-2 tw-w-full" onClick={() => navigate(`/admin/parking-structure?lot=${encodeURIComponent(selectedLot.parkingLotId)}&action=manager`)}><i className="fas fa-users-cog" />Quản lý phân công</Button> : null}
+            {canManageAssignments ? <Button variant="secondary" className="tw-mt-2 tw-w-full" onClick={() => setManagerAssignmentOpen(true)}><i className="fas fa-users-cog" />Quản lý phân công</Button> : null}
           </Card>
         </div>
 
@@ -446,6 +555,25 @@ export function ParkingLotOverviewPage() {
           </div>
         </Card>
       </section>
+      <ParkingLotEditModal
+        lot={selectedLot}
+        open={lotEditOpen}
+        onClose={() => setLotEditOpen(false)}
+        onCompleted={(updatedLot) => {
+          setLots((current) => current.map((lot) => lot.parkingLotId === updatedLot.parkingLotId ? updatedLot : lot));
+          setLotEditOpen(false);
+          toast.success("Đã cập nhật thông tin bãi xe.");
+        }}
+      />
+      <ParkingManagerAssignmentModal
+        lot={selectedLot}
+        open={managerAssignmentOpen}
+        onClose={() => setManagerAssignmentOpen(false)}
+        onChanged={(message) => {
+          toast.success(message);
+          void loadOverview(selectedLot);
+        }}
+      />
       <ConfirmDialog
         open={activationAction !== null}
         title={activationAction === "activate" ? "Kích hoạt bãi xe" : "Gửi yêu cầu kích hoạt"}
@@ -459,6 +587,23 @@ export function ParkingLotOverviewPage() {
         loading={activationSaving}
         onCancel={() => { if (!activationSaving) setActivationAction(null); }}
         onConfirm={() => void handleActivation()}
+      />
+      <ConfirmDialog
+        open={lifecycleAction !== null}
+        title={lifecycleAction === "maintenance" ? "Chuyển bãi sang bảo trì" : lifecycleAction === "close" ? "Đóng bãi xe" : "Xóa bãi xe"}
+        description={lifecycleAction === "maintenance"
+          ? "Bãi sẽ tạm ngừng nhận các lượt xe mới cho đến khi được kích hoạt lại."
+          : "Backend chỉ cho phép thực hiện khi bãi không còn khu vực đang hoạt động."}
+        message={lifecycleAction === "maintenance"
+          ? `Xác nhận chuyển ${selectedLot.name} sang trạng thái bảo trì?`
+          : lifecycleAction === "close"
+            ? `Xác nhận đóng ${selectedLot.name}?`
+            : `Xác nhận xóa ${selectedLot.name} khỏi hoạt động?`}
+        confirmLabel={lifecycleAction === "maintenance" ? "Chuyển bảo trì" : lifecycleAction === "close" ? "Đóng bãi" : "Xóa bãi"}
+        loading={lifecycleSaving}
+        tone={lifecycleAction === "close" || lifecycleAction === "delete" ? "danger" : "default"}
+        onCancel={() => { if (!lifecycleSaving) setLifecycleAction(null); }}
+        onConfirm={() => void handleLifecycleAction()}
       />
     </main>
   );

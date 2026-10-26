@@ -294,6 +294,7 @@ public class GlobalExceptionHandler {
             AccessDeniedException exception,
             HttpServletRequest request
     ) {
+        LOGGER.warn("Access denied at {}: {}", request.getRequestURI(), exception.getMessage());
         return buildErrorResponse(
                 HttpStatus.FORBIDDEN,
                 "Bạn không có quyền thực hiện thao tác này",
