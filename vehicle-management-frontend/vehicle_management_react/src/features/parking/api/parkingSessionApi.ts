@@ -340,9 +340,10 @@ export async function fetchVehicleTypes() {
   return response.data;
 }
 
-export async function fetchParkingZones(status?: ZoneStatus) {
+export async function fetchParkingZones(status?: ZoneStatus, parkingLotId?: string) {
   const query = new URLSearchParams();
   if (status) query.set("status", status);
+  if (parkingLotId) query.set("parkingLotId", parkingLotId);
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
   const response = await apiClient<ApiResponse<ZoneResponse[]>>(

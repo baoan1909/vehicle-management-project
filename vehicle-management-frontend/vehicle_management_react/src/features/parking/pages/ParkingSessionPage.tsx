@@ -264,7 +264,13 @@ function SessionDetailDrawer({
 
 export function ParkingSessionPage() {
   const { user } = useAuth();
-  const showParkingLotFilter = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
+  const hasPartnerParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
+  const hasAssignedParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"]);
+  const hasPlatformParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_PLATFORM"]);
+  const showParkingLotFilter = hasPartnerParkingScope || hasAssignedParkingScope || hasPlatformParkingScope;
+  const assignedParkingScopeOnly = hasAssignedParkingScope
+    && !hasPartnerParkingScope
+    && !hasPlatformParkingScope;
   const { permittedLotIds } = usePlatformMonitoringScope();
   const defaultDateRange = `${daysAgoIso(6)}|${todayIso()}`;
   const [activeTab, setActiveTab] = useState<SessionTab>("all");
@@ -281,6 +287,7 @@ export function ParkingSessionPage() {
   const [zoneFilter, setZoneFilter] = useState("all");
   const [parkingLotFilter, setParkingLotFilter] = useState("all");
   const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
+  const [parkingLotsLoaded, setParkingLotsLoaded] = useState(false);
   const [parkingLotError, setParkingLotError] = useState("");
   const [zones, setZones] = useState<ZoneResponse[]>([]);
   const [loadError, setLoadError] = useState("");
@@ -291,51 +298,101 @@ export function ParkingSessionPage() {
   }, [permittedLotIds]);
 
   useEffect(() => {
-    if (!showParkingLotFilter) return undefined;
+    if (!showParkingLotFilter) {
+      setParkingLotsLoaded(true);
+      return undefined;
+    }
     let active = true;
+    setParkingLotsLoaded(false);
     void getParkingLots()
       .then((response) => {
         if (!active) return;
-        setParkingLots(response.data ?? []);
+        const nextParkingLots = response.data ?? [];
+        setParkingLots(nextParkingLots);
+        setParkingLotFilter((current) => {
+          if (current !== "all" && nextParkingLots.some((lot) => lot.parkingLotId === current)) {
+            return current;
+          }
+          if (assignedParkingScopeOnly && nextParkingLots.length === 1) {
+            return nextParkingLots[0].parkingLotId;
+          }
+          return "all";
+        });
         setParkingLotError("");
       })
       .catch((error) => {
         if (!active) return;
         setParkingLots([]);
         setParkingLotError(error instanceof Error ? error.message : "Không tải được danh sách bãi xe.");
+      })
+      .finally(() => {
+        if (active) setParkingLotsLoaded(true);
       });
     return () => { active = false; };
-  }, [showParkingLotFilter]);
+  }, [assignedParkingScopeOnly, showParkingLotFilter]);
 
   useEffect(() => {
     let active = true;
 
-    async function loadFilters() {
+    async function loadVehicleTypes() {
       setFilterLoadError("");
       try {
-        const [nextVehicleTypes, nextZones] = await Promise.all([
-          fetchVehicleTypes(),
-          fetchParkingZones("ACTIVE"),
-        ]);
+        const nextVehicleTypes = await fetchVehicleTypes();
         if (!active) return;
         setVehicleTypes(nextVehicleTypes);
+      } catch (error) {
+        if (!active) return;
+        setVehicleTypes([]);
+        setFilterLoadError(error instanceof Error ? error.message : "Không tải được bộ lọc loại xe.");
+      }
+    }
+
+    void loadVehicleTypes();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (assignedParkingScopeOnly && !parkingLotsLoaded) return undefined;
+    let active = true;
+
+    async function loadZones() {
+      setFilterLoadError("");
+      try {
+        let nextZones: ZoneResponse[];
+        if (assignedParkingScopeOnly) {
+          const assignedLotIds = parkingLotFilter === "all"
+            ? parkingLots.map((lot) => lot.parkingLotId)
+            : [parkingLotFilter];
+          const zonesByParkingLot = await Promise.all(
+            assignedLotIds.map((parkingLotId) => fetchParkingZones("ACTIVE", parkingLotId)),
+          );
+          nextZones = zonesByParkingLot.flat();
+        } else {
+          nextZones = await fetchParkingZones(
+            "ACTIVE",
+            parkingLotFilter === "all" ? undefined : parkingLotFilter,
+          );
+        }
+        if (!active) return;
         setZones(permittedLotIds
           ? nextZones.filter((zone) => zone.parkingLotId != null && permittedLotIds.has(zone.parkingLotId))
           : nextZones);
       } catch (error) {
         if (!active) return;
-        setVehicleTypes([]);
         setZones([]);
-        setFilterLoadError(error instanceof Error ? error.message : "Không tải được bộ lọc loại xe/khu vực.");
+        setFilterLoadError(error instanceof Error ? error.message : "Không tải được bộ lọc khu vực.");
       }
     }
 
-    void loadFilters();
+    void loadZones();
 
     return () => {
       active = false;
     };
-  }, [permittedLotIds]);
+  }, [assignedParkingScopeOnly, parkingLotFilter, parkingLots, parkingLotsLoaded, permittedLotIds]);
 
   useEffect(() => {
     let active = true;
@@ -348,7 +405,7 @@ export function ParkingSessionPage() {
         const nextSessions = await fetchParkingSessions({
           fromDate,
           keyword: searchValue,
-          parkingLotId: showParkingLotFilter && parkingLotFilter !== "all" ? parkingLotFilter : undefined,
+          parkingLotId: parkingLotFilter !== "all" ? parkingLotFilter : undefined,
           toDate,
           vehicleTypeId: vehicleTypeFilter === "all" ? undefined : vehicleTypeFilter,
           zoneId: zoneFilter === "all" ? undefined : zoneFilter,
@@ -384,9 +441,9 @@ export function ParkingSessionPage() {
 
   const vehicleTypeOptions = useMemo(() => buildVehicleTypeOptions(vehicleTypes), [vehicleTypes]);
   const parkingLotOptions = useMemo(() => [
-    { label: "Tất cả bãi xe", value: "all" },
+    { label: assignedParkingScopeOnly ? "Tất cả bãi được phân công" : "Tất cả bãi xe", value: "all" },
     ...parkingLots.map((lot) => ({ label: lot.name, value: lot.parkingLotId })),
-  ], [parkingLots]);
+  ], [assignedParkingScopeOnly, parkingLots]);
 
   const filteredZoneOptions = useMemo(() => {
     const matchedZones = zones.filter((zone) =>
@@ -444,7 +501,11 @@ export function ParkingSessionPage() {
     setSearchValue("");
     setVehicleTypeFilter("all");
     setZoneFilter("all");
-    setParkingLotFilter("all");
+    setParkingLotFilter(
+      assignedParkingScopeOnly && parkingLots.length === 1
+        ? parkingLots[0].parkingLotId
+        : "all",
+    );
     setPage(1);
   };
 

@@ -24,6 +24,7 @@ import lombok.Setter;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import jakarta.persistence.PrePersist;
 
 @Entity
 @Table(name = "payments", schema = "billing")
@@ -110,8 +111,15 @@ public class PaymentEntity {
     @Column(name = "reversed_payment_id")
     private UUID reversedPaymentId;
 
-    @Column(name = "refunded_amount", precision = 19, scale = 2)
+    @Column(name = "refunded_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal refundedAmount;
+
+    @PrePersist
+    void initializeDefaults() {
+        if (refundedAmount == null) {
+            refundedAmount = BigDecimal.ZERO;
+        }
+    }
 }
 
 
