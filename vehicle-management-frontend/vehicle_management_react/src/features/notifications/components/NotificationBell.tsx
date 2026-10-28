@@ -70,7 +70,9 @@ const typeMeta: Record<NotificationType, { icon: string; tone: string }> = {
   SHIFT_CANCELLED: { icon: "far fa-calendar-times", tone: "tw-bg-red-50 tw-text-red-600" },
   DEVICE_OFFLINE: { icon: "fas fa-plug", tone: "tw-bg-red-50 tw-text-red-600" },
   DEVICE_MAINTENANCE: { icon: "fas fa-tools", tone: "tw-bg-amber-50 tw-text-amber-700" },
+  LANE_ACTIVATED: { icon: "fas fa-road", tone: "tw-bg-emerald-50 tw-text-emerald-700" },
   LANE_MAINTENANCE: { icon: "fas fa-road", tone: "tw-bg-amber-50 tw-text-amber-700" },
+  LANE_CLOSED: { icon: "fas fa-road", tone: "tw-bg-red-50 tw-text-red-600" },
   PARKING_LOT_MAINTENANCE: { icon: "fas fa-parking", tone: "tw-bg-amber-50 tw-text-amber-700" },
   PRICE_PLAN_CHANGED: { icon: "fas fa-file-invoice-dollar", tone: "tw-bg-brand-50 tw-text-vm-primary" },
   PRICE_RULE_CHANGED: { icon: "fas fa-tags", tone: "tw-bg-brand-50 tw-text-vm-primary" },
@@ -118,7 +120,7 @@ function getGroupKey(type: NotificationType): NotificationGroupKey {
     type.startsWith("SUPPORT_TICKET") ||
     type.startsWith("SHIFT") ||
     type.startsWith("DEVICE") ||
-    type === "LANE_MAINTENANCE" ||
+    type.startsWith("LANE_") ||
     type === "PARKING_LOT_MAINTENANCE"
   ) {
     return "operations";
@@ -164,7 +166,10 @@ function normalizeNotificationTarget(notification: NotificationUserResponse, use
   if (notification.notificationType.startsWith("SHIFT")) {
     return "/admin/shifts";
   }
-  if (notification.notificationType.startsWith("DEVICE") || notification.notificationType === "LANE_MAINTENANCE" || notification.notificationType === "PARKING_LOT_MAINTENANCE") {
+  if (notification.notificationType.startsWith("LANE_")) {
+    return "/admin/parking-structure";
+  }
+  if (notification.notificationType.startsWith("DEVICE") || notification.notificationType === "PARKING_LOT_MAINTENANCE") {
     return "/admin/devices";
   }
   if (notification.notificationType.startsWith("PRICE") || notification.notificationType === "TICKET_TYPE_CHANGED") {

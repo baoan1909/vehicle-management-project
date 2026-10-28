@@ -204,6 +204,21 @@ public class LaneUsecaseImplTest {
     }
 
     @Test
+    void shouldNotSaveOrNotifyWhenLaneIsAlreadyActive() {
+        UUID laneId = UUID.randomUUID();
+        Lane existingLane = validLane(UUID.randomUUID(), LaneDirection.IN);
+        existingLane.setLaneId(laneId);
+        existingLane.setStatus(LaneStatus.ACTIVE);
+        when(lanePortOut.findById(laneId)).thenReturn(Optional.of(existingLane));
+
+        Lane lane = laneUsecase.activateLane(laneId);
+
+        assertEquals(LaneStatus.ACTIVE, lane.getStatus());
+        verify(lanePortOut, never()).save(any(Lane.class));
+        verify(lanePortOut, never()).existsOperationalGateById(any(UUID.class));
+    }
+
+    @Test
     void shouldCloseLaneOnDelete() {
         UUID laneId = UUID.randomUUID();
 

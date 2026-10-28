@@ -3,6 +3,8 @@ package com.ban.vehicle_management.application.notification.notification.usecase
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.domain.notification.notification.model.Notification;
+import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,7 +32,7 @@ public class RequiresNewNotificationSender {
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void sendBroadcast(BroadcastNotificationCommand command) {
-        notificationPortIn.sendBroadcastWebNotification(command);
+    public List<Notification> sendBroadcast(BroadcastNotificationCommand command) {
+        return notificationPortIn.sendBroadcastWebNotification(command);
     }
 }

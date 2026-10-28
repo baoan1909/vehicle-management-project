@@ -271,7 +271,7 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
 
         if (!parkingLotPortOut.isReadyForActivation(parkingLotId)) {
             throw new ConflictException(
-                    "Parking lot needs at least one active zone, gate, IN lane, and OUT lane before activation"
+                    "Parking lot needs at least one active zone, gate, IN lane, OUT lane, and a published layout for every active SPACE zone before activation"
             );
         }
 
@@ -294,7 +294,7 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         }
         if (!parkingLotPortOut.isReadyForActivation(parkingLotId)) {
             throw new ConflictException(
-                    "Parking lot needs at least one active zone, gate, IN lane, and OUT lane before requesting activation"
+                    "Parking lot needs at least one active zone, gate, IN lane, OUT lane, and a published layout for every active SPACE zone before requesting activation"
             );
         }
 

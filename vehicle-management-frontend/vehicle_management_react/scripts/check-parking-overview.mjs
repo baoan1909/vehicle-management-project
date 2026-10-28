@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 const read = (path) => readFileSync(new URL(path, import.meta.url), "utf8");
 const overview = read("../src/features/parking/pages/ParkingLotOverviewPage.tsx");
 const header = read("../src/features/parking/components/ParkingLotWorkspaceHeader.tsx");
+const managerAssignment = read("../src/features/parking/components/ParkingManagerAssignmentModal.tsx");
 const routes = read("../src/app/routes.tsx");
 const navigation = read("../src/config/navigation.ts");
 
@@ -43,5 +44,14 @@ assert.match(overview, /markParkingLotMaintenance\(selectedLot\.parkingLotId\)/)
 assert.match(overview, /closeParkingLot\(selectedLot\.parkingLotId\)/);
 assert.match(overview, /deleteParkingLot\(selectedLot\.parkingLotId\)/);
 assert.match(overview, /Yêu cầu kích hoạt/);
+assert.match(overview, /zone\.status === "ACTIVE" && zone\.trackingMode === "SPACE"/);
+assert.match(overview, /activeSpaceZones\.length === 0[\s\S]*"Không áp dụng"/);
+assert.match(overview, /Partner Admin trực tiếp phụ trách/);
+assert.match(overview, /Đã đủ điều kiện kích hoạt/);
+assert.match(overview, /Kích hoạt bãi/);
+assert.match(overview, /tw-whitespace-nowrap/);
+assert.match(overview, /beginActivation\("activate"\)/);
+assert.match(managerAssignment, /Partner Admin mặc định trực tiếp phụ trách/);
+assert.doesNotMatch(overview, /xuất bản sơ đồ cho tất cả khu vực/);
 
 console.log("Parking lot overview checks passed.");
