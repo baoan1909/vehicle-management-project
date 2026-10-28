@@ -10,6 +10,7 @@ import com.ban.vehicle_management.domain.parking.gate.policy.GatePolicy;
 import com.ban.vehicle_management.shared.enumeration.parking.GateStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,9 @@ public class GateUseCaseImpl implements GatePortIn {
     @Transactional
     public Gate createGate(Gate gate) {
         ensureCanConfigureZone(gate.getZoneId());
+        UUID gateId = UUID.randomUUID();
+        gate.setGateId(gateId);
+        gate.setCode(IdentifierGenerationUtils.generateGateCode(gateId));
         gatePolicy.initialize(gate);
         validateActiveZone(gate.getZoneId());
 
@@ -54,7 +58,6 @@ public class GateUseCaseImpl implements GatePortIn {
             throw new ConflictException("Gate code already exists in this zone");
         }
 
-        gate.setGateId(UUID.randomUUID());
         return gatePortOut.save(gate);
     }
 
@@ -77,18 +80,9 @@ public class GateUseCaseImpl implements GatePortIn {
         Gate existingGate = getGateById(gateId);
         ensureCanConfigureZone(existingGate.getZoneId());
 
-        existingGate.setCode(gate.getCode());
         existingGate.setName(gate.getName());
 
         gatePolicy.initialize(existingGate);
-
-        if (gatePortOut.existsByZoneIdAndCodeAndGateIdNot(
-                existingGate.getZoneId(),
-                existingGate.getCode(),
-                gateId
-        )) {
-            throw new ConflictException("Gate code already exists in this zone");
-        }
 
         return gatePortOut.save(existingGate);
     }

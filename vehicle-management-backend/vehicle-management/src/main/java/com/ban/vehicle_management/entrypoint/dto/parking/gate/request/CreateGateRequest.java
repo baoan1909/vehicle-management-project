@@ -4,7 +4,6 @@ import java.util.UUID;
 
 public record CreateGateRequest(
         UUID zoneId,
-        String code,
         String name
 ) {
 }

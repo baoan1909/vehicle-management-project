@@ -7,7 +7,6 @@ import java.util.Set;
 public record CreateZoneRequest(
         UUID parkingLotId,
         UUID parkingLevelId,
-        String code,
         String name,
         UUID vehicleTypeId,
         Set<UUID> vehicleTypeIds,

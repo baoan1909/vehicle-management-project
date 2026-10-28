@@ -40,17 +40,18 @@ export type ParkingLotFilter = {
   status?: ParkingLotStatusApi;
 };
 
-export type UpsertParkingLotRequest = {
+export type CreateParkingLotRequest = {
   addressDisplay: string;
   addressInputScheme: AddressInputSchemeApi;
   currentWardCode: string | null;
   legacyWardCode: string | null;
-  code: string;
   latitude: number | null;
   longitude: number | null;
   name: string;
   totalCapacity: number;
 };
+
+export type UpdateParkingLotRequest = CreateParkingLotRequest;
 
 export function geocodeParkingLot(parkingLotId: string) {
   return apiClient<ApiResponse<ParkingLotApiResponse>>(
@@ -85,14 +86,14 @@ export function getParkingLots(filter: ParkingLotFilter = {}) {
   );
 }
 
-export function createParkingLot(payload: UpsertParkingLotRequest) {
+export function createParkingLot(payload: CreateParkingLotRequest) {
   return apiClient<ApiResponse<ParkingLotApiResponse>>(apiEndpoints.parking.parkingLots, {
     body: payload,
     method: "POST",
   });
 }
 
-export function updateParkingLot(parkingLotId: string, payload: UpsertParkingLotRequest) {
+export function updateParkingLot(parkingLotId: string, payload: UpdateParkingLotRequest) {
   return apiClient<ApiResponse<ParkingLotApiResponse>>(`${apiEndpoints.parking.parkingLots}/${parkingLotId}`, {
     body: payload,
     method: "PUT",

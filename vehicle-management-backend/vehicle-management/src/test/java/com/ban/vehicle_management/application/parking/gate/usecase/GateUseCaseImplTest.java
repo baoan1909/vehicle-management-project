@@ -13,6 +13,7 @@ import com.ban.vehicle_management.domain.parking.gate.model.Gate;
 import com.ban.vehicle_management.shared.enumeration.parking.GateStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -37,13 +38,12 @@ class GateUseCaseImplTest {
         Gate request = validGate(zoneId);
 
         when(gatePortOut.existsActiveZoneById(zoneId)).thenReturn(true);
-        when(gatePortOut.existsByZoneIdAndCode(zoneId, "MOTO-GATE-01")).thenReturn(false);
         when(gatePortOut.save(any(Gate.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Gate createdGate = gateUseCase.createGate(request);
 
         assertNotNull(createdGate.getGateId());
-        assertEquals("MOTO-GATE-01", createdGate.getCode());
+        assertEquals(IdentifierGenerationUtils.generateGateCode(createdGate.getGateId()), createdGate.getCode());
         assertEquals(GateStatus.ACTIVE, createdGate.getStatus());
     }
 
@@ -64,7 +64,7 @@ class GateUseCaseImplTest {
         Gate request = validGate(zoneId);
 
         when(gatePortOut.existsActiveZoneById(zoneId)).thenReturn(true);
-        when(gatePortOut.existsByZoneIdAndCode(zoneId, "MOTO-GATE-01")).thenReturn(true);
+        when(gatePortOut.existsByZoneIdAndCode(any(UUID.class), any(String.class))).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> gateUseCase.createGate(request));
         verify(gatePortOut, never()).save(any(Gate.class));
@@ -118,33 +118,14 @@ class GateUseCaseImplTest {
         request.setName(" Cong xe may so 2 ");
 
         when(gatePortOut.findById(gateId)).thenReturn(Optional.of(existingGate));
-        when(gatePortOut.existsByZoneIdAndCodeAndGateIdNot(zoneId, "MOTO-GATE-02", gateId)).thenReturn(false);
         when(gatePortOut.save(any(Gate.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Gate updatedGate = gateUseCase.updateGate(gateId, request);
 
-        assertEquals("MOTO-GATE-02", updatedGate.getCode());
+        assertEquals("MOTO-GATE-01", updatedGate.getCode());
         assertEquals("Cong xe may so 2", updatedGate.getName());
         assertEquals(zoneId, updatedGate.getZoneId());
         assertEquals(GateStatus.MAINTENANCE, updatedGate.getStatus());
-    }
-
-    @Test
-    void shouldRejectUpdateWhenCodeAlreadyExistsInZone() {
-        UUID gateId = UUID.randomUUID();
-        UUID zoneId = UUID.randomUUID();
-        Gate existingGate = validGate(zoneId);
-        existingGate.setGateId(gateId);
-
-        Gate request = new Gate();
-        request.setCode("MOTO-GATE-02");
-        request.setName("Cong xe may so 2");
-
-        when(gatePortOut.findById(gateId)).thenReturn(Optional.of(existingGate));
-        when(gatePortOut.existsByZoneIdAndCodeAndGateIdNot(zoneId, "MOTO-GATE-02", gateId)).thenReturn(true);
-
-        assertThrows(ConflictException.class, () -> gateUseCase.updateGate(gateId, request));
-        verify(gatePortOut, never()).save(any(Gate.class));
     }
 
     @Test

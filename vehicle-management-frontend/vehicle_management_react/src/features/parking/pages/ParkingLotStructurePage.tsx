@@ -416,7 +416,6 @@ function fieldInputClass(hasError: boolean) {
 
 export type ZoneFormPayload = {
   parkingLevelId: string;
-  code: string;
   name: string;
   vehicleTypeIds: string[];
   capacity: number;
@@ -436,7 +435,6 @@ function ZoneFormModal({ open, title, levels, vehicleTypes, initial, defaultLeve
   onClose: () => void;
 }) {
   const [levelId, setLevelId] = useState("");
-  const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [selectedVehicleTypes, setSelectedVehicleTypes] = useState<string[]>([]);
   const [trackingMode, setTrackingMode] = useState<TrackingMode>("CAPACITY");
@@ -446,7 +444,6 @@ function ZoneFormModal({ open, title, levels, vehicleTypes, initial, defaultLeve
   useEffect(() => {
     if (!open) return;
     setLevelId(initial?.levelId ?? defaultLevelId ?? levels[0]?.id ?? "");
-    setCode(initial?.code ?? "");
     setName(initial?.name ?? "");
     setSelectedVehicleTypes(initial?.vehicleTypeIds ?? []);
     setTrackingMode(initial?.trackingMode ?? "CAPACITY");
@@ -463,9 +460,6 @@ function ZoneFormModal({ open, title, levels, vehicleTypes, initial, defaultLeve
   function handleSubmit() {
     const nextErrors: Record<string, string> = {};
     if (!levelId) nextErrors.levelId = "Vui lòng chọn tầng.";
-    if (!code.trim()) nextErrors.code = "Vui lòng nhập mã khu.";
-    else if (!/^[A-Za-z0-9_-]+$/.test(code.trim())) nextErrors.code = "Mã khu chỉ gồm chữ cái, số, gạch dưới hoặc gạch ngang.";
-    else if (code.trim().length > 50) nextErrors.code = "Mã khu tối đa 50 ký tự.";
     if (!name.trim()) nextErrors.name = "Vui lòng nhập tên khu.";
     else if (name.trim().length > 150) nextErrors.name = "Tên khu tối đa 150 ký tự.";
     if (selectedVehicleTypes.length === 0) nextErrors.vehicleTypeIds = "Vui lòng chọn ít nhất một loại phương tiện.";
@@ -479,7 +473,6 @@ function ZoneFormModal({ open, title, levels, vehicleTypes, initial, defaultLeve
     if (Object.keys(nextErrors).length > 0) return;
     onSubmit({
       parkingLevelId: levelId,
-      code: code.trim().toUpperCase(),
       name: name.trim(),
       vehicleTypeIds: selectedVehicleTypes,
       capacity: trackingMode === "SPACE" ? (initial ? initial.capacity : 0) : Number(capacity),
@@ -517,14 +510,9 @@ function ZoneFormModal({ open, title, levels, vehicleTypes, initial, defaultLeve
             options={[{ label: "Chọn tầng", value: "" }, ...levels.map((level) => ({ label: `${level.code} — ${level.name}`, value: level.id }))]}
           />
         </FormField>
-        <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[620px]:tw-grid-cols-1">
-          <FormField label="Mã khu" required error={errors.code}>
-            <input className={fieldInputClass(Boolean(errors.code))} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="VD: A" maxLength={50} />
-          </FormField>
-          <FormField label="Tên khu" required error={errors.name}>
-            <input className={fieldInputClass(Boolean(errors.name))} value={name} onChange={(event) => setName(event.target.value)} placeholder="VD: Khu A" maxLength={150} />
-          </FormField>
-        </div>
+        <FormField label="Tên khu" required error={errors.name}>
+          <input className={fieldInputClass(Boolean(errors.name))} value={name} onChange={(event) => setName(event.target.value)} placeholder="VD: Khu A" maxLength={150} />
+        </FormField>
         <FormField label="Loại phương tiện" required error={errors.vehicleTypeIds}>
           <div className="tw-grid tw-max-h-40 tw-gap-1.5 tw-overflow-y-auto tw-rounded-[8px] tw-border tw-border-solid tw-border-[#dbe3f0] tw-p-2">
             {vehicleTypes.length === 0 ? (
@@ -575,7 +563,7 @@ function ZoneFormModal({ open, title, levels, vehicleTypes, initial, defaultLeve
 /* Gate form modal                                                    */
 /* ------------------------------------------------------------------ */
 
-export type GateFormPayload = { zoneId: string; code: string; name: string };
+export type GateFormPayload = { zoneId: string; name: string };
 
 function GateFormModal({ open, title, zones, initial, defaultZoneId, submitting, serverError, onSubmit, onClose }: {
   open: boolean;
@@ -589,14 +577,12 @@ function GateFormModal({ open, title, zones, initial, defaultZoneId, submitting,
   onClose: () => void;
 }) {
   const [zoneId, setZoneId] = useState("");
-  const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!open) return;
     setZoneId(initial?.zoneId ?? defaultZoneId ?? zones[0]?.id ?? "");
-    setCode(initial?.code ?? "");
     setName(initial?.name ?? "");
     setErrors({});
   }, [open, initial, defaultZoneId, zones]);
@@ -604,14 +590,11 @@ function GateFormModal({ open, title, zones, initial, defaultZoneId, submitting,
   function handleSubmit() {
     const nextErrors: Record<string, string> = {};
     if (!zoneId) nextErrors.zoneId = "Vui lòng chọn khu vực.";
-    if (!code.trim()) nextErrors.code = "Vui lòng nhập mã cổng.";
-    else if (!/^[A-Za-z0-9_-]+$/.test(code.trim())) nextErrors.code = "Mã cổng chỉ gồm chữ cái, số, gạch dưới hoặc gạch ngang.";
-    else if (code.trim().length > 50) nextErrors.code = "Mã cổng tối đa 50 ký tự.";
     if (!name.trim()) nextErrors.name = "Vui lòng nhập tên cổng.";
     else if (name.trim().length > 150) nextErrors.name = "Tên cổng tối đa 150 ký tự.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    onSubmit({ zoneId, code: code.trim().toUpperCase(), name: name.trim() });
+    onSubmit({ zoneId, name: name.trim() });
   }
 
   return (
@@ -644,14 +627,9 @@ function GateFormModal({ open, title, zones, initial, defaultZoneId, submitting,
             options={[{ label: "Chọn khu vực", value: "" }, ...zones.map((zone) => ({ label: `${zone.code} — ${zone.name}`, value: zone.id }))]}
           />
         </FormField>
-        <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[620px]:tw-grid-cols-1">
-          <FormField label="Mã cổng" required error={errors.code}>
-            <input className={fieldInputClass(Boolean(errors.code))} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="VD: A1" maxLength={50} />
-          </FormField>
-          <FormField label="Tên cổng" required error={errors.name}>
-            <input className={fieldInputClass(Boolean(errors.name))} value={name} onChange={(event) => setName(event.target.value)} placeholder="VD: Cổng A1" maxLength={150} />
-          </FormField>
-        </div>
+        <FormField label="Tên cổng" required error={errors.name}>
+          <input className={fieldInputClass(Boolean(errors.name))} value={name} onChange={(event) => setName(event.target.value)} placeholder="VD: Cổng A1" maxLength={150} />
+        </FormField>
       </div>
     </Modal>
   );
@@ -661,7 +639,7 @@ function GateFormModal({ open, title, zones, initial, defaultZoneId, submitting,
 /* Lane form modal                                                    */
 /* ------------------------------------------------------------------ */
 
-export type LaneFormPayload = { gateId: string; code: string; name: string; direction: LaneDirection };
+export type LaneFormPayload = { gateId: string; name: string; direction: LaneDirection };
 
 function LaneFormModal({ open, title, gates, initial, defaultGateId, submitting, serverError, onSubmit, onClose }: {
   open: boolean;
@@ -675,7 +653,6 @@ function LaneFormModal({ open, title, gates, initial, defaultGateId, submitting,
   onClose: () => void;
 }) {
   const [gateId, setGateId] = useState("");
-  const [code, setCode] = useState("");
   const [name, setName] = useState("");
   const [direction, setDirection] = useState<LaneDirection>("IN");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -683,7 +660,6 @@ function LaneFormModal({ open, title, gates, initial, defaultGateId, submitting,
   useEffect(() => {
     if (!open) return;
     setGateId(initial?.gateId ?? defaultGateId ?? gates[0]?.id ?? "");
-    setCode(initial?.code ?? "");
     setName(initial?.name ?? "");
     setDirection(initial?.direction ?? "IN");
     setErrors({});
@@ -692,14 +668,11 @@ function LaneFormModal({ open, title, gates, initial, defaultGateId, submitting,
   function handleSubmit() {
     const nextErrors: Record<string, string> = {};
     if (!gateId) nextErrors.gateId = "Vui lòng chọn cổng.";
-    if (!code.trim()) nextErrors.code = "Vui lòng nhập mã làn.";
-    else if (!/^[A-Za-z0-9_-]+$/.test(code.trim())) nextErrors.code = "Mã làn chỉ gồm chữ cái, số, gạch dưới hoặc gạch ngang.";
-    else if (code.trim().length > 50) nextErrors.code = "Mã làn tối đa 50 ký tự.";
     if (!name.trim()) nextErrors.name = "Vui lòng nhập tên làn.";
     else if (name.trim().length > 150) nextErrors.name = "Tên làn tối đa 150 ký tự.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
-    onSubmit({ gateId, code: code.trim().toUpperCase(), name: name.trim(), direction });
+    onSubmit({ gateId, name: name.trim(), direction });
   }
 
   return (
@@ -732,14 +705,9 @@ function LaneFormModal({ open, title, gates, initial, defaultGateId, submitting,
             options={[{ label: "Chọn cổng", value: "" }, ...gates.map((gate) => ({ label: `${gate.code} — ${gate.name}`, value: gate.id }))]}
           />
         </FormField>
-        <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[620px]:tw-grid-cols-1">
-          <FormField label="Mã làn" required error={errors.code}>
-            <input className={fieldInputClass(Boolean(errors.code))} value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="VD: A1-IN" maxLength={50} />
-          </FormField>
-          <FormField label="Tên làn" required error={errors.name}>
-            <input className={fieldInputClass(Boolean(errors.name))} value={name} onChange={(event) => setName(event.target.value)} placeholder="VD: Làn vào" maxLength={150} />
-          </FormField>
-        </div>
+        <FormField label="Tên làn" required error={errors.name}>
+          <input className={fieldInputClass(Boolean(errors.name))} value={name} onChange={(event) => setName(event.target.value)} placeholder="VD: Làn vào" maxLength={150} />
+        </FormField>
         <FormField label="Hướng" required>
           <SelectMenu
             ariaLabel="Hướng làn"
@@ -1380,7 +1348,6 @@ export function ParkingLotStructurePage() {
       if (formModal?.type === "zone" && formModal.mode === "edit" && formModal.id) {
         await updateZone(formModal.id, {
           parkingLevelId: payload.parkingLevelId,
-          code: payload.code,
           name: payload.name,
           vehicleTypeId: payload.vehicleTypeIds[0] ?? null,
           vehicleTypeIds: payload.vehicleTypeIds,
@@ -1394,7 +1361,6 @@ export function ParkingLotStructurePage() {
         const created = await createZone({
           parkingLotId: activeLotId,
           parkingLevelId: payload.parkingLevelId,
-          code: payload.code,
           name: payload.name,
           vehicleTypeId: payload.vehicleTypeIds[0] ?? null,
           vehicleTypeIds: payload.vehicleTypeIds,
@@ -1414,13 +1380,13 @@ export function ParkingLotStructurePage() {
     }
   }
 
-  async function handleGateSubmit(payload: { zoneId: string; code: string; name: string }) {
+  async function handleGateSubmit(payload: GateFormPayload) {
     if (!activeLotId) return;
     setFormSubmitting(true);
     setFormServerError(null);
     try {
       if (formModal?.type === "gate" && formModal.mode === "edit" && formModal.id) {
-        await updateGate(formModal.id, { code: payload.code, name: payload.name });
+        await updateGate(formModal.id, { name: payload.name });
         toast.success("Đã cập nhật cổng.");
         setFormModal(null);
         await reloadTopology(activeLotId, { kind: "gate", id: formModal.id });
@@ -1439,13 +1405,13 @@ export function ParkingLotStructurePage() {
     }
   }
 
-  async function handleLaneSubmit(payload: { gateId: string; code: string; name: string; direction: LaneDirection }) {
+  async function handleLaneSubmit(payload: LaneFormPayload) {
     if (!activeLotId) return;
     setFormSubmitting(true);
     setFormServerError(null);
     try {
       if (formModal?.type === "lane" && formModal.mode === "edit" && formModal.id) {
-        await updateLane(formModal.id, { code: payload.code, name: payload.name, direction: payload.direction });
+        await updateLane(formModal.id, { name: payload.name, direction: payload.direction });
         toast.success("Đã cập nhật làn.");
         setFormModal(null);
         await reloadTopology(activeLotId, { kind: "lane", id: formModal.id });
