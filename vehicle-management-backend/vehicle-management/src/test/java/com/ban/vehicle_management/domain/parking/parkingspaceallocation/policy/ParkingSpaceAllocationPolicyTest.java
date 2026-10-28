@@ -66,6 +66,16 @@ class ParkingSpaceAllocationPolicyTest {
         assertTrue(policy.isHoldExpired(held, deadline));
     }
 
+    @Test
+    void shouldRejectHeldAllocationWithoutExpiration() {
+        ParkingSpaceAllocation held = allocation(UUID.randomUUID(),
+                LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31));
+        held.setAllocationStatus(ParkingSpaceAllocationStatus.HELD);
+        held.setHoldExpiresAt(null);
+
+        assertThrows(BadRequestException.class, () -> policy.validateState(held));
+    }
+
     private ParkingSpaceAllocation allocation(UUID spaceId, LocalDate from, LocalDate to) {
         ParkingSpaceAllocation allocation = new ParkingSpaceAllocation();
         allocation.setAllocationId(UUID.randomUUID());

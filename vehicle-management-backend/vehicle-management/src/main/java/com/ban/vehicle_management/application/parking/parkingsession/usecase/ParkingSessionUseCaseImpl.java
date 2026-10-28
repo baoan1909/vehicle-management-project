@@ -5,9 +5,11 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInCommand;
+import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInPreviewCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.authorization.EmployeeParkingLotAccessGuard;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckOutCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInResult;
+import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.ParkingSessionManagementResult;
@@ -139,6 +141,11 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
     @Override
     public CheckInResult checkIn(CheckInCommand command) {
         return parkingCheckInUseCase.checkIn(command);
+    }
+
+    @Override
+    public CheckInPreviewResult previewCheckIn(CheckInPreviewCommand command) {
+        return parkingCheckInUseCase.preview(command);
     }
 
     @Override

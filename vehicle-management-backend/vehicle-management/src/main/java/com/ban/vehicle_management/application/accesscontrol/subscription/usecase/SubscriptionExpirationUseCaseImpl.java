@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.accesscontrol.subscription.port.ou
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
+import com.ban.vehicle_management.application.parking.allocation.SubscriptionParkingAllocationService;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -12,6 +13,7 @@ import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -22,15 +24,24 @@ public class SubscriptionExpirationUseCaseImpl implements SubscriptionExpiration
     private final SubscriptionPortOut subscriptionPortOut;
     private final CustomerPortOut customerPortOut;
     private final NotificationPortIn notificationPortIn;
+    private final SubscriptionParkingAllocationService parkingAllocationService;
 
+    @Autowired
     public SubscriptionExpirationUseCaseImpl(
             SubscriptionPortOut subscriptionPortOut,
             CustomerPortOut customerPortOut,
-            NotificationPortIn notificationPortIn
+            NotificationPortIn notificationPortIn,
+            SubscriptionParkingAllocationService parkingAllocationService
     ) {
         this.subscriptionPortOut = subscriptionPortOut;
         this.customerPortOut = customerPortOut;
         this.notificationPortIn = notificationPortIn;
+        this.parkingAllocationService = parkingAllocationService;
+    }
+
+    public SubscriptionExpirationUseCaseImpl(SubscriptionPortOut subscriptionPortOut,
+            CustomerPortOut customerPortOut, NotificationPortIn notificationPortIn) {
+        this(subscriptionPortOut, customerPortOut, notificationPortIn, null);
     }
 
     @Override
@@ -46,6 +57,10 @@ public class SubscriptionExpirationUseCaseImpl implements SubscriptionExpiration
 
         notifyExpiringSoonSubscriptions(businessDate.plusDays(EXPIRING_SOON_DAYS));
         List<Subscription> expiredSubscriptions = subscriptionPortOut.findActiveSubscriptionsExpiredBefore(businessDate);
+        if (parkingAllocationService != null) {
+            expiredSubscriptions.forEach(subscription ->
+                    parkingAllocationService.release(subscription.getSubscriptionId(), false));
+        }
         int expiredCount = subscriptionPortOut.expireActiveSubscriptionsBefore(businessDate);
         expiredSubscriptions.forEach(this::notifyExpiredSubscription);
         return expiredCount;

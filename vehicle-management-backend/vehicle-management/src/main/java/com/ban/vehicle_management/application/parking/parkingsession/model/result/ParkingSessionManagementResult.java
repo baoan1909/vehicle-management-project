@@ -25,6 +25,11 @@ public record ParkingSessionManagementResult(
         UUID parkingLotId,
         String parkingLotCode,
         String parkingLotName,
+        UUID parkingSpaceId,
+        String parkingSpaceCode,
+        UUID parkingLevelId,
+        UUID subscriptionId,
+        String customerType,
         String licensePlateIn,
         String licensePlateOut,
         Instant checkInTime,
@@ -33,6 +38,22 @@ public record ParkingSessionManagementResult(
         BigDecimal totalPrice,
         List<EventResult> events
 ) {
+    public ParkingSessionManagementResult(UUID parkingSessionId, UUID cardId, String cardNumber,
+            String cardUid, String cardTypeCode, String cardTypeName, UUID customerId,
+            UUID customerVehicleId, UUID vehicleTypeId, String vehicleTypeCode,
+            String vehicleTypeName, UUID zoneId, String zoneCode, String zoneName,
+            UUID parkingLotId, String parkingLotCode, String parkingLotName,
+            String licensePlateIn, String licensePlateOut, Instant checkInTime,
+            Instant checkOutTime, ParkingSessionStatus status, BigDecimal totalPrice,
+            List<EventResult> events) {
+        this(parkingSessionId, cardId, cardNumber, cardUid, cardTypeCode, cardTypeName,
+                customerId, customerVehicleId, vehicleTypeId, vehicleTypeCode, vehicleTypeName,
+                zoneId, zoneCode, zoneName, parkingLotId, parkingLotCode, parkingLotName,
+                null, null, null, null,
+                customerVehicleId == null ? "VISITOR" : "SUBSCRIPTION",
+                licensePlateIn, licensePlateOut, checkInTime, checkOutTime, status, totalPrice, events);
+    }
+
     public record EventResult(
             UUID parkingEventId,
             UUID parkingSessionId,

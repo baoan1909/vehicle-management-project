@@ -63,6 +63,12 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
     }
 
     @Override
+    public Optional<Subscription> findByIdForUpdate(UUID subscriptionId) {
+        return subscriptionRepository.findByIdForUpdate(subscriptionId)
+                .map(subscriptionPersistenceMapper::toDomain);
+    }
+
+    @Override
     public Optional<Subscription> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey) {
         return subscriptionRepository.findByCustomerIdAndIdempotencyKey(customerId, idempotencyKey)
                 .map(subscriptionPersistenceMapper::toDomain);
@@ -78,6 +84,12 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
                         businessDate
                 )
                 .map(subscriptionPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Subscription> findActiveByCardIdForUpdate(UUID cardId, LocalDate businessDate) {
+        return subscriptionRepository.findActiveByCardIdForUpdate(cardId, businessDate)
+                .stream().findFirst().map(subscriptionPersistenceMapper::toDomain);
     }
 
     @Override

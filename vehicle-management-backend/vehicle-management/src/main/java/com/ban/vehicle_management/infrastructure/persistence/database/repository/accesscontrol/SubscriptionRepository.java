@@ -18,6 +18,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity, UUID>, JpaSpecificationExecutor<SubscriptionEntity> {
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select subscription from SubscriptionEntity subscription where subscription.subscriptionId = :subscriptionId")
+    Optional<SubscriptionEntity> findByIdForUpdate(@Param("subscriptionId") UUID subscriptionId);
+
     boolean existsByCardId(UUID cardId);
 
     Optional<SubscriptionEntity> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
@@ -34,6 +38,18 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
             LocalDate effectiveFrom,
             LocalDate effectiveTo
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select subscription from SubscriptionEntity subscription
+        where subscription.cardId = :cardId
+          and subscription.status = com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE
+          and subscription.effectiveFrom <= :businessDate
+          and subscription.effectiveTo >= :businessDate
+        order by subscription.effectiveFrom desc
+        """)
+    List<SubscriptionEntity> findActiveByCardIdForUpdate(
+            @Param("cardId") UUID cardId, @Param("businessDate") LocalDate businessDate);
 
     Optional<SubscriptionEntity> findFirstByCardIdAndStatusOrderByEffectiveFromDesc(
             UUID cardId,

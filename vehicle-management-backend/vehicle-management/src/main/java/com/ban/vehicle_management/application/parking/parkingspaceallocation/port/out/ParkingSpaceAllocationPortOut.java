@@ -25,6 +25,8 @@ public interface ParkingSpaceAllocationPortOut {
 
     List<ParkingSpaceAllocation> findExpiredHolds(UUID parkingSpaceId, Instant now);
 
+    List<ParkingSpaceAllocation> findExpiredHolds(Instant now);
+
     int cancelExpiredHoldsGlobal(Instant now);
 
     boolean existsOverlappingAllocation(UUID parkingSpaceId, LocalDate effectiveFrom, LocalDate effectiveTo, UUID excludeAllocationId);

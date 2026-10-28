@@ -18,6 +18,9 @@ public class ZonePolicy {
         if (zone.getCapacity() == null) {
             zone.setCapacity(0);
         }
+        if (zone.getUnavailableCapacity() == null) {
+            zone.setUnavailableCapacity(0);
+        }
         if (zone.getTrackingMode() == null) {
             zone.setTrackingMode(TrackingMode.CAPACITY);
         }
@@ -80,6 +83,11 @@ public class ZonePolicy {
         zone.setLayoutStatus(LayoutStatus.PUBLISHED);
         zone.setLayoutVersion(layoutVersion);
         zone.setCapacity(capacity);
+        Integer unavailable = zone.getUnavailableCapacity() == null ? 0 : zone.getUnavailableCapacity();
+        if (unavailable < 0 || unavailable > capacity) {
+            throw new BadRequestException("unavailableCapacity must be between zero and capacity");
+        }
+        zone.setUnavailableCapacity(unavailable);
         validateState(zone);
     }
 

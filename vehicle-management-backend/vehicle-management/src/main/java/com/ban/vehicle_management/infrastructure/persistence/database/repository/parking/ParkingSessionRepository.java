@@ -30,6 +30,10 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
 
     Optional<ParkingSessionEntity> findFirstByCardIdAndStatus(UUID cardId, ParkingSessionStatus status);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select session from ParkingSessionEntity session where session.cardId = :cardId and session.status = 'OPEN'")
+    Optional<ParkingSessionEntity> findOpenByCardIdForUpdate(@Param("cardId") UUID cardId);
+
     boolean existsByVehicleTypeIdAndStatusIn(UUID vehicleTypeId, Collection<ParkingSessionStatus> statuses);
 
     boolean existsByParkingSpaceIdAndStatus(UUID parkingSpaceId, ParkingSessionStatus status);
@@ -39,7 +43,15 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
     List<ParkingSessionEntity> findByParkingSpaceIdInAndStatus(
             List<UUID> parkingSpaceIds, ParkingSessionStatus status);
 
+    List<ParkingSessionEntity> findByZoneIdAndStatus(UUID zoneId, ParkingSessionStatus status);
+
     long countByZoneIdAndStatus(UUID zoneId, ParkingSessionStatus status);
+
+    @Query("select count(session) from ParkingSessionEntity session where session.zoneId = :zoneId and session.status = 'OPEN' and (session.subscriptionId is not null or session.customerVehicleId is not null)")
+    long countOpenRegisteredByZoneId(@Param("zoneId") UUID zoneId);
+
+    @Query("select count(session) from ParkingSessionEntity session where session.zoneId = :zoneId and session.status = 'OPEN' and session.subscriptionId is null and session.customerVehicleId is null")
+    long countOpenVisitorByZoneId(@Param("zoneId") UUID zoneId);
 
     boolean existsByZoneIdAndStatus(UUID zoneId, ParkingSessionStatus status);
 
@@ -61,7 +73,9 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
             "vehicleType",
             "zone",
             "zone.parkingLot",
+            "zone.parkingLevel",
             "parkingLot",
+            "parkingSpace",
             "parkingEvents",
             "parkingEvents.lane"
     })

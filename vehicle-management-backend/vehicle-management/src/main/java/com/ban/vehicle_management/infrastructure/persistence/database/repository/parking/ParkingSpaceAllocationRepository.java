@@ -51,6 +51,9 @@ public interface ParkingSpaceAllocationRepository extends JpaRepository<ParkingS
     @Query("SELECT psa FROM ParkingSpaceAllocationEntity psa WHERE psa.parkingSpaceId = :parkingSpaceId AND psa.allocationStatus = 'HELD' AND psa.holdExpiresAt < :now")
     List<ParkingSpaceAllocationEntity> findExpiredHolds(UUID parkingSpaceId, java.time.Instant now);
 
+    @Query("SELECT psa FROM ParkingSpaceAllocationEntity psa WHERE psa.allocationStatus = 'HELD' AND psa.holdExpiresAt < :now")
+    List<ParkingSpaceAllocationEntity> findExpiredHolds(java.time.Instant now);
+
     @org.springframework.data.jpa.repository.Modifying
     @Query("""
         UPDATE ParkingSpaceAllocationEntity psa

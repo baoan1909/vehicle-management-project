@@ -51,6 +51,12 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
     }
 
     @Override
+    public Optional<ParkingSession> findOpenByCardIdForUpdate(UUID cardId) {
+        return parkingSessionRepository.findOpenByCardIdForUpdate(cardId)
+                .map(parkingSessionPersistenceMapper::toDomain);
+    }
+
+    @Override
     public boolean existsOpenByCardId(UUID cardId) {
         return parkingSessionRepository.existsByCardIdAndStatus(cardId, ParkingSessionStatus.OPEN);
     }
@@ -58,6 +64,16 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
     @Override
     public long countOpenByZoneId(UUID zoneId) {
         return parkingSessionRepository.countByZoneIdAndStatus(zoneId, ParkingSessionStatus.OPEN);
+    }
+
+    @Override
+    public long countOpenRegisteredByZoneId(UUID zoneId) {
+        return parkingSessionRepository.countOpenRegisteredByZoneId(zoneId);
+    }
+
+    @Override
+    public long countOpenVisitorByZoneId(UUID zoneId) {
+        return parkingSessionRepository.countOpenVisitorByZoneId(zoneId);
     }
 
     @Override
@@ -106,6 +122,12 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
                 .stream()
                 .map(parkingSessionPersistenceMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public List<ParkingSession> findOpenByZoneId(UUID zoneId) {
+        return parkingSessionRepository.findByZoneIdAndStatus(zoneId, ParkingSessionStatus.OPEN)
+                .stream().map(parkingSessionPersistenceMapper::toDomain).toList();
     }
 
     @Override

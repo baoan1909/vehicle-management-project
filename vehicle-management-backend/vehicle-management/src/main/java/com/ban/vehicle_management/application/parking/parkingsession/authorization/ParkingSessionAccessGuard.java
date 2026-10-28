@@ -38,6 +38,11 @@ public class ParkingSessionAccessGuard {
     }
 
     public void ensureCanOperateParkingLot(ParkingLot parkingLot) {
+        String roleCode = currentAccountPortIn.getCurrentAccountOrThrow().roleCode();
+        if ("EMPLOYEE".equalsIgnoreCase(roleCode)) {
+            employeeParkingLotAccessGuard.ensureCanOperate(parkingLot.getParkingLotId());
+            return;
+        }
         organizationAccessGuard.ensureCanOperateParkingLot(parkingLot);
     }
 

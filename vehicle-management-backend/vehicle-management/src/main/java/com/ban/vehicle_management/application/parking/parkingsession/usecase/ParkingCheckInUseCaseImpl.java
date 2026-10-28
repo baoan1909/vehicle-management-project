@@ -6,6 +6,8 @@ import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardType
 import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.parking.gate.port.out.GatePortOut;
+import com.ban.vehicle_management.application.parking.availability.ParkingAvailabilityQuery;
+import com.ban.vehicle_management.application.parking.capacityallocation.port.out.SubscriptionCapacityAllocationPortOut;
 import com.ban.vehicle_management.application.parking.lane.port.out.LanePortOut;
 import com.ban.vehicle_management.application.parking.parkingevent.port.out.ParkingEventPortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
@@ -17,7 +19,9 @@ import com.ban.vehicle_management.application.parking.realtime.port.out.ParkingR
 import com.ban.vehicle_management.application.parking.parkingsession.authorization.ParkingSessionAccessGuard;
 import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingCheckInMapper;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInCommand;
+import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInPreviewCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInResult;
+import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
@@ -49,6 +53,7 @@ import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.enumeration.parking.ManualOccupancyType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageBucket;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageFolder;
@@ -57,6 +62,7 @@ import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 import io.micrometer.core.instrument.Metrics;
 import org.slf4j.Logger;
@@ -95,6 +101,8 @@ public class ParkingCheckInUseCaseImpl {
     private final ParkingSpacePortOut parkingSpacePortOut;
     private final ParkingSpaceAllocationPortOut allocationPortOut;
     private final ParkingRealtimePublisherPortOut parkingRealtimePublisher;
+    private final ParkingAvailabilityQuery availabilityQuery;
+    private final SubscriptionCapacityAllocationPortOut capacityAllocationPortOut;
     private final ParkingSpacePolicy parkingSpacePolicy = new ParkingSpacePolicy();
     private final CardPolicy cardPolicy = new CardPolicy();
     private final ParkingCheckInPolicy parkingCheckInPolicy = new ParkingCheckInPolicy();
@@ -123,7 +131,8 @@ public class ParkingCheckInUseCaseImpl {
         this(parkingSessionAccessGuard, currentAccountPortIn, cardPortOut, cardTypePortOut,
                 subscriptionPortOut, customerPortOut, customerVehiclePortOut, lanePortOut, gatePortOut,
                 zonePortOut, parkingLotPortOut, catalogAvailabilityPortOut, parkingSessionPortOut,
-                parkingEventPortOut, parkingCheckInMapper, fileStoragePort, null, null, null);
+                parkingEventPortOut, parkingCheckInMapper, fileStoragePort, null, null, null,
+                null, null);
     }
 
     @Autowired
@@ -146,7 +155,9 @@ public class ParkingCheckInUseCaseImpl {
             FileStoragePort fileStoragePort,
             ParkingSpacePortOut parkingSpacePortOut,
             ParkingSpaceAllocationPortOut allocationPortOut,
-            ParkingRealtimePublisherPortOut parkingRealtimePublisher
+            ParkingRealtimePublisherPortOut parkingRealtimePublisher,
+            ParkingAvailabilityQuery availabilityQuery,
+            SubscriptionCapacityAllocationPortOut capacityAllocationPortOut
     ) {
         this.parkingSessionAccessGuard = parkingSessionAccessGuard;
         this.currentAccountPortIn = currentAccountPortIn;
@@ -167,6 +178,36 @@ public class ParkingCheckInUseCaseImpl {
         this.parkingSpacePortOut = parkingSpacePortOut;
         this.allocationPortOut = allocationPortOut;
         this.parkingRealtimePublisher = parkingRealtimePublisher;
+        this.availabilityQuery = availabilityQuery;
+        this.capacityAllocationPortOut = capacityAllocationPortOut;
+    }
+
+    public ParkingCheckInUseCaseImpl(
+            ParkingSessionAccessGuard parkingSessionAccessGuard,
+            CurrentAccountPortIn currentAccountPortIn,
+            CardPortOut cardPortOut,
+            CardTypePortOut cardTypePortOut,
+            SubscriptionPortOut subscriptionPortOut,
+            CustomerPortOut customerPortOut,
+            CustomerVehiclePortOut customerVehiclePortOut,
+            LanePortOut lanePortOut,
+            GatePortOut gatePortOut,
+            ZonePortOut zonePortOut,
+            ParkingLotPortOut parkingLotPortOut,
+            ParkingLotCatalogAvailabilityPortOut catalogAvailabilityPortOut,
+            ParkingSessionPortOut parkingSessionPortOut,
+            ParkingEventPortOut parkingEventPortOut,
+            ParkingCheckInMapper parkingCheckInMapper,
+            FileStoragePort fileStoragePort,
+            ParkingSpacePortOut parkingSpacePortOut,
+            ParkingSpaceAllocationPortOut allocationPortOut,
+            ParkingRealtimePublisherPortOut parkingRealtimePublisher
+    ) {
+        this(parkingSessionAccessGuard, currentAccountPortIn, cardPortOut, cardTypePortOut,
+                subscriptionPortOut, customerPortOut, customerVehiclePortOut, lanePortOut, gatePortOut,
+                zonePortOut, parkingLotPortOut, catalogAvailabilityPortOut, parkingSessionPortOut,
+                parkingEventPortOut, parkingCheckInMapper, fileStoragePort, parkingSpacePortOut,
+                allocationPortOut, parkingRealtimePublisher, null, null);
     }
 
     @Transactional
@@ -208,7 +249,6 @@ public class ParkingCheckInUseCaseImpl {
                 .orElseThrow(() -> new NotFoundException("Card type not found"));
         parkingCheckInPolicy.validateCardCanEnter(card, cardType);
         parkingCheckInPolicy.ensureCardHasNoOpenSession(parkingSessionPortOut.existsOpenByCardId(card.getCardId()));
-        parkingCheckInPolicy.validateZoneCapacity(zone, parkingSessionPortOut.countOpenByZoneId(zone.getZoneId()));
 
         CheckInCustomerContext customerContext = resolveCustomerContext(
                 card,
@@ -218,12 +258,17 @@ public class ParkingCheckInUseCaseImpl {
                 identityOverride
         );
         UUID resolvedVehicleTypeId = resolveVehicleTypeId(customerContext, requestedVehicleTypeId);
+        UUID lockedZoneId = zone.getZoneId();
+        zone = zonePortOut.findByIdForUpdate(lockedZoneId)
+                .or(() -> zonePortOut.findById(lockedZoneId))
+                .orElseThrow(() -> new NotFoundException("Zone not found"));
         // Honor already-active subscriptions; disabling a type stops new admissions, not existing contracts.
         if (customerContext.subscription() == null
                 && !catalogAvailabilityPortOut.isVehicleTypeEnabled(parkingLot.getParkingLotId(), resolvedVehicleTypeId)) {
             throw new ConflictException("Vehicle type is not accepted at this parking lot");
         }
         parkingCheckInPolicy.validateVehicleTypeAccepted(resolvedVehicleTypeId, zone);
+        validateAdmissionAvailability(zone, customerContext.subscription(), now);
         ParkingSpace assignedSpace = resolveCheckInSpace(
                 zone, command.parkingSpaceId(), customerContext.subscription(), resolvedVehicleTypeId);
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
@@ -254,7 +299,7 @@ public class ParkingCheckInUseCaseImpl {
             } catch (DataIntegrityViolationException spaceRace) {
                 Metrics.counter("parking.space.checkin.assignment.conflict").increment();
                 LOGGER.warn("Check-in space race for space {}", command.parkingSpaceId());
-                throw new ConflictException("Parking space was just occupied by another check-in");
+                throw new ConflictException("A concurrent check-in already consumed this admission slot");
             }
             if (assignedSpace != null) {
                 occupySpaceForCheckIn(zone, parkingLot, assignedSpace,
@@ -289,6 +334,7 @@ public class ParkingCheckInUseCaseImpl {
             );
             parkingEventPolicy.initialize(parkingEvent);
             ParkingEvent savedParkingEvent = parkingEventPortOut.save(parkingEvent);
+            publishAvailabilityChanged(zone);
 
             UUID subscriptionId = customerContext.subscription() == null
                     ? null
@@ -306,6 +352,116 @@ public class ParkingCheckInUseCaseImpl {
             deleteStoredFileQuietly(storedPersonImage);
             throw exception;
         }
+    }
+
+    @Transactional(readOnly = true)
+    public CheckInPreviewResult preview(CheckInPreviewCommand command) {
+        parkingSessionAccessGuard.ensureCanCheckIn();
+        requireField(command, "checkInPreviewCommand");
+        String cardUid = TextValidationUtils.normalizeRequiredText(command.cardUid(), "cardUid", 100);
+        String plate = licensePlatePolicy.normalizeRequired(command.licensePlate(), "licensePlate");
+        Lane lane = findLane(command.laneId());
+        parkingCheckInPolicy.validateLaneForCheckIn(lane);
+        Gate gate = findGate(lane.getGateId());
+        Zone zone = findZone(gate.getZoneId());
+        ParkingLot lot = findParkingLot(zone.getParkingLotId());
+        parkingCheckInPolicy.validateOperationalTopology(lane, gate, zone, lot);
+
+        Card card = cardPortOut.findByUid(cardUid)
+                .orElseThrow(() -> new NotFoundException("Card not found"));
+        parkingSessionAccessGuard.ensureCanUseCardInParkingLot(card, lot);
+        CardType cardType = cardTypePortOut.findById(card.getCardTypeId())
+                .orElseThrow(() -> new NotFoundException("Card type not found"));
+        parkingCheckInPolicy.validateCardCanEnter(card, cardType);
+
+        Subscription subscription = null;
+        CustomerVehicle vehicle = null;
+        String customerType = CUSTOMER_TYPE_VISITOR;
+        UUID vehicleTypeId = command.vehicleTypeId();
+        LocalDate businessDate = DateTimeUtils.toVietnamLocalDate(Instant.now());
+        if (parkingCheckInPolicy.isSubscriptionCard(cardType)) {
+            subscription = subscriptionPortOut.findActiveByCardId(card.getCardId(), businessDate)
+                    .orElseThrow(() -> new ConflictException("Active subscription not found for card"));
+            Customer customer = customerPortOut.findById(subscription.getCustomerId())
+                    .orElseThrow(() -> new NotFoundException("Customer not found"));
+            vehicle = customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
+                    .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
+            parkingCheckInPolicy.validateSubscriptionContext(card, subscription, customer, vehicle, plate);
+            vehicleTypeId = vehicle.getVehicleTypeId();
+            customerType = CUSTOMER_TYPE_SUBSCRIPTION;
+        } else {
+            requireField(vehicleTypeId, "vehicleTypeId");
+        }
+        parkingCheckInPolicy.validateVehicleTypeAccepted(vehicleTypeId, zone);
+        var availability = availabilityQuery == null ? null : availabilityQuery.get(zone, businessDate);
+        long physicalAvailable = availability == null
+                ? Math.max(0, value(zone.getCapacity()) - parkingSessionPortOut.countOpenByZoneId(zone.getZoneId()))
+                : availability.physicalAvailable();
+        long visitorAvailable = availability == null ? physicalAvailable : availability.visitorAvailable();
+
+        List<CheckInPreviewResult.EligibleSpace> eligible = List.of();
+        UUID recommended = null;
+        if (zone.getTrackingMode() != TrackingMode.SPACE) {
+            if (subscription != null && (capacityAllocationPortOut == null
+                    || capacityAllocationPortOut.findEffectiveBySubscriptionId(
+                            subscription.getSubscriptionId(), businessDate)
+                    .filter(item -> zone.getZoneId().equals(item.getZoneId())).isEmpty())) {
+                throw new ConflictException("Subscription has no capacity entitlement for this zone");
+            }
+            if (subscription == null && visitorAvailable <= 0 || subscription != null && physicalAvailable <= 0) {
+                throw new ConflictException("No check-in capacity is available");
+            }
+        } else if (subscription != null) {
+            UUID subscriptionId = subscription.getSubscriptionId();
+            var allocation = allocationPortOut.findActiveAllocationsBySubscription(subscriptionId).stream()
+                    .filter(item -> !businessDate.isBefore(item.getEffectiveFrom())
+                            && !businessDate.isAfter(item.getEffectiveTo()))
+                    .findFirst().orElseThrow(() -> new ConflictException(
+                            "Active subscription has no effective parking-space allocation"));
+            ParkingSpace space = parkingSpacePortOut.findById(allocation.getParkingSpaceId())
+                    .orElseThrow(() -> new NotFoundException("Allocated parking space not found"));
+            if (!zone.getZoneId().equals(space.getZoneId())
+                    || space.getStatus() != ParkingSpaceStatus.RESERVED
+                    || parkingSessionPortOut.existsOpenByParkingSpaceId(space.getParkingSpaceId())) {
+                throw new ConflictException("Allocated parking space is not ready for check-in");
+            }
+            recommended = space.getParkingSpaceId();
+            eligible = List.of(new CheckInPreviewResult.EligibleSpace(
+                    space.getParkingSpaceId(), space.getCode(), space.getStatus()));
+        } else {
+            UUID resolvedType = vehicleTypeId;
+            eligible = parkingSpacePortOut.findByZoneIdAndLifecycleStatus(zone.getZoneId(), "ACTIVE")
+                    .stream().filter(space -> visitorSpaceEligible(space, resolvedType)).map(space ->
+                            new CheckInPreviewResult.EligibleSpace(
+                                    space.getParkingSpaceId(), space.getCode(), space.getStatus()))
+                    .toList();
+            if (eligible.isEmpty()) {
+                throw new ConflictException("No eligible visitor parking space is available");
+            }
+            if (eligible.size() == 1) {
+                recommended = eligible.get(0).parkingSpaceId();
+            }
+        }
+        return new CheckInPreviewResult(lot.getParkingLotId(), zone.getZoneId(), zone.getTrackingMode(),
+                customerType, physicalAvailable, visitorAvailable, eligible.size() > 1,
+                recommended, eligible);
+    }
+
+    private boolean visitorSpaceEligible(ParkingSpace space, UUID vehicleTypeId) {
+        if (space.getStatus() != ParkingSpaceStatus.AVAILABLE
+                || parkingSessionPortOut.existsOpenByParkingSpaceId(space.getParkingSpaceId())
+                || space.getVehicleTypeId() != null && !space.getVehicleTypeId().equals(vehicleTypeId)) {
+            return false;
+        }
+        return allocationPortOut.findByParkingSpaceId(space.getParkingSpaceId()).stream()
+                .noneMatch(allocation -> allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.ACTIVE
+                        || allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.HELD
+                        && allocation.getHoldExpiresAt() != null
+                        && allocation.getHoldExpiresAt().isAfter(Instant.now()));
+    }
+
+    private int value(Integer number) {
+        return number == null ? 0 : number;
     }
 
     private StoredFile storeLicensePlateImage(
@@ -382,7 +538,8 @@ public class ParkingCheckInUseCaseImpl {
 
         if (parkingCheckInPolicy.isSubscriptionCard(cardType)) {
             LocalDate businessDate = DateTimeUtils.toVietnamLocalDate(now);
-            Subscription subscription = subscriptionPortOut.findActiveByCardId(card.getCardId(), businessDate)
+            Subscription subscription = subscriptionPortOut.findActiveByCardIdForUpdate(card.getCardId(), businessDate)
+                    .or(() -> subscriptionPortOut.findActiveByCardId(card.getCardId(), businessDate))
                     .orElseThrow(() -> new ConflictException("Active subscription not found for card"));
 
             Customer customer = customerPortOut.findById(subscription.getCustomerId())
@@ -457,16 +614,35 @@ public class ParkingCheckInUseCaseImpl {
             Subscription subscription,
             UUID resolvedVehicleTypeId
     ) {
-        if (parkingSpaceId == null) {
+        if (zone.getTrackingMode() != TrackingMode.SPACE) {
+            if (parkingSpaceId != null) {
+                throw new BadRequestException("parkingSpaceId must be null for CAPACITY zones");
+            }
             return null;
         }
         if (parkingSpacePortOut == null) {
             throw new BadRequestException("Parking space assignment is not available");
         }
-        if (zone.getTrackingMode() != TrackingMode.SPACE) {
-            throw new BadRequestException("Parking space can only be assigned in SPACE tracking zones");
+        UUID resolvedSpaceId = parkingSpaceId;
+        LocalDate today = DateTimeUtils.toAppLocalDate(Instant.now());
+        if (subscription != null) {
+            var ownAllocation = allocationPortOut.findActiveAllocationsBySubscription(
+                            subscription.getSubscriptionId()).stream()
+                    .filter(allocation -> !today.isBefore(allocation.getEffectiveFrom())
+                            && !today.isAfter(allocation.getEffectiveTo()))
+                    .findFirst()
+                    .orElseThrow(() -> new ConflictException(
+                            "Active subscription has no effective parking-space allocation"));
+            resolvedSpaceId = ownAllocation.getParkingSpaceId();
+            if (parkingSpaceId != null && !parkingSpaceId.equals(resolvedSpaceId)) {
+                throw new BadRequestException("parkingSpaceId does not match the subscription allocation");
+            }
+        } else if (resolvedSpaceId == null) {
+            throw new BadRequestException("parkingSpaceId is required for visitors in SPACE zones");
         }
-        ParkingSpace space = parkingSpacePortOut.findById(parkingSpaceId)
+        UUID selectedSpaceId = resolvedSpaceId;
+        ParkingSpace space = parkingSpacePortOut.findByIdForUpdate(selectedSpaceId)
+                .or(() -> parkingSpacePortOut.findById(selectedSpaceId))
                 .orElseThrow(() -> new NotFoundException("Parking space not found"));
         if (!zone.getZoneId().equals(space.getZoneId())) {
             throw new BadRequestException("Parking space does not belong to the check-in zone");
@@ -474,20 +650,27 @@ public class ParkingCheckInUseCaseImpl {
         if (!"ACTIVE".equals(space.getLifecycleStatus())) {
             throw new ConflictException("Only an active parking space can be assigned");
         }
-        if (space.getStatus() != ParkingSpaceStatus.AVAILABLE) {
+        ParkingSpaceStatus requiredStatus = subscription == null
+                ? ParkingSpaceStatus.AVAILABLE : ParkingSpaceStatus.RESERVED;
+        if (space.getStatus() != requiredStatus) {
             throw new ConflictException("Parking space is not available for check-in");
         }
         if (space.getVehicleTypeId() != null && !space.getVehicleTypeId().equals(resolvedVehicleTypeId)) {
             throw new ConflictException("Parking space does not support this vehicle type");
         }
-        if (parkingSessionPortOut.existsOpenByParkingSpaceId(parkingSpaceId)) {
+        if (parkingSessionPortOut.existsOpenByParkingSpaceId(resolvedSpaceId)) {
             throw new ConflictException("Parking space is already occupied");
         }
         if (allocationPortOut != null) {
-            LocalDate today = DateTimeUtils.toAppLocalDate(Instant.now());
-            var effective = allocationPortOut.findActiveAllocationsForSpaceOnDate(parkingSpaceId, today);
+            var effective = allocationPortOut.findActiveAllocationsForSpaceOnDate(resolvedSpaceId, today);
             if (subscription == null) {
-                if (!effective.isEmpty()) {
+                boolean committed = !effective.isEmpty()
+                        || allocationPortOut.findByParkingSpaceId(resolvedSpaceId).stream()
+                        .anyMatch(allocation -> allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.ACTIVE
+                                || allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.HELD
+                                && allocation.getHoldExpiresAt() != null
+                                && allocation.getHoldExpiresAt().isAfter(Instant.now()));
+                if (committed) {
                     throw new ConflictException("Parking space is reserved for a subscription");
                 }
             } else {
@@ -500,6 +683,34 @@ public class ParkingCheckInUseCaseImpl {
             }
         }
         return space;
+    }
+
+    private void validateAdmissionAvailability(Zone zone, Subscription subscription, Instant now) {
+        if (availabilityQuery == null) {
+            parkingCheckInPolicy.validateZoneCapacity(zone,
+                    parkingSessionPortOut.countOpenByZoneId(zone.getZoneId()));
+            return;
+        }
+        LocalDate businessDate = DateTimeUtils.toVietnamLocalDate(now);
+        var availability = availabilityQuery.get(zone, businessDate);
+        if (subscription == null) {
+            if (availability.visitorAvailable() <= 0) {
+                throw new ConflictException("No visitor capacity is available in this zone");
+            }
+            return;
+        }
+        if (zone.getTrackingMode() != TrackingMode.SPACE) {
+            if (capacityAllocationPortOut == null
+                    || capacityAllocationPortOut.findEffectiveBySubscriptionId(
+                            subscription.getSubscriptionId(), businessDate)
+                    .filter(allocation -> zone.getZoneId().equals(allocation.getZoneId()))
+                    .isEmpty()) {
+                throw new ConflictException("Subscription has no capacity entitlement for this zone");
+            }
+        }
+        if (availability.physicalAvailable() <= 0) {
+            throw new ConflictException("No physical capacity is available in this zone");
+        }
     }
 
     private void occupySpaceForCheckIn(
@@ -523,6 +734,23 @@ public class ParkingCheckInUseCaseImpl {
                         ParkingSpaceStatus.OCCUPIED.name(),
                         zone.getLayoutVersion(),
                         Map.of("occupancyType", occupancyType.name())));
+    }
+
+    private void publishAvailabilityChanged(Zone zone) {
+        if (availabilityQuery == null || parkingRealtimePublisher == null) {
+            return;
+        }
+        var value = availabilityQuery.get(zone, DateTimeUtils.toVietnamLocalDate(Instant.now()));
+        ParkingRealtimeAfterCommit.publishAfterCommit(parkingRealtimePublisher,
+                new ParkingRealtimeEvent("PARKING_AVAILABILITY_CHANGED", zone.getParkingLotId(),
+                        zone.getParkingLevelId(), zone.getZoneId(), null, null,
+                        zone.getLayoutVersion(), Map.of(
+                                "physicalAvailable", String.valueOf(value.physicalAvailable()),
+                                "visitorAvailable", String.valueOf(value.visitorAvailable()),
+                                "occupiedRegistered", String.valueOf(value.occupiedRegistered()),
+                                "occupiedVisitor", String.valueOf(value.occupiedVisitor()),
+                                "subscriptionReserved", String.valueOf(value.subscriptionReserved()),
+                                "effectiveCapacity", String.valueOf(value.effectiveCapacity()))));
     }
 
     private void requireCommand(CheckInCommand command) {

@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.audit.auditlog.port.out.AuditLogPo
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.parking.parkinglevel.port.out.ParkingLevelPortOut;
+import com.ban.vehicle_management.application.parking.allocation.SubscriptionParkingAllocationService;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.parkingspace.port.out.ParkingSpacePortOut;
 import com.ban.vehicle_management.application.parking.parkingspaceallocation.port.in.ParkingSpaceAllocationPortIn;
@@ -40,6 +41,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocationPortIn {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ParkingSpaceAllocationUseCaseImpl.class);
+    private static final String PARKING_SPACE_READ_ALL = "PARKING_SPACE_READ_ALL";
+    private static final String PARKING_SPACE_ASSIGN_ALL = "PARKING_SPACE_ASSIGN_ALL";
 
     private final ParkingSpaceAllocationPortOut allocationPortOut;
     private final ParkingSpacePortOut parkingSpacePortOut;
@@ -52,6 +55,7 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     private final AuditLogPortOut auditLogPortOut;
     private final CurrentAccountPortIn currentAccountPortIn;
     private final ParkingRealtimePublisherPortOut parkingRealtimePublisher;
+    private final SubscriptionParkingAllocationService allocationLifecycleService;
     private final ParkingSpaceAllocationPolicy policy = new ParkingSpaceAllocationPolicy();
 
     @Autowired
@@ -66,7 +70,8 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
             OrganizationAccessGuard organizationAccessGuard,
             AuditLogPortOut auditLogPortOut,
             CurrentAccountPortIn currentAccountPortIn,
-            ParkingRealtimePublisherPortOut parkingRealtimePublisher
+            ParkingRealtimePublisherPortOut parkingRealtimePublisher,
+            SubscriptionParkingAllocationService allocationLifecycleService
     ) {
         this.allocationPortOut = allocationPortOut;
         this.parkingSpacePortOut = parkingSpacePortOut;
@@ -79,12 +84,17 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
         this.auditLogPortOut = auditLogPortOut;
         this.currentAccountPortIn = currentAccountPortIn;
         this.parkingRealtimePublisher = parkingRealtimePublisher;
+        this.allocationLifecycleService = allocationLifecycleService;
     }
 
     @Override
     @Transactional
     public ParkingSpaceAllocation createAllocation(ParkingSpaceAllocation allocation) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_ASSIGN_ALL);
         ParkingSpace space = ensureCanOperateSpace(allocation.getParkingSpaceId());
+        space = parkingSpacePortOut.findByIdForUpdate(space.getParkingSpaceId())
+                .or(() -> parkingSpacePortOut.findById(allocation.getParkingSpaceId()))
+                .orElseThrow(() -> new NotFoundException("Parking space not found"));
         Subscription subscription = findSubscription(allocation.getSubscriptionId());
         validateAllocationScope(space, subscription);
         policy.initialize(allocation);
@@ -100,6 +110,7 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
         }
         allocation.setAllocationId(UUID.randomUUID());
         ParkingSpaceAllocation saved = allocationPortOut.save(allocation);
+        recompute(saved.getParkingSpaceId());
         writeAudit(saved, "CREATE_PARKING_SPACE_ALLOCATION", null, snapshot(saved));
         publishAllocationChanged(space, saved);
         return saved;
@@ -108,6 +119,7 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional(readOnly = true)
     public ParkingSpaceAllocation getAllocationById(UUID allocationId) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_READ_ALL);
         ParkingSpaceAllocation allocation = allocationPortOut.findById(allocationId)
                 .orElseThrow(() -> new NotFoundException("Parking space allocation not found"));
         ensureCanReadSpace(allocation.getParkingSpaceId());
@@ -117,6 +129,7 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional(readOnly = true)
     public List<ParkingSpaceAllocation> getAllocationsByParkingSpaceId(UUID parkingSpaceId) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_READ_ALL);
         ensureCanReadSpace(parkingSpaceId);
         return allocationPortOut.findByParkingSpaceId(parkingSpaceId);
     }
@@ -124,6 +137,7 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional(readOnly = true)
     public List<ParkingSpaceAllocation> getAllocationsBySubscriptionId(UUID subscriptionId) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_READ_ALL);
         ensureCanReadSubscription(subscriptionId);
         return allocationPortOut.findBySubscriptionId(subscriptionId);
     }
@@ -131,8 +145,10 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional
     public ParkingSpaceAllocation activateAllocation(UUID allocationId) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_ASSIGN_ALL);
         ParkingSpaceAllocation allocation = findAllocationForWrite(allocationId);
-        ParkingSpace space = parkingSpacePortOut.findById(allocation.getParkingSpaceId())
+        ParkingSpace space = parkingSpacePortOut.findByIdForUpdate(allocation.getParkingSpaceId())
+                .or(() -> parkingSpacePortOut.findById(allocation.getParkingSpaceId()))
                 .orElseThrow(() -> new NotFoundException("Parking space not found"));
         Subscription subscription = findSubscription(allocation.getSubscriptionId());
         validateAllocationScope(space, subscription);
@@ -149,6 +165,7 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
         Map<String, Object> oldData = snapshot(allocation);
         policy.activate(allocation);
         ParkingSpaceAllocation saved = allocationPortOut.save(allocation);
+        recompute(saved.getParkingSpaceId());
         writeAudit(saved, "ACTIVATE_PARKING_SPACE_ALLOCATION", oldData, snapshot(saved));
         publishAllocationChanged(space, saved);
         return saved;
@@ -157,10 +174,12 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional
     public ParkingSpaceAllocation releaseAllocation(UUID allocationId) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_ASSIGN_ALL);
         ParkingSpaceAllocation allocation = findAllocationForWrite(allocationId);
         Map<String, Object> oldData = snapshot(allocation);
         policy.release(allocation);
         ParkingSpaceAllocation saved = allocationPortOut.save(allocation);
+        recompute(saved.getParkingSpaceId());
         writeAudit(saved, "RELEASE_PARKING_SPACE_ALLOCATION", oldData, snapshot(saved));
         publishAllocationChanged(null, saved);
         return saved;
@@ -169,10 +188,12 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional
     public ParkingSpaceAllocation cancelAllocation(UUID allocationId) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_ASSIGN_ALL);
         ParkingSpaceAllocation allocation = findAllocationForWrite(allocationId);
         Map<String, Object> oldData = snapshot(allocation);
         policy.cancel(allocation);
         ParkingSpaceAllocation saved = allocationPortOut.save(allocation);
+        recompute(saved.getParkingSpaceId());
         writeAudit(saved, "CANCEL_PARKING_SPACE_ALLOCATION", oldData, snapshot(saved));
         publishAllocationChanged(null, saved);
         return saved;
@@ -181,6 +202,7 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional
     public ParkingSpaceAllocation setHoldExpiration(UUID allocationId, Instant holdExpiresAt) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_ASSIGN_ALL);
         ParkingSpaceAllocation allocation = findAllocationForWrite(allocationId);
         Map<String, Object> oldData = snapshot(allocation);
         policy.setHoldExpiration(allocation, holdExpiresAt);
@@ -192,6 +214,7 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional(readOnly = true)
     public List<ParkingSpaceAllocation> findActiveAllocationsForSpaceOnDate(UUID parkingSpaceId, LocalDate date) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_READ_ALL);
         ensureCanReadSpace(parkingSpaceId);
         return allocationPortOut.findActiveAllocationsForSpaceOnDate(parkingSpaceId, date);
     }
@@ -199,6 +222,7 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional(readOnly = true)
     public List<ParkingSpaceAllocation> findActiveAllocationsBySubscription(UUID subscriptionId) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_READ_ALL);
         ensureCanReadSubscription(subscriptionId);
         return allocationPortOut.findActiveAllocationsBySubscription(subscriptionId);
     }
@@ -206,6 +230,7 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional(readOnly = true)
     public List<ParkingSpaceAllocation> findEffectiveAllocationsByZone(UUID zoneId, LocalDate date) {
+        currentAccountPortIn.requirePermission(PARKING_SPACE_READ_ALL);
         if (zoneId == null) {
             throw new BadRequestException("zoneId must not be null");
         }
@@ -230,8 +255,16 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     @Override
     @Transactional
     public int expireHeldAllocations() {
-        int expired = allocationPortOut.cancelExpiredHoldsGlobal(Instant.now());
+        Instant now = Instant.now();
+        List<ParkingSpaceAllocation> expiredAllocations = allocationPortOut.findExpiredHolds(now);
+        int expired = allocationPortOut.cancelExpiredHoldsGlobal(now);
         if (expired > 0) {
+            expiredAllocations.forEach(allocation -> {
+                allocation.setAllocationStatus(
+                        com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.CANCELLED);
+                recompute(allocation.getParkingSpaceId());
+                publishAllocationChanged(null, allocation);
+            });
             Metrics.counter("parking.allocation.hold.expired.scheduler").increment(expired);
             LOGGER.info("scheduler expired {} held allocation(s)", expired);
         }
@@ -284,7 +317,17 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
                                 ? null
                                 : allocation.getAllocationStatus().name(),
                         null,
-                        Map.of("subscriptionId", String.valueOf(allocation.getSubscriptionId()))));
+                        Map.of("allocationChanged", "true",
+                                "reserved", String.valueOf(allocation.getAllocationStatus()
+                                        == com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.HELD
+                                        || allocation.getAllocationStatus()
+                                        == com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.ACTIVE))));
+    }
+
+    private void recompute(UUID parkingSpaceId) {
+        if (allocationLifecycleService != null) {
+            allocationLifecycleService.recomputeSpace(parkingSpaceId);
+        }
     }
 
     private ParkingSpaceAllocation findAllocationForWrite(UUID allocationId) {

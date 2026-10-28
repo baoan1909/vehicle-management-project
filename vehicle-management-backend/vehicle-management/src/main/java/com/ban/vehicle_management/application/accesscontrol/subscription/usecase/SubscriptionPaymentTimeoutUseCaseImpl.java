@@ -7,6 +7,7 @@ import com.ban.vehicle_management.application.accesscontrol.subscription.port.ou
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.catalog.voucher.port.in.VoucherPortIn;
+import com.ban.vehicle_management.application.parking.allocation.SubscriptionParkingAllocationService;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
@@ -38,6 +39,7 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
     private final CardPortOut cardPortOut;
     private final VoucherPortIn voucherPortIn;
     private final Duration paymentTimeout;
+    private final SubscriptionParkingAllocationService parkingAllocationService;
     private final SubscriptionPolicy subscriptionPolicy = new SubscriptionPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
     private final PaymentPolicy paymentPolicy = new PaymentPolicy();
@@ -50,10 +52,23 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
             PaymentPortOut paymentPortOut,
             CardPortOut cardPortOut,
             VoucherPortIn voucherPortIn,
+            SubscriptionTimeProperties timeProperties,
+            SubscriptionParkingAllocationService parkingAllocationService
+    ) {
+        this(subscriptionPortOut, invoicePortOut, paymentPortOut, cardPortOut, voucherPortIn,
+                timeProperties.getPaymentTimeout(), parkingAllocationService);
+    }
+
+    public SubscriptionPaymentTimeoutUseCaseImpl(
+            SubscriptionPortOut subscriptionPortOut,
+            InvoicePortOut invoicePortOut,
+            PaymentPortOut paymentPortOut,
+            CardPortOut cardPortOut,
+            VoucherPortIn voucherPortIn,
             SubscriptionTimeProperties timeProperties
     ) {
         this(subscriptionPortOut, invoicePortOut, paymentPortOut, cardPortOut, voucherPortIn,
-                timeProperties.getPaymentTimeout());
+                timeProperties.getPaymentTimeout(), null);
     }
 
     public SubscriptionPaymentTimeoutUseCaseImpl(
@@ -65,7 +80,7 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
             long paymentTimeoutHours
     ) {
         this(subscriptionPortOut, invoicePortOut, paymentPortOut, cardPortOut, voucherPortIn,
-                Duration.ofHours(paymentTimeoutHours));
+                Duration.ofHours(paymentTimeoutHours), null);
     }
 
     private SubscriptionPaymentTimeoutUseCaseImpl(
@@ -74,7 +89,8 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
             PaymentPortOut paymentPortOut,
             CardPortOut cardPortOut,
             VoucherPortIn voucherPortIn,
-            Duration paymentTimeout
+            Duration paymentTimeout,
+            SubscriptionParkingAllocationService parkingAllocationService
     ) {
         if (paymentTimeout == null || paymentTimeout.isZero() || paymentTimeout.isNegative()) {
             throw new IllegalArgumentException("app.subscription.payment-timeout must be greater than zero");
@@ -85,6 +101,7 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
         this.cardPortOut = cardPortOut;
         this.voucherPortIn = voucherPortIn;
         this.paymentTimeout = paymentTimeout;
+        this.parkingAllocationService = parkingAllocationService;
     }
 
     @Override
@@ -115,6 +132,9 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
             );
             releaseReservedCard(subscription);
             subscriptionPolicy.cancelBeforeRefundWorkflow(subscription);
+            if (parkingAllocationService != null) {
+                parkingAllocationService.release(subscription.getSubscriptionId(), true);
+            }
             subscriptionPortOut.save(subscription);
             cancelledCount++;
         }

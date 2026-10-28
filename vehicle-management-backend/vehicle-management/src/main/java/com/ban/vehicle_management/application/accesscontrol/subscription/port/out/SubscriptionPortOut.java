@@ -15,8 +15,12 @@ public interface SubscriptionPortOut {
 
     Optional<Subscription> findById(UUID subscriptionId);
 
+    Optional<Subscription> findByIdForUpdate(UUID subscriptionId);
+
     Optional<Subscription> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
     Optional<Subscription> findActiveByCardId(UUID cardId, LocalDate businessDate);
+
+    Optional<Subscription> findActiveByCardIdForUpdate(UUID cardId, LocalDate businessDate);
 
     Optional<Subscription> findLatestActiveByCardId(UUID cardId);
 

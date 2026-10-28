@@ -16,17 +16,18 @@ import com.ban.vehicle_management.application.parking.parkingspaceallocation.por
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.domain.parking.parkingspace.model.ParkingSpace;
+import com.ban.vehicle_management.domain.parking.parkingspaceallocation.model.ParkingSpaceAllocation;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ManualOccupancyType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatusSource;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -73,8 +74,10 @@ class ParkingSpaceStatusGuardTest {
         when(zonePortOut.findById(zoneId)).thenReturn(Optional.of(zone(zoneId)));
         when(parkingLotPortOut.findById(any())).thenReturn(Optional.of(lot()));
         when(parkingSessionPortOut.existsOpenByParkingSpaceId(spaceId)).thenReturn(false);
-        when(allocationPortOut.findActiveAllocationsForSpaceOnDate(any(), any(LocalDate.class)))
-                .thenReturn(List.of(new com.ban.vehicle_management.domain.parking.parkingspaceallocation.model.ParkingSpaceAllocation()));
+        var allocation = new com.ban.vehicle_management.domain.parking.parkingspaceallocation.model.ParkingSpaceAllocation();
+        allocation.setAllocationStatus(
+                com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus.ACTIVE);
+        when(allocationPortOut.findByParkingSpaceId(spaceId)).thenReturn(List.of(allocation));
 
         assertThrows(ConflictException.class, () -> useCase.setManualStatus(
                 spaceId, ParkingSpaceStatus.MAINTENANCE, null, "repair floor"));
@@ -113,6 +116,47 @@ class ParkingSpaceStatusGuardTest {
         assertEquals(ParkingSpaceStatus.OCCUPIED, updated.getStatus());
         assertEquals(ManualOccupancyType.VISITOR, updated.getManualOccupancyType());
         verify(auditLogPortOut).save(any());
+    }
+
+    @Test
+    void shouldAtomicallyReassignAllocationBeforeMaintenance() {
+        UUID sourceId = UUID.randomUUID();
+        UUID targetId = UUID.randomUUID();
+        UUID zoneId = UUID.randomUUID();
+        ParkingSpace source = availableSpace(sourceId, zoneId);
+        ParkingSpace target = availableSpace(targetId, zoneId);
+        target.setCode("A-02");
+        ParkingSpaceAllocation allocation = new ParkingSpaceAllocation();
+        allocation.setAllocationId(UUID.randomUUID());
+        allocation.setParkingSpaceId(sourceId);
+        allocation.setSubscriptionId(UUID.randomUUID());
+        allocation.setEffectiveFrom(java.time.LocalDate.now());
+        allocation.setEffectiveTo(java.time.LocalDate.now().plusDays(30));
+        allocation.setAllocationStatus(ParkingSpaceAllocationStatus.ACTIVE);
+        when(parkingSpacePortOut.findById(sourceId)).thenReturn(Optional.of(source));
+        when(parkingSpacePortOut.findByIdForUpdate(sourceId)).thenReturn(Optional.of(source));
+        when(parkingSpacePortOut.findByIdForUpdate(targetId)).thenReturn(Optional.of(target));
+        when(zonePortOut.findById(zoneId)).thenReturn(Optional.of(zone(zoneId)));
+        when(parkingLotPortOut.findById(any())).thenReturn(Optional.of(lot()));
+        when(parkingSessionPortOut.existsOpenByParkingSpaceId(any())).thenReturn(false);
+        when(allocationPortOut.findByParkingSpaceId(sourceId)).thenReturn(List.of(allocation));
+        when(parkingSpacePortOut.findByZoneIdAndLifecycleStatus(zoneId, "ACTIVE"))
+                .thenReturn(List.of(source, target));
+        when(allocationPortOut.existsOverlappingAllocation(
+                any(), any(), any(), org.mockito.ArgumentMatchers.isNull())).thenReturn(false);
+        when(allocationPortOut.save(any(ParkingSpaceAllocation.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(parkingSpacePortOut.save(any(ParkingSpace.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
+
+        ParkingSpace updated = useCase.setManualStatus(
+                sourceId, ParkingSpaceStatus.MAINTENANCE, null, "repair floor");
+
+        assertEquals(ParkingSpaceStatus.MAINTENANCE, updated.getStatus());
+        assertEquals(ParkingSpaceStatus.RESERVED, target.getStatus());
+        assertEquals(targetId, allocation.getParkingSpaceId());
+        verify(allocationPortOut).save(allocation);
     }
 
     private ParkingSpace base(UUID spaceId, UUID zoneId, ParkingSpaceStatus status) {

@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.parking.parkingsummary.usecase;
 
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.parking.parkinglevel.port.out.ParkingLevelPortOut;
+import com.ban.vehicle_management.application.parking.availability.ParkingAvailabilityQuery;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.parking.parkingspace.port.out.ParkingSpacePortOut;
@@ -43,6 +44,7 @@ public class SpaceSummaryUseCaseImpl implements SpaceSummaryPortIn {
     private final ParkingSpaceAllocationPortOut allocationPortOut;
     private final ParkingSessionPortOut parkingSessionPortOut;
     private final OrganizationAccessGuard organizationAccessGuard;
+    private final ParkingAvailabilityQuery availabilityQuery;
 
     @Autowired
     public SpaceSummaryUseCaseImpl(
@@ -52,7 +54,8 @@ public class SpaceSummaryUseCaseImpl implements SpaceSummaryPortIn {
             ParkingSpacePortOut parkingSpacePortOut,
             ParkingSpaceAllocationPortOut allocationPortOut,
             ParkingSessionPortOut parkingSessionPortOut,
-            OrganizationAccessGuard organizationAccessGuard
+            OrganizationAccessGuard organizationAccessGuard,
+            ParkingAvailabilityQuery availabilityQuery
     ) {
         this.zonePortOut = zonePortOut;
         this.parkingLevelPortOut = parkingLevelPortOut;
@@ -61,6 +64,15 @@ public class SpaceSummaryUseCaseImpl implements SpaceSummaryPortIn {
         this.allocationPortOut = allocationPortOut;
         this.parkingSessionPortOut = parkingSessionPortOut;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.availabilityQuery = availabilityQuery;
+    }
+
+    public SpaceSummaryUseCaseImpl(ZonePortOut zonePortOut, ParkingLevelPortOut parkingLevelPortOut,
+            ParkingLotPortOut parkingLotPortOut, ParkingSpacePortOut parkingSpacePortOut,
+            ParkingSpaceAllocationPortOut allocationPortOut, ParkingSessionPortOut parkingSessionPortOut,
+            OrganizationAccessGuard organizationAccessGuard) {
+        this(zonePortOut, parkingLevelPortOut, parkingLotPortOut, parkingSpacePortOut,
+                allocationPortOut, parkingSessionPortOut, organizationAccessGuard, null);
     }
 
     @Override
@@ -133,12 +145,27 @@ public class SpaceSummaryUseCaseImpl implements SpaceSummaryPortIn {
     }
 
     private SpaceSummaryResult summarizeZone(Zone zone, LocalDate date) {
+        if (availabilityQuery != null) {
+            var value = availabilityQuery.get(zone, date);
+            long unknown = Math.max(0, value.occupiedSpaceCount()
+                    - value.occupiedRegistered() - value.occupiedVisitor());
+            return new SpaceSummaryResult(zone.getZoneId(), "ZONE",
+                    value.configuredCapacity(), value.visitorAvailable(),
+                    value.occupiedRegistered() + value.occupiedVisitor(), value.occupiedVisitor(),
+                    value.occupiedRegistered(), unknown, value.reservedSpaceCount(),
+                    value.maintenanceSpaceCount(), value.subscriptionReserved(),
+                    value.configuredCapacity(), value.unavailableCapacity(), value.effectiveCapacity(),
+                    value.subscriptionReserved(), value.physicalAvailable(), value.visitorAvailable(),
+                    List.of(), Instant.now());
+        }
         if (zone.getTrackingMode() != TrackingMode.SPACE) {
             long open = zonePortOut.countOpenSessions(zone.getZoneId());
             long capacity = zone.getCapacity() == null ? 0 : zone.getCapacity();
             return new SpaceSummaryResult(
                     zone.getZoneId(), "ZONE", capacity, Math.max(0, capacity - open), open,
-                    0, 0, open, 0, 0, 0, List.of(), Instant.now());
+                    0, 0, open, 0, 0, 0,
+                    capacity, 0, capacity, 0, Math.max(0, capacity - open),
+                    Math.max(0, capacity - open), List.of(), Instant.now());
         }
         List<ParkingSpace> spaces = parkingSpacePortOut
                 .findByZoneIdAndLifecycleStatus(zone.getZoneId(), "ACTIVE");
@@ -184,7 +211,10 @@ public class SpaceSummaryUseCaseImpl implements SpaceSummaryPortIn {
         return new SpaceSummaryResult(
                 zone.getZoneId(), "ZONE", spaces.size(), available, occupied,
                 visitor, registered, unknown, reserved, maintenance,
-                allocatedSpaces.size(), List.of(), Instant.now());
+                allocatedSpaces.size(), spaces.size(), maintenance,
+                Math.max(0, spaces.size() - maintenance), allocatedSpaces.size(),
+                Math.max(0, spaces.size() - maintenance - occupied), available,
+                List.of(), Instant.now());
     }
 
     private SpaceSummaryResult aggregate(UUID scopeId, String scopeType, List<Zone> zones, LocalDate date) {
@@ -200,6 +230,12 @@ public class SpaceSummaryUseCaseImpl implements SpaceSummaryPortIn {
                 sum(breakdown, SpaceSummaryResult::reserved),
                 sum(breakdown, SpaceSummaryResult::maintenance),
                 sum(breakdown, SpaceSummaryResult::subscriptionAllocated),
+                sum(breakdown, SpaceSummaryResult::configuredCapacity),
+                sum(breakdown, SpaceSummaryResult::unavailableCapacity),
+                sum(breakdown, SpaceSummaryResult::effectiveCapacity),
+                sum(breakdown, SpaceSummaryResult::subscriptionReserved),
+                sum(breakdown, SpaceSummaryResult::physicalAvailable),
+                sum(breakdown, SpaceSummaryResult::visitorAvailable),
                 breakdown, Instant.now());
     }
 

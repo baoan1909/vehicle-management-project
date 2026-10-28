@@ -58,6 +58,11 @@ public class ZonePersistenceAdapter implements ZonePortOut {
     }
 
     @Override
+    public Optional<Zone> findByIdForUpdate(UUID zoneId) {
+        return zoneRepository.findByIdForUpdate(zoneId).map(zonePersistenceMapper::toDomain);
+    }
+
+    @Override
     public List<Zone> findAll(UUID parkingLotId, UUID vehicleTypeId, ZoneStatus status, String keyword) {
         return zoneRepository.findAll(
                         ZoneSpecifications.withFilters(parkingLotId, vehicleTypeId, status, keyword)

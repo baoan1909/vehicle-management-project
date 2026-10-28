@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.parking.parkingsummary.usecase;
 
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.application.parking.availability.ParkingAvailabilityQuery;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.parking.parkingspace.port.out.ParkingSpacePortOut;
 import com.ban.vehicle_management.application.parking.parkingspaceallocation.port.out.ParkingSpaceAllocationPortOut;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,19 +37,30 @@ public class PublicSpaceAvailabilityUseCaseImpl implements PublicSpaceAvailabili
     private final ParkingSpacePortOut parkingSpacePortOut;
     private final ParkingSpaceAllocationPortOut allocationPortOut;
     private final ParkingSessionPortOut parkingSessionPortOut;
+    private final ParkingAvailabilityQuery availabilityQuery;
 
+    @Autowired
     public PublicSpaceAvailabilityUseCaseImpl(
             ParkingLotPortOut parkingLotPortOut,
             ZonePortOut zonePortOut,
             ParkingSpacePortOut parkingSpacePortOut,
             ParkingSpaceAllocationPortOut allocationPortOut,
-            ParkingSessionPortOut parkingSessionPortOut
+            ParkingSessionPortOut parkingSessionPortOut,
+            ParkingAvailabilityQuery availabilityQuery
     ) {
         this.parkingLotPortOut = parkingLotPortOut;
         this.zonePortOut = zonePortOut;
         this.parkingSpacePortOut = parkingSpacePortOut;
         this.allocationPortOut = allocationPortOut;
         this.parkingSessionPortOut = parkingSessionPortOut;
+        this.availabilityQuery = availabilityQuery;
+    }
+
+    public PublicSpaceAvailabilityUseCaseImpl(ParkingLotPortOut parkingLotPortOut,
+            ZonePortOut zonePortOut, ParkingSpacePortOut parkingSpacePortOut,
+            ParkingSpaceAllocationPortOut allocationPortOut, ParkingSessionPortOut parkingSessionPortOut) {
+        this(parkingLotPortOut, zonePortOut, parkingSpacePortOut, allocationPortOut,
+                parkingSessionPortOut, null);
     }
 
     @Override
@@ -62,8 +75,9 @@ public class PublicSpaceAvailabilityUseCaseImpl implements PublicSpaceAvailabili
             throw new NotFoundException("Parking lot not found");
         }
         LocalDate today = DateTimeUtils.toAppLocalDate(Instant.now());
+        List<Zone> zones = zonePortOut.findAll(lot.getParkingLotId(), null, null, null);
         List<ParkingSpace> spaces = new ArrayList<>();
-        for (Zone zone : zonePortOut.findAll(lot.getParkingLotId(), null, null, null)) {
+        for (Zone zone : zones) {
             if (zone.getTrackingMode() == TrackingMode.SPACE) {
                 spaces.addAll(parkingSpacePortOut.findByZoneIdAndLifecycleStatus(
                         zone.getZoneId(), "ACTIVE"));
@@ -100,13 +114,38 @@ public class PublicSpaceAvailabilityUseCaseImpl implements PublicSpaceAvailabili
             breakdown.add(new PublicAvailabilityResult.VehicleTypeAvailability(
                     entry.getKey(), entry.getValue()[0], entry.getValue()[1], entry.getValue()[2]));
         }
+        long configuredCapacity = spaces.size();
+        long unavailableCapacity = 0;
+        long effectiveCapacity = spaces.size();
+        long subscriptionReserved = allocated.size();
+        long occupiedRegistered = 0;
+        long occupiedVisitor = 0;
+        long physicalAvailable = visitorAvailable;
+        if (availabilityQuery != null) {
+            var snapshots = zones.stream().map(zone -> availabilityQuery.get(zone, today)).toList();
+            configuredCapacity = snapshots.stream().mapToLong(item -> item.configuredCapacity()).sum();
+            unavailableCapacity = snapshots.stream().mapToLong(item -> item.unavailableCapacity()).sum();
+            effectiveCapacity = snapshots.stream().mapToLong(item -> item.effectiveCapacity()).sum();
+            subscriptionReserved = snapshots.stream().mapToLong(item -> item.subscriptionReserved()).sum();
+            occupiedRegistered = snapshots.stream().mapToLong(item -> item.occupiedRegistered()).sum();
+            occupiedVisitor = snapshots.stream().mapToLong(item -> item.occupiedVisitor()).sum();
+            physicalAvailable = snapshots.stream().mapToLong(item -> item.physicalAvailable()).sum();
+            visitorAvailable = snapshots.stream().mapToLong(item -> item.visitorAvailable()).sum();
+        }
         return new PublicAvailabilityResult(
                 lot.getParkingLotId(),
                 lot.getName(),
                 lot.getStatus() == null ? null : lot.getStatus().name(),
-                spaces.size(),
+                configuredCapacity,
+                unavailableCapacity,
+                effectiveCapacity,
+                subscriptionReserved,
+                occupiedRegistered,
+                occupiedVisitor,
+                physicalAvailable,
+                configuredCapacity,
                 visitorAvailable,
-                visitorAvailable,
+                physicalAvailable,
                 visitorAvailable > 0,
                 Instant.now(),
                 breakdown);

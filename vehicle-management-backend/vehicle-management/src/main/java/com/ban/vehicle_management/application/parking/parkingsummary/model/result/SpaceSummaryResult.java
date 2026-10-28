@@ -16,6 +16,12 @@ public record SpaceSummaryResult(
         long reserved,
         long maintenance,
         long subscriptionAllocated,
+        long configuredCapacity,
+        long unavailableCapacity,
+        long effectiveCapacity,
+        long subscriptionReserved,
+        long physicalAvailable,
+        long visitorAvailable,
         List<SpaceSummaryResult> zones,
         Instant calculatedAt
 ) {
