@@ -6,6 +6,8 @@ spring:
           jwk-set-uri: http://127.0.0.1/__test__/jwks
 
 app:
+  rabbitmq:
+    listener-enabled: false
   storage:
     minio:
       # Test-only placeholders. They allow the MinIO client bean to be created

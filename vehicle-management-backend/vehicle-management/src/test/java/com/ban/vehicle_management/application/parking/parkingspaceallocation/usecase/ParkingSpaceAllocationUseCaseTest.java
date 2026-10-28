@@ -137,6 +137,7 @@ class ParkingSpaceAllocationUseCaseTest {
         allocation.setSubscriptionId(subscriptionId);
         allocation.setEffectiveFrom(LocalDate.now());
         allocation.setEffectiveTo(LocalDate.now().plusMonths(1));
+        allocation.setHoldExpiresAt(java.time.Instant.now().plusSeconds(3600));
         return allocation;
     }
 
