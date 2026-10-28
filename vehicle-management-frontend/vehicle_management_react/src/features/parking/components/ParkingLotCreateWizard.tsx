@@ -150,7 +150,6 @@ export function ParkingLotCreateWizard({ open, onClose, onCompleted }: {
       const created = await createParkingLot({
         addressDisplay: info.addressDisplay,
         addressInputScheme: info.addressInputScheme,
-        code: info.code,
         currentWardCode: info.currentWardCode,
         latitude: info.latitude,
         legacyWardCode: info.legacyWardCode,

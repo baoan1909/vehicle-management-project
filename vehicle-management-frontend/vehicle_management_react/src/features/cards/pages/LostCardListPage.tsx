@@ -260,7 +260,14 @@ const getDetailPaymentState = (row: LostCardReportRow) => {
 
 export function LostCardListPage() {
   const { user } = useAuth();
-  const showParkingLotFilter = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
+  const hasPartnerParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
+  const hasAssignedParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"]);
+  const hasPlatformParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_PLATFORM"]);
+  const showParkingLotFilter = hasPartnerParkingScope || hasAssignedParkingScope || hasPlatformParkingScope;
+  const autoSelectAssignedLot = hasAssignedParkingScope
+    && !hasPartnerParkingScope
+    && !hasPlatformParkingScope;
+  const parkingLotAllLabel = autoSelectAssignedLot ? "Tất cả bãi được phân công" : "Tất cả bãi xe";
   const [searchValue, setSearchValue] = useState("");
   const [statusValue, setStatusValue] = useState("all");
   const [parkingLotValue, setParkingLotValue] = useState("all");
@@ -308,7 +315,17 @@ export function LostCardListPage() {
     void getParkingLots()
       .then((response) => {
         if (!active) return;
-        setParkingLots(response.data ?? []);
+        const nextParkingLots = response.data ?? [];
+        setParkingLots(nextParkingLots);
+        setParkingLotValue((current) => {
+          if (current !== "all" && nextParkingLots.some((lot) => lot.parkingLotId === current)) {
+            return current;
+          }
+          if (autoSelectAssignedLot && nextParkingLots.length === 1) {
+            return nextParkingLots[0].parkingLotId;
+          }
+          return "all";
+        });
         setParkingLotError("");
       })
       .catch((error) => {
@@ -317,7 +334,7 @@ export function LostCardListPage() {
         setParkingLotError(error instanceof Error ? error.message : "Không tải được danh sách bãi xe.");
       });
     return () => { active = false; };
-  }, [showParkingLotFilter]);
+  }, [autoSelectAssignedLot, showParkingLotFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / pageSize));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -353,7 +370,7 @@ export function LostCardListPage() {
       try {
         const filter = {
           status: statusValue === "all" ? undefined : (statusValue.toUpperCase() as LostCardReportStatus),
-          parkingLotId: showParkingLotFilter && parkingLotValue !== "all" ? parkingLotValue : undefined,
+          parkingLotId: parkingLotValue !== "all" ? parkingLotValue : undefined,
           keyword: searchValue || undefined,
           fromDate: toStartOfDayInstant(fromDate),
           toDate: toEndOfDayInstant(toDate),
@@ -402,7 +419,11 @@ export function LostCardListPage() {
   const resetFilters = () => {
     setSearchValue("");
     setStatusValue("all");
-    setParkingLotValue("all");
+    setParkingLotValue(
+      autoSelectAssignedLot && parkingLots.length === 1
+        ? parkingLots[0].parkingLotId
+        : "all",
+    );
     setDateRange("");
     setCurrentPage(1);
   };
@@ -495,7 +516,7 @@ export function LostCardListPage() {
                       setParkingLotValue(value);
                       setCurrentPage(1);
                     }}
-                    options={[{ label: "Tất cả bãi xe", value: "all" }, ...parkingLotOptions]}
+                    options={[{ label: parkingLotAllLabel, value: "all" }, ...parkingLotOptions]}
                   />
                 ) : null}
 

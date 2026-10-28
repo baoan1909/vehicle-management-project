@@ -16,6 +16,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -63,6 +64,9 @@ public class LaneUsecaseImpl implements LanePortIn {
     @Transactional
     public Lane createLane(Lane lane){
         ensureCanConfigureGate(lane.getGateId());
+        UUID laneId = UUID.randomUUID();
+        lane.setLaneId(laneId);
+        lane.setCode(IdentifierGenerationUtils.generateLaneCode(laneId));
         lanePolicy.initialize(lane);
         validateOperationalGate(lane.getGateId());
 
@@ -70,7 +74,6 @@ public class LaneUsecaseImpl implements LanePortIn {
             throw new ConflictException("Lane code already exists in this gate");
         }
 
-        lane.setLaneId(UUID.randomUUID());
         return lanePortOut.save(lane);
     }
 
@@ -111,14 +114,10 @@ public class LaneUsecaseImpl implements LanePortIn {
             ensureCanDisableActiveOutLane(existingLane);
         }
 
-        existingLane.setCode(lane.getCode());
         existingLane.setName(lane.getName());
         existingLane.setDirection(lane.getDirection());
 
         lanePolicy.initialize(existingLane);
-        if (lanePortOut.existsByGateIdAndCodeAndLaneIdNot(existingLane.getGateId(), existingLane.getCode(), laneId)){
-            throw new ConflictException("Lane code already exists in this gate");
-        }
         return lanePortOut.save(existingLane);
     }
 

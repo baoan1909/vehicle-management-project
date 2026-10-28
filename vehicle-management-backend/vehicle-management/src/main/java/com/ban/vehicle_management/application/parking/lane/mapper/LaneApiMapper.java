@@ -14,6 +14,7 @@ import org.mapstruct.Mapping;
 public interface LaneApiMapper {
 
     @Mapping(target = "laneId", ignore = true)
+    @Mapping(target = "code", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
@@ -23,6 +24,7 @@ public interface LaneApiMapper {
 
     @Mapping(target = "laneId", ignore = true)
     @Mapping(target = "gateId", ignore = true)
+    @Mapping(target = "code", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)

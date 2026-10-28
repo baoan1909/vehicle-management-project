@@ -21,6 +21,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.GeocodingStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.time.Instant;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -77,6 +78,9 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         parkingLot.setOrganizationId(
                 organizationAccessGuard.resolveOrganizationIdForParkingLotCreation(parkingLot.getOrganizationId())
         );
+        UUID parkingLotId = UUID.randomUUID();
+        parkingLot.setParkingLotId(parkingLotId);
+        parkingLot.setCode(IdentifierGenerationUtils.generateParkingLotCode(parkingLotId));
         parkingLotPolicy.initialize(parkingLot);
         resetUntrustedGeocodingState(parkingLot);
 
@@ -84,7 +88,6 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
             throw new ConflictException("Parking lot code already exists");
         }
 
-        parkingLot.setParkingLotId(UUID.randomUUID());
         return parkingLotPortOut.save(parkingLot);
     }
 
@@ -120,7 +123,6 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
         organizationAccessGuard.ensureCanManageParkingLot(existingParkingLot);
 
         Map<String, Object> before = locationSnapshot(existingParkingLot);
-        existingParkingLot.setCode(parkingLot.getCode());
         existingParkingLot.setName(parkingLot.getName());
         existingParkingLot.setAddressInputScheme(parkingLot.getAddressInputScheme());
         existingParkingLot.setAddressDisplay(parkingLot.getAddressDisplay());
@@ -136,14 +138,6 @@ public class ParkingLotUseCaseImpl implements ParkingLotPortIn {
             resetUntrustedGeocodingState(existingParkingLot);
             existingParkingLot.setActivationRequestedAt(null);
             existingParkingLot.setActivationRequestedBy(null);
-        }
-
-        if (parkingLotPortOut.existsByOrganizationIdAndCodeAndParkingLotIdNot(
-                existingParkingLot.getOrganizationId(),
-                existingParkingLot.getCode(),
-                parkingLotId
-        )) {
-            throw new ConflictException("Parking lot code already exists");
         }
 
         ParkingLot saved = parkingLotPortOut.save(existingParkingLot);

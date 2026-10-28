@@ -14,6 +14,7 @@ import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -243,9 +244,11 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
         return parkingLotIds == null ? UNRESTRICTED_QUERY_IDS : parkingLotIds;
     }
 
-    private String toKeywordPattern(String keyword) {
-        String normalizedKeyword = normalizeKeyword(keyword);
-        return normalizedKeyword == null ? null : "%" + normalizedKeyword.toLowerCase() + "%";
+    static String toKeywordPattern(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return "";
+        }
+        return "%" + keyword.trim().toLowerCase(Locale.ROOT) + "%";
     }
 
     private Instant fromDateOrDefault(Instant fromDate) {

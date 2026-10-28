@@ -6,7 +6,6 @@ import java.util.Set;
 
 public record UpdateZoneRequest(
         UUID parkingLevelId,
-        String code,
         String name,
         UUID vehicleTypeId,
         Set<UUID> vehicleTypeIds,
