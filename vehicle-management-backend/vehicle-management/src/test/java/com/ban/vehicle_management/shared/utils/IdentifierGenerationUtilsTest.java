@@ -23,4 +23,22 @@ class IdentifierGenerationUtilsTest {
     void shouldRejectNullCustomerId() {
         assertThrows(IllegalArgumentException.class, () -> IdentifierGenerationUtils.generateCustomerCode(null));
     }
+
+    @Test
+    void shouldGenerateStableParkingResourceCodesFromIdentifiers() {
+        UUID identifier = UUID.fromString("31b6d833-211f-4669-8ba2-cdf89ba2420b");
+
+        assertEquals("LOT-31B6D833211F", IdentifierGenerationUtils.generateParkingLotCode(identifier));
+        assertEquals("ZONE-31B6D833211F", IdentifierGenerationUtils.generateZoneCode(identifier));
+        assertEquals("GATE-31B6D833211F", IdentifierGenerationUtils.generateGateCode(identifier));
+        assertEquals("LANE-31B6D833211F", IdentifierGenerationUtils.generateLaneCode(identifier));
+    }
+
+    @Test
+    void shouldRejectNullParkingResourceIdentifiers() {
+        assertThrows(IllegalArgumentException.class, () -> IdentifierGenerationUtils.generateParkingLotCode(null));
+        assertThrows(IllegalArgumentException.class, () -> IdentifierGenerationUtils.generateZoneCode(null));
+        assertThrows(IllegalArgumentException.class, () -> IdentifierGenerationUtils.generateGateCode(null));
+        assertThrows(IllegalArgumentException.class, () -> IdentifierGenerationUtils.generateLaneCode(null));
+    }
 }

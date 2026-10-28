@@ -19,6 +19,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -51,13 +52,12 @@ class ZoneUseCaseImplTest {
 
         when(zonePortOut.existsActiveParkingLotById(parkingLotId)).thenReturn(true);
         when(zonePortOut.existsActiveVehicleTypeById(vehicleTypeId)).thenReturn(true);
-        when(zonePortOut.existsByParkingLotIdAndCode(parkingLotId, "A1")).thenReturn(false);
         when(zonePortOut.save(any(Zone.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Zone createdZone = zoneUseCase.createZone(request);
 
         assertNotNull(createdZone.getZoneId());
-        assertEquals("A1", createdZone.getCode());
+        assertEquals(IdentifierGenerationUtils.generateZoneCode(createdZone.getZoneId()), createdZone.getCode());
         assertEquals(ZoneStatus.ACTIVE, createdZone.getStatus());
     }
 
@@ -94,7 +94,7 @@ class ZoneUseCaseImplTest {
 
         when(zonePortOut.existsActiveParkingLotById(parkingLotId)).thenReturn(true);
         when(zonePortOut.existsActiveVehicleTypeById(vehicleTypeId)).thenReturn(true);
-        when(zonePortOut.existsByParkingLotIdAndCode(parkingLotId, "A1")).thenReturn(true);
+        when(zonePortOut.existsByParkingLotIdAndCode(any(UUID.class), any(String.class))).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> zoneUseCase.createZone(request));
         verify(zonePortOut, never()).save(any(Zone.class));
@@ -154,12 +154,11 @@ class ZoneUseCaseImplTest {
         when(zonePortOut.findById(zoneId)).thenReturn(Optional.of(existingZone));
         when(zonePortOut.existsActiveVehicleTypeById(vehicleTypeId)).thenReturn(true);
         when(zonePortOut.countOpenSessions(zoneId)).thenReturn(10L);
-        when(zonePortOut.existsByParkingLotIdAndCodeAndZoneIdNot(parkingLotId, "B1", zoneId)).thenReturn(false);
         when(zonePortOut.save(any(Zone.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Zone updatedZone = zoneUseCase.updateZone(zoneId, request);
 
-        assertEquals("B1", updatedZone.getCode());
+        assertEquals("A1", updatedZone.getCode());
         assertEquals("Zone B1", updatedZone.getName());
         assertEquals(120, updatedZone.getCapacity());
         assertEquals(ZoneStatus.MAINTENANCE, updatedZone.getStatus());
@@ -184,26 +183,6 @@ class ZoneUseCaseImplTest {
         when(zonePortOut.countOpenSessions(zoneId)).thenReturn(2L);
 
         assertThrows(BadRequestException.class, () -> zoneUseCase.updateZone(zoneId, request));
-        verify(zonePortOut, never()).save(any(Zone.class));
-    }
-
-    @Test
-    void shouldRejectUpdateWhenCodeAlreadyExistsInParkingLot() {
-        UUID zoneId = UUID.randomUUID();
-        UUID parkingLotId = UUID.randomUUID();
-        UUID vehicleTypeId = UUID.randomUUID();
-        Zone existingZone = validZone(parkingLotId, vehicleTypeId);
-        existingZone.setZoneId(zoneId);
-
-        Zone request = validZone(parkingLotId, vehicleTypeId);
-        request.setCode("B1");
-
-        when(zonePortOut.findById(zoneId)).thenReturn(Optional.of(existingZone));
-        when(zonePortOut.existsActiveVehicleTypeById(vehicleTypeId)).thenReturn(true);
-        when(zonePortOut.countOpenSessions(zoneId)).thenReturn(0L);
-        when(zonePortOut.existsByParkingLotIdAndCodeAndZoneIdNot(parkingLotId, "B1", zoneId)).thenReturn(true);
-
-        assertThrows(ConflictException.class, () -> zoneUseCase.updateZone(zoneId, request));
         verify(zonePortOut, never()).save(any(Zone.class));
     }
 
@@ -371,7 +350,7 @@ class ZoneUseCaseImplTest {
         when(zonePortOut.existsActiveParkingLotById(parkingLotId)).thenReturn(true);
         when(parkingLevelPortOut.findById(levelId)).thenReturn(Optional.of(level));
         when(zonePortOut.existsActiveVehicleTypeById(vehicleTypeId)).thenReturn(true);
-        when(zonePortOut.existsByParkingLotIdAndCode(parkingLotId, "A1")).thenReturn(false);
+        when(zonePortOut.existsByParkingLotIdAndCode(any(UUID.class), any(String.class))).thenReturn(false);
         when(zonePortOut.save(any(Zone.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Zone createdZone = zoneUseCase.createZone(request);
@@ -390,7 +369,7 @@ class ZoneUseCaseImplTest {
 
         when(zonePortOut.existsActiveParkingLotById(parkingLotId)).thenReturn(true);
         when(zonePortOut.existsActiveVehicleTypeById(vehicleTypeId)).thenReturn(true);
-        when(zonePortOut.existsByParkingLotIdAndCode(parkingLotId, "A1")).thenReturn(false);
+        when(zonePortOut.existsByParkingLotIdAndCode(any(UUID.class), any(String.class))).thenReturn(false);
         when(zonePortOut.save(any(Zone.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Zone createdZone = zoneUseCase.createZone(request);

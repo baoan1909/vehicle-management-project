@@ -26,7 +26,7 @@ import {
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 import { getZones, type ZoneApiResponse } from "@/features/parking/api/parkingTopologyApi";
 import { LiveOpsMap } from "@/features/parking/components/LiveOpsMap";
-import { parkingWorkspaceHref } from "@/features/parking/components/ParkingLotWorkspaceHeader";
+import { ParkingLotWorkspaceHeader } from "@/features/parking/components/ParkingLotWorkspaceHeader";
 import { useParkingRealtime } from "@/features/parking/api/parkingRealtime";
 import { SearchInput } from "@/shared/components/ui/SearchInput";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
@@ -479,65 +479,17 @@ export function ParkingLiveMapPage() {
         <span className="tw-font-semibold tw-text-vm-slate-900">{lot.name}</span>
       </nav>
 
-      {/* Tiêu đề */}
-      <div className="tw-mt-2 tw-flex tw-flex-wrap tw-items-center tw-gap-3">
-        <h1 className="tw-m-0 tw-text-[1.65rem] tw-font-extrabold tw-leading-tight tw-text-vm-slate-900">
-          {lot.name} <span className="tw-font-extrabold">· {lot.code}</span>
-        </h1>
-        <span className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-emerald-50 tw-px-3 tw-py-1.5 tw-text-[0.76rem] tw-font-bold tw-text-emerald-700">
-          <span className="tw-h-2 tw-w-2 tw-rounded-full tw-bg-emerald-500" />
-          Đang hoạt động
-        </span>
-        {lots.length > 1 ? (
-          <SelectMenu
-            ariaLabel="Chọn bãi xe"
-            className="!tw-ml-auto !tw-w-[260px]"
-            triggerClassName="!tw-h-10 !tw-rounded-[8px] !tw-border-[#dbe3f0] !tw-text-[0.82rem] !tw-font-bold !tw-shadow-none"
-            value={activeLotId}
-            onChange={(nextLotId) => {
-              setLotId(nextLotId);
-              setLevelId("");
-              setZoneFilter("all");
-              setSelectedId("");
-            }}
-            options={lots.map((parkingLot) => ({ label: `${parkingLot.code} — ${parkingLot.name}`, value: parkingLot.parkingLotId }))}
-            portal
-          />
-        ) : null}
-      </div>
-      <p className="tw-m-0 tw-mt-1.5 tw-flex tw-items-center tw-gap-1.5 tw-text-[0.86rem] tw-text-vm-slate-500">
-        <i className="far fa-map-marker-alt" aria-hidden="true" />
-        {lot.addressDisplay || "Chưa cập nhật địa chỉ"}
-      </p>
-
-      {/* Tabs */}
-      <div className="tw-mt-3 tw-flex tw-items-center tw-gap-7 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100" role="tablist" aria-label="Điều hướng bãi xe">
-        {(
-          [
-            { label: "Tổng quan", tab: "overview" },
-            { label: "Cấu trúc", tab: "structure" },
-            { label: "Thiết kế sơ đồ", tab: "layout" },
-            { label: "Trực tiếp", tab: "live" },
-          ] as const
-        ).map((item) =>
-          item.tab === "live" ? (
-            <span key={item.tab} role="tab" aria-selected="true" className="tw-relative tw-inline-block tw-pb-3 tw-text-[0.94rem] tw-font-extrabold tw-text-vm-primary">
-              {item.label}
-              <span className="tw-absolute tw-inset-x-0 tw--bottom-px tw-h-[2.5px] tw-rounded-full tw-bg-vm-primary" />
-            </span>
-          ) : (
-            <Link
-              key={item.tab}
-              role="tab"
-              aria-selected="false"
-              to={parkingWorkspaceHref(item.tab, activeLotId)}
-              className="tw-pb-3 tw-text-[0.94rem] tw-font-medium tw-text-vm-slate-500 hover:tw-text-vm-primary hover:tw-no-underline"
-            >
-              {item.label}
-            </Link>
-          ),
-        )}
-      </div>
+      <ParkingLotWorkspaceHeader
+        activeTab="live"
+        parkingLot={lot}
+        parkingLots={lots}
+        onParkingLotChange={(nextLotId) => {
+          setLotId(nextLotId);
+          setLevelId("");
+          setZoneFilter("all");
+          setSelectedId("");
+        }}
+      />
 
       {/* Realtime banner */}
       <Card className="tw-mt-4 tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-px-4 tw-py-3">

@@ -79,7 +79,6 @@ export type LaneFilter = {
 
 export type UpdateZoneRequest = {
   capacity: number;
-  code: string;
   name: string;
   parkingLevelId?: string | null;
   trackingMode?: "CAPACITY" | "SPACE" | null;
@@ -92,7 +91,6 @@ export type CreateZoneRequest = UpdateZoneRequest & {
 };
 
 export type UpdateGateRequest = {
-  code: string;
   name: string;
 };
 
@@ -101,7 +99,6 @@ export type CreateGateRequest = UpdateGateRequest & {
 };
 
 export type UpdateLaneRequest = {
-  code: string;
   direction: LaneDirectionApi;
   name: string;
 };

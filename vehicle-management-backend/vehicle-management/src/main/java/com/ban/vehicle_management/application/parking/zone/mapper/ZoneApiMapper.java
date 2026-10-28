@@ -14,6 +14,7 @@ import org.mapstruct.Mapping;
 public interface ZoneApiMapper {
 
     @Mapping(target = "zoneId", ignore = true)
+    @Mapping(target = "code", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "unavailableCapacity", ignore = true)
     @Mapping(target = "layoutStatus", ignore = true)
@@ -26,6 +27,7 @@ public interface ZoneApiMapper {
 
     @Mapping(target = "zoneId", ignore = true)
     @Mapping(target = "parkingLotId", ignore = true)
+    @Mapping(target = "code", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "unavailableCapacity", ignore = true)
     @Mapping(target = "layoutStatus", ignore = true)

@@ -48,16 +48,16 @@ export function ParkingLotWorkspaceHeader({ activeTab, parkingLot, parkingLots =
   return (
     <>
       <div className="tw-flex tw-min-h-[86px] tw-items-center tw-justify-between tw-gap-5 max-[850px]:tw-items-start max-[850px]:tw-flex-col">
-        <div className="tw-flex tw-min-w-0 tw-items-center tw-gap-4">
+        <div className="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-4">
           <div className="tw-flex tw-size-[62px] tw-flex-none tw-items-center tw-justify-center tw-rounded-vm-lg tw-border tw-border-solid tw-border-blue-100 tw-bg-gradient-to-br tw-from-blue-50 tw-to-white tw-shadow-sm">
             <span className="tw-flex tw-size-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-bg-vm-primary tw-text-xl tw-font-black tw-text-white tw-shadow-[0_8px_18px_rgba(37,99,235,.24)]">P</span>
           </div>
-          <div className="tw-min-w-0">
-            <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3">
-              <h1 className="tw-m-0 tw-truncate tw-text-[27px] tw-font-extrabold tw-leading-tight tw-tracking-[-0.025em] tw-text-vm-slate-900">
+          <div className="tw-min-w-0 tw-flex-1">
+            <div className="tw-flex tw-min-w-0 tw-flex-nowrap tw-items-center tw-gap-3">
+              <h1 className="tw-m-0 tw-min-w-0 tw-truncate tw-text-[27px] tw-font-extrabold tw-leading-tight tw-tracking-[-0.025em] tw-text-vm-slate-900" title={`${parkingLot.name} · ${parkingLot.code}`}>
                 {parkingLot.name} · {parkingLot.code}
               </h1>
-              <span className={cn("tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-px-3 tw-py-1 tw-text-[0.76rem] tw-font-extrabold", statusClassName[parkingLot.status])}>
+              <span className={cn("tw-inline-flex tw-flex-none tw-items-center tw-gap-1.5 tw-whitespace-nowrap tw-rounded-full tw-px-3 tw-py-1 tw-text-[0.76rem] tw-font-extrabold", statusClassName[parkingLot.status])}>
                 <i className="fas fa-circle tw-text-[0.48rem]" aria-hidden="true" />
                 {statusLabel[parkingLot.status]}
               </span>

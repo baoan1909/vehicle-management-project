@@ -42,6 +42,8 @@ assert.doesNotMatch(canvas, /react-konva|fabric|konva/);
 
 // Live map is read-only and refetches snapshots on realtime events.
 assert.match(live, /useParkingRealtime/);
+assert.match(editor, /<ParkingLotWorkspaceHeader/);
+assert.match(live, /<ParkingLotWorkspaceHeader/);
 assert.match(live, /onReconnect/);
 assert.doesNotMatch(live, /window\.prompt|window\.confirm/);
 assert.match(live, /title="Gán chỗ đăng ký"/);

@@ -14,6 +14,7 @@ import org.mapstruct.Mapping;
 public interface GateApiMapper {
 
     @Mapping(target = "gateId", ignore = true)
+    @Mapping(target = "code", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
@@ -23,6 +24,7 @@ public interface GateApiMapper {
 
     @Mapping(target = "gateId", ignore = true)
     @Mapping(target = "zoneId", ignore = true)
+    @Mapping(target = "code", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)

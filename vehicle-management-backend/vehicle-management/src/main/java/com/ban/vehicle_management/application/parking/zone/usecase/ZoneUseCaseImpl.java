@@ -21,6 +21,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -83,6 +84,9 @@ public class ZoneUseCaseImpl implements ZonePortIn {
     @Transactional
     public Zone createZone(Zone zone) {
         ensureCanConfigureParkingLot(zone.getParkingLotId());
+        UUID zoneId = UUID.randomUUID();
+        zone.setZoneId(zoneId);
+        zone.setCode(IdentifierGenerationUtils.generateZoneCode(zoneId));
         zonePolicy.initialize(zone);
         validateConfigurableParkingLot(zone.getParkingLotId());
         ensureLevelBelongsToParkingLot(zone.getParkingLotId(), zone.getParkingLevelId());
@@ -93,7 +97,6 @@ public class ZoneUseCaseImpl implements ZonePortIn {
             throw new ConflictException("Zone code already exists in this parking lot");
         }
 
-        zone.setZoneId(UUID.randomUUID());
         return zonePortOut.save(zone);
     }
 
@@ -117,7 +120,6 @@ public class ZoneUseCaseImpl implements ZonePortIn {
         ensureCanConfigureParkingLot(existingZone.getParkingLotId());
 
         TrackingMode previousTrackingMode = existingZone.getTrackingMode();
-        existingZone.setCode(zone.getCode());
         existingZone.setName(zone.getName());
         if (zone.getParkingLevelId() != null) {
             existingZone.setParkingLevelId(zone.getParkingLevelId());
@@ -136,14 +138,6 @@ public class ZoneUseCaseImpl implements ZonePortIn {
         normalizeAndValidateVehicleTypes(existingZone);
         validateCapacity(existingZone);
         validateTrackingModeCapacity(existingZone, previousTrackingMode);
-
-        if (zonePortOut.existsByParkingLotIdAndCodeAndZoneIdNot(
-                existingZone.getParkingLotId(),
-                existingZone.getCode(),
-                zoneId
-        )) {
-            throw new ConflictException("Zone code already exists in this parking lot");
-        }
 
         return zonePortOut.save(existingZone);
     }

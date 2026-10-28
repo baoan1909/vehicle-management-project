@@ -6,7 +6,6 @@ import java.util.UUID;
 
 public record CreateLaneRequest (
         UUID gateId,
-        String code,
         String name,
         LaneDirection direction
 ){
