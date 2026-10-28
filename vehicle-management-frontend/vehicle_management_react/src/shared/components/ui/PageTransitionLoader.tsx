@@ -1,41 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigation } from "react-router-dom";
 
 import { cn } from "@/lib/cn";
 
 const MIN_VISIBLE_MS = 320;
 const COMPLETE_DELAY_MS = 180;
-
-function isModifiedEvent(event: MouseEvent) {
-  return event.metaKey || event.altKey || event.ctrlKey || event.shiftKey || event.button !== 0;
-}
-
-function shouldStartForAnchor(anchor: HTMLAnchorElement) {
-  if (anchor.target && anchor.target !== "_self") return false;
-  if (anchor.hasAttribute("download")) return false;
-
-  const href = anchor.getAttribute("href");
-  if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) {
-    return false;
-  }
-
-  try {
-    const targetUrl = new URL(anchor.href, window.location.href);
-    if (targetUrl.origin !== window.location.origin) return false;
-    return `${targetUrl.pathname}${targetUrl.search}${targetUrl.hash}` !== `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  } catch {
-    return false;
-  }
-}
-
-function getNextUrl(value?: string | URL | null) {
-  if (!value) return null;
-  try {
-    return new URL(value, window.location.href);
-  } catch {
-    return null;
-  }
-}
 
 function CarLoaderGraphic() {
   return (
@@ -92,11 +61,13 @@ export function PageTransitionLoader() {
   const location = useLocation();
   const navigation = useNavigation();
   const [visible, setVisible] = useState(false);
+  const visibleRef = useRef(false);
   const startedAtRef = useRef(0);
   const hideTimerRef = useRef<number | null>(null);
   const completeTimerRef = useRef<number | null>(null);
+  const lastLocationRef = useRef(`${location.key}:${location.pathname}${location.search}${location.hash}`);
 
-  const clearTimers = () => {
+  const clearTimers = useCallback(() => {
     if (hideTimerRef.current) {
       window.clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
@@ -106,16 +77,17 @@ export function PageTransitionLoader() {
       window.clearTimeout(completeTimerRef.current);
       completeTimerRef.current = null;
     }
-  };
+  }, []);
 
-  const startLoading = () => {
+  const startLoading = useCallback(() => {
     clearTimers();
     startedAtRef.current = Date.now();
+    visibleRef.current = true;
     setVisible(true);
-  };
+  }, [clearTimers]);
 
-  const finishLoading = () => {
-    if (!visible) return;
+  const finishLoading = useCallback(() => {
+    if (!visibleRef.current) return;
     if (completeTimerRef.current) window.clearTimeout(completeTimerRef.current);
 
     completeTimerRef.current = window.setTimeout(() => {
@@ -123,52 +95,19 @@ export function PageTransitionLoader() {
       const remaining = Math.max(MIN_VISIBLE_MS - elapsed, 0);
 
       hideTimerRef.current = window.setTimeout(() => {
+        visibleRef.current = false;
         setVisible(false);
         hideTimerRef.current = null;
       }, remaining);
     }, COMPLETE_DELAY_MS);
-  };
+  }, []);
 
   useEffect(() => {
-    function handleDocumentClick(event: MouseEvent) {
-      if (isModifiedEvent(event) || event.defaultPrevented) return;
-      const target = event.target as Element | null;
-      const anchor = target?.closest("a[href]");
-      if (anchor instanceof HTMLAnchorElement && shouldStartForAnchor(anchor)) {
-        startLoading();
-      }
-    }
-
-    const originalPushState = window.history.pushState;
-    const originalReplaceState = window.history.replaceState;
-
-    window.history.pushState = function pushStateWithLoader(data: unknown, unused: string, url?: string | URL | null) {
-      const nextUrl = getNextUrl(url);
-      if (nextUrl && `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}` !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
-        startLoading();
-      }
-      return originalPushState.call(this, data, unused, url);
-    };
-
-    window.history.replaceState = function replaceStateWithLoader(data: unknown, unused: string, url?: string | URL | null) {
-      const nextUrl = getNextUrl(url);
-      if (nextUrl && `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}` !== `${window.location.pathname}${window.location.search}${window.location.hash}`) {
-        startLoading();
-      }
-      return originalReplaceState.call(this, data, unused, url);
-    };
-
-    window.addEventListener("popstate", startLoading);
-    document.addEventListener("click", handleDocumentClick, true);
-
     return () => {
-      document.removeEventListener("click", handleDocumentClick, true);
-      window.removeEventListener("popstate", startLoading);
-      window.history.pushState = originalPushState;
-      window.history.replaceState = originalReplaceState;
       clearTimers();
+      visibleRef.current = false;
     };
-  }, []);
+  }, [clearTimers]);
 
   useEffect(() => {
     if (navigation.state === "loading" || navigation.state === "submitting") {
@@ -177,11 +116,16 @@ export function PageTransitionLoader() {
     }
 
     finishLoading();
-  }, [navigation.state]);
+  }, [finishLoading, navigation.state, startLoading]);
 
   useEffect(() => {
+    const nextLocation = `${location.key}:${location.pathname}${location.search}${location.hash}`;
+    if (lastLocationRef.current === nextLocation) return;
+
+    lastLocationRef.current = nextLocation;
+    startLoading();
     finishLoading();
-  }, [location.key, location.pathname, location.search]);
+  }, [finishLoading, location.hash, location.key, location.pathname, location.search, startLoading]);
 
   return (
     <div

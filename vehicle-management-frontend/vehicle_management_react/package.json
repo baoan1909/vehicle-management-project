@@ -8,10 +8,11 @@
     "build": "tsc && vite build",
     "lint": "tsc --noEmit",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "node scripts/check-support-widget-messages.mjs && node scripts/check-customer-mobile-foundation.mjs && node scripts/check-nearby-parking-page.mjs && node scripts/check-partner-registration-flow.mjs && node scripts/check-parking-address-picker.mjs && node scripts/check-parking-layout.mjs && node scripts/check-parking-overview.mjs && node scripts/check-parking-operation-scope.mjs && node scripts/check-parking-structure-actions.mjs && node scripts/check-user-guide.mjs && node scripts/check-guest-support.mjs && node scripts/check-oidc-migration.mjs && node scripts/check-auth-access-lifecycle.mjs && node scripts/check-access-state.mjs && node scripts/check-account-state-sync.mjs",
+    "test": "node scripts/check-loading-lifecycle.mjs && node scripts/check-support-widget-messages.mjs && node scripts/check-customer-mobile-foundation.mjs && node scripts/check-nearby-parking-page.mjs && node scripts/check-partner-registration-flow.mjs && node scripts/check-parking-address-picker.mjs && node scripts/check-parking-layout.mjs && node scripts/check-parking-overview.mjs && node scripts/check-parking-operation-scope.mjs && node scripts/check-parking-structure-actions.mjs && node scripts/check-user-guide.mjs && node scripts/check-guest-support.mjs && node scripts/check-oidc-migration.mjs && node scripts/check-auth-access-lifecycle.mjs && node scripts/check-access-state.mjs && node scripts/check-account-state-sync.mjs",
     "test:account-state-sync": "node scripts/check-account-state-sync.mjs",
     "test:auth-access:e2e": "playwright test tests/auth-access.behavior.spec.ts",
-    "test:guest-support:e2e": "playwright test tests/guest-support.behavior.spec.ts"
+    "test:guest-support:e2e": "playwright test tests/guest-support.behavior.spec.ts",
+    "test:nearby-parking:e2e": "playwright test tests/nearby-parking.behavior.spec.ts"
   },
   "dependencies": {
     "@stomp/stompjs": "^7.3.0",

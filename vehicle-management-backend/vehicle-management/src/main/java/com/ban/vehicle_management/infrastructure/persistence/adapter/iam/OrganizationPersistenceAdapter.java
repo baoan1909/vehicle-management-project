@@ -195,6 +195,19 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
     }
 
     @Override
+    public Set<UUID> findActiveOperationalAccountIdsByParkingLotId(UUID parkingLotId) {
+        if (parkingLotId == null) {
+            return Set.of();
+        }
+        return memberParkingLotScopeRepository.findActiveAccountIdsByParkingLotIdAndRoleCodeIn(
+                parkingLotId,
+                OrganizationMembershipStatus.ACTIVE,
+                AccountStatus.ACTIVE,
+                Set.of("EMPLOYEE", "PARKING_MANAGER")
+        );
+    }
+
+    @Override
     public void deactivateMembershipsAndClearParkingLotScopes(UUID accountId) {
         memberParkingLotScopeRepository.deleteAllByAccountId(accountId);
         organizationMembershipRepository.updateStatusByAccountId(

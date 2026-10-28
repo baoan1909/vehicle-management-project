@@ -26,6 +26,13 @@ public interface ZoneRepository extends JpaRepository<ZoneEntity, UUID>, JpaSpec
 
     boolean existsByParkingLotIdAndStatus(UUID parkingLotId, ZoneStatus status);
 
+    boolean existsByParkingLotIdAndStatusAndTrackingModeAndLayoutStatusNot(
+            UUID parkingLotId,
+            ZoneStatus status,
+            TrackingMode trackingMode,
+            LayoutStatus layoutStatus
+    );
+
     boolean existsByZoneIdAndStatus(UUID zoneId, ZoneStatus status);
 
     boolean existsByVehicleTypeIdsContainsAndStatus(UUID vehicleTypeId, ZoneStatus status);

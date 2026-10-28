@@ -17,6 +17,8 @@ import java.util.UUID;
 
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
+import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -99,6 +101,12 @@ public class ParkingLotPersistenceAdapter implements ParkingLotPortOut {
         return hasActiveZones(parkingLotId)
                 && gateRepository.existsActiveGateByParkingLotId(parkingLotId)
                 && laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.IN)
-                && laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.OUT);
+                && laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.OUT)
+                && !zoneRepository.existsByParkingLotIdAndStatusAndTrackingModeAndLayoutStatusNot(
+                        parkingLotId,
+                        ZoneStatus.ACTIVE,
+                        TrackingMode.SPACE,
+                        LayoutStatus.PUBLISHED
+                );
     }
 }

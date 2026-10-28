@@ -271,6 +271,7 @@ export function NearbyParkingLotsPage() {
 
   function handleRadiusChange(nextRadius: (typeof RADIUS_OPTIONS)[number]) {
     setRadiusKm(nextRadius);
+    setSelectedLotId(null);
     if (userLocation) void searchNearby(userLocation, nextRadius);
   }
 
@@ -421,6 +422,7 @@ export function NearbyParkingLotsPage() {
                 onPickLocation={handlePickLocation}
                 onSelectLot={setSelectedLotId}
                 pickingEnabled={pickingEnabled}
+                radiusKm={radiusKm}
                 selectedLotId={selectedLotId}
                 userLocation={userLocation}
               />

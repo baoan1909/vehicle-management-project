@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.parking;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -10,8 +11,13 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.infrastructure.mapper.parking.ParkingLotPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingLotRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.GateRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.LaneRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ZoneRepository;
+import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
+import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -35,6 +41,12 @@ class ParkingLotPersistenceAdapterTest {
 
     @Mock
     private ZoneRepository zoneRepository;
+
+    @Mock
+    private GateRepository gateRepository;
+
+    @Mock
+    private LaneRepository laneRepository;
 
     @InjectMocks
     private ParkingLotPersistenceAdapter parkingLotPersistenceAdapter;
@@ -136,5 +148,39 @@ class ParkingLotPersistenceAdapterTest {
 
         assertTrue(hasActiveZones);
         verify(zoneRepository).existsByParkingLotIdAndStatus(parkingLotId, ZoneStatus.ACTIVE);
+    }
+
+    @Test
+    void shouldAllowActivationWhenTopologyIsActiveAndNoSpaceZoneNeedsPublishedLayout() {
+        UUID parkingLotId = UUID.randomUUID();
+        when(zoneRepository.existsByParkingLotIdAndStatus(parkingLotId, ZoneStatus.ACTIVE)).thenReturn(true);
+        when(gateRepository.existsActiveGateByParkingLotId(parkingLotId)).thenReturn(true);
+        when(laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.IN)).thenReturn(true);
+        when(laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.OUT)).thenReturn(true);
+        when(zoneRepository.existsByParkingLotIdAndStatusAndTrackingModeAndLayoutStatusNot(
+                parkingLotId,
+                ZoneStatus.ACTIVE,
+                TrackingMode.SPACE,
+                LayoutStatus.PUBLISHED
+        )).thenReturn(false);
+
+        assertTrue(parkingLotPersistenceAdapter.isReadyForActivation(parkingLotId));
+    }
+
+    @Test
+    void shouldRejectActivationWhenActiveSpaceZoneHasNoPublishedLayout() {
+        UUID parkingLotId = UUID.randomUUID();
+        when(zoneRepository.existsByParkingLotIdAndStatus(parkingLotId, ZoneStatus.ACTIVE)).thenReturn(true);
+        when(gateRepository.existsActiveGateByParkingLotId(parkingLotId)).thenReturn(true);
+        when(laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.IN)).thenReturn(true);
+        when(laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.OUT)).thenReturn(true);
+        when(zoneRepository.existsByParkingLotIdAndStatusAndTrackingModeAndLayoutStatusNot(
+                parkingLotId,
+                ZoneStatus.ACTIVE,
+                TrackingMode.SPACE,
+                LayoutStatus.PUBLISHED
+        )).thenReturn(true);
+
+        assertFalse(parkingLotPersistenceAdapter.isReadyForActivation(parkingLotId));
     }
 }
