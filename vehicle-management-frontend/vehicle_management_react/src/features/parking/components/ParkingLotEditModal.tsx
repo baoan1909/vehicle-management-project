@@ -13,7 +13,6 @@ function toInitialValue(lot: ParkingLotApiResponse): ParkingLotInfoValue {
   return {
     addressDisplay: lot.addressDisplay ?? "",
     addressInputScheme: lot.addressInputScheme ?? "CURRENT",
-    code: lot.code,
     currentWardCode: lot.currentWardCode,
     latitude: lot.latitude,
     legacyWardCode: lot.legacyWardCode,
@@ -51,7 +50,6 @@ export function ParkingLotEditModal({ lot, open, onClose, onCompleted }: {
       let saved = (await updateParkingLot(lot.parkingLotId, {
         addressDisplay: value.addressDisplay,
         addressInputScheme: value.addressInputScheme,
-        code: value.code,
         currentWardCode: value.currentWardCode,
         latitude: value.latitude,
         legacyWardCode: value.legacyWardCode,

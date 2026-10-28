@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.accesscontrol.subscription.usecas
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.authorization.SubscriptionAccessGuard;
+import com.ban.vehicle_management.application.accesscontrol.subscription.config.SubscriptionTimeProperties;
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
@@ -15,6 +16,7 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
+import com.ban.vehicle_management.application.parking.allocation.SubscriptionParkingAllocationService;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
@@ -45,6 +47,7 @@ import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
@@ -84,6 +87,8 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final SubscriptionAccessGuard subscriptionAccessGuard;
     private final NotificationPortIn notificationPortIn;
+    private final SubscriptionParkingAllocationService parkingAllocationService;
+    private final Duration allocationHoldDuration;
     private final SubscriptionPolicy subscriptionPolicy = new SubscriptionPolicy();
     private final CardPolicy cardPolicy = new CardPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
@@ -102,7 +107,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             ParkingLotCatalogAvailabilityPortOut catalogAvailabilityPortOut,
             CurrentAccountPortIn currentAccountPortIn,
             SubscriptionAccessGuard subscriptionAccessGuard,
-            NotificationPortIn notificationPortIn
+            NotificationPortIn notificationPortIn,
+            SubscriptionParkingAllocationService parkingAllocationService,
+            SubscriptionTimeProperties timeProperties
     ) {
         this.subscriptionPortOut = subscriptionPortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
@@ -118,6 +125,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         this.currentAccountPortIn = currentAccountPortIn;
         this.subscriptionAccessGuard = subscriptionAccessGuard;
         this.notificationPortIn = notificationPortIn;
+        this.parkingAllocationService = parkingAllocationService;
+        this.allocationHoldDuration = timeProperties == null
+                ? Duration.ofHours(48) : timeProperties.getPaymentTimeout();
     }
 
     @Override
@@ -258,7 +268,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     public Subscription approveSubscription(UUID subscriptionId) {
         subscriptionAccessGuard.ensureCanApprove();
 
-        Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
         subscriptionAccessGuard.ensureCanOperate(subscription);
         Instant now = Instant.now();
         LocalDate today = currentDate();
@@ -302,6 +312,11 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 invoiceFinalAmount
         );
 
+        if (parkingAllocationService != null) {
+            parkingAllocationService.holdForApproval(subscription,
+                    preparedData.customerVehicle().getVehicleTypeId(), now.plus(allocationHoldDuration));
+        }
+
         Subscription approvedSubscription = subscriptionPortOut.save(subscription);
         Invoice invoice = invoicePortOut.save(buildSubscriptionInvoice(
                 approvedSubscription,
@@ -334,7 +349,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     public Subscription rejectSubscription(UUID subscriptionId, String reason) {
         subscriptionAccessGuard.ensureCanReject();
 
-        Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
         subscriptionAccessGuard.ensureCanOperate(subscription);
         subscriptionPolicy.reject(
                 subscription,
@@ -342,6 +357,10 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 currentAccountPortIn.getCurrentAccountIdOrThrow(),
                 Instant.now()
         );
+
+        if (parkingAllocationService != null) {
+            parkingAllocationService.release(subscriptionId, true);
+        }
 
         Subscription rejectedSubscription = subscriptionPortOut.save(subscription);
         notifySubscriptionRejected(rejectedSubscription);
@@ -351,7 +370,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     @Override
     @Transactional
     public Subscription markSubscriptionPaymentCompleted(UUID subscriptionId) {
-        Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
 
         invoicePortOut.findFirstBySubscriptionIdAndStatus(subscriptionId, InvoiceStatus.PAID)
                 .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription"));
@@ -368,7 +387,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     public Subscription assignReservedCard(UUID subscriptionId) {
         subscriptionAccessGuard.ensureCanAssignCard();
 
-        Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
         subscriptionAccessGuard.ensureCanOperate(subscription);
         TicketType ticketType = findActiveSubscriptionTicketType(subscription.getTicketTypeId());
 
@@ -383,6 +402,10 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         cardPolicy.assignReserved(reservedCard, now);
         subscriptionPolicy.assignReservedCard(subscription, currentDate(), ticketType.getDurationDays());
 
+        if (parkingAllocationService != null) {
+            parkingAllocationService.activate(subscription);
+        }
+
         cardPortOut.save(reservedCard);
         return subscriptionPortOut.save(subscription);
     }
@@ -390,7 +413,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     @Override
     @Transactional
     public Subscription cancelSubscription(UUID subscriptionId) {
-        Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
         subscriptionAccessGuard.ensureCanCancel(subscription);
 
         if (subscription.getStatus() == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.PENDING_PAYMENT) {
@@ -416,6 +439,9 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         }
 
         subscriptionPolicy.cancelBeforeRefundWorkflow(subscription);
+        if (parkingAllocationService != null) {
+            parkingAllocationService.release(subscriptionId, true);
+        }
         Subscription cancelledSubscription = subscriptionPortOut.save(subscription);
         notifySubscriptionCancelled(cancelledSubscription);
         return cancelledSubscription;
@@ -426,9 +452,13 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     public Subscription expireSubscription(UUID subscriptionId) {
         subscriptionAccessGuard.ensureCanExpire();
 
-        Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
         subscriptionAccessGuard.ensureCanOperate(subscription);
         subscriptionPolicy.expire(subscription, currentDate());
+
+        if (parkingAllocationService != null) {
+            parkingAllocationService.release(subscriptionId, false);
+        }
 
         Subscription expiredSubscription = subscriptionPortOut.save(subscription);
         notifySubscriptionExpired(expiredSubscription);
@@ -636,6 +666,13 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
 
     private Subscription findSubscriptionOrThrow(UUID subscriptionId) {
         return subscriptionPortOut.findById(subscriptionId)
+                .orElseThrow(() -> new NotFoundException("Subscription not found"));
+    }
+
+    private Subscription findSubscriptionForUpdate(UUID subscriptionId) {
+        requireField(subscriptionId, "subscriptionId");
+        return subscriptionPortOut.findByIdForUpdate(subscriptionId)
+                .or(() -> subscriptionPortOut.findById(subscriptionId))
                 .orElseThrow(() -> new NotFoundException("Subscription not found"));
     }
 

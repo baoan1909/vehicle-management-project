@@ -75,6 +75,11 @@ public class ParkingSpaceAllocationPersistenceAdapter implements ParkingSpaceAll
     }
 
     @Override
+    public List<ParkingSpaceAllocation> findExpiredHolds(Instant now) {
+        return repository.findExpiredHolds(now).stream().map(mapper::toDomain).toList();
+    }
+
+    @Override
     @Transactional
     public int cancelExpiredHoldsGlobal(Instant now) {
         return repository.cancelExpiredHoldsGlobal(now);

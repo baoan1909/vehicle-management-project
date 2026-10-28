@@ -26,6 +26,9 @@ public interface ParkingSessionManagementPersistenceMapper {
     @Mapping(target = "parkingLotId", source = "parkingLotId")
     @Mapping(target = "parkingLotCode", source = "parkingLot.code")
     @Mapping(target = "parkingLotName", source = "parkingLot.name")
+    @Mapping(target = "parkingSpaceCode", source = "parkingSpace.code")
+    @Mapping(target = "parkingLevelId", source = "zone.parkingLevelId")
+    @Mapping(target = "customerType", expression = "java(entity.getSubscriptionId() != null || entity.getCustomerVehicleId() != null ? \"SUBSCRIPTION\" : \"VISITOR\")")
     @Mapping(target = "events", source = "parkingEvents", qualifiedByName = "toSortedEventResults")
     ParkingSessionManagementResult toResult(ParkingSessionEntity entity);
 

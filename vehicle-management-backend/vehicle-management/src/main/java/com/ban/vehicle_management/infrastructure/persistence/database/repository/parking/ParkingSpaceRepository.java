@@ -3,12 +3,18 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSpaceEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface ParkingSpaceRepository extends JpaRepository<ParkingSpaceEntity, UUID> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select space from ParkingSpaceEntity space where space.parkingSpaceId = :parkingSpaceId")
+    Optional<ParkingSpaceEntity> findByIdForUpdate(@Param("parkingSpaceId") UUID parkingSpaceId);
 
     List<ParkingSpaceEntity> findByZoneId(UUID zoneId);
 

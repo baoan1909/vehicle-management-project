@@ -274,7 +274,6 @@ class ParkingCheckInUseCaseImplTest {
         when(cardTypePortOut.findById(visitorCard.getCardTypeId()))
                 .thenReturn(Optional.of(cardType(visitorCard.getCardTypeId(), "VISITOR")));
         when(parkingSessionPortOut.existsOpenByCardId(data.cardId())).thenReturn(false);
-        when(parkingSessionPortOut.countOpenByZoneId(data.zoneId())).thenReturn(3L);
         when(catalogAvailabilityPortOut.isVehicleTypeEnabled(data.parkingLotId(), data.vehicleTypeId()))
                 .thenReturn(false);
 
@@ -527,6 +526,7 @@ class ParkingCheckInUseCaseImplTest {
         zone.setVehicleTypeId(vehicleTypeId);
         zone.setCapacity(capacity);
         zone.setStatus(status);
+        zone.setTrackingMode(com.ban.vehicle_management.shared.enumeration.parking.TrackingMode.CAPACITY);
         return zone;
     }
 

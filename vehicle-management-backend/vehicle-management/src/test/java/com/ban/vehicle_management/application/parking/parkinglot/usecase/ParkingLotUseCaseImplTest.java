@@ -25,6 +25,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.GeocodingStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.AddressInputScheme;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.time.Instant;
 import java.math.BigDecimal;
 import java.util.List;
@@ -92,13 +93,15 @@ class ParkingLotUseCaseImplTest {
     void shouldCreateParkingLotWhenValid() {
         ParkingLot request = validParkingLot();
 
-        when(parkingLotPortOut.existsByOrganizationIdAndCode(request.getOrganizationId(), "HCMUTE")).thenReturn(false);
         when(parkingLotPortOut.save(any(ParkingLot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ParkingLot createdParkingLot = parkingLotUseCase.createParkingLot(request);
 
         assertNotNull(createdParkingLot.getParkingLotId());
-        assertEquals("HCMUTE", createdParkingLot.getCode());
+        assertEquals(
+                IdentifierGenerationUtils.generateParkingLotCode(createdParkingLot.getParkingLotId()),
+                createdParkingLot.getCode()
+        );
         assertEquals(ParkingLotStatus.SETUP, createdParkingLot.getStatus());
     }
 
@@ -106,7 +109,7 @@ class ParkingLotUseCaseImplTest {
     void shouldRejectCreateWhenCodeAlreadyExists() {
         ParkingLot request = validParkingLot();
 
-        when(parkingLotPortOut.existsByOrganizationIdAndCode(request.getOrganizationId(), "HCMUTE")).thenReturn(true);
+        when(parkingLotPortOut.existsByOrganizationIdAndCode(any(UUID.class), any(String.class))).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> parkingLotUseCase.createParkingLot(request));
         verify(parkingLotPortOut, never()).save(any(ParkingLot.class));
@@ -175,40 +178,15 @@ class ParkingLotUseCaseImplTest {
         request.setTotalCapacity(1200);
 
         when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
-        when(parkingLotPortOut.existsByOrganizationIdAndCodeAndParkingLotIdNot(
-                existingParkingLot.getOrganizationId(),
-                "HCMUTE-MAIN",
-                parkingLotId
-        )).thenReturn(false);
         when(parkingLotPortOut.save(any(ParkingLot.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         ParkingLot updatedParkingLot = parkingLotUseCase.updateParkingLot(parkingLotId, request);
 
-        assertEquals("HCMUTE-MAIN", updatedParkingLot.getCode());
+        assertEquals("HCMUTE", updatedParkingLot.getCode());
         assertEquals("Bai xe HCMUTE Main", updatedParkingLot.getName());
         assertEquals("Dia chi moi", updatedParkingLot.getAddressDisplay());
         assertEquals(1200, updatedParkingLot.getTotalCapacity());
         assertEquals(ParkingLotStatus.MAINTENANCE, updatedParkingLot.getStatus());
-    }
-
-    @Test
-    void shouldRejectUpdateWhenCodeAlreadyExists() {
-        UUID parkingLotId = UUID.randomUUID();
-        ParkingLot existingParkingLot = validParkingLot();
-        existingParkingLot.setParkingLotId(parkingLotId);
-
-        ParkingLot request = validParkingLot();
-        request.setCode("OTHER");
-
-        when(parkingLotPortOut.findById(parkingLotId)).thenReturn(Optional.of(existingParkingLot));
-        when(parkingLotPortOut.existsByOrganizationIdAndCodeAndParkingLotIdNot(
-                existingParkingLot.getOrganizationId(),
-                "OTHER",
-                parkingLotId
-        )).thenReturn(true);
-
-        assertThrows(ConflictException.class, () -> parkingLotUseCase.updateParkingLot(parkingLotId, request));
-        verify(parkingLotPortOut, never()).save(any(ParkingLot.class));
     }
 
     @Test

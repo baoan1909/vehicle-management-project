@@ -14,6 +14,8 @@ public interface ParkingSpacePortOut {
 
     Optional<ParkingSpace> findById(UUID parkingSpaceId);
 
+    Optional<ParkingSpace> findByIdForUpdate(UUID parkingSpaceId);
+
     List<ParkingSpace> findByZoneId(UUID zoneId);
 
     List<ParkingSpace> findByZoneIdAndStatus(UUID zoneId, ParkingSpaceStatus status);

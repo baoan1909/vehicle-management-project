@@ -11,6 +11,8 @@ public interface ZonePortOut {
 
     Optional<Zone> findById(UUID zoneId);
 
+    Optional<Zone> findByIdForUpdate(UUID zoneId);
+
     List<Zone> findAll(UUID parkingLotId, UUID vehicleTypeId, ZoneStatus status, String keyword);
 
     boolean existsByParkingLotIdAndCode(UUID parkingLotId, String code);

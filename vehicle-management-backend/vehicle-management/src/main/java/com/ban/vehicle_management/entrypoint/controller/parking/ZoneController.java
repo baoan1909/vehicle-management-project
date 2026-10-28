@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.parking.zone.port.in.ZonePortIn;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.entrypoint.dto.parking.zone.request.CreateZoneRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.zone.request.UpdateZoneRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.zone.request.UpdateUnavailableCapacityRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.zone.request.ZoneFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.zone.response.ZoneAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
@@ -118,5 +119,16 @@ public class ZoneController {
                 "Zone closed successfully",
                 zoneApiMapper.toAdminResponse(closedZone)
         ));
+    }
+
+    @PatchMapping("/{zoneId}/unavailable-capacity")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SPACE_STATUS_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<ZoneAdminResponse>> updateUnavailableCapacity(
+            @PathVariable UUID zoneId,
+            @RequestBody UpdateUnavailableCapacityRequest request
+    ) {
+        Zone zone = zonePortIn.updateUnavailableCapacity(zoneId, request.unavailableCapacity());
+        return ResponseEntity.ok(ApiResponse.ok("Zone unavailable capacity updated successfully",
+                zoneApiMapper.toAdminResponse(zone)));
     }
 }

@@ -10,6 +10,10 @@ public final class IdentifierGenerationUtils {
 
     private static final String CUSTOMER_PREFIX = "CUS";
     private static final String EMPLOYEE_PREFIX = "EMP";
+    private static final String PARKING_LOT_PREFIX = "LOT";
+    private static final String ZONE_PREFIX = "ZONE";
+    private static final String GATE_PREFIX = "GATE";
+    private static final String LANE_PREFIX = "LANE";
     private static final int EMPLOYEE_CODE_LENGTH = 12;
 
     private IdentifierGenerationUtils() {
@@ -27,6 +31,38 @@ public final class IdentifierGenerationUtils {
         return buildCode(
                 requireIdentifier(employeeId, "employeeId"),
                 EMPLOYEE_PREFIX,
+                IdentifierGenerationUtils::compactUuidPrefix
+        );
+    }
+
+    public static String generateParkingLotCode(UUID parkingLotId) {
+        return buildCode(
+                requireIdentifier(parkingLotId, "parkingLotId"),
+                PARKING_LOT_PREFIX,
+                IdentifierGenerationUtils::compactUuidPrefix
+        );
+    }
+
+    public static String generateZoneCode(UUID zoneId) {
+        return buildCode(
+                requireIdentifier(zoneId, "zoneId"),
+                ZONE_PREFIX,
+                IdentifierGenerationUtils::compactUuidPrefix
+        );
+    }
+
+    public static String generateGateCode(UUID gateId) {
+        return buildCode(
+                requireIdentifier(gateId, "gateId"),
+                GATE_PREFIX,
+                IdentifierGenerationUtils::compactUuidPrefix
+        );
+    }
+
+    public static String generateLaneCode(UUID laneId) {
+        return buildCode(
+                requireIdentifier(laneId, "laneId"),
+                LANE_PREFIX,
                 IdentifierGenerationUtils::compactUuidPrefix
         );
     }

@@ -39,6 +39,7 @@ public class PaymentPolicy {
         payment.setNote("VNPAY online payment");
         payment.setCreatedAt(createdAt);
         payment.setExpiresAt(expiresAt);
+        payment.setRefundedAmount(BigDecimal.ZERO);
 
         validateState(payment);
     }
@@ -55,6 +56,7 @@ public class PaymentPolicy {
         payment.setStatus(PaymentStatus.SUCCESS);
         payment.setTransactionRef(normalizeTransactionRef(payment.getPaymentMethod(), payment.getTransactionRef()));
         payment.setNote(TextValidationUtils.normalizeNullableText(payment.getNote(), "note", 255));
+        payment.setRefundedAmount(BigDecimal.ZERO);
 
         validateState(payment);
     }

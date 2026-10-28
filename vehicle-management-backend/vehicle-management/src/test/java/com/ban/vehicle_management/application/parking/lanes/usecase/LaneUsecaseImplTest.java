@@ -7,6 +7,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,7 +37,6 @@ public class LaneUsecaseImplTest {
         Lane request = validLane(gateId, LaneDirection.IN);
 
         when(lanePortOut.existsOperationalGateById(gateId)).thenReturn(true);
-        when(lanePortOut.existsByGateIdAndCode(gateId, "LANE-IN-01")).thenReturn(false);
         when(lanePortOut.save(any(Lane.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -44,7 +44,7 @@ public class LaneUsecaseImplTest {
 
         assertNotNull(createdLane.getLaneId());
         assertEquals(gateId, createdLane.getGateId());
-        assertEquals("LANE-IN-01", createdLane.getCode());
+        assertEquals(IdentifierGenerationUtils.generateLaneCode(createdLane.getLaneId()), createdLane.getCode());
         assertEquals(LaneStatus.ACTIVE, createdLane.getStatus());
     }
 
@@ -65,7 +65,7 @@ public class LaneUsecaseImplTest {
         Lane request = validLane(gateId, LaneDirection.IN);
 
         when(lanePortOut.existsOperationalGateById(gateId)).thenReturn(true);
-        when(lanePortOut.existsByGateIdAndCode(gateId, "LANE-IN-01")).thenReturn(true);
+        when(lanePortOut.existsByGateIdAndCode(any(UUID.class), any(String.class))).thenReturn(true);
 
         assertThrows(ConflictException.class, () -> laneUsecase.createLane(request));
         verify(lanePortOut, never()).save(any(Lane.class));
@@ -120,12 +120,11 @@ public class LaneUsecaseImplTest {
         request.setDirection(LaneDirection.OUT);
 
         when(lanePortOut.findById(laneId)).thenReturn(Optional.of(existingLane));
-        when(lanePortOut.existsByGateIdAndCodeAndLaneIdNot(gateId, "LANE-OUT-01", laneId)).thenReturn(false);
         when(lanePortOut.save(any(Lane.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Lane updatedLane = laneUsecase.updateLane(laneId, request);
 
-        assertEquals("LANE-OUT-01", updatedLane.getCode());
+        assertEquals("LANE-IN-01", updatedLane.getCode());
         assertEquals("Lane out 01", updatedLane.getName());
         assertEquals(LaneDirection.OUT, updatedLane.getDirection());
     }

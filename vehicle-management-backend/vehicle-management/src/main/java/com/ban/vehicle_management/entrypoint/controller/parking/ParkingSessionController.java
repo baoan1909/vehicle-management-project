@@ -6,9 +6,11 @@ import com.ban.vehicle_management.application.parking.parkingsession.model.resul
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingSessionPortIn;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInParkingSessionRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInPreviewRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.ParkingSessionFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionManagementResponse;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
@@ -98,6 +101,16 @@ public class ParkingSessionController {
         return buildCheckInResponse(parkingSessionPortIn.checkIn(
                 parkingSessionApiMapper.toCommand(parseCheckInRequest(request), licensePlateImage, personImage)
         ));
+    }
+
+    @PostMapping(value = "/check-in/preview", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SESSION_CHECK_IN_ALL')")
+    public ResponseEntity<ApiResponse<ParkingSessionCheckInPreviewResponse>> previewCheckIn(
+            @RequestBody CheckInPreviewRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok("Check-in preview calculated successfully",
+                parkingSessionApiMapper.toCheckInPreviewResponse(
+                        parkingSessionPortIn.previewCheckIn(parkingSessionApiMapper.toCommand(request)))));
     }
 
     @PostMapping(value = "/check-out", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

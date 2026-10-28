@@ -6,7 +6,6 @@ import com.ban.vehicle_management.shared.enumeration.parking.AddressInputScheme;
 
 public record CreateParkingLotRequest(
         UUID organizationId,
-        String code,
         String name,
         AddressInputScheme addressInputScheme,
         String addressDisplay,

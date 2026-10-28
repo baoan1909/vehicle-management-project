@@ -92,8 +92,8 @@ assert.ok(lotInfoForm.includes("Xác nhận vị trí thủ công"), "Form bãi 
 assert.ok(structure.includes("Thêm tầng mới (cùng bãi)"), "Panel tầng thiếu CTA thêm tầng cho bãi hiện có");
 assert.ok(structure.includes("Thêm tầng đầu tiên"), "Empty state thiếu CTA thêm tầng đầu tiên");
 assert.ok(structure.includes("createParkingLevel"), "Tab Cấu trúc chưa gọi createParkingLevel");
-assert.ok(structure.includes('ariaLabel="Chọn bãi xe"'), "Tab Cấu trúc thiếu dropdown chuyển bãi");
-assert.ok(structure.includes("encodeURIComponent(activeLotId)"), "Chuyển tab chưa giữ parkingLotId đang chọn");
+assert.ok(structure.includes("ParkingLotWorkspaceHeader"), "Tab Cấu trúc chưa dùng header bãi xe thống nhất");
+assert.ok(structure.includes("encodeURIComponent(parkingLotId)"), "Chuyển bãi chưa giữ parkingLotId đang chọn");
 assert.ok(structure.includes('searchParams.get("action")'), "Tab Cấu trúc chưa xử lý action từ Tổng quan");
 assert.ok(structure.includes("ParkingLotEditModal"), "Tab Cấu trúc chưa gắn modal sửa bãi mới");
 assert.ok(structure.includes("ParkingManagerAssignmentModal"), "Tab Cấu trúc chưa gắn modal gán Manager mới");

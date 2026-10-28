@@ -16,6 +16,7 @@ import org.mapstruct.Mapping;
 public interface ParkingLotApiMapper {
 
     @Mapping(target = "parkingLotId", ignore = true)
+    @Mapping(target = "code", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "activationRequestedAt", ignore = true)
     @Mapping(target = "activationRequestedBy", ignore = true)
@@ -29,6 +30,7 @@ public interface ParkingLotApiMapper {
 
     @Mapping(target = "parkingLotId", ignore = true)
     @Mapping(target = "organizationId", ignore = true)
+    @Mapping(target = "code", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "activationRequestedAt", ignore = true)
     @Mapping(target = "activationRequestedBy", ignore = true)

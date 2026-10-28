@@ -11,7 +11,6 @@ export type ParkingLotLocationResolution = "GEOCODED" | "MANUAL" | "NONE";
 export type ParkingLotInfoValue = {
   addressDisplay: string;
   addressInputScheme: AddressInputSchemeApi;
-  code: string;
   currentWardCode: string | null;
   latitude: number | null;
   legacyWardCode: string | null;
@@ -25,7 +24,6 @@ export function blankParkingLotInfo(): ParkingLotInfoValue {
   return {
     addressDisplay: "",
     addressInputScheme: "CURRENT",
-    code: "",
     currentWardCode: null,
     latitude: null,
     legacyWardCode: null,
@@ -50,7 +48,7 @@ function lotStatusLabel(status: ParkingLotStatusApi) {
 }
 
 /**
- * Form thông tin bãi xe dùng chung (mã, tên, sức chứa, địa chỉ + tọa độ + validate).
+ * Form thông tin bãi xe dùng chung (tên, sức chứa, địa chỉ + tọa độ + validate).
  * Tách từ drawer "Thêm/Sửa bãi xe" để tái dùng cho modal tạo bãi nhiều bước.
  */
 export function ParkingLotInfoForm({ formKey, initial, onClose, onSubmit, serverError, statusMeta, submitLabel, submitting }: {
@@ -82,8 +80,8 @@ export function ParkingLotInfoForm({ formKey, initial, onClose, onSubmit, server
     event.preventDefault();
     setFormError("");
 
-    if (!form.code.trim() || !form.name.trim() || form.totalCapacity < 0) {
-      setFormError("Vui lòng nhập mã bãi, tên bãi và sức chứa không âm.");
+    if (!form.name.trim() || form.totalCapacity < 0) {
+      setFormError("Vui lòng nhập tên bãi và sức chứa không âm.");
       return;
     }
 
@@ -120,7 +118,6 @@ export function ParkingLotInfoForm({ formKey, initial, onClose, onSubmit, server
     onSubmit({
       ...form,
       addressDisplay: form.addressDisplay.trim(),
-      code: form.code.trim(),
       name: form.name.trim(),
       totalCapacity: Number(form.totalCapacity),
     });
@@ -185,20 +182,15 @@ export function ParkingLotInfoForm({ formKey, initial, onClose, onSubmit, server
   return (
     <form className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col" onSubmit={(event) => void handleSubmit(event)}>
       <div className="tw-grid tw-gap-4 tw-overflow-y-auto tw-px-1 tw-pb-5">
-        {[
-          ["Mã bãi xe", "code", "LOT-HCMUTE"],
-          ["Tên bãi xe", "name", "Bãi xe HCMUTE"],
-        ].map(([label, key, placeholder]) => (
-          <label className="tw-m-0 tw-grid tw-gap-2" key={key}>
-            <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">{label}</span>
-            <input
-              className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]"
-              placeholder={placeholder}
-              value={String(form[key as "code" | "name"])}
-              onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
-            />
-          </label>
-        ))}
+        <label className="tw-m-0 tw-grid tw-gap-2">
+          <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Tên bãi xe</span>
+          <input
+            className="tw-h-[42px] tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200 focus:tw-shadow-[0_0_0_3px_rgba(37,99,235,0.08)]"
+            placeholder="Bãi xe HCMUTE"
+            value={form.name}
+            onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+          />
+        </label>
 
         <section className="tw-grid tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-blue-100 tw-bg-blue-50 tw-p-4">
           <div>

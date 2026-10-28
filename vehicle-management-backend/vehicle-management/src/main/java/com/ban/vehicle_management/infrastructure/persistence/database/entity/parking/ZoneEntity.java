@@ -75,6 +75,9 @@ public class ZoneEntity extends AuditableEntity {
     @Column(name = "capacity", nullable = false)
     private Integer capacity;
 
+    @Column(name = "unavailable_capacity", nullable = false)
+    private Integer unavailableCapacity;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "tracking_mode", nullable = false)
     private TrackingMode trackingMode;

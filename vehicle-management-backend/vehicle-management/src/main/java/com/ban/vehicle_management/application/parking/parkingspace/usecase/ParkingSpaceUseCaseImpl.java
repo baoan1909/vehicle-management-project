@@ -181,7 +181,7 @@ public class ParkingSpaceUseCaseImpl implements ParkingSpacePortIn {
     @Transactional
     public ParkingSpace releaseParkingSpace(UUID parkingSpaceId) {
         ParkingSpace parkingSpace = getParkingSpaceOrThrow(parkingSpaceId);
-        findConfigurableZone(parkingSpace.getZoneId());
+        findOperableZone(parkingSpace.getZoneId());
         ensureNoOpenSession(parkingSpace.getParkingSpaceId());
         Map<String, Object> oldData = snapshot(parkingSpace);
         parkingSpacePolicy.release(parkingSpace);
@@ -194,7 +194,7 @@ public class ParkingSpaceUseCaseImpl implements ParkingSpacePortIn {
     @Transactional
     public ParkingSpace reserveParkingSpace(UUID parkingSpaceId) {
         ParkingSpace parkingSpace = getParkingSpaceOrThrow(parkingSpaceId);
-        findConfigurableZone(parkingSpace.getZoneId());
+        findOperableZone(parkingSpace.getZoneId());
         Map<String, Object> oldData = snapshot(parkingSpace);
         parkingSpacePolicy.reserve(parkingSpace);
         ParkingSpace saved = parkingSpacePortOut.save(parkingSpace);
@@ -205,14 +205,17 @@ public class ParkingSpaceUseCaseImpl implements ParkingSpacePortIn {
     @Override
     @Transactional
     public ParkingSpace markParkingSpaceMaintenance(UUID parkingSpaceId) {
+        requirePermission("PARKING_SPACE_STATUS_UPDATE_ALL");
         ParkingSpace parkingSpace = getParkingSpaceOrThrow(parkingSpaceId);
-        findConfigurableZone(parkingSpace.getZoneId());
+        findOperableZone(parkingSpace.getZoneId());
         ensureNoOpenSession(parkingSpace.getParkingSpaceId());
-        ensureNoActiveAllocation(parkingSpace.getParkingSpaceId());
+        parkingSpace = lockAndReassignAllocationsForMaintenance(parkingSpace);
+        ensureNoOpenSession(parkingSpace.getParkingSpaceId());
         Map<String, Object> oldData = snapshot(parkingSpace);
         parkingSpacePolicy.markMaintenance(parkingSpace);
         ParkingSpace saved = parkingSpacePortOut.save(parkingSpace);
         writeAudit(saved, "UPDATE_PARKING_SPACE_STATUS", oldData, snapshot(saved));
+        publishStatusChanged(saved);
         return saved;
     }
 
@@ -220,9 +223,17 @@ public class ParkingSpaceUseCaseImpl implements ParkingSpacePortIn {
     @Transactional
     public ParkingSpace setManualStatus(UUID parkingSpaceId, ParkingSpaceStatus targetStatus,
             ManualOccupancyType occupancyType, String reason) {
+        requirePermission("PARKING_SPACE_STATUS_UPDATE_ALL");
         ParkingSpace parkingSpace = getParkingSpaceOrThrow(parkingSpaceId);
-        findConfigurableZone(parkingSpace.getZoneId());
-        ensureStatusChangeAllowed(parkingSpace.getParkingSpaceId(), targetStatus);
+        findOperableZone(parkingSpace.getZoneId());
+        if (targetStatus == ParkingSpaceStatus.MAINTENANCE) {
+            ensureNoOpenSession(parkingSpace.getParkingSpaceId());
+            parkingSpace = lockAndReassignAllocationsForMaintenance(parkingSpace);
+            ensureNoOpenSession(parkingSpace.getParkingSpaceId());
+        } else {
+            parkingSpace = getParkingSpaceForUpdate(parkingSpaceId);
+            ensureStatusChangeAllowed(parkingSpace.getParkingSpaceId(), targetStatus);
+        }
         Map<String, Object> oldData = snapshot(parkingSpace);
         parkingSpacePolicy.setManualStatus(parkingSpace, targetStatus, occupancyType, reason);
         ParkingSpace saved = parkingSpacePortOut.save(parkingSpace);
@@ -289,6 +300,18 @@ public class ParkingSpaceUseCaseImpl implements ParkingSpacePortIn {
         return zone;
     }
 
+    private Zone findOperableZone(UUID zoneId) {
+        if (zoneId == null) {
+            throw new NotFoundException("Zone not found");
+        }
+        Zone zone = zonePortOut.findById(zoneId)
+                .orElseThrow(() -> new NotFoundException("Zone not found"));
+        if (organizationAccessGuard != null) {
+            organizationAccessGuard.ensureCanOperateParkingLot(getParkingLotOrThrow(zone.getParkingLotId()));
+        }
+        return zone;
+    }
+
     private void ensureCanAccessZone(UUID zoneId) {
         findReadableZone(zoneId);
     }
@@ -309,6 +332,80 @@ public class ParkingSpaceUseCaseImpl implements ParkingSpacePortIn {
     private ParkingSpace getParkingSpaceOrThrow(UUID parkingSpaceId) {
         return parkingSpacePortOut.findById(parkingSpaceId)
                 .orElseThrow(() -> new NotFoundException("Parking space not found"));
+    }
+
+    private ParkingSpace getParkingSpaceForUpdate(UUID parkingSpaceId) {
+        return parkingSpacePortOut.findByIdForUpdate(parkingSpaceId)
+                .or(() -> parkingSpacePortOut.findById(parkingSpaceId))
+                .orElseThrow(() -> new NotFoundException("Parking space not found"));
+    }
+
+    private ParkingSpace lockAndReassignAllocationsForMaintenance(ParkingSpace sourceSnapshot) {
+        if (allocationPortOut == null) {
+            return getParkingSpaceForUpdate(sourceSnapshot.getParkingSpaceId());
+        }
+        List<com.ban.vehicle_management.domain.parking.parkingspaceallocation.model.ParkingSpaceAllocation> live =
+                allocationPortOut.findByParkingSpaceId(sourceSnapshot.getParkingSpaceId()).stream()
+                        .filter(allocation -> allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.HELD
+                                || allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.ACTIVE)
+                        .toList();
+        if (live.isEmpty()) {
+            return getParkingSpaceForUpdate(sourceSnapshot.getParkingSpaceId());
+        }
+        requirePermission("PARKING_SPACE_ASSIGN_ALL");
+        ParkingSpace targetSnapshot = parkingSpacePortOut.findByZoneIdAndLifecycleStatus(
+                        sourceSnapshot.getZoneId(), "ACTIVE")
+                .stream()
+                .filter(candidate -> !candidate.getParkingSpaceId().equals(sourceSnapshot.getParkingSpaceId()))
+                .filter(candidate -> candidate.getStatus() == ParkingSpaceStatus.AVAILABLE)
+                .filter(candidate -> sourceSnapshot.getVehicleTypeId() == null
+                        ? candidate.getVehicleTypeId() == null
+                        : sourceSnapshot.getVehicleTypeId().equals(candidate.getVehicleTypeId()))
+                .filter(candidate -> !parkingSessionPortOut.existsOpenByParkingSpaceId(candidate.getParkingSpaceId()))
+                .filter(candidate -> live.stream().noneMatch(allocation ->
+                        allocationPortOut.existsOverlappingAllocation(candidate.getParkingSpaceId(),
+                                allocation.getEffectiveFrom(), allocation.getEffectiveTo(), null)))
+                .findFirst()
+                .orElseThrow(() -> new ConflictException(
+                        "No compatible replacement space is available for the subscription allocation"));
+        List<UUID> lockIds = java.util.stream.Stream.of(
+                        sourceSnapshot.getParkingSpaceId(), targetSnapshot.getParkingSpaceId())
+                .sorted().toList();
+        ParkingSpace first = getParkingSpaceForUpdate(lockIds.get(0));
+        ParkingSpace second = getParkingSpaceForUpdate(lockIds.get(1));
+        ParkingSpace source = sourceSnapshot.getParkingSpaceId().equals(first.getParkingSpaceId()) ? first : second;
+        ParkingSpace target = targetSnapshot.getParkingSpaceId().equals(first.getParkingSpaceId()) ? first : second;
+        ensureNoOpenSession(source.getParkingSpaceId());
+        if (target.getStatus() != ParkingSpaceStatus.AVAILABLE
+                || parkingSessionPortOut.existsOpenByParkingSpaceId(target.getParkingSpaceId())) {
+            throw new ConflictException("Replacement parking space changed concurrently");
+        }
+        List<com.ban.vehicle_management.domain.parking.parkingspaceallocation.model.ParkingSpaceAllocation> lockedLive =
+                allocationPortOut.findByParkingSpaceId(source.getParkingSpaceId()).stream()
+                        .filter(allocation -> allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.HELD
+                                || allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.ACTIVE)
+                        .toList();
+        for (var allocation : lockedLive) {
+            if (allocationPortOut.existsOverlappingAllocation(target.getParkingSpaceId(),
+                    allocation.getEffectiveFrom(), allocation.getEffectiveTo(), null)) {
+                throw new ConflictException("Replacement parking space changed concurrently");
+            }
+            UUID oldSpaceId = allocation.getParkingSpaceId();
+            allocation.setParkingSpaceId(target.getParkingSpaceId());
+            allocationPortOut.save(allocation);
+            writeAllocationMoveAudit(allocation, oldSpaceId, target.getParkingSpaceId());
+        }
+        parkingSpacePolicy.setAutomaticStatus(target, ParkingSpaceStatus.RESERVED, null);
+        parkingSpacePortOut.save(target);
+        publishStatusChanged(target);
+        publishAllocationChanged(target);
+        return source;
+    }
+
+    private void requirePermission(String permission) {
+        if (currentAccountPortIn != null) {
+            currentAccountPortIn.requirePermission(permission);
+        }
     }
 
     private void ensureStatusChangeAllowed(UUID parkingSpaceId, ParkingSpaceStatus targetStatus) {
@@ -373,6 +470,39 @@ public class ParkingSpaceUseCaseImpl implements ParkingSpacePortIn {
                         space.getStatus() == null ? null : space.getStatus().name(),
                         zone.getLayoutVersion(),
                         Map.of("source", String.valueOf(space.getStatusSource()))));
+    }
+
+    private void publishAllocationChanged(ParkingSpace target) {
+        if (parkingRealtimePublisher == null || zonePortOut == null) {
+            return;
+        }
+        Zone zone = zonePortOut.findById(target.getZoneId()).orElse(null);
+        if (zone == null) {
+            return;
+        }
+        ParkingRealtimeAfterCommit.publishAfterCommit(parkingRealtimePublisher,
+                new ParkingRealtimeEvent("PARKING_SPACE_ALLOCATION_CHANGED",
+                        zone.getParkingLotId(), zone.getParkingLevelId(), zone.getZoneId(),
+                        target.getParkingSpaceId(), target.getStatus().name(), zone.getLayoutVersion(),
+                        Map.of("allocationChanged", "true", "reserved", "true")));
+    }
+
+    private void writeAllocationMoveAudit(
+            com.ban.vehicle_management.domain.parking.parkingspaceallocation.model.ParkingSpaceAllocation allocation,
+            UUID oldSpaceId, UUID newSpaceId) {
+        if (auditLogPortOut == null || currentAccountPortIn == null) {
+            return;
+        }
+        AuditLog auditLog = new AuditLog();
+        auditLog.setAuditLogId(UUID.randomUUID());
+        auditLog.setActorAccountId(currentAccountPortIn.getCurrentAccountIdOrThrow());
+        auditLog.setAction("REASSIGN_PARKING_SPACE_ALLOCATION_FOR_MAINTENANCE");
+        auditLog.setTargetSchema("parking");
+        auditLog.setTargetTable("parking_space_allocations");
+        auditLog.setTargetId(allocation.getAllocationId());
+        auditLog.setOldData(Map.of("parkingSpaceId", oldSpaceId.toString()));
+        auditLog.setNewData(Map.of("parkingSpaceId", newSpaceId.toString()));
+        auditLogPortOut.save(auditLog);
     }
 
     private Map<String, Object> snapshot(ParkingSpace parkingSpace) {

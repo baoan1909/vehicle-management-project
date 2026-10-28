@@ -32,6 +32,7 @@ import com.ban.vehicle_management.application.storage.model.StoreFileCommand;
 import com.ban.vehicle_management.application.storage.model.StoredFile;
 import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
+import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.domain.parking.gate.model.Gate;
 import com.ban.vehicle_management.domain.parking.lane.model.Lane;
@@ -41,7 +42,10 @@ import com.ban.vehicle_management.domain.parking.parkingspace.model.ParkingSpace
 import com.ban.vehicle_management.domain.parking.parkingspaceallocation.model.ParkingSpaceAllocation;
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
+import com.ban.vehicle_management.domain.people.customer.model.Customer;
+import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.GateStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneStatus;
@@ -52,6 +56,9 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatusSource;
 import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.LocalDate;
@@ -175,6 +182,76 @@ class ParkingCheckInSpaceAssignmentTest {
         verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
     }
 
+    @Test
+    void shouldUseOwnReservedSpaceForRegisteredSubscription() {
+        mockSpaceTopology();
+        UUID subscriptionId = UUID.randomUUID();
+        UUID customerId = UUID.randomUUID();
+        UUID vehicleId = UUID.randomUUID();
+        Card card = new Card();
+        card.setCardId(cardId);
+        card.setCardNumber("C001");
+        card.setUid("UID-001");
+        card.setCardTypeId(UUID.randomUUID());
+        card.setStatus(CardStatus.ASSIGNED);
+        Subscription subscription = new Subscription();
+        subscription.setSubscriptionId(subscriptionId);
+        subscription.setParkingLotId(lotId);
+        subscription.setCardId(cardId);
+        subscription.setCustomerId(customerId);
+        subscription.setCustomerVehicleId(vehicleId);
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setEffectiveFrom(LocalDate.now().minusDays(1));
+        subscription.setEffectiveTo(LocalDate.now().plusDays(30));
+        Customer customer = new Customer();
+        customer.setCustomerId(customerId);
+        customer.setStatus(CustomerStatus.ACTIVE);
+        customer.setApprovalStatus(CustomerApprovalStatus.APPROVED);
+        CustomerVehicle vehicle = new CustomerVehicle();
+        vehicle.setCustomerVehicleId(vehicleId);
+        vehicle.setCustomerId(customerId);
+        vehicle.setVehicleTypeId(vehicleTypeId);
+        vehicle.setLicensePlate("51A-12345");
+        vehicle.setStatus(CustomerVehicleStatus.ACTIVE);
+        ParkingSpace reserved = availableSpace(spaceId, zoneId);
+        reserved.setStatus(ParkingSpaceStatus.RESERVED);
+        ParkingSpaceAllocation allocation = new ParkingSpaceAllocation();
+        allocation.setParkingSpaceId(spaceId);
+        allocation.setSubscriptionId(subscriptionId);
+        allocation.setEffectiveFrom(LocalDate.now().minusDays(1));
+        allocation.setEffectiveTo(LocalDate.now().plusDays(30));
+        allocation.setAllocationStatus(ParkingSpaceAllocationStatus.ACTIVE);
+
+        when(cardPortOut.findByUidForUpdate("UID-001")).thenReturn(Optional.of(card));
+        when(cardTypePortOut.findById(card.getCardTypeId()))
+                .thenReturn(Optional.of(cardType(card.getCardTypeId(), "REGISTERED")));
+        when(parkingSessionPortOut.existsOpenByCardId(cardId)).thenReturn(false);
+        when(subscriptionPortOut.findActiveByCardIdForUpdate(eq(cardId), any(LocalDate.class)))
+                .thenReturn(Optional.of(subscription));
+        when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
+        when(customerVehiclePortOut.findById(vehicleId)).thenReturn(Optional.of(vehicle));
+        when(allocationPortOut.findActiveAllocationsBySubscription(subscriptionId))
+                .thenReturn(List.of(allocation));
+        when(parkingSpacePortOut.findById(spaceId)).thenReturn(Optional.of(reserved));
+        when(parkingSessionPortOut.existsOpenByParkingSpaceId(spaceId)).thenReturn(false);
+        when(allocationPortOut.findActiveAllocationsForSpaceOnDate(eq(spaceId), any(LocalDate.class)))
+                .thenReturn(List.of(allocation));
+        when(parkingSessionPortOut.save(any(ParkingSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(parkingSpacePortOut.save(any(ParkingSpace.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(fileStoragePort.store(any(StoreFileCommand.class)))
+                .thenReturn(storedFile("plate.jpg"), storedFile("person.jpg"));
+        when(parkingEventPortOut.save(any(ParkingEvent.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
+
+        CheckInResult result = useCase.checkIn(commandWithSpace(null));
+
+        assertEquals(spaceId, result.parkingSession().getParkingSpaceId());
+        assertEquals(ParkingSpaceStatus.OCCUPIED, reserved.getStatus());
+    }
+
     private CheckInCommand commandWithSpace(UUID parkingSpaceId) {
         return new CheckInCommand("UID-001", laneId, vehicleTypeId, "51A-12345",
                 image("plate.jpg"), image("person.jpg"), null, false, false, parkingSpaceId);
@@ -223,6 +300,15 @@ class ParkingCheckInSpaceAssignmentTest {
         when(cardTypePortOut.findById(card.getCardTypeId())).thenReturn(Optional.of(cardType));
         when(parkingSessionPortOut.existsOpenByCardId(cardId)).thenReturn(false);
         lenient().when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    private CardType cardType(UUID id, String code) {
+        CardType cardType = new CardType();
+        cardType.setCardTypeId(id);
+        cardType.setCode(code);
+        cardType.setName(code);
+        cardType.setIsActive(Boolean.TRUE);
+        return cardType;
     }
 
     private ParkingSpace availableSpace(UUID id, UUID zone) {

@@ -26,6 +26,7 @@ public class Zone extends AuditableDomainModel {
     private UUID vehicleTypeId;
     private Set<UUID> vehicleTypeIds = new HashSet<>();
     private Integer capacity;
+    private Integer unavailableCapacity;
     private TrackingMode trackingMode;
     private LayoutStatus layoutStatus;
     private Long layoutVersion;

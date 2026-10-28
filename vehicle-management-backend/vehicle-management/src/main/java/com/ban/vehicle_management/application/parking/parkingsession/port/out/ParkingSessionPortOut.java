@@ -16,9 +16,15 @@ public interface ParkingSessionPortOut {
 
     Optional<ParkingSession> findOpenByCardId(UUID cardId);
 
+    Optional<ParkingSession> findOpenByCardIdForUpdate(UUID cardId);
+
     boolean existsOpenByCardId(UUID cardId);
 
     long countOpenByZoneId(UUID zoneId);
+
+    long countOpenRegisteredByZoneId(UUID zoneId);
+
+    long countOpenVisitorByZoneId(UUID zoneId);
 
     List<ParkingSession> findOpenByLicensePlateIn(String licensePlateIn);
 
@@ -31,6 +37,8 @@ public interface ParkingSessionPortOut {
     Optional<ParkingSession> findOpenByParkingSpaceId(UUID parkingSpaceId);
 
     List<ParkingSession> findOpenByParkingSpaceIds(List<UUID> parkingSpaceIds);
+
+    List<ParkingSession> findOpenByZoneId(UUID zoneId);
 
     List<ParkingSessionManagementResult> findManagementSessions(
             ParkingSessionStatus status,

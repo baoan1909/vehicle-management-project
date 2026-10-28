@@ -22,6 +22,12 @@ public class ParkingSpaceSummaryResponse {
     private long reserved;
     private long maintenance;
     private long subscriptionAllocated;
+    private long configuredCapacity;
+    private long unavailableCapacity;
+    private long effectiveCapacity;
+    private long subscriptionReserved;
+    private long physicalAvailable;
+    private long visitorAvailable;
     private List<ParkingSpaceSummaryResponse> zones;
     private Instant calculatedAt;
 }

@@ -82,7 +82,7 @@ public interface LostCardReportRepository extends
               )
           )
           and (
-              :keyword is null
+              :keyword = ''
               or lower(coalesce(report.reporterName, '')) like :keyword
               or lower(coalesce(report.reporterPhone, '')) like :keyword
               or lower(coalesce(report.identifyCard, '')) like :keyword
