@@ -7,12 +7,18 @@ import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface ZoneRepository extends JpaRepository<ZoneEntity, UUID>, JpaSpecificationExecutor<ZoneEntity> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select zone from ZoneEntity zone where zone.zoneId = :zoneId")
+    Optional<ZoneEntity> findByIdForUpdate(@Param("zoneId") UUID zoneId);
 
     boolean existsByParkingLotIdAndCode(UUID parkingLotId, String code);
 

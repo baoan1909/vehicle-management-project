@@ -2,6 +2,8 @@ package com.ban.vehicle_management.application.parking.parkingsession.mapper;
 
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckOutCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInCommand;
+import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInPreviewCommand;
+import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
@@ -14,8 +16,10 @@ import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSes
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingevent.response.ParkingEventResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInParkingSessionRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInPreviewRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionManagementResponse;
@@ -58,6 +62,10 @@ public interface ParkingSessionApiMapper {
     }
 
     ParkingSessionCheckInResponse toCheckInResponse(CheckInResult result);
+
+    CheckInPreviewCommand toCommand(CheckInPreviewRequest request);
+
+    ParkingSessionCheckInPreviewResponse toCheckInPreviewResponse(CheckInPreviewResult result);
 
     @Mapping(target = "licensePlateImage", ignore = true)
     @Mapping(target = "personImage", ignore = true)
@@ -122,6 +130,7 @@ public interface ParkingSessionApiMapper {
     @Mapping(target = "licensePlateOutFormat", ignore = true)
     @Mapping(target = "licensePlateOutValidFormat", ignore = true)
     @Mapping(target = "licensePlateOutNeedsReview", ignore = true)
+    @Mapping(target = "customerType", ignore = true)
     ParkingSessionResponse toResponse(ParkingSession parkingSession);
 
     @Mapping(target = "licensePlateDetectedNormalized", ignore = true)
@@ -136,6 +145,8 @@ public interface ParkingSessionApiMapper {
     @AfterMapping
     default void addPlateView(ParkingSession source, @MappingTarget ParkingSessionResponse target) {
         applySessionPlateView(source.getLicensePlateIn(), source.getLicensePlateOut(), null, target);
+        target.setCustomerType(source.getSubscriptionId() != null
+                || source.getCustomerVehicleId() != null ? "SUBSCRIPTION" : "VISITOR");
     }
 
     @AfterMapping

@@ -14,6 +14,13 @@ public class PublicAvailabilityResponse {
     private UUID parkingLotId;
     private String parkingLotName;
     private String parkingLotStatus;
+    private long configuredCapacity;
+    private long unavailableCapacity;
+    private long effectiveCapacity;
+    private long subscriptionReserved;
+    private long occupiedRegistered;
+    private long occupiedVisitor;
+    private long physicalAvailable;
     private long total;
     private long visitorAvailable;
     private long subscriptionAvailable;

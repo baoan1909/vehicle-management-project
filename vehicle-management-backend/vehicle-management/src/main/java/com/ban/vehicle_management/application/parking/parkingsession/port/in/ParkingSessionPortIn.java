@@ -2,9 +2,11 @@ package com.ban.vehicle_management.application.parking.parkingsession.port.in;
 
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckOutCommand;
+import com.ban.vehicle_management.application.parking.parkingsession.model.command.CheckInPreviewCommand;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
+import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInPreviewResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.ParkingSessionManagementResult;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import java.time.LocalDate;
@@ -35,6 +37,8 @@ public interface ParkingSessionPortIn {
     );
 
     CheckInResult checkIn(CheckInCommand command);
+
+    CheckInPreviewResult previewCheckIn(CheckInPreviewCommand command);
 
     CheckOutResult checkOut(CheckOutCommand command);
 

@@ -23,6 +23,7 @@ public class ZoneAdminResponse {
     private UUID vehicleTypeId;
     private Set<UUID> vehicleTypeIds;
     private Integer capacity;
+    private Integer unavailableCapacity;
     private TrackingMode trackingMode;
     private LayoutStatus layoutStatus;
     private Long layoutVersion;

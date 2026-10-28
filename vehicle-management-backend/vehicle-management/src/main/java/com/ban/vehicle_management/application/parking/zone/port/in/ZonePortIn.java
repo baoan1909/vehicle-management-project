@@ -21,4 +21,6 @@ public interface ZonePortIn {
     Zone markZoneMaintenance(UUID zoneId);
 
     Zone closeZone(UUID zoneId);
+
+    Zone updateUnavailableCapacity(UUID zoneId, Integer unavailableCapacity);
 }

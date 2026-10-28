@@ -20,6 +20,10 @@ public class ParkingSpaceAllocationPolicy {
         if (allocation.getAllocationStatus() == null) {
             allocation.setAllocationStatus(ParkingSpaceAllocationStatus.HELD);
         }
+        if (allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.HELD
+                && allocation.getHoldExpiresAt() == null) {
+            throw new BadRequestException("holdExpiresAt must not be null for a HELD allocation");
+        }
         validateState(allocation);
     }
 
@@ -67,6 +71,10 @@ public class ParkingSpaceAllocationPolicy {
 
         if (allocation.getEffectiveTo().isBefore(allocation.getEffectiveFrom())) {
             throw new BadRequestException("effectiveTo must not be before effectiveFrom");
+        }
+        if (allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.HELD
+                && allocation.getHoldExpiresAt() == null) {
+            throw new BadRequestException("holdExpiresAt must not be null for a HELD allocation");
         }
     }
 

@@ -42,6 +42,12 @@ public class ParkingSpacePersistenceAdapter implements ParkingSpacePortOut {
     }
 
     @Override
+    @Transactional
+    public Optional<ParkingSpace> findByIdForUpdate(UUID parkingSpaceId) {
+        return repository.findByIdForUpdate(parkingSpaceId).map(mapper::toDomain);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ParkingSpace> findByZoneId(UUID zoneId) {
         return repository.findByZoneId(zoneId).stream().map(mapper::toDomain).toList();

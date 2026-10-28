@@ -141,8 +141,11 @@ public class ParkingSpacePolicy {
                 requireField(parkingSpace.getManualOccupancyType(), "manualOccupancyType");
                 requireField(parkingSpace.getStatusReason(), "statusReason");
             }
-        } else {
+        } else if (parkingSpace.getStatus() != ParkingSpaceStatus.OCCUPIED) {
             parkingSpace.setManualOccupancyType(null);
+            parkingSpace.setStatusReason(null);
+        } else {
+            requireField(parkingSpace.getManualOccupancyType(), "occupancyType");
             parkingSpace.setStatusReason(null);
         }
     }

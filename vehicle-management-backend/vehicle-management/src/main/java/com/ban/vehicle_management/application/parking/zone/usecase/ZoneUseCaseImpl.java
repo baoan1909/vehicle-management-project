@@ -1,6 +1,11 @@
 package com.ban.vehicle_management.application.parking.zone.usecase;
 
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.parking.availability.ParkingAvailabilityQuery;
+import com.ban.vehicle_management.application.parking.realtime.ParkingRealtimeAfterCommit;
+import com.ban.vehicle_management.application.parking.realtime.model.ParkingRealtimeEvent;
+import com.ban.vehicle_management.application.parking.realtime.port.out.ParkingRealtimePublisherPortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.parkinglevel.port.out.ParkingLevelPortOut;
 import com.ban.vehicle_management.application.parking.parkingspace.port.out.ParkingSpacePortOut;
@@ -9,6 +14,7 @@ import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.domain.parking.parkinglevel.model.ParkingLevel;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.domain.parking.zone.policy.ZonePolicy;
+import com.ban.vehicle_management.domain.parking.availability.policy.ParkingAvailabilityPolicy;
 import com.ban.vehicle_management.shared.enumeration.parking.LayoutStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
@@ -19,6 +25,9 @@ import java.util.List;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Map;
+import java.time.Instant;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +40,11 @@ public class ZoneUseCaseImpl implements ZonePortIn {
     private final ParkingLevelPortOut parkingLevelPortOut;
     private final ParkingSpacePortOut parkingSpacePortOut;
     private final OrganizationAccessGuard organizationAccessGuard;
+    private final CurrentAccountPortIn currentAccountPortIn;
+    private final ParkingAvailabilityQuery availabilityQuery;
+    private final ParkingRealtimePublisherPortOut parkingRealtimePublisher;
     private final ZonePolicy zonePolicy = new ZonePolicy();
+    private final ParkingAvailabilityPolicy availabilityPolicy = new ParkingAvailabilityPolicy();
 
     @Autowired
     public ZoneUseCaseImpl(
@@ -39,18 +52,31 @@ public class ZoneUseCaseImpl implements ZonePortIn {
             ParkingLotPortOut parkingLotPortOut,
             ParkingLevelPortOut parkingLevelPortOut,
             ParkingSpacePortOut parkingSpacePortOut,
-            OrganizationAccessGuard organizationAccessGuard
+            OrganizationAccessGuard organizationAccessGuard,
+            CurrentAccountPortIn currentAccountPortIn,
+            ParkingAvailabilityQuery availabilityQuery,
+            ParkingRealtimePublisherPortOut parkingRealtimePublisher
     ) {
         this.zonePortOut = zonePortOut;
         this.parkingLotPortOut = parkingLotPortOut;
         this.parkingLevelPortOut = parkingLevelPortOut;
         this.parkingSpacePortOut = parkingSpacePortOut;
         this.organizationAccessGuard = organizationAccessGuard;
+        this.currentAccountPortIn = currentAccountPortIn;
+        this.availabilityQuery = availabilityQuery;
+        this.parkingRealtimePublisher = parkingRealtimePublisher;
+    }
+
+    public ZoneUseCaseImpl(ZonePortOut zonePortOut, ParkingLotPortOut parkingLotPortOut,
+            ParkingLevelPortOut parkingLevelPortOut, ParkingSpacePortOut parkingSpacePortOut,
+            OrganizationAccessGuard organizationAccessGuard) {
+        this(zonePortOut, parkingLotPortOut, parkingLevelPortOut, parkingSpacePortOut,
+                organizationAccessGuard, null, null, null);
     }
 
     // Kept for focused legacy unit tests that exercise only the domain policy.
     public ZoneUseCaseImpl(ZonePortOut zonePortOut) {
-        this(zonePortOut, null, null, null, null);
+        this(zonePortOut, null, null, null, null, null, null, null);
     }
 
     @Override
@@ -172,6 +198,48 @@ public class ZoneUseCaseImpl implements ZonePortIn {
 
         zonePolicy.close(existingZone);
         return zonePortOut.save(existingZone);
+    }
+
+    @Override
+    @Transactional
+    public Zone updateUnavailableCapacity(UUID zoneId, Integer unavailableCapacity) {
+        if (currentAccountPortIn != null) {
+            currentAccountPortIn.requirePermission("PARKING_SPACE_STATUS_UPDATE_ALL");
+        }
+        if (unavailableCapacity == null) {
+            throw new BadRequestException("unavailableCapacity must not be null");
+        }
+        Zone zone = zonePortOut.findByIdForUpdate(zoneId)
+                .orElseThrow(() -> new NotFoundException("Zone not found"));
+        ensureCanOperateParkingLot(zone.getParkingLotId());
+        if (zone.getTrackingMode() != TrackingMode.CAPACITY) {
+            throw new BadRequestException("unavailableCapacity applies only to CAPACITY zones");
+        }
+        if (availabilityQuery != null) {
+            var current = availabilityQuery.get(zone, DateTimeUtils.toAppLocalDate(Instant.now()));
+            availabilityPolicy.validateUnavailableCapacity(zone.getCapacity(), unavailableCapacity,
+                    current.occupiedRegistered() + current.occupiedVisitor(),
+                    availabilityQuery.maxCommittedCapacity(zone.getZoneId()));
+        } else {
+            availabilityPolicy.validateUnavailableCapacity(zone.getCapacity(), unavailableCapacity,
+                    zonePortOut.countOpenSessions(zoneId), 0);
+        }
+        zone.setUnavailableCapacity(unavailableCapacity);
+        Zone saved = zonePortOut.save(zone);
+        if (availabilityQuery != null && parkingRealtimePublisher != null) {
+            var value = availabilityQuery.get(saved, DateTimeUtils.toAppLocalDate(Instant.now()));
+            ParkingRealtimeAfterCommit.publishAfterCommit(parkingRealtimePublisher,
+                    new ParkingRealtimeEvent("PARKING_AVAILABILITY_CHANGED", saved.getParkingLotId(),
+                            saved.getParkingLevelId(), saved.getZoneId(), null, null,
+                            saved.getLayoutVersion(), Map.of(
+                                    "physicalAvailable", String.valueOf(value.physicalAvailable()),
+                                    "visitorAvailable", String.valueOf(value.visitorAvailable()),
+                                    "occupiedRegistered", String.valueOf(value.occupiedRegistered()),
+                                    "occupiedVisitor", String.valueOf(value.occupiedVisitor()),
+                                    "subscriptionReserved", String.valueOf(value.subscriptionReserved()),
+                                    "effectiveCapacity", String.valueOf(value.effectiveCapacity()))));
+        }
+        return saved;
     }
 
     private void validateConfigurableParkingLot(UUID parkingLotId) {
@@ -331,6 +399,14 @@ public class ZoneUseCaseImpl implements ZonePortIn {
                 parkingLotPortOut.findById(parkingLotId)
                         .orElseThrow(() -> new NotFoundException("Parking lot not found"))
         );
+    }
+
+    private void ensureCanOperateParkingLot(UUID parkingLotId) {
+        if (organizationAccessGuard == null || parkingLotPortOut == null) {
+            return;
+        }
+        organizationAccessGuard.ensureCanOperateParkingLot(parkingLotPortOut.findById(parkingLotId)
+                .orElseThrow(() -> new NotFoundException("Parking lot not found")));
     }
 
     private void ensureCanConfigureParkingLot(UUID parkingLotId) {
