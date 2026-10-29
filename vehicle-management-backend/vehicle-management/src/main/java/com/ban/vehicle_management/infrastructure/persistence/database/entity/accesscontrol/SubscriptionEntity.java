@@ -80,6 +80,15 @@ public class SubscriptionEntity extends AuditableEntity {
     @JoinColumn(name = "price_rule_id", referencedColumnName = "price_rule_id", insertable = false, updatable = false)
     private PriceRuleEntity priceRule;
 
+    @Column(name = "period_quantity", nullable = false)
+    private Integer periodQuantity = 1;
+
+    @Column(name = "physical_card_requested", nullable = false)
+    private Boolean physicalCardRequested = true;
+
+    @Column(name = "physical_card_deposit", nullable = false, precision = 12, scale = 2)
+    private BigDecimal physicalCardDeposit = BigDecimal.ZERO;
+
     @Column(name = "requested_effective_from", nullable = false)
     private LocalDate requestedEffectiveFrom;
 
@@ -127,6 +136,15 @@ public class SubscriptionEntity extends AuditableEntity {
 
     @Column(name = "idempotency_key", length = 100)
     private String idempotencyKey;
+
+    @Column(name = "qr_access_token", length = 64, unique = true)
+    private String qrAccessToken;
+
+    @Column(name = "qr_issued_at")
+    private Instant qrIssuedAt;
+
+    @Column(name = "qr_revoked_at")
+    private Instant qrRevokedAt;
 
     @OneToMany(mappedBy = "subscription")
     private Set<InvoiceEntity> invoices = new HashSet<>();

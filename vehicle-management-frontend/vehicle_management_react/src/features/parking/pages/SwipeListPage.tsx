@@ -40,6 +40,7 @@ import {
   type ParkingOperationValidationErrors,
 } from "@/features/parking/components/ParkingOperationForm";
 import { ParkingSessionSummary } from "@/features/parking/components/ParkingSessionSummary";
+import { SubscriptionQrScannerModal } from "@/features/parking/components/SubscriptionQrScannerModal";
 import { cn } from "@/lib/cn";
 import { formatApplicationDateTime, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
@@ -284,6 +285,7 @@ export function SwipeListPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompletingPendingPayment, setIsCompletingPendingPayment] = useState(false);
   const [pendingPaymentError, setPendingPaymentError] = useState("");
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>("idle");
   const [ocrMessage, setOcrMessage] = useState("");
   const [ocrResult, setOcrResult] = useState<LicensePlateOcrResponse | null>(null);
@@ -1194,23 +1196,34 @@ export function SwipeListPage() {
             <FilterSelect className="tw-w-full" ariaLabel="Chọn camera" icon="fas fa-video" label="Camera" options={cameraOptions} value={cameraId} onChange={setCameraId} />
           </div>
 
-          <div className={cn(
-            "tw-flex tw-h-10 tw-min-w-0 tw-items-center tw-gap-2 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]",
-            isLocalCamera(cameraId)
-                ? "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700"
-                : cameraError
-                  ? "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700"
-                  : getCameraStatusTone(selectedCamera?.status),
-          )} title={cameraStatusTitle}>
-            <span className={cn(
-              "tw-h-2 tw-w-2 tw-rounded-full",
+          <div className="tw-grid tw-gap-2">
+            <div className={cn(
+              "tw-flex tw-h-10 tw-min-w-0 tw-items-center tw-gap-2 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]",
               isLocalCamera(cameraId)
-                  ? "tw-bg-emerald-500"
+                  ? "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700"
                   : cameraError
-                    ? "tw-bg-amber-500"
-                    : getCameraStatusDot(selectedCamera?.status),
-            )} />
-            <span className="tw-min-w-0 tw-truncate">{cameraStatusText}</span>
+                    ? "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700"
+                    : getCameraStatusTone(selectedCamera?.status),
+            )} title={cameraStatusTitle}>
+              <span className={cn(
+                "tw-h-2 tw-w-2 tw-rounded-full",
+                isLocalCamera(cameraId)
+                    ? "tw-bg-emerald-500"
+                    : cameraError
+                      ? "tw-bg-amber-500"
+                      : getCameraStatusDot(selectedCamera?.status),
+              )} />
+              <span className="tw-min-w-0 tw-truncate">{cameraStatusText}</span>
+            </div>
+            <button
+              className="tw-flex tw-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-blue-200 tw-bg-blue-50 tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-text-blue-700 hover:tw-bg-blue-100 disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
+              disabled={!parkingLotId}
+              type="button"
+              onClick={() => setQrScannerOpen(true)}
+            >
+              <i className="fas fa-qrcode" />
+              Kiểm tra QR vé
+            </button>
           </div>
         </div>
 
@@ -1283,6 +1296,12 @@ export function SwipeListPage() {
           ) : null}
         </div>
       </section>
+      <SubscriptionQrScannerModal
+        licensePlate={licensePlate}
+        onClose={() => setQrScannerOpen(false)}
+        open={qrScannerOpen}
+        parkingLotId={parkingLotId}
+      />
     </main>
   );
 }

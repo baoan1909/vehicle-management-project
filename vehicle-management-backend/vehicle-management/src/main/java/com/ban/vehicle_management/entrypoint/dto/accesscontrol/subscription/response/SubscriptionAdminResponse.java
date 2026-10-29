@@ -22,6 +22,9 @@ public class SubscriptionAdminResponse {
     private UUID cardId;
     private UUID ticketTypeId;
     private UUID priceRuleId;
+    private Integer periodQuantity;
+    private Boolean physicalCardRequested;
+    private BigDecimal physicalCardDeposit;
     private LocalDate requestedEffectiveFrom;
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;

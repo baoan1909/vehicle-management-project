@@ -68,17 +68,17 @@ export function Modal({ actions, children, description, onClose, open, title, wi
   }[width];
 
   return (
-    <div className="vm-shared-modal-layer tw-fixed tw-inset-0 tw-z-[2200] tw-grid tw-place-items-center tw-p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+    <div className="vm-shared-modal-layer tw-fixed tw-inset-0 tw-z-[2200] tw-grid tw-min-w-0 tw-place-items-center tw-p-4" role="dialog" aria-modal="true" aria-labelledby={titleId}>
       <button className="tw-absolute tw-inset-0 tw-border-0 tw-bg-slate-900/50 tw-backdrop-blur-md" type="button" aria-label="Đóng" onClick={onClose} />
       <section
         ref={panelRef}
         className={cn(
-          "vm-shared-modal-panel tw-relative tw-flex tw-max-h-[calc(100vh-2rem)] tw-flex-col tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_28px_80px_rgba(15,23,42,0.24)] tw-animate-vm-modal-enter",
+          "vm-shared-modal-panel tw-relative tw-flex tw-min-w-0 tw-max-w-[calc(100vw-2rem)] tw-max-h-[calc(100vh-2rem)] tw-flex-col tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_28px_80px_rgba(15,23,42,0.24)] tw-animate-vm-modal-enter",
           widthClassName,
         )}
       >
-        <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-5 tw-py-4">
-          <div>
+        <header className="tw-flex tw-min-w-0 tw-items-start tw-justify-between tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-5 tw-py-4">
+          <div className="tw-min-w-0">
             <h3 id={titleId} className="tw-m-0 tw-text-[1.1rem] tw-font-black tw-text-vm-slate-900">
               {title}
             </h3>
@@ -93,7 +93,7 @@ export function Modal({ actions, children, description, onClose, open, title, wi
             <i className="fas fa-times" />
           </button>
         </header>
-        <div className="tw-overflow-y-auto tw-px-5 tw-py-4">{children}</div>
+        <div className="tw-min-w-0 tw-overflow-x-hidden tw-overflow-y-auto tw-px-5 tw-py-4">{children}</div>
         {actions ? <footer className="tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-5 tw-py-4">{actions}</footer> : null}
       </section>
     </div>

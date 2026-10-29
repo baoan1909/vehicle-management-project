@@ -7,6 +7,8 @@ public record UpdateSubscriptionRequest(
         UUID customerVehicleId,
         UUID ticketTypeId,
         LocalDate requestedEffectiveFrom,
-        String voucherCode
+        String voucherCode,
+        Integer periodQuantity,
+        Boolean physicalCardRequested
 ) {
 }

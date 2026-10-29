@@ -170,17 +170,17 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
 
         SubscriptionPreparedData preparedData = prepareSubscriptionData(subscription);
         subscription.setPriceRuleId(preparedData.priceRule().getPriceRuleId());
-        subscription.setPrice(preparedData.priceRule().getBasePrice());
+        preparePeriodPricing(subscription, preparedData);
         subscriptionPolicy.initializeNewSubscription(
                 subscription,
-                preparedData.ticketType().getDurationDays(),
+                totalDurationDays(subscription, preparedData.ticketType()),
                 currentDate()
         );
 
         VoucherQuote voucherQuote = applyVoucherQuote(subscription, preparedData, Instant.now());
         return new SubscriptionVoucherQuote(
                 voucherQuote.voucherCode(),
-                subscription.getPrice(),
+                subscriptionChargeBase(subscription),
                 voucherQuote.discountAmount(),
                 voucherQuote.finalAmount()
         );
@@ -247,15 +247,18 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         existingSubscription.setTicketTypeId(requestedSubscription.getTicketTypeId());
         existingSubscription.setRequestedEffectiveFrom(requestedSubscription.getRequestedEffectiveFrom());
         existingSubscription.setRequestedVoucherCode(requestedSubscription.getRequestedVoucherCode());
+        existingSubscription.setPeriodQuantity(normalizePeriodQuantity(requestedSubscription.getPeriodQuantity()));
+        existingSubscription.setPhysicalCardRequested(normalizePhysicalCardRequested(
+                requestedSubscription.getPhysicalCardRequested()));
 
         SubscriptionPreparedData preparedData = prepareSubscriptionData(existingSubscription);
         existingSubscription.setPriceRuleId(preparedData.priceRule().getPriceRuleId());
-        existingSubscription.setPrice(preparedData.priceRule().getBasePrice());
+        preparePeriodPricing(existingSubscription, preparedData);
         applyVoucherQuote(existingSubscription, preparedData, Instant.now());
 
         subscriptionPolicy.preparePendingUpdate(
                 existingSubscription,
-                preparedData.ticketType().getDurationDays(),
+                totalDurationDays(existingSubscription, preparedData.ticketType()),
                 currentDate()
         );
 
@@ -295,11 +298,13 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             throw new ConflictException("Active invoice already exists for subscription");
         }
 
-        Card reservedCard = cardPortOut.findFirstAvailableRegisteredInParkingLot(subscription.getParkingLotId())
-                .orElseThrow(() -> new ConflictException("No available registered card"));
-
-        cardPolicy.reserve(reservedCard);
-        Card savedReservedCard = cardPortOut.save(reservedCard);
+        Card savedReservedCard = null;
+        if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
+            Card reservedCard = cardPortOut.findFirstAvailableRegisteredInParkingLot(subscription.getParkingLotId())
+                    .orElseThrow(() -> new ConflictException("No available registered card"));
+            cardPolicy.reserve(reservedCard);
+            savedReservedCard = cardPortOut.save(reservedCard);
+        }
 
         VoucherQuote voucherQuote = applyVoucherQuote(subscription, preparedData, now);
         BigDecimal invoiceFinalAmount = voucherQuote.finalAmount();
@@ -308,13 +313,17 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 currentAccountPortIn.getCurrentAccountIdOrThrow(),
                 now,
                 today,
-                savedReservedCard.getCardId(),
+                savedReservedCard == null ? null : savedReservedCard.getCardId(),
                 invoiceFinalAmount
         );
 
         if (parkingAllocationService != null) {
             parkingAllocationService.holdForApproval(subscription,
-                    preparedData.customerVehicle().getVehicleTypeId(), now.plus(allocationHoldDuration));
+                    preparedData.priceRule().getVehicleTypeId(), now.plus(allocationHoldDuration));
+            if (subscription.getStatus()
+                    == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
+                parkingAllocationService.activate(subscription);
+            }
         }
 
         Subscription approvedSubscription = subscriptionPortOut.save(subscription);
@@ -329,7 +338,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                     voucherQuote.voucherCode(),
                     approvedSubscription.getCustomerId(),
                     approvedSubscription.getTicketTypeId(),
-                    approvedSubscription.getPrice(),
+                    subscriptionChargeBase(approvedSubscription),
                     approvedSubscription.getSubscriptionId(),
                     invoice.getInvoiceId(),
                     now
@@ -377,6 +386,11 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
 
         voucherPortIn.redeemSubscriptionVoucher(subscriptionId, Instant.now());
         subscriptionPolicy.markPaymentCompleted(subscription);
+        if (parkingAllocationService != null
+                && subscription.getStatus()
+                == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
+            parkingAllocationService.activate(subscription);
+        }
         Subscription savedSubscription = subscriptionPortOut.save(subscription);
         notifySubscriptionPaymentCompleted(savedSubscription);
         return savedSubscription;
@@ -400,7 +414,11 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
 
         Instant now = Instant.now();
         cardPolicy.assignReserved(reservedCard, now);
-        subscriptionPolicy.assignReservedCard(subscription, currentDate(), ticketType.getDurationDays());
+        subscriptionPolicy.assignReservedCard(
+                subscription,
+                currentDate(),
+                totalDurationDays(subscription, ticketType)
+        );
 
         if (parkingAllocationService != null) {
             parkingAllocationService.activate(subscription);
@@ -470,12 +488,12 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
 
         SubscriptionPreparedData preparedData = prepareSubscriptionData(subscription);
         subscription.setPriceRuleId(preparedData.priceRule().getPriceRuleId());
-        subscription.setPrice(preparedData.priceRule().getBasePrice());
+        preparePeriodPricing(subscription, preparedData);
         applyVoucherQuote(subscription, preparedData, Instant.now());
 
         subscriptionPolicy.initializeNewSubscription(
                 subscription,
-                preparedData.ticketType().getDurationDays(),
+                totalDurationDays(subscription, preparedData.ticketType()),
                 currentDate()
         );
 
@@ -614,17 +632,63 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     ) {
         if (subscription.getRequestedVoucherCode() == null || subscription.getRequestedVoucherCode().isBlank()) {
             subscription.setRequestedVoucherCode(null);
-            return VoucherQuote.withoutVoucher(subscription.getPrice());
+            return VoucherQuote.withoutVoucher(subscriptionChargeBase(subscription));
         }
         VoucherQuote quote = voucherPortIn.quoteSubscriptionVoucher(
                 subscription.getRequestedVoucherCode(),
                 subscription.getCustomerId(),
                 preparedData.ticketType().getTicketTypeId(),
-                subscription.getPrice(),
+                subscriptionChargeBase(subscription),
                 now
         );
         subscription.setRequestedVoucherCode(quote.voucherCode());
         return quote;
+    }
+
+    private void preparePeriodPricing(Subscription subscription, SubscriptionPreparedData preparedData) {
+        int periodQuantity = normalizePeriodQuantity(subscription.getPeriodQuantity());
+        subscription.setPeriodQuantity(periodQuantity);
+        boolean physicalCardRequested = normalizePhysicalCardRequested(subscription.getPhysicalCardRequested());
+        subscription.setPhysicalCardRequested(physicalCardRequested);
+        BigDecimal cardDeposit = physicalCardRequested && preparedData.priceRule().getLostCardFee() != null
+                ? preparedData.priceRule().getLostCardFee()
+                : BigDecimal.ZERO;
+        if (cardDeposit.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("physicalCardDeposit must not be negative");
+        }
+        subscription.setPhysicalCardDeposit(cardDeposit);
+        subscription.setPrice(preparedData.priceRule().getBasePrice().multiply(BigDecimal.valueOf(periodQuantity)));
+    }
+
+    private boolean normalizePhysicalCardRequested(Boolean physicalCardRequested) {
+        return physicalCardRequested == null || physicalCardRequested;
+    }
+
+    private BigDecimal subscriptionChargeBase(Subscription subscription) {
+        BigDecimal deposit = subscription.getPhysicalCardDeposit() == null
+                ? BigDecimal.ZERO
+                : subscription.getPhysicalCardDeposit();
+        return subscription.getPrice().add(deposit);
+    }
+
+    private int normalizePeriodQuantity(Integer periodQuantity) {
+        int normalized = periodQuantity == null ? SubscriptionPolicy.MIN_PERIOD_QUANTITY : periodQuantity;
+        if (normalized < SubscriptionPolicy.MIN_PERIOD_QUANTITY
+                || normalized > SubscriptionPolicy.MAX_PERIOD_QUANTITY) {
+            throw new BadRequestException("periodQuantity must be between "
+                    + SubscriptionPolicy.MIN_PERIOD_QUANTITY + " and "
+                    + SubscriptionPolicy.MAX_PERIOD_QUANTITY);
+        }
+        return normalized;
+    }
+
+    private int totalDurationDays(Subscription subscription, TicketType ticketType) {
+        int periodQuantity = normalizePeriodQuantity(subscription.getPeriodQuantity());
+        try {
+            return Math.multiplyExact(ticketType.getDurationDays(), periodQuantity);
+        } catch (ArithmeticException exception) {
+            throw new BadRequestException("Subscription duration is too large");
+        }
     }
 
     private Invoice buildSubscriptionInvoice(
@@ -638,7 +702,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         invoice.setCustomerId(subscription.getCustomerId());
         invoice.setSubscriptionId(subscription.getSubscriptionId());
         invoice.setParkingLotId(subscription.getParkingLotId());
-        invoice.setAmount(subscription.getPrice());
+        invoice.setAmount(subscriptionChargeBase(subscription));
         invoice.setDiscountAmount(discountAmount);
         LicensePlateResolution plate = new LicensePlatePolicy().resolve(customerVehicle.getLicensePlate(), null);
         invoice.setLicensePlateNormalizedSnapshot(plate.normalized());

@@ -39,6 +39,10 @@ import { CustomerPortalLayout, PortalPagination } from "./PortalShared";
 import { DatePicker, Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import {
+  issueMySubscriptionQr,
+  type SubscriptionQrCredential,
+} from "@/features/subscriptions/api/subscriptionQrApi";
 
 type SubscriptionForm = {
   parkingLotId: string;
@@ -46,6 +50,8 @@ type SubscriptionForm = {
   requestedEffectiveFrom: string;
   ticketTypeId: string;
   voucherCode: string;
+  periodQuantity: number;
+  physicalCardRequested: boolean;
 };
 
 type CustomerPaymentChoice = "WALLET" | "VNPAY" | "AT_COUNTER";
@@ -209,6 +215,8 @@ export function SubscriptionPage() {
     requestedEffectiveFrom: todayApplicationIsoDate(),
     ticketTypeId: "",
     voucherCode: voucherCodeFromUrl,
+    periodQuantity: 1,
+    physicalCardRequested: false,
   });
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -224,6 +232,10 @@ export function SubscriptionPage() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrCredential, setQrCredential] = useState<SubscriptionQrCredential | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrError, setQrError] = useState("");
 
   const openRegistrationModal = () => {
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -238,6 +250,30 @@ export function SubscriptionPage() {
     setRegistrationModalOpen(false);
   };
 
+  const openQrModal = async (subscription: CustomerPortalSubscription) => {
+    setQrModalOpen(true);
+    setQrCredential(null);
+    setQrError("");
+    setQrLoading(true);
+    try {
+      setQrCredential(await issueMySubscriptionQr(subscription.subscriptionId));
+    } catch (requestError) {
+      setQrError(requestError instanceof Error ? requestError.message : "Không thể tạo mã QR vé đăng ký.");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const copyQrPayload = async () => {
+    if (!qrCredential) return;
+    try {
+      await navigator.clipboard.writeText(qrCredential.qrPayload);
+      toast.success("Đã sao chép nội dung QR để kiểm tra thủ công.", "Đã sao chép");
+    } catch {
+      toast.error("Trình duyệt không cho phép sao chép nội dung QR.", "Không thể sao chép");
+    }
+  };
+
   const vehicleById = useMemo(() => new Map(vehicles.map((vehicle) => [vehicle.customerVehicleId, vehicle])), [vehicles]);
   const ticketTypeById = useMemo(() => new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType])), [ticketTypes]);
   const parkingLotById = useMemo(() => new Map(parkingLots.map((lot) => [lot.parkingLotId, lot])), [parkingLots]);
@@ -245,7 +281,18 @@ export function SubscriptionPage() {
 
   const activeVehicles = vehicles.filter((vehicle) => vehicle.status === "ACTIVE");
   const selectedVehicle = vehicleById.get(form.customerVehicleId);
+  const selectedParkingLot = parkingLotById.get(form.parkingLotId);
   const selectedPriceRule = findMatchingPriceRule(selectedVehicle, form.ticketTypeId, priceRules, partnerVehicleTypes);
+  const selectedTicketType = ticketTypeById.get(form.ticketTypeId);
+  const subscriptionSubtotal = selectedPriceRule?.basePrice == null
+    ? null
+    : Number(selectedPriceRule.basePrice) * form.periodQuantity;
+  const physicalCardDeposit = form.physicalCardRequested
+    ? Number(selectedPriceRule?.lostCardFee ?? 0)
+    : 0;
+  const subscriptionChargeSubtotal = subscriptionSubtotal == null
+    ? null
+    : subscriptionSubtotal + physicalCardDeposit;
   const activeSubscription = subscriptions.find((subscription) => subscription.status === "ACTIVE");
   const selectedSubscription = subscriptions.find((subscription) => subscription.subscriptionId === selectedSubscriptionId);
   const detailSubscription = selectedSubscription ?? activeSubscription;
@@ -375,7 +422,7 @@ export function SubscriptionPage() {
 
     if (vnpayResult === "success" && searchParams.get("paymentStatus") === "SUCCESS") {
       toast.success(
-        "Hồ sơ đang chờ nhân viên gán thẻ.",
+        "Vé đang được hệ thống hoàn tất sau thanh toán.",
         "Thanh toán VNPay thành công",
       );
     } else if (vnpayResult === "cancelled") {
@@ -401,7 +448,7 @@ export function SubscriptionPage() {
 
   const changeParkingLot = async (parkingLotId: string) => {
     const requestId = ++lotLookupRequestRef.current;
-    setForm((current) => ({ ...current, parkingLotId, ticketTypeId: "" }));
+    setForm((current) => ({ ...current, parkingLotId, ticketTypeId: "", periodQuantity: 1 }));
     setPriceRules([]);
     setTicketTypes([]);
     setPartnerVehicleTypes([]);
@@ -415,7 +462,7 @@ export function SubscriptionPage() {
       setPriceRules(lookups.priceRules);
       setTicketTypes(lookups.ticketTypes);
       setPartnerVehicleTypes(lookups.vehicleTypes);
-      setForm((current) => ({ ...current, ticketTypeId: lookups.ticketTypes[0]?.ticketTypeId ?? "" }));
+      setForm((current) => ({ ...current, ticketTypeId: lookups.ticketTypes[0]?.ticketTypeId ?? "", periodQuantity: 1 }));
     } catch (error) {
       if (requestId === lotLookupRequestRef.current) {
         setSubscriptionFormError(error instanceof Error ? error.message : "Không thể tải giá vé của bãi xe.");
@@ -645,7 +692,14 @@ export function SubscriptionPage() {
               <div className="tw-mt-auto tw-h-[62px] tw-overflow-hidden"><PortalTicketArtwork className="tw-pointer-events-none tw-h-full tw-w-full tw-text-[#c9b170]/30 [transform:scaleX(1.8)]" /></div>
               <SubscriptionProgress percent={detailRemainingPercent} />
               <div className="tw-mt-1.5 tw-flex tw-items-center tw-justify-between tw-gap-2 tw-text-[0.66rem] tw-font-normal tw-text-[#c8d4e6]"><span>{isDetailSubscriptionActive && detailPeriod ? `${detailPeriod.elapsedDays} ngày đã qua` : "-- ngày đã qua"}</span><span>{detailPeriod ? `${detailPeriod.totalDays} ngày` : "-- ngày"}</span></div>
-              <button disabled={!detailSubscription} className="tw-mt-3 tw-inline-flex tw-h-7 tw-w-fit tw-items-center tw-justify-center tw-gap-2 tw-self-end tw-rounded-md tw-border tw-border-solid tw-border-white/35 tw-bg-transparent tw-px-3 tw-text-[0.72rem] tw-font-normal tw-text-white hover:tw-bg-white/10 disabled:tw-opacity-50" type="button" onClick={() => { if (detailSubscription) { setSelectedSubscriptionId(detailSubscription.subscriptionId); setStatusFilter("ALL"); setKeyword(detailSubscription.subscriptionId); } }}>Xem chi tiết <i className="fas fa-chevron-right tw-text-[0.6rem]" /></button>
+              <div className="tw-mt-3 tw-flex tw-flex-wrap tw-justify-end tw-gap-2">
+                {detailSubscription?.status === "ACTIVE" ? (
+                  <button className="tw-inline-flex tw-h-7 tw-w-fit tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-[#f7ce68]/70 tw-bg-[#f7ce68]/10 tw-px-3 tw-text-[0.72rem] tw-font-semibold tw-text-[#f7ce68] hover:tw-bg-[#f7ce68]/20" type="button" onClick={() => void openQrModal(detailSubscription)}>
+                    <i className="fas fa-qrcode" />Mở QR
+                  </button>
+                ) : null}
+                <button disabled={!detailSubscription} className="tw-inline-flex tw-h-7 tw-w-fit tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-white/35 tw-bg-transparent tw-px-3 tw-text-[0.72rem] tw-font-normal tw-text-white hover:tw-bg-white/10 disabled:tw-opacity-50" type="button" onClick={() => { if (detailSubscription) { setSelectedSubscriptionId(detailSubscription.subscriptionId); setStatusFilter("ALL"); setKeyword(detailSubscription.subscriptionId); } }}>Xem chi tiết <i className="fas fa-chevron-right tw-text-[0.6rem]" /></button>
+              </div>
             </div>
           </div>
         </article>
@@ -694,12 +748,13 @@ export function SubscriptionPage() {
           <PortalPagination currentPage={safeCurrentPage} pageSize={pageSize} totalRecords={filteredSubscriptions.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
         </section>
 
-        <Modal description="Chọn phương tiện và gói phù hợp với bạn." onClose={closeRegistrationModal} open={registrationModalOpen} title="Đăng ký vé mới">
-        <div className="tw-min-w-0 [&_select]:tw-w-full [&_input]:tw-w-full [&_label]:tw-min-w-0">
+        <Modal description="Chọn phương tiện và gói phù hợp với bạn." onClose={closeRegistrationModal} open={registrationModalOpen} title="Đăng ký vé mới" width="lg">
+        <div className="tw-min-w-0 tw-max-w-full [&_select]:tw-w-full [&_input]:tw-w-full [&_label]:tw-min-w-0">
           {subscriptionFormError ? <div className="tw-mt-3 tw-flex tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-[0.76rem] tw-font-medium tw-text-red-700" role="alert"><i className="fas fa-exclamation-circle tw-mt-0.5" /><span>{subscriptionFormError}</span></div> : null}
           <div className="tw-mt-3 tw-grid tw-gap-2.5">
             <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Bãi xe đăng ký</span>
-              <SelectMenu ariaLabel="Chọn bãi xe" options={[{ label: "Chọn bãi xe", value: "" }, ...parkingLots.map((lot) => ({ label: `${lot.name}${lot.addressDisplay ? ` · ${lot.addressDisplay}` : ""}`, value: lot.parkingLotId }))]} portal portalFitContent triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" value={form.parkingLotId} onChange={(value) => { void changeParkingLot(value); }} />
+              <SelectMenu ariaLabel="Chọn bãi xe" options={[{ label: "Chọn bãi xe", value: "" }, ...parkingLots.map((lot) => ({ label: `${lot.name}${lot.addressDisplay ? ` · ${lot.addressDisplay}` : ""}`, value: lot.parkingLotId }))]} portal triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" triggerLabel={selectedParkingLot?.name} value={form.parkingLotId} onChange={(value) => { void changeParkingLot(value); }} />
+              {selectedParkingLot?.addressDisplay ? <small className="tw-break-words tw-text-[0.66rem] tw-leading-5 tw-text-[#64748b]">{selectedParkingLot.addressDisplay}</small> : null}
               {lotLookupsLoading ? <small className="tw-text-[#64748b]">Đang tải giá vé của bãi...</small> : null}
               {!loading && parkingLots.length === 0 ? <small className="tw-text-amber-700">Hiện chưa có bãi xe đang hoạt động để đăng ký.</small> : null}
             </div>
@@ -707,8 +762,43 @@ export function SubscriptionPage() {
               <span className="tw-relative"><SubscriptionIcon name="vehicle" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn xe đăng ký vé" options={[{ label: "Chọn xe", value: "" }, ...activeVehicles.map((vehicle) => ({ label: vehicleLabel(vehicle, vehicleTypeById), value: vehicle.customerVehicleId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.customerVehicleId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, customerVehicleId: value })); }} /></span>
             </div>
             <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Loại vé</span>
-              <span className="tw-relative"><SubscriptionIcon name="ticket" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn loại vé" options={[{ label: "Chọn loại vé", value: "" }, ...ticketTypes.map((ticketType) => ({ label: ticketType.name, value: ticketType.ticketTypeId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.ticketTypeId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, ticketTypeId: value })); }} /></span>
+              <span className="tw-relative"><SubscriptionIcon name="ticket" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn loại vé" options={[{ label: "Chọn loại vé", value: "" }, ...ticketTypes.map((ticketType) => ({ label: ticketType.name, value: ticketType.ticketTypeId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.ticketTypeId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, ticketTypeId: value, periodQuantity: 1 })); }} /></span>
             </div>
+            <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">
+              <span>Số kỳ thanh toán</span>
+              <span className="tw-flex tw-h-10 tw-overflow-hidden tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white">
+                <strong className="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-px-4 tw-text-left tw-text-[0.84rem] tw-font-semibold tw-text-[#273345]" aria-live="polite">{form.periodQuantity}</strong>
+                <span className="tw-grid tw-w-10 tw-shrink-0 tw-grid-rows-2 tw-border-0 tw-border-l tw-border-solid tw-border-[#dcdfe5] tw-bg-[#f8fafc]">
+                  <button
+                    aria-label="Tăng số kỳ thanh toán"
+                    className="tw-grid tw-place-items-center tw-border-0 tw-border-b tw-border-solid tw-border-[#e5e7eb] tw-bg-transparent tw-p-0 tw-text-[0.7rem] tw-leading-none tw-text-[#94a3b8] hover:tw-bg-[#eef4ff] hover:tw-text-[#475569] disabled:tw-cursor-not-allowed disabled:tw-opacity-35"
+                    disabled={!form.ticketTypeId || selectedTicketType?.code?.toUpperCase() === "FREE" || form.periodQuantity >= 12}
+                    type="button"
+                    onClick={() => {
+                      clearVoucherQuote();
+                      setForm((current) => ({ ...current, periodQuantity: Math.min(12, current.periodQuantity + 1) }));
+                    }}
+                  >
+                    <i className="fas fa-caret-up" />
+                  </button>
+                  <button
+                    aria-label="Giảm số kỳ thanh toán"
+                    className="tw-grid tw-place-items-center tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.7rem] tw-leading-none tw-text-[#94a3b8] hover:tw-bg-[#eef4ff] hover:tw-text-[#475569] disabled:tw-cursor-not-allowed disabled:tw-opacity-35"
+                    disabled={!form.ticketTypeId || selectedTicketType?.code?.toUpperCase() === "FREE" || form.periodQuantity <= 1}
+                    type="button"
+                    onClick={() => {
+                      clearVoucherQuote();
+                      setForm((current) => ({ ...current, periodQuantity: Math.max(1, current.periodQuantity - 1) }));
+                    }}
+                  >
+                    <i className="fas fa-caret-down" />
+                  </button>
+                </span>
+              </span>
+              <small className="tw-text-[0.66rem] tw-text-[#64748b]">
+                Thanh toán một lần cho tối đa 12 kỳ; mã ưu đãi được tính trên tổng đơn.
+              </small>
+            </label>
             <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Ngày bắt đầu</span>
               <DatePicker
                 ariaDescribedBy={subscriptionFormError.includes("Ngày bắt đầu") ? "subscription-effective-from-error" : undefined}
@@ -725,6 +815,38 @@ export function SubscriptionPage() {
               />
               {subscriptionFormError.includes("Ngày bắt đầu") ? <small className="tw-text-[0.7rem] tw-font-medium tw-text-red-600" id="subscription-effective-from-error">{subscriptionFormError}</small> : null}
             </div>
+            <div className="tw-grid tw-gap-1.5 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">
+              <span>Bạn có muốn sử dụng thẻ vật lý không?</span>
+              <div className="tw-grid tw-grid-cols-2 tw-gap-2" role="group" aria-label="Lựa chọn sử dụng thẻ vật lý">
+                <button
+                  className={["tw-h-10 tw-rounded-md tw-border tw-border-solid tw-text-[0.76rem] tw-font-medium tw-transition", !form.physicalCardRequested ? "tw-border-[#1263e9] tw-bg-[#eef5ff] tw-text-[#0756d8]" : "tw-border-[#dcdfe5] tw-bg-white tw-text-[#4f586a] hover:tw-border-[#9fc1f7]"].join(" ")}
+                  type="button"
+                  aria-pressed={!form.physicalCardRequested}
+                  onClick={() => {
+                    clearVoucherQuote();
+                    setForm((current) => ({ ...current, physicalCardRequested: false }));
+                  }}
+                >
+                  <i className="fas fa-qrcode tw-mr-2" />Không, dùng mã QR
+                </button>
+                <button
+                  className={["tw-h-10 tw-rounded-md tw-border tw-border-solid tw-text-[0.76rem] tw-font-medium tw-transition", form.physicalCardRequested ? "tw-border-[#1263e9] tw-bg-[#eef5ff] tw-text-[#0756d8]" : "tw-border-[#dcdfe5] tw-bg-white tw-text-[#4f586a] hover:tw-border-[#9fc1f7]"].join(" ")}
+                  type="button"
+                  aria-pressed={form.physicalCardRequested}
+                  onClick={() => {
+                    clearVoucherQuote();
+                    setForm((current) => ({ ...current, physicalCardRequested: true }));
+                  }}
+                >
+                  <i className="far fa-credit-card tw-mr-2" />Có, nhận thẻ vật lý
+                </button>
+              </div>
+              <small className="tw-text-[0.66rem] tw-leading-5 tw-text-[#64748b]">
+                {form.physicalCardRequested
+                  ? `Khoản cọc thẻ ${formatCurrency(physicalCardDeposit)} được cộng vào đơn và có thể hoàn lại khi trả thẻ.`
+                  : "Không phát sinh tiền cọc thẻ; bạn sử dụng mã QR của vé để vào/ra bãi."}
+              </small>
+            </div>
             <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Mã ưu đãi <span className="tw-font-normal tw-text-[#7b879b]">(nếu có)</span>
               <span className="tw-grid tw-grid-cols-[minmax(0,1fr)_auto] tw-gap-2"><span className="tw-relative"><i className="fas fa-tag tw-pointer-events-none tw-absolute tw-left-3 tw-top-2.5 tw-text-[0.75rem] tw-text-[#677181]" /><input className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-pl-9 tw-pr-3 tw-text-[0.78rem] tw-font-normal tw-uppercase tw-text-[#273345] placeholder:tw-normal-case placeholder:tw-text-[#93a0b3]" maxLength={50} value={form.voucherCode} onChange={(event) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, voucherCode: event.target.value.toUpperCase() })); }} placeholder="Ví dụ: WELCOME10" /></span><button className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#1263e9] tw-bg-[#1263e9] tw-px-3 tw-text-[0.74rem] tw-font-medium tw-text-white tw-transition hover:tw-bg-[#0751cf] disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={voucherQuoteLoading || !form.voucherCode.trim()} onClick={() => { void handleQuoteVoucher(); }}>{voucherQuoteLoading ? "Đang kiểm tra" : "Áp dụng"}</button></span>
               {voucherQuoteLoading ? <small className="tw-text-[0.66rem] tw-font-normal tw-text-[#64748b]"><i className="fas fa-spinner fa-spin tw-mr-1" />Đang kiểm tra mã ưu đãi...</small> : null}
@@ -734,8 +856,9 @@ export function SubscriptionPage() {
             </label>
           </div>
           <div className="tw-mt-3 tw-grid tw-gap-1.5 tw-rounded-lg tw-border tw-border-solid tw-border-[#e8e8f0] tw-bg-[#f8f8fc] tw-p-3">
-            <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-1"><span className="tw-text-[0.78rem] tw-font-medium tw-text-[#273345]">Tổng cần thanh toán</span><strong className="tw-text-[1.1rem] tw-font-semibold tw-text-[#101d39]">{voucherQuote ? formatCurrency(voucherQuote.finalAmount) : selectedPriceRule?.basePrice != null ? formatCurrency(selectedPriceRule.basePrice) : "Chưa có mức phí"}</strong></div>
-            <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>Tạm tính · {ticketTypeById.get(form.ticketTypeId)?.name ?? "Chưa chọn loại vé"}</span>{selectedPriceRule?.basePrice != null ? <span className="tw-whitespace-nowrap">{formatCurrency(voucherQuote?.baseAmount ?? selectedPriceRule.basePrice)}</span> : null}</div>
+            <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-1"><span className="tw-text-[0.78rem] tw-font-medium tw-text-[#273345]">Tổng cần thanh toán</span><strong className="tw-text-[1.1rem] tw-font-semibold tw-text-[#101d39]">{voucherQuote ? formatCurrency(voucherQuote.finalAmount) : subscriptionChargeSubtotal != null ? formatCurrency(subscriptionChargeSubtotal) : "Chưa có mức phí"}</strong></div>
+            <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>Tiền vé · {ticketTypeById.get(form.ticketTypeId)?.name ?? "Chưa chọn loại vé"} × {form.periodQuantity} kỳ</span>{subscriptionSubtotal != null ? <span className="tw-whitespace-nowrap">{formatCurrency(subscriptionSubtotal)}</span> : null}</div>
+            {form.physicalCardRequested ? <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>Cọc thẻ vật lý</span><span className="tw-whitespace-nowrap">{formatCurrency(physicalCardDeposit)}</span></div> : null}
             {voucherQuote ? <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-medium tw-text-[#16824a]"><span>Giảm giá {voucherQuote.voucherCode ? `· ${voucherQuote.voucherCode}` : ""}</span><span className="tw-whitespace-nowrap">−{formatCurrency(voucherQuote.discountAmount)}</span></div> : null}
             <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>{selectedVehicle ? `Phương tiện: ${selectedVehicle.licensePlate} · ${selectedVehicle.brand || vehicleTypeById.get(selectedVehicle.vehicleTypeId ?? "")?.name || "--"}` : "Chưa chọn phương tiện"}</span>{selectedPriceRule ? <span className="tw-shrink-0 tw-text-[#257640]">Phù hợp</span> : null}</div>
           </div>
@@ -840,6 +963,53 @@ export function SubscriptionPage() {
               <span className="tw-mt-2 tw-block tw-text-xs tw-font-semibold tw-text-[#71819a]">Hồ sơ tiếp tục chờ đến khi nhân viên nhận tiền và xác nhận.</span>
             </button>
           </div>
+        </div>
+      </Modal>
+      <Modal
+        description="Dùng mã này để nhân viên kiểm tra vé tại đúng bãi xe và phương tiện đã đăng ký."
+        onClose={() => setQrModalOpen(false)}
+        open={qrModalOpen}
+        title="QR vé đăng ký"
+        width="sm"
+      >
+        <div className="tw-grid tw-gap-4 tw-text-center">
+          {qrLoading ? (
+            <div className="tw-rounded-md tw-bg-[#f4f7fb] tw-p-8 tw-text-sm tw-font-semibold tw-text-[#61738e]">
+              <i className="fas fa-spinner fa-spin tw-mr-2" />Đang chuẩn bị mã QR...
+            </div>
+          ) : null}
+          {qrError ? (
+            <div className="tw-rounded-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-left tw-text-sm tw-font-semibold tw-text-red-700" role="alert">
+              {qrError}
+            </div>
+          ) : null}
+          {qrCredential ? (
+            <>
+              <div className="tw-mx-auto tw-rounded-xl tw-border tw-border-solid tw-border-[#dce5f0] tw-bg-white tw-p-3 tw-shadow-sm">
+                <img alt="QR vé đăng ký CoParking" className="tw-block tw-h-[260px] tw-w-[260px]" src={qrCredential.qrCodeDataUrl} />
+              </div>
+              <div className="tw-rounded-md tw-bg-[#f4f7fb] tw-p-3 tw-text-left tw-text-sm tw-text-[#3d506d]">
+                <span className="tw-block">Biển số: <strong>{currentVehicle?.licensePlate ?? "--"}</strong></span>
+                <span className="tw-mt-1 tw-block">Hiệu lực: <strong>{formatDateRange(qrCredential.effectiveFrom, qrCredential.effectiveTo)}</strong></span>
+                <span className="tw-mt-1 tw-block">Bãi xe: <strong>{parkingLotById.get(qrCredential.parkingLotId)?.name ?? qrCredential.parkingLotId}</strong></span>
+              </div>
+              <div className="tw-grid tw-grid-cols-2 tw-gap-2 max-[520px]:tw-grid-cols-1">
+                <a
+                  className="tw-inline-flex tw-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-bg-[#1263e9] tw-px-4 tw-font-bold tw-text-white tw-no-underline hover:tw-bg-[#0756d8]"
+                  download={`coparking-qr-${compactCode(qrCredential.subscriptionId)}.png`}
+                  href={qrCredential.qrCodeDataUrl}
+                >
+                  <i className="fas fa-download" />Tải ảnh QR
+                </a>
+                <button className="tw-inline-flex tw-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-[#b9d3fb] tw-bg-[#edf4ff] tw-px-4 tw-font-bold tw-text-[#0756d8] hover:tw-bg-[#dfeaff]" type="button" onClick={() => void copyQrPayload()}>
+                  <i className="fas fa-copy" />Sao chép nội dung QR
+                </button>
+              </div>
+              <p className="tw-m-0 tw-text-left tw-text-xs tw-leading-5 tw-text-[#71819a]">
+                QR này là mã cố định của vé và chỉ hợp lệ với phương tiện đã đăng ký. Việc kiểm tra QR ở giai đoạn này chưa tự động ghi nhận xe vào/ra.
+              </p>
+            </>
+          ) : null}
         </div>
       </Modal>
     </CustomerPortalLayout>

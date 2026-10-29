@@ -99,6 +99,18 @@ public class SubscriptionAccessGuard {
         }
     }
 
+    public void ensureCanReadOwn(Subscription subscription) {
+        currentAccountPortIn.requirePermission(READ_OWN);
+        UUID customerId = resolveCurrentApprovedCustomerId();
+        if (!customerId.equals(subscription.getCustomerId())) {
+            throw new AccessDeniedException("Access is denied");
+        }
+    }
+
+    public void ensureCanVerifyQr() {
+        currentAccountPortIn.requirePermission(READ_ALL);
+    }
+
     public UUID resolveCustomerIdForList(UUID requestedCustomerId) {
         if (currentAccountPortIn.hasPermission(READ_ALL)) {
             return requestedCustomerId;

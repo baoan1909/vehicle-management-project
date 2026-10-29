@@ -24,6 +24,9 @@ public class Subscription extends AuditableDomainModel {
     private UUID cardId;
     private UUID ticketTypeId;
     private UUID priceRuleId;
+    private Integer periodQuantity = 1;
+    private Boolean physicalCardRequested = true;
+    private BigDecimal physicalCardDeposit = BigDecimal.ZERO;
     private LocalDate requestedEffectiveFrom;
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
@@ -37,4 +40,7 @@ public class Subscription extends AuditableDomainModel {
     private Instant rejectedAt;
     private LocalDate cardReceiptDate;
     private String idempotencyKey;
+    private String qrAccessToken;
+    private Instant qrIssuedAt;
+    private Instant qrRevokedAt;
 }

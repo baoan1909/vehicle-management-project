@@ -60,6 +60,9 @@ export type CustomerPortalSubscription = {
   effectiveTo?: string | null;
   price?: number | string | null;
   priceRuleId?: string | null;
+  periodQuantity?: number | null;
+  physicalCardRequested?: boolean | null;
+  physicalCardDeposit?: number | string | null;
   rejectedAt?: string | null;
   rejectedBy?: string | null;
   rejectionReason?: string | null;
@@ -78,6 +81,8 @@ export type CreateMySubscriptionRequest = {
   requestedEffectiveFrom: string;
   ticketTypeId: string;
   voucherCode?: string;
+  periodQuantity: number;
+  physicalCardRequested: boolean;
 };
 
 export type CustomerPortalSubscriptionVoucherQuote = {
