@@ -43,4 +43,9 @@ public class Subscription extends AuditableDomainModel {
     private String qrAccessToken;
     private Instant qrIssuedAt;
     private Instant qrRevokedAt;
+    private Boolean accessBlocked = false;
+    private Instant accessBlockedAt;
+    private UUID accessBlockedBy;
+    private Instant accessRestoredAt;
+    private UUID accessRestoredBy;
 }

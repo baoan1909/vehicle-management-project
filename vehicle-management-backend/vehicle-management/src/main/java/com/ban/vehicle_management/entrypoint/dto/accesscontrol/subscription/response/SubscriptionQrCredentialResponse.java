@@ -17,6 +17,7 @@ public class SubscriptionQrCredentialResponse {
     private String qrPayload;
     private String qrCodeDataUrl;
     private Instant issuedAt;
+    private boolean accessBlocked;
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
 }

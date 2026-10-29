@@ -146,6 +146,21 @@ public class SubscriptionEntity extends AuditableEntity {
     @Column(name = "qr_revoked_at")
     private Instant qrRevokedAt;
 
+    @Column(name = "access_blocked", nullable = false)
+    private Boolean accessBlocked = false;
+
+    @Column(name = "access_blocked_at")
+    private Instant accessBlockedAt;
+
+    @Column(name = "access_blocked_by")
+    private UUID accessBlockedBy;
+
+    @Column(name = "access_restored_at")
+    private Instant accessRestoredAt;
+
+    @Column(name = "access_restored_by")
+    private UUID accessRestoredBy;
+
     @OneToMany(mappedBy = "subscription")
     private Set<InvoiceEntity> invoices = new HashSet<>();
 

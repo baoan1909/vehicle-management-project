@@ -40,8 +40,11 @@ import { DatePicker, Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import {
+  blockMySubscriptionAccess,
   issueMySubscriptionQr,
+  refreshMySubscriptionQr,
   type SubscriptionQrCredential,
+  unblockMySubscriptionAccess,
 } from "@/features/subscriptions/api/subscriptionQrApi";
 
 type SubscriptionForm = {
@@ -73,6 +76,7 @@ function formatDateRange(from?: string | null, to?: string | null) {
 }
 
 function statusLabel(status?: string | null) {
+  if (status === "ACCESS_BLOCKED") return "Tạm khóa";
   if (status === "ACTIVE") return "Đang hoạt động";
   if (status === "PENDING") return "Chờ duyệt";
   if (status === "PENDING_PAYMENT") return "Chờ thanh toán";
@@ -143,20 +147,22 @@ function findMatchingPriceRule(
 }
 
 function subscriptionStatusClass(status?: string | null) {
+  if (status === "ACCESS_BLOCKED") return "tw-bg-[#fff5e4] tw-text-[#b45309] tw-ring-[#ffd59b]";
   if (status === "ACTIVE") return "tw-bg-[#eaf9f0] tw-text-[#078553] tw-ring-[#b9ebcc]";
   if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "PENDING_CARD") return "tw-bg-[#fff5e4] tw-text-[#d66b00] tw-ring-[#ffd59b]";
   if (status === "CANCELLED" || status === "REJECTED") return "tw-bg-[#fff0f0] tw-text-[#d83434] tw-ring-[#ffcaca]";
   return "tw-bg-[#f0f3f7] tw-text-[#687893] tw-ring-[#dce3ec]";
 }
 
-function SubscriptionStatusPill({ status, onTicket = false }: { status?: string | null; onTicket?: boolean }) {
-  const ticketTone = status === "ACTIVE" ? "tw-text-[#cee8db]"
-    : status?.startsWith("PENDING") ? "tw-text-[#f6d58c]"
-    : status === "CANCELLED" || status === "REJECTED" ? "tw-text-[#ffc3c3]" : "tw-text-[#c4ccda]";
+function SubscriptionStatusPill({ status, onTicket = false, accessBlocked = false }: { status?: string | null; onTicket?: boolean; accessBlocked?: boolean }) {
+  const displayStatus = accessBlocked ? "ACCESS_BLOCKED" : status;
+  const ticketTone = displayStatus === "ACTIVE" ? "tw-text-[#cee8db]"
+    : displayStatus === "ACCESS_BLOCKED" || displayStatus?.startsWith("PENDING") ? "tw-text-[#f6d58c]"
+    : displayStatus === "CANCELLED" || displayStatus === "REJECTED" ? "tw-text-[#ffc3c3]" : "tw-text-[#c4ccda]";
   const colorClass = onTicket
     ? `tw-border tw-border-solid tw-border-white/25 tw-bg-white/[.025] ${ticketTone}`
-    : subscriptionStatusClass(status);
-  return <span className={`tw-inline-flex tw-items-center tw-gap-1.5 tw-whitespace-nowrap tw-rounded-full tw-px-2.5 tw-py-1.5 tw-text-[0.72rem] tw-font-normal ${colorClass}`}><span aria-hidden="true" className="tw-h-[7px] tw-w-[7px] tw-shrink-0 tw-rounded-full tw-bg-current" />{statusLabel(status)}</span>;
+    : subscriptionStatusClass(displayStatus);
+  return <span className={`tw-inline-flex tw-items-center tw-gap-1.5 tw-whitespace-nowrap tw-rounded-full tw-px-2.5 tw-py-1.5 tw-text-[0.72rem] tw-font-normal ${colorClass}`}><span aria-hidden="true" className="tw-h-[7px] tw-w-[7px] tw-shrink-0 tw-rounded-full tw-bg-current" />{statusLabel(displayStatus)}</span>;
 }
 
 type SubscriptionIconName = "ticket" | "calendar" | "clock" | "wallet" | "vehicle";
@@ -235,6 +241,7 @@ export function SubscriptionPage() {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrCredential, setQrCredential] = useState<SubscriptionQrCredential | null>(null);
   const [qrLoading, setQrLoading] = useState(false);
+  const [qrActionLoading, setQrActionLoading] = useState(false);
   const [qrError, setQrError] = useState("");
 
   const openRegistrationModal = () => {
@@ -264,13 +271,49 @@ export function SubscriptionPage() {
     }
   };
 
-  const copyQrPayload = async () => {
+  const refreshQrCredential = async () => {
     if (!qrCredential) return;
+    if (!window.confirm("Làm mới QR sẽ khiến mã QR cũ mất hiệu lực. Bạn có muốn tiếp tục?")) return;
+    setQrActionLoading(true);
+    setQrError("");
     try {
-      await navigator.clipboard.writeText(qrCredential.qrPayload);
-      toast.success("Đã sao chép nội dung QR để kiểm tra thủ công.", "Đã sao chép");
-    } catch {
-      toast.error("Trình duyệt không cho phép sao chép nội dung QR.", "Không thể sao chép");
+      setQrCredential(await refreshMySubscriptionQr(qrCredential.subscriptionId));
+      toast.success("Mã QR cũ đã mất hiệu lực và mã mới đã được cấp.", "Đã làm mới QR");
+    } catch (requestError) {
+      setQrError(requestError instanceof Error ? requestError.message : "Không thể làm mới mã QR.");
+    } finally {
+      setQrActionLoading(false);
+    }
+  };
+
+  const toggleSubscriptionAccess = async () => {
+    if (!qrCredential) return;
+    const nextBlocked = !qrCredential.accessBlocked;
+    const confirmation = nextBlocked
+      ? "Khóa vé sẽ tạm ngừng cả QR và thẻ vật lý. Bạn có muốn tiếp tục?"
+      : "Kích hoạt lại vé để QR và thẻ vật lý có thể tiếp tục sử dụng?";
+    if (!window.confirm(confirmation)) return;
+    setQrActionLoading(true);
+    setQrError("");
+    try {
+      const updated = nextBlocked
+        ? await blockMySubscriptionAccess(qrCredential.subscriptionId)
+        : await unblockMySubscriptionAccess(qrCredential.subscriptionId);
+      setQrCredential(updated);
+      setSubscriptions((current) => current.map((subscription) => (
+        subscription.subscriptionId === updated.subscriptionId
+          ? { ...subscription, accessBlocked: updated.accessBlocked }
+          : subscription
+      )));
+      if (updated.accessBlocked) {
+        toast.success("QR và thẻ vật lý đã tạm ngừng sử dụng.", "Đã khóa vé");
+      } else {
+        toast.success("QR và thẻ vật lý có thể tiếp tục sử dụng.", "Đã kích hoạt lại vé");
+      }
+    } catch (requestError) {
+      setQrError(requestError instanceof Error ? requestError.message : "Không thể cập nhật trạng thái sử dụng vé.");
+    } finally {
+      setQrActionLoading(false);
     }
   };
 
@@ -687,7 +730,7 @@ export function SubscriptionPage() {
               </div>
             </div>
             <div className="vm-subscription-ticket-aside tw-relative tw-flex tw-min-w-0 tw-flex-col tw-py-5 tw-pl-4 tw-pr-6">
-              <div className="tw-flex tw-min-h-8 tw-justify-end">{detailSubscription ? <SubscriptionStatusPill status={detailSubscription.status} onTicket /> : null}</div>
+              <div className="tw-flex tw-min-h-8 tw-justify-end">{detailSubscription ? <SubscriptionStatusPill accessBlocked={detailSubscription.accessBlocked === true} status={detailSubscription.status} onTicket /> : null}</div>
               <div className="tw-relative tw-z-[1] tw-mt-5 tw-flex tw-items-center tw-justify-center tw-gap-3"><span className="!tw-font-[Cambria,Georgia,serif] tw-text-[4.5rem] tw-font-normal tw-leading-none tw-text-[#f7ce68]">{detailDaysLeft ?? "--"}</span><span className="tw-text-[1.05rem] tw-font-normal tw-leading-6 tw-text-white">ngày<br />còn lại</span></div>
               <div className="tw-mt-auto tw-h-[62px] tw-overflow-hidden"><PortalTicketArtwork className="tw-pointer-events-none tw-h-full tw-w-full tw-text-[#c9b170]/30 [transform:scaleX(1.8)]" /></div>
               <SubscriptionProgress percent={detailRemainingPercent} />
@@ -729,14 +772,14 @@ export function SubscriptionPage() {
               const selected = selectedSubscriptionId === subscription.subscriptionId;
               return (
                 <article key={subscription.subscriptionId} aria-label={"Xem chi tiết vé " + compactCode(subscription.subscriptionId)} aria-pressed={selected} className={["tw-grid tw-min-h-[94px] tw-grid-cols-[48px_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.25fr)_112px_8px] max-[1300px]:tw-grid-cols-[38px_minmax(0,1fr)_minmax(0,.85fr)_minmax(0,1.15fr)_105px_8px] max-[640px]:tw-grid-cols-[38px_minmax(0,1fr)_minmax(0,1fr)] tw-items-center tw-gap-x-3 tw-gap-y-2 tw-rounded-xl tw-border tw-border-solid tw-p-3 tw-transition", selected ? "tw-border-[#1263e9] tw-bg-[#f4f8ff]" : "tw-border-[#e0e3e9] tw-bg-white hover:tw-border-[#b9d3fb]"].join(" ")} role="button" tabIndex={0} title={"Xem vé " + subscription.subscriptionId} onClick={() => setSelectedSubscriptionId(subscription.subscriptionId)} onKeyDown={(event) => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedSubscriptionId(subscription.subscriptionId); } }}>
-                  <span className={["tw-grid tw-h-12 tw-w-12 tw-place-items-center tw-rounded-full max-[1300px]:tw-h-9 max-[1300px]:tw-w-9", subscription.status === "ACTIVE" ? "tw-bg-[#edf7f0] tw-text-[#438c76]" : subscription.status?.startsWith("PENDING") ? "tw-bg-[#fff5e6] tw-text-[#e69a49]" : "tw-bg-[#f3f3f3] tw-text-[#777777]"].join(" ")}><SubscriptionIcon name="ticket" /></span>
+                  <span className={["tw-grid tw-h-12 tw-w-12 tw-place-items-center tw-rounded-full max-[1300px]:tw-h-9 max-[1300px]:tw-w-9", subscription.accessBlocked ? "tw-bg-[#fff5e6] tw-text-[#b45309]" : subscription.status === "ACTIVE" ? "tw-bg-[#edf7f0] tw-text-[#438c76]" : subscription.status?.startsWith("PENDING") ? "tw-bg-[#fff5e6] tw-text-[#e69a49]" : "tw-bg-[#f3f3f3] tw-text-[#777777]"].join(" ")}><SubscriptionIcon name="ticket" /></span>
                   <span className="tw-min-w-0"><strong title={subscription.subscriptionId} className="tw-block tw-truncate tw-text-[0.82rem] tw-font-semibold tw-text-[#17233e]">{compactCode(subscription.subscriptionId)}</strong><small title={ticketType?.name} className="tw-mt-1 tw-block tw-truncate tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{ticketType?.name ?? "Vé đăng ký"}</small><small className="tw-block tw-truncate tw-text-[0.68rem] tw-text-[#64748b]">{subscription.parkingLotId ? parkingLotById.get(subscription.parkingLotId)?.name ?? "Bãi ngừng hoạt động" : "Chưa xác định bãi"}</small></span>
                   <span className="tw-min-w-0 tw-border-0 tw-border-l tw-border-solid tw-border-[#edf0f3] tw-pl-3"><strong className="tw-block tw-whitespace-nowrap tw-text-[0.82rem] tw-font-semibold tw-text-[#17233e]">{vehicle?.licensePlate ?? "--"}</strong><small title={vehicleLabel(vehicle, vehicleTypeById)} className="tw-mt-1 tw-block tw-truncate tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{[vehicle?.brand, vehicle?.vehicleTypeId ? vehicleTypeById.get(vehicle.vehicleTypeId)?.name : undefined].filter(Boolean).join(" · ") || "--"}</small></span>
                   <span className="tw-min-w-0 tw-border-0 tw-border-l tw-border-solid tw-border-[#edf0f3] tw-pl-3 max-[640px]:tw-col-start-2">
                     <span className="tw-flex tw-flex-wrap tw-gap-x-1 tw-text-[0.7rem] tw-font-semibold tw-leading-5 tw-text-[#17233e]"><span className="tw-whitespace-nowrap">{formatDate(toDateInputValue(getDisplayEffectiveFrom(subscription)) ?? subscription.requestedEffectiveFrom)}</span><span className="tw-whitespace-nowrap">— {subscription.effectiveTo ? formatDate(subscription.effectiveTo) : "Chưa xác định"}</span></span>
                     <small className="tw-mt-1 tw-block tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{getSubscriptionTotal(subscription) != null ? formatCurrency(getSubscriptionTotal(subscription)) : "Chưa xác định phí"}</small>
                   </span>
-                  <span className="tw-grid tw-justify-items-end tw-gap-1.5"><SubscriptionStatusPill status={subscription.status} />{subscription.status === "PENDING_PAYMENT" && canPaySubscription ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.74rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription); }}>Thanh toán</button> : null}</span>
+                  <span className="tw-grid tw-justify-items-end tw-gap-1.5"><SubscriptionStatusPill accessBlocked={subscription.accessBlocked === true} status={subscription.status} />{subscription.status === "PENDING_PAYMENT" && canPaySubscription ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.74rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription); }}>Thanh toán</button> : null}</span>
                   <i aria-hidden="true" className="fas fa-chevron-right tw-text-[0.6rem] tw-text-[#5c7090] max-[640px]:tw-hidden" />
                 </article>
               );
@@ -993,6 +1036,11 @@ export function SubscriptionPage() {
                 <span className="tw-mt-1 tw-block">Hiệu lực: <strong>{formatDateRange(qrCredential.effectiveFrom, qrCredential.effectiveTo)}</strong></span>
                 <span className="tw-mt-1 tw-block">Bãi xe: <strong>{parkingLotById.get(qrCredential.parkingLotId)?.name ?? qrCredential.parkingLotId}</strong></span>
               </div>
+              {qrCredential.accessBlocked ? (
+                <div className="tw-rounded-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-p-3 tw-text-left tw-text-sm tw-font-semibold tw-text-amber-800" role="status">
+                  <i className="fas fa-lock tw-mr-2" />Vé đang bị tạm khóa. QR và thẻ vật lý hiện không thể dùng để vào bãi.
+                </div>
+              ) : null}
               <div className="tw-grid tw-grid-cols-2 tw-gap-2 max-[520px]:tw-grid-cols-1">
                 <a
                   className="tw-inline-flex tw-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-bg-[#1263e9] tw-px-4 tw-font-bold tw-text-white tw-no-underline hover:tw-bg-[#0756d8]"
@@ -1001,10 +1049,19 @@ export function SubscriptionPage() {
                 >
                   <i className="fas fa-download" />Tải ảnh QR
                 </a>
-                <button className="tw-inline-flex tw-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-[#b9d3fb] tw-bg-[#edf4ff] tw-px-4 tw-font-bold tw-text-[#0756d8] hover:tw-bg-[#dfeaff]" type="button" onClick={() => void copyQrPayload()}>
-                  <i className="fas fa-copy" />Sao chép nội dung QR
+                <button className="tw-inline-flex tw-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-[#b9d3fb] tw-bg-[#edf4ff] tw-px-4 tw-font-bold tw-text-[#0756d8] hover:tw-bg-[#dfeaff] disabled:tw-cursor-not-allowed disabled:tw-opacity-60" disabled={qrActionLoading} type="button" onClick={() => void refreshQrCredential()}>
+                  <i className={`fas ${qrActionLoading ? "fa-spinner fa-spin" : "fa-sync-alt"}`} />Làm mới QR
                 </button>
               </div>
+              <button
+                className={`tw-inline-flex tw-h-10 tw-w-full tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-px-4 tw-font-bold disabled:tw-cursor-not-allowed disabled:tw-opacity-60 ${qrCredential.accessBlocked ? "tw-border-emerald-300 tw-bg-emerald-50 tw-text-emerald-700 hover:tw-bg-emerald-100" : "tw-border-red-200 tw-bg-red-50 tw-text-red-700 hover:tw-bg-red-100"}`}
+                disabled={qrActionLoading}
+                type="button"
+                onClick={() => void toggleSubscriptionAccess()}
+              >
+                <i className={`fas ${qrCredential.accessBlocked ? "fa-unlock" : "fa-lock"}`} />
+                {qrCredential.accessBlocked ? "Kích hoạt lại vé" : "Khóa vé đang sử dụng"}
+              </button>
               <p className="tw-m-0 tw-text-left tw-text-xs tw-leading-5 tw-text-[#71819a]">
                 QR này là mã cố định của vé và chỉ hợp lệ với phương tiện đã đăng ký. Việc kiểm tra QR ở giai đoạn này chưa tự động ghi nhận xe vào/ra.
               </p>

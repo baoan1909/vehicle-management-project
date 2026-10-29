@@ -146,6 +146,10 @@ public class ParkingCheckInPolicy {
         requireField(customer, "customer");
         requireField(customerVehicle, "customerVehicle");
 
+        if (Boolean.TRUE.equals(subscription.getAccessBlocked())) {
+            throw new ConflictException("Vé đăng ký đang bị tạm khóa");
+        }
+
         if (customer.getStatus() != CustomerStatus.ACTIVE) {
             throw new ConflictException("Khách hàng hiện không hoạt động");
         }

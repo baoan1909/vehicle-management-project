@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.accesscontrol.subscription.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
@@ -39,6 +40,39 @@ class SubscriptionQrPolicyTest {
         assertTrue(policy.issueIfAbsent(subscription, "token", issuedAt));
         assertEquals("token", subscription.getQrAccessToken());
         assertEquals(issuedAt, subscription.getQrIssuedAt());
+    }
+
+    @Test
+    void shouldRefreshQrAndInvalidatePreviousToken() {
+        Subscription subscription = activeSubscription();
+        subscription.setQrAccessToken("old-token");
+        subscription.setQrIssuedAt(Instant.parse("2026-10-29T02:00:00Z"));
+        Instant refreshedAt = Instant.parse("2026-10-29T03:00:00Z");
+
+        policy.refresh(subscription, "new-token", refreshedAt);
+
+        assertNotEquals("old-token", subscription.getQrAccessToken());
+        assertEquals("new-token", subscription.getQrAccessToken());
+        assertEquals(refreshedAt, subscription.getQrIssuedAt());
+    }
+
+    @Test
+    void shouldBlockAndRestoreSubscriptionAccess() {
+        Subscription subscription = activeSubscription();
+        UUID actorAccountId = UUID.randomUUID();
+        Instant blockedAt = Instant.parse("2026-10-29T03:00:00Z");
+        Instant restoredAt = blockedAt.plusSeconds(60);
+
+        assertTrue(policy.blockAccess(subscription, actorAccountId, blockedAt));
+        assertTrue(Boolean.TRUE.equals(subscription.getAccessBlocked()));
+        assertEquals(SubscriptionQrVerificationStatus.BLOCKED,
+                policy.verify(subscription, BUSINESS_DATE, LOT_ID, "59A1-123.45", null));
+
+        assertTrue(policy.unblockAccess(subscription, actorAccountId, restoredAt));
+        assertFalse(Boolean.TRUE.equals(subscription.getAccessBlocked()));
+        assertEquals(restoredAt, subscription.getAccessRestoredAt());
+        assertEquals(SubscriptionQrVerificationStatus.VALID,
+                policy.verify(subscription, BUSINESS_DATE, LOT_ID, "59A1-123.45", null));
     }
 
     @Test

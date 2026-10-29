@@ -41,6 +41,11 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "qrAccessToken", ignore = true)
     @Mapping(target = "qrIssuedAt", ignore = true)
     @Mapping(target = "qrRevokedAt", ignore = true)
+    @Mapping(target = "accessBlocked", ignore = true)
+    @Mapping(target = "accessBlockedAt", ignore = true)
+    @Mapping(target = "accessBlockedBy", ignore = true)
+    @Mapping(target = "accessRestoredAt", ignore = true)
+    @Mapping(target = "accessRestoredBy", ignore = true)
     Subscription toDomain(CreateSubscriptionRequest request);
 
     @Mapping(target = "subscriptionId", ignore = true)
@@ -66,6 +71,11 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "qrAccessToken", ignore = true)
     @Mapping(target = "qrIssuedAt", ignore = true)
     @Mapping(target = "qrRevokedAt", ignore = true)
+    @Mapping(target = "accessBlocked", ignore = true)
+    @Mapping(target = "accessBlockedAt", ignore = true)
+    @Mapping(target = "accessBlockedBy", ignore = true)
+    @Mapping(target = "accessRestoredAt", ignore = true)
+    @Mapping(target = "accessRestoredBy", ignore = true)
     Subscription toDomain(CreateSubscriptionAdminRequest request);
 
     @Mapping(target = "subscriptionId", ignore = true)
@@ -92,6 +102,11 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "qrAccessToken", ignore = true)
     @Mapping(target = "qrIssuedAt", ignore = true)
     @Mapping(target = "qrRevokedAt", ignore = true)
+    @Mapping(target = "accessBlocked", ignore = true)
+    @Mapping(target = "accessBlockedAt", ignore = true)
+    @Mapping(target = "accessBlockedBy", ignore = true)
+    @Mapping(target = "accessRestoredAt", ignore = true)
+    @Mapping(target = "accessRestoredBy", ignore = true)
     Subscription toDomain(UpdateSubscriptionRequest request);
 
     SubscriptionAdminResponse toAdminResponse(Subscription subscription);

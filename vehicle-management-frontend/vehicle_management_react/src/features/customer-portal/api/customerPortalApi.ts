@@ -52,6 +52,9 @@ export type CustomerPortalSubscription = {
   approvedBy?: string | null;
   cardId?: string | null;
   cardReceiptDate?: string | null;
+  accessBlocked?: boolean | null;
+  accessBlockedAt?: string | null;
+  accessRestoredAt?: string | null;
   createdAt?: string | null;
   createdBy?: string | null;
   customerId: string;

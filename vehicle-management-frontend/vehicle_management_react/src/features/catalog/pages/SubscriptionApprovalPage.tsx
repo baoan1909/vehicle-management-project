@@ -13,9 +13,11 @@ import {
 import {
   approveSubscription,
   assignSubscriptionCard,
+  blockSubscriptionAccess,
   getSubscriptionLookupData,
   getSubscriptions,
   rejectSubscription,
+  unblockSubscriptionAccess,
   type CardResponse,
   type CustomerApiResponse,
   type CustomerVehicleApiResponse,
@@ -30,6 +32,7 @@ import type { ParkingLotApiResponse } from "@/features/parking/api/parkingLotsAp
 type ViewMode = "pipeline" | "table";
 
 type SubscriptionView = {
+  accessBlocked: boolean;
   amount: string;
   cardLabel: string;
   cardNumber: string;
@@ -116,7 +119,8 @@ function shortCode(prefix: string, id: string) {
   return `${prefix}-${id.slice(0, 8).toUpperCase()}`;
 }
 
-function statusTagClass(status: SubscriptionStatus) {
+function statusTagClass(status: SubscriptionStatus, accessBlocked = false) {
+  if (accessBlocked) return "tw-bg-amber-50 tw-text-amber-700";
   if (status === "PENDING_PAYMENT") return "tw-bg-orange-50 tw-text-orange-600";
   if (status === "PENDING_CARD") return "tw-bg-purple-50 tw-text-purple-600";
   if (status === "ACTIVE") return "tw-bg-green-50 tw-text-green-600";
@@ -154,6 +158,7 @@ function toSubscriptionView(
   const isVip = [ticketType?.code, ticketName].some((value) => value?.toUpperCase().includes("VIP"));
 
   return {
+    accessBlocked: subscription.accessBlocked === true,
     amount: formatMoney(subscription.price),
     cardLabel: card?.cardNumber ?? (subscription.cardId ? "Thẻ đã giữ chỗ" : "Chưa giữ thẻ"),
     cardNumber: card?.cardNumber ?? (subscription.cardId ? shortCode("CARD", subscription.cardId) : "Chưa có"),
@@ -172,7 +177,7 @@ function toSubscriptionView(
     packageTone: isVip ? "success" : "primary",
     plate: vehicle?.licensePlate ?? shortCode("XE", subscription.customerVehicleId),
     status: subscription.status,
-    statusLabel: statusLabels[subscription.status],
+    statusLabel: subscription.accessBlocked ? "Tạm khóa" : statusLabels[subscription.status],
     subscriptionId: subscription.subscriptionId,
     vehicleModel: [vehicleType?.name, vehicle?.brand, vehicle?.color].filter(Boolean).join(" - ") || "Chưa có thông tin xe",
   };
@@ -213,7 +218,7 @@ function RequestCard({ active, item, onSelect }: { active: boolean; item: Subscr
       </span>
       <span className="tw-flex tw-items-center tw-justify-between tw-gap-2">
         <Badge tone={item.packageTone} className="tw-rounded-vm-sm tw-px-2.5">{item.packageLabel}</Badge>
-        <span className={cn("tw-rounded-vm-sm tw-px-2 tw-py-1 tw-text-[0.66rem] tw-font-black", statusTagClass(item.status))}>{item.statusLabel}</span>
+        <span className={cn("tw-rounded-vm-sm tw-px-2 tw-py-1 tw-text-[0.66rem] tw-font-black", statusTagClass(item.status, item.accessBlocked))}>{item.statusLabel}</span>
       </span>
       <span className="tw-text-[0.74rem] tw-font-semibold tw-text-vm-slate-500"><i className="far fa-id-card tw-mr-2" />{item.cardLabel}</span>
     </button>
@@ -304,7 +309,7 @@ function SubscriptionTableView({ activeId, items, onSelect }: { activeId?: strin
                 </td>
                 <td className="tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-700">{item.date}</td>
                 <td>
-                  <span className={cn("tw-inline-flex tw-rounded-vm-sm tw-px-2.5 tw-py-1 tw-text-[0.72rem] tw-font-black", statusTagClass(item.status))}>
+                  <span className={cn("tw-inline-flex tw-rounded-vm-sm tw-px-2.5 tw-py-1 tw-text-[0.72rem] tw-font-black", statusTagClass(item.status, item.accessBlocked))}>
                     {item.statusLabel}
                   </span>
                 </td>
@@ -366,11 +371,13 @@ function ReviewDrawer({
   canAssignCardAction,
   canRecordPaymentAction,
   canRejectAction,
+  canManageAccessAction,
   onApprove,
   onAssignCard,
   onClose,
   onOpenCashPayment,
   onReject,
+  onToggleAccess,
   open,
   request,
 }: {
@@ -380,11 +387,13 @@ function ReviewDrawer({
   canAssignCardAction: boolean;
   canRecordPaymentAction: boolean;
   canRejectAction: boolean;
+  canManageAccessAction: boolean;
   onApprove: (request: SubscriptionView) => void;
   onAssignCard: (request: SubscriptionView) => void;
   onClose: () => void;
   onOpenCashPayment: (request: SubscriptionView) => void;
   onReject: (request: SubscriptionView, reason: string) => void;
+  onToggleAccess: (request: SubscriptionView) => void;
   open: boolean;
   request: SubscriptionView | null;
 }) {
@@ -399,6 +408,7 @@ function ReviewDrawer({
   const canApprove = request.status === "PENDING";
   const canAssignCard = request.status === "PENDING_CARD";
   const waitingPayment = request.status === "PENDING_PAYMENT";
+  const canManageAccess = request.status === "ACTIVE" && canManageAccessAction;
 
   return (
     <Drawer
@@ -415,7 +425,8 @@ function ReviewDrawer({
             {canApprove && canApproveAction ? <Button disabled={actionLoading} onClick={() => onApprove(request)}>Duyệt yêu cầu</Button> : null}
             {canAssignCard && canAssignCardAction ? <Button disabled={actionLoading} onClick={() => onAssignCard(request)}>Gán thẻ</Button> : null}
             {waitingPayment && canRecordPaymentAction ? <Button disabled={actionLoading} onClick={() => onOpenCashPayment(request)}>Xác nhận tại quầy</Button> : null}
-            {!(canApprove && (canApproveAction || canRejectAction)) && !(canAssignCard && canAssignCardAction) && !(waitingPayment && canRecordPaymentAction) ? <Button disabled>Chỉ xem</Button> : null}
+            {canManageAccess ? <Button disabled={actionLoading} variant={request.accessBlocked ? "primary" : "danger"} onClick={() => onToggleAccess(request)}>{request.accessBlocked ? "Kích hoạt lại vé" : "Khóa vé"}</Button> : null}
+            {!(canApprove && (canApproveAction || canRejectAction)) && !(canAssignCard && canAssignCardAction) && !(waitingPayment && canRecordPaymentAction) && !canManageAccess ? <Button disabled>Chỉ xem</Button> : null}
           </div>
         </div>
       }
@@ -428,7 +439,7 @@ function ReviewDrawer({
       <div className="tw-grid tw-gap-5">
         <div className="tw-flex tw-items-center tw-gap-2">
           <Badge tone="primary" className="tw-rounded-vm-sm tw-px-3">{request.id}</Badge>
-          <span className={cn("tw-rounded-vm-sm tw-px-2.5 tw-py-1 tw-text-[0.72rem] tw-font-black", statusTagClass(request.status))}>{request.statusLabel}</span>
+          <span className={cn("tw-rounded-vm-sm tw-px-2.5 tw-py-1 tw-text-[0.72rem] tw-font-black", statusTagClass(request.status, request.accessBlocked))}>{request.statusLabel}</span>
         </div>
 
         <section className="tw-grid tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-4">
@@ -456,6 +467,7 @@ function ReviewDrawer({
           <DetailLine label="Ngày hiệu lực" value={request.date} />
           <DetailLine label="Loại vé" value={`${request.packageLabel} - ${request.amount}`} />
           <DetailLine label="Hóa đơn" value={request.invoiceHint} />
+          <DetailLine label="Quyền sử dụng" value={request.accessBlocked ? "Đang tạm khóa QR và thẻ vật lý" : "Đang được sử dụng"} />
         </section>
 
         <section className="tw-grid tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-4">
@@ -495,6 +507,8 @@ export function SubscriptionApprovalPage() {
   const canRejectAction = hasAnyPermission(user, ["SUBSCRIPTION_REJECT_ALL"]);
   const canAssignCardAction = hasAnyPermission(user, ["SUBSCRIPTION_ASSIGN_CARD_ALL"]);
   const canRecordPaymentAction = hasAnyPermission(user, ["PAYMENT_CREATE_ALL"])
+    && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER", "PARKING_SCOPE_ASSIGNED"]);
+  const canManageAccessAction = hasAnyPermission(user, ["SUBSCRIPTION_UPDATE_ALL"])
     && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER", "PARKING_SCOPE_ASSIGNED"]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionApiResponse[]>([]);
   const [lookupData, setLookupData] = useState<LookupData | null>(null);
@@ -638,6 +652,31 @@ export function SubscriptionApprovalPage() {
       await refreshAfterAction("Đã gán thẻ cho đăng ký vé tháng.");
     } catch (assignError) {
       setActionError(assignError instanceof Error ? assignError.message : "Không thể gán thẻ.");
+    } finally {
+      setActionLoading(false);
+    }
+  }, [refreshAfterAction]);
+
+  const handleToggleAccess = useCallback(async (request: SubscriptionView) => {
+    const nextBlocked = !request.accessBlocked;
+    const confirmation = nextBlocked
+      ? "Khóa vé sẽ tạm ngừng cả QR và thẻ vật lý của khách hàng. Bạn có muốn tiếp tục?"
+      : "Kích hoạt lại vé để khách hàng tiếp tục sử dụng QR và thẻ vật lý?";
+    if (!window.confirm(confirmation)) return;
+
+    setActionLoading(true);
+    setActionError("");
+    try {
+      if (nextBlocked) {
+        await blockSubscriptionAccess(request.subscriptionId);
+      } else {
+        await unblockSubscriptionAccess(request.subscriptionId);
+      }
+      await refreshAfterAction(nextBlocked
+        ? "Đã khóa QR và thẻ vật lý của vé đăng ký."
+        : "Đã kích hoạt lại QR và thẻ vật lý của vé đăng ký.");
+    } catch (accessError) {
+      setActionError(accessError instanceof Error ? accessError.message : "Không thể cập nhật quyền sử dụng vé.");
     } finally {
       setActionLoading(false);
     }
@@ -797,11 +836,13 @@ export function SubscriptionApprovalPage() {
         canAssignCardAction={canAssignCardAction}
         canRecordPaymentAction={canRecordPaymentAction}
         canRejectAction={canRejectAction}
+        canManageAccessAction={canManageAccessAction}
         onApprove={handleApprove}
         onAssignCard={handleAssignCard}
         onClose={() => setDrawerOpen(false)}
         onOpenCashPayment={handleOpenCashPayment}
         onReject={handleReject}
+        onToggleAccess={handleToggleAccess}
         open={drawerOpen}
         request={selectedRequest}
       />

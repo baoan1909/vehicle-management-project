@@ -2,7 +2,9 @@ package com.ban.vehicle_management.application.accesscontrol.subscription.usecas
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -39,6 +41,7 @@ class SubscriptionQrUseCaseImplTest {
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 29);
     private static final UUID LOT_ID = UUID.fromString("00000000-0000-0000-0000-000000000601");
     private static final UUID SUBSCRIPTION_ID = UUID.fromString("00000000-0000-0000-0000-000000000602");
+    private static final UUID ACTOR_ID = UUID.fromString("00000000-0000-0000-0000-000000000603");
 
     @Mock
     private SubscriptionPortOut subscriptionPortOut;
@@ -90,6 +93,61 @@ class SubscriptionQrUseCaseImplTest {
 
         assertThrows(ConflictException.class, () -> useCase.issueMyQrCredential(SUBSCRIPTION_ID));
         verify(subscriptionPortOut, never()).save(any());
+    }
+
+    @Test
+    void shouldRefreshQrAndPersistNewToken() {
+        Subscription subscription = activeSubscription();
+        subscription.setQrAccessToken(tokenService.generateToken());
+        String oldToken = subscription.getQrAccessToken();
+        when(subscriptionPortOut.findByIdForUpdate(SUBSCRIPTION_ID)).thenReturn(Optional.of(subscription));
+        when(subscriptionAccessGuard.ensureCanUpdateOwn(subscription)).thenReturn(ACTOR_ID);
+        when(subscriptionPortOut.save(subscription)).thenReturn(subscription);
+        when(qrImagePortOut.encodePngDataUrl(any())).thenReturn("data:image/png;base64,new");
+
+        var refreshed = useCase.refreshMyQrCredential(SUBSCRIPTION_ID);
+
+        assertNotEquals(oldToken, subscription.getQrAccessToken());
+        assertEquals(subscription.getQrAccessToken(), tokenService.extractToken(refreshed.qrPayload()).orElseThrow());
+        verify(subscriptionPortOut).save(subscription);
+    }
+
+    @Test
+    void shouldBlockAndRestoreQrAndPhysicalCardAccessTogether() {
+        Subscription subscription = activeSubscription();
+        subscription.setQrAccessToken(tokenService.generateToken());
+        when(subscriptionPortOut.findByIdForUpdate(SUBSCRIPTION_ID)).thenReturn(Optional.of(subscription));
+        when(subscriptionAccessGuard.ensureCanUpdateOwn(subscription)).thenReturn(ACTOR_ID);
+        when(subscriptionPortOut.save(subscription)).thenReturn(subscription);
+        when(qrImagePortOut.encodePngDataUrl(any())).thenReturn("data:image/png;base64,access");
+
+        var blocked = useCase.blockMySubscriptionAccess(SUBSCRIPTION_ID);
+        var restored = useCase.unblockMySubscriptionAccess(SUBSCRIPTION_ID);
+
+        assertTrue(blocked.accessBlocked());
+        assertEquals(false, restored.accessBlocked());
+        assertEquals(ACTOR_ID, subscription.getAccessBlockedBy());
+        assertEquals(ACTOR_ID, subscription.getAccessRestoredBy());
+        verify(subscriptionPortOut, times(2)).save(subscription);
+    }
+
+    @Test
+    void shouldAllowScopedOperatorToBlockAndRestoreSubscriptionAccess() {
+        Subscription subscription = activeSubscription();
+        when(subscriptionPortOut.findByIdForUpdate(SUBSCRIPTION_ID)).thenReturn(Optional.of(subscription));
+        when(subscriptionAccessGuard.ensureCanManageAccess(subscription)).thenReturn(ACTOR_ID);
+        when(subscriptionPortOut.save(subscription)).thenReturn(subscription);
+
+        var blocked = useCase.blockSubscriptionAccess(SUBSCRIPTION_ID);
+        assertTrue(Boolean.TRUE.equals(blocked.getAccessBlocked()));
+        var restored = useCase.unblockSubscriptionAccess(SUBSCRIPTION_ID);
+
+        assertEquals(false, restored.getAccessBlocked());
+        assertEquals(ACTOR_ID, subscription.getAccessBlockedBy());
+        assertEquals(ACTOR_ID, subscription.getAccessRestoredBy());
+        verify(subscriptionAccessGuard, times(2)).ensureCanManageAccess(subscription);
+        verify(subscriptionPortOut, times(2)).save(subscription);
+        verify(qrImagePortOut, never()).encodePngDataUrl(any());
     }
 
     @Test

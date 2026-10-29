@@ -6,6 +6,7 @@ public enum SubscriptionQrVerificationStatus {
     NOT_YET_VALID,
     EXPIRED,
     REVOKED,
+    BLOCKED,
     INACTIVE,
     WRONG_PARKING_LOT,
     VEHICLE_MISMATCH

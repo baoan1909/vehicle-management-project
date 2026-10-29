@@ -37,6 +37,11 @@ public class SubscriptionAdminResponse {
     private UUID rejectedBy;
     private Instant rejectedAt;
     private LocalDate cardReceiptDate;
+    private Boolean accessBlocked;
+    private Instant accessBlockedAt;
+    private UUID accessBlockedBy;
+    private Instant accessRestoredAt;
+    private UUID accessRestoredBy;
     private Instant createdAt;
     private UUID createdBy;
     private Instant updatedAt;

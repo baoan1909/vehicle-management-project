@@ -15,6 +15,7 @@ export type SubscriptionQrCredential = {
   qrPayload: string;
   qrCodeDataUrl: string;
   issuedAt: string;
+  accessBlocked: boolean;
   effectiveFrom: string;
   effectiveTo: string;
 };
@@ -25,6 +26,7 @@ export type SubscriptionQrVerificationStatus =
   | "NOT_YET_VALID"
   | "EXPIRED"
   | "REVOKED"
+  | "BLOCKED"
   | "INACTIVE"
   | "WRONG_PARKING_LOT"
   | "VEHICLE_MISMATCH";
@@ -43,6 +45,30 @@ export type SubscriptionQrVerification = {
 export async function issueMySubscriptionQr(subscriptionId: string) {
   const response = await apiClient<ApiResponse<SubscriptionQrCredential>>(
     `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/qr`,
+    { method: "POST" },
+  );
+  return response.data;
+}
+
+export async function refreshMySubscriptionQr(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<SubscriptionQrCredential>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/qr/refresh`,
+    { method: "POST" },
+  );
+  return response.data;
+}
+
+export async function blockMySubscriptionAccess(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<SubscriptionQrCredential>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/access/block`,
+    { method: "POST" },
+  );
+  return response.data;
+}
+
+export async function unblockMySubscriptionAccess(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<SubscriptionQrCredential>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/access/unblock`,
     { method: "POST" },
   );
   return response.data;

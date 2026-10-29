@@ -98,6 +98,58 @@ public class SubscriptionController {
         ));
     }
 
+    @PostMapping("/me/{subscriptionId}/qr/refresh")
+    public ResponseEntity<ApiResponse<SubscriptionQrCredentialResponse>> refreshMyQrCredential(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription QR credential refreshed successfully",
+                subscriptionQrApiMapper.toResponse(subscriptionQrPortIn.refreshMyQrCredential(subscriptionId))
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/access/block")
+    public ResponseEntity<ApiResponse<SubscriptionQrCredentialResponse>> blockMySubscriptionAccess(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription access blocked successfully",
+                subscriptionQrApiMapper.toResponse(subscriptionQrPortIn.blockMySubscriptionAccess(subscriptionId))
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/access/unblock")
+    public ResponseEntity<ApiResponse<SubscriptionQrCredentialResponse>> unblockMySubscriptionAccess(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription access restored successfully",
+                subscriptionQrApiMapper.toResponse(subscriptionQrPortIn.unblockMySubscriptionAccess(subscriptionId))
+        ));
+    }
+
+    @PatchMapping("/{subscriptionId}/access/block")
+    public ResponseEntity<ApiResponse<SubscriptionAdminResponse>> blockSubscriptionAccess(
+            @PathVariable UUID subscriptionId
+    ) {
+        Subscription blockedSubscription = subscriptionQrPortIn.blockSubscriptionAccess(subscriptionId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription access blocked successfully",
+                subscriptionApiMapper.toAdminResponse(blockedSubscription)
+        ));
+    }
+
+    @PatchMapping("/{subscriptionId}/access/unblock")
+    public ResponseEntity<ApiResponse<SubscriptionAdminResponse>> unblockSubscriptionAccess(
+            @PathVariable UUID subscriptionId
+    ) {
+        Subscription restoredSubscription = subscriptionQrPortIn.unblockSubscriptionAccess(subscriptionId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription access restored successfully",
+                subscriptionApiMapper.toAdminResponse(restoredSubscription)
+        ));
+    }
+
     @PostMapping("/qr/verify")
     public ResponseEntity<ApiResponse<SubscriptionQrVerificationResponse>> verifyQrCredential(
             @Valid @RequestBody VerifySubscriptionQrRequest request

@@ -65,18 +65,57 @@ public class SubscriptionQrUseCaseImpl implements SubscriptionQrPortIn {
 
         boolean issued = qrPolicy.issueIfAbsent(subscription, tokenService.generateToken(), Instant.now(clock));
         Subscription persisted = issued ? subscriptionPortOut.save(subscription) : subscription;
-        String payload = tokenService.toPayload(persisted.getQrAccessToken());
+        return toCredential(persisted);
+    }
 
-        return new SubscriptionQrCredential(
-                persisted.getSubscriptionId(),
-                persisted.getParkingLotId(),
-                persisted.getCustomerVehicleId(),
-                payload,
-                qrImagePortOut.encodePngDataUrl(payload),
-                persisted.getQrIssuedAt(),
-                persisted.getEffectiveFrom(),
-                persisted.getEffectiveTo()
-        );
+    @Override
+    @Transactional
+    public SubscriptionQrCredential refreshMyQrCredential(UUID subscriptionId) {
+        Subscription subscription = findOwnForUpdate(subscriptionId);
+        qrPolicy.refresh(subscription, tokenService.generateToken(), Instant.now(clock));
+        return toCredential(subscriptionPortOut.save(subscription));
+    }
+
+    @Override
+    @Transactional
+    public SubscriptionQrCredential blockMySubscriptionAccess(UUID subscriptionId) {
+        Subscription subscription = findForOwnAccessUpdate(subscriptionId);
+        Instant now = Instant.now(clock);
+        UUID actorAccountId = subscriptionAccessGuard.ensureCanUpdateOwn(subscription);
+        ensureQrCredential(subscription, now);
+        qrPolicy.blockAccess(subscription, actorAccountId, now);
+        return toCredential(subscriptionPortOut.save(subscription));
+    }
+
+    @Override
+    @Transactional
+    public SubscriptionQrCredential unblockMySubscriptionAccess(UUID subscriptionId) {
+        Subscription subscription = findForOwnAccessUpdate(subscriptionId);
+        Instant now = Instant.now(clock);
+        UUID actorAccountId = subscriptionAccessGuard.ensureCanUpdateOwn(subscription);
+        ensureQrCredential(subscription, now);
+        qrPolicy.unblockAccess(subscription, actorAccountId, now);
+        return toCredential(subscriptionPortOut.save(subscription));
+    }
+
+    @Override
+    @Transactional
+    public Subscription blockSubscriptionAccess(UUID subscriptionId) {
+        Subscription subscription = findForAccessUpdate(subscriptionId);
+        Instant now = Instant.now(clock);
+        UUID actorAccountId = subscriptionAccessGuard.ensureCanManageAccess(subscription);
+        qrPolicy.blockAccess(subscription, actorAccountId, now);
+        return subscriptionPortOut.save(subscription);
+    }
+
+    @Override
+    @Transactional
+    public Subscription unblockSubscriptionAccess(UUID subscriptionId) {
+        Subscription subscription = findForAccessUpdate(subscriptionId);
+        Instant now = Instant.now(clock);
+        UUID actorAccountId = subscriptionAccessGuard.ensureCanManageAccess(subscription);
+        qrPolicy.unblockAccess(subscription, actorAccountId, now);
+        return subscriptionPortOut.save(subscription);
     }
 
     @Override
@@ -162,9 +201,49 @@ public class SubscriptionQrUseCaseImpl implements SubscriptionQrPortIn {
             case NOT_YET_VALID -> "Subscription is not effective yet";
             case EXPIRED -> "Subscription has expired";
             case REVOKED -> "QR credential has been revoked";
+            case BLOCKED -> "Subscription access is temporarily blocked";
             case INACTIVE -> "Subscription is not active";
             case WRONG_PARKING_LOT -> "Subscription does not apply to this parking lot";
             case VEHICLE_MISMATCH -> "Observed license plate does not match the subscription vehicle";
         };
+    }
+
+    private Subscription findOwnForUpdate(UUID subscriptionId) {
+        Subscription subscription = findForOwnAccessUpdate(subscriptionId);
+        subscriptionAccessGuard.ensureCanUpdateOwn(subscription);
+        return subscription;
+    }
+
+    private Subscription findForOwnAccessUpdate(UUID subscriptionId) {
+        return findForAccessUpdate(subscriptionId);
+    }
+
+    private Subscription findForAccessUpdate(UUID subscriptionId) {
+        if (subscriptionId == null) {
+            throw new BadRequestException("subscriptionId must not be null");
+        }
+        return subscriptionPortOut.findByIdForUpdate(subscriptionId)
+                .orElseThrow(() -> new NotFoundException("Subscription not found"));
+    }
+
+    private SubscriptionQrCredential toCredential(Subscription subscription) {
+        String payload = tokenService.toPayload(subscription.getQrAccessToken());
+        return new SubscriptionQrCredential(
+                subscription.getSubscriptionId(),
+                subscription.getParkingLotId(),
+                subscription.getCustomerVehicleId(),
+                payload,
+                qrImagePortOut.encodePngDataUrl(payload),
+                subscription.getQrIssuedAt(),
+                Boolean.TRUE.equals(subscription.getAccessBlocked()),
+                subscription.getEffectiveFrom(),
+                subscription.getEffectiveTo()
+        );
+    }
+
+    private void ensureQrCredential(Subscription subscription, Instant issuedAt) {
+        if (subscription.getQrAccessToken() == null || subscription.getQrRevokedAt() != null) {
+            qrPolicy.refresh(subscription, tokenService.generateToken(), issuedAt);
+        }
     }
 }

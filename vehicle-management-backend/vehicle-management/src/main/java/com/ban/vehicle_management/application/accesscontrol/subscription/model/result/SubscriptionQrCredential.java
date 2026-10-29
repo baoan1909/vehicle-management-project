@@ -11,6 +11,7 @@ public record SubscriptionQrCredential(
         String qrPayload,
         String qrCodeDataUrl,
         Instant issuedAt,
+        boolean accessBlocked,
         LocalDate effectiveFrom,
         LocalDate effectiveTo
 ) {

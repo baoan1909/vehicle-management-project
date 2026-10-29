@@ -37,6 +37,9 @@ public class SubscriptionUserResponse {
     private SubscriptionStatus status;
     private String rejectionReason;
     private LocalDate cardReceiptDate;
+    private Boolean accessBlocked;
+    private Instant accessBlockedAt;
+    private Instant accessRestoredAt;
     private Instant createdAt;
     private Instant updatedAt;
 }

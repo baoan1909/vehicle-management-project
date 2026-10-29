@@ -420,6 +420,11 @@ CREATE TABLE access_control.subscriptions (
     approved_by UUID,
     approved_at TIMESTAMPTZ,
     card_receipt_date DATE,
+    access_blocked BOOLEAN NOT NULL DEFAULT FALSE,
+    access_blocked_at TIMESTAMPTZ,
+    access_blocked_by UUID,
+    access_restored_at TIMESTAMPTZ,
+    access_restored_by UUID,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by UUID,
     updated_at TIMESTAMPTZ,
@@ -430,6 +435,8 @@ CREATE TABLE access_control.subscriptions (
     CONSTRAINT fk_subscriptions_ticket_type FOREIGN KEY (ticket_type_id) REFERENCES catalog.ticket_types(ticket_type_id) ON DELETE RESTRICT,
     CONSTRAINT fk_subscriptions_price_rule FOREIGN KEY (price_rule_id) REFERENCES catalog.price_rules(price_rule_id) ON DELETE SET NULL,
     CONSTRAINT fk_subscriptions_approved_by FOREIGN KEY (approved_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_subscriptions_access_blocked_by FOREIGN KEY (access_blocked_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_subscriptions_access_restored_by FOREIGN KEY (access_restored_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT ck_subscriptions_status CHECK (status IN ('PENDING', 'ACTIVE', 'EXPIRED', 'CANCELLED', 'REJECTED'))
 );
 

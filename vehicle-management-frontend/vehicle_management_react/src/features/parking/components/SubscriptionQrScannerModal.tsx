@@ -20,6 +20,7 @@ const STATUS_LABELS: Record<string, string> = {
   NOT_YET_VALID: "Vé chưa đến ngày hiệu lực",
   EXPIRED: "Vé đã hết hạn",
   REVOKED: "QR đã bị thu hồi",
+  BLOCKED: "Vé đang bị tạm khóa",
   INACTIVE: "Vé không hoạt động",
   WRONG_PARKING_LOT: "QR không áp dụng tại bãi này",
   VEHICLE_MISMATCH: "Biển số không khớp với vé",
