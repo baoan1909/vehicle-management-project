@@ -21,6 +21,7 @@ import com.ban.vehicle_management.application.catalog.voucher.model.result.Vouch
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.parking.allocation.SubscriptionParkingAllocationService;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
@@ -101,6 +102,9 @@ class SubscriptionUseCaseImplTest {
     @Mock
     private SubscriptionAccessGuard subscriptionAccessGuard;
 
+    @Mock
+    private SubscriptionParkingAllocationService parkingAllocationService;
+
     @InjectMocks
     private SubscriptionUseCaseImpl subscriptionUseCase;
 
@@ -156,6 +160,75 @@ class SubscriptionUseCaseImplTest {
         assertEquals(new BigDecimal("126000"), quote.finalAmount());
         verify(subscriptionAccessGuard).ensureCanCreateOwn();
         verify(subscriptionPortOut, never()).save(any());
+    }
+
+    @Test
+    void shouldApplyVoucherToTotalPriceOfAllPeriods() {
+        TestData data = validTestData();
+        Subscription request = createRequest(data.customerVehicleId(), data.ticketTypeId());
+        request.setPeriodQuantity(3);
+        request.setRequestedVoucherCode("WELCOME10");
+
+        when(subscriptionAccessGuard.resolveCurrentApprovedCustomerId()).thenReturn(data.customerId());
+        mockValidSubscriptionPreparation(data);
+        when(voucherPortIn.quoteSubscriptionVoucher(
+                eq("WELCOME10"),
+                eq(data.customerId()),
+                eq(data.ticketTypeId()),
+                eq(new BigDecimal("420000")),
+                any(Instant.class)
+        )).thenReturn(new VoucherQuote(
+                UUID.randomUUID(),
+                "WELCOME10",
+                new BigDecimal("42000"),
+                new BigDecimal("378000")
+        ));
+
+        SubscriptionVoucherQuote quote = subscriptionUseCase.quoteOwnSubscriptionVoucher(request);
+
+        assertEquals(3, request.getPeriodQuantity());
+        assertEquals(request.getRequestedEffectiveFrom().plusDays(89), request.getEffectiveTo());
+        assertEquals(new BigDecimal("420000"), quote.baseAmount());
+        assertEquals(new BigDecimal("42000"), quote.discountAmount());
+        assertEquals(new BigDecimal("378000"), quote.finalAmount());
+    }
+
+    @Test
+    void shouldApplyVoucherToTicketPriceAndPhysicalCardDeposit() {
+        TestData data = validTestData();
+        Subscription request = createRequest(data.customerVehicleId(), data.ticketTypeId());
+        request.setPhysicalCardRequested(true);
+        request.setRequestedVoucherCode("WELCOME10");
+
+        when(subscriptionAccessGuard.resolveCurrentApprovedCustomerId()).thenReturn(data.customerId());
+        mockValidSubscriptionPreparation(data);
+        PriceRule ruleWithCardDeposit = subscriptionPriceRule(
+                data.priceRuleId(), data.vehicleTypeId(), data.ticketTypeId());
+        ruleWithCardDeposit.setLostCardFee(new BigDecimal("50000"));
+        when(priceRulePortOut.findActiveSubscriptionRuleInOrganization(
+                data.vehicleTypeId(),
+                data.ticketTypeId(),
+                ORGANIZATION_ID,
+                requestedEffectiveFrom()
+        )).thenReturn(Optional.of(ruleWithCardDeposit));
+        when(voucherPortIn.quoteSubscriptionVoucher(
+                eq("WELCOME10"),
+                eq(data.customerId()),
+                eq(data.ticketTypeId()),
+                eq(new BigDecimal("190000")),
+                any(Instant.class)
+        )).thenReturn(new VoucherQuote(
+                UUID.randomUUID(),
+                "WELCOME10",
+                new BigDecimal("19000"),
+                new BigDecimal("171000")
+        ));
+
+        SubscriptionVoucherQuote quote = subscriptionUseCase.quoteOwnSubscriptionVoucher(request);
+
+        assertEquals(new BigDecimal("50000"), request.getPhysicalCardDeposit());
+        assertEquals(new BigDecimal("190000"), quote.baseAmount());
+        assertEquals(new BigDecimal("171000"), quote.finalAmount());
     }
 
     @Test
@@ -236,6 +309,7 @@ class SubscriptionUseCaseImplTest {
     @Test
     void shouldApproveSubscriptionAndCreateInvoiceAndReserveCard() {
         TestData data = validTestData();
+        UUID partnerVehicleTypeId = UUID.randomUUID();
         UUID managerAccountId = UUID.randomUUID();
         UUID cardId = UUID.randomUUID();
         Subscription pendingSubscription = pendingSubscription(data);
@@ -243,9 +317,16 @@ class SubscriptionUseCaseImplTest {
 
         when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingSubscription));
         mockValidSubscriptionPreparation(data);
+        when(priceRulePortOut.findActiveSubscriptionRuleInOrganization(
+                data.vehicleTypeId(),
+                data.ticketTypeId(),
+                ORGANIZATION_ID,
+                pendingSubscription.getRequestedEffectiveFrom()
+        )).thenReturn(Optional.of(subscriptionPriceRule(
+                data.priceRuleId(), partnerVehicleTypeId, data.ticketTypeId())));
         when(subscriptionPortOut.existsOverlappingSubscriptionInParkingLot(data.customerVehicleId(), LOT_ID, pendingSubscription.getEffectiveFrom(), pendingSubscription.getEffectiveTo(), data.subscriptionId()))
                 .thenReturn(false);
-        when(zonePortOut.sumActiveCapacityByVehicleTypeIdAndParkingLotId(data.vehicleTypeId(), LOT_ID)).thenReturn(100L);
+        when(zonePortOut.sumActiveCapacityByVehicleTypeIdAndParkingLotId(partnerVehicleTypeId, LOT_ID)).thenReturn(100L);
         when(subscriptionPortOut.countReservedOrActiveByVehicleTypeIdInParkingLot(data.vehicleTypeId(), LOT_ID)).thenReturn(10L);
         when(invoicePortOut.existsBySubscriptionIdAndStatusIn(eq(data.subscriptionId()), any(List.class))).thenReturn(false);
         when(cardPortOut.findFirstAvailableRegisteredInParkingLot(LOT_ID)).thenReturn(Optional.of(availableCard));
@@ -269,6 +350,39 @@ class SubscriptionUseCaseImplTest {
         assertEquals(data.customerId(), savedInvoice.getCustomerId());
         assertEquals(new BigDecimal("140000"), savedInvoice.getAmount());
         assertEquals(InvoiceStatus.UNPAID, savedInvoice.getStatus());
+        verify(parkingAllocationService).holdForApproval(
+                eq(pendingSubscription), eq(partnerVehicleTypeId), any(Instant.class));
+    }
+
+    @Test
+    void shouldApproveQrSubscriptionWithoutReservingPhysicalCard() {
+        TestData data = validTestData();
+        UUID managerAccountId = UUID.randomUUID();
+        Subscription pendingSubscription = pendingSubscription(data);
+        pendingSubscription.setPhysicalCardRequested(false);
+        pendingSubscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingSubscription));
+        mockValidSubscriptionPreparation(data);
+        when(subscriptionPortOut.existsOverlappingSubscriptionInParkingLot(
+                data.customerVehicleId(), LOT_ID, pendingSubscription.getEffectiveFrom(),
+                pendingSubscription.getEffectiveTo(), data.subscriptionId())).thenReturn(false);
+        when(zonePortOut.sumActiveCapacityByVehicleTypeIdAndParkingLotId(data.vehicleTypeId(), LOT_ID))
+                .thenReturn(100L);
+        when(subscriptionPortOut.countReservedOrActiveByVehicleTypeIdInParkingLot(data.vehicleTypeId(), LOT_ID))
+                .thenReturn(10L);
+        when(invoicePortOut.existsBySubscriptionIdAndStatusIn(eq(data.subscriptionId()), any(List.class)))
+                .thenReturn(false);
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(managerAccountId);
+        when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(invoicePortOut.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Subscription approvedSubscription = subscriptionUseCase.approveSubscription(data.subscriptionId());
+
+        assertEquals(SubscriptionStatus.PENDING_PAYMENT, approvedSubscription.getStatus());
+        assertNull(approvedSubscription.getCardId());
+        verify(cardPortOut, never()).findFirstAvailableRegisteredInParkingLot(any(UUID.class));
+        verify(cardPortOut, never()).save(any(Card.class));
     }
 
     @Test
@@ -303,6 +417,26 @@ class SubscriptionUseCaseImplTest {
 
         assertEquals(SubscriptionStatus.PENDING_CARD, updatedSubscription.getStatus());
         verify(subscriptionPortOut).save(pendingPaymentSubscription);
+    }
+
+    @Test
+    void shouldActivateQrSubscriptionWhenPaymentIsCompleted() {
+        TestData data = validTestData();
+        Subscription pendingPaymentSubscription = approvedSubscription(data, SubscriptionStatus.PENDING_PAYMENT);
+        pendingPaymentSubscription.setPhysicalCardRequested(false);
+        pendingPaymentSubscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+        pendingPaymentSubscription.setCardId(null);
+
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingPaymentSubscription));
+        when(invoicePortOut.findFirstBySubscriptionIdAndStatus(data.subscriptionId(), InvoiceStatus.PAID))
+                .thenReturn(Optional.of(paidInvoice(data)));
+        when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Subscription updatedSubscription = subscriptionUseCase.markSubscriptionPaymentCompleted(data.subscriptionId());
+
+        assertEquals(SubscriptionStatus.ACTIVE, updatedSubscription.getStatus());
+        assertNull(updatedSubscription.getCardId());
+        verify(parkingAllocationService).activate(pendingPaymentSubscription);
     }
 
     @Test

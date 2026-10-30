@@ -82,6 +82,19 @@ class SubscriptionPersistenceAdapterTest {
     }
 
     @Test
+    void shouldReturnOperationalVehicleTypeFromSubscriptionPriceRule() {
+        UUID subscriptionId = UUID.randomUUID();
+        UUID operationalVehicleTypeId = UUID.randomUUID();
+        when(subscriptionRepository.findOperationalVehicleTypeIdBySubscriptionId(subscriptionId))
+                .thenReturn(Optional.of(operationalVehicleTypeId));
+
+        Optional<UUID> result = subscriptionPersistenceAdapter
+                .findOperationalVehicleTypeIdBySubscriptionId(subscriptionId);
+
+        assertEquals(Optional.of(operationalVehicleTypeId), result);
+    }
+
+    @Test
     void shouldReturnMappedListWhenFindingAll() {
         SubscriptionEntity firstEntity = new SubscriptionEntity();
         SubscriptionEntity secondEntity = new SubscriptionEntity();

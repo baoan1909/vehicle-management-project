@@ -14,6 +14,7 @@ import {
   checkOutParkingSession,
   fetchCardTypes,
   fetchOpenParkingSessionByCardUid,
+  fetchOpenParkingSessionBySubscriptionQr,
   fetchParkingCheckOutByInvoice,
   fetchParkingCards,
   fetchParkingLanes,
@@ -40,6 +41,8 @@ import {
   type ParkingOperationValidationErrors,
 } from "@/features/parking/components/ParkingOperationForm";
 import { ParkingSessionSummary } from "@/features/parking/components/ParkingSessionSummary";
+import { SubscriptionQrScannerModal } from "@/features/parking/components/SubscriptionQrScannerModal";
+import type { SubscriptionQrVerification } from "@/features/subscriptions/api/subscriptionQrApi";
 import { cn } from "@/lib/cn";
 import { formatApplicationDateTime, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
@@ -232,6 +235,7 @@ function FilterSelect({
         ) : null}
         <SelectMenu
           ariaLabel={ariaLabel}
+          className="tw-min-w-0 tw-flex-1"
           options={options}
           value={value}
           clearValue={options[0]?.value}
@@ -284,6 +288,9 @@ export function SwipeListPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompletingPendingPayment, setIsCompletingPendingPayment] = useState(false);
   const [pendingPaymentError, setPendingPaymentError] = useState("");
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
+  const [subscriptionQrPayload, setSubscriptionQrPayload] = useState("");
+  const [subscriptionQrLicensePlate, setSubscriptionQrLicensePlate] = useState("");
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>("idle");
   const [ocrMessage, setOcrMessage] = useState("");
   const [ocrResult, setOcrResult] = useState<LicensePlateOcrResponse | null>(null);
@@ -379,6 +386,9 @@ export function SwipeListPage() {
     [cardTypeById, cardTypes.length, cards, mode],
   );
   const selectedParkingCard = useMemo(() => findMatchingCard(eligibleCards, cardUid), [cardUid, eligibleCards]);
+  const isQrCheckIn = mode === "check-in" && Boolean(subscriptionQrPayload);
+  const isQrCheckOut = mode === "check-out" && Boolean(subscriptionQrPayload);
+  const isQrOperation = Boolean(subscriptionQrPayload);
   const getParkingCardTypeCode = useCallback(
     (card?: ParkingCardResponse) => normalizeCardTypeCode(card?.cardTypeId ? cardTypeById.get(card.cardTypeId) : undefined),
     [cardTypeById],
@@ -462,7 +472,7 @@ export function SwipeListPage() {
   const registeredCardAvailabilityError = selectedIsRegisteredCard
     ? getRegisteredCardAvailabilityError(selectedParkingCard)
     : "";
-  const canCaptureCurrentCard = Boolean(
+  const canCaptureCurrentCard = isQrOperation || Boolean(
     selectedParkingCard &&
     (!selectedRequiresVehicleType || vehicleTypeId) &&
     !registeredCardAvailabilityError,
@@ -482,8 +492,8 @@ export function SwipeListPage() {
     const formErrors: ParkingOperationValidationErrors = {};
     const cameraErrors: ParkingCameraValidationErrors = {};
 
-    if (!cardUid.trim()) {
-      formErrors.cardUid = "Vui lòng quẹt, nhập UID hoặc chọn thẻ.";
+    if (!isQrOperation && !cardUid.trim()) {
+      formErrors.cardUid = "Vui lòng quẹt, nhập UID, chọn thẻ hoặc quét QR vé.";
     }
     if (!laneId) {
       formErrors.laneId = "Vui lòng chọn làn xe active.";
@@ -500,7 +510,9 @@ export function SwipeListPage() {
     if (!personImage) {
       cameraErrors.personImage = "Vui lòng chụp ảnh người/tài xế.";
     }
-    const missingCheckOutPreview = mode === "check-out" && Boolean(cardUid.trim()) && !checkOutPreview;
+    const missingCheckOutPreview = mode === "check-out"
+      && Boolean(cardUid.trim() || subscriptionQrPayload)
+      && !checkOutPreview;
     if (missingCheckOutPreview) {
       formErrors.cardUid = formErrors.cardUid ?? "Vui lòng chọn lại thẻ để tải phiên gửi xe.";
     }
@@ -533,7 +545,10 @@ export function SwipeListPage() {
     mode,
     ocrStatus,
     personImage,
+    isQrCheckIn,
+    isQrOperation,
     selectedRequiresVehicleType,
+    subscriptionQrPayload,
     vehicleTypeId,
   ]);
   const visibleFormValidationErrors = validationShown ? submitValidation.formErrors : {};
@@ -721,6 +736,8 @@ export function SwipeListPage() {
 
   useEffect(() => {
     setCardUid("");
+    setSubscriptionQrPayload("");
+    setSubscriptionQrLicensePlate("");
     setVehicleTypeId("");
     setCheckOutPreview(null);
     setParkingSessionResult(null);
@@ -736,6 +753,8 @@ export function SwipeListPage() {
       return;
     }
     setCardUid("");
+    setSubscriptionQrPayload("");
+    setSubscriptionQrLicensePlate("");
     setVehicleTypeId("");
     setCheckOutPaymentMethod("CASH");
     setCheckOutPreview(null);
@@ -763,6 +782,10 @@ export function SwipeListPage() {
   useEffect(() => {
     if (mode !== "check-out") {
       setCheckOutPreview(null);
+      return;
+    }
+
+    if (isQrCheckOut) {
       return;
     }
 
@@ -802,7 +825,7 @@ export function SwipeListPage() {
     return () => {
       active = false;
     };
-  }, [mode, selectedParkingCard?.uid]);
+  }, [isQrCheckOut, mode, selectedParkingCard?.uid]);
 
   useEffect(() => {
     if (
@@ -816,28 +839,43 @@ export function SwipeListPage() {
 
   useEffect(() => {
     if (restoredPendingCheckoutRef.current) return;
-    if (!cardsLoaded || !cardUid.trim() || !canCaptureCurrentCard) {
+    if ((!isQrOperation && (!cardsLoaded || !cardUid.trim())) || !canCaptureCurrentCard) {
       lastAutoCapturedCardRef.current = "";
       return;
     }
 
     const matchedCard = selectedParkingCard;
-    if (!matchedCard) return;
+    if (!isQrOperation && !matchedCard) return;
 
-    const captureKey = `${mode}:${matchedCard.uid || matchedCard.cardNumber}:${selectedRequiresVehicleType ? vehicleTypeId : "subscription"}`;
+    const captureKey = isQrOperation
+      ? `${mode}:qr:${subscriptionQrPayload}`
+      : `${mode}:${matchedCard?.uid || matchedCard?.cardNumber}:${selectedRequiresVehicleType ? vehicleTypeId : "subscription"}`;
     if (!captureKey || lastAutoCapturedCardRef.current === captureKey) return;
 
+    if (isQrOperation && licensePlateImage) {
+      lastAutoCapturedCardRef.current = captureKey;
+      return;
+    }
+
     lastAutoCapturedCardRef.current = captureKey;
-    setLicensePlateImage(null);
-    setLicensePlate("");
+    if (!isQrOperation) {
+      setLicensePlateImage(null);
+      setLicensePlate("");
+    }
     setSubmitError("");
     setOcrResult(null);
     setOcrStatus("recognizing");
-    setOcrMessage("Đã chọn thẻ, camera đang tự chụp ảnh biển số...");
+    setOcrMessage(isQrOperation
+      ? `Đã xác nhận QR, camera đang tự chụp ảnh biển số để đối chiếu khi ${mode === "check-in" ? "xe vào" : "xe ra"}...`
+      : "Đã chọn thẻ, camera đang tự chụp ảnh biển số...");
     setAutoCaptureKey((current) => current + 1);
-  }, [canCaptureCurrentCard, cardUid, cardsLoaded, mode, selectedParkingCard, selectedRequiresVehicleType, vehicleTypeId]);
+  }, [canCaptureCurrentCard, cardUid, cardsLoaded, isQrOperation, licensePlateImage, mode, selectedParkingCard, selectedRequiresVehicleType, subscriptionQrPayload, vehicleTypeId]);
 
   function handleCardUidChange(value: string) {
+    if (subscriptionQrPayload) {
+      setSubscriptionQrPayload("");
+      setSubscriptionQrLicensePlate("");
+    }
     if (value !== cardUid) {
       restoredPendingCheckoutRef.current = false;
       setRestoredLicensePlateImageUrl("");
@@ -885,7 +923,9 @@ export function SwipeListPage() {
 
   const handleRequireCapturePrerequisites = useCallback(() => {
     setSubmitError(
-      !selectedParkingCard
+      isQrOperation
+        ? "Vui lòng kiểm tra lại QR vé trước khi chụp hoặc tải ảnh."
+        : !selectedParkingCard
         ? "Vui lòng chọn thẻ xe hợp lệ trước khi chụp hoặc tải ảnh."
         : registeredCardAvailabilityError
           ? registeredCardAvailabilityError
@@ -893,7 +933,43 @@ export function SwipeListPage() {
             ? "Vui lòng chọn loại xe cho thẻ vãng lai trước khi chụp hoặc tải ảnh."
             : "Vui lòng kiểm tra lại điều kiện thẻ trước khi chụp hoặc tải ảnh.",
     );
-  }, [registeredCardAvailabilityError, selectedParkingCard, selectedRequiresVehicleType, vehicleTypeId]);
+  }, [isQrOperation, registeredCardAvailabilityError, selectedParkingCard, selectedRequiresVehicleType, vehicleTypeId]);
+
+  async function handleConfirmSubscriptionQr(
+    verification: SubscriptionQrVerification,
+    qrPayload: string,
+  ) {
+    if (verification.status !== "VALID" || !verification.licensePlate) {
+      setSubmitError(`QR chưa đủ thông tin hợp lệ để thực hiện ${mode === "check-in" ? "check-in" : "check-out"}.`);
+      return;
+    }
+    let qrCheckOutPreview: ParkingSessionCheckOutPreviewResponse | null = null;
+    if (mode === "check-out") {
+      qrCheckOutPreview = await fetchOpenParkingSessionBySubscriptionQr(qrPayload, parkingLotId);
+      if (qrCheckOutPreview.customerType !== "SUBSCRIPTION") {
+        throw new Error("QR không thuộc phiên gửi xe của vé đăng ký.");
+      }
+    }
+    setSubscriptionQrPayload(qrPayload);
+    setSubscriptionQrLicensePlate(verification.licensePlate);
+    setCardUid("");
+    setVehicleTypeId("");
+    if (qrCheckOutPreview) {
+      setCheckOutPreview({
+        ...qrCheckOutPreview,
+        previewCheckOutTime: formatCurrentCheckOutTime(),
+      });
+      setVehicleTypeId(qrCheckOutPreview.parkingSession.vehicleTypeId ?? "");
+    }
+    setLicensePlate((current) => current.trim() || verification.licensePlate || "");
+    setSubmitError("");
+    setValidationShown(false);
+    setQrScannerOpen(false);
+    if (!licensePlateImage) {
+      setOcrMessage(`Đã đọc QR vé. Hãy chụp ảnh để đối chiếu biển số trước khi xác nhận ${mode === "check-in" ? "xe vào" : "xe ra"}.`);
+    }
+    lastAutoCapturedCardRef.current = "";
+  }
 
   function resetOcrState() {
     setOcrStatus("idle");
@@ -1032,13 +1108,13 @@ export function SwipeListPage() {
       return;
     }
 
-    if (!cardUid.trim() || !licensePlate.trim()) {
-      setSubmitError("Vui lòng nhập mã thẻ/RFID và biển số.");
+    if ((!isQrOperation && !cardUid.trim()) || !licensePlate.trim()) {
+      setSubmitError("Vui lòng chọn thẻ hoặc QR vé và nhập biển số.");
       return;
     }
 
     const matchedCard = findMatchingCard(eligibleCards, cardUid);
-    if (cardsLoaded && !matchedCard) {
+    if (!isQrOperation && cardsLoaded && !matchedCard) {
       setSubmitError(
         mode === "check-in"
           ? "Thẻ không tồn tại hoặc đang được sử dụng."
@@ -1064,11 +1140,11 @@ export function SwipeListPage() {
     const matchedRegisteredCardError = matchedCardIsRegistered
       ? getRegisteredCardAvailabilityError(matchedCard)
       : "";
-    if (matchedRegisteredCardError) {
+    if (!isQrOperation && matchedRegisteredCardError) {
       setSubmitError(matchedRegisteredCardError);
       return;
     }
-    if (matchedCardRequiresVehicleType && !vehicleTypeId) {
+    if (!isQrOperation && matchedCardRequiresVehicleType && !vehicleTypeId) {
       setSubmitError("Vui lòng chọn loại xe cho thẻ vãng lai.");
       return;
     }
@@ -1085,8 +1161,7 @@ export function SwipeListPage() {
 
     setIsSubmitting(true);
     try {
-      const request = {
-        cardUid: matchedCard?.uid ?? cardUid.trim(),
+      const commonRequest = {
         laneId,
         licensePlate: licensePlate.trim(),
         note: note.trim() || undefined,
@@ -1095,16 +1170,29 @@ export function SwipeListPage() {
       if (mode === "check-in") {
         const response = await checkInParkingSession(
           {
-            ...request,
-            vehicleTypeId: matchedCardRequiresVehicleType ? vehicleTypeId : undefined,
+            ...commonRequest,
+            cardUid: isQrCheckIn ? undefined : matchedCard?.uid ?? cardUid.trim(),
+            subscriptionQrPayload: isQrCheckIn ? subscriptionQrPayload : undefined,
+            vehicleTypeId: !isQrCheckIn && matchedCardRequiresVehicleType ? vehicleTypeId : undefined,
             plateFormatConfirmed: ocrStatus === "review",
           },
           licensePlateImage,
           personImage,
         );
         setParkingSessionResult(response.data);
-        toast.success(response.message || "Đã ghi nhận xe vào thành công.", "Ghi nhận xe vào thành công");
+        const assignedSpaceMessage = response.data.parkingSpaceCode
+          ? ` Vị trí được gán: ${response.data.parkingSpaceCode}.`
+          : "";
+        toast.success(
+          `${response.message || "Đã ghi nhận xe vào thành công."}${assignedSpaceMessage}`,
+          "Ghi nhận xe vào thành công",
+        );
       } else {
+        const request = {
+          ...commonRequest,
+          cardUid: isQrCheckOut ? undefined : matchedCard?.uid ?? cardUid.trim(),
+          subscriptionQrPayload: isQrCheckOut ? subscriptionQrPayload : undefined,
+        };
         const response =
           checkOutPreview?.customerType === "VISITOR"
             ? await prepareVisitorParkingCheckOut(request, licensePlateImage, personImage)
@@ -1133,7 +1221,7 @@ export function SwipeListPage() {
               throw new Error("Máy chủ không trả về đường dẫn thanh toán VNPAY.");
             }
             storePendingVnpayCheckOut(checkOutResult, {
-              cardUid: request.cardUid,
+              cardUid: request.cardUid ?? "",
               laneId: request.laneId,
               licensePlate: request.licensePlate,
               note: request.note ?? "",
@@ -1151,6 +1239,8 @@ export function SwipeListPage() {
 
       setCards((currentCards) => currentCards.filter((card) => card.cardId !== matchedCard?.cardId));
       setCardUid("");
+      setSubscriptionQrPayload("");
+      setSubscriptionQrLicensePlate("");
       setVehicleTypeId("");
       setLicensePlate("");
       setNote("");
@@ -1194,23 +1284,25 @@ export function SwipeListPage() {
             <FilterSelect className="tw-w-full" ariaLabel="Chọn camera" icon="fas fa-video" label="Camera" options={cameraOptions} value={cameraId} onChange={setCameraId} />
           </div>
 
-          <div className={cn(
-            "tw-flex tw-h-10 tw-min-w-0 tw-items-center tw-gap-2 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]",
-            isLocalCamera(cameraId)
-                ? "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700"
-                : cameraError
-                  ? "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700"
-                  : getCameraStatusTone(selectedCamera?.status),
-          )} title={cameraStatusTitle}>
-            <span className={cn(
-              "tw-h-2 tw-w-2 tw-rounded-full",
+          <div>
+            <div className={cn(
+              "tw-flex tw-h-10 tw-min-w-0 tw-items-center tw-gap-2 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]",
               isLocalCamera(cameraId)
-                  ? "tw-bg-emerald-500"
+                  ? "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700"
                   : cameraError
-                    ? "tw-bg-amber-500"
-                    : getCameraStatusDot(selectedCamera?.status),
-            )} />
-            <span className="tw-min-w-0 tw-truncate">{cameraStatusText}</span>
+                    ? "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700"
+                    : getCameraStatusTone(selectedCamera?.status),
+            )} title={cameraStatusTitle}>
+              <span className={cn(
+                "tw-h-2 tw-w-2 tw-rounded-full",
+                isLocalCamera(cameraId)
+                    ? "tw-bg-emerald-500"
+                    : cameraError
+                      ? "tw-bg-amber-500"
+                      : getCameraStatusDot(selectedCamera?.status),
+              )} />
+              <span className="tw-min-w-0 tw-truncate">{cameraStatusText}</span>
+            </div>
           </div>
         </div>
 
@@ -1253,6 +1345,7 @@ export function SwipeListPage() {
             ocrResult={ocrResult}
             ocrStatus={ocrStatus}
             personImageReady={Boolean(personImage)}
+            qrScanDisabled={!parkingLotId}
             validationErrors={visibleFormValidationErrors}
             onCardUidChange={handleCardUidChange}
             onCheckOutPaymentMethodChange={setCheckOutPaymentMethod}
@@ -1260,12 +1353,14 @@ export function SwipeListPage() {
             onApplyOcrCandidate={handleApplyOcrCandidate}
             onLicensePlateChange={handleLicensePlateChange}
             onNoteChange={setNote}
+            onScanSubscriptionQr={() => setQrScannerOpen(true)}
             onSubmit={handleSubmit}
             vehicleTypeDisabled={mode === "check-out" || selectedLocksVehicleType}
             vehicleTypeRequired={mode === "check-in" && selectedRequiresVehicleType}
             vehicleTypeId={vehicleTypeId}
             vehicleTypeOptions={formVehicleTypeOptions}
-            showVehicleTypeField={mode === "check-out" || (mode === "check-in" && (!selectedParkingCard || selectedRequiresVehicleType || selectedLocksVehicleType))}
+            showVehicleTypeField={!isQrOperation && (mode === "check-out" || (mode === "check-in" && (!selectedParkingCard || selectedRequiresVehicleType || selectedLocksVehicleType)))}
+            subscriptionQrLicensePlate={isQrOperation ? subscriptionQrLicensePlate : undefined}
             onVehicleTypeChange={handleVehicleTypeChange}
           />
           {mode === "check-out" ? (
@@ -1283,6 +1378,13 @@ export function SwipeListPage() {
           ) : null}
         </div>
       </section>
+      <SubscriptionQrScannerModal
+        mode={mode}
+        onClose={() => setQrScannerOpen(false)}
+        onConfirm={handleConfirmSubscriptionQr}
+        open={qrScannerOpen}
+        parkingLotId={parkingLotId}
+      />
     </main>
   );
 }

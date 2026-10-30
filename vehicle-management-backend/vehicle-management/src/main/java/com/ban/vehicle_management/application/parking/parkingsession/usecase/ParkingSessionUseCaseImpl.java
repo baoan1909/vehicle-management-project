@@ -191,4 +191,15 @@ public class ParkingSessionUseCaseImpl implements ParkingSessionPortIn {
     public CheckOutPreviewResult previewCheckOutByCardUid(String cardUid) {
         return parkingCheckOutUseCase.previewCheckOutByCardUid(cardUid);
     }
+
+    @Override
+    public CheckOutPreviewResult previewCheckOutBySubscriptionQr(
+            String subscriptionQrPayload,
+            UUID parkingLotId
+    ) {
+        return parkingCheckOutUseCase.previewCheckOutBySubscriptionQr(
+                subscriptionQrPayload,
+                parkingLotId
+        );
+    }
 }

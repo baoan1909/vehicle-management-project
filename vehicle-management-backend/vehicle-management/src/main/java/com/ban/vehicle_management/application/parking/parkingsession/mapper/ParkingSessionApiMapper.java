@@ -57,7 +57,8 @@ public interface ParkingSessionApiMapper {
                 command.note(),
                 command.plateFormatConfirmed(),
                 command.plateIdentityOverride(),
-                command.parkingSpaceId()
+                command.parkingSpaceId(),
+                command.subscriptionQrPayload()
         );
     }
 
@@ -83,7 +84,8 @@ public interface ParkingSessionApiMapper {
                 command.licensePlate(),
                 licensePlateImage,
                 personImage,
-                command.note()
+                command.note(),
+                command.subscriptionQrPayload()
         );
     }
 

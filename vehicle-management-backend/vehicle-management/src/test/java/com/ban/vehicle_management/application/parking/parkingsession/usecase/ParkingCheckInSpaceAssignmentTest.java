@@ -61,6 +61,7 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -141,6 +142,49 @@ class ParkingCheckInSpaceAssignmentTest {
         assertEquals(ParkingSpaceStatus.OCCUPIED, space.getStatus());
         assertEquals(ParkingSpaceStatusSource.AUTOMATIC, space.getStatusSource());
         verify(parkingSpacePortOut).save(space);
+    }
+
+    @Test
+    void shouldAutoAssignAvailableSpaceForVisitorInSpaceZone() {
+        mockSpaceTopology();
+        mockVisitorCard();
+        ParkingSpace space = availableSpace(spaceId, zoneId);
+        when(parkingSpacePortOut.findFirstVisitorAvailableForUpdate(
+                eq(zoneId), eq(vehicleTypeId), any(Instant.class)))
+                .thenReturn(Optional.of(space));
+        when(parkingSessionPortOut.existsOpenByParkingSpaceId(spaceId)).thenReturn(false);
+        when(allocationPortOut.findActiveAllocationsForSpaceOnDate(eq(spaceId), any(LocalDate.class)))
+                .thenReturn(List.of());
+        when(parkingSessionPortOut.save(any(ParkingSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(parkingSpacePortOut.save(any(ParkingSpace.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(fileStoragePort.store(any(StoreFileCommand.class)))
+                .thenReturn(storedFile("plate.jpg"), storedFile("person.jpg"));
+        when(parkingEventPortOut.save(any(ParkingEvent.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
+
+        CheckInResult result = useCase.checkIn(commandWithSpace(null));
+
+        assertEquals(spaceId, result.parkingSession().getParkingSpaceId());
+        assertEquals("A-01", result.parkingSpaceCode());
+        assertEquals(ParkingSpaceStatus.OCCUPIED, space.getStatus());
+        verify(parkingSpacePortOut).save(space);
+        verify(parkingSpacePortOut, never()).findByIdForUpdate(spaceId);
+    }
+
+    @Test
+    void shouldRejectVisitorWhenNoCompatibleSpaceCanBeAutoAssigned() {
+        mockSpaceTopology();
+        mockVisitorCard();
+        when(parkingSpacePortOut.findFirstVisitorAvailableForUpdate(
+                eq(zoneId), eq(vehicleTypeId), any(Instant.class)))
+                .thenReturn(Optional.empty());
+
+        assertThrows(ConflictException.class, () -> useCase.checkIn(commandWithSpace(null)));
+
+        verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
     }
 
     @Test
@@ -228,6 +272,8 @@ class ParkingCheckInSpaceAssignmentTest {
         when(parkingSessionPortOut.existsOpenByCardId(cardId)).thenReturn(false);
         when(subscriptionPortOut.findActiveByCardIdForUpdate(eq(cardId), any(LocalDate.class)))
                 .thenReturn(Optional.of(subscription));
+        when(subscriptionPortOut.findOperationalVehicleTypeIdBySubscriptionId(subscriptionId))
+                .thenReturn(Optional.of(vehicleTypeId));
         when(customerPortOut.findById(customerId)).thenReturn(Optional.of(customer));
         when(customerVehiclePortOut.findById(vehicleId)).thenReturn(Optional.of(vehicle));
         when(allocationPortOut.findActiveAllocationsBySubscription(subscriptionId))

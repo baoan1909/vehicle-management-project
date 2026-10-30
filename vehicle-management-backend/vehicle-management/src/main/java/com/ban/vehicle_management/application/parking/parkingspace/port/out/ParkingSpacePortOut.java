@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.parking.parkingspace.port.out;
 
 import com.ban.vehicle_management.domain.parking.parkingspace.model.ParkingSpace;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,6 +16,12 @@ public interface ParkingSpacePortOut {
     Optional<ParkingSpace> findById(UUID parkingSpaceId);
 
     Optional<ParkingSpace> findByIdForUpdate(UUID parkingSpaceId);
+
+    Optional<ParkingSpace> findFirstVisitorAvailableForUpdate(
+            UUID zoneId,
+            UUID vehicleTypeId,
+            Instant now
+    );
 
     List<ParkingSpace> findByZoneId(UUID zoneId);
 

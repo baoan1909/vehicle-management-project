@@ -99,6 +99,33 @@ public class SubscriptionAccessGuard {
         }
     }
 
+    public void ensureCanReadOwn(Subscription subscription) {
+        currentAccountPortIn.requirePermission(READ_OWN);
+        UUID customerId = resolveCurrentApprovedCustomerId();
+        if (!customerId.equals(subscription.getCustomerId())) {
+            throw new AccessDeniedException("Access is denied");
+        }
+    }
+
+    public UUID ensureCanUpdateOwn(Subscription subscription) {
+        currentAccountPortIn.requirePermission(UPDATE_OWN);
+        UUID customerId = resolveCurrentApprovedCustomerId();
+        if (!customerId.equals(subscription.getCustomerId())) {
+            throw new AccessDeniedException("Access is denied");
+        }
+        return currentAccountPortIn.getCurrentAccountIdOrThrow();
+    }
+
+    public UUID ensureCanManageAccess(Subscription subscription) {
+        currentAccountPortIn.requirePermission(UPDATE_ALL);
+        ensureCanOperate(subscription);
+        return currentAccountPortIn.getCurrentAccountIdOrThrow();
+    }
+
+    public void ensureCanVerifyQr() {
+        currentAccountPortIn.requirePermission(READ_ALL);
+    }
+
     public UUID resolveCustomerIdForList(UUID requestedCustomerId) {
         if (currentAccountPortIn.hasPermission(READ_ALL)) {
             return requestedCustomerId;

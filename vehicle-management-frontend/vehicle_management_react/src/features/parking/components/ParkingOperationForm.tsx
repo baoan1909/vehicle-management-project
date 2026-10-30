@@ -37,7 +37,9 @@ type ParkingOperationFormProps = {
   ocrResult?: LicensePlateOcrResponse | null;
   ocrStatus?: OcrStatus;
   personImageReady?: boolean;
+  qrScanDisabled?: boolean;
   showVehicleTypeField?: boolean;
+  subscriptionQrLicensePlate?: string;
   validationErrors?: ParkingOperationValidationErrors;
   vehicleTypeDisabled?: boolean;
   vehicleTypeId: string;
@@ -49,6 +51,7 @@ type ParkingOperationFormProps = {
   onLicensePlateChange: (value: string) => void;
   onNoteChange: (value: string) => void;
   onApplyOcrCandidate?: (candidate: LicensePlateOcrCandidate) => void;
+  onScanSubscriptionQr?: () => void;
   onSubmit: () => void;
   onVehicleTypeChange: (value: string) => void;
 };
@@ -334,7 +337,9 @@ export function ParkingOperationForm({
   ocrResult,
   ocrStatus = "idle",
   personImageReady = true,
+  qrScanDisabled = false,
   showVehicleTypeField = true,
+  subscriptionQrLicensePlate,
   validationErrors = {},
   vehicleTypeDisabled = false,
   vehicleTypeId,
@@ -346,13 +351,14 @@ export function ParkingOperationForm({
   onLicensePlateChange,
   onNoteChange,
   onApplyOcrCandidate,
+  onScanSubscriptionQr,
   onSubmit,
   onVehicleTypeChange,
 }: ParkingOperationFormProps) {
   const isCheckIn = mode === "check-in";
   const checkOutPreviewReady = isCheckIn || Boolean(checkOutCustomerType);
   const missingRequirements = [
-    !cardUid.trim() ? "thẻ/RFID" : "",
+    !subscriptionQrLicensePlate && !cardUid.trim() ? "thẻ/RFID hoặc QR vé" : "",
     !laneId ? "làn xe" : "",
     isCheckIn && vehicleTypeRequired && !vehicleTypeId ? "loại xe" : "",
     !licensePlate.trim() ? "biển số" : "",
@@ -379,24 +385,46 @@ export function ParkingOperationForm({
 
   return (
     <Card className="tw-flex tw-min-h-0 tw-flex-col tw-overflow-hidden">
-      <CardHeader className="tw-flex tw-min-h-[50px] tw-items-center tw-px-4 tw-py-0">
+      <CardHeader className="tw-flex tw-min-h-[58px] tw-items-center tw-justify-between tw-gap-3 tw-px-4 tw-py-2">
         <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-slate-900">Thông tin xử lý</h2>
+        {onScanSubscriptionQr ? (
+          <button
+            className="tw-flex tw-h-9 tw-flex-shrink-0 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-blue-200 tw-bg-blue-50 tw-px-3 tw-text-[0.8rem] tw-font-extrabold tw-text-blue-700 tw-transition hover:tw-bg-blue-100 disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
+            disabled={qrScanDisabled}
+            type="button"
+            onClick={onScanSubscriptionQr}
+          >
+            <i className="fas fa-qrcode" />
+            Quét QR {isCheckIn ? "check-in" : "check-out"}
+          </button>
+        ) : null}
       </CardHeader>
 
       <CardContent className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-gap-3 tw-p-4">
         <div className="tw-grid tw-grid-cols-3 tw-gap-2">
-          <ValidationChip icon="fas fa-shield-alt" label="Thẻ hợp lệ" />
+          <ValidationChip icon="fas fa-shield-alt" label={subscriptionQrLicensePlate ? "QR hợp lệ" : "Thẻ hợp lệ"} />
           <ValidationChip icon={isCheckIn ? "fas fa-arrow-down" : "fas fa-arrow-up"} label={isCheckIn ? "Làn vào" : "Làn ra"} />
           <ValidationChip icon="fas fa-parking" label={isCheckIn ? "Còn chỗ" : "Đủ điều kiện"} />
         </div>
 
-        <CardUidField
-          cardOptions={cardOptions}
-          cardUid={cardUid}
-          error={validationErrors.cardUid}
-          isLoadingCards={isLoadingCards}
-          onCardUidChange={onCardUidChange}
-        />
+        {subscriptionQrLicensePlate ? (
+          <div className="tw-flex tw-min-h-[58px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-200 tw-bg-emerald-50 tw-px-3.5 tw-text-emerald-800">
+            <i className="fas fa-qrcode tw-text-lg" />
+            <div className="tw-min-w-0 tw-flex-1">
+              <strong className="tw-block tw-text-[0.82rem]">Đã xác nhận QR vé đăng ký</strong>
+              <span className="tw-block tw-text-[0.76rem]">Phương tiện: {subscriptionQrLicensePlate}</span>
+            </div>
+            <button className="tw-border-0 tw-bg-transparent tw-text-xs tw-font-extrabold tw-text-emerald-700" type="button" onClick={() => onCardUidChange("")}>{isCheckIn ? "Check-in" : "Check-out"} bằng thẻ vật lý</button>
+          </div>
+        ) : (
+          <CardUidField
+            cardOptions={cardOptions}
+            cardUid={cardUid}
+            error={validationErrors.cardUid}
+            isLoadingCards={isLoadingCards}
+            onCardUidChange={onCardUidChange}
+          />
+        )}
 
         {showVehicleTypeField ? (
           <label className="tw-m-0 tw-grid tw-gap-2">

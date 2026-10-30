@@ -26,6 +26,9 @@ public class SubscriptionUserResponse {
     private UUID cardId;
     private UUID ticketTypeId;
     private UUID priceRuleId;
+    private Integer periodQuantity;
+    private Boolean physicalCardRequested;
+    private BigDecimal physicalCardDeposit;
     private LocalDate requestedEffectiveFrom;
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
@@ -34,6 +37,9 @@ public class SubscriptionUserResponse {
     private SubscriptionStatus status;
     private String rejectionReason;
     private LocalDate cardReceiptDate;
+    private Boolean accessBlocked;
+    private Instant accessBlockedAt;
+    private Instant accessRestoredAt;
     private Instant createdAt;
     private Instant updatedAt;
 }

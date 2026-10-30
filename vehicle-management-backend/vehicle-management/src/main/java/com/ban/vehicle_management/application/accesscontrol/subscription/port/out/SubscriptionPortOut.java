@@ -18,6 +18,11 @@ public interface SubscriptionPortOut {
     Optional<Subscription> findByIdForUpdate(UUID subscriptionId);
 
     Optional<Subscription> findByCustomerIdAndIdempotencyKey(UUID customerId, String idempotencyKey);
+
+    Optional<Subscription> findByQrAccessToken(String qrAccessToken);
+
+    Optional<UUID> findOperationalVehicleTypeIdBySubscriptionId(UUID subscriptionId);
+
     Optional<Subscription> findActiveByCardId(UUID cardId, LocalDate businessDate);
 
     Optional<Subscription> findActiveByCardIdForUpdate(UUID cardId, LocalDate businessDate);

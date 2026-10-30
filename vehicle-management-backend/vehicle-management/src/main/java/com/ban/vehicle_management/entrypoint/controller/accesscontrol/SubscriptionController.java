@@ -1,20 +1,28 @@
 package com.ban.vehicle_management.entrypoint.controller.accesscontrol;
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.mapper.SubscriptionApiMapper;
+import com.ban.vehicle_management.application.accesscontrol.subscription.mapper.SubscriptionQrApiMapper;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
+import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionQrPortIn;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.CreateSubscriptionAdminRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.CreateSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.RejectSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.SubscriptionFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.UpdateSubscriptionRequest;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.VerifySubscriptionQrRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionVoucherQuoteResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionQrCredentialResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionQrVerificationResponse;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,9 +33,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/access-control/subscriptions")
@@ -35,13 +45,19 @@ public class SubscriptionController {
 
     private final SubscriptionPortIn subscriptionPortIn;
     private final SubscriptionApiMapper subscriptionApiMapper;
+    private final SubscriptionQrPortIn subscriptionQrPortIn;
+    private final SubscriptionQrApiMapper subscriptionQrApiMapper;
 
     public SubscriptionController(
             SubscriptionPortIn subscriptionPortIn,
-            SubscriptionApiMapper subscriptionApiMapper
+            SubscriptionApiMapper subscriptionApiMapper,
+            SubscriptionQrPortIn subscriptionQrPortIn,
+            SubscriptionQrApiMapper subscriptionQrApiMapper
     ) {
         this.subscriptionPortIn = subscriptionPortIn;
         this.subscriptionApiMapper = subscriptionApiMapper;
+        this.subscriptionQrPortIn = subscriptionQrPortIn;
+        this.subscriptionQrApiMapper = subscriptionQrApiMapper;
     }
 
     @PostMapping("/me")
@@ -70,6 +86,96 @@ public class SubscriptionController {
                 "Fetched current customer subscriptions successfully",
                 subscriptionApiMapper.toUserResponses(subscriptions)
         ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/qr")
+    public ResponseEntity<ApiResponse<SubscriptionQrCredentialResponse>> issueMyQrCredential(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription QR credential issued successfully",
+                subscriptionQrApiMapper.toResponse(subscriptionQrPortIn.issueMyQrCredential(subscriptionId))
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/qr/refresh")
+    public ResponseEntity<ApiResponse<SubscriptionQrCredentialResponse>> refreshMyQrCredential(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription QR credential refreshed successfully",
+                subscriptionQrApiMapper.toResponse(subscriptionQrPortIn.refreshMyQrCredential(subscriptionId))
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/access/block")
+    public ResponseEntity<ApiResponse<SubscriptionQrCredentialResponse>> blockMySubscriptionAccess(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription access blocked successfully",
+                subscriptionQrApiMapper.toResponse(subscriptionQrPortIn.blockMySubscriptionAccess(subscriptionId))
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/access/unblock")
+    public ResponseEntity<ApiResponse<SubscriptionQrCredentialResponse>> unblockMySubscriptionAccess(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription access restored successfully",
+                subscriptionQrApiMapper.toResponse(subscriptionQrPortIn.unblockMySubscriptionAccess(subscriptionId))
+        ));
+    }
+
+    @PatchMapping("/{subscriptionId}/access/block")
+    public ResponseEntity<ApiResponse<SubscriptionAdminResponse>> blockSubscriptionAccess(
+            @PathVariable UUID subscriptionId
+    ) {
+        Subscription blockedSubscription = subscriptionQrPortIn.blockSubscriptionAccess(subscriptionId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription access blocked successfully",
+                subscriptionApiMapper.toAdminResponse(blockedSubscription)
+        ));
+    }
+
+    @PatchMapping("/{subscriptionId}/access/unblock")
+    public ResponseEntity<ApiResponse<SubscriptionAdminResponse>> unblockSubscriptionAccess(
+            @PathVariable UUID subscriptionId
+    ) {
+        Subscription restoredSubscription = subscriptionQrPortIn.unblockSubscriptionAccess(subscriptionId);
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription access restored successfully",
+                subscriptionApiMapper.toAdminResponse(restoredSubscription)
+        ));
+    }
+
+    @PostMapping("/qr/verify")
+    public ResponseEntity<ApiResponse<SubscriptionQrVerificationResponse>> verifyQrCredential(
+            @Valid @RequestBody VerifySubscriptionQrRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription QR credential verified successfully",
+                subscriptionQrApiMapper.toResponse(
+                        subscriptionQrPortIn.verifyQrCredential(subscriptionQrApiMapper.toCommand(request)))
+        ));
+    }
+
+    @PostMapping(value = "/qr/verify-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<SubscriptionQrVerificationResponse>> verifyQrImage(
+            @RequestPart("image") MultipartFile image,
+            @RequestParam UUID parkingLotId,
+            @RequestParam(required = false) String licensePlate
+    ) {
+        try {
+            return ResponseEntity.ok(ApiResponse.ok(
+                    "Subscription QR image verified successfully",
+                    subscriptionQrApiMapper.toResponse(
+                            subscriptionQrPortIn.verifyQrImage(image.getBytes(), parkingLotId, licensePlate))
+            ));
+        } catch (java.io.IOException exception) {
+            throw new BadRequestException("Unable to read QR image");
+        }
     }
 
     @PostMapping("/me/voucher-quote")

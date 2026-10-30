@@ -129,6 +129,28 @@ class SubscriptionPolicyTest {
     }
 
     @Test
+    void shouldActivateQrSubscriptionAfterPaymentWithoutWaitingForCard() {
+        LocalDate currentDate = LocalDate.of(2026, 6, 16);
+        Subscription subscription = initializedPendingSubscription(currentDate);
+        subscription.setPhysicalCardRequested(false);
+        subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+
+        subscriptionPolicy.approve(
+                subscription,
+                UUID.randomUUID(),
+                Instant.parse("2026-05-15T10:00:00Z"),
+                currentDate,
+                null,
+                new BigDecimal("140000")
+        );
+        subscriptionPolicy.markPaymentCompleted(subscription);
+
+        assertEquals(SubscriptionStatus.ACTIVE, subscription.getStatus());
+        assertNull(subscription.getCardId());
+        assertNull(subscription.getCardReceiptDate());
+    }
+
+    @Test
     void shouldAssignReservedCardAndActivateSubscription() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
         Subscription subscription = approvedSubscription(currentDate, SubscriptionStatus.PENDING_CARD);
@@ -184,6 +206,20 @@ class SubscriptionPolicyTest {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
         Subscription subscription = baseSubscription();
         subscription.setRequestedEffectiveFrom(currentDate.plusDays(8));
+
+        assertThrows(BadRequestException.class, () -> subscriptionPolicy.initializeNewSubscription(
+                subscription,
+                30,
+                currentDate
+        ));
+    }
+
+    @Test
+    void shouldRejectPeriodQuantityOutsideSupportedRange() {
+        LocalDate currentDate = LocalDate.of(2026, 6, 16);
+        Subscription subscription = baseSubscription();
+        subscription.setPeriodQuantity(13);
+        subscription.setRequestedEffectiveFrom(currentDate);
 
         assertThrows(BadRequestException.class, () -> subscriptionPolicy.initializeNewSubscription(
                 subscription,

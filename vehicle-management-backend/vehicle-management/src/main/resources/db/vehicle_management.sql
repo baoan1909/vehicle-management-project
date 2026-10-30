@@ -420,6 +420,11 @@ CREATE TABLE access_control.subscriptions (
     approved_by UUID,
     approved_at TIMESTAMPTZ,
     card_receipt_date DATE,
+    access_blocked BOOLEAN NOT NULL DEFAULT FALSE,
+    access_blocked_at TIMESTAMPTZ,
+    access_blocked_by UUID,
+    access_restored_at TIMESTAMPTZ,
+    access_restored_by UUID,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     created_by UUID,
     updated_at TIMESTAMPTZ,
@@ -430,6 +435,8 @@ CREATE TABLE access_control.subscriptions (
     CONSTRAINT fk_subscriptions_ticket_type FOREIGN KEY (ticket_type_id) REFERENCES catalog.ticket_types(ticket_type_id) ON DELETE RESTRICT,
     CONSTRAINT fk_subscriptions_price_rule FOREIGN KEY (price_rule_id) REFERENCES catalog.price_rules(price_rule_id) ON DELETE SET NULL,
     CONSTRAINT fk_subscriptions_approved_by FOREIGN KEY (approved_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_subscriptions_access_blocked_by FOREIGN KEY (access_blocked_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
+    CONSTRAINT fk_subscriptions_access_restored_by FOREIGN KEY (access_restored_by) REFERENCES iam.accounts(account_id) ON DELETE SET NULL,
     CONSTRAINT ck_subscriptions_status CHECK (status IN ('PENDING', 'ACTIVE', 'EXPIRED', 'CANCELLED', 'REJECTED'))
 );
 
@@ -533,7 +540,7 @@ CREATE TABLE parking.lanes (
 -- Lưu một phiên gửi xe từ lúc vào đến lúc ra.
 CREATE TABLE parking.parking_sessions (
     parking_session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    card_id UUID NOT NULL,
+    card_id UUID,
     customer_id UUID,
     customer_vehicle_id UUID,
     vehicle_type_id UUID NOT NULL,
@@ -1134,6 +1141,9 @@ CREATE INDEX idx_subscriptions_customer_id ON access_control.subscriptions(custo
 CREATE INDEX idx_cards_status ON access_control.cards(status);
 CREATE UNIQUE INDEX ux_lost_card_reports_open_parking_session ON access_control.lost_card_reports(parking_session_id) WHERE parking_session_id IS NOT NULL AND status = 'OPEN';
 CREATE INDEX idx_parking_sessions_card_id ON parking.parking_sessions(card_id);
+CREATE UNIQUE INDEX uq_parking_sessions_open_subscription
+    ON parking.parking_sessions(subscription_id)
+    WHERE status = 'OPEN' AND subscription_id IS NOT NULL;
 CREATE INDEX idx_parking_sessions_status ON parking.parking_sessions(status);
 CREATE INDEX idx_parking_sessions_check_in_time ON parking.parking_sessions(check_in_time);
 CREATE INDEX idx_parking_events_session_id ON parking.parking_events(parking_session_id);

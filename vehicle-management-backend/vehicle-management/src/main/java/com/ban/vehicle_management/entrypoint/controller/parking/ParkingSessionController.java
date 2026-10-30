@@ -8,6 +8,7 @@ import com.ban.vehicle_management.application.parking.parkingsession.port.in.Par
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInPreviewRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutParkingSessionRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutQrPreviewRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.ParkingSessionFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInPreviewResponse;
@@ -163,6 +164,22 @@ public class ParkingSessionController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Open parking session preview fetched successfully",
                 parkingSessionApiMapper.toCheckOutPreviewResponse(parkingSessionPortIn.previewCheckOutByCardUid(cardUid))
+        ));
+    }
+
+    @PostMapping(value = "/open-by-subscription-qr", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SESSION_CHECK_OUT_ALL')")
+    public ResponseEntity<ApiResponse<ParkingSessionCheckOutPreviewResponse>> findOpenBySubscriptionQr(
+            @RequestBody CheckOutQrPreviewRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Open subscription parking session preview fetched successfully",
+                parkingSessionApiMapper.toCheckOutPreviewResponse(
+                        parkingSessionPortIn.previewCheckOutBySubscriptionQr(
+                                request.subscriptionQrPayload(),
+                                request.parkingLotId()
+                        )
+                )
         ));
     }
 

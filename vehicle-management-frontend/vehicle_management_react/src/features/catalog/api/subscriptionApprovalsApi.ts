@@ -22,6 +22,9 @@ export type SubscriptionStatus =
   | "REJECTED";
 
 export type SubscriptionApiResponse = {
+  accessBlocked?: boolean | null;
+  accessBlockedAt?: string | null;
+  accessRestoredAt?: string | null;
   parkingLotId?: string | null;
   approvedAt?: string | null;
   approvedBy?: string | null;
@@ -122,6 +125,22 @@ export async function rejectSubscription(subscriptionId: string, reason: string)
 export async function assignSubscriptionCard(subscriptionId: string) {
   const response = await apiClient<ApiResponse<SubscriptionApiResponse>>(
     `${apiEndpoints.accessControl.subscriptions}/${subscriptionId}/assign-card`,
+    { method: "PATCH" },
+  );
+  return response.data;
+}
+
+export async function blockSubscriptionAccess(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<SubscriptionApiResponse>>(
+    `${apiEndpoints.accessControl.subscriptions}/${subscriptionId}/access/block`,
+    { method: "PATCH" },
+  );
+  return response.data;
+}
+
+export async function unblockSubscriptionAccess(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<SubscriptionApiResponse>>(
+    `${apiEndpoints.accessControl.subscriptions}/${subscriptionId}/access/unblock`,
     { method: "PATCH" },
   );
   return response.data;

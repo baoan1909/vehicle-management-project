@@ -41,10 +41,10 @@ public class ParkingSessionEntity extends AuditableEntity {
     @Column(name = "parking_session_id", nullable = false)
     private UUID parkingSessionId;
 
-    @Column(name = "card_id", nullable = false)
+    @Column(name = "card_id")
     private UUID cardId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "card_id", referencedColumnName = "card_id", insertable = false, updatable = false)
     private CardEntity card;
 

@@ -39,6 +39,13 @@ import { CustomerPortalLayout, PortalPagination } from "./PortalShared";
 import { DatePicker, Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import {
+  blockMySubscriptionAccess,
+  issueMySubscriptionQr,
+  refreshMySubscriptionQr,
+  type SubscriptionQrCredential,
+  unblockMySubscriptionAccess,
+} from "@/features/subscriptions/api/subscriptionQrApi";
 
 type SubscriptionForm = {
   parkingLotId: string;
@@ -46,6 +53,8 @@ type SubscriptionForm = {
   requestedEffectiveFrom: string;
   ticketTypeId: string;
   voucherCode: string;
+  periodQuantity: number;
+  physicalCardRequested: boolean;
 };
 
 type CustomerPaymentChoice = "WALLET" | "VNPAY" | "AT_COUNTER";
@@ -67,6 +76,7 @@ function formatDateRange(from?: string | null, to?: string | null) {
 }
 
 function statusLabel(status?: string | null) {
+  if (status === "ACCESS_BLOCKED") return "Tạm khóa";
   if (status === "ACTIVE") return "Đang hoạt động";
   if (status === "PENDING") return "Chờ duyệt";
   if (status === "PENDING_PAYMENT") return "Chờ thanh toán";
@@ -137,20 +147,22 @@ function findMatchingPriceRule(
 }
 
 function subscriptionStatusClass(status?: string | null) {
+  if (status === "ACCESS_BLOCKED") return "tw-bg-[#fff5e4] tw-text-[#b45309] tw-ring-[#ffd59b]";
   if (status === "ACTIVE") return "tw-bg-[#eaf9f0] tw-text-[#078553] tw-ring-[#b9ebcc]";
   if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "PENDING_CARD") return "tw-bg-[#fff5e4] tw-text-[#d66b00] tw-ring-[#ffd59b]";
   if (status === "CANCELLED" || status === "REJECTED") return "tw-bg-[#fff0f0] tw-text-[#d83434] tw-ring-[#ffcaca]";
   return "tw-bg-[#f0f3f7] tw-text-[#687893] tw-ring-[#dce3ec]";
 }
 
-function SubscriptionStatusPill({ status, onTicket = false }: { status?: string | null; onTicket?: boolean }) {
-  const ticketTone = status === "ACTIVE" ? "tw-text-[#cee8db]"
-    : status?.startsWith("PENDING") ? "tw-text-[#f6d58c]"
-    : status === "CANCELLED" || status === "REJECTED" ? "tw-text-[#ffc3c3]" : "tw-text-[#c4ccda]";
+function SubscriptionStatusPill({ status, onTicket = false, accessBlocked = false }: { status?: string | null; onTicket?: boolean; accessBlocked?: boolean }) {
+  const displayStatus = accessBlocked ? "ACCESS_BLOCKED" : status;
+  const ticketTone = displayStatus === "ACTIVE" ? "tw-text-[#cee8db]"
+    : displayStatus === "ACCESS_BLOCKED" || displayStatus?.startsWith("PENDING") ? "tw-text-[#f6d58c]"
+    : displayStatus === "CANCELLED" || displayStatus === "REJECTED" ? "tw-text-[#ffc3c3]" : "tw-text-[#c4ccda]";
   const colorClass = onTicket
     ? `tw-border tw-border-solid tw-border-white/25 tw-bg-white/[.025] ${ticketTone}`
-    : subscriptionStatusClass(status);
-  return <span className={`tw-inline-flex tw-items-center tw-gap-1.5 tw-whitespace-nowrap tw-rounded-full tw-px-2.5 tw-py-1.5 tw-text-[0.72rem] tw-font-normal ${colorClass}`}><span aria-hidden="true" className="tw-h-[7px] tw-w-[7px] tw-shrink-0 tw-rounded-full tw-bg-current" />{statusLabel(status)}</span>;
+    : subscriptionStatusClass(displayStatus);
+  return <span className={`tw-inline-flex tw-items-center tw-gap-1.5 tw-whitespace-nowrap tw-rounded-full tw-px-2.5 tw-py-1.5 tw-text-[0.72rem] tw-font-normal ${colorClass}`}><span aria-hidden="true" className="tw-h-[7px] tw-w-[7px] tw-shrink-0 tw-rounded-full tw-bg-current" />{statusLabel(displayStatus)}</span>;
 }
 
 type SubscriptionIconName = "ticket" | "calendar" | "clock" | "wallet" | "vehicle";
@@ -209,6 +221,8 @@ export function SubscriptionPage() {
     requestedEffectiveFrom: todayApplicationIsoDate(),
     ticketTypeId: "",
     voucherCode: voucherCodeFromUrl,
+    periodQuantity: 1,
+    physicalCardRequested: false,
   });
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
@@ -224,6 +238,11 @@ export function SubscriptionPage() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [qrCredential, setQrCredential] = useState<SubscriptionQrCredential | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrActionLoading, setQrActionLoading] = useState(false);
+  const [qrError, setQrError] = useState("");
 
   const openRegistrationModal = () => {
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -238,6 +257,66 @@ export function SubscriptionPage() {
     setRegistrationModalOpen(false);
   };
 
+  const openQrModal = async (subscription: CustomerPortalSubscription) => {
+    setQrModalOpen(true);
+    setQrCredential(null);
+    setQrError("");
+    setQrLoading(true);
+    try {
+      setQrCredential(await issueMySubscriptionQr(subscription.subscriptionId));
+    } catch (requestError) {
+      setQrError(requestError instanceof Error ? requestError.message : "Không thể tạo mã QR vé đăng ký.");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const refreshQrCredential = async () => {
+    if (!qrCredential) return;
+    if (!window.confirm("Làm mới QR sẽ khiến mã QR cũ mất hiệu lực. Bạn có muốn tiếp tục?")) return;
+    setQrActionLoading(true);
+    setQrError("");
+    try {
+      setQrCredential(await refreshMySubscriptionQr(qrCredential.subscriptionId));
+      toast.success("Mã QR cũ đã mất hiệu lực và mã mới đã được cấp.", "Đã làm mới QR");
+    } catch (requestError) {
+      setQrError(requestError instanceof Error ? requestError.message : "Không thể làm mới mã QR.");
+    } finally {
+      setQrActionLoading(false);
+    }
+  };
+
+  const toggleSubscriptionAccess = async () => {
+    if (!qrCredential) return;
+    const nextBlocked = !qrCredential.accessBlocked;
+    const confirmation = nextBlocked
+      ? "Khóa vé sẽ tạm ngừng cả QR và thẻ vật lý. Bạn có muốn tiếp tục?"
+      : "Kích hoạt lại vé để QR và thẻ vật lý có thể tiếp tục sử dụng?";
+    if (!window.confirm(confirmation)) return;
+    setQrActionLoading(true);
+    setQrError("");
+    try {
+      const updated = nextBlocked
+        ? await blockMySubscriptionAccess(qrCredential.subscriptionId)
+        : await unblockMySubscriptionAccess(qrCredential.subscriptionId);
+      setQrCredential(updated);
+      setSubscriptions((current) => current.map((subscription) => (
+        subscription.subscriptionId === updated.subscriptionId
+          ? { ...subscription, accessBlocked: updated.accessBlocked }
+          : subscription
+      )));
+      if (updated.accessBlocked) {
+        toast.success("QR và thẻ vật lý đã tạm ngừng sử dụng.", "Đã khóa vé");
+      } else {
+        toast.success("QR và thẻ vật lý có thể tiếp tục sử dụng.", "Đã kích hoạt lại vé");
+      }
+    } catch (requestError) {
+      setQrError(requestError instanceof Error ? requestError.message : "Không thể cập nhật trạng thái sử dụng vé.");
+    } finally {
+      setQrActionLoading(false);
+    }
+  };
+
   const vehicleById = useMemo(() => new Map(vehicles.map((vehicle) => [vehicle.customerVehicleId, vehicle])), [vehicles]);
   const ticketTypeById = useMemo(() => new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType])), [ticketTypes]);
   const parkingLotById = useMemo(() => new Map(parkingLots.map((lot) => [lot.parkingLotId, lot])), [parkingLots]);
@@ -245,7 +324,18 @@ export function SubscriptionPage() {
 
   const activeVehicles = vehicles.filter((vehicle) => vehicle.status === "ACTIVE");
   const selectedVehicle = vehicleById.get(form.customerVehicleId);
+  const selectedParkingLot = parkingLotById.get(form.parkingLotId);
   const selectedPriceRule = findMatchingPriceRule(selectedVehicle, form.ticketTypeId, priceRules, partnerVehicleTypes);
+  const selectedTicketType = ticketTypeById.get(form.ticketTypeId);
+  const subscriptionSubtotal = selectedPriceRule?.basePrice == null
+    ? null
+    : Number(selectedPriceRule.basePrice) * form.periodQuantity;
+  const physicalCardDeposit = form.physicalCardRequested
+    ? Number(selectedPriceRule?.lostCardFee ?? 0)
+    : 0;
+  const subscriptionChargeSubtotal = subscriptionSubtotal == null
+    ? null
+    : subscriptionSubtotal + physicalCardDeposit;
   const activeSubscription = subscriptions.find((subscription) => subscription.status === "ACTIVE");
   const selectedSubscription = subscriptions.find((subscription) => subscription.subscriptionId === selectedSubscriptionId);
   const detailSubscription = selectedSubscription ?? activeSubscription;
@@ -375,7 +465,7 @@ export function SubscriptionPage() {
 
     if (vnpayResult === "success" && searchParams.get("paymentStatus") === "SUCCESS") {
       toast.success(
-        "Hồ sơ đang chờ nhân viên gán thẻ.",
+        "Vé đang được hệ thống hoàn tất sau thanh toán.",
         "Thanh toán VNPay thành công",
       );
     } else if (vnpayResult === "cancelled") {
@@ -401,7 +491,7 @@ export function SubscriptionPage() {
 
   const changeParkingLot = async (parkingLotId: string) => {
     const requestId = ++lotLookupRequestRef.current;
-    setForm((current) => ({ ...current, parkingLotId, ticketTypeId: "" }));
+    setForm((current) => ({ ...current, parkingLotId, ticketTypeId: "", periodQuantity: 1 }));
     setPriceRules([]);
     setTicketTypes([]);
     setPartnerVehicleTypes([]);
@@ -415,7 +505,7 @@ export function SubscriptionPage() {
       setPriceRules(lookups.priceRules);
       setTicketTypes(lookups.ticketTypes);
       setPartnerVehicleTypes(lookups.vehicleTypes);
-      setForm((current) => ({ ...current, ticketTypeId: lookups.ticketTypes[0]?.ticketTypeId ?? "" }));
+      setForm((current) => ({ ...current, ticketTypeId: lookups.ticketTypes[0]?.ticketTypeId ?? "", periodQuantity: 1 }));
     } catch (error) {
       if (requestId === lotLookupRequestRef.current) {
         setSubscriptionFormError(error instanceof Error ? error.message : "Không thể tải giá vé của bãi xe.");
@@ -640,12 +730,19 @@ export function SubscriptionPage() {
               </div>
             </div>
             <div className="vm-subscription-ticket-aside tw-relative tw-flex tw-min-w-0 tw-flex-col tw-py-5 tw-pl-4 tw-pr-6">
-              <div className="tw-flex tw-min-h-8 tw-justify-end">{detailSubscription ? <SubscriptionStatusPill status={detailSubscription.status} onTicket /> : null}</div>
+              <div className="tw-flex tw-min-h-8 tw-justify-end">{detailSubscription ? <SubscriptionStatusPill accessBlocked={detailSubscription.accessBlocked === true} status={detailSubscription.status} onTicket /> : null}</div>
               <div className="tw-relative tw-z-[1] tw-mt-5 tw-flex tw-items-center tw-justify-center tw-gap-3"><span className="!tw-font-[Cambria,Georgia,serif] tw-text-[4.5rem] tw-font-normal tw-leading-none tw-text-[#f7ce68]">{detailDaysLeft ?? "--"}</span><span className="tw-text-[1.05rem] tw-font-normal tw-leading-6 tw-text-white">ngày<br />còn lại</span></div>
               <div className="tw-mt-auto tw-h-[62px] tw-overflow-hidden"><PortalTicketArtwork className="tw-pointer-events-none tw-h-full tw-w-full tw-text-[#c9b170]/30 [transform:scaleX(1.8)]" /></div>
               <SubscriptionProgress percent={detailRemainingPercent} />
               <div className="tw-mt-1.5 tw-flex tw-items-center tw-justify-between tw-gap-2 tw-text-[0.66rem] tw-font-normal tw-text-[#c8d4e6]"><span>{isDetailSubscriptionActive && detailPeriod ? `${detailPeriod.elapsedDays} ngày đã qua` : "-- ngày đã qua"}</span><span>{detailPeriod ? `${detailPeriod.totalDays} ngày` : "-- ngày"}</span></div>
-              <button disabled={!detailSubscription} className="tw-mt-3 tw-inline-flex tw-h-7 tw-w-fit tw-items-center tw-justify-center tw-gap-2 tw-self-end tw-rounded-md tw-border tw-border-solid tw-border-white/35 tw-bg-transparent tw-px-3 tw-text-[0.72rem] tw-font-normal tw-text-white hover:tw-bg-white/10 disabled:tw-opacity-50" type="button" onClick={() => { if (detailSubscription) { setSelectedSubscriptionId(detailSubscription.subscriptionId); setStatusFilter("ALL"); setKeyword(detailSubscription.subscriptionId); } }}>Xem chi tiết <i className="fas fa-chevron-right tw-text-[0.6rem]" /></button>
+              <div className="tw-mt-3 tw-flex tw-flex-wrap tw-justify-end tw-gap-2">
+                {detailSubscription?.status === "ACTIVE" ? (
+                  <button className="tw-inline-flex tw-h-7 tw-w-fit tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-[#f7ce68]/70 tw-bg-[#f7ce68]/10 tw-px-3 tw-text-[0.72rem] tw-font-semibold tw-text-[#f7ce68] hover:tw-bg-[#f7ce68]/20" type="button" onClick={() => void openQrModal(detailSubscription)}>
+                    <i className="fas fa-qrcode" />Mở QR
+                  </button>
+                ) : null}
+                <button disabled={!detailSubscription} className="tw-inline-flex tw-h-7 tw-w-fit tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-white/35 tw-bg-transparent tw-px-3 tw-text-[0.72rem] tw-font-normal tw-text-white hover:tw-bg-white/10 disabled:tw-opacity-50" type="button" onClick={() => { if (detailSubscription) { setSelectedSubscriptionId(detailSubscription.subscriptionId); setStatusFilter("ALL"); setKeyword(detailSubscription.subscriptionId); } }}>Xem chi tiết <i className="fas fa-chevron-right tw-text-[0.6rem]" /></button>
+              </div>
             </div>
           </div>
         </article>
@@ -675,14 +772,14 @@ export function SubscriptionPage() {
               const selected = selectedSubscriptionId === subscription.subscriptionId;
               return (
                 <article key={subscription.subscriptionId} aria-label={"Xem chi tiết vé " + compactCode(subscription.subscriptionId)} aria-pressed={selected} className={["tw-grid tw-min-h-[94px] tw-grid-cols-[48px_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.25fr)_112px_8px] max-[1300px]:tw-grid-cols-[38px_minmax(0,1fr)_minmax(0,.85fr)_minmax(0,1.15fr)_105px_8px] max-[640px]:tw-grid-cols-[38px_minmax(0,1fr)_minmax(0,1fr)] tw-items-center tw-gap-x-3 tw-gap-y-2 tw-rounded-xl tw-border tw-border-solid tw-p-3 tw-transition", selected ? "tw-border-[#1263e9] tw-bg-[#f4f8ff]" : "tw-border-[#e0e3e9] tw-bg-white hover:tw-border-[#b9d3fb]"].join(" ")} role="button" tabIndex={0} title={"Xem vé " + subscription.subscriptionId} onClick={() => setSelectedSubscriptionId(subscription.subscriptionId)} onKeyDown={(event) => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedSubscriptionId(subscription.subscriptionId); } }}>
-                  <span className={["tw-grid tw-h-12 tw-w-12 tw-place-items-center tw-rounded-full max-[1300px]:tw-h-9 max-[1300px]:tw-w-9", subscription.status === "ACTIVE" ? "tw-bg-[#edf7f0] tw-text-[#438c76]" : subscription.status?.startsWith("PENDING") ? "tw-bg-[#fff5e6] tw-text-[#e69a49]" : "tw-bg-[#f3f3f3] tw-text-[#777777]"].join(" ")}><SubscriptionIcon name="ticket" /></span>
+                  <span className={["tw-grid tw-h-12 tw-w-12 tw-place-items-center tw-rounded-full max-[1300px]:tw-h-9 max-[1300px]:tw-w-9", subscription.accessBlocked ? "tw-bg-[#fff5e6] tw-text-[#b45309]" : subscription.status === "ACTIVE" ? "tw-bg-[#edf7f0] tw-text-[#438c76]" : subscription.status?.startsWith("PENDING") ? "tw-bg-[#fff5e6] tw-text-[#e69a49]" : "tw-bg-[#f3f3f3] tw-text-[#777777]"].join(" ")}><SubscriptionIcon name="ticket" /></span>
                   <span className="tw-min-w-0"><strong title={subscription.subscriptionId} className="tw-block tw-truncate tw-text-[0.82rem] tw-font-semibold tw-text-[#17233e]">{compactCode(subscription.subscriptionId)}</strong><small title={ticketType?.name} className="tw-mt-1 tw-block tw-truncate tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{ticketType?.name ?? "Vé đăng ký"}</small><small className="tw-block tw-truncate tw-text-[0.68rem] tw-text-[#64748b]">{subscription.parkingLotId ? parkingLotById.get(subscription.parkingLotId)?.name ?? "Bãi ngừng hoạt động" : "Chưa xác định bãi"}</small></span>
                   <span className="tw-min-w-0 tw-border-0 tw-border-l tw-border-solid tw-border-[#edf0f3] tw-pl-3"><strong className="tw-block tw-whitespace-nowrap tw-text-[0.82rem] tw-font-semibold tw-text-[#17233e]">{vehicle?.licensePlate ?? "--"}</strong><small title={vehicleLabel(vehicle, vehicleTypeById)} className="tw-mt-1 tw-block tw-truncate tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{[vehicle?.brand, vehicle?.vehicleTypeId ? vehicleTypeById.get(vehicle.vehicleTypeId)?.name : undefined].filter(Boolean).join(" · ") || "--"}</small></span>
                   <span className="tw-min-w-0 tw-border-0 tw-border-l tw-border-solid tw-border-[#edf0f3] tw-pl-3 max-[640px]:tw-col-start-2">
                     <span className="tw-flex tw-flex-wrap tw-gap-x-1 tw-text-[0.7rem] tw-font-semibold tw-leading-5 tw-text-[#17233e]"><span className="tw-whitespace-nowrap">{formatDate(toDateInputValue(getDisplayEffectiveFrom(subscription)) ?? subscription.requestedEffectiveFrom)}</span><span className="tw-whitespace-nowrap">— {subscription.effectiveTo ? formatDate(subscription.effectiveTo) : "Chưa xác định"}</span></span>
                     <small className="tw-mt-1 tw-block tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{getSubscriptionTotal(subscription) != null ? formatCurrency(getSubscriptionTotal(subscription)) : "Chưa xác định phí"}</small>
                   </span>
-                  <span className="tw-grid tw-justify-items-end tw-gap-1.5"><SubscriptionStatusPill status={subscription.status} />{subscription.status === "PENDING_PAYMENT" && canPaySubscription ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.74rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription); }}>Thanh toán</button> : null}</span>
+                  <span className="tw-grid tw-justify-items-end tw-gap-1.5"><SubscriptionStatusPill accessBlocked={subscription.accessBlocked === true} status={subscription.status} />{subscription.status === "PENDING_PAYMENT" && canPaySubscription ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.74rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription); }}>Thanh toán</button> : null}</span>
                   <i aria-hidden="true" className="fas fa-chevron-right tw-text-[0.6rem] tw-text-[#5c7090] max-[640px]:tw-hidden" />
                 </article>
               );
@@ -694,12 +791,13 @@ export function SubscriptionPage() {
           <PortalPagination currentPage={safeCurrentPage} pageSize={pageSize} totalRecords={filteredSubscriptions.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
         </section>
 
-        <Modal description="Chọn phương tiện và gói phù hợp với bạn." onClose={closeRegistrationModal} open={registrationModalOpen} title="Đăng ký vé mới">
-        <div className="tw-min-w-0 [&_select]:tw-w-full [&_input]:tw-w-full [&_label]:tw-min-w-0">
+        <Modal description="Chọn phương tiện và gói phù hợp với bạn." onClose={closeRegistrationModal} open={registrationModalOpen} title="Đăng ký vé mới" width="lg">
+        <div className="tw-min-w-0 tw-max-w-full [&_select]:tw-w-full [&_input]:tw-w-full [&_label]:tw-min-w-0">
           {subscriptionFormError ? <div className="tw-mt-3 tw-flex tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-[0.76rem] tw-font-medium tw-text-red-700" role="alert"><i className="fas fa-exclamation-circle tw-mt-0.5" /><span>{subscriptionFormError}</span></div> : null}
           <div className="tw-mt-3 tw-grid tw-gap-2.5">
             <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Bãi xe đăng ký</span>
-              <SelectMenu ariaLabel="Chọn bãi xe" options={[{ label: "Chọn bãi xe", value: "" }, ...parkingLots.map((lot) => ({ label: `${lot.name}${lot.addressDisplay ? ` · ${lot.addressDisplay}` : ""}`, value: lot.parkingLotId }))]} portal portalFitContent triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" value={form.parkingLotId} onChange={(value) => { void changeParkingLot(value); }} />
+              <SelectMenu ariaLabel="Chọn bãi xe" options={[{ label: "Chọn bãi xe", value: "" }, ...parkingLots.map((lot) => ({ label: `${lot.name}${lot.addressDisplay ? ` · ${lot.addressDisplay}` : ""}`, value: lot.parkingLotId }))]} portal triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" triggerLabel={selectedParkingLot?.name} value={form.parkingLotId} onChange={(value) => { void changeParkingLot(value); }} />
+              {selectedParkingLot?.addressDisplay ? <small className="tw-break-words tw-text-[0.66rem] tw-leading-5 tw-text-[#64748b]">{selectedParkingLot.addressDisplay}</small> : null}
               {lotLookupsLoading ? <small className="tw-text-[#64748b]">Đang tải giá vé của bãi...</small> : null}
               {!loading && parkingLots.length === 0 ? <small className="tw-text-amber-700">Hiện chưa có bãi xe đang hoạt động để đăng ký.</small> : null}
             </div>
@@ -707,8 +805,43 @@ export function SubscriptionPage() {
               <span className="tw-relative"><SubscriptionIcon name="vehicle" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn xe đăng ký vé" options={[{ label: "Chọn xe", value: "" }, ...activeVehicles.map((vehicle) => ({ label: vehicleLabel(vehicle, vehicleTypeById), value: vehicle.customerVehicleId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.customerVehicleId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, customerVehicleId: value })); }} /></span>
             </div>
             <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Loại vé</span>
-              <span className="tw-relative"><SubscriptionIcon name="ticket" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn loại vé" options={[{ label: "Chọn loại vé", value: "" }, ...ticketTypes.map((ticketType) => ({ label: ticketType.name, value: ticketType.ticketTypeId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.ticketTypeId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, ticketTypeId: value })); }} /></span>
+              <span className="tw-relative"><SubscriptionIcon name="ticket" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn loại vé" options={[{ label: "Chọn loại vé", value: "" }, ...ticketTypes.map((ticketType) => ({ label: ticketType.name, value: ticketType.ticketTypeId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.ticketTypeId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, ticketTypeId: value, periodQuantity: 1 })); }} /></span>
             </div>
+            <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">
+              <span>Số kỳ thanh toán</span>
+              <span className="tw-flex tw-h-10 tw-overflow-hidden tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white">
+                <strong className="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-px-4 tw-text-left tw-text-[0.84rem] tw-font-semibold tw-text-[#273345]" aria-live="polite">{form.periodQuantity}</strong>
+                <span className="tw-grid tw-w-10 tw-shrink-0 tw-grid-rows-2 tw-border-0 tw-border-l tw-border-solid tw-border-[#dcdfe5] tw-bg-[#f8fafc]">
+                  <button
+                    aria-label="Tăng số kỳ thanh toán"
+                    className="tw-grid tw-place-items-center tw-border-0 tw-border-b tw-border-solid tw-border-[#e5e7eb] tw-bg-transparent tw-p-0 tw-text-[0.7rem] tw-leading-none tw-text-[#94a3b8] hover:tw-bg-[#eef4ff] hover:tw-text-[#475569] disabled:tw-cursor-not-allowed disabled:tw-opacity-35"
+                    disabled={!form.ticketTypeId || selectedTicketType?.code?.toUpperCase() === "FREE" || form.periodQuantity >= 12}
+                    type="button"
+                    onClick={() => {
+                      clearVoucherQuote();
+                      setForm((current) => ({ ...current, periodQuantity: Math.min(12, current.periodQuantity + 1) }));
+                    }}
+                  >
+                    <i className="fas fa-caret-up" />
+                  </button>
+                  <button
+                    aria-label="Giảm số kỳ thanh toán"
+                    className="tw-grid tw-place-items-center tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.7rem] tw-leading-none tw-text-[#94a3b8] hover:tw-bg-[#eef4ff] hover:tw-text-[#475569] disabled:tw-cursor-not-allowed disabled:tw-opacity-35"
+                    disabled={!form.ticketTypeId || selectedTicketType?.code?.toUpperCase() === "FREE" || form.periodQuantity <= 1}
+                    type="button"
+                    onClick={() => {
+                      clearVoucherQuote();
+                      setForm((current) => ({ ...current, periodQuantity: Math.max(1, current.periodQuantity - 1) }));
+                    }}
+                  >
+                    <i className="fas fa-caret-down" />
+                  </button>
+                </span>
+              </span>
+              <small className="tw-text-[0.66rem] tw-text-[#64748b]">
+                Thanh toán một lần cho tối đa 12 kỳ; mã ưu đãi được tính trên tổng đơn.
+              </small>
+            </label>
             <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Ngày bắt đầu</span>
               <DatePicker
                 ariaDescribedBy={subscriptionFormError.includes("Ngày bắt đầu") ? "subscription-effective-from-error" : undefined}
@@ -725,6 +858,38 @@ export function SubscriptionPage() {
               />
               {subscriptionFormError.includes("Ngày bắt đầu") ? <small className="tw-text-[0.7rem] tw-font-medium tw-text-red-600" id="subscription-effective-from-error">{subscriptionFormError}</small> : null}
             </div>
+            <div className="tw-grid tw-gap-1.5 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">
+              <span>Bạn có muốn sử dụng thẻ vật lý không?</span>
+              <div className="tw-grid tw-grid-cols-2 tw-gap-2" role="group" aria-label="Lựa chọn sử dụng thẻ vật lý">
+                <button
+                  className={["tw-h-10 tw-rounded-md tw-border tw-border-solid tw-text-[0.76rem] tw-font-medium tw-transition", !form.physicalCardRequested ? "tw-border-[#1263e9] tw-bg-[#eef5ff] tw-text-[#0756d8]" : "tw-border-[#dcdfe5] tw-bg-white tw-text-[#4f586a] hover:tw-border-[#9fc1f7]"].join(" ")}
+                  type="button"
+                  aria-pressed={!form.physicalCardRequested}
+                  onClick={() => {
+                    clearVoucherQuote();
+                    setForm((current) => ({ ...current, physicalCardRequested: false }));
+                  }}
+                >
+                  <i className="fas fa-qrcode tw-mr-2" />Không, dùng mã QR
+                </button>
+                <button
+                  className={["tw-h-10 tw-rounded-md tw-border tw-border-solid tw-text-[0.76rem] tw-font-medium tw-transition", form.physicalCardRequested ? "tw-border-[#1263e9] tw-bg-[#eef5ff] tw-text-[#0756d8]" : "tw-border-[#dcdfe5] tw-bg-white tw-text-[#4f586a] hover:tw-border-[#9fc1f7]"].join(" ")}
+                  type="button"
+                  aria-pressed={form.physicalCardRequested}
+                  onClick={() => {
+                    clearVoucherQuote();
+                    setForm((current) => ({ ...current, physicalCardRequested: true }));
+                  }}
+                >
+                  <i className="far fa-credit-card tw-mr-2" />Có, nhận thẻ vật lý
+                </button>
+              </div>
+              <small className="tw-text-[0.66rem] tw-leading-5 tw-text-[#64748b]">
+                {form.physicalCardRequested
+                  ? `Khoản cọc thẻ ${formatCurrency(physicalCardDeposit)} được cộng vào đơn và có thể hoàn lại khi trả thẻ.`
+                  : "Không phát sinh tiền cọc thẻ; bạn sử dụng mã QR của vé để vào/ra bãi."}
+              </small>
+            </div>
             <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Mã ưu đãi <span className="tw-font-normal tw-text-[#7b879b]">(nếu có)</span>
               <span className="tw-grid tw-grid-cols-[minmax(0,1fr)_auto] tw-gap-2"><span className="tw-relative"><i className="fas fa-tag tw-pointer-events-none tw-absolute tw-left-3 tw-top-2.5 tw-text-[0.75rem] tw-text-[#677181]" /><input className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-pl-9 tw-pr-3 tw-text-[0.78rem] tw-font-normal tw-uppercase tw-text-[#273345] placeholder:tw-normal-case placeholder:tw-text-[#93a0b3]" maxLength={50} value={form.voucherCode} onChange={(event) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, voucherCode: event.target.value.toUpperCase() })); }} placeholder="Ví dụ: WELCOME10" /></span><button className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#1263e9] tw-bg-[#1263e9] tw-px-3 tw-text-[0.74rem] tw-font-medium tw-text-white tw-transition hover:tw-bg-[#0751cf] disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={voucherQuoteLoading || !form.voucherCode.trim()} onClick={() => { void handleQuoteVoucher(); }}>{voucherQuoteLoading ? "Đang kiểm tra" : "Áp dụng"}</button></span>
               {voucherQuoteLoading ? <small className="tw-text-[0.66rem] tw-font-normal tw-text-[#64748b]"><i className="fas fa-spinner fa-spin tw-mr-1" />Đang kiểm tra mã ưu đãi...</small> : null}
@@ -734,8 +899,9 @@ export function SubscriptionPage() {
             </label>
           </div>
           <div className="tw-mt-3 tw-grid tw-gap-1.5 tw-rounded-lg tw-border tw-border-solid tw-border-[#e8e8f0] tw-bg-[#f8f8fc] tw-p-3">
-            <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-1"><span className="tw-text-[0.78rem] tw-font-medium tw-text-[#273345]">Tổng cần thanh toán</span><strong className="tw-text-[1.1rem] tw-font-semibold tw-text-[#101d39]">{voucherQuote ? formatCurrency(voucherQuote.finalAmount) : selectedPriceRule?.basePrice != null ? formatCurrency(selectedPriceRule.basePrice) : "Chưa có mức phí"}</strong></div>
-            <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>Tạm tính · {ticketTypeById.get(form.ticketTypeId)?.name ?? "Chưa chọn loại vé"}</span>{selectedPriceRule?.basePrice != null ? <span className="tw-whitespace-nowrap">{formatCurrency(voucherQuote?.baseAmount ?? selectedPriceRule.basePrice)}</span> : null}</div>
+            <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-1"><span className="tw-text-[0.78rem] tw-font-medium tw-text-[#273345]">Tổng cần thanh toán</span><strong className="tw-text-[1.1rem] tw-font-semibold tw-text-[#101d39]">{voucherQuote ? formatCurrency(voucherQuote.finalAmount) : subscriptionChargeSubtotal != null ? formatCurrency(subscriptionChargeSubtotal) : "Chưa có mức phí"}</strong></div>
+            <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>Tiền vé · {ticketTypeById.get(form.ticketTypeId)?.name ?? "Chưa chọn loại vé"} × {form.periodQuantity} kỳ</span>{subscriptionSubtotal != null ? <span className="tw-whitespace-nowrap">{formatCurrency(subscriptionSubtotal)}</span> : null}</div>
+            {form.physicalCardRequested ? <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>Cọc thẻ vật lý</span><span className="tw-whitespace-nowrap">{formatCurrency(physicalCardDeposit)}</span></div> : null}
             {voucherQuote ? <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-medium tw-text-[#16824a]"><span>Giảm giá {voucherQuote.voucherCode ? `· ${voucherQuote.voucherCode}` : ""}</span><span className="tw-whitespace-nowrap">−{formatCurrency(voucherQuote.discountAmount)}</span></div> : null}
             <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>{selectedVehicle ? `Phương tiện: ${selectedVehicle.licensePlate} · ${selectedVehicle.brand || vehicleTypeById.get(selectedVehicle.vehicleTypeId ?? "")?.name || "--"}` : "Chưa chọn phương tiện"}</span>{selectedPriceRule ? <span className="tw-shrink-0 tw-text-[#257640]">Phù hợp</span> : null}</div>
           </div>
@@ -840,6 +1006,67 @@ export function SubscriptionPage() {
               <span className="tw-mt-2 tw-block tw-text-xs tw-font-semibold tw-text-[#71819a]">Hồ sơ tiếp tục chờ đến khi nhân viên nhận tiền và xác nhận.</span>
             </button>
           </div>
+        </div>
+      </Modal>
+      <Modal
+        description="Dùng mã này để nhân viên kiểm tra vé tại đúng bãi xe và phương tiện đã đăng ký."
+        onClose={() => setQrModalOpen(false)}
+        open={qrModalOpen}
+        title="QR vé đăng ký"
+        width="sm"
+      >
+        <div className="tw-grid tw-gap-4 tw-text-center">
+          {qrLoading ? (
+            <div className="tw-rounded-md tw-bg-[#f4f7fb] tw-p-8 tw-text-sm tw-font-semibold tw-text-[#61738e]">
+              <i className="fas fa-spinner fa-spin tw-mr-2" />Đang chuẩn bị mã QR...
+            </div>
+          ) : null}
+          {qrError ? (
+            <div className="tw-rounded-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-left tw-text-sm tw-font-semibold tw-text-red-700" role="alert">
+              {qrError}
+            </div>
+          ) : null}
+          {qrCredential ? (
+            <>
+              <div className="tw-mx-auto tw-rounded-xl tw-border tw-border-solid tw-border-[#dce5f0] tw-bg-white tw-p-3 tw-shadow-sm">
+                <img alt="QR vé đăng ký CoParking" className="tw-block tw-h-[260px] tw-w-[260px]" src={qrCredential.qrCodeDataUrl} />
+              </div>
+              <div className="tw-rounded-md tw-bg-[#f4f7fb] tw-p-3 tw-text-left tw-text-sm tw-text-[#3d506d]">
+                <span className="tw-block">Biển số: <strong>{currentVehicle?.licensePlate ?? "--"}</strong></span>
+                <span className="tw-mt-1 tw-block">Hiệu lực: <strong>{formatDateRange(qrCredential.effectiveFrom, qrCredential.effectiveTo)}</strong></span>
+                <span className="tw-mt-1 tw-block">Bãi xe: <strong>{parkingLotById.get(qrCredential.parkingLotId)?.name ?? qrCredential.parkingLotId}</strong></span>
+              </div>
+              {qrCredential.accessBlocked ? (
+                <div className="tw-rounded-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-p-3 tw-text-left tw-text-sm tw-font-semibold tw-text-amber-800" role="status">
+                  <i className="fas fa-lock tw-mr-2" />Vé đang bị tạm khóa. QR và thẻ vật lý hiện không thể dùng để vào bãi.
+                </div>
+              ) : null}
+              <div className="tw-grid tw-grid-cols-2 tw-gap-2 max-[520px]:tw-grid-cols-1">
+                <a
+                  className="tw-inline-flex tw-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-bg-[#1263e9] tw-px-4 tw-font-bold tw-text-white tw-no-underline hover:tw-bg-[#0756d8]"
+                  download={`coparking-qr-${compactCode(qrCredential.subscriptionId)}.png`}
+                  href={qrCredential.qrCodeDataUrl}
+                >
+                  <i className="fas fa-download" />Tải ảnh QR
+                </a>
+                <button className="tw-inline-flex tw-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-[#b9d3fb] tw-bg-[#edf4ff] tw-px-4 tw-font-bold tw-text-[#0756d8] hover:tw-bg-[#dfeaff] disabled:tw-cursor-not-allowed disabled:tw-opacity-60" disabled={qrActionLoading} type="button" onClick={() => void refreshQrCredential()}>
+                  <i className={`fas ${qrActionLoading ? "fa-spinner fa-spin" : "fa-sync-alt"}`} />Làm mới QR
+                </button>
+              </div>
+              <button
+                className={`tw-inline-flex tw-h-10 tw-w-full tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-px-4 tw-font-bold disabled:tw-cursor-not-allowed disabled:tw-opacity-60 ${qrCredential.accessBlocked ? "tw-border-emerald-300 tw-bg-emerald-50 tw-text-emerald-700 hover:tw-bg-emerald-100" : "tw-border-red-200 tw-bg-red-50 tw-text-red-700 hover:tw-bg-red-100"}`}
+                disabled={qrActionLoading}
+                type="button"
+                onClick={() => void toggleSubscriptionAccess()}
+              >
+                <i className={`fas ${qrCredential.accessBlocked ? "fa-unlock" : "fa-lock"}`} />
+                {qrCredential.accessBlocked ? "Kích hoạt lại vé" : "Khóa vé đang sử dụng"}
+              </button>
+              <p className="tw-m-0 tw-text-left tw-text-xs tw-leading-5 tw-text-[#71819a]">
+                QR này là mã cố định của vé và chỉ hợp lệ với phương tiện đã đăng ký. Việc kiểm tra QR ở giai đoạn này chưa tự động ghi nhận xe vào/ra.
+              </p>
+            </>
+          ) : null}
         </div>
       </Modal>
     </CustomerPortalLayout>

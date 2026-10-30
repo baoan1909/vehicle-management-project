@@ -22,6 +22,9 @@ public class SubscriptionAdminResponse {
     private UUID cardId;
     private UUID ticketTypeId;
     private UUID priceRuleId;
+    private Integer periodQuantity;
+    private Boolean physicalCardRequested;
+    private BigDecimal physicalCardDeposit;
     private LocalDate requestedEffectiveFrom;
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
@@ -34,6 +37,11 @@ public class SubscriptionAdminResponse {
     private UUID rejectedBy;
     private Instant rejectedAt;
     private LocalDate cardReceiptDate;
+    private Boolean accessBlocked;
+    private Instant accessBlockedAt;
+    private UUID accessBlockedBy;
+    private Instant accessRestoredAt;
+    private UUID accessRestoredBy;
     private Instant createdAt;
     private UUID createdBy;
     private Instant updatedAt;

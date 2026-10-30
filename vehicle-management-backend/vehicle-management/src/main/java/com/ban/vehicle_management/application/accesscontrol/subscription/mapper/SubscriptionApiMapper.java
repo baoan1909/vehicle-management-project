@@ -24,6 +24,7 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "effectiveFrom", ignore = true)
     @Mapping(target = "effectiveTo", ignore = true)
     @Mapping(target = "price", ignore = true)
+    @Mapping(target = "physicalCardDeposit", ignore = true)
     @Mapping(target = "requestedVoucherCode", source = "voucherCode")
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
@@ -37,6 +38,14 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "idempotencyKey", ignore = true)
+    @Mapping(target = "qrAccessToken", ignore = true)
+    @Mapping(target = "qrIssuedAt", ignore = true)
+    @Mapping(target = "qrRevokedAt", ignore = true)
+    @Mapping(target = "accessBlocked", ignore = true)
+    @Mapping(target = "accessBlockedAt", ignore = true)
+    @Mapping(target = "accessBlockedBy", ignore = true)
+    @Mapping(target = "accessRestoredAt", ignore = true)
+    @Mapping(target = "accessRestoredBy", ignore = true)
     Subscription toDomain(CreateSubscriptionRequest request);
 
     @Mapping(target = "subscriptionId", ignore = true)
@@ -45,6 +54,7 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "effectiveFrom", ignore = true)
     @Mapping(target = "effectiveTo", ignore = true)
     @Mapping(target = "price", ignore = true)
+    @Mapping(target = "physicalCardDeposit", ignore = true)
     @Mapping(target = "requestedVoucherCode", source = "voucherCode")
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
@@ -58,6 +68,14 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "idempotencyKey", ignore = true)
+    @Mapping(target = "qrAccessToken", ignore = true)
+    @Mapping(target = "qrIssuedAt", ignore = true)
+    @Mapping(target = "qrRevokedAt", ignore = true)
+    @Mapping(target = "accessBlocked", ignore = true)
+    @Mapping(target = "accessBlockedAt", ignore = true)
+    @Mapping(target = "accessBlockedBy", ignore = true)
+    @Mapping(target = "accessRestoredAt", ignore = true)
+    @Mapping(target = "accessRestoredBy", ignore = true)
     Subscription toDomain(CreateSubscriptionAdminRequest request);
 
     @Mapping(target = "subscriptionId", ignore = true)
@@ -67,6 +85,7 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "effectiveFrom", ignore = true)
     @Mapping(target = "effectiveTo", ignore = true)
     @Mapping(target = "price", ignore = true)
+    @Mapping(target = "physicalCardDeposit", ignore = true)
     @Mapping(target = "requestedVoucherCode", source = "voucherCode")
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "approvedBy", ignore = true)
@@ -80,6 +99,14 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     @Mapping(target = "idempotencyKey", ignore = true)
+    @Mapping(target = "qrAccessToken", ignore = true)
+    @Mapping(target = "qrIssuedAt", ignore = true)
+    @Mapping(target = "qrRevokedAt", ignore = true)
+    @Mapping(target = "accessBlocked", ignore = true)
+    @Mapping(target = "accessBlockedAt", ignore = true)
+    @Mapping(target = "accessBlockedBy", ignore = true)
+    @Mapping(target = "accessRestoredAt", ignore = true)
+    @Mapping(target = "accessRestoredBy", ignore = true)
     Subscription toDomain(UpdateSubscriptionRequest request);
 
     SubscriptionAdminResponse toAdminResponse(Subscription subscription);
