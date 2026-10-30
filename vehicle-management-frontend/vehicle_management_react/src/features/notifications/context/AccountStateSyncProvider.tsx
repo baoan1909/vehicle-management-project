@@ -225,15 +225,11 @@ export function AccountStateSyncProvider({ children }: PropsWithChildren) {
 
     processedIdsRef.current = readProcessedIds(accountId);
     let active = true;
-    const reconcileAfterConnection = () => {
-      if (!active) return;
-      void requestSync({
-        refreshAccess: true,
-        refreshApproval: true,
-        refreshAvatar: true,
-        refreshOrganizationScope: true,
-        refreshProfile: true,
-      });
+    const reconcileAfterConnection = (reconnected: boolean) => {
+      if (!active || !reconnected) return;
+      // REST notifications are the durable catch-up channel. Processing unseen
+      // notifications below will request only the account domains they affect;
+      // reconnecting the transport must not invalidate the whole profile.
       void reloadNotifications();
     };
     const unsubscribe = subscribeNotificationRealtime({
@@ -267,10 +263,10 @@ export function AccountStateSyncProvider({ children }: PropsWithChildren) {
       lastForegroundSyncRef.current = now;
       void requestSync({
         refreshAccess: true,
-        refreshApproval: true,
+        refreshApproval: false,
         refreshAvatar: false,
-        refreshOrganizationScope: true,
-        refreshProfile: true,
+        refreshOrganizationScope: false,
+        refreshProfile: false,
       });
       void reloadNotifications();
     };

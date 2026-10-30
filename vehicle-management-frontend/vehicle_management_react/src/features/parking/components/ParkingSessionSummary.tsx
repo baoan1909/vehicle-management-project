@@ -17,6 +17,10 @@ type ParkingSessionSummaryProps = {
   paymentActionError?: string;
   preview?: ParkingSessionCheckOutPreviewResponse | null;
   result?: ParkingSessionOperationResponse | null;
+  levelLabel?: string;
+  parkingSpaceCode?: string;
+  trackingMode?: "CAPACITY" | "SPACE" | null;
+  zoneLabel?: string;
 };
 
 function formatCurrency(value?: number | null) {
@@ -122,6 +126,10 @@ export function ParkingSessionSummary({
   paymentActionError,
   preview,
   result,
+  levelLabel,
+  parkingSpaceCode,
+  trackingMode,
+  zoneLabel,
 }: ParkingSessionSummaryProps) {
   const isCheckIn = mode === "check-in";
   const session = result?.parkingSession ?? preview?.parkingSession;
@@ -130,6 +138,8 @@ export function ParkingSessionSummary({
   const invoice = result && "invoice" in result ? result.invoice : null;
   const payableAmount = invoice?.finalAmount ?? session?.totalPrice ?? preview?.estimatedTotalPrice ?? null;
   const customerType = result?.customerType ?? preview?.customerType;
+  const resolvedTrackingMode = session?.trackingMode ?? trackingMode;
+  const resolvedSpaceCode = session?.parkingSpaceCode ?? parkingSpaceCode;
   const checkOutTime = result
     ? session?.checkOutTime ?? event?.eventTime ?? preview?.previewCheckOutTime
     : preview?.previewCheckOutTime ?? (isCheckIn ? null : formatCurrentCheckOutTime());
@@ -161,6 +171,18 @@ export function ParkingSessionSummary({
 
         <div className="tw-grid tw-gap-2.5">
           <DetailRow icon="far fa-user" label="Loại hành khách" value={customerTypeLabel(customerType)} />
+          <DetailRow icon="fas fa-map-marker-alt" label="Khu vực" value={fallback(zoneLabel)} />
+          {levelLabel ? <DetailRow icon="fas fa-layer-group" label="Tầng" value={levelLabel} /> : null}
+          {resolvedTrackingMode ? (
+            <DetailRow
+              icon="fas fa-route"
+              label="Chế độ theo dõi"
+              value={resolvedTrackingMode === "SPACE" ? "Theo từng ô" : "Theo sức chứa"}
+            />
+          ) : null}
+          {resolvedTrackingMode !== "CAPACITY" && (session?.parkingSpaceId || resolvedSpaceCode) ? (
+            <DetailRow icon="fas fa-parking" label="Ô đỗ" value={fallback(resolvedSpaceCode)} />
+          ) : null}
           <DetailRow icon="far fa-address-card" label="Mã phiên đỗ xe" value={session?.parkingSessionId?.slice(0, 13) ?? "Chưa có dữ liệu"} />
           <DetailRow icon="far fa-clock" label="Thời gian check-in" value={formatApplicationDateTime(session?.checkInTime)} />
           <DetailRow

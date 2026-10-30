@@ -17,6 +17,8 @@ export type ParkingRealtimeEvent = {
   parkingSpaceId: string | null;
   status: string | null;
   layoutVersion: number | null;
+  correlationId?: string | null;
+  summary?: Record<string, string> | null;
 };
 
 type ParkingRealtimeOptions = {

@@ -85,6 +85,8 @@ assert.match(files.router, /accessStatus === "error"[\s\S]*?<AccessErrorGate \/>
 assert.match(files.router, /canAccessAdminRoute\(user, path\)/);
 assert.match(files.router, /canAccessCustomerRoute\(user, path\)/);
 assert.match(files.router, /getAccessStateRedirect\(user, path\)/);
+assert.match(files.router, /accessStateRedirect && !canAccessRestrictedCustomerSupportRoute\(user, path\)/);
+assert.match(files.routePermissions, /restrictedCustomerSupportRoutes\.has\(path\) && canAccessCustomerRoute\(user, path\)/);
 assert.match(files.accessScreens, /export function NoAccessScreen/);
 assert.match(files.accessScreens, /export function AccessErrorScreen/);
 

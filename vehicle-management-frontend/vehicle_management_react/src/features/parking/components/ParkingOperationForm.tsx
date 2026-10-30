@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import type { SelectMenuOption } from "@/components/ui";
 import { Button, Card, CardContent, CardHeader, SelectMenu } from "@/components/ui";
@@ -9,6 +9,13 @@ import type { ParkingOperationMode } from "./OperationModeTabs";
 
 type OcrStatus = "idle" | "recognizing" | "success" | "review" | "error";
 export type CheckOutPaymentMethod = "CASH" | "VNPAY";
+export type ValidationChipState = "idle" | "loading" | "valid" | "invalid" | "stale";
+
+export type ParkingOperationValidationChip = {
+  icon: string;
+  label: string;
+  state: ValidationChipState;
+};
 
 export type ParkingOperationValidationErrors = {
   cardUid?: string;
@@ -24,6 +31,7 @@ type ParkingOperationFormProps = {
   checkOutPaymentMethod: CheckOutPaymentMethod;
   estimatedPaymentAmount?: number | null;
   error?: string;
+  checkInLocationPanel?: ReactNode;
   isSubmitting?: boolean;
   isLoadingCards?: boolean;
   laneId: string;
@@ -37,6 +45,8 @@ type ParkingOperationFormProps = {
   ocrResult?: LicensePlateOcrResponse | null;
   ocrStatus?: OcrStatus;
   personImageReady?: boolean;
+  submitDisabled?: boolean;
+  submitLabel?: string;
   qrScanDisabled?: boolean;
   showVehicleTypeField?: boolean;
   subscriptionQrLicensePlate?: string;
@@ -45,10 +55,12 @@ type ParkingOperationFormProps = {
   vehicleTypeId: string;
   vehicleTypeOptions: SelectMenuOption[];
   vehicleTypeRequired?: boolean;
+  validationChips: ParkingOperationValidationChip[];
   onCardUidChange: (value: string) => void;
   onCheckOutPaymentMethodChange: (value: CheckOutPaymentMethod) => void;
   onLaneChange: (laneId: string) => void;
   onLicensePlateChange: (value: string) => void;
+  onLicensePlateCommit?: () => void;
   onNoteChange: (value: string) => void;
   onApplyOcrCandidate?: (candidate: LicensePlateOcrCandidate) => void;
   onScanSubscriptionQr?: () => void;
@@ -56,10 +68,17 @@ type ParkingOperationFormProps = {
   onVehicleTypeChange: (value: string) => void;
 };
 
-function ValidationChip({ icon, label }: { icon: string; label: string }) {
+function ValidationChip({ icon, label, state }: ParkingOperationValidationChip) {
+  const toneClassName = {
+    idle: "tw-border-vm-slate-200 tw-bg-vm-slate-25 tw-text-vm-slate-500",
+    loading: "tw-border-blue-200 tw-bg-blue-50 tw-text-vm-primary",
+    valid: "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700",
+    invalid: "tw-border-red-200 tw-bg-red-50 tw-text-red-600",
+    stale: "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700",
+  }[state];
   return (
-    <span className="tw-flex tw-h-9 tw-min-w-0 tw-items-center tw-justify-center tw-gap-1.5 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-200 tw-bg-emerald-50 tw-px-2 tw-text-[0.72rem] tw-font-extrabold tw-text-emerald-700">
-      <i className={cn(icon, "tw-text-[0.9rem]")} />
+    <span className={cn("tw-flex tw-h-9 tw-min-w-0 tw-items-center tw-justify-center tw-gap-1.5 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-px-2 tw-text-[0.72rem] tw-font-extrabold", toneClassName)}>
+      <i className={cn(state === "loading" ? "fas fa-spinner fa-spin" : icon, "tw-text-[0.9rem]")} />
       {label}
     </span>
   );
@@ -84,12 +103,14 @@ function FieldShell({
   placeholder,
   value,
   error,
+  onCommit,
 }: {
   actionIcon?: string;
   error?: string;
   icon: string;
   label: string;
   onChange: (value: string) => void;
+  onCommit?: () => void;
   placeholder: string;
   value: string;
 }) {
@@ -106,6 +127,13 @@ function FieldShell({
           value={value}
           placeholder={placeholder}
           onChange={(event) => onChange(event.target.value)}
+          onBlur={onCommit}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              onCommit?.();
+            }
+          }}
         />
         {actionIcon ? <i className={cn(actionIcon, "tw-text-vm-primary")} /> : null}
       </span>
@@ -324,6 +352,7 @@ export function ParkingOperationForm({
   checkOutPaymentMethod,
   estimatedPaymentAmount,
   error,
+  checkInLocationPanel,
   isLoadingCards = false,
   isSubmitting = false,
   laneId,
@@ -337,6 +366,8 @@ export function ParkingOperationForm({
   ocrResult,
   ocrStatus = "idle",
   personImageReady = true,
+  submitDisabled = false,
+  submitLabel,
   qrScanDisabled = false,
   showVehicleTypeField = true,
   subscriptionQrLicensePlate,
@@ -345,10 +376,12 @@ export function ParkingOperationForm({
   vehicleTypeId,
   vehicleTypeOptions,
   vehicleTypeRequired = true,
+  validationChips,
   onCardUidChange,
   onCheckOutPaymentMethodChange,
   onLaneChange,
   onLicensePlateChange,
+  onLicensePlateCommit,
   onNoteChange,
   onApplyOcrCandidate,
   onScanSubscriptionQr,
@@ -367,7 +400,7 @@ export function ParkingOperationForm({
     !checkOutPreviewReady ? "phiên gửi xe" : "",
     ocrStatus === "recognizing" ? "OCR đang xử lý" : "",
   ].filter(Boolean);
-  const canSubmit = missingRequirements.length === 0 && !isSubmitting;
+  const canSubmit = missingRequirements.length === 0 && !isSubmitting && !submitDisabled;
   const requiresPayment = !isCheckIn && checkOutCustomerType === "VISITOR";
   const isSubscription = !isCheckIn && checkOutCustomerType === "SUBSCRIPTION";
   const vnpayUnavailable =
@@ -402,9 +435,9 @@ export function ParkingOperationForm({
 
       <CardContent className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-gap-3 tw-p-4">
         <div className="tw-grid tw-grid-cols-3 tw-gap-2">
-          <ValidationChip icon="fas fa-shield-alt" label={subscriptionQrLicensePlate ? "QR hợp lệ" : "Thẻ hợp lệ"} />
-          <ValidationChip icon={isCheckIn ? "fas fa-arrow-down" : "fas fa-arrow-up"} label={isCheckIn ? "Làn vào" : "Làn ra"} />
-          <ValidationChip icon="fas fa-parking" label={isCheckIn ? "Còn chỗ" : "Đủ điều kiện"} />
+          {validationChips.map((chip, index) => (
+            <ValidationChip key={`${chip.label}-${index}`} {...chip} />
+          ))}
         </div>
 
         {subscriptionQrLicensePlate ? (
@@ -459,6 +492,7 @@ export function ParkingOperationForm({
           value={licensePlate}
           placeholder="VD: 30A-123.45"
           onChange={onLicensePlateChange}
+          onCommit={onLicensePlateCommit}
           error={validationErrors.licensePlate}
         />
         <OcrStatusMessage
@@ -490,6 +524,8 @@ export function ParkingOperationForm({
           </div>
           <FieldError message={validationErrors.laneId} />
         </label>
+
+        {isCheckIn ? checkInLocationPanel : null}
 
         {!isCheckIn ? (
           <div className="tw-grid tw-gap-2">
@@ -600,13 +636,15 @@ export function ParkingOperationForm({
             !canSubmit && !isSubmitting ? "tw-border-red-500 tw-bg-red-500 hover:tw-bg-red-600" : "",
           )}
           size="lg"
-          disabled={isSubmitting}
+          disabled={!canSubmit}
           loading={isSubmitting}
           onClick={onSubmit}
         >
           {!isSubmitting ? <i className="far fa-check-circle tw-text-[1.18rem]" /> : null}
           {isSubmitting
             ? "Đang xử lý..."
+            : submitLabel
+              ? submitLabel
             : isCheckIn
               ? "Xác nhận check-in"
               : requiresPayment && checkOutPaymentMethod === "VNPAY"

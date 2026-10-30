@@ -140,7 +140,7 @@ export function ProfilePage() {
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordSending, setPasswordSending] = useState(false);
   const [passwordError, setPasswordError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
@@ -152,9 +152,10 @@ export function ProfilePage() {
 
   useEffect(() => {
     let ignore = false;
+    const showInitialLoading = profile === null;
 
     async function loadProfile() {
-      setLoading(true);
+      if (showInitialLoading) setLoading(true);
       setError("");
       try {
         const nextProfile = await getCustomerPortalProfile();
@@ -189,7 +190,7 @@ export function ProfilePage() {
       } catch (requestError) {
         if (!ignore) setError(requestError instanceof Error ? requestError.message : "Không thể tải hồ sơ khách hàng.");
       } finally {
-        if (!ignore) setLoading(false);
+        if (!ignore && showInitialLoading) setLoading(false);
       }
     }
 

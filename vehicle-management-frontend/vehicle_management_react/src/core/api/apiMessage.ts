@@ -18,6 +18,31 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Card already has an open parking session": "Thẻ đang có một phiên gửi xe chưa kết thúc.",
   "Zone has no available capacity": "Khu vực đỗ xe không còn sức chứa khả dụng.",
   "Zone capacity is full": "Khu vực đỗ xe đã hết chỗ.",
+  "A concurrent check-in already consumed this admission slot":
+    "Điều kiện check-in vừa thay đổi do một lượt xe khác. Vui lòng kiểm tra lại.",
+  "Allocated parking space is not ready for check-in":
+    "Ô đỗ được cấp hiện không sẵn sàng để check-in.",
+  "No eligible visitor parking space is available":
+    "Hiện không còn ô phù hợp cho khách vãng lai.",
+  "Active subscription has no effective parking-space allocation":
+    "Vé đăng ký chưa có ô đỗ được cấp còn hiệu lực.",
+  "parkingSpaceId must be null for CAPACITY zones":
+    "Khu vực theo sức chứa không chấp nhận ô đỗ cụ thể.",
+  "Parking space assignment is not available":
+    "Chức năng phân ô hiện không khả dụng.",
+  "parkingSpaceId does not match the subscription allocation":
+    "Ô đỗ không khớp với ô đã cấp cho vé đăng ký.",
+  "parkingSpaceId is required for visitors in SPACE zones":
+    "Vui lòng chọn ô đỗ cho khách vãng lai.",
+  "Parking space is not available for check-in":
+    "Ô vừa chọn không còn khả dụng.",
+  "Parking space does not support this vehicle type":
+    "Ô vừa chọn không phù hợp với loại xe.",
+  "Parking space is already occupied": "Ô vừa chọn đã có xe đỗ.",
+  "Parking space is reserved for a subscription":
+    "Ô vừa chọn đã được dành cho vé đăng ký.",
+  "Parking space is allocated to another subscription":
+    "Ô đỗ đã được cấp cho một vé đăng ký khác.",
   "Customer is not active": "Khách hàng hiện không hoạt động.",
   "Customer is not approved": "Khách hàng chưa được phê duyệt.",
   "Subscription customer does not match customer": "Vé đăng ký không thuộc khách hàng này.",

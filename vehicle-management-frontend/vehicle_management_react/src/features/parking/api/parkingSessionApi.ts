@@ -1,6 +1,7 @@
 import { appConfig } from "@/config/env";
 import { apiEndpoints } from "@/core/api/apiEndpoints";
 import { apiClient } from "@/core/api/apiClient";
+import { ApiError } from "@/core/api/apiError";
 import { localizeApiMessage, localizeApiResponseBody } from "@/core/api/apiMessage";
 import { getValidAccessToken, refreshAccessToken } from "@/core/auth/oidcSession";
 
@@ -15,6 +16,9 @@ export type LaneDirection = "IN" | "OUT";
 export type LaneStatus = "ACTIVE" | "MAINTENANCE" | "CLOSED";
 export type ParkingCardStatus = "AVAILABLE" | "ASSIGNED" | "IN_USE" | "BLOCKED" | "LOST" | "RETIRED" | "RESERVED";
 export type ZoneStatus = "ACTIVE" | "MAINTENANCE" | "CLOSED";
+export type TrackingMode = "CAPACITY" | "SPACE";
+export type ParkingCustomerType = "VISITOR" | "SUBSCRIPTION";
+export type EligibleParkingSpaceStatus = "AVAILABLE" | "RESERVED";
 
 export type LaneResponse = {
   code: string;
@@ -66,7 +70,9 @@ export type ZoneResponse = {
   code: string;
   name: string;
   parkingLotId?: string;
+  parkingLevelId?: string | null;
   status: ZoneStatus;
+  trackingMode?: TrackingMode | null;
   vehicleTypeId?: string;
   zoneId: string;
 };
@@ -78,8 +84,35 @@ export type CheckInParkingSessionRequest = {
   note?: string;
   plateFormatConfirmed?: boolean;
   plateIdentityOverride?: boolean;
+  parkingSpaceId?: string;
   subscriptionQrPayload?: string;
   vehicleTypeId?: string;
+};
+
+export type CheckInPreviewRequest = {
+  cardUid?: string;
+  laneId: string;
+  licensePlate: string;
+  subscriptionQrPayload?: string;
+  vehicleTypeId?: string;
+};
+
+export type EligibleParkingSpace = {
+  code: string;
+  parkingSpaceId: string;
+  status: EligibleParkingSpaceStatus;
+};
+
+export type ParkingSessionCheckInPreviewResponse = {
+  customerType: ParkingCustomerType;
+  eligibleSpaces: EligibleParkingSpace[];
+  parkingLotId: string;
+  physicalAvailable: number;
+  recommendedParkingSpaceId?: string | null;
+  selectionRequired: boolean;
+  trackingMode: TrackingMode;
+  visitorAvailable: number;
+  zoneId: string;
 };
 
 export type CheckOutParkingSessionRequest = {
@@ -110,7 +143,14 @@ export type ParkingSessionResponse = {
   licensePlateOutNeedsReview?: boolean;
   parkingSessionId: string;
   parkingLotId?: string;
-  parkingSpaceId?: string;
+  parkingLevelCode?: string | null;
+  parkingLevelId?: string | null;
+  parkingLevelName?: string | null;
+  parkingSpaceCode?: string | null;
+  parkingSpaceId?: string | null;
+  subscriptionId?: string | null;
+  customerType?: ParkingCustomerType | string;
+  trackingMode?: TrackingMode | null;
   status: "OPEN" | "CLOSED" | "LOST_CARD";
   totalPrice?: number;
   vehicleTypeId?: string;
@@ -368,6 +408,22 @@ export async function fetchOpenParkingSessionByCardUid(cardUid: string) {
   return response.data;
 }
 
+export async function previewCheckInParkingSession(
+  request: CheckInPreviewRequest,
+  signal?: AbortSignal,
+) {
+  const response = await apiClient<ApiResponse<ParkingSessionCheckInPreviewResponse>>(
+    `${apiEndpoints.parking.parkingSessions}/check-in/preview`,
+    {
+      body: request,
+      method: "POST",
+      signal,
+    },
+  );
+
+  return response.data;
+}
+
 export async function fetchOpenParkingSessionBySubscriptionQr(
   subscriptionQrPayload: string,
   parkingLotId: string,
@@ -492,7 +548,19 @@ async function postMultipart<T>(path: string, body: FormData): Promise<T> {
         ? responseBody.message
         : null;
 
-    throw new Error(localizeApiMessage(rawMessage, response.status));
+    const errorCode =
+      responseBody &&
+      typeof responseBody === "object" &&
+      "errorCode" in responseBody &&
+      typeof responseBody.errorCode === "string"
+        ? responseBody.errorCode
+        : undefined;
+
+    throw new ApiError(localizeApiMessage(rawMessage, response.status), {
+      code: errorCode,
+      kind: "http",
+      status: response.status,
+    });
   }
 
   return localizeApiResponseBody(responseBody, response.status) as T;

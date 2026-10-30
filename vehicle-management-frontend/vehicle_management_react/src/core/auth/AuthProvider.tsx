@@ -389,7 +389,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const hasResolvedAccess = Boolean(user && Array.isArray(user.permissionCodes));
   useEffect(() => {
     if (!user || !hasResolvedAccess) return;
-    const intervalId = window.setInterval(() => void refreshAccess(), ACCESS_REFRESH_INTERVAL_MS);
+    const intervalId = window.setInterval(() => {
+      if (document.visibilityState === "visible") void refreshAccess();
+    }, ACCESS_REFRESH_INTERVAL_MS);
     return () => {
       window.clearInterval(intervalId);
       refreshAbortRef.current?.abort();

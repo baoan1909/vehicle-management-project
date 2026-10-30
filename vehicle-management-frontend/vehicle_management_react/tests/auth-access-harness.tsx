@@ -2,7 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { User } from "oidc-client-ts";
 import { AppProviders } from "@/app/providers/AppProviders";
-import { canAccessAdminRoute, canAccessCustomerRoute } from "@/app/routePermissions";
+import {
+  canAccessAdminRoute,
+  canAccessCustomerRoute,
+  canAccessRestrictedCustomerSupportRoute,
+} from "@/app/routePermissions";
 import { apiClient } from "@/core/api/apiClient";
 import { resolvePostLoginPath } from "@/core/auth/landing";
 import { oidcSettings, oidcUserManager } from "@/core/auth/oidcClient";
@@ -99,6 +103,9 @@ function Probe() {
       <output data-testid="can-dashboard">{String(canAccessAdminRoute(auth.user, "/admin/dashboard"))}</output>
       <output data-testid="can-customer-support">{String(canAccessCustomerRoute(auth.user, "/customer/support"))}</output>
       <output data-testid="can-customer-chat">{String(canAccessCustomerRoute(auth.user, "/customer/support/chat"))}</output>
+      <output data-testid="can-restricted-customer-support">{String(canAccessRestrictedCustomerSupportRoute(auth.user, "/customer/support"))}</output>
+      <output data-testid="can-restricted-customer-chat">{String(canAccessRestrictedCustomerSupportRoute(auth.user, "/customer/support/chat"))}</output>
+      <output data-testid="can-restricted-customer-vehicles">{String(canAccessRestrictedCustomerSupportRoute(auth.user, "/customer/vehicles"))}</output>
       <output data-testid="can-customer-vehicles">{String(canAccessCustomerRoute(auth.user, "/customer/vehicles"))}</output>
       <output data-testid="can-customer-wallet">{String(canAccessCustomerRoute(auth.user, "/customer/wallet"))}</output>
       <output data-testid="snapshot-changes">{snapshotChanges}</output>

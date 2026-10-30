@@ -20,12 +20,12 @@ export function ChatInboxButton() {
 
     try {
       const response = await getChatInbox();
-      setUnreadCount(
-        (response.data ?? []).reduce((total, item) => total + Math.max(0, item.unreadCount ?? 0), 0),
-      );
+      const nextUnreadCount = (response.data ?? [])
+        .reduce((total, item) => total + Math.max(0, item.unreadCount ?? 0), 0);
+      setUnreadCount((current) => current === nextUnreadCount ? current : nextUnreadCount);
     } catch {
-      // Không làm gián đoạn header nếu người dùng vừa đổi quyền hoặc API chat tạm thời chưa sẵn sàng.
-      setUnreadCount(0);
+      // Giữ số đã biết gần nhất khi API tạm lỗi; quyền bị thu hồi vẫn được xử lý
+      // bởi nhánh canReadChat ở đầu hàm.
     }
   }, [canReadChat]);
 
@@ -36,13 +36,18 @@ export function ChatInboxButton() {
   useEffect(() => {
     if (!canReadChat) return undefined;
 
-    const refreshInterval = window.setInterval(() => void loadUnreadCount(), 60_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void loadUnreadCount();
+    };
+    const refreshInterval = window.setInterval(refreshWhenVisible, 60_000);
     const unsubscribe = subscribeChatRealtime({
       onEvent: () => void loadUnreadCount(),
     });
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
       window.clearInterval(refreshInterval);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
       unsubscribe();
     };
   }, [canReadChat, loadUnreadCount]);
