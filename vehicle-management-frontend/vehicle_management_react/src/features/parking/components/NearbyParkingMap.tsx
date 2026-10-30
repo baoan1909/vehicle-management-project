@@ -17,11 +17,13 @@ type Props = {
   onPickLocation: (point: MapPoint) => void;
   onSelectLot: (parkingLotId: string) => void;
   pickingEnabled: boolean;
+  radiusKm: number;
   selectedLotId: string | null;
   userLocation: MapPoint | null;
 };
 
 const VIETNAM_CENTER: [number, number] = [16.047079, 108.20623];
+const METERS_PER_KILOMETER = 1_000;
 
 function getLotMarkerColor(lot: NearbyParkingLot, selectedLotId: string | null) {
   if (lot.parkingLotId === selectedLotId) return "#dc2626";
@@ -37,7 +39,12 @@ function getLotStatusLabel(status: NearbyParkingLot["status"]) {
   return "Đã đóng";
 }
 
-function ViewportController({ lots, selectedLotId, userLocation }: Pick<Props, "lots" | "selectedLotId" | "userLocation">) {
+function ViewportController({
+  lots,
+  radiusKm,
+  selectedLotId,
+  userLocation,
+}: Pick<Props, "lots" | "radiusKm" | "selectedLotId" | "userLocation">) {
   const map = useMap();
 
   useEffect(() => {
@@ -47,19 +54,14 @@ function ViewportController({ lots, selectedLotId, userLocation }: Pick<Props, "
       return;
     }
 
-    if (userLocation && lots.length) {
-      const bounds = L.latLngBounds([
-        [userLocation.latitude, userLocation.longitude],
-        ...lots.map((lot): [number, number] => [lot.latitude, lot.longitude]),
-      ]);
-      map.fitBounds(bounds, { maxZoom: 15, padding: [36, 36] });
-      return;
-    }
-
     if (userLocation) {
-      map.setView([userLocation.latitude, userLocation.longitude], 15);
+      const searchBounds = L.latLng(
+        userLocation.latitude,
+        userLocation.longitude,
+      ).toBounds(radiusKm * METERS_PER_KILOMETER * 2);
+      map.fitBounds(searchBounds, { padding: [36, 36] });
     }
-  }, [lots, map, selectedLotId, userLocation]);
+  }, [lots, map, radiusKm, selectedLotId, userLocation]);
 
   return null;
 }
@@ -81,6 +83,7 @@ export function NearbyParkingMap({
   onPickLocation,
   onSelectLot,
   pickingEnabled,
+  radiusKm,
   selectedLotId,
   userLocation,
 }: Props) {
@@ -111,17 +114,20 @@ export function NearbyParkingMap({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         eventHandlers={{ tileerror: onMapError }}
       />
-      <ViewportController lots={lots} selectedLotId={selectedLotId} userLocation={userLocation} />
+      <ViewportController
+        lots={lots}
+        radiusKm={radiusKm}
+        selectedLotId={selectedLotId}
+        userLocation={userLocation}
+      />
       <PointPicker enabled={pickingEnabled} onPick={onPickLocation} />
       {userLocation ? (
         <>
-          {userLocation.accuracy ? (
-            <Circle
-              center={[userLocation.latitude, userLocation.longitude]}
-              radius={userLocation.accuracy}
-              pathOptions={{ color: "#2563eb", fillColor: "#93c5fd", fillOpacity: 0.15, weight: 1 }}
-            />
-          ) : null}
+          <Circle
+            center={[userLocation.latitude, userLocation.longitude]}
+            radius={radiusKm * METERS_PER_KILOMETER}
+            pathOptions={{ color: "#2563eb", fillColor: "#93c5fd", fillOpacity: 0.15, weight: 1 }}
+          />
           <Marker
             alt="Vị trí tìm kiếm của bạn"
             icon={userIcon}

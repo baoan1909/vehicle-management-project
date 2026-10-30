@@ -97,6 +97,28 @@ public interface MemberParkingLotScopeRepository extends JpaRepository<MemberPar
             @Param("roleCode") String roleCode
     );
 
+    @Query("""
+        select distinct membership.accountId
+        from MemberParkingLotScopeEntity scope, OrganizationMembershipEntity membership,
+             OrganizationEntity organization, AccountEntity account, RoleEntity role
+        where scope.organizationMembershipId = membership.organizationMembershipId
+          and membership.organizationId = organization.organizationId
+          and membership.accountId = account.accountId
+          and account.roleId = role.roleId
+          and scope.parkingLotId = :parkingLotId
+          and membership.status = :membershipStatus
+          and organization.status = com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus.ACTIVE
+          and account.status = :accountStatus
+          and role.code in :roleCodes
+          and role.isActive = true
+        """)
+    Set<UUID> findActiveAccountIdsByParkingLotIdAndRoleCodeIn(
+            @Param("parkingLotId") UUID parkingLotId,
+            @Param("membershipStatus") OrganizationMembershipStatus membershipStatus,
+            @Param("accountStatus") com.ban.vehicle_management.shared.enumeration.iam.AccountStatus accountStatus,
+            @Param("roleCodes") Collection<String> roleCodes
+    );
+
     @Modifying
     @Query(value = """
         delete from iam.member_parking_lot_scopes scope

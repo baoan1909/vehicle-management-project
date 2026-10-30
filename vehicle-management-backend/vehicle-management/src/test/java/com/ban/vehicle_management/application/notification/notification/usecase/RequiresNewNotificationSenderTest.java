@@ -6,7 +6,9 @@ import static org.mockito.Mockito.verify;
 import com.ban.vehicle_management.application.notification.notification.model.BroadcastNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
+import com.ban.vehicle_management.domain.notification.notification.model.Notification;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
+import java.util.List;
 import java.lang.reflect.Method;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -52,9 +54,12 @@ class RequiresNewNotificationSenderTest {
                 "approval_requests",
                 UUID.randomUUID()
         );
+        List<Notification> expected = List.of(new Notification());
+        org.mockito.Mockito.when(notificationPortIn.sendBroadcastWebNotification(command)).thenReturn(expected);
 
-        sender.sendBroadcast(command);
+        List<Notification> actual = sender.sendBroadcast(command);
 
+        assertEquals(expected, actual);
         verify(notificationPortIn).sendBroadcastWebNotification(command);
     }
 

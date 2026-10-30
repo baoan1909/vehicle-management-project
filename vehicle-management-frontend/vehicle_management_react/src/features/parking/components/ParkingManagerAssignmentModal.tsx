@@ -167,7 +167,7 @@ export function ParkingManagerAssignmentModal({ lot, open, onClose, onChanged }:
           </div>
         ) : null}
         <p className="tw-m-0 tw-text-[0.8rem] tw-font-medium tw-text-slate-500">
-          Manager chỉ đọc và cấu hình các bãi đã được phân công theo phạm vi tổ chức.
+          Partner Admin mặc định trực tiếp phụ trách toàn bộ bãi thuộc đối tác. Phân công tại đây chỉ dành cho tài khoản Parking Manager chuyên trách và không làm thay đổi role của Partner Admin.
         </p>
       </div>
       <ConfirmDialog
