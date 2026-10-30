@@ -537,6 +537,9 @@ test("26 pending custom-role customer remains profile-first with support-only ro
   await expect(page.getByTestId("landing")).toHaveText("/customer/profile");
   await expect(page.getByTestId("can-customer-support")).toHaveText("true");
   await expect(page.getByTestId("can-customer-chat")).toHaveText("true");
+  await expect(page.getByTestId("can-restricted-customer-support")).toHaveText("true");
+  await expect(page.getByTestId("can-restricted-customer-chat")).toHaveText("true");
+  await expect(page.getByTestId("can-restricted-customer-vehicles")).toHaveText("false");
   await expect(page.getByTestId("can-customer-vehicles")).toHaveText("false");
   await expect(page.getByTestId("can-customer-wallet")).toHaveText("false");
   await expect(page.getByTestId("can-dashboard")).toHaveText("false");
@@ -558,6 +561,9 @@ test("27 rejected custom-role customer remains profile-first with support-only r
   await expect(page.getByTestId("landing")).toHaveText("/customer/profile");
   await expect(page.getByTestId("can-customer-support")).toHaveText("true");
   await expect(page.getByTestId("can-customer-chat")).toHaveText("true");
+  await expect(page.getByTestId("can-restricted-customer-support")).toHaveText("true");
+  await expect(page.getByTestId("can-restricted-customer-chat")).toHaveText("true");
+  await expect(page.getByTestId("can-restricted-customer-vehicles")).toHaveText("false");
   await expect(page.getByTestId("can-customer-vehicles")).toHaveText("false");
   await expect(page.getByTestId("can-customer-wallet")).toHaveText("false");
   await expect(page.getByTestId("can-dashboard")).toHaveText("false");
@@ -616,6 +622,7 @@ test("28 approval and revoke refresh effective routes without a reload", async (
   await expect(page.getByTestId("revision")).toHaveText("after-revoke");
   await expect(page.getByTestId("landing")).toHaveText("/customer/profile");
   await expect(page.getByTestId("can-customer-support")).toHaveText("false");
+  await expect(page.getByTestId("can-restricted-customer-support")).toHaveText("false");
   await expect(page.getByTestId("can-customer-vehicles")).toHaveText("false");
   await expect(page.getByTestId("can-customer-wallet")).toHaveText("false");
 });

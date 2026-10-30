@@ -68,7 +68,6 @@ const ParkingLayoutEditorPage = lazyPage(() => import("@/features/parking"), "Pa
 const ParkingLotOverviewPage = lazyPage(() => import("@/features/parking"), "ParkingLotOverviewPage");
 const ParkingLotStructurePage = lazyPage(() => import("@/features/parking"), "ParkingLotStructurePage");
 const ParkingSessionPage = lazyPage(() => import("@/features/parking"), "ParkingSessionPage");
-const SwipeEntryPage = lazyPage(() => import("@/features/parking"), "SwipeEntryPage");
 const SwipeListPage = lazyPage(() => import("@/features/parking"), "SwipeListPage");
 const PricePlanListPage = lazyPage(() => import("@/features/pricing"), "PricePlanListPage");
 const PriceRuleListPage = lazyPage(() => import("@/features/pricing"), "PriceRuleListPage");
@@ -90,8 +89,8 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/dashboard", title: "Tong quan", layout: "admin", element: <DashboardPage /> },
   { path: "/api/dashboard/overview", title: "Tong quan", layout: "admin", element: <Navigate to="/admin/dashboard" replace /> },
   { path: "/admin/swipe", title: "Quan ly vao ra", layout: "admin", element: <SwipeListPage /> },
-  { path: "/admin/swipe/swipein", title: "Xe vao", layout: "admin", element: <SwipeEntryPage mode="in" /> },
-  { path: "/admin/swipe/swipeout", title: "Xe ra", layout: "admin", element: <SwipeEntryPage mode="out" /> },
+  { path: "/admin/swipe/swipein", title: "Xe vao", layout: "admin", element: <Navigate to="/admin/swipe?mode=check-in" replace /> },
+  { path: "/admin/swipe/swipeout", title: "Xe ra", layout: "admin", element: <Navigate to="/admin/swipe?mode=check-out" replace /> },
   { path: "/admin/swipe/sessions", title: "Phien gui xe", layout: "admin", element: <ParkingSessionPage /> },
   { path: "/admin/card", title: "Quan ly the", layout: "admin", element: <CardListPage /> },
   { path: "/admin/card/form", title: "Thong tin the", layout: "admin", element: <CardFormPage /> },

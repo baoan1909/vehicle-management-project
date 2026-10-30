@@ -70,6 +70,10 @@ const unmappedAdminRoutePermission = "__UNMAPPED_ADMIN_ROUTE__";
 
 export const customerFallbackRoute = "/customer/profile";
 const unmappedCustomerRoutePermission = "__UNMAPPED_CUSTOMER_ROUTE__";
+const restrictedCustomerSupportRoutes = new Set([
+  "/customer/support",
+  "/customer/support/chat",
+]);
 
 type CustomerRoutePermissionGroups = readonly (readonly string[])[];
 
@@ -124,6 +128,19 @@ export function getCustomerRoutePermissionGroups(path: string): CustomerRoutePer
 
 export function canAccessCustomerRoute(user: CurrentUser | null | undefined, path: string) {
   return getCustomerRoutePermissionGroups(path).every((permissionGroup) => hasAnyPermission(user, permissionGroup));
+}
+
+/**
+ * Pending or rejected customers remain restricted to their profile by default,
+ * but may use explicitly granted support capabilities while onboarding is not
+ * active. Permission checks stay authoritative; the route allow-list only marks
+ * which customer surfaces are safe before approval.
+ */
+export function canAccessRestrictedCustomerSupportRoute(
+  user: CurrentUser | null | undefined,
+  path: string,
+) {
+  return restrictedCustomerSupportRoutes.has(path) && canAccessCustomerRoute(user, path);
 }
 
 export function getVisibleAdminNavigation(user: CurrentUser | null | undefined) {

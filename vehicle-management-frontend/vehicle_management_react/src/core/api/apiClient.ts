@@ -67,7 +67,16 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
           ? responseBody.message
           : null;
 
+      const errorCode =
+        responseBody
+        && typeof responseBody === "object"
+        && "errorCode" in responseBody
+        && typeof responseBody.errorCode === "string"
+          ? responseBody.errorCode
+          : undefined;
+
       throw new ApiError(localizeApiMessage(rawMessage, response.status), {
+        code: errorCode,
         kind: "http",
         status: response.status,
       });

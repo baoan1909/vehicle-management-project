@@ -153,31 +153,22 @@ export function CustomerPortalLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { user } = useAuth();
   const visibleNavItems = customerNavItems.filter((item) => canAccessCustomerRoute(user, item.to));
-  const isReferencePage = ["/customer/dashboard", "/customer/profile", "/customer/vehicles", "/customer/subscriptions", "/customer/wallet", "/customer/wallet/topup", "/customer/parking-history", "/customerTicket/customer-infor", "/customerTicket/customer-infor-detail"].includes(location.pathname);
-  const displayName = user?.fullName?.trim() || user?.username?.trim() || "Khách hàng";
 
   return (
-    <div data-customer-route={location.pathname} className={cn("vm-customer-shell", isReferencePage && "[&_h1]:!tw-font-[Cambria,Georgia,serif] [&_input]:tw-min-w-0 [&_select]:tw-min-w-0 [&_label]:tw-mb-0 [&_button]:tw-cursor-pointer [&_button:disabled]:tw-cursor-not-allowed")}>
-      <div className={cn("vm-customer-body", isReferencePage && "!tw-grid-cols-[212px_minmax(0,1fr)] max-[1100px]:!tw-grid-cols-[184px_minmax(0,1fr)] max-[760px]:!tw-grid-cols-1")}>
-        <aside className={cn("vm-customer-sidebar", isReferencePage && "!tw-px-3 !tw-py-5 max-[760px]:!tw-min-h-0 max-[760px]:tw-flex max-[760px]:tw-overflow-x-auto max-[760px]:!tw-py-2")}>
-          <div className={`${isReferencePage && location.pathname !== "/customer/vehicles" ? "tw-hidden" : "tw-grid"} max-[760px]:tw-hidden tw-mx-1 tw-mb-5 tw-grid-cols-[48px_minmax(0,1fr)] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-slate-100 tw-px-1 tw-pb-5`}>
-            <span aria-hidden="true" className="tw-grid tw-h-12 tw-w-12 tw-place-items-center tw-rounded-full tw-bg-[linear-gradient(135deg,#1d75f5,#0759d8)] tw-text-[1.25rem] tw-text-white tw-shadow-[0_8px_18px_rgba(20,99,230,0.2)]"><i className="far fa-user" /></span>
-            <div>
-              <strong className="tw-block tw-truncate tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900">{displayName}</strong>
-              <small className="tw-mt-1 tw-block tw-truncate tw-text-[0.75rem] tw-font-bold tw-text-vm-primary">Khách hàng</small>
-            </div>
-          </div>
+    <div data-customer-route={location.pathname} className="vm-customer-shell [&_h1]:!tw-font-[Cambria,Georgia,serif] [&_input]:tw-min-w-0 [&_select]:tw-min-w-0 [&_label]:tw-mb-0 [&_button]:tw-cursor-pointer [&_button:disabled]:tw-cursor-not-allowed">
+      <div className="vm-customer-body !tw-grid-cols-[212px_minmax(0,1fr)] max-[1100px]:!tw-grid-cols-[184px_minmax(0,1fr)] max-[760px]:!tw-grid-cols-1">
+        <aside className="vm-customer-sidebar !tw-px-3 !tw-py-5 max-[760px]:!tw-min-h-0 max-[760px]:tw-flex max-[760px]:tw-overflow-x-auto max-[760px]:!tw-py-2">
           {visibleNavItems.map((item) => {
             const active = location.pathname === item.to || location.pathname.startsWith(`${item.to}/`);
             return (
-              <Link aria-current={active ? "page" : undefined} className={`vm-customer-nav-item ${isReferencePage ? "!tw-min-h-[52px] !tw-text-[0.9rem] !tw-font-medium !tw-gap-3 hover:tw-bg-blue-50 hover:tw-no-underline max-[760px]:tw-shrink-0 max-[760px]:!tw-mb-0 [&>i]:!tw-text-xl" : ""} ${active ? "active" : ""}`} to={item.to} key={item.to}>
+              <Link aria-current={active ? "page" : undefined} className={`vm-customer-nav-item !tw-min-h-[52px] !tw-gap-3 !tw-text-[0.9rem] !tw-font-medium hover:tw-bg-blue-50 hover:tw-no-underline max-[760px]:tw-shrink-0 max-[760px]:!tw-mb-0 [&>i]:!tw-text-xl ${active ? "active" : ""}`} to={item.to} key={item.to}>
                 <i className={item.icon} />
                 <span>{item.label}</span>
               </Link>
             );
           })}
         </aside>
-        <main className={cn("vm-customer-content", isReferencePage && "!tw-overflow-x-visible !tw-p-5 max-[1100px]:!tw-p-4 max-[760px]:!tw-p-3")}>{children}</main>
+        <main className="vm-customer-content !tw-overflow-x-visible !tw-p-5 max-[1100px]:!tw-p-4 max-[760px]:!tw-p-3">{children}</main>
       </div>
       <CustomerMobileNav />
     </div>

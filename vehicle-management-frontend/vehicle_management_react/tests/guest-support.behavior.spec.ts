@@ -132,6 +132,10 @@ test("guest creates and reads an intake only with its capability", async ({ page
   await page.getByRole("button", { name: "Gửi yêu cầu" }).click();
 
   await expect(page.getByText(`Đã tiếp nhận: ${referenceCode}`)).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(page.getByLabel("Tiêu đề")).toHaveValue("");
+  await expect(page.getByLabel("Nội dung")).toHaveValue("");
+  await expect(page.getByLabel("Email")).toHaveValue("");
   expect(idempotencyKey).toMatch(/^[0-9a-f-]{36}$/i);
   const saved = await page.evaluate(() => sessionStorage.getItem("coparking.guest-support.capability"));
   expect(JSON.parse(saved ?? "{}")).toEqual({ referenceCode, capabilityToken });

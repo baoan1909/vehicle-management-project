@@ -45,6 +45,10 @@ check("bottom nav more sheet has dialog semantics", mobileNav.includes('aria-mod
 const portalShared = read("src/features/customer-portal/pages/PortalShared.tsx");
 check("portal layout mounts mobile nav", portalShared.includes("CustomerMobileNav"));
 check("portal layout scopes the active customer route", portalShared.includes("data-customer-route"));
+check("portal uses one customer sidebar variant", !portalShared.includes("compactCustomerLayoutRoutes")
+  && !portalShared.includes("usesCompactCustomerLayout")
+  && !portalShared.includes("displayName")
+  && portalShared.includes('className="vm-customer-body !tw-grid-cols-[212px_minmax(0,1fr)]'));
 
 const clientNavbar = read("src/shared/components/layout/ClientNavbar.tsx");
 for (const publicLabel of ["Giới thiệu", "Tìm bãi", "Bảng giá", "Hướng dẫn", "Liên hệ"]) {

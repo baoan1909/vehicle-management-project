@@ -93,9 +93,16 @@ assert.match(provider, /user\?\.id/);
 assert.match(provider, /AccountStateSyncCoordinator/);
 assert.match(provider, /visibilitychange/);
 assert.match(provider, /reloadNotifications/);
+assert.match(provider, /const reconcileAfterConnection = \(reconnected: boolean\)/);
+assert.match(provider, /if \(!active \|\| !reconnected\) return;/);
+assert.doesNotMatch(provider, /refreshProfile: true/,
+  "transport reconnect and foreground reconciliation must not invalidate the whole profile");
 assert.doesNotMatch(customerProfile, /subscribeNotificationReceived/);
 assert.doesNotMatch(internalProfile, /subscribeNotificationReceived/);
 assert.match(customerProfile, /profileInvalidationVersion/);
+assert.match(customerProfile, /const showInitialLoading = profile === null/);
+assert.match(customerProfile, /if \(showInitialLoading\) setLoading\(true\)/);
+assert.match(customerProfile, /if \(!ignore && showInitialLoading\) setLoading\(false\)/);
 assert.match(internalProfile, /profileInvalidationVersion/);
 
 console.log("Account-state invalidation policy, single-flight queue, and provider ownership checks passed.");

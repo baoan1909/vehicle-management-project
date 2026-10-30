@@ -7,6 +7,24 @@ type AdminAnnouncementTickerProps = {
   topClassName?: string;
 };
 
+function haveSameAnnouncements(
+  current: BroadcastAnnouncementResponse[],
+  next: BroadcastAnnouncementResponse[],
+) {
+  if (current.length !== next.length) return false;
+  return current.every((announcement, index) => {
+    const candidate = next[index];
+    return announcement.broadcastId === candidate?.broadcastId
+      && announcement.title === candidate.title
+      && announcement.message === candidate.message
+      && announcement.startAt === candidate.startAt
+      && announcement.endAt === candidate.endAt
+      && announcement.displayOrder === candidate.displayOrder
+      && announcement.enabled === candidate.enabled
+      && announcement.status === candidate.status;
+  });
+}
+
 function getTime(value: string | null | undefined) {
   if (!value) return 0;
   const time = new Date(value).getTime();
@@ -63,20 +81,27 @@ export function AdminAnnouncementTicker({ onVisibleChange, topClassName = "tw-to
   const loadAnnouncements = useCallback(async () => {
     try {
       const response = await getActiveBroadcastAnnouncements();
-      setAnnouncements(response.data ?? []);
+      const nextAnnouncements = response.data ?? [];
+      setAnnouncements((current) => haveSameAnnouncements(current, nextAnnouncements) ? current : nextAnnouncements);
     } catch {
-      setAnnouncements([]);
+      // Một lỗi mạng tạm thời không được làm ticker biến mất và thay đổi padding
+      // của toàn bộ layout. Giữ snapshot hợp lệ gần nhất đến lần tải thành công sau.
     }
   }, []);
 
   useEffect(() => {
     void loadAnnouncements();
-    const refreshIntervalId = window.setInterval(() => void loadAnnouncements(), 60_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void loadAnnouncements();
+    };
+    const refreshIntervalId = window.setInterval(refreshWhenVisible, 60_000);
     const clockIntervalId = window.setInterval(() => setNow(Date.now()), 30_000);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
 
     return () => {
       window.clearInterval(refreshIntervalId);
       window.clearInterval(clockIntervalId);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
   }, [loadAnnouncements]);
 

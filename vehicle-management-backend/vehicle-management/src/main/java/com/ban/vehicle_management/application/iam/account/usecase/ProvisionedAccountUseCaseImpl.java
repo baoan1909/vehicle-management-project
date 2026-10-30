@@ -100,7 +100,7 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             identityProviderAdminPortOut.sendUpdatePasswordEmail(keycloakUserId);
             ProvisionedAccountResult result = provisionedAccountPortOut.findProvisionedAccountById(accountId)
                     .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
-            notifyProvisionedAccount(result, NotificationType.ACCOUNT_PROVISIONED, "Tai khoan da duoc tao", "Tai khoan cua ban da duoc tao. Vui long kiem tra email de dat mat khau.");
+            notifyProvisionedAccount(result, NotificationType.ACCOUNT_PROVISIONED, "Tài khoản đã được tạo", "Tài khoản của bạn đã được tạo. Vui lòng kiểm tra email để đặt mật kẩu.");
             return result;
         } catch (RuntimeException exception) {
             identityProviderAdminPortOut.deleteUser(keycloakUserId);

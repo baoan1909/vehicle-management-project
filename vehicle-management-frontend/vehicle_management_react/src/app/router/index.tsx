@@ -2,6 +2,7 @@ import { Suspense, useEffect } from "react";
 import type { ReactNode } from "react";
 import {
   adminFallbackRoute,
+  canAccessRestrictedCustomerSupportRoute,
   canAccessAdminRoute,
   canAccessCustomerRoute,
   customerFallbackRoute,
@@ -261,7 +262,9 @@ function CustomerRouteGate({ element, path }: { element: ReactNode; path: string
   }
 
   const accessStateRedirect = getAccessStateRedirect(user, path);
-  if (accessStateRedirect) return <Navigate to={accessStateRedirect} replace />;
+  if (accessStateRedirect && !canAccessRestrictedCustomerSupportRoute(user, path)) {
+    return <Navigate to={accessStateRedirect} replace />;
+  }
 
   if (!canAccessCustomerRoute(user, path)) {
     if (path !== customerFallbackRoute) {

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { SelectMenu, useToast } from "@/components/ui";
+import { isApiError } from "@/core/api/apiError";
 import {
   createParkingVnpayPayment,
   recordParkingCashPayment,
@@ -9,6 +10,14 @@ import {
 } from "@/features/parking/api/parkingPaymentApi";
 import { getDevices, type DeviceApiResponse, type DeviceStatusApi } from "@/features/hardware/api/deviceApi";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
+import {
+  getLevelsByLot,
+  getZoneSpaces,
+  type ParkingLevelApi,
+  type ParkingSpaceApi,
+} from "@/features/parking/api/parkingLayoutApi";
+import { useParkingRealtime, type ParkingRealtimeEvent } from "@/features/parking/api/parkingRealtime";
+import { getZones, type ZoneApiResponse } from "@/features/parking/api/parkingTopologyApi";
 import {
   checkInParkingSession,
   checkOutParkingSession,
@@ -30,16 +39,27 @@ import {
   type ParkingSessionCheckOutResponse,
   type ParkingSessionCheckOutPreviewResponse,
   type ParkingSessionOperationResponse,
+  type ParkingSessionCheckInPreviewResponse,
   type VehicleTypeResponse,
 } from "@/features/parking/api/parkingSessionApi";
+import { ParkingCheckInLocationPanel } from "@/features/parking/components/ParkingCheckInLocationPanel";
 import { OperationModeTabs, type ParkingOperationMode } from "@/features/parking/components/OperationModeTabs";
 import { ParkingCameraPanel } from "@/features/parking/components/ParkingCameraPanel";
 import {
   ParkingOperationForm,
   type CheckOutPaymentMethod,
+  type ParkingOperationValidationChip,
   type ParkingOperationValidationErrors,
 } from "@/features/parking/components/ParkingOperationForm";
 import { ParkingSessionSummary } from "@/features/parking/components/ParkingSessionSummary";
+import { ParkingSpaceSelectionDrawer } from "@/features/parking/components/ParkingSpaceSelectionDrawer";
+import { useCheckInPreview } from "@/features/parking/hooks/useCheckInPreview";
+import {
+  getCheckInParkingSpaceId,
+  getSuggestedParkingSpaceId,
+  isCheckInPreviewAdmissible,
+  isSelectedVisitorSpaceEligible,
+} from "@/features/parking/utils/parkingCheckInState";
 import { cn } from "@/lib/cn";
 import { formatApplicationDateTime, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
@@ -52,13 +72,8 @@ const LOCAL_CAMERA_LABEL = "Camera mặc định";
 const PENDING_VNPAY_CHECKOUT_KEY = "parking.pending-vnpay-checkout";
 
 type PendingVnpayCheckOut = {
-  form: {
-    cardUid: string;
-    laneId: string;
-    licensePlate: string;
-    note: string;
-  };
-  result: ParkingSessionCheckOutResponse;
+  invoiceId: string;
+  parkingSessionId: string;
   savedAt: string;
 };
 
@@ -71,26 +86,36 @@ function readPendingVnpayCheckOut(): PendingVnpayCheckOut | null {
   try {
     const rawValue = sessionStorage.getItem(PENDING_VNPAY_CHECKOUT_KEY);
     if (!rawValue) return null;
-    const parsed = JSON.parse(rawValue) as PendingVnpayCheckOut;
-    if (!parsed?.result?.invoice?.invoiceId) return null;
-    return parsed;
+    const parsed = JSON.parse(rawValue) as Partial<PendingVnpayCheckOut> & {
+      result?: ParkingSessionCheckOutResponse;
+    };
+    const pendingCheckOut = {
+      invoiceId: parsed.invoiceId ?? parsed.result?.invoice?.invoiceId ?? "",
+      parkingSessionId:
+        parsed.parkingSessionId ?? parsed.result?.parkingSession?.parkingSessionId ?? "",
+      savedAt: parsed.savedAt ?? new Date().toISOString(),
+    } satisfies PendingVnpayCheckOut;
+    if (!pendingCheckOut.invoiceId || !pendingCheckOut.parkingSessionId) return null;
+    if (parsed.result) writePendingVnpayCheckOut(pendingCheckOut);
+    return pendingCheckOut;
   } catch {
     return null;
   }
 }
 
-function storePendingVnpayCheckOut(
-  result: ParkingSessionCheckOutResponse,
-  form: PendingVnpayCheckOut["form"],
-) {
-  sessionStorage.setItem(
-    PENDING_VNPAY_CHECKOUT_KEY,
-    JSON.stringify({
-      result,
-      form,
-      savedAt: new Date().toISOString(),
-    } satisfies PendingVnpayCheckOut),
-  );
+function writePendingVnpayCheckOut(pendingCheckOut: PendingVnpayCheckOut) {
+  sessionStorage.setItem(PENDING_VNPAY_CHECKOUT_KEY, JSON.stringify(pendingCheckOut));
+}
+
+function storePendingVnpayCheckOut(result: ParkingSessionCheckOutResponse) {
+  const invoiceId = result.invoice?.invoiceId;
+  const parkingSessionId = result.parkingSession?.parkingSessionId;
+  if (!invoiceId || !parkingSessionId) return;
+  writePendingVnpayCheckOut({
+    invoiceId,
+    parkingSessionId,
+    savedAt: new Date().toISOString(),
+  });
 }
 
 function clearPendingVnpayCheckOut() {
@@ -248,13 +273,16 @@ export function SwipeListPage() {
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState<ParkingOperationMode>(() =>
-    searchParams.has("vnpayResult") ? "check-out" : "check-in",
+    searchParams.has("vnpayResult") || searchParams.get("mode") === "check-out" ? "check-out" : "check-in",
   );
   const [checkOutPaymentMethod, setCheckOutPaymentMethod] = useState<CheckOutPaymentMethod>("CASH");
   const [cardTypes, setCardTypes] = useState<CardTypeResponse[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeResponse[]>([]);
   const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
   const [parkingLotId, setParkingLotId] = useState("");
+  const [zones, setZones] = useState<ZoneApiResponse[]>([]);
+  const [parkingLevels, setParkingLevels] = useState<ParkingLevelApi[]>([]);
+  const [checkOutZoneSpaces, setCheckOutZoneSpaces] = useState<ParkingSpaceApi[]>([]);
   const [cards, setCards] = useState<ParkingCardResponse[]>([]);
   const [lanes, setLanes] = useState<LaneResponse[]>([]);
   const [laneId, setLaneId] = useState("");
@@ -263,6 +291,7 @@ export function SwipeListPage() {
   const [cardUid, setCardUid] = useState("");
   const [vehicleTypeId, setVehicleTypeId] = useState("");
   const [licensePlate, setLicensePlate] = useState("");
+  const [committedLicensePlate, setCommittedLicensePlate] = useState("");
   const [note, setNote] = useState("");
   const [licensePlateImage, setLicensePlateImage] = useState<File | null>(null);
   const [personImage, setPersonImage] = useState<File | null>(null);
@@ -284,6 +313,9 @@ export function SwipeListPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCompletingPendingPayment, setIsCompletingPendingPayment] = useState(false);
   const [pendingPaymentError, setPendingPaymentError] = useState("");
+  const [selectedParkingSpaceId, setSelectedParkingSpaceId] = useState("");
+  const [spaceDrawerOpen, setSpaceDrawerOpen] = useState(false);
+  const [checkOutRefreshVersion, setCheckOutRefreshVersion] = useState(0);
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>("idle");
   const [ocrMessage, setOcrMessage] = useState("");
   const [ocrResult, setOcrResult] = useState<LicensePlateOcrResponse | null>(null);
@@ -293,6 +325,7 @@ export function SwipeListPage() {
   const ocrRequestSeq = useRef(0);
   const skipInitialModeResetRef = useRef(searchParams.has("vnpayResult"));
   const restoredPendingCheckoutRef = useRef(false);
+  const realtimeRefreshTimeoutRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const vnpayResult = searchParams.get("vnpayResult");
@@ -301,59 +334,43 @@ export function SwipeListPage() {
 
     if (pendingCheckOut) {
       restoredPendingCheckoutRef.current = true;
-      const restoredResult =
-        vnpayResult === "success" && searchParams.get("paymentStatus") === "SUCCESS"
-          ? {
-              ...pendingCheckOut.result,
-              invoice: pendingCheckOut.result.invoice
-                ? {
-                    ...pendingCheckOut.result.invoice,
-                    status: "PAID" as const,
-                  }
-                : null,
-            }
-          : pendingCheckOut.result;
       setMode("check-out");
-      setParkingLotId(pendingCheckOut.result.parkingSession?.parkingLotId ?? "");
-      setParkingSessionResult(restoredResult);
       setCheckOutPaymentMethod("CASH");
       setPendingPaymentError("");
-      setLaneId(pendingCheckOut.form?.laneId ?? pendingCheckOut.result.parkingEvent?.laneId ?? "");
-      setCardUid(pendingCheckOut.form?.cardUid ?? "");
-      setLicensePlate(
-        pendingCheckOut.form?.licensePlate
-          ?? pendingCheckOut.result.parkingEvent?.licensePlateDetected
-          ?? pendingCheckOut.result.parkingSession?.licensePlateIn
-          ?? "",
-      );
-      setNote(pendingCheckOut.form?.note ?? pendingCheckOut.result.parkingEvent?.note ?? "");
-      setRestoredLicensePlateImageUrl(
-        pendingCheckOut.result.parkingEvent?.licensePlateImagePath ?? "",
-      );
-      setRestoredPersonImageUrl(pendingCheckOut.result.parkingEvent?.personImagePath ?? "");
-
-      const invoiceId = pendingCheckOut.result.invoice?.invoiceId;
-      if (invoiceId) {
-        void fetchParkingCheckOutByInvoice(invoiceId)
-          .then((latestResult) => {
-            setParkingSessionResult(latestResult);
-            setRestoredLicensePlateImageUrl(
-              latestResult.parkingEvent?.licensePlateImagePath ?? "",
-            );
-            setRestoredPersonImageUrl(latestResult.parkingEvent?.personImagePath ?? "");
-          })
-          .catch(() => {
-            // The saved snapshot still allows the employee to retry or switch to cash.
-          });
-      }
+      void fetchParkingCheckOutByInvoice(pendingCheckOut.invoiceId)
+        .then((latestResult) => {
+          setParkingSessionResult(latestResult);
+          setParkingLotId(latestResult.parkingSession?.parkingLotId ?? "");
+          setLaneId(latestResult.parkingEvent?.laneId ?? "");
+          setRestoredLicensePlateImageUrl(latestResult.parkingEvent?.licensePlateImagePath ?? "");
+          setRestoredPersonImageUrl(latestResult.parkingEvent?.personImagePath ?? "");
+          if (vnpayResult === "success") {
+            if (latestResult.invoice?.status === "PAID") {
+              toast.success(
+                "Thanh toán VNPAY đã được máy chủ xác nhận và lượt xe ra đã hoàn tất.",
+                "Thanh toán thành công",
+              );
+              clearPendingVnpayCheckOut();
+            } else {
+              toast.warning(
+                "Cổng thanh toán đã chuyển về nhưng hóa đơn chưa được máy chủ xác nhận PAID.",
+                "Đang chờ xác nhận thanh toán",
+              );
+            }
+          }
+        })
+        .catch((error) => {
+          setPendingPaymentError(
+            error instanceof Error ? error.message : "Không tải được trạng thái checkout sau thanh toán.",
+          );
+        });
     }
 
-    if (vnpayResult === "success") {
-      toast.success(
-        "Thanh toán VNPAY thành công và đã hoàn tất ghi nhận xe ra.",
-        "Thanh toán thành công",
+    if (vnpayResult === "success" && !pendingCheckOut) {
+      toast.info(
+        "Đã nhận kết quả từ VNPAY nhưng không còn dữ liệu hóa đơn để xác minh. Vui lòng kiểm tra lại phiên gửi.",
+        "Cần kiểm tra trạng thái thanh toán",
       );
-      clearPendingVnpayCheckOut();
     } else if (vnpayResult === "cancelled") {
       toast.warning(
         "Giao dịch đã hủy. Hóa đơn vẫn chưa thanh toán; bạn có thể chọn lại VNPAY hoặc chuyển sang tiền mặt.",
@@ -478,6 +495,76 @@ export function SwipeListPage() {
       { label: mode === "check-out" ? "Loại xe trong phiên gửi" : "Loại xe đã đăng ký", value: lockedVehicleTypeId },
     ];
   }, [checkOutPreview?.parkingSession.vehicleTypeId, mode, selectedRegisteredVehicleTypeId, vehicleTypeOptions]);
+  const checkInPreviewRequest = useMemo(() => {
+    const normalizedPlate = licensePlate.trim();
+    const committedPlate = committedLicensePlate.trim();
+    const laneReady = lanes.some((lane) => lane.laneId === laneId && lane.direction === "IN");
+    if (
+      mode !== "check-in"
+      || !parkingLotId
+      || !laneReady
+      || !selectedParkingCard
+      || !canCaptureCurrentCard
+      || ocrStatus === "recognizing"
+      || !normalizedPlate
+      || normalizedPlate !== committedPlate
+      || (selectedRequiresVehicleType && !vehicleTypeId)
+    ) {
+      return null;
+    }
+
+    return {
+      cardUid: selectedParkingCard.uid,
+      laneId,
+      licensePlate: normalizedPlate,
+      vehicleTypeId: selectedRequiresVehicleType ? vehicleTypeId : undefined,
+    };
+  }, [
+    canCaptureCurrentCard,
+    committedLicensePlate,
+    laneId,
+    lanes,
+    licensePlate,
+    mode,
+    ocrStatus,
+    parkingLotId,
+    selectedParkingCard,
+    selectedRequiresVehicleType,
+    vehicleTypeId,
+  ]);
+  const {
+    checkInPreview,
+    clearCheckInPreview,
+    isLoadingCheckInPreview,
+    markCheckInPreviewStale,
+    previewError,
+    previewStale,
+    refreshCheckInPreview,
+  } = useCheckInPreview({
+    enabled: mode === "check-in",
+    request: checkInPreviewRequest,
+  });
+  const checkInAdmissible = isCheckInPreviewAdmissible(checkInPreview, selectedParkingSpaceId);
+  const checkInPreviewReady = Boolean(
+    checkInPreview
+      && !isLoadingCheckInPreview
+      && !previewError
+      && !previewStale
+      && checkInAdmissible,
+  );
+  const checkInZone = zones.find((zone) => zone.zoneId === checkInPreview?.zoneId);
+  const checkInLevel = parkingLevels.find(
+    (level) => level.parkingLevelId === checkInZone?.parkingLevelId,
+  );
+  const checkOutSession = parkingSessionResult?.parkingSession ?? checkOutPreview?.parkingSession;
+  const checkOutZone = zones.find((zone) => zone.zoneId === checkOutSession?.zoneId);
+  const checkOutLevel = parkingLevels.find(
+    (level) => level.parkingLevelId === (checkOutSession?.parkingLevelId ?? checkOutZone?.parkingLevelId),
+  );
+  const checkOutSpace = checkOutZoneSpaces.find(
+    (space) => space.parkingSpaceId === checkOutSession?.parkingSpaceId,
+  );
+  const resolvedCheckOutTrackingMode = checkOutSession?.trackingMode ?? checkOutZone?.trackingMode ?? null;
   const submitValidation = useMemo(() => {
     const formErrors: ParkingOperationValidationErrors = {};
     const cameraErrors: ParkingCameraValidationErrors = {};
@@ -507,6 +594,7 @@ export function SwipeListPage() {
     if (ocrStatus === "recognizing") {
       formErrors.licensePlate = formErrors.licensePlate ?? "Vui lòng chờ OCR xử lý xong.";
     }
+    const missingCheckInPreview = mode === "check-in" && !checkInPreviewReady;
 
     const missingLabels = [
       formErrors.cardUid ? "thẻ/RFID" : "",
@@ -516,6 +604,7 @@ export function SwipeListPage() {
       cameraErrors.licensePlateImage ? "ảnh biển số" : "",
       cameraErrors.personImage ? "ảnh người/tài xế" : "",
       missingCheckOutPreview ? "phiên gửi xe" : "",
+      missingCheckInPreview ? "điều kiện check-in" : "",
     ].filter(Boolean);
 
     return {
@@ -527,6 +616,7 @@ export function SwipeListPage() {
   }, [
     cardUid,
     checkOutPreview,
+    checkInPreviewReady,
     laneId,
     licensePlate,
     licensePlateImage,
@@ -538,6 +628,92 @@ export function SwipeListPage() {
   ]);
   const visibleFormValidationErrors = validationShown ? submitValidation.formErrors : {};
   const visibleCameraValidationErrors = validationShown ? submitValidation.cameraErrors : {};
+
+  useEffect(() => {
+    if (!checkInPreview) return;
+    if (checkInPreview.trackingMode === "CAPACITY" || checkInPreview.customerType === "SUBSCRIPTION") {
+      setSelectedParkingSpaceId("");
+      setSpaceDrawerOpen(false);
+      return;
+    }
+
+    if (
+      selectedParkingSpaceId
+      && !isSelectedVisitorSpaceEligible(checkInPreview, selectedParkingSpaceId)
+    ) {
+      setSelectedParkingSpaceId("");
+      setSpaceDrawerOpen(checkInPreview.selectionRequired);
+      toast.warning("Ô vừa chọn không còn khả dụng. Vui lòng chọn lại.", "Availability đã thay đổi");
+      return;
+    }
+
+    if (!selectedParkingSpaceId) {
+      const suggestedSpaceId = getSuggestedParkingSpaceId(checkInPreview);
+      if (suggestedSpaceId) setSelectedParkingSpaceId(suggestedSpaceId);
+    }
+  }, [checkInPreview, selectedParkingSpaceId, toast]);
+
+  const handleParkingRealtimeEvent = useCallback((event: ParkingRealtimeEvent) => {
+    if (event.parkingLotId !== parkingLotId) return;
+    if (mode !== "check-in" || !checkInPreview || event.zoneId !== checkInPreview.zoneId) return;
+    if (![
+      "PARKING_AVAILABILITY_CHANGED",
+      "PARKING_SPACE_STATUS_CHANGED",
+      "PARKING_SPACE_ALLOCATION_CHANGED",
+    ].includes(event.eventType)) return;
+
+    markCheckInPreviewStale();
+    if (
+      checkInPreview.trackingMode === "SPACE"
+      && checkInPreview.customerType === "VISITOR"
+      && selectedParkingSpaceId
+      && event.parkingSpaceId === selectedParkingSpaceId
+      && event.status !== "AVAILABLE"
+    ) {
+      setSelectedParkingSpaceId("");
+      setSpaceDrawerOpen(checkInPreview.selectionRequired);
+      toast.warning("Ô vừa chọn không còn khả dụng.", "Vui lòng chọn lại ô đỗ");
+    }
+
+    if (realtimeRefreshTimeoutRef.current) {
+      window.clearTimeout(realtimeRefreshTimeoutRef.current);
+    }
+    realtimeRefreshTimeoutRef.current = window.setTimeout(refreshCheckInPreview, 450);
+  }, [
+    checkInPreview,
+    markCheckInPreviewStale,
+    mode,
+    parkingLotId,
+    refreshCheckInPreview,
+    selectedParkingSpaceId,
+    toast,
+  ]);
+
+  const handleParkingRealtimeReconnect = useCallback(() => {
+    if (mode === "check-in") {
+      refreshCheckInPreview();
+      return;
+    }
+    const invoiceId = parkingSessionResult && "invoice" in parkingSessionResult
+      ? parkingSessionResult.invoice?.invoiceId
+      : undefined;
+    if (invoiceId) {
+      void fetchParkingCheckOutByInvoice(invoiceId).then(setParkingSessionResult).catch(() => undefined);
+      return;
+    }
+    setCheckOutRefreshVersion((current) => current + 1);
+  }, [mode, parkingSessionResult, refreshCheckInPreview]);
+
+  useParkingRealtime({
+    enabled: Boolean(parkingLotId),
+    onEvent: handleParkingRealtimeEvent,
+    onReconnect: handleParkingRealtimeReconnect,
+    parkingLotId: parkingLotId || null,
+  });
+
+  useEffect(() => () => {
+    if (realtimeRefreshTimeoutRef.current) window.clearTimeout(realtimeRefreshTimeoutRef.current);
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -566,6 +742,33 @@ export function SwipeListPage() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (!parkingLotId) {
+      setZones([]);
+      setParkingLevels([]);
+      return undefined;
+    }
+
+    void Promise.all([
+      getZones({ parkingLotId, status: "ACTIVE" }),
+      getLevelsByLot(parkingLotId),
+    ]).then(([zoneResponse, levelResponse]) => {
+      if (!active) return;
+      setZones(zoneResponse.data ?? []);
+      setParkingLevels(levelResponse.data ?? []);
+    }).catch((error) => {
+      if (!active) return;
+      setZones([]);
+      setParkingLevels([]);
+      setParkingLotError(error instanceof Error ? error.message : "Không tải được topology bãi xe.");
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [parkingLotId]);
 
   useEffect(() => {
     let active = true;
@@ -722,13 +925,25 @@ export function SwipeListPage() {
   useEffect(() => {
     setCardUid("");
     setVehicleTypeId("");
+    setLicensePlate("");
+    setCommittedLicensePlate("");
+    setNote("");
+    setLicensePlateImage(null);
+    setPersonImage(null);
+    setRestoredLicensePlateImageUrl("");
+    setRestoredPersonImageUrl("");
+    setSelectedParkingSpaceId("");
+    setSpaceDrawerOpen(false);
+    clearCheckInPreview();
     setCheckOutPreview(null);
     setParkingSessionResult(null);
     setSubmitError("");
     setValidationShown(false);
     lastAutoCapturedCardRef.current = "";
     resetOcrState();
-  }, [parkingLotId]);
+    ocrRequestSeq.current += 1;
+    setCameraResetKey((current) => current + 1);
+  }, [clearCheckInPreview, parkingLotId]);
 
   useEffect(() => {
     if (skipInitialModeResetRef.current) {
@@ -737,6 +952,14 @@ export function SwipeListPage() {
     }
     setCardUid("");
     setVehicleTypeId("");
+    setLicensePlate("");
+    setCommittedLicensePlate("");
+    setNote("");
+    setLicensePlateImage(null);
+    setPersonImage(null);
+    setSelectedParkingSpaceId("");
+    setSpaceDrawerOpen(false);
+    clearCheckInPreview();
     setCheckOutPaymentMethod("CASH");
     setCheckOutPreview(null);
     setParkingSessionResult(null);
@@ -747,7 +970,9 @@ export function SwipeListPage() {
     setValidationShown(false);
     lastAutoCapturedCardRef.current = "";
     resetOcrState();
-  }, [mode]);
+    ocrRequestSeq.current += 1;
+    setCameraResetKey((current) => current + 1);
+  }, [clearCheckInPreview, mode]);
 
   useEffect(() => {
     if (mode !== "check-in") return;
@@ -802,7 +1027,27 @@ export function SwipeListPage() {
     return () => {
       active = false;
     };
-  }, [mode, selectedParkingCard?.uid]);
+  }, [checkOutRefreshVersion, mode, selectedParkingCard?.uid]);
+
+  useEffect(() => {
+    let active = true;
+    const zoneId = checkOutSession?.zoneId;
+    const parkingSpaceId = checkOutSession?.parkingSpaceId;
+    if (!zoneId || !parkingSpaceId) {
+      setCheckOutZoneSpaces([]);
+      return undefined;
+    }
+
+    void getZoneSpaces(zoneId).then((response) => {
+      if (active) setCheckOutZoneSpaces(response.data ?? []);
+    }).catch(() => {
+      if (active) setCheckOutZoneSpaces([]);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [checkOutSession?.parkingSpaceId, checkOutSession?.zoneId]);
 
   useEffect(() => {
     if (
@@ -830,18 +1075,35 @@ export function SwipeListPage() {
     lastAutoCapturedCardRef.current = captureKey;
     setLicensePlateImage(null);
     setLicensePlate("");
+    setCommittedLicensePlate("");
+    setSelectedParkingSpaceId("");
+    clearCheckInPreview();
     setSubmitError("");
     setOcrResult(null);
     setOcrStatus("recognizing");
     setOcrMessage("Đã chọn thẻ, camera đang tự chụp ảnh biển số...");
     setAutoCaptureKey((current) => current + 1);
-  }, [canCaptureCurrentCard, cardUid, cardsLoaded, mode, selectedParkingCard, selectedRequiresVehicleType, vehicleTypeId]);
+  }, [canCaptureCurrentCard, cardUid, cardsLoaded, clearCheckInPreview, mode, selectedParkingCard, selectedRequiresVehicleType, vehicleTypeId]);
 
   function handleCardUidChange(value: string) {
     if (value !== cardUid) {
       restoredPendingCheckoutRef.current = false;
       setRestoredLicensePlateImageUrl("");
       setRestoredPersonImageUrl("");
+      setLicensePlate("");
+      setCommittedLicensePlate("");
+      setLicensePlateImage(null);
+      setPersonImage(null);
+      setVehicleTypeId("");
+      setSelectedParkingSpaceId("");
+      setSpaceDrawerOpen(false);
+      setParkingSessionResult(null);
+      setCheckOutPreview(null);
+      clearCheckInPreview();
+      resetOcrState();
+      ocrRequestSeq.current += 1;
+      lastAutoCapturedCardRef.current = "";
+      setCameraResetKey((current) => current + 1);
     }
     setCardUid(value);
     setSubmitError("");
@@ -849,11 +1111,25 @@ export function SwipeListPage() {
 
   function handleVehicleTypeChange(value: string) {
     setVehicleTypeId(value);
+    setSelectedParkingSpaceId("");
+    setSpaceDrawerOpen(false);
+    clearCheckInPreview();
+    setSubmitError("");
+  }
+
+  function handleLaneChange(value: string) {
+    setLaneId(value);
+    setSelectedParkingSpaceId("");
+    setSpaceDrawerOpen(false);
+    clearCheckInPreview();
     setSubmitError("");
   }
 
   function handleLicensePlateChange(value: string) {
     setLicensePlate(value);
+    setSelectedParkingSpaceId("");
+    setSpaceDrawerOpen(false);
+    clearCheckInPreview();
     const editedMatchesSuggestion = false;
 
     if (editedMatchesSuggestion) {
@@ -870,10 +1146,19 @@ export function SwipeListPage() {
     }
   }
 
+  function handleLicensePlateCommit() {
+    const normalizedPlate = licensePlate.trim();
+    setCommittedLicensePlate(normalizedPlate);
+    if (normalizedPlate !== licensePlate) setLicensePlate(normalizedPlate);
+  }
+
   function handleApplyOcrCandidate(candidate: LicensePlateOcrCandidate) {
     const plate = candidate.formattedLicensePlate || candidate.normalizedLicensePlate || candidate.licensePlate;
     if (!plate) return;
     setLicensePlate(plate);
+    setCommittedLicensePlate(plate.trim());
+    setSelectedParkingSpaceId("");
+    clearCheckInPreview();
     setOcrStatus("review");
     setOcrMessage("Đã chọn biển số dự đoán, có thể sửa trực tiếp nếu chưa đúng.");
   }
@@ -909,6 +1194,10 @@ export function SwipeListPage() {
     setLicensePlateImage(file);
     setSubmitError("");
     setLicensePlate("");
+    setCommittedLicensePlate("");
+    setSelectedParkingSpaceId("");
+    setSpaceDrawerOpen(false);
+    clearCheckInPreview();
 
     if (!file) {
       resetOcrState();
@@ -935,6 +1224,7 @@ export function SwipeListPage() {
 
       if (detectedPlate) {
         setLicensePlate(detectedPlate);
+        setCommittedLicensePlate(detectedPlate.trim());
       }
       if (!detectedPlate) {
         setOcrStatus("review");
@@ -995,12 +1285,7 @@ export function SwipeListPage() {
     setIsCompletingPendingPayment(true);
     try {
       const paymentResponse = await createParkingVnpayPayment(invoice.invoiceId);
-      storePendingVnpayCheckOut(result, {
-        cardUid,
-        laneId,
-        licensePlate,
-        note,
-      });
+      storePendingVnpayCheckOut(result);
       window.location.assign(paymentResponse.data.paymentUrl);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Không thể tạo lại giao dịch VNPAY.";
@@ -1083,6 +1368,16 @@ export function SwipeListPage() {
       return;
     }
 
+    if (mode === "check-in" && !checkInPreviewReady) {
+      setSubmitError(
+        previewError
+          || (previewStale
+            ? "Availability vừa thay đổi. Vui lòng chờ hệ thống kiểm tra lại."
+            : "Chưa xác nhận được điều kiện check-in."),
+      );
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const request = {
@@ -1093,9 +1388,11 @@ export function SwipeListPage() {
       };
 
       if (mode === "check-in") {
+        const parkingSpaceId = getCheckInParkingSpaceId(checkInPreview, selectedParkingSpaceId);
         const response = await checkInParkingSession(
           {
             ...request,
+            parkingSpaceId,
             vehicleTypeId: matchedCardRequiresVehicleType ? vehicleTypeId : undefined,
             plateFormatConfirmed: ocrStatus === "review",
           },
@@ -1132,12 +1429,7 @@ export function SwipeListPage() {
             if (!paymentResponse.data.paymentUrl) {
               throw new Error("Máy chủ không trả về đường dẫn thanh toán VNPAY.");
             }
-            storePendingVnpayCheckOut(checkOutResult, {
-              cardUid: request.cardUid,
-              laneId: request.laneId,
-              licensePlate: request.licensePlate,
-              note: request.note ?? "",
-            });
+            storePendingVnpayCheckOut(checkOutResult);
             toast.success("Đang chuyển đến cổng thanh toán VNPAY.", "Đã tạo giao dịch");
             window.location.assign(paymentResponse.data.paymentUrl);
           }
@@ -1153,10 +1445,14 @@ export function SwipeListPage() {
       setCardUid("");
       setVehicleTypeId("");
       setLicensePlate("");
+      setCommittedLicensePlate("");
       setNote("");
       setLicensePlateImage(null);
       setPersonImage(null);
       setCheckOutPreview(null);
+      setSelectedParkingSpaceId("");
+      setSpaceDrawerOpen(false);
+      clearCheckInPreview();
       setValidationShown(false);
       resetOcrState();
       ocrRequestSeq.current += 1;
@@ -1170,6 +1466,14 @@ export function SwipeListPage() {
             ? "Ghi nhận xe vào thất bại."
             : "Ghi nhận xe ra hoặc thanh toán thất bại.";
       setSubmitError(message);
+      if (mode === "check-in" && isApiError(error) && error.status === 409) {
+        markCheckInPreviewStale();
+        refreshCheckInPreview();
+        if (checkInPreview?.trackingMode === "SPACE" && checkInPreview.customerType === "VISITOR") {
+          setSelectedParkingSpaceId("");
+          setSpaceDrawerOpen(checkInPreview.selectionRequired);
+        }
+      }
       toast.error(
         message,
         mode === "check-in" ? "Ghi nhận xe vào thất bại" : "Không thể hoàn tất ghi nhận xe ra",
@@ -1178,6 +1482,84 @@ export function SwipeListPage() {
       setIsSubmitting(false);
     }
   }
+
+  const selectedPreviewSpace = checkInPreview?.eligibleSpaces.find(
+    (space) => space.parkingSpaceId === selectedParkingSpaceId,
+  );
+  const cardChip: ParkingOperationValidationChip = !cardUid.trim()
+    ? { icon: "fas fa-shield-alt", label: "Chưa nhận thẻ", state: "idle" }
+    : isLoadingCards
+      ? { icon: "fas fa-shield-alt", label: "Đang kiểm tra thẻ", state: "loading" }
+      : selectedParkingCard
+        ? { icon: "fas fa-shield-alt", label: "Thẻ hợp lệ", state: "valid" }
+        : { icon: "fas fa-shield-alt", label: "Thẻ không hợp lệ", state: "invalid" };
+  const selectedLane = lanes.find((lane) => lane.laneId === laneId);
+  const laneChip: ParkingOperationValidationChip = !laneId
+    ? { icon: mode === "check-in" ? "fas fa-arrow-down" : "fas fa-arrow-up", label: "Chưa chọn làn", state: "idle" }
+    : selectedLane?.direction === laneDirection
+      ? {
+          icon: mode === "check-in" ? "fas fa-arrow-down" : "fas fa-arrow-up",
+          label: mode === "check-in" ? "Làn vào hợp lệ" : "Làn ra hợp lệ",
+          state: "valid",
+        }
+      : { icon: "fas fa-road", label: "Làn không phù hợp", state: "invalid" };
+  let availabilityChip: ParkingOperationValidationChip;
+  if (mode === "check-out") {
+    availabilityChip = checkOutPreview
+      ? { icon: "fas fa-parking", label: "Đủ điều kiện", state: "valid" }
+      : { icon: "fas fa-parking", label: "Chưa kiểm tra", state: cardUid.trim() ? "loading" : "idle" };
+  } else if (isLoadingCheckInPreview) {
+    availabilityChip = { icon: "fas fa-parking", label: "Đang kiểm tra", state: "loading" };
+  } else if (previewStale) {
+    availabilityChip = { icon: "fas fa-parking", label: "Preview cần cập nhật", state: "stale" };
+  } else if (previewError) {
+    const noAvailability = /hết chỗ|không còn ô|không còn sức chứa/i.test(previewError);
+    availabilityChip = {
+      icon: "fas fa-parking",
+      label: selectedIsRegisteredCard
+        ? "Ô được cấp không khả dụng"
+        : noAvailability
+          ? "Hết chỗ"
+          : "Không hợp lệ",
+      state: "invalid",
+    };
+  } else if (!checkInPreview) {
+    availabilityChip = { icon: "fas fa-parking", label: "Chưa kiểm tra", state: "idle" };
+  } else if (checkInPreview.trackingMode === "CAPACITY") {
+    availabilityChip = checkInAdmissible
+      ? { icon: "fas fa-parking", label: "Còn chỗ", state: "valid" }
+      : { icon: "fas fa-parking", label: "Hết chỗ", state: "invalid" };
+  } else if (checkInPreview.customerType === "VISITOR") {
+    availabilityChip = selectedPreviewSpace
+      ? { icon: "fas fa-parking", label: `Ô ${selectedPreviewSpace.code} sẵn sàng`, state: "valid" }
+      : { icon: "fas fa-parking", label: "Chưa chọn ô", state: "idle" };
+  } else {
+    availabilityChip = checkInAdmissible
+      ? { icon: "fas fa-parking", label: "Ô được cấp sẵn sàng", state: "valid" }
+      : { icon: "fas fa-parking", label: "Ô được cấp không khả dụng", state: "invalid" };
+  }
+  const validationChips = [cardChip, laneChip, availabilityChip];
+  const checkInSubmitLabel = isLoadingCheckInPreview
+    ? "Đang kiểm tra điều kiện..."
+    : previewStale
+      ? "Đang cập nhật availability..."
+      : checkInPreview?.trackingMode === "SPACE"
+        && checkInPreview.customerType === "VISITOR"
+        && !selectedParkingSpaceId
+        ? "Vui lòng chọn ô đỗ"
+        : undefined;
+  const checkInZoneLabel = checkInZone
+    ? [checkInZone.code, checkInZone.name].filter(Boolean).join(" — ")
+    : checkInPreview?.zoneId;
+  const checkInLevelLabel = checkInLevel
+    ? [checkInLevel.code, checkInLevel.name].filter(Boolean).join(" — ")
+    : undefined;
+  const checkOutZoneLabel = checkOutZone
+    ? [checkOutZone.code, checkOutZone.name].filter(Boolean).join(" — ")
+    : checkOutSession?.zoneId;
+  const checkOutLevelLabel = checkOutLevel
+    ? [checkOutLevel.code, checkOutLevel.name].filter(Boolean).join(" — ")
+    : checkOutSession?.parkingLevelCode ?? checkOutSession?.parkingLevelName ?? undefined;
 
   return (
     <main className="tw-px-4 tw-pb-5 tw-pt-3 lg:tw-px-5">
@@ -1190,7 +1572,7 @@ export function SwipeListPage() {
 
           <div className="tw-grid tw-min-w-0 tw-grid-cols-[minmax(220px,1.15fr)_minmax(150px,0.7fr)_minmax(220px,1.15fr)] tw-gap-2.5 max-[860px]:tw-grid-cols-1">
             <FilterSelect className="tw-w-full" ariaLabel="Chọn bãi xe vận hành" icon="fas fa-parking" label="Bãi xe" options={parkingLotOptions} value={parkingLotId} onChange={setParkingLotId} />
-            <FilterSelect className="tw-w-full" ariaLabel="Chọn làn xe" label="Làn xe" options={laneOptions} value={laneId} onChange={setLaneId} />
+            <FilterSelect className="tw-w-full" ariaLabel="Chọn làn xe" label="Làn xe" options={laneOptions} value={laneId} onChange={handleLaneChange} />
             <FilterSelect className="tw-w-full" ariaLabel="Chọn camera" icon="fas fa-video" label="Camera" options={cameraOptions} value={cameraId} onChange={setCameraId} />
           </div>
 
@@ -1238,6 +1620,18 @@ export function SwipeListPage() {
             cardOptions={cardOptions}
             checkOutCustomerType={checkOutPreview?.customerType}
             checkOutPaymentMethod={checkOutPaymentMethod}
+            checkInLocationPanel={(
+              <ParkingCheckInLocationPanel
+                isLoading={isLoadingCheckInPreview}
+                levelLabel={checkInLevelLabel}
+                preview={checkInPreview}
+                previewError={previewError}
+                previewStale={previewStale}
+                selectedParkingSpaceId={selectedParkingSpaceId}
+                zoneLabel={checkInZoneLabel}
+                onChooseSpace={() => setSpaceDrawerOpen(true)}
+              />
+            )}
             estimatedPaymentAmount={checkOutPreview?.estimatedTotalPrice}
             error={submitError || parkingLotError || laneError || cardError || vehicleTypeError}
             isLoadingCards={isLoadingCards}
@@ -1253,12 +1647,16 @@ export function SwipeListPage() {
             ocrResult={ocrResult}
             ocrStatus={ocrStatus}
             personImageReady={Boolean(personImage)}
+            submitDisabled={mode === "check-in" && !checkInPreviewReady}
+            submitLabel={mode === "check-in" ? checkInSubmitLabel : undefined}
             validationErrors={visibleFormValidationErrors}
+            validationChips={validationChips}
             onCardUidChange={handleCardUidChange}
             onCheckOutPaymentMethodChange={setCheckOutPaymentMethod}
-            onLaneChange={setLaneId}
+            onLaneChange={handleLaneChange}
             onApplyOcrCandidate={handleApplyOcrCandidate}
             onLicensePlateChange={handleLicensePlateChange}
+            onLicensePlateCommit={handleLicensePlateCommit}
             onNoteChange={setNote}
             onSubmit={handleSubmit}
             vehicleTypeDisabled={mode === "check-out" || selectedLocksVehicleType}
@@ -1276,12 +1674,34 @@ export function SwipeListPage() {
                 paymentActionError={pendingPaymentError}
                 preview={checkOutPreview}
                 result={parkingSessionResult}
+                levelLabel={checkOutLevelLabel}
+                parkingSpaceCode={checkOutSession?.parkingSpaceCode ?? checkOutSpace?.code}
+                trackingMode={resolvedCheckOutTrackingMode}
+                zoneLabel={checkOutZoneLabel}
                 onPayCash={handleCompletePendingCashPayment}
                 onRetryVnpay={handleRetryPendingVnpayPayment}
               />
             </div>
           ) : null}
         </div>
+        <ParkingSpaceSelectionDrawer
+          confirmedParkingSpaceId={selectedParkingSpaceId}
+          levelLabel={checkInLevelLabel}
+          open={Boolean(
+            spaceDrawerOpen
+              && checkInPreview?.trackingMode === "SPACE"
+              && checkInPreview.customerType === "VISITOR"
+              && checkInPreview.selectionRequired,
+          )}
+          spaces={checkInPreview?.eligibleSpaces ?? []}
+          zoneLabel={checkInZoneLabel}
+          onClose={() => setSpaceDrawerOpen(false)}
+          onConfirm={(space) => {
+            setSelectedParkingSpaceId(space.parkingSpaceId);
+            setSpaceDrawerOpen(false);
+            setSubmitError("");
+          }}
+        />
       </section>
     </main>
   );

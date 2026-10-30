@@ -113,7 +113,8 @@ export function GuestSupportPage() {
   async function submitRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (requestBusy) return;
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
     setRequestBusy(true);
     setRequestError(null);
     try {
@@ -133,7 +134,7 @@ export function GuestSupportPage() {
         setReferenceCode(credential.referenceCode);
         setCapabilityToken(credential.capabilityToken);
       }
-      event.currentTarget.reset();
+      formElement.reset();
     } catch (error) {
       setRequestError(classifyError(error));
     } finally {
