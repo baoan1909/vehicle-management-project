@@ -70,6 +70,24 @@ class PaymentAccessGuardTest {
     }
 
     @Test
+    void partnerAdminCanRecordPaymentOnlyForItsOrganizationLot() {
+        UUID ownLotId = UUID.randomUUID();
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account(Set.of(
+                OrganizationAccessGuard.PARKING_SCOPE_PARTNER)));
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut))
+                .thenReturn(Set.of(ownLotId));
+
+        Invoice ownInvoice = new Invoice();
+        ownInvoice.setParkingLotId(ownLotId);
+        Invoice otherPartnerInvoice = new Invoice();
+        otherPartnerInvoice.setParkingLotId(UUID.randomUUID());
+
+        assertDoesNotThrow(() -> guard.ensureCanRecordPayment(ownInvoice));
+        assertThrows(AccessDeniedException.class,
+                () -> guard.ensureCanRecordPayment(otherPartnerInvoice));
+    }
+
+    @Test
     void employeeCanRecordOnlyAtAnOpenShiftLot() {
         UUID shiftLot = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();

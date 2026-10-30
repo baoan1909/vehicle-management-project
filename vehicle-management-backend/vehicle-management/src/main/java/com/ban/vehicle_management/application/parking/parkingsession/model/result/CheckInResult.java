@@ -9,6 +9,7 @@ public record CheckInResult(
         ParkingEvent parkingEvent,
         UUID subscriptionId,
         String customerType,
-        String barrierAction
+        String barrierAction,
+        String parkingSpaceCode
 ) {
 }

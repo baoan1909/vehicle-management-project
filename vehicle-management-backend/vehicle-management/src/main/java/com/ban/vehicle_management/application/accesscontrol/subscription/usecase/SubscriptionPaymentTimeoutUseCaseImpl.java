@@ -149,6 +149,11 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
                 .map(invoice -> {
                     voucherPortIn.redeemSubscriptionVoucher(subscription.getSubscriptionId(), now);
                     subscriptionPolicy.markPaymentCompleted(subscription);
+                    if (parkingAllocationService != null
+                            && subscription.getStatus()
+                            == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
+                        parkingAllocationService.activate(subscription);
+                    }
                     subscriptionPortOut.save(subscription);
                     return true;
                 })

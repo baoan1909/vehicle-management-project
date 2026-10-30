@@ -30,6 +30,29 @@ class ParkingSessionPolicyTest {
     }
 
     @Test
+    void shouldInitializeQrOnlySubscriptionSessionWithoutPhysicalCard() {
+        ParkingSession parkingSession = new ParkingSession();
+        parkingSession.setSubscriptionId(UUID.randomUUID());
+        parkingSession.setVehicleTypeId(UUID.randomUUID());
+        parkingSession.setLicensePlateIn("51A-12345");
+        parkingSession.setCheckInTime(Instant.parse("2026-05-15T01:00:00Z"));
+
+        parkingSessionPolicy.initialize(parkingSession);
+
+        assertEquals(ParkingSessionStatus.OPEN, parkingSession.getStatus());
+    }
+
+    @Test
+    void shouldRejectSessionWithoutCardOrSubscriptionCredential() {
+        ParkingSession parkingSession = new ParkingSession();
+        parkingSession.setVehicleTypeId(UUID.randomUUID());
+        parkingSession.setLicensePlateIn("51A-12345");
+        parkingSession.setCheckInTime(Instant.parse("2026-05-15T01:00:00Z"));
+
+        assertThrows(BadRequestException.class, () -> parkingSessionPolicy.initialize(parkingSession));
+    }
+
+    @Test
     void shouldCloseOpenParkingSession() {
         ParkingSession parkingSession = validOpenSession();
         Instant checkOutTime = Instant.parse("2026-05-15T03:00:00Z");

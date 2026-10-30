@@ -8,6 +8,8 @@ public record CreateSubscriptionRequest(
         UUID ticketTypeId,
         LocalDate requestedEffectiveFrom,
         String voucherCode,
-        UUID parkingLotId
+        UUID parkingLotId,
+        Integer periodQuantity,
+        Boolean physicalCardRequested
 ) {
 }

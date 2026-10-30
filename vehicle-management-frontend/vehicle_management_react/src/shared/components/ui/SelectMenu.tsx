@@ -218,7 +218,7 @@ export function SelectMenu({
   ) : null;
 
   return (
-    <div className={cn("tw-relative tw-w-full", className)} ref={rootRef}>
+    <div className={cn("tw-relative tw-min-w-0 tw-w-full", className)} ref={rootRef}>
       <button
         aria-expanded={open}
         aria-label={ariaLabel}

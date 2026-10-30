@@ -1,7 +1,10 @@
 package com.ban.vehicle_management.application.accesscontrol.subscription.authorization;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
@@ -63,6 +66,37 @@ class SubscriptionAccessGuardTest {
 
         assertDoesNotThrow(() -> guard.ensureCanRead(subscription(lotId)));
         assertThrows(AccessDeniedException.class, () -> guard.ensureCanOperate(subscription(lotId)));
+    }
+
+    @Test
+    void partnerCanManageAccessOnlyForOwnedLot() {
+        UUID actorId = UUID.randomUUID();
+        UUID ownLot = UUID.randomUUID();
+        UUID otherLot = UUID.randomUUID();
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account(Set.of(
+                SubscriptionAccessGuard.UPDATE_ALL,
+                OrganizationAccessGuard.PARKING_SCOPE_PARTNER), ownLot));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(actorId);
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut)).thenReturn(Set.of(ownLot));
+
+        assertEquals(actorId, guard.ensureCanManageAccess(subscription(ownLot)));
+        assertThrows(AccessDeniedException.class, () -> guard.ensureCanManageAccess(subscription(otherLot)));
+        verify(currentAccountPortIn, times(2)).requirePermission(SubscriptionAccessGuard.UPDATE_ALL);
+    }
+
+    @Test
+    void managerCanManageAccessOnlyForAssignedLot() {
+        UUID actorId = UUID.randomUUID();
+        UUID assignedLot = UUID.randomUUID();
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account(Set.of(
+                SubscriptionAccessGuard.UPDATE_ALL,
+                OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED), assignedLot));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(actorId);
+        when(organizationAccessGuard.resolveAccessibleParkingLotIds(parkingLotPortOut)).thenReturn(Set.of(assignedLot));
+
+        assertEquals(actorId, guard.ensureCanManageAccess(subscription(assignedLot)));
+        assertThrows(AccessDeniedException.class,
+                () -> guard.ensureCanManageAccess(subscription(UUID.randomUUID())));
     }
 
     private CurrentAccountAccess account(Set<String> permissions, UUID scopeId) {

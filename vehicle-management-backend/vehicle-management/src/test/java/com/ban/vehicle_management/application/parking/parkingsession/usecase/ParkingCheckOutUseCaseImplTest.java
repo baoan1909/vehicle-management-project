@@ -13,6 +13,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.service.SubscriptionQrTokenService;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
@@ -31,6 +33,7 @@ import com.ban.vehicle_management.application.storage.model.StoredFile;
 import com.ban.vehicle_management.application.storage.port.out.FileAccessPort;
 import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
+import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.parking.gate.model.Gate;
@@ -74,6 +77,9 @@ class ParkingCheckOutUseCaseImplTest {
 
     @Mock
     private CardPortOut cardPortOut;
+
+    @Mock
+    private SubscriptionPortOut subscriptionPortOut;
 
     @Mock
     private LanePortOut lanePortOut;
@@ -123,7 +129,13 @@ class ParkingCheckOutUseCaseImplTest {
                 invoicePortOut,
                 Mappers.getMapper(ParkingCheckOutMapper.class),
                 fileStoragePort,
-                fileAccessPort
+                fileAccessPort,
+                null,
+                null,
+                null,
+                null,
+                subscriptionPortOut,
+                new SubscriptionQrTokenService()
         );
     }
 
@@ -243,6 +255,97 @@ class ParkingCheckOutUseCaseImplTest {
         verify(invoicePortOut, never()).save(any(Invoice.class));
     }
 
+    @Test
+    void shouldCheckOutQrOnlySubscriptionWithCurrentQr() {
+        TestData data = validTestData();
+        String qrToken = new SubscriptionQrTokenService().generateToken();
+        String qrPayload = SubscriptionQrTokenService.PAYLOAD_PREFIX + qrToken;
+        Subscription subscription = subscription(data, qrToken);
+        ParkingSession openSession = subscriptionOpenSession(data);
+        openSession.setCardId(null);
+        openSession.setSubscriptionId(subscription.getSubscriptionId());
+
+        mockOperationalTopology(data);
+        when(subscriptionPortOut.findByQrAccessToken(qrToken)).thenReturn(Optional.of(subscription));
+        when(subscriptionPortOut.findByIdForUpdate(subscription.getSubscriptionId()))
+                .thenReturn(Optional.of(subscription));
+        when(parkingSessionPortOut.findOpenBySubscriptionIdForUpdate(subscription.getSubscriptionId()))
+                .thenReturn(Optional.of(openSession));
+        when(parkingSessionPortOut.save(any(ParkingSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(fileStoragePort.store(any(StoreFileCommand.class)))
+                .thenReturn(storedFile(), storedPersonFile());
+        when(parkingEventPortOut.save(any(ParkingEvent.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
+
+        CheckOutResult result = parkingCheckOutUseCase.checkOut(qrCommand(
+                data.laneId(),
+                "51A-12345",
+                qrPayload
+        ));
+
+        assertEquals(ParkingSessionStatus.CLOSED, result.parkingSession().getStatus());
+        assertEquals("SUBSCRIPTION", result.customerType());
+        assertEquals("OPEN", result.barrierAction());
+        assertNull(result.invoice());
+        verify(cardPortOut, never()).findByUidForUpdate(any());
+        verify(cardPortOut, never()).save(any(Card.class));
+    }
+
+    @Test
+    void shouldReturnLinkedPhysicalCardToAssignedAfterQrCheckOut() {
+        TestData data = validTestData();
+        String qrToken = new SubscriptionQrTokenService().generateToken();
+        String qrPayload = SubscriptionQrTokenService.PAYLOAD_PREFIX + qrToken;
+        Subscription subscription = subscription(data, qrToken);
+        Card card = card(data.cardId(), data.vehicleTypeId(), CardStatus.IN_USE);
+        ParkingSession openSession = subscriptionOpenSession(data);
+        openSession.setSubscriptionId(subscription.getSubscriptionId());
+
+        mockOperationalTopology(data);
+        when(subscriptionPortOut.findByQrAccessToken(qrToken)).thenReturn(Optional.of(subscription));
+        when(subscriptionPortOut.findByIdForUpdate(subscription.getSubscriptionId()))
+                .thenReturn(Optional.of(subscription));
+        when(parkingSessionPortOut.findOpenBySubscriptionIdForUpdate(subscription.getSubscriptionId()))
+                .thenReturn(Optional.of(openSession));
+        when(cardPortOut.findByIdForUpdate(data.cardId())).thenReturn(Optional.of(card));
+        when(parkingSessionPortOut.save(any(ParkingSession.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(fileStoragePort.store(any(StoreFileCommand.class)))
+                .thenReturn(storedFile(), storedPersonFile());
+        when(parkingEventPortOut.save(any(ParkingEvent.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
+
+        parkingCheckOutUseCase.checkOut(qrCommand(data.laneId(), "51A-12345", qrPayload));
+
+        assertEquals(CardStatus.ASSIGNED, card.getStatus());
+        verify(cardPortOut).save(card);
+    }
+
+    @Test
+    void shouldRejectQrThatWasRefreshed() {
+        TestData data = validTestData();
+        String oldQrToken = new SubscriptionQrTokenService().generateToken();
+        String oldQrPayload = SubscriptionQrTokenService.PAYLOAD_PREFIX + oldQrToken;
+        mockOperationalTopology(data);
+        when(subscriptionPortOut.findByQrAccessToken(oldQrToken)).thenReturn(Optional.empty());
+
+        assertThrows(
+                ConflictException.class,
+                () -> parkingCheckOutUseCase.checkOut(qrCommand(
+                        data.laneId(),
+                        "51A-12345",
+                        oldQrPayload
+                ))
+        );
+
+        verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
+        verify(fileStoragePort, never()).store(any(StoreFileCommand.class));
+    }
+
     private CheckOutCommand command(UUID laneId, String licensePlate) {
         return new CheckOutCommand(
                 laneId,
@@ -252,6 +355,29 @@ class ParkingCheckOutUseCaseImplTest {
                 personImage(),
                 " checkout "
         );
+    }
+
+    private CheckOutCommand qrCommand(UUID laneId, String licensePlate, String qrPayload) {
+        return new CheckOutCommand(
+                laneId,
+                null,
+                licensePlate,
+                licensePlateImage(),
+                personImage(),
+                " checkout qr ",
+                qrPayload
+        );
+    }
+
+    private Subscription subscription(TestData data, String qrToken) {
+        Subscription subscription = new Subscription();
+        subscription.setSubscriptionId(UUID.randomUUID());
+        subscription.setParkingLotId(data.parkingLotId());
+        subscription.setCustomerId(data.customerId());
+        subscription.setCustomerVehicleId(data.customerVehicleId());
+        subscription.setQrAccessToken(qrToken);
+        subscription.setAccessBlocked(false);
+        return subscription;
     }
 
     private void mockOperationalTopology(TestData data) {

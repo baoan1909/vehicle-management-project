@@ -163,13 +163,19 @@ function mapRefreshFailure(error: unknown): ApiError {
 }
 
 function sendJsonRequest(path: string, options: Omit<RequestOptions, "skipAuth" | "timeoutMs">, accessToken: string | null) {
+  const isMultipart = options.body instanceof FormData;
+  const requestBody = options.body instanceof FormData
+    ? options.body
+    : options.body
+      ? JSON.stringify(options.body)
+      : undefined;
   return fetch(`${appConfig.apiBaseUrl}${path}`, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(!isMultipart ? { "Content-Type": "application/json" } : {}),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...options.headers,
     },
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: requestBody,
   });
 }

@@ -6,6 +6,11 @@ public record CheckOutParkingSessionRequest(
         UUID laneId,
         String cardUid,
         String licensePlate,
-        String note
+        String note,
+        String subscriptionQrPayload
 ) {
+
+    public CheckOutParkingSessionRequest(UUID laneId, String cardUid, String licensePlate, String note) {
+        this(laneId, cardUid, licensePlate, note, null);
+    }
 }

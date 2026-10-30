@@ -75,6 +75,17 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
     }
 
     @Override
+    public Optional<Subscription> findByQrAccessToken(String qrAccessToken) {
+        return subscriptionRepository.findByQrAccessToken(qrAccessToken)
+                .map(subscriptionPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<UUID> findOperationalVehicleTypeIdBySubscriptionId(UUID subscriptionId) {
+        return subscriptionRepository.findOperationalVehicleTypeIdBySubscriptionId(subscriptionId);
+    }
+
+    @Override
     public Optional<Subscription> findActiveByCardId(UUID cardId, LocalDate businessDate) {
         return subscriptionRepository
                 .findFirstByCardIdAndStatusAndEffectiveFromLessThanEqualAndEffectiveToGreaterThanEqualOrderByEffectiveFromDesc(

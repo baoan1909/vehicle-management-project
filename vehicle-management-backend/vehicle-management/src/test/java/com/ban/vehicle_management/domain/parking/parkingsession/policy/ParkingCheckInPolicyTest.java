@@ -126,6 +126,24 @@ class ParkingCheckInPolicyTest {
         ));
     }
 
+    @Test
+    void shouldRejectCheckInWhenSubscriptionAccessIsBlocked() {
+        UUID customerId = UUID.randomUUID();
+        UUID vehicleTypeId = UUID.randomUUID();
+        Card card = card(CardStatus.ASSIGNED, vehicleTypeId);
+        Subscription subscription = subscription(customerId, UUID.randomUUID());
+        subscription.setAccessBlocked(true);
+        Customer customer = customer(customerId, CustomerStatus.ACTIVE, CustomerApprovalStatus.APPROVED);
+        CustomerVehicle customerVehicle = customerVehicle(
+                subscription.getCustomerVehicleId(), customerId, vehicleTypeId,
+                "51A-12345", CustomerVehicleStatus.ACTIVE
+        );
+
+        assertThrows(ConflictException.class, () -> parkingCheckInPolicy.validateSubscriptionContext(
+                card, subscription, customer, customerVehicle, "51A-12345"
+        ));
+    }
+
     private Card card(CardStatus status, UUID vehicleTypeId) {
         Card card = new Card();
         card.setCardId(UUID.randomUUID());

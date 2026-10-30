@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.service.SubscriptionQrTokenService;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
@@ -244,6 +245,8 @@ class ParkingCheckInUseCaseImplTest {
         when(parkingSessionPortOut.countOpenByZoneId(data.zoneId())).thenReturn(3L);
         when(subscriptionPortOut.findActiveByCardId(any(UUID.class), any(LocalDate.class)))
                 .thenReturn(Optional.of(activeSubscription));
+        when(subscriptionPortOut.findOperationalVehicleTypeIdBySubscriptionId(data.subscriptionId()))
+                .thenReturn(Optional.of(data.vehicleTypeId()));
         when(customerPortOut.findById(data.customerId())).thenReturn(Optional.of(activeApprovedCustomer(data.customerId())));
         when(customerVehiclePortOut.findById(data.customerVehicleId())).thenReturn(Optional.of(customerVehicle));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -263,6 +266,99 @@ class ParkingCheckInUseCaseImplTest {
         assertEquals(data.customerVehicleId(), result.parkingSession().getCustomerVehicleId());
         assertEquals(data.vehicleTypeId(), result.parkingSession().getVehicleTypeId());
         assertEquals("51A12345", result.parkingSession().getLicensePlateIn());
+    }
+
+    @Test
+    void shouldCheckInActiveSubscriptionByQrUsingPartnerVehicleType() {
+        TestData data = validTestData();
+        UUID partnerVehicleTypeId = UUID.randomUUID();
+        String token = "A".repeat(43);
+        String qrPayload = SubscriptionQrTokenService.PAYLOAD_PREFIX + token;
+        Subscription activeSubscription = activeSubscription(data);
+        activeSubscription.setCardId(null);
+        activeSubscription.setParkingLotId(data.parkingLotId());
+        activeSubscription.setQrAccessToken(token);
+        activeSubscription.setEffectiveFrom(LocalDate.now().minusDays(1));
+        activeSubscription.setEffectiveTo(LocalDate.now().plusDays(30));
+        CustomerVehicle customerVehicle = activeCustomerVehicle(data);
+
+        mockOperationalTopology(data, partnerVehicleTypeId);
+        when(subscriptionPortOut.findByQrAccessToken(token)).thenReturn(Optional.of(activeSubscription));
+        when(subscriptionPortOut.findByIdForUpdate(data.subscriptionId()))
+                .thenReturn(Optional.of(activeSubscription));
+        when(subscriptionPortOut.findOperationalVehicleTypeIdBySubscriptionId(data.subscriptionId()))
+                .thenReturn(Optional.of(partnerVehicleTypeId));
+        when(customerPortOut.findById(data.customerId()))
+                .thenReturn(Optional.of(activeApprovedCustomer(data.customerId())));
+        when(customerVehiclePortOut.findById(data.customerVehicleId()))
+                .thenReturn(Optional.of(customerVehicle));
+        when(parkingSessionPortOut.existsOpenBySubscriptionId(data.subscriptionId())).thenReturn(false);
+        when(parkingSessionPortOut.countOpenByZoneId(data.zoneId())).thenReturn(3L);
+        when(parkingSessionPortOut.save(any(ParkingSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedFile(), storedPersonFile());
+        when(parkingEventPortOut.save(any(ParkingEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
+
+        CheckInResult result = parkingCheckInUseCase.checkIn(new CheckInCommand(
+                null,
+                data.laneId(),
+                null,
+                "51A-12345",
+                licensePlateImage(),
+                personImage(),
+                null,
+                false,
+                false,
+                null,
+                qrPayload
+        ));
+
+        assertEquals("SUBSCRIPTION", result.customerType());
+        assertEquals(data.subscriptionId(), result.subscriptionId());
+        assertEquals(data.subscriptionId(), result.parkingSession().getSubscriptionId());
+        assertEquals(data.customerVehicleId(), result.parkingSession().getCustomerVehicleId());
+        assertEquals(partnerVehicleTypeId, result.parkingSession().getVehicleTypeId());
+        assertNull(result.parkingSession().getCardId());
+        verify(cardPortOut, never()).save(any(Card.class));
+    }
+
+    @Test
+    void shouldRejectQrCheckInWhenSubscriptionAlreadyHasOpenSession() {
+        TestData data = validTestData();
+        String token = "B".repeat(43);
+        String qrPayload = SubscriptionQrTokenService.PAYLOAD_PREFIX + token;
+        Subscription activeSubscription = activeSubscription(data);
+        activeSubscription.setCardId(null);
+        activeSubscription.setParkingLotId(data.parkingLotId());
+        activeSubscription.setQrAccessToken(token);
+        activeSubscription.setEffectiveFrom(LocalDate.now().minusDays(1));
+        activeSubscription.setEffectiveTo(LocalDate.now().plusDays(30));
+
+        mockOperationalTopology(data);
+        when(subscriptionPortOut.findByQrAccessToken(token)).thenReturn(Optional.of(activeSubscription));
+        when(subscriptionPortOut.findByIdForUpdate(data.subscriptionId()))
+                .thenReturn(Optional.of(activeSubscription));
+        when(customerPortOut.findById(data.customerId()))
+                .thenReturn(Optional.of(activeApprovedCustomer(data.customerId())));
+        when(customerVehiclePortOut.findById(data.customerVehicleId()))
+                .thenReturn(Optional.of(activeCustomerVehicle(data)));
+        when(parkingSessionPortOut.existsOpenBySubscriptionId(data.subscriptionId())).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> parkingCheckInUseCase.checkIn(new CheckInCommand(
+                null,
+                data.laneId(),
+                null,
+                "51A-12345",
+                licensePlateImage(),
+                personImage(),
+                null,
+                false,
+                false,
+                null,
+                qrPayload
+        )));
+        verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
+        verify(parkingEventPortOut, never()).save(any(ParkingEvent.class));
     }
 
     @Test
@@ -450,12 +546,16 @@ class ParkingCheckInUseCaseImplTest {
     }
 
     private void mockOperationalTopology(TestData data) {
+        mockOperationalTopology(data, data.vehicleTypeId());
+    }
+
+    private void mockOperationalTopology(TestData data, UUID operationalVehicleTypeId) {
         when(lanePortOut.findById(data.laneId()))
                 .thenReturn(Optional.of(lane(data.laneId(), data.gateId(), LaneDirection.IN, LaneStatus.ACTIVE)));
         when(gatePortOut.findById(data.gateId()))
                 .thenReturn(Optional.of(gate(data.gateId(), data.zoneId(), GateStatus.ACTIVE)));
         when(zonePortOut.findById(data.zoneId()))
-                .thenReturn(Optional.of(zone(data.zoneId(), data.parkingLotId(), data.vehicleTypeId(), 100, ZoneStatus.ACTIVE)));
+                .thenReturn(Optional.of(zone(data.zoneId(), data.parkingLotId(), operationalVehicleTypeId, 100, ZoneStatus.ACTIVE)));
         when(parkingLotPortOut.findById(data.parkingLotId()))
                 .thenReturn(Optional.of(parkingLot(data.parkingLotId(), ParkingLotStatus.ACTIVE)));
     }

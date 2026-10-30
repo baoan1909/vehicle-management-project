@@ -8,6 +8,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,6 +46,17 @@ public class ParkingSpacePersistenceAdapter implements ParkingSpacePortOut {
     @Transactional
     public Optional<ParkingSpace> findByIdForUpdate(UUID parkingSpaceId) {
         return repository.findByIdForUpdate(parkingSpaceId).map(mapper::toDomain);
+    }
+
+    @Override
+    @Transactional
+    public Optional<ParkingSpace> findFirstVisitorAvailableForUpdate(
+            UUID zoneId,
+            UUID vehicleTypeId,
+            Instant now
+    ) {
+        return repository.findFirstVisitorAvailableForUpdate(zoneId, vehicleTypeId, now)
+                .map(mapper::toDomain);
     }
 
     @Override

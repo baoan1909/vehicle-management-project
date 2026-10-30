@@ -13,7 +13,7 @@ public class ParkingSessionPolicy {
 
     public void initialize(ParkingSession parkingSession) {
         requireParkingSession(parkingSession);
-        requireField(parkingSession.getCardId(), "cardId");
+        requireAccessCredential(parkingSession);
         requireField(parkingSession.getVehicleTypeId(), "vehicleTypeId");
         requireField(parkingSession.getCheckInTime(), "checkInTime");
         parkingSession.setLicensePlateIn(licensePlatePolicy.normalizeRequired(parkingSession.getLicensePlateIn(), "licensePlateIn"));
@@ -58,7 +58,7 @@ public class ParkingSessionPolicy {
 
     public void validateState(ParkingSession parkingSession) {
         requireParkingSession(parkingSession);
-        requireField(parkingSession.getCardId(), "cardId");
+        requireAccessCredential(parkingSession);
         requireField(parkingSession.getVehicleTypeId(), "vehicleTypeId");
         requireField(parkingSession.getCheckInTime(), "checkInTime");
         requireField(parkingSession.getStatus(), "status");
@@ -122,6 +122,12 @@ public class ParkingSessionPolicy {
 
     private void requireParkingSession(ParkingSession parkingSession) {
         requireField(parkingSession, "parkingSession");
+    }
+
+    private void requireAccessCredential(ParkingSession parkingSession) {
+        if (parkingSession.getCardId() == null && parkingSession.getSubscriptionId() == null) {
+            throw new BadRequestException("ParkingSession must have a card or subscription credential");
+        }
     }
 
     private void requireField(Object value, String fieldName) {

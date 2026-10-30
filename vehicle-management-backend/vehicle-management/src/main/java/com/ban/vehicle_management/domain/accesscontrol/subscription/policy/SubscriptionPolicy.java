@@ -13,16 +13,25 @@ import java.util.UUID;
 
 public class SubscriptionPolicy {
 
+    public static final int MIN_PERIOD_QUANTITY = 1;
+    public static final int MAX_PERIOD_QUANTITY = 12;
     private static final int MIN_EFFECTIVE_LEAD_DAYS = 0;
     private static final int MAX_EFFECTIVE_LEAD_DAYS = 7;
 
     public void initializeNewSubscription(Subscription subscription, int durationDays, LocalDate currentDate) {
         requireSubscription(subscription);
+        validatePeriodQuantity(subscription.getPeriodQuantity());
         validateDuration(durationDays);
         validateRequestedDate(subscription.getRequestedEffectiveFrom(), currentDate);
 
         subscription.setEffectiveFrom(subscription.getRequestedEffectiveFrom());
         subscription.setEffectiveTo(calculateEffectiveTo(subscription.getEffectiveFrom(), durationDays));
+        if (subscription.getPhysicalCardRequested() == null) {
+            subscription.setPhysicalCardRequested(true);
+        }
+        if (subscription.getPhysicalCardDeposit() == null) {
+            subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+        }
         subscription.setStatus(SubscriptionStatus.PENDING);
         subscription.setCardId(null);
         subscription.setCardReceiptDate(null);
@@ -34,6 +43,7 @@ public class SubscriptionPolicy {
 
     public void preparePendingUpdate(Subscription subscription, int durationDays, LocalDate currentDate) {
         requireStatus(subscription, SubscriptionStatus.PENDING);
+        validatePeriodQuantity(subscription.getPeriodQuantity());
         validateDuration(durationDays);
         validateRequestedDate(subscription.getRequestedEffectiveFrom(), currentDate);
 
@@ -49,8 +59,13 @@ public class SubscriptionPolicy {
         requireField(approvedBy, "approvedBy");
         requireField(approvedAt, "approvedAt");
         requireField(approvalDate, "approvalDate");
-        requireField(reservedCardId, "reservedCardId");
         requireField(invoiceFinalAmount, "invoiceFinalAmount");
+
+        if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
+            requireField(reservedCardId, "reservedCardId");
+        } else if (reservedCardId != null) {
+            throw new BadRequestException("Subscription without a physical card must not reserve a card");
+        }
 
         if (approvalDate.isAfter(subscription.getRequestedEffectiveFrom())) {
             throw new ConflictException("Subscription approval deadline has expired");
@@ -62,12 +77,14 @@ public class SubscriptionPolicy {
 
         subscription.setApprovedBy(approvedBy);
         subscription.setApprovedAt(approvedAt);
-        subscription.setCardId(reservedCardId);
+        subscription.setCardId(Boolean.TRUE.equals(subscription.getPhysicalCardRequested()) ? reservedCardId : null);
         subscription.setCardReceiptDate(null);
         clearRejection(subscription);
 
         if (invoiceFinalAmount.compareTo(BigDecimal.ZERO) == 0) {
-            subscription.setStatus(SubscriptionStatus.PENDING_CARD);
+            subscription.setStatus(Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
+                    ? SubscriptionStatus.PENDING_CARD
+                    : SubscriptionStatus.ACTIVE);
         } else {
             subscription.setStatus(SubscriptionStatus.PENDING_PAYMENT);
         }
@@ -93,12 +110,17 @@ public class SubscriptionPolicy {
 
     public void markPaymentCompleted(Subscription subscription) {
         requireStatus(subscription, SubscriptionStatus.PENDING_PAYMENT);
-        subscription.setStatus(SubscriptionStatus.PENDING_CARD);
+        subscription.setStatus(Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
+                ? SubscriptionStatus.PENDING_CARD
+                : SubscriptionStatus.ACTIVE);
         validateState(subscription);
     }
 
     public void assignReservedCard(Subscription subscription, LocalDate cardReceiptDate, int durationDays) {
         requireStatus(subscription, SubscriptionStatus.PENDING_CARD);
+        if (!Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
+            throw new ConflictException("Subscription did not request a physical card");
+        }
         requireField(subscription.getCardId(), "cardId");
         requireField(cardReceiptDate, "cardReceiptDate");
         validateDuration(durationDays);
@@ -150,6 +172,9 @@ public class SubscriptionPolicy {
         requireField(subscription.getCustomerVehicleId(), "customerVehicleId");
         requireField(subscription.getTicketTypeId(), "ticketTypeId");
         requireField(subscription.getPriceRuleId(), "priceRuleId");
+        requireField(subscription.getPeriodQuantity(), "periodQuantity");
+        requireField(subscription.getPhysicalCardRequested(), "physicalCardRequested");
+        requireField(subscription.getPhysicalCardDeposit(), "physicalCardDeposit");
         requireField(subscription.getRequestedEffectiveFrom(), "requestedEffectiveFrom");
         requireField(subscription.getEffectiveFrom(), "effectiveFrom");
         requireField(subscription.getEffectiveTo(), "effectiveTo");
@@ -164,15 +189,36 @@ public class SubscriptionPolicy {
             throw new BadRequestException("price must not be negative");
         }
 
+        if (subscription.getPhysicalCardDeposit().compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("physicalCardDeposit must not be negative");
+        }
+        if (!Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
+                && subscription.getPhysicalCardDeposit().compareTo(BigDecimal.ZERO) != 0) {
+            throw new BadRequestException("Subscription without a physical card must not have a card deposit");
+        }
+
+        validatePeriodQuantity(subscription.getPeriodQuantity());
+
         switch (subscription.getStatus()) {
             case PENDING -> {
                 requireNoApproval(subscription);
                 requireNoRejection(subscription);
                 requireNoCard(subscription);
             }
-            case PENDING_PAYMENT, PENDING_CARD -> {
+            case PENDING_PAYMENT -> {
                 requireApproval(subscription);
                 requireNoRejection(subscription);
+                validateCardAssignment(subscription, false);
+                if (subscription.getCardReceiptDate() != null) {
+                    throw new BadRequestException("Pending subscription must not have cardReceiptDate");
+                }
+            }
+            case PENDING_CARD -> {
+                requireApproval(subscription);
+                requireNoRejection(subscription);
+                if (!Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
+                    throw new BadRequestException("Only physical-card subscriptions may wait for card assignment");
+                }
                 requireField(subscription.getCardId(), "cardId");
                 if (subscription.getCardReceiptDate() != null) {
                     throw new BadRequestException("Pending subscription must not have cardReceiptDate");
@@ -181,8 +227,7 @@ public class SubscriptionPolicy {
             case ACTIVE, EXPIRED -> {
                 requireApproval(subscription);
                 requireNoRejection(subscription);
-                requireField(subscription.getCardId(), "cardId");
-                requireField(subscription.getCardReceiptDate(), "cardReceiptDate");
+                validateCardAssignment(subscription, true);
             }
             case CANCELLED -> requireNoRejection(subscription);
             case REJECTED -> {
@@ -217,6 +262,15 @@ public class SubscriptionPolicy {
         }
     }
 
+    private void validatePeriodQuantity(Integer periodQuantity) {
+        if (periodQuantity == null
+                || periodQuantity < MIN_PERIOD_QUANTITY
+                || periodQuantity > MAX_PERIOD_QUANTITY) {
+            throw new BadRequestException("periodQuantity must be between "
+                    + MIN_PERIOD_QUANTITY + " and " + MAX_PERIOD_QUANTITY);
+        }
+    }
+
     private void requireApproval(Subscription subscription) {
         requireField(subscription.getApprovedBy(), "approvedBy");
         requireField(subscription.getApprovedAt(), "approvedAt");
@@ -241,6 +295,17 @@ public class SubscriptionPolicy {
         if (subscription.getCardId() != null || subscription.getCardReceiptDate() != null) {
             throw new BadRequestException("Subscription must not contain card assignment");
         }
+    }
+
+    private void validateCardAssignment(Subscription subscription, boolean activeState) {
+        if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
+            requireField(subscription.getCardId(), "cardId");
+            if (activeState) {
+                requireField(subscription.getCardReceiptDate(), "cardReceiptDate");
+            }
+            return;
+        }
+        requireNoCard(subscription);
     }
 
     private void clearApproval(Subscription subscription) {
