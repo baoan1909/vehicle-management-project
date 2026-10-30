@@ -30,6 +30,37 @@ export type NearbyParkingLot = {
   distanceKm: number;
 };
 
+export type PublicParkingLotVehicleAvailability = {
+  vehicleTypeId: string;
+  code: string;
+  name: string;
+  totalCapacity: number;
+  visitorAvailable: number;
+  subscriptionAvailable: number;
+};
+
+export type PublicParkingLotDirectoryItem = {
+  parkingLotId: string;
+  code: string;
+  name: string;
+  addressDisplay: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  status: "SETUP" | "ACTIVE" | "MAINTENANCE";
+  totalCapacity: number;
+  visitorAvailable: number;
+  hasAvailability: boolean;
+  snapshotAt: string;
+  vehicleTypes: PublicParkingLotVehicleAvailability[];
+};
+
+export function getPublicParkingLotDirectory() {
+  return apiClient<ApiResponse<PublicParkingLotDirectoryItem[]>>(
+    apiEndpoints.public.parkingLotDirectory,
+    { skipAuth: true },
+  );
+}
+
 export type PublicParkingLocation = {
   displayName: string;
   latitude: number;

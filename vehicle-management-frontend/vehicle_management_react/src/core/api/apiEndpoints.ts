@@ -15,6 +15,7 @@ export const apiEndpoints = {
     },
     partnerRegistrations: "/public/partner-registrations",
     parkingLots: "/public/parking-lots",
+    parkingLotDirectory: "/public/parking-lots/directory",
     nearbyParkingLots: "/public/parking-lots/nearby",
     parkingSpaceAvailability: (parkingLotId: string) => `/public/parking-lots/${parkingLotId}/space-availability`,
     parkingMapFeatures: "/public/parking-map/features",

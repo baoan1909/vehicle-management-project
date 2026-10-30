@@ -1,10 +1,12 @@
 package com.ban.vehicle_management.application.parking.parkinglot.mapper;
 
 import com.ban.vehicle_management.application.parking.parkinglot.model.result.NearbyParkingLotResult;
+import com.ban.vehicle_management.application.parking.parkinglot.model.result.PublicParkingLotDirectoryResult;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.CreateParkingLotRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.UpdateParkingLotRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotDirectoryResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotPublicResponse;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -51,6 +53,14 @@ public interface ParkingLotApiMapper {
     ParkingLotPublicResponse toPublicResponse(ParkingLot parkingLot);
 
     List<ParkingLotPublicResponse> toPublicResponses(List<ParkingLot> parkingLots);
+
+    ParkingLotDirectoryResponse toDirectoryResponse(PublicParkingLotDirectoryResult result);
+
+    List<ParkingLotDirectoryResponse> toDirectoryResponses(List<PublicParkingLotDirectoryResult> results);
+
+    ParkingLotDirectoryResponse.VehicleTypeAvailabilityResponse toDirectoryVehicleTypeResponse(
+            PublicParkingLotDirectoryResult.VehicleTypeAvailability result
+    );
 
     default ParkingLotPublicResponse toNearbyPublicResponse(NearbyParkingLotResult parkingLot) {
         long distanceMeters = BigDecimal.valueOf(parkingLot.distanceMeters())

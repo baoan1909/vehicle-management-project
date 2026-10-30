@@ -14,6 +14,7 @@ export type PricePlanFilter = {
   effectiveDate?: string;
   isActive?: boolean;
   keyword?: string;
+  parkingLotId?: string;
 };
 
 export type CreatePricePlanRequest = {
