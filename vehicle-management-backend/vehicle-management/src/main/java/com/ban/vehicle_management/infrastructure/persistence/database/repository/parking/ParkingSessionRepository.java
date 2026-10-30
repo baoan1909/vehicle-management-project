@@ -36,6 +36,17 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
     @Query("select session from ParkingSessionEntity session where session.cardId = :cardId and session.status = 'OPEN'")
     Optional<ParkingSessionEntity> findOpenByCardIdForUpdate(@Param("cardId") UUID cardId);
 
+    Optional<ParkingSessionEntity> findFirstBySubscriptionIdAndStatus(
+            UUID subscriptionId,
+            ParkingSessionStatus status
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select session from ParkingSessionEntity session where session.subscriptionId = :subscriptionId and session.status = 'OPEN'")
+    Optional<ParkingSessionEntity> findOpenBySubscriptionIdForUpdate(
+            @Param("subscriptionId") UUID subscriptionId
+    );
+
     boolean existsByVehicleTypeIdAndStatusIn(UUID vehicleTypeId, Collection<ParkingSessionStatus> statuses);
 
     boolean existsByParkingSpaceIdAndStatus(UUID parkingSpaceId, ParkingSessionStatus status);

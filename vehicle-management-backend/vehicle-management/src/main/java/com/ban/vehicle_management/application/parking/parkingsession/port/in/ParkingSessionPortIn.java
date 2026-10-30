@@ -47,4 +47,6 @@ public interface ParkingSessionPortIn {
     CheckOutResult getCheckOutByInvoice(UUID invoiceId);
 
     CheckOutPreviewResult previewCheckOutByCardUid(String cardUid);
+
+    CheckOutPreviewResult previewCheckOutBySubscriptionQr(String subscriptionQrPayload, UUID parkingLotId);
 }

@@ -6,10 +6,12 @@ import {
   verifySubscriptionQrImage,
   type SubscriptionQrVerification,
 } from "@/features/subscriptions/api/subscriptionQrApi";
+import type { ParkingOperationMode } from "./OperationModeTabs";
 
 type SubscriptionQrScannerModalProps = {
   onClose: () => void;
-  onConfirm: (verification: SubscriptionQrVerification, qrPayload: string) => void;
+  mode: ParkingOperationMode;
+  onConfirm: (verification: SubscriptionQrVerification, qrPayload: string) => void | Promise<void>;
   open: boolean;
   parkingLotId: string;
 };
@@ -26,7 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
   VEHICLE_MISMATCH: "Biển số không khớp với vé",
 };
 
-export function SubscriptionQrScannerModal({ onClose, onConfirm, open, parkingLotId }: SubscriptionQrScannerModalProps) {
+export function SubscriptionQrScannerModal({ mode, onClose, onConfirm, open, parkingLotId }: SubscriptionQrScannerModalProps) {
   const [qrPayload, setQrPayload] = useState("");
   const [result, setResult] = useState<SubscriptionQrVerification | null>(null);
   const [error, setError] = useState("");
@@ -64,7 +66,7 @@ export function SubscriptionQrScannerModal({ onClose, onConfirm, open, parkingLo
       const verifiedPayload = verification.qrPayload ?? normalized;
       setQrPayload(verifiedPayload);
       if (verification.status === "VALID") {
-        onConfirm(verification, verifiedPayload);
+        await onConfirm(verification, verifiedPayload);
       }
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Không thể kiểm tra QR.");
@@ -97,7 +99,7 @@ export function SubscriptionQrScannerModal({ onClose, onConfirm, open, parkingLo
       setResult(verification);
       if (verification.qrPayload) setQrPayload(verification.qrPayload);
       if (verification.status === "VALID" && verification.qrPayload) {
-        onConfirm(verification, verification.qrPayload);
+        await onConfirm(verification, verification.qrPayload);
       }
     } catch (decodeError) {
       setError(decodeError instanceof Error ? decodeError.message : "Không thể tải và kiểm tra ảnh QR.");
@@ -107,13 +109,14 @@ export function SubscriptionQrScannerModal({ onClose, onConfirm, open, parkingLo
   }
 
   const valid = result?.status === "VALID";
+  const operationLabel = mode === "check-in" ? "check-in" : "check-out";
 
   return (
     <Modal
-      description="QR hợp lệ sẽ được đưa vào form check-in. Biển số thực tế được đối chiếu khi nhân viên xác nhận xe vào."
+      description={`QR hợp lệ sẽ được đưa vào form ${operationLabel}. Biển số thực tế được đối chiếu khi nhân viên xác nhận xe ${mode === "check-in" ? "vào" : "ra"}.`}
       onClose={onClose}
       open={open}
-      title="Kiểm tra QR vé đăng ký"
+      title={`Kiểm tra QR vé đăng ký để ${operationLabel}`}
       width="md"
     >
       <div className="tw-grid tw-gap-4">
@@ -139,7 +142,7 @@ export function SubscriptionQrScannerModal({ onClose, onConfirm, open, parkingLo
         <div className="tw-rounded-vm-md tw-bg-slate-50 tw-p-3 tw-text-xs tw-text-slate-600">
           <strong className="tw-block tw-text-slate-800">Phạm vi kiểm tra QR</strong>
           <span className="tw-mt-1 tw-block">Bãi xe: {parkingLotId || "Chưa chọn"}</span>
-          <span className="tw-block">Biển số: Đối chiếu khi xác nhận check-in</span>
+          <span className="tw-block">Biển số: Đối chiếu khi xác nhận {operationLabel}</span>
         </div>
 
         {error ? <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-semibold tw-text-red-700" role="alert">{error}</div> : null}

@@ -84,7 +84,8 @@ public interface ParkingSessionApiMapper {
                 command.licensePlate(),
                 licensePlateImage,
                 personImage,
-                command.note()
+                command.note(),
+                command.subscriptionQrPayload()
         );
     }
 

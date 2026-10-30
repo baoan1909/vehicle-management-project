@@ -4,10 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionQrVerificationStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -98,6 +100,20 @@ class SubscriptionQrPolicyTest {
         subscription.setQrRevokedAt(Instant.parse("2026-10-29T02:00:00Z"));
         assertEquals(SubscriptionQrVerificationStatus.REVOKED,
                 policy.verify(subscription, BUSINESS_DATE, LOT_ID, "59A1-123.45", null));
+    }
+
+    @Test
+    void shouldAllowCurrentQrToExitAfterSubscriptionValidityEnds() {
+        Subscription subscription = activeSubscription();
+        subscription.setEffectiveTo(BUSINESS_DATE.minusDays(1));
+
+        policy.ensureUsableForCheckOut(subscription, LOT_ID);
+
+        subscription.setAccessBlocked(true);
+        assertThrows(
+                ConflictException.class,
+                () -> policy.ensureUsableForCheckOut(subscription, LOT_ID)
+        );
     }
 
     private Subscription activeSubscription() {

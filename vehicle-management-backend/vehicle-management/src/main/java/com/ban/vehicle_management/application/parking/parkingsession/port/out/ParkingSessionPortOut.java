@@ -18,6 +18,10 @@ public interface ParkingSessionPortOut {
 
     Optional<ParkingSession> findOpenByCardIdForUpdate(UUID cardId);
 
+    Optional<ParkingSession> findOpenBySubscriptionId(UUID subscriptionId);
+
+    Optional<ParkingSession> findOpenBySubscriptionIdForUpdate(UUID subscriptionId);
+
     boolean existsOpenByCardId(UUID cardId);
 
     boolean existsOpenBySubscriptionId(UUID subscriptionId);

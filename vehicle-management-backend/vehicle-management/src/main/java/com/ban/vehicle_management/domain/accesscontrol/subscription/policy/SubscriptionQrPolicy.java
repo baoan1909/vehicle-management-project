@@ -97,6 +97,21 @@ public class SubscriptionQrPolicy {
         return SubscriptionQrVerificationStatus.VALID;
     }
 
+    public void ensureUsableForCheckOut(Subscription subscription, UUID parkingLotId) {
+        if (subscription == null || parkingLotId == null) {
+            throw new IllegalArgumentException("Subscription and parkingLotId are required");
+        }
+        if (subscription.getQrRevokedAt() != null) {
+            throw new ConflictException("Subscription QR credential has been revoked");
+        }
+        if (Boolean.TRUE.equals(subscription.getAccessBlocked())) {
+            throw new ConflictException("Subscription access is blocked");
+        }
+        if (!parkingLotId.equals(subscription.getParkingLotId())) {
+            throw new ConflictException("Subscription QR is not valid for this parking lot");
+        }
+    }
+
     private void requireActive(Subscription subscription) {
         if (subscription == null || subscription.getStatus() != SubscriptionStatus.ACTIVE) {
             throw new ConflictException("Only an active subscription can manage access credentials");

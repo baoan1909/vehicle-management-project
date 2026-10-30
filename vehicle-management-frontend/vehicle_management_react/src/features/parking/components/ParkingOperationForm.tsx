@@ -387,7 +387,7 @@ export function ParkingOperationForm({
     <Card className="tw-flex tw-min-h-0 tw-flex-col tw-overflow-hidden">
       <CardHeader className="tw-flex tw-min-h-[58px] tw-items-center tw-justify-between tw-gap-3 tw-px-4 tw-py-2">
         <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-slate-900">Thông tin xử lý</h2>
-        {isCheckIn && onScanSubscriptionQr ? (
+        {onScanSubscriptionQr ? (
           <button
             className="tw-flex tw-h-9 tw-flex-shrink-0 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-blue-200 tw-bg-blue-50 tw-px-3 tw-text-[0.8rem] tw-font-extrabold tw-text-blue-700 tw-transition hover:tw-bg-blue-100 disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
             disabled={qrScanDisabled}
@@ -395,7 +395,7 @@ export function ParkingOperationForm({
             onClick={onScanSubscriptionQr}
           >
             <i className="fas fa-qrcode" />
-            Quét QR check-in
+            Quét QR {isCheckIn ? "check-in" : "check-out"}
           </button>
         ) : null}
       </CardHeader>
@@ -414,7 +414,7 @@ export function ParkingOperationForm({
               <strong className="tw-block tw-text-[0.82rem]">Đã xác nhận QR vé đăng ký</strong>
               <span className="tw-block tw-text-[0.76rem]">Phương tiện: {subscriptionQrLicensePlate}</span>
             </div>
-            <button className="tw-border-0 tw-bg-transparent tw-text-xs tw-font-extrabold tw-text-emerald-700" type="button" onClick={() => onCardUidChange("")}>Check-in bằng thẻ vật lý</button>
+            <button className="tw-border-0 tw-bg-transparent tw-text-xs tw-font-extrabold tw-text-emerald-700" type="button" onClick={() => onCardUidChange("")}>{isCheckIn ? "Check-in" : "Check-out"} bằng thẻ vật lý</button>
           </div>
         ) : (
           <CardUidField

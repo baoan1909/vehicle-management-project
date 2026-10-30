@@ -9,6 +9,18 @@ public record CheckOutCommand(
         String licensePlate,
         MultipartFile licensePlateImage,
         MultipartFile personImage,
-        String note
+        String note,
+        String subscriptionQrPayload
 ) {
+
+    public CheckOutCommand(
+            UUID laneId,
+            String cardUid,
+            String licensePlate,
+            MultipartFile licensePlateImage,
+            MultipartFile personImage,
+            String note
+    ) {
+        this(laneId, cardUid, licensePlate, licensePlateImage, personImage, note, null);
+    }
 }

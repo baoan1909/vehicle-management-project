@@ -83,10 +83,11 @@ export type CheckInParkingSessionRequest = {
 };
 
 export type CheckOutParkingSessionRequest = {
-  cardUid: string;
+  cardUid?: string;
   laneId: string;
   licensePlate: string;
   note?: string;
+  subscriptionQrPayload?: string;
 };
 
 export type ParkingSessionResponse = {
@@ -362,6 +363,21 @@ export async function fetchOpenParkingSessionByCardUid(cardUid: string) {
 
   const response = await apiClient<ApiResponse<ParkingSessionCheckOutPreviewResponse>>(
     `${apiEndpoints.parking.parkingSessions}/open-by-card?${query.toString()}`,
+  );
+
+  return response.data;
+}
+
+export async function fetchOpenParkingSessionBySubscriptionQr(
+  subscriptionQrPayload: string,
+  parkingLotId: string,
+) {
+  const response = await apiClient<ApiResponse<ParkingSessionCheckOutPreviewResponse>>(
+    `${apiEndpoints.parking.parkingSessions}/open-by-subscription-qr`,
+    {
+      body: { parkingLotId, subscriptionQrPayload },
+      method: "POST",
+    },
   );
 
   return response.data;

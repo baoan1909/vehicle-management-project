@@ -57,6 +57,21 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
     }
 
     @Override
+    public Optional<ParkingSession> findOpenBySubscriptionId(UUID subscriptionId) {
+        return parkingSessionRepository.findFirstBySubscriptionIdAndStatus(
+                        subscriptionId,
+                        ParkingSessionStatus.OPEN
+                )
+                .map(parkingSessionPersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<ParkingSession> findOpenBySubscriptionIdForUpdate(UUID subscriptionId) {
+        return parkingSessionRepository.findOpenBySubscriptionIdForUpdate(subscriptionId)
+                .map(parkingSessionPersistenceMapper::toDomain);
+    }
+
+    @Override
     public boolean existsOpenByCardId(UUID cardId) {
         return parkingSessionRepository.existsByCardIdAndStatus(cardId, ParkingSessionStatus.OPEN);
     }

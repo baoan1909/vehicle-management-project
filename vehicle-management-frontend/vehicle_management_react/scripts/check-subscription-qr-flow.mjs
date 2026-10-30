@@ -7,6 +7,7 @@ const approvalApi = read("../src/features/catalog/api/subscriptionApprovalsApi.t
 const approvalPage = read("../src/features/catalog/pages/SubscriptionApprovalPage.tsx");
 const customerPage = read("../src/features/customer-portal/pages/SubscriptionPage.tsx");
 const operationPage = read("../src/features/parking/pages/SwipeListPage.tsx");
+const parkingSessionApi = read("../src/features/parking/api/parkingSessionApi.ts");
 const scannerModal = read("../src/features/parking/components/SubscriptionQrScannerModal.tsx");
 
 assert.ok(qrApi.includes("/me/${subscriptionId}/qr"), "Thiếu API cấp QR cho chính khách hàng");
@@ -28,6 +29,10 @@ assert.ok(approvalPage.includes('hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"
 assert.ok(approvalPage.includes("Kích hoạt lại vé"), "Quản lý chưa thể kích hoạt lại vé sau khi khóa");
 assert.ok(operationPage.includes("SubscriptionQrScannerModal"), "Màn hình vận hành chưa kết nối bộ đọc QR");
 assert.ok(operationPage.includes("subscriptionQrPayload"), "Màn hình vận hành chưa gửi QR vào yêu cầu check-in");
+assert.ok(parkingSessionApi.includes("fetchOpenParkingSessionBySubscriptionQr"), "Thiếu API tìm phiên đang mở bằng QR để check-out");
+assert.ok(parkingSessionApi.includes("/open-by-subscription-qr"), "Thiếu endpoint preview QR check-out");
+assert.ok(operationPage.includes("isQrCheckOut"), "Màn hình vận hành chưa tách luồng QR check-out");
+assert.ok(operationPage.includes("subscriptionQrPayload: isQrCheckOut"), "Màn hình vận hành chưa gửi QR vào yêu cầu check-out");
 assert.ok(operationPage.includes("handleConfirmSubscriptionQr"), "Màn hình vận hành chưa có bước nhân viên xác nhận QR");
 assert.ok(scannerModal.includes("verifySubscriptionQrImage"), "Bộ đọc QR chưa hỗ trợ tải ảnh lên backend");
 assert.ok(scannerModal.includes('BLOCKED: "Vé đang bị tạm khóa"'), "Bộ đọc QR chưa hiển thị trạng thái vé bị khóa");
@@ -35,4 +40,4 @@ assert.ok(!scannerModal.includes("licensePlate.trim() || undefined"), "Bộ đ�
 assert.ok(scannerModal.includes('verification.status === "VALID"'), "QR hợp lệ chưa tự động quay lại form check-in");
 assert.ok(!scannerModal.includes("Dùng QR để check-in"), "Hộp thoại vẫn còn nút xác nhận QR trung gian không cần thiết");
 
-console.log("Subscription QR issuance, download, image scan, confirmation, and check-in wiring checks passed.");
+console.log("Subscription QR issuance, download, image scan, confirmation, check-in, and check-out wiring checks passed.");

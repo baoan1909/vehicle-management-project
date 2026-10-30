@@ -199,4 +199,62 @@ class ParkingSessionControllerTest {
         assertEquals("VISITOR", response.getBody().getData().getCustomerType());
         assertEquals("WAIT_PAYMENT", response.getBody().getData().getBarrierAction());
     }
+
+    @Test
+    void shouldParseSubscriptionQrPayloadForCheckOut() {
+        ParkingSessionController controller = new ParkingSessionController(
+                parkingSessionPortIn,
+                parkingSessionApiMapper
+        );
+        UUID laneId = UUID.randomUUID();
+        MockMultipartFile licensePlateImage = new MockMultipartFile(
+                "licensePlateImage", "plate.jpg", "image/jpeg", new byte[] {1}
+        );
+        MockMultipartFile personImage = new MockMultipartFile(
+                "personImage", "person.jpg", "image/jpeg", new byte[] {2}
+        );
+        String qrPayload = "COPARKING:SUBSCRIPTION:1:abcdefghijklmnopqrstuvwxyzABCDEFGH123456789";
+        CheckOutCommand command = new CheckOutCommand(
+                laneId,
+                null,
+                "60K8-2301",
+                licensePlateImage,
+                personImage,
+                null,
+                qrPayload
+        );
+        CheckOutResult result = new CheckOutResult(null, null, null, "SUBSCRIPTION", "OPEN");
+        ParkingSessionCheckOutResponse responseBody = new ParkingSessionCheckOutResponse();
+        responseBody.setCustomerType("SUBSCRIPTION");
+
+        when(parkingSessionApiMapper.toCommand(
+                any(CheckOutParkingSessionRequest.class),
+                same(licensePlateImage),
+                same(personImage)
+        )).thenReturn(command);
+        when(parkingSessionPortIn.checkOut(command)).thenReturn(result);
+        when(parkingSessionApiMapper.toCheckOutResponse(result)).thenReturn(responseBody);
+
+        controller.checkOut(
+                """
+                {
+                  "laneId": "%s",
+                  "licensePlate": "60K8-2301",
+                  "subscriptionQrPayload": "%s"
+                }
+                """.formatted(laneId, qrPayload),
+                licensePlateImage,
+                personImage
+        );
+
+        ArgumentCaptor<CheckOutParkingSessionRequest> requestCaptor =
+                ArgumentCaptor.forClass(CheckOutParkingSessionRequest.class);
+        verify(parkingSessionApiMapper).toCommand(
+                requestCaptor.capture(),
+                same(licensePlateImage),
+                same(personImage)
+        );
+        assertEquals(qrPayload, requestCaptor.getValue().subscriptionQrPayload());
+        assertEquals(null, requestCaptor.getValue().cardUid());
+    }
 }
