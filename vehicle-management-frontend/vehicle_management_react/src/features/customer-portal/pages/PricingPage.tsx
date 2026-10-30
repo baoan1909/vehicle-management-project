@@ -22,7 +22,6 @@ import {
 import { PublicFooter } from "./PortalShared";
 
 type PricingAudience = "VISITOR" | "CUSTOMER";
-type VehicleFilterKey = "MOTORBIKE" | "CAR" | "OTHER";
 type PricingShineState = { direction: "enter" | "leave"; id: number; traveling: boolean };
 type BrowserCoordinates = { latitude: number; longitude: number };
 
@@ -38,12 +37,6 @@ type DisplayRule = PriceRuleApiResponse & {
   ticketType?: TicketTypeApiResponse;
   vehicleType?: VehicleTypeApiResponse;
 };
-
-const vehicleFilterOptions: Array<{ icon: string; label: string; value: VehicleFilterKey }> = [
-  { icon: "fas fa-motorcycle", label: "Xe máy", value: "MOTORBIKE" },
-  { icon: "fas fa-car", label: "Ô tô", value: "CAR" },
-  { icon: "fas fa-truck", label: "Xe khác", value: "OTHER" },
-];
 
 function distanceMeters(from: BrowserCoordinates, lot: PublicParkingLotDirectoryItem) {
   if (lot.latitude === null || lot.longitude === null) return null;
@@ -77,24 +70,22 @@ function normalizeSearchText(value: string) {
     .toLowerCase();
 }
 
-function vehicleFilterLabel(value: VehicleFilterKey) {
-  return vehicleFilterOptions.find((option) => option.value === value)?.label ?? "Loại xe";
-}
-
-function vehicleCategoryFromText(code?: string | null, name?: string | null): VehicleFilterKey {
+function vehicleIconClass(code?: string | null, name?: string | null) {
   const text = normalizeSearchText(`${code ?? ""} ${name ?? ""}`);
-
-  if (text.includes("motor") || text.includes("moto") || text.includes("xe may")) return "MOTORBIKE";
-  if (text.includes("car") || text.includes("oto") || text.includes("o to")) return "CAR";
-  return "OTHER";
+  if (text.includes("motor") || text.includes("moto") || text.includes("xe may")) return "fas fa-motorcycle";
+  if (text.includes("bicycle") || text.includes("xe dap")) return "fas fa-bicycle";
+  if (text.includes("truck") || text.includes("tai")) return "fas fa-truck";
+  if (text.includes("car") || text.includes("oto") || text.includes("o to")) return "fas fa-car";
+  return "fas fa-bus";
 }
 
-function vehicleCategory(vehicleType?: VehicleTypeApiResponse): VehicleFilterKey {
-  return vehicleCategoryFromText(vehicleType?.code, vehicleType?.name);
-}
-
-function matchesVehicleFilter(rule: DisplayRule, selectedVehicleFilter: VehicleFilterKey) {
-  return vehicleCategory(rule.vehicleType) === selectedVehicleFilter;
+function vehicleDisplayOrder(vehicleType: VehicleTypeApiResponse) {
+  const text = normalizeSearchText(`${vehicleType.code} ${vehicleType.name}`);
+  if (text.includes("bicycle") || text.includes("xe dap")) return 0;
+  if (text.includes("motor") || text.includes("moto") || text.includes("xe may")) return 1;
+  if (text.includes("car") || text.includes("oto") || text.includes("o to")) return 2;
+  if (text.includes("truck") || text.includes("tai")) return 3;
+  return 4;
 }
 
 function formatCurrency(value: number | null) {
@@ -164,10 +155,7 @@ function timeRange(rule: PriceRuleApiResponse) {
 }
 
 function vehicleIcon(vehicleType?: VehicleTypeApiResponse) {
-  const category = vehicleCategory(vehicleType);
-  if (category === "MOTORBIKE") return "fas fa-motorcycle";
-  if (category === "CAR") return "fas fa-car";
-  return "fas fa-truck";
+  return vehicleIconClass(vehicleType?.code, vehicleType?.name);
 }
 
 function VisitorPeriodIcon({ rule }: { rule: DisplayRule }) {
@@ -388,7 +376,7 @@ function ParkingLotCard({
         <span className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-1.5">
           {lot.vehicleTypes.length ? lot.vehicleTypes.map((vehicleType) => (
             <span className="tw-rounded-full tw-bg-vm-slate-50 tw-px-2.5 tw-py-1 tw-text-[0.66rem] tw-font-bold tw-text-vm-slate-600" key={vehicleType.vehicleTypeId}>
-              <i className={`${vehicleFilterOptions.find((option) => option.value === vehicleCategoryFromText(vehicleType.code, vehicleType.name))?.icon ?? "fas fa-car"} tw-mr-1.5 tw-text-vm-primary`} />{vehicleType.name}
+              <i className={`${vehicleIconClass(vehicleType.code, vehicleType.name)} tw-mr-1.5 tw-text-vm-primary`} />{vehicleType.name}
             </span>
           )) : <span className="tw-text-[0.68rem] tw-font-semibold tw-text-vm-slate-400">Chưa công bố loại phương tiện</span>}
         </span>
@@ -419,22 +407,22 @@ function PricingSectionHeading({ action, icon, title }: { action?: ReactNode; ic
   );
 }
 
-function VehicleFilterTabs({ options, selected, onChange }: { options: typeof vehicleFilterOptions; selected: VehicleFilterKey; onChange: (value: VehicleFilterKey) => void }) {
+function VehicleFilterTabs({ options, selected, onChange }: { options: VehicleTypeApiResponse[]; selected: string; onChange: (value: string) => void }) {
   return (
     <div className="tw-relative tw-z-10 tw-mx-auto tw-flex tw-w-full tw-max-w-[720px] tw-flex-wrap tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-2 tw-shadow-[0_15px_35px_rgba(31,66,116,0.15)] max-[640px]:tw-flex-col">
       <span className="tw-flex tw-items-center tw-px-5 tw-text-[0.85rem] tw-font-bold tw-text-vm-slate-700 max-[640px]:tw-justify-center">Chọn phương tiện</span>
       {options.map((option) => {
-        const active = selected === option.value;
+        const active = selected === option.vehicleTypeId;
         return (
           <button
             aria-selected={active}
             className={active ? "tw-flex tw-min-h-[52px] tw-flex-1 tw-items-center tw-justify-center tw-gap-3 tw-rounded-vm-md tw-border-0 tw-bg-[linear-gradient(135deg,#1557dd,#1875ff)] tw-px-3 tw-text-[0.9rem] tw-font-black tw-text-white tw-shadow-[0_10px_22px_rgba(37,99,235,0.28)]" : "tw-flex tw-min-h-[52px] tw-flex-1 tw-items-center tw-justify-center tw-gap-3 tw-rounded-vm-md tw-border-0 tw-border-l tw-border-solid tw-border-vm-slate-100 tw-bg-transparent tw-px-3 tw-text-[0.9rem] tw-font-black tw-text-vm-slate-700 tw-transition hover:tw-bg-brand-50 hover:tw-text-vm-primary"}
-            key={option.value}
-            onClick={() => onChange(option.value)}
+            key={option.vehicleTypeId}
+            onClick={() => onChange(option.vehicleTypeId)}
             role="tab"
             type="button"
           >
-            <i className={`${option.icon} tw-w-6 tw-text-center tw-text-[1.25rem]`} /> {option.label}
+            <i className={`${vehicleIconClass(option.code, option.name)} tw-w-6 tw-text-center tw-text-[1.25rem]`} /> {option.name}
           </button>
         );
       })}
@@ -453,7 +441,7 @@ export function PricingPage() {
   const [rules, setRules] = useState<PriceRuleApiResponse[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeApiResponse[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketTypeApiResponse[]>([]);
-  const [selectedVehicleFilter, setSelectedVehicleFilter] = useState<VehicleFilterKey>("MOTORBIKE");
+  const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState("");
   const [selectedCustomerRuleId, setSelectedCustomerRuleId] = useState("");
   const [customerMenuOpen, setCustomerMenuOpen] = useState(false);
   const [showAllVisitorRules, setShowAllVisitorRules] = useState(false);
@@ -579,27 +567,33 @@ export function PricingPage() {
       });
   }, [browserCoordinates, parkingLotKeyword, parkingLots]);
 
-  const availableVehicleFilters = useMemo(() => {
-    const source = selectedParkingLot?.vehicleTypes.length
-      ? selectedParkingLot.vehicleTypes.map((type) => vehicleCategoryFromText(type.code, type.name))
-      : vehicleTypes.map(vehicleCategory);
-    const categories = new Set(source);
-    return vehicleFilterOptions.filter((option) => categories.has(option.value));
-  }, [selectedParkingLot, vehicleTypes]);
+  const availableVehicleTypes = useMemo(
+    () => [...vehicleTypes].sort((left, right) => (
+      vehicleDisplayOrder(left) - vehicleDisplayOrder(right)
+      || left.name.localeCompare(right.name, "vi")
+    )),
+    [vehicleTypes],
+  );
 
   useEffect(() => {
-    if (!availableVehicleFilters.length) return;
-    const defaultFilter = availableVehicleFilters.find((option) => option.value === "MOTORBIKE") ?? availableVehicleFilters[0];
-    if (!availableVehicleFilters.some((option) => option.value === selectedVehicleFilter)) {
-      setSelectedVehicleFilter(defaultFilter.value);
+    if (!availableVehicleTypes.length) {
+      setSelectedVehicleTypeId("");
+      return;
     }
-  }, [availableVehicleFilters, selectedVehicleFilter]);
+    const defaultVehicleType = availableVehicleTypes.find((option) => {
+      const text = normalizeSearchText(`${option.code} ${option.name}`);
+      return text.includes("motor") || text.includes("moto") || text.includes("xe may");
+    }) ?? availableVehicleTypes[0];
+    if (!availableVehicleTypes.some((option) => option.vehicleTypeId === selectedVehicleTypeId)) {
+      setSelectedVehicleTypeId(defaultVehicleType.vehicleTypeId);
+    }
+  }, [availableVehicleTypes, selectedVehicleTypeId]);
 
   const visitorRules = useMemo(() => buildRules("VISITOR", plans, rules, vehicleTypes, ticketTypes), [plans, rules, ticketTypes, vehicleTypes]);
   const customerRules = useMemo(() => buildRules("CUSTOMER", plans, rules, vehicleTypes, ticketTypes), [plans, rules, ticketTypes, vehicleTypes]);
   const filteredVisitorRules = useMemo(
     () => {
-      const matchingRules = visitorRules.filter((rule) => matchesVehicleFilter(rule, selectedVehicleFilter));
+      const matchingRules = visitorRules.filter((rule) => rule.vehicleTypeId === selectedVehicleTypeId);
       const dayRules = matchingRules.filter((rule) => !rule.timeFrom || rule.timeFrom < "18:00");
       const nightRules = matchingRules.filter((rule) => Boolean(rule.timeFrom && rule.timeFrom >= "18:00"));
       const orderedRules = [];
@@ -609,23 +603,23 @@ export function PricingPage() {
       orderedRules.push(...dayRules.slice(1), ...nightRules.slice(1));
       return orderedRules;
     },
-    [selectedVehicleFilter, visitorRules],
+    [selectedVehicleTypeId, visitorRules],
   );
   const filteredCustomerRules = useMemo(
     () => customerRules
-      .filter((rule) => matchesVehicleFilter(rule, selectedVehicleFilter))
+      .filter((rule) => rule.vehicleTypeId === selectedVehicleTypeId)
       .sort((left, right) => Number(isMonthlyRule(right)) - Number(isMonthlyRule(left))),
-    [customerRules, selectedVehicleFilter],
+    [customerRules, selectedVehicleTypeId],
   );
   const visibleVisitorRules = showAllVisitorRules ? filteredVisitorRules : filteredVisitorRules.slice(0, 2);
   const selectedCustomerRule = filteredCustomerRules.find((rule) => rule.priceRuleId === selectedCustomerRuleId)
     ?? filteredCustomerRules.find(isMonthlyRule)
     ?? filteredCustomerRules[0];
   const planStartLabel = plans.length ? `Áp dụng từ ${formatDate(plans[0]?.effectiveFrom ?? null)}` : "Theo bảng giá đang hiệu lực";
-  const selectedVehicleLabel = vehicleFilterLabel(selectedVehicleFilter);
+  const selectedVehicleLabel = availableVehicleTypes.find((type) => type.vehicleTypeId === selectedVehicleTypeId)?.name ?? "Loại xe";
 
-  function handleVehicleFilterChange(value: VehicleFilterKey) {
-    setSelectedVehicleFilter(value);
+  function handleVehicleFilterChange(value: string) {
+    setSelectedVehicleTypeId(value);
     setSelectedCustomerRuleId("");
     setCustomerMenuOpen(false);
     setShowAllVisitorRules(false);
@@ -690,7 +684,7 @@ export function PricingPage() {
                   </div>
                   {selectedParkingLot.status !== "ACTIVE" ? <span className="tw-rounded-full tw-bg-amber-50 tw-px-3 tw-py-1.5 tw-text-[0.72rem] tw-font-black tw-text-amber-700"><i className="fas fa-info-circle tw-mr-1.5" />Chỉ xem giá; bãi chưa nhận đăng ký</span> : null}
                 </div>
-                {availableVehicleFilters.length ? <VehicleFilterTabs options={availableVehicleFilters} selected={selectedVehicleFilter} onChange={handleVehicleFilterChange} /> : <p className="tw-m-0 tw-rounded-vm-md tw-bg-vm-slate-50 tw-p-4 tw-text-center tw-font-bold tw-text-vm-slate-500">Bãi chưa công bố loại phương tiện phục vụ.</p>}
+                {availableVehicleTypes.length ? <VehicleFilterTabs options={availableVehicleTypes} selected={selectedVehicleTypeId} onChange={handleVehicleFilterChange} /> : <p className="tw-m-0 tw-rounded-vm-md tw-bg-vm-slate-50 tw-p-4 tw-text-center tw-font-bold tw-text-vm-slate-500">Bãi chưa công bố loại phương tiện phục vụ.</p>}
               </div>
             ) : null}
             <div className="tw-grid tw-items-start tw-gap-7 min-[1180px]:tw-grid-cols-[300px_minmax(0,1fr)_424px]">
