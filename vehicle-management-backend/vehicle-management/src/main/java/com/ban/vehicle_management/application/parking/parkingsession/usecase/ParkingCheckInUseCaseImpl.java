@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.parking.parkingsession.usecase;
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.service.SubscriptionQrTokenService;
 import com.ban.vehicle_management.application.catalog.cardtype.port.out.CardTypePortOut;
 import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
@@ -32,6 +33,7 @@ import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.domain.accesscontrol.subscription.policy.SubscriptionQrPolicy;
 import com.ban.vehicle_management.domain.common.licenseplate.LicensePlateResolution;
 import com.ban.vehicle_management.domain.catalog.cardtype.model.CardType;
 import com.ban.vehicle_management.domain.parking.gate.model.Gate;
@@ -55,6 +57,8 @@ import com.ban.vehicle_management.shared.enumeration.parking.ManualOccupancyType
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionQrVerificationStatus;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageBucket;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageFolder;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
@@ -81,6 +85,7 @@ public class ParkingCheckInUseCaseImpl {
     private static final String CUSTOMER_TYPE_VISITOR = "VISITOR";
     private static final String CUSTOMER_TYPE_SUBSCRIPTION = "SUBSCRIPTION";
     private static final String BARRIER_ACTION_OPEN = "OPEN";
+    private static final int MAX_QR_PAYLOAD_LENGTH = 128;
 
     private final ParkingSessionAccessGuard parkingSessionAccessGuard;
     private final CurrentAccountPortIn currentAccountPortIn;
@@ -103,12 +108,14 @@ public class ParkingCheckInUseCaseImpl {
     private final ParkingRealtimePublisherPortOut parkingRealtimePublisher;
     private final ParkingAvailabilityQuery availabilityQuery;
     private final SubscriptionCapacityAllocationPortOut capacityAllocationPortOut;
+    private final SubscriptionQrTokenService subscriptionQrTokenService;
     private final ParkingSpacePolicy parkingSpacePolicy = new ParkingSpacePolicy();
     private final CardPolicy cardPolicy = new CardPolicy();
     private final ParkingCheckInPolicy parkingCheckInPolicy = new ParkingCheckInPolicy();
     private final ParkingLicensePlatePolicy licensePlatePolicy = new ParkingLicensePlatePolicy();
     private final ParkingSessionPolicy parkingSessionPolicy = new ParkingSessionPolicy();
     private final ParkingEventPolicy parkingEventPolicy = new ParkingEventPolicy();
+    private final SubscriptionQrPolicy subscriptionQrPolicy = new SubscriptionQrPolicy();
 
     public ParkingCheckInUseCaseImpl(
             ParkingSessionAccessGuard parkingSessionAccessGuard,
@@ -132,7 +139,7 @@ public class ParkingCheckInUseCaseImpl {
                 subscriptionPortOut, customerPortOut, customerVehiclePortOut, lanePortOut, gatePortOut,
                 zonePortOut, parkingLotPortOut, catalogAvailabilityPortOut, parkingSessionPortOut,
                 parkingEventPortOut, parkingCheckInMapper, fileStoragePort, null, null, null,
-                null, null);
+                null, null, new SubscriptionQrTokenService());
     }
 
     @Autowired
@@ -157,7 +164,8 @@ public class ParkingCheckInUseCaseImpl {
             ParkingSpaceAllocationPortOut allocationPortOut,
             ParkingRealtimePublisherPortOut parkingRealtimePublisher,
             ParkingAvailabilityQuery availabilityQuery,
-            SubscriptionCapacityAllocationPortOut capacityAllocationPortOut
+            SubscriptionCapacityAllocationPortOut capacityAllocationPortOut,
+            SubscriptionQrTokenService subscriptionQrTokenService
     ) {
         this.parkingSessionAccessGuard = parkingSessionAccessGuard;
         this.currentAccountPortIn = currentAccountPortIn;
@@ -180,6 +188,7 @@ public class ParkingCheckInUseCaseImpl {
         this.parkingRealtimePublisher = parkingRealtimePublisher;
         this.availabilityQuery = availabilityQuery;
         this.capacityAllocationPortOut = capacityAllocationPortOut;
+        this.subscriptionQrTokenService = subscriptionQrTokenService;
     }
 
     public ParkingCheckInUseCaseImpl(
@@ -207,7 +216,8 @@ public class ParkingCheckInUseCaseImpl {
                 subscriptionPortOut, customerPortOut, customerVehiclePortOut, lanePortOut, gatePortOut,
                 zonePortOut, parkingLotPortOut, catalogAvailabilityPortOut, parkingSessionPortOut,
                 parkingEventPortOut, parkingCheckInMapper, fileStoragePort, parkingSpacePortOut,
-                allocationPortOut, parkingRealtimePublisher, null, null);
+                allocationPortOut, parkingRealtimePublisher, null, null,
+                new SubscriptionQrTokenService());
     }
 
     @Transactional
@@ -218,7 +228,14 @@ public class ParkingCheckInUseCaseImpl {
         requirePersonImage(command.personImage());
 
         Instant now = Instant.now();
-        String cardUid = TextValidationUtils.normalizeRequiredText(command.cardUid(), "cardUid", 100);
+        String qrPayload = TextValidationUtils.normalizeNullableText(
+                command.subscriptionQrPayload(), "subscriptionQrPayload", MAX_QR_PAYLOAD_LENGTH);
+        boolean qrCheckIn = qrPayload != null;
+        if (qrCheckIn && command.cardUid() != null && !command.cardUid().isBlank()) {
+            throw new BadRequestException("Chỉ được sử dụng QR hoặc thẻ vật lý cho một lần check-in");
+        }
+        String cardUid = qrCheckIn ? null
+                : TextValidationUtils.normalizeRequiredText(command.cardUid(), "cardUid", 100);
         UUID requestedVehicleTypeId = command.vehicleTypeId();
         String licensePlate = licensePlatePolicy.normalizeRequired(command.licensePlate(), "licensePlate");
         LicensePlateResolution plateResolution = licensePlatePolicy.resolve(licensePlate, null);
@@ -242,21 +259,22 @@ public class ParkingCheckInUseCaseImpl {
         ParkingLot parkingLot = findParkingLot(zone.getParkingLotId());
         parkingCheckInPolicy.validateOperationalTopology(lane, gate, zone, parkingLot);
 
-        Card card = cardPortOut.findByUidForUpdate(cardUid)
-                .orElseThrow(() -> new NotFoundException("Card not found"));
-        parkingSessionAccessGuard.ensureCanUseCardInParkingLot(card, parkingLot);
-        CardType cardType = cardTypePortOut.findById(card.getCardTypeId())
-                .orElseThrow(() -> new NotFoundException("Card type not found"));
-        parkingCheckInPolicy.validateCardCanEnter(card, cardType);
-        parkingCheckInPolicy.ensureCardHasNoOpenSession(parkingSessionPortOut.existsOpenByCardId(card.getCardId()));
-
-        CheckInCustomerContext customerContext = resolveCustomerContext(
-                card,
-                cardType,
-                licensePlate,
-                now,
-                identityOverride
-        );
+        CheckInCustomerContext customerContext;
+        if (qrCheckIn) {
+            customerContext = resolveQrCustomerContext(
+                    qrPayload, parkingLot, licensePlate, now, identityOverride, true);
+        } else {
+            Card card = cardPortOut.findByUidForUpdate(cardUid)
+                    .orElseThrow(() -> new NotFoundException("Card not found"));
+            parkingSessionAccessGuard.ensureCanUseCardInParkingLot(card, parkingLot);
+            CardType cardType = cardTypePortOut.findById(card.getCardTypeId())
+                    .orElseThrow(() -> new NotFoundException("Card type not found"));
+            parkingCheckInPolicy.validateCardCanEnter(card, cardType);
+            parkingCheckInPolicy.ensureCardHasNoOpenSession(
+                    parkingSessionPortOut.existsOpenByCardId(card.getCardId()));
+            customerContext = resolveCustomerContext(
+                    card, cardType, licensePlate, now, identityOverride);
+        }
         UUID resolvedVehicleTypeId = resolveVehicleTypeId(customerContext, requestedVehicleTypeId);
         UUID lockedZoneId = zone.getZoneId();
         zone = zonePortOut.findByIdForUpdate(lockedZoneId)
@@ -277,7 +295,9 @@ public class ParkingCheckInUseCaseImpl {
         StoredFile storedPersonImage = null;
 
         try {
-            cardPortOut.save(customerContext.card());
+            if (customerContext.card() != null) {
+                cardPortOut.save(customerContext.card());
+            }
 
             ParkingSession parkingSession = parkingCheckInMapper.toOpenSession(
                     UUID.randomUUID(),
@@ -298,7 +318,8 @@ public class ParkingCheckInUseCaseImpl {
                 savedParkingSession = parkingSessionPortOut.save(parkingSession);
             } catch (DataIntegrityViolationException spaceRace) {
                 Metrics.counter("parking.space.checkin.assignment.conflict").increment();
-                LOGGER.warn("Check-in space race for space {}", command.parkingSpaceId());
+                LOGGER.warn("Check-in space race for space {}",
+                        assignedSpace == null ? command.parkingSpaceId() : assignedSpace.getParkingSpaceId());
                 throw new ConflictException("A concurrent check-in already consumed this admission slot");
             }
             if (assignedSpace != null) {
@@ -345,7 +366,8 @@ public class ParkingCheckInUseCaseImpl {
                     savedParkingEvent,
                     subscriptionId,
                     customerContext.customerType(),
-                    BARRIER_ACTION_OPEN
+                    BARRIER_ACTION_OPEN,
+                    assignedSpace == null ? null : assignedSpace.getCode()
             );
         } catch (RuntimeException exception) {
             deleteStoredFileQuietly(storedLicensePlateImage);
@@ -358,7 +380,14 @@ public class ParkingCheckInUseCaseImpl {
     public CheckInPreviewResult preview(CheckInPreviewCommand command) {
         parkingSessionAccessGuard.ensureCanCheckIn();
         requireField(command, "checkInPreviewCommand");
-        String cardUid = TextValidationUtils.normalizeRequiredText(command.cardUid(), "cardUid", 100);
+        String qrPayload = TextValidationUtils.normalizeNullableText(
+                command.subscriptionQrPayload(), "subscriptionQrPayload", MAX_QR_PAYLOAD_LENGTH);
+        boolean qrCheckIn = qrPayload != null;
+        if (qrCheckIn && command.cardUid() != null && !command.cardUid().isBlank()) {
+            throw new BadRequestException("Chỉ được sử dụng QR hoặc thẻ vật lý cho một lần check-in");
+        }
+        String cardUid = qrCheckIn ? null
+                : TextValidationUtils.normalizeRequiredText(command.cardUid(), "cardUid", 100);
         String plate = licensePlatePolicy.normalizeRequired(command.licensePlate(), "licensePlate");
         Lane lane = findLane(command.laneId());
         parkingCheckInPolicy.validateLaneForCheckIn(lane);
@@ -367,31 +396,37 @@ public class ParkingCheckInUseCaseImpl {
         ParkingLot lot = findParkingLot(zone.getParkingLotId());
         parkingCheckInPolicy.validateOperationalTopology(lane, gate, zone, lot);
 
-        Card card = cardPortOut.findByUid(cardUid)
-                .orElseThrow(() -> new NotFoundException("Card not found"));
-        parkingSessionAccessGuard.ensureCanUseCardInParkingLot(card, lot);
-        CardType cardType = cardTypePortOut.findById(card.getCardTypeId())
-                .orElseThrow(() -> new NotFoundException("Card type not found"));
-        parkingCheckInPolicy.validateCardCanEnter(card, cardType);
-
-        Subscription subscription = null;
-        CustomerVehicle vehicle = null;
-        String customerType = CUSTOMER_TYPE_VISITOR;
-        UUID vehicleTypeId = command.vehicleTypeId();
+        CheckInCustomerContext customerContext;
+        UUID requestedVehicleTypeId = command.vehicleTypeId();
         LocalDate businessDate = DateTimeUtils.toVietnamLocalDate(Instant.now());
-        if (parkingCheckInPolicy.isSubscriptionCard(cardType)) {
-            subscription = subscriptionPortOut.findActiveByCardId(card.getCardId(), businessDate)
-                    .orElseThrow(() -> new ConflictException("Active subscription not found for card"));
-            Customer customer = customerPortOut.findById(subscription.getCustomerId())
-                    .orElseThrow(() -> new NotFoundException("Customer not found"));
-            vehicle = customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
-                    .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
-            parkingCheckInPolicy.validateSubscriptionContext(card, subscription, customer, vehicle, plate);
-            vehicleTypeId = vehicle.getVehicleTypeId();
-            customerType = CUSTOMER_TYPE_SUBSCRIPTION;
+        if (qrCheckIn) {
+            customerContext = resolveQrCustomerContext(
+                    qrPayload, lot, plate, Instant.now(), false, false);
         } else {
-            requireField(vehicleTypeId, "vehicleTypeId");
+            Card card = cardPortOut.findByUid(cardUid)
+                    .orElseThrow(() -> new NotFoundException("Card not found"));
+            parkingSessionAccessGuard.ensureCanUseCardInParkingLot(card, lot);
+            CardType cardType = cardTypePortOut.findById(card.getCardTypeId())
+                    .orElseThrow(() -> new NotFoundException("Card type not found"));
+            parkingCheckInPolicy.validateCardCanEnter(card, cardType);
+            if (parkingCheckInPolicy.isSubscriptionCard(cardType)) {
+                Subscription subscription = subscriptionPortOut.findActiveByCardId(card.getCardId(), businessDate)
+                        .orElseThrow(() -> new ConflictException("Active subscription not found for card"));
+                Customer customer = customerPortOut.findById(subscription.getCustomerId())
+                        .orElseThrow(() -> new NotFoundException("Customer not found"));
+                CustomerVehicle vehicle = customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
+                        .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
+                parkingCheckInPolicy.validateSubscriptionContext(card, subscription, customer, vehicle, plate);
+                parkingCheckInPolicy.ensureSubscriptionHasNoOpenSession(
+                        parkingSessionPortOut.existsOpenBySubscriptionId(subscription.getSubscriptionId()));
+                customerContext = new CheckInCustomerContext(
+                        card, subscription, vehicle, CUSTOMER_TYPE_SUBSCRIPTION);
+            } else {
+                requireField(requestedVehicleTypeId, "vehicleTypeId");
+                customerContext = new CheckInCustomerContext(card, null, null, CUSTOMER_TYPE_VISITOR);
+            }
         }
+        UUID vehicleTypeId = resolveVehicleTypeId(customerContext, requestedVehicleTypeId);
         parkingCheckInPolicy.validateVehicleTypeAccepted(vehicleTypeId, zone);
         var availability = availabilityQuery == null ? null : availabilityQuery.get(zone, businessDate);
         long physicalAvailable = availability == null
@@ -401,6 +436,8 @@ public class ParkingCheckInUseCaseImpl {
 
         List<CheckInPreviewResult.EligibleSpace> eligible = List.of();
         UUID recommended = null;
+        Subscription subscription = customerContext.subscription();
+        String customerType = customerContext.customerType();
         if (zone.getTrackingMode() != TrackingMode.SPACE) {
             if (subscription != null && (capacityAllocationPortOut == null
                     || capacityAllocationPortOut.findEffectiveBySubscriptionId(
@@ -555,6 +592,8 @@ public class ParkingCheckInUseCaseImpl {
                     licensePlate,
                     identityOverride
             );
+            parkingCheckInPolicy.ensureSubscriptionHasNoOpenSession(
+                    parkingSessionPortOut.existsOpenBySubscriptionId(subscription.getSubscriptionId()));
             cardPolicy.markInUse(card);
             return new CheckInCustomerContext(card, subscription, customerVehicle, CUSTOMER_TYPE_SUBSCRIPTION);
         }
@@ -562,14 +601,121 @@ public class ParkingCheckInUseCaseImpl {
         throw new ConflictException("Card is not eligible for parking check-in");
     }
 
+    private CheckInCustomerContext resolveQrCustomerContext(
+            String qrPayload,
+            ParkingLot parkingLot,
+            String detectedLicensePlate,
+            Instant now,
+            boolean identityOverride,
+            boolean forUpdate
+    ) {
+        String qrToken = subscriptionQrTokenService.extractToken(qrPayload)
+                .orElseThrow(() -> new ConflictException("Mã QR vé đăng ký không hợp lệ"));
+        Subscription candidate = subscriptionPortOut.findByQrAccessToken(qrToken)
+                .orElseThrow(() -> new ConflictException("Mã QR vé đăng ký không hợp lệ"));
+        Subscription subscription = candidate;
+        if (forUpdate) {
+            subscription = subscriptionPortOut.findByIdForUpdate(candidate.getSubscriptionId())
+                    .orElseThrow(() -> new NotFoundException("Subscription not found"));
+            if (!qrToken.equals(subscription.getQrAccessToken())) {
+                throw new ConflictException("Mã QR vé đăng ký đã được làm mới hoặc thu hồi");
+            }
+        }
+
+        Customer customer = customerPortOut.findById(subscription.getCustomerId())
+                .orElseThrow(() -> new NotFoundException("Customer not found"));
+        CustomerVehicle customerVehicle = customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
+                .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
+        SubscriptionQrVerificationStatus qrStatus = subscriptionQrPolicy.verify(
+                subscription,
+                DateTimeUtils.toVietnamLocalDate(now),
+                parkingLot.getParkingLotId(),
+                customerVehicle.getLicensePlate(),
+                detectedLicensePlate
+        );
+        ensureQrCanCheckIn(qrStatus);
+        parkingCheckInPolicy.validateSubscriptionContext(
+                subscription,
+                customer,
+                customerVehicle,
+                detectedLicensePlate,
+                identityOverride
+        );
+        parkingCheckInPolicy.ensureSubscriptionHasNoOpenSession(
+                parkingSessionPortOut.existsOpenBySubscriptionId(subscription.getSubscriptionId()));
+
+        Card physicalCard = resolveOptionalQrPhysicalCard(subscription, parkingLot, forUpdate);
+        return new CheckInCustomerContext(
+                physicalCard,
+                subscription,
+                customerVehicle,
+                CUSTOMER_TYPE_SUBSCRIPTION
+        );
+    }
+
+    private Card resolveOptionalQrPhysicalCard(
+            Subscription subscription,
+            ParkingLot parkingLot,
+            boolean forUpdate
+    ) {
+        if (subscription.getCardId() == null) {
+            return null;
+        }
+        Card card = (forUpdate
+                ? cardPortOut.findByIdForUpdate(subscription.getCardId())
+                : cardPortOut.findById(subscription.getCardId()))
+                .orElseThrow(() -> new NotFoundException("Subscription card not found"));
+        if (card.getStatus() != CardStatus.ASSIGNED) {
+            return null;
+        }
+        parkingSessionAccessGuard.ensureCanUseCardInParkingLot(card, parkingLot);
+        CardType cardType = cardTypePortOut.findById(card.getCardTypeId())
+                .orElseThrow(() -> new NotFoundException("Card type not found"));
+        if (!parkingCheckInPolicy.isSubscriptionCard(cardType)) {
+            throw new ConflictException("Thẻ vật lý của vé đăng ký không đúng loại");
+        }
+        parkingCheckInPolicy.validateCardCanEnter(card, cardType);
+        parkingCheckInPolicy.ensureCardHasNoOpenSession(
+                parkingSessionPortOut.existsOpenByCardId(card.getCardId()));
+        if (forUpdate) {
+            cardPolicy.markInUse(card);
+        }
+        return card;
+    }
+
+    private void ensureQrCanCheckIn(SubscriptionQrVerificationStatus status) {
+        if (status == SubscriptionQrVerificationStatus.VALID) {
+            return;
+        }
+        String message = switch (status) {
+            case INVALID_QR -> "Mã QR vé đăng ký không hợp lệ";
+            case NOT_YET_VALID -> "Vé đăng ký chưa đến ngày hiệu lực";
+            case EXPIRED -> "Vé đăng ký đã hết hạn";
+            case REVOKED -> "Mã QR vé đăng ký đã bị thu hồi";
+            case BLOCKED -> "Vé đăng ký đang bị tạm khóa";
+            case INACTIVE -> "Vé đăng ký chưa hoạt động";
+            case WRONG_PARKING_LOT -> "Vé đăng ký không áp dụng tại bãi xe này";
+            case VEHICLE_MISMATCH -> "Biển số nhận diện không khớp với phương tiện đã đăng ký";
+            case VALID -> throw new IllegalStateException("Unexpected valid QR status");
+        };
+        throw new ConflictException(message);
+    }
+
     private UUID resolveVehicleTypeId(CheckInCustomerContext customerContext, UUID requestedVehicleTypeId) {
         CustomerVehicle customerVehicle = customerContext.customerVehicle();
-        if (customerVehicle != null) {
-            UUID subscriptionVehicleTypeId = customerVehicle.getVehicleTypeId();
-            if (requestedVehicleTypeId != null && !requestedVehicleTypeId.equals(subscriptionVehicleTypeId)) {
+        Subscription subscription = customerContext.subscription();
+        if (customerVehicle != null && subscription != null) {
+            UUID canonicalVehicleTypeId = customerVehicle.getVehicleTypeId();
+            UUID operationalVehicleTypeId = subscriptionPortOut
+                    .findOperationalVehicleTypeIdBySubscriptionId(subscription.getSubscriptionId())
+                    .orElseThrow(() -> new ConflictException(
+                            "Vé đăng ký chưa có loại xe vận hành phù hợp với đối tác"));
+            if (requestedVehicleTypeId != null
+                    && !requestedVehicleTypeId.equals(canonicalVehicleTypeId)
+                    && !requestedVehicleTypeId.equals(operationalVehicleTypeId)) {
                 throw new ConflictException("Selected vehicle type does not match subscription vehicle");
             }
-            return subscriptionVehicleTypeId;
+            return operationalVehicleTypeId;
         }
 
         requireField(requestedVehicleTypeId, "vehicleTypeId");
@@ -624,7 +770,9 @@ public class ParkingCheckInUseCaseImpl {
             throw new BadRequestException("Parking space assignment is not available");
         }
         UUID resolvedSpaceId = parkingSpaceId;
-        LocalDate today = DateTimeUtils.toAppLocalDate(Instant.now());
+        ParkingSpace autoAssignedSpace = null;
+        Instant now = Instant.now();
+        LocalDate today = DateTimeUtils.toAppLocalDate(now);
         if (subscription != null) {
             var ownAllocation = allocationPortOut.findActiveAllocationsBySubscription(
                             subscription.getSubscriptionId()).stream()
@@ -638,12 +786,18 @@ public class ParkingCheckInUseCaseImpl {
                 throw new BadRequestException("parkingSpaceId does not match the subscription allocation");
             }
         } else if (resolvedSpaceId == null) {
-            throw new BadRequestException("parkingSpaceId is required for visitors in SPACE zones");
+            autoAssignedSpace = parkingSpacePortOut.findFirstVisitorAvailableForUpdate(
+                            zone.getZoneId(), resolvedVehicleTypeId, now)
+                    .orElseThrow(() -> new ConflictException(
+                            "No compatible parking space is available for visitor check-in"));
+            resolvedSpaceId = autoAssignedSpace.getParkingSpaceId();
         }
         UUID selectedSpaceId = resolvedSpaceId;
-        ParkingSpace space = parkingSpacePortOut.findByIdForUpdate(selectedSpaceId)
-                .or(() -> parkingSpacePortOut.findById(selectedSpaceId))
-                .orElseThrow(() -> new NotFoundException("Parking space not found"));
+        ParkingSpace space = autoAssignedSpace != null
+                ? autoAssignedSpace
+                : parkingSpacePortOut.findByIdForUpdate(selectedSpaceId)
+                        .or(() -> parkingSpacePortOut.findById(selectedSpaceId))
+                        .orElseThrow(() -> new NotFoundException("Parking space not found"));
         if (!zone.getZoneId().equals(space.getZoneId())) {
             throw new BadRequestException("Parking space does not belong to the check-in zone");
         }
@@ -669,7 +823,7 @@ public class ParkingCheckInUseCaseImpl {
                         .anyMatch(allocation -> allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.ACTIVE
                                 || allocation.getAllocationStatus() == ParkingSpaceAllocationStatus.HELD
                                 && allocation.getHoldExpiresAt() != null
-                                && allocation.getHoldExpiresAt().isAfter(Instant.now()));
+                                && allocation.getHoldExpiresAt().isAfter(now));
                 if (committed) {
                     throw new ConflictException("Parking space is reserved for a subscription");
                 }

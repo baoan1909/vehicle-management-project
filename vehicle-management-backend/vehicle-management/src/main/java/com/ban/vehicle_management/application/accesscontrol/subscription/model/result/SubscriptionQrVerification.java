@@ -7,6 +7,7 @@ import java.util.UUID;
 public record SubscriptionQrVerification(
         SubscriptionQrVerificationStatus status,
         String message,
+        String qrPayload,
         UUID subscriptionId,
         UUID parkingLotId,
         UUID customerVehicleId,

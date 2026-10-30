@@ -540,7 +540,7 @@ CREATE TABLE parking.lanes (
 -- Lưu một phiên gửi xe từ lúc vào đến lúc ra.
 CREATE TABLE parking.parking_sessions (
     parking_session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    card_id UUID NOT NULL,
+    card_id UUID,
     customer_id UUID,
     customer_vehicle_id UUID,
     vehicle_type_id UUID NOT NULL,
@@ -1141,6 +1141,9 @@ CREATE INDEX idx_subscriptions_customer_id ON access_control.subscriptions(custo
 CREATE INDEX idx_cards_status ON access_control.cards(status);
 CREATE UNIQUE INDEX ux_lost_card_reports_open_parking_session ON access_control.lost_card_reports(parking_session_id) WHERE parking_session_id IS NOT NULL AND status = 'OPEN';
 CREATE INDEX idx_parking_sessions_card_id ON parking.parking_sessions(card_id);
+CREATE UNIQUE INDEX uq_parking_sessions_open_subscription
+    ON parking.parking_sessions(subscription_id)
+    WHERE status = 'OPEN' AND subscription_id IS NOT NULL;
 CREATE INDEX idx_parking_sessions_status ON parking.parking_sessions(status);
 CREATE INDEX idx_parking_sessions_check_in_time ON parking.parking_sessions(check_in_time);
 CREATE INDEX idx_parking_events_session_id ON parking.parking_events(parking_session_id);

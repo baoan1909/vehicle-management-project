@@ -81,6 +81,11 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
     }
 
     @Override
+    public Optional<UUID> findOperationalVehicleTypeIdBySubscriptionId(UUID subscriptionId) {
+        return subscriptionRepository.findOperationalVehicleTypeIdBySubscriptionId(subscriptionId);
+    }
+
+    @Override
     public Optional<Subscription> findActiveByCardId(UUID cardId, LocalDate businessDate) {
         return subscriptionRepository
                 .findFirstByCardIdAndStatusAndEffectiveFromLessThanEqualAndEffectiveToGreaterThanEqualOrderByEffectiveFromDesc(

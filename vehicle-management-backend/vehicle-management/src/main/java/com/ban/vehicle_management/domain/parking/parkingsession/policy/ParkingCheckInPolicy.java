@@ -113,6 +113,12 @@ public class ParkingCheckInPolicy {
         }
     }
 
+    public void ensureSubscriptionHasNoOpenSession(boolean hasOpenSession) {
+        if (hasOpenSession) {
+            throw new ConflictException("Vé đăng ký đang có một phiên gửi xe chưa kết thúc");
+        }
+    }
+
     public void validateZoneCapacity(Zone zone, long openSessionCount) {
         requireField(zone, "zone");
         if (zone.getCapacity() == null || zone.getCapacity() <= 0) {
@@ -142,6 +148,17 @@ public class ParkingCheckInPolicy {
             boolean allowPlateIdentityOverride
     ) {
         requireField(card, "card");
+        validateSubscriptionContext(subscription, customer, customerVehicle,
+                detectedLicensePlate, allowPlateIdentityOverride);
+    }
+
+    public void validateSubscriptionContext(
+            Subscription subscription,
+            Customer customer,
+            CustomerVehicle customerVehicle,
+            String detectedLicensePlate,
+            boolean allowPlateIdentityOverride
+    ) {
         requireField(subscription, "subscription");
         requireField(customer, "customer");
         requireField(customerVehicle, "customerVehicle");

@@ -67,7 +67,8 @@ class ParkingSessionControllerTest {
                 personImage,
                 "Xe dang ky check-in"
         );
-        CheckInResult result = new CheckInResult(null, null, null, "SUBSCRIPTION", "OPEN");
+        CheckInResult result = new CheckInResult(
+                null, null, null, "SUBSCRIPTION", "OPEN", "A-01");
         ParkingSessionCheckInResponse responseBody = new ParkingSessionCheckInResponse();
         responseBody.setCustomerType("SUBSCRIPTION");
 

@@ -34,6 +34,7 @@ export type SubscriptionQrVerificationStatus =
 export type SubscriptionQrVerification = {
   status: SubscriptionQrVerificationStatus;
   message: string;
+  qrPayload?: string | null;
   subscriptionId?: string | null;
   parkingLotId?: string | null;
   customerVehicleId?: string | null;

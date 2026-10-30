@@ -62,6 +62,12 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
     }
 
     @Override
+    public boolean existsOpenBySubscriptionId(UUID subscriptionId) {
+        return parkingSessionRepository.existsBySubscriptionIdAndStatus(
+                subscriptionId, ParkingSessionStatus.OPEN);
+    }
+
+    @Override
     public long countOpenByZoneId(UUID zoneId) {
         return parkingSessionRepository.countByZoneIdAndStatus(zoneId, ParkingSessionStatus.OPEN);
     }

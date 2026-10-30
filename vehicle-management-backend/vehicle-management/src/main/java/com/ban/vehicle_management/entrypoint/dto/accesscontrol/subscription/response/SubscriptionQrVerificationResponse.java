@@ -13,6 +13,7 @@ import lombok.Setter;
 public class SubscriptionQrVerificationResponse {
     private SubscriptionQrVerificationStatus status;
     private String message;
+    private String qrPayload;
     private UUID subscriptionId;
     private UUID parkingLotId;
     private UUID customerVehicleId;

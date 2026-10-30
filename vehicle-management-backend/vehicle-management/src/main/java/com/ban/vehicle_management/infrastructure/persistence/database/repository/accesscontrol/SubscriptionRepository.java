@@ -28,6 +28,16 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
 
     Optional<SubscriptionEntity> findByQrAccessToken(String qrAccessToken);
 
+    @Query("""
+            select priceRule.vehicleTypeId
+            from SubscriptionEntity subscription
+            join subscription.priceRule priceRule
+            where subscription.subscriptionId = :subscriptionId
+            """)
+    Optional<UUID> findOperationalVehicleTypeIdBySubscriptionId(
+            @Param("subscriptionId") UUID subscriptionId
+    );
+
     boolean existsByCardIdAndStatusIn(UUID cardId, Collection<SubscriptionStatus> statuses);
 
     boolean existsByPriceRuleId(UUID priceRuleId);

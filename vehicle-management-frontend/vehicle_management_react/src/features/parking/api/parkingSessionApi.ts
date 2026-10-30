@@ -72,12 +72,13 @@ export type ZoneResponse = {
 };
 
 export type CheckInParkingSessionRequest = {
-  cardUid: string;
+  cardUid?: string;
   laneId: string;
   licensePlate: string;
   note?: string;
   plateFormatConfirmed?: boolean;
   plateIdentityOverride?: boolean;
+  subscriptionQrPayload?: string;
   vehicleTypeId?: string;
 };
 
@@ -108,6 +109,7 @@ export type ParkingSessionResponse = {
   licensePlateOutNeedsReview?: boolean;
   parkingSessionId: string;
   parkingLotId?: string;
+  parkingSpaceId?: string;
   status: "OPEN" | "CLOSED" | "LOST_CARD";
   totalPrice?: number;
   vehicleTypeId?: string;
@@ -137,6 +139,7 @@ export type ParkingSessionCheckInResponse = {
   customerType: "VISITOR" | "SUBSCRIPTION" | string;
   parkingEvent: ParkingEventResponse;
   parkingSession: ParkingSessionResponse;
+  parkingSpaceCode?: string;
   subscriptionId?: string;
 };
 

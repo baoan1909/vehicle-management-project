@@ -20,6 +20,8 @@ public interface ParkingSessionPortOut {
 
     boolean existsOpenByCardId(UUID cardId);
 
+    boolean existsOpenBySubscriptionId(UUID subscriptionId);
+
     long countOpenByZoneId(UUID zoneId);
 
     long countOpenRegisteredByZoneId(UUID zoneId);

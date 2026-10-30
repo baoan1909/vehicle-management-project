@@ -21,6 +21,8 @@ public interface SubscriptionPortOut {
 
     Optional<Subscription> findByQrAccessToken(String qrAccessToken);
 
+    Optional<UUID> findOperationalVehicleTypeIdBySubscriptionId(UUID subscriptionId);
+
     Optional<Subscription> findActiveByCardId(UUID cardId, LocalDate businessDate);
 
     Optional<Subscription> findActiveByCardIdForUpdate(UUID cardId, LocalDate businessDate);

@@ -28,6 +28,8 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
 
     boolean existsByCardIdAndStatus(UUID cardId, ParkingSessionStatus status);
 
+    boolean existsBySubscriptionIdAndStatus(UUID subscriptionId, ParkingSessionStatus status);
+
     Optional<ParkingSessionEntity> findFirstByCardIdAndStatus(UUID cardId, ParkingSessionStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

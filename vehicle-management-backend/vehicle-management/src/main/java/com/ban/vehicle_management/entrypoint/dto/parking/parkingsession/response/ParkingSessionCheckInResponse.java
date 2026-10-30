@@ -16,4 +16,5 @@ public class ParkingSessionCheckInResponse {
     private UUID subscriptionId;
     private String customerType;
     private String barrierAction;
+    private String parkingSpaceCode;
 }

@@ -177,6 +177,7 @@ public class SubscriptionQrUseCaseImpl implements SubscriptionQrPortIn {
         return new SubscriptionQrVerification(
                 status,
                 messageFor(status),
+                payload,
                 subscription.getSubscriptionId(),
                 subscription.getParkingLotId(),
                 subscription.getCustomerVehicleId(),
@@ -190,6 +191,7 @@ public class SubscriptionQrUseCaseImpl implements SubscriptionQrPortIn {
         return new SubscriptionQrVerification(
                 SubscriptionQrVerificationStatus.INVALID_QR,
                 messageFor(SubscriptionQrVerificationStatus.INVALID_QR),
+                null,
                 null, null, null, null, null, null
         );
     }

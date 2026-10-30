@@ -19,6 +19,7 @@ public interface ParkingCheckInMapper {
     @BeanMapping(ignoreByDefault = true)
     @Mapping(target = "parkingSessionId", source = "parkingSessionId")
     @Mapping(target = "cardId", source = "card.cardId")
+    @Mapping(target = "subscriptionId", source = "subscription.subscriptionId")
     @Mapping(target = "customerId", source = "subscription.customerId")
     @Mapping(target = "customerVehicleId", source = "customerVehicle.customerVehicleId")
     @Mapping(target = "vehicleTypeId", source = "vehicleTypeId")
