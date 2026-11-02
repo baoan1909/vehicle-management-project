@@ -484,7 +484,14 @@ public class ShiftAssignmentUseCaseImpl
             Shift shift,
             Set<UUID> excludedAssignmentIds
     ) {
-        ensureOperationalEmployee(candidate.getEmployeeId(), shift.getParkingLotId());
+        UUID employeeLotAssignmentId = employeeOrganizationAccessGuard.requireAssignmentCovering(
+                candidate.getEmployeeId(),
+                shift.getParkingLotId(),
+                shift.getStartTime(),
+                shift.getEndTime()
+        );
+        candidate.setEmployeeParkingLotAssignmentId(employeeLotAssignmentId);
+        ensureOperationalEmployee(candidate.getEmployeeId());
         ensureGateValid(candidate.getGateId(), shift);
         ensureUniqueWithinShift(
                 candidate,
@@ -634,8 +641,7 @@ public class ShiftAssignmentUseCaseImpl
         }
     }
 
-    private void ensureOperationalEmployee(UUID employeeId, UUID parkingLotId) {
-        employeeOrganizationAccessGuard.ensureBelongsToParkingLot(employeeId, parkingLotId);
+    private void ensureOperationalEmployee(UUID employeeId) {
         Employee employee = employeePortOut.findById(employeeId)
                 .orElseThrow(() ->
                         new NotFoundException("Employee not found")

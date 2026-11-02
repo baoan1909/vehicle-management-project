@@ -166,6 +166,7 @@ modelConfigurations: "/ai/models/configurations",
 iam: {
     accounts: "/accounts",
     organizations: "/iam/organizations",
+    parkingLotAssignments: "/iam/parking-lot-assignments",
     partnerRegistrations: "/iam/partner-registrations",
     provisionedAccounts: "/iam/accounts/provisioned",
     accountProfile: {

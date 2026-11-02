@@ -577,8 +577,14 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
     @Transactional
     public void completeMyProfile(CompletePartnerProfileCommand command) {
         UUID accountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
+        CompletePartnerProfileCommand normalized = normalizeCompleteCommand(command);
+        ProvisionedAccountResult initialApplicant = getApplicantAccount(accountId);
+        if (!identityProviderAdminPortOut.isEmailVerified(initialApplicant.account().keycloakUserId())) {
+            throw new ConflictException("Partner email must be verified before completing the profile");
+        }
+
         ApprovalRequest approval = partnerRegistrationPortOut.findLatestByApplicantAccountId(accountId)
-                .orElseThrow(() -> new NotFoundException("Partner registration not found"));
+                .orElseGet(() -> createProvisionedPartnerApplication(accountId, initialApplicant, normalized));
         if (!accountId.equals(approval.getRequestedBy())) {
             throw new NotFoundException("Partner registration not found");
         }
@@ -588,9 +594,6 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
 
         ProvisionedAccountResult applicant = getApplicantAccount(accountId);
         ensurePendingPartnerAdmin(applicant);
-        if (!identityProviderAdminPortOut.isEmailVerified(applicant.account().keycloakUserId())) {
-            throw new ConflictException("Partner email must be verified before completing the profile");
-        }
 
         // Validate and update personal profile
         UserProfile userProfile = getApplicantUserProfile(accountId);
@@ -598,7 +601,6 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
             throw new NotFoundException("User profile not found");
         }
 
-        CompletePartnerProfileCommand normalized = normalizeCompleteCommand(command);
         if (normalized.personalAddress() == null || normalized.organizationAddress() == null) {
             throw new BadRequestException("Personal and organization addresses are required");
         }
@@ -661,6 +663,59 @@ public class PartnerRegistrationUseCaseImpl implements PartnerRegistrationPortIn
         if (approval.getStatus() == ApprovalRequestStatus.PENDING) {
             schedulePartnerSubmissionNotifications(approval, accountId);
         }
+    }
+
+    private ApprovalRequest createProvisionedPartnerApplication(
+            UUID accountId,
+            ProvisionedAccountResult applicant,
+            CompletePartnerProfileCommand command
+    ) {
+        if (applicant == null
+                || applicant.role() == null
+                || !AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name().equals(applicant.role().roleCode())) {
+            throw new ConflictException("Partner applicant account must have PARTNER_ADMIN role");
+        }
+        if (!AccountStatus.ACTIVE.equals(applicant.account().accountStatus())) {
+            throw new ConflictException("Provisioned Partner Admin must be ACTIVE before first submission");
+        }
+        if (!organizationPortOut.findActiveOrganizationIdsByAccountId(accountId).isEmpty()) {
+            throw new ConflictException("Partner Admin already belongs to an active organization");
+        }
+        if (organizationPortOut.existsByCode(command.organizationCode())) {
+            throw new ConflictException("Organization code already exists");
+        }
+        if (partnerRegistrationPortOut.existsPendingByOrganizationCode(command.organizationCode())) {
+            throw new ConflictException("A partner registration with this organization code is already pending");
+        }
+
+        ApprovalRequest approval = new ApprovalRequest();
+        approval.setApprovalRequestId(UUID.randomUUID());
+        approval.setRequestType(REQUEST_TYPE);
+        approval.setTargetSchema(TARGET_SCHEMA);
+        approval.setTargetTable(TARGET_TABLE);
+        approval.setTargetId(accountId);
+        approval.setRequestedBy(accountId);
+        approval.setStatus(ApprovalRequestStatus.PENDING);
+        approval.setRequestData(Map.of(
+                "organizationCode", command.organizationCode(),
+                "organizationName", command.organizationName()));
+        approvalRequestPolicy.initialize(approval);
+        partnerRegistrationPortOut.save(approval);
+
+        // A provisioned Partner Admin starts authenticated but not operational.
+        // First submission converges it onto the same reviewed lifecycle as a
+        // public registration; Keycloak remains enabled so profile correction
+        // and rejected-request resubmission continue to work.
+        provisionedAccountPortOut.updateProvisionedAccountStatus(
+                accountId,
+                AccountStatus.PENDING,
+                UserProfileStatus.ACTIVE,
+                null,
+                null,
+                accountId,
+                "Provisioned Partner Admin submitted onboarding"
+        );
+        return approval;
     }
 
     private CompletePartnerProfileCommand normalizeCompleteCommand(CompletePartnerProfileCommand command) {

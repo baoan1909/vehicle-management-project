@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.OnboardingApprovalSummaryResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.OnboardingApprovalSummaryPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
@@ -38,8 +39,35 @@ class OnboardingApprovalSummaryUseCaseImplTest {
         assertEquals(5L, result.totalPending());
         assertEquals(2L, result.systemAdminPending());
         assertEquals(3L, result.internalEmployeePending());
+        assertEquals(3L, result.parkingManagerPending());
+        assertEquals(0L, result.employeePending());
         assertEquals(0L, result.customerPending());
         verify(onboardingApprovalSummaryPortOut, never()).countPendingCustomerApprovals();
+    }
+
+    @Test
+    void getMyPendingSummary_shouldScopeEmployeeCountToReviewerOrganizations() {
+        UUID accountId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
+        CurrentAccountAccess currentAccount = new CurrentAccountAccess(
+                accountId, "subject", "partner", "partner@example.com", UUID.randomUUID(), "PARTNER_ADMIN",
+                true, true, Set.of(organizationId), Set.of(),
+                AccountStatus.ACTIVE, null, null, null, false,
+                Set.of(
+                        OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION,
+                        OrganizationAccessGuard.PARKING_SCOPE_PARTNER
+                ));
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount);
+        when(onboardingApprovalSummaryPortOut.countPendingEmployeeLikeApprovalsInOrganizations(Set.of(organizationId)))
+                .thenReturn(4L);
+
+        OnboardingApprovalSummaryResult result = useCase.getMyPendingSummary();
+
+        assertEquals(4L, result.totalPending());
+        assertEquals(0L, result.parkingManagerPending());
+        assertEquals(4L, result.employeePending());
+        assertEquals(4L, result.internalEmployeePending());
+        verify(onboardingApprovalSummaryPortOut, never()).countPendingEmployeeLikeApprovals();
     }
 
     private CurrentAccountAccess access(UUID accountId) {

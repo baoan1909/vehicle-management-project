@@ -7,10 +7,11 @@ import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 
 public final class CurrentAccessStatePolicy {
 
-    public Decision resolve(CurrentAccountAccess access, boolean onboardingRequired) {
+    public Decision resolve(CurrentAccountAccess access) {
         if (access == null) {
             return new Decision(CurrentAccessState.ACCOUNT_DISABLED, RequiredAccessAction.CONTACT_ADMIN);
         }
@@ -29,8 +30,18 @@ public final class CurrentAccessStatePolicy {
         if (CustomerApprovalStatus.PENDING.equals(access.customerApprovalStatus())) {
             return decision(CurrentAccessState.CUSTOMER_APPROVAL_REQUIRED, RequiredAccessAction.WAIT_FOR_APPROVAL);
         }
-        if (onboardingRequired) {
+        if (CustomerApprovalStatus.REJECTED.equals(access.customerApprovalStatus())) {
+            return decision(CurrentAccessState.CUSTOMER_APPROVAL_REQUIRED, RequiredAccessAction.SUBMIT_FOR_APPROVAL);
+        }
+        if (access.onboardingRequired()) {
             return decision(CurrentAccessState.ONBOARDING_REQUIRED, RequiredAccessAction.COMPLETE_PROFILE);
+        }
+        if (ApprovalRequestStatus.PENDING.equals(access.onboardingApprovalStatus())) {
+            return decision(CurrentAccessState.PENDING_APPROVAL, RequiredAccessAction.WAIT_FOR_APPROVAL);
+        }
+        if (ApprovalRequestStatus.REJECTED.equals(access.onboardingApprovalStatus())
+                || ApprovalRequestStatus.CANCELLED.equals(access.onboardingApprovalStatus())) {
+            return decision(CurrentAccessState.PENDING_APPROVAL, RequiredAccessAction.SUBMIT_FOR_APPROVAL);
         }
         if (access.customerStatus() != null && !CustomerStatus.ACTIVE.equals(access.customerStatus())) {
             return decision(CurrentAccessState.CUSTOMER_INACTIVE, RequiredAccessAction.CONTACT_ADMIN);
@@ -46,6 +57,11 @@ public final class CurrentAccessStatePolicy {
             return decision(CurrentAccessState.NO_EFFECTIVE_PERMISSIONS, RequiredAccessAction.CONTACT_ADMIN);
         }
         return decision(CurrentAccessState.ACTIVE, null);
+    }
+
+    /** Compatibility overload; lifecycle is always read from the authoritative snapshot. */
+    public Decision resolve(CurrentAccountAccess access, boolean ignoredOnboardingRequired) {
+        return resolve(access);
     }
 
     private boolean requiresOrganizationAccess(CurrentAccountAccess access) {

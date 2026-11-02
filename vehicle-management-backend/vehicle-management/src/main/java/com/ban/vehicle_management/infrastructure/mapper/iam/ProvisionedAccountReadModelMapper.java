@@ -20,7 +20,8 @@ public interface ProvisionedAccountReadModelMapper {
         }
         return new ProvisionedAccountResult(
                 toAccountInfoResult(entity),
-                toRoleInfoResult(entity.getRole())
+                toRoleInfoResult(entity.getRole()),
+                null
         );
     }
 

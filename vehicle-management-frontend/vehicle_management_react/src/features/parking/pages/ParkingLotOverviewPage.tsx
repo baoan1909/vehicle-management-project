@@ -467,6 +467,21 @@ export function ParkingLotOverviewPage() {
         />
 
         {error ? <div className="tw-mt-3 tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-2 tw-text-[0.76rem] tw-font-semibold tw-text-amber-800" role="alert"><span><i className="fas fa-exclamation-triangle tw-mr-2" />{error}</span><button className="tw-border-0 tw-bg-transparent tw-font-extrabold tw-text-amber-900" onClick={() => void loadOverview(selectedLot)}>Thử lại</button></div> : null}
+        {selectedLot.managementState === "PARTNER_SUPERVISED" ? (
+          <div className="tw-mt-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-blue-200 tw-bg-blue-50 tw-px-4 tw-py-3 tw-text-sm tw-font-semibold tw-text-blue-800" role="status">
+            <i className="fas fa-user-shield tw-mr-2" />Bãi đang do Partner trực tiếp giám sát. Nhân viên vẫn vận hành theo phân công bãi và ca hợp lệ; chức năng quản trị Manager tạm thời không khả dụng.
+          </div>
+        ) : null}
+        {selectedLot.managementState === "HANDOVER" ? (
+          <div className="tw-mt-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-px-4 tw-py-3 tw-text-sm tw-font-semibold tw-text-amber-800" role="status">
+            <i className="fas fa-people-arrows tw-mr-2" />Bãi đang trong quá trình bàn giao Manager. Dữ liệu nhân viên, ca trực và công việc hiện có được giữ nguyên.
+          </div>
+        ) : null}
+        {selectedLot.managementState === "OPERATION_SUSPENDED" ? (
+          <div className="tw-mt-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-px-4 tw-py-3 tw-text-sm tw-font-semibold tw-text-red-800" role="alert">
+            <i className="fas fa-ban tw-mr-2" />Hoạt động tại bãi đang bị đình chỉ. Không thể tạo nghiệp vụ vận hành mới cho đến khi Partner mở lại.
+          </div>
+        ) : null}
 
         <div className="tw-mt-3 tw-grid tw-grid-cols-4 tw-gap-3 max-[950px]:tw-grid-cols-2 max-[560px]:tw-grid-cols-1">
           <MetricCard icon="fas fa-car" label="Sức chứa" value={totalCapacity.toLocaleString("vi-VN")} />

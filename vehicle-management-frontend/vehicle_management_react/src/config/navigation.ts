@@ -11,22 +11,22 @@ export const adminNavigation: AdminSidebarEntry[] = [
   { kind: "divider" },
   {
     kind: "group",
-    label: "Quản lý vào ra",
-    icon: "swipe",
-    defaultExpanded: true,
-    items: [
-      { label: "Vào/Ra", to: "/admin/swipe", matches: ["/admin/swipe"] },
-      { label: "Phiên gửi xe", to: "/admin/swipe/sessions", matches: ["/admin/swipe/sessions"] },
-    ],
-  },
-  {
-    kind: "group",
     label: "Quản lý thẻ",
     icon: "card",
     defaultExpanded: true,
     items: [
       { label: "Thẻ", to: "/admin/card", matches: ["/admin/card"] },
       { label: "Thẻ bị mất", to: "/admin/lost", matches: ["/admin/lost"] },
+    ],
+  },
+  {
+    kind: "group",
+    label: "Quản lý vào ra",
+    icon: "swipe",
+    defaultExpanded: true,
+    items: [
+      { label: "Vào/Ra", to: "/admin/swipe", matches: ["/admin/swipe"], openInNewTab: true },
+      { label: "Phiên gửi xe", to: "/admin/swipe/sessions", matches: ["/admin/swipe/sessions"] },
     ],
   },
   {

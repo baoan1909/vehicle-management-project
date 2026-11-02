@@ -216,7 +216,8 @@ function IdentityCard({
   onAvatarChange,
   onAvatarDelete,
   profile,
-  avatarModeration
+  avatarModeration,
+  latestApproval,
 }: {
   avatarUrl: string;
   displayName: string;
@@ -224,10 +225,13 @@ function IdentityCard({
   onAvatarDelete: () => void;
   profile: AccountProfileStatusResponse;
   avatarModeration: AvatarModerationStatus | null;
+  latestApproval: OnboardingApprovalResponse | null;
 }) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const approvalStatus = approvalStatusValue(profile);
-  const approvalMeta = getStatusMeta(approvalStatus);
+  const approvalStatus = latestApproval?.request?.approvalRequestStatus ?? approvalStatusValue(profile);
+  const approvalMeta = profile.onboardingRequired && !latestApproval
+    ? { ...getStatusMeta(undefined), label: "Chưa gửi hồ sơ", tone: "orange" as const }
+    : getStatusMeta(approvalStatus);
 
   return (
     <Card className="tw-grid tw-min-w-0 tw-justify-items-center tw-rounded-vm-lg tw-border tw-border-solid !tw-border-vm-slate-100 tw-p-[1.05rem] tw-text-center tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
@@ -464,8 +468,9 @@ function ProfileReadinessBanner({
   );
 }
 
-function StatusPanel({ onChangePassword, profile }: { onChangePassword: () => void; profile: AccountProfileStatusResponse }) {
-  const approvalStatus = approvalStatusValue(profile);
+function StatusPanel({ latestApproval, onChangePassword, profile }: { latestApproval: OnboardingApprovalResponse | null; onChangePassword: () => void; profile: AccountProfileStatusResponse }) {
+  const approvalStatus = latestApproval?.request?.approvalRequestStatus ?? approvalStatusValue(profile);
+  const approvalLabel = profile.onboardingRequired && !latestApproval ? "Chưa gửi hồ sơ" : statusLabel(approvalStatus);
 
   return (
     <Card className="tw-min-w-0 tw-rounded-vm-lg tw-border tw-border-solid !tw-border-vm-slate-100 tw-p-4 tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
@@ -476,7 +481,7 @@ function StatusPanel({ onChangePassword, profile }: { onChangePassword: () => vo
           <i className="fas fa-user-check tw-inline-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-vm-lg tw-bg-brand-50 tw-text-[1.2rem] tw-text-vm-primary" />
           <div>
             <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-500">Phê duyệt</span>
-            <strong className="tw-mt-1 tw-block tw-text-[0.94rem] tw-font-black tw-text-vm-slate-900">{statusLabel(approvalStatus)}</strong>
+            <strong className="tw-mt-1 tw-block tw-text-[0.94rem] tw-font-black tw-text-vm-slate-900">{approvalLabel}</strong>
           </div>
         </article>
         <article className="tw-grid tw-min-h-[74px] tw-grid-cols-[48px_minmax(0,1fr)] tw-items-center tw-gap-3.5 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
@@ -876,8 +881,8 @@ export function InternalProfilePage() {
 
             <div className="tw-grid tw-grid-cols-[minmax(250px,290px)_minmax(0,1fr)] tw-items-start tw-gap-[0.9rem] max-[900px]:tw-grid-cols-1">
               <div className="tw-grid tw-min-w-0 tw-gap-[0.9rem]">
-                <IdentityCard avatarModeration={avatarModeration} avatarUrl={avatarUrl} displayName={displayName} onAvatarChange={handleAvatarChange} onAvatarDelete={handleAvatarDelete} profile={profile} />
-                <StatusPanel profile={profile} onChangePassword={() => setPasswordOpen(true)} />
+                <IdentityCard avatarModeration={avatarModeration} avatarUrl={avatarUrl} displayName={displayName} latestApproval={latestApproval} onAvatarChange={handleAvatarChange} onAvatarDelete={handleAvatarDelete} profile={profile} />
+                <StatusPanel latestApproval={latestApproval} profile={profile} onChangePassword={() => setPasswordOpen(true)} />
               </div>
 
               <div className="tw-grid tw-min-w-0 tw-gap-[0.9rem]">

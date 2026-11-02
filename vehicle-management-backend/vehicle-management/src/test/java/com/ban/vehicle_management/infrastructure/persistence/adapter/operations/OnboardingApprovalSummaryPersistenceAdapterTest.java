@@ -9,6 +9,7 @@ import com.ban.vehicle_management.domain.operations.approvalrequest.policy.Onboa
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ApprovalRequestRepository;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import java.util.UUID;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -39,12 +40,23 @@ class OnboardingApprovalSummaryPersistenceAdapterTest {
                 ApprovalRequestStatus.PENDING,
                 OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE
         )).thenReturn(4L);
+        UUID organizationId = UUID.randomUUID();
+        when(approvalRequestRepository.countPendingInternalEmployeeApprovalsByTargetRoleNotInOrganizations(
+                InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
+                InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
+                InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
+                ApprovalRequestStatus.PENDING,
+                OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE,
+                Set.of(organizationId)
+        )).thenReturn(1L);
 
         long managerResult = adapter.countPendingParkingManagerApprovalsCreatedBy(partnerAdminAccountId);
         long employeeResult = adapter.countPendingEmployeeLikeApprovals();
+        long scopedEmployeeResult = adapter.countPendingEmployeeLikeApprovalsInOrganizations(Set.of(organizationId));
 
         assertEquals(2L, managerResult);
         assertEquals(4L, employeeResult);
+        assertEquals(1L, scopedEmployeeResult);
         verify(approvalRequestRepository).countPendingInternalEmployeeApprovalsByTargetRoleAndAccountCreator(
                 InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
                 InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
@@ -59,6 +71,14 @@ class OnboardingApprovalSummaryPersistenceAdapterTest {
                 InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
                 ApprovalRequestStatus.PENDING,
                 OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE
+        );
+        verify(approvalRequestRepository).countPendingInternalEmployeeApprovalsByTargetRoleNotInOrganizations(
+                InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
+                InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
+                InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
+                ApprovalRequestStatus.PENDING,
+                OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE,
+                Set.of(organizationId)
         );
     }
 }

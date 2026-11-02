@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { SelectMenu, useToast } from "@/components/ui";
@@ -8,7 +8,7 @@ import {
   recordParkingCashPayment,
   VNPAY_MINIMUM_AMOUNT,
 } from "@/features/parking/api/parkingPaymentApi";
-import { getDevices, type DeviceApiResponse, type DeviceStatusApi } from "@/features/hardware/api/deviceApi";
+import { getDevices, type DeviceApiResponse } from "@/features/hardware/api/deviceApi";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 import {
   getLevelsByLot,
@@ -195,33 +195,8 @@ function getCameraOptionLabel(device: DeviceApiResponse) {
   return [device.deviceCode, device.name].filter(Boolean).join(" • ") || "Camera chưa đặt tên";
 }
 
-function getCameraStatusLabel(status?: DeviceStatusApi) {
-  const labels: Record<DeviceStatusApi, string> = {
-    ACTIVE: "Đang kết nối",
-    MAINTENANCE: "Bảo trì",
-    OFFLINE: "Mất kết nối",
-    RETIRED: "Ngưng sử dụng",
-  };
-
-  return status ? labels[status] : "Chưa chọn camera";
-}
-
 function isLocalCamera(cameraId: string) {
   return cameraId === LOCAL_CAMERA_ID;
-}
-
-function getCameraStatusTone(status?: DeviceStatusApi) {
-  if (status === "ACTIVE") return "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700";
-  if (status === "MAINTENANCE") return "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700";
-  if (status === "OFFLINE") return "tw-border-red-200 tw-bg-red-50 tw-text-red-600";
-  return "tw-border-vm-slate-200 tw-bg-vm-slate-25 tw-text-vm-slate-500";
-}
-
-function getCameraStatusDot(status?: DeviceStatusApi) {
-  if (status === "ACTIVE") return "tw-bg-emerald-500";
-  if (status === "MAINTENANCE") return "tw-bg-amber-500";
-  if (status === "OFFLINE") return "tw-bg-red-500";
-  return "tw-bg-vm-slate-400";
 }
 
 function FilterSelect({
@@ -231,6 +206,8 @@ function FilterSelect({
   label,
   onChange,
   options,
+  portalViewportPadding,
+  selectedOptionAdornment,
   value,
 }: {
   ariaLabel: string;
@@ -239,6 +216,8 @@ function FilterSelect({
   label: string;
   onChange: (value: string) => void;
   options: Array<{ label: string; value: string }>;
+  portalViewportPadding?: number;
+  selectedOptionAdornment?: ReactNode;
   value: string;
 }) {
   const selectedLabel = options.find((option) => option.value === value)?.label ?? options[0]?.label;
@@ -262,10 +241,13 @@ function FilterSelect({
           ariaLabel={ariaLabel}
           className="tw-min-w-0 tw-flex-1"
           options={options}
+          portal
+          portalFitContent
+          portalViewportPadding={portalViewportPadding}
+          selectedOptionAdornment={selectedOptionAdornment}
           value={value}
           clearValue={options[0]?.value}
           onChange={onChange}
-          menuClassName="tw-min-w-[190px]"
           triggerClassName="!tw-h-8 !tw-border-0 !tw-px-0 !tw-shadow-none tw-text-[0.84rem]"
         />
       </div>
@@ -440,20 +422,6 @@ export function SwipeListPage() {
     () => cameraDevices.find((device) => device.deviceId === cameraId),
     [cameraDevices, cameraId],
   );
-  const cameraStatusTitle = selectedCamera
-    ? `${getCameraOptionLabel(selectedCamera)} • ${getCameraStatusLabel(selectedCamera.status)}`
-    : isLocalCamera(cameraId)
-      ? `${LOCAL_CAMERA_LABEL} • Sẵn sàng`
-      : cameraError
-        ? "Không tải được camera"
-        : "Chưa chọn camera";
-  const cameraStatusText = selectedCamera
-    ? `${selectedCamera.deviceCode} • ${getCameraStatusLabel(selectedCamera.status)}`
-    : isLocalCamera(cameraId)
-      ? `${LOCAL_CAMERA_LABEL} • Sẵn sàng`
-      : cameraError
-        ? "Không tải được camera"
-        : "Chưa chọn camera";
   const cardOptions = useMemo(() => [
     { label: isLoadingCards ? "Đang tải thẻ..." : "Quẹt hoặc chọn thẻ hợp lệ", value: "" },
     ...eligibleCards.map((card) => ({
@@ -1664,40 +1632,34 @@ export function SwipeListPage() {
     : checkOutSession?.parkingLevelCode ?? checkOutSession?.parkingLevelName ?? undefined;
 
   return (
-    <main className="tw-px-4 tw-pb-5 tw-pt-3 lg:tw-px-5">
-      <section className="tw-mx-auto tw-grid tw-min-h-[calc(100vh-124px)] tw-w-[min(100%,1660px)] tw-grid-rows-[auto_minmax(0,1fr)] tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
-        <div className="tw-grid tw-grid-cols-[minmax(260px,390px)_minmax(620px,1fr)_minmax(220px,300px)] tw-items-end tw-gap-3 max-[1380px]:tw-grid-cols-1">
-          <div className="tw-grid tw-gap-2">
+    <main className="tw-min-h-[100dvh] tw-bg-vm-canvas tw-px-4 tw-pb-4 tw-pt-4 lg:tw-px-5">
+      <section className="tw-mx-auto tw-grid tw-min-h-[calc(100dvh-32px)] tw-w-full tw-grid-rows-[auto_minmax(0,1fr)] tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
+        <div className="tw-grid tw-grid-cols-[minmax(260px,390px)_minmax(0,1fr)] tw-items-end tw-gap-3 max-[860px]:tw-grid-cols-1">
+          <div className="tw-grid tw-min-w-0 tw-gap-2">
             <h1 className="tw-m-0 tw-text-[1.36rem] tw-font-black tw-leading-tight tw-text-slate-950">Vận hành vào / ra bãi</h1>
             <OperationModeTabs mode={mode} onChange={setMode} />
           </div>
 
-          <div className="tw-grid tw-min-w-0 tw-grid-cols-[minmax(220px,1.15fr)_minmax(150px,0.7fr)_minmax(220px,1.15fr)] tw-gap-2.5 max-[860px]:tw-grid-cols-1">
+          <div className="tw-ml-auto tw-grid tw-w-full tw-min-w-0 tw-max-w-[859px] tw-grid-cols-[372fr_227fr_240fr] tw-gap-2.5 max-[860px]:tw-grid-cols-1">
             <FilterSelect className="tw-w-full" ariaLabel="Chọn bãi xe vận hành" icon="fas fa-parking" label="Bãi xe" options={parkingLotOptions} value={parkingLotId} onChange={setParkingLotId} />
             <FilterSelect className="tw-w-full" ariaLabel="Chọn làn xe" label="Làn xe" options={laneOptions} value={laneId} onChange={handleLaneChange} />
-            <FilterSelect className="tw-w-full" ariaLabel="Chọn camera" icon="fas fa-video" label="Camera" options={cameraOptions} value={cameraId} onChange={setCameraId} />
+            <FilterSelect
+              className="tw-w-full"
+              ariaLabel="Chọn camera"
+              icon="fas fa-video"
+              label="Camera"
+              options={cameraOptions}
+              portalViewportPadding={24}
+              selectedOptionAdornment={cameraId ? (
+                <span className="tw-flex-none tw-whitespace-nowrap tw-text-[0.76rem] tw-font-extrabold tw-text-emerald-600">
+                  Sẵn sàng
+                </span>
+              ) : null}
+              value={cameraId}
+              onChange={setCameraId}
+            />
           </div>
 
-          <div>
-            <div className={cn(
-              "tw-flex tw-h-10 tw-min-w-0 tw-items-center tw-gap-2 tw-whitespace-nowrap tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-text-[0.84rem] tw-font-extrabold tw-shadow-[0_8px_18px_rgba(15,23,42,0.035)]",
-              isLocalCamera(cameraId)
-                  ? "tw-border-emerald-200 tw-bg-emerald-50 tw-text-emerald-700"
-                  : cameraError
-                    ? "tw-border-amber-200 tw-bg-amber-50 tw-text-amber-700"
-                    : getCameraStatusTone(selectedCamera?.status),
-            )} title={cameraStatusTitle}>
-              <span className={cn(
-                "tw-h-2 tw-w-2 tw-rounded-full",
-                isLocalCamera(cameraId)
-                    ? "tw-bg-emerald-500"
-                    : cameraError
-                      ? "tw-bg-amber-500"
-                      : getCameraStatusDot(selectedCamera?.status),
-              )} />
-              <span className="tw-min-w-0 tw-truncate">{cameraStatusText}</span>
-            </div>
-          </div>
         </div>
 
         <div className={mode === "check-in" ? "tw-grid tw-min-h-0 tw-grid-cols-[minmax(430px,1.12fr)_minmax(340px,0.88fr)] tw-gap-3 max-[980px]:tw-grid-cols-1" : "tw-grid tw-min-h-0 tw-grid-cols-[minmax(430px,1.08fr)_minmax(340px,0.88fr)_minmax(360px,0.98fr)] tw-gap-3 max-[1380px]:tw-grid-cols-[minmax(390px,1fr)_minmax(330px,0.9fr)] max-[980px]:tw-grid-cols-1"}>
@@ -1737,7 +1699,7 @@ export function SwipeListPage() {
               />
             )}
             estimatedPaymentAmount={checkOutPreview?.estimatedTotalPrice}
-            error={submitError || parkingLotError || laneError || cardError || vehicleTypeError}
+            error={submitError || parkingLotError || laneError || cameraError || cardError || vehicleTypeError}
             isLoadingCards={isLoadingCards}
             isSubmitting={isSubmitting}
             laneId={laneId}

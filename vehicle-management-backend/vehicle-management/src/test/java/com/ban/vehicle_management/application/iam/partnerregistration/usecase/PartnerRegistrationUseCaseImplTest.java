@@ -196,6 +196,53 @@ class PartnerRegistrationUseCaseImplTest {
     }
 
     @Test
+    void provisionedPartnerAdminCanCreateFirstApplicationFromProfileSubmission() {
+        UUID applicantId = UUID.randomUUID();
+        UUID userProfileId = UUID.randomUUID();
+        UserProfile userProfile = completeUserProfile(userProfileId);
+        ProvisionedAccountResult activeApplicant = partnerApplicant(
+                applicantId, userProfileId, AccountStatus.ACTIVE);
+        ProvisionedAccountResult pendingApplicant = partnerApplicant(
+                applicantId, userProfileId, AccountStatus.PENDING);
+
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(applicantId);
+        when(provisionedAccountPortOut.findProvisionedAccountById(applicantId))
+                .thenReturn(Optional.of(activeApplicant), Optional.of(pendingApplicant));
+        when(identityProviderAdminPortOut.isEmailVerified("partner-keycloak-id")).thenReturn(true);
+        when(partnerRegistrationPortOut.findLatestByApplicantAccountId(applicantId))
+                .thenReturn(Optional.empty());
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(applicantId)).thenReturn(Set.of());
+        when(userProfilePortOut.findById(userProfileId)).thenReturn(Optional.of(userProfile));
+
+        useCase.completeMyProfile(new CompletePartnerProfileCommand(
+                "Nguyễn Văn A",
+                LocalDate.of(1990, 1, 1),
+                "Nam",
+                "0901234567",
+                "123456789012",
+                legacyAddress("25 Bùi Xuân Phái"),
+                "PARTNER_ABC",
+                "Bãi xe ABC",
+                legacyAddress("01 Võ Văn Ngân")
+        ));
+
+        ArgumentCaptor<ApprovalRequest> approvalCaptor = ArgumentCaptor.forClass(ApprovalRequest.class);
+        verify(partnerRegistrationPortOut, org.mockito.Mockito.atLeastOnce()).save(approvalCaptor.capture());
+        ApprovalRequest created = approvalCaptor.getAllValues().get(0);
+        assertEquals(applicantId, created.getRequestedBy());
+        assertEquals(ApprovalRequestStatus.PENDING, created.getStatus());
+        assertEquals("PARTNER_ABC", created.getRequestData().get("organizationCode"));
+        verify(provisionedAccountPortOut).updateProvisionedAccountStatus(
+                eq(applicantId),
+                eq(AccountStatus.PENDING),
+                eq(UserProfileStatus.ACTIVE),
+                eq(null),
+                eq(null),
+                eq(applicantId),
+                eq("Provisioned Partner Admin submitted onboarding"));
+    }
+
+    @Test
     void shouldDeleteKeycloakUserWhenDatabaseRegistrationFails() {
         when(identityProviderAdminPortOut.createUser(any())).thenReturn("keycloak-user-id");
         when(accountRegistrationPortOut.registerPendingAccount(any(), any(), any(), any()))
@@ -506,6 +553,14 @@ class PartnerRegistrationUseCaseImplTest {
     }
 
     private ProvisionedAccountResult pendingPartnerApplicant(UUID accountId, UUID userProfileId) {
+        return partnerApplicant(accountId, userProfileId, AccountStatus.PENDING);
+    }
+
+    private ProvisionedAccountResult partnerApplicant(
+            UUID accountId,
+            UUID userProfileId,
+            AccountStatus accountStatus
+    ) {
         return new ProvisionedAccountResult(
                 new ProvisionedAccountResult.AccountInfoResult(
                         accountId,
@@ -513,7 +568,7 @@ class PartnerRegistrationUseCaseImplTest {
                         "partner-keycloak-id",
                         "partner.admin",
                         "partner@example.com",
-                        AccountStatus.PENDING,
+                        accountStatus,
                         Instant.now(),
                         Instant.now()
                 ),

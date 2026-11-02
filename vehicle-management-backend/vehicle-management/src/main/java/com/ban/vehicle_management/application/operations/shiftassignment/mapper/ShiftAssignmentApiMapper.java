@@ -15,6 +15,7 @@ public interface ShiftAssignmentApiMapper {
 
     @Mapping(target = "shiftAssignmentId", ignore = true)
     @Mapping(target = "shiftId", ignore = true)
+    @Mapping(target = "employeeParkingLotAssignmentId", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
@@ -26,6 +27,7 @@ public interface ShiftAssignmentApiMapper {
 
     @Mapping(target = "shiftAssignmentId", ignore = true)
     @Mapping(target = "shiftId", ignore = true)
+    @Mapping(target = "employeeParkingLotAssignmentId", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)

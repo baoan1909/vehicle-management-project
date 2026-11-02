@@ -20,6 +20,7 @@ import com.ban.vehicle_management.application.iam.account.port.out.IdentityProvi
 import com.ban.vehicle_management.application.iam.account.port.out.ProvisionedAccountPortOut;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
+import com.ban.vehicle_management.application.iam.organization.port.in.ParkingLotAssignmentPortIn;
 import com.ban.vehicle_management.domain.iam.account.model.Account;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.iam.account.policy.ProvisionedAccountPolicy;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
@@ -59,11 +61,19 @@ class ProvisionedAccountUseCaseImplTest {
     @Mock
     private AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
 
+    @Mock
+    private ParkingLotAssignmentPortIn parkingLotAssignmentPortIn;
+
     @Spy
     private ProvisionedAccountPolicy provisionedAccountPolicy = new ProvisionedAccountPolicy();
 
     @InjectMocks
     private ProvisionedAccountUseCaseImpl provisionedAccountUseCase;
+
+    @BeforeEach
+    void configureManagerLifecycle() {
+        provisionedAccountUseCase.configureParkingLotAssignmentLifecycle(parkingLotAssignmentPortIn);
+    }
 
     @Test
     void shouldCreateProfileTogetherWithProvisionedEmployeeAccount() {
@@ -627,7 +637,11 @@ class ProvisionedAccountUseCaseImplTest {
 
         provisionedAccountUseCase.updateProvisionedAccountStatus(managerAccountId, command);
 
-        verify(organizationPortOut).deactivateMembershipsAndClearParkingLotScopes(managerAccountId);
+        verify(parkingLotAssignmentPortIn).revokeManagerImmediately(
+                managerAccountId,
+                "Manager account changed to DISABLED"
+        );
+        verify(organizationPortOut, never()).deactivateMembershipsAndClearParkingLotScopes(managerAccountId);
         verify(identityProviderAdminPortOut).updateUserEnabled("kc-employee-id", false);
         verify(identityProviderAdminPortOut).logoutUserSessions("kc-employee-id");
     }

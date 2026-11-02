@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.AddressInputScheme;
 import com.ban.vehicle_management.shared.enumeration.parking.GeocodingStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotManagementState;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -32,6 +33,8 @@ public class ParkingLot extends AuditableDomainModel {
     private BigDecimal longitude;
     private Integer totalCapacity;
     private ParkingLotStatus status;
+    private ParkingLotManagementState managementState;
+    private Long managementRevision;
     private Instant activationRequestedAt;
     private UUID activationRequestedBy;
 }

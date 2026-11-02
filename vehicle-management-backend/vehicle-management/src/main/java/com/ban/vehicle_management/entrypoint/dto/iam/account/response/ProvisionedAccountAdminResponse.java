@@ -7,7 +7,8 @@ import java.util.UUID;
 
 public record ProvisionedAccountAdminResponse(
         AccountInfoResponse account,
-        RoleInfoResponse role
+        RoleInfoResponse role,
+        LifecycleInfoResponse lifecycle
 ) {
     public record AccountInfoResponse(
             UUID accountId,
@@ -25,6 +26,17 @@ public record ProvisionedAccountAdminResponse(
             String roleCode,
             String roleName,
             List<String> permissionCodes
+    ) {
+    }
+
+    public record LifecycleInfoResponse(
+            String profileState,
+            String approvalState,
+            String workforceState,
+            String scopeState,
+            String operationalAccessState,
+            String requiredAction,
+            int effectivePermissionCount
     ) {
     }
 }

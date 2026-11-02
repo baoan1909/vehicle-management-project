@@ -27,11 +27,11 @@ class CurrentAccountAccessResponseTest {
                 "customerApprovalStatus",
                 "permissionCodes");
         assertEquals(legacyFields, componentNames.subList(0, legacyFields.size()));
-        assertEquals(List.of("onboardingRequired", "accessState", "requiredAction", "accessRevision"),
+        assertEquals(List.of("onboardingApprovalStatus", "onboardingRequired", "accessState", "requiredAction", "accessRevision"),
                 componentNames.subList(legacyFields.size(), componentNames.size()));
         assertFalse(componentNames.contains("roleActive"));
         assertFalse(componentNames.contains("activeOrganizationIds"));
         assertEquals(Boolean.class,
-                CurrentAccountAccessResponse.class.getRecordComponents()[10].getType());
+                CurrentAccountAccessResponse.class.getRecordComponents()[11].getType());
     }
 }

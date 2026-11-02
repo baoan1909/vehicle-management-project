@@ -88,9 +88,9 @@ export interface RouteDefinition {
 const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/dashboard", title: "Tong quan", layout: "admin", element: <DashboardPage /> },
   { path: "/api/dashboard/overview", title: "Tong quan", layout: "admin", element: <Navigate to="/admin/dashboard" replace /> },
-  { path: "/admin/swipe", title: "Quan ly vao ra", layout: "admin", element: <SwipeListPage /> },
-  { path: "/admin/swipe/swipein", title: "Xe vao", layout: "admin", element: <Navigate to="/admin/swipe?mode=check-in" replace /> },
-  { path: "/admin/swipe/swipeout", title: "Xe ra", layout: "admin", element: <Navigate to="/admin/swipe?mode=check-out" replace /> },
+  { path: "/admin/swipe", title: "Vận hành vào / ra bãi", layout: "fullscreen", element: <SwipeListPage /> },
+  { path: "/admin/swipe/swipein", title: "Xe vào", layout: "fullscreen", element: <Navigate to="/admin/swipe?mode=check-in" replace /> },
+  { path: "/admin/swipe/swipeout", title: "Xe ra", layout: "fullscreen", element: <Navigate to="/admin/swipe?mode=check-out" replace /> },
   { path: "/admin/swipe/sessions", title: "Phien gui xe", layout: "admin", element: <ParkingSessionPage /> },
   { path: "/admin/card", title: "Quan ly the", layout: "admin", element: <CardListPage /> },
   { path: "/admin/card/form", title: "Thong tin the", layout: "admin", element: <CardFormPage /> },

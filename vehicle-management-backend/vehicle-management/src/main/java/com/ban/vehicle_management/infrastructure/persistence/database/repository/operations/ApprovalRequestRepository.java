@@ -276,6 +276,37 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
     );
 
     @Query("""
+            SELECT COUNT(DISTINCT approval.approvalRequestId)
+            FROM ApprovalRequestEntity approval,
+                 EmployeeEntity employee,
+                 AccountEntity account,
+                 RoleEntity role,
+                 OrganizationMembershipEntity membership,
+                 OrganizationEntity organization
+            WHERE approval.requestType = :requestType
+              AND approval.targetSchema = :targetSchema
+              AND approval.targetTable = :targetTable
+              AND approval.status = :status
+              AND approval.targetId = employee.employeeId
+              AND employee.userProfileId = account.userProfileId
+              AND account.roleId = role.roleId
+              AND role.code <> :excludedTargetRoleCode
+              AND membership.accountId = account.accountId
+              AND membership.organizationId = organization.organizationId
+              AND membership.status = com.ban.vehicle_management.shared.enumeration.iam.OrganizationMembershipStatus.ACTIVE
+              AND organization.status = com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus.ACTIVE
+              AND membership.organizationId IN :organizationIds
+            """)
+    long countPendingInternalEmployeeApprovalsByTargetRoleNotInOrganizations(
+            @Param("requestType") String requestType,
+            @Param("targetSchema") String targetSchema,
+            @Param("targetTable") String targetTable,
+            @Param("status") ApprovalRequestStatus status,
+            @Param("excludedTargetRoleCode") String excludedTargetRoleCode,
+            @Param("organizationIds") java.util.Collection<UUID> organizationIds
+    );
+
+    @Query("""
             SELECT approval.approvalRequestId AS eventId,
                    COALESCE(approval.approvedAt, approval.createdAt) AS eventTime,
                    approval.status AS status,

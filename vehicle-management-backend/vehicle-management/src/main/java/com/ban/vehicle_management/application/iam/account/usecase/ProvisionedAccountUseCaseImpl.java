@@ -34,6 +34,8 @@ import java.util.UUID;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.ban.vehicle_management.application.iam.organization.port.in.ParkingLotAssignmentPortIn;
 
 @Service
 public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
@@ -47,9 +49,15 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
     private final IdentityProviderAdminPortOut identityProviderAdminPortOut;
     private final ProvisionedAccountPolicy provisionedAccountPolicy;
     private final NotificationPortIn notificationPortIn;
+    private ParkingLotAssignmentPortIn parkingLotAssignmentPortIn;
     private final OrganizationPortOut organizationPortOut;
     private final AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
     private final UserProfilePolicy userProfilePolicy = new UserProfilePolicy();
+
+    @Autowired(required = false)
+    void configureParkingLotAssignmentLifecycle(ParkingLotAssignmentPortIn parkingLotAssignmentPortIn) {
+        this.parkingLotAssignmentPortIn = parkingLotAssignmentPortIn;
+    }
 
     public ProvisionedAccountUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
@@ -415,7 +423,14 @@ public class ProvisionedAccountUseCaseImpl implements ProvisionedAccountPortIn {
             organizationPortOut.activateMemberships(accountId);
             return;
         }
-        organizationPortOut.deactivateMembershipsAndClearParkingLotScopes(accountId);
+        // A Manager lock/revocation ends only management assignments. Employee
+        // assignments, shifts and lot work queues are independent and remain intact.
+        if (parkingLotAssignmentPortIn != null) {
+            parkingLotAssignmentPortIn.revokeManagerImmediately(
+                    accountId,
+                    "Manager account changed to " + targetStatus.name()
+            );
+        }
     }
 
     private String normalizeRequiredEmail(String email) {

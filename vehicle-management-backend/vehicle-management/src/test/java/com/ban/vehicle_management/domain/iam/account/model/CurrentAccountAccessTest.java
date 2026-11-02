@@ -6,6 +6,7 @@ import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -40,11 +41,11 @@ class CurrentAccountAccessTest {
     }
 
     @Test
-    void customerLifecycleFiltersOnlyCustomerCapability() {
+    void customerLifecycleFiltersAllNonSupportCapabilities() {
         CurrentAccountAccess pending = access("CUSTOMER",
                 Set.of("ACCOUNT_READ_ALL", "CUSTOMER_VEHICLE_READ_OWN"), Set.of(), Set.of(),
                 null, CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING, true);
-        assertEquals(Set.of("ACCOUNT_READ_ALL"), pending.getEffectivePermissionCodes());
+        assertTrue(pending.getEffectivePermissionCodes().isEmpty());
     }
 
     @Test
@@ -109,6 +110,13 @@ class CurrentAccountAccessTest {
                 Set.of(), Set.of(parkingLotId), EmployeeStatus.ACTIVE, null, null, false).accessRevision());
         assertNotEquals(base.accessRevision(), access("CUSTOM", Set.of("ACCOUNT_READ_ALL"),
                 Set.of(), Set.of(), EmployeeStatus.ACTIVE, null, null, true).accessRevision());
+        CurrentAccountAccess pendingApproval = new CurrentAccountAccess(
+                base.accountId(), base.subject(), base.username(), base.email(), base.roleId(),
+                base.roleCode(), base.roleActive(), base.hasActivePartnerOrganizationMembership(),
+                base.activeOrganizationIds(), base.assignedParkingLotIds(), base.status(),
+                EmployeeStatus.INACTIVE, base.customerStatus(), base.customerApprovalStatus(),
+                false, ApprovalRequestStatus.PENDING, base.permissionCodes());
+        assertNotEquals(base.accessRevision(), pendingApproval.accessRevision());
     }
 
     private CurrentAccountAccess copy(

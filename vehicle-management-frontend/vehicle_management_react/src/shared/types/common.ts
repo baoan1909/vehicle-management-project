@@ -56,6 +56,7 @@ export interface AdminSidebarLeaf {
   label: string;
   to: string;
   matches: string[];
+  openInNewTab?: boolean;
 }
 
 export type AdminSidebarEntry =

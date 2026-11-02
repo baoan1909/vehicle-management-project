@@ -13,8 +13,10 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RolePermissionRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ApprovalRequestRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.OrganizationMembershipStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -31,6 +33,11 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
     private final EmployeeRepository employeeRepository;
     private final OrganizationMembershipRepository organizationMembershipRepository;
     private final MemberParkingLotScopeRepository memberParkingLotScopeRepository;
+    private final ApprovalRequestRepository approvalRequestRepository;
+
+    private static final String INTERNAL_EMPLOYEE_ONBOARDING = "INTERNAL_EMPLOYEE_ONBOARDING";
+    private static final String EMPLOYEE_TARGET_SCHEMA = "people";
+    private static final String EMPLOYEE_TARGET_TABLE = "employees";
 
     public AccountAuthorizationPersistenceAdapter(
             AccountRepository accountRepository,
@@ -39,7 +46,8 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
             CustomerRepository customerRepository,
             EmployeeRepository employeeRepository,
             OrganizationMembershipRepository organizationMembershipRepository,
-            MemberParkingLotScopeRepository memberParkingLotScopeRepository
+            MemberParkingLotScopeRepository memberParkingLotScopeRepository,
+            ApprovalRequestRepository approvalRequestRepository
     ) {
         this.accountRepository = accountRepository;
         this.rolePermissionRepository = rolePermissionRepository;
@@ -48,6 +56,7 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
         this.employeeRepository = employeeRepository;
         this.organizationMembershipRepository = organizationMembershipRepository;
         this.memberParkingLotScopeRepository = memberParkingLotScopeRepository;
+        this.approvalRequestRepository = approvalRequestRepository;
     }
 
     @Override
@@ -81,8 +90,8 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
                 .findActivePermissionCodesByRoleId(accountEntity.getRoleId());
         RoleEntity role = roleRepository.findById(accountEntity.getRoleId()).orElse(null);
         String roleCode = role == null ? null : role.getCode();
-        Set<UUID> activeOrganizationIds = permissionCodes.stream()
-                .anyMatch(this::requiresOrganizationScope)
+        Set<UUID> activeOrganizationIds = (AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name().equals(roleCode)
+                || permissionCodes.stream().anyMatch(this::requiresOrganizationScope))
                 ? safeSet(organizationMembershipRepository.findActiveOrganizationIdsByAccountId(
                         accountEntity.getAccountId(),
                         OrganizationMembershipStatus.ACTIVE
@@ -105,6 +114,15 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
                 customer != null,
                 !activeOrganizationIds.isEmpty()
         );
+        ApprovalRequestStatus onboardingApprovalStatus = employee == null ? null
+                : approvalRequestRepository
+                .findTopByRequestTypeAndTargetSchemaAndTargetTableAndTargetIdOrderByCreatedAtDesc(
+                        INTERNAL_EMPLOYEE_ONBOARDING,
+                        EMPLOYEE_TARGET_SCHEMA,
+                        EMPLOYEE_TARGET_TABLE,
+                        employee.getEmployeeId())
+                .map(approval -> approval.getStatus())
+                .orElse(null);
 
         return new CurrentAccountAccess(
                 accountEntity.getAccountId(),
@@ -122,6 +140,7 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
                 customer == null ? null : customer.getStatus(),
                 customer == null ? null : customer.getApprovalStatus(),
                 onboardingRequired,
+                onboardingApprovalStatus,
                 permissionCodes
         );
     }

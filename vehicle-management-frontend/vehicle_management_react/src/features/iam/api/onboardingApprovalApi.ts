@@ -65,6 +65,7 @@ export type OnboardingApprovalResponse = {
 
 export type OnboardingApprovalFilters = {
   keyword?: string;
+  roleCode?: string;
   status?: OnboardingApprovalStatus;
 };
 
@@ -72,6 +73,8 @@ export type OnboardingApprovalSummaryResponse = {
   totalPending: number;
   systemAdminPending: number;
   internalEmployeePending: number;
+  parkingManagerPending: number;
+  employeePending: number;
   customerPending: number;
 };
 
@@ -84,6 +87,7 @@ const endpointByKind: Record<OnboardingApprovalKind, string> = {
 function toQueryString(filters: OnboardingApprovalFilters = {}) {
   const searchParams = new URLSearchParams();
   if (filters.keyword?.trim()) searchParams.set("keyword", filters.keyword.trim());
+  if (filters.roleCode?.trim()) searchParams.set("roleCode", filters.roleCode.trim());
   if (filters.status) searchParams.set("status", filters.status);
   const query = searchParams.toString();
   return query ? `?${query}` : "";

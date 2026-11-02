@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.operations.approvalrequest.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.OnboardingApprovalSummaryResult;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.in.OnboardingApprovalSummaryPortIn;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.OnboardingApprovalSummaryPortOut;
@@ -38,14 +39,16 @@ public class OnboardingApprovalSummaryUseCaseImpl implements OnboardingApprovalS
         long systemAdminPending = scope.canReviewSystemAdmin()
                 ? onboardingApprovalSummaryPortOut.countPendingSystemAdminApprovalsExcluding(currentAccount.accountId())
                 : 0L;
-        long internalEmployeePending = 0L;
+        long parkingManagerPending = 0L;
         if (scope.canReviewParkingManager()) {
-            internalEmployeePending += onboardingApprovalSummaryPortOut
+            parkingManagerPending = onboardingApprovalSummaryPortOut
                     .countPendingParkingManagerApprovalsCreatedBy(currentAccount.accountId());
         }
+        long employeePending = 0L;
         if (scope.canReviewEmployee()) {
-            internalEmployeePending += onboardingApprovalSummaryPortOut.countPendingEmployeeLikeApprovals();
+            employeePending = countPendingEmployeeApprovals(currentAccount);
         }
+        long internalEmployeePending = parkingManagerPending + employeePending;
         long customerPending = scope.canReviewCustomer()
                 ? onboardingApprovalSummaryPortOut.countPendingCustomerApprovals()
                 : 0L;
@@ -54,7 +57,26 @@ public class OnboardingApprovalSummaryUseCaseImpl implements OnboardingApprovalS
                 systemAdminPending + internalEmployeePending + customerPending,
                 systemAdminPending,
                 internalEmployeePending,
+                parkingManagerPending,
+                employeePending,
                 customerPending
         );
+    }
+
+    private long countPendingEmployeeApprovals(CurrentAccountAccess currentAccount) {
+        var permissions = currentAccount.getEffectivePermissionCodes();
+        if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PLATFORM)) {
+            return onboardingApprovalSummaryPortOut.countPendingEmployeeLikeApprovals();
+        }
+        if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)
+                && currentAccount.assignedParkingLotIds().isEmpty()) {
+            return 0L;
+        }
+        if (!permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
+                && !permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
+            return 0L;
+        }
+        return onboardingApprovalSummaryPortOut.countPendingEmployeeLikeApprovalsInOrganizations(
+                currentAccount.activeOrganizationIds());
     }
 }

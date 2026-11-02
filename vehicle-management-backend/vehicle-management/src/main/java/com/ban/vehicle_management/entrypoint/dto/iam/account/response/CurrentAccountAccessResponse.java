@@ -14,6 +14,7 @@ public record CurrentAccountAccessResponse(
         String customerStatus,
         String customerApprovalStatus,
         Set<String> permissionCodes,
+        String onboardingApprovalStatus,
         Boolean onboardingRequired,
         String accessState,
         String requiredAction,

@@ -16,6 +16,10 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Autowired;
+import com.ban.vehicle_management.application.iam.organization.port.in.ParkingLotAssignmentPortIn;
+import com.ban.vehicle_management.shared.enumeration.iam.ManagementAssignmentRole;
+import java.time.Instant;
 
 @Service
 public class OrganizationUseCaseImpl implements OrganizationPortIn {
@@ -30,6 +34,12 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
     private final OrganizationPolicy organizationPolicy;
     private final PartnerCatalogSeedPortOut partnerCatalogSeedPortOut;
     private final AccountAccessInvalidationPortIn accountAccessInvalidationPortIn;
+    private ParkingLotAssignmentPortIn parkingLotAssignmentPortIn;
+
+    @Autowired(required = false)
+    void configureParkingLotAssignments(ParkingLotAssignmentPortIn parkingLotAssignmentPortIn) {
+        this.parkingLotAssignmentPortIn = parkingLotAssignmentPortIn;
+    }
 
     public OrganizationUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
@@ -105,7 +115,19 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
                     return organizationPortOut.findActiveMembershipId(organizationId, parkingManagerAccountId)
                             .orElseThrow(() -> new IllegalStateException("Organization membership was not created"));
                 });
-        organizationPortOut.replaceParkingLotScopes(membershipId, Set.copyOf(parkingLotIds));
+        if (parkingLotAssignmentPortIn != null) {
+            for (UUID parkingLotId : parkingLotIds) {
+                if (!parkingLotAssignmentPortIn.getManagementHistory(organizationId, parkingLotId).stream()
+                        .anyMatch(item -> parkingManagerAccountId.equals(item.getManagerAccountId())
+                                && com.ban.vehicle_management.shared.enumeration.iam.ManagementAssignmentStatus.ACTIVE.equals(item.getStatus()))) {
+                    parkingLotAssignmentPortIn.assignManager(
+                            organizationId, parkingLotId, parkingManagerAccountId,
+                            ManagementAssignmentRole.SUPPORT, Instant.now(), false, "Migrated from legacy scope endpoint");
+                }
+            }
+        } else {
+            organizationPortOut.replaceParkingLotScopes(membershipId, Set.copyOf(parkingLotIds));
+        }
         invalidateOrganizationAccess(parkingManagerAccountId, organizationId);
     }
 
@@ -124,7 +146,13 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
             throw new ConflictException("Assigned parking lot must belong to the organization");
         }
         UUID membershipId = findOrCreateActiveMembership(organizationId, parkingManagerAccountId);
-        organizationPortOut.addParkingLotScope(membershipId, parkingLotId);
+        if (parkingLotAssignmentPortIn != null) {
+            parkingLotAssignmentPortIn.assignManager(
+                    organizationId, parkingLotId, parkingManagerAccountId,
+                    ManagementAssignmentRole.PRIMARY, Instant.now(), false, "Assigned through compatibility endpoint");
+        } else {
+            organizationPortOut.addParkingLotScope(membershipId, parkingLotId);
+        }
         invalidateOrganizationAccess(parkingManagerAccountId, organizationId);
     }
 
@@ -151,11 +179,14 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
         if (!organizationPortOut.allParkingLotsBelongToOrganization(organizationId, Set.of(parkingLotId))) {
             throw new NotFoundException("Parking lot not found in organization");
         }
-        organizationPortOut.findActiveMembershipId(organizationId, parkingManagerAccountId)
-                .ifPresent(membershipId -> {
-                    organizationPortOut.removeParkingLotScope(membershipId, parkingLotId);
-                    invalidateOrganizationAccess(parkingManagerAccountId, organizationId);
-                });
+        if (parkingLotAssignmentPortIn != null) {
+            parkingLotAssignmentPortIn.endManagerAssignment(
+                    organizationId, parkingLotId, parkingManagerAccountId, "Revoked through compatibility endpoint");
+        } else {
+            organizationPortOut.findActiveMembershipId(organizationId, parkingManagerAccountId)
+                    .ifPresent(membershipId -> organizationPortOut.removeParkingLotScope(membershipId, parkingLotId));
+        }
+        invalidateOrganizationAccess(parkingManagerAccountId, organizationId);
     }
 
     private UUID findOrCreateActiveMembership(UUID organizationId, UUID parkingManagerAccountId) {

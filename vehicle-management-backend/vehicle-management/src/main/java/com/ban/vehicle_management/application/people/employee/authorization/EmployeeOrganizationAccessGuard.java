@@ -3,9 +3,12 @@ package com.ban.vehicle_management.application.people.employee.authorization;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
+import com.ban.vehicle_management.application.iam.organization.port.out.ParkingLotAssignmentPortOut;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.UUID;
+import java.time.Instant;
+import com.ban.vehicle_management.shared.exception.ScopedAccessDeniedException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
 
@@ -16,15 +19,18 @@ public class EmployeeOrganizationAccessGuard {
     private final EmployeePortOut employeePortOut;
     private final OrganizationPortOut organizationPortOut;
     private final ParkingLotPortOut parkingLotPortOut;
+    private final ParkingLotAssignmentPortOut parkingLotAssignmentPortOut;
 
     public EmployeeOrganizationAccessGuard(
             EmployeePortOut employeePortOut,
             OrganizationPortOut organizationPortOut,
-            ParkingLotPortOut parkingLotPortOut
+            ParkingLotPortOut parkingLotPortOut,
+            ParkingLotAssignmentPortOut parkingLotAssignmentPortOut
     ) {
         this.employeePortOut = employeePortOut;
         this.organizationPortOut = organizationPortOut;
         this.parkingLotPortOut = parkingLotPortOut;
+        this.parkingLotAssignmentPortOut = parkingLotAssignmentPortOut;
     }
 
     public void ensureBelongsToParkingLot(UUID employeeId, UUID parkingLotId) {
@@ -36,5 +42,21 @@ public class EmployeeOrganizationAccessGuard {
                 .contains(lot.getOrganizationId())) {
             throw new AccessDeniedException("Employee belongs to another Partner organization");
         }
+    }
+
+    /** Validates both tenant ownership and an explicit assignment covering the complete shift. */
+    public UUID requireAssignmentCovering(
+            UUID employeeId,
+            UUID parkingLotId,
+            Instant shiftStart,
+            Instant shiftEnd
+    ) {
+        ensureBelongsToParkingLot(employeeId, parkingLotId);
+        return parkingLotAssignmentPortOut.findEmployeeAssignmentCovering(
+                        employeeId, parkingLotId, shiftStart, shiftEnd)
+                .map(assignment -> assignment.getAssignmentId())
+                .orElseThrow(() -> new ScopedAccessDeniedException(
+                        "EMPLOYEE_NOT_ASSIGNED_TO_PARKING_LOT",
+                        "Employee does not have a parking-lot assignment covering this shift"));
     }
 }

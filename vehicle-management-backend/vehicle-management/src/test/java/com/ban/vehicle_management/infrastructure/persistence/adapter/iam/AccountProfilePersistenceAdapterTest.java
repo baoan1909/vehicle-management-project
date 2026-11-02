@@ -32,6 +32,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.OrganizationMembershipStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
@@ -144,6 +145,20 @@ class AccountProfilePersistenceAdapterTest {
             customerEntity.setApprovalStatus(customerApprovalStatus);
             when(customerRepository.findByUserProfileId(userProfileId)).thenReturn(Optional.of(customerEntity));
         }
+        Set<UUID> activeOrganizationIds = hasActivePartnerOrganizationMembership
+                ? Set.of(UUID.randomUUID())
+                : Set.of();
+        if ("PARTNER_ADMIN".equals(roleCode)) {
+            when(organizationMembershipRepository.findActiveOrganizationIdsByAccountId(
+                    accountId, OrganizationMembershipStatus.ACTIVE))
+                    .thenReturn(activeOrganizationIds);
+        }
+        boolean onboardingRequired = switch (roleCode) {
+            case "PARTNER_ADMIN" -> activeOrganizationIds.isEmpty();
+            case "PARKING_MANAGER", "EMPLOYEE" -> employeeStatus == null;
+            case "CUSTOMER" -> customerStatus == null && customerApprovalStatus == null;
+            default -> false;
+        };
         CurrentAccountAccess currentAccess = new CurrentAccountAccess(
                 accountId,
                 "subject",
@@ -153,10 +168,14 @@ class AccountProfilePersistenceAdapterTest {
                 roleCode,
                 roleActive,
                 hasActivePartnerOrganizationMembership,
+                activeOrganizationIds,
+                Set.of(),
                 accountStatus,
                 employeeStatus,
                 customerStatus,
                 customerApprovalStatus,
+                onboardingRequired,
+                null,
                 assignedPermissions
         );
         if (currentAccess.canUseBusinessPermissions()) {

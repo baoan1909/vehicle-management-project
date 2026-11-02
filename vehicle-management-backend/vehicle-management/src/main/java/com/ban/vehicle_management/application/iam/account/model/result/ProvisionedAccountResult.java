@@ -8,8 +8,13 @@ import java.util.UUID;
 
 public record ProvisionedAccountResult(
         AccountInfoResult account,
-        RoleInfoResult role
+        RoleInfoResult role,
+        LifecycleInfoResult lifecycle
 ) {
+    public ProvisionedAccountResult(AccountInfoResult account, RoleInfoResult role) {
+        this(account, role, null);
+    }
+
     public record AccountInfoResult(
             UUID accountId,
             UUID userProfileId,
@@ -27,6 +32,17 @@ public record ProvisionedAccountResult(
             String roleCode,
             String roleName,
             List<String> permissionCodes
+    ) {
+    }
+
+    public record LifecycleInfoResult(
+            String profileState,
+            String approvalState,
+            String workforceState,
+            String scopeState,
+            String operationalAccessState,
+            String requiredAction,
+            int effectivePermissionCount
     ) {
     }
 }

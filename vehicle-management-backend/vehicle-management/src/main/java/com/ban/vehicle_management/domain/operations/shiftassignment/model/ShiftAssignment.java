@@ -18,5 +18,6 @@ public class ShiftAssignment extends AuditableDomainModel {
     private UUID shiftId;
     private UUID employeeId;
     private UUID gateId;
+    private UUID employeeParkingLotAssignmentId;
     private ShiftAssignmentStatus status;
 }

@@ -12,6 +12,7 @@ import com.ban.vehicle_management.infrastructure.security.assistant.AssistantAct
 import com.ban.vehicle_management.infrastructure.security.principal.AuthenticatedAccountPrincipal;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -115,6 +116,69 @@ class CurrentAccountSecurityAdapterTest {
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
 
         assertFalse(currentAccountSecurityAdapter.hasPermission("EMPLOYEE_READ_OWN"));
+    }
+
+    @Test
+    void shouldDenyDirectOperationalPermissionForFreshOnboardingEmployee() {
+        UUID accountId = UUID.randomUUID();
+        CurrentAccountAccess currentAccountAccess = new CurrentAccountAccess(
+                accountId,
+                "fresh-employee-sub",
+                "fresh.employee",
+                "fresh.employee@example.com",
+                UUID.randomUUID(),
+                "EMPLOYEE",
+                true,
+                false,
+                Set.of(),
+                Set.of(),
+                AccountStatus.ACTIVE,
+                null,
+                null,
+                null,
+                true,
+                null,
+                Set.of("CARD_READ_ALL", "PARKING_SESSION_CREATE_ALL", "SUPPORT_TICKET_READ_OWN")
+        );
+        when(accountAuthorizationPortOut.findByAccountId(accountId)).thenReturn(Optional.of(currentAccountAccess));
+        bindWithoutSnapshot(currentAccountAccess);
+
+        assertFalse(currentAccountSecurityAdapter.hasPermission("CARD_READ_ALL"));
+        assertFalse(currentAccountSecurityAdapter.hasPermission("PARKING_SESSION_CREATE_ALL"));
+        assertFalse(currentAccountSecurityAdapter.hasPermission("SUPPORT_TICKET_READ_OWN"));
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> currentAccountSecurityAdapter.requirePermission("PARKING_SESSION_CREATE_ALL"));
+    }
+
+    @Test
+    void shouldDenyDirectOperationalPermissionWhileInternalApprovalIsPending() {
+        UUID accountId = UUID.randomUUID();
+        CurrentAccountAccess currentAccountAccess = new CurrentAccountAccess(
+                accountId,
+                "pending-approval-sub",
+                "pending.approval",
+                "pending.approval@example.com",
+                UUID.randomUUID(),
+                "CUSTOM_INTERNAL_ROLE",
+                true,
+                false,
+                Set.of(),
+                Set.of(),
+                AccountStatus.ACTIVE,
+                EmployeeStatus.INACTIVE,
+                null,
+                null,
+                false,
+                ApprovalRequestStatus.PENDING,
+                Set.of("CARD_READ_ALL", "PARKING_SESSION_CREATE_ALL")
+        );
+        when(accountAuthorizationPortOut.findByAccountId(accountId)).thenReturn(Optional.of(currentAccountAccess));
+        bindWithoutSnapshot(currentAccountAccess);
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                org.springframework.security.access.AccessDeniedException.class,
+                () -> currentAccountSecurityAdapter.requirePermission("PARKING_SESSION_CREATE_ALL"));
     }
 
     @Test
@@ -261,6 +325,14 @@ class CurrentAccountSecurityAdapterTest {
                 "user", "pass", java.util.List.of());
         authentication.setDetails(new AuthenticatedAccountPrincipal(
                 principalAccountId, snapshot.subject(), snapshot.username(), snapshot.email(), snapshot));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    private void bindWithoutSnapshot(CurrentAccountAccess access) {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                "user", "pass", java.util.List.of());
+        authentication.setDetails(new AuthenticatedAccountPrincipal(
+                access.accountId(), access.subject(), access.username(), access.email()));
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

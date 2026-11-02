@@ -146,6 +146,46 @@ class InternalEmployeeApprovalAccessGuardTest {
         assertFalse(internalEmployeeApprovalAccessGuard.canAccessTarget(manager, employeeId, "EMPLOYEE"));
     }
 
+    @Test
+    void managerWithAssignedLotCanReviewEmployeeFromSamePartner() {
+        UUID managerId = UUID.randomUUID();
+        UUID employeeId = UUID.randomUUID();
+        UUID organizationId = UUID.randomUUID();
+        CurrentAccountAccess manager = currentParkingManager(managerId);
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(managerId))
+                .thenReturn(Set.of(organizationId));
+        when(organizationPortOut.findActiveOrganizationIdsByAccountId(employeeId))
+                .thenReturn(Set.of(organizationId));
+
+        assertTrue(internalEmployeeApprovalAccessGuard.canAccessTarget(manager, employeeId, "EMPLOYEE"));
+    }
+
+    @Test
+    void managerApprovalFailsClosedWhenScopeMarkerIsMissing() {
+        UUID organizationId = UUID.randomUUID();
+        CurrentAccountAccess manager = new CurrentAccountAccess(
+                UUID.randomUUID(), "sub-manager", "manager", "manager@example.com", UUID.randomUUID(),
+                "CUSTOM_MANAGER", true, false, Set.of(organizationId), Set.of(UUID.randomUUID()),
+                AccountStatus.ACTIVE, EmployeeStatus.ACTIVE, null, null, false,
+                Set.of(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION));
+
+        assertFalse(internalEmployeeApprovalAccessGuard.canAccessTarget(
+                manager, UUID.randomUUID(), "EMPLOYEE"));
+    }
+
+    @Test
+    void assignedScopeReviewerWithoutParkingLotAssignmentIsDenied() {
+        CurrentAccountAccess manager = new CurrentAccountAccess(
+                UUID.randomUUID(), "sub-manager", "manager", "manager@example.com", UUID.randomUUID(),
+                "CUSTOM_MANAGER", true, false, Set.of(), Set.of(),
+                AccountStatus.ACTIVE, EmployeeStatus.ACTIVE, null, null, false,
+                Set.of(OnboardingApprovalPolicy.REVIEW_EMPLOYEE_PERMISSION,
+                        OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED));
+
+        assertFalse(internalEmployeeApprovalAccessGuard.canAccessTarget(
+                manager, UUID.randomUUID(), "EMPLOYEE"));
+    }
+
     private CurrentAccountAccess currentParkingManager(UUID accountId) {
         UUID assignedLotId = UUID.randomUUID();
         return new CurrentAccountAccess(

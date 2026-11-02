@@ -7,6 +7,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.port.ou
 import com.ban.vehicle_management.domain.operations.approvalrequest.policy.OnboardingApprovalPolicy;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ApprovalRequestRepository;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -50,6 +51,21 @@ public class OnboardingApprovalSummaryPersistenceAdapter implements OnboardingAp
                 InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
                 ApprovalRequestStatus.PENDING,
                 OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE
+        );
+    }
+
+    @Override
+    public long countPendingEmployeeLikeApprovalsInOrganizations(Set<UUID> organizationIds) {
+        if (organizationIds == null || organizationIds.isEmpty()) {
+            return 0L;
+        }
+        return approvalRequestRepository.countPendingInternalEmployeeApprovalsByTargetRoleNotInOrganizations(
+                InternalEmployeeApprovalAccessGuard.REQUEST_TYPE,
+                InternalEmployeeApprovalAccessGuard.TARGET_SCHEMA,
+                InternalEmployeeApprovalAccessGuard.TARGET_TABLE,
+                ApprovalRequestStatus.PENDING,
+                OnboardingApprovalPolicy.PARKING_MANAGER_TARGET_ROLE,
+                organizationIds
         );
     }
 

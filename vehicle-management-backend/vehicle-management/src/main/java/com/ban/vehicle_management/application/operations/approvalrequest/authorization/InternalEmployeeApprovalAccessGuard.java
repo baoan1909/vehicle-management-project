@@ -89,16 +89,24 @@ public class InternalEmployeeApprovalAccessGuard {
                     .map(currentAccount.accountId()::equals)
                     .orElse(false);
         }
-        Set<String> permissions = currentAccount.getEffectivePermissionCodes();
-        if (!permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
-                && !permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
+        Set<String> assignedPermissions = currentAccount.permissionCodes();
+        if (assignedPermissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PLATFORM)) {
             return true;
+        }
+        boolean partnerScoped = assignedPermissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER);
+        boolean parkingLotScoped = assignedPermissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED);
+        if (!partnerScoped && !parkingLotScoped) {
+            // Missing scope intent must never turn a scoped reviewer into a global reviewer.
+            return false;
+        }
+        if (parkingLotScoped && currentAccount.assignedParkingLotIds().isEmpty()) {
+            return false;
         }
         if (targetAccountId == null) {
             return false;
         }
 
-        Set<UUID> partnerOrganizationIds = permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
+        Set<UUID> partnerOrganizationIds = partnerScoped
                 ? currentAccount.activeOrganizationIds()
                 : organizationPortOut.findActiveOrganizationIdsByAccountId(currentAccount.accountId());
         if (partnerOrganizationIds.isEmpty()) {

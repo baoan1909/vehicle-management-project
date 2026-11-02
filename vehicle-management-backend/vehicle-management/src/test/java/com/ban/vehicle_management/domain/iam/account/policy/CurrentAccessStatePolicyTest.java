@@ -9,6 +9,7 @@ import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,14 @@ class CurrentAccessStatePolicyTest {
                 RequiredAccessAction.CONTACT_ORGANIZATION_ADMIN);
     }
 
+    @Test
+    void internalApprovalStatusDistinguishesWaitingFromResubmission() {
+        assertState(access(EmployeeStatus.INACTIVE, ApprovalRequestStatus.PENDING),
+                CurrentAccessState.PENDING_APPROVAL, RequiredAccessAction.WAIT_FOR_APPROVAL);
+        assertState(access(EmployeeStatus.INACTIVE, ApprovalRequestStatus.REJECTED),
+                CurrentAccessState.PENDING_APPROVAL, RequiredAccessAction.SUBMIT_FOR_APPROVAL);
+    }
+
     private void assertState(
             CurrentAccountAccess access, CurrentAccessState state, RequiredAccessAction action) {
         CurrentAccessStatePolicy.Decision decision = policy.resolve(access, access.onboardingRequired());
@@ -64,5 +73,16 @@ class CurrentAccessStatePolicyTest {
                 UUID.randomUUID(), "subject", "user", "user@example.com", UUID.randomUUID(),
                 "ANY_ROLE", roleActive, false, Set.of(), Set.of(), accountStatus, employeeStatus,
                 customerStatus, approvalStatus, onboarding, permissions);
+    }
+
+    private CurrentAccountAccess access(
+            EmployeeStatus employeeStatus,
+            ApprovalRequestStatus onboardingApprovalStatus
+    ) {
+        return new CurrentAccountAccess(
+                UUID.randomUUID(), "subject", "user", "user@example.com", UUID.randomUUID(),
+                "CUSTOM_INTERNAL", true, false, Set.of(), Set.of(), AccountStatus.ACTIVE,
+                employeeStatus, null, null, false, onboardingApprovalStatus,
+                Set.of("CARD_READ_ALL"));
     }
 }

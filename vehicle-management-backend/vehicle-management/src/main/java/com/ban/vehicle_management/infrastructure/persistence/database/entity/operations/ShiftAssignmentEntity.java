@@ -50,6 +50,9 @@ public class ShiftAssignmentEntity extends AuditableEntity {
     @Column(name = "gate_id")
     private UUID gateId;
 
+    @Column(name = "employee_parking_lot_assignment_id")
+    private UUID employeeParkingLotAssignmentId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "gate_id",

@@ -4,6 +4,8 @@ public record OnboardingApprovalSummaryResponse(
         long totalPending,
         long systemAdminPending,
         long internalEmployeePending,
+        long parkingManagerPending,
+        long employeePending,
         long customerPending
 ) {
 }

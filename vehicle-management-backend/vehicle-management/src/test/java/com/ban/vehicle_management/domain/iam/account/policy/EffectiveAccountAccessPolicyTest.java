@@ -6,6 +6,7 @@ import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -31,11 +32,11 @@ class EffectiveAccountAccessPolicyTest {
     }
 
     @Test
-    void customerOwnPermissionRequiresActiveApprovedCustomerButUnrelatedPermissionDoesNot() {
+    void pendingCustomerCannotRetainUnrelatedBusinessPermission() {
         var pendingCustomer = new EffectiveAccountAccessPolicy.AccessState(
                 "CUSTOM_ROLE", true, false, Set.of(), Set.of(), AccountStatus.ACTIVE, null,
                 CustomerStatus.ACTIVE, CustomerApprovalStatus.PENDING);
-        assertEquals(Set.of("ACCOUNT_READ_ALL"), policy.resolveEffectivePermissionCodes(
+        assertEquals(Set.of(), policy.resolveEffectivePermissionCodes(
                 pendingCustomer, Set.of("ACCOUNT_READ_ALL", "CUSTOMER_VEHICLE_READ_OWN")));
     }
 
@@ -94,6 +95,38 @@ class EffectiveAccountAccessPolicyTest {
         assertEquals(Set.of("CHAT_CONVERSATION_READ_OWN"),
                 policy.resolveEffectivePermissionCodes(
                         internalActor, Set.of("CHAT_CONVERSATION_READ_OWN")));
+    }
+
+    @Test
+    void activeAccountStillLosesOperationalPermissionsWhileOnboarding() {
+        var onboarding = new EffectiveAccountAccessPolicy.AccessState(
+                "CUSTOM_INTERNAL", true, false, Set.of(), Set.of(), AccountStatus.ACTIVE,
+                null, null, null, true, null);
+
+        assertTrue(policy.resolveEffectivePermissionCodes(onboarding,
+                Set.of("ACCOUNT_READ_ALL", "CARD_READ_ALL", "PARKING_SESSION_CREATE_ALL",
+                        "CHAT_CONVERSATION_READ_OWN", "SUPPORT_TICKET_READ_OWN")).isEmpty());
+    }
+
+    @Test
+    void customerSupportExceptionDoesNotApplyToOnboardingEmployee() {
+        var onboardingEmployee = new EffectiveAccountAccessPolicy.AccessState(
+                "CUSTOM_INTERNAL", true, false, Set.of(), Set.of(), AccountStatus.ACTIVE,
+                EmployeeStatus.INACTIVE, null, null, true, ApprovalRequestStatus.PENDING);
+
+        assertTrue(policy.resolveEffectivePermissionCodes(onboardingEmployee,
+                Set.of("SUPPORT_WIDGET_ACCESS_OWN", "SUPPORT_TICKET_READ_OWN",
+                        "CHAT_CONVERSATION_READ_OWN")).isEmpty());
+    }
+
+    @Test
+    void pendingInternalApprovalCannotUseGenericRolePermissions() {
+        var pendingApproval = new EffectiveAccountAccessPolicy.AccessState(
+                "CUSTOM_INTERNAL", true, false, Set.of(), Set.of(), AccountStatus.ACTIVE,
+                EmployeeStatus.INACTIVE, null, null, false, ApprovalRequestStatus.PENDING);
+
+        assertTrue(policy.resolveEffectivePermissionCodes(pendingApproval,
+                Set.of("CARD_READ_ALL", "PAYMENT_CREATE_ALL")).isEmpty());
     }
 
     @Test

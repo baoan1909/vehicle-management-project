@@ -50,46 +50,86 @@ public interface MemberParkingLotScopeRepository extends JpaRepository<MemberPar
             @Param("parkingLotId") UUID parkingLotId
     );
 
-    @Query("""
-        select scope.parkingLotId
-        from MemberParkingLotScopeEntity scope, OrganizationMembershipEntity membership, OrganizationEntity organization
-        where scope.organizationMembershipId = membership.organizationMembershipId
-          and membership.accountId = :accountId
-          and membership.status = :status
-          and organization.organizationId = membership.organizationId
-          and organization.status = com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus.ACTIVE
-        """)
+    @Query(value = """
+        select assignment.parking_lot_id
+        from iam.parking_lot_management_assignments assignment
+        join iam.organization_memberships membership
+          on membership.organization_id = assignment.organization_id
+         and membership.account_id = assignment.manager_account_id
+        join iam.organizations organization on organization.organization_id = assignment.organization_id
+        where assignment.manager_account_id = :accountId
+          and assignment.status = 'ACTIVE'
+          and assignment.effective_from <= now()
+          and (assignment.effective_to is null or assignment.effective_to > now())
+          and membership.status = cast(:#{#status.name()} as varchar)
+          and organization.status = 'ACTIVE'
+        union
+        select assignment.parking_lot_id
+        from people.employee_parking_lot_assignments assignment
+        join people.employees employee on employee.employee_id = assignment.employee_id
+        join iam.accounts account on account.user_profile_id = employee.user_profile_id
+        join iam.organization_memberships membership
+          on membership.organization_id = assignment.organization_id
+         and membership.account_id = account.account_id
+        join iam.organizations organization on organization.organization_id = assignment.organization_id
+        where account.account_id = :accountId
+          and assignment.status in ('ACTIVE', 'SCHEDULED')
+          and assignment.effective_from <= now()
+          and (assignment.effective_to is null or assignment.effective_to > now())
+          and membership.status = cast(:#{#status.name()} as varchar)
+          and organization.status = 'ACTIVE'
+        """, nativeQuery = true)
     Set<UUID> findActiveParkingLotIdsByAccountId(
             @Param("accountId") UUID accountId,
             @Param("status") OrganizationMembershipStatus status
     );
 
-    @Query("""
-        select scope.parkingLotId
-        from MemberParkingLotScopeEntity scope, OrganizationMembershipEntity membership
-        where scope.organizationMembershipId = membership.organizationMembershipId
-          and membership.organizationId = :organizationId
-          and membership.accountId = :accountId
-          and membership.status = :status
-        """)
+    @Query(value = """
+        select scoped.parking_lot_id from (
+            select assignment.organization_id, assignment.parking_lot_id, assignment.manager_account_id as account_id
+            from iam.parking_lot_management_assignments assignment
+            where assignment.status = 'ACTIVE'
+              and assignment.effective_from <= now()
+              and (assignment.effective_to is null or assignment.effective_to > now())
+            union all
+            select assignment.organization_id, assignment.parking_lot_id, account.account_id
+            from people.employee_parking_lot_assignments assignment
+            join people.employees employee on employee.employee_id = assignment.employee_id
+            join iam.accounts account on account.user_profile_id = employee.user_profile_id
+            where assignment.status in ('ACTIVE', 'SCHEDULED')
+              and assignment.effective_from <= now()
+              and (assignment.effective_to is null or assignment.effective_to > now())
+        ) scoped
+        join iam.organization_memberships membership
+          on membership.organization_id = scoped.organization_id
+         and membership.account_id = scoped.account_id
+        where scoped.organization_id = :organizationId
+          and scoped.account_id = :accountId
+          and membership.status = cast(:#{#status.name()} as varchar)
+        """, nativeQuery = true)
     Set<UUID> findActiveParkingLotIdsByOrganizationIdAndAccountId(
             @Param("organizationId") UUID organizationId,
             @Param("accountId") UUID accountId,
             @Param("status") OrganizationMembershipStatus status
     );
 
-    @Query("""
-        select membership.accountId
-        from MemberParkingLotScopeEntity scope, OrganizationMembershipEntity membership, AccountEntity account, RoleEntity role
-        where scope.organizationMembershipId = membership.organizationMembershipId
-          and membership.accountId = account.accountId
-          and account.roleId = role.roleId
-          and scope.parkingLotId = :parkingLotId
-          and membership.status = :membershipStatus
-          and account.status = :accountStatus
+    @Query(value = """
+        select distinct assignment.manager_account_id
+        from iam.parking_lot_management_assignments assignment
+        join iam.accounts account on account.account_id = assignment.manager_account_id
+        join iam.roles role on role.role_id = account.role_id
+        join iam.organization_memberships membership
+          on membership.organization_id = assignment.organization_id
+         and membership.account_id = assignment.manager_account_id
+        where assignment.parking_lot_id = :parkingLotId
+          and assignment.status = 'ACTIVE'
+          and assignment.effective_from <= now()
+          and (assignment.effective_to is null or assignment.effective_to > now())
+          and membership.status = cast(:#{#membershipStatus.name()} as varchar)
+          and account.status = cast(:#{#accountStatus.name()} as varchar)
           and role.code = :roleCode
-          and role.isActive = true
-        """)
+          and role.is_active = true
+        """, nativeQuery = true)
     Set<UUID> findActiveAccountIdsByParkingLotId(
             @Param("parkingLotId") UUID parkingLotId,
             @Param("membershipStatus") OrganizationMembershipStatus membershipStatus,
@@ -97,21 +137,35 @@ public interface MemberParkingLotScopeRepository extends JpaRepository<MemberPar
             @Param("roleCode") String roleCode
     );
 
-    @Query("""
-        select distinct membership.accountId
-        from MemberParkingLotScopeEntity scope, OrganizationMembershipEntity membership,
-             OrganizationEntity organization, AccountEntity account, RoleEntity role
-        where scope.organizationMembershipId = membership.organizationMembershipId
-          and membership.organizationId = organization.organizationId
-          and membership.accountId = account.accountId
-          and account.roleId = role.roleId
-          and scope.parkingLotId = :parkingLotId
-          and membership.status = :membershipStatus
-          and organization.status = com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus.ACTIVE
-          and account.status = :accountStatus
-          and role.code in :roleCodes
-          and role.isActive = true
-        """)
+    @Query(value = """
+        select distinct scoped.account_id from (
+            select assignment.organization_id, assignment.manager_account_id as account_id
+            from iam.parking_lot_management_assignments assignment
+            where assignment.parking_lot_id = :parkingLotId
+              and assignment.status = 'ACTIVE'
+              and assignment.effective_from <= now()
+              and (assignment.effective_to is null or assignment.effective_to > now())
+            union all
+            select assignment.organization_id, account.account_id
+            from people.employee_parking_lot_assignments assignment
+            join people.employees employee on employee.employee_id = assignment.employee_id
+            join iam.accounts account on account.user_profile_id = employee.user_profile_id
+            where assignment.parking_lot_id = :parkingLotId
+              and assignment.status in ('ACTIVE', 'SCHEDULED')
+              and assignment.effective_from <= now()
+              and (assignment.effective_to is null or assignment.effective_to > now())
+        ) scoped
+        join iam.organization_memberships membership
+          on membership.organization_id = scoped.organization_id and membership.account_id = scoped.account_id
+        join iam.organizations organization on organization.organization_id = scoped.organization_id
+        join iam.accounts account on account.account_id = scoped.account_id
+        join iam.roles role on role.role_id = account.role_id
+        where membership.status = cast(:#{#membershipStatus.name()} as varchar)
+          and organization.status = 'ACTIVE'
+          and account.status = cast(:#{#accountStatus.name()} as varchar)
+          and role.code in (:roleCodes)
+          and role.is_active = true
+        """, nativeQuery = true)
     Set<UUID> findActiveAccountIdsByParkingLotIdAndRoleCodeIn(
             @Param("parkingLotId") UUID parkingLotId,
             @Param("membershipStatus") OrganizationMembershipStatus membershipStatus,

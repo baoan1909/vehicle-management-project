@@ -31,18 +31,28 @@ export function ParkingManagerAssignmentModal({ lot, open, onClose, onChanged }:
     setError(null);
     try {
       if (!lot) return;
-      const [managerResponse, assignmentResponse] = await Promise.all([
+      const [managerResult, assignmentResult] = await Promise.allSettled([
         getProvisionedAccounts({ accountStatus: "ACTIVE", roleCode: "PARKING_MANAGER" }),
         getAssignedParkingManagers(lot.organizationId, lot.parkingLotId),
       ]);
-      const list = managerResponse.data ?? [];
-      const assignedIds = assignmentResponse.data?.parkingManagerAccountIds ?? [];
+      const list = managerResult.status === "fulfilled" ? managerResult.value.data ?? [] : [];
+      const assignedIds = assignmentResult.status === "fulfilled"
+        ? assignmentResult.value.data?.parkingManagerAccountIds ?? []
+        : [];
       const availableManagers = list.filter((item) => !assignedIds.includes(item.account.accountId));
       setManagers(list);
       setAssignedManagerIds(assignedIds);
       setManagerId((current) => availableManagers.some((item) => item.account.accountId === current)
         ? current
         : availableManagers[0]?.account.accountId ?? "");
+      if (managerResult.status === "rejected" || assignmentResult.status === "rejected") {
+        const failed = managerResult.status === "rejected"
+          ? managerResult.reason
+          : assignmentResult.status === "rejected" ? assignmentResult.reason : null;
+        setError(failed instanceof Error
+          ? failed.message
+          : "Một phần dữ liệu phân công không thể tải. Bạn vẫn có thể xem dữ liệu còn lại.");
+      }
     } catch (requestError) {
       setManagers([]);
       setAssignedManagerIds([]);

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import type { MouseEvent } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { getVisibleAdminNavigation } from "@/app/routePermissions";
+import { openAuthenticatedTab } from "@/core/auth/oidcSession";
 import { useAuth } from "@/core/auth/useAuth";
 import type { AdminSidebarEntry, AdminSidebarIcon, AdminSidebarLeaf } from "../../types/common";
 import { hasAnyPermission, hasResolvedPermissions } from "@/shared/auth/permissions";
@@ -72,11 +74,22 @@ function getActiveGroupLabel(navigation: AdminSidebarEntry[], pathname: string) 
 function SidebarLeaf({ active: activeOverride, collapsed, item }: { active?: boolean; collapsed: boolean; item: AdminSidebarLeaf }) {
   const location = useLocation();
   const active = activeOverride ?? isLeafActive(item, location.pathname);
+  const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (!item.openInNewTab) return;
+
+    event.preventDefault();
+    if (!openAuthenticatedTab(item.to)) {
+      window.location.assign(item.to);
+    }
+  };
 
   return (
     <NavLink
       to={item.to}
+      target={item.openInNewTab ? "_blank" : undefined}
+      rel={item.openInNewTab ? "noopener noreferrer" : undefined}
       title={collapsed ? item.label : undefined}
+      onClick={handleClick}
       className={cn(
         "tw-flex tw-min-h-10 tw-items-center tw-gap-3 tw-rounded-vm-md tw-px-3 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-bg-brand-50 hover:tw-text-vm-primary hover:tw-no-underline",
         collapsed ? "tw-ml-0 tw-justify-center" : "tw-ml-8",
