@@ -28,6 +28,15 @@ export type ProvisionedAccountResponse = {
     roleId: string;
     roleName: string;
   };
+  lifecycle: {
+    approvalState: string;
+    effectivePermissionCount: number;
+    operationalAccessState: string;
+    profileState: string;
+    requiredAction: string | null;
+    scopeState: string;
+    workforceState: string;
+  };
 };
 
 export type ProvisionedAccountFilterRequest = {

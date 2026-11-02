@@ -42,6 +42,7 @@ type OnboardingApprovalWorkspaceProps = {
   /** Optional shared category tabs, rendered above this category's filters. */
   categoryTabs?: ReactNode;
   onPendingSummaryChange?: (summary: OnboardingApprovalSummaryResponse) => void;
+  internalRoleCode?: "PARKING_MANAGER" | "EMPLOYEE";
 };
 
 const approvalTabs: ApprovalTab[] = [
@@ -80,6 +81,8 @@ const emptyPendingSummary: OnboardingApprovalSummaryResponse = {
   totalPending: 0,
   systemAdminPending: 0,
   internalEmployeePending: 0,
+  parkingManagerPending: 0,
+  employeePending: 0,
   customerPending: 0,
 };
 
@@ -398,6 +401,7 @@ export function OnboardingApprovalWorkspace({
   hideKindSelector = false,
   categoryTabs,
   onPendingSummaryChange,
+  internalRoleCode,
 }: OnboardingApprovalWorkspaceProps = {}) {
   const { invalidateAndRefreshAccess, user } = useAuth();
   const toast = useToast();
@@ -462,6 +466,7 @@ export function OnboardingApprovalWorkspace({
     try {
       const response = await fetchOnboardingApprovals(activeTab.kind, {
         keyword: keyword.trim() || undefined,
+        roleCode: activeTab.kind === "internal-employee" ? internalRoleCode : undefined,
         status: selectedStatus === "all" ? undefined : selectedStatus,
       });
       setItems(response);
@@ -478,7 +483,7 @@ export function OnboardingApprovalWorkspace({
       void loadApprovals();
     }, 220);
     return () => window.clearTimeout(timer);
-  }, [activeTab?.kind, keyword, selectedStatus]);
+  }, [activeTab?.kind, internalRoleCode, keyword, selectedStatus]);
 
   useEffect(() => {
     void loadPendingSummary();
@@ -490,7 +495,7 @@ export function OnboardingApprovalWorkspace({
     if (notification.redirectUrl.includes(`kind=${activeTab?.kind}`)) {
       void loadApprovals();
     }
-  }), [activeTab?.kind, keyword, selectedStatus]);
+  }), [activeTab?.kind, internalRoleCode, keyword, selectedStatus]);
 
   const metrics = useMemo(() => ({
     approved: items.filter((item) => item.request?.approvalRequestStatus === "APPROVED").length,

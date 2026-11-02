@@ -174,6 +174,14 @@ for (const status of ["idle", "loading", "error", "legacy-ready"]) assert.equal(
   assert.equal(routePermissions.canAccessAdminRoute(systemAdminWithoutPermission, "/admin/dashboard"), false);
   assert.equal(routePermissions.canAccessAdminRoute(customWithDashboard, "/admin/dashboard"), true);
   assert.equal(landing.resolvePostLoginPath(customWithDashboard), "/admin/dashboard");
+
+  const onboardingWithStalePermissions = {
+    ...customWithDashboard,
+    accessState: "ONBOARDING_REQUIRED",
+    onboardingRequired: true,
+  };
+  assert.deepEqual(routePermissions.getVisibleAdminNavigation(onboardingWithStalePermissions), []);
+  assert.equal(landing.resolvePostLoginPath(onboardingWithStalePermissions), "/admin/profile");
 }
 
 // Target-role options follow effective scope permissions, never current role code.

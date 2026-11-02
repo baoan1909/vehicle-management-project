@@ -7,6 +7,10 @@ import { cn } from "@/lib/cn";
 import { AccountCreateDrawer } from "../components/AccountCreateDrawer";
 import { OnboardingApprovalHub } from "./OnboardingApprovalHub";
 import { fetchPartnerRegistrations } from "@/features/iam/api/partnerRegistrationApi";
+import {
+  fetchOnboardingApprovalSummary,
+  type OnboardingApprovalSummaryResponse,
+} from "@/features/iam/api/onboardingApprovalApi";
 import { subscribeNotificationReceived } from "@/features/notifications/utils/notificationEvents";
 import { openSupportCenterConversation } from "@/features/support/utils";
 import {
@@ -34,6 +38,13 @@ type ProvisionedAccount = {
   keycloakUserId: string;
   permissionCodes: string[];
   permissionCount: number;
+  effectivePermissionCount: number;
+  profileState: string;
+  approvalState: string;
+  workforceState: string;
+  scopeState: string;
+  operationalAccessState: string;
+  requiredAction: string | null;
   roleCode: RoleCode;
   roleName: string;
   status: AccountStatus;
@@ -54,6 +65,15 @@ type AccountStatusChangeModalState = {
 
 type AccountPermissionModalState = ProvisionedAccount | null;
 type AccountWorkspaceTab = "accounts" | "onboarding";
+
+const emptyOnboardingPendingSummary: OnboardingApprovalSummaryResponse = {
+  totalPending: 0,
+  systemAdminPending: 0,
+  internalEmployeePending: 0,
+  parkingManagerPending: 0,
+  employeePending: 0,
+  customerPending: 0,
+};
 
 const roleOptions: Array<{ label: string; value: ProvisionableRoleCode | "all" }> = [
   { label: "Tất cả vai trò", value: "all" },
@@ -107,99 +127,6 @@ function replaceAccount(accounts: ProvisionedAccount[], account: ProvisionedAcco
   return accounts.map((currentAccount) => (currentAccount.accountId === account.accountId ? account : currentAccount));
 }
 
-const accounts: ProvisionedAccount[] = [
-  {
-    accountId: "acc-001",
-    createdAt: "01/01/2025",
-    email: "admin@coparking.vn",
-    fullName: "Nguyễn Văn Admin",
-    initials: "AD",
-    keycloakUserId: "kc-9f41-****-a201",
-    permissionCodes: ["ACCOUNT_READ_ALL", "ACCOUNT_CREATE_ALL", "ACCOUNT_UPDATE_ALL", "ROLE_UPDATE_ALL"],
-    permissionCount: 32,
-    roleCode: "SYSTEM_ADMIN",
-    roleName: "Quản trị hệ thống",
-    status: "ACTIVE",
-    updatedAt: "28/06/2026",
-    username: "admin.system",
-  },
-  {
-    accountId: "acc-002",
-    createdAt: "12/02/2025",
-    email: "manager@coparking.vn",
-    fullName: "Nguyễn Văn An",
-    initials: "NA",
-    keycloakUserId: "kc-72ab-****-01de",
-    permissionCodes: ["CUSTOMER_READ_ALL", "CARD_READ_ALL", "SUBSCRIPTION_READ_ALL", "REPORT_READ_ALL"],
-    permissionCount: 24,
-    roleCode: "PARKING_MANAGER",
-    roleName: "Quản lý bãi xe",
-    status: "ACTIVE",
-    updatedAt: "26/06/2026",
-    username: "manager.parking",
-  },
-  {
-    accountId: "acc-003",
-    createdAt: "08/06/2025",
-    email: "binh.tran@coparking.vn",
-    fullName: "Trần Thị Bình",
-    initials: "BT",
-    keycloakUserId: "kc-a7c2-****-b901",
-    permissionCodes: ["ACCOUNT_READ_ALL", "CUSTOMER_READ_ALL", "CARD_READ_ALL", "SUBSCRIPTION_READ_ALL"],
-    permissionCount: 18,
-    roleCode: "EMPLOYEE",
-    roleName: "Nhân viên vận hành",
-    status: "ACTIVE",
-    updatedAt: "28/06/2026",
-    username: "binh.tran",
-  },
-  {
-    accountId: "acc-004",
-    createdAt: "20/06/2026",
-    email: "pending@coparking.vn",
-    fullName: "Phạm Hoàng Dũng",
-    initials: "PD",
-    keycloakUserId: "kc-143e-****-0f31",
-    permissionCodes: ["CUSTOMER_READ_ALL", "CARD_READ_ALL", "SUBSCRIPTION_READ_ALL"],
-    permissionCount: 18,
-    roleCode: "EMPLOYEE",
-    roleName: "Nhân viên vận hành",
-    status: "PENDING",
-    updatedAt: "20/06/2026",
-    username: "pending.staff",
-  },
-  {
-    accountId: "acc-005",
-    createdAt: "03/03/2026",
-    email: "locked@coparking.vn",
-    fullName: "Lê Minh Cường",
-    initials: "LC",
-    keycloakUserId: "kc-778e-****-ab54",
-    permissionCodes: ["PUBLIC_INFO_READ_PUBLIC", "CUSTOMER_READ_OWN"],
-    permissionCount: 6,
-    roleCode: "CUSTOMER",
-    roleName: "Khách hàng",
-    status: "LOCKED",
-    updatedAt: "18/06/2026",
-    username: "locked.user",
-  },
-  {
-    accountId: "acc-006",
-    createdAt: "11/05/2026",
-    email: "disabled@coparking.vn",
-    fullName: "Đỗ Quang Huy",
-    initials: "DQ",
-    keycloakUserId: "kc-3c8e-****-b552",
-    permissionCodes: ["CUSTOMER_READ_OWN"],
-    permissionCount: 4,
-    roleCode: "CUSTOMER",
-    roleName: "Khách hàng",
-    status: "DISABLED",
-    updatedAt: "19/06/2026",
-    username: "disabled.user",
-  },
-];
-
 function statusBadgeTone(status: AccountStatus) {
   if (status === "ACTIVE") return "success";
   if (status === "PENDING") return "warning";
@@ -213,6 +140,33 @@ function roleBadgeTone(roleCode: RoleCode) {
   if (roleCode === "PARKING_MANAGER") return "primary";
   if (roleCode === "EMPLOYEE") return "success";
   return "neutral";
+}
+
+function lifecycleBadgeTone(state: string) {
+  if (state === "ACTIVE" || state === "APPROVED" || state === "PROFILE_COMPLETED" || state === "SCOPE_READY") return "success";
+  if (state === "REJECTED" || state === "LOCKED" || state === "DISABLED" || state === "SUSPENDED") return "danger";
+  if (state === "NOT_SUBMITTED" || state.includes("REQUIRED") || state.includes("PENDING") || state === "INACTIVE") return "warning";
+  return "neutral";
+}
+
+function lifecycleLabel(state: string) {
+  const labels: Record<string, string> = {
+    PROFILE_REQUIRED: "Chưa hoàn tất hồ sơ",
+    PROFILE_COMPLETED: "Đã hoàn tất hồ sơ",
+    NOT_SUBMITTED: "Chưa gửi hồ sơ",
+    PENDING: "Chờ phê duyệt",
+    APPROVED: "Đã phê duyệt",
+    REJECTED: "Bị từ chối / Cần bổ sung",
+    NOT_CREATED: "Chưa tạo hồ sơ nhân sự",
+    ORGANIZATION_REQUIRED: "Chưa có đơn vị",
+    PARKING_LOT_ASSIGNMENT_REQUIRED: "Chưa được gán bãi",
+    SCOPE_READY: "Phạm vi sẵn sàng",
+    ONBOARDING_REQUIRED: "Cần onboarding",
+    PENDING_APPROVAL: "Đang chờ duyệt",
+    ORGANIZATION_ACCESS_REQUIRED: "Thiếu phạm vi vận hành",
+    NO_EFFECTIVE_PERMISSIONS: "Không có quyền hiệu lực",
+  };
+  return labels[state] ?? state;
 }
 
 function AccountMetric({
@@ -268,7 +222,7 @@ function AccountRow({
       role="button"
       tabIndex={0}
       className={cn(
-        "tw-grid tw-w-full tw-grid-cols-[minmax(210px,1.35fr)_150px_110px_90px_96px] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-py-3 tw-text-left tw-transition last:tw-border-b-0 max-[1180px]:tw-grid-cols-[minmax(220px,1fr)_110px_90px]",
+        "tw-grid tw-w-full tw-grid-cols-[minmax(210px,1.35fr)_150px_180px_150px_96px] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-py-3 tw-text-left tw-transition last:tw-border-b-0 max-[1180px]:tw-grid-cols-[minmax(220px,1fr)_180px_150px]",
         selected ? "tw-bg-brand-50 tw-shadow-[inset_3px_0_0_#2563EB]" : "hover:tw-bg-vm-slate-25",
       )}
       onClick={onSelect}
@@ -308,10 +262,14 @@ function AccountRow({
       <Badge tone={roleBadgeTone(account.roleCode)} className="tw-w-fit tw-rounded-full tw-px-3 max-[1180px]:tw-hidden">
         {account.roleCode}
       </Badge>
-      <Badge tone={statusBadgeTone(account.status)} className="tw-w-fit tw-rounded-full tw-px-3">
-        {account.status}
-      </Badge>
-      <span className="tw-text-[0.8rem] tw-font-extrabold tw-text-vm-slate-700">{account.permissionCount} quyền</span>
+      <span className="tw-grid tw-gap-1">
+        <Badge tone={statusBadgeTone(account.status)} className="tw-w-fit tw-rounded-full tw-px-3">Account {account.status}</Badge>
+        <Badge tone={lifecycleBadgeTone(account.operationalAccessState)} className="tw-w-fit tw-rounded-full tw-px-3">{lifecycleLabel(account.operationalAccessState)}</Badge>
+      </span>
+      <span className="tw-grid tw-gap-0.5 tw-text-[0.75rem] tw-font-extrabold tw-text-vm-slate-700">
+        <span>{account.permissionCount} quyền được gán</span>
+        <span className="tw-text-vm-slate-500">{account.effectivePermissionCount} quyền hiệu lực</span>
+      </span>
       <span className="tw-text-[0.76rem] tw-font-semibold tw-text-vm-slate-500 max-[1180px]:tw-hidden">{formatApplicationDateTime(account.updatedAt)}</span>
     </div>
   );
@@ -336,6 +294,13 @@ function mapProvisionedAccount(response: ProvisionedAccountResponse): Provisione
     keycloakUserId: response.account.keycloakUserId,
     permissionCodes: response.role.permissionCodes ?? [],
     permissionCount: response.role.permissionCodes?.length ?? 0,
+    effectivePermissionCount: response.lifecycle?.effectivePermissionCount ?? 0,
+    profileState: response.lifecycle?.profileState ?? "PROFILE_REQUIRED",
+    approvalState: response.lifecycle?.approvalState ?? "NOT_SUBMITTED",
+    workforceState: response.lifecycle?.workforceState ?? "NOT_CREATED",
+    scopeState: response.lifecycle?.scopeState ?? "ORGANIZATION_REQUIRED",
+    operationalAccessState: response.lifecycle?.operationalAccessState ?? "NO_EFFECTIVE_PERMISSIONS",
+    requiredAction: response.lifecycle?.requiredAction ?? null,
     roleCode: response.role.roleCode,
     roleName: response.role.roleName,
     status: response.account.accountStatus,
@@ -541,7 +506,7 @@ function AccountPermissionModal({
       <div className="tw-flex tw-max-h-[min(680px,calc(100vh-32px))] tw-w-full tw-max-w-[720px] tw-flex-col tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_28px_80px_rgba(15,23,42,0.24)]">
         <header className="tw-flex tw-items-start tw-justify-between tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-5 tw-py-4">
           <div className="tw-min-w-0">
-            <h3 id="account-permission-modal-title" className="tw-m-0 tw-text-[1.08rem] tw-font-black tw-text-vm-slate-900">Quyền của tài khoản</h3>
+            <h3 id="account-permission-modal-title" className="tw-m-0 tw-text-[1.08rem] tw-font-black tw-text-vm-slate-900">Quyền được gán cho vai trò</h3>
             <p className="tw-m-0 tw-mt-1 tw-truncate tw-text-[0.82rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-500">{account.username}</p>
           </div>
           <button className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-text-vm-slate-600 hover:tw-bg-vm-slate-100" onClick={onClose} type="button" aria-label="Đóng">
@@ -550,18 +515,24 @@ function AccountPermissionModal({
         </header>
 
         <div className="tw-grid tw-gap-4 tw-overflow-y-auto tw-px-5 tw-py-4">
+          <InfoBanner
+            tone={account.operationalAccessState === "ACTIVE" ? "info" : "warning"}
+            title={account.operationalAccessState === "ACTIVE" ? "Truy cập vận hành đang hoạt động" : "Quyền vai trò chưa phải quyền hiệu lực"}
+            description={`Hệ thống đang cho phép ${account.effectivePermissionCount}/${account.permissionCount} quyền sau khi áp dụng lifecycle và scope.`}
+            icon={<i className="fas fa-shield-alt" />}
+          />
           <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-[640px]:tw-grid-cols-1">
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
               <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Vai trò</span>
               <Badge tone={roleBadgeTone(account.roleCode)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{account.roleCode}</Badge>
             </div>
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
-              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Trạng thái</span>
-              <Badge tone={statusBadgeTone(account.status)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{account.status}</Badge>
+              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Trạng thái tài khoản</span>
+              <Badge tone={statusBadgeTone(account.status)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">Account {account.status}</Badge>
             </div>
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
-              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Tổng quyền</span>
-              <strong className="tw-mt-2 tw-block tw-text-[1.35rem] tw-font-black tw-leading-none tw-text-vm-slate-900">{account.permissionCount}</strong>
+              <span className="tw-text-[0.72rem] tw-font-black tw-uppercase tw-text-vm-slate-500">Quyền vai trò / hiệu lực</span>
+              <strong className="tw-mt-2 tw-block tw-text-[1.35rem] tw-font-black tw-leading-none tw-text-vm-slate-900">{account.permissionCount} / {account.effectivePermissionCount}</strong>
             </div>
           </div>
 
@@ -603,14 +574,24 @@ export function AccountListPage() {
   const [permissionModal, setPermissionModal] = useState<AccountPermissionModalState>(null);
   const [isActionSaving, setIsActionSaving] = useState(false);
   const [actionErrorMessage, setActionErrorMessage] = useState("");
-  const [onboardingPendingCount, setOnboardingPendingCount] = useState(0);
+  const [partnerPendingCount, setPartnerPendingCount] = useState(0);
+  const [onboardingPendingSummary, setOnboardingPendingSummary] = useState<OnboardingApprovalSummaryResponse>(
+    emptyOnboardingPendingSummary,
+  );
   const canReadProvisionedAccount = hasAnyPermission(user, ["ACCOUNT_READ_ALL"]);
   // Each onboarding category is gated independently inside the shared workspace.
   // Do not infer access from a role name.
   const canReadPartnerOnboarding = hasAnyPermission(user, ["ORGANIZATION_REGISTRATION_REVIEW_ALL"]);
+  const canReadOnboardingSummary = hasAnyPermission(user, [
+    "ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL",
+    "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_OWN",
+    "ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL",
+    "ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL",
+  ]);
   const canReadOnboarding = hasAnyPermission(user, [
     "ONBOARDING_APPROVAL_REVIEW_SYSTEM_ADMIN_ALL",
     "ONBOARDING_APPROVAL_REVIEW_PARKING_MANAGER_OWN",
+    "ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL",
     "ORGANIZATION_REGISTRATION_REVIEW_ALL",
     "ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL",
   ]);
@@ -621,6 +602,7 @@ export function AccountListPage() {
   const requestedWorkspaceTab = searchParams.get("tab") === "onboarding" ? "onboarding" : "accounts";
   const activeWorkspaceTab: AccountWorkspaceTab =
     requestedWorkspaceTab === "onboarding" && canReadOnboarding ? "onboarding" : canReadProvisionedAccount ? "accounts" : "onboarding";
+  const onboardingPendingCount = partnerPendingCount + onboardingPendingSummary.totalPending;
 
   function setWorkspaceTab(tab: AccountWorkspaceTab) {
     const nextSearchParams = new URLSearchParams(searchParams);
@@ -633,29 +615,28 @@ export function AccountListPage() {
     setSearchParams(nextSearchParams, { replace: true });
   }
 
-  async function loadPartnerOnboardingPendingCount() {
-    if (!canReadPartnerOnboarding) {
-      setOnboardingPendingCount(0);
-      return;
-    }
-    try {
-      const registrations = await fetchPartnerRegistrations("PENDING");
-      setOnboardingPendingCount(registrations.length);
-    } catch {
-      // A failed badge request must not block the account workspace itself.
-      setOnboardingPendingCount(0);
-    }
+  async function loadOnboardingPendingCounts() {
+    const [nextPartnerPendingCount, nextApprovalSummary] = await Promise.all([
+      canReadPartnerOnboarding
+        ? fetchPartnerRegistrations("PENDING").then((registrations) => registrations.length).catch(() => 0)
+        : Promise.resolve(0),
+      canReadOnboardingSummary
+        ? fetchOnboardingApprovalSummary().catch(() => emptyOnboardingPendingSummary)
+        : Promise.resolve(emptyOnboardingPendingSummary),
+    ]);
+    setPartnerPendingCount(nextPartnerPendingCount);
+    setOnboardingPendingSummary(nextApprovalSummary);
   }
 
   useEffect(() => {
-    void loadPartnerOnboardingPendingCount();
-  }, [canReadPartnerOnboarding, user?.id, user?.permissionCodes]);
+    void loadOnboardingPendingCounts();
+  }, [canReadOnboardingSummary, canReadPartnerOnboarding, user?.id, user?.permissionCodes]);
 
   useEffect(() => subscribeNotificationReceived((notification) => {
-    if (notification.redirectUrl?.includes("/admin/account?tab=onboarding")) {
-      void loadPartnerOnboardingPendingCount();
+    if (notification.redirectUrl?.includes("tab=onboarding")) {
+      void loadOnboardingPendingCounts();
     }
-  }), [canReadPartnerOnboarding, user?.id]);
+  }), [canReadOnboardingSummary, canReadPartnerOnboarding, user?.id]);
 
   async function loadAccounts() {
     if (!canReadProvisionedAccount) return;
@@ -718,6 +699,13 @@ export function AccountListPage() {
     keycloakUserId: "-",
     permissionCodes: [],
     permissionCount: 0,
+    effectivePermissionCount: 0,
+    profileState: "PROFILE_REQUIRED",
+    approvalState: "NOT_SUBMITTED",
+    workforceState: "NOT_CREATED",
+    scopeState: "ORGANIZATION_REQUIRED",
+    operationalAccessState: "NO_EFFECTIVE_PERMISSIONS",
+    requiredAction: null,
     roleCode: "CUSTOMER",
     roleName: "-",
     status: "PENDING",
@@ -877,7 +865,7 @@ export function AccountListPage() {
             <>
           <div className="tw-grid tw-grid-cols-4 tw-gap-4 max-[1180px]:tw-grid-cols-2">
             <AccountMetric icon="fas fa-users-cog" iconClassName="tw-bg-brand-100 tw-text-vm-primary" label="Tổng tài khoản" value={String(metricValues.total)} />
-            <AccountMetric icon="fas fa-user-check" iconClassName="tw-bg-green-50 tw-text-green-600" label="Đang hoạt động" value={String(metricValues.active)} />
+            <AccountMetric icon="fas fa-user-check" iconClassName="tw-bg-green-50 tw-text-green-600" label="Tài khoản ACTIVE" value={String(metricValues.active)} />
             <AccountMetric icon="far fa-clock" iconClassName="tw-bg-amber-50 tw-text-amber-500" label="Chờ kích hoạt" value={String(metricValues.pending)} />
             <AccountMetric icon="fas fa-lock" iconClassName="tw-bg-red-50 tw-text-vm-danger" label="Bị khóa" value={String(metricValues.locked)} />
           </div>
@@ -941,11 +929,11 @@ export function AccountListPage() {
                   <p className="tw-m-0 tw-mt-1 tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Quản lý tài khoản cấp sẵn, vai trò và trạng thái đồng bộ Keycloak.</p>
                 </div>
               </div>
-              <div className="tw-grid tw-grid-cols-[minmax(210px,1.35fr)_150px_110px_90px_96px] tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-4 tw-py-3 tw-text-[0.75rem] tw-font-extrabold tw-uppercase tw-tracking-[0.04em] tw-text-vm-slate-500 max-[1180px]:tw-grid-cols-[minmax(220px,1fr)_110px_90px]">
+              <div className="tw-grid tw-grid-cols-[minmax(210px,1.35fr)_150px_180px_150px_96px] tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-4 tw-py-3 tw-text-[0.75rem] tw-font-extrabold tw-uppercase tw-tracking-[0.04em] tw-text-vm-slate-500 max-[1180px]:tw-grid-cols-[minmax(220px,1fr)_180px_150px]">
                 <span>Tài khoản</span>
                 <span className="max-[1180px]:tw-hidden">Vai trò</span>
-                <span>Trạng thái</span>
-                <span>Quyền</span>
+                <span>Account / Vận hành</span>
+                <span>Quyền vai trò / hiệu lực</span>
                 <span className="max-[1180px]:tw-hidden">Cập nhật</span>
               </div>
               <div className="tw-max-h-[470px] tw-overflow-y-auto tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden">
@@ -1011,6 +999,20 @@ export function AccountListPage() {
               </div>
 
               <div className="tw-mt-4 tw-grid tw-gap-3 tw-text-[0.86rem]">
+                <div className="tw-grid tw-grid-cols-2 tw-gap-2">
+                  {[
+                    ["Hồ sơ", activeAccount.profileState],
+                    ["Phê duyệt", activeAccount.approvalState],
+                    ["Nhân sự", activeAccount.workforceState],
+                    ["Phạm vi", activeAccount.scopeState],
+                    ["Truy cập vận hành", activeAccount.operationalAccessState],
+                  ].map(([label, value]) => (
+                    <div key={label} className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
+                      <span className="tw-block tw-text-[0.7rem] tw-font-black tw-uppercase tw-text-vm-slate-500">{label}</span>
+                      <Badge tone={lifecycleBadgeTone(value)} className="tw-mt-2 tw-w-fit tw-rounded-full tw-px-3">{lifecycleLabel(value)}</Badge>
+                    </div>
+                  ))}
+                </div>
                 {[
                   ["Keycloak ID", activeAccount.keycloakUserId],
                   ["Ngày tạo", activeAccount.createdAt],
@@ -1050,7 +1052,12 @@ export function AccountListPage() {
           />
             </>
           ) : (
-            <OnboardingApprovalHub onPartnerPendingCountChange={setOnboardingPendingCount} />
+            <OnboardingApprovalHub
+              pendingSummary={onboardingPendingSummary}
+              partnerPendingCount={partnerPendingCount}
+              onPendingSummaryChange={setOnboardingPendingSummary}
+              onPartnerPendingCountChange={setPartnerPendingCount}
+            />
           )}
         </section>
       </div>

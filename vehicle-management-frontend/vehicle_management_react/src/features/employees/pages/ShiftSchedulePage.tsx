@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 
-import { Badge, Button, Card, EntityAvatar, SelectMenu, useToast } from "@/components/ui";
+import { Badge, Button, Card, EntityAvatar, Modal, SelectMenu, useToast } from "@/components/ui";
 import { ShiftConfigurationPanel } from "@/features/employees/components/ShiftConfigurationPanel";
 import { getEmployees, type EmployeeApiResponse } from "@/features/employees/api/employeesApi";
 import {
+  assignEmployeeToParkingLot,
   approveWorkScheduleWeek,
   createShiftAssignment,
   deleteShiftAssignment,
   generateWorkScheduleWeek,
   getEmployeeRosterRules,
+  getEmployeeParkingLotAssignments,
   getGates,
   getParkingLots,
   getMyShiftAssignments,
@@ -18,7 +20,10 @@ import {
   getShifts,
   replaceShiftAssignment,
   swapShiftAssignments,
+  transferEmployeeToParkingLot,
+  type EmployeeParkingLotAssignmentApiResponse,
   type EmployeeRosterRuleApiResponse,
+  type EmployeeParkingLotAssignmentTypeApi,
   type GateApiResponse,
   type ParkingLotApiResponse,
   type ShiftApiResponse,
@@ -33,7 +38,7 @@ import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 
 type DrawerPhase = "opening" | "open" | "closing";
-type ShiftWorkspace = "schedule" | "templates" | "rules";
+type ShiftWorkspace = "schedule" | "parkingAssignments" | "templates" | "rules";
 
 type ShiftAssignmentView = {
   assignmentId: string;
@@ -140,6 +145,17 @@ function formatDate(value: string) {
 
 function formatFullDate(value: string) {
   return new Intl.DateTimeFormat("vi-VN").format(parseIsoDate(value));
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "Không giới hạn";
+  return new Intl.DateTimeFormat("vi-VN", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 function formatMoney(value?: string | number | null) {
@@ -816,10 +832,505 @@ function ShiftDetailDrawer({
   );
 }
 
+const employeeParkingLotAssignmentTypeOptions: Array<{
+  label: string;
+  value: EmployeeParkingLotAssignmentTypeApi;
+}> = [
+  { label: "Bãi làm việc chính", value: "PRIMARY" },
+  { label: "Hỗ trợ bãi", value: "SUPPORT" },
+  { label: "Phân công tạm thời", value: "TEMPORARY" },
+];
+
+function EmployeeParkingLotAssignmentModal({
+  employees,
+  initialParkingLotId,
+  onAssigned,
+  onClose,
+  open,
+  parkingLots,
+}: {
+  employees: EmployeeApiResponse[];
+  initialParkingLotId: string;
+  onAssigned: () => Promise<void> | void;
+  onClose: () => void;
+  open: boolean;
+  parkingLots: ParkingLotApiResponse[];
+}) {
+  const toast = useToast();
+  const eligibleEmployees = useMemo(
+    () => employees.filter((employee) => employee.roleCode === "EMPLOYEE"
+      && employee.status === "ACTIVE"
+      && employee.accountStatus === "ACTIVE"),
+    [employees],
+  );
+  const activeParkingLots = useMemo(
+    () => parkingLots.filter((parkingLot) => parkingLot.status === "ACTIVE"),
+    [parkingLots],
+  );
+  const employeeOptions = useMemo(
+    () => eligibleEmployees.map((employee) => ({
+      label: `${getEmployeeName(employee)}${employee.employeeCode ? ` · ${employee.employeeCode}` : ""}`,
+      value: employee.employeeId,
+    })),
+    [eligibleEmployees],
+  );
+  const parkingLotOptions = useMemo(
+    () => activeParkingLots.map((parkingLot) => ({
+      label: `${parkingLot.code} - ${parkingLot.name}`,
+      value: parkingLot.parkingLotId,
+    })),
+    [activeParkingLots],
+  );
+  const [employeeId, setEmployeeId] = useState("");
+  const [parkingLotId, setParkingLotId] = useState("");
+  const [assignmentType, setAssignmentType] = useState<EmployeeParkingLotAssignmentTypeApi>("PRIMARY");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    const preferredParkingLotId = initialParkingLotId !== "all"
+      && activeParkingLots.some((parkingLot) => parkingLot.parkingLotId === initialParkingLotId)
+      ? initialParkingLotId
+      : activeParkingLots[0]?.parkingLotId ?? "";
+    setEmployeeId(eligibleEmployees[0]?.employeeId ?? "");
+    setParkingLotId(preferredParkingLotId);
+    setAssignmentType("PRIMARY");
+    setError("");
+  }, [activeParkingLots, eligibleEmployees, initialParkingLotId, open]);
+
+  async function handleAssign() {
+    const parkingLot = activeParkingLots.find((item) => item.parkingLotId === parkingLotId);
+    if (!employeeId || !parkingLot) {
+      setError("Vui lòng chọn nhân viên và bãi xe đang hoạt động.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      const response = await assignEmployeeToParkingLot(
+        parkingLot.organizationId,
+        parkingLot.parkingLotId,
+        {
+          assignmentType,
+          effectiveFrom: null,
+          effectiveTo: null,
+          employeeId,
+        },
+      );
+      toast.success(
+        response.data.status === "ACTIVE"
+          ? "Nhân viên đã được phân công và quyền truy cập đang được đồng bộ."
+          : "Đã ghi nhận lịch phân công nhân viên.",
+        "Phân công thành công",
+      );
+      await onAssigned();
+      onClose();
+    } catch (assignmentError) {
+      setError(assignmentError instanceof Error
+        ? assignmentError.message
+        : "Không thể phân công nhân viên vào bãi xe.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const noEligibleEmployees = employeeOptions.length === 0;
+  const noActiveParkingLots = parkingLotOptions.length === 0;
+
+  return (
+    <Modal
+      actions={(
+        <div className="tw-flex tw-justify-end tw-gap-2">
+          <Button variant="secondary" disabled={saving} onClick={onClose}>Hủy</Button>
+          <Button
+            disabled={saving || noEligibleEmployees || noActiveParkingLots}
+            loading={saving}
+            onClick={() => void handleAssign()}
+          >
+            {saving ? "Đang phân công..." : "Phân công vào bãi"}
+          </Button>
+        </div>
+      )}
+      description="Chọn Employee đã được duyệt và bãi xe thuộc phạm vi đối tác. Phân công có hiệu lực ngay."
+      onClose={() => { if (!saving) onClose(); }}
+      open={open}
+      title="Phân công nhân viên vào bãi"
+    >
+      <div className="tw-grid tw-gap-4">
+        <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50 tw-p-3 tw-text-[0.8rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-700">
+          <i className="fas fa-shield-alt tw-mr-2 tw-text-vm-primary" />
+          Chỉ hiển thị Employee ACTIVE cùng đối tác và các bãi ACTIVE mà tài khoản hiện tại được phép quản lý.
+        </div>
+
+        <label className="tw-grid tw-gap-2">
+          <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-700">Nhân viên</span>
+          <SelectMenu
+            ariaLabel="Nhân viên cần phân công"
+            disabled={saving || noEligibleEmployees}
+            options={employeeOptions.length ? employeeOptions : [{ label: "Không có Employee ACTIVE phù hợp", value: "" }]}
+            value={employeeId}
+            onChange={setEmployeeId}
+          />
+        </label>
+
+        <label className="tw-grid tw-gap-2">
+          <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-700">Bãi xe</span>
+          <SelectMenu
+            ariaLabel="Bãi xe phân công"
+            disabled={saving || noActiveParkingLots}
+            options={parkingLotOptions.length ? parkingLotOptions : [{ label: "Không có bãi xe ACTIVE trong phạm vi", value: "" }]}
+            value={parkingLotId}
+            onChange={setParkingLotId}
+          />
+        </label>
+
+        <label className="tw-grid tw-gap-2">
+          <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-700">Loại phân công</span>
+          <SelectMenu
+            ariaLabel="Loại phân công bãi xe"
+            disabled={saving}
+            options={employeeParkingLotAssignmentTypeOptions}
+            value={assignmentType}
+            onChange={(value) => setAssignmentType(value as EmployeeParkingLotAssignmentTypeApi)}
+          />
+        </label>
+
+        {error ? (
+          <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">
+            {error}
+          </div>
+        ) : null}
+      </div>
+    </Modal>
+  );
+}
+
+const employeeParkingLotAssignmentStatusLabels: Record<string, string> = {
+  ACTIVE: "Đang công tác",
+  CANCELLED: "Đã hủy",
+  ENDED: "Đã kết thúc",
+  PENDING_REVIEW: "Chờ xem xét",
+  SCHEDULED: "Sắp hiệu lực",
+  SUSPENDED: "Tạm dừng",
+};
+
+const employeeParkingLotAssignmentTypeLabels: Record<EmployeeParkingLotAssignmentTypeApi, string> = {
+  PRIMARY: "Bãi chính",
+  SUPPORT: "Hỗ trợ",
+  TEMPORARY: "Tạm thời",
+};
+
+function employeeParkingLotAssignmentStatusTone(status: string) {
+  if (status === "ACTIVE") return "success" as const;
+  if (status === "SCHEDULED" || status === "PENDING_REVIEW") return "warning" as const;
+  if (status === "SUSPENDED" || status === "CANCELLED") return "danger" as const;
+  return "neutral" as const;
+}
+
+function effectiveEmployeeParkingLotAssignmentStatus(
+  assignment: EmployeeParkingLotAssignmentApiResponse,
+): EmployeeParkingLotAssignmentApiResponse["status"] {
+  if (!["ACTIVE", "SCHEDULED"].includes(assignment.status)) return assignment.status;
+  const now = Date.now();
+  if (new Date(assignment.effectiveFrom).getTime() > now) return "SCHEDULED";
+  if (assignment.effectiveTo && new Date(assignment.effectiveTo).getTime() <= now) return "ENDED";
+  return "ACTIVE";
+}
+
+function TransferEmployeeParkingLotModal({
+  assignment,
+  employees,
+  onClose,
+  onTransferred,
+  parkingLots,
+}: {
+  assignment: EmployeeParkingLotAssignmentApiResponse | null;
+  employees: EmployeeApiResponse[];
+  onClose: () => void;
+  onTransferred: () => Promise<void> | void;
+  parkingLots: ParkingLotApiResponse[];
+}) {
+  const toast = useToast();
+  const [targetParkingLotId, setTargetParkingLotId] = useState("");
+  const [reason, setReason] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const employee = employees.find((item) => item.employeeId === assignment?.employeeId);
+  const sourceParkingLot = parkingLots.find((item) => item.parkingLotId === assignment?.parkingLotId);
+  const targetParkingLots = useMemo(
+    () => parkingLots.filter((item) => item.status === "ACTIVE"
+      && item.organizationId === assignment?.organizationId
+      && item.parkingLotId !== assignment?.parkingLotId),
+    [assignment?.organizationId, assignment?.parkingLotId, parkingLots],
+  );
+
+  useEffect(() => {
+    if (!assignment) return;
+    setTargetParkingLotId(targetParkingLots[0]?.parkingLotId ?? "");
+    setReason("");
+    setError("");
+  }, [assignment, targetParkingLots]);
+
+  async function handleTransfer() {
+    if (!assignment || !targetParkingLotId || !reason.trim()) {
+      setError("Vui lòng chọn bãi nhận công tác và nhập lý do điều chuyển.");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+    try {
+      await transferEmployeeToParkingLot(assignment.organizationId, {
+        effectiveAt: null,
+        employeeId: assignment.employeeId,
+        reason: reason.trim(),
+        sourceParkingLotId: assignment.parkingLotId,
+        targetParkingLotId,
+      });
+      toast.success(
+        "Nhân viên đã được chuyển sang bãi mới và quyền truy cập đang được đồng bộ.",
+        "Chuyển công tác thành công",
+      );
+      await onTransferred();
+      onClose();
+    } catch (transferError) {
+      setError(transferError instanceof Error ? transferError.message : "Không thể chuyển nhân viên sang bãi khác.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal
+      actions={(
+        <div className="tw-flex tw-justify-end tw-gap-2">
+          <Button variant="secondary" disabled={saving} onClick={onClose}>Hủy</Button>
+          <Button disabled={saving || targetParkingLots.length === 0} loading={saving} onClick={() => void handleTransfer()}>
+            {saving ? "Đang chuyển..." : "Xác nhận chuyển công tác"}
+          </Button>
+        </div>
+      )}
+      description={`${getEmployeeName(employee)} · Từ ${sourceParkingLot?.name ?? "bãi hiện tại"} sang bãi mới trong cùng đối tác.`}
+      onClose={() => { if (!saving) onClose(); }}
+      open={Boolean(assignment)}
+      title="Chuyển công tác sang bãi khác"
+    >
+      <div className="tw-grid tw-gap-4">
+        <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-orange-100 tw-bg-orange-50 tw-p-3 tw-text-[0.8rem] tw-font-semibold tw-leading-5 tw-text-orange-800">
+          Phân công tại bãi cũ sẽ kết thúc vào thời điểm hiệu lực. Một phân công chính tại bãi mới sẽ được tạo và quyền truy cập của Employee được đồng bộ lại.
+        </div>
+
+        <label className="tw-grid tw-gap-2">
+          <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-700">Bãi nhận công tác</span>
+          <SelectMenu
+            ariaLabel="Bãi nhận công tác"
+            disabled={saving || targetParkingLots.length === 0}
+            options={targetParkingLots.length
+              ? targetParkingLots.map((lot) => ({ label: `${lot.code} - ${lot.name}`, value: lot.parkingLotId }))
+              : [{ label: "Không có bãi ACTIVE khác trong cùng đối tác", value: "" }]}
+            value={targetParkingLotId}
+            onChange={setTargetParkingLotId}
+          />
+        </label>
+
+        <label className="tw-grid tw-gap-2">
+          <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-700">Lý do điều chuyển</span>
+          <textarea
+            className="tw-min-h-24 tw-resize-y tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3.5 tw-text-[0.88rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none focus:tw-border-brand-200"
+            disabled={saving}
+            maxLength={500}
+            placeholder="Ví dụ: Bổ sung nhân sự vận hành cho bãi mới"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </label>
+
+        {error ? (
+          <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-red-600">{error}</div>
+        ) : null}
+      </div>
+    </Modal>
+  );
+}
+
+function EmployeeParkingLotAssignmentsPanel({
+  assignments,
+  canTransfer,
+  employees,
+  loading,
+  onChanged,
+  onSelectedLotChange,
+  parkingLots,
+  selectedLot,
+}: {
+  assignments: EmployeeParkingLotAssignmentApiResponse[];
+  canTransfer: boolean;
+  employees: EmployeeApiResponse[];
+  loading: boolean;
+  onChanged: () => Promise<void> | void;
+  onSelectedLotChange: (parkingLotId: string) => void;
+  parkingLots: ParkingLotApiResponse[];
+  selectedLot: string;
+}) {
+  const [statusFilter, setStatusFilter] = useState("CURRENT");
+  const [keyword, setKeyword] = useState("");
+  const [transferAssignment, setTransferAssignment] = useState<EmployeeParkingLotAssignmentApiResponse | null>(null);
+  const employeeMap = useMemo(() => buildMap(employees, "employeeId"), [employees]);
+  const parkingLotMap = useMemo(() => buildMap(parkingLots, "parkingLotId"), [parkingLots]);
+  const normalizedKeyword = keyword.trim().toLocaleLowerCase("vi");
+  const filteredAssignments = assignments.filter((assignment) => {
+    const effectiveStatus = effectiveEmployeeParkingLotAssignmentStatus(assignment);
+    if (selectedLot !== "all" && assignment.parkingLotId !== selectedLot) return false;
+    if (statusFilter === "CURRENT" && !["ACTIVE", "SCHEDULED"].includes(effectiveStatus)) return false;
+    if (statusFilter !== "all" && statusFilter !== "CURRENT" && effectiveStatus !== statusFilter) return false;
+    if (!normalizedKeyword) return true;
+    const employee = employeeMap.get(assignment.employeeId);
+    const parkingLot = parkingLotMap.get(assignment.parkingLotId);
+    return [getEmployeeName(employee), employee?.employeeCode, employee?.accountEmail, parkingLot?.name, parkingLot?.code]
+      .filter(Boolean)
+      .some((value) => String(value).toLocaleLowerCase("vi").includes(normalizedKeyword));
+  });
+  const activeCount = assignments.filter((item) => effectiveEmployeeParkingLotAssignmentStatus(item) === "ACTIVE").length;
+  const scheduledCount = assignments.filter((item) => effectiveEmployeeParkingLotAssignmentStatus(item) === "SCHEDULED").length;
+  const historyCount = assignments.filter((item) => ["ENDED", "CANCELLED"].includes(effectiveEmployeeParkingLotAssignmentStatus(item))).length;
+
+  return (
+    <div className="tw-grid tw-gap-4">
+      <div className="tw-grid tw-grid-cols-3 tw-gap-4 max-[820px]:tw-grid-cols-1">
+        <ShiftMetricCard icon="fas fa-map-marker-alt" label="Đang công tác" tone="green" value={`${activeCount}`} />
+        <ShiftMetricCard icon="far fa-clock" label="Sắp hiệu lực" tone="orange" value={`${scheduledCount}`} />
+        <ShiftMetricCard icon="fas fa-history" label="Lịch sử phân công" tone="blue" value={`${historyCount}`} />
+      </div>
+
+      <Card className="tw-p-4">
+        <div className="tw-grid tw-grid-cols-[minmax(220px,1fr)_240px_220px] tw-gap-3 max-[960px]:tw-grid-cols-1">
+          <label className="tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3.5 focus-within:tw-border-brand-200">
+            <i className="fas fa-search tw-text-vm-slate-500" />
+            <input
+              className="tw-h-full tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.88rem] tw-font-semibold tw-outline-none"
+              placeholder="Tìm nhân viên hoặc bãi xe..."
+              value={keyword}
+              onChange={(event) => setKeyword(event.target.value)}
+            />
+          </label>
+          <SelectMenu
+            ariaLabel="Lọc theo bãi xe"
+            options={[
+              { label: "Tất cả bãi xe", value: "all" },
+              ...parkingLots.map((lot) => ({ label: `${lot.code} - ${lot.name}`, value: lot.parkingLotId })),
+            ]}
+            value={selectedLot}
+            onChange={onSelectedLotChange}
+          />
+          <SelectMenu
+            ariaLabel="Lọc trạng thái phân công bãi xe"
+            options={[
+              { label: "Đang hiệu lực & sắp tới", value: "CURRENT" },
+              { label: "Tất cả lịch sử", value: "all" },
+              { label: "Đang công tác", value: "ACTIVE" },
+              { label: "Sắp hiệu lực", value: "SCHEDULED" },
+              { label: "Đã kết thúc", value: "ENDED" },
+              { label: "Tạm dừng", value: "SUSPENDED" },
+            ]}
+            value={statusFilter}
+            onChange={setStatusFilter}
+          />
+        </div>
+      </Card>
+
+      <Card className="tw-overflow-hidden tw-p-0">
+        <div className="tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-5 tw-py-4">
+          <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-vm-slate-900">Danh sách phân công bãi xe</h2>
+          <p className="tw-m-0 tw-mt-1 tw-text-[0.8rem] tw-font-semibold tw-text-vm-slate-500">Theo dõi bãi đang công tác, lịch sắp hiệu lực và lịch sử điều chuyển của Employee.</p>
+        </div>
+        {loading ? (
+          <div className="tw-p-8 tw-text-center tw-text-sm tw-font-semibold tw-text-vm-slate-500">Đang tải danh sách phân công...</div>
+        ) : filteredAssignments.length === 0 ? (
+          <div className="tw-p-8 tw-text-center">
+            <i className="fas fa-user-tag tw-mb-3 tw-text-3xl tw-text-vm-slate-300" />
+            <p className="tw-m-0 tw-text-sm tw-font-bold tw-text-vm-slate-600">Không có phân công phù hợp với bộ lọc.</p>
+          </div>
+        ) : (
+          <div className="tw-overflow-x-auto">
+            <table className="table tw-m-0 tw-min-w-[1080px] [&_td]:tw-border-0 [&_td]:tw-border-t [&_td]:tw-border-solid [&_td]:tw-border-vm-slate-100 [&_td]:tw-px-4 [&_td]:tw-py-3 [&_td]:tw-align-middle [&_thead_th]:tw-border-0 [&_thead_th]:tw-bg-vm-slate-25 [&_thead_th]:tw-px-4 [&_thead_th]:tw-py-3.5 [&_thead_th]:tw-text-left [&_thead_th]:tw-text-[0.78rem] [&_thead_th]:tw-font-black [&_thead_th]:tw-text-vm-slate-700">
+              <thead>
+                <tr>
+                  <th>Nhân viên</th>
+                  <th>Bãi công tác</th>
+                  <th>Loại phân công</th>
+                  <th>Hiệu lực</th>
+                  <th>Trạng thái</th>
+                  <th>Nguồn</th>
+                  <th className="tw-text-right">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAssignments.map((assignment) => {
+                  const employee = employeeMap.get(assignment.employeeId);
+                  const parkingLot = parkingLotMap.get(assignment.parkingLotId);
+                  const effectiveStatus = effectiveEmployeeParkingLotAssignmentStatus(assignment);
+                  return (
+                    <tr key={assignment.assignmentId}>
+                      <td>
+                        <div className="tw-flex tw-items-center tw-gap-3">
+                          <EntityAvatar initials={getInitials(getEmployeeName(employee))} size="sm" src={employee?.userProfile?.avatarUrl} />
+                          <div>
+                            <div className="tw-font-extrabold tw-text-vm-slate-900">{getEmployeeName(employee)}</div>
+                            <div className="tw-mt-0.5 tw-text-[0.75rem] tw-font-semibold tw-text-vm-slate-500">{employee?.employeeCode ?? shortCode("EMP", assignment.employeeId)}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div className="tw-font-bold tw-text-vm-slate-900">{parkingLot?.name ?? "Bãi không còn trong danh mục"}</div>
+                        <div className="tw-mt-0.5 tw-text-[0.75rem] tw-font-semibold tw-text-vm-slate-500">{parkingLot?.code ?? shortCode("LOT", assignment.parkingLotId)}</div>
+                      </td>
+                      <td><Badge tone="primary">{employeeParkingLotAssignmentTypeLabels[assignment.assignmentType]}</Badge></td>
+                      <td>
+                        <div className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">Từ {formatDateTime(assignment.effectiveFrom)}</div>
+                        <div className="tw-mt-1 tw-text-[0.75rem] tw-font-semibold tw-text-vm-slate-500">Đến {formatDateTime(assignment.effectiveTo)}</div>
+                      </td>
+                      <td><Badge tone={employeeParkingLotAssignmentStatusTone(effectiveStatus)}>{employeeParkingLotAssignmentStatusLabels[effectiveStatus] ?? effectiveStatus}</Badge></td>
+                      <td className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-600">{assignment.assignmentSource === "PARTNER" ? "Đối tác" : assignment.assignmentSource === "MANAGER" ? "Quản lý bãi" : "Chuyển đổi dữ liệu"}</td>
+                      <td className="tw-text-right">
+                        {canTransfer && effectiveStatus === "ACTIVE" ? (
+                          <Button size="sm" variant="secondary" onClick={() => setTransferAssignment(assignment)}>
+                            <i className="fas fa-exchange-alt" />
+                            Chuyển công tác
+                          </Button>
+                        ) : <span className="tw-text-vm-slate-400">—</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <TransferEmployeeParkingLotModal
+        assignment={transferAssignment}
+        employees={employees}
+        onClose={() => setTransferAssignment(null)}
+        onTransferred={onChanged}
+        parkingLots={parkingLots}
+      />
+    </div>
+  );
+}
+
 export function ShiftSchedulePage() {
   const { user } = useAuth();
   const canReadAllAssignments = hasAnyPermission(user, ["SHIFT_ASSIGNMENT_READ_ALL"]);
   const canReadOwnAssignments = hasAnyPermission(user, ["SHIFT_ASSIGNMENT_READ_OWN"]);
+  const canReadEmployeeParkingLotAssignments = hasAnyPermission(user, ["EMPLOYEE_READ_ALL"])
+    && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
+  const canAssignEmployeeToParkingLot = hasAnyPermission(user, ["EMPLOYEE_UPDATE_ALL"])
+    && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
+  const canTransferEmployeeParkingLot = canAssignEmployeeToParkingLot
+    && hasAnyPermission(user, ["ORGANIZATION_MEMBERSHIP_MANAGE_ALL"]);
   const ownShiftView = !canReadAllAssignments && canReadOwnAssignments;
   const toast = useToast();
   const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
@@ -829,12 +1340,14 @@ export function ShiftSchedulePage() {
   const [assignments, setAssignments] = useState<ShiftAssignmentApiResponse[]>([]);
   const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplateApiResponse[]>([]);
   const [rosterRules, setRosterRules] = useState<EmployeeRosterRuleApiResponse[]>([]);
+  const [employeeParkingLotAssignments, setEmployeeParkingLotAssignments] = useState<EmployeeParkingLotAssignmentApiResponse[]>([]);
   const [workspace, setWorkspace] = useState<ShiftWorkspace>("schedule");
   const [selectedLot, setSelectedLot] = useState("all");
   const [selectedShiftType, setSelectedShiftType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [employeeParkingLotAssignmentOpen, setEmployeeParkingLotAssignmentOpen] = useState(false);
   const [weekStartDate, setWeekStartDate] = useState(() => toIsoDate(startOfWeek(parseIsoDate(todayApplicationIsoDate()))));
   const [searchValue, setSearchValue] = useState("");
   const [loading, setLoading] = useState(true);
@@ -854,6 +1367,14 @@ export function ShiftSchedulePage() {
     { label: "Tất cả bãi xe", value: "all" },
     ...parkingLots.map((lot) => ({ label: `${lot.code} - ${lot.name}`, value: lot.parkingLotId })),
   ], [parkingLots]);
+  const workspaceTabs = useMemo<Array<{ label: string; value: ShiftWorkspace }>>(() => [
+    { label: "Lịch tuần", value: "schedule" },
+    ...(canReadEmployeeParkingLotAssignments
+      ? [{ label: "Phân công bãi xe", value: "parkingAssignments" as const }]
+      : []),
+    { label: "Mẫu ca", value: "templates" },
+    { label: "Quy tắc phân công", value: "rules" },
+  ], [canReadEmployeeParkingLotAssignments]);
 
   useEffect(() => {
     if (selectedLot === "all" && parkingLots.length === 1) {
@@ -878,6 +1399,7 @@ export function ShiftSchedulePage() {
         setGates([]);
         setShiftTemplates([]);
         setRosterRules([]);
+        setEmployeeParkingLotAssignments([]);
         return;
       }
 
@@ -910,19 +1432,30 @@ export function ShiftSchedulePage() {
       setShifts(shiftResult.status === "fulfilled" ? shiftResult.value.data ?? [] : []);
       setAssignments(assignmentResult.status === "fulfilled" ? assignmentResult.value.data ?? [] : []);
       setEmployees(employeeResult.status === "fulfilled" ? employeeResult.value.data ?? [] : []);
-      setParkingLots(lotResult.status === "fulfilled" ? lotResult.value.data ?? [] : []);
+      const nextParkingLots = lotResult.status === "fulfilled" ? lotResult.value.data ?? [] : [];
+      setParkingLots(nextParkingLots);
       setGates(gateResult.status === "fulfilled" ? gateResult.value.data ?? [] : []);
       setShiftTemplates(templateResult.status === "fulfilled" ? templateResult.value.data ?? [] : []);
       setRosterRules(rosterRuleResult.status === "fulfilled" ? rosterRuleResult.value.data ?? [] : []);
       if (shiftResult.status === "rejected" || assignmentResult.status === "rejected") {
         throw new Error("Không thể tải dữ liệu lịch ca bắt buộc.");
       }
+
+      if (canReadEmployeeParkingLotAssignments) {
+        const organizationIds = [...new Set(nextParkingLots.map((lot) => lot.organizationId).filter(Boolean))];
+        const employeeParkingLotResponses = await Promise.all(
+          organizationIds.map((organizationId) => getEmployeeParkingLotAssignments(organizationId)),
+        );
+        setEmployeeParkingLotAssignments(employeeParkingLotResponses.flatMap((response) => response.data ?? []));
+      } else {
+        setEmployeeParkingLotAssignments([]);
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Không thể tải dữ liệu ca trực.");
     } finally {
       setLoading(false);
     }
-  }, [ownShiftView, searchValue, selectedLot, selectedShiftType, selectedStatus, weekEndDate, weekStartDate]);
+  }, [canReadEmployeeParkingLotAssignments, ownShiftView, searchValue, selectedLot, selectedShiftType, selectedStatus, weekEndDate, weekStartDate]);
 
   useEffect(() => {
     void loadData();
@@ -1025,6 +1558,12 @@ export function ShiftSchedulePage() {
               <h1 className="tw-m-0 tw-text-vm-page-title tw-tracking-normal tw-text-vm-slate-900">Ca trực & Phân công</h1>
             </div>
             <div className="tw-flex tw-flex-shrink-0 tw-items-center tw-gap-3 max-[720px]:tw-grid max-[720px]:tw-grid-cols-1">
+              {canAssignEmployeeToParkingLot ? (
+                <Button size="lg" variant="primary" disabled={loading} onClick={() => setEmployeeParkingLotAssignmentOpen(true)}>
+                  <i className="fas fa-user-plus" />
+                  Phân công nhân viên vào bãi
+                </Button>
+              ) : null}
               <Button size="lg" variant="primary" disabled={actionLoading} onClick={() => void handleGenerateWeek()}>
                 <i className="fas fa-plus" />
                 Sinh lịch tuần
@@ -1040,26 +1579,28 @@ export function ShiftSchedulePage() {
             </div>
           </div>
 
-          <div className="tw-mb-4 tw-flex tw-flex-wrap tw-gap-2" role="tablist" aria-label="Quản lý ca trực">
-            {[
-              ["schedule", "Lịch tuần"],
-              ["templates", "Mẫu ca"],
-              ["rules", "Quy tắc phân công"],
-            ].map(([value, label]) => (
+          <nav
+            className="tw-mb-4 tw-flex tw-h-[52px] tw-items-end tw-gap-4 tw-overflow-x-auto tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100"
+            role="tablist"
+            aria-label="Quản lý ca trực"
+          >
+            {workspaceTabs.map(({ label, value }) => (
               <button
-                aria-pressed={workspace === value}
+                aria-selected={workspace === value}
                 className={cn(
-                  "tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.88rem] tw-font-extrabold tw-text-vm-slate-600 tw-transition hover:tw-border-brand-100 hover:tw-text-vm-primary",
-                  workspace === value ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary" : "",
+                  "tw-relative tw-inline-flex tw-h-[52px] tw-flex-shrink-0 tw-items-center tw-border-0 tw-bg-transparent tw-px-4 tw-text-[0.9rem] tw-font-bold tw-transition hover:tw-text-vm-primary",
+                  workspace === value ? "tw-text-vm-primary" : "tw-text-vm-slate-500",
                 )}
                 key={value}
+                role="tab"
                 type="button"
-                onClick={() => setWorkspace(value as ShiftWorkspace)}
+                onClick={() => setWorkspace(value)}
               >
                 {label}
+                {workspace === value ? <span className="tw-absolute tw-inset-x-0 tw-bottom-[-1px] tw-h-0.5 tw-bg-vm-primary" /> : null}
               </button>
             ))}
-          </div>
+          </nav>
 
           {workspace === "schedule" ? (
             <>
@@ -1111,6 +1652,17 @@ export function ShiftSchedulePage() {
             )}
           </div>
             </>
+          ) : workspace === "parkingAssignments" ? (
+            <EmployeeParkingLotAssignmentsPanel
+              assignments={employeeParkingLotAssignments}
+              canTransfer={canTransferEmployeeParkingLot}
+              employees={employees}
+              loading={loading}
+              onChanged={loadData}
+              onSelectedLotChange={setSelectedLot}
+              parkingLots={parkingLots}
+              selectedLot={selectedLot}
+            />
           ) : (
             <ShiftConfigurationPanel
               employees={employees}
@@ -1134,6 +1686,14 @@ export function ShiftSchedulePage() {
         onChanged={loadData}
         onClose={() => setDrawerOpen(false)}
         shift={selectedShift}
+      />
+      <EmployeeParkingLotAssignmentModal
+        employees={employees}
+        initialParkingLotId={selectedLot}
+        onAssigned={loadData}
+        onClose={() => setEmployeeParkingLotAssignmentOpen(false)}
+        open={employeeParkingLotAssignmentOpen}
+        parkingLots={parkingLots}
       />
     </>
   );

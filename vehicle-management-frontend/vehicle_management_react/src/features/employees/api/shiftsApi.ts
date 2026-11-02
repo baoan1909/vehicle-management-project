@@ -165,9 +165,42 @@ export type ParkingLotApiResponse = {
   address?: string | null;
   code: string;
   name: string;
+  organizationId: string;
   parkingLotId: string;
   status?: string | null;
   totalCapacity?: number | null;
+};
+
+export type EmployeeParkingLotAssignmentTypeApi = "PRIMARY" | "SUPPORT" | "TEMPORARY";
+export type EmployeeParkingLotAssignmentStatusApi = "SCHEDULED" | "ACTIVE" | "SUSPENDED" | "ENDED" | "CANCELLED" | "PENDING_REVIEW";
+export type EmployeeParkingLotAssignmentSourceApi = "PARTNER" | "MANAGER" | "MIGRATION";
+
+export type EmployeeParkingLotAssignmentApiResponse = {
+  assignedByAccountId: string;
+  assignmentId: string;
+  assignmentSource: EmployeeParkingLotAssignmentSourceApi;
+  assignmentType: EmployeeParkingLotAssignmentTypeApi;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  employeeId: string;
+  organizationId: string;
+  parkingLotId: string;
+  status: EmployeeParkingLotAssignmentStatusApi;
+};
+
+export type CreateEmployeeParkingLotAssignmentRequest = {
+  assignmentType: EmployeeParkingLotAssignmentTypeApi;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+  employeeId: string;
+};
+
+export type TransferEmployeeParkingLotRequest = {
+  effectiveAt?: string | null;
+  employeeId: string;
+  reason: string;
+  sourceParkingLotId: string;
+  targetParkingLotId: string;
 };
 
 export type GateApiResponse = {
@@ -309,6 +342,33 @@ export function deleteEmployeeRosterRule(ruleId: string) {
 
 export function getParkingLots() {
   return apiClient<ApiResponse<ParkingLotApiResponse[]>>(apiEndpoints.parking.parkingLots);
+}
+
+export function assignEmployeeToParkingLot(
+  organizationId: string,
+  parkingLotId: string,
+  payload: CreateEmployeeParkingLotAssignmentRequest,
+) {
+  return apiClient<ApiResponse<EmployeeParkingLotAssignmentApiResponse>>(
+    `${apiEndpoints.iam.parkingLotAssignments}/organizations/${organizationId}/parking-lots/${parkingLotId}/employees`,
+    { body: payload, method: "POST" },
+  );
+}
+
+export function getEmployeeParkingLotAssignments(organizationId: string) {
+  return apiClient<ApiResponse<EmployeeParkingLotAssignmentApiResponse[]>>(
+    `${apiEndpoints.iam.parkingLotAssignments}/organizations/${organizationId}/employees`,
+  );
+}
+
+export function transferEmployeeToParkingLot(
+  organizationId: string,
+  payload: TransferEmployeeParkingLotRequest,
+) {
+  return apiClient<ApiResponse<EmployeeParkingLotAssignmentApiResponse>>(
+    `${apiEndpoints.iam.parkingLotAssignments}/organizations/${organizationId}/employees/transfer`,
+    { body: payload, method: "POST" },
+  );
 }
 
 export function getGates() {

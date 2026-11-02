@@ -7,6 +7,8 @@ const paths = {
   accessState: new URL("../src/core/auth/accessState.ts", import.meta.url),
   apiClient: new URL("../src/core/api/apiClient.ts", import.meta.url),
   accountCreate: new URL("../src/features/iam/components/AccountCreateDrawer.tsx", import.meta.url),
+  accountList: new URL("../src/features/iam/pages/AccountListPage.tsx", import.meta.url),
+  adminLayout: new URL("../src/shared/components/layout/AdminLayout.tsx", import.meta.url),
   authProvider: new URL("../src/core/auth/AuthProvider.tsx", import.meta.url),
   customerProfile: new URL("../src/features/customer-portal/pages/ProfilePage.tsx", import.meta.url),
   internalProfile: new URL("../src/features/iam/pages/InternalProfilePage.tsx", import.meta.url),
@@ -15,6 +17,7 @@ const paths = {
   oidcSession: new URL("../src/core/auth/oidcSession.ts", import.meta.url),
   mapper: new URL("../src/features/iam/utils/accountProfileMapper.ts", import.meta.url),
   notificationBell: new URL("../src/features/notifications/components/NotificationBell.tsx", import.meta.url),
+  onboardingHub: new URL("../src/features/iam/pages/OnboardingApprovalHub.tsx", import.meta.url),
   provisionedPolicy: new URL("../src/features/iam/policies/provisionedAccountPolicy.ts", import.meta.url),
   routePermissions: new URL("../src/app/routePermissions.ts", import.meta.url),
   router: new URL("../src/app/router/index.tsx", import.meta.url),
@@ -89,6 +92,23 @@ assert.match(files.router, /accessStateRedirect && !canAccessRestrictedCustomerS
 assert.match(files.routePermissions, /restrictedCustomerSupportRoutes\.has\(path\) && canAccessCustomerRoute\(user, path\)/);
 assert.match(files.accessScreens, /export function NoAccessScreen/);
 assert.match(files.accessScreens, /export function AccessErrorScreen/);
+assert.match(files.adminLayout, /accessState !== "ACTIVE"/);
+assert.match(files.adminLayout, /!restrictedToProfile \? \([\s\S]*?<AdminSidebar/);
+assert.match(files.routePermissions, /accessState !== "ACTIVE"\) return \[\]/);
+
+// Reviewer workspaces and account lifecycle presentation stay explicit.
+assert.match(files.onboardingHub, /label: "Nhân viên"[\s\S]*?ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL/);
+assert.match(files.onboardingHub, /internalRoleCode=\{selectedCategory === "parking-manager" \? "PARKING_MANAGER" : selectedCategory === "employee" \? "EMPLOYEE"/);
+assert.match(files.onboardingHub, /category === "parking-manager"\) return pendingSummary\.parkingManagerPending/);
+assert.match(files.onboardingHub, /category === "employee"\) return pendingSummary\.employeePending/);
+assert.match(files.onboardingHub, /pendingCount > 0[\s\S]*?pendingCount > 99 \? "99\+" : pendingCount/);
+assert.match(files.accountList, /fetchOnboardingApprovalSummary\(\)/);
+assert.match(files.accountList, /partnerPendingCount \+ onboardingPendingSummary\.totalPending/);
+assert.match(files.accountList, /notification\.redirectUrl\?\.includes\("tab=onboarding"\)[\s\S]*?loadOnboardingPendingCounts/);
+assert.match(files.accountList, /Chưa gửi hồ sơ/);
+assert.match(files.accountList, /quyền được gán/);
+assert.match(files.accountList, /quyền hiệu lực/);
+assert.match(files.accountList, /operationalAccessState/);
 
 // Static architectural guard: current-actor authorization surfaces cannot branch on role.
 const guardedActorAuthorizationFiles = {

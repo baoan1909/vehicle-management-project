@@ -144,6 +144,7 @@ export function canAccessRestrictedCustomerSupportRoute(
 }
 
 export function getVisibleAdminNavigation(user: CurrentUser | null | undefined) {
+  if (user?.accessState && user.accessState !== "ACTIVE") return [];
   const entries: AdminSidebarEntry[] = [];
   // ORGANIZATION_CREATE_ALL is a platform-governance capability. Partner Admin
   // may read their organization, but cannot create a new partner on the platform.

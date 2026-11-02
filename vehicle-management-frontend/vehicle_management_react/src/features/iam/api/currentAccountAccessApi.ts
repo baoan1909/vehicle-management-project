@@ -16,6 +16,7 @@ export type CurrentAccountAccessResponse = {
   customerStatus?: string | null;
   email?: string | null;
   employeeStatus?: string | null;
+  onboardingApprovalStatus?: string | null;
   permissionCodes: string[];
   roleCode: string;
   roleId?: string | null;
@@ -112,6 +113,7 @@ function isValidCurrentAccessEnvelope(value: unknown): value is ApiResponse<Curr
     && isOptionalNullableString(data.customerStatus)
     && isOptionalNullableString(data.email)
     && isOptionalNullableString(data.employeeStatus)
+    && isOptionalNullableString(data.onboardingApprovalStatus)
     && isOptionalNullableString(data.roleId)
     && isOptionalNullableString(data.username);
 }

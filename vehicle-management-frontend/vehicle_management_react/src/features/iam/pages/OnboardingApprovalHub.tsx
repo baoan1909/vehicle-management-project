@@ -3,11 +3,12 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/core/auth/useAuth";
 import { cn } from "@/lib/cn";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import type { OnboardingApprovalSummaryResponse } from "@/features/iam/api/onboardingApprovalApi";
 
 import { OnboardingApprovalWorkspace } from "./OnboardingApprovalPage";
 import { PartnerRegistrationManagementPage } from "./PartnerRegistrationManagementPage";
 
-type OnboardingCategory = "system-admin" | "partner" | "parking-manager" | "customer";
+type OnboardingCategory = "system-admin" | "partner" | "parking-manager" | "employee" | "customer";
 
 type OnboardingCategoryTab = {
   icon: string;
@@ -36,6 +37,12 @@ const categoryTabs: OnboardingCategoryTab[] = [
     value: "parking-manager",
   },
   {
+    icon: "fas fa-id-badge",
+    label: "Nhân viên",
+    permissions: ["ONBOARDING_APPROVAL_REVIEW_EMPLOYEE_ALL"],
+    value: "employee",
+  },
+  {
     icon: "fas fa-user-check",
     label: "Khách hàng",
     permissions: ["ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL"],
@@ -44,6 +51,9 @@ const categoryTabs: OnboardingCategoryTab[] = [
 ];
 
 type OnboardingApprovalHubProps = {
+  pendingSummary?: OnboardingApprovalSummaryResponse;
+  partnerPendingCount?: number;
+  onPendingSummaryChange?: (summary: OnboardingApprovalSummaryResponse) => void;
   onPartnerPendingCountChange?: (count: number) => void;
 };
 
@@ -52,7 +62,12 @@ type OnboardingApprovalHubProps = {
  * source behind its own permission and API. The Partner tab is deliberately
  * separate because Partner registration uses the organization approval flow.
  */
-export function OnboardingApprovalHub({ onPartnerPendingCountChange }: OnboardingApprovalHubProps) {
+export function OnboardingApprovalHub({
+  pendingSummary,
+  partnerPendingCount = 0,
+  onPendingSummaryChange,
+  onPartnerPendingCountChange,
+}: OnboardingApprovalHubProps) {
   const { user } = useAuth();
   const visibleTabs = useMemo(
     () => categoryTabs.filter((tab) => hasAnyPermission(user, tab.permissions)),
@@ -67,10 +82,20 @@ export function OnboardingApprovalHub({ onPartnerPendingCountChange }: Onboardin
 
   if (!selectedCategory) return null;
 
+  function pendingCountForCategory(category: OnboardingCategory) {
+    if (category === "partner") return partnerPendingCount;
+    if (!pendingSummary) return 0;
+    if (category === "system-admin") return pendingSummary.systemAdminPending;
+    if (category === "parking-manager") return pendingSummary.parkingManagerPending;
+    if (category === "employee") return pendingSummary.employeePending;
+    return pendingSummary.customerPending;
+  }
+
   const categoryTabControls = (
     <div className="tw-flex tw-flex-wrap tw-gap-2">
       {visibleTabs.map((tab) => {
         const selected = tab.value === selectedCategory;
+        const pendingCount = pendingCountForCategory(tab.value);
         return (
           <button
             className={cn(
@@ -83,6 +108,11 @@ export function OnboardingApprovalHub({ onPartnerPendingCountChange }: Onboardin
           >
             <i className={tab.icon} />
             {tab.label}
+            {pendingCount > 0 ? (
+              <span className="tw-inline-flex tw-min-w-5 tw-items-center tw-justify-center tw-rounded-full tw-bg-red-500 tw-px-1.5 tw-py-0.5 tw-text-[0.68rem] tw-font-black tw-leading-none tw-text-white">
+                {pendingCount > 99 ? "99+" : pendingCount}
+              </span>
+            ) : null}
           </button>
         );
       })}
@@ -105,7 +135,9 @@ export function OnboardingApprovalHub({ onPartnerPendingCountChange }: Onboardin
         <OnboardingApprovalWorkspace
           categoryTabs={categoryTabControls}
           embedded
-          fixedKind={selectedCategory === "parking-manager" ? "internal-employee" : selectedCategory}
+          fixedKind={selectedCategory === "parking-manager" || selectedCategory === "employee" ? "internal-employee" : selectedCategory}
+          internalRoleCode={selectedCategory === "parking-manager" ? "PARKING_MANAGER" : selectedCategory === "employee" ? "EMPLOYEE" : undefined}
+          onPendingSummaryChange={onPendingSummaryChange}
           hideHeading
           hideKindSelector
         />
