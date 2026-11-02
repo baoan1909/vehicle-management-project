@@ -254,8 +254,15 @@ function CardUidField({
   onCardUidChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const rootRef = useRef<HTMLDivElement | null>(null);
   const cardList = cardOptions.filter((option) => option.value);
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const visibleCards = normalizedSearchTerm
+    ? cardList.filter((option) =>
+        [option.label, option.value].some((text) => text.toLowerCase().includes(normalizedSearchTerm)),
+      )
+    : cardList;
   const dropdownLabel = isLoadingCards ? "Đang tải thẻ..." : "Chưa có thẻ phù hợp";
 
   useEffect(() => {
@@ -282,58 +289,78 @@ function CardUidField({
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) setSearchTerm("");
+  }, [open]);
+
   return (
     <div className="tw-m-0 tw-grid tw-gap-2" ref={rootRef}>
       <span className={cn("tw-text-[0.8rem] tw-font-bold", error ? "tw-text-red-600" : "tw-text-vm-slate-700")}>Thẻ xe / RFID</span>
       <div className="tw-relative">
         <div className={cn(
-          "tw-flex tw-h-[42px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-bg-white tw-pl-3.5 tw-pr-2 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-900 focus-within:tw-border-brand-200 focus-within:tw-shadow-vm-focus",
+          "tw-flex tw-h-[42px] tw-items-center tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-bg-white tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-900 focus-within:tw-border-brand-200 focus-within:tw-shadow-vm-focus",
           error ? "tw-border-red-300 tw-shadow-[0_0_0_3px_rgba(239,68,68,0.12)]" : "tw-border-vm-slate-100",
         )}>
-          <i className={cn("far fa-id-badge tw-w-5 tw-text-center", error ? "tw-text-red-500" : "tw-text-vm-slate-500")} />
+          <i className={cn("far fa-id-badge tw-ml-3.5 tw-mr-3 tw-w-5 tw-flex-shrink-0 tw-text-center", error ? "tw-text-red-500" : "tw-text-vm-slate-500")} />
           <input
             className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-900 tw-outline-none placeholder:tw-text-vm-slate-500"
             value={cardUid}
-            placeholder="Quẹt, nhập UID hoặc chọn thẻ"
+            placeholder="Quẹt hoặc nhập UID thẻ"
             onChange={(event) => onCardUidChange(event.target.value)}
-            onFocus={() => {
-              if (cardList.length || isLoadingCards) setOpen(true);
-            }}
           />
           <button
             aria-expanded={open}
             aria-label="Chọn thẻ có sẵn"
-            className="tw-inline-flex tw-h-8 tw-w-8 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-sm tw-border-0 tw-bg-transparent tw-text-vm-primary tw-transition hover:tw-bg-brand-50 focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus"
+            className="tw-ml-3 tw-inline-flex tw-h-full tw-w-11 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-none tw-border-0 tw-bg-vm-primary tw-text-white tw-transition hover:tw-bg-vm-primary-hover focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus"
             type="button"
+            title="Chọn thẻ từ danh sách"
             onClick={() => setOpen((current) => !current)}
           >
-            <i className={cn(isLoadingCards ? "fas fa-spinner fa-spin" : "fas fa-chevron-down", "tw-text-[0.8rem]", open && !isLoadingCards ? "tw-rotate-180" : "")} />
+            <i className={cn(isLoadingCards ? "fas fa-spinner fa-spin" : "fas fa-credit-card", "tw-text-[0.92rem]")} />
           </button>
         </div>
 
         {open ? (
-          <div className="tw-absolute tw-left-0 tw-right-0 tw-top-[calc(100%+6px)] tw-z-[85] tw-max-h-60 tw-overflow-y-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-py-1 tw-shadow-[0_12px_28px_rgba(15,23,42,0.16)] tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden">
-            {cardList.length ? (
-              cardList.map((option) => (
-                <button
-                  className={cn(
-                    "tw-flex tw-min-h-[38px] tw-w-full tw-items-center tw-gap-2.5 tw-border-0 tw-bg-transparent tw-px-3 tw-py-2 tw-text-left tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-bg-brand-50 hover:tw-text-vm-primary",
-                    option.value === cardUid ? "tw-bg-brand-50 tw-text-vm-primary" : "",
-                  )}
-                  key={option.value}
-                  type="button"
-                  onClick={() => {
-                    onCardUidChange(option.value);
-                    setOpen(false);
-                  }}
-                >
-                  <i className="fas fa-credit-card tw-w-4 tw-text-center tw-text-vm-slate-500" />
-                  <span className="tw-min-w-0 tw-flex-1 tw-truncate">{option.label}</span>
-                </button>
-              ))
-            ) : (
-              <div className="tw-px-3 tw-py-2 tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-500">{dropdownLabel}</div>
-            )}
+          <div className="tw-absolute tw-left-0 tw-right-0 tw-top-[calc(100%+6px)] tw-z-[85] tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_12px_28px_rgba(15,23,42,0.16)]">
+            <div className="tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-2">
+              <label className="tw-flex tw-h-9 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-2.5">
+                <i className="fas fa-search tw-text-[0.78rem] tw-text-vm-slate-500" />
+                <input
+                  autoFocus
+                  aria-label="Tìm kiếm thẻ xe"
+                  className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-900 tw-outline-none placeholder:tw-text-vm-slate-400"
+                  placeholder="Tìm theo số thẻ hoặc UID..."
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="tw-max-h-52 tw-overflow-y-auto tw-py-1 tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden">
+              {visibleCards.length ? (
+                visibleCards.map((option) => (
+                  <button
+                    className={cn(
+                      "tw-flex tw-min-h-[38px] tw-w-full tw-items-center tw-gap-2.5 tw-border-0 tw-bg-transparent tw-px-3 tw-py-2 tw-text-left tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-bg-brand-50 hover:tw-text-vm-primary",
+                      option.value === cardUid ? "tw-bg-brand-50 tw-text-vm-primary" : "",
+                    )}
+                    key={option.value}
+                    type="button"
+                    onClick={() => {
+                      onCardUidChange(option.value);
+                      setOpen(false);
+                    }}
+                  >
+                    <i className="fas fa-credit-card tw-w-4 tw-text-center tw-text-vm-slate-500" />
+                    <span className="tw-min-w-0 tw-flex-1 tw-truncate">{option.label}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="tw-px-3 tw-py-3 tw-text-center tw-text-[0.84rem] tw-font-bold tw-text-vm-slate-500">
+                  {cardList.length ? "Không có thẻ phù hợp" : dropdownLabel}
+                </div>
+              )}
+            </div>
           </div>
         ) : null}
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
@@ -20,8 +20,10 @@ type SelectMenuProps = {
   placement?: "bottom" | "top";
   portal?: boolean;
   portalFitContent?: boolean;
+  portalViewportPadding?: number;
   searchable?: boolean | "auto";
   searchPlaceholder?: string;
+  selectedOptionAdornment?: ReactNode;
   triggerClassName?: string;
   triggerLabel?: string;
   value: string;
@@ -39,8 +41,10 @@ export function SelectMenu({
   placement = "bottom",
   portal = false,
   portalFitContent = false,
+  portalViewportPadding = 8,
   searchable = "auto",
   searchPlaceholder = "Tìm kiếm...",
+  selectedOptionAdornment,
   triggerClassName,
   triggerLabel,
   value,
@@ -103,15 +107,16 @@ export function SelectMenu({
       const trigger = rootRef.current;
       if (!trigger) return;
 
-      const viewportPadding = 8;
+      const viewportPadding = portalViewportPadding;
       const gap = 6;
       const triggerRect = trigger.getBoundingClientRect();
       const menuHeight =
         menuRef.current?.offsetHeight ??
         Math.min(240, options.length * 44 + 12);
       const longestOptionLabelLength = Math.max(0, ...options.map((option) => option.label.length));
+      const selectedAdornmentWidth = selectedOptionAdornment ? 84 : 0;
       const contentWidth = portalFitContent
-        ? Math.max(triggerRect.width, Math.min(360, longestOptionLabelLength * 8.4 + 68))
+        ? Math.max(triggerRect.width, Math.min(440, longestOptionLabelLength * 8.4 + 68 + selectedAdornmentWidth))
         : triggerRect.width;
       const width = Math.min(contentWidth, window.innerWidth - viewportPadding * 2);
       const left = Math.min(
@@ -137,7 +142,7 @@ export function SelectMenu({
       window.removeEventListener("resize", updatePosition);
       window.removeEventListener("scroll", updatePosition, true);
     };
-  }, [open, options, placement, portal, portalFitContent]);
+  }, [open, options, placement, portal, portalFitContent, portalViewportPadding, selectedOptionAdornment]);
 
   const menu = open ? (
     <div
@@ -205,6 +210,7 @@ export function SelectMenu({
               {selectedOption ? <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-white" /> : null}
             </span>
             <span className="tw-min-w-0 tw-flex-1 tw-truncate">{option.label}</span>
+            {selectedOption ? selectedOptionAdornment : null}
           </button>
         );
       })}

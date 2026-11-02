@@ -121,6 +121,33 @@ export function removeOidcUser() {
   return oidcUserManager.removeUser();
 }
 
+export function openAuthenticatedTab(path: string) {
+  const targetUrl = new URL(path, window.location.origin);
+  if (targetUrl.origin !== window.location.origin) return false;
+
+  let nextWindow: Window | null = null;
+
+  try {
+    nextWindow = window.open("about:blank", "_blank");
+    if (!nextWindow) return false;
+
+    for (let index = 0; index < window.sessionStorage.length; index += 1) {
+      const key = window.sessionStorage.key(index);
+      if (!key?.startsWith("oidc.user:")) continue;
+
+      const value = window.sessionStorage.getItem(key);
+      if (value) nextWindow.sessionStorage.setItem(key, value);
+    }
+
+    nextWindow.opener = null;
+    nextWindow.location.replace(targetUrl.href);
+    return true;
+  } catch {
+    nextWindow?.close();
+    return false;
+  }
+}
+
 export function subscribeOidcSessionEvents(listener: OidcSessionEvents) {
   sessionListeners.add(listener);
   return () => sessionListeners.delete(listener);
