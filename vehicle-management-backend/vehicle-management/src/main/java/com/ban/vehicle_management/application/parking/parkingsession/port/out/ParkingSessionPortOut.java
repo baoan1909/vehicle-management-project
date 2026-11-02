@@ -32,6 +32,8 @@ public interface ParkingSessionPortOut {
 
     long countOpenVisitorByZoneId(UUID zoneId);
 
+    long countByParkingLotIdAndStatus(UUID parkingLotId, ParkingSessionStatus status);
+
     List<ParkingSession> findOpenByLicensePlateIn(String licensePlateIn);
 
     Optional<ParkingSession> findById(UUID parkingSessionId);

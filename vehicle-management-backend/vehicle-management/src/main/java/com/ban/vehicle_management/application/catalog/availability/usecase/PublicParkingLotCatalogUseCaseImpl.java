@@ -81,8 +81,8 @@ public class PublicParkingLotCatalogUseCaseImpl implements PublicParkingLotCatal
         }
         ParkingLot lot = parkingLotPortOut.findById(parkingLotId)
                 .orElseThrow(() -> new NotFoundException("Parking lot not found"));
-        if (lot.getStatus() != ParkingLotStatus.ACTIVE) {
-            throw new NotFoundException("Active parking lot not found");
+        if (lot.getStatus() == null || lot.getStatus() == ParkingLotStatus.CLOSED) {
+            throw new NotFoundException("Public parking lot not found");
         }
         return lot.getOrganizationId();
     }
