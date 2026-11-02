@@ -203,6 +203,12 @@ export function getShiftAssignments(filter: ShiftAssignmentFilter = {}) {
   );
 }
 
+export function getMyShiftAssignments(filter: Pick<ShiftAssignmentFilter, "fromDate" | "toDate" | "status"> = {}) {
+  return apiClient<ApiResponse<ShiftAssignmentApiResponse[]>>(
+    `${apiEndpoints.operations.shiftAssignments}/me${buildQuery(filter)}`,
+  );
+}
+
 export function createShiftAssignment(shiftId: string, payload: UpsertShiftAssignmentRequest) {
   return apiClient<ApiResponse<ShiftAssignmentApiResponse>>(`${apiEndpoints.operations.shifts}/${shiftId}/assignments`, {
     body: payload,

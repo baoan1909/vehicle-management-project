@@ -40,7 +40,7 @@ export const adminRoutePermissions = {
   "/admin/parkingFeeOfCustomer": ["PRICE_RULE_READ_ALL"],
   "/admin/employee": ["EMPLOYEE_READ_ALL"],
   "/admin/employee/form": ["EMPLOYEE_CREATE_ALL", "EMPLOYEE_UPDATE_ALL"],
-  "/admin/shifts": ["SHIFT_READ_ALL", "SHIFT_ASSIGNMENT_READ_ALL"],
+  "/admin/shifts": ["SHIFT_READ_ALL", "SHIFT_ASSIGNMENT_READ_ALL", "SHIFT_ASSIGNMENT_READ_OWN"],
   // Either account administration or Partner-registration review may open this
   // shared workspace; each tab still checks its own permission before rendering.
   "/admin/account": ["ACCOUNT_READ_ALL", "ORGANIZATION_REGISTRATION_REVIEW_ALL"],

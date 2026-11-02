@@ -1,6 +1,6 @@
 import { appConfig } from "@/config/env";
 import { ApiError, isAbortLikeError, isApiError } from "@/core/api/apiError";
-import { localizeApiMessage, localizeApiResponseBody } from "@/core/api/apiMessage";
+import { localizeApiErrorCode, localizeApiMessage, localizeApiResponseBody } from "@/core/api/apiMessage";
 import { getValidAccessToken, renewToken } from "@/core/auth/oidcSession";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
@@ -67,7 +67,7 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
           ? responseBody.message
           : null;
 
-      const errorCode =
+      const directErrorCode =
         responseBody
         && typeof responseBody === "object"
         && "errorCode" in responseBody
@@ -75,7 +75,19 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
           ? responseBody.errorCode
           : undefined;
 
-      throw new ApiError(localizeApiMessage(rawMessage, response.status), {
+      const scopedErrorCode =
+        responseBody
+        && typeof responseBody === "object"
+        && "data" in responseBody
+        && responseBody.data
+        && typeof responseBody.data === "object"
+        && "code" in responseBody.data
+        && typeof responseBody.data.code === "string"
+          ? responseBody.data.code
+          : undefined;
+      const errorCode = directErrorCode ?? scopedErrorCode;
+
+      throw new ApiError(localizeApiErrorCode(errorCode) ?? localizeApiMessage(rawMessage, response.status), {
         code: errorCode,
         kind: "http",
         status: response.status,

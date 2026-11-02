@@ -12,6 +12,7 @@ import {
   getEmployeeRosterRules,
   getGates,
   getParkingLots,
+  getMyShiftAssignments,
   getShiftAssignments,
   getShiftTemplates,
   getShifts,
@@ -28,6 +29,8 @@ import {
 } from "@/features/employees/api/shiftsApi";
 import { cn } from "@/lib/cn";
 import { todayApplicationIsoDate } from "@/shared/time/applicationTime";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 
 type DrawerPhase = "opening" | "open" | "closing";
 type ShiftWorkspace = "schedule" | "templates" | "rules";
@@ -814,6 +817,10 @@ function ShiftDetailDrawer({
 }
 
 export function ShiftSchedulePage() {
+  const { user } = useAuth();
+  const canReadAllAssignments = hasAnyPermission(user, ["SHIFT_ASSIGNMENT_READ_ALL"]);
+  const canReadOwnAssignments = hasAnyPermission(user, ["SHIFT_ASSIGNMENT_READ_OWN"]);
+  const ownShiftView = !canReadAllAssignments && canReadOwnAssignments;
   const toast = useToast();
   const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
   const [gates, setGates] = useState<GateApiResponse[]>([]);
@@ -859,7 +866,22 @@ export function ShiftSchedulePage() {
     setError("");
 
     try {
-      const [shiftResponse, assignmentResponse, employeeResponse, lotResponse, gateResponse, templateResponse, rosterRuleResponse] = await Promise.all([
+      if (ownShiftView) {
+        const assignmentResponse = await getMyShiftAssignments({
+          fromDate: weekStartDate,
+          toDate: weekEndDate,
+        });
+        setAssignments(assignmentResponse.data ?? []);
+        setShifts([]);
+        setEmployees([]);
+        setParkingLots([]);
+        setGates([]);
+        setShiftTemplates([]);
+        setRosterRules([]);
+        return;
+      }
+
+      const results = await Promise.allSettled([
         getShifts({
           fromDate: weekStartDate,
           keyword: searchValue.trim() || undefined,
@@ -884,20 +906,23 @@ export function ShiftSchedulePage() {
           parkingLotId: selectedLot === "all" ? undefined : selectedLot,
         }),
       ]);
-
-      setShifts(shiftResponse.data ?? []);
-      setAssignments(assignmentResponse.data ?? []);
-      setEmployees(employeeResponse.data ?? []);
-      setParkingLots(lotResponse.data ?? []);
-      setGates(gateResponse.data ?? []);
-      setShiftTemplates(templateResponse.data ?? []);
-      setRosterRules(rosterRuleResponse.data ?? []);
+      const [shiftResult, assignmentResult, employeeResult, lotResult, gateResult, templateResult, rosterRuleResult] = results;
+      setShifts(shiftResult.status === "fulfilled" ? shiftResult.value.data ?? [] : []);
+      setAssignments(assignmentResult.status === "fulfilled" ? assignmentResult.value.data ?? [] : []);
+      setEmployees(employeeResult.status === "fulfilled" ? employeeResult.value.data ?? [] : []);
+      setParkingLots(lotResult.status === "fulfilled" ? lotResult.value.data ?? [] : []);
+      setGates(gateResult.status === "fulfilled" ? gateResult.value.data ?? [] : []);
+      setShiftTemplates(templateResult.status === "fulfilled" ? templateResult.value.data ?? [] : []);
+      setRosterRules(rosterRuleResult.status === "fulfilled" ? rosterRuleResult.value.data ?? [] : []);
+      if (shiftResult.status === "rejected" || assignmentResult.status === "rejected") {
+        throw new Error("Không thể tải dữ liệu lịch ca bắt buộc.");
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Không thể tải dữ liệu ca trực.");
     } finally {
       setLoading(false);
     }
-  }, [searchValue, selectedLot, selectedShiftType, selectedStatus, weekEndDate, weekStartDate]);
+  }, [ownShiftView, searchValue, selectedLot, selectedShiftType, selectedStatus, weekEndDate, weekStartDate]);
 
   useEffect(() => {
     void loadData();
@@ -958,6 +983,37 @@ export function ShiftSchedulePage() {
     } finally {
       setActionLoading(false);
     }
+  }
+
+  if (ownShiftView) {
+    return (
+      <main className="tw-px-4 tw-py-4 lg:tw-px-5">
+        <section className="tw-mx-auto tw-w-[min(100%,980px)] tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-5 tw-shadow-vm-card">
+          <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
+            <div>
+              <h1 className="tw-m-0 tw-text-vm-page-title tw-text-vm-slate-900">Ca trực của tôi</h1>
+              <p className="tw-m-0 tw-mt-1 tw-text-sm tw-text-vm-slate-500">Chỉ hiển thị phân công ca của chính tài khoản hiện tại.</p>
+            </div>
+            <Button variant="secondary" disabled={loading} onClick={() => void loadData()}>
+              <i className="fas fa-sync-alt" /> Làm mới
+            </Button>
+          </div>
+          {error ? <div className="tw-mt-4 tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-sm tw-font-semibold tw-text-amber-800">{error}</div> : null}
+          <div className="tw-mt-5 tw-grid tw-gap-3">
+            {!loading && assignments.length === 0 ? <p className="tw-text-sm tw-text-vm-slate-500">Không có ca được phân công trong tuần này.</p> : null}
+            {assignments.map((assignment) => (
+              <Card key={assignment.shiftAssignmentId} className="tw-flex tw-items-center tw-justify-between tw-gap-4 tw-p-4 tw-shadow-none">
+                <div>
+                  <strong className="tw-block tw-text-sm tw-text-vm-slate-900">Ca #{assignment.shiftId.slice(0, 8)}</strong>
+                  <span className="tw-mt-1 tw-block tw-text-xs tw-text-vm-slate-500">Mã phân công: {assignment.shiftAssignmentId}</span>
+                </div>
+                <Badge tone={assignment.status === "ACTIVE" ? "success" : "neutral"}>{assignment.status}</Badge>
+              </Card>
+            ))}
+          </div>
+        </section>
+      </main>
+    );
   }
 
   return (

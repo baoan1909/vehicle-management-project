@@ -141,6 +141,21 @@ const STATUS_MESSAGES: Record<number, string> = {
   429: "Bạn thao tác quá nhanh. Vui lòng thử lại sau.",
 };
 
+const ERROR_CODE_MESSAGES: Record<string, string> = {
+  ACTIVE_SHIFT_REQUIRED: "Bạn cần có ca trực đang mở tại bãi xe này.",
+  CROSS_ORGANIZATION_ACCESS_DENIED: "Dữ liệu không thuộc đơn vị đối tác hiện tại.",
+  EMPLOYEE_NOT_ASSIGNED_TO_PARKING_LOT: "Nhân viên chưa được phân công vào bãi xe này.",
+  MANAGEMENT_ASSIGNMENT_REQUIRED: "Bãi xe chưa có phân công quản lý hợp lệ.",
+  MANAGER_ACCEPTANCE_REQUIRED: "Manager cần tiếp nhận bàn giao trước khi quản lý bãi.",
+  MANAGER_NOT_ASSIGNED_TO_PARKING_LOT: "Manager không được phân công quản lý bãi xe này.",
+  PARKING_LOT_OPERATION_SUSPENDED: "Hoạt động tại bãi xe đang bị đình chỉ.",
+  PARKING_LOT_OUT_OF_SCOPE: "Bãi xe nằm ngoài phạm vi được phân công của bạn.",
+};
+
+export function localizeApiErrorCode(code?: string) {
+  return code ? ERROR_CODE_MESSAGES[code] : undefined;
+}
+
 function containsVietnamese(message: string) {
   return VIETNAMESE_CHARACTER_PATTERN.test(message);
 }

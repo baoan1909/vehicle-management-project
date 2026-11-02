@@ -11,6 +11,7 @@ type ApiResponse<T> = {
 export type ParkingLotStatusApi = "SETUP" | "ACTIVE" | "MAINTENANCE" | "CLOSED";
 export type AddressInputSchemeApi = "CURRENT" | "LEGACY";
 export type GeocodingStatusApi = "NOT_REQUESTED" | "RESOLVED" | "MANUAL_CONFIRMED" | "FAILED" | "NEEDS_REVIEW";
+export type ParkingLotManagementStateApi = "MANAGED" | "HANDOVER" | "PARTNER_SUPERVISED" | "OPERATION_SUSPENDED";
 
 export type ParkingLotApiResponse = {
   addressDisplay: string | null;
@@ -30,6 +31,8 @@ export type ParkingLotApiResponse = {
   organizationId: string;
   parkingLotId: string;
   status: ParkingLotStatusApi;
+  managementState?: ParkingLotManagementStateApi;
+  managementRevision?: number;
   totalCapacity: number | null;
   updatedAt?: string | null;
   updatedBy?: string | null;
