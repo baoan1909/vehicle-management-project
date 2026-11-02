@@ -5,6 +5,7 @@ import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -29,6 +30,7 @@ public record CurrentAccountAccess(
         CustomerStatus customerStatus,
         CustomerApprovalStatus customerApprovalStatus,
         boolean onboardingRequired,
+        ApprovalRequestStatus onboardingApprovalStatus,
         Set<String> permissionCodes
 ) {
     private static final EffectiveAccountAccessPolicy EFFECTIVE_ACCESS_POLICY = new EffectiveAccountAccessPolicy();
@@ -41,11 +43,23 @@ public record CurrentAccountAccess(
 
     public CurrentAccountAccess(UUID accountId, String subject, String username, String email, UUID roleId,
             String roleCode, boolean roleActive, boolean hasActivePartnerOrganizationMembership,
+            Set<UUID> activeOrganizationIds, Set<UUID> assignedParkingLotIds, AccountStatus status,
+            EmployeeStatus employeeStatus, CustomerStatus customerStatus,
+            CustomerApprovalStatus customerApprovalStatus, boolean onboardingRequired,
+            Set<String> permissionCodes) {
+        this(accountId, subject, username, email, roleId, roleCode, roleActive,
+                hasActivePartnerOrganizationMembership, activeOrganizationIds, assignedParkingLotIds,
+                status, employeeStatus, customerStatus, customerApprovalStatus, onboardingRequired,
+                null, permissionCodes);
+    }
+
+    public CurrentAccountAccess(UUID accountId, String subject, String username, String email, UUID roleId,
+            String roleCode, boolean roleActive, boolean hasActivePartnerOrganizationMembership,
             AccountStatus status, EmployeeStatus employeeStatus, CustomerStatus customerStatus,
             CustomerApprovalStatus customerApprovalStatus, Set<String> permissionCodes) {
         this(accountId, subject, username, email, roleId, roleCode, roleActive,
                 hasActivePartnerOrganizationMembership, Set.of(), Set.of(), status,
-                employeeStatus, customerStatus, customerApprovalStatus, false, permissionCodes);
+                employeeStatus, customerStatus, customerApprovalStatus, false, null, permissionCodes);
     }
 
     public CurrentAccountAccess(UUID accountId, String subject, String username, String email, UUID roleId,
@@ -54,7 +68,7 @@ public record CurrentAccountAccess(
             Set<String> permissionCodes) {
         this(accountId, subject, username, email, roleId, roleCode, roleActive, false,
                 Set.of(), Set.of(), status, employeeStatus, customerStatus,
-                customerApprovalStatus, false, permissionCodes);
+                customerApprovalStatus, false, null, permissionCodes);
     }
 
     public CurrentAccountAccess(UUID accountId, String subject, String username, String email, UUID roleId,
@@ -63,7 +77,7 @@ public record CurrentAccountAccess(
             Set<String> permissionCodes) {
         this(accountId, subject, username, email, roleId, roleCode, true, false,
                 Set.of(), Set.of(), status, employeeStatus, customerStatus,
-                customerApprovalStatus, false, permissionCodes);
+                customerApprovalStatus, false, null, permissionCodes);
     }
 
     public CurrentAccountAccess(UUID accountId, String subject, String username, String email, UUID roleId,
@@ -90,7 +104,7 @@ public record CurrentAccountAccess(
         String canonical = String.join("|", value(accountId), value(roleId), value(roleCode),
                 Boolean.toString(roleActive), Boolean.toString(hasActivePartnerOrganizationMembership),
                 value(status), value(employeeStatus), value(customerStatus), value(customerApprovalStatus),
-                Boolean.toString(onboardingRequired), sorted(permissionCodes),
+                Boolean.toString(onboardingRequired), value(onboardingApprovalStatus), sorted(permissionCodes),
                 sorted(activeOrganizationIds), sorted(assignedParkingLotIds));
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")
@@ -104,7 +118,8 @@ public record CurrentAccountAccess(
     private EffectiveAccountAccessPolicy.AccessState toAccessState() {
         return new EffectiveAccountAccessPolicy.AccessState(roleCode, roleActive,
                 hasActivePartnerOrganizationMembership, activeOrganizationIds, assignedParkingLotIds,
-                status, employeeStatus, customerStatus, customerApprovalStatus);
+                status, employeeStatus, customerStatus, customerApprovalStatus,
+                onboardingRequired, onboardingApprovalStatus);
     }
 
     private String sorted(Set<?> values) {

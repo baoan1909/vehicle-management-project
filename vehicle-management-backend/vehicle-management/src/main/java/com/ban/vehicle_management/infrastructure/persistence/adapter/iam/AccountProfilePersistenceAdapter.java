@@ -31,6 +31,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.iam.OrganizationMembershipStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.List;
@@ -45,6 +46,9 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     private static final String PARTNER_REGISTRATION_REQUEST_TYPE = "PARTNER_REGISTRATION";
     private static final String PARTNER_REGISTRATION_TARGET_SCHEMA = "iam";
     private static final String PARTNER_REGISTRATION_TARGET_TABLE = "accounts";
+    private static final String INTERNAL_EMPLOYEE_REQUEST_TYPE = "INTERNAL_EMPLOYEE_ONBOARDING";
+    private static final String INTERNAL_EMPLOYEE_TARGET_SCHEMA = "people";
+    private static final String INTERNAL_EMPLOYEE_TARGET_TABLE = "employees";
     private static final EffectiveAccountAccessPolicy EFFECTIVE_ACCESS_POLICY =
             new EffectiveAccountAccessPolicy();
 
@@ -420,6 +424,21 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 ? safeSet(memberParkingLotScopeRepository.findActiveParkingLotIdsByAccountId(
                         accountEntity.getAccountId(), OrganizationMembershipStatus.ACTIVE))
                 : Set.of();
+        boolean onboardingRequired = resolveOnboardingRequired(
+                roleCode,
+                accountEntity.getUserProfileId() != null,
+                employeeEntity != null,
+                customerEntity != null,
+                !activeOrganizationIds.isEmpty());
+        ApprovalRequestStatus onboardingApprovalStatus = employeeEntity == null ? null
+                : approvalRequestRepository
+                .findTopByRequestTypeAndTargetSchemaAndTargetTableAndTargetIdOrderByCreatedAtDesc(
+                        INTERNAL_EMPLOYEE_REQUEST_TYPE,
+                        INTERNAL_EMPLOYEE_TARGET_SCHEMA,
+                        INTERNAL_EMPLOYEE_TARGET_TABLE,
+                        employeeEntity.getEmployeeId())
+                .map(ApprovalRequestEntity::getStatus)
+                .orElse(null);
         EffectiveAccountAccessPolicy.AccessState accessState = new EffectiveAccountAccessPolicy.AccessState(
                 roleCode,
                 roleActive,
@@ -429,7 +448,9 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 accountEntity.getStatus(),
                 employeeEntity == null ? null : employeeEntity.getStatus(),
                 customerEntity == null ? null : customerEntity.getStatus(),
-                customerEntity == null ? null : customerEntity.getApprovalStatus()
+                customerEntity == null ? null : customerEntity.getApprovalStatus(),
+                onboardingRequired,
+                onboardingApprovalStatus
         );
         if (accountEntity.getRoleId() == null || !EFFECTIVE_ACCESS_POLICY.canUseEffectivePermissions(accessState)) {
             return List.of();
@@ -441,6 +462,35 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
                 )
                 .stream()
                 .toList();
+    }
+
+    private boolean resolveOnboardingRequired(
+            String roleCode,
+            boolean profilePresent,
+            boolean employeePresent,
+            boolean customerPresent,
+            boolean activeOrganizationMembership
+    ) {
+        if (!profilePresent) {
+            return true;
+        }
+        AdminProvisionableAccountRoleCode role;
+        try {
+            role = roleCode == null ? null : AdminProvisionableAccountRoleCode.valueOf(roleCode);
+        } catch (IllegalArgumentException ignored) {
+            role = null;
+        }
+        if (AdminProvisionableAccountRoleCode.CUSTOMER.equals(role)) {
+            return !customerPresent;
+        }
+        if (AdminProvisionableAccountRoleCode.EMPLOYEE.equals(role)
+                || AdminProvisionableAccountRoleCode.PARKING_MANAGER.equals(role)) {
+            return !employeePresent;
+        }
+        if (AdminProvisionableAccountRoleCode.PARTNER_ADMIN.equals(role)) {
+            return !activeOrganizationMembership;
+        }
+        return false;
     }
 
     private boolean requiresOrganizationScope(String permissionCode) {

@@ -12,4 +12,5 @@ public interface ParkingLotAssignmentApiMapper {
     ParkingLotManagementAssignmentAdminResponse toAdminResponse(ParkingLotManagementAssignment domain);
     List<ParkingLotManagementAssignmentAdminResponse> toAdminResponses(List<ParkingLotManagementAssignment> domains);
     EmployeeParkingLotAssignmentAdminResponse toAdminResponse(EmployeeParkingLotAssignment domain);
+    List<EmployeeParkingLotAssignmentAdminResponse> toEmployeeAdminResponses(List<EmployeeParkingLotAssignment> domains);
 }

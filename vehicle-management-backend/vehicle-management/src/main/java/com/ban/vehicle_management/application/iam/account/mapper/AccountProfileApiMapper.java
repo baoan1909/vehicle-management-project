@@ -30,7 +30,7 @@ public interface AccountProfileApiMapper {
             boolean onboardingRequired
     ) {
         CurrentAccessStatePolicy.Decision decision = new CurrentAccessStatePolicy()
-                .resolve(access, onboardingRequired);
+                .resolve(access);
         return new CurrentAccountAccessResponse(
                 access.accountId(),
                 access.username(),
@@ -42,7 +42,8 @@ public interface AccountProfileApiMapper {
                 access.customerStatus() == null ? null : access.customerStatus().name(),
                 access.customerApprovalStatus() == null ? null : access.customerApprovalStatus().name(),
                 access.getEffectivePermissionCodes(),
-                onboardingRequired,
+                access.onboardingApprovalStatus() == null ? null : access.onboardingApprovalStatus().name(),
+                access.onboardingRequired(),
                 decision.state().name(),
                 decision.requiredAction() == null ? null : decision.requiredAction().name(),
                 access.accessRevision()

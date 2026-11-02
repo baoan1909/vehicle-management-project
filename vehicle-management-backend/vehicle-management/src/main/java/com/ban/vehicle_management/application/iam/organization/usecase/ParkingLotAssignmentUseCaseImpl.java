@@ -283,6 +283,14 @@ public class ParkingLotAssignmentUseCaseImpl implements ParkingLotAssignmentPort
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<EmployeeParkingLotAssignment> getEmployeeAssignments(UUID organizationId) {
+        currentAccountPortIn.requirePermission("EMPLOYEE_READ_ALL");
+        organizationAccessGuard.ensureCanAccessOrganization(organizationId);
+        return assignmentPortOut.findEmployeeAssignmentsByOrganizationId(organizationId);
+    }
+
+    @Override
     @Transactional
     public EmployeeParkingLotAssignment transferEmployee(
             UUID organizationId, UUID employeeId, UUID sourceParkingLotId,

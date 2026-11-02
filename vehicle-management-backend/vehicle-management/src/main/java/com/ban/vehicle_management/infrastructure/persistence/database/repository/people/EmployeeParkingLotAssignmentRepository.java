@@ -16,6 +16,8 @@ import org.springframework.data.repository.query.Param;
 public interface EmployeeParkingLotAssignmentRepository
         extends JpaRepository<EmployeeParkingLotAssignmentEntity, UUID> {
 
+    List<EmployeeParkingLotAssignmentEntity> findAllByOrganizationIdOrderByEffectiveFromDesc(UUID organizationId);
+
     @Query(value = """
         select distinct assignment.parking_lot_id
         from people.employee_parking_lot_assignments assignment

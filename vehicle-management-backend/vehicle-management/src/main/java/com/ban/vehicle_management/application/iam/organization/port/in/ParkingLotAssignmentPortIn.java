@@ -23,6 +23,7 @@ public interface ParkingLotAssignmentPortIn {
     EmployeeParkingLotAssignment assignEmployee(
             UUID organizationId, UUID parkingLotId, UUID employeeId,
             EmployeeParkingLotAssignmentType type, Instant effectiveFrom, Instant effectiveTo);
+    List<EmployeeParkingLotAssignment> getEmployeeAssignments(UUID organizationId);
     EmployeeParkingLotAssignment transferEmployee(
             UUID organizationId, UUID employeeId, UUID sourceParkingLotId,
             UUID targetParkingLotId, Instant effectiveAt, String reason);

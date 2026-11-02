@@ -122,6 +122,13 @@ public class ParkingLotAssignmentPersistenceAdapter implements ParkingLotAssignm
     }
 
     @Override
+    public List<EmployeeParkingLotAssignment> findEmployeeAssignmentsByOrganizationId(UUID organizationId) {
+        return employeeRepository.findAllByOrganizationIdOrderByEffectiveFromDesc(organizationId).stream()
+                .map(employeeMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<EmployeeParkingLotAssignment> findEmployeeAssignmentsForUpdate(
             UUID employeeId, UUID parkingLotId, Instant at) {
         return employeeRepository.findEffectiveForUpdate(employeeId, parkingLotId, LIVE_EMPLOYEE_STATUSES, at)

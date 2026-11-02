@@ -25,6 +25,7 @@ public interface ParkingLotAssignmentPortOut {
     ParkingLotManagementAssignment saveManagementAssignment(ParkingLotManagementAssignment assignment);
     List<ParkingLotManagementAssignment> saveManagementAssignments(List<ParkingLotManagementAssignment> assignments);
     EmployeeParkingLotAssignment saveEmployeeAssignment(EmployeeParkingLotAssignment assignment);
+    List<EmployeeParkingLotAssignment> findEmployeeAssignmentsByOrganizationId(UUID organizationId);
     List<EmployeeParkingLotAssignment> findEmployeeAssignmentsForUpdate(
             UUID employeeId, UUID parkingLotId, Instant at);
     void lockParkingLot(UUID parkingLotId);

@@ -90,6 +90,15 @@ public class ParkingLotAssignmentController {
                 .body(ApiResponse.ok("Employee assigned to parking lot", mapper.toAdminResponse(result)));
     }
 
+    @GetMapping("/organizations/{organizationId}/employees")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('EMPLOYEE_READ_ALL')")
+    public ResponseEntity<ApiResponse<List<EmployeeParkingLotAssignmentAdminResponse>>> getEmployeeAssignments(
+            @PathVariable UUID organizationId) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched Employee parking-lot assignments",
+                mapper.toEmployeeAdminResponses(useCase.getEmployeeAssignments(organizationId))));
+    }
+
     @PostMapping("/organizations/{organizationId}/employees/transfer")
     @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_MEMBERSHIP_MANAGE_ALL')")
     public ResponseEntity<ApiResponse<EmployeeParkingLotAssignmentAdminResponse>> transferEmployee(
