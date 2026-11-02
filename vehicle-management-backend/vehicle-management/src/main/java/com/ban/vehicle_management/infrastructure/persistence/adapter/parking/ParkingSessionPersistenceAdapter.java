@@ -98,6 +98,11 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
     }
 
     @Override
+    public long countByParkingLotIdAndStatus(UUID parkingLotId, ParkingSessionStatus status) {
+        return parkingSessionRepository.countByParkingLotIdAndStatus(parkingLotId, status);
+    }
+
+    @Override
     public List<ParkingSession> findOpenByLicensePlateIn(String licensePlateIn) {
         return parkingSessionRepository.findByLicensePlateInAndStatus(
                         licensePlateIn,

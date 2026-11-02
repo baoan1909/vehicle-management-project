@@ -94,6 +94,7 @@ public class SecurityConfig {
                                 "/api/public/parking-locations/**",
                                 "/api/public/administrative-divisions/**",
                                 "/api/public/pricing/**",
+                                "/api/catalog/vouchers/promotions",
                                 "/api/public/payments/vnpay/**",
                                 "/api/public/wallet-topups/vnpay/**",
                                 "/api/notifications/broadcast-announcements/active"

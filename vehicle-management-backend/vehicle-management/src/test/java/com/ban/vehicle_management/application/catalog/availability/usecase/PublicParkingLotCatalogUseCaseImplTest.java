@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.catalog.availability.usecase;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
@@ -13,6 +14,7 @@ import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -59,6 +61,29 @@ class PublicParkingLotCatalogUseCaseImplTest {
 
         assertEquals(List.of(allowedId), useCase.getTicketTypes(LOT_ID, null).stream()
                 .map(TicketType::getTicketTypeId).toList());
+    }
+
+    @Test
+    void setupParkingLotCatalogCanBeViewedPublicly() {
+        UUID allowedId = UUID.randomUUID();
+        ParkingLot lot = activeLot();
+        lot.setStatus(ParkingLotStatus.SETUP);
+        when(parkingLotPortOut.findById(LOT_ID)).thenReturn(Optional.of(lot));
+        when(availabilityPortOut.findExcludedVehicleTypeIds(LOT_ID)).thenReturn(Set.of());
+        when(vehicleTypePortOut.findAll(true, Set.of(ORGANIZATION_ID)))
+                .thenReturn(List.of(vehicleType(allowedId)));
+
+        assertEquals(List.of(allowedId), useCase.getVehicleTypes(LOT_ID).stream()
+                .map(VehicleType::getVehicleTypeId).toList());
+    }
+
+    @Test
+    void closedParkingLotCatalogIsNotPublic() {
+        ParkingLot lot = activeLot();
+        lot.setStatus(ParkingLotStatus.CLOSED);
+        when(parkingLotPortOut.findById(LOT_ID)).thenReturn(Optional.of(lot));
+
+        assertThrows(NotFoundException.class, () -> useCase.getVehicleTypes(LOT_ID));
     }
 
     private ParkingLot activeLot() {

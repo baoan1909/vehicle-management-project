@@ -196,6 +196,7 @@ export function SubscriptionPage() {
   const canPaySubscription = hasAnyPermission(user, ["WALLET_PAY_INVOICE_OWN", "INVOICE_PAY_OWN", "SUBSCRIPTION_PAY_OWN", "WALLET_TOP_UP_OWN"]);
   const [searchParams, setSearchParams] = useSearchParams();
   const voucherCodeFromUrl = searchParams.get("voucherCode")?.trim().toUpperCase() ?? "";
+  const parkingLotIdFromUrl = searchParams.get("parkingLotId")?.trim() ?? "";
   const handledVnpayReturnRef = useRef(false);
   const voucherQuoteRequestRef = useRef(0);
   const lotLookupRequestRef = useRef(0);
@@ -514,6 +515,12 @@ export function SubscriptionPage() {
       if (requestId === lotLookupRequestRef.current) setLotLookupsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!parkingLotIdFromUrl || form.parkingLotId === parkingLotIdFromUrl) return;
+    if (!parkingLots.some((parkingLot) => parkingLot.parkingLotId === parkingLotIdFromUrl)) return;
+    void changeParkingLot(parkingLotIdFromUrl);
+  }, [form.parkingLotId, parkingLotIdFromUrl, parkingLots]);
 
   const clearVoucherQuote = () => {
     voucherQuoteRequestRef.current += 1;
