@@ -90,8 +90,8 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
                 .findActivePermissionCodesByRoleId(accountEntity.getRoleId());
         RoleEntity role = roleRepository.findById(accountEntity.getRoleId()).orElse(null);
         String roleCode = role == null ? null : role.getCode();
-        Set<UUID> activeOrganizationIds = permissionCodes.stream()
-                .anyMatch(this::requiresOrganizationScope)
+        Set<UUID> activeOrganizationIds = (AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name().equals(roleCode)
+                || permissionCodes.stream().anyMatch(this::requiresOrganizationScope))
                 ? safeSet(organizationMembershipRepository.findActiveOrganizationIdsByAccountId(
                         accountEntity.getAccountId(),
                         OrganizationMembershipStatus.ACTIVE

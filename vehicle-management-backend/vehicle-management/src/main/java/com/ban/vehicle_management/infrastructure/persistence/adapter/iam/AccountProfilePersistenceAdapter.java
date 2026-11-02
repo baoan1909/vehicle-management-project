@@ -415,8 +415,8 @@ public class AccountProfilePersistenceAdapter implements AccountProfilePortOut {
     ) {
         Set<String> assignedPermissions = rolePermissionRepository
                 .findActivePermissionCodesByRoleId(accountEntity.getRoleId());
-        Set<UUID> activeOrganizationIds = assignedPermissions.stream()
-                .anyMatch(this::requiresOrganizationScope)
+        Set<UUID> activeOrganizationIds = (AdminProvisionableAccountRoleCode.PARTNER_ADMIN.name().equals(roleCode)
+                || assignedPermissions.stream().anyMatch(this::requiresOrganizationScope))
                 ? safeSet(organizationMembershipRepository.findActiveOrganizationIdsByAccountId(
                         accountEntity.getAccountId(), OrganizationMembershipStatus.ACTIVE))
                 : Set.of();
