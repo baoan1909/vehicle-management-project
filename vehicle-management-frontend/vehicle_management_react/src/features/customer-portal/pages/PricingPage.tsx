@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { ClientPage } from "@/shared/components/layout/ClientPage";
+import { Modal } from "@/shared/components/ui/Modal";
 import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import {
   getPublicPricePlans,
@@ -18,6 +19,10 @@ import {
   recordGeolocationOutcome,
   type PublicParkingLotDirectoryItem,
 } from "@/features/parking/api/publicParkingApi";
+import {
+  getCustomerPortalVoucherBanners,
+  type CustomerPortalVoucherBanner,
+} from "@/features/customer-portal/api/customerPortalApi";
 
 import { PublicFooter } from "./PortalShared";
 
@@ -98,6 +103,16 @@ function formatCurrency(value: number | null) {
   }).format(value);
 }
 
+function formatPriceRange(lot: PublicParkingLotDirectoryItem) {
+  if (lot.minimumPrice === null || lot.maximumPrice === null) return "Chưa công bố giá";
+  if (lot.minimumPrice === lot.maximumPrice) return formatCurrency(lot.minimumPrice);
+  return `${formatCurrency(lot.minimumPrice)} - ${formatCurrency(lot.maximumPrice)}`;
+}
+
+function formatServedCount(value: number) {
+  return new Intl.NumberFormat("vi-VN").format(value);
+}
+
 function formatDate(value: string | null) {
   if (!value) return "Không giới hạn";
   return new Intl.DateTimeFormat("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: getApplicationTimeZone() }).format(new Date(value));
@@ -120,14 +135,6 @@ function subscriptionUnitLabel(ticketType?: TicketTypeApiResponse) {
   if (code === "YEARLY") return "/ năm";
   if (code === "FREE") return durationLabel(ticketType?.durationDays) ?? "/ 6 tháng";
   return durationLabel(ticketType?.durationDays);
-}
-
-function isMonthlyRule(rule: DisplayRule) {
-  const ticketCode = rule.ticketType?.code?.trim().toUpperCase();
-  if (ticketCode === "MONTHLY" || rule.ticketType?.durationDays === 30) return true;
-
-  const label = normalizeSearchText(`${rule.ticketType?.name ?? ""} ${rule.ruleName ?? ""}`);
-  return label.includes("ve thang") || label.includes("dang ky thang");
 }
 
 function unitLabel(audience: PricingAudience, unit: string | null, ticketType?: TicketTypeApiResponse) {
@@ -337,23 +344,21 @@ function PriceCard({ audience, featured = false, registrationDisabled = false, r
 function ParkingLotCard({
   distance,
   lot,
-  onSelect,
-  selected,
+  voucher,
 }: {
   distance: number | null;
   lot: PublicParkingLotDirectoryItem;
-  onSelect: () => void;
-  selected: boolean;
+  voucher?: CustomerPortalVoucherBanner;
 }) {
   const status = parkingLotStatusMeta(lot.status);
   return (
-    <button
-      aria-pressed={selected}
-      className={`tw-group tw-relative tw-flex tw-min-h-[268px] tw-w-full tw-flex-col tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-bg-white tw-p-0 tw-text-left tw-shadow-[0_14px_34px_rgba(31,66,116,0.09)] tw-transition hover:-tw-translate-y-1 hover:tw-shadow-[0_20px_42px_rgba(31,66,116,0.15)] focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-vm-primary ${selected ? "tw-border-vm-primary tw-ring-2 tw-ring-brand-100" : "tw-border-vm-slate-100"}`}
-      onClick={onSelect}
-      type="button"
+    <Link
+      className="tw-group tw-relative tw-flex tw-min-h-[360px] tw-w-full tw-flex-col tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-0 tw-text-left tw-shadow-[0_14px_34px_rgba(31,66,116,0.09)] tw-transition hover:-tw-translate-y-1 hover:tw-text-inherit hover:tw-no-underline hover:tw-shadow-[0_20px_42px_rgba(31,66,116,0.15)] focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-vm-primary"
+      to={`/pricing/${lot.parkingLotId}`}
     >
-      <span className="tw-relative tw-flex tw-h-[92px] tw-w-full tw-items-end tw-overflow-hidden tw-bg-[linear-gradient(135deg,#071b39_0%,#0c3974_58%,#1875ff_135%)] tw-p-4">
+      <span className="tw-relative tw-flex tw-h-[132px] tw-w-full tw-items-end tw-overflow-hidden tw-bg-[#071b39] tw-p-4">
+        <img alt="" aria-hidden="true" className="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-opacity-60 tw-transition tw-duration-300 group-hover:tw-scale-105" src="/assets/customer/pricing-hero-smart-parking.png" />
+        <span aria-hidden="true" className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(180deg,rgba(3,20,44,0.08),rgba(3,20,44,0.85))]" />
         <span aria-hidden="true" className="tw-absolute -tw-right-5 -tw-top-7 tw-h-28 tw-w-28 tw-rounded-full tw-border-[22px] tw-border-solid tw-border-white/10" />
         <span className="tw-relative tw-grid tw-h-11 tw-w-11 tw-place-items-center tw-rounded-[10px] tw-bg-white tw-text-xl tw-font-black tw-text-vm-primary tw-shadow-lg">P</span>
         <span className={`tw-relative tw-ml-auto tw-rounded-full tw-px-3 tw-py-1 tw-text-[0.68rem] tw-font-black ${status.className}`}>{status.label}</span>
@@ -373,6 +378,16 @@ function ParkingLotCard({
             {lot.status === "ACTIVE" ? `${lot.visitorAvailable}/${lot.totalCapacity}` : "Chưa phục vụ"}
           </strong>
         </span>
+        <span className="tw-mt-3 tw-block tw-text-[1.02rem] tw-font-black tw-text-[#e11d48]">{formatPriceRange(lot)}</span>
+        <span className="tw-mt-2 tw-flex tw-items-center tw-justify-between tw-gap-2 tw-text-[0.72rem] tw-font-bold tw-text-vm-slate-500">
+          <span><i className="fas fa-star tw-mr-1.5 tw-text-amber-400" />Đã phục vụ {formatServedCount(lot.completedSessionCount)} lượt</span>
+          <i className="fas fa-chevron-right tw-text-vm-primary tw-transition group-hover:tw-translate-x-1" />
+        </span>
+        {voucher ? (
+          <span className="tw-mt-3 tw-truncate tw-rounded-md tw-bg-rose-50 tw-px-2.5 tw-py-2 tw-text-[0.7rem] tw-font-black tw-text-rose-600">
+            <i className="fas fa-ticket-alt tw-mr-1.5" />{voucher.bannerTitle || voucher.code}
+          </span>
+        ) : null}
         <span className="tw-mt-3 tw-flex tw-flex-wrap tw-gap-1.5">
           {lot.vehicleTypes.length ? lot.vehicleTypes.map((vehicleType) => (
             <span className="tw-rounded-full tw-bg-vm-slate-50 tw-px-2.5 tw-py-1 tw-text-[0.66rem] tw-font-bold tw-text-vm-slate-600" key={vehicleType.vehicleTypeId}>
@@ -381,7 +396,7 @@ function ParkingLotCard({
           )) : <span className="tw-text-[0.68rem] tw-font-semibold tw-text-vm-slate-400">Chưa công bố loại phương tiện</span>}
         </span>
       </span>
-    </button>
+    </Link>
   );
 }
 
@@ -431,9 +446,13 @@ function VehicleFilterTabs({ options, selected, onChange }: { options: VehicleTy
 }
 
 export function PricingPage() {
+  const navigate = useNavigate();
+  const { parkingLotId } = useParams<{ parkingLotId?: string }>();
+  const detailMode = Boolean(parkingLotId);
   const [parkingLots, setParkingLots] = useState<PublicParkingLotDirectoryItem[]>([]);
-  const [selectedParkingLotId, setSelectedParkingLotId] = useState("");
+  const selectedParkingLotId = parkingLotId ?? "";
   const [parkingLotKeyword, setParkingLotKeyword] = useState("");
+  const [vouchers, setVouchers] = useState<CustomerPortalVoucherBanner[]>([]);
   const [browserCoordinates, setBrowserCoordinates] = useState<BrowserCoordinates | null>(null);
   const [locationMessage, setLocationMessage] = useState("Đang xác định vị trí để sắp xếp bãi gần bạn...");
   const [directoryLoading, setDirectoryLoading] = useState(false);
@@ -442,9 +461,8 @@ export function PricingPage() {
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeApiResponse[]>([]);
   const [ticketTypes, setTicketTypes] = useState<TicketTypeApiResponse[]>([]);
   const [selectedVehicleTypeId, setSelectedVehicleTypeId] = useState("");
-  const [selectedCustomerRuleId, setSelectedCustomerRuleId] = useState("");
-  const [customerMenuOpen, setCustomerMenuOpen] = useState(false);
-  const [showAllVisitorRules, setShowAllVisitorRules] = useState(false);
+  const [selectedTicketTypeId, setSelectedTicketTypeId] = useState("");
+  const [showAllCustomerRules, setShowAllCustomerRules] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -455,11 +473,14 @@ export function PricingPage() {
       setDirectoryLoading(true);
       setError("");
       try {
-        const response = await getPublicParkingLotDirectory();
+        const [response, voucherBanners] = await Promise.all([
+          getPublicParkingLotDirectory(),
+          getCustomerPortalVoucherBanners().catch(() => []),
+        ]);
         if (ignore) return;
-        const lots = response.data ?? [];
+        const lots = (response.data ?? []).filter((lot) => lot.status === "ACTIVE");
         setParkingLots(lots);
-        setSelectedParkingLotId((current) => current || lots.find((lot) => lot.status === "ACTIVE")?.parkingLotId || lots[0]?.parkingLotId || "");
+        setVouchers(voucherBanners);
       } catch (requestError) {
         if (ignore) return;
         setError(requestError instanceof Error ? requestError.message : "Không thể tải danh sách bãi xe.");
@@ -501,18 +522,8 @@ export function PricingPage() {
   }, []);
 
   useEffect(() => {
-    if (!browserCoordinates || !parkingLots.length) return;
-    const nearestActive = parkingLots
-      .filter((lot) => lot.status === "ACTIVE")
-      .map((lot) => ({ lot, distance: distanceMeters(browserCoordinates, lot) }))
-      .filter((item): item is { lot: PublicParkingLotDirectoryItem; distance: number } => item.distance !== null)
-      .sort((left, right) => left.distance - right.distance)[0]?.lot;
-    if (nearestActive) setSelectedParkingLotId(nearestActive.parkingLotId);
-  }, [browserCoordinates, parkingLots]);
-
-  useEffect(() => {
     let ignore = false;
-    if (!selectedParkingLotId) {
+    if (!detailMode || !selectedParkingLotId) {
       setPlans([]);
       setRules([]);
       setVehicleTypes([]);
@@ -549,21 +560,20 @@ export function PricingPage() {
 
     void loadPricing();
     return () => { ignore = true; };
-  }, [selectedParkingLotId]);
+  }, [detailMode, selectedParkingLotId]);
 
   const selectedParkingLot = parkingLots.find((lot) => lot.parkingLotId === selectedParkingLotId);
   const sortedParkingLots = useMemo(() => {
     const keyword = normalizeSearchText(parkingLotKeyword.trim());
     return parkingLots
+      .filter((lot) => lot.status === "ACTIVE")
       .filter((lot) => !keyword || normalizeSearchText(`${lot.name} ${lot.code} ${lot.addressDisplay ?? ""}`).includes(keyword))
       .map((lot) => ({ lot, distance: browserCoordinates ? distanceMeters(browserCoordinates, lot) : null }))
       .sort((left, right) => {
         if (left.distance !== null && right.distance !== null) return left.distance - right.distance;
         if (left.distance !== null) return -1;
         if (right.distance !== null) return 1;
-        const leftActive = left.lot.status === "ACTIVE" ? 0 : 1;
-        const rightActive = right.lot.status === "ACTIVE" ? 0 : 1;
-        return leftActive - rightActive || left.lot.name.localeCompare(right.lot.name, "vi");
+        return left.lot.name.localeCompare(right.lot.name, "vi");
       });
   }, [browserCoordinates, parkingLotKeyword, parkingLots]);
 
@@ -605,24 +615,49 @@ export function PricingPage() {
     },
     [selectedVehicleTypeId, visitorRules],
   );
-  const filteredCustomerRules = useMemo(
+  const vehicleCustomerRules = useMemo(
     () => customerRules
       .filter((rule) => rule.vehicleTypeId === selectedVehicleTypeId)
-      .sort((left, right) => Number(isMonthlyRule(right)) - Number(isMonthlyRule(left))),
+      .sort((left, right) => (
+        (left.ticketType?.durationDays ?? Number.MAX_SAFE_INTEGER) - (right.ticketType?.durationDays ?? Number.MAX_SAFE_INTEGER)
+        || (left.basePrice ?? Number.MAX_SAFE_INTEGER) - (right.basePrice ?? Number.MAX_SAFE_INTEGER)
+      )),
     [customerRules, selectedVehicleTypeId],
   );
-  const visibleVisitorRules = showAllVisitorRules ? filteredVisitorRules : filteredVisitorRules.slice(0, 2);
-  const selectedCustomerRule = filteredCustomerRules.find((rule) => rule.priceRuleId === selectedCustomerRuleId)
-    ?? filteredCustomerRules.find(isMonthlyRule)
-    ?? filteredCustomerRules[0];
+  const availableCustomerTicketTypes = useMemo(() => {
+    const uniqueTicketTypes = new Map<string, TicketTypeApiResponse>();
+    vehicleCustomerRules.forEach((rule) => {
+      if (rule.ticketType) uniqueTicketTypes.set(rule.ticketType.ticketTypeId, rule.ticketType);
+    });
+    return [...uniqueTicketTypes.values()].sort((left, right) => (
+      (left.durationDays ?? Number.MAX_SAFE_INTEGER) - (right.durationDays ?? Number.MAX_SAFE_INTEGER)
+      || left.name.localeCompare(right.name, "vi")
+    ));
+  }, [vehicleCustomerRules]);
+  const filteredCustomerRules = useMemo(
+    () => vehicleCustomerRules.filter((rule) => !selectedTicketTypeId || rule.ticketTypeId === selectedTicketTypeId),
+    [selectedTicketTypeId, vehicleCustomerRules],
+  );
+
+  useEffect(() => {
+    if (!availableCustomerTicketTypes.length) {
+      setSelectedTicketTypeId("");
+      return;
+    }
+    const monthlyTicketType = availableCustomerTicketTypes.find((ticketType) => {
+      const text = normalizeSearchText(`${ticketType.code} ${ticketType.name}`);
+      return ticketType.durationDays === 30 || text.includes("monthly") || text.includes("ve thang");
+    }) ?? availableCustomerTicketTypes[0];
+    if (!availableCustomerTicketTypes.some((ticketType) => ticketType.ticketTypeId === selectedTicketTypeId)) {
+      setSelectedTicketTypeId(monthlyTicketType.ticketTypeId);
+    }
+  }, [availableCustomerTicketTypes, selectedTicketTypeId]);
   const planStartLabel = plans.length ? `Áp dụng từ ${formatDate(plans[0]?.effectiveFrom ?? null)}` : "Theo bảng giá đang hiệu lực";
   const selectedVehicleLabel = availableVehicleTypes.find((type) => type.vehicleTypeId === selectedVehicleTypeId)?.name ?? "Loại xe";
 
   function handleVehicleFilterChange(value: string) {
     setSelectedVehicleTypeId(value);
-    setSelectedCustomerRuleId("");
-    setCustomerMenuOpen(false);
-    setShowAllVisitorRules(false);
+    setShowAllCustomerRules(false);
   }
 
   return (
@@ -646,7 +681,7 @@ export function PricingPage() {
             </aside>
           </section>
 
-          <section className="tw-mx-auto tw-max-w-[1480px] tw-py-10" id="pricing-rates">
+          {!detailMode ? <section className="tw-mx-auto tw-max-w-[1480px] tw-py-10" id="pricing-rates">
             <div className="tw-mb-6 tw-flex tw-flex-wrap tw-items-end tw-justify-between tw-gap-4">
               <div>
                 <p className="tw-m-0 tw-text-[0.72rem] tw-font-black tw-uppercase tw-tracking-[0.15em] tw-text-vm-primary">Chọn bãi xe</p>
@@ -662,96 +697,98 @@ export function PricingPage() {
               <div className="tw-grid tw-gap-5 min-[640px]:tw-grid-cols-2 min-[1100px]:tw-grid-cols-4">
                 {[0, 1, 2, 3].map((item) => <div className="tw-h-[268px] tw-animate-pulse tw-rounded-[14px] tw-bg-vm-slate-100" key={item} />)}
               </div>
+            ) : error ? (
+              <div className="tw-rounded-[14px] tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-8 tw-text-center">
+                <i className="fas fa-exclamation-circle tw-mb-3 tw-block tw-text-2xl tw-text-red-500" />
+                <strong className="tw-block tw-text-red-700">Không thể tải danh sách bãi xe</strong>
+                <span className="tw-mt-2 tw-block tw-text-sm tw-font-semibold tw-text-red-600">{error}</span>
+                <span className="tw-mt-2 tw-block tw-text-xs tw-font-semibold tw-text-red-500">Hãy kiểm tra backend đang chạy tại cổng cấu hình rồi tải lại trang.</span>
+              </div>
             ) : sortedParkingLots.length ? (
               <div className="tw-grid tw-gap-5 min-[640px]:tw-grid-cols-2 min-[1100px]:tw-grid-cols-4">
                 {sortedParkingLots.map(({ distance, lot }) => (
-                  <ParkingLotCard distance={distance} key={lot.parkingLotId} lot={lot} onSelect={() => setSelectedParkingLotId(lot.parkingLotId)} selected={lot.parkingLotId === selectedParkingLotId} />
+                  <ParkingLotCard distance={distance} key={lot.parkingLotId} lot={lot} voucher={vouchers[0]} />
                 ))}
               </div>
             ) : (
               <div className="tw-rounded-[14px] tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-white tw-p-10 tw-text-center tw-font-bold tw-text-vm-slate-500">Không tìm thấy bãi xe phù hợp.</div>
             )}
-          </section>
+          </section> : null}
 
-          <section className="tw-mx-auto tw-max-w-[1320px] tw-pb-6 tw-pt-3">
+          {detailMode ? <section className="tw-mx-auto tw-max-w-[1320px] tw-pb-6 tw-pt-10" id="pricing-rates">
             {error ? <p className="tw-mb-5 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-font-bold tw-text-red-600">{error}</p> : null}
-            {selectedParkingLot ? (
-              <div className="tw-mb-8 tw-rounded-[14px] tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-p-5 tw-shadow-[0_12px_30px_rgba(31,66,116,0.08)]">
-                <div className="tw-mb-5 tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
-                  <div>
-                    <p className="tw-m-0 tw-text-[0.7rem] tw-font-black tw-uppercase tw-tracking-[0.12em] tw-text-vm-primary">Đang xem bảng giá</p>
-                    <h2 className="tw-m-0 tw-mt-1 tw-text-[1.35rem] tw-font-black tw-text-vm-slate-900">{selectedParkingLot.name} · {selectedParkingLot.code}</h2>
-                  </div>
-                  {selectedParkingLot.status !== "ACTIVE" ? <span className="tw-rounded-full tw-bg-amber-50 tw-px-3 tw-py-1.5 tw-text-[0.72rem] tw-font-black tw-text-amber-700"><i className="fas fa-info-circle tw-mr-1.5" />Chỉ xem giá; bãi chưa nhận đăng ký</span> : null}
-                </div>
-                {availableVehicleTypes.length ? <VehicleFilterTabs options={availableVehicleTypes} selected={selectedVehicleTypeId} onChange={handleVehicleFilterChange} /> : <p className="tw-m-0 tw-rounded-vm-md tw-bg-vm-slate-50 tw-p-4 tw-text-center tw-font-bold tw-text-vm-slate-500">Bãi chưa công bố loại phương tiện phục vụ.</p>}
-              </div>
-            ) : null}
+
+            <div className="tw-mb-8">
+              {availableVehicleTypes.length ? <VehicleFilterTabs options={availableVehicleTypes} selected={selectedVehicleTypeId} onChange={handleVehicleFilterChange} /> : <p className="tw-m-0 tw-rounded-vm-md tw-bg-vm-slate-50 tw-p-4 tw-text-center tw-font-bold tw-text-vm-slate-500">Bãi chưa công bố loại phương tiện phục vụ.</p>}
+            </div>
+
             <div className="tw-grid tw-items-start tw-gap-7 min-[1180px]:tw-grid-cols-[300px_minmax(0,1fr)_424px]">
-              <header className="tw-pt-2">
-                <p className="tw-m-0 tw-text-[0.72rem] tw-font-black tw-uppercase tw-tracking-[0.15em] tw-text-vm-primary">Bảng giá minh bạch</p>
-                <h2 className="tw-m-0 tw-mt-4 tw-font-[Cambria] tw-text-[clamp(2rem,2.65vw,2.45rem)] tw-font-bold tw-leading-[1.12] tw-text-vm-slate-900"><span className="tw-block tw-whitespace-nowrap">Giá linh hoạt cho</span><span className="tw-block tw-whitespace-nowrap">từng nhu cầu</span></h2>
-                <span className="tw-mt-7 tw-block tw-h-px tw-w-14 tw-bg-[#c89b55]" />
-              </header>
+              <aside className="tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-border-brand-100 tw-bg-[linear-gradient(145deg,#ffffff,#f5f9ff)] tw-p-5 tw-shadow-[0_12px_30px_rgba(31,66,116,0.08)]">
+                <button className="tw-mb-5 tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.75rem] tw-font-black tw-text-vm-primary" onClick={() => navigate("/pricing")} type="button"><i className="fas fa-arrow-left tw-mr-2" />Tất cả bãi xe</button>
+                {selectedParkingLot ? (
+                  <>
+                    <p className="tw-m-0 tw-text-[0.68rem] tw-font-black tw-uppercase tw-tracking-[0.14em] tw-text-vm-primary">Chi tiết bảng giá</p>
+                    <h2 className="tw-m-0 tw-mt-3 tw-text-[1.3rem] tw-font-black tw-leading-7 tw-text-vm-slate-900">{selectedParkingLot.name}</h2>
+                    <p className="tw-m-0 tw-mt-1 tw-text-[0.72rem] tw-font-black tw-uppercase tw-tracking-[0.08em] tw-text-vm-primary">{selectedParkingLot.code}</p>
+                    <span className={`tw-mt-4 tw-inline-flex tw-rounded-full tw-px-3 tw-py-1.5 tw-text-[0.68rem] tw-font-black ${parkingLotStatusMeta(selectedParkingLot.status).className}`}>{parkingLotStatusMeta(selectedParkingLot.status).label}</span>
+                    <p className="tw-m-0 tw-mt-5 tw-text-[0.78rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-500"><i className="fas fa-map-marker-alt tw-mr-2 tw-text-vm-primary" />{selectedParkingLot.addressDisplay || "Chưa cập nhật địa chỉ"}</p>
+                    <div className="tw-mt-5 tw-border-0 tw-border-t tw-border-solid tw-border-brand-100 tw-pt-5">
+                      <span className="tw-block tw-text-[0.68rem] tw-font-black tw-uppercase tw-tracking-[0.08em] tw-text-vm-slate-500">Khoảng giá hiện hành</span>
+                      <strong className="tw-mt-2 tw-block tw-text-[1.1rem] tw-font-black tw-leading-6 tw-text-rose-600">{formatPriceRange(selectedParkingLot)}</strong>
+                    </div>
+                    <div className="tw-mt-4 tw-grid tw-gap-3 tw-rounded-[10px] tw-bg-white tw-p-4 tw-shadow-[inset_0_0_0_1px_rgba(191,219,254,0.65)]">
+                      <span className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-text-[0.75rem] tw-font-bold tw-text-vm-slate-500"><span><i className="fas fa-users tw-mr-2 tw-text-vm-primary" />Đã phục vụ</span><strong className="tw-text-vm-slate-900">{formatServedCount(selectedParkingLot.completedSessionCount)} lượt</strong></span>
+                      <span className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-text-[0.75rem] tw-font-bold tw-text-vm-slate-500"><span><i className="far fa-calendar-alt tw-mr-2 tw-text-vm-primary" />Hiệu lực</span><strong className="tw-text-right tw-text-vm-slate-900">{planStartLabel}</strong></span>
+                    </div>
+                  </>
+                ) : <div className="tw-h-64 tw-animate-pulse tw-rounded-[10px] tw-bg-vm-slate-100" />}
+              </aside>
+
               <section>
-                <PricingSectionHeading
-                  action={filteredVisitorRules.length > 2 ? (
-                    <button className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-px-3 tw-py-1.5 tw-text-[0.68rem] tw-font-black tw-text-vm-primary tw-shadow-[0_5px_12px_rgba(37,99,235,0.06)] hover:tw-border-brand-300 hover:tw-text-vm-primary-hover" type="button" onClick={() => setShowAllVisitorRules((value) => !value)}>
-                      {showAllVisitorRules ? "Thu gọn" : `Xem thêm (${filteredVisitorRules.length - 2})`} <i className={showAllVisitorRules ? "fas fa-chevron-up" : "fas fa-chevron-down"} />
-                    </button>
-                  ) : null}
-                  icon="far fa-user"
-                  subtitle="Theo lượt"
-                  title="Khách vãng lai"
-                />
+                <PricingSectionHeading icon="far fa-user" subtitle="Theo lượt" title="Khách vãng lai" />
                 <div className="tw-grid tw-gap-4 min-[640px]:tw-grid-cols-2">
-                  {visibleVisitorRules.length ? visibleVisitorRules.map((rule) => <PriceCard audience="VISITOR" key={rule.priceRuleId} rule={rule} />) : <EmptyPricing label={`Khách vãng lai - ${selectedVehicleLabel}`} />}
+                  {filteredVisitorRules.length ? filteredVisitorRules.map((rule) => <PriceCard audience="VISITOR" key={rule.priceRuleId} rule={rule} />) : <EmptyPricing label={`Khách vãng lai - ${selectedVehicleLabel}`} />}
                 </div>
               </section>
+
               <section>
-                <PricingSectionHeading
-                  action={filteredCustomerRules.length > 1 ? (
-                    <div className="tw-relative">
-                      <button
-                        aria-expanded={customerMenuOpen}
-                        aria-haspopup="listbox"
-                        className="tw-inline-flex tw-h-10 tw-w-[176px] tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-px-3.5 tw-text-left tw-text-[0.72rem] tw-font-bold tw-text-vm-slate-700 tw-shadow-[0_6px_16px_rgba(37,99,235,0.08)] tw-outline-none tw-transition hover:tw-border-brand-400 focus:tw-ring-2 focus:tw-ring-brand-100 max-[480px]:tw-w-[150px]"
-                        onClick={() => setCustomerMenuOpen((value) => !value)}
-                        type="button"
-                      >
-                        <span className="tw-truncate">{selectedCustomerRule?.ticketType?.name ?? selectedCustomerRule?.ruleName ?? "Chọn loại vé"}</span>
-                        <i className={`fas fa-chevron-down tw-text-[0.65rem] tw-text-vm-primary tw-transition ${customerMenuOpen ? "tw-rotate-180" : ""}`} />
-                      </button>
-                      {customerMenuOpen ? (
-                        <div className="tw-absolute tw-right-0 tw-top-[calc(100%+8px)] tw-z-40 tw-w-[250px] tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-1.5 tw-shadow-[0_18px_42px_rgba(31,66,116,0.2)] max-[480px]:tw-fixed max-[480px]:tw-left-4 max-[480px]:tw-right-4 max-[480px]:tw-w-auto" role="listbox" aria-label="Chọn gói vé đăng ký">
-                          {filteredCustomerRules.map((rule) => {
-                            const selected = rule.priceRuleId === selectedCustomerRule?.priceRuleId;
-                            return (
-                              <button
-                                aria-selected={selected}
-                                className={selected ? "tw-flex tw-w-full tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-border-0 tw-bg-brand-50 tw-px-3 tw-py-2.5 tw-text-left tw-text-[0.74rem] tw-font-black tw-text-vm-primary" : "tw-flex tw-w-full tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-px-3 tw-py-2.5 tw-text-left tw-text-[0.74rem] tw-font-bold tw-text-vm-slate-700 hover:tw-bg-vm-slate-50"}
-                                key={rule.priceRuleId}
-                                onClick={() => { setSelectedCustomerRuleId(rule.priceRuleId); setCustomerMenuOpen(false); }}
-                                role="option"
-                                type="button"
-                              >
-                                <span className="tw-min-w-0"><strong className="tw-block tw-truncate">{rule.ruleName}</strong><small className="tw-mt-0.5 tw-block tw-font-semibold tw-text-vm-slate-500">{formatCurrency(rule.basePrice)} {unitLabel("CUSTOMER", rule.unit, rule.ticketType)}</small></span>
-                                {selected ? <i className="fas fa-check tw-text-vm-primary" /> : null}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : null}
-                    </div>
+                <div className="tw-mb-4 tw-flex tw-items-end tw-justify-between tw-gap-3">
+                  <div>
+                    <PricingSectionHeading icon="far fa-id-card" subtitle="Vé theo chu kỳ" title="Khách đăng ký" />
+                    {vehicleCustomerRules.length ? <button className="tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.75rem] tw-font-black tw-text-vm-primary hover:tw-underline" onClick={() => setShowAllCustomerRules(true)} type="button">Xem tất cả <i className="fas fa-arrow-right tw-ml-1" /></button> : null}
+                  </div>
+                  {availableCustomerTicketTypes.length ? (
+                    <label className="tw-flex tw-min-w-[150px] tw-flex-col tw-gap-1">
+                      <span className="tw-text-[0.65rem] tw-font-black tw-uppercase tw-tracking-[0.07em] tw-text-vm-slate-500">Loại vé</span>
+                      <select className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-px-3 tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-800 tw-outline-none focus:tw-border-vm-primary" onChange={(event) => setSelectedTicketTypeId(event.target.value)} value={selectedTicketTypeId}>
+                        {availableCustomerTicketTypes.map((ticketType) => <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>{ticketType.name}</option>)}
+                      </select>
+                    </label>
                   ) : null}
-                  icon="far fa-id-card"
-                  subtitle="Vé theo chu kỳ"
-                  title="Khách đăng ký"
-                />
-                {selectedCustomerRule ? <PriceCard audience="CUSTOMER" featured registrationDisabled={selectedParkingLot?.status !== "ACTIVE"} registrationParkingLotId={selectedParkingLot?.parkingLotId} rule={selectedCustomerRule} /> : <EmptyPricing label={`Khách đăng ký - ${selectedVehicleLabel}`} />}
+                </div>
+                <div className="tw-grid tw-gap-4">
+                  {filteredCustomerRules.length ? <PriceCard audience="CUSTOMER" key={filteredCustomerRules[0].priceRuleId} registrationDisabled={selectedParkingLot?.status !== "ACTIVE"} registrationParkingLotId={selectedParkingLot?.parkingLotId} rule={filteredCustomerRules[0]} /> : <EmptyPricing label={`Khách đăng ký - ${selectedVehicleLabel}`} />}
+                </div>
               </section>
             </div>
-          </section>
+          </section> : null}
+
+          <Modal
+            description={`Các gói vé đăng ký dành cho ${selectedVehicleLabel}.`}
+            onClose={() => setShowAllCustomerRules(false)}
+            open={showAllCustomerRules}
+            title="Tất cả vé đăng ký"
+            width="xl"
+          >
+            <div className="tw-mb-6">
+              <VehicleFilterTabs options={availableVehicleTypes} selected={selectedVehicleTypeId} onChange={setSelectedVehicleTypeId} />
+            </div>
+            {vehicleCustomerRules.length ? (
+              <div className="tw-grid tw-items-start tw-gap-4 min-[640px]:tw-grid-cols-2 min-[1000px]:tw-grid-cols-4">
+                {vehicleCustomerRules.map((rule) => <PriceCard audience="CUSTOMER" key={rule.priceRuleId} registrationDisabled={selectedParkingLot?.status !== "ACTIVE"} registrationParkingLotId={selectedParkingLot?.parkingLotId} rule={rule} />)}
+              </div>
+            ) : <EmptyPricing label={`Khách đăng ký - ${selectedVehicleLabel}`} />}
+          </Modal>
 
           <section className="tw-mx-auto tw-grid tw-max-w-[1240px] tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-shadow-[0_12px_28px_rgba(31,66,116,0.08)] min-[768px]:tw-grid-cols-4">
             {trustItems.map((item) => (

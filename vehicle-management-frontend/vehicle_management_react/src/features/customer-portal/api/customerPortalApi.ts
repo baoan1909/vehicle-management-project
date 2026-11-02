@@ -303,6 +303,7 @@ export async function getMySubscriptionInvoice(subscriptionId: string) {
 export async function getCustomerPortalVoucherBanners() {
   const response = await apiClient<ApiResponse<CustomerPortalVoucherBanner[]>>(
     apiEndpoints.catalog.customerVoucherBanners,
+    { skipAuth: true },
   );
   return response.data ?? [];
 }

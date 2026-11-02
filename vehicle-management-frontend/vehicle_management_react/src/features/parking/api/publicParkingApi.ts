@@ -50,6 +50,9 @@ export type PublicParkingLotDirectoryItem = {
   totalCapacity: number;
   visitorAvailable: number;
   hasAvailability: boolean;
+  minimumPrice: number | null;
+  maximumPrice: number | null;
+  completedSessionCount: number;
   snapshotAt: string;
   vehicleTypes: PublicParkingLotVehicleAvailability[];
 };

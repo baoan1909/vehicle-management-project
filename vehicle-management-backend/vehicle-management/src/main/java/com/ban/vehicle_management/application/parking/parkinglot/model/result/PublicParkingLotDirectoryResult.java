@@ -17,6 +17,9 @@ public record PublicParkingLotDirectoryResult(
         long totalCapacity,
         long visitorAvailable,
         boolean hasAvailability,
+        BigDecimal minimumPrice,
+        BigDecimal maximumPrice,
+        long completedSessionCount,
         Instant snapshotAt,
         List<VehicleTypeAvailability> vehicleTypes
 ) {

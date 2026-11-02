@@ -139,6 +139,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/", title: "Gioi thieu CoParking", layout: "client", element: <AboutPage /> },
   { path: "/parking-lots/nearby", title: "Tìm bãi xe gần tôi", layout: "client", element: <NearbyParkingLotsPage /> },
   { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },
+  { path: "/pricing/:parkingLotId", title: "Chi tiet bang gia bai xe", layout: "client", element: <PricingPage /> },
   { path: "/guide", title: "Huong dan", layout: "client", element: <GuidePage /> },
   { path: "/help", title: "Trợ giúp công khai", layout: "client", element: <GuestSupportPage /> },
   { path: "/guide/:code", title: "Hướng dẫn sử dụng", layout: "client", element: <UserGuidePublicPage /> },

@@ -9,7 +9,7 @@ type ModalProps = {
   onClose: () => void;
   open: boolean;
   title: string;
-  width?: "sm" | "md" | "lg";
+  width?: "sm" | "md" | "lg" | "xl";
 };
 
 export function Modal({ actions, children, description, onClose, open, title, width = "md" }: ModalProps) {
@@ -65,6 +65,7 @@ export function Modal({ actions, children, description, onClose, open, title, wi
     sm: "tw-w-[min(100%,420px)]",
     md: "tw-w-[min(100%,520px)]",
     lg: "tw-w-[min(100%,720px)]",
+    xl: "tw-w-[min(100%,1240px)]",
   }[width];
 
   return (
