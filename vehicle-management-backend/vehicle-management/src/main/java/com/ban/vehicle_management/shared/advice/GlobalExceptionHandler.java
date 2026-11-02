@@ -26,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.access.AccessDeniedException;
+import com.ban.vehicle_management.shared.exception.ScopedAccessDeniedException;
 import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindException;
@@ -287,6 +288,23 @@ public class GlobalExceptionHandler {
                 "Phiên đăng nhập không hợp lệ hoặc đã hết hạn",
                 request.getRequestURI()
         );
+    }
+
+    @ExceptionHandler(ScopedAccessDeniedException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleScopedAccessDeniedException(
+            ScopedAccessDeniedException exception,
+            HttpServletRequest request
+    ) {
+        LOGGER.warn("Scoped access denied at {} [{}]: {}", request.getRequestURI(), exception.code(), exception.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.fail(
+                exception.getMessage(),
+                Map.of(
+                        "status", HttpStatus.FORBIDDEN.value(),
+                        "error", HttpStatus.FORBIDDEN.getReasonPhrase(),
+                        "code", exception.code(),
+                        "path", request.getRequestURI()
+                )
+        ));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

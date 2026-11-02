@@ -6,6 +6,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.ope
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.AddressInputScheme;
 import com.ban.vehicle_management.shared.enumeration.parking.GeocodingStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotManagementState;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
@@ -76,6 +77,13 @@ public class ParkingLotEntity extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private ParkingLotStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "management_state", nullable = false)
+    private ParkingLotManagementState managementState;
+
+    @Column(name = "management_revision", nullable = false)
+    private Long managementRevision;
 
     @Column(name = "activation_requested_at")
     private Instant activationRequestedAt;

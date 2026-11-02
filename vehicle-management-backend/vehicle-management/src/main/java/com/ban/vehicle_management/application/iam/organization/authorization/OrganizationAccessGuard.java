@@ -7,6 +7,8 @@ import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.ScopedAccessDeniedException;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotManagementState;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -117,6 +119,11 @@ public class OrganizationAccessGuard {
     /** Operational writes are reserved for the owning Partner or an assigned Manager. */
     public void ensureCanOperateParkingLot(ParkingLot parkingLot) {
         ensureCanAccessParkingLot(parkingLot);
+        if (ParkingLotManagementState.OPERATION_SUSPENDED.equals(parkingLot.getManagementState())) {
+            throw new ScopedAccessDeniedException(
+                    "PARKING_LOT_OPERATION_SUSPENDED",
+                    "Parking lot operations are suspended");
+        }
         Set<String> permissions = currentAccountPortIn.getCurrentAccountOrThrow().getEffectivePermissionCodes();
         if (!permissions.contains(PARKING_SCOPE_PARTNER)
                 && !permissions.contains(PARKING_SCOPE_ASSIGNED)) {

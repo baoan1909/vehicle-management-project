@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.people.employee.authorization;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.authorization.ParkingLotScopeResolver;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
@@ -24,6 +25,7 @@ public class EmployeeAccessGuard {
     private final OrganizationPortOut organizationPortOut;
     private final OrganizationAccessGuard organizationAccessGuard;
     private final ParkingLotPortOut parkingLotPortOut;
+    private final ParkingLotScopeResolver parkingLotScopeResolver;
 
     public EmployeeAccessGuard(
             CurrentAccountPortIn currentAccountPortIn,
@@ -31,7 +33,8 @@ public class EmployeeAccessGuard {
             EmployeePortOut employeePortOut,
             OrganizationPortOut organizationPortOut,
             OrganizationAccessGuard organizationAccessGuard,
-            ParkingLotPortOut parkingLotPortOut
+            ParkingLotPortOut parkingLotPortOut,
+            ParkingLotScopeResolver parkingLotScopeResolver
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.internalEmployeeApprovalPortOut = internalEmployeeApprovalPortOut;
@@ -39,6 +42,7 @@ public class EmployeeAccessGuard {
         this.organizationPortOut = organizationPortOut;
         this.organizationAccessGuard = organizationAccessGuard;
         this.parkingLotPortOut = parkingLotPortOut;
+        this.parkingLotScopeResolver = parkingLotScopeResolver;
     }
 
     public void ensureCanRead(Employee employee) {
@@ -58,7 +62,7 @@ public class EmployeeAccessGuard {
         if (hasAssignedScope(currentAccount)
                 && AdminProvisionableAccountRoleCode.EMPLOYEE.name().equals(targetRole)
                 && hasParkingLotAssignment(currentAccount)
-                && sharesActiveOrganization(currentAccount, employee)) {
+                && canCurrentManagerAccessEmployee(currentAccount, employee)) {
             return;
         }
         throw new AccessDeniedException("Access is denied");
@@ -95,7 +99,7 @@ public class EmployeeAccessGuard {
         return hasAssignedScope(currentAccount)
                 && hasParkingLotAssignment(currentAccount)
                 && isEmployeeTarget(employee)
-                && sharesActiveOrganization(currentAccount, employee);
+                && canCurrentManagerAccessEmployee(currentAccount, employee);
     }
 
     private boolean hasAssignedScope(CurrentAccountAccess currentAccount) {
@@ -137,6 +141,12 @@ public class EmployeeAccessGuard {
 
     private boolean isEmployeeTarget(Employee employee) {
         return AdminProvisionableAccountRoleCode.EMPLOYEE.name().equals(resolveTargetRole(employee));
+    }
+
+    private boolean canCurrentManagerAccessEmployee(CurrentAccountAccess currentAccount, Employee employee) {
+        return employee != null
+                && employee.getEmployeeId() != null
+                && parkingLotScopeResolver.canManageEmployee(currentAccount.accountId(), employee.getEmployeeId());
     }
 
     private String resolveTargetRole(Employee employee) {
