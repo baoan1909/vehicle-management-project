@@ -7,13 +7,17 @@ const pricingApiPath = new URL("../src/features/pricing/api/pricingApi.ts", impo
 const endpointsPath = new URL("../src/core/api/apiEndpoints.ts", import.meta.url);
 const subscriptionPagePath = new URL("../src/features/customer-portal/pages/SubscriptionPage.tsx", import.meta.url);
 const routesPath = new URL("../src/app/routes.tsx", import.meta.url);
-const [page, parkingApi, pricingApi, endpoints, subscriptionPage, routes] = await Promise.all([
+const favoritesPath = new URL("../src/features/customer-portal/storage/favoriteParkingLots.ts", import.meta.url);
+const favoriteApiPath = new URL("../src/features/customer-portal/api/favoriteParkingLotApi.ts", import.meta.url);
+const [page, parkingApi, pricingApi, endpoints, subscriptionPage, routes, favorites, favoriteApi] = await Promise.all([
   readFile(pagePath, "utf8"),
   readFile(parkingApiPath, "utf8"),
   readFile(pricingApiPath, "utf8"),
   readFile(endpointsPath, "utf8"),
   readFile(subscriptionPagePath, "utf8"),
   readFile(routesPath, "utf8"),
+  readFile(favoritesPath, "utf8"),
+  readFile(favoriteApiPath, "utf8"),
 ]);
 
 assert.match(endpoints, /parkingLotDirectory: "\/public\/parking-lots\/directory"/);
@@ -27,6 +31,11 @@ assert.match(page, /getPublicParkingLotDirectory\(\)/);
 assert.match(page, /getPublicPricePlans\(\{[\s\S]*parkingLotId: selectedParkingLotId/);
 assert.match(page, /getPublicPriceRules\(\{ isActive: true, parkingLotId: selectedParkingLotId \}\)/);
 assert.match(page, /min-\[1100px\]:tw-grid-cols-4/);
+assert.match(page, /tw-overflow-x-hidden tw-bg-\[#f7faff\]/);
+assert.match(page, /tw-overflow-x-auto[\s\S]*\[scrollbar-width:none\]/);
+assert.match(page, /tw-min-w-\[132px\][\s\S]*min-\[641px\]:tw-flex-1/);
+assert.match(page, /min-\[700px\]:tw-grid-cols-2/);
+assert.match(page, /max-\[639px\]:tw-flex-col max-\[639px\]:tw-items-stretch/);
 assert.match(page, /filter\(\(lot\) => lot\.status === "ACTIVE"\)/);
 assert.match(page, /formatPriceRange\(lot\)/);
 assert.match(page, /Đã phục vụ \{formatServedCount\(lot\.completedSessionCount\)\} lượt/);
@@ -55,5 +64,19 @@ assert.match(subscriptionPage, /const parkingLotIdFromUrl = searchParams\.get\("
 assert.match(subscriptionPage, /void changeParkingLot\(parkingLotIdFromUrl\)/);
 assert.match(page, /navigator\.geolocation\.getCurrentPosition/);
 assert.match(page, /Chưa có quyền GPS; bạn vẫn có thể xem và chọn bãi theo danh sách/);
+assert.match(page, /aria-pressed=\{favorite\}/);
+assert.match(page, /toggleFavoriteParkingLot/);
+assert.match(page, /Bãi yêu thích/);
+assert.match(page, /!favoriteOnly \|\| favoriteParkingLotIds\.has\(lot\.parkingLotId\)/);
+assert.match(favorites, /coparking:favorite-parking-lots:v1/);
+assert.match(favorites, /window\.localStorage\.setItem/);
+assert.match(endpoints, /customerFavoriteParkingLots: "\/people\/customers\/me\/favorite-parking-lots"/);
+assert.match(favoriteApi, /getMyFavoriteParkingLotIds/);
+assert.match(favoriteApi, /setMyFavoriteParkingLot/);
+assert.match(favoriteApi, /body: \{ favorite \}/);
+assert.match(page, /canPersistFavorites = user\?\.role === "CUSTOMER"/);
+assert.match(page, /setMyFavoriteParkingLot\(parkingLotIdToToggle, nextFavorite\)/);
+assert.match(page, /clearFavoriteParkingLotIds\("anonymous"\)/);
+assert.match(page, /favoritePending=/);
 
-console.log("Public pricing directory, per-lot pricing, status, GPS fallback, and registration guard checks passed.");
+console.log("Public pricing directory, responsive layout, persistent favorites, per-lot pricing, status, GPS fallback, and registration guard checks passed.");

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { useAuth } from "@/core/auth/useAuth";
+import { useToast } from "@/components/ui";
 import { ClientPage } from "@/shared/components/layout/ClientPage";
 import { Modal } from "@/shared/components/ui/Modal";
 import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
@@ -23,6 +25,16 @@ import {
   getCustomerPortalVoucherBanners,
   type CustomerPortalVoucherBanner,
 } from "@/features/customer-portal/api/customerPortalApi";
+import {
+  getMyFavoriteParkingLotIds,
+  setMyFavoriteParkingLot,
+} from "@/features/customer-portal/api/favoriteParkingLotApi";
+import {
+  clearFavoriteParkingLotIds,
+  favoriteParkingLotStorageKey,
+  readFavoriteParkingLotIds,
+  writeFavoriteParkingLotIds,
+} from "@/features/customer-portal/storage/favoriteParkingLots";
 
 import { PublicFooter } from "./PortalShared";
 
@@ -254,7 +266,7 @@ function PriceCard({ audience, featured = false, registrationDisabled = false, r
   if (subscription) {
     return (
       <div className="tw-relative" onBlur={deactivateCard} onFocus={activateCard} onPointerEnter={activateCard} onPointerLeave={deactivateCard} style={{ zIndex: cardActive ? 30 : undefined }}>
-      <article className="tw-relative tw-isolate tw-min-h-[248px] tw-transform-gpu tw-overflow-hidden tw-rounded-[9px] tw-border-2 tw-border-solid tw-border-[#176cff] tw-bg-[radial-gradient(circle_at_0%_0%,rgba(106,172,255,0.25),transparent_31%),radial-gradient(circle_at_96%_7%,rgba(29,99,235,0.16),transparent_34%),linear-gradient(145deg,#08264d_0%,#04162f_66%,#03142c_100%)] tw-p-4 tw-text-white tw-shadow-[0_0_0_1px_rgba(54,129,255,0.2),0_18px_36px_rgba(5,27,64,0.28),inset_1px_1px_0_rgba(205,230,255,0.2)] tw-outline-none tw-transition-all tw-duration-300 tw-ease-out tw-will-change-transform focus-visible:tw-ring-2 focus-visible:tw-ring-brand-200" style={{ boxShadow: cardActive ? "0 20px 40px rgba(5,27,64,0.32), 0 0 0 1px rgba(54,129,255,0.28)" : undefined, transform: cardActive ? "translate3d(0, -11px, 0)" : "translate3d(0, 0, 0)" }} tabIndex={0}>
+      <article className="tw-relative tw-isolate tw-min-h-[248px] tw-transform-gpu tw-overflow-hidden tw-rounded-[9px] tw-border-2 tw-border-solid tw-border-[#176cff] tw-bg-[radial-gradient(circle_at_0%_0%,rgba(106,172,255,0.25),transparent_31%),radial-gradient(circle_at_96%_7%,rgba(29,99,235,0.16),transparent_34%),linear-gradient(145deg,#08264d_0%,#04162f_66%,#03142c_100%)] tw-p-4 tw-text-white tw-shadow-[0_0_0_1px_rgba(54,129,255,0.2),0_18px_36px_rgba(5,27,64,0.28),inset_1px_1px_0_rgba(205,230,255,0.2)] tw-outline-none tw-transition-all tw-duration-300 tw-ease-out tw-will-change-transform focus-visible:tw-ring-2 focus-visible:tw-ring-brand-200 max-[420px]:tw-p-3.5" style={{ boxShadow: cardActive ? "0 20px 40px rgba(5,27,64,0.32), 0 0 0 1px rgba(54,129,255,0.28)" : undefined, transform: cardActive ? "translate3d(0, -11px, 0)" : "translate3d(0, 0, 0)" }} tabIndex={0}>
         <span aria-hidden="true" className="tw-pointer-events-none tw-absolute tw-inset-[1px] tw-rounded-[6px] tw-border tw-border-solid tw-border-white/[0.055]" />
         <span aria-hidden="true" className="tw-pointer-events-none tw-absolute -tw-left-[2px] -tw-top-[2px] tw-h-5 tw-w-5 tw-rounded-tl-[9px] tw-border-0 tw-border-l-2 tw-border-t-2 tw-border-solid tw-border-[#c6e3ff]" />
         <span
@@ -280,8 +292,8 @@ function PriceCard({ audience, featured = false, registrationDisabled = false, r
         ) : null}
         <p className="tw-relative tw-m-0 tw-text-[0.65rem] tw-font-black tw-uppercase tw-tracking-[0.14em] tw-text-brand-200">Gói gửi xe theo chu kỳ</p>
         <h3 className="tw-relative tw-m-0 tw-mt-2 tw-pr-36 tw-text-[1rem] tw-font-black tw-text-white max-[480px]:tw-pr-0">{rule.ruleName || ticketName}</h3>
-        <div className="tw-relative tw-mt-3 tw-flex tw-items-baseline tw-gap-2">
-          <strong className="tw-text-[2.45rem] tw-font-black tw-leading-none tw-tracking-[-0.035em] tw-text-[#72a7ff]">{formatCurrency(rule.basePrice)}</strong>
+        <div className="tw-relative tw-mt-3 tw-flex tw-flex-wrap tw-items-baseline tw-gap-2">
+          <strong className="tw-text-[clamp(1.9rem,9vw,2.45rem)] tw-font-black tw-leading-none tw-tracking-[-0.035em] tw-text-[#72a7ff]">{formatCurrency(rule.basePrice)}</strong>
           <span className="tw-text-[0.9rem] tw-font-bold tw-text-slate-300">{unitLabel(audience, rule.unit, rule.ticketType)}</span>
         </div>
         <div className="tw-relative tw-mt-3 tw-grid tw-grid-cols-3 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-white/20 tw-pt-3 max-[480px]:tw-grid-cols-1">
@@ -343,33 +355,40 @@ function PriceCard({ audience, featured = false, registrationDisabled = false, r
 
 function ParkingLotCard({
   distance,
+  favorite,
+  favoritePending,
   lot,
+  onToggleFavorite,
   voucher,
 }: {
   distance: number | null;
+  favorite: boolean;
+  favoritePending: boolean;
   lot: PublicParkingLotDirectoryItem;
+  onToggleFavorite: (parkingLotId: string) => void;
   voucher?: CustomerPortalVoucherBanner;
 }) {
   const status = parkingLotStatusMeta(lot.status);
   return (
-    <Link
-      className="tw-group tw-relative tw-flex tw-min-h-[360px] tw-w-full tw-flex-col tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-0 tw-text-left tw-shadow-[0_14px_34px_rgba(31,66,116,0.09)] tw-transition hover:-tw-translate-y-1 hover:tw-text-inherit hover:tw-no-underline hover:tw-shadow-[0_20px_42px_rgba(31,66,116,0.15)] focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-vm-primary"
-      to={`/pricing/${lot.parkingLotId}`}
-    >
-      <span className="tw-relative tw-flex tw-h-[132px] tw-w-full tw-items-end tw-overflow-hidden tw-bg-[#071b39] tw-p-4">
+    <article className="tw-relative">
+      <Link
+        className="tw-group tw-relative tw-flex tw-min-h-[340px] tw-w-full tw-flex-col tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-0 tw-text-left tw-shadow-[0_14px_34px_rgba(31,66,116,0.09)] tw-transition hover:-tw-translate-y-1 hover:tw-text-inherit hover:tw-no-underline hover:tw-shadow-[0_20px_42px_rgba(31,66,116,0.15)] focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-vm-primary min-[480px]:tw-min-h-[360px]"
+        to={`/pricing/${lot.parkingLotId}`}
+      >
+      <span className="tw-relative tw-flex tw-h-[116px] tw-w-full tw-items-end tw-overflow-hidden tw-bg-[#071b39] tw-p-3 min-[480px]:tw-h-[132px] min-[480px]:tw-p-4">
         <img alt="" aria-hidden="true" className="tw-absolute tw-inset-0 tw-h-full tw-w-full tw-object-cover tw-opacity-60 tw-transition tw-duration-300 group-hover:tw-scale-105" src="/assets/customer/pricing-hero-smart-parking.png" />
         <span aria-hidden="true" className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(180deg,rgba(3,20,44,0.08),rgba(3,20,44,0.85))]" />
         <span aria-hidden="true" className="tw-absolute -tw-right-5 -tw-top-7 tw-h-28 tw-w-28 tw-rounded-full tw-border-[22px] tw-border-solid tw-border-white/10" />
         <span className="tw-relative tw-grid tw-h-11 tw-w-11 tw-place-items-center tw-rounded-[10px] tw-bg-white tw-text-xl tw-font-black tw-text-vm-primary tw-shadow-lg">P</span>
         <span className={`tw-relative tw-ml-auto tw-rounded-full tw-px-3 tw-py-1 tw-text-[0.68rem] tw-font-black ${status.className}`}>{status.label}</span>
       </span>
-      <span className="tw-flex tw-min-h-0 tw-flex-1 tw-w-full tw-flex-col tw-p-4">
-        <span className="tw-flex tw-items-start tw-justify-between tw-gap-3">
+      <span className="tw-flex tw-min-h-0 tw-flex-1 tw-w-full tw-flex-col tw-p-3.5 min-[480px]:tw-p-4">
+        <span className="tw-flex tw-items-start tw-justify-between tw-gap-3 max-[360px]:tw-flex-col">
           <span className="tw-min-w-0">
             <strong className="tw-block tw-truncate tw-text-[0.98rem] tw-font-black tw-text-vm-slate-900">{lot.name}</strong>
             <small className="tw-mt-1 tw-block tw-text-[0.66rem] tw-font-black tw-uppercase tw-tracking-[0.08em] tw-text-vm-primary">{lot.code}</small>
           </span>
-          <span className="tw-flex-none tw-rounded-full tw-bg-brand-50 tw-px-2.5 tw-py-1 tw-text-[0.7rem] tw-font-black tw-text-vm-primary"><i className="fas fa-location-arrow tw-mr-1" />{formatDistance(distance)}</span>
+          <span className="tw-flex-none tw-rounded-full tw-bg-brand-50 tw-px-2.5 tw-py-1 tw-text-[0.7rem] tw-font-black tw-text-vm-primary max-[360px]:tw-self-start"><i className="fas fa-location-arrow tw-mr-1" />{formatDistance(distance)}</span>
         </span>
         <span className="tw-mt-3 tw-line-clamp-2 tw-min-h-10 tw-text-[0.76rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500"><i className="fas fa-map-marker-alt tw-mr-2 tw-text-vm-primary" />{lot.addressDisplay || "Chưa cập nhật địa chỉ"}</span>
         <span className="tw-mt-3 tw-flex tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-pt-3">
@@ -396,7 +415,19 @@ function ParkingLotCard({
           )) : <span className="tw-text-[0.68rem] tw-font-semibold tw-text-vm-slate-400">Chưa công bố loại phương tiện</span>}
         </span>
       </span>
-    </Link>
+      </Link>
+      <button
+        aria-label={favorite ? `Bỏ ${lot.name} khỏi danh sách yêu thích` : `Thêm ${lot.name} vào danh sách yêu thích`}
+        aria-pressed={favorite}
+        className={`tw-absolute tw-right-4 tw-top-4 tw-z-20 tw-grid tw-h-10 tw-w-10 tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-shadow-[0_8px_20px_rgba(3,20,44,0.2)] tw-backdrop-blur-md tw-transition hover:tw-scale-105 focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-white disabled:tw-cursor-wait disabled:tw-opacity-70 ${favorite ? "tw-border-rose-200 tw-bg-rose-50 tw-text-rose-600" : "tw-border-white/60 tw-bg-slate-950/35 tw-text-white hover:tw-bg-white hover:tw-text-rose-500"}`}
+        disabled={favoritePending}
+        onClick={() => onToggleFavorite(lot.parkingLotId)}
+        title={favorite ? "Bỏ khỏi bãi xe yêu thích" : "Thêm vào bãi xe yêu thích"}
+        type="button"
+      >
+        <i className={favoritePending ? "fas fa-spinner fa-spin" : favorite ? "fas fa-heart" : "far fa-heart"} />
+      </button>
+    </article>
   );
 }
 
@@ -412,7 +443,7 @@ function EmptyPricing({ label }: { label: string }) {
 
 function PricingSectionHeading({ action, icon, title }: { action?: ReactNode; icon: string; subtitle?: string; title: string }) {
   return (
-    <div className="tw-mb-4 tw-flex tw-min-h-10 tw-items-center tw-justify-between tw-gap-3">
+    <div className="tw-mb-4 tw-flex tw-min-h-10 tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
       <div className="tw-flex tw-items-center tw-gap-3">
         <span className="tw-grid tw-h-9 tw-w-9 tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-text-[1.05rem] tw-text-vm-primary tw-shadow-[0_6px_16px_rgba(37,99,235,0.08)]"><i className={icon} /></span>
         <h2 className="tw-m-0 tw-text-[1.12rem] tw-font-black tw-text-vm-slate-900">{title}</h2>
@@ -424,14 +455,14 @@ function PricingSectionHeading({ action, icon, title }: { action?: ReactNode; ic
 
 function VehicleFilterTabs({ options, selected, onChange }: { options: VehicleTypeApiResponse[]; selected: string; onChange: (value: string) => void }) {
   return (
-    <div className="tw-relative tw-z-10 tw-mx-auto tw-flex tw-w-full tw-max-w-[720px] tw-flex-wrap tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-2 tw-shadow-[0_15px_35px_rgba(31,66,116,0.15)] max-[640px]:tw-flex-col">
-      <span className="tw-flex tw-items-center tw-px-5 tw-text-[0.85rem] tw-font-bold tw-text-vm-slate-700 max-[640px]:tw-justify-center">Chọn phương tiện</span>
+    <div className="tw-relative tw-z-10 tw-mx-auto tw-flex tw-w-full tw-max-w-[720px] tw-overflow-x-auto tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-2 tw-shadow-[0_15px_35px_rgba(31,66,116,0.15)] [scrollbar-width:none] [&::-webkit-scrollbar]:tw-hidden">
+      <span className="tw-flex tw-flex-none tw-items-center tw-whitespace-nowrap tw-px-5 tw-text-[0.85rem] tw-font-bold tw-text-vm-slate-700 max-[640px]:tw-hidden">Chọn phương tiện</span>
       {options.map((option) => {
         const active = selected === option.vehicleTypeId;
         return (
           <button
             aria-selected={active}
-            className={active ? "tw-flex tw-min-h-[52px] tw-flex-1 tw-items-center tw-justify-center tw-gap-3 tw-rounded-vm-md tw-border-0 tw-bg-[linear-gradient(135deg,#1557dd,#1875ff)] tw-px-3 tw-text-[0.9rem] tw-font-black tw-text-white tw-shadow-[0_10px_22px_rgba(37,99,235,0.28)]" : "tw-flex tw-min-h-[52px] tw-flex-1 tw-items-center tw-justify-center tw-gap-3 tw-rounded-vm-md tw-border-0 tw-border-l tw-border-solid tw-border-vm-slate-100 tw-bg-transparent tw-px-3 tw-text-[0.9rem] tw-font-black tw-text-vm-slate-700 tw-transition hover:tw-bg-brand-50 hover:tw-text-vm-primary"}
+            className={active ? "tw-flex tw-min-h-[52px] tw-min-w-[132px] tw-flex-none tw-items-center tw-justify-center tw-gap-3 tw-whitespace-nowrap tw-rounded-vm-md tw-border-0 tw-bg-[linear-gradient(135deg,#1557dd,#1875ff)] tw-px-3 tw-text-[0.9rem] tw-font-black tw-text-white tw-shadow-[0_10px_22px_rgba(37,99,235,0.28)] min-[641px]:tw-min-w-0 min-[641px]:tw-flex-1" : "tw-flex tw-min-h-[52px] tw-min-w-[132px] tw-flex-none tw-items-center tw-justify-center tw-gap-3 tw-whitespace-nowrap tw-rounded-vm-md tw-border-0 tw-border-l tw-border-solid tw-border-vm-slate-100 tw-bg-transparent tw-px-3 tw-text-[0.9rem] tw-font-black tw-text-vm-slate-700 tw-transition hover:tw-bg-brand-50 hover:tw-text-vm-primary min-[641px]:tw-min-w-0 min-[641px]:tw-flex-1"}
             key={option.vehicleTypeId}
             onClick={() => onChange(option.vehicleTypeId)}
             role="tab"
@@ -446,12 +477,18 @@ function VehicleFilterTabs({ options, selected, onChange }: { options: VehicleTy
 }
 
 export function PricingPage() {
+  const { user } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const { parkingLotId } = useParams<{ parkingLotId?: string }>();
   const detailMode = Boolean(parkingLotId);
   const [parkingLots, setParkingLots] = useState<PublicParkingLotDirectoryItem[]>([]);
   const selectedParkingLotId = parkingLotId ?? "";
   const [parkingLotKeyword, setParkingLotKeyword] = useState("");
+  const favoriteOwnerId = user?.id ?? "anonymous";
+  const [favoriteParkingLotIds, setFavoriteParkingLotIds] = useState<Set<string>>(new Set());
+  const [pendingFavoriteParkingLotIds, setPendingFavoriteParkingLotIds] = useState<Set<string>>(new Set());
+  const [favoriteOnly, setFavoriteOnly] = useState(false);
   const [vouchers, setVouchers] = useState<CustomerPortalVoucherBanner[]>([]);
   const [browserCoordinates, setBrowserCoordinates] = useState<BrowserCoordinates | null>(null);
   const [locationMessage, setLocationMessage] = useState("Đang xác định vị trí để sắp xếp bãi gần bạn...");
@@ -492,6 +529,72 @@ export function PricingPage() {
     void loadDirectory();
     return () => { ignore = true; };
   }, []);
+
+  const canPersistFavorites = user?.role === "CUSTOMER";
+
+  useEffect(() => {
+    let ignore = false;
+    const key = favoriteParkingLotStorageKey(favoriteOwnerId);
+    const refreshFavorites = () => setFavoriteParkingLotIds(readFavoriteParkingLotIds(favoriteOwnerId));
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === key) refreshFavorites();
+    };
+
+    if (canPersistFavorites && user) {
+      const authenticatedCustomerId = user.id;
+      async function loadPersistentFavorites() {
+        const localFavorites = new Set([
+          ...readFavoriteParkingLotIds("anonymous"),
+          ...readFavoriteParkingLotIds(authenticatedCustomerId),
+        ]);
+        try {
+          const serverFavorites = await getMyFavoriteParkingLotIds();
+          const importedFavorites = new Set<string>();
+          const pendingImports = new Set<string>();
+          if (localFavorites.size) {
+            const importResults = await Promise.allSettled([...localFavorites].map((parkingLotIdToImport) => (
+              setMyFavoriteParkingLot(parkingLotIdToImport, true)
+            )));
+            [...localFavorites].forEach((parkingLotIdToImport, index) => {
+              if (importResults[index]?.status === "fulfilled") {
+                importedFavorites.add(parkingLotIdToImport);
+              } else {
+                pendingImports.add(parkingLotIdToImport);
+              }
+            });
+          }
+          if (ignore) return;
+          setFavoriteParkingLotIds(new Set([...serverFavorites, ...importedFavorites, ...pendingImports]));
+          clearFavoriteParkingLotIds("anonymous");
+          clearFavoriteParkingLotIds(authenticatedCustomerId);
+          if (pendingImports.size) {
+            writeFavoriteParkingLotIds(authenticatedCustomerId, pendingImports);
+            toast.warning(
+              "Một số bãi yêu thích cũ sẽ được đồng bộ lại trong lần truy cập sau.",
+              "Đồng bộ yêu thích chưa hoàn tất",
+            );
+          }
+        } catch {
+          if (ignore) return;
+          setFavoriteParkingLotIds(localFavorites);
+          toast.warning(
+            "Danh sách yêu thích đang dùng dữ liệu tạm trên thiết bị này.",
+            "Chưa đồng bộ được bãi yêu thích",
+          );
+        }
+      }
+
+      void loadPersistentFavorites();
+      return () => { ignore = true; };
+    }
+
+    refreshFavorites();
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      ignore = true;
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [canPersistFavorites, favoriteOwnerId, toast, user]);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -567,6 +670,7 @@ export function PricingPage() {
     const keyword = normalizeSearchText(parkingLotKeyword.trim());
     return parkingLots
       .filter((lot) => lot.status === "ACTIVE")
+      .filter((lot) => !favoriteOnly || favoriteParkingLotIds.has(lot.parkingLotId))
       .filter((lot) => !keyword || normalizeSearchText(`${lot.name} ${lot.code} ${lot.addressDisplay ?? ""}`).includes(keyword))
       .map((lot) => ({ lot, distance: browserCoordinates ? distanceMeters(browserCoordinates, lot) : null }))
       .sort((left, right) => {
@@ -575,7 +679,7 @@ export function PricingPage() {
         if (right.distance !== null) return 1;
         return left.lot.name.localeCompare(right.lot.name, "vi");
       });
-  }, [browserCoordinates, parkingLotKeyword, parkingLots]);
+  }, [browserCoordinates, favoriteOnly, favoriteParkingLotIds, parkingLotKeyword, parkingLots]);
 
   const availableVehicleTypes = useMemo(
     () => [...vehicleTypes].sort((left, right) => (
@@ -660,19 +764,68 @@ export function PricingPage() {
     setShowAllCustomerRules(false);
   }
 
+  async function toggleFavoriteParkingLot(parkingLotIdToToggle: string) {
+    if (pendingFavoriteParkingLotIds.has(parkingLotIdToToggle)) return;
+
+    const wasFavorite = favoriteParkingLotIds.has(parkingLotIdToToggle);
+    const nextFavorite = !wasFavorite;
+    setFavoriteParkingLotIds((currentIds) => {
+      const nextIds = new Set(currentIds);
+      if (nextFavorite) nextIds.add(parkingLotIdToToggle);
+      else nextIds.delete(parkingLotIdToToggle);
+      return nextIds;
+    });
+
+    if (!canPersistFavorites) {
+      const nextIds = new Set(favoriteParkingLotIds);
+      if (nextFavorite) nextIds.add(parkingLotIdToToggle);
+      else nextIds.delete(parkingLotIdToToggle);
+      writeFavoriteParkingLotIds(favoriteOwnerId, nextIds);
+      if (!user) {
+        toast.info(
+          "Bãi yêu thích đang được lưu trên thiết bị. Đăng nhập để đồng bộ giữa các thiết bị.",
+          "Đã cập nhật yêu thích",
+        );
+      }
+      return;
+    }
+
+    setPendingFavoriteParkingLotIds((currentIds) => new Set(currentIds).add(parkingLotIdToToggle));
+    try {
+      await setMyFavoriteParkingLot(parkingLotIdToToggle, nextFavorite);
+    } catch (requestError) {
+      setFavoriteParkingLotIds((currentIds) => {
+        const restoredIds = new Set(currentIds);
+        if (wasFavorite) restoredIds.add(parkingLotIdToToggle);
+        else restoredIds.delete(parkingLotIdToToggle);
+        return restoredIds;
+      });
+      toast.error(
+        requestError instanceof Error ? requestError.message : "Không thể cập nhật bãi xe yêu thích.",
+        "Cập nhật yêu thích thất bại",
+      );
+    } finally {
+      setPendingFavoriteParkingLotIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.delete(parkingLotIdToToggle);
+        return nextIds;
+      });
+    }
+  }
+
   return (
     <ClientPage>
-      <div className="tw-bg-[#f7faff] tw-pb-10">
-        <main className="tw-mx-auto tw-w-full tw-max-w-[1600px] tw-px-4 tw-pt-5 min-[992px]:tw-px-9 min-[992px]:tw-pt-8">
-          <section className="tw-relative tw-min-h-[382px] tw-overflow-hidden tw-rounded-[10px] tw-bg-[#061a36] tw-shadow-[0_24px_60px_rgba(5,27,64,0.2)]">
-            <img className="tw-absolute tw-bottom-0 tw-right-0 tw-top-0 tw-h-full tw-w-[72%] tw-object-cover tw-object-[50%_38%] max-[767px]:tw-w-full" src="/assets/customer/pricing-hero-smart-parking.png" alt="Bãi xe thông minh CoParking về đêm" decoding="async" fetchPriority="high" />
+      <div className="tw-overflow-x-hidden tw-bg-[#f7faff] tw-pb-8 min-[768px]:tw-pb-10">
+        <main className="tw-mx-auto tw-w-full tw-max-w-[1600px] tw-px-3 tw-pt-3 min-[480px]:tw-px-4 min-[480px]:tw-pt-5 min-[992px]:tw-px-9 min-[992px]:tw-pt-8">
+          <section className="tw-relative tw-min-h-[330px] tw-overflow-hidden tw-rounded-[10px] tw-bg-[#061a36] tw-shadow-[0_24px_60px_rgba(5,27,64,0.2)] min-[768px]:tw-min-h-[382px]">
+            <img className="tw-absolute tw-bottom-0 tw-right-0 tw-top-0 tw-h-full tw-w-[72%] tw-object-cover tw-object-[50%_38%] max-[767px]:tw-w-full max-[767px]:tw-opacity-55" src="/assets/customer/pricing-hero-smart-parking.png" alt="Bãi xe thông minh CoParking về đêm" decoding="async" fetchPriority="high" />
             <div className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,rgba(5,22,47,0.99)_0%,rgba(5,22,47,0.94)_29%,rgba(5,22,47,0.6)_42%,rgba(5,22,47,0.08)_64%,rgba(5,22,47,0.05)_100%)]" />
-            <div className="tw-relative tw-z-10 tw-flex tw-min-h-[382px] tw-max-w-[720px] tw-flex-col tw-justify-center tw-p-7 min-[768px]:tw-justify-start min-[768px]:tw-px-[70px] min-[768px]:tw-pt-[51px]">
+            <div className="tw-relative tw-z-10 tw-flex tw-min-h-[330px] tw-max-w-[720px] tw-flex-col tw-justify-center tw-p-5 min-[480px]:tw-p-7 min-[768px]:tw-min-h-[382px] min-[768px]:tw-justify-start min-[768px]:tw-px-[70px] min-[768px]:tw-pt-[51px]">
               <h1 className="tw-m-0 tw-max-w-[600px] tw-font-[Cambria] !tw-text-[4.1rem] tw-font-bold tw-leading-[1.02] tw-text-white max-[1200px]:!tw-text-[3.65rem] max-[768px]:!tw-text-[3rem] max-[480px]:!tw-text-[2.1rem]">Bảng giá gửi xe <span className="tw-block tw-text-[#176fff]">minh bạch</span></h1>
               <p className="tw-m-0 tw-mt-4 tw-max-w-[480px] tw-text-[1.05rem] tw-font-semibold tw-leading-7 tw-text-brand-100">Chọn gói phù hợp. Quản lý hành trình an tâm.</p>
-              <div className="tw-mt-7 tw-flex tw-flex-wrap tw-items-center tw-gap-7">
-                <a className="tw-inline-flex tw-min-h-[50px] tw-min-w-[198px] tw-items-center tw-justify-center tw-gap-5 tw-rounded-vm-md tw-bg-[linear-gradient(135deg,#1557dd,#1875ff)] tw-px-5 tw-text-[0.9rem] tw-font-black tw-text-white tw-shadow-[0_10px_22px_rgba(21,87,221,0.28)] tw-transition hover:tw-bg-vm-primary-hover hover:tw-text-white hover:tw-no-underline" href="#pricing-rates">Xem bảng giá <i className="fas fa-arrow-right" /></a>
-                <Link className="tw-inline-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-4 tw-border-0 tw-border-b-2 tw-border-solid tw-border-[#c89b55] tw-px-0 tw-text-[0.9rem] tw-font-black tw-text-white hover:tw-text-brand-100 hover:tw-no-underline" to="/contact">Tư vấn gói vé <i className="fas fa-chevron-right tw-text-[0.72rem] tw-text-[#d5ae6a]" /></Link>
+              <div className="tw-mt-6 tw-flex tw-flex-wrap tw-items-center tw-gap-4 min-[768px]:tw-mt-7 min-[768px]:tw-gap-7 max-[420px]:tw-w-full">
+                <a className="tw-inline-flex tw-min-h-[50px] tw-min-w-[198px] tw-items-center tw-justify-center tw-gap-5 tw-rounded-vm-md tw-bg-[linear-gradient(135deg,#1557dd,#1875ff)] tw-px-5 tw-text-[0.9rem] tw-font-black tw-text-white tw-shadow-[0_10px_22px_rgba(21,87,221,0.28)] tw-transition hover:tw-bg-vm-primary-hover hover:tw-text-white hover:tw-no-underline max-[420px]:tw-w-full" href="#pricing-rates">Xem bảng giá <i className="fas fa-arrow-right" /></a>
+                <Link className="tw-inline-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-4 tw-border-0 tw-border-b-2 tw-border-solid tw-border-[#c89b55] tw-px-0 tw-text-[0.9rem] tw-font-black tw-text-white hover:tw-text-brand-100 hover:tw-no-underline max-[420px]:tw-w-full" to="/contact">Tư vấn gói vé <i className="fas fa-chevron-right tw-text-[0.72rem] tw-text-[#d5ae6a]" /></Link>
               </div>
             </div>
             <aside className="tw-absolute tw-right-8 tw-top-[68px] tw-z-10 tw-hidden tw-min-h-[72px] tw-w-[232px] tw-grid-cols-[38px_1fr] tw-items-center tw-gap-3 tw-rounded-[9px] tw-border tw-border-solid tw-border-white/35 tw-bg-[linear-gradient(120deg,rgba(10,31,59,0.9),rgba(8,25,49,0.82))] tw-px-4 tw-py-2.5 tw-text-white tw-shadow-[0_14px_30px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] tw-backdrop-blur-[18px] min-[900px]:tw-grid">
@@ -681,21 +834,33 @@ export function PricingPage() {
             </aside>
           </section>
 
-          {!detailMode ? <section className="tw-mx-auto tw-max-w-[1480px] tw-py-10" id="pricing-rates">
-            <div className="tw-mb-6 tw-flex tw-flex-wrap tw-items-end tw-justify-between tw-gap-4">
+          {!detailMode ? <section className="tw-mx-auto tw-max-w-[1480px] tw-py-7 min-[768px]:tw-py-10" id="pricing-rates">
+            <div className="tw-mb-6 tw-flex tw-flex-wrap tw-items-end tw-justify-between tw-gap-4 max-[639px]:tw-items-stretch">
               <div>
                 <p className="tw-m-0 tw-text-[0.72rem] tw-font-black tw-uppercase tw-tracking-[0.15em] tw-text-vm-primary">Chọn bãi xe</p>
                 <h2 className="tw-m-0 tw-mt-2 tw-font-[Cambria] tw-text-[clamp(1.8rem,2.8vw,2.5rem)] tw-font-bold tw-text-vm-slate-900">Bảng giá theo từng bãi</h2>
                 <p className="tw-m-0 tw-mt-2 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500"><i className="fas fa-location-arrow tw-mr-2 tw-text-vm-primary" />{locationMessage}</p>
               </div>
-              <label className="tw-flex tw-h-12 tw-w-full tw-max-w-[390px] tw-items-center tw-gap-3 tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-4 tw-shadow-[0_8px_22px_rgba(31,66,116,0.07)]">
-                <i className="fas fa-search tw-text-vm-primary" />
-                <input className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-800 tw-outline-none" onChange={(event) => setParkingLotKeyword(event.target.value)} placeholder="Tìm tên, mã hoặc địa chỉ bãi..." type="search" value={parkingLotKeyword} />
-              </label>
+              <div className="tw-flex tw-w-full tw-flex-wrap tw-items-center tw-justify-end tw-gap-3 max-[639px]:tw-flex-col max-[639px]:tw-items-stretch min-[900px]:tw-w-auto">
+                <button
+                  aria-pressed={favoriteOnly}
+                  className={favoriteOnly ? "tw-flex tw-h-12 tw-items-center tw-justify-center tw-gap-2 tw-rounded-[10px] tw-border tw-border-solid tw-border-rose-200 tw-bg-rose-50 tw-px-4 tw-text-[0.8rem] tw-font-black tw-text-rose-600 tw-shadow-[0_8px_22px_rgba(225,29,72,0.08)]" : "tw-flex tw-h-12 tw-items-center tw-justify-center tw-gap-2 tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-4 tw-text-[0.8rem] tw-font-black tw-text-vm-slate-600 tw-shadow-[0_8px_22px_rgba(31,66,116,0.07)] hover:tw-border-rose-200 hover:tw-text-rose-600"}
+                  onClick={() => setFavoriteOnly((currentValue) => !currentValue)}
+                  type="button"
+                >
+                  <i className={favoriteOnly ? "fas fa-heart" : "far fa-heart"} />
+                  Bãi yêu thích
+                  <span className="tw-rounded-full tw-bg-white tw-px-2 tw-py-0.5 tw-text-[0.68rem] tw-shadow-sm">{parkingLots.filter((lot) => favoriteParkingLotIds.has(lot.parkingLotId)).length}</span>
+                </button>
+                <label className="tw-flex tw-h-12 tw-w-full tw-max-w-[390px] tw-items-center tw-gap-3 tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-4 tw-shadow-[0_8px_22px_rgba(31,66,116,0.07)] max-[639px]:tw-max-w-none">
+                  <i className="fas fa-search tw-text-vm-primary" />
+                  <input className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-800 tw-outline-none" onChange={(event) => setParkingLotKeyword(event.target.value)} placeholder="Tìm tên, mã hoặc địa chỉ bãi..." type="search" value={parkingLotKeyword} />
+                </label>
+              </div>
             </div>
             {directoryLoading ? (
               <div className="tw-grid tw-gap-5 min-[640px]:tw-grid-cols-2 min-[1100px]:tw-grid-cols-4">
-                {[0, 1, 2, 3].map((item) => <div className="tw-h-[268px] tw-animate-pulse tw-rounded-[14px] tw-bg-vm-slate-100" key={item} />)}
+                {[0, 1, 2, 3].map((item) => <div className="tw-h-[340px] tw-animate-pulse tw-rounded-[14px] tw-bg-vm-slate-100" key={item} />)}
               </div>
             ) : error ? (
               <div className="tw-rounded-[14px] tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-8 tw-text-center">
@@ -707,23 +872,23 @@ export function PricingPage() {
             ) : sortedParkingLots.length ? (
               <div className="tw-grid tw-gap-5 min-[640px]:tw-grid-cols-2 min-[1100px]:tw-grid-cols-4">
                 {sortedParkingLots.map(({ distance, lot }) => (
-                  <ParkingLotCard distance={distance} key={lot.parkingLotId} lot={lot} voucher={vouchers[0]} />
+                  <ParkingLotCard distance={distance} favorite={favoriteParkingLotIds.has(lot.parkingLotId)} favoritePending={pendingFavoriteParkingLotIds.has(lot.parkingLotId)} key={lot.parkingLotId} lot={lot} onToggleFavorite={toggleFavoriteParkingLot} voucher={vouchers[0]} />
                 ))}
               </div>
             ) : (
-              <div className="tw-rounded-[14px] tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-white tw-p-10 tw-text-center tw-font-bold tw-text-vm-slate-500">Không tìm thấy bãi xe phù hợp.</div>
+              <div className="tw-rounded-[14px] tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-white tw-p-10 tw-text-center tw-font-bold tw-text-vm-slate-500">{favoriteOnly ? "Bạn chưa có bãi xe yêu thích phù hợp với bộ lọc." : "Không tìm thấy bãi xe phù hợp."}</div>
             )}
           </section> : null}
 
-          {detailMode ? <section className="tw-mx-auto tw-max-w-[1320px] tw-pb-6 tw-pt-10" id="pricing-rates">
+          {detailMode ? <section className="tw-mx-auto tw-max-w-[1320px] tw-pb-6 tw-pt-7 min-[768px]:tw-pt-10" id="pricing-rates">
             {error ? <p className="tw-mb-5 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-font-bold tw-text-red-600">{error}</p> : null}
 
-            <div className="tw-mb-8">
+            <div className="tw-mb-6 min-[768px]:tw-mb-8">
               {availableVehicleTypes.length ? <VehicleFilterTabs options={availableVehicleTypes} selected={selectedVehicleTypeId} onChange={handleVehicleFilterChange} /> : <p className="tw-m-0 tw-rounded-vm-md tw-bg-vm-slate-50 tw-p-4 tw-text-center tw-font-bold tw-text-vm-slate-500">Bãi chưa công bố loại phương tiện phục vụ.</p>}
             </div>
 
-            <div className="tw-grid tw-items-start tw-gap-7 min-[1180px]:tw-grid-cols-[300px_minmax(0,1fr)_424px]">
-              <aside className="tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-border-brand-100 tw-bg-[linear-gradient(145deg,#ffffff,#f5f9ff)] tw-p-5 tw-shadow-[0_12px_30px_rgba(31,66,116,0.08)]">
+            <div className="tw-grid tw-items-start tw-gap-5 min-[768px]:tw-gap-7 min-[1180px]:tw-grid-cols-[300px_minmax(0,1fr)_424px]">
+              <aside className="tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-border-brand-100 tw-bg-[linear-gradient(145deg,#ffffff,#f5f9ff)] tw-p-4 tw-shadow-[0_12px_30px_rgba(31,66,116,0.08)] min-[480px]:tw-p-5">
                 <button className="tw-mb-5 tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.75rem] tw-font-black tw-text-vm-primary" onClick={() => navigate("/pricing")} type="button"><i className="fas fa-arrow-left tw-mr-2" />Tất cả bãi xe</button>
                 {selectedParkingLot ? (
                   <>
@@ -752,13 +917,13 @@ export function PricingPage() {
               </section>
 
               <section>
-                <div className="tw-mb-4 tw-flex tw-items-end tw-justify-between tw-gap-3">
+                <div className="tw-mb-4 tw-flex tw-items-end tw-justify-between tw-gap-3 max-[520px]:tw-flex-col max-[520px]:tw-items-stretch">
                   <div>
                     <PricingSectionHeading icon="far fa-id-card" subtitle="Vé theo chu kỳ" title="Khách đăng ký" />
                     {vehicleCustomerRules.length ? <button className="tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.75rem] tw-font-black tw-text-vm-primary hover:tw-underline" onClick={() => setShowAllCustomerRules(true)} type="button">Xem tất cả <i className="fas fa-arrow-right tw-ml-1" /></button> : null}
                   </div>
                   {availableCustomerTicketTypes.length ? (
-                    <label className="tw-flex tw-min-w-[150px] tw-flex-col tw-gap-1">
+                    <label className="tw-flex tw-min-w-[150px] tw-flex-col tw-gap-1 max-[520px]:tw-w-full">
                       <span className="tw-text-[0.65rem] tw-font-black tw-uppercase tw-tracking-[0.07em] tw-text-vm-slate-500">Loại vé</span>
                       <select className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-px-3 tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-800 tw-outline-none focus:tw-border-vm-primary" onChange={(event) => setSelectedTicketTypeId(event.target.value)} value={selectedTicketTypeId}>
                         {availableCustomerTicketTypes.map((ticketType) => <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>{ticketType.name}</option>)}
@@ -784,15 +949,15 @@ export function PricingPage() {
               <VehicleFilterTabs options={availableVehicleTypes} selected={selectedVehicleTypeId} onChange={setSelectedVehicleTypeId} />
             </div>
             {vehicleCustomerRules.length ? (
-              <div className="tw-grid tw-items-start tw-gap-4 min-[640px]:tw-grid-cols-2 min-[1000px]:tw-grid-cols-4">
+              <div className="tw-grid tw-items-start tw-gap-5 min-[700px]:tw-grid-cols-2">
                 {vehicleCustomerRules.map((rule) => <PriceCard audience="CUSTOMER" key={rule.priceRuleId} registrationDisabled={selectedParkingLot?.status !== "ACTIVE"} registrationParkingLotId={selectedParkingLot?.parkingLotId} rule={rule} />)}
               </div>
             ) : <EmptyPricing label={`Khách đăng ký - ${selectedVehicleLabel}`} />}
           </Modal>
 
-          <section className="tw-mx-auto tw-grid tw-max-w-[1240px] tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-shadow-[0_12px_28px_rgba(31,66,116,0.08)] min-[768px]:tw-grid-cols-4">
+          <section className="tw-mx-auto tw-grid tw-max-w-[1240px] tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-shadow-[0_12px_28px_rgba(31,66,116,0.08)] min-[640px]:tw-grid-cols-2 min-[1024px]:tw-grid-cols-4">
             {trustItems.map((item) => (
-              <article className="tw-flex tw-min-h-[86px] tw-items-center tw-justify-center tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-5 tw-py-4 last:tw-border-b-0 min-[768px]:tw-border-b-0 min-[768px]:tw-border-r min-[768px]:last:tw-border-r-0" key={item.title}>
+              <article className="tw-flex tw-min-h-[86px] tw-items-center tw-justify-start tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-5 tw-py-4 last:tw-border-b-0 min-[640px]:tw-justify-center min-[640px]:tw-border-r min-[1024px]:tw-border-b-0 min-[1024px]:last:tw-border-r-0" key={item.title}>
                 <span className="tw-grid tw-h-11 tw-w-11 tw-flex-none tw-place-items-center tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50/60"><i className={`${item.icon} tw-text-[1.35rem] tw-text-vm-primary`} /></span>
                 <span className="tw-min-w-0"><strong className="tw-block tw-text-[0.82rem] tw-font-black tw-text-vm-slate-900">{item.title}</strong><small className="tw-mt-1 tw-block tw-text-[0.72rem] tw-font-semibold tw-leading-4 tw-text-vm-slate-500">{item.description}</small></span>
               </article>
@@ -802,9 +967,9 @@ export function PricingPage() {
           <section className="tw-relative tw-mx-auto tw-mt-5 tw-max-w-[1390px] tw-transform-gpu tw-overflow-hidden tw-rounded-[10px] tw-bg-[linear-gradient(105deg,#071b39,#04162f)] tw-shadow-[0_18px_36px_rgba(5,27,64,0.16)] tw-transition-all tw-duration-300 tw-ease-out hover:-tw-translate-y-1 hover:tw-shadow-[0_24px_46px_rgba(5,27,64,0.24)] motion-reduce:tw-transform-none motion-reduce:tw-transition-none">
             <span aria-hidden="true" className="tw-absolute -tw-bottom-20 -tw-left-6 tw-h-32 tw-w-72 tw-rounded-[50%] tw-border tw-border-solid tw-border-[#b8873c]/55" />
             <span aria-hidden="true" className="tw-absolute -tw-bottom-14 -tw-right-12 tw-h-28 tw-w-64 tw-rounded-[50%] tw-border tw-border-solid tw-border-[#b8873c]/45" />
-            <div className="tw-relative tw-z-10 tw-mx-auto tw-flex tw-min-h-[108px] tw-w-full tw-max-w-[1180px] tw-flex-wrap tw-items-center tw-justify-between tw-gap-6 tw-px-6 tw-py-5">
-              <div className="tw-flex tw-items-center tw-gap-6"><span className="tw-grid tw-h-16 tw-w-16 tw-flex-none tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-brand-300/55 tw-bg-brand-500/10 tw-text-[1.75rem] tw-text-brand-100"><i className="fas fa-headset" /></span><div><h2 className="tw-m-0 tw-font-[Cambria] tw-text-[1.75rem] tw-font-bold tw-text-white">Cần tư vấn chọn gói?</h2><p className="tw-m-0 tw-mt-1 tw-text-[0.92rem] tw-font-semibold tw-text-brand-100">Đội ngũ CoParking luôn sẵn sàng hỗ trợ bạn.</p></div></div>
-              <Link className="tw-inline-flex tw-min-h-[50px] tw-min-w-[205px] tw-items-center tw-justify-center tw-gap-5 tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d5ae6a] tw-px-6 tw-text-[0.88rem] tw-font-black tw-text-white tw-transition hover:tw-bg-[#b8873c] hover:tw-text-white hover:tw-no-underline" to="/contact">Liên hệ hỗ trợ <i className="fas fa-arrow-right tw-text-[#d5ae6a]" /></Link>
+            <div className="tw-relative tw-z-10 tw-mx-auto tw-flex tw-min-h-[108px] tw-w-full tw-max-w-[1180px] tw-flex-wrap tw-items-center tw-justify-between tw-gap-5 tw-px-4 tw-py-5 min-[640px]:tw-gap-6 min-[640px]:tw-px-6 max-[639px]:tw-flex-col max-[639px]:tw-items-stretch">
+              <div className="tw-flex tw-items-center tw-gap-4 min-[640px]:tw-gap-6"><span className="tw-grid tw-h-14 tw-w-14 tw-flex-none tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-brand-300/55 tw-bg-brand-500/10 tw-text-[1.5rem] tw-text-brand-100 min-[640px]:tw-h-16 min-[640px]:tw-w-16 min-[640px]:tw-text-[1.75rem]"><i className="fas fa-headset" /></span><div><h2 className="tw-m-0 tw-font-[Cambria] tw-text-[1.4rem] tw-font-bold tw-text-white min-[640px]:tw-text-[1.75rem]">Cần tư vấn chọn gói?</h2><p className="tw-m-0 tw-mt-1 tw-text-[0.82rem] tw-font-semibold tw-text-brand-100 min-[640px]:tw-text-[0.92rem]">Đội ngũ CoParking luôn sẵn sàng hỗ trợ bạn.</p></div></div>
+              <Link className="tw-inline-flex tw-min-h-[50px] tw-min-w-[205px] tw-items-center tw-justify-center tw-gap-5 tw-rounded-vm-md tw-border tw-border-solid tw-border-[#d5ae6a] tw-px-6 tw-text-[0.88rem] tw-font-black tw-text-white tw-transition hover:tw-bg-[#b8873c] hover:tw-text-white hover:tw-no-underline max-[639px]:tw-w-full" to="/contact">Liên hệ hỗ trợ <i className="fas fa-arrow-right tw-text-[#d5ae6a]" /></Link>
             </div>
           </section>
         </main>

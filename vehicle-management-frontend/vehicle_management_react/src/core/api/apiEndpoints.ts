@@ -181,6 +181,7 @@ iam: {
     roles: "/iam/roles",
   },
   people: {
+    customerFavoriteParkingLots: "/people/customers/me/favorite-parking-lots",
     customerVehicles: "/people/customer-vehicles",
     customers: "/people/customers",
     employees: "/people/employees",
