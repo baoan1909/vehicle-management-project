@@ -55,7 +55,7 @@ class ParkingLotAssignmentUseCaseImplTest {
     @BeforeEach
     void setUp() {
         actorId = UUID.randomUUID();
-        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(actorId);
+        org.mockito.Mockito.lenient().when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(actorId);
         org.mockito.Mockito.lenient().when(assignmentPortOut.saveManagementAssignment(any()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         org.mockito.Mockito.lenient().when(assignmentPortOut.saveManagementAssignments(any()))
@@ -173,6 +173,21 @@ class ParkingLotAssignmentUseCaseImplTest {
         assertEquals(employeeId, saved.getEmployeeId());
         verify(invalidationPortIn).invalidateAccount(
                 employeeAccountId, "Phạm vi bãi xe làm việc đã thay đổi.", "parking", "parking_lots", lotId);
+    }
+
+    @Test
+    void readsEmployeeParkingLotAssignmentsOnlyAfterOrganizationScopeCheck() {
+        UUID organizationId = UUID.randomUUID();
+        EmployeeParkingLotAssignment assignment = new EmployeeParkingLotAssignment();
+        assignment.setAssignmentId(UUID.randomUUID());
+        when(assignmentPortOut.findEmployeeAssignmentsByOrganizationId(organizationId))
+                .thenReturn(List.of(assignment));
+
+        List<EmployeeParkingLotAssignment> result = useCase.getEmployeeAssignments(organizationId);
+
+        assertEquals(List.of(assignment), result);
+        verify(currentAccountPortIn).requirePermission("EMPLOYEE_READ_ALL");
+        verify(organizationAccessGuard).ensureCanAccessOrganization(organizationId);
     }
 
     private ParkingLotManagementAssignment managementAssignment(UUID managerId, UUID lotId) {

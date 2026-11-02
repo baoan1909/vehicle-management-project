@@ -11,6 +11,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.peo
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.*;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ApprovalRequestRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.OrganizationMembershipStatus;
 import com.ban.vehicle_management.shared.enumeration.people.*;
@@ -33,19 +34,24 @@ class AccountAuthorizationPersistenceAdapterTest {
     @Mock EmployeeRepository employeeRepository;
     @Mock OrganizationMembershipRepository organizationMembershipRepository;
     @Mock MemberParkingLotScopeRepository memberParkingLotScopeRepository;
+    @Mock ApprovalRequestRepository approvalRequestRepository;
     private AccountAuthorizationPersistenceAdapter adapter;
 
     @BeforeEach
     void setUp() {
         adapter = new AccountAuthorizationPersistenceAdapter(
                 accountRepository, rolePermissionRepository, roleRepository, customerRepository,
-                employeeRepository, organizationMembershipRepository, memberParkingLotScopeRepository);
+                employeeRepository, organizationMembershipRepository, memberParkingLotScopeRepository,
+                approvalRequestRepository);
     }
 
     @Test
     void activeCustomRoleKeepsAssignedPlatformPermission() {
         UUID accountId = UUID.randomUUID();
-        stubAccount(accountId, "CUSTOM_PLATFORM", true, null, Set.of("ACCOUNT_READ_ALL"));
+        UUID profileId = UUID.randomUUID();
+        stubAccount(accountId, "CUSTOM_PLATFORM", true, profileId, Set.of("ACCOUNT_READ_ALL"));
+        when(employeeRepository.findByUserProfileId(profileId)).thenReturn(Optional.empty());
+        when(customerRepository.findByUserProfileId(profileId)).thenReturn(Optional.empty());
         CurrentAccountAccess access = adapter.findByAccountId(accountId).orElseThrow();
         assertEquals(Set.of("ACCOUNT_READ_ALL"), access.getEffectivePermissionCodes());
     }
@@ -92,8 +98,11 @@ class AccountAuthorizationPersistenceAdapterTest {
     @Test
     void partnerScopeLoadsActiveMembershipForCustomRole() {
         UUID accountId = UUID.randomUUID();
+        UUID profileId = UUID.randomUUID();
         UUID organizationId = UUID.randomUUID();
-        stubAccount(accountId, "CUSTOM_PARTNER", true, null, Set.of("PARKING_SCOPE_PARTNER"));
+        stubAccount(accountId, "CUSTOM_PARTNER", true, profileId, Set.of("PARKING_SCOPE_PARTNER"));
+        when(employeeRepository.findByUserProfileId(profileId)).thenReturn(Optional.empty());
+        when(customerRepository.findByUserProfileId(profileId)).thenReturn(Optional.empty());
         when(organizationMembershipRepository.findActiveOrganizationIdsByAccountId(
                 accountId, OrganizationMembershipStatus.ACTIVE)).thenReturn(Set.of(organizationId));
 
