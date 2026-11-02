@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
+import com.ban.vehicle_management.application.iam.organization.port.out.ParkingLotAssignmentPortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
@@ -24,6 +25,7 @@ class EmployeeOrganizationAccessGuardTest {
     @Mock private EmployeePortOut employeePortOut;
     @Mock private OrganizationPortOut organizationPortOut;
     @Mock private ParkingLotPortOut parkingLotPortOut;
+    @Mock private ParkingLotAssignmentPortOut parkingLotAssignmentPortOut;
     @InjectMocks private EmployeeOrganizationAccessGuard guard;
 
     @Test

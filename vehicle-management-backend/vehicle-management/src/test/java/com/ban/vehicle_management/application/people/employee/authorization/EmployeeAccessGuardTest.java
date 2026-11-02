@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.application.iam.organization.authorization.OrganizationAccessGuard;
+import com.ban.vehicle_management.application.iam.organization.authorization.ParkingLotScopeResolver;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.out.InternalEmployeeApprovalPortOut;
 import com.ban.vehicle_management.application.people.employee.port.out.EmployeePortOut;
@@ -34,6 +35,7 @@ class EmployeeAccessGuardTest {
     @Mock private OrganizationPortOut organizationPortOut;
     @Mock private OrganizationAccessGuard organizationAccessGuard;
     @Mock private ParkingLotPortOut parkingLotPortOut;
+    @Mock private ParkingLotScopeResolver parkingLotScopeResolver;
     @InjectMocks private EmployeeAccessGuard employeeAccessGuard;
 
     @Test
@@ -77,7 +79,7 @@ class EmployeeAccessGuardTest {
                 .thenReturn(Set.of(), Set.of(UUID.randomUUID()));
 
         assertThrows(AccessDeniedException.class, () -> employeeAccessGuard.ensureCanManage(staff));
-        ownOrganization(manager, staff, UUID.randomUUID());
+        when(parkingLotScopeResolver.canManageEmployee(manager.accountId(), staff.getEmployeeId())).thenReturn(true);
         employeeAccessGuard.ensureCanManage(staff);
     }
 
