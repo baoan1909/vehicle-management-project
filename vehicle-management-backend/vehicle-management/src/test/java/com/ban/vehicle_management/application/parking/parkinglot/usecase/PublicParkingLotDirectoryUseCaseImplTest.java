@@ -12,6 +12,8 @@ import com.ban.vehicle_management.application.catalog.priceplan.port.out.PricePl
 import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.parking.availability.ParkingAvailabilityQuery;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
+import com.ban.vehicle_management.application.parking.parkinglotreview.model.ReviewAggregate;
+import com.ban.vehicle_management.application.parking.parkinglotreview.port.out.ParkingLotReviewPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
@@ -25,6 +27,8 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatu
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,6 +50,7 @@ class PublicParkingLotDirectoryUseCaseImplTest {
     @Mock private PricePlanPortOut pricePlanPortOut;
     @Mock private PriceRulePortOut priceRulePortOut;
     @Mock private ParkingSessionPortOut parkingSessionPortOut;
+    @Mock private ParkingLotReviewPortOut parkingLotReviewPortOut;
     @InjectMocks private PublicParkingLotDirectoryUseCaseImpl useCase;
 
     @Test
@@ -74,6 +79,13 @@ class PublicParkingLotDirectoryUseCaseImplTest {
                 .thenReturn(List.of(minimumRule, maximumRule));
         when(parkingSessionPortOut.countByParkingLotIdAndStatus(
                 ACTIVE_LOT_ID, ParkingSessionStatus.CLOSED)).thenReturn(125L);
+        when(parkingLotReviewPortOut.getAggregates(Set.of(ACTIVE_LOT_ID)))
+                .thenReturn(Map.of(
+                        ACTIVE_LOT_ID,
+                        new ReviewAggregate(
+                                new BigDecimal("5.0"),
+                                1L,
+                                Map.of(1, 0L, 2, 0L, 3, 0L, 4, 0L, 5, 1L))));
         when(parkingAvailabilityQuery.get(any(Zone.class), any()))
                 .thenReturn(new ParkingAvailabilitySnapshot(
                         activeZone.getZoneId(), 10, 0, 10, 2, 1, 2,
@@ -88,6 +100,8 @@ class PublicParkingLotDirectoryUseCaseImplTest {
         assertTrue(results.getFirst().hasAvailability());
         assertEquals(1, results.getFirst().vehicleTypes().size());
         assertEquals(125, results.getFirst().completedSessionCount());
+        assertEquals(new BigDecimal("5.0"), results.getFirst().averageRating());
+        assertEquals(1, results.getFirst().reviewCount());
         assertEquals(new BigDecimal("4000"), results.getFirst().minimumPrice());
         assertEquals(new BigDecimal("80000"), results.getFirst().maximumPrice());
         verify(parkingLotPortOut, never()).findAll(ParkingLotStatus.SETUP, null, null, null);
