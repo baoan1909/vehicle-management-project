@@ -8,6 +8,8 @@ import com.ban.vehicle_management.application.parking.parkinglot.model.result.Pu
 import com.ban.vehicle_management.application.parking.parkinglot.port.in.PublicParkingLotDirectoryPortIn;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
+import com.ban.vehicle_management.application.parking.parkinglotreview.model.ReviewAggregate;
+import com.ban.vehicle_management.application.parking.parkinglotreview.port.out.ParkingLotReviewPortOut;
 import com.ban.vehicle_management.application.parking.zone.port.out.ZonePortOut;
 import com.ban.vehicle_management.domain.catalog.priceplan.model.PricePlan;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
@@ -41,6 +43,7 @@ public class PublicParkingLotDirectoryUseCaseImpl implements PublicParkingLotDir
     private final PricePlanPortOut pricePlanPortOut;
     private final PriceRulePortOut priceRulePortOut;
     private final ParkingSessionPortOut parkingSessionPortOut;
+    private final ParkingLotReviewPortOut parkingLotReviewPortOut;
 
     public PublicParkingLotDirectoryUseCaseImpl(
             ParkingLotPortOut parkingLotPortOut,
@@ -49,7 +52,8 @@ public class PublicParkingLotDirectoryUseCaseImpl implements PublicParkingLotDir
             ParkingAvailabilityQuery parkingAvailabilityQuery,
             PricePlanPortOut pricePlanPortOut,
             PriceRulePortOut priceRulePortOut,
-            ParkingSessionPortOut parkingSessionPortOut
+            ParkingSessionPortOut parkingSessionPortOut,
+            ParkingLotReviewPortOut parkingLotReviewPortOut
     ) {
         this.parkingLotPortOut = parkingLotPortOut;
         this.zonePortOut = zonePortOut;
@@ -58,6 +62,7 @@ public class PublicParkingLotDirectoryUseCaseImpl implements PublicParkingLotDir
         this.pricePlanPortOut = pricePlanPortOut;
         this.priceRulePortOut = priceRulePortOut;
         this.parkingSessionPortOut = parkingSessionPortOut;
+        this.parkingLotReviewPortOut = parkingLotReviewPortOut;
     }
 
     @Override
@@ -65,16 +70,21 @@ public class PublicParkingLotDirectoryUseCaseImpl implements PublicParkingLotDir
     public List<PublicParkingLotDirectoryResult> getDirectory() {
         Instant snapshotAt = Instant.now();
         LocalDate businessDate = DateTimeUtils.toAppLocalDate(snapshotAt);
-        return parkingLotPortOut.findAll(ParkingLotStatus.ACTIVE, null, null, null).stream()
+        List<ParkingLot> lots = parkingLotPortOut.findAll(ParkingLotStatus.ACTIVE, null, null, null);
+        Map<UUID, ReviewAggregate> reviewAggregates = parkingLotReviewPortOut.getAggregates(
+                lots.stream().map(ParkingLot::getParkingLotId).collect(java.util.stream.Collectors.toSet()));
+        return lots.stream()
                 .sorted(Comparator.comparing(ParkingLot::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
-                .map(lot -> toResult(lot, businessDate, snapshotAt))
+                .map(lot -> toResult(lot, businessDate, snapshotAt,
+                        reviewAggregates.getOrDefault(lot.getParkingLotId(), ReviewAggregate.empty())))
                 .toList();
     }
 
     private PublicParkingLotDirectoryResult toResult(
             ParkingLot lot,
             LocalDate businessDate,
-            Instant snapshotAt
+            Instant snapshotAt,
+            ReviewAggregate reviewAggregate
     ) {
         List<Zone> zones = zonePortOut.findAll(lot.getParkingLotId(), null, ZoneStatus.ACTIVE, null);
         Map<UUID, AvailabilityCounters> countersByVehicleType = new LinkedHashMap<>();
@@ -157,6 +167,8 @@ public class PublicParkingLotDirectoryUseCaseImpl implements PublicParkingLotDir
                 maximumPrice,
                 parkingSessionPortOut.countByParkingLotIdAndStatus(
                         lot.getParkingLotId(), ParkingSessionStatus.CLOSED),
+                reviewAggregate.averageRating(),
+                reviewAggregate.reviewCount(),
                 snapshotAt,
                 vehicleTypes
         );

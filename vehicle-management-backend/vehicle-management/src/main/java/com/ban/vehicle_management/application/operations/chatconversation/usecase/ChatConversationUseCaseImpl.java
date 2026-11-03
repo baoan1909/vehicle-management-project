@@ -429,7 +429,11 @@ public class ChatConversationUseCaseImpl implements ChatConversationPortIn {
     }
 
     private UUID resolveCustomerIdForSupportConversation(CurrentAccountAccess currentAccount, UUID requestedCustomerId) {
-        if (requestedCustomerId != null && currentAccountPortIn.hasPermission("CHAT_CONVERSATION_CREATE_ALL")) {
+        // The caller has already passed CHAT_CONVERSATION_CREATE_CUSTOMER_DIRECT.
+        // Requiring CREATE_ALL here made the dedicated permission ineffective for
+        // Partner Admin and Employee accounts and incorrectly fell back to resolving
+        // a customer profile for the operational account itself.
+        if (requestedCustomerId != null) {
             if (!chatPortOut.existsCustomer(requestedCustomerId)) {
                 throw new NotFoundException("Customer not found");
             }
