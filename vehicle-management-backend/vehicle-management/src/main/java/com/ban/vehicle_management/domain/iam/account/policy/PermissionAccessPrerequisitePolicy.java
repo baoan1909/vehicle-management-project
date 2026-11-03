@@ -16,7 +16,7 @@ public final class PermissionAccessPrerequisitePolicy {
 
     private static final Pattern PERMISSION_CODE_PATTERN = Pattern.compile("[A-Z0-9_-]+");
     private static final Set<String> CUSTOMER_OWN_PREFIXES = Set.of(
-            "CUSTOMER_VEHICLE_", "SUBSCRIPTION_", "WALLET_", "PARKING_LOT_REVIEW_"
+            "CUSTOMER_VEHICLE_", "SUBSCRIPTION_", "WALLET_"
     );
     private static final Set<String> CUSTOMER_OWN_PERMISSIONS = Set.of(
             "PARKING_SESSION_READ_OWN", "PARKING_EVENT_READ_OWN", "INVOICE_READ_OWN", "PAYMENT_CREATE_OWN",

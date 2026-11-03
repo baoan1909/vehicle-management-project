@@ -20,8 +20,6 @@ public record ParkingLotDirectoryResponse(
         BigDecimal minimumPrice,
         BigDecimal maximumPrice,
         long completedSessionCount,
-        BigDecimal averageRating,
-        long reviewCount,
         Instant snapshotAt,
         List<VehicleTypeAvailabilityResponse> vehicleTypes
 ) {

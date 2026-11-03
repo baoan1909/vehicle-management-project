@@ -2,7 +2,6 @@ package com.ban.vehicle_management.domain.iam.account.policy;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.ban.vehicle_management.domain.iam.account.policy.PermissionAccessPrerequisitePolicy.PermissionPrerequisite;
 import java.io.IOException;
@@ -21,16 +20,6 @@ class PermissionAccessPrerequisitePolicyCatalogTest {
             "'([A-Z][A-Z0-9_]+_(?:OWN|PARTNER)|PARKING_SCOPE_ASSIGNED)'"
     );
     private final PermissionAccessPrerequisitePolicy policy = new PermissionAccessPrerequisitePolicy();
-
-    @Test
-    void parkingLotReviewOwnPermissionsRequireApprovedCustomerLifecycle() {
-        assertEquals(PermissionPrerequisite.CUSTOMER_APPROVED,
-                policy.classificationFor("PARKING_LOT_REVIEW_CREATE_OWN"));
-        assertEquals(PermissionPrerequisite.CUSTOMER_APPROVED,
-                policy.classificationFor("PARKING_LOT_REVIEW_UPDATE_OWN"));
-        assertEquals(PermissionPrerequisite.COMMON_ACCOUNT_ROLE,
-                policy.classificationFor("PARKING_LOT_REVIEW_READ_ALL"));
-    }
 
     @Test
     void lifecycleAndOwnershipSensitiveSeedPermissionsMustBeExplicitlyClassified() throws IOException {

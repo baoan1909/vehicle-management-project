@@ -35,7 +35,6 @@ import {
   readFavoriteParkingLotIds,
   writeFavoriteParkingLotIds,
 } from "@/features/customer-portal/storage/favoriteParkingLots";
-import { ParkingLotReviewsSection } from "@/features/parking-reviews";
 
 import { PublicFooter } from "./PortalShared";
 
@@ -400,10 +399,9 @@ function ParkingLotCard({
         </span>
         <span className="tw-mt-3 tw-block tw-text-[1.02rem] tw-font-black tw-text-[#e11d48]">{formatPriceRange(lot)}</span>
         <span className="tw-mt-2 tw-flex tw-items-center tw-justify-between tw-gap-2 tw-text-[0.72rem] tw-font-bold tw-text-vm-slate-500">
-          <span><i className="fas fa-star tw-mr-1.5 tw-text-amber-400" />{lot.averageRating?.toFixed(1) ?? "—"} · {lot.reviewCount} đánh giá</span>
+          <span><i className="fas fa-star tw-mr-1.5 tw-text-amber-400" />Đã phục vụ {formatServedCount(lot.completedSessionCount)} lượt</span>
           <i className="fas fa-chevron-right tw-text-vm-primary tw-transition group-hover:tw-translate-x-1" />
         </span>
-        <span className="tw-mt-1 tw-text-[0.7rem] tw-font-bold tw-text-vm-slate-500"><i className="fas fa-users tw-mr-1.5 tw-text-vm-primary" />Đã phục vụ {formatServedCount(lot.completedSessionCount)} lượt</span>
         {voucher ? (
           <span className="tw-mt-3 tw-truncate tw-rounded-md tw-bg-rose-50 tw-px-2.5 tw-py-2 tw-text-[0.7rem] tw-font-black tw-text-rose-600">
             <i className="fas fa-ticket-alt tw-mr-1.5" />{voucher.bannerTitle || voucher.code}
@@ -668,14 +666,6 @@ export function PricingPage() {
   }, [detailMode, selectedParkingLotId]);
 
   const selectedParkingLot = parkingLots.find((lot) => lot.parkingLotId === selectedParkingLotId);
-
-  useEffect(() => {
-    if (!selectedParkingLot || !["#parking-reviews", "#write-review"].includes(window.location.hash)) return;
-    const frameId = window.requestAnimationFrame(() => {
-      document.getElementById("parking-reviews")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
-    return () => window.cancelAnimationFrame(frameId);
-  }, [selectedParkingLot]);
   const sortedParkingLots = useMemo(() => {
     const keyword = normalizeSearchText(parkingLotKeyword.trim());
     return parkingLots
@@ -835,7 +825,7 @@ export function PricingPage() {
               <p className="tw-m-0 tw-mt-4 tw-max-w-[480px] tw-text-[1.05rem] tw-font-semibold tw-leading-7 tw-text-brand-100">Chọn gói phù hợp. Quản lý hành trình an tâm.</p>
               <div className="tw-mt-6 tw-flex tw-flex-wrap tw-items-center tw-gap-4 min-[768px]:tw-mt-7 min-[768px]:tw-gap-7 max-[420px]:tw-w-full">
                 <a className="tw-inline-flex tw-min-h-[50px] tw-min-w-[198px] tw-items-center tw-justify-center tw-gap-5 tw-rounded-vm-md tw-bg-[linear-gradient(135deg,#1557dd,#1875ff)] tw-px-5 tw-text-[0.9rem] tw-font-black tw-text-white tw-shadow-[0_10px_22px_rgba(21,87,221,0.28)] tw-transition hover:tw-bg-vm-primary-hover hover:tw-text-white hover:tw-no-underline max-[420px]:tw-w-full" href="#pricing-rates">Xem bảng giá <i className="fas fa-arrow-right" /></a>
-                {selectedParkingLot ? <a className="tw-inline-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-4 tw-border-0 tw-border-b-2 tw-border-solid tw-border-[#c89b55] tw-px-0 tw-text-[0.9rem] tw-font-black tw-text-white hover:tw-text-brand-100 hover:tw-no-underline max-[420px]:tw-w-full" href="#parking-reviews" onClick={(event) => { event.preventDefault(); window.history.replaceState(null, "", "#parking-reviews"); const section = document.getElementById("parking-reviews"); section?.scrollIntoView({ behavior: "smooth", block: "start" }); section?.focus({ preventScroll: true }); }}>Xem đánh giá <i className="fas fa-chevron-down tw-text-[0.72rem] tw-text-[#d5ae6a]" /></a> : null}
+                <Link className="tw-inline-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-4 tw-border-0 tw-border-b-2 tw-border-solid tw-border-[#c89b55] tw-px-0 tw-text-[0.9rem] tw-font-black tw-text-white hover:tw-text-brand-100 hover:tw-no-underline max-[420px]:tw-w-full" to="/contact">Tư vấn gói vé <i className="fas fa-chevron-right tw-text-[0.72rem] tw-text-[#d5ae6a]" /></Link>
               </div>
             </div>
             <aside className="tw-absolute tw-right-8 tw-top-[68px] tw-z-10 tw-hidden tw-min-h-[72px] tw-w-[232px] tw-grid-cols-[38px_1fr] tw-items-center tw-gap-3 tw-rounded-[9px] tw-border tw-border-solid tw-border-white/35 tw-bg-[linear-gradient(120deg,rgba(10,31,59,0.9),rgba(8,25,49,0.82))] tw-px-4 tw-py-2.5 tw-text-white tw-shadow-[0_14px_30px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.12)] tw-backdrop-blur-[18px] min-[900px]:tw-grid">
@@ -964,8 +954,6 @@ export function PricingPage() {
               </div>
             ) : <EmptyPricing label={`Khách đăng ký - ${selectedVehicleLabel}`} />}
           </Modal>
-
-          {detailMode && selectedParkingLot ? <ParkingLotReviewsSection parkingLotId={selectedParkingLot.parkingLotId} parkingLotName={selectedParkingLot.name} /> : null}
 
           <section className="tw-mx-auto tw-grid tw-max-w-[1240px] tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-shadow-[0_12px_28px_rgba(31,66,116,0.08)] min-[640px]:tw-grid-cols-2 min-[1024px]:tw-grid-cols-4">
             {trustItems.map((item) => (

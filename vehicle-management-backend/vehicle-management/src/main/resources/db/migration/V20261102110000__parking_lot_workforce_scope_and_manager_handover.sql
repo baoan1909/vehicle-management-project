@@ -1,6 +1,6 @@
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 
-CREATE TABLE IF NOT EXISTS iam.parking_lot_management_assignments (
+CREATE TABLE iam.parking_lot_management_assignments (
     assignment_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     organization_id uuid NOT NULL,
     parking_lot_id uuid NOT NULL,
@@ -51,14 +51,14 @@ CREATE TABLE IF NOT EXISTS iam.parking_lot_management_assignments (
         ) WHERE (status IN ('PENDING_ACCEPTANCE', 'ACTIVE'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_management_assignment_manager_effective
+CREATE INDEX idx_management_assignment_manager_effective
     ON iam.parking_lot_management_assignments(manager_account_id, status, effective_from, effective_to);
-CREATE INDEX IF NOT EXISTS idx_management_assignment_lot_effective
+CREATE INDEX idx_management_assignment_lot_effective
     ON iam.parking_lot_management_assignments(parking_lot_id, status, effective_from, effective_to);
-CREATE INDEX IF NOT EXISTS idx_management_assignment_org_lot
+CREATE INDEX idx_management_assignment_org_lot
     ON iam.parking_lot_management_assignments(organization_id, parking_lot_id);
 
-CREATE TABLE IF NOT EXISTS people.employee_parking_lot_assignments (
+CREATE TABLE people.employee_parking_lot_assignments (
     assignment_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     organization_id uuid NOT NULL,
     parking_lot_id uuid NOT NULL,
@@ -105,33 +105,20 @@ CREATE TABLE IF NOT EXISTS people.employee_parking_lot_assignments (
         ) WHERE (status IN ('SCHEDULED', 'ACTIVE'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_employee_lot_assignment_employee_effective
+CREATE INDEX idx_employee_lot_assignment_employee_effective
     ON people.employee_parking_lot_assignments(employee_id, status, effective_from, effective_to);
-CREATE INDEX IF NOT EXISTS idx_employee_lot_assignment_lot_effective
+CREATE INDEX idx_employee_lot_assignment_lot_effective
     ON people.employee_parking_lot_assignments(parking_lot_id, status, effective_from, effective_to);
-CREATE INDEX IF NOT EXISTS idx_employee_lot_assignment_org_lot
+CREATE INDEX idx_employee_lot_assignment_org_lot
     ON people.employee_parking_lot_assignments(organization_id, parking_lot_id);
 
 ALTER TABLE parking.parking_lots
-    ADD COLUMN IF NOT EXISTS management_state varchar(30) NOT NULL DEFAULT 'PARTNER_SUPERVISED',
-    ADD COLUMN IF NOT EXISTS management_revision bigint NOT NULL DEFAULT 0;
+    ADD COLUMN management_state varchar(30) NOT NULL DEFAULT 'PARTNER_SUPERVISED',
+    ADD COLUMN management_revision bigint NOT NULL DEFAULT 0,
+    ADD CONSTRAINT ck_parking_lot_management_state
+        CHECK (management_state IN ('MANAGED', 'HANDOVER', 'PARTNER_SUPERVISED', 'OPERATION_SUSPENDED'));
 
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_constraint
-        WHERE conrelid = 'parking.parking_lots'::regclass
-          AND conname = 'ck_parking_lot_management_state'
-    ) THEN
-        ALTER TABLE parking.parking_lots
-            ADD CONSTRAINT ck_parking_lot_management_state
-            CHECK (management_state IN ('MANAGED', 'HANDOVER', 'PARTNER_SUPERVISED', 'OPERATION_SUSPENDED'));
-    END IF;
-END;
-$$;
-
-CREATE TABLE IF NOT EXISTS operations.parking_lot_work_queue (
+CREATE TABLE operations.parking_lot_work_queue (
     work_item_id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     organization_id uuid NOT NULL,
     parking_lot_id uuid NOT NULL,
@@ -160,31 +147,17 @@ CREATE TABLE IF NOT EXISTS operations.parking_lot_work_queue (
         FOREIGN KEY (handled_by) REFERENCES iam.accounts(account_id) ON DELETE RESTRICT
 );
 
-CREATE INDEX IF NOT EXISTS idx_work_queue_lot_status
+CREATE INDEX idx_work_queue_lot_status
     ON operations.parking_lot_work_queue(parking_lot_id, status, created_at);
-CREATE INDEX IF NOT EXISTS idx_work_queue_assignee_status
+CREATE INDEX idx_work_queue_assignee_status
     ON operations.parking_lot_work_queue(current_assignee, status);
 
 ALTER TABLE operations.shift_assignments
-    ADD COLUMN IF NOT EXISTS employee_parking_lot_assignment_id uuid;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_constraint
-        WHERE conrelid = 'operations.shift_assignments'::regclass
-          AND conname = 'fk_shift_assignment_employee_lot_assignment'
-    ) THEN
-        ALTER TABLE operations.shift_assignments
-            ADD CONSTRAINT fk_shift_assignment_employee_lot_assignment
-            FOREIGN KEY (employee_parking_lot_assignment_id)
-            REFERENCES people.employee_parking_lot_assignments(assignment_id) ON DELETE RESTRICT;
-    END IF;
-END;
-$$;
-
-CREATE INDEX IF NOT EXISTS idx_shift_assignment_employee_lot_assignment
+    ADD COLUMN employee_parking_lot_assignment_id uuid,
+    ADD CONSTRAINT fk_shift_assignment_employee_lot_assignment
+        FOREIGN KEY (employee_parking_lot_assignment_id)
+        REFERENCES people.employee_parking_lot_assignments(assignment_id) ON DELETE RESTRICT;
+CREATE INDEX idx_shift_assignment_employee_lot_assignment
     ON operations.shift_assignments(employee_parking_lot_assignment_id);
 
 CREATE OR REPLACE FUNCTION iam.validate_management_assignment_tenant_role()
@@ -208,24 +181,12 @@ BEGIN
 END;
 $$;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_trigger
-        WHERE tgrelid = 'iam.parking_lot_management_assignments'::regclass
-          AND tgname = 'trg_validate_management_assignment_tenant_role'
-          AND NOT tgisinternal
-    ) THEN
-        CREATE TRIGGER trg_validate_management_assignment_tenant_role
-        BEFORE INSERT OR UPDATE OF organization_id, manager_account_id, status
-        ON iam.parking_lot_management_assignments
-        FOR EACH ROW
-        WHEN (NEW.status IN ('PENDING_ACCEPTANCE', 'ACTIVE'))
-        EXECUTE FUNCTION iam.validate_management_assignment_tenant_role();
-    END IF;
-END;
-$$;
+CREATE TRIGGER trg_validate_management_assignment_tenant_role
+BEFORE INSERT OR UPDATE OF organization_id, manager_account_id, status
+ON iam.parking_lot_management_assignments
+FOR EACH ROW
+WHEN (NEW.status IN ('PENDING_ACCEPTANCE', 'ACTIVE'))
+EXECUTE FUNCTION iam.validate_management_assignment_tenant_role();
 
 CREATE OR REPLACE FUNCTION people.validate_employee_lot_assignment_tenant()
 RETURNS trigger LANGUAGE plpgsql AS $$
@@ -247,24 +208,12 @@ BEGIN
 END;
 $$;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_trigger
-        WHERE tgrelid = 'people.employee_parking_lot_assignments'::regclass
-          AND tgname = 'trg_validate_employee_lot_assignment_tenant'
-          AND NOT tgisinternal
-    ) THEN
-        CREATE TRIGGER trg_validate_employee_lot_assignment_tenant
-        BEFORE INSERT OR UPDATE OF organization_id, employee_id, status
-        ON people.employee_parking_lot_assignments
-        FOR EACH ROW
-        WHEN (NEW.status IN ('SCHEDULED', 'ACTIVE'))
-        EXECUTE FUNCTION people.validate_employee_lot_assignment_tenant();
-    END IF;
-END;
-$$;
+CREATE TRIGGER trg_validate_employee_lot_assignment_tenant
+BEFORE INSERT OR UPDATE OF organization_id, employee_id, status
+ON people.employee_parking_lot_assignments
+FOR EACH ROW
+WHEN (NEW.status IN ('SCHEDULED', 'ACTIVE'))
+EXECUTE FUNCTION people.validate_employee_lot_assignment_tenant();
 
 -- Backfill Manager history from the old explicit membership-lot scope. The old
 -- scope is used only as evidence for Manager assignments, never for Employees.
@@ -285,13 +234,6 @@ JOIN iam.roles role ON role.role_id = account.role_id
 WHERE role.code = 'PARKING_MANAGER'
   AND membership.status = 'ACTIVE'
   AND account.status = 'ACTIVE'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM iam.parking_lot_management_assignments existing
-      WHERE existing.organization_id = membership.organization_id
-        AND existing.parking_lot_id = scope.parking_lot_id
-        AND existing.manager_account_id = membership.account_id
-  )
 ON CONFLICT DO NOTHING;
 
 -- Fail-closed Employee backfill. Only active/future shift evidence creates an
@@ -330,13 +272,6 @@ JOIN iam.organization_memberships membership
   ON membership.account_id = account.account_id
  AND membership.organization_id = evidenced.organization_id
 WHERE membership.status = 'ACTIVE'
-  AND NOT EXISTS (
-      SELECT 1
-      FROM people.employee_parking_lot_assignments existing
-      WHERE existing.organization_id = evidenced.organization_id
-        AND existing.parking_lot_id = evidenced.parking_lot_id
-        AND existing.employee_id = evidenced.employee_id
-  )
 ON CONFLICT DO NOTHING;
 
 UPDATE operations.shift_assignments assignment
@@ -350,9 +285,8 @@ WHERE assignment.shift_id = shift.shift_id
   AND (employee_lot.effective_to IS NULL OR employee_lot.effective_to >= shift.end_time)
   AND assignment.employee_parking_lot_assignment_id IS NULL;
 
-WITH desired_management_state AS (
-    SELECT lot.parking_lot_id,
-           CASE
+UPDATE parking.parking_lots lot
+SET management_state = CASE
         WHEN EXISTS (
             SELECT 1 FROM iam.parking_lot_management_assignments assignment
             WHERE assignment.parking_lot_id = lot.parking_lot_id
@@ -361,19 +295,12 @@ WITH desired_management_state AS (
               AND (assignment.effective_to IS NULL OR assignment.effective_to > now())
         ) THEN 'MANAGED'
         ELSE 'PARTNER_SUPERVISED'
-           END::varchar(30) AS management_state
-    FROM parking.parking_lots lot
-)
-UPDATE parking.parking_lots lot
-SET management_state = desired.management_state,
-    management_revision = lot.management_revision + 1
-FROM desired_management_state desired
-WHERE desired.parking_lot_id = lot.parking_lot_id
-  AND lot.management_state IS DISTINCT FROM desired.management_state;
+    END,
+    management_revision = management_revision + 1;
 
 -- Operations/remediation views intentionally expose only IDs and invariant
 -- violations. They grant no scope and are safe for Partner review tooling.
-CREATE OR REPLACE VIEW operations.employee_lot_assignment_remediation AS
+CREATE VIEW operations.employee_lot_assignment_remediation AS
 SELECT assignment.shift_assignment_id, assignment.employee_id, shift.parking_lot_id,
        shift.start_time, shift.end_time, shift.status AS shift_status
 FROM operations.shift_assignments assignment
@@ -381,7 +308,7 @@ JOIN operations.shifts shift ON shift.shift_id = assignment.shift_id
 WHERE assignment.status <> 'REMOVED'
   AND assignment.employee_parking_lot_assignment_id IS NULL;
 
-CREATE OR REPLACE VIEW iam.parking_scope_tenant_violations AS
+CREATE VIEW iam.parking_scope_tenant_violations AS
 SELECT 'MANAGER'::varchar AS assignment_kind, assignment.assignment_id,
        assignment.organization_id, assignment.parking_lot_id
 FROM iam.parking_lot_management_assignments assignment
@@ -395,7 +322,7 @@ WHERE assignment.organization_id <> lot.organization_id;
 
 -- Employees receive action permissions only; database scope resolvers still
 -- constrain every read/write to explicit lot assignments and active shifts.
-INSERT INTO iam.role_permissions AS existing (id, role_id, permission_id, created_at, is_active, is_system)
+INSERT INTO iam.role_permissions (id, role_id, permission_id, created_at, is_active, is_system)
 SELECT gen_random_uuid(), role.role_id, permission.permission_id, now(), true, true
 FROM iam.roles role
 JOIN iam.permissions permission ON permission.permission_code IN (
@@ -418,5 +345,4 @@ JOIN iam.permissions permission ON permission.permission_code IN (
 )
 WHERE role.code = 'EMPLOYEE'
 ON CONFLICT (role_id, permission_id) DO UPDATE
-SET is_active = true, updated_at = now()
-WHERE existing.is_active IS DISTINCT FROM true;
+SET is_active = true, updated_at = now();

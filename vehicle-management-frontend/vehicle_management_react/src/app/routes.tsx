@@ -76,7 +76,6 @@ const OperationsSupportCenterPage = lazyPage(() => import("@/features/support"),
 const SupportCategoryWorkflowPage = lazyPage(() => import("@/features/support"), "SupportCategoryWorkflowPage");
 const SupportTicketManagementPage = lazyPage(() => import("@/features/support"), "SupportTicketManagementPage");
 const GuestSupportPage = lazyPage(() => import("@/features/support"), "GuestSupportPage");
-const ParkingLotReviewManagementPage = lazyPage(() => import("@/features/parking-reviews"), "ParkingLotReviewManagementPage");
 
 export interface RouteDefinition {
   path: string;
@@ -131,7 +130,6 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/role/form", title: "Thong tin vai tro", layout: "admin", element: <RoleFormPage /> },
   { path: "/admin/support-categories", title: "Danh muc ho tro va quy trinh xu ly yeu cau", layout: "admin", element: <SupportCategoryWorkflowPage /> },
   { path: "/admin/support-tickets", title: "Yeu cau ho tro", layout: "admin", element: <SupportTicketManagementPage /> },
-  { path: "/admin/parking-reviews", title: "Đánh giá bãi xe", layout: "admin", element: <ParkingLotReviewManagementPage /> },
   { path: "/admin/announcements", title: "Quản lý thông báo", layout: "admin", element: <AnnouncementManagementPage /> },
   { path: "/admin/user-guides", title: "Hướng dẫn sử dụng", layout: "admin", element: <UserGuideManagementPage /> },
   { path: "/admin/ai-models", title: "Quan tri model AI", layout: "admin", element: <AiModelManagementPage /> },

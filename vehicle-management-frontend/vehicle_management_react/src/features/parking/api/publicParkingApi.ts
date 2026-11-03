@@ -53,8 +53,6 @@ export type PublicParkingLotDirectoryItem = {
   minimumPrice: number | null;
   maximumPrice: number | null;
   completedSessionCount: number;
-  averageRating: number | null;
-  reviewCount: number;
   snapshotAt: string;
   vehicleTypes: PublicParkingLotVehicleAvailability[];
 };
