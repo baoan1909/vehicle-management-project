@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -29,6 +28,8 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -61,17 +62,15 @@ class ChatConversationUseCaseImplTest {
     @InjectMocks
     private ChatConversationUseCaseImpl chatConversationUseCase;
 
-    @Test
-    void shouldCreateCustomerConversationWithBothSidesAsActiveMembers() {
+    @ParameterizedTest(name = "{0} can create a direct conversation with a selected customer")
+    @ValueSource(strings = {"PARTNER_ADMIN", "PARKING_MANAGER", "EMPLOYEE"})
+    void shouldCreateCustomerConversationWithBothSidesAsActiveMembers(String roleCode) {
         UUID employeeAccountId = UUID.randomUUID();
         UUID customerId = UUID.randomUUID();
         UUID customerAccountId = UUID.randomUUID();
         AtomicReference<ChatConversation> savedConversation = new AtomicReference<>();
 
-        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount(employeeAccountId));
-        when(currentAccountPortIn.hasPermission(anyString())).thenAnswer(invocation ->
-                "CHAT_CONVERSATION_CREATE_ALL".equals(invocation.getArgument(0))
-        );
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(currentAccount(employeeAccountId, roleCode));
         when(chatPortOut.existsCustomer(customerId)).thenReturn(true);
         when(chatPortOut.findActiveCustomerSupportConversation(customerId, employeeAccountId)).thenReturn(Optional.empty());
         when(chatPortOut.saveConversation(any(ChatConversation.class))).thenAnswer(invocation -> {
@@ -94,6 +93,8 @@ class ChatConversationUseCaseImplTest {
                 && member.getMemberRole() == ChatMemberRole.OWNER));
         assertTrue(savedMembers.stream().anyMatch(member -> customerAccountId.equals(member.getAccountId())
                 && member.getMemberRole() == ChatMemberRole.CUSTOMER));
+        verify(currentAccountPortIn).requirePermission("CHAT_CONVERSATION_CREATE_CUSTOMER_DIRECT");
+        verify(chatPortOut, never()).findCustomerIdByAccountId(employeeAccountId);
         verify(currentAccountPortIn, never()).requirePermission("CHAT_CONVERSATION_CREATE_OWN");
     }
 
@@ -125,14 +126,14 @@ class ChatConversationUseCaseImplTest {
         verify(chatPortOut, never()).removeMember(any(), any(), any());
     }
 
-    private CurrentAccountAccess currentAccount(UUID accountId) {
+    private CurrentAccountAccess currentAccount(UUID accountId, String roleCode) {
         return new CurrentAccountAccess(
                 accountId,
                 "subject",
                 "employee",
                 "employee@example.com",
                 UUID.randomUUID(),
-                "EMPLOYEE",
+                roleCode,
                 null,
                 null,
                 null,
