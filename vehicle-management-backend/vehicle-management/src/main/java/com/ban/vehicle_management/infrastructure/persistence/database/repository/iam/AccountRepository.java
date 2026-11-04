@@ -31,6 +31,8 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID>, J
 
     boolean existsByEmail(String email);
 
+    boolean existsByAccountIdAndStatusNot(UUID accountId, AccountStatus status);
+
     Optional<AccountEntity> findByKeycloakUserId(String keycloakUserId);
 
     Optional<AccountEntity> findByUserProfileId(UUID userProfileId);

@@ -1,6 +1,12 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.specification.operations;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.SupportTicketEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Join;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketCategoryPriority;
 import com.ban.vehicle_management.shared.enumeration.operations.SupportTicketStatus;
 import java.util.UUID;
@@ -20,12 +26,22 @@ public final class SupportTicketSpecifications {
             String keyword
     ) {
         return Specification
-                .where(hasCustomerId(customerId))
+                .where(businessVisible())
+                .and(hasCustomerId(customerId))
                 .and(hasCategoryId(categoryId))
                 .and(hasAssignedTo(assignedTo))
                 .and(hasStatus(status))
                 .and(hasPriority(priority))
                 .and(containsKeyword(keyword));
+    }
+
+    public static Specification<SupportTicketEntity> businessVisible() {
+        return (root, query, cb) -> {
+            Join<SupportTicketEntity, CustomerEntity> customer = root.join("customer", JoinType.LEFT);
+            Join<CustomerEntity, UserProfileEntity> profile = customer.join("userProfile", JoinType.LEFT);
+            Join<UserProfileEntity, AccountEntity> account = profile.join("account", JoinType.LEFT);
+            return cb.or(cb.isNull(root.get("customerId")), cb.notEqual(account.get("status"), AccountStatus.DELETED));
+        };
     }
 
     private static Specification<SupportTicketEntity> hasCustomerId(UUID customerId) {

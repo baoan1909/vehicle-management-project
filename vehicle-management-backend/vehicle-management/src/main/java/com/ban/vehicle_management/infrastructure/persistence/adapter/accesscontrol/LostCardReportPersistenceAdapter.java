@@ -5,6 +5,12 @@ import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
 import com.ban.vehicle_management.infrastructure.mapper.accesscontrol.LostCardReportPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.LostCardReportEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.LostCardReportRepository;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportContext;
@@ -47,7 +53,9 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
 
     @Override
     public Optional<LostCardReport> findById(UUID lostCardReportId) {
-        return lostCardReportRepository.findById(lostCardReportId)
+        return lostCardReportRepository.findOne(Specification.<LostCardReportEntity>where(
+                        (root, query, cb) -> cb.equal(root.get("lostCardReportId"), lostCardReportId))
+                .and(businessVisible()))
                 .map(lostCardReportPersistenceMapper::toDomain);
     }
 
@@ -188,6 +196,7 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
     ) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            predicates.add(businessVisible().toPredicate(root, query, cb));
 
             if (parkingLotIds != null) {
                 predicates.add(root.get("parkingLotId").in(parkingLotIds));
@@ -229,6 +238,15 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
 
             query.orderBy(cb.desc(root.get("notificationTime")));
             return cb.and(predicates.toArray(Predicate[]::new));
+        };
+    }
+
+    private Specification<LostCardReportEntity> businessVisible() {
+        return (root, query, cb) -> {
+            Join<LostCardReportEntity, CustomerEntity> customer = root.join("customer", JoinType.LEFT);
+            Join<CustomerEntity, UserProfileEntity> profile = customer.join("userProfile", JoinType.LEFT);
+            Join<UserProfileEntity, AccountEntity> account = profile.join("account", JoinType.LEFT);
+            return cb.or(cb.isNull(root.get("customerId")), cb.notEqual(account.get("status"), AccountStatus.DELETED));
         };
     }
 

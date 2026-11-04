@@ -8,6 +8,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerVehicleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.people.CustomerVehicleSpecifications;
+import com.ban.vehicle_management.infrastructure.persistence.database.specification.people.CustomerSpecifications;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import java.time.Instant;
 import java.util.List;
@@ -69,7 +70,9 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
 
     @Override
     public Optional<CustomerVehicle> findById(UUID customerVehicleId) {
-        return customerVehicleRepository.findById(customerVehicleId)
+        return customerVehicleRepository.findOne(Specification.<CustomerVehicleEntity>where(
+                        (root, query, cb) -> cb.equal(root.get("customerVehicleId"), customerVehicleId))
+                .and(CustomerVehicleSpecifications.businessVisible()))
                 .map(customerVehiclePersistenceMapper::toDomain);
     }
 
@@ -125,6 +128,7 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
     public boolean existsInParkingLots(UUID customerVehicleId, Set<UUID> parkingLotIds) {
         return customerVehicleRepository.exists(Specification.<CustomerVehicleEntity>where(
                 (root, query, cb) -> cb.equal(root.get("customerVehicleId"), customerVehicleId))
+                .and(CustomerVehicleSpecifications.businessVisible())
                 .and(CustomerVehicleSpecifications.inParkingLots(parkingLotIds)));
     }
 
@@ -140,7 +144,8 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
 
     @Override
     public boolean existsCustomerById(UUID customerId) {
-        return customerRepository.existsById(customerId);
+        return customerRepository.exists(CustomerSpecifications.businessVisible().and(
+                (root, query, cb) -> cb.equal(root.get("customerId"), customerId)));
     }
 
     @Override

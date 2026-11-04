@@ -16,6 +16,14 @@ public final class UserProfileSpecifications {
     public static Specification<UserProfileEntity> withFilters(UserProfileStatus status, String keyword) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.notEqual(root.get("status"), UserProfileStatus.DELETED));
+
+            var account = root.join("account", jakarta.persistence.criteria.JoinType.LEFT);
+            predicates.add(criteriaBuilder.or(
+                    criteriaBuilder.isNull(account.get("accountId")),
+                    criteriaBuilder.notEqual(account.get("status"),
+                            com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
+            ));
 
             if (status != null) {
                 predicates.add(criteriaBuilder.equal(root.get("status"), status));
@@ -33,6 +41,10 @@ public final class UserProfileSpecifications {
             query.orderBy(criteriaBuilder.asc(root.get("fullName")));
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    public static Specification<UserProfileEntity> businessVisible() {
+        return withFilters(null, null);
     }
 
     private static boolean hasText(String value) {

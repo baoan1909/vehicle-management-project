@@ -14,6 +14,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -58,12 +59,17 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
 
     @Override
     public Optional<Subscription> findById(UUID subscriptionId) {
-        return subscriptionRepository.findById(subscriptionId)
+        return subscriptionRepository.findOne(Specification.<SubscriptionEntity>where(
+                        (root, query, cb) -> cb.equal(root.get("subscriptionId"), subscriptionId))
+                .and(SubscriptionSpecifications.businessVisible()))
                 .map(subscriptionPersistenceMapper::toDomain);
     }
 
     @Override
     public Optional<Subscription> findByIdForUpdate(UUID subscriptionId) {
+        if (findById(subscriptionId).isEmpty()) {
+            return Optional.empty();
+        }
         return subscriptionRepository.findByIdForUpdate(subscriptionId)
                 .map(subscriptionPersistenceMapper::toDomain);
     }

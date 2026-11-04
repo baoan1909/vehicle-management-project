@@ -131,7 +131,8 @@ public class NotificationPersistenceAdapter implements NotificationPortOut {
 
     @Override
     public boolean existsAccountById(UUID accountId) {
-        return accountRepository.existsById(accountId);
+        return accountRepository.existsByAccountIdAndStatusNot(accountId,
+                com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED);
     }
 
     @Override

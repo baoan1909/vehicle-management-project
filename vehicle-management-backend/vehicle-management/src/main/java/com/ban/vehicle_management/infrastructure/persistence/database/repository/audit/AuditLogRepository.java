@@ -50,8 +50,10 @@ public interface AuditLogRepository extends JpaRepository<AuditLogEntity, UUID> 
                    auditLog.createdAt AS eventTime,
                    auditLog.action AS action,
                    auditLog.actorAccountId AS actorAccountId,
-                   actor.username AS actorUsername,
-                   actorProfile.fullName AS actorFullName
+                   CASE WHEN actor.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa' ELSE actor.username END AS actorUsername,
+                   CASE WHEN actor.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa' ELSE actorProfile.fullName END AS actorFullName
             FROM AuditLogEntity auditLog
                      LEFT JOIN auditLog.actorAccount actor
                      LEFT JOIN actor.userProfile actorProfile
@@ -70,8 +72,10 @@ public interface AuditLogRepository extends JpaRepository<AuditLogEntity, UUID> 
                    auditLog.createdAt AS eventTime,
                    auditLog.action AS action,
                    auditLog.actorAccountId AS actorAccountId,
-                   actor.username AS actorUsername,
-                   actorProfile.fullName AS actorFullName,
+                   CASE WHEN actor.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa' ELSE actor.username END AS actorUsername,
+                   CASE WHEN actor.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa' ELSE actorProfile.fullName END AS actorFullName,
                    auditLog.oldData AS oldData,
                    auditLog.newData AS newData
             FROM AuditLogEntity auditLog

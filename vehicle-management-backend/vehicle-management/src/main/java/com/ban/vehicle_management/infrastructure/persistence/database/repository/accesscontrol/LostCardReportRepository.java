@@ -63,6 +63,9 @@ public interface LostCardReportRepository extends
         left join report.parkingSession parkingSession
         left join report.subscription subscription
         left join subscription.customerVehicle customerVehicle
+        left join report.customer customer
+        left join customer.userProfile customerProfile
+        left join customerProfile.account customerAccount
         left join InvoiceEntity invoice on invoice.lostCardReportId = report.lostCardReportId
         where (:status is null or report.status = :status)
           and (:context is null or report.context = :context)
@@ -70,6 +73,7 @@ public interface LostCardReportRepository extends
           and (:cardId is null or report.cardId = :cardId)
           and (:parkingSessionId is null or report.parkingSessionId = :parkingSessionId)
           and (:subscriptionId is null or report.subscriptionId = :subscriptionId)
+          and (report.customerId is null or customerAccount.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
           and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
           and report.timeOfLost >= :fromDate
           and report.timeOfLost <= :toDate
@@ -113,7 +117,11 @@ public interface LostCardReportRepository extends
 
     @Query("""
         select count(report) from LostCardReportEntity report
+        left join report.customer customer
+        left join customer.userProfile customerProfile
+        left join customerProfile.account customerAccount
         where report.status = :status
+          and (report.customerId is null or customerAccount.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
           and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
         """)
     long countByStatusInParkingLots(
@@ -125,7 +133,11 @@ public interface LostCardReportRepository extends
     @Query("""
         select count(report)
         from LostCardReportEntity report
+        left join report.customer customer
+        left join customer.userProfile customerProfile
+        left join customerProfile.account customerAccount
         where report.status = :status
+          and (report.customerId is null or customerAccount.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
           and report.resolvedAt >= :fromDate
           and report.resolvedAt <= :toDate
           and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
@@ -142,7 +154,11 @@ public interface LostCardReportRepository extends
         select count(distinct report.lostCardReportId)
         from LostCardReportEntity report
         join InvoiceEntity invoice on invoice.lostCardReportId = report.lostCardReportId
+        left join report.customer customer
+        left join customer.userProfile customerProfile
+        left join customerProfile.account customerAccount
         where report.status = :reportStatus
+          and (report.customerId is null or customerAccount.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
           and invoice.status = :invoiceStatus
           and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
         """)
@@ -157,7 +173,11 @@ public interface LostCardReportRepository extends
         select count(distinct report.cardId)
         from LostCardReportEntity report
         join report.card card
+        left join report.customer customer
+        left join customer.userProfile customerProfile
+        left join customerProfile.account customerAccount
         where card.status = :cardStatus
+          and (report.customerId is null or customerAccount.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
           and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
         """)
     long countDistinctCardsByCardStatus(

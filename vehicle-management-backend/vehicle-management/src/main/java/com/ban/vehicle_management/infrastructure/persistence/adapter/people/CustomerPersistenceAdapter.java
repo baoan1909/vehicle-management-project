@@ -43,7 +43,9 @@ public class CustomerPersistenceAdapter implements CustomerPortOut {
 
     @Override
     public Optional<Customer> findById(UUID customerId) {
-        return customerRepository.findById(customerId)
+        return customerRepository.findOne(Specification.<CustomerEntity>where(
+                        (root, query, cb) -> cb.equal(root.get("customerId"), customerId))
+                .and(CustomerSpecifications.businessVisible()))
                 .map(customerPersistenceMapper::toDomain);
     }
 
@@ -74,6 +76,7 @@ public class CustomerPersistenceAdapter implements CustomerPortOut {
     public boolean existsInParkingLots(UUID customerId, Set<UUID> parkingLotIds) {
         return customerRepository.exists(Specification.<CustomerEntity>where(
                 (root, query, cb) -> cb.equal(root.get("customerId"), customerId))
+                .and(CustomerSpecifications.businessVisible())
                 .and(CustomerSpecifications.inParkingLots(parkingLotIds)));
     }
 

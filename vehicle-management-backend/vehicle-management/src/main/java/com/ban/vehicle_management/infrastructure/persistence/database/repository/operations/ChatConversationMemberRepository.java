@@ -28,12 +28,16 @@ public interface ChatConversationMemberRepository extends JpaRepository<ChatConv
             SELECT member.conversationId AS conversationId,
                    member.accountId AS accountId,
                    member.memberRole AS memberRole,
-                   account.username AS username,
-                   account.email AS email,
+                   CASE WHEN account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa' ELSE account.username END AS username,
+                   CASE WHEN account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN NULL ELSE account.email END AS email,
                    role.code AS accountRoleCode,
                    role.name AS accountRoleName,
-                   profile.fullName AS fullName,
-                   avatar.objectKey AS avatarObjectKey
+                   CASE WHEN account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa' ELSE profile.fullName END AS fullName,
+                   CASE WHEN account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN NULL ELSE avatar.objectKey END AS avatarObjectKey
             FROM ChatConversationMemberEntity member
             JOIN AccountEntity account
                 ON account.accountId = member.accountId
@@ -44,7 +48,10 @@ public interface ChatConversationMemberRepository extends JpaRepository<ChatConv
                 ON avatar.userProfileId = account.userProfileId
                AND avatar.current = TRUE
             WHERE member.conversationId IN :conversationIds
-              AND member.status = com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus.ACTIVE
+              AND (
+                    member.status = com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus.ACTIVE
+                    OR account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+              )
             ORDER BY member.joinedAt ASC, member.conversationMemberId ASC
             """)
     List<ChatConversationParticipantProjection> findActiveParticipantsByConversationIds(

@@ -220,6 +220,7 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
                 FROM iam.accounts
                 WHERE created_at >= :fromInstant
                   AND created_at < :toInstantExclusive
+                  AND status <> 'DELETED'
                 """;
 
         return queryLong(sql, fromInstant, toInstantExclusive);
@@ -229,9 +230,12 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
     public long countNewCustomers(Instant fromInstant, Instant toInstantExclusive) {
         String sql = """
                 SELECT COUNT(*)
-                FROM people.customers
-                WHERE created_at >= :fromInstant
-                  AND created_at < :toInstantExclusive
+                FROM people.customers customer
+                JOIN iam.accounts account ON account.user_profile_id = customer.user_profile_id
+                WHERE customer.created_at >= :fromInstant
+                  AND customer.created_at < :toInstantExclusive
+                  AND customer.status <> 'DELETED'
+                  AND account.status <> 'DELETED'
                 """;
 
         return queryLong(sql, fromInstant, toInstantExclusive);
@@ -241,9 +245,13 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
     public long countNewCustomerVehicles(Instant fromInstant, Instant toInstantExclusive) {
         String sql = """
                 SELECT COUNT(*)
-                FROM people.customer_vehicles
-                WHERE created_at >= :fromInstant
-                  AND created_at < :toInstantExclusive
+                FROM people.customer_vehicles vehicle
+                JOIN people.customers customer ON customer.customer_id = vehicle.customer_id
+                JOIN iam.accounts account ON account.user_profile_id = customer.user_profile_id
+                WHERE vehicle.created_at >= :fromInstant
+                  AND vehicle.created_at < :toInstantExclusive
+                  AND customer.status <> 'DELETED'
+                  AND account.status <> 'DELETED'
                 """;
 
         return queryLong(sql, fromInstant, toInstantExclusive);

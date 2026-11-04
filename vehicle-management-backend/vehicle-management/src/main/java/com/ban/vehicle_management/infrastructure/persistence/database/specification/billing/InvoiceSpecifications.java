@@ -1,6 +1,12 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.specification.billing;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.InvoiceEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Join;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -33,7 +39,8 @@ public final class InvoiceSpecifications {
             Set<UUID> parkingLotIds
     ){
         return Specification
-                .where(inParkingLots(parkingLotIds))
+                .where(businessVisible())
+                .and(inParkingLots(parkingLotIds))
                 .and(hasCustomerId(customerId))
                 .and(hasParkingSessionId(parkingSessionId))
                 .and(hasSubscriptionId(subscriptionId))
@@ -69,12 +76,22 @@ public final class InvoiceSpecifications {
             String keyword
     ){
         return Specification
-                .where(hasCustomerId(customerId))
+                .where(businessVisible())
+                .and(hasCustomerId(customerId))
                 .and(hasSubscriptionIds(subscriptionIds))
                 .and(hasStatus(status))
                 .and(issuedAtFrom(fromDate))
                 .and(issuedTo(toDate))
                 .and(containsKeyword(keyword));
+    }
+
+    public static Specification<InvoiceEntity> businessVisible() {
+        return (root, query, cb) -> {
+            Join<InvoiceEntity, CustomerEntity> customer = root.join("customer", JoinType.LEFT);
+            Join<CustomerEntity, UserProfileEntity> profile = customer.join("userProfile", JoinType.LEFT);
+            Join<UserProfileEntity, AccountEntity> account = profile.join("account", JoinType.LEFT);
+            return cb.or(cb.isNull(root.get("customerId")), cb.notEqual(account.get("status"), AccountStatus.DELETED));
+        };
     }
 
     private static Specification<InvoiceEntity> hasSubscriptionIds(List<UUID> subscriptionIds){

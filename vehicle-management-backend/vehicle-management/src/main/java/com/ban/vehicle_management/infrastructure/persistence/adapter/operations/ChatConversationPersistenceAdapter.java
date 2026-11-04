@@ -34,6 +34,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
@@ -300,8 +302,10 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
     @Override
     public Optional<UUID> findCustomerIdByAccountId(UUID accountId) {
         return accountRepository.findById(accountId)
+                .filter(account -> account.getStatus() != AccountStatus.DELETED)
                 .map(account -> account.getUserProfileId())
                 .flatMap(customerRepository::findByUserProfileId)
+                .filter(customer -> customer.getStatus() != CustomerStatus.DELETED)
                 .map(customer -> customer.getCustomerId());
     }
 
@@ -323,7 +327,11 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
 
     @Override
     public boolean existsCustomer(UUID customerId) {
-        return customerRepository.existsById(customerId);
+        return customerRepository.findById(customerId)
+                .filter(customer -> customer.getStatus() != CustomerStatus.DELETED)
+                .flatMap(customer -> accountRepository.findByUserProfileId(customer.getUserProfileId()))
+                .filter(account -> account.getStatus() != AccountStatus.DELETED)
+                .isPresent();
     }
 
     private void attachFiles(List<ChatMessage> messages) {

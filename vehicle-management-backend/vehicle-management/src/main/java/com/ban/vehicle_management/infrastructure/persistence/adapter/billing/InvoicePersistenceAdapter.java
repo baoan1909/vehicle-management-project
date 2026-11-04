@@ -12,6 +12,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.billing.InvoiceSpecifications;
+import com.ban.vehicle_management.infrastructure.persistence.database.specification.people.CustomerSpecifications;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import org.springframework.stereotype.Component;
@@ -57,12 +58,17 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
 
     @Override
     public Optional<Invoice> findById(UUID invoiceId){
-        return invoiceRepository.findById(invoiceId)
+        return invoiceRepository.findOne(org.springframework.data.jpa.domain.Specification.<InvoiceEntity>where(
+                        (root, query, cb) -> cb.equal(root.get("invoiceId"), invoiceId))
+                .and(InvoiceSpecifications.businessVisible()))
                 .map(invoicePersistenceMapper::toDomain);
     }
 
     @Override
     public Optional<Invoice> findByIdForUpdate(UUID invoiceId) {
+        if (findById(invoiceId).isEmpty()) {
+            return Optional.empty();
+        }
         return invoiceRepository.findByIdForUpdate(invoiceId)
                 .map(invoicePersistenceMapper::toDomain);
     }
@@ -130,7 +136,8 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
 
     @Override
     public  boolean existsCustomerById(UUID customerId){
-        return  customerRepository.existsById(customerId);
+        return customerRepository.exists(CustomerSpecifications.businessVisible().and(
+                (root, query, cb) -> cb.equal(root.get("customerId"), customerId)));
     }
 
     @Override

@@ -128,6 +128,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
     @Override
     public Optional<ProvisionedAccountResult> findProvisionedAccountById(UUID accountId) {
         return accountRepository.findById(accountId)
+                .filter(entity -> entity.getStatus() != AccountStatus.DELETED)
                 .map(entity -> withLifecycle(
                         provisionedAccountReadModelMapper.toResult(entity),
                         entity,
@@ -324,6 +325,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
             String reason
     ) {
         AccountEntity accountEntity = accountRepository.findById(accountId)
+                .filter(entity -> entity.getStatus() != AccountStatus.DELETED)
                 .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
         UserProfileEntity userProfileEntity = resolveUserProfile(accountEntity.getUserProfileId());
         CustomerEntity customerEntity = resolveCustomer(accountEntity.getUserProfileId());
@@ -372,6 +374,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
     @Override
     public void updateProvisionedAccountRole(UUID accountId, UUID roleId) {
         AccountEntity accountEntity = accountRepository.findById(accountId)
+                .filter(entity -> entity.getStatus() != AccountStatus.DELETED)
                 .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
         accountEntity.setRoleId(roleId);
         accountRepository.save(accountEntity);

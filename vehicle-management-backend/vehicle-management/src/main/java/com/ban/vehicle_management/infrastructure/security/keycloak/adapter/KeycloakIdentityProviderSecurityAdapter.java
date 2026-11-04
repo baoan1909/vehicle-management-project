@@ -301,13 +301,21 @@ public class KeycloakIdentityProviderSecurityAdapter implements IdentityProvider
 
     @Override
     public void deleteUser(String keycloakUserId) {
+        if (!StringUtils.hasText(keycloakUserId)) {
+            return;
+        }
         try {
             restClient.delete()
                     .uri(baseUrl + "/admin/realms/" + realm + "/users/" + keycloakUserId)
                     .header(HttpHeaders.AUTHORIZATION, "Bearer " + getAdminAccessToken())
                     .retrieve()
                     .toBodilessEntity();
-        } catch (HttpClientErrorException ignored) {
+        } catch (HttpClientErrorException.NotFound ignored) {
+            // Idempotent retry: the external identity was already removed.
+        } catch (HttpClientErrorException.Forbidden exception) {
+            throw new AccessDeniedException(buildKeycloakAdminForbiddenMessage("delete users"));
+        } catch (HttpClientErrorException exception) {
+            throw new BadRequestException(buildKeycloakClientErrorMessage("Failed to delete Keycloak user", exception));
         }
     }
 

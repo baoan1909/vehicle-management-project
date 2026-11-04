@@ -58,7 +58,9 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
 
     @Override
     public Optional<SupportTicket> findById(UUID supportTicketId) {
-        return supportTicketRepository.findById(supportTicketId)
+        return supportTicketRepository.findOne(org.springframework.data.jpa.domain.Specification.<SupportTicketEntity>where(
+                        (root, query, cb) -> cb.equal(root.get("supportTicketId"), supportTicketId))
+                .and(SupportTicketSpecifications.businessVisible()))
                 .map(this::mapToDomain);
     }
 

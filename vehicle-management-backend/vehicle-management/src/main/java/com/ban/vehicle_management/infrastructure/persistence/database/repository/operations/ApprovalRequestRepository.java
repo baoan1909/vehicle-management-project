@@ -312,8 +312,12 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
                    approval.status AS status,
                    approval.note AS note,
                    COALESCE(approval.approvedBy, approval.requestedBy) AS actorAccountId,
-                   COALESCE(approvedByAccount.username, requestedByAccount.username) AS actorUsername,
-                   COALESCE(approvedByProfile.fullName, requestedByProfile.fullName) AS actorFullName
+                   CASE WHEN COALESCE(approvedByAccount.status, requestedByAccount.status) = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa'
+                        ELSE COALESCE(approvedByAccount.username, requestedByAccount.username) END AS actorUsername,
+                   CASE WHEN COALESCE(approvedByAccount.status, requestedByAccount.status) = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa'
+                        ELSE COALESCE(approvedByProfile.fullName, requestedByProfile.fullName) END AS actorFullName
             FROM ApprovalRequestEntity approval
                      LEFT JOIN approval.approvedByAccount approvedByAccount
                      LEFT JOIN approval.requestedByAccount requestedByAccount
