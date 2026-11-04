@@ -10,8 +10,10 @@ import java.util.UUID;
 public class DevicePolicy {
 
     public void initializeNew(Device device) {
+        if (device.getDeviceId() == null) {
+            device.setDeviceId(UUID.randomUUID());
+        }
         validateEditableFields(device);
-        device.setDeviceId(UUID.randomUUID());
         device.setStatus(DeviceStatus.ACTIVE);
     }
 

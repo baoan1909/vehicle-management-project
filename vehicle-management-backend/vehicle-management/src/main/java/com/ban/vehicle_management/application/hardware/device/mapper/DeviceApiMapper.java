@@ -14,6 +14,7 @@ import org.mapstruct.Mapping;
 public interface DeviceApiMapper {
 
     @Mapping(target = "deviceId", ignore = true)
+    @Mapping(target = "deviceCode", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
@@ -22,6 +23,7 @@ public interface DeviceApiMapper {
     Device toDomain(CreateDeviceRequest request);
 
     @Mapping(target = "deviceId", ignore = true)
+    @Mapping(target = "deviceCode", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)

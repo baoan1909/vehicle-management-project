@@ -7,7 +7,6 @@ import java.util.UUID;
 public record UpdateDeviceRequest(
         UUID parkingLotId,
         UUID laneId,
-        String deviceCode,
         DeviceType deviceType,
         String name,
         String ipAddress,

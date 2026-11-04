@@ -37,7 +37,6 @@ export type DeviceFilter = {
 
 export type SaveDeviceRequest = {
   config: Record<string, unknown> | null;
-  deviceCode: string;
   deviceType: DeviceTypeApi;
   ipAddress: string | null;
   laneId: string | null;

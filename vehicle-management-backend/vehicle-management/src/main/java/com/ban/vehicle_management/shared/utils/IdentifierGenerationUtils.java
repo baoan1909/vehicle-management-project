@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.shared.utils;
 
+import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -65,6 +66,26 @@ public final class IdentifierGenerationUtils {
                 LANE_PREFIX,
                 IdentifierGenerationUtils::compactUuidPrefix
         );
+    }
+
+    public static String generateDeviceCode(UUID deviceId, DeviceType deviceType) {
+        return buildCode(
+                requireIdentifier(deviceId, "deviceId"),
+                deviceCodePrefix(deviceType),
+                IdentifierGenerationUtils::compactUuidPrefix
+        );
+    }
+
+    private static String deviceCodePrefix(DeviceType deviceType) {
+        if (deviceType == null) {
+            throw new IllegalArgumentException("deviceType must not be null");
+        }
+        return switch (deviceType) {
+            case CAMERA -> "CAM";
+            case KIOSK -> "KIO";
+            case CARD_READER -> "CRD";
+            case BARRIER -> "BAR";
+        };
     }
 
     private static UUID requireIdentifier(UUID identifier, String fieldName) {

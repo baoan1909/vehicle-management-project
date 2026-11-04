@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -32,6 +33,10 @@ class IdentifierGenerationUtilsTest {
         assertEquals("ZONE-31B6D833211F", IdentifierGenerationUtils.generateZoneCode(identifier));
         assertEquals("GATE-31B6D833211F", IdentifierGenerationUtils.generateGateCode(identifier));
         assertEquals("LANE-31B6D833211F", IdentifierGenerationUtils.generateLaneCode(identifier));
+        assertEquals("CAM-31B6D833211F", IdentifierGenerationUtils.generateDeviceCode(identifier, DeviceType.CAMERA));
+        assertEquals("KIO-31B6D833211F", IdentifierGenerationUtils.generateDeviceCode(identifier, DeviceType.KIOSK));
+        assertEquals("CRD-31B6D833211F", IdentifierGenerationUtils.generateDeviceCode(identifier, DeviceType.CARD_READER));
+        assertEquals("BAR-31B6D833211F", IdentifierGenerationUtils.generateDeviceCode(identifier, DeviceType.BARRIER));
     }
 
     @Test
@@ -40,5 +45,7 @@ class IdentifierGenerationUtilsTest {
         assertThrows(IllegalArgumentException.class, () -> IdentifierGenerationUtils.generateZoneCode(null));
         assertThrows(IllegalArgumentException.class, () -> IdentifierGenerationUtils.generateGateCode(null));
         assertThrows(IllegalArgumentException.class, () -> IdentifierGenerationUtils.generateLaneCode(null));
+        assertThrows(IllegalArgumentException.class, () -> IdentifierGenerationUtils.generateDeviceCode(null, DeviceType.CAMERA));
+        assertThrows(IllegalArgumentException.class, () -> IdentifierGenerationUtils.generateDeviceCode(UUID.randomUUID(), null));
     }
 }
