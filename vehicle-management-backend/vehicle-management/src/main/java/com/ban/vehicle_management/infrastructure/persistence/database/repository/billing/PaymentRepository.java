@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 public interface PaymentRepository extends JpaRepository<PaymentEntity, UUID>, JpaSpecificationExecutor<PaymentEntity> {
 
@@ -40,4 +41,18 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, UUID>, J
             where payment.transactionRef = :transactionRef
             """)
     Optional<PaymentEntity> findByTransactionRefForUpdate(@Param("transactionRef") String transactionRef);
+
+    @Query("""
+            select payment from PaymentEntity payment
+            join payment.invoice invoice
+            where payment.status = 'SUCCESS'
+              and invoice.customerId = :customerId
+              and invoice.parkingLotId = :parkingLotId
+              and (invoice.parkingSessionId is not null or invoice.subscriptionId is not null)
+            order by coalesce(payment.paidAt, payment.createdAt) desc, payment.paymentId desc
+            """)
+    List<PaymentEntity> findLatestReviewEligiblePayment(
+            @Param("customerId") UUID customerId,
+            @Param("parkingLotId") UUID parkingLotId,
+            Pageable pageable);
 }

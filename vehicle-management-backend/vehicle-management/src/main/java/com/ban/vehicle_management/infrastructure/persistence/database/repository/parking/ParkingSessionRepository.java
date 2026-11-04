@@ -69,7 +69,8 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
             UUID vehicleTypeId,
             Collection<ParkingSessionStatus> statuses
     );
-
+    Optional<ParkingSessionEntity> findFirstByCustomerIdAndParkingLotIdAndStatusOrderByCheckOutTimeDesc(
+            UUID customerId, UUID parkingLotId, ParkingSessionStatus status);
     @Query("select count(session) from ParkingSessionEntity session where session.zoneId = :zoneId and session.status = 'OPEN' and (session.subscriptionId is not null or session.customerVehicleId is not null)")
     long countOpenRegisteredByZoneId(@Param("zoneId") UUID zoneId);
 
