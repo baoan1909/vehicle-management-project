@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useAuth } from "@/core/auth/useAuth";
+import { Button, Modal, useToast } from "@/components/ui";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { Drawer } from "@/shared/components/ui/Drawer";
 import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
@@ -39,11 +40,12 @@ import {
 import {
   activateVehicleType,
   createVehicleType,
-  deactivateVehicleType,
+  getVehicleTypeDeactivationImpact,
   getVehicleTypes,
   updateVehicleType,
   type CreateVehicleTypeRequest,
   type UpdateVehicleTypeRequest,
+  type VehicleTypeDeactivationImpact,
   type VehicleTypeApiResponse
 } from "@/features/catalog/api/vehicleTypesApi";
 import { getPriceRules } from "@/features/pricing/api/pricingApi";
@@ -503,17 +505,27 @@ function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Veh
             onChange={(event) => updateField("name", event.target.value)}
           />
         </label>
-        <label className="tw-grid tw-gap-2">
-          <span className="tw-text-[0.86rem] tw-font-extrabold tw-text-vm-slate-700">Trạng thái</span>
-          <select
-            className="tw-min-h-12 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-900 focus:tw-border-vm-primary focus:tw-outline-none focus:tw-shadow-vm-focus"
-            value={form.isActive}
-            onChange={(event) => updateField("isActive", event.target.value)}
-          >
-            <option value="true">Đang hoạt động</option>
-            <option value="false">Ngừng dùng</option>
-          </select>
-        </label>
+        {isEditMode ? (
+          <div className="tw-grid tw-gap-2">
+            <span className="tw-text-[0.86rem] tw-font-extrabold tw-text-vm-slate-700">Trạng thái</span>
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-3 tw-py-3">
+              <strong className={form.isActive === "true" ? "tw-text-green-700" : "tw-text-red-600"}>{form.isActive === "true" ? "Đang hoạt động" : "Ngừng dùng"}</strong>
+              <small className="tw-mt-1 tw-block tw-font-semibold tw-text-vm-slate-500">Dùng thao tác Kích hoạt lại hoặc Ngừng dùng bên ngoài biểu mẫu để hệ thống kiểm tra dữ liệu liên quan.</small>
+            </div>
+          </div>
+        ) : (
+          <label className="tw-grid tw-gap-2">
+            <span className="tw-text-[0.86rem] tw-font-extrabold tw-text-vm-slate-700">Trạng thái</span>
+            <select
+              className="tw-min-h-12 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-900 focus:tw-border-vm-primary focus:tw-outline-none focus:tw-shadow-vm-focus"
+              value={form.isActive}
+              onChange={(event) => updateField("isActive", event.target.value)}
+            >
+              <option value="true">Đang hoạt động</option>
+              <option value="false">Ngừng dùng</option>
+            </select>
+          </label>
+        )}
         <label className="tw-grid tw-gap-2">
           <span className="tw-text-[0.86rem] tw-font-extrabold tw-text-vm-slate-700">Mô tả</span>
           <textarea
@@ -765,9 +777,11 @@ export function TicketListPage() {
 
 export function VehicleListPage() {
   const { user } = useAuth();
+  const toast = useToast();
   const canManagePartnerCatalog = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const canCreate = canManagePartnerCatalog && hasAnyPermission(user, ["VEHICLE_TYPE_CREATE_ALL"]);
-  const canUpdate = canManagePartnerCatalog && hasAnyPermission(user, ["VEHICLE_TYPE_UPDATE_ALL"]);
+  const canUpdate = hasAnyPermission(user, ["VEHICLE_TYPE_UPDATE_ALL"]);
+  const canStopVehicleService = hasAnyPermission(user, ["VEHICLE_TYPE_UPDATE_ALL"]);
   const lotScope = useParkingLotCatalogScope();
   const [records, setRecords] = useState<VehicleCatalogRecord[]>([]);
   const [statusValue, setStatusValue] = useState("all");
@@ -777,13 +791,20 @@ export function VehicleListPage() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
+  const [deactivationTarget, setDeactivationTarget] = useState<VehicleCatalogRecord | null>(null);
+  const [deactivationImpact, setDeactivationImpact] = useState<VehicleTypeDeactivationImpact | null>(null);
+  const [deactivationScope, setDeactivationScope] = useState("");
+  const [isImpactLoading, setIsImpactLoading] = useState(false);
+  const [isDeactivating, setIsDeactivating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   const lotRecords = lotScope.selectedLot && lotScope.availability
-    ? records.filter((row) => row.organizationId === lotScope.selectedLot?.organizationId
-      && !lotScope.availability?.excludedVehicleTypeIds.includes(row.id))
+    ? records
+      .filter((row) => row.organizationId === lotScope.selectedLot?.organizationId)
+      .map((row) => lotScope.availability?.excludedVehicleTypeIds.includes(row.id)
+        ? { ...row, status: "inactive" as const }
+        : row)
     : [];
   const filteredRecords = lotRecords.filter((row) => {
     const matchesStatus = statusValue === "all" ? true : row.status === (statusValue as CatalogStatus);
@@ -794,6 +815,11 @@ export function VehicleListPage() {
   const page = getPageItems<VehicleCatalogRecord>(filteredRecords, currentPage, pageSize);
   const effectiveSelectedId = filteredRecords.some((row) => row.id === selectedId) ? selectedId : filteredRecords[0]?.id ?? null;
   const selectedRecord = filteredRecords.find((row) => row.id === effectiveSelectedId) ?? null;
+  const canActivateSelectedRecord = Boolean(selectedRecord) && (
+    selectedRecord?.isActive
+      ? canStopVehicleService
+      : canManagePartnerCatalog && canUpdate
+  );
 
   const loadVehicleTypes = async () => {
     setIsLoading(true);
@@ -864,35 +890,89 @@ export function VehicleListPage() {
   const handleCreateVehicleType = async (payload: CreateVehicleTypeRequest) => {
     const response = await createVehicleType(payload, lotScope.selectedLotId);
     upsertRecord(mapSingleVehicleType(response.data));
-    setSuccessMessage(response.message || "Thêm loại phương tiện thành công.");
+    toast.success(response.message || "Thêm loại phương tiện thành công.", "Tạo thành công");
     setCurrentPage(1);
   };
 
   const handleUpdateVehicleType = async (id: string, payload: UpdateVehicleTypeRequest) => {
-    const response = await updateVehicleType(id, payload);
+    const response = await updateVehicleType(id, payload, lotScope.selectedLotId);
     upsertRecord(mapSingleVehicleType(response.data));
-    setSuccessMessage(response.message || "Cập nhật loại phương tiện thành công.");
+    toast.success(response.message || "Cập nhật loại phương tiện thành công.", "Cập nhật thành công");
   };
 
   const handleActivateVehicleType = async (row: VehicleCatalogRecord) => {
     try {
       setErrorMessage("");
-      const response = await activateVehicleType(row.id);
-      upsertRecord(mapSingleVehicleType(response.data));
-      setSuccessMessage(response.message || "Kích hoạt loại phương tiện thành công.");
+      const masterRecord = records.find((record) => record.id === row.id);
+      if (masterRecord?.isActive) {
+        if (!lotScope.selectedLotId) throw new Error("Vui lòng chọn bãi xe trước.");
+        await lotScope.updateVehicleAvailabilityAtLot(lotScope.selectedLotId, row.id, true);
+        toast.success(`Đã kích hoạt lại ${row.name} tại ${lotScope.selectedLot?.name ?? "bãi đang xem"}.`, "Kích hoạt thành công");
+      } else {
+        const response = await activateVehicleType(row.id);
+        upsertRecord(mapSingleVehicleType(response.data));
+        toast.success(response.message || "Kích hoạt loại phương tiện thành công.", "Kích hoạt thành công");
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể kích hoạt loại phương tiện.");
     }
   };
 
   const handleDeactivateVehicleType = async (row: VehicleCatalogRecord) => {
+    setDeactivationTarget(row);
+    setDeactivationImpact(null);
+    setDeactivationScope(
+      canManagePartnerCatalog
+        ? lotScope.selectedLotId || "all"
+        : lotScope.lots.length === 1
+          ? lotScope.lots[0].parkingLotId
+          : "",
+    );
+    setIsImpactLoading(true);
+    setErrorMessage("");
     try {
-      setErrorMessage("");
-      const response = await deactivateVehicleType(row.id);
-      upsertRecord({ ...row, isActive: false, status: "inactive" });
-      setSuccessMessage(response.message || "Ngừng dùng loại phương tiện thành công.");
+      const response = await getVehicleTypeDeactivationImpact(row.id);
+      setDeactivationImpact(response.data);
+    } catch (error) {
+      setDeactivationTarget(null);
+      setErrorMessage(error instanceof Error ? error.message : "Không thể ngừng dùng loại phương tiện.");
+    } finally {
+      setIsImpactLoading(false);
+    }
+  };
+
+  const closeDeactivationDialog = () => {
+    if (isDeactivating) return;
+    setDeactivationTarget(null);
+    setDeactivationImpact(null);
+    setDeactivationScope("");
+  };
+
+  const confirmDeactivateVehicleType = async () => {
+    if (!deactivationTarget || !deactivationImpact || !deactivationScope) return;
+
+    setIsDeactivating(true);
+    setErrorMessage("");
+    try {
+      if (deactivationScope === "all") {
+        await lotScope.updateVehicleAvailabilityForAllLots(deactivationTarget.id, false);
+      } else {
+        await lotScope.updateVehicleAvailabilityAtLot(deactivationScope, deactivationTarget.id, false);
+      }
+      const scopeLabel = deactivationScope === "all"
+        ? "tất cả bãi thuộc Partner"
+        : lotScope.lots.find((lot) => lot.parkingLotId === deactivationScope)?.name ?? "bãi đã chọn";
+      toast.success(
+        `Đã ngừng phục vụ ${deactivationTarget.name} tại ${scopeLabel}. Vé còn hiệu lực và phiên đang gửi vẫn được phục vụ đến khi kết thúc.`,
+        "Cập nhật thành công",
+      );
+      setDeactivationTarget(null);
+      setDeactivationImpact(null);
+      setDeactivationScope("");
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể ngừng dùng loại phương tiện.");
+    } finally {
+      setIsDeactivating(false);
     }
   };
 
@@ -900,7 +980,8 @@ export function VehicleListPage() {
     <CatalogPageShell>
       <CatalogHeader createLabel="Thêm loại xe" title="Loại phương tiện" onCreateClick={canCreate && lotScope.selectedLot ? handleOpenCreate : undefined} onExportClick={() => exportVehicleTypes(filteredRecords)} />
       <ParkingLotCatalogControls
-        canConfigure={canUpdate}
+        canConfigure={false}
+        drainingIds={lotScope.availability?.drainingVehicleTypeIds ?? []}
         excludedIds={lotScope.availability?.excludedVehicleTypeIds ?? []}
         items={records.filter((row) => row.organizationId === lotScope.selectedLot?.organizationId)}
         kind="vehicle"
@@ -937,11 +1018,6 @@ export function VehicleListPage() {
             />
           </CatalogToolbar>
 
-          {successMessage ? (
-            <div className="tw-m-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-green-100 tw-bg-green-50 tw-px-4 tw-py-3 tw-text-[0.9rem] tw-font-bold tw-text-green-700">
-              {successMessage}
-            </div>
-          ) : null}
           {errorMessage ? (
             <div className="tw-m-4 tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-px-4 tw-py-3 tw-text-[0.9rem] tw-font-bold tw-text-red-600">
               {errorMessage}
@@ -966,7 +1042,7 @@ export function VehicleListPage() {
           />
         </main>
 
-        <VehicleDetailPanel row={selectedRecord} onEdit={canUpdate ? handleOpenEdit : undefined} onActivate={canUpdate ? handleActivateVehicleType : undefined} onDeactivate={canUpdate ? handleDeactivateVehicleType : undefined} />
+        <VehicleDetailPanel row={selectedRecord} onEdit={canUpdate ? handleOpenEdit : undefined} onActivate={canActivateSelectedRecord ? handleActivateVehicleType : undefined} onDeactivate={canStopVehicleService ? handleDeactivateVehicleType : undefined} />
       </div>
       <VehicleTypeFormDrawer
         isOpen={isFormOpen}
@@ -975,6 +1051,77 @@ export function VehicleListPage() {
         onCreate={handleCreateVehicleType}
         onUpdate={handleUpdateVehicleType}
       />
+      <Modal
+        actions={(
+          <div className="tw-flex tw-flex-wrap tw-justify-end tw-gap-2">
+            <Button disabled={isDeactivating} onClick={closeDeactivationDialog} variant="secondary">Đóng</Button>
+            <Button
+              disabled={isImpactLoading || !deactivationImpact || !deactivationScope}
+              loading={isDeactivating}
+              onClick={() => void confirmDeactivateVehicleType()}
+              variant="danger"
+            >
+              Xác nhận ngừng dùng
+            </Button>
+          </div>
+        )}
+        description="Chọn phạm vi bãi áp dụng và kiểm tra ảnh hưởng trước khi ngừng phục vụ loại phương tiện. Dữ liệu và lịch sử cũ được giữ nguyên."
+        onClose={closeDeactivationDialog}
+        open={Boolean(deactivationTarget)}
+        title={`Ngừng dùng ${deactivationTarget?.name ?? "loại phương tiện"}`}
+        width="md"
+      >
+        {isImpactLoading ? (
+          <div className="tw-flex tw-min-h-40 tw-items-center tw-justify-center tw-gap-3 tw-font-bold tw-text-vm-slate-500">
+            <i className="fas fa-spinner fa-spin tw-text-vm-primary" />Đang kiểm tra dữ liệu liên quan...
+          </div>
+        ) : deactivationImpact ? (
+          <div className="tw-grid tw-gap-4">
+            <label className="tw-grid tw-gap-1.5">
+              <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-700">Phạm vi áp dụng</span>
+              <select
+                className="tw-min-h-11 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-800 focus:tw-border-vm-primary focus:tw-outline-none"
+                disabled={!canManagePartnerCatalog && lotScope.lots.length === 1}
+                onChange={(event) => setDeactivationScope(event.target.value)}
+                value={deactivationScope}
+              >
+                {!canManagePartnerCatalog && lotScope.lots.length > 1 ? <option value="">Chọn bãi áp dụng</option> : null}
+                {canManagePartnerCatalog ? <option value="all">Tất cả bãi thuộc Partner</option> : null}
+                {lotScope.lots.map((lot) => <option key={lot.parkingLotId} value={lot.parkingLotId}>{lot.name} · {lot.code}</option>)}
+              </select>
+              <small className="tw-font-semibold tw-leading-5 tw-text-vm-slate-500">
+                {canManagePartnerCatalog
+                  ? "Partner Admin có thể ngừng tại một bãi cụ thể hoặc toàn bộ bãi thuộc Partner."
+                  : lotScope.lots.length === 1
+                    ? "Manager chỉ được áp dụng tại bãi đang được phân công."
+                    : "Manager phải chọn một trong các bãi đang được phân công; không thể áp dụng cho tất cả bãi."}
+              </small>
+            </label>
+            <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[480px]:tw-grid-cols-1">
+              {[
+                ["Quy tắc giá đang dùng", deactivationImpact.activePriceRuleCount, "fas fa-tags"],
+                ["Phương tiện khách hàng", deactivationImpact.activeCustomerVehicleCount, "fas fa-car"],
+                ["Vé còn nghĩa vụ phục vụ", deactivationImpact.activeSubscriptionCount, "fas fa-ticket-alt"],
+                ["Phiên gửi xe chưa đóng", deactivationImpact.openParkingSessionCount, "fas fa-parking"],
+                ["Khu vực đang phục vụ", deactivationImpact.assignedZoneCount, "fas fa-vector-square"],
+              ].map(([label, value, icon]) => (
+                <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3" key={String(label)}>
+                  <span className="tw-block tw-text-[0.75rem] tw-font-bold tw-text-vm-slate-500"><i className={`${icon} tw-mr-2 tw-text-vm-primary`} />{label}</span>
+                  <strong className="tw-mt-1 tw-block tw-text-xl tw-font-black tw-text-vm-slate-900">{value}</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-amber-200 tw-bg-amber-50 tw-p-4 tw-text-[0.84rem] tw-font-semibold tw-leading-6 tw-text-amber-800">
+              Không có bản ghi nào bị xóa. Đăng ký mới và lượt xe vãng lai của loại xe này sẽ bị chặn trong phạm vi đã chọn.
+              {deactivationImpact.openParkingSessionCount > 0 ? <span className="tw-mt-1 tw-block">• {deactivationImpact.openParkingSessionCount} phiên gửi xe đang mở vẫn được phép checkout.</span> : null}
+              {deactivationImpact.activeSubscriptionCount > 0 ? <span className="tw-mt-1 tw-block">• {deactivationImpact.activeSubscriptionCount} vé đã kích hoạt/đã thanh toán vẫn được phục vụ đến khi hết nghĩa vụ.</span> : null}
+              {deactivationImpact.assignedZoneCount > 0 ? <span className="tw-mt-1 tw-block">• Sau khi hết nghĩa vụ, loại xe được gỡ khỏi khu vực liên quan; khu vực không còn loại xe nào sẽ chuyển sang bảo trì.</span> : null}
+              {deactivationImpact.activeCustomerVehicleCount > 0 ? <span className="tw-mt-1 tw-block">• {deactivationImpact.activeCustomerVehicleCount} phương tiện khách hàng hiện có được giữ lại để bảo toàn lịch sử.</span> : null}
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </CatalogPageShell>
   );
 }

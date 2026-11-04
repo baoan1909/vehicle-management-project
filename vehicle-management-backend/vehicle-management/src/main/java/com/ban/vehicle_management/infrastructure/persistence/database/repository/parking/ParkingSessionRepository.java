@@ -49,6 +49,8 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
 
     boolean existsByVehicleTypeIdAndStatusIn(UUID vehicleTypeId, Collection<ParkingSessionStatus> statuses);
 
+    long countByVehicleTypeIdAndStatusIn(UUID vehicleTypeId, Collection<ParkingSessionStatus> statuses);
+
     boolean existsByParkingSpaceIdAndStatus(UUID parkingSpaceId, ParkingSessionStatus status);
 
     Optional<ParkingSessionEntity> findFirstByParkingSpaceIdAndStatus(UUID parkingSpaceId, ParkingSessionStatus status);
@@ -61,6 +63,12 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
     long countByZoneIdAndStatus(UUID zoneId, ParkingSessionStatus status);
 
     long countByParkingLotIdAndStatus(UUID parkingLotId, ParkingSessionStatus status);
+
+    long countByParkingLotIdAndVehicleTypeIdAndStatusIn(
+            UUID parkingLotId,
+            UUID vehicleTypeId,
+            Collection<ParkingSessionStatus> statuses
+    );
 
     @Query("select count(session) from ParkingSessionEntity session where session.zoneId = :zoneId and session.status = 'OPEN' and (session.subscriptionId is not null or session.customerVehicleId is not null)")
     long countOpenRegisteredByZoneId(@Param("zoneId") UUID zoneId);

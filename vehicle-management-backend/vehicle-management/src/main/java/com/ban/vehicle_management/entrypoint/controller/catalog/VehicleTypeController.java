@@ -1,12 +1,14 @@
 package com.ban.vehicle_management.entrypoint.controller.catalog;
 
 import com.ban.vehicle_management.application.catalog.vehicletype.mapper.VehicleTypeApiMapper;
+import com.ban.vehicle_management.application.catalog.vehicletype.model.VehicleTypeDeactivationImpact;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.in.VehicleTypePortIn;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.CreateVehicleTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.VehicleTypeFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.UpdateVehicleTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.response.VehicleTypeAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.response.VehicleTypeDeactivationImpactResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.List;
 import java.util.UUID;
@@ -72,11 +74,13 @@ public class VehicleTypeController {
     @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_UPDATE_ALL')")
     public ResponseEntity<ApiResponse<VehicleTypeAdminResponse>> updateVehicleType(
             @PathVariable UUID vehicleTypeId,
-            @RequestBody UpdateVehicleTypeRequest request
+            @RequestBody UpdateVehicleTypeRequest request,
+            @RequestParam(required = false) UUID parkingLotId
     ) {
         VehicleType updatedVehicleType = vehicleTypePortIn.updateVehicleType(
                 vehicleTypeId,
-                vehicleTypeApiMapper.toDomain(request)
+                vehicleTypeApiMapper.toDomain(request),
+                parkingLotId
         );
         VehicleTypeAdminResponse response = vehicleTypeApiMapper.toAdminResponse(updatedVehicleType);
         return ResponseEntity.ok(ApiResponse.ok("Vehicle type updated successfully", response));
@@ -84,9 +88,30 @@ public class VehicleTypeController {
 
     @DeleteMapping("/{vehicleTypeId}")
     @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_DELETE_ALL')")
-    public ResponseEntity<ApiResponse<Void>> deleteVehicleType(@PathVariable UUID vehicleTypeId) {
-        vehicleTypePortIn.deleteVehicleType(vehicleTypeId);
+    public ResponseEntity<ApiResponse<Void>> deleteVehicleType(
+            @PathVariable UUID vehicleTypeId,
+            @RequestParam(defaultValue = "false") boolean cascadePriceRules
+    ) {
+        vehicleTypePortIn.deactivateVehicleType(vehicleTypeId, cascadePriceRules);
         return ResponseEntity.ok(ApiResponse.ok("Vehicle type deactivated successfully"));
+    }
+
+    @GetMapping("/{vehicleTypeId}/deactivation-impact")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('VEHICLE_TYPE_UPDATE_ALL')")
+    public ResponseEntity<ApiResponse<VehicleTypeDeactivationImpactResponse>> getDeactivationImpact(
+            @PathVariable UUID vehicleTypeId
+    ) {
+        VehicleTypeDeactivationImpact impact = vehicleTypePortIn.getDeactivationImpact(vehicleTypeId);
+        VehicleTypeDeactivationImpactResponse response = new VehicleTypeDeactivationImpactResponse(
+                impact.activePriceRuleCount(),
+                impact.activeCustomerVehicleCount(),
+                impact.activeSubscriptionCount(),
+                impact.openParkingSessionCount(),
+                impact.assignedZoneCount(),
+                impact.requiresPriceRuleCascade(),
+                impact.hasOperationalBlockers()
+        );
+        return ResponseEntity.ok(ApiResponse.ok("Fetched vehicle type deactivation impact", response));
     }
 
     @PatchMapping("/{vehicleTypeId}/activate")

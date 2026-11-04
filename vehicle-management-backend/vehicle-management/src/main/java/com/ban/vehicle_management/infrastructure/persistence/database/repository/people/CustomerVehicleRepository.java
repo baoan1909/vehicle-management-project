@@ -21,6 +21,8 @@ public interface CustomerVehicleRepository
 
     boolean existsByVehicleTypeIdAndStatusIn(UUID vehicleTypeId, Collection<CustomerVehicleStatus> statuses);
 
+    long countByVehicleTypeIdAndStatusIn(UUID vehicleTypeId, Collection<CustomerVehicleStatus> statuses);
+
     List<CustomerVehicleEntity> findByCustomerIdAndIsDefaultTrue(UUID customerId);
 
     @Query("""

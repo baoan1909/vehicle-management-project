@@ -11,5 +11,6 @@ public class ParkingLotCatalogAvailabilityResponse {
     private UUID parkingLotId;
     private UUID organizationId;
     private Set<UUID> excludedVehicleTypeIds;
+    private Set<UUID> drainingVehicleTypeIds;
     private Set<UUID> excludedTicketTypeIds;
 }

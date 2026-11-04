@@ -2,6 +2,14 @@ const VIETNAMESE_CHARACTER_PATTERN =
   /[ăâđêôơưĂÂĐÊÔƠƯàáảãạằắẳẵặầấẩẫậèéẻẽẹềếểễệìíỉĩịòóỏõọồốổỗộờớởỡợùúủũụừứửữựỳýỷỹỵ]/;
 
 const MESSAGE_TRANSLATIONS: Record<string, string> = {
+  "Vehicle type is used by active price rules; confirm cascading deactivation":
+    "Loại phương tiện đang được dùng bởi quy tắc giá. Vui lòng kiểm tra ảnh hưởng và xác nhận ngừng đồng thời các quy tắc liên quan.",
+  "Vehicle type still has open parking sessions":
+    "Loại phương tiện vẫn còn phiên gửi xe chưa kết thúc. Vui lòng hoàn tất các phiên trước khi ngừng dùng.",
+  "Vehicle type still has active or paid subscriptions":
+    "Loại phương tiện vẫn còn vé đã kích hoạt hoặc đã thanh toán cần được phục vụ.",
+  "Use the dedicated vehicle type activation or deactivation action":
+    "Vui lòng sử dụng nút Kích hoạt lại hoặc Ngừng dùng để thay đổi trạng thái loại phương tiện.",
   "Vehicle type is not accepted by zone": "Loại xe này không được phép vào khu vực đã chọn.",
   "Lane is not active": "Làn xe hiện không hoạt động.",
   "Lane must be an IN lane for check-in": "Vui lòng chọn đúng làn xe vào.",

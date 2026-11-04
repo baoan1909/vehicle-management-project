@@ -12,6 +12,7 @@ export type ParkingLotCatalogAvailability = {
   parkingLotId: string;
   organizationId: string;
   excludedVehicleTypeIds: string[];
+  drainingVehicleTypeIds: string[];
   excludedTicketTypeIds: string[];
 };
 
@@ -25,6 +26,17 @@ export function setParkingLotVehicleTypeEnabled(parkingLotId: string, vehicleTyp
   return apiClient<ApiResponse<ParkingLotCatalogAvailability>>(
     `${apiEndpoints.catalog.parkingLotCatalogAvailability(parkingLotId)}/vehicle-types/${vehicleTypeId}`,
     { method: "PUT", body: { enabled } },
+  );
+}
+
+export function setParkingLotVehicleTypeEnabledForLots(
+  parkingLotIds: string[],
+  vehicleTypeId: string,
+  enabled: boolean,
+) {
+  return apiClient<ApiResponse<ParkingLotCatalogAvailability[]>>(
+    `/catalog/parking-lots/availability/vehicle-types/${vehicleTypeId}`,
+    { method: "PUT", body: { parkingLotIds, enabled } },
   );
 }
 

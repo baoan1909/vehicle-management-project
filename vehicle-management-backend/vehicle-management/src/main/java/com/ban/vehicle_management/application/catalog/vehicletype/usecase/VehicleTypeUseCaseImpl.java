@@ -2,14 +2,17 @@ package com.ban.vehicle_management.application.catalog.vehicletype.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
+import com.ban.vehicle_management.application.catalog.vehicletype.model.VehicleTypeDeactivationImpact;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.in.VehicleTypePortIn;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.domain.catalog.vehicletype.policy.VehicleTypePolicy;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
 import java.util.UUID;
+import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,16 +62,27 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
     @Override
     @Transactional
     public VehicleType updateVehicleType(UUID vehicleTypeId, VehicleType vehicleType) {
+        return updateVehicleType(vehicleTypeId, vehicleType, null);
+    }
+
+    @Override
+    @Transactional
+    public VehicleType updateVehicleType(UUID vehicleTypeId, VehicleType vehicleType, UUID parkingLotId) {
         currentAccountPortIn.requirePermission(VEHICLE_TYPE_UPDATE_ALL);
         VehicleType existingVehicleType = findExistingVehicleType(vehicleTypeId);
-        catalogAccessGuard.ensureWritable(existingVehicleType.getOrganizationId());
+        if (parkingLotId == null) {
+            catalogAccessGuard.ensureWritable(existingVehicleType.getOrganizationId());
+        } else {
+            catalogAccessGuard.ensureWritable(existingVehicleType.getOrganizationId(), parkingLotId);
+        }
 
+        if (vehicleType.getIsActive() != null
+                && !vehicleType.getIsActive().equals(existingVehicleType.getIsActive())) {
+            throw new BadRequestException("Use the dedicated vehicle type activation or deactivation action");
+        }
         existingVehicleType.setCode(vehicleType.getCode());
         existingVehicleType.setName(vehicleType.getName());
         existingVehicleType.setDescription(vehicleType.getDescription());
-        if (vehicleType.getIsActive() != null) {
-            existingVehicleType.setIsActive(vehicleType.getIsActive());
-        }
 
         vehicleTypePolicy.initialize(existingVehicleType);
 
@@ -97,16 +111,39 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
     @Override
     @Transactional
     public void deleteVehicleType(UUID vehicleTypeId) {
+        deactivateVehicleType(vehicleTypeId, false);
+    }
+
+    @Override
+    @Transactional
+    public void deactivateVehicleType(UUID vehicleTypeId, boolean cascadePriceRules) {
         currentAccountPortIn.requirePermission(VEHICLE_TYPE_DELETE_ALL);
         VehicleType existingVehicleType = findExistingVehicleType(vehicleTypeId);
         catalogAccessGuard.ensureWritable(existingVehicleType.getOrganizationId());
         if (Boolean.FALSE.equals(existingVehicleType.getIsActive())) {
             return;
         }
-        rejectDeactivateWhenInUse(vehicleTypeId);
+
+        VehicleTypeDeactivationImpact impact = buildDeactivationImpact(vehicleTypeId);
+        rejectOperationalBlockers(impact);
+        if (impact.requiresPriceRuleCascade() && !cascadePriceRules) {
+            throw new ConflictException("Vehicle type is used by active price rules; confirm cascading deactivation");
+        }
+        if (impact.requiresPriceRuleCascade()) {
+            vehicleTypePort.deactivateActivePriceRules(vehicleTypeId);
+        }
+        vehicleTypePort.detachVehicleTypeFromZones(vehicleTypeId);
 
         vehicleTypePolicy.deactivate(existingVehicleType);
         vehicleTypePort.save(existingVehicleType);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public VehicleTypeDeactivationImpact getDeactivationImpact(UUID vehicleTypeId) {
+        currentAccountPortIn.requirePermission(VEHICLE_TYPE_UPDATE_ALL);
+        findExistingVehicleType(vehicleTypeId);
+        return buildDeactivationImpact(vehicleTypeId);
     }
 
     @Override
@@ -145,18 +182,22 @@ public class VehicleTypeUseCaseImpl implements VehicleTypePortIn {
         currentAccountPortIn.requirePermission(VEHICLE_TYPE_READ_ALL);
     }
 
-    private void rejectDeactivateWhenInUse(UUID vehicleTypeId) {
-        if (vehicleTypePort.hasActivePriceRules(vehicleTypeId)) {
-            throw new ConflictException("Vehicle type is used by active price rules");
+    private VehicleTypeDeactivationImpact buildDeactivationImpact(UUID vehicleTypeId) {
+        return new VehicleTypeDeactivationImpact(
+                vehicleTypePort.countActivePriceRules(vehicleTypeId),
+                vehicleTypePort.countActiveCustomerVehicles(vehicleTypeId),
+                vehicleTypePort.countServiceObligationSubscriptions(vehicleTypeId, LocalDate.now()),
+                vehicleTypePort.countOpenParkingSessions(vehicleTypeId),
+                vehicleTypePort.countAssignedZones(vehicleTypeId)
+        );
+    }
+
+    private void rejectOperationalBlockers(VehicleTypeDeactivationImpact impact) {
+        if (impact.activeSubscriptionCount() > 0) {
+            throw new ConflictException("Vehicle type still has active or paid subscriptions");
         }
-        if (vehicleTypePort.hasActiveCustomerVehicles(vehicleTypeId)) {
-            throw new ConflictException("Vehicle type is used by active customer vehicles");
-        }
-        if (vehicleTypePort.hasOpenParkingSessions(vehicleTypeId)) {
-            throw new ConflictException("Vehicle type is used by open parking sessions");
-        }
-        if (vehicleTypePort.hasActiveZones(vehicleTypeId)) {
-            throw new ConflictException("Vehicle type is used by active zones");
+        if (impact.openParkingSessionCount() > 0) {
+            throw new ConflictException("Vehicle type still has open parking sessions");
         }
     }
 }
