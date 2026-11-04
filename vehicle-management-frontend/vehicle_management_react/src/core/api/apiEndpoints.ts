@@ -179,6 +179,8 @@ iam: {
       avatar: "/iam/accounts/profile/avatar",
       avatarStatus: "/iam/accounts/profile/avatar-status",
       socialBootstrap: "/iam/accounts/social-bootstrap",
+      deletionRequests: "/iam/account-deletion-requests",
+      currentDeletionRequest: "/iam/account-deletion-requests/current",
     },
     permissions: "/permissions",
     rolePermissions: (roleId: string) => `/roles/${roleId}/permissions`,
