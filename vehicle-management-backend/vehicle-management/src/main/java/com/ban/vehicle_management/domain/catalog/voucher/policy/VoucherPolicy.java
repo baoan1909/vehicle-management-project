@@ -21,8 +21,7 @@ public class VoucherPolicy {
         requirePositive(voucher.getDiscountValue(), "discountValue");
         requireNonNegative(voucher.getMinimumSubscriptionAmount(), "minimumSubscriptionAmount");
         requireField(voucher.getValidFrom(), "validFrom");
-        requireField(voucher.getValidTo(), "validTo");
-        if (!voucher.getValidTo().isAfter(voucher.getValidFrom())) {
+        if (voucher.getValidTo() != null && !voucher.getValidTo().isAfter(voucher.getValidFrom())) {
             throw new BadRequestException("Voucher validTo must be after validFrom");
         }
         if (voucher.getDiscountType() == VoucherDiscountType.PERCENTAGE
@@ -58,7 +57,8 @@ public class VoucherPolicy {
         requireVoucher(voucher);
         requireField(now, "now");
         if (voucher.getStatus() != VoucherStatus.ACTIVE) throw new BadRequestException("Voucher is not active");
-        if (now.isBefore(voucher.getValidFrom()) || !now.isBefore(voucher.getValidTo())) {
+        if (now.isBefore(voucher.getValidFrom())
+                || (voucher.getValidTo() != null && !now.isBefore(voucher.getValidTo()))) {
             throw new BadRequestException("Voucher is not valid at this time");
         }
         if (subscriptionAmount.compareTo(voucher.getMinimumSubscriptionAmount()) < 0) {
@@ -72,7 +72,7 @@ public class VoucherPolicy {
         return (voucher.isShowOnDashboard() || voucher.isShowOnSubscriptionPage())
                 && voucher.getStatus() == VoucherStatus.ACTIVE
                 && !now.isBefore(voucher.getValidFrom())
-                && now.isBefore(voucher.getValidTo());
+                && (voucher.getValidTo() == null || now.isBefore(voucher.getValidTo()));
     }
 
     private void requireVoucher(Voucher voucher) { requireField(voucher, "voucher"); }

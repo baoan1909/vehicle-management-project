@@ -48,7 +48,7 @@ public class VoucherEntity extends AuditableEntity {
     private Integer maxRedemptionsPerCustomer;
     @Column(name = "valid_from", nullable = false)
     private Instant validFrom;
-    @Column(name = "valid_to", nullable = false)
+    @Column(name = "valid_to")
     private Instant validTo;
     @Column(name = "show_on_dashboard", nullable = false)
     private boolean showOnDashboard;

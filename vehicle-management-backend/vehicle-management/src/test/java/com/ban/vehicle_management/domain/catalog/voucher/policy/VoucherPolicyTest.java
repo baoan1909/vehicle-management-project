@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.domain.catalog.voucher.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -66,6 +67,34 @@ class VoucherPolicyTest {
     void shouldRequireBannerTitleWhenCustomerDisplayIsEnabled() {
         Voucher voucher = validVoucher();
         voucher.setShowOnSubscriptionPage(true);
+
+        assertThrows(BadRequestException.class, () -> voucherPolicy.initialize(voucher));
+    }
+
+    @Test
+    void shouldAllowVoucherWithoutExpirationDate() {
+        Voucher voucher = validVoucher();
+        voucher.setValidTo(null);
+        voucher.setStatus(VoucherStatus.ACTIVE);
+        voucher.setShowOnDashboard(true);
+        voucher.setBannerTitle("Ưu đãi không thời hạn");
+
+        assertDoesNotThrow(() -> voucherPolicy.initialize(voucher));
+        assertDoesNotThrow(() -> voucherPolicy.ensureApplicable(
+                voucher,
+                new BigDecimal("100000"),
+                Instant.parse("2036-09-12T02:00:00Z")
+        ));
+        assertTrue(voucherPolicy.shouldShowToCustomer(
+                voucher,
+                Instant.parse("2036-09-12T02:00:00Z")
+        ));
+    }
+
+    @Test
+    void shouldStillRejectExpirationDateBeforeStartDate() {
+        Voucher voucher = validVoucher();
+        voucher.setValidTo(Instant.parse("2026-08-31T23:59:59Z"));
 
         assertThrows(BadRequestException.class, () -> voucherPolicy.initialize(voucher));
     }
