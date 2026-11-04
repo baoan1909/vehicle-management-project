@@ -3,6 +3,7 @@ import {
   getParkingLotCatalogAvailability,
   setParkingLotTicketTypeEnabled,
   setParkingLotVehicleTypeEnabled,
+  setParkingLotVehicleTypeEnabledForLots,
   type ParkingLotCatalogAvailability,
 } from "@/features/catalog/api/parkingLotCatalogAvailabilityApi";
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
@@ -10,7 +11,7 @@ import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/a
 export function useParkingLotCatalogScope() {
   const [lots, setLots] = useState<ParkingLotApiResponse[]>([]);
   const [selectedLotId, setSelectedLotId] = useState(() => sessionStorage.getItem("catalog.selectedParkingLotId") ?? "");
-  const [availability, setAvailability] = useState<ParkingLotCatalogAvailability | null>(null);
+  const [availabilityByLotId, setAvailabilityByLotId] = useState<Record<string, ParkingLotCatalogAvailability>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -34,20 +35,27 @@ export function useParkingLotCatalogScope() {
   }, []);
 
   useEffect(() => {
-    if (!selectedLotId) return;
-    sessionStorage.setItem("catalog.selectedParkingLotId", selectedLotId);
+    if (selectedLotId) sessionStorage.setItem("catalog.selectedParkingLotId", selectedLotId);
+  }, [selectedLotId]);
+
+  useEffect(() => {
+    if (lots.length === 0) return;
     let mounted = true;
-    setAvailability(null);
     setLoading(true);
     setError("");
-    void getParkingLotCatalogAvailability(selectedLotId)
-      .then((response) => { if (mounted) setAvailability(response.data); })
+    void Promise.all(lots.map((lot) => getParkingLotCatalogAvailability(lot.parkingLotId)))
+      .then((responses) => {
+        if (!mounted) return;
+        setAvailabilityByLotId(Object.fromEntries(
+          responses.map((response) => [response.data.parkingLotId, response.data]),
+        ));
+      })
       .catch((reason: unknown) => {
-        if (mounted) setError(reason instanceof Error ? reason.message : "Không thể tải cấu hình danh mục của bãi xe.");
+        if (mounted) setError(reason instanceof Error ? reason.message : "Không thể tải cấu hình danh mục của các bãi xe.");
       })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
-  }, [selectedLotId]);
+  }, [lots]);
 
   const selectedLot = useMemo(
     () => lots.find((lot) => lot.parkingLotId === selectedLotId) ?? null,
@@ -59,11 +67,39 @@ export function useParkingLotCatalogScope() {
     const response = kind === "vehicle"
       ? await setParkingLotVehicleTypeEnabled(selectedLot.parkingLotId, id, enabled)
       : await setParkingLotTicketTypeEnabled(selectedLot.parkingLotId, id, enabled);
-    setAvailability(response.data);
+    setAvailabilityByLotId((current) => ({
+      ...current,
+      [response.data.parkingLotId]: response.data,
+    }));
   };
 
+  const updateVehicleAvailabilityAtLot = async (parkingLotId: string, id: string, enabled: boolean) => {
+    if (!lots.some((lot) => lot.parkingLotId === parkingLotId)) {
+      throw new Error("Bãi xe không thuộc phạm vi bạn được phép quản lý.");
+    }
+    const response = await setParkingLotVehicleTypeEnabled(parkingLotId, id, enabled);
+    setAvailabilityByLotId((current) => ({
+      ...current,
+      [response.data.parkingLotId]: response.data,
+    }));
+  };
+
+  const updateVehicleAvailabilityForAllLots = async (id: string, enabled: boolean) => {
+    if (!selectedLot) throw new Error("Vui lòng chọn bãi xe trước.");
+    const parkingLotIds = lots.map((lot) => lot.parkingLotId);
+    if (parkingLotIds.length === 0) throw new Error("Không có bãi xe nào trong phạm vi áp dụng.");
+    const response = await setParkingLotVehicleTypeEnabledForLots(parkingLotIds, id, enabled);
+    setAvailabilityByLotId((current) => ({
+      ...current,
+      ...Object.fromEntries(response.data.map((item) => [item.parkingLotId, item])),
+    }));
+  };
+
+  const availability = selectedLotId ? availabilityByLotId[selectedLotId] ?? null : null;
+
   return {
-    availability: availability?.parkingLotId === selectedLotId ? availability : null,
+    availability,
+    availabilities: Object.values(availabilityByLotId),
     error,
     loading,
     lots,
@@ -71,5 +107,7 @@ export function useParkingLotCatalogScope() {
     selectedLotId,
     setSelectedLotId,
     updateAvailability,
+    updateVehicleAvailabilityAtLot,
+    updateVehicleAvailabilityForAllLots,
   };
 }

@@ -85,4 +85,28 @@ public class CatalogAccessGuard {
             throw new AccessDeniedException("Current account cannot change this Partner catalog item");
         }
     }
+
+    /** Shared catalog fields may be updated from an explicitly selected lot within the actor's scope. */
+    public void ensureWritable(UUID organizationId, UUID parkingLotId) {
+        if (parkingLotId == null) {
+            ensureWritable(organizationId);
+            return;
+        }
+        CurrentAccountAccess account = currentAccountPortIn.getCurrentAccountOrThrow();
+        ParkingLot lot = parkingLotPortOut.findById(parkingLotId)
+                .orElseThrow(() -> new AccessDeniedException("Selected parking lot is not accessible"));
+        if (organizationId == null || !organizationId.equals(lot.getOrganizationId())) {
+            throw new AccessDeniedException("Catalog item does not belong to the selected parking lot Partner");
+        }
+        Set<String> permissions = account.getEffectivePermissionCodes();
+        if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
+                && organizationPortOut.findActiveOrganizationIdsByAccountId(account.accountId()).contains(organizationId)) {
+            return;
+        }
+        if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)
+                && organizationPortOut.findScopedParkingLotIdsByAccountId(account.accountId()).contains(parkingLotId)) {
+            return;
+        }
+        throw new AccessDeniedException("Current account cannot change this catalog item at the selected parking lot");
+    }
 }

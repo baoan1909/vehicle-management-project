@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,6 +20,12 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
     boolean existsByTicketTypeIdAndIsActiveTrue(UUID ticketTypeId);
 
     boolean existsByVehicleTypeIdAndIsActiveTrue(UUID vehicleTypeId);
+
+    long countByVehicleTypeIdAndIsActiveTrue(UUID vehicleTypeId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update PriceRuleEntity priceRule set priceRule.isActive = false where priceRule.vehicleTypeId = :vehicleTypeId and priceRule.isActive = true")
+    int deactivateActiveByVehicleTypeId(@Param("vehicleTypeId") UUID vehicleTypeId);
 
     @Query("""
         select priceRule

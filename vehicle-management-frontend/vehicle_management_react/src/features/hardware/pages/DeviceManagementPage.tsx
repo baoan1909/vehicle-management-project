@@ -46,7 +46,6 @@ type TopologyLane = LaneApiResponse & {
 
 type DeviceFormState = {
   configText: string;
-  deviceCode: string;
   deviceType: DeviceTypeApi | "";
   ipAddress: string;
   laneId: string;
@@ -123,7 +122,6 @@ function formatDateTime(value: string | null) {
 function getInitialForm(device: DeviceApiResponse | null): DeviceFormState {
   return {
     configText: JSON.stringify(device?.config ?? {}, null, 2),
-    deviceCode: device?.deviceCode ?? "",
     deviceType: device?.deviceType ?? "",
     ipAddress: device?.ipAddress ?? "",
     laneId: device?.laneId ?? "",
@@ -265,13 +263,8 @@ function DeviceEditorDrawer({
     if (readOnly) return;
     setFormError("");
 
-    const normalizedCode = form.deviceCode.trim().toUpperCase();
-    if (!form.parkingLotId || !form.deviceType || !normalizedCode || !form.name.trim()) {
-      setFormError("Vui lòng chọn bãi xe, loại thiết bị và nhập đầy đủ mã, tên thiết bị.");
-      return;
-    }
-    if (!/^[A-Z0-9_-]+$/.test(normalizedCode)) {
-      setFormError("Mã thiết bị chỉ gồm chữ in hoa, số, dấu gạch dưới hoặc gạch ngang.");
+    if (!form.parkingLotId || !form.deviceType || !form.name.trim()) {
+      setFormError("Vui lòng chọn bãi xe, loại thiết bị và nhập tên thiết bị.");
       return;
     }
 
@@ -289,7 +282,6 @@ function DeviceEditorDrawer({
 
     await onSubmit({
       config,
-      deviceCode: normalizedCode,
       deviceType: form.deviceType,
       ipAddress: form.ipAddress.trim() || null,
       laneId: form.laneId || null,
@@ -353,28 +345,10 @@ function DeviceEditorDrawer({
               Thông tin định danh
             </h4>
             <p className="tw-mb-0 tw-mt-1 tw-text-[0.75rem] tw-font-semibold tw-text-vm-slate-500">
-              Mã thiết bị là duy nhất trong toàn hệ thống.
+              Mã được tự động sinh theo loại thiết bị: CAM-, KIO-, CRD- hoặc BAR- kèm 12 ký tự định danh và không thể chỉnh sửa.
             </p>
           </div>
-          <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[560px]:tw-grid-cols-1">
-            <label className="tw-grid tw-gap-2">
-              <span className="tw-text-[0.76rem] tw-font-black tw-text-vm-slate-700">
-                Mã thiết bị <span className="tw-text-red-500">*</span>
-              </span>
-              <input
-                className={inputClassName}
-                disabled={readOnly}
-                maxLength={50}
-                placeholder="VD: CAM_GATE_IN_01"
-                value={form.deviceCode}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    deviceCode: event.target.value.toUpperCase(),
-                  }))
-                }
-              />
-            </label>
+          <div className="tw-grid tw-gap-3">
             <label className="tw-grid tw-gap-2">
               <span className="tw-text-[0.76rem] tw-font-black tw-text-vm-slate-700">
                 Loại thiết bị <span className="tw-text-red-500">*</span>

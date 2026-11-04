@@ -14,6 +14,7 @@ import com.ban.vehicle_management.shared.enumeration.hardware.DeviceType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -55,14 +56,12 @@ class DeviceUseCaseImplTest {
         UUID parkingLotId = UUID.randomUUID();
         UUID laneId = UUID.randomUUID();
         Device request = validDevice(parkingLotId, laneId);
-        request.setDeviceCode(" cam-main-01 ");
+        request.setDeviceCode(null);
 
         when(parkingLotPortOut.findById(parkingLotId))
                 .thenReturn(Optional.of(parkingLot(ParkingLotStatus.ACTIVE)));
         when(devicePortOut.existsLaneInParkingLot(laneId, parkingLotId))
                 .thenReturn(true);
-        when(devicePortOut.existsByDeviceCode("CAM-MAIN-01"))
-                .thenReturn(false);
         when(devicePortOut.save(request))
                 .thenReturn(request);
 
@@ -71,7 +70,7 @@ class DeviceUseCaseImplTest {
         verify(currentAccountPortIn)
                 .requirePermission("DEVICE_CREATE_ALL");
         assertNotNull(result.getDeviceId());
-        assertEquals("CAM-MAIN-01", result.getDeviceCode());
+        assertEquals(IdentifierGenerationUtils.generateDeviceCode(result.getDeviceId(), DeviceType.CAMERA), result.getDeviceCode());
         assertEquals(DeviceStatus.ACTIVE, result.getStatus());
         verify(devicePortOut).save(request);
     }
@@ -255,14 +254,13 @@ class DeviceUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectCreateWhenDeviceCodeAlreadyExists() {
+    void shouldRejectCreateOnTheUnlikelyGeneratedCodeCollision() {
         UUID parkingLotId = UUID.randomUUID();
         Device request = validDevice(parkingLotId, null);
 
         when(parkingLotPortOut.findById(parkingLotId))
                 .thenReturn(Optional.of(parkingLot(ParkingLotStatus.ACTIVE)));
-        when(devicePortOut.existsByDeviceCode("CAM-01"))
-                .thenReturn(true);
+        when(devicePortOut.existsByDeviceCode(anyString())).thenReturn(true);
 
         assertThrows(
                 ConflictException.class,
@@ -347,10 +345,6 @@ class DeviceUseCaseImplTest {
                 .thenReturn(Optional.of(existing));
         when(parkingLotPortOut.findById(parkingLotId))
                 .thenReturn(Optional.of(parkingLot(ParkingLotStatus.ACTIVE)));
-        when(devicePortOut.existsByDeviceCodeAndDeviceIdNot(
-                "CAM-NEW-01",
-                deviceId
-        )).thenReturn(false);
         when(devicePortOut.save(existing))
                 .thenReturn(existing);
 
@@ -358,13 +352,13 @@ class DeviceUseCaseImplTest {
 
         verify(currentAccountPortIn)
                 .requirePermission("DEVICE_UPDATE_ALL");
-        assertEquals("CAM-NEW-01", result.getDeviceCode());
+        assertEquals("CAM-01", result.getDeviceCode());
         assertEquals("Camera moi", result.getName());
         assertEquals(DeviceStatus.MAINTENANCE, result.getStatus());
     }
 
     @Test
-    void shouldRejectUpdateWhenDeviceCodeUsedByOtherDevice() {
+    void shouldIgnoreDeviceCodeChangesDuringUpdate() {
         UUID deviceId = UUID.randomUUID();
         UUID parkingLotId = UUID.randomUUID();
         Device existing = validDevice(parkingLotId, null);
@@ -375,17 +369,13 @@ class DeviceUseCaseImplTest {
                 .thenReturn(Optional.of(existing));
         when(parkingLotPortOut.findById(parkingLotId))
                 .thenReturn(Optional.of(parkingLot(ParkingLotStatus.ACTIVE)));
-        when(devicePortOut.existsByDeviceCodeAndDeviceIdNot(
-                "CAM-01",
-                deviceId
-        )).thenReturn(true);
+        request.setDeviceCode("MANUAL-CODE");
+        when(devicePortOut.save(existing)).thenReturn(existing);
 
-        assertThrows(
-                ConflictException.class,
-                () -> useCase.updateDevice(deviceId, request)
-        );
+        Device result = useCase.updateDevice(deviceId, request);
 
-        verify(devicePortOut, never()).save(any(Device.class));
+        assertEquals("CAM-01", result.getDeviceCode());
+        verify(devicePortOut, never()).existsByDeviceCodeAndDeviceIdNot(anyString(), any(UUID.class));
     }
 
     @Test

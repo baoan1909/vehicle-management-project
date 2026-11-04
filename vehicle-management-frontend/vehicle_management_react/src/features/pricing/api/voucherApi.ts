@@ -23,7 +23,7 @@ export type VoucherResponse = {
   maxRedemptions: number | null;
   maxRedemptionsPerCustomer: number;
   validFrom: string;
-  validTo: string;
+  validTo: string | null;
   showOnDashboard: boolean;
   showOnSubscriptionPage: boolean;
   bannerTitle: string | null;

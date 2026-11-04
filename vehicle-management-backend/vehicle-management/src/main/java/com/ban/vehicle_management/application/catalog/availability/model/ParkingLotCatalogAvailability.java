@@ -7,6 +7,7 @@ public record ParkingLotCatalogAvailability(
         UUID parkingLotId,
         UUID organizationId,
         Set<UUID> excludedVehicleTypeIds,
+        Set<UUID> drainingVehicleTypeIds,
         Set<UUID> excludedTicketTypeIds
 ) {
 }

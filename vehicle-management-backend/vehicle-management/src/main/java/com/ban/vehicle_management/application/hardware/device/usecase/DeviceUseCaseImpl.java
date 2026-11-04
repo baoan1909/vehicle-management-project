@@ -17,6 +17,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -58,6 +59,11 @@ public class DeviceUseCaseImpl implements DevicePortIn {
     public Device createDevice(Device device) {
         currentAccountPortIn.requirePermission(DEVICE_CREATE_ALL);
 
+        UUID deviceId = UUID.randomUUID();
+        device.setDeviceId(deviceId);
+        if (device.getDeviceType() != null) {
+            device.setDeviceCode(IdentifierGenerationUtils.generateDeviceCode(deviceId, device.getDeviceType()));
+        }
         devicePolicy.initializeNew(device);
         ensureParkingLotAvailable(device.getParkingLotId());
         ensureLaneBelongsToParkingLotIfPresent(device);
@@ -113,18 +119,14 @@ public class DeviceUseCaseImpl implements DevicePortIn {
 
         request.setDeviceId(existing.getDeviceId());
         request.setStatus(existing.getStatus());
+        request.setDeviceCode(existing.getDeviceCode());
 
         devicePolicy.validateForUpdate(request);
         ensureParkingLotAvailable(request.getParkingLotId());
         ensureLaneBelongsToParkingLotIfPresent(request);
-        ensureDeviceCodeNotUsedByOtherDevice(
-                request.getDeviceCode(),
-                existing.getDeviceId()
-        );
 
         existing.setParkingLotId(request.getParkingLotId());
         existing.setLaneId(request.getLaneId());
-        existing.setDeviceCode(request.getDeviceCode());
         existing.setDeviceType(request.getDeviceType());
         existing.setName(request.getName());
         existing.setIpAddress(request.getIpAddress());
@@ -276,15 +278,6 @@ public class DeviceUseCaseImpl implements DevicePortIn {
 
     private void ensureDeviceCodeNotExists(String deviceCode) {
         if (devicePortOut.existsByDeviceCode(deviceCode)) {
-            throw new ConflictException("Device code already exists");
-        }
-    }
-
-    private void ensureDeviceCodeNotUsedByOtherDevice(
-            String deviceCode,
-            UUID deviceId
-    ) {
-        if (devicePortOut.existsByDeviceCodeAndDeviceIdNot(deviceCode, deviceId)) {
             throw new ConflictException("Device code already exists");
         }
     }

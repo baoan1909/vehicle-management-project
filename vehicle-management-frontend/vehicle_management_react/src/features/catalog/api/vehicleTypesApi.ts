@@ -34,6 +34,16 @@ export type VehicleTypeApiResponse = {
   vehicleTypeId: string;
 };
 
+export type VehicleTypeDeactivationImpact = {
+  activeCustomerVehicleCount: number;
+  activePriceRuleCount: number;
+  activeSubscriptionCount: number;
+  assignedZoneCount: number;
+  hasOperationalBlockers: boolean;
+  openParkingSessionCount: number;
+  requiresPriceRuleCascade: boolean;
+};
+
 function buildQuery(filter: Record<string, string | number | boolean | null | undefined>) {
   const params = new URLSearchParams();
 
@@ -60,15 +70,21 @@ export function createVehicleType(payload: CreateVehicleTypeRequest, parkingLotI
   });
 }
 
-export function updateVehicleType(vehicleTypeId: string, payload: UpdateVehicleTypeRequest) {
-  return apiClient<ApiResponse<VehicleTypeApiResponse>>(`${apiEndpoints.catalog.vehicleTypes}/${vehicleTypeId}`, {
+export function updateVehicleType(vehicleTypeId: string, payload: UpdateVehicleTypeRequest, parkingLotId?: string | null) {
+  return apiClient<ApiResponse<VehicleTypeApiResponse>>(`${apiEndpoints.catalog.vehicleTypes}/${vehicleTypeId}${buildQuery({ parkingLotId })}`, {
     method: "PUT",
     body: payload,
   });
 }
 
-export function deactivateVehicleType(vehicleTypeId: string) {
-  return apiClient<ApiResponse<void>>(`${apiEndpoints.catalog.vehicleTypes}/${vehicleTypeId}`, {
+export function getVehicleTypeDeactivationImpact(vehicleTypeId: string) {
+  return apiClient<ApiResponse<VehicleTypeDeactivationImpact>>(
+    `${apiEndpoints.catalog.vehicleTypes}/${vehicleTypeId}/deactivation-impact`,
+  );
+}
+
+export function deactivateVehicleType(vehicleTypeId: string, cascadePriceRules = false) {
+  return apiClient<ApiResponse<void>>(`${apiEndpoints.catalog.vehicleTypes}/${vehicleTypeId}${buildQuery({ cascadePriceRules })}`, {
     method: "DELETE",
   });
 }

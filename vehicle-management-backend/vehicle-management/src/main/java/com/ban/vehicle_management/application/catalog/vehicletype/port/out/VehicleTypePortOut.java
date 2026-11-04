@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.time.LocalDate;
 
 public interface VehicleTypePortOut {
 
@@ -24,12 +25,24 @@ public interface VehicleTypePortOut {
 
     boolean existsByCodeInOrganizationExcludingId(String code, UUID organizationId, UUID vehicleTypeId);
 
-    boolean hasActivePriceRules(UUID vehicleTypeId);
+    long countActivePriceRules(UUID vehicleTypeId);
 
-    boolean hasActiveCustomerVehicles(UUID vehicleTypeId);
+    long countActiveCustomerVehicles(UUID vehicleTypeId);
 
-    boolean hasOpenParkingSessions(UUID vehicleTypeId);
+    long countOpenParkingSessions(UUID vehicleTypeId);
 
-    boolean hasActiveZones(UUID vehicleTypeId);
+    long countAssignedZones(UUID vehicleTypeId);
+
+    int deactivateActivePriceRules(UUID vehicleTypeId);
+
+    int detachVehicleTypeFromZones(UUID vehicleTypeId);
+
+    long countServiceObligationSubscriptions(UUID parkingLotId, UUID vehicleTypeId, LocalDate businessDate);
+
+    long countServiceObligationSubscriptions(UUID vehicleTypeId, LocalDate businessDate);
+
+    long countOpenParkingSessions(UUID parkingLotId, UUID vehicleTypeId);
+
+    int detachVehicleTypeFromZones(UUID parkingLotId, UUID vehicleTypeId);
 }
 

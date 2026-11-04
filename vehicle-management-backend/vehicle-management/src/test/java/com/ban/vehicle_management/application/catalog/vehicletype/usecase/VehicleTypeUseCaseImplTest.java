@@ -9,11 +9,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.doThrow;
 
 import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.List;
@@ -27,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.access.AccessDeniedException;
 
 @ExtendWith(MockitoExtension.class)
 class VehicleTypeUseCaseImplTest {
@@ -97,7 +100,7 @@ class VehicleTypeUseCaseImplTest {
         requestVehicleType.setCode("CAR");
         requestVehicleType.setName("Car");
         requestVehicleType.setDescription("Updated");
-        requestVehicleType.setIsActive(false);
+        requestVehicleType.setIsActive(true);
 
         when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
         when(vehicleTypePort.save(any(VehicleType.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -107,7 +110,82 @@ class VehicleTypeUseCaseImplTest {
         assertEquals("CAR", updatedVehicleType.getCode());
         assertEquals("Car", updatedVehicleType.getName());
         assertEquals("Updated", updatedVehicleType.getDescription());
-        assertFalse(updatedVehicleType.getIsActive());
+        assertTrue(updatedVehicleType.getIsActive());
+    }
+
+    @Test
+    void assignedManagerCannotUpdatePartnerWideVehicleTypeDefinition() {
+        UUID vehicleTypeId = UUID.randomUUID();
+        VehicleType existingVehicleType = new VehicleType();
+        existingVehicleType.setVehicleTypeId(vehicleTypeId);
+        existingVehicleType.setOrganizationId(ORGANIZATION_ID);
+        existingVehicleType.setCode("MOTORBIKE");
+        existingVehicleType.setName("Motorbike");
+        existingVehicleType.setIsActive(true);
+
+        VehicleType requestVehicleType = new VehicleType();
+        requestVehicleType.setCode("MOTORBIKE");
+        requestVehicleType.setName("Renamed by manager");
+        requestVehicleType.setIsActive(true);
+
+        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
+        doThrow(new AccessDeniedException("partner scope required"))
+                .when(catalogAccessGuard).ensureWritable(ORGANIZATION_ID);
+
+        assertThrows(AccessDeniedException.class,
+                () -> vehicleTypeUseCase.updateVehicleType(vehicleTypeId, requestVehicleType));
+
+        verify(currentAccountPortIn).requirePermission("VEHICLE_TYPE_UPDATE_ALL");
+        verify(vehicleTypePort, never()).save(any(VehicleType.class));
+    }
+
+    @Test
+    void assignedManagerCanUpdateVehicleTypeThroughSelectedAssignedLot() {
+        UUID vehicleTypeId = UUID.randomUUID();
+        UUID parkingLotId = UUID.randomUUID();
+        VehicleType existingVehicleType = new VehicleType();
+        existingVehicleType.setVehicleTypeId(vehicleTypeId);
+        existingVehicleType.setOrganizationId(ORGANIZATION_ID);
+        existingVehicleType.setCode("MOTORBIKE");
+        existingVehicleType.setName("Motorbike");
+        existingVehicleType.setIsActive(true);
+
+        VehicleType requestVehicleType = new VehicleType();
+        requestVehicleType.setCode("MOTORBIKE");
+        requestVehicleType.setName("Xe máy");
+        requestVehicleType.setIsActive(true);
+
+        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
+        when(vehicleTypePort.save(any(VehicleType.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        VehicleType updated = vehicleTypeUseCase.updateVehicleType(vehicleTypeId, requestVehicleType, parkingLotId);
+
+        verify(currentAccountPortIn).requirePermission("VEHICLE_TYPE_UPDATE_ALL");
+        verify(catalogAccessGuard).ensureWritable(ORGANIZATION_ID, parkingLotId);
+        assertEquals("Xe máy", updated.getName());
+    }
+
+    @Test
+    void shouldRejectStatusChangeThroughGenericUpdate() {
+        UUID vehicleTypeId = UUID.randomUUID();
+        VehicleType existingVehicleType = new VehicleType();
+        existingVehicleType.setVehicleTypeId(vehicleTypeId);
+        existingVehicleType.setCode("MOTORBIKE");
+        existingVehicleType.setName("Motorbike");
+        existingVehicleType.setIsActive(true);
+
+        VehicleType requestVehicleType = new VehicleType();
+        requestVehicleType.setCode("MOTORBIKE");
+        requestVehicleType.setName("Motorbike");
+        requestVehicleType.setIsActive(false);
+
+        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
+
+        assertThrows(BadRequestException.class,
+                () -> vehicleTypeUseCase.updateVehicleType(vehicleTypeId, requestVehicleType));
+
+        assertTrue(existingVehicleType.getIsActive());
+        verify(vehicleTypePort, never()).save(any(VehicleType.class));
     }
 
     @Test
@@ -140,6 +218,111 @@ class VehicleTypeUseCaseImplTest {
         verify(currentAccountPortIn).requirePermission("VEHICLE_TYPE_DELETE_ALL");
         verify(vehicleTypePort).save(vehicleTypeCaptor.capture());
         assertFalse(vehicleTypeCaptor.getValue().getIsActive());
+    }
+
+    @Test
+    void shouldDeactivateActivePriceRulesWhenCascadeIsConfirmed() {
+        UUID vehicleTypeId = UUID.randomUUID();
+        VehicleType existingVehicleType = new VehicleType();
+        existingVehicleType.setVehicleTypeId(vehicleTypeId);
+        existingVehicleType.setOrganizationId(ORGANIZATION_ID);
+        existingVehicleType.setCode("MOTORBIKE");
+        existingVehicleType.setName("Motorbike");
+        existingVehicleType.setIsActive(true);
+
+        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
+        when(vehicleTypePort.countActivePriceRules(vehicleTypeId)).thenReturn(6L);
+        when(vehicleTypePort.save(any(VehicleType.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        vehicleTypeUseCase.deactivateVehicleType(vehicleTypeId, true);
+
+        verify(vehicleTypePort).deactivateActivePriceRules(vehicleTypeId);
+        verify(vehicleTypePort).detachVehicleTypeFromZones(vehicleTypeId);
+        verify(vehicleTypePort).save(existingVehicleType);
+        assertFalse(existingVehicleType.getIsActive());
+    }
+
+    @Test
+    void shouldRequireConfirmationBeforeCascadingActivePriceRules() {
+        UUID vehicleTypeId = UUID.randomUUID();
+        VehicleType existingVehicleType = new VehicleType();
+        existingVehicleType.setVehicleTypeId(vehicleTypeId);
+        existingVehicleType.setOrganizationId(ORGANIZATION_ID);
+        existingVehicleType.setIsActive(true);
+
+        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
+        when(vehicleTypePort.countActivePriceRules(vehicleTypeId)).thenReturn(2L);
+
+        assertThrows(ConflictException.class,
+                () -> vehicleTypeUseCase.deactivateVehicleType(vehicleTypeId, false));
+
+        verify(vehicleTypePort, never()).deactivateActivePriceRules(vehicleTypeId);
+        verify(vehicleTypePort, never()).detachVehicleTypeFromZones(vehicleTypeId);
+        verify(vehicleTypePort, never()).save(any(VehicleType.class));
+    }
+
+    @Test
+    void shouldBlockDeactivationWhileParkingSessionsRemainOpen() {
+        UUID vehicleTypeId = UUID.randomUUID();
+        VehicleType existingVehicleType = new VehicleType();
+        existingVehicleType.setVehicleTypeId(vehicleTypeId);
+        existingVehicleType.setOrganizationId(ORGANIZATION_ID);
+        existingVehicleType.setIsActive(true);
+
+        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
+        when(vehicleTypePort.countOpenParkingSessions(vehicleTypeId)).thenReturn(1L);
+
+        assertThrows(ConflictException.class,
+                () -> vehicleTypeUseCase.deactivateVehicleType(vehicleTypeId, true));
+
+        verify(vehicleTypePort, never()).deactivateActivePriceRules(vehicleTypeId);
+        verify(vehicleTypePort, never()).detachVehicleTypeFromZones(vehicleTypeId);
+        verify(vehicleTypePort, never()).save(any(VehicleType.class));
+    }
+
+    @Test
+    void shouldDetachVehicleTypeFromActiveZonesInsteadOfBlockingDeactivation() {
+        UUID vehicleTypeId = UUID.randomUUID();
+        VehicleType existingVehicleType = new VehicleType();
+        existingVehicleType.setVehicleTypeId(vehicleTypeId);
+        existingVehicleType.setOrganizationId(ORGANIZATION_ID);
+        existingVehicleType.setIsActive(true);
+
+        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
+        when(vehicleTypePort.countAssignedZones(vehicleTypeId)).thenReturn(2L);
+        when(vehicleTypePort.save(any(VehicleType.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        vehicleTypeUseCase.deactivateVehicleType(vehicleTypeId, true);
+
+        verify(vehicleTypePort).detachVehicleTypeFromZones(vehicleTypeId);
+        verify(vehicleTypePort).save(existingVehicleType);
+        assertFalse(existingVehicleType.getIsActive());
+    }
+
+    @Test
+    void shouldReportAllDeactivationDependencies() {
+        UUID vehicleTypeId = UUID.randomUUID();
+        VehicleType existingVehicleType = new VehicleType();
+        existingVehicleType.setVehicleTypeId(vehicleTypeId);
+        existingVehicleType.setOrganizationId(ORGANIZATION_ID);
+        existingVehicleType.setIsActive(true);
+
+        when(vehicleTypePort.findById(vehicleTypeId)).thenReturn(Optional.of(existingVehicleType));
+        when(vehicleTypePort.countActivePriceRules(vehicleTypeId)).thenReturn(3L);
+        when(vehicleTypePort.countActiveCustomerVehicles(vehicleTypeId)).thenReturn(4L);
+        when(vehicleTypePort.countOpenParkingSessions(vehicleTypeId)).thenReturn(1L);
+        when(vehicleTypePort.countAssignedZones(vehicleTypeId)).thenReturn(2L);
+
+        var impact = vehicleTypeUseCase.getDeactivationImpact(vehicleTypeId);
+
+        verify(currentAccountPortIn).requirePermission("VEHICLE_TYPE_UPDATE_ALL");
+        verify(catalogAccessGuard).ensureReadable(ORGANIZATION_ID);
+        assertEquals(3L, impact.activePriceRuleCount());
+        assertEquals(4L, impact.activeCustomerVehicleCount());
+        assertEquals(1L, impact.openParkingSessionCount());
+        assertEquals(2L, impact.assignedZoneCount());
+        assertTrue(impact.requiresPriceRuleCascade());
+        assertTrue(impact.hasOperationalBlockers());
     }
 
     @Test

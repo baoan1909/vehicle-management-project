@@ -127,6 +127,34 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
             UUID canonicalVehicleTypeId, UUID parkingLotId, Collection<SubscriptionStatus> statuses);
 
     @Query("""
+            select count(subscription) from SubscriptionEntity subscription
+            join subscription.customerVehicle customerVehicle
+            where subscription.parkingLotId = :parkingLotId
+              and customerVehicle.vehicleTypeId = :vehicleTypeId
+              and subscription.status in :statuses
+              and subscription.effectiveTo >= :businessDate
+            """)
+    long countServiceObligations(
+            @Param("parkingLotId") UUID parkingLotId,
+            @Param("vehicleTypeId") UUID vehicleTypeId,
+            @Param("businessDate") LocalDate businessDate,
+            @Param("statuses") Collection<SubscriptionStatus> statuses
+    );
+
+    @Query("""
+            select count(subscription) from SubscriptionEntity subscription
+            join subscription.customerVehicle customerVehicle
+            where customerVehicle.vehicleTypeId = :vehicleTypeId
+              and subscription.status in :statuses
+              and subscription.effectiveTo >= :businessDate
+            """)
+    long countServiceObligations(
+            @Param("vehicleTypeId") UUID vehicleTypeId,
+            @Param("businessDate") LocalDate businessDate,
+            @Param("statuses") Collection<SubscriptionStatus> statuses
+    );
+
+    @Query("""
         select subscription
         from SubscriptionEntity subscription
         join subscription.customerVehicle customerVehicle

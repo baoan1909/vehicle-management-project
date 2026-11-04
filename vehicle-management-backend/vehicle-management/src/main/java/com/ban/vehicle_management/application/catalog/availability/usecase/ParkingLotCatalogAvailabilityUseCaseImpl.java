@@ -13,11 +13,16 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.util.UUID;
+import java.util.List;
+import java.util.Set;
+import java.util.LinkedHashSet;
+import java.time.LocalDate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ParkingLotCatalogAvailabilityUseCaseImpl implements ParkingLotCatalogAvailabilityPortIn {
+    private static final String VEHICLE_SERVICE_UPDATE_PERMISSION = "VEHICLE_TYPE_UPDATE_ALL";
     private final CurrentAccountPortIn currentAccountPortIn;
     private final CatalogAccessGuard catalogAccessGuard;
     private final OrganizationAccessGuard organizationAccessGuard;
@@ -45,7 +50,7 @@ public class ParkingLotCatalogAvailabilityUseCaseImpl implements ParkingLotCatal
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public ParkingLotCatalogAvailability getAvailability(UUID parkingLotId) {
         currentAccountPortIn.requirePermission("PARKING_LOT_READ_ALL");
         ParkingLot lot = findReadableLot(parkingLotId);
@@ -55,15 +60,40 @@ public class ParkingLotCatalogAvailabilityUseCaseImpl implements ParkingLotCatal
     @Override
     @Transactional
     public ParkingLotCatalogAvailability setVehicleTypeEnabled(UUID parkingLotId, UUID vehicleTypeId, boolean enabled) {
-        currentAccountPortIn.requirePermission("VEHICLE_TYPE_UPDATE_ALL");
-        ParkingLot lot = findWritableLot(parkingLotId);
+        return setVehicleTypeEnabled(Set.of(parkingLotId), vehicleTypeId, enabled).get(0);
+    }
+
+    @Override
+    @Transactional
+    public List<ParkingLotCatalogAvailability> setVehicleTypeEnabled(
+            Set<UUID> parkingLotIds,
+            UUID vehicleTypeId,
+            boolean enabled
+    ) {
+        currentAccountPortIn.requirePermission(VEHICLE_SERVICE_UPDATE_PERMISSION);
+        if (parkingLotIds == null || parkingLotIds.isEmpty()) {
+            throw new BadRequestException("At least one parking lot must be selected");
+        }
+        if (parkingLotIds.size() > 1) {
+            currentAccountPortIn.requirePermission(OrganizationAccessGuard.PARKING_SCOPE_PARTNER);
+        }
         var vehicleType = vehicleTypePortOut.findById(vehicleTypeId)
                 .orElseThrow(() -> new NotFoundException("Vehicle type not found"));
-        if (!lot.getOrganizationId().equals(vehicleType.getOrganizationId())) {
-            throw new BadRequestException("Vehicle type does not belong to the selected parking lot Partner");
+
+        List<ParkingLot> lots = parkingLotIds.stream().map(this::findVehicleServiceWritableLot).toList();
+        for (ParkingLot lot : lots) {
+            if (!lot.getOrganizationId().equals(vehicleType.getOrganizationId())) {
+                throw new BadRequestException("Vehicle type does not belong to the selected parking lot Partner");
+            }
         }
-        availabilityPortOut.setVehicleTypeEnabled(lot.getOrganizationId(), parkingLotId, vehicleTypeId, enabled);
-        return snapshot(lot);
+        for (ParkingLot lot : lots) {
+            availabilityPortOut.setVehicleTypeEnabled(
+                    lot.getOrganizationId(), lot.getParkingLotId(), vehicleTypeId, enabled);
+        }
+        if (!enabled && coversEveryPartnerLot(lots)) {
+            vehicleTypePortOut.deactivateActivePriceRules(vehicleTypeId);
+        }
+        return lots.stream().map(this::snapshot).toList();
     }
 
     @Override
@@ -94,11 +124,54 @@ public class ParkingLotCatalogAvailabilityUseCaseImpl implements ParkingLotCatal
         return lot;
     }
 
+    private ParkingLot findVehicleServiceWritableLot(UUID parkingLotId) {
+        ParkingLot lot = findReadableLot(parkingLotId);
+        organizationAccessGuard.ensureCanOperateParkingLot(lot);
+        return lot;
+    }
+
+    private boolean coversEveryPartnerLot(List<ParkingLot> selectedLots) {
+        if (!currentAccountPortIn.hasPermission(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
+                || selectedLots.isEmpty()) {
+            return false;
+        }
+        UUID organizationId = selectedLots.get(0).getOrganizationId();
+        if (selectedLots.stream().anyMatch(lot -> !organizationId.equals(lot.getOrganizationId()))) {
+            return false;
+        }
+        Set<UUID> allPartnerLotIds = parkingLotPortOut
+                .findAll(null, null, Set.of(organizationId), null)
+                .stream()
+                .map(ParkingLot::getParkingLotId)
+                .collect(java.util.stream.Collectors.toSet());
+        Set<UUID> selectedLotIds = selectedLots.stream()
+                .map(ParkingLot::getParkingLotId)
+                .collect(java.util.stream.Collectors.toSet());
+        return !allPartnerLotIds.isEmpty() && selectedLotIds.containsAll(allPartnerLotIds);
+    }
+
     private ParkingLotCatalogAvailability snapshot(ParkingLot lot) {
+        Set<UUID> excludedVehicleTypeIds = availabilityPortOut
+                .findExcludedVehicleTypeIds(lot.getParkingLotId());
+        Set<UUID> drainingVehicleTypeIds = new LinkedHashSet<>();
+        LocalDate businessDate = LocalDate.now();
+
+        for (UUID vehicleTypeId : excludedVehicleTypeIds) {
+            long subscriptionCount = vehicleTypePortOut.countServiceObligationSubscriptions(
+                    lot.getParkingLotId(), vehicleTypeId, businessDate);
+            long openSessionCount = vehicleTypePortOut.countOpenParkingSessions(
+                    lot.getParkingLotId(), vehicleTypeId);
+            if (subscriptionCount > 0 || openSessionCount > 0) {
+                drainingVehicleTypeIds.add(vehicleTypeId);
+            } else {
+                vehicleTypePortOut.detachVehicleTypeFromZones(lot.getParkingLotId(), vehicleTypeId);
+            }
+        }
         return new ParkingLotCatalogAvailability(
                 lot.getParkingLotId(),
                 lot.getOrganizationId(),
-                availabilityPortOut.findExcludedVehicleTypeIds(lot.getParkingLotId()),
+                excludedVehicleTypeIds,
+                Set.copyOf(drainingVehicleTypeIds),
                 availabilityPortOut.findExcludedTicketTypeIds(lot.getParkingLotId())
         );
     }

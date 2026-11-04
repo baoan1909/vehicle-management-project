@@ -152,6 +152,7 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: maven
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/pom.xml
 
       - name: Grant Maven wrapper permission
         run: chmod +x mvnw
@@ -160,7 +161,7 @@ jobs:
         shell: bash
         run: |
           echo "## Backend build" >> "$GITHUB_STEP_SUMMARY"
-          /usr/bin/time -f "Duration: %E" ./mvnw -B -DskipTests package
+          /usr/bin/time -f "Duration: %E" bash "$GITHUB_WORKSPACE/.github/scripts/run-maven-ci.sh" -DskipTests package
 
       - name: Upload backend package
         if: always()
@@ -174,6 +175,10 @@ jobs:
   backend-static-analysis:
     name: 06 - Backend static analysis
     runs-on: ubuntu-latest
+    # Reuse the dependency cache only after the build job has populated it.
+    # Starting all backend Maven jobs together can burst Maven Central and can
+    # persist failed .lastUpdated lookups in the shared cache.
+    needs: backend-build
     defaults:
       run:
         working-directory: ${{ env.BACKEND_DIR }}
@@ -188,6 +193,7 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: maven
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/pom.xml
 
       - name: Grant Maven wrapper permission
         run: chmod +x mvnw
@@ -199,7 +205,7 @@ jobs:
         run: |
           set -o pipefail
           echo "## Backend static analysis" >> "$GITHUB_STEP_SUMMARY"
-          /usr/bin/time -f "Duration: %E" ./mvnw -B -Pstatic-analysis -DskipTests clean compile 2>&1 | tee backend-static-analysis.log
+          /usr/bin/time -f "Duration: %E" bash "$GITHUB_WORKSPACE/.github/scripts/run-maven-ci.sh" -Pstatic-analysis -DskipTests clean compile 2>&1 | tee backend-static-analysis.log
 
       - name: Upload backend static-analysis log
         if: always()
@@ -213,6 +219,8 @@ jobs:
   backend-test:
     name: 07 - Backend test
     runs-on: ubuntu-latest
+    # Job 05 warms and saves Maven dependencies before this fresh runner starts.
+    needs: backend-build
     # Integration tests exercise Flyway, PostGIS and pgvector. These values
     # create an isolated disposable database on the GitHub Actions runner.
     env:
@@ -246,6 +254,7 @@ jobs:
           distribution: temurin
           java-version: 21
           cache: maven
+          cache-dependency-path: ${{ env.BACKEND_DIR }}/pom.xml
 
       - name: Grant Maven wrapper permission
         run: chmod +x mvnw
@@ -269,7 +278,7 @@ jobs:
           # The image keeps its health probe as a reusable script. Execute it
           # directly here because this CI-only docker run does not inherit the
           # healthcheck declared by the local Docker Compose file.
-          for attempt in {1..30}; do
+          for _ in {1..30}; do
             if docker exec coparking-ci-postgres /usr/local/bin/vehicle-postgres-healthcheck; then
               exit 0
             fi
@@ -283,7 +292,7 @@ jobs:
         run: |
           set -o pipefail
           echo "## Backend tests" >> "$GITHUB_STEP_SUMMARY"
-          /usr/bin/time -f "Duration: %E" ./mvnw -B test 2>&1 | tee backend-test.log
+          /usr/bin/time -f "Duration: %E" bash "$GITHUB_WORKSPACE/.github/scripts/run-maven-ci.sh" test 2>&1 | tee backend-test.log
 
       - name: Upload Surefire reports and test log
         if: always()
@@ -376,7 +385,7 @@ jobs:
           # Trivy reads Maven metadata while building the dependency graph.
           # Resolve it first so Trivy does not make a burst of requests to
           # Maven Central from an ephemeral GitHub-hosted runner.
-          ./mvnw -B -DskipTests dependency:go-offline
+          bash "$GITHUB_WORKSPACE/.github/scripts/run-maven-ci.sh" -DskipTests dependency:go-offline
 
       # Trivy identifies vulnerable Java dependencies directly from the backend
       # project. Unlike the NVD bulk sync used by Dependency-Check, it keeps
@@ -431,7 +440,7 @@ jobs:
           chmod +x mvnw
           # Resolve Maven metadata once with Maven's cache before Trivy reads
           # the project. This avoids a rate-limit burst to Maven Central.
-          ./mvnw -B -DskipTests dependency:go-offline
+          bash "$GITHUB_WORKSPACE/.github/scripts/run-maven-ci.sh" -DskipTests dependency:go-offline
 
       # Dependency lockfiles are assessed by the dedicated npm/OWASP jobs.
       # This filesystem scan catches secrets and infrastructure misconfiguration

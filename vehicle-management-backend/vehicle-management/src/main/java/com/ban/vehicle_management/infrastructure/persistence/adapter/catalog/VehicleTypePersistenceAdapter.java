@@ -4,8 +4,10 @@ import com.ban.vehicle_management.application.catalog.vehicletype.port.out.Vehic
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.infrastructure.mapper.catalog.VehicleTypePersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ZoneEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.PriceRuleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.catalog.VehicleTypeRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.SubscriptionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ZoneRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerVehicleRepository;
@@ -13,7 +15,10 @@ import com.ban.vehicle_management.infrastructure.persistence.database.specificat
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -28,6 +33,7 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
     private final CustomerVehicleRepository customerVehicleRepository;
     private final ParkingSessionRepository parkingSessionRepository;
     private final ZoneRepository zoneRepository;
+    private final SubscriptionRepository subscriptionRepository;
     private final VehicleTypePersistenceMapper vehicleTypePersistenceMapper;
 
     public VehicleTypePersistenceAdapter(
@@ -36,6 +42,7 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
             CustomerVehicleRepository customerVehicleRepository,
             ParkingSessionRepository parkingSessionRepository,
             ZoneRepository zoneRepository,
+            SubscriptionRepository subscriptionRepository,
             VehicleTypePersistenceMapper vehicleTypePersistenceMapper
     ) {
         this.vehicleTypeRepository = vehicleTypeRepository;
@@ -43,6 +50,7 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
         this.customerVehicleRepository = customerVehicleRepository;
         this.parkingSessionRepository = parkingSessionRepository;
         this.zoneRepository = zoneRepository;
+        this.subscriptionRepository = subscriptionRepository;
         this.vehicleTypePersistenceMapper = vehicleTypePersistenceMapper;
     }
 
@@ -95,29 +103,94 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
     }
 
     @Override
-    public boolean hasActivePriceRules(UUID vehicleTypeId) {
-        return priceRuleRepository.existsByVehicleTypeIdAndIsActiveTrue(vehicleTypeId);
+    public long countActivePriceRules(UUID vehicleTypeId) {
+        return priceRuleRepository.countByVehicleTypeIdAndIsActiveTrue(vehicleTypeId);
     }
 
     @Override
-    public boolean hasActiveCustomerVehicles(UUID vehicleTypeId) {
-        return customerVehicleRepository.existsByVehicleTypeIdAndStatusIn(
+    public long countActiveCustomerVehicles(UUID vehicleTypeId) {
+        return customerVehicleRepository.countByVehicleTypeIdAndStatusIn(
                 vehicleTypeId,
                 List.of(CustomerVehicleStatus.ACTIVE, CustomerVehicleStatus.BLOCKED)
         );
     }
 
     @Override
-    public boolean hasOpenParkingSessions(UUID vehicleTypeId) {
-        return parkingSessionRepository.existsByVehicleTypeIdAndStatusIn(
+    public long countOpenParkingSessions(UUID vehicleTypeId) {
+        return parkingSessionRepository.countByVehicleTypeIdAndStatusIn(
                 vehicleTypeId,
                 List.of(ParkingSessionStatus.OPEN, ParkingSessionStatus.LOST_CARD)
         );
     }
 
     @Override
-    public boolean hasActiveZones(UUID vehicleTypeId) {
-        return zoneRepository.existsByVehicleTypeIdsContainsAndStatus(vehicleTypeId, ZoneStatus.ACTIVE);
+    public long countAssignedZones(UUID vehicleTypeId) {
+        return zoneRepository.countByVehicleTypeIdsContains(vehicleTypeId);
+    }
+
+    @Override
+    public int deactivateActivePriceRules(UUID vehicleTypeId) {
+        return priceRuleRepository.deactivateActiveByVehicleTypeId(vehicleTypeId);
+    }
+
+    @Override
+    public int detachVehicleTypeFromZones(UUID vehicleTypeId) {
+        List<ZoneEntity> affectedZones = zoneRepository.findByVehicleTypeIdsContains(vehicleTypeId);
+        return detachVehicleTypeFromZones(affectedZones, vehicleTypeId);
+    }
+
+    @Override
+    public long countServiceObligationSubscriptions(UUID parkingLotId, UUID vehicleTypeId, LocalDate businessDate) {
+        return subscriptionRepository.countServiceObligations(
+                parkingLotId,
+                vehicleTypeId,
+                businessDate,
+                List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING_CARD)
+        );
+    }
+
+    @Override
+    public long countServiceObligationSubscriptions(UUID vehicleTypeId, LocalDate businessDate) {
+        return subscriptionRepository.countServiceObligations(
+                vehicleTypeId,
+                businessDate,
+                List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING_CARD)
+        );
+    }
+
+    @Override
+    public long countOpenParkingSessions(UUID parkingLotId, UUID vehicleTypeId) {
+        return parkingSessionRepository.countByParkingLotIdAndVehicleTypeIdAndStatusIn(
+                parkingLotId,
+                vehicleTypeId,
+                List.of(ParkingSessionStatus.OPEN, ParkingSessionStatus.LOST_CARD)
+        );
+    }
+
+    @Override
+    public int detachVehicleTypeFromZones(UUID parkingLotId, UUID vehicleTypeId) {
+        List<ZoneEntity> affectedZones = zoneRepository
+                .findByParkingLotIdAndVehicleTypeIdsContains(parkingLotId, vehicleTypeId);
+        return detachVehicleTypeFromZones(affectedZones, vehicleTypeId);
+    }
+
+    private int detachVehicleTypeFromZones(List<ZoneEntity> affectedZones, UUID vehicleTypeId) {
+        for (ZoneEntity zone : affectedZones) {
+            Set<UUID> remainingVehicleTypeIds = zone.getVehicleTypeIds() == null
+                    ? new LinkedHashSet<>()
+                    : new LinkedHashSet<>(zone.getVehicleTypeIds());
+            remainingVehicleTypeIds.remove(vehicleTypeId);
+            zone.setVehicleTypeIds(remainingVehicleTypeIds);
+
+            if (vehicleTypeId.equals(zone.getVehicleTypeId())) {
+                zone.setVehicleTypeId(remainingVehicleTypeIds.stream().findFirst().orElse(null));
+            }
+            if (remainingVehicleTypeIds.isEmpty() && zone.getStatus() != ZoneStatus.CLOSED) {
+                zone.setStatus(ZoneStatus.MAINTENANCE);
+            }
+        }
+        zoneRepository.saveAll(affectedZones);
+        return affectedZones.size();
     }
 }
 
