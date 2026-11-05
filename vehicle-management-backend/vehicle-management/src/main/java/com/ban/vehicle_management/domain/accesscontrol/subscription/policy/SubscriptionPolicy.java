@@ -35,6 +35,9 @@ public class SubscriptionPolicy {
         subscription.setStatus(SubscriptionStatus.PENDING);
         subscription.setCardId(null);
         subscription.setCardReceiptDate(null);
+        subscription.setSpaceSelectionRequired(false);
+        subscription.setSpaceSelectionConfirmedAt(null);
+        subscription.setSpaceSelectionExpiresAt(null);
         clearApproval(subscription);
         clearRejection(subscription);
 
@@ -110,9 +113,41 @@ public class SubscriptionPolicy {
 
     public void markPaymentCompleted(Subscription subscription) {
         requireStatus(subscription, SubscriptionStatus.PENDING_PAYMENT);
-        subscription.setStatus(Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
-                ? SubscriptionStatus.PENDING_CARD
-                : SubscriptionStatus.ACTIVE);
+        if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
+            subscription.setStatus(SubscriptionStatus.PENDING_CARD);
+        } else if (requiresUnconfirmedSpace(subscription)) {
+            subscription.setStatus(SubscriptionStatus.PENDING_SPACE);
+        } else {
+            subscription.setStatus(SubscriptionStatus.ACTIVE);
+        }
+        validateState(subscription);
+    }
+
+    public void requireSpaceSelection(Subscription subscription, Instant expiresAt) {
+        requireField(expiresAt, "spaceSelectionExpiresAt");
+        subscription.setSpaceSelectionRequired(true);
+        subscription.setSpaceSelectionConfirmedAt(null);
+        subscription.setSpaceSelectionExpiresAt(expiresAt);
+        if (subscription.getStatus() == SubscriptionStatus.ACTIVE) {
+            subscription.setStatus(SubscriptionStatus.PENDING_SPACE);
+        }
+        validateState(subscription);
+    }
+
+    public void confirmSpaceSelection(Subscription subscription, Instant confirmedAt) {
+        if (!Boolean.TRUE.equals(subscription.getSpaceSelectionRequired())) {
+            throw new ConflictException("Subscription does not require parking space selection");
+        }
+        if (subscription.getStatus() != SubscriptionStatus.PENDING_SPACE
+                && subscription.getStatus() != SubscriptionStatus.PENDING_CARD) {
+            throw new ConflictException("Subscription is not waiting for parking space confirmation");
+        }
+        requireField(confirmedAt, "spaceSelectionConfirmedAt");
+        subscription.setSpaceSelectionConfirmedAt(confirmedAt);
+        subscription.setSpaceSelectionExpiresAt(null);
+        if (subscription.getStatus() == SubscriptionStatus.PENDING_SPACE) {
+            subscription.setStatus(SubscriptionStatus.ACTIVE);
+        }
         validateState(subscription);
     }
 
@@ -132,7 +167,9 @@ public class SubscriptionPolicy {
         subscription.setCardReceiptDate(cardReceiptDate);
         subscription.setEffectiveFrom(actualEffectiveFrom);
         subscription.setEffectiveTo(calculateEffectiveTo(actualEffectiveFrom, durationDays));
-        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setStatus(requiresUnconfirmedSpace(subscription)
+                ? SubscriptionStatus.PENDING_SPACE
+                : SubscriptionStatus.ACTIVE);
 
         validateState(subscription);
     }
@@ -180,6 +217,7 @@ public class SubscriptionPolicy {
         requireField(subscription.getEffectiveTo(), "effectiveTo");
         requireField(subscription.getPrice(), "price");
         requireField(subscription.getStatus(), "status");
+        requireField(subscription.getSpaceSelectionRequired(), "spaceSelectionRequired");
 
         if (subscription.getEffectiveTo().isBefore(subscription.getEffectiveFrom())) {
             throw new BadRequestException("effectiveTo must not be before effectiveFrom");
@@ -224,10 +262,22 @@ public class SubscriptionPolicy {
                     throw new BadRequestException("Pending subscription must not have cardReceiptDate");
                 }
             }
+            case PENDING_SPACE -> {
+                requireApproval(subscription);
+                requireNoRejection(subscription);
+                if (!requiresUnconfirmedSpace(subscription)) {
+                    throw new BadRequestException("Pending space subscription must wait for space confirmation");
+                }
+                validateCardAssignment(subscription, Boolean.TRUE.equals(subscription.getPhysicalCardRequested()));
+            }
             case ACTIVE, EXPIRED -> {
                 requireApproval(subscription);
                 requireNoRejection(subscription);
                 validateCardAssignment(subscription, true);
+                if (Boolean.TRUE.equals(subscription.getSpaceSelectionRequired())
+                        && subscription.getSpaceSelectionConfirmedAt() == null) {
+                    throw new BadRequestException("Active subscription must have a confirmed parking space");
+                }
             }
             case CANCELLED -> requireNoRejection(subscription);
             case REJECTED -> {
@@ -306,6 +356,11 @@ public class SubscriptionPolicy {
             return;
         }
         requireNoCard(subscription);
+    }
+
+    private boolean requiresUnconfirmedSpace(Subscription subscription) {
+        return Boolean.TRUE.equals(subscription.getSpaceSelectionRequired())
+                && subscription.getSpaceSelectionConfirmedAt() == null;
     }
 
     private void clearApproval(Subscription subscription) {

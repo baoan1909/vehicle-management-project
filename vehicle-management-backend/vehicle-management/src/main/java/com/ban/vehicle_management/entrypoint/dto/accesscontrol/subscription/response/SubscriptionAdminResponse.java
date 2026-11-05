@@ -42,6 +42,9 @@ public class SubscriptionAdminResponse {
     private UUID accessBlockedBy;
     private Instant accessRestoredAt;
     private UUID accessRestoredBy;
+    private Boolean spaceSelectionRequired;
+    private Instant spaceSelectionConfirmedAt;
+    private Instant spaceSelectionExpiresAt;
     private Instant createdAt;
     private UUID createdBy;
     private Instant updatedAt;

@@ -11,6 +11,8 @@ import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.requ
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.SubscriptionFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.UpdateSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.VerifySubscriptionQrRequest;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.SelectSubscriptionSpaceRequest;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionSpaceSelection;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionVoucherQuoteResponse;
@@ -85,6 +87,37 @@ public class SubscriptionController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched current customer subscriptions successfully",
                 subscriptionApiMapper.toUserResponses(subscriptions)
+        ));
+    }
+
+    @GetMapping("/me/{subscriptionId}/space-selection")
+    public ResponseEntity<ApiResponse<SubscriptionSpaceSelection>> getMySpaceSelection(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched subscription parking spaces successfully",
+                subscriptionPortIn.getMySpaceSelection(subscriptionId)
+        ));
+    }
+
+    @PutMapping("/me/{subscriptionId}/space-selection")
+    public ResponseEntity<ApiResponse<SubscriptionSpaceSelection>> selectMyParkingSpace(
+            @PathVariable UUID subscriptionId,
+            @Valid @RequestBody SelectSubscriptionSpaceRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription parking space selected successfully",
+                subscriptionPortIn.selectMyParkingSpace(subscriptionId, request.parkingSpaceId())
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/space-selection/confirm")
+    public ResponseEntity<ApiResponse<SubscriptionUserResponse>> confirmMySpaceSelection(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription parking space confirmed successfully",
+                subscriptionApiMapper.toUserResponse(subscriptionPortIn.confirmMySpaceSelection(subscriptionId))
         ));
     }
 

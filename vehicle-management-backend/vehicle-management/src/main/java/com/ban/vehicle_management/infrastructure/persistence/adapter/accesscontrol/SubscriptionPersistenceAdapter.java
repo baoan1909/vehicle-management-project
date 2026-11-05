@@ -23,12 +23,14 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
             SubscriptionStatus.PENDING,
             SubscriptionStatus.PENDING_PAYMENT,
             SubscriptionStatus.PENDING_CARD,
+            SubscriptionStatus.PENDING_SPACE,
             SubscriptionStatus.ACTIVE
     );
 
     private static final List<SubscriptionStatus> CAPACITY_HOLDING_STATUSES = List.of(
             SubscriptionStatus.PENDING_PAYMENT,
             SubscriptionStatus.PENDING_CARD,
+            SubscriptionStatus.PENDING_SPACE,
             SubscriptionStatus.ACTIVE
     );
 
@@ -251,6 +253,16 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
                         requestedEffectiveDateCutoff
                 )
                 .stream()
+                .map(subscriptionPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Subscription> findExpiredSpaceSelectionsForUpdate(Instant now) {
+        return subscriptionRepository.findExpiredSpaceSelectionsForUpdate(
+                        now,
+                        List.of(SubscriptionStatus.PENDING_SPACE, SubscriptionStatus.PENDING_CARD)
+                ).stream()
                 .map(subscriptionPersistenceMapper::toDomain)
                 .toList();
     }

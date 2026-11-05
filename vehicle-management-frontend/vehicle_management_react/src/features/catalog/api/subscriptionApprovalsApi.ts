@@ -16,6 +16,7 @@ export type SubscriptionStatus =
   | "PENDING"
   | "PENDING_PAYMENT"
   | "PENDING_CARD"
+  | "PENDING_SPACE"
   | "ACTIVE"
   | "EXPIRED"
   | "CANCELLED"
@@ -47,6 +48,9 @@ export type SubscriptionApiResponse = {
   ticketTypeId: string;
   updatedAt?: string | null;
   updatedBy?: string | null;
+  spaceSelectionRequired?: boolean | null;
+  spaceSelectionConfirmedAt?: string | null;
+  spaceSelectionExpiresAt?: string | null;
 };
 
 export type SubscriptionFilter = {

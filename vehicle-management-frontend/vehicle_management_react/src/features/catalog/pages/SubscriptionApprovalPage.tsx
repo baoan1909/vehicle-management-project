@@ -63,7 +63,7 @@ type LookupData = {
   vehicleTypes: VehicleTypeApiResponse[];
 };
 
-const statusOrder: SubscriptionStatus[] = ["PENDING", "PENDING_PAYMENT", "PENDING_CARD", "ACTIVE"];
+const statusOrder: SubscriptionStatus[] = ["PENDING", "PENDING_PAYMENT", "PENDING_CARD", "PENDING_SPACE", "ACTIVE"];
 
 const statusLabels: Record<SubscriptionStatus, string> = {
   ACTIVE: "Đang hoạt động",
@@ -72,6 +72,7 @@ const statusLabels: Record<SubscriptionStatus, string> = {
   PENDING: "Chờ duyệt",
   PENDING_CARD: "Chờ gán thẻ",
   PENDING_PAYMENT: "Chờ thanh toán",
+  PENDING_SPACE: "Chờ chọn vị trí",
   REJECTED: "Bị từ chối",
 };
 
@@ -82,6 +83,7 @@ const statusMeta: Record<SubscriptionStatus, { accent: string; icon: string; rin
   PENDING: { accent: "tw-bg-blue-50 tw-text-vm-primary", icon: "far fa-calendar-check", ring: "tw-border-t-vm-primary" },
   PENDING_CARD: { accent: "tw-bg-purple-50 tw-text-purple-600", icon: "fas fa-id-card", ring: "tw-border-t-purple-500" },
   PENDING_PAYMENT: { accent: "tw-bg-orange-50 tw-text-orange-500", icon: "far fa-credit-card", ring: "tw-border-t-orange-400" },
+  PENDING_SPACE: { accent: "tw-bg-cyan-50 tw-text-cyan-700", icon: "fas fa-parking", ring: "tw-border-t-cyan-500" },
   REJECTED: { accent: "tw-bg-red-50 tw-text-red-500", icon: "fas fa-ban", ring: "tw-border-t-red-500" },
 };
 
@@ -90,6 +92,7 @@ const statusOptions = [
   { label: "Chờ duyệt", value: "PENDING" },
   { label: "Chờ thanh toán", value: "PENDING_PAYMENT" },
   { label: "Chờ gán thẻ", value: "PENDING_CARD" },
+  { label: "Chờ chọn vị trí", value: "PENDING_SPACE" },
   { label: "Đang hoạt động", value: "ACTIVE" },
   { label: "Bị từ chối", value: "REJECTED" },
   { label: "Đã hủy", value: "CANCELLED" },
@@ -123,6 +126,7 @@ function statusTagClass(status: SubscriptionStatus, accessBlocked = false) {
   if (accessBlocked) return "tw-bg-amber-50 tw-text-amber-700";
   if (status === "PENDING_PAYMENT") return "tw-bg-orange-50 tw-text-orange-600";
   if (status === "PENDING_CARD") return "tw-bg-purple-50 tw-text-purple-600";
+  if (status === "PENDING_SPACE") return "tw-bg-cyan-50 tw-text-cyan-700";
   if (status === "ACTIVE") return "tw-bg-green-50 tw-text-green-600";
   if (status === "REJECTED") return "tw-bg-red-50 tw-text-red-600";
   if (status === "CANCELLED" || status === "EXPIRED") return "tw-bg-slate-100 tw-text-slate-600";

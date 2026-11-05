@@ -41,6 +41,7 @@ export type CustomerPortalSubscriptionStatus =
   | "PENDING"
   | "PENDING_PAYMENT"
   | "PENDING_CARD"
+  | "PENDING_SPACE"
   | "ACTIVE"
   | "EXPIRED"
   | "CANCELLED"
@@ -76,6 +77,32 @@ export type CustomerPortalSubscription = {
   ticketTypeId: string;
   updatedAt?: string | null;
   updatedBy?: string | null;
+  spaceSelectionRequired?: boolean | null;
+  spaceSelectionConfirmedAt?: string | null;
+  spaceSelectionExpiresAt?: string | null;
+};
+
+export type CustomerPortalSubscriptionSpace = {
+  parkingSpaceId: string;
+  code: string;
+  status: string;
+  x: number | string | null;
+  y: number | string | null;
+  width: number | string | null;
+  height: number | string | null;
+  rotation: number | string | null;
+  selected: boolean;
+  selectable: boolean;
+};
+
+export type CustomerPortalSpaceSelection = {
+  subscriptionId: string;
+  selectedParkingSpaceId: string;
+  selectedParkingSpaceCode: string;
+  canvasWidth: number | string;
+  canvasHeight: number | string;
+  selectionExpiresAt?: string | null;
+  spaces: CustomerPortalSubscriptionSpace[];
 };
 
 export type CreateMySubscriptionRequest = {
@@ -218,6 +245,29 @@ export async function createMySubscription(payload: CreateMySubscriptionRequest,
       headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
       method: "POST",
     },
+  );
+  return response.data;
+}
+
+export async function getMySubscriptionSpaceSelection(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<CustomerPortalSpaceSelection>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/space-selection`,
+  );
+  return response.data;
+}
+
+export async function selectMySubscriptionParkingSpace(subscriptionId: string, parkingSpaceId: string) {
+  const response = await apiClient<ApiResponse<CustomerPortalSpaceSelection>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/space-selection`,
+    { body: { parkingSpaceId }, method: "PUT" },
+  );
+  return response.data;
+}
+
+export async function confirmMySubscriptionSpaceSelection(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<CustomerPortalSubscription>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/space-selection/confirm`,
+    { method: "POST" },
   );
   return response.data;
 }

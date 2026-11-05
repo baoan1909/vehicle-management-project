@@ -21,11 +21,14 @@ import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.SubscriptionCapacityAllocationStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
+import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.LocalDate;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -140,6 +143,48 @@ class SubscriptionParkingAllocationServiceTest {
         assertEquals(SubscriptionCapacityAllocationStatus.CANCELLED, allocation.getAllocationStatus());
         assertNull(allocation.getHoldExpiresAt());
         verify(capacityAllocationPortOut).save(allocation);
+    }
+
+    @Test
+    void approvalPrefersTheMostSpecializedCompatibleZone() {
+        Subscription subscription = subscription();
+        subscription.setParkingLotId(UUID.randomUUID());
+        UUID vehicleTypeId = UUID.randomUUID();
+        Zone sharedZone = capacityZone("B-SHARED", Set.of(vehicleTypeId, UUID.randomUUID()));
+        Zone specializedZone = capacityZone("C-SPECIALIZED", Set.of(vehicleTypeId));
+        when(capacityAllocationPortOut.findLiveBySubscriptionId(subscription.getSubscriptionId()))
+                .thenReturn(Optional.empty());
+        when(spaceAllocationPortOut.findActiveAllocationsBySubscription(subscription.getSubscriptionId()))
+                .thenReturn(List.of());
+        when(zonePortOut.findAll(subscription.getParkingLotId(), vehicleTypeId, null, null))
+                .thenReturn(List.of(sharedZone, specializedZone));
+        when(zonePortOut.findByIdForUpdate(specializedZone.getZoneId()))
+                .thenReturn(Optional.of(specializedZone));
+        when(capacityAllocationPortOut.maxConcurrentReservations(
+                specializedZone.getZoneId(), subscription.getEffectiveFrom(),
+                subscription.getEffectiveTo(), null))
+                .thenReturn(0L);
+
+        TrackingMode result = service.holdForApproval(
+                subscription, vehicleTypeId, Instant.parse("2026-11-01T00:00:00Z"));
+
+        assertEquals(TrackingMode.CAPACITY, result);
+        verify(zonePortOut).findByIdForUpdate(specializedZone.getZoneId());
+        verify(capacityAllocationPortOut).save(org.mockito.ArgumentMatchers.argThat(allocation ->
+                specializedZone.getZoneId().equals(allocation.getZoneId())
+                        && vehicleTypeId.equals(allocation.getVehicleTypeId())));
+    }
+
+    private Zone capacityZone(String code, Set<UUID> vehicleTypeIds) {
+        Zone zone = new Zone();
+        zone.setZoneId(UUID.randomUUID());
+        zone.setCode(code);
+        zone.setStatus(ZoneStatus.ACTIVE);
+        zone.setTrackingMode(TrackingMode.CAPACITY);
+        zone.setCapacity(10);
+        zone.setUnavailableCapacity(0);
+        zone.setVehicleTypeIds(vehicleTypeIds);
+        return zone;
     }
 
     private Subscription subscription() {

@@ -4,6 +4,7 @@ import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPo
 import com.ban.vehicle_management.application.accesscontrol.subscription.authorization.SubscriptionAccessGuard;
 import com.ban.vehicle_management.application.accesscontrol.subscription.config.SubscriptionTimeProperties;
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionSpaceSelection;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
@@ -40,6 +41,7 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -89,6 +91,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private final NotificationPortIn notificationPortIn;
     private final SubscriptionParkingAllocationService parkingAllocationService;
     private final Duration allocationHoldDuration;
+    private final Duration spaceSelectionDuration;
     private final SubscriptionPolicy subscriptionPolicy = new SubscriptionPolicy();
     private final CardPolicy cardPolicy = new CardPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
@@ -128,6 +131,8 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         this.parkingAllocationService = parkingAllocationService;
         this.allocationHoldDuration = timeProperties == null
                 ? Duration.ofHours(48) : timeProperties.getPaymentTimeout();
+        this.spaceSelectionDuration = timeProperties == null
+                ? Duration.ofHours(24) : timeProperties.getSpaceSelectionTimeout();
     }
 
     @Override
@@ -318,9 +323,14 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         );
 
         if (parkingAllocationService != null) {
-            parkingAllocationService.holdForApproval(subscription,
+            TrackingMode allocationMode = parkingAllocationService.holdForApproval(subscription,
                     preparedData.priceRule().getVehicleTypeId(), now.plus(allocationHoldDuration));
-            if (subscription.getStatus()
+            if (allocationMode == TrackingMode.SPACE) {
+                Duration timeout = subscription.getStatus()
+                        == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.PENDING_PAYMENT
+                        ? allocationHoldDuration : spaceSelectionDuration;
+                subscriptionPolicy.requireSpaceSelection(subscription, now.plus(timeout));
+            } else if (subscription.getStatus()
                     == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
                 parkingAllocationService.activate(subscription);
             }
@@ -389,7 +399,12 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         invoicePortOut.findFirstBySubscriptionIdAndStatus(subscriptionId, InvoiceStatus.PAID)
                 .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription"));
 
-        voucherPortIn.redeemSubscriptionVoucher(subscriptionId, subscription.getParkingLotId(), Instant.now());
+        Instant now = Instant.now();
+        voucherPortIn.redeemSubscriptionVoucher(subscriptionId, subscription.getParkingLotId(), now);
+        if (Boolean.TRUE.equals(subscription.getSpaceSelectionRequired())) {
+            subscriptionPolicy.requireSpaceSelection(subscription, now.plus(spaceSelectionDuration));
+            parkingAllocationService.extendSpaceHold(subscriptionId, now.plus(spaceSelectionDuration));
+        }
         subscriptionPolicy.markPaymentCompleted(subscription);
         if (parkingAllocationService != null
                 && subscription.getStatus()
@@ -425,12 +440,76 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 totalDurationDays(subscription, ticketType)
         );
 
-        if (parkingAllocationService != null) {
+        if (parkingAllocationService != null
+                && subscription.getStatus()
+                == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
             parkingAllocationService.activate(subscription);
         }
 
         cardPortOut.save(reservedCard);
         return subscriptionPortOut.save(subscription);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SubscriptionSpaceSelection getMySpaceSelection(UUID subscriptionId) {
+        Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        subscriptionAccessGuard.ensureCanReadOwn(subscription);
+        ensureSpaceSelectionAvailable(subscription);
+        UUID vehicleTypeId = subscriptionPortOut.findOperationalVehicleTypeIdBySubscriptionId(subscriptionId)
+                .orElseThrow(() -> new ConflictException("Subscription vehicle type is unavailable"));
+        return parkingAllocationService.getSpaceSelection(subscription, vehicleTypeId);
+    }
+
+    @Override
+    @Transactional
+    public SubscriptionSpaceSelection selectMyParkingSpace(UUID subscriptionId, UUID parkingSpaceId) {
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
+        subscriptionAccessGuard.ensureCanUpdateOwn(subscription);
+        ensureSpaceSelectionAvailable(subscription);
+        UUID vehicleTypeId = subscriptionPortOut.findOperationalVehicleTypeIdBySubscriptionId(subscriptionId)
+                .orElseThrow(() -> new ConflictException("Subscription vehicle type is unavailable"));
+        parkingAllocationService.changeHeldSpace(subscription, parkingSpaceId, vehicleTypeId);
+        return parkingAllocationService.getSpaceSelection(subscription, vehicleTypeId);
+    }
+
+    @Override
+    @Transactional
+    public Subscription confirmMySpaceSelection(UUID subscriptionId) {
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
+        subscriptionAccessGuard.ensureCanUpdateOwn(subscription);
+        ensureSpaceSelectionAvailable(subscription);
+        parkingAllocationService.activate(subscription);
+        subscriptionPolicy.confirmSpaceSelection(subscription, Instant.now());
+        return subscriptionPortOut.save(subscription);
+    }
+
+    private void ensureSpaceSelectionAvailable(Subscription subscription) {
+        if (!Boolean.TRUE.equals(subscription.getSpaceSelectionRequired())
+                || subscription.getSpaceSelectionConfirmedAt() != null) {
+            throw new ConflictException("Subscription is not waiting for parking space selection");
+        }
+        if (subscription.getStatus()
+                != com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.PENDING_SPACE
+                && subscription.getStatus()
+                != com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.PENDING_CARD) {
+            throw new ConflictException("Complete subscription payment before selecting a parking space");
+        }
+    }
+
+    @Override
+    @Transactional
+    public int finalizeExpiredSpaceSelections(Instant now) {
+        if (now == null) {
+            throw new BadRequestException("now must not be null");
+        }
+        List<Subscription> subscriptions = subscriptionPortOut.findExpiredSpaceSelectionsForUpdate(now);
+        for (Subscription subscription : subscriptions) {
+            parkingAllocationService.activate(subscription);
+            subscriptionPolicy.confirmSpaceSelection(subscription, now);
+            subscriptionPortOut.save(subscription);
+        }
+        return subscriptions.size();
     }
 
     @Override

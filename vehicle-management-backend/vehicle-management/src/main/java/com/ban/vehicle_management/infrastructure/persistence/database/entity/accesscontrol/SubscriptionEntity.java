@@ -161,6 +161,15 @@ public class SubscriptionEntity extends AuditableEntity {
     @Column(name = "access_restored_by")
     private UUID accessRestoredBy;
 
+    @Column(name = "space_selection_required", nullable = false)
+    private Boolean spaceSelectionRequired = false;
+
+    @Column(name = "space_selection_confirmed_at")
+    private Instant spaceSelectionConfirmedAt;
+
+    @Column(name = "space_selection_expires_at")
+    private Instant spaceSelectionExpiresAt;
+
     @OneToMany(mappedBy = "subscription")
     private Set<InvoiceEntity> invoices = new HashSet<>();
 

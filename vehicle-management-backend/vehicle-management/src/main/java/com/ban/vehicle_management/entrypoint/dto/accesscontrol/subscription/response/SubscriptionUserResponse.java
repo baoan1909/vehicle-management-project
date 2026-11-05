@@ -40,6 +40,9 @@ public class SubscriptionUserResponse {
     private Boolean accessBlocked;
     private Instant accessBlockedAt;
     private Instant accessRestoredAt;
+    private Boolean spaceSelectionRequired;
+    private Instant spaceSelectionConfirmedAt;
+    private Instant spaceSelectionExpiresAt;
     private Instant createdAt;
     private Instant updatedAt;
 }

@@ -46,6 +46,9 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "accessBlockedBy", ignore = true)
     @Mapping(target = "accessRestoredAt", ignore = true)
     @Mapping(target = "accessRestoredBy", ignore = true)
+    @Mapping(target = "spaceSelectionRequired", ignore = true)
+    @Mapping(target = "spaceSelectionConfirmedAt", ignore = true)
+    @Mapping(target = "spaceSelectionExpiresAt", ignore = true)
     Subscription toDomain(CreateSubscriptionRequest request);
 
     @Mapping(target = "subscriptionId", ignore = true)
@@ -76,6 +79,9 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "accessBlockedBy", ignore = true)
     @Mapping(target = "accessRestoredAt", ignore = true)
     @Mapping(target = "accessRestoredBy", ignore = true)
+    @Mapping(target = "spaceSelectionRequired", ignore = true)
+    @Mapping(target = "spaceSelectionConfirmedAt", ignore = true)
+    @Mapping(target = "spaceSelectionExpiresAt", ignore = true)
     Subscription toDomain(CreateSubscriptionAdminRequest request);
 
     @Mapping(target = "subscriptionId", ignore = true)
@@ -107,6 +113,9 @@ public interface SubscriptionApiMapper {
     @Mapping(target = "accessBlockedBy", ignore = true)
     @Mapping(target = "accessRestoredAt", ignore = true)
     @Mapping(target = "accessRestoredBy", ignore = true)
+    @Mapping(target = "spaceSelectionRequired", ignore = true)
+    @Mapping(target = "spaceSelectionConfirmedAt", ignore = true)
+    @Mapping(target = "spaceSelectionExpiresAt", ignore = true)
     Subscription toDomain(UpdateSubscriptionRequest request);
 
     SubscriptionAdminResponse toAdminResponse(Subscription subscription);

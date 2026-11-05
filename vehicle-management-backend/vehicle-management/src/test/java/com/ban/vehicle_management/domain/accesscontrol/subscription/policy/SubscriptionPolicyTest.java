@@ -151,6 +151,48 @@ class SubscriptionPolicyTest {
     }
 
     @Test
+    void shouldWaitForSpaceAfterQrSubscriptionPaymentAndActivateAfterConfirmation() {
+        LocalDate currentDate = LocalDate.of(2026, 6, 16);
+        Subscription subscription = initializedPendingSubscription(currentDate);
+        subscription.setPhysicalCardRequested(false);
+        subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+
+        subscriptionPolicy.approve(subscription, UUID.randomUUID(),
+                Instant.parse("2026-06-16T10:00:00Z"), currentDate, null,
+                new BigDecimal("140000"));
+        subscriptionPolicy.requireSpaceSelection(subscription,
+                Instant.parse("2026-06-17T10:00:00Z"));
+        subscriptionPolicy.markPaymentCompleted(subscription);
+
+        assertEquals(SubscriptionStatus.PENDING_SPACE, subscription.getStatus());
+
+        Instant confirmedAt = Instant.parse("2026-06-16T11:00:00Z");
+        subscriptionPolicy.confirmSpaceSelection(subscription, confirmedAt);
+
+        assertEquals(SubscriptionStatus.ACTIVE, subscription.getStatus());
+        assertEquals(confirmedAt, subscription.getSpaceSelectionConfirmedAt());
+        assertNull(subscription.getSpaceSelectionExpiresAt());
+    }
+
+    @Test
+    void shouldRequireBothPhysicalCardAndSpaceBeforeActivation() {
+        LocalDate currentDate = LocalDate.of(2026, 6, 16);
+        Subscription subscription = approvedSubscription(currentDate, SubscriptionStatus.PENDING_PAYMENT);
+        subscriptionPolicy.requireSpaceSelection(subscription,
+                Instant.parse("2026-06-17T10:00:00Z"));
+
+        subscriptionPolicy.markPaymentCompleted(subscription);
+        assertEquals(SubscriptionStatus.PENDING_CARD, subscription.getStatus());
+
+        subscriptionPolicy.assignReservedCard(subscription, currentDate.plusDays(1), 30);
+        assertEquals(SubscriptionStatus.PENDING_SPACE, subscription.getStatus());
+
+        subscriptionPolicy.confirmSpaceSelection(subscription,
+                Instant.parse("2026-06-16T12:00:00Z"));
+        assertEquals(SubscriptionStatus.ACTIVE, subscription.getStatus());
+    }
+
+    @Test
     void shouldAssignReservedCardAndActivateSubscription() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
         Subscription subscription = approvedSubscription(currentDate, SubscriptionStatus.PENDING_CARD);

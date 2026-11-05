@@ -56,6 +56,7 @@ function statusLabel(status?: string | null) {
   if (status === "PENDING") return "Chờ duyệt";
   if (status === "PENDING_PAYMENT") return "Chờ thanh toán";
   if (status === "PENDING_CARD") return "Chờ gán thẻ";
+  if (status === "PENDING_SPACE") return "Chờ chọn vị trí";
   if (status === "EXPIRED") return "Hết hạn";
   if (status === "CANCELLED") return "Đã hủy";
   if (status === "REJECTED") return "Từ chối";

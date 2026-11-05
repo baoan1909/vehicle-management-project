@@ -33,6 +33,7 @@ import {
 import { PortalTicketArtwork } from "../components/PortalTicketArtwork";
 import { SubscriptionTicketFrame } from "../components/SubscriptionTicketFrame";
 import { VoucherPromotionBanner } from "../components/VoucherPromotionBanner";
+import { SubscriptionSpaceSelectionModal } from "../components/SubscriptionSpaceSelectionModal";
 import { parsePortalDate } from "../utils/portalDate";
 import { getSubscriptionPeriod } from "../utils/subscriptionPeriod";
 import { CustomerPortalLayout, PortalPagination } from "./PortalShared";
@@ -81,6 +82,7 @@ function statusLabel(status?: string | null) {
   if (status === "PENDING") return "Chờ duyệt";
   if (status === "PENDING_PAYMENT") return "Chờ thanh toán";
   if (status === "PENDING_CARD") return "Chờ gán thẻ";
+  if (status === "PENDING_SPACE") return "Chờ chọn vị trí";
   if (status === "EXPIRED") return "Hết hạn";
   if (status === "CANCELLED") return "Đã hủy";
   if (status === "REJECTED") return "Từ chối";
@@ -149,7 +151,7 @@ function findMatchingPriceRule(
 function subscriptionStatusClass(status?: string | null) {
   if (status === "ACCESS_BLOCKED") return "tw-bg-[#fff5e4] tw-text-[#b45309] tw-ring-[#ffd59b]";
   if (status === "ACTIVE") return "tw-bg-[#eaf9f0] tw-text-[#078553] tw-ring-[#b9ebcc]";
-  if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "PENDING_CARD") return "tw-bg-[#fff5e4] tw-text-[#d66b00] tw-ring-[#ffd59b]";
+  if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "PENDING_CARD" || status === "PENDING_SPACE") return "tw-bg-[#fff5e4] tw-text-[#d66b00] tw-ring-[#ffd59b]";
   if (status === "CANCELLED" || status === "REJECTED") return "tw-bg-[#fff0f0] tw-text-[#d83434] tw-ring-[#ffcaca]";
   return "tw-bg-[#f0f3f7] tw-text-[#687893] tw-ring-[#dce3ec]";
 }
@@ -238,6 +240,7 @@ export function SubscriptionPage() {
   const [paymentInvoice, setPaymentInvoice] = useState<InvoiceSummaryResponse | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [spaceSelectionSubscriptionId, setSpaceSelectionSubscriptionId] = useState("");
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [qrCredential, setQrCredential] = useState<SubscriptionQrCredential | null>(null);
@@ -773,7 +776,7 @@ export function SubscriptionPage() {
           <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
             <h2 className="tw-m-0 tw-text-[1.05rem] tw-font-bold tw-text-[#12213d]">Lịch sử đăng ký</h2>
             <div className="tw-flex tw-min-w-0 tw-flex-wrap tw-items-center tw-gap-3">
-              <SelectMenu ariaLabel="Lọc trạng thái vé" className="!tw-w-[190px] max-[640px]:!tw-w-full" options={[{ label: "Tất cả trạng thái", value: "ALL" }, { label: "Đang hoạt động", value: "ACTIVE" }, { label: "Chờ duyệt", value: "PENDING" }, { label: "Chờ thanh toán", value: "PENDING_PAYMENT" }, { label: "Chờ gán thẻ", value: "PENDING_CARD" }, { label: "Hết hạn", value: "EXPIRED" }, { label: "Đã hủy", value: "CANCELLED" }, { label: "Từ chối", value: "REJECTED" }]} portal searchable={false} triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" value={statusFilter} onChange={setStatusFilter} />
+              <SelectMenu ariaLabel="Lọc trạng thái vé" className="!tw-w-[190px] max-[640px]:!tw-w-full" options={[{ label: "Tất cả trạng thái", value: "ALL" }, { label: "Đang hoạt động", value: "ACTIVE" }, { label: "Chờ duyệt", value: "PENDING" }, { label: "Chờ thanh toán", value: "PENDING_PAYMENT" }, { label: "Chờ gán thẻ", value: "PENDING_CARD" }, { label: "Chờ chọn vị trí", value: "PENDING_SPACE" }, { label: "Hết hạn", value: "EXPIRED" }, { label: "Đã hủy", value: "CANCELLED" }, { label: "Từ chối", value: "REJECTED" }]} portal searchable={false} triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" value={statusFilter} onChange={setStatusFilter} />
               <label className="tw-relative"><i className="fas fa-search tw-pointer-events-none tw-absolute tw-left-3 tw-top-1/2 [transform:translateY(-50%)] tw-text-[#7a8ba4]" /><input aria-label="Tìm biển số hoặc mã vé" className="tw-h-10 tw-w-[218px] max-[1300px]:tw-w-[180px] max-[640px]:tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce5f0] tw-pl-9 tw-pr-3 tw-text-[0.78rem] tw-font-normal tw-text-[#334a6e] placeholder:tw-text-[#91a0b6]" value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm biển số, mã vé..." /></label>
             </div>
           </div>
@@ -792,7 +795,7 @@ export function SubscriptionPage() {
                     <span className="tw-flex tw-flex-wrap tw-gap-x-1 tw-text-[0.7rem] tw-font-semibold tw-leading-5 tw-text-[#17233e]"><span className="tw-whitespace-nowrap">{formatDate(toDateInputValue(getDisplayEffectiveFrom(subscription)) ?? subscription.requestedEffectiveFrom)}</span><span className="tw-whitespace-nowrap">— {subscription.effectiveTo ? formatDate(subscription.effectiveTo) : "Chưa xác định"}</span></span>
                     <small className="tw-mt-1 tw-block tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{getSubscriptionTotal(subscription) != null ? formatCurrency(getSubscriptionTotal(subscription)) : "Chưa xác định phí"}</small>
                   </span>
-                  <span className="tw-grid tw-justify-items-end tw-gap-1.5"><SubscriptionStatusPill accessBlocked={subscription.accessBlocked === true} status={subscription.status} />{subscription.status === "PENDING_PAYMENT" && canPaySubscription ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.74rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription); }}>Thanh toán</button> : null}</span>
+                  <span className="tw-grid tw-justify-items-end tw-gap-1.5"><SubscriptionStatusPill accessBlocked={subscription.accessBlocked === true} status={subscription.status} />{subscription.status === "PENDING_PAYMENT" && canPaySubscription ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.74rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription); }}>Thanh toán</button> : null}{subscription.spaceSelectionRequired && !subscription.spaceSelectionConfirmedAt && (subscription.status === "PENDING_SPACE" || subscription.status === "PENDING_CARD") ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-white tw-px-2 tw-text-[0.7rem] tw-font-semibold tw-text-[#0756d8] hover:tw-bg-[#eef5ff]" type="button" onClick={(event) => { event.stopPropagation(); setSpaceSelectionSubscriptionId(subscription.subscriptionId); }}>Chọn vị trí</button> : null}</span>
                   <i aria-hidden="true" className="fas fa-chevron-right tw-text-[0.6rem] tw-text-[#5c7090] max-[640px]:tw-hidden" />
                 </article>
               );
@@ -1082,6 +1085,12 @@ export function SubscriptionPage() {
           ) : null}
         </div>
       </Modal>
+      <SubscriptionSpaceSelectionModal
+        open={Boolean(spaceSelectionSubscriptionId)}
+        subscriptionId={spaceSelectionSubscriptionId}
+        onClose={() => setSpaceSelectionSubscriptionId("")}
+        onConfirmed={loadData}
+      />
     </CustomerPortalLayout>
   );
 }

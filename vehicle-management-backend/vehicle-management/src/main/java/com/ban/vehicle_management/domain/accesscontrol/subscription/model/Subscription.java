@@ -48,4 +48,7 @@ public class Subscription extends AuditableDomainModel {
     private UUID accessBlockedBy;
     private Instant accessRestoredAt;
     private UUID accessRestoredBy;
+    private Boolean spaceSelectionRequired = false;
+    private Instant spaceSelectionConfirmedAt;
+    private Instant spaceSelectionExpiresAt;
 }
