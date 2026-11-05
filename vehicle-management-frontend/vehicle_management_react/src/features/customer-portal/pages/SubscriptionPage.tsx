@@ -377,16 +377,18 @@ export function SubscriptionPage() {
     setLoadError("");
     try {
       const nextProfile = await getCustomerPortalProfile();
-      const [nextVehicles, nextSubscriptions, nextParkingLots, globalLookups, nextVoucherBanners] = await Promise.all([
+      const [nextVehicles, nextSubscriptions, nextParkingLots, globalLookups] = await Promise.all([
         getMyCustomerVehicles(),
         getMySubscriptions(),
         getCustomerPortalParkingLots(),
         getCustomerPortalLookups(),
-        getCustomerPortalVoucherBanners().catch(() => []),
       ]);
       const parkingLotId = nextParkingLots.find((lot) => lot.parkingLotId === form.parkingLotId)?.parkingLotId
         ?? nextParkingLots[0]?.parkingLotId ?? "";
-      const lookups = parkingLotId ? await getCustomerPortalLookups(parkingLotId) : { priceRules: [], ticketTypes: [], vehicleTypes: [] };
+      const [lookups, nextVoucherBanners] = await Promise.all([
+        parkingLotId ? getCustomerPortalLookups(parkingLotId) : Promise.resolve({ priceRules: [], ticketTypes: [], vehicleTypes: [] }),
+        getCustomerPortalVoucherBanners(parkingLotId || undefined).catch(() => []),
+      ]);
       let invoiceEntries: Array<readonly [string, InvoiceSummaryResponse]> = [];
       try {
         const invoices = await getMySubscriptionInvoices(nextSubscriptions.map((subscription) => subscription.subscriptionId));
@@ -501,11 +503,15 @@ export function SubscriptionPage() {
     if (!parkingLotId) return;
     setLotLookupsLoading(true);
     try {
-      const lookups = await getCustomerPortalLookups(parkingLotId);
+      const [lookups, scopedVouchers] = await Promise.all([
+        getCustomerPortalLookups(parkingLotId),
+        getCustomerPortalVoucherBanners(parkingLotId).catch(() => []),
+      ]);
       if (requestId !== lotLookupRequestRef.current) return;
       setPriceRules(lookups.priceRules);
       setTicketTypes(lookups.ticketTypes);
       setPartnerVehicleTypes(lookups.vehicleTypes);
+      setVoucherBanners(scopedVouchers);
       setForm((current) => ({ ...current, ticketTypeId: lookups.ticketTypes[0]?.ticketTypeId ?? "", periodQuantity: 1 }));
     } catch (error) {
       if (requestId === lotLookupRequestRef.current) {

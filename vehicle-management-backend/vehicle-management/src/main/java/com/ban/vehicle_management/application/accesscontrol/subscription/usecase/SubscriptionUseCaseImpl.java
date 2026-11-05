@@ -338,13 +338,18 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                     voucherQuote.voucherCode(),
                     approvedSubscription.getCustomerId(),
                     approvedSubscription.getTicketTypeId(),
+                    approvedSubscription.getParkingLotId(),
                     subscriptionChargeBase(approvedSubscription),
                     approvedSubscription.getSubscriptionId(),
                     invoice.getInvoiceId(),
                     now
             );
             if (invoice.getStatus() == InvoiceStatus.PAID) {
-                voucherPortIn.redeemSubscriptionVoucher(approvedSubscription.getSubscriptionId(), now);
+                voucherPortIn.redeemSubscriptionVoucher(
+                        approvedSubscription.getSubscriptionId(),
+                        approvedSubscription.getParkingLotId(),
+                        now
+                );
             }
         }
         notifySubscriptionApproved(approvedSubscription);
@@ -384,7 +389,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         invoicePortOut.findFirstBySubscriptionIdAndStatus(subscriptionId, InvoiceStatus.PAID)
                 .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription"));
 
-        voucherPortIn.redeemSubscriptionVoucher(subscriptionId, Instant.now());
+        voucherPortIn.redeemSubscriptionVoucher(subscriptionId, subscription.getParkingLotId(), Instant.now());
         subscriptionPolicy.markPaymentCompleted(subscription);
         if (parkingAllocationService != null
                 && subscription.getStatus()
@@ -638,6 +643,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 subscription.getRequestedVoucherCode(),
                 subscription.getCustomerId(),
                 preparedData.ticketType().getTicketTypeId(),
+                subscription.getParkingLotId(),
                 subscriptionChargeBase(subscription),
                 now
         );

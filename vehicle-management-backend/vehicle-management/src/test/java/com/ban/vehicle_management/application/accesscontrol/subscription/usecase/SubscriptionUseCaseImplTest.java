@@ -143,6 +143,7 @@ class SubscriptionUseCaseImplTest {
                 eq("WELCOME10"),
                 eq(data.customerId()),
                 eq(data.ticketTypeId()),
+                eq(LOT_ID),
                 eq(new BigDecimal("140000")),
                 any(Instant.class)
         )).thenReturn(new VoucherQuote(
@@ -175,6 +176,7 @@ class SubscriptionUseCaseImplTest {
                 eq("WELCOME10"),
                 eq(data.customerId()),
                 eq(data.ticketTypeId()),
+                eq(LOT_ID),
                 eq(new BigDecimal("420000")),
                 any(Instant.class)
         )).thenReturn(new VoucherQuote(
@@ -215,6 +217,7 @@ class SubscriptionUseCaseImplTest {
                 eq("WELCOME10"),
                 eq(data.customerId()),
                 eq(data.ticketTypeId()),
+                eq(LOT_ID),
                 eq(new BigDecimal("190000")),
                 any(Instant.class)
         )).thenReturn(new VoucherQuote(

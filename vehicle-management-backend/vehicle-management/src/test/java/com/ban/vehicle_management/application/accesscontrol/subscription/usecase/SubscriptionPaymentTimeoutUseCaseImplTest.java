@@ -35,6 +35,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class SubscriptionPaymentTimeoutUseCaseImplTest {
+    private static final UUID PARKING_LOT_ID = UUID.fromString("00000000-0000-0000-0000-000000000701");
 
     @Mock
     private SubscriptionPortOut subscriptionPortOut;
@@ -129,7 +130,7 @@ class SubscriptionPaymentTimeoutUseCaseImplTest {
         assertEquals(0, cancelledCount);
         assertEquals(SubscriptionStatus.PENDING_CARD, subscription.getStatus());
         verify(subscriptionPortOut).save(subscription);
-        verify(voucherPortIn).redeemSubscriptionVoucher(subscription.getSubscriptionId(), now);
+        verify(voucherPortIn).redeemSubscriptionVoucher(subscription.getSubscriptionId(), PARKING_LOT_ID, now);
         verify(invoicePortOut, never()).save(any());
         verify(paymentPortOut, never()).save(any());
         verify(cardPortOut, never()).save(any());
@@ -156,6 +157,7 @@ class SubscriptionPaymentTimeoutUseCaseImplTest {
         subscription.setCustomerVehicleId(UUID.randomUUID());
         subscription.setCardId(UUID.randomUUID());
         subscription.setTicketTypeId(UUID.randomUUID());
+        subscription.setParkingLotId(PARKING_LOT_ID);
         subscription.setPriceRuleId(UUID.randomUUID());
         subscription.setRequestedEffectiveFrom(LocalDate.of(2026, 7, 30));
         subscription.setEffectiveFrom(LocalDate.of(2026, 7, 30));

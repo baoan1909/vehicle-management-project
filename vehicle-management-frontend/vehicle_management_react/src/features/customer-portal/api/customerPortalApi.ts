@@ -300,9 +300,10 @@ export async function getMySubscriptionInvoice(subscriptionId: string) {
   );
 }
 
-export async function getCustomerPortalVoucherBanners() {
+export async function getCustomerPortalVoucherBanners(parkingLotId?: string) {
+  const query = parkingLotId ? `?parkingLotId=${encodeURIComponent(parkingLotId)}` : "";
   const response = await apiClient<ApiResponse<CustomerPortalVoucherBanner[]>>(
-    apiEndpoints.catalog.customerVoucherBanners,
+    `${apiEndpoints.catalog.customerVoucherBanners}${query}`,
     { skipAuth: true },
   );
   return response.data ?? [];

@@ -147,7 +147,11 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
                         InvoiceStatus.PAID
                 )
                 .map(invoice -> {
-                    voucherPortIn.redeemSubscriptionVoucher(subscription.getSubscriptionId(), now);
+                    voucherPortIn.redeemSubscriptionVoucher(
+                            subscription.getSubscriptionId(),
+                            subscription.getParkingLotId(),
+                            now
+                    );
                     subscriptionPolicy.markPaymentCompleted(subscription);
                     if (parkingAllocationService != null
                             && subscription.getStatus()

@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -48,10 +49,12 @@ public class VoucherController {
     }
 
     @GetMapping("/promotions")
-    public ResponseEntity<ApiResponse<List<VoucherCustomerBannerResponse>>> getCustomerVoucherBanners() {
+    public ResponseEntity<ApiResponse<List<VoucherCustomerBannerResponse>>> getCustomerVoucherBanners(
+            @RequestParam(required = false) UUID parkingLotId
+    ) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched customer voucher banners successfully",
-                voucherApiMapper.toCustomerBannerResponses(voucherPortIn.getCustomerVisibleVouchers(Instant.now()))
+                voucherApiMapper.toCustomerBannerResponses(voucherPortIn.getCustomerVisibleVouchers(parkingLotId, Instant.now()))
         ));
     }
 

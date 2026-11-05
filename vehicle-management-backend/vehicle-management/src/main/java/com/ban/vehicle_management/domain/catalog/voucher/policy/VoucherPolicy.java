@@ -3,10 +3,12 @@ package com.ban.vehicle_management.domain.catalog.voucher.policy;
 import com.ban.vehicle_management.domain.catalog.voucher.model.Voucher;
 import com.ban.vehicle_management.shared.enumeration.catalog.VoucherDiscountType;
 import com.ban.vehicle_management.shared.enumeration.catalog.VoucherStatus;
+import com.ban.vehicle_management.shared.enumeration.catalog.VoucherScopeType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 
 public class VoucherPolicy {
 
@@ -18,6 +20,7 @@ public class VoucherPolicy {
         voucher.setBannerTitle(TextValidationUtils.normalizeNullableText(voucher.getBannerTitle(), "bannerTitle", 150));
         voucher.setBannerDescription(TextValidationUtils.normalizeNullableText(voucher.getBannerDescription(), "bannerDescription", 500));
         requireField(voucher.getDiscountType(), "discountType");
+        validateScope(voucher);
         requirePositive(voucher.getDiscountValue(), "discountValue");
         requireNonNegative(voucher.getMinimumSubscriptionAmount(), "minimumSubscriptionAmount");
         requireField(voucher.getValidFrom(), "validFrom");
@@ -66,6 +69,20 @@ public class VoucherPolicy {
         }
     }
 
+    public void ensureApplicableAt(Voucher voucher, UUID parkingLotId, UUID parkingLotOrganizationId) {
+        requireVoucher(voucher);
+        requireField(parkingLotId, "parkingLotId");
+        requireField(parkingLotOrganizationId, "parkingLotOrganizationId");
+        if (voucher.getScopeType() == VoucherScopeType.PARTNER
+                && !parkingLotOrganizationId.equals(voucher.getOrganizationId())) {
+            throw new BadRequestException("Voucher is not applicable to this Partner parking lot");
+        }
+        if (voucher.getScopeType() == VoucherScopeType.PARKING_LOT
+                && !parkingLotId.equals(voucher.getParkingLotId())) {
+            throw new BadRequestException("Voucher is not applicable to this parking lot");
+        }
+    }
+
     public boolean shouldShowToCustomer(Voucher voucher, Instant now) {
         requireVoucher(voucher);
         requireField(now, "now");
@@ -76,6 +93,21 @@ public class VoucherPolicy {
     }
 
     private void requireVoucher(Voucher voucher) { requireField(voucher, "voucher"); }
+    private void validateScope(Voucher voucher) {
+        requireField(voucher.getScopeType(), "scopeType");
+        if (voucher.getScopeType() == VoucherScopeType.PLATFORM
+                && (voucher.getOrganizationId() != null || voucher.getParkingLotId() != null)) {
+            throw new BadRequestException("Platform voucher must not have an organization or parking lot");
+        }
+        if (voucher.getScopeType() == VoucherScopeType.PARTNER
+                && (voucher.getOrganizationId() == null || voucher.getParkingLotId() != null)) {
+            throw new BadRequestException("Partner voucher must have only organizationId");
+        }
+        if (voucher.getScopeType() == VoucherScopeType.PARKING_LOT
+                && (voucher.getOrganizationId() == null || voucher.getParkingLotId() == null)) {
+            throw new BadRequestException("Parking-lot voucher must have organizationId and parkingLotId");
+        }
+    }
     private void requireField(Object value, String name) { if (value == null) throw new BadRequestException(name + " must not be null"); }
     private void requirePositive(BigDecimal value, String name) { requireNonNegative(value, name); if (value.signum() <= 0) throw new BadRequestException(name + " must be positive"); }
     private void requireNonNegative(BigDecimal value, String name) { requireField(value, name); if (value.signum() < 0) throw new BadRequestException(name + " must not be negative"); }
