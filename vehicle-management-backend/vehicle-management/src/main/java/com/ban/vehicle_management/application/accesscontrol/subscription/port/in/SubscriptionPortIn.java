@@ -2,6 +2,8 @@ package com.ban.vehicle_management.application.accesscontrol.subscription.port.i
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionSpaceSelection;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalQuote;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalResult;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
@@ -52,6 +54,23 @@ public interface SubscriptionPortIn {
     Subscription markSubscriptionInvoicePaymentCompleted(UUID subscriptionId, UUID invoiceId);
 
     Invoice requestMyPhysicalCard(UUID subscriptionId);
+
+    SubscriptionRenewalQuote quoteMySubscriptionRenewal(
+            UUID subscriptionId,
+            UUID ticketTypeId,
+            Integer periodQuantity,
+            String voucherCode,
+            Boolean physicalCardRequested
+    );
+
+    SubscriptionRenewalResult renewMySubscription(
+            UUID subscriptionId,
+            UUID ticketTypeId,
+            Integer periodQuantity,
+            String voucherCode,
+            Boolean physicalCardRequested,
+            String idempotencyKey
+    );
 
     SubscriptionSpaceSelection getMySpaceSelection(UUID subscriptionId);
 

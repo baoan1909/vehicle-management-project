@@ -48,6 +48,33 @@ public class SubscriptionPolicy {
         validateState(subscription);
     }
 
+    public void initializeRenewalSubscription(Subscription subscription, int durationDays, LocalDate currentDate) {
+        requireSubscription(subscription);
+        validatePeriodQuantity(subscription.getPeriodQuantity());
+        validateDuration(durationDays);
+        requireField(subscription.getRequestedEffectiveFrom(), "requestedEffectiveFrom");
+        requireField(currentDate, "currentDate");
+        if (!subscription.getRequestedEffectiveFrom().isAfter(currentDate)) {
+            throw new BadRequestException("Renewal effective date must be after the current date");
+        }
+
+        subscription.setEffectiveFrom(subscription.getRequestedEffectiveFrom());
+        subscription.setEffectiveTo(calculateEffectiveTo(subscription.getEffectiveFrom(), durationDays));
+        subscription.setPhysicalCardRequested(false);
+        subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.NOT_REQUESTED);
+        subscription.setStatus(SubscriptionStatus.PENDING);
+        subscription.setCardId(null);
+        subscription.setCardReceiptDate(null);
+        subscription.setSpaceSelectionRequired(false);
+        subscription.setSpaceSelectionConfirmedAt(null);
+        subscription.setSpaceSelectionExpiresAt(null);
+        clearApproval(subscription);
+        clearRejection(subscription);
+
+        validateState(subscription);
+    }
+
     public void preparePendingUpdate(Subscription subscription, int durationDays, LocalDate currentDate) {
         requireStatus(subscription, SubscriptionStatus.PENDING);
         validatePeriodQuantity(subscription.getPeriodQuantity());

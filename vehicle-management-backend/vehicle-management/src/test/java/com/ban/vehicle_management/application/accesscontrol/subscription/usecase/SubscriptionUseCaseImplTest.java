@@ -14,6 +14,8 @@ import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPo
 import com.ban.vehicle_management.application.accesscontrol.subscription.authorization.SubscriptionAccessGuard;
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionRenewalPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalResult;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.catalog.voucher.port.in.VoucherPortIn;
 import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
@@ -28,6 +30,7 @@ import com.ban.vehicle_management.application.people.customer.port.out.CustomerP
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.domain.accesscontrol.subscription.model.SubscriptionRenewal;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
@@ -67,6 +70,9 @@ class SubscriptionUseCaseImplTest {
 
     @Mock
     private SubscriptionPortOut subscriptionPortOut;
+
+    @Mock
+    private SubscriptionRenewalPortOut subscriptionRenewalPortOut;
 
     @Mock
     private CustomerVehiclePortOut customerVehiclePortOut;
@@ -549,6 +555,66 @@ class SubscriptionUseCaseImplTest {
         assertNull(updated.getCardId());
         verify(cardPortOut, never()).save(any(Card.class));
         verify(parkingAllocationService, never()).activate(any(Subscription.class));
+    }
+
+    @Test
+    void shouldCreateRenewalInvoiceWithoutCreatingAnotherSubscription() {
+        TestData data = validTestData();
+        Subscription current = approvedSubscription(data, SubscriptionStatus.ACTIVE);
+        LocalDate renewalStart = current.getEffectiveTo().plusDays(1);
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setParkingLotId(LOT_ID);
+        parkingLot.setOrganizationId(ORGANIZATION_ID);
+        parkingLot.setStatus(ParkingLotStatus.ACTIVE);
+
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(current));
+        when(catalogAvailabilityPortOut.isTicketTypeEnabled(LOT_ID, data.ticketTypeId())).thenReturn(true);
+        when(catalogAvailabilityPortOut.isVehicleTypeEnabled(LOT_ID, data.vehicleTypeId())).thenReturn(true);
+        when(parkingLotPortOut.findById(LOT_ID)).thenReturn(Optional.of(parkingLot));
+        when(customerPortOut.findById(data.customerId())).thenReturn(Optional.of(activeApprovedCustomer(data.customerId())));
+        when(customerVehiclePortOut.findById(data.customerVehicleId()))
+                .thenReturn(Optional.of(activeCustomerVehicle(data.customerVehicleId(), data.customerId(), data.vehicleTypeId())));
+        when(ticketTypePortOut.findById(data.ticketTypeId())).thenReturn(Optional.of(activeMonthlyTicketType(data.ticketTypeId())));
+        when(priceRulePortOut.findActiveSubscriptionRuleInOrganization(
+                data.vehicleTypeId(), data.ticketTypeId(), ORGANIZATION_ID, renewalStart))
+                .thenReturn(Optional.of(subscriptionPriceRule(data.priceRuleId(), data.vehicleTypeId(), data.ticketTypeId())));
+        when(voucherPortIn.quoteSubscriptionVoucher(
+                eq(null), eq(data.customerId()), eq(data.ticketTypeId()), eq(LOT_ID),
+                eq(new BigDecimal("280000")), any(Instant.class)))
+                .thenReturn(VoucherQuote.withoutVoucher(new BigDecimal("280000")));
+        when(voucherPortIn.reserveSubscriptionVoucher(
+                eq(null), eq(data.customerId()), eq(data.ticketTypeId()), eq(LOT_ID),
+                eq(new BigDecimal("280000")), eq(data.subscriptionId()), any(UUID.class), any(Instant.class)))
+                .thenReturn(VoucherQuote.withoutVoucher(new BigDecimal("280000")));
+        when(invoicePortOut.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRenewalPortOut.save(any(SubscriptionRenewal.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        SubscriptionRenewalResult result = subscriptionUseCase.renewMySubscription(
+                data.subscriptionId(), data.ticketTypeId(), 2, null, false, "renewal-request-1");
+
+        assertEquals(data.subscriptionId(), result.renewal().getSubscriptionId());
+        assertEquals(renewalStart, result.renewal().getEffectiveFrom());
+        assertEquals(renewalStart.plusDays(59), result.renewal().getEffectiveTo());
+        assertEquals(2, result.renewal().getPeriodQuantity());
+        assertEquals(new BigDecimal("280000"), result.renewal().getTicketAmount());
+        assertEquals(InvoicePurpose.SUBSCRIPTION_RENEWAL, result.invoice().getPurpose());
+        assertEquals(data.subscriptionId(), result.invoice().getSubscriptionId());
+        verify(subscriptionPortOut, never()).save(any(Subscription.class));
+        verify(subscriptionAccessGuard).ensureCanUpdateOwn(current);
+    }
+
+    @Test
+    void shouldRejectRenewalAfterSubscriptionHasExpired() {
+        TestData data = validTestData();
+        Subscription expiredByDate = approvedSubscription(data, SubscriptionStatus.ACTIVE);
+        expiredByDate.setEffectiveTo(LocalDate.now(DateTimeUtils.VIETNAM_ZONE).minusDays(1));
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(expiredByDate));
+
+        assertThrows(ConflictException.class, () -> subscriptionUseCase.renewMySubscription(
+                data.subscriptionId(), data.ticketTypeId(), 1, null, false, "expired-renewal"));
+
+        verify(subscriptionPortOut, never()).save(any(Subscription.class));
     }
 
     @Test

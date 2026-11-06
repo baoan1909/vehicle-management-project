@@ -35,6 +35,7 @@ public class VoucherPersistenceAdapter implements VoucherPortOut {
     @Override public List<Voucher> findAllVouchers() { return voucherPersistenceMapper.toDomains(voucherRepository.findAll()); }
     @Override public VoucherRedemption saveRedemption(VoucherRedemption redemption) { return voucherRedemptionPersistenceMapper.toDomain(voucherRedemptionRepository.saveAndFlush(voucherRedemptionPersistenceMapper.toEntity(redemption))); }
     @Override public Optional<VoucherRedemption> findRedemptionBySubscriptionId(UUID subscriptionId) { return voucherRedemptionRepository.findBySubscriptionId(subscriptionId).map(voucherRedemptionPersistenceMapper::toDomain); }
+    @Override public Optional<VoucherRedemption> findRedemptionByInvoiceId(UUID invoiceId) { return voucherRedemptionRepository.findByInvoiceId(invoiceId).map(voucherRedemptionPersistenceMapper::toDomain); }
     @Override public long countRedemptionsByVoucherIdAndStatusIn(UUID voucherId, Collection<VoucherRedemptionStatus> statuses) { return voucherRedemptionRepository.countByVoucherIdAndStatusIn(voucherId, statuses); }
     @Override public long countRedemptionsByVoucherIdAndCustomerIdAndStatusIn(UUID voucherId, UUID customerId, Collection<VoucherRedemptionStatus> statuses) { return voucherRedemptionRepository.countByVoucherIdAndCustomerIdAndStatusIn(voucherId, customerId, statuses); }
 }

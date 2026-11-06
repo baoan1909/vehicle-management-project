@@ -145,6 +145,7 @@ public class InvoicePolicy {
             throw new BadRequestException("Parking-session invoice must reference a parking session");
         }
         if ((purpose == InvoicePurpose.SUBSCRIPTION_PURCHASE
+                || purpose == InvoicePurpose.SUBSCRIPTION_RENEWAL
                 || purpose == InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT)
                 && invoice.getSubscriptionId() == null) {
             throw new BadRequestException("Subscription invoice must reference a subscription");

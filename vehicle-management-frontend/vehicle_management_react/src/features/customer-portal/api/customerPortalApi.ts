@@ -342,6 +342,7 @@ export type CustomerPortalInvoicePurpose =
   | "MANUAL"
   | "PARKING_SESSION"
   | "SUBSCRIPTION_PURCHASE"
+  | "SUBSCRIPTION_RENEWAL"
   | "SUBSCRIPTION_CARD_DEPOSIT"
   | "LOST_CARD";
 
@@ -383,6 +384,75 @@ export async function requestMySubscriptionPhysicalCard(subscriptionId: string) 
   const response = await apiClient<ApiResponse<CustomerPortalInvoice>>(
     `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/physical-card-request`,
     { method: "POST" },
+  );
+  return response.data;
+}
+
+export async function renewMySubscription(
+  subscriptionId: string,
+  payload: CustomerPortalSubscriptionRenewalRequest,
+  idempotencyKey?: string,
+) {
+  const response = await apiClient<ApiResponse<CustomerPortalSubscriptionRenewalResult>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/renewal`,
+    {
+      body: payload,
+      headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+      method: "POST",
+    },
+  );
+  return response.data;
+}
+
+export type CustomerPortalSubscriptionRenewalRequest = {
+  ticketTypeId: string;
+  periodQuantity: number;
+  voucherCode?: string;
+  physicalCardRequested: boolean;
+};
+
+export type CustomerPortalSubscriptionRenewalQuote = {
+  effectiveFrom: string;
+  effectiveTo: string;
+  ticketAmount: number | string;
+  physicalCardDeposit: number | string;
+  voucherCode?: string | null;
+  discountAmount: number | string;
+  finalAmount: number | string;
+  reusesExistingCard: boolean;
+  physicalCardRequestPending: boolean;
+};
+
+export type CustomerPortalSubscriptionRenewal = {
+  renewalId: string;
+  subscriptionId: string;
+  invoiceId: string;
+  ticketTypeId: string;
+  priceRuleId: string;
+  periodQuantity: number;
+  effectiveFrom: string;
+  effectiveTo: string;
+  ticketAmount: number | string;
+  physicalCardDeposit: number | string;
+  discountAmount: number | string;
+  finalAmount: number | string;
+  voucherCode?: string | null;
+  physicalCardRequested: boolean;
+  status: "PENDING_PAYMENT" | "SCHEDULED" | "APPLIED" | "CANCELLED";
+};
+
+export type CustomerPortalSubscriptionRenewalResult = {
+  renewal: CustomerPortalSubscriptionRenewal;
+  invoice: CustomerPortalInvoice;
+};
+
+export async function quoteMySubscriptionRenewal(
+  subscriptionId: string,
+  payload: CustomerPortalSubscriptionRenewalRequest,
+) {
+  const response = await apiClient<ApiResponse<CustomerPortalSubscriptionRenewalQuote>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/renewal/quote`,
+    { body: payload, method: "POST" },
   );
   return response.data;
 }

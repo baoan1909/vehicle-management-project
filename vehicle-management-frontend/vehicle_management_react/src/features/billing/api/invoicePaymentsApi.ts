@@ -21,7 +21,7 @@ export type InvoiceSummaryResponse = {
   issuedAt?: string | null;
   lostCardReportId?: string | null;
   paidAt?: string | null;
-  purpose?: "MANUAL" | "PARKING_SESSION" | "SUBSCRIPTION_PURCHASE" | "SUBSCRIPTION_CARD_DEPOSIT" | "LOST_CARD" | null;
+  purpose?: "MANUAL" | "PARKING_SESSION" | "SUBSCRIPTION_PURCHASE" | "SUBSCRIPTION_RENEWAL" | "SUBSCRIPTION_CARD_DEPOSIT" | "LOST_CARD" | null;
   parkingSessionId?: string | null;
   status: "UNPAID" | "PAID" | "CANCELLED" | "REFUNDED";
   subscriptionId?: string | null;

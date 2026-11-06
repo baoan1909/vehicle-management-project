@@ -134,7 +134,7 @@ public class VoucherUseCaseImpl implements VoucherPortIn {
     @Override @Transactional
     public VoucherQuote reserveSubscriptionVoucher(String voucherCode, UUID customerId, UUID ticketTypeId, UUID parkingLotId, BigDecimal subscriptionAmount, UUID subscriptionId, UUID invoiceId, Instant now) {
         if (voucherCode == null || voucherCode.isBlank()) return VoucherQuote.withoutVoucher(subscriptionAmount);
-        if (voucherPortOut.findRedemptionBySubscriptionId(subscriptionId).isPresent()) throw new ConflictException("Voucher has already been reserved for subscription");
+        if (voucherPortOut.findRedemptionByInvoiceId(invoiceId).isPresent()) throw new ConflictException("Voucher has already been reserved for invoice");
         Voucher voucher = voucherPortOut.findVoucherByCodeForUpdate(normalizeCode(voucherCode)).orElseThrow(() -> new NotFoundException("Voucher code not found"));
         validateApplicableVoucher(voucher, customerId, parkingLotId, subscriptionAmount, now, true);
         VoucherQuote quote = toQuote(voucher, subscriptionAmount);
@@ -156,28 +156,44 @@ public class VoucherUseCaseImpl implements VoucherPortIn {
 
     @Override @Transactional
     public void redeemSubscriptionVoucher(UUID subscriptionId, UUID parkingLotId, Instant redeemedAt) {
-        voucherPortOut.findRedemptionBySubscriptionId(subscriptionId).ifPresent(redemption -> {
-            if (redemption.getStatus() == VoucherRedemptionStatus.RESERVED) {
-                Voucher voucher = requireVoucher(redemption.getVoucherId());
-                ParkingLot parkingLot = requireParkingLot(parkingLotId);
-                voucherPolicy.ensureApplicableAt(voucher, parkingLotId, parkingLot.getOrganizationId());
-                redemption.setStatus(VoucherRedemptionStatus.REDEEMED);
-                redemption.setRedeemedAt(redeemedAt);
-                voucherPortOut.saveRedemption(redemption);
-            }
-        });
+        voucherPortOut.findRedemptionBySubscriptionId(subscriptionId)
+                .ifPresent(redemption -> redeem(redemption, parkingLotId, redeemedAt));
+    }
+
+    @Override @Transactional
+    public void redeemSubscriptionVoucherByInvoice(UUID invoiceId, UUID parkingLotId, Instant redeemedAt) {
+        voucherPortOut.findRedemptionByInvoiceId(invoiceId)
+                .ifPresent(redemption -> redeem(redemption, parkingLotId, redeemedAt));
     }
 
     @Override @Transactional
     public void releaseSubscriptionVoucher(UUID subscriptionId, String reason, Instant releasedAt) {
-        voucherPortOut.findRedemptionBySubscriptionId(subscriptionId).ifPresent(redemption -> {
-            if (redemption.getStatus() == VoucherRedemptionStatus.RESERVED) {
-                redemption.setStatus(VoucherRedemptionStatus.RELEASED);
-                redemption.setReleasedAt(releasedAt);
-                redemption.setReleaseReason(TextValidationUtils.normalizeNullableText(reason, "reason", 500));
-                voucherPortOut.saveRedemption(redemption);
-            }
-        });
+        voucherPortOut.findRedemptionBySubscriptionId(subscriptionId)
+                .ifPresent(redemption -> release(redemption, reason, releasedAt));
+    }
+
+    @Override @Transactional
+    public void releaseSubscriptionVoucherByInvoice(UUID invoiceId, String reason, Instant releasedAt) {
+        voucherPortOut.findRedemptionByInvoiceId(invoiceId)
+                .ifPresent(redemption -> release(redemption, reason, releasedAt));
+    }
+
+    private void redeem(VoucherRedemption redemption, UUID parkingLotId, Instant redeemedAt) {
+        if (redemption.getStatus() != VoucherRedemptionStatus.RESERVED) return;
+        Voucher voucher = requireVoucher(redemption.getVoucherId());
+        ParkingLot parkingLot = requireParkingLot(parkingLotId);
+        voucherPolicy.ensureApplicableAt(voucher, parkingLotId, parkingLot.getOrganizationId());
+        redemption.setStatus(VoucherRedemptionStatus.REDEEMED);
+        redemption.setRedeemedAt(redeemedAt);
+        voucherPortOut.saveRedemption(redemption);
+    }
+
+    private void release(VoucherRedemption redemption, String reason, Instant releasedAt) {
+        if (redemption.getStatus() != VoucherRedemptionStatus.RESERVED) return;
+        redemption.setStatus(VoucherRedemptionStatus.RELEASED);
+        redemption.setReleasedAt(releasedAt);
+        redemption.setReleaseReason(TextValidationUtils.normalizeNullableText(reason, "reason", 500));
+        voucherPortOut.saveRedemption(redemption);
     }
 
     private void validateApplicableVoucher(Voucher voucher, UUID customerId, UUID parkingLotId, BigDecimal subscriptionAmount, Instant now, boolean checkQuota) {

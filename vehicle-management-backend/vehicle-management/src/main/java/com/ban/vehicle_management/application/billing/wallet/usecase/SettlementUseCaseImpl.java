@@ -373,10 +373,10 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
         if (requestedVoucherId != null) {
             return requestedVoucherId;
         }
-        if (invoice.getSubscriptionId() == null) {
-            return null;
-        }
-        return voucherPortOut.findRedemptionBySubscriptionId(invoice.getSubscriptionId())
+        return voucherPortOut.findRedemptionByInvoiceId(invoice.getInvoiceId())
+                .or(() -> invoice.getSubscriptionId() == null
+                        ? java.util.Optional.empty()
+                        : voucherPortOut.findRedemptionBySubscriptionId(invoice.getSubscriptionId()))
                 .map(redemption -> redemption.getVoucherId())
                 .orElse(null);
     }
