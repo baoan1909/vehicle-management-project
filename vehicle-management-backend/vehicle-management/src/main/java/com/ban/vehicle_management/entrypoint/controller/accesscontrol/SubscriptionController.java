@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.entrypoint.controller.accesscontrol;
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.mapper.SubscriptionApiMapper;
+import com.ban.vehicle_management.application.billing.invoice.mapper.InvoiceApiMapper;
 import com.ban.vehicle_management.application.accesscontrol.subscription.mapper.SubscriptionQrApiMapper;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionQrPortIn;
@@ -18,6 +19,7 @@ import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.resp
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionVoucherQuoteResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionQrCredentialResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionQrVerificationResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceUserResponse;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import jakarta.validation.Valid;
@@ -49,17 +51,20 @@ public class SubscriptionController {
     private final SubscriptionApiMapper subscriptionApiMapper;
     private final SubscriptionQrPortIn subscriptionQrPortIn;
     private final SubscriptionQrApiMapper subscriptionQrApiMapper;
+    private final InvoiceApiMapper invoiceApiMapper;
 
     public SubscriptionController(
             SubscriptionPortIn subscriptionPortIn,
             SubscriptionApiMapper subscriptionApiMapper,
             SubscriptionQrPortIn subscriptionQrPortIn,
-            SubscriptionQrApiMapper subscriptionQrApiMapper
+            SubscriptionQrApiMapper subscriptionQrApiMapper,
+            InvoiceApiMapper invoiceApiMapper
     ) {
         this.subscriptionPortIn = subscriptionPortIn;
         this.subscriptionApiMapper = subscriptionApiMapper;
         this.subscriptionQrPortIn = subscriptionQrPortIn;
         this.subscriptionQrApiMapper = subscriptionQrApiMapper;
+        this.invoiceApiMapper = invoiceApiMapper;
     }
 
     @PostMapping("/me")
@@ -87,6 +92,16 @@ public class SubscriptionController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched current customer subscriptions successfully",
                 subscriptionApiMapper.toUserResponses(subscriptions)
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/physical-card-request")
+    public ResponseEntity<ApiResponse<InvoiceUserResponse>> requestMyPhysicalCard(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                "Physical card request created successfully",
+                invoiceApiMapper.toUserResponse(subscriptionPortIn.requestMyPhysicalCard(subscriptionId))
         ));
     }
 

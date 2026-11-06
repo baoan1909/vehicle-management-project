@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
@@ -46,31 +47,43 @@ class SubscriptionPolicyTest {
     }
 
     @Test
+    void shouldSynchronizePhysicalCardStatusWhenPendingPreferenceChanges() {
+        LocalDate currentDate = LocalDate.of(2026, 6, 16);
+        Subscription subscription = initializedPendingSubscription(currentDate);
+        subscription.setPhysicalCardRequested(false);
+        subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+
+        subscriptionPolicy.preparePendingUpdate(subscription, 30, currentDate);
+
+        assertEquals(PhysicalCardFulfillmentStatus.NOT_REQUESTED, subscription.getPhysicalCardStatus());
+        assertNull(subscription.getCardId());
+        assertNull(subscription.getCardReceiptDate());
+    }
+
+    @Test
     void shouldApprovePaidSubscriptionWithPendingPaymentStatus() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
         Subscription subscription = initializedPendingSubscription(currentDate);
         UUID approvedBy = UUID.randomUUID();
         Instant approvedAt = Instant.parse("2026-05-15T10:00:00Z");
-        UUID reservedCardId = UUID.randomUUID();
-
         subscriptionPolicy.approve(
                 subscription,
                 approvedBy,
                 approvedAt,
                 currentDate,
-                reservedCardId,
+                null,
                 new BigDecimal("140000")
         );
 
         assertEquals(SubscriptionStatus.PENDING_PAYMENT, subscription.getStatus());
         assertEquals(approvedBy, subscription.getApprovedBy());
         assertEquals(approvedAt, subscription.getApprovedAt());
-        assertEquals(reservedCardId, subscription.getCardId());
+        assertNull(subscription.getCardId());
         assertNull(subscription.getCardReceiptDate());
     }
 
     @Test
-    void shouldApproveFreeSubscriptionWithPendingCardStatus() {
+    void shouldActivateFreeSubscriptionWithoutWaitingForPhysicalCard() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
         Subscription subscription = initializedPendingSubscription(currentDate);
 
@@ -79,11 +92,12 @@ class SubscriptionPolicyTest {
                 UUID.randomUUID(),
                 Instant.parse("2026-05-15T10:00:00Z"),
                 currentDate,
-                UUID.randomUUID(),
+                null,
                 BigDecimal.ZERO
         );
 
-        assertEquals(SubscriptionStatus.PENDING_CARD, subscription.getStatus());
+        assertEquals(SubscriptionStatus.ACTIVE, subscription.getStatus());
+        assertNull(subscription.getCardReceiptDate());
     }
 
     @Test
@@ -96,7 +110,7 @@ class SubscriptionPolicyTest {
                 UUID.randomUUID(),
                 Instant.parse("2026-05-15T10:00:00Z"),
                 subscription.getRequestedEffectiveFrom(),
-                UUID.randomUUID(),
+                null,
                 new BigDecimal("140000")
         );
 
@@ -119,13 +133,14 @@ class SubscriptionPolicyTest {
     }
 
     @Test
-    void shouldMarkPaymentCompletedWithPendingCardStatus() {
+    void shouldActivatePhysicalCardSubscriptionAfterPayment() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
         Subscription subscription = approvedSubscription(currentDate, SubscriptionStatus.PENDING_PAYMENT);
 
         subscriptionPolicy.markPaymentCompleted(subscription);
 
-        assertEquals(SubscriptionStatus.PENDING_CARD, subscription.getStatus());
+        assertEquals(SubscriptionStatus.ACTIVE, subscription.getStatus());
+        assertNull(subscription.getCardReceiptDate());
     }
 
     @Test
@@ -134,6 +149,7 @@ class SubscriptionPolicyTest {
         Subscription subscription = initializedPendingSubscription(currentDate);
         subscription.setPhysicalCardRequested(false);
         subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.NOT_REQUESTED);
 
         subscriptionPolicy.approve(
                 subscription,
@@ -156,6 +172,7 @@ class SubscriptionPolicyTest {
         Subscription subscription = initializedPendingSubscription(currentDate);
         subscription.setPhysicalCardRequested(false);
         subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.NOT_REQUESTED);
 
         subscriptionPolicy.approve(subscription, UUID.randomUUID(),
                 Instant.parse("2026-06-16T10:00:00Z"), currentDate, null,
@@ -175,35 +192,73 @@ class SubscriptionPolicyTest {
     }
 
     @Test
-    void shouldRequireBothPhysicalCardAndSpaceBeforeActivation() {
+    void shouldActivatePhysicalCardSubscriptionAfterSpaceConfirmation() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
         Subscription subscription = approvedSubscription(currentDate, SubscriptionStatus.PENDING_PAYMENT);
         subscriptionPolicy.requireSpaceSelection(subscription,
                 Instant.parse("2026-06-17T10:00:00Z"));
 
         subscriptionPolicy.markPaymentCompleted(subscription);
-        assertEquals(SubscriptionStatus.PENDING_CARD, subscription.getStatus());
-
-        subscriptionPolicy.assignReservedCard(subscription, currentDate.plusDays(1), 30);
         assertEquals(SubscriptionStatus.PENDING_SPACE, subscription.getStatus());
 
         subscriptionPolicy.confirmSpaceSelection(subscription,
                 Instant.parse("2026-06-16T12:00:00Z"));
         assertEquals(SubscriptionStatus.ACTIVE, subscription.getStatus());
+        assertNull(subscription.getCardReceiptDate());
     }
 
     @Test
-    void shouldAssignReservedCardAndActivateSubscription() {
+    void shouldAssignReservedCardWithoutChangingActiveSubscriptionPeriod() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
-        Subscription subscription = approvedSubscription(currentDate, SubscriptionStatus.PENDING_CARD);
+        Subscription subscription = approvedSubscription(currentDate, SubscriptionStatus.ACTIVE);
+        subscription.setCardId(UUID.randomUUID());
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.RESERVED);
         LocalDate cardReceiptDate = currentDate.plusDays(5);
+        LocalDate effectiveFrom = subscription.getEffectiveFrom();
+        LocalDate effectiveTo = subscription.getEffectiveTo();
 
-        subscriptionPolicy.assignReservedCard(subscription, cardReceiptDate, 30);
+        subscriptionPolicy.assignReservedCard(subscription, cardReceiptDate);
 
         assertEquals(SubscriptionStatus.ACTIVE, subscription.getStatus());
         assertEquals(cardReceiptDate, subscription.getCardReceiptDate());
-        assertEquals(cardReceiptDate, subscription.getEffectiveFrom());
-        assertEquals(cardReceiptDate.plusDays(29), subscription.getEffectiveTo());
+        assertEquals(effectiveFrom, subscription.getEffectiveFrom());
+        assertEquals(effectiveTo, subscription.getEffectiveTo());
+    }
+
+    @Test
+    void shouldRequestPhysicalCardForActiveQrSubscription() {
+        Subscription subscription = activeQrSubscription(LocalDate.of(2026, 6, 16));
+
+        subscriptionPolicy.requestPhysicalCard(subscription, new BigDecimal("50000"));
+
+        assertEquals(true, subscription.getPhysicalCardRequested());
+        assertEquals(new BigDecimal("50000"), subscription.getPhysicalCardDeposit());
+        assertEquals(PhysicalCardFulfillmentStatus.PAYMENT_PENDING, subscription.getPhysicalCardStatus());
+        assertNull(subscription.getCardId());
+    }
+
+    @Test
+    void shouldReservePhysicalCardAfterDepositPayment() {
+        Subscription subscription = activeQrSubscription(LocalDate.of(2026, 6, 16));
+        subscriptionPolicy.requestPhysicalCard(subscription, new BigDecimal("50000"));
+        UUID cardId = UUID.randomUUID();
+
+        subscriptionPolicy.reservePhysicalCard(subscription, cardId);
+
+        assertEquals(cardId, subscription.getCardId());
+        assertEquals(PhysicalCardFulfillmentStatus.RESERVED, subscription.getPhysicalCardStatus());
+    }
+
+    @Test
+    void shouldWaitForInventoryWithoutBlockingQrSubscription() {
+        Subscription subscription = activeQrSubscription(LocalDate.of(2026, 6, 16));
+        subscriptionPolicy.requestPhysicalCard(subscription, new BigDecimal("50000"));
+
+        subscriptionPolicy.waitForPhysicalCardInventory(subscription);
+
+        assertEquals(SubscriptionStatus.ACTIVE, subscription.getStatus());
+        assertEquals(PhysicalCardFulfillmentStatus.WAITING_INVENTORY, subscription.getPhysicalCardStatus());
+        assertNull(subscription.getCardId());
     }
 
     @Test
@@ -235,8 +290,7 @@ class SubscriptionPolicyTest {
     @Test
     void shouldExpireActiveSubscriptionWhenCurrentDateIsAfterEffectiveTo() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
-        Subscription subscription = approvedSubscription(currentDate, SubscriptionStatus.PENDING_CARD);
-        subscriptionPolicy.assignReservedCard(subscription, currentDate.plusDays(4), 30);
+        Subscription subscription = approvedSubscription(currentDate, SubscriptionStatus.ACTIVE);
 
         subscriptionPolicy.expire(subscription, subscription.getEffectiveTo().plusDays(1));
 
@@ -293,7 +347,20 @@ class SubscriptionPolicyTest {
         subscription.setStatus(status);
         subscription.setApprovedBy(UUID.randomUUID());
         subscription.setApprovedAt(Instant.parse("2026-06-16T10:00:00Z"));
-        subscription.setCardId(UUID.randomUUID());
+        subscription.setCardId(null);
+        return subscription;
+    }
+
+    private Subscription activeQrSubscription(LocalDate currentDate) {
+        Subscription subscription = initializedPendingSubscription(currentDate);
+        subscription.setPhysicalCardRequested(false);
+        subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.NOT_REQUESTED);
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setApprovedBy(UUID.randomUUID());
+        subscription.setApprovedAt(Instant.parse("2026-06-16T10:00:00Z"));
+        subscription.setCardId(null);
+        subscription.setCardReceiptDate(null);
         return subscription;
     }
 }

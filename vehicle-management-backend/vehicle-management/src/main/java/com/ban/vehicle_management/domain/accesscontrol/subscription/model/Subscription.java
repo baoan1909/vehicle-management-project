@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.accesscontrol.subscription.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -27,6 +28,7 @@ public class Subscription extends AuditableDomainModel {
     private Integer periodQuantity = 1;
     private Boolean physicalCardRequested = true;
     private BigDecimal physicalCardDeposit = BigDecimal.ZERO;
+    private PhysicalCardFulfillmentStatus physicalCardStatus = PhysicalCardFulfillmentStatus.NOT_REQUESTED;
     private LocalDate requestedEffectiveFrom;
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;

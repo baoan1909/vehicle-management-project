@@ -45,6 +45,7 @@ import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardRepor
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
@@ -665,6 +666,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
         invoice.setInvoiceId(UUID.randomUUID());
         invoice.setCustomerId(report.getCustomerId());
         invoice.setLostCardReportId(report.getLostCardReportId());
+        invoice.setPurpose(InvoicePurpose.LOST_CARD);
         invoice.setParkingLotId(report.getParkingLotId());
         invoice.setAmount(totalAmount);
         invoice.setDiscountAmount(BigDecimal.ZERO);

@@ -40,12 +40,18 @@ export type CustomerPortalPriceRule = PriceRuleApiResponse;
 export type CustomerPortalSubscriptionStatus =
   | "PENDING"
   | "PENDING_PAYMENT"
-  | "PENDING_CARD"
   | "PENDING_SPACE"
   | "ACTIVE"
   | "EXPIRED"
   | "CANCELLED"
   | "REJECTED";
+
+export type CustomerPortalPhysicalCardStatus =
+  | "NOT_REQUESTED"
+  | "PAYMENT_PENDING"
+  | "RESERVED"
+  | "WAITING_INVENTORY"
+  | "ASSIGNED";
 
 export type CustomerPortalSubscription = {
   parkingLotId?: string | null;
@@ -67,6 +73,7 @@ export type CustomerPortalSubscription = {
   periodQuantity?: number | null;
   physicalCardRequested?: boolean | null;
   physicalCardDeposit?: number | string | null;
+  physicalCardStatus?: CustomerPortalPhysicalCardStatus | null;
   rejectedAt?: string | null;
   rejectedBy?: string | null;
   rejectionReason?: string | null;
@@ -326,9 +333,17 @@ export type CustomerPortalInvoice = {
   invoiceNo: string;
   issuedAt?: string | null;
   paidAt?: string | null;
+  purpose?: CustomerPortalInvoicePurpose | null;
   status: "UNPAID" | "PAID" | "CANCELLED" | "REFUNDED";
   subscriptionId?: string | null;
 };
+
+export type CustomerPortalInvoicePurpose =
+  | "MANUAL"
+  | "PARKING_SESSION"
+  | "SUBSCRIPTION_PURCHASE"
+  | "SUBSCRIPTION_CARD_DEPOSIT"
+  | "LOST_CARD";
 
 export async function getMySubscriptionInvoices(subscriptionIds: string[]) {
   const params = new URLSearchParams();
@@ -342,12 +357,34 @@ export async function getMySubscriptionInvoices(subscriptionIds: string[]) {
 
 export async function getMySubscriptionInvoice(subscriptionId: string) {
   const invoices = await getMySubscriptionInvoices([subscriptionId]);
+  const purchaseInvoices = invoices.filter((invoice) => (
+    !invoice.purpose || invoice.purpose === "SUBSCRIPTION_PURCHASE"
+  ));
   return (
-    invoices.find((invoice) => invoice.status === "UNPAID")
-    ?? invoices.find((invoice) => invoice.status === "PAID")
-    ?? invoices[0]
+    purchaseInvoices.find((invoice) => invoice.status === "UNPAID")
+    ?? purchaseInvoices.find((invoice) => invoice.status === "PAID")
+    ?? purchaseInvoices[0]
     ?? null
   );
+}
+
+export async function getMySubscriptionCardDepositInvoice(subscriptionId: string) {
+  const invoices = await getMySubscriptionInvoices([subscriptionId]);
+  const depositInvoices = invoices.filter((invoice) => invoice.purpose === "SUBSCRIPTION_CARD_DEPOSIT");
+  return (
+    depositInvoices.find((invoice) => invoice.status === "UNPAID")
+    ?? depositInvoices.find((invoice) => invoice.status === "PAID")
+    ?? depositInvoices[0]
+    ?? null
+  );
+}
+
+export async function requestMySubscriptionPhysicalCard(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<CustomerPortalInvoice>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/physical-card-request`,
+    { method: "POST" },
+  );
+  return response.data;
 }
 
 export async function getCustomerPortalVoucherBanners(parkingLotId?: string) {

@@ -165,7 +165,8 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
         invoicePolicy.markPaid(invoice, saved.getPaidAt());
         invoicePortOut.save(invoice);
         if (invoice.getSubscriptionId() != null) {
-            subscriptionPortIn.markSubscriptionPaymentCompleted(invoice.getSubscriptionId());
+            subscriptionPortIn.markSubscriptionInvoicePaymentCompleted(
+                    invoice.getSubscriptionId(), invoice.getInvoiceId());
             settlementPortIn.allocateForCompletedPayment(saved.getPaymentId());
         }
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());

@@ -47,6 +47,9 @@ type SubscriptionView = {
   packageLabel: string;
   parkingLotName: string;
   packageTone: "primary" | "success";
+  physicalCardRequested: boolean;
+  physicalCardStatus: SubscriptionApiResponse["physicalCardStatus"];
+  cardReceiptDate: string | null;
   plate: string;
   status: SubscriptionStatus;
   statusLabel: string;
@@ -63,14 +66,13 @@ type LookupData = {
   vehicleTypes: VehicleTypeApiResponse[];
 };
 
-const statusOrder: SubscriptionStatus[] = ["PENDING", "PENDING_PAYMENT", "PENDING_CARD", "PENDING_SPACE", "ACTIVE"];
+const statusOrder: SubscriptionStatus[] = ["PENDING", "PENDING_PAYMENT", "PENDING_SPACE", "ACTIVE"];
 
 const statusLabels: Record<SubscriptionStatus, string> = {
   ACTIVE: "Đang hoạt động",
   CANCELLED: "Đã hủy",
   EXPIRED: "Hết hạn",
   PENDING: "Chờ duyệt",
-  PENDING_CARD: "Chờ gán thẻ",
   PENDING_PAYMENT: "Chờ thanh toán",
   PENDING_SPACE: "Chờ chọn vị trí",
   REJECTED: "Bị từ chối",
@@ -81,7 +83,6 @@ const statusMeta: Record<SubscriptionStatus, { accent: string; icon: string; rin
   CANCELLED: { accent: "tw-bg-slate-100 tw-text-slate-500", icon: "far fa-times-circle", ring: "tw-border-t-slate-400" },
   EXPIRED: { accent: "tw-bg-slate-100 tw-text-slate-500", icon: "far fa-calendar-times", ring: "tw-border-t-slate-400" },
   PENDING: { accent: "tw-bg-blue-50 tw-text-vm-primary", icon: "far fa-calendar-check", ring: "tw-border-t-vm-primary" },
-  PENDING_CARD: { accent: "tw-bg-purple-50 tw-text-purple-600", icon: "fas fa-id-card", ring: "tw-border-t-purple-500" },
   PENDING_PAYMENT: { accent: "tw-bg-orange-50 tw-text-orange-500", icon: "far fa-credit-card", ring: "tw-border-t-orange-400" },
   PENDING_SPACE: { accent: "tw-bg-cyan-50 tw-text-cyan-700", icon: "fas fa-parking", ring: "tw-border-t-cyan-500" },
   REJECTED: { accent: "tw-bg-red-50 tw-text-red-500", icon: "fas fa-ban", ring: "tw-border-t-red-500" },
@@ -91,7 +92,6 @@ const statusOptions = [
   { label: "Tất cả trạng thái", value: "all" },
   { label: "Chờ duyệt", value: "PENDING" },
   { label: "Chờ thanh toán", value: "PENDING_PAYMENT" },
-  { label: "Chờ gán thẻ", value: "PENDING_CARD" },
   { label: "Chờ chọn vị trí", value: "PENDING_SPACE" },
   { label: "Đang hoạt động", value: "ACTIVE" },
   { label: "Bị từ chối", value: "REJECTED" },
@@ -125,7 +125,6 @@ function shortCode(prefix: string, id: string) {
 function statusTagClass(status: SubscriptionStatus, accessBlocked = false) {
   if (accessBlocked) return "tw-bg-amber-50 tw-text-amber-700";
   if (status === "PENDING_PAYMENT") return "tw-bg-orange-50 tw-text-orange-600";
-  if (status === "PENDING_CARD") return "tw-bg-purple-50 tw-text-purple-600";
   if (status === "PENDING_SPACE") return "tw-bg-cyan-50 tw-text-cyan-700";
   if (status === "ACTIVE") return "tw-bg-green-50 tw-text-green-600";
   if (status === "REJECTED") return "tw-bg-red-50 tw-text-red-600";
@@ -175,6 +174,9 @@ function toSubscriptionView(
     id: shortCode("SUB", subscription.subscriptionId),
     invoiceHint: subscription.status === "PENDING" ? "Chưa tạo hóa đơn" : "Hóa đơn theo subscription",
     packageLabel: ticketName,
+    physicalCardRequested: subscription.physicalCardRequested === true,
+    physicalCardStatus: subscription.physicalCardStatus ?? (subscription.physicalCardRequested ? "PAYMENT_PENDING" : "NOT_REQUESTED"),
+    cardReceiptDate: subscription.cardReceiptDate ?? null,
     parkingLotName: subscription.parkingLotId
       ? lookup.parkingLotMap.get(subscription.parkingLotId)?.name ?? "Bãi xe không còn trong phạm vi"
       : "Chưa xác định bãi",
@@ -410,8 +412,12 @@ function ReviewDrawer({
   if (!request) return null;
 
   const canApprove = request.status === "PENDING";
-  const canAssignCard = request.status === "PENDING_CARD";
-  const waitingPayment = request.status === "PENDING_PAYMENT";
+  const canAssignCard = request.status === "ACTIVE"
+    && request.physicalCardRequested
+    && (request.physicalCardStatus === "RESERVED" || request.physicalCardStatus === "WAITING_INVENTORY")
+    && !request.cardReceiptDate;
+  const waitingPayment = request.status === "PENDING_PAYMENT"
+    || request.physicalCardStatus === "PAYMENT_PENDING";
   const canManageAccess = request.status === "ACTIVE" && canManageAccessAction;
 
   return (
@@ -434,7 +440,7 @@ function ReviewDrawer({
           </div>
         </div>
       }
-      description="Duyệt hồ sơ, theo dõi hóa đơn và gán thẻ tháng theo subscription"
+      description="Duyệt hồ sơ, theo dõi hóa đơn và xử lý thẻ vật lý tùy chọn"
       onClose={onClose}
       open={open}
       title="Chi tiết đăng ký"
@@ -476,11 +482,21 @@ function ReviewDrawer({
 
         <section className="tw-grid tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-4">
           <h3 className="tw-m-0 tw-text-[0.9rem] tw-font-black tw-text-vm-slate-900"><i className="far fa-id-card tw-mr-2 tw-text-vm-slate-500" />Thẻ tháng</h3>
-          <DetailLine label="Thẻ giữ chỗ" value={request.cardNumber} />
-          <DetailLine label="Trạng thái" value={request.status === "PENDING" ? "Backend sẽ tự giữ thẻ khi duyệt" : request.statusLabel} />
-          {waitingPayment ? (
+          <DetailLine label="Thẻ vật lý" value={request.physicalCardRequested ? request.cardNumber : "Không yêu cầu"} />
+          <DetailLine label="Trạng thái" value={request.physicalCardStatus === "NOT_REQUESTED"
+            ? "Chỉ sử dụng QR; khách chưa yêu cầu thẻ"
+            : request.physicalCardStatus === "PAYMENT_PENDING"
+              ? "Chờ khách thanh toán khoản cọc thẻ"
+              : request.physicalCardStatus === "RESERVED"
+                ? "Đã giữ thẻ; sẵn sàng để gán"
+                : request.physicalCardStatus === "WAITING_INVENTORY"
+                  ? "Đã thanh toán; đang chờ thẻ khả dụng"
+                  : request.cardReceiptDate
+                    ? `Đã gán ngày ${formatDate(request.cardReceiptDate)}`
+                    : "Đã gán thẻ vật lý"} />
+          {request.physicalCardStatus === "PAYMENT_PENDING" ? (
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-orange-100 tw-bg-orange-50 tw-p-3 tw-text-[0.8rem] tw-font-bold tw-text-orange-700">
-              Chỉ gán thẻ sau khi hóa đơn của đăng ký này đã được thanh toán.
+              Khoản cọc thẻ chưa được thanh toán. QR của vé vẫn hoạt động bình thường.
             </div>
           ) : null}
         </section>
@@ -692,13 +708,18 @@ export function SubscriptionApprovalPage() {
     setCashPaymentError("");
     setCashPaymentLoading(true);
     try {
-      const invoice = await getSubscriptionInvoice(request.subscriptionId);
+      const invoice = await getSubscriptionInvoice(
+        request.subscriptionId,
+        request.physicalCardStatus === "PAYMENT_PENDING"
+          ? "SUBSCRIPTION_CARD_DEPOSIT"
+          : "SUBSCRIPTION_PURCHASE",
+      );
       if (!invoice || invoice.status !== "UNPAID") {
         throw new Error("Không tìm thấy hóa đơn đang chờ thanh toán của đăng ký này.");
       }
       setCashPaymentInvoice(invoice);
     } catch (paymentError) {
-      setCashPaymentError(paymentError instanceof Error ? paymentError.message : "Không thể tải hóa đơn đăng ký.");
+      setCashPaymentError(paymentError instanceof Error ? paymentError.message : "Không thể tải hóa đơn đang chờ thanh toán.");
     } finally {
       setCashPaymentLoading(false);
     }
@@ -716,7 +737,11 @@ export function SubscriptionApprovalPage() {
       );
       setCashPaymentOpen(false);
       setDrawerOpen(false);
-      await refreshAfterAction("Đã xác nhận thanh toán tại quầy. Hồ sơ chuyển sang chờ gán thẻ.");
+      await refreshAfterAction(
+        cashPaymentInvoice.purpose === "SUBSCRIPTION_CARD_DEPOSIT"
+          ? "Đã xác nhận tiền cọc. Hệ thống đã giữ thẻ khả dụng hoặc chuyển sang chờ tồn kho."
+          : "Đã xác nhận thanh toán tại quầy. Vé đang được hoàn tất.",
+      );
     } catch (paymentError) {
       setCashPaymentError(paymentError instanceof Error ? paymentError.message : "Không thể xác nhận thanh toán tại quầy.");
     } finally {
@@ -862,10 +887,14 @@ export function SubscriptionApprovalPage() {
             </Button>
           </div>
         )}
-        description="Chỉ xác nhận sau khi nhân viên đã nhận đủ tiền từ khách hàng."
+        description={cashPaymentInvoice?.purpose === "SUBSCRIPTION_CARD_DEPOSIT"
+          ? "Chỉ xác nhận khi đã nhận đủ khoản cọc thẻ. QR của vé vẫn hoạt động độc lập."
+          : "Chỉ xác nhận sau khi nhân viên đã nhận đủ tiền từ khách hàng."}
         onClose={() => setCashPaymentOpen(false)}
         open={cashPaymentOpen}
-        title="Thanh toán đăng ký vé tại quầy"
+        title={cashPaymentInvoice?.purpose === "SUBSCRIPTION_CARD_DEPOSIT"
+          ? "Xác nhận cọc thẻ tại quầy"
+          : "Thanh toán đăng ký vé tại quầy"}
       >
         <div className="tw-grid tw-gap-4">
           {cashPaymentError ? (

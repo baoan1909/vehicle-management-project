@@ -15,10 +15,12 @@ import {
   getCustomerPortalProfile,
   getCustomerPortalVoucherBanners,
   getMyCustomerVehicles,
+  getMySubscriptionCardDepositInvoice,
   getMySubscriptionInvoice,
   getMySubscriptionInvoices,
   getMySubscriptions,
   quoteMySubscriptionVoucher,
+  requestMySubscriptionPhysicalCard,
   type CustomerPortalPriceRule,
   type CustomerPortalParkingLot,
   type CustomerPortalProfile,
@@ -59,6 +61,7 @@ type SubscriptionForm = {
 };
 
 type CustomerPaymentChoice = "WALLET" | "VNPAY" | "AT_COUNTER";
+type CustomerPaymentContext = "SUBSCRIPTION" | "PHYSICAL_CARD";
 
 function formatCurrency(value?: number | string | null) {
   const numberValue = Number(value ?? 0);
@@ -81,12 +84,20 @@ function statusLabel(status?: string | null) {
   if (status === "ACTIVE") return "Đang hoạt động";
   if (status === "PENDING") return "Chờ duyệt";
   if (status === "PENDING_PAYMENT") return "Chờ thanh toán";
-  if (status === "PENDING_CARD") return "Chờ gán thẻ";
   if (status === "PENDING_SPACE") return "Chờ chọn vị trí";
   if (status === "EXPIRED") return "Hết hạn";
   if (status === "CANCELLED") return "Đã hủy";
   if (status === "REJECTED") return "Từ chối";
   return status || "--";
+}
+
+function physicalCardStatusLabel(subscription?: CustomerPortalSubscription | null) {
+  if (!subscription || subscription.physicalCardStatus === "NOT_REQUESTED" || !subscription.physicalCardStatus) return "Chưa yêu cầu thẻ";
+  if (subscription.physicalCardStatus === "PAYMENT_PENDING") return "Chờ thanh toán cọc thẻ";
+  if (subscription.physicalCardStatus === "RESERVED") return "Đã giữ thẻ · chờ gán";
+  if (subscription.physicalCardStatus === "WAITING_INVENTORY") return "Đã thanh toán · chờ có thẻ";
+  if (subscription.physicalCardStatus === "ASSIGNED") return "Đã gán thẻ vật lý";
+  return "Chưa yêu cầu thẻ";
 }
 
 function toDateOnly(value?: string | null) {
@@ -151,7 +162,7 @@ function findMatchingPriceRule(
 function subscriptionStatusClass(status?: string | null) {
   if (status === "ACCESS_BLOCKED") return "tw-bg-[#fff5e4] tw-text-[#b45309] tw-ring-[#ffd59b]";
   if (status === "ACTIVE") return "tw-bg-[#eaf9f0] tw-text-[#078553] tw-ring-[#b9ebcc]";
-  if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "PENDING_CARD" || status === "PENDING_SPACE") return "tw-bg-[#fff5e4] tw-text-[#d66b00] tw-ring-[#ffd59b]";
+  if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "PENDING_SPACE") return "tw-bg-[#fff5e4] tw-text-[#d66b00] tw-ring-[#ffd59b]";
   if (status === "CANCELLED" || status === "REJECTED") return "tw-bg-[#fff0f0] tw-text-[#d83434] tw-ring-[#ffcaca]";
   return "tw-bg-[#f0f3f7] tw-text-[#687893] tw-ring-[#dce3ec]";
 }
@@ -237,9 +248,11 @@ export function SubscriptionPage() {
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentChoice, setPaymentChoice] = useState<CustomerPaymentChoice>("VNPAY");
+  const [paymentContext, setPaymentContext] = useState<CustomerPaymentContext>("SUBSCRIPTION");
   const [paymentInvoice, setPaymentInvoice] = useState<InvoiceSummaryResponse | null>(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
+  const [physicalCardRequestingId, setPhysicalCardRequestingId] = useState("");
   const [spaceSelectionSubscriptionId, setSpaceSelectionSubscriptionId] = useState("");
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [qrModalOpen, setQrModalOpen] = useState(false);
@@ -398,6 +411,7 @@ export function SubscriptionPage() {
         const bySubscription = new Map<string, InvoiceSummaryResponse[]>();
         invoices.forEach((invoice) => {
           if (!invoice.subscriptionId) return;
+          if (invoice.purpose && invoice.purpose !== "SUBSCRIPTION_PURCHASE") return;
           const group = bySubscription.get(invoice.subscriptionId) ?? [];
           group.push(invoice as InvoiceSummaryResponse);
           bySubscription.set(invoice.subscriptionId, group);
@@ -471,9 +485,10 @@ export function SubscriptionPage() {
 
     if (vnpayResult === "success" && searchParams.get("paymentStatus") === "SUCCESS") {
       toast.success(
-        "Vé đang được hệ thống hoàn tất sau thanh toán.",
+        "Hệ thống đang cập nhật vé và yêu cầu thẻ sau thanh toán.",
         "Thanh toán VNPay thành công",
       );
+      void loadData();
     } else if (vnpayResult === "cancelled") {
       toast.warning(
         "Hóa đơn vẫn đang chờ; bạn có thể chọn lại VNPay hoặc thanh toán tại quầy.",
@@ -613,9 +628,35 @@ export function SubscriptionPage() {
     }
   };
 
-  const handleOpenPayment = async (subscription: CustomerPortalSubscription) => {
+  const openPaymentInvoice = async (
+    invoice: InvoiceSummaryResponse,
+    context: CustomerPaymentContext,
+  ) => {
     setPaymentModalOpen(true);
     setPaymentChoice("WALLET");
+    setPaymentContext(context);
+    setPaymentInvoice(invoice);
+    setWalletBalance(null);
+    setPaymentError("");
+    setPaymentLoading(true);
+
+    try {
+      const walletResponse = await getMyWallet();
+      setWalletBalance(Number(walletResponse.data.availableBalance));
+    } catch (requestError) {
+      setPaymentError(requestError instanceof Error ? requestError.message : "Không thể tải thông tin thanh toán.");
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const handleOpenPayment = async (
+    subscription: CustomerPortalSubscription,
+    context: CustomerPaymentContext = "SUBSCRIPTION",
+  ) => {
+    setPaymentModalOpen(true);
+    setPaymentChoice("WALLET");
+    setPaymentContext(context);
     setPaymentInvoice(null);
     setWalletBalance(null);
     setPaymentError("");
@@ -623,11 +664,15 @@ export function SubscriptionPage() {
 
     try {
       const [invoice, walletResponse] = await Promise.all([
-        getMySubscriptionInvoice(subscription.subscriptionId),
+        context === "PHYSICAL_CARD"
+          ? getMySubscriptionCardDepositInvoice(subscription.subscriptionId)
+          : getMySubscriptionInvoice(subscription.subscriptionId),
         getMyWallet(),
       ]);
       if (!invoice || invoice.status !== "UNPAID") {
-        throw new Error("Không tìm thấy hóa đơn đang chờ thanh toán của đăng ký này.");
+        throw new Error(context === "PHYSICAL_CARD"
+          ? "Không tìm thấy hóa đơn cọc thẻ đang chờ thanh toán."
+          : "Không tìm thấy hóa đơn đang chờ thanh toán của đăng ký này.");
       }
       setPaymentInvoice(invoice);
       setWalletBalance(Number(walletResponse.data.availableBalance));
@@ -635,6 +680,30 @@ export function SubscriptionPage() {
       setPaymentError(requestError instanceof Error ? requestError.message : "Không thể tải hóa đơn đăng ký.");
     } finally {
       setPaymentLoading(false);
+    }
+  };
+
+  const handleRequestPhysicalCard = async (subscription: CustomerPortalSubscription) => {
+    if (physicalCardRequestingId) return;
+    setPhysicalCardRequestingId(subscription.subscriptionId);
+    try {
+      const invoice = await requestMySubscriptionPhysicalCard(subscription.subscriptionId);
+      if (invoice.status === "UNPAID") {
+        await openPaymentInvoice(invoice, "PHYSICAL_CARD");
+      } else {
+        toast.success(
+          "Yêu cầu thẻ đã được ghi nhận. Hệ thống đang giữ thẻ khả dụng cho bạn.",
+          "Đã yêu cầu thẻ vật lý",
+        );
+        await loadData();
+      }
+    } catch (requestError) {
+      toast.error(
+        requestError instanceof Error ? requestError.message : "Không thể gửi yêu cầu cấp thẻ vật lý.",
+        "Yêu cầu thẻ thất bại",
+      );
+    } finally {
+      setPhysicalCardRequestingId("");
     }
   };
 
@@ -671,7 +740,12 @@ export function SubscriptionPage() {
         await payInvoiceByWallet(paymentInvoice.invoiceId, paymentKey);
         sessionStorage.removeItem(keyName);
         setPaymentModalOpen(false);
-        toast.success("Hồ sơ đang được hoàn tất sau khi thanh toán.", "Thanh toán bằng ví thành công");
+        toast.success(
+          paymentContext === "PHYSICAL_CARD"
+            ? "Tiền cọc đã được ghi nhận. Hệ thống đang giữ thẻ khả dụng cho bạn."
+            : "Hồ sơ đang được hoàn tất sau khi thanh toán.",
+          "Thanh toán bằng ví thành công",
+        );
         await loadData();
       } catch (requestError) {
         setPaymentError(requestError instanceof Error ? requestError.message : "Không thể thanh toán bằng ví.");
@@ -757,6 +831,24 @@ export function SubscriptionPage() {
                     <i className="fas fa-qrcode" />Mở QR
                   </button>
                 ) : null}
+                {detailSubscription?.status === "ACTIVE" && (!detailSubscription.physicalCardStatus || detailSubscription.physicalCardStatus === "NOT_REQUESTED") ? (
+                  <button
+                    className="tw-inline-flex tw-h-7 tw-w-fit tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-white/35 tw-bg-white/10 tw-px-3 tw-text-[0.72rem] tw-font-semibold tw-text-white hover:tw-bg-white/20 disabled:tw-opacity-60"
+                    type="button"
+                    disabled={physicalCardRequestingId === detailSubscription.subscriptionId}
+                    onClick={() => void handleRequestPhysicalCard(detailSubscription)}
+                  >
+                    <i className="far fa-credit-card" />{physicalCardRequestingId === detailSubscription.subscriptionId ? "Đang tạo yêu cầu..." : "Yêu cầu thẻ vật lý"}
+                  </button>
+                ) : null}
+                {detailSubscription?.status === "ACTIVE" && detailSubscription.physicalCardStatus === "PAYMENT_PENDING" && canPaySubscription ? (
+                  <button className="tw-inline-flex tw-h-7 tw-w-fit tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-[#f7ce68]/70 tw-bg-[#f7ce68]/10 tw-px-3 tw-text-[0.72rem] tw-font-semibold tw-text-[#f7ce68] hover:tw-bg-[#f7ce68]/20" type="button" onClick={() => void handleOpenPayment(detailSubscription, "PHYSICAL_CARD")}>
+                    <i className="fas fa-wallet" />Thanh toán cọc thẻ
+                  </button>
+                ) : null}
+                {detailSubscription?.status === "ACTIVE" && ["RESERVED", "WAITING_INVENTORY", "ASSIGNED"].includes(detailSubscription.physicalCardStatus ?? "") ? (
+                  <span className="tw-inline-flex tw-h-7 tw-items-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-white/25 tw-bg-white/5 tw-px-3 tw-text-[0.68rem] tw-font-medium tw-text-[#d8e4f4]"><i className="far fa-credit-card" />{physicalCardStatusLabel(detailSubscription)}</span>
+                ) : null}
                 <button disabled={!detailSubscription} className="tw-inline-flex tw-h-7 tw-w-fit tw-items-center tw-justify-center tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-white/35 tw-bg-transparent tw-px-3 tw-text-[0.72rem] tw-font-normal tw-text-white hover:tw-bg-white/10 disabled:tw-opacity-50" type="button" onClick={() => { if (detailSubscription) { setSelectedSubscriptionId(detailSubscription.subscriptionId); setStatusFilter("ALL"); setKeyword(detailSubscription.subscriptionId); } }}>Xem chi tiết <i className="fas fa-chevron-right tw-text-[0.6rem]" /></button>
               </div>
             </div>
@@ -776,7 +868,7 @@ export function SubscriptionPage() {
           <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
             <h2 className="tw-m-0 tw-text-[1.05rem] tw-font-bold tw-text-[#12213d]">Lịch sử đăng ký</h2>
             <div className="tw-flex tw-min-w-0 tw-flex-wrap tw-items-center tw-gap-3">
-              <SelectMenu ariaLabel="Lọc trạng thái vé" className="!tw-w-[190px] max-[640px]:!tw-w-full" options={[{ label: "Tất cả trạng thái", value: "ALL" }, { label: "Đang hoạt động", value: "ACTIVE" }, { label: "Chờ duyệt", value: "PENDING" }, { label: "Chờ thanh toán", value: "PENDING_PAYMENT" }, { label: "Chờ gán thẻ", value: "PENDING_CARD" }, { label: "Chờ chọn vị trí", value: "PENDING_SPACE" }, { label: "Hết hạn", value: "EXPIRED" }, { label: "Đã hủy", value: "CANCELLED" }, { label: "Từ chối", value: "REJECTED" }]} portal searchable={false} triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" value={statusFilter} onChange={setStatusFilter} />
+              <SelectMenu ariaLabel="Lọc trạng thái vé" className="!tw-w-[190px] max-[640px]:!tw-w-full" options={[{ label: "Tất cả trạng thái", value: "ALL" }, { label: "Đang hoạt động", value: "ACTIVE" }, { label: "Chờ duyệt", value: "PENDING" }, { label: "Chờ thanh toán", value: "PENDING_PAYMENT" }, { label: "Chờ chọn vị trí", value: "PENDING_SPACE" }, { label: "Hết hạn", value: "EXPIRED" }, { label: "Đã hủy", value: "CANCELLED" }, { label: "Từ chối", value: "REJECTED" }]} portal searchable={false} triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" value={statusFilter} onChange={setStatusFilter} />
               <label className="tw-relative"><i className="fas fa-search tw-pointer-events-none tw-absolute tw-left-3 tw-top-1/2 [transform:translateY(-50%)] tw-text-[#7a8ba4]" /><input aria-label="Tìm biển số hoặc mã vé" className="tw-h-10 tw-w-[218px] max-[1300px]:tw-w-[180px] max-[640px]:tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#dce5f0] tw-pl-9 tw-pr-3 tw-text-[0.78rem] tw-font-normal tw-text-[#334a6e] placeholder:tw-text-[#91a0b6]" value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Tìm biển số, mã vé..." /></label>
             </div>
           </div>
@@ -795,7 +887,14 @@ export function SubscriptionPage() {
                     <span className="tw-flex tw-flex-wrap tw-gap-x-1 tw-text-[0.7rem] tw-font-semibold tw-leading-5 tw-text-[#17233e]"><span className="tw-whitespace-nowrap">{formatDate(toDateInputValue(getDisplayEffectiveFrom(subscription)) ?? subscription.requestedEffectiveFrom)}</span><span className="tw-whitespace-nowrap">— {subscription.effectiveTo ? formatDate(subscription.effectiveTo) : "Chưa xác định"}</span></span>
                     <small className="tw-mt-1 tw-block tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{getSubscriptionTotal(subscription) != null ? formatCurrency(getSubscriptionTotal(subscription)) : "Chưa xác định phí"}</small>
                   </span>
-                  <span className="tw-grid tw-justify-items-end tw-gap-1.5"><SubscriptionStatusPill accessBlocked={subscription.accessBlocked === true} status={subscription.status} />{subscription.status === "PENDING_PAYMENT" && canPaySubscription ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.74rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription); }}>Thanh toán</button> : null}{subscription.spaceSelectionRequired && !subscription.spaceSelectionConfirmedAt && (subscription.status === "PENDING_SPACE" || subscription.status === "PENDING_CARD") ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-white tw-px-2 tw-text-[0.7rem] tw-font-semibold tw-text-[#0756d8] hover:tw-bg-[#eef5ff]" type="button" onClick={(event) => { event.stopPropagation(); setSpaceSelectionSubscriptionId(subscription.subscriptionId); }}>Chọn vị trí</button> : null}</span>
+                  <span className="tw-grid tw-justify-items-end tw-gap-1.5">
+                    <SubscriptionStatusPill accessBlocked={subscription.accessBlocked === true} status={subscription.status} />
+                    {subscription.status === "PENDING_PAYMENT" && canPaySubscription ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.74rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription); }}>Thanh toán</button> : null}
+                    {subscription.status === "ACTIVE" && (!subscription.physicalCardStatus || subscription.physicalCardStatus === "NOT_REQUESTED") ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-white tw-px-2 tw-text-[0.68rem] tw-font-semibold tw-text-[#0756d8] hover:tw-bg-[#eef5ff] disabled:tw-opacity-60" type="button" disabled={physicalCardRequestingId === subscription.subscriptionId} onClick={(event) => { event.stopPropagation(); void handleRequestPhysicalCard(subscription); }}>{physicalCardRequestingId === subscription.subscriptionId ? "Đang gửi..." : "Yêu cầu thẻ"}</button> : null}
+                    {subscription.status === "ACTIVE" && subscription.physicalCardStatus === "PAYMENT_PENDING" && canPaySubscription ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-px-2 tw-text-[0.68rem] tw-font-normal tw-text-white hover:tw-brightness-110" type="button" onClick={(event) => { event.stopPropagation(); void handleOpenPayment(subscription, "PHYSICAL_CARD"); }}>Thanh toán cọc</button> : null}
+                    {subscription.status === "ACTIVE" && ["RESERVED", "WAITING_INVENTORY", "ASSIGNED"].includes(subscription.physicalCardStatus ?? "") ? <small className="tw-max-w-[112px] tw-text-right tw-text-[0.62rem] tw-font-semibold tw-leading-4 tw-text-[#52627a]">{physicalCardStatusLabel(subscription)}</small> : null}
+                    {subscription.spaceSelectionRequired && !subscription.spaceSelectionConfirmedAt && subscription.status === "PENDING_SPACE" ? <button className="tw-h-7 tw-w-full tw-rounded-[4px] tw-border tw-border-solid tw-border-[#1683ff] tw-bg-white tw-px-2 tw-text-[0.7rem] tw-font-semibold tw-text-[#0756d8] hover:tw-bg-[#eef5ff]" type="button" onClick={(event) => { event.stopPropagation(); setSpaceSelectionSubscriptionId(subscription.subscriptionId); }}>Chọn vị trí</button> : null}
+                  </span>
                   <i aria-hidden="true" className="fas fa-chevron-right tw-text-[0.6rem] tw-text-[#5c7090] max-[640px]:tw-hidden" />
                 </article>
               );
@@ -931,7 +1030,7 @@ export function SubscriptionPage() {
         <summary className="tw-cursor-pointer tw-font-medium">Lưu ý về vé tháng và quy trình đăng ký</summary>
         <div className="tw-mt-3 tw-grid tw-gap-2">
           <p className="tw-m-0">Chỉ xe đang hoạt động mới được đăng ký vé. Giá hiển thị theo quy tắc giá đang hoạt động của hệ thống.</p>
-          <p className="tw-m-0">Yêu cầu mới sẽ chờ nhân viên duyệt, xác nhận thanh toán và gán thẻ theo quy trình.</p>
+          <p className="tw-m-0">Sau khi vé được duyệt và thanh toán, QR có thể sử dụng độc lập. Thẻ vật lý là tùy chọn và có thể yêu cầu bổ sung khi vé đang hoạt động.</p>
           <p className="tw-m-0">Vé bị hủy hoặc từ chối không thể kích hoạt lại trực tiếp từ phía khách hàng.</p>
         </div>
       </details>
@@ -964,10 +1063,12 @@ export function SubscriptionPage() {
             </button>
           </div>
         )}
-        description="Chọn thanh toán bằng ví, VNPay hoặc trực tiếp với nhân viên tại quầy."
+        description={paymentContext === "PHYSICAL_CARD"
+          ? "Thanh toán khoản cọc thẻ bằng ví, VNPay hoặc trực tiếp tại quầy. Vé QR hiện tại vẫn hoạt động bình thường."
+          : "Chọn thanh toán bằng ví, VNPay hoặc trực tiếp với nhân viên tại quầy."}
         onClose={() => setPaymentModalOpen(false)}
         open={paymentModalOpen}
-        title="Thanh toán đăng ký vé"
+        title={paymentContext === "PHYSICAL_CARD" ? "Thanh toán cọc thẻ vật lý" : "Thanh toán đăng ký vé"}
       >
         <div className="tw-grid tw-gap-4">
           {paymentError ? (
@@ -981,6 +1082,7 @@ export function SubscriptionPage() {
               {paymentInvoice ? formatCurrency(paymentInvoice.finalAmount) : "Đang tải..."}
             </strong>
             {paymentInvoice ? <span className="tw-mt-1 tw-block tw-text-xs tw-font-semibold tw-text-[#71819a]">{paymentInvoice.invoiceNo}</span> : null}
+            {paymentContext === "PHYSICAL_CARD" ? <span className="tw-mt-2 tw-block tw-text-xs tw-font-semibold tw-text-[#52627a]">Đây là hóa đơn cọc thẻ riêng; không làm thay đổi thời hạn hoặc trạng thái sử dụng QR của vé.</span> : null}
           </div>
           <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-3">
             <button

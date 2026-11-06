@@ -35,6 +35,8 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
 import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
@@ -303,14 +305,6 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             throw new ConflictException("Active invoice already exists for subscription");
         }
 
-        Card savedReservedCard = null;
-        if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
-            Card reservedCard = cardPortOut.findFirstAvailableRegisteredInParkingLot(subscription.getParkingLotId())
-                    .orElseThrow(() -> new ConflictException("No available registered card"));
-            cardPolicy.reserve(reservedCard);
-            savedReservedCard = cardPortOut.save(reservedCard);
-        }
-
         VoucherQuote voucherQuote = applyVoucherQuote(subscription, preparedData, now);
         BigDecimal invoiceFinalAmount = voucherQuote.finalAmount();
         subscriptionPolicy.approve(
@@ -318,7 +312,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 currentAccountPortIn.getCurrentAccountIdOrThrow(),
                 now,
                 today,
-                savedReservedCard == null ? null : savedReservedCard.getCardId(),
+                null,
                 invoiceFinalAmount
         );
 
@@ -343,6 +337,10 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 voucherQuote.discountAmount(),
                 now
         ));
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            completePhysicalCardFulfillment(approvedSubscription);
+            approvedSubscription = subscriptionPortOut.save(approvedSubscription);
+        }
         if (voucherQuote.voucherId() != null) {
             voucherPortIn.reserveSubscriptionVoucher(
                     voucherQuote.voucherCode(),
@@ -394,10 +392,34 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     @Override
     @Transactional
     public Subscription markSubscriptionPaymentCompleted(UUID subscriptionId) {
-        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
+        Invoice invoice = invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                        subscriptionId,
+                        InvoicePurpose.SUBSCRIPTION_PURCHASE,
+                        InvoiceStatus.PAID
+                )
+                .orElseGet(() -> invoicePortOut.findFirstBySubscriptionIdAndStatus(
+                                subscriptionId, InvoiceStatus.PAID)
+                        .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription")));
+        return markSubscriptionInvoicePaymentCompleted(subscriptionId, invoice.getInvoiceId());
+    }
 
-        invoicePortOut.findFirstBySubscriptionIdAndStatus(subscriptionId, InvoiceStatus.PAID)
+    @Override
+    @Transactional
+    public Subscription markSubscriptionInvoicePaymentCompleted(UUID subscriptionId, UUID invoiceId) {
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
+        Invoice invoice = invoicePortOut.findById(invoiceId)
+                .filter(candidate -> subscriptionId.equals(candidate.getSubscriptionId()))
+                .filter(candidate -> candidate.getStatus() == InvoiceStatus.PAID)
                 .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription"));
+
+        if (invoice.getPurpose() == InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT) {
+            completePhysicalCardFulfillment(subscription);
+            return subscriptionPortOut.save(subscription);
+        }
+        if (invoice.getPurpose() != null
+                && invoice.getPurpose() != InvoicePurpose.SUBSCRIPTION_PURCHASE) {
+            throw new ConflictException("Invoice does not complete a subscription purchase");
+        }
 
         Instant now = Instant.now();
         voucherPortIn.redeemSubscriptionVoucher(subscriptionId, subscription.getParkingLotId(), now);
@@ -406,6 +428,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             parkingAllocationService.extendSpaceHold(subscriptionId, now.plus(spaceSelectionDuration));
         }
         subscriptionPolicy.markPaymentCompleted(subscription);
+        completePhysicalCardFulfillment(subscription);
         if (parkingAllocationService != null
                 && subscription.getStatus()
                 == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
@@ -418,33 +441,66 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
 
     @Override
     @Transactional
+    public Invoice requestMyPhysicalCard(UUID subscriptionId) {
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
+        subscriptionAccessGuard.ensureCanUpdateOwn(subscription);
+
+        if (invoicePortOut.existsBySubscriptionIdAndPurposeAndStatusIn(
+                subscriptionId,
+                InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT,
+                ACTIVE_INVOICE_STATUSES
+        )) {
+            throw new ConflictException("Physical card deposit invoice already exists");
+        }
+
+        PriceRule priceRule = priceRulePortOut.findById(subscription.getPriceRuleId())
+                .orElseThrow(() -> new NotFoundException("Subscription price rule not found"));
+        BigDecimal deposit = priceRule.getLostCardFee() == null
+                ? BigDecimal.ZERO : priceRule.getLostCardFee();
+        subscriptionPolicy.requestPhysicalCard(subscription, deposit);
+
+        CustomerVehicle customerVehicle = customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
+                .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
+        Instant now = Instant.now();
+        Invoice invoice = invoicePortOut.save(buildPhysicalCardDepositInvoice(
+                subscription, customerVehicle, now));
+
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            completePhysicalCardFulfillment(subscription);
+        }
+        subscriptionPortOut.save(subscription);
+        notifySubscriptionInvoiceCreated(invoice);
+        return invoice;
+    }
+
+    @Override
+    @Transactional
     public Subscription assignReservedCard(UUID subscriptionId) {
         subscriptionAccessGuard.ensureCanAssignCard();
 
         Subscription subscription = findSubscriptionForUpdate(subscriptionId);
         subscriptionAccessGuard.ensureCanOperate(subscription);
-        TicketType ticketType = findActiveSubscriptionTicketType(subscription.getTicketTypeId());
 
-        invoicePortOut.findFirstBySubscriptionIdAndStatus(subscriptionId, InvoiceStatus.PAID)
-                .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription"));
+        ensurePhysicalCardDepositPaid(subscription);
 
-        Card reservedCard = cardPortOut.findById(subscription.getCardId())
-                .orElseThrow(() -> new NotFoundException("Reserved card not found"));
+        Card reservedCard;
+        if (subscription.getCardId() == null) {
+            reservedCard = cardPortOut.findFirstAvailableRegisteredInParkingLot(subscription.getParkingLotId())
+                    .orElseThrow(() -> new ConflictException("No available registered card"));
+            cardPolicy.reserve(reservedCard);
+            subscription.setCardId(reservedCard.getCardId());
+        } else {
+            reservedCard = cardPortOut.findById(subscription.getCardId())
+                    .orElseThrow(() -> new NotFoundException("Reserved card not found"));
+        }
         ensureCardBelongsToSubscriptionLot(reservedCard, subscription);
 
         Instant now = Instant.now();
         cardPolicy.assignReserved(reservedCard, now);
         subscriptionPolicy.assignReservedCard(
                 subscription,
-                currentDate(),
-                totalDurationDays(subscription, ticketType)
+                currentDate()
         );
-
-        if (parkingAllocationService != null
-                && subscription.getStatus()
-                == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
-            parkingAllocationService.activate(subscription);
-        }
 
         cardPortOut.save(reservedCard);
         return subscriptionPortOut.save(subscription);
@@ -490,9 +546,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             throw new ConflictException("Subscription is not waiting for parking space selection");
         }
         if (subscription.getStatus()
-                != com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.PENDING_SPACE
-                && subscription.getStatus()
-                != com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.PENDING_CARD) {
+                != com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.PENDING_SPACE) {
             throw new ConflictException("Complete subscription payment before selecting a parking space");
         }
     }
@@ -786,6 +840,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         invoice.setInvoiceId(UUID.randomUUID());
         invoice.setCustomerId(subscription.getCustomerId());
         invoice.setSubscriptionId(subscription.getSubscriptionId());
+        invoice.setPurpose(InvoicePurpose.SUBSCRIPTION_PURCHASE);
         invoice.setParkingLotId(subscription.getParkingLotId());
         invoice.setAmount(subscriptionChargeBase(subscription));
         invoice.setDiscountAmount(discountAmount);
@@ -802,6 +857,63 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         );
 
         return invoice;
+    }
+
+    private Invoice buildPhysicalCardDepositInvoice(
+            Subscription subscription,
+            CustomerVehicle customerVehicle,
+            Instant now
+    ) {
+        Invoice invoice = new Invoice();
+        invoice.setInvoiceId(UUID.randomUUID());
+        invoice.setCustomerId(subscription.getCustomerId());
+        invoice.setSubscriptionId(subscription.getSubscriptionId());
+        invoice.setParkingLotId(subscription.getParkingLotId());
+        invoice.setPurpose(InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT);
+        invoice.setAmount(subscription.getPhysicalCardDeposit());
+        invoice.setDiscountAmount(BigDecimal.ZERO);
+        LicensePlateResolution plate = new LicensePlatePolicy().resolve(customerVehicle.getLicensePlate(), null);
+        invoice.setLicensePlateNormalizedSnapshot(plate.normalized());
+        invoice.setLicensePlateDisplaySnapshot(plate.display());
+        invoice.setLicensePlateFormatSnapshot(plate.format().name());
+        invoice.setLicensePlateFormatVersion(LicensePlatePolicy.FORMAT_VERSION);
+        invoicePolicy.initializeNewInvoice(invoice, generateInvoiceNo(invoice.getInvoiceId(), now), now);
+        return invoice;
+    }
+
+    private void completePhysicalCardFulfillment(Subscription subscription) {
+        if (!Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
+                || subscription.getPhysicalCardStatus() != PhysicalCardFulfillmentStatus.PAYMENT_PENDING) {
+            return;
+        }
+
+        var availableCard = cardPortOut.findFirstAvailableRegisteredInParkingLot(subscription.getParkingLotId());
+        if (availableCard.isEmpty()) {
+            subscriptionPolicy.waitForPhysicalCardInventory(subscription);
+            return;
+        }
+
+        Card card = availableCard.get();
+        ensureCardBelongsToSubscriptionLot(card, subscription);
+        cardPolicy.reserve(card);
+        cardPortOut.save(card);
+        subscriptionPolicy.reservePhysicalCard(subscription, card.getCardId());
+    }
+
+    private void ensurePhysicalCardDepositPaid(Subscription subscription) {
+        boolean separateDepositPaid = invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                subscription.getSubscriptionId(),
+                InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT,
+                InvoiceStatus.PAID
+        ).isPresent();
+        boolean purchasePaid = invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                subscription.getSubscriptionId(),
+                InvoicePurpose.SUBSCRIPTION_PURCHASE,
+                InvoiceStatus.PAID
+        ).isPresent();
+        if (!separateDepositPaid && !purchasePaid) {
+            throw new ConflictException("Paid physical card deposit not found for subscription");
+        }
     }
 
     private String generateInvoiceNo(UUID invoiceId, Instant now) {

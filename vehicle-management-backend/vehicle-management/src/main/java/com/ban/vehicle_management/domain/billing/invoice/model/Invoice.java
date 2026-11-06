@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.billing.invoice.model;
 
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -23,6 +24,7 @@ public class Invoice extends AuditableDomainModel {
     private UUID parkingSessionId;
     private UUID subscriptionId;
     private UUID lostCardReportId;
+    private InvoicePurpose purpose = InvoicePurpose.MANUAL;
     private BigDecimal amount;
     private BigDecimal discountAmount;
     private BigDecimal finalAmount;

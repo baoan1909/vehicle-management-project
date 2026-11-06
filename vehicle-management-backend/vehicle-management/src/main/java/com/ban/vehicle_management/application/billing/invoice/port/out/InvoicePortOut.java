@@ -2,6 +2,7 @@ package com.ban.vehicle_management.application.billing.invoice.port.out;
 
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 
 import java.time.Instant;
 import java.util.Collection;
@@ -51,10 +52,21 @@ public interface InvoicePortOut {
     boolean existsLostCardReportById(UUID lostCardReportId);
     boolean existsByParkingSessionIdAndStatusIn(UUID parkingSessionId, Collection<InvoiceStatus> statuses);
     boolean existsBySubscriptionIdAndStatusIn(UUID subscriptionId, Collection<InvoiceStatus> statuses);
+    boolean existsBySubscriptionIdAndPurposeAndStatusIn(
+            UUID subscriptionId,
+            InvoicePurpose purpose,
+            Collection<InvoiceStatus> statuses
+    );
     boolean existsByLostCardReportIdAndStatusIn(UUID lostCardReportId, Collection<InvoiceStatus> statuses);
 
     Optional<Invoice> findFirstBySubscriptionIdAndStatus(
             UUID subscriptionId,
+            InvoiceStatus status
+    );
+
+    Optional<Invoice> findFirstBySubscriptionIdAndPurposeAndStatus(
+            UUID subscriptionId,
+            InvoicePurpose purpose,
             InvoiceStatus status
     );
 

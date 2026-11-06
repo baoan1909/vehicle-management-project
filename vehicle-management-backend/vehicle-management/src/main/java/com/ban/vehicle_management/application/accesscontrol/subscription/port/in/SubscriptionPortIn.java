@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.accesscontrol.subscription.port.i
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionSpaceSelection;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import java.time.LocalDate;
 import java.time.Instant;
@@ -47,6 +48,10 @@ public interface SubscriptionPortIn {
     Subscription expireSubscription(UUID subscriptionId);
 
     Subscription markSubscriptionPaymentCompleted(UUID subscriptionId);
+
+    Subscription markSubscriptionInvoicePaymentCompleted(UUID subscriptionId, UUID invoiceId);
+
+    Invoice requestMyPhysicalCard(UUID subscriptionId);
 
     SubscriptionSpaceSelection getMySpaceSelection(UUID subscriptionId);
 

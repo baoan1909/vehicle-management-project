@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.accesscontrol.subscription.policy;
 
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
@@ -32,6 +33,9 @@ public class SubscriptionPolicy {
         if (subscription.getPhysicalCardDeposit() == null) {
             subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
         }
+        subscription.setPhysicalCardStatus(Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
+                ? PhysicalCardFulfillmentStatus.PAYMENT_PENDING
+                : PhysicalCardFulfillmentStatus.NOT_REQUESTED);
         subscription.setStatus(SubscriptionStatus.PENDING);
         subscription.setCardId(null);
         subscription.setCardReceiptDate(null);
@@ -52,6 +56,11 @@ public class SubscriptionPolicy {
 
         subscription.setEffectiveFrom(subscription.getRequestedEffectiveFrom());
         subscription.setEffectiveTo(calculateEffectiveTo(subscription.getEffectiveFrom(), durationDays));
+        subscription.setPhysicalCardStatus(Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
+                ? PhysicalCardFulfillmentStatus.PAYMENT_PENDING
+                : PhysicalCardFulfillmentStatus.NOT_REQUESTED);
+        subscription.setCardId(null);
+        subscription.setCardReceiptDate(null);
 
         validateState(subscription);
     }
@@ -64,9 +73,7 @@ public class SubscriptionPolicy {
         requireField(approvalDate, "approvalDate");
         requireField(invoiceFinalAmount, "invoiceFinalAmount");
 
-        if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
-            requireField(reservedCardId, "reservedCardId");
-        } else if (reservedCardId != null) {
+        if (!Boolean.TRUE.equals(subscription.getPhysicalCardRequested()) && reservedCardId != null) {
             throw new BadRequestException("Subscription without a physical card must not reserve a card");
         }
 
@@ -85,9 +92,7 @@ public class SubscriptionPolicy {
         clearRejection(subscription);
 
         if (invoiceFinalAmount.compareTo(BigDecimal.ZERO) == 0) {
-            subscription.setStatus(Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
-                    ? SubscriptionStatus.PENDING_CARD
-                    : SubscriptionStatus.ACTIVE);
+            subscription.setStatus(SubscriptionStatus.ACTIVE);
         } else {
             subscription.setStatus(SubscriptionStatus.PENDING_PAYMENT);
         }
@@ -113,9 +118,7 @@ public class SubscriptionPolicy {
 
     public void markPaymentCompleted(Subscription subscription) {
         requireStatus(subscription, SubscriptionStatus.PENDING_PAYMENT);
-        if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
-            subscription.setStatus(SubscriptionStatus.PENDING_CARD);
-        } else if (requiresUnconfirmedSpace(subscription)) {
+        if (requiresUnconfirmedSpace(subscription)) {
             subscription.setStatus(SubscriptionStatus.PENDING_SPACE);
         } else {
             subscription.setStatus(SubscriptionStatus.ACTIVE);
@@ -138,8 +141,7 @@ public class SubscriptionPolicy {
         if (!Boolean.TRUE.equals(subscription.getSpaceSelectionRequired())) {
             throw new ConflictException("Subscription does not require parking space selection");
         }
-        if (subscription.getStatus() != SubscriptionStatus.PENDING_SPACE
-                && subscription.getStatus() != SubscriptionStatus.PENDING_CARD) {
+        if (subscription.getStatus() != SubscriptionStatus.PENDING_SPACE) {
             throw new ConflictException("Subscription is not waiting for parking space confirmation");
         }
         requireField(confirmedAt, "spaceSelectionConfirmedAt");
@@ -151,26 +153,60 @@ public class SubscriptionPolicy {
         validateState(subscription);
     }
 
-    public void assignReservedCard(Subscription subscription, LocalDate cardReceiptDate, int durationDays) {
-        requireStatus(subscription, SubscriptionStatus.PENDING_CARD);
+    public void assignReservedCard(Subscription subscription, LocalDate cardReceiptDate) {
+        requireStatus(subscription, SubscriptionStatus.ACTIVE);
         if (!Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
             throw new ConflictException("Subscription did not request a physical card");
         }
         requireField(subscription.getCardId(), "cardId");
         requireField(cardReceiptDate, "cardReceiptDate");
-        validateDuration(durationDays);
-
-        LocalDate actualEffectiveFrom = cardReceiptDate.isAfter(subscription.getRequestedEffectiveFrom())
-                ? cardReceiptDate
-                : subscription.getRequestedEffectiveFrom();
+        if (subscription.getCardReceiptDate() != null) {
+            throw new ConflictException("Subscription already has an assigned physical card");
+        }
+        if (subscription.getPhysicalCardStatus() != PhysicalCardFulfillmentStatus.RESERVED
+                && subscription.getPhysicalCardStatus() != PhysicalCardFulfillmentStatus.WAITING_INVENTORY) {
+            throw new ConflictException("Physical card deposit has not been paid");
+        }
 
         subscription.setCardReceiptDate(cardReceiptDate);
-        subscription.setEffectiveFrom(actualEffectiveFrom);
-        subscription.setEffectiveTo(calculateEffectiveTo(actualEffectiveFrom, durationDays));
-        subscription.setStatus(requiresUnconfirmedSpace(subscription)
-                ? SubscriptionStatus.PENDING_SPACE
-                : SubscriptionStatus.ACTIVE);
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.ASSIGNED);
 
+        validateState(subscription);
+    }
+
+    public void requestPhysicalCard(Subscription subscription, BigDecimal deposit) {
+        requireStatus(subscription, SubscriptionStatus.ACTIVE);
+        requireField(deposit, "physicalCardDeposit");
+        if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
+                || subscription.getPhysicalCardStatus() != PhysicalCardFulfillmentStatus.NOT_REQUESTED) {
+            throw new ConflictException("Physical card has already been requested");
+        }
+        if (deposit.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("physicalCardDeposit must not be negative");
+        }
+
+        subscription.setPhysicalCardRequested(true);
+        subscription.setPhysicalCardDeposit(deposit);
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.PAYMENT_PENDING);
+        subscription.setCardId(null);
+        subscription.setCardReceiptDate(null);
+        validateState(subscription);
+    }
+
+    public void reservePhysicalCard(Subscription subscription, UUID cardId) {
+        requireField(cardId, "cardId");
+        requirePhysicalCardPaymentPending(subscription);
+        subscription.setCardId(cardId);
+        subscription.setCardReceiptDate(null);
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.RESERVED);
+        validateState(subscription);
+    }
+
+    public void waitForPhysicalCardInventory(Subscription subscription) {
+        requirePhysicalCardPaymentPending(subscription);
+        subscription.setCardId(null);
+        subscription.setCardReceiptDate(null);
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.WAITING_INVENTORY);
         validateState(subscription);
     }
 
@@ -187,6 +223,13 @@ public class SubscriptionPolicy {
         }
 
         subscription.setStatus(SubscriptionStatus.CANCELLED);
+        if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
+            subscription.setPhysicalCardRequested(false);
+            subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+            subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.NOT_REQUESTED);
+            subscription.setCardId(null);
+            subscription.setCardReceiptDate(null);
+        }
         validateState(subscription);
     }
 
@@ -212,6 +255,7 @@ public class SubscriptionPolicy {
         requireField(subscription.getPeriodQuantity(), "periodQuantity");
         requireField(subscription.getPhysicalCardRequested(), "physicalCardRequested");
         requireField(subscription.getPhysicalCardDeposit(), "physicalCardDeposit");
+        requireField(subscription.getPhysicalCardStatus(), "physicalCardStatus");
         requireField(subscription.getRequestedEffectiveFrom(), "requestedEffectiveFrom");
         requireField(subscription.getEffectiveFrom(), "effectiveFrom");
         requireField(subscription.getEffectiveTo(), "effectiveTo");
@@ -234,6 +278,7 @@ public class SubscriptionPolicy {
                 && subscription.getPhysicalCardDeposit().compareTo(BigDecimal.ZERO) != 0) {
             throw new BadRequestException("Subscription without a physical card must not have a card deposit");
         }
+        validatePhysicalCardFulfillment(subscription);
 
         validatePeriodQuantity(subscription.getPeriodQuantity());
 
@@ -246,7 +291,7 @@ public class SubscriptionPolicy {
             case PENDING_PAYMENT -> {
                 requireApproval(subscription);
                 requireNoRejection(subscription);
-                validateCardAssignment(subscription, false);
+                validateCardAssignment(subscription);
                 if (subscription.getCardReceiptDate() != null) {
                     throw new BadRequestException("Pending subscription must not have cardReceiptDate");
                 }
@@ -268,12 +313,12 @@ public class SubscriptionPolicy {
                 if (!requiresUnconfirmedSpace(subscription)) {
                     throw new BadRequestException("Pending space subscription must wait for space confirmation");
                 }
-                validateCardAssignment(subscription, Boolean.TRUE.equals(subscription.getPhysicalCardRequested()));
+                validateCardAssignment(subscription);
             }
             case ACTIVE, EXPIRED -> {
                 requireApproval(subscription);
                 requireNoRejection(subscription);
-                validateCardAssignment(subscription, true);
+                validateCardAssignment(subscription);
                 if (Boolean.TRUE.equals(subscription.getSpaceSelectionRequired())
                         && subscription.getSpaceSelectionConfirmedAt() == null) {
                     throw new BadRequestException("Active subscription must have a confirmed parking space");
@@ -347,15 +392,54 @@ public class SubscriptionPolicy {
         }
     }
 
-    private void validateCardAssignment(Subscription subscription, boolean activeState) {
+    private void validateCardAssignment(Subscription subscription) {
         if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
-            requireField(subscription.getCardId(), "cardId");
-            if (activeState) {
-                requireField(subscription.getCardReceiptDate(), "cardReceiptDate");
+            if (subscription.getCardReceiptDate() != null) {
+                requireField(subscription.getCardId(), "cardId");
             }
             return;
         }
         requireNoCard(subscription);
+    }
+
+    private void validatePhysicalCardFulfillment(Subscription subscription) {
+        if (!Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
+            if (subscription.getPhysicalCardStatus() != PhysicalCardFulfillmentStatus.NOT_REQUESTED) {
+                throw new BadRequestException("Subscription without a physical card must be NOT_REQUESTED");
+            }
+            requireNoCard(subscription);
+            return;
+        }
+
+        switch (subscription.getPhysicalCardStatus()) {
+            case NOT_REQUESTED -> throw new BadRequestException(
+                    "Physical-card subscription must have a fulfillment status");
+            case PAYMENT_PENDING, WAITING_INVENTORY -> requireNoCard(subscription);
+            case RESERVED -> {
+                requireField(subscription.getCardId(), "cardId");
+                if (subscription.getCardReceiptDate() != null) {
+                    throw new BadRequestException("Reserved physical card must not have cardReceiptDate");
+                }
+            }
+            case ASSIGNED -> {
+                requireField(subscription.getCardId(), "cardId");
+                requireField(subscription.getCardReceiptDate(), "cardReceiptDate");
+            }
+        }
+    }
+
+    private void requirePhysicalCardPaymentPending(Subscription subscription) {
+        requireSubscription(subscription);
+        if (subscription.getStatus() != SubscriptionStatus.ACTIVE
+                && subscription.getStatus() != SubscriptionStatus.PENDING_SPACE) {
+            throw new ConflictException("Subscription must be active or waiting for parking space selection");
+        }
+        if (!Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
+            throw new ConflictException("Subscription did not request a physical card");
+        }
+        if (subscription.getPhysicalCardStatus() != PhysicalCardFulfillmentStatus.PAYMENT_PENDING) {
+            throw new ConflictException("Physical card payment is not pending");
+        }
     }
 
     private boolean requiresUnconfirmedSpace(Subscription subscription) {

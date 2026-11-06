@@ -112,7 +112,7 @@ class WalletInvoicePaymentUseCaseImplTest {
         assertEquals(new BigDecimal("320000.00"), wallet.getAvailableBalance());
         verify(settlementPortIn).allocateForCompletedPayment(payment.getPaymentId());
         InOrder order = inOrder(subscriptionPortIn, settlementPortIn, parkingCheckoutCompletionPortIn);
-        order.verify(subscriptionPortIn).markSubscriptionPaymentCompleted(subscriptionId);
+        order.verify(subscriptionPortIn).markSubscriptionInvoicePaymentCompleted(subscriptionId, invoiceId);
         order.verify(settlementPortIn).allocateForCompletedPayment(payment.getPaymentId());
         order.verify(parkingCheckoutCompletionPortIn).completePaidCheckout(invoiceId);
     }

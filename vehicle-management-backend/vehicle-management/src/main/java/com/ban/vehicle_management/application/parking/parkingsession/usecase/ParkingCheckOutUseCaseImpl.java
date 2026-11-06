@@ -52,6 +52,7 @@ import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingLi
 import com.ban.vehicle_management.domain.parking.parkingsession.policy.ParkingSessionPolicy;
 import com.ban.vehicle_management.domain.parking.zone.model.Zone;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
@@ -753,6 +754,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         invoice.setInvoiceId(UUID.randomUUID());
         invoice.setCustomerId(parkingSession.getCustomerId());
         invoice.setParkingSessionId(parkingSession.getParkingSessionId());
+        invoice.setPurpose(InvoicePurpose.PARKING_SESSION);
         invoice.setParkingLotId(parkingSession.getParkingLotId());
         invoice.setAmount(totalPrice);
         invoice.setDiscountAmount(BigDecimal.ZERO);
