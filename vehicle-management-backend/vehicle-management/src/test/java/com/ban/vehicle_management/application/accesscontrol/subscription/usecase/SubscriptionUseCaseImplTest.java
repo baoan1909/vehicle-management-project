@@ -39,6 +39,7 @@ import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVe
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionRenewalStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
@@ -602,6 +603,54 @@ class SubscriptionUseCaseImplTest {
         assertEquals(data.subscriptionId(), result.invoice().getSubscriptionId());
         verify(subscriptionPortOut, never()).save(any(Subscription.class));
         verify(subscriptionAccessGuard).ensureCanUpdateOwn(current);
+    }
+
+    @Test
+    void shouldExtendExistingSubscriptionAndPreserveAccessIdentifiersAfterRenewalPayment() {
+        TestData data = validTestData();
+        UUID cardId = UUID.randomUUID();
+        String qrAccessToken = "stable-renewal-qr";
+        Subscription current = approvedSubscription(data, SubscriptionStatus.ACTIVE);
+        current.setCardId(cardId);
+        current.setQrAccessToken(qrAccessToken);
+        current.setPhysicalCardRequested(true);
+        current.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.ASSIGNED);
+        LocalDate previousEffectiveTo = current.getEffectiveTo();
+
+        Invoice paidRenewalInvoice = paidInvoice(data, InvoicePurpose.SUBSCRIPTION_RENEWAL);
+        SubscriptionRenewal renewal = new SubscriptionRenewal();
+        renewal.setRenewalId(UUID.randomUUID());
+        renewal.setSubscriptionId(data.subscriptionId());
+        renewal.setInvoiceId(paidRenewalInvoice.getInvoiceId());
+        renewal.setTicketTypeId(data.ticketTypeId());
+        renewal.setPriceRuleId(data.priceRuleId());
+        renewal.setPeriodQuantity(2);
+        renewal.setEffectiveFrom(previousEffectiveTo.plusDays(1));
+        renewal.setEffectiveTo(previousEffectiveTo.plusDays(60));
+        renewal.setTicketAmount(new BigDecimal("280000"));
+        renewal.setPhysicalCardRequested(true);
+        renewal.setPhysicalCardDeposit(BigDecimal.ZERO);
+        renewal.setStatus(SubscriptionRenewalStatus.PENDING_PAYMENT);
+
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(current));
+        when(invoicePortOut.findById(paidRenewalInvoice.getInvoiceId()))
+                .thenReturn(Optional.of(paidRenewalInvoice));
+        when(subscriptionRenewalPortOut.findByInvoiceIdForUpdate(paidRenewalInvoice.getInvoiceId()))
+                .thenReturn(Optional.of(renewal));
+        when(subscriptionRenewalPortOut.save(any(SubscriptionRenewal.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionPortOut.save(any(Subscription.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Subscription updated = subscriptionUseCase.markSubscriptionInvoicePaymentCompleted(
+                data.subscriptionId(), paidRenewalInvoice.getInvoiceId());
+
+        assertEquals(data.subscriptionId(), updated.getSubscriptionId());
+        assertEquals(renewal.getEffectiveTo(), updated.getEffectiveTo());
+        assertEquals(cardId, updated.getCardId());
+        assertEquals(qrAccessToken, updated.getQrAccessToken());
+        assertEquals(SubscriptionRenewalStatus.SCHEDULED, renewal.getStatus());
+        verify(parkingAllocationService).activate(updated);
     }
 
     @Test

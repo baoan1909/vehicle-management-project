@@ -23,6 +23,6 @@ public interface SubscriptionRenewalRepository extends JpaRepository<Subscriptio
     Optional<SubscriptionRenewalEntity> findFirstBySubscriptionIdAndStatusInOrderByCreatedAtDesc(
             UUID subscriptionId, Collection<SubscriptionRenewalStatus> statuses);
 
-    List<SubscriptionRenewalEntity> findByStatusAndEffectiveFromLessThanEqual(
+    List<SubscriptionRenewalEntity> findByStatusAndEffectiveFromLessThanEqualOrderByEffectiveFromAsc(
             SubscriptionRenewalStatus status, LocalDate effectiveFrom);
 }

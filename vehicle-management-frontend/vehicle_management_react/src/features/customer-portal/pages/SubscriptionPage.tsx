@@ -455,13 +455,6 @@ export function SubscriptionPage() {
     }
   };
 
-  const showSubscriptionDetail = (subscription: CustomerPortalSubscription) => {
-    setSelectedSubscriptionId(subscription.subscriptionId);
-    setStatusFilter("ALL");
-    setKeyword("");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   const vehicleById = useMemo(() => new Map(vehicles.map((vehicle) => [vehicle.customerVehicleId, vehicle])), [vehicles]);
   const ticketTypeById = useMemo(() => new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType])), [ticketTypes]);
   const parkingLotById = useMemo(() => new Map(parkingLots.map((lot) => [lot.parkingLotId, lot])), [parkingLots]);
@@ -935,7 +928,6 @@ export function SubscriptionPage() {
         {canPayCardDeposit ? <button className={itemClass} type="button" onClick={(event) => { closeMenu(event.currentTarget); void handleOpenPayment(subscription, "PHYSICAL_CARD"); }}><i className="fas fa-money-check-alt tw-w-4 tw-text-center tw-text-[#1263e9]" />Thanh toán cọc thẻ</button> : null}
         {canRenewSubscription(subscription) ? <button className={itemClass} type="button" onClick={(event) => { closeMenu(event.currentTarget); openRenewalModal(subscription); }}><i className="fas fa-calendar-plus tw-w-4 tw-text-center tw-text-[#1263e9]" />Gia hạn vé</button> : null}
         {subscription.status === "ACTIVE" ? <button className={itemClass} disabled={qrActionLoading} type="button" onClick={(event) => { closeMenu(event.currentTarget); void toggleSubscriptionAccess(subscription); }}><i className={`fas ${subscription.accessBlocked ? "fa-unlock" : "fa-lock"} tw-w-4 tw-text-center ${subscription.accessBlocked ? "tw-text-emerald-600" : "tw-text-amber-600"}`} />{subscription.accessBlocked ? "Kích hoạt lại vé" : "Khóa vé đang sử dụng"}</button> : null}
-        <button className={itemClass} type="button" onClick={(event) => { closeMenu(event.currentTarget); showSubscriptionDetail(subscription); }}><i className="fas fa-info-circle tw-w-4 tw-text-center tw-text-[#1263e9]" />Xem chi tiết</button>
       </div>
     </details>;
   };
@@ -1016,7 +1008,7 @@ export function SubscriptionPage() {
               const ticketType = ticketTypeById.get(subscription.ticketTypeId);
               const selected = selectedSubscriptionId === subscription.subscriptionId;
               return (
-                <article key={subscription.subscriptionId} aria-label={"Xem chi tiết vé " + compactCode(subscription.subscriptionId)} aria-pressed={selected} className={["tw-grid tw-min-h-[94px] tw-grid-cols-[48px_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.25fr)_minmax(176px,.8fr)] max-[1300px]:tw-grid-cols-[38px_minmax(0,1fr)_minmax(0,.85fr)_minmax(0,1.15fr)_176px] max-[760px]:tw-grid-cols-[38px_minmax(0,1fr)_minmax(0,1fr)] tw-items-center tw-gap-x-3 tw-gap-y-2 tw-rounded-xl tw-border tw-border-solid tw-p-3 tw-transition", selected ? "tw-border-[#1263e9] tw-bg-[#f4f8ff]" : "tw-border-[#e0e3e9] tw-bg-white hover:tw-border-[#b9d3fb]"].join(" ")} role="button" tabIndex={0} title={"Xem vé " + subscription.subscriptionId} onClick={() => setSelectedSubscriptionId(subscription.subscriptionId)} onKeyDown={(event) => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedSubscriptionId(subscription.subscriptionId); } }}>
+                <article key={subscription.subscriptionId} aria-label={"Xem chi tiết vé " + compactCode(subscription.subscriptionId)} aria-pressed={selected} className={["tw-grid tw-min-h-[94px] tw-grid-cols-[48px_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,1.25fr)_minmax(124px,.6fr)_minmax(176px,.8fr)] max-[1300px]:tw-grid-cols-[38px_minmax(0,1fr)_minmax(0,.85fr)_minmax(0,1.15fr)_112px_176px] max-[760px]:tw-grid-cols-[38px_minmax(0,1fr)_minmax(0,1fr)] tw-items-center tw-gap-x-3 tw-gap-y-2 tw-rounded-xl tw-border tw-border-solid tw-p-3 tw-transition", selected ? "tw-border-[#1263e9] tw-bg-[#f4f8ff]" : "tw-border-[#e0e3e9] tw-bg-white hover:tw-border-[#b9d3fb]"].join(" ")} role="button" tabIndex={0} title={"Xem vé " + subscription.subscriptionId} onClick={() => setSelectedSubscriptionId(subscription.subscriptionId)} onKeyDown={(event) => { if (event.target !== event.currentTarget) return; if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelectedSubscriptionId(subscription.subscriptionId); } }}>
                   <span className={["tw-grid tw-h-12 tw-w-12 tw-place-items-center tw-rounded-full max-[1300px]:tw-h-9 max-[1300px]:tw-w-9", subscription.accessBlocked ? "tw-bg-[#fff5e6] tw-text-[#b45309]" : subscription.status === "ACTIVE" ? "tw-bg-[#edf7f0] tw-text-[#438c76]" : subscription.status?.startsWith("PENDING") ? "tw-bg-[#fff5e6] tw-text-[#e69a49]" : "tw-bg-[#f3f3f3] tw-text-[#777777]"].join(" ")}><SubscriptionIcon name="ticket" /></span>
                   <span className="tw-min-w-0"><strong title={subscription.subscriptionId} className="tw-block tw-truncate tw-text-[0.82rem] tw-font-semibold tw-text-[#17233e]">{compactCode(subscription.subscriptionId)}</strong><small title={ticketType?.name} className="tw-mt-1 tw-block tw-truncate tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{ticketType?.name ?? "Vé đăng ký"}</small><small className="tw-block tw-truncate tw-text-[0.68rem] tw-text-[#64748b]">{subscription.parkingLotId ? parkingLotById.get(subscription.parkingLotId)?.name ?? "Bãi ngừng hoạt động" : "Chưa xác định bãi"}</small></span>
                   <span className="tw-min-w-0 tw-border-0 tw-border-l tw-border-solid tw-border-[#edf0f3] tw-pl-3"><strong className="tw-block tw-whitespace-nowrap tw-text-[0.82rem] tw-font-semibold tw-text-[#17233e]">{vehicle?.licensePlate ?? "--"}</strong><small title={vehicleLabel(vehicle, vehicleTypeById)} className="tw-mt-1 tw-block tw-truncate tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{[vehicle?.brand, vehicle?.vehicleTypeId ? vehicleTypeById.get(vehicle.vehicleTypeId)?.name : undefined].filter(Boolean).join(" · ") || "--"}</small></span>
@@ -1024,8 +1016,10 @@ export function SubscriptionPage() {
                     <span className="tw-flex tw-flex-wrap tw-gap-x-1 tw-text-[0.7rem] tw-font-semibold tw-leading-5 tw-text-[#17233e]"><span className="tw-whitespace-nowrap">{formatDate(toDateInputValue(getDisplayEffectiveFrom(subscription)) ?? subscription.requestedEffectiveFrom)}</span><span className="tw-whitespace-nowrap">— {subscription.effectiveTo ? formatDate(subscription.effectiveTo) : "Chưa xác định"}</span></span>
                     <small className="tw-mt-1 tw-block tw-text-[0.72rem] tw-font-normal tw-text-[#4b5668]">{getSubscriptionTotal(subscription) != null ? formatCurrency(getSubscriptionTotal(subscription)) : "Chưa xác định phí"}</small>
                   </span>
-                  <span className="tw-grid tw-justify-items-end tw-gap-1.5 max-[760px]:tw-col-span-2 max-[760px]:tw-col-start-2 max-[760px]:tw-w-full">
+                  <span className="tw-flex tw-min-w-0 tw-justify-center tw-border-0 tw-border-l tw-border-solid tw-border-[#edf0f3] tw-pl-3 max-[760px]:tw-col-start-2 max-[760px]:tw-justify-start">
                     <SubscriptionStatusPill accessBlocked={subscription.accessBlocked === true} status={subscription.status} />
+                  </span>
+                  <span className="tw-grid tw-justify-items-end tw-gap-1.5 max-[760px]:tw-col-span-2 max-[760px]:tw-col-start-2 max-[760px]:tw-w-full">
                     <span className="tw-flex tw-items-center tw-justify-end tw-gap-2">
                       <button className="tw-inline-flex tw-h-7 tw-items-center tw-gap-1.5 tw-rounded-md tw-border tw-border-solid tw-border-[#b9d3fb] tw-bg-white tw-px-3 tw-text-[0.72rem] tw-font-semibold tw-text-[#0756d8] hover:tw-bg-[#eef5ff] disabled:tw-cursor-not-allowed disabled:tw-opacity-40" disabled={subscription.status !== "ACTIVE"} type="button" onClick={(event) => { event.stopPropagation(); void openQrModal(subscription); }}><i className="fas fa-qrcode" />QR</button>
                       {renderActionMenu(subscription)}
@@ -1334,7 +1328,7 @@ export function SubscriptionPage() {
             <span>Mã ưu đãi <small className="tw-font-normal tw-text-[#71819a]">(nếu có)</small></span>
             <span className="tw-flex tw-gap-2">
               <input className="tw-h-11 tw-min-w-0 tw-flex-1 tw-rounded-md tw-border tw-border-solid tw-border-[#dce5f0] tw-px-3 tw-font-normal tw-uppercase tw-text-[#334a6e]" maxLength={50} placeholder="Ví dụ: WELCOME10" value={renewalVoucherCode} onChange={(event) => { setRenewalVoucherCode(event.target.value.toUpperCase()); setRenewalQuote(null); }} />
-              <button className="tw-h-11 tw-rounded-md tw-border tw-border-solid tw-border-[#1263e9] tw-bg-white tw-px-4 tw-font-bold tw-text-[#1263e9]" disabled={renewalQuoteLoading || !renewalTicketTypeId} type="button" onClick={() => renewalSubscription && void requestRenewalQuote(renewalSubscription)}>{renewalQuoteLoading ? <i className="fas fa-spinner fa-spin" /> : "Tính lại"}</button>
+              <button className="tw-h-11 tw-rounded-md tw-border tw-border-solid tw-border-[#1263e9] tw-bg-white tw-px-4 tw-font-bold tw-text-[#1263e9]" disabled={renewalQuoteLoading || !renewalTicketTypeId} type="button" onClick={() => renewalSubscription && void requestRenewalQuote(renewalSubscription)}>{renewalQuoteLoading ? <i className="fas fa-spinner fa-spin" /> : "Áp dụng"}</button>
             </span>
           </label>
           {renewalQuote ? (

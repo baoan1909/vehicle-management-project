@@ -49,7 +49,7 @@ public class SubscriptionRenewalPersistenceAdapter implements SubscriptionRenewa
 
     @Override
     public List<SubscriptionRenewal> findScheduledStartingOnOrBefore(LocalDate businessDate) {
-        return repository.findByStatusAndEffectiveFromLessThanEqual(
+        return repository.findByStatusAndEffectiveFromLessThanEqualOrderByEffectiveFromAsc(
                         SubscriptionRenewalStatus.SCHEDULED, businessDate)
                 .stream().map(mapper::toDomain).toList();
     }

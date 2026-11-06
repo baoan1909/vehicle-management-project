@@ -543,7 +543,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             String voucherCode,
             Boolean physicalCardRequested
     ) {
-        Subscription currentSubscription = findSubscriptionForUpdate(subscriptionId);
+        Subscription currentSubscription = findSubscriptionOrThrow(subscriptionId);
         subscriptionAccessGuard.ensureCanUpdateOwn(currentSubscription);
         return prepareRenewal(
                 currentSubscription,
