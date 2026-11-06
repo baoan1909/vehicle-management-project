@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.entrypoint.controller.accesscontrol;
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.mapper.SubscriptionApiMapper;
+import com.ban.vehicle_management.application.billing.invoice.mapper.InvoiceApiMapper;
 import com.ban.vehicle_management.application.accesscontrol.subscription.mapper.SubscriptionQrApiMapper;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionQrPortIn;
@@ -8,14 +9,23 @@ import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscr
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.CreateSubscriptionAdminRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.CreateSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.RejectSubscriptionRequest;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.RenewSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.SubscriptionFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.UpdateSubscriptionRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.VerifySubscriptionQrRequest;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.SelectSubscriptionSpaceRequest;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionSpaceSelection;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalQuote;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalResult;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionVoucherQuoteResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionQrCredentialResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionQrVerificationResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionRenewalQuoteResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionRenewalResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionRenewalDetailResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceUserResponse;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import jakarta.validation.Valid;
@@ -47,17 +57,20 @@ public class SubscriptionController {
     private final SubscriptionApiMapper subscriptionApiMapper;
     private final SubscriptionQrPortIn subscriptionQrPortIn;
     private final SubscriptionQrApiMapper subscriptionQrApiMapper;
+    private final InvoiceApiMapper invoiceApiMapper;
 
     public SubscriptionController(
             SubscriptionPortIn subscriptionPortIn,
             SubscriptionApiMapper subscriptionApiMapper,
             SubscriptionQrPortIn subscriptionQrPortIn,
-            SubscriptionQrApiMapper subscriptionQrApiMapper
+            SubscriptionQrApiMapper subscriptionQrApiMapper,
+            InvoiceApiMapper invoiceApiMapper
     ) {
         this.subscriptionPortIn = subscriptionPortIn;
         this.subscriptionApiMapper = subscriptionApiMapper;
         this.subscriptionQrPortIn = subscriptionQrPortIn;
         this.subscriptionQrApiMapper = subscriptionQrApiMapper;
+        this.invoiceApiMapper = invoiceApiMapper;
     }
 
     @PostMapping("/me")
@@ -85,6 +98,103 @@ public class SubscriptionController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched current customer subscriptions successfully",
                 subscriptionApiMapper.toUserResponses(subscriptions)
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/physical-card-request")
+    public ResponseEntity<ApiResponse<InvoiceUserResponse>> requestMyPhysicalCard(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                "Physical card request created successfully",
+                invoiceApiMapper.toUserResponse(subscriptionPortIn.requestMyPhysicalCard(subscriptionId))
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/renewal")
+    public ResponseEntity<ApiResponse<SubscriptionRenewalResponse>> renewMySubscription(
+            @PathVariable UUID subscriptionId,
+            @Valid @RequestBody RenewSubscriptionRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
+    ) {
+        SubscriptionRenewalResult result = subscriptionPortIn.renewMySubscription(
+                subscriptionId,
+                request.ticketTypeId(),
+                request.periodQuantity(),
+                request.voucherCode(),
+                request.physicalCardRequested(),
+                idempotencyKey
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                "Subscription renewal invoice created successfully",
+                new SubscriptionRenewalResponse(
+                        toRenewalResponse(result),
+                        invoiceApiMapper.toUserResponse(result.invoice())
+                )
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/renewal/quote")
+    public ResponseEntity<ApiResponse<SubscriptionRenewalQuoteResponse>> quoteMySubscriptionRenewal(
+            @PathVariable UUID subscriptionId,
+            @Valid @RequestBody RenewSubscriptionRequest request
+    ) {
+        SubscriptionRenewalQuote quote = subscriptionPortIn.quoteMySubscriptionRenewal(
+                subscriptionId,
+                request.ticketTypeId(),
+                request.periodQuantity(),
+                request.voucherCode(),
+                request.physicalCardRequested()
+        );
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription renewal quote calculated successfully",
+                new SubscriptionRenewalQuoteResponse(
+                        quote.effectiveFrom(), quote.effectiveTo(), quote.ticketAmount(),
+                        quote.physicalCardDeposit(), quote.voucherCode(), quote.discountAmount(),
+                        quote.finalAmount(), quote.reusesExistingCard(), quote.physicalCardRequestPending()
+                )
+        ));
+    }
+
+    private SubscriptionRenewalDetailResponse toRenewalResponse(SubscriptionRenewalResult result) {
+        var renewal = result.renewal();
+        return new SubscriptionRenewalDetailResponse(
+                renewal.getRenewalId(), renewal.getSubscriptionId(), renewal.getInvoiceId(),
+                renewal.getTicketTypeId(), renewal.getPriceRuleId(), renewal.getPeriodQuantity(),
+                renewal.getEffectiveFrom(), renewal.getEffectiveTo(), renewal.getTicketAmount(),
+                renewal.getPhysicalCardDeposit(), renewal.getDiscountAmount(), renewal.getFinalAmount(),
+                renewal.getVoucherCode(), renewal.getPhysicalCardRequested(), renewal.getStatus()
+        );
+    }
+
+    @GetMapping("/me/{subscriptionId}/space-selection")
+    public ResponseEntity<ApiResponse<SubscriptionSpaceSelection>> getMySpaceSelection(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched subscription parking spaces successfully",
+                subscriptionPortIn.getMySpaceSelection(subscriptionId)
+        ));
+    }
+
+    @PutMapping("/me/{subscriptionId}/space-selection")
+    public ResponseEntity<ApiResponse<SubscriptionSpaceSelection>> selectMyParkingSpace(
+            @PathVariable UUID subscriptionId,
+            @Valid @RequestBody SelectSubscriptionSpaceRequest request
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription parking space selected successfully",
+                subscriptionPortIn.selectMyParkingSpace(subscriptionId, request.parkingSpaceId())
+        ));
+    }
+
+    @PostMapping("/me/{subscriptionId}/space-selection/confirm")
+    public ResponseEntity<ApiResponse<SubscriptionUserResponse>> confirmMySpaceSelection(
+            @PathVariable UUID subscriptionId
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription parking space confirmed successfully",
+                subscriptionApiMapper.toUserResponse(subscriptionPortIn.confirmMySpaceSelection(subscriptionId))
         ));
     }
 

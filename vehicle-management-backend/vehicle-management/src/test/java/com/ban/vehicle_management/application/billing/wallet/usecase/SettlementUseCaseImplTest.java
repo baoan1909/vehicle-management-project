@@ -119,7 +119,7 @@ class SettlementUseCaseImplTest {
         VoucherRedemption redemption = new VoucherRedemption();
         redemption.setVoucherId(voucherId);
         redemption.setSubscriptionId(subscriptionId);
-        when(voucherPortOut.findRedemptionBySubscriptionId(subscriptionId)).thenReturn(Optional.of(redemption));
+        when(voucherPortOut.findRedemptionByInvoiceId(invoiceId)).thenReturn(Optional.of(redemption));
         VoucherFinancialTerm term = new VoucherFinancialTerm();
         term.setFundingSource(VoucherFundingSource.PLATFORM);
         term.setCommissionBasis(CommissionBasis.GROSS);

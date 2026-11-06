@@ -15,17 +15,27 @@ type ApiResponse<T> = {
 export type SubscriptionStatus =
   | "PENDING"
   | "PENDING_PAYMENT"
-  | "PENDING_CARD"
+  | "PENDING_SPACE"
   | "ACTIVE"
   | "EXPIRED"
   | "CANCELLED"
   | "REJECTED";
+
+export type PhysicalCardFulfillmentStatus =
+  | "NOT_REQUESTED"
+  | "PAYMENT_PENDING"
+  | "RESERVED"
+  | "WAITING_INVENTORY"
+  | "ASSIGNED";
 
 export type SubscriptionApiResponse = {
   accessBlocked?: boolean | null;
   accessBlockedAt?: string | null;
   accessRestoredAt?: string | null;
   parkingLotId?: string | null;
+  physicalCardRequested?: boolean | null;
+  physicalCardDeposit?: number | string | null;
+  physicalCardStatus?: PhysicalCardFulfillmentStatus | null;
   approvedAt?: string | null;
   approvedBy?: string | null;
   cardId?: string | null;
@@ -47,6 +57,9 @@ export type SubscriptionApiResponse = {
   ticketTypeId: string;
   updatedAt?: string | null;
   updatedBy?: string | null;
+  spaceSelectionRequired?: boolean | null;
+  spaceSelectionConfirmedAt?: string | null;
+  spaceSelectionExpiresAt?: string | null;
 };
 
 export type SubscriptionFilter = {

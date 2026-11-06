@@ -205,6 +205,22 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
             @Param("requestedEffectiveDateCutoff") LocalDate requestedEffectiveDateCutoff
     );
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select subscription
+            from SubscriptionEntity subscription
+            where subscription.spaceSelectionRequired = true
+              and subscription.spaceSelectionConfirmedAt is null
+              and subscription.spaceSelectionExpiresAt is not null
+              and subscription.spaceSelectionExpiresAt <= :now
+              and subscription.status in :statuses
+            order by subscription.spaceSelectionExpiresAt asc
+            """)
+    List<SubscriptionEntity> findExpiredSpaceSelectionsForUpdate(
+            @Param("now") Instant now,
+            @Param("statuses") Collection<SubscriptionStatus> statuses
+    );
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             update SubscriptionEntity subscription

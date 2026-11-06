@@ -14,6 +14,8 @@ import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPo
 import com.ban.vehicle_management.application.accesscontrol.subscription.authorization.SubscriptionAccessGuard;
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionRenewalPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalResult;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.catalog.voucher.port.in.VoucherPortIn;
 import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
@@ -28,6 +30,7 @@ import com.ban.vehicle_management.application.people.customer.port.out.CustomerP
 import com.ban.vehicle_management.application.people.customervehicle.port.out.CustomerVehiclePortOut;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.domain.accesscontrol.subscription.model.SubscriptionRenewal;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.catalog.pricerule.model.PriceRule;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
@@ -35,7 +38,10 @@ import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionRenewalStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
@@ -65,6 +71,9 @@ class SubscriptionUseCaseImplTest {
 
     @Mock
     private SubscriptionPortOut subscriptionPortOut;
+
+    @Mock
+    private SubscriptionRenewalPortOut subscriptionRenewalPortOut;
 
     @Mock
     private CustomerVehiclePortOut customerVehiclePortOut;
@@ -310,13 +319,11 @@ class SubscriptionUseCaseImplTest {
     }
 
     @Test
-    void shouldApproveSubscriptionAndCreateInvoiceAndReserveCard() {
+    void shouldApproveSubscriptionAndCreateInvoiceWithoutBlockingOnCardInventory() {
         TestData data = validTestData();
         UUID partnerVehicleTypeId = UUID.randomUUID();
         UUID managerAccountId = UUID.randomUUID();
-        UUID cardId = UUID.randomUUID();
         Subscription pendingSubscription = pendingSubscription(data);
-        Card availableCard = availableCard(cardId, data.vehicleTypeId());
 
         when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingSubscription));
         mockValidSubscriptionPreparation(data);
@@ -332,8 +339,6 @@ class SubscriptionUseCaseImplTest {
         when(zonePortOut.sumActiveCapacityByVehicleTypeIdAndParkingLotId(partnerVehicleTypeId, LOT_ID)).thenReturn(100L);
         when(subscriptionPortOut.countReservedOrActiveByVehicleTypeIdInParkingLot(data.vehicleTypeId(), LOT_ID)).thenReturn(10L);
         when(invoicePortOut.existsBySubscriptionIdAndStatusIn(eq(data.subscriptionId()), any(List.class))).thenReturn(false);
-        when(cardPortOut.findFirstAvailableRegisteredInParkingLot(LOT_ID)).thenReturn(Optional.of(availableCard));
-        when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(managerAccountId);
         when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(invoicePortOut.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -342,9 +347,10 @@ class SubscriptionUseCaseImplTest {
 
         verify(subscriptionAccessGuard).ensureCanApprove();
         assertEquals(SubscriptionStatus.PENDING_PAYMENT, approvedSubscription.getStatus());
-        assertEquals(cardId, approvedSubscription.getCardId());
+        assertNull(approvedSubscription.getCardId());
         assertEquals(managerAccountId, approvedSubscription.getApprovedBy());
-        assertEquals(CardStatus.RESERVED, availableCard.getStatus());
+        verify(cardPortOut, never()).findFirstAvailableRegisteredInParkingLot(any(UUID.class));
+        verify(cardPortOut, never()).save(any(Card.class));
 
         ArgumentCaptor<Invoice> invoiceCaptor = ArgumentCaptor.forClass(Invoice.class);
         verify(invoicePortOut).save(invoiceCaptor.capture());
@@ -389,36 +395,23 @@ class SubscriptionUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectApproveWhenNoAvailableCardExists() {
-        TestData data = validTestData();
-        Subscription pendingSubscription = pendingSubscription(data);
-
-        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingSubscription));
-        mockValidSubscriptionPreparation(data);
-        when(subscriptionPortOut.existsOverlappingSubscriptionInParkingLot(data.customerVehicleId(), LOT_ID, pendingSubscription.getEffectiveFrom(), pendingSubscription.getEffectiveTo(), data.subscriptionId()))
-                .thenReturn(false);
-        when(zonePortOut.sumActiveCapacityByVehicleTypeIdAndParkingLotId(data.vehicleTypeId(), LOT_ID)).thenReturn(100L);
-        when(subscriptionPortOut.countReservedOrActiveByVehicleTypeIdInParkingLot(data.vehicleTypeId(), LOT_ID)).thenReturn(10L);
-        when(invoicePortOut.existsBySubscriptionIdAndStatusIn(eq(data.subscriptionId()), any(List.class))).thenReturn(false);
-
-        assertThrows(ConflictException.class, () -> subscriptionUseCase.approveSubscription(data.subscriptionId()));
-        verify(subscriptionPortOut, never()).save(any(Subscription.class));
-        verify(invoicePortOut, never()).save(any(Invoice.class));
-    }
-
-    @Test
     void shouldMarkSubscriptionPaymentCompletedWhenPaidInvoiceExists() {
         TestData data = validTestData();
         Subscription pendingPaymentSubscription = approvedSubscription(data, SubscriptionStatus.PENDING_PAYMENT);
+        Invoice paidInvoice = paidInvoice(data, InvoicePurpose.SUBSCRIPTION_PURCHASE);
 
         when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingPaymentSubscription));
-        when(invoicePortOut.findFirstBySubscriptionIdAndStatus(data.subscriptionId(), InvoiceStatus.PAID))
-                .thenReturn(Optional.of(paidInvoice(data)));
+        when(invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                data.subscriptionId(), InvoicePurpose.SUBSCRIPTION_PURCHASE, InvoiceStatus.PAID))
+                .thenReturn(Optional.of(paidInvoice));
+        when(invoicePortOut.findById(paidInvoice.getInvoiceId())).thenReturn(Optional.of(paidInvoice));
         when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Subscription updatedSubscription = subscriptionUseCase.markSubscriptionPaymentCompleted(data.subscriptionId());
 
-        assertEquals(SubscriptionStatus.PENDING_CARD, updatedSubscription.getStatus());
+        assertEquals(SubscriptionStatus.ACTIVE, updatedSubscription.getStatus());
+        assertNull(updatedSubscription.getCardReceiptDate());
+        verify(parkingAllocationService).activate(pendingPaymentSubscription);
         verify(subscriptionPortOut).save(pendingPaymentSubscription);
     }
 
@@ -428,11 +421,15 @@ class SubscriptionUseCaseImplTest {
         Subscription pendingPaymentSubscription = approvedSubscription(data, SubscriptionStatus.PENDING_PAYMENT);
         pendingPaymentSubscription.setPhysicalCardRequested(false);
         pendingPaymentSubscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+        pendingPaymentSubscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.NOT_REQUESTED);
         pendingPaymentSubscription.setCardId(null);
+        Invoice paidInvoice = paidInvoice(data, InvoicePurpose.SUBSCRIPTION_PURCHASE);
 
         when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingPaymentSubscription));
-        when(invoicePortOut.findFirstBySubscriptionIdAndStatus(data.subscriptionId(), InvoiceStatus.PAID))
-                .thenReturn(Optional.of(paidInvoice(data)));
+        when(invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                data.subscriptionId(), InvoicePurpose.SUBSCRIPTION_PURCHASE, InvoiceStatus.PAID))
+                .thenReturn(Optional.of(paidInvoice));
+        when(invoicePortOut.findById(paidInvoice.getInvoiceId())).thenReturn(Optional.of(paidInvoice));
         when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Subscription updatedSubscription = subscriptionUseCase.markSubscriptionPaymentCompleted(data.subscriptionId());
@@ -445,11 +442,6 @@ class SubscriptionUseCaseImplTest {
     @Test
     void shouldRejectPaymentCompletedWhenPaidInvoiceDoesNotExist() {
         TestData data = validTestData();
-        Subscription pendingPaymentSubscription = approvedSubscription(data, SubscriptionStatus.PENDING_PAYMENT);
-
-        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingPaymentSubscription));
-        when(invoicePortOut.findFirstBySubscriptionIdAndStatus(data.subscriptionId(), InvoiceStatus.PAID))
-                .thenReturn(Optional.empty());
 
         assertThrows(ConflictException.class, () -> subscriptionUseCase.markSubscriptionPaymentCompleted(data.subscriptionId()));
         verify(subscriptionPortOut, never()).save(any(Subscription.class));
@@ -459,15 +451,20 @@ class SubscriptionUseCaseImplTest {
     void shouldAssignReservedCardWhenPaidInvoiceExists() {
         TestData data = validTestData();
         UUID cardId = UUID.randomUUID();
-        Subscription pendingCardSubscription = approvedSubscription(data, SubscriptionStatus.PENDING_CARD);
-        pendingCardSubscription.setCardId(cardId);
-        Card reservedCard = reservedCard(cardId, data.vehicleTypeId());
+        Subscription activeSubscriptionWithoutCard = approvedSubscription(data, SubscriptionStatus.ACTIVE);
+        activeSubscriptionWithoutCard.setPhysicalCardRequested(true);
+        activeSubscriptionWithoutCard.setPhysicalCardDeposit(new BigDecimal("50000"));
+        activeSubscriptionWithoutCard.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.WAITING_INVENTORY);
+        Card reservedCard = availableCard(cardId, data.vehicleTypeId());
+        LocalDate effectiveFrom = activeSubscriptionWithoutCard.getEffectiveFrom();
+        LocalDate effectiveTo = activeSubscriptionWithoutCard.getEffectiveTo();
+        Invoice cardDepositInvoice = paidInvoice(data, InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT);
 
-        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingCardSubscription));
-        when(ticketTypePortOut.findById(data.ticketTypeId())).thenReturn(Optional.of(activeMonthlyTicketType(data.ticketTypeId())));
-        when(invoicePortOut.findFirstBySubscriptionIdAndStatus(data.subscriptionId(), InvoiceStatus.PAID))
-                .thenReturn(Optional.of(paidInvoice(data)));
-        when(cardPortOut.findById(cardId)).thenReturn(Optional.of(reservedCard));
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(activeSubscriptionWithoutCard));
+        when(invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                data.subscriptionId(), InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT, InvoiceStatus.PAID))
+                .thenReturn(Optional.of(cardDepositInvoice));
+        when(cardPortOut.findFirstAvailableRegisteredInParkingLot(LOT_ID)).thenReturn(Optional.of(reservedCard));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -475,9 +472,198 @@ class SubscriptionUseCaseImplTest {
 
         verify(subscriptionAccessGuard).ensureCanAssignCard();
         assertEquals(SubscriptionStatus.ACTIVE, activeSubscription.getStatus());
+        assertEquals(cardId, activeSubscription.getCardId());
         assertNotNull(activeSubscription.getCardReceiptDate());
+        assertEquals(effectiveFrom, activeSubscription.getEffectiveFrom());
+        assertEquals(effectiveTo, activeSubscription.getEffectiveTo());
         assertEquals(CardStatus.ASSIGNED, reservedCard.getStatus());
         assertNotNull(reservedCard.getIssuedAt());
+    }
+
+    @Test
+    void shouldCreateSeparatePhysicalCardDepositInvoiceForActiveQrSubscription() {
+        TestData data = validTestData();
+        Subscription activeSubscription = approvedSubscription(data, SubscriptionStatus.ACTIVE);
+        activeSubscription.setPhysicalCardRequested(false);
+        activeSubscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+        activeSubscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.NOT_REQUESTED);
+        PriceRule priceRule = subscriptionPriceRule(
+                data.priceRuleId(), data.vehicleTypeId(), data.ticketTypeId());
+        priceRule.setLostCardFee(new BigDecimal("50000"));
+
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(activeSubscription));
+        when(invoicePortOut.existsBySubscriptionIdAndPurposeAndStatusIn(
+                data.subscriptionId(), InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT, List.of(InvoiceStatus.UNPAID, InvoiceStatus.PAID)))
+                .thenReturn(false);
+        when(priceRulePortOut.findById(data.priceRuleId())).thenReturn(Optional.of(priceRule));
+        when(customerVehiclePortOut.findById(data.customerVehicleId())).thenReturn(Optional.of(
+                activeCustomerVehicle(data.customerVehicleId(), data.customerId(), data.vehicleTypeId())));
+        when(invoicePortOut.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Invoice invoice = subscriptionUseCase.requestMyPhysicalCard(data.subscriptionId());
+
+        assertEquals(InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT, invoice.getPurpose());
+        assertEquals(new BigDecimal("50000"), invoice.getFinalAmount());
+        assertEquals(InvoiceStatus.UNPAID, invoice.getStatus());
+        assertEquals(SubscriptionStatus.ACTIVE, activeSubscription.getStatus());
+        assertEquals(PhysicalCardFulfillmentStatus.PAYMENT_PENDING, activeSubscription.getPhysicalCardStatus());
+        assertEquals(new BigDecimal("50000"), activeSubscription.getPhysicalCardDeposit());
+        assertNull(activeSubscription.getCardId());
+        verify(subscriptionAccessGuard).ensureCanUpdateOwn(activeSubscription);
+    }
+
+    @Test
+    void shouldReserveAvailableCardAfterPhysicalCardDepositPayment() {
+        TestData data = validTestData();
+        UUID cardId = UUID.randomUUID();
+        Subscription activeSubscription = physicalCardPaymentPendingSubscription(data);
+        Invoice paidDeposit = paidInvoice(data, InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT);
+        Card availableCard = availableCard(cardId, data.vehicleTypeId());
+
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(activeSubscription));
+        when(invoicePortOut.findById(paidDeposit.getInvoiceId())).thenReturn(Optional.of(paidDeposit));
+        when(cardPortOut.findFirstAvailableRegisteredInParkingLot(LOT_ID)).thenReturn(Optional.of(availableCard));
+        when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Subscription updated = subscriptionUseCase.markSubscriptionInvoicePaymentCompleted(
+                data.subscriptionId(), paidDeposit.getInvoiceId());
+
+        assertEquals(SubscriptionStatus.ACTIVE, updated.getStatus());
+        assertEquals(PhysicalCardFulfillmentStatus.RESERVED, updated.getPhysicalCardStatus());
+        assertEquals(cardId, updated.getCardId());
+        assertEquals(CardStatus.RESERVED, availableCard.getStatus());
+        verify(parkingAllocationService, never()).activate(any(Subscription.class));
+    }
+
+    @Test
+    void shouldKeepQrActiveAndWaitForInventoryAfterPhysicalCardDepositPayment() {
+        TestData data = validTestData();
+        Subscription activeSubscription = physicalCardPaymentPendingSubscription(data);
+        Invoice paidDeposit = paidInvoice(data, InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT);
+
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(activeSubscription));
+        when(invoicePortOut.findById(paidDeposit.getInvoiceId())).thenReturn(Optional.of(paidDeposit));
+        when(cardPortOut.findFirstAvailableRegisteredInParkingLot(LOT_ID)).thenReturn(Optional.empty());
+        when(subscriptionPortOut.save(any(Subscription.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        Subscription updated = subscriptionUseCase.markSubscriptionInvoicePaymentCompleted(
+                data.subscriptionId(), paidDeposit.getInvoiceId());
+
+        assertEquals(SubscriptionStatus.ACTIVE, updated.getStatus());
+        assertEquals(PhysicalCardFulfillmentStatus.WAITING_INVENTORY, updated.getPhysicalCardStatus());
+        assertNull(updated.getCardId());
+        verify(cardPortOut, never()).save(any(Card.class));
+        verify(parkingAllocationService, never()).activate(any(Subscription.class));
+    }
+
+    @Test
+    void shouldCreateRenewalInvoiceWithoutCreatingAnotherSubscription() {
+        TestData data = validTestData();
+        Subscription current = approvedSubscription(data, SubscriptionStatus.ACTIVE);
+        LocalDate renewalStart = current.getEffectiveTo().plusDays(1);
+        ParkingLot parkingLot = new ParkingLot();
+        parkingLot.setParkingLotId(LOT_ID);
+        parkingLot.setOrganizationId(ORGANIZATION_ID);
+        parkingLot.setStatus(ParkingLotStatus.ACTIVE);
+
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(current));
+        when(catalogAvailabilityPortOut.isTicketTypeEnabled(LOT_ID, data.ticketTypeId())).thenReturn(true);
+        when(catalogAvailabilityPortOut.isVehicleTypeEnabled(LOT_ID, data.vehicleTypeId())).thenReturn(true);
+        when(parkingLotPortOut.findById(LOT_ID)).thenReturn(Optional.of(parkingLot));
+        when(customerPortOut.findById(data.customerId())).thenReturn(Optional.of(activeApprovedCustomer(data.customerId())));
+        when(customerVehiclePortOut.findById(data.customerVehicleId()))
+                .thenReturn(Optional.of(activeCustomerVehicle(data.customerVehicleId(), data.customerId(), data.vehicleTypeId())));
+        when(ticketTypePortOut.findById(data.ticketTypeId())).thenReturn(Optional.of(activeMonthlyTicketType(data.ticketTypeId())));
+        when(priceRulePortOut.findActiveSubscriptionRuleInOrganization(
+                data.vehicleTypeId(), data.ticketTypeId(), ORGANIZATION_ID, renewalStart))
+                .thenReturn(Optional.of(subscriptionPriceRule(data.priceRuleId(), data.vehicleTypeId(), data.ticketTypeId())));
+        when(voucherPortIn.quoteSubscriptionVoucher(
+                eq(null), eq(data.customerId()), eq(data.ticketTypeId()), eq(LOT_ID),
+                eq(new BigDecimal("280000")), any(Instant.class)))
+                .thenReturn(VoucherQuote.withoutVoucher(new BigDecimal("280000")));
+        when(voucherPortIn.reserveSubscriptionVoucher(
+                eq(null), eq(data.customerId()), eq(data.ticketTypeId()), eq(LOT_ID),
+                eq(new BigDecimal("280000")), eq(data.subscriptionId()), any(UUID.class), any(Instant.class)))
+                .thenReturn(VoucherQuote.withoutVoucher(new BigDecimal("280000")));
+        when(invoicePortOut.save(any(Invoice.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionRenewalPortOut.save(any(SubscriptionRenewal.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        SubscriptionRenewalResult result = subscriptionUseCase.renewMySubscription(
+                data.subscriptionId(), data.ticketTypeId(), 2, null, false, "renewal-request-1");
+
+        assertEquals(data.subscriptionId(), result.renewal().getSubscriptionId());
+        assertEquals(renewalStart, result.renewal().getEffectiveFrom());
+        assertEquals(renewalStart.plusDays(59), result.renewal().getEffectiveTo());
+        assertEquals(2, result.renewal().getPeriodQuantity());
+        assertEquals(new BigDecimal("280000"), result.renewal().getTicketAmount());
+        assertEquals(InvoicePurpose.SUBSCRIPTION_RENEWAL, result.invoice().getPurpose());
+        assertEquals(data.subscriptionId(), result.invoice().getSubscriptionId());
+        verify(subscriptionPortOut, never()).save(any(Subscription.class));
+        verify(subscriptionAccessGuard).ensureCanUpdateOwn(current);
+    }
+
+    @Test
+    void shouldExtendExistingSubscriptionAndPreserveAccessIdentifiersAfterRenewalPayment() {
+        TestData data = validTestData();
+        UUID cardId = UUID.randomUUID();
+        String qrAccessToken = "stable-renewal-qr";
+        Subscription current = approvedSubscription(data, SubscriptionStatus.ACTIVE);
+        current.setCardId(cardId);
+        current.setQrAccessToken(qrAccessToken);
+        current.setPhysicalCardRequested(true);
+        current.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.ASSIGNED);
+        LocalDate previousEffectiveTo = current.getEffectiveTo();
+
+        Invoice paidRenewalInvoice = paidInvoice(data, InvoicePurpose.SUBSCRIPTION_RENEWAL);
+        SubscriptionRenewal renewal = new SubscriptionRenewal();
+        renewal.setRenewalId(UUID.randomUUID());
+        renewal.setSubscriptionId(data.subscriptionId());
+        renewal.setInvoiceId(paidRenewalInvoice.getInvoiceId());
+        renewal.setTicketTypeId(data.ticketTypeId());
+        renewal.setPriceRuleId(data.priceRuleId());
+        renewal.setPeriodQuantity(2);
+        renewal.setEffectiveFrom(previousEffectiveTo.plusDays(1));
+        renewal.setEffectiveTo(previousEffectiveTo.plusDays(60));
+        renewal.setTicketAmount(new BigDecimal("280000"));
+        renewal.setPhysicalCardRequested(true);
+        renewal.setPhysicalCardDeposit(BigDecimal.ZERO);
+        renewal.setStatus(SubscriptionRenewalStatus.PENDING_PAYMENT);
+
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(current));
+        when(invoicePortOut.findById(paidRenewalInvoice.getInvoiceId()))
+                .thenReturn(Optional.of(paidRenewalInvoice));
+        when(subscriptionRenewalPortOut.findByInvoiceIdForUpdate(paidRenewalInvoice.getInvoiceId()))
+                .thenReturn(Optional.of(renewal));
+        when(subscriptionRenewalPortOut.save(any(SubscriptionRenewal.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(subscriptionPortOut.save(any(Subscription.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Subscription updated = subscriptionUseCase.markSubscriptionInvoicePaymentCompleted(
+                data.subscriptionId(), paidRenewalInvoice.getInvoiceId());
+
+        assertEquals(data.subscriptionId(), updated.getSubscriptionId());
+        assertEquals(renewal.getEffectiveTo(), updated.getEffectiveTo());
+        assertEquals(cardId, updated.getCardId());
+        assertEquals(qrAccessToken, updated.getQrAccessToken());
+        assertEquals(SubscriptionRenewalStatus.SCHEDULED, renewal.getStatus());
+        verify(parkingAllocationService).activate(updated);
+    }
+
+    @Test
+    void shouldRejectRenewalAfterSubscriptionHasExpired() {
+        TestData data = validTestData();
+        Subscription expiredByDate = approvedSubscription(data, SubscriptionStatus.ACTIVE);
+        expiredByDate.setEffectiveTo(LocalDate.now(DateTimeUtils.VIETNAM_ZONE).minusDays(1));
+        when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(expiredByDate));
+
+        assertThrows(ConflictException.class, () -> subscriptionUseCase.renewMySubscription(
+                data.subscriptionId(), data.ticketTypeId(), 1, null, false, "expired-renewal"));
+
+        verify(subscriptionPortOut, never()).save(any(Subscription.class));
     }
 
     @Test
@@ -486,6 +672,9 @@ class SubscriptionUseCaseImplTest {
         UUID cardId = UUID.randomUUID();
         Subscription pendingPaymentSubscription = approvedSubscription(data, SubscriptionStatus.PENDING_PAYMENT);
         pendingPaymentSubscription.setCardId(cardId);
+        pendingPaymentSubscription.setPhysicalCardRequested(true);
+        pendingPaymentSubscription.setPhysicalCardDeposit(new BigDecimal("50000"));
+        pendingPaymentSubscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.RESERVED);
         Invoice unpaidInvoice = unpaidInvoice(data);
         Card reservedCard = reservedCard(cardId, data.vehicleTypeId());
 
@@ -539,6 +728,9 @@ class SubscriptionUseCaseImplTest {
         subscription.setEffectiveFrom(requestedEffectiveFrom());
         subscription.setEffectiveTo(requestedEffectiveFrom().plusDays(29));
         subscription.setPrice(new BigDecimal("140000"));
+        subscription.setPhysicalCardRequested(false);
+        subscription.setPhysicalCardDeposit(BigDecimal.ZERO);
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.NOT_REQUESTED);
         subscription.setStatus(SubscriptionStatus.PENDING);
         return subscription;
     }
@@ -548,7 +740,15 @@ class SubscriptionUseCaseImplTest {
         subscription.setStatus(status);
         subscription.setApprovedBy(UUID.randomUUID());
         subscription.setApprovedAt(Instant.now());
-        subscription.setCardId(UUID.randomUUID());
+        subscription.setCardId(null);
+        return subscription;
+    }
+
+    private Subscription physicalCardPaymentPendingSubscription(TestData data) {
+        Subscription subscription = approvedSubscription(data, SubscriptionStatus.ACTIVE);
+        subscription.setPhysicalCardRequested(true);
+        subscription.setPhysicalCardDeposit(new BigDecimal("50000"));
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.PAYMENT_PENDING);
         return subscription;
     }
 
@@ -622,8 +822,9 @@ class SubscriptionUseCaseImplTest {
         return invoice;
     }
 
-    private Invoice paidInvoice(TestData data) {
+    private Invoice paidInvoice(TestData data, InvoicePurpose purpose) {
         Invoice invoice = unpaidInvoice(data);
+        invoice.setPurpose(purpose);
         invoice.setStatus(InvoiceStatus.PAID);
         invoice.setPaidAt(Instant.now());
         return invoice;

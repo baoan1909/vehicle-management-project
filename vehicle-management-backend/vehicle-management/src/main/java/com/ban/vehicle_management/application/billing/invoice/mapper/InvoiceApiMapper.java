@@ -34,6 +34,7 @@ public interface InvoiceApiMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "issuedAt", ignore = true)
     @Mapping(target = "paidAt", ignore = true)
+    @Mapping(target = "purpose", ignore = true)
     @Mapping(target = "licensePlateNormalizedSnapshot", ignore = true)
     @Mapping(target = "licensePlateDisplaySnapshot", ignore = true)
     @Mapping(target = "licensePlateFormatSnapshot", ignore = true)

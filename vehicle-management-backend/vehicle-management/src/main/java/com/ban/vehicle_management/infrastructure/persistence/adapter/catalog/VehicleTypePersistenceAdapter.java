@@ -145,7 +145,8 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
                 parkingLotId,
                 vehicleTypeId,
                 businessDate,
-                List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING_CARD)
+                List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING_CARD,
+                        SubscriptionStatus.PENDING_SPACE)
         );
     }
 
@@ -154,7 +155,8 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
         return subscriptionRepository.countServiceObligations(
                 vehicleTypeId,
                 businessDate,
-                List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING_CARD)
+                List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING_CARD,
+                        SubscriptionStatus.PENDING_SPACE)
         );
     }
 

@@ -292,7 +292,8 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
         invoicePolicy.markPaid(invoice, paidAt);
         invoicePortOut.save(invoice);
         if (invoice.getSubscriptionId() != null) {
-            subscriptionPortIn.markSubscriptionPaymentCompleted(invoice.getSubscriptionId());
+            subscriptionPortIn.markSubscriptionInvoicePaymentCompleted(
+                    invoice.getSubscriptionId(), invoice.getInvoiceId());
             settlementPortIn.allocateForCompletedPayment(payment.getPaymentId());
         }
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());

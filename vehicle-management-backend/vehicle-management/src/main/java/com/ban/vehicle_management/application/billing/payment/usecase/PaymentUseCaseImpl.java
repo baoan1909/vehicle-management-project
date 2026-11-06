@@ -84,7 +84,8 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
         invoicePortOut.save(invoice);
 
         if (invoice.getSubscriptionId() != null) {
-            subscriptionPortIn.markSubscriptionPaymentCompleted(invoice.getSubscriptionId());
+            subscriptionPortIn.markSubscriptionInvoicePaymentCompleted(
+                    invoice.getSubscriptionId(), invoice.getInvoiceId());
             settlementPortIn.allocateForCompletedPayment(savedPayment.getPaymentId());
         }
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());

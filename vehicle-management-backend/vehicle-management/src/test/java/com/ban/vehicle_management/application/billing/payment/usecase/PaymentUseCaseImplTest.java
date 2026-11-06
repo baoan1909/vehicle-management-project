@@ -85,7 +85,7 @@ class PaymentUseCaseImplTest {
 
         verify(paymentPortOut).save(savedPayment);
         verify(invoicePortOut).save(invoice);
-        verify(subscriptionPortIn).markSubscriptionPaymentCompleted(subscriptionId);
+        verify(subscriptionPortIn).markSubscriptionInvoicePaymentCompleted(subscriptionId, invoiceId);
         verify(settlementPortIn).allocateForCompletedPayment(savedPayment.getPaymentId());
         verify(parkingCheckoutCompletionPortIn).completePaidCheckout(invoiceId);
     }

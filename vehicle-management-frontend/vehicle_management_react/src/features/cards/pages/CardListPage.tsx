@@ -74,8 +74,8 @@ const subscriptionStatusLabels: Record<string, string> = {
   CANCELLED: "Đã hủy",
   EXPIRED: "Hết hạn",
   PENDING: "Chờ duyệt",
-  PENDING_CARD: "Chờ nhận thẻ",
   PENDING_PAYMENT: "Chờ thanh toán",
+  PENDING_SPACE: "Chờ chọn vị trí",
   REJECTED: "Từ chối",
   RESERVED: "Đã giữ",
 };
@@ -132,7 +132,7 @@ function formatCurrency(value?: number | null) {
 function subscriptionState(status?: string | null): CardSubscriptionState {
   if (!status) return "none";
   if (status === "ACTIVE" || status === "APPROVED") return "active";
-  if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "PENDING_CARD" || status === "RESERVED") return "pending";
+  if (status === "PENDING" || status === "PENDING_PAYMENT" || status === "PENDING_SPACE" || status === "RESERVED") return "pending";
   if (status === "EXPIRED" || status === "CANCELLED" || status === "REJECTED") return "expired";
   return "active";
 }

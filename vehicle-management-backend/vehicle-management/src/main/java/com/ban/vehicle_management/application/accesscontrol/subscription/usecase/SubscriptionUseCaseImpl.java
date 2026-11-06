@@ -4,8 +4,12 @@ import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPo
 import com.ban.vehicle_management.application.accesscontrol.subscription.authorization.SubscriptionAccessGuard;
 import com.ban.vehicle_management.application.accesscontrol.subscription.config.SubscriptionTimeProperties;
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionSpaceSelection;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalQuote;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalResult;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionRenewalPortOut;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.catalog.voucher.model.result.VoucherQuote;
 import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
@@ -23,6 +27,7 @@ import com.ban.vehicle_management.application.people.customervehicle.port.out.Cu
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.domain.accesscontrol.card.policy.CardPolicy;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.domain.accesscontrol.subscription.model.SubscriptionRenewal;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.policy.SubscriptionPolicy;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.common.licenseplate.LicensePlatePolicy;
@@ -34,12 +39,16 @@ import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.domain.people.customer.model.Customer;
 import com.ban.vehicle_management.domain.people.customervehicle.model.CustomerVehicle;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionRenewalStatus;
 import com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -74,6 +83,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private static final int MAX_OWN_LIST_LIMIT = 200;
 
     private final SubscriptionPortOut subscriptionPortOut;
+    private final SubscriptionRenewalPortOut subscriptionRenewalPortOut;
     private final CustomerVehiclePortOut customerVehiclePortOut;
     private final CustomerPortOut customerPortOut;
     private final TicketTypePortOut ticketTypePortOut;
@@ -89,12 +99,14 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     private final NotificationPortIn notificationPortIn;
     private final SubscriptionParkingAllocationService parkingAllocationService;
     private final Duration allocationHoldDuration;
+    private final Duration spaceSelectionDuration;
     private final SubscriptionPolicy subscriptionPolicy = new SubscriptionPolicy();
     private final CardPolicy cardPolicy = new CardPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
 
     public SubscriptionUseCaseImpl(
             SubscriptionPortOut subscriptionPortOut,
+            SubscriptionRenewalPortOut subscriptionRenewalPortOut,
             CustomerVehiclePortOut customerVehiclePortOut,
             CustomerPortOut customerPortOut,
             TicketTypePortOut ticketTypePortOut,
@@ -112,6 +124,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             SubscriptionTimeProperties timeProperties
     ) {
         this.subscriptionPortOut = subscriptionPortOut;
+        this.subscriptionRenewalPortOut = subscriptionRenewalPortOut;
         this.customerVehiclePortOut = customerVehiclePortOut;
         this.customerPortOut = customerPortOut;
         this.ticketTypePortOut = ticketTypePortOut;
@@ -128,6 +141,8 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         this.parkingAllocationService = parkingAllocationService;
         this.allocationHoldDuration = timeProperties == null
                 ? Duration.ofHours(48) : timeProperties.getPaymentTimeout();
+        this.spaceSelectionDuration = timeProperties == null
+                ? Duration.ofHours(24) : timeProperties.getSpaceSelectionTimeout();
     }
 
     @Override
@@ -298,14 +313,6 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             throw new ConflictException("Active invoice already exists for subscription");
         }
 
-        Card savedReservedCard = null;
-        if (Boolean.TRUE.equals(subscription.getPhysicalCardRequested())) {
-            Card reservedCard = cardPortOut.findFirstAvailableRegisteredInParkingLot(subscription.getParkingLotId())
-                    .orElseThrow(() -> new ConflictException("No available registered card"));
-            cardPolicy.reserve(reservedCard);
-            savedReservedCard = cardPortOut.save(reservedCard);
-        }
-
         VoucherQuote voucherQuote = applyVoucherQuote(subscription, preparedData, now);
         BigDecimal invoiceFinalAmount = voucherQuote.finalAmount();
         subscriptionPolicy.approve(
@@ -313,14 +320,19 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 currentAccountPortIn.getCurrentAccountIdOrThrow(),
                 now,
                 today,
-                savedReservedCard == null ? null : savedReservedCard.getCardId(),
+                null,
                 invoiceFinalAmount
         );
 
         if (parkingAllocationService != null) {
-            parkingAllocationService.holdForApproval(subscription,
+            TrackingMode allocationMode = parkingAllocationService.holdForApproval(subscription,
                     preparedData.priceRule().getVehicleTypeId(), now.plus(allocationHoldDuration));
-            if (subscription.getStatus()
+            if (allocationMode == TrackingMode.SPACE) {
+                Duration timeout = subscription.getStatus()
+                        == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.PENDING_PAYMENT
+                        ? allocationHoldDuration : spaceSelectionDuration;
+                subscriptionPolicy.requireSpaceSelection(subscription, now.plus(timeout));
+            } else if (subscription.getStatus()
                     == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
                 parkingAllocationService.activate(subscription);
             }
@@ -333,6 +345,10 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
                 voucherQuote.discountAmount(),
                 now
         ));
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            completePhysicalCardFulfillment(approvedSubscription);
+            approvedSubscription = subscriptionPortOut.save(approvedSubscription);
+        }
         if (voucherQuote.voucherId() != null) {
             voucherPortIn.reserveSubscriptionVoucher(
                     voucherQuote.voucherCode(),
@@ -384,13 +400,46 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
     @Override
     @Transactional
     public Subscription markSubscriptionPaymentCompleted(UUID subscriptionId) {
-        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
+        Invoice invoice = invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                        subscriptionId,
+                        InvoicePurpose.SUBSCRIPTION_PURCHASE,
+                        InvoiceStatus.PAID
+                )
+                .orElseGet(() -> invoicePortOut.findFirstBySubscriptionIdAndStatus(
+                                subscriptionId, InvoiceStatus.PAID)
+                        .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription")));
+        return markSubscriptionInvoicePaymentCompleted(subscriptionId, invoice.getInvoiceId());
+    }
 
-        invoicePortOut.findFirstBySubscriptionIdAndStatus(subscriptionId, InvoiceStatus.PAID)
+    @Override
+    @Transactional
+    public Subscription markSubscriptionInvoicePaymentCompleted(UUID subscriptionId, UUID invoiceId) {
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
+        Invoice invoice = invoicePortOut.findById(invoiceId)
+                .filter(candidate -> subscriptionId.equals(candidate.getSubscriptionId()))
+                .filter(candidate -> candidate.getStatus() == InvoiceStatus.PAID)
                 .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription"));
 
-        voucherPortIn.redeemSubscriptionVoucher(subscriptionId, subscription.getParkingLotId(), Instant.now());
+        if (invoice.getPurpose() == InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT) {
+            completePhysicalCardFulfillment(subscription);
+            return subscriptionPortOut.save(subscription);
+        }
+        if (invoice.getPurpose() == InvoicePurpose.SUBSCRIPTION_RENEWAL) {
+            return completeRenewalPayment(subscription, invoice);
+        }
+        if (invoice.getPurpose() != null
+                && invoice.getPurpose() != InvoicePurpose.SUBSCRIPTION_PURCHASE) {
+            throw new ConflictException("Invoice does not complete a subscription purchase");
+        }
+
+        Instant now = Instant.now();
+        voucherPortIn.redeemSubscriptionVoucher(subscriptionId, subscription.getParkingLotId(), now);
+        if (Boolean.TRUE.equals(subscription.getSpaceSelectionRequired())) {
+            subscriptionPolicy.requireSpaceSelection(subscription, now.plus(spaceSelectionDuration));
+            parkingAllocationService.extendSpaceHold(subscriptionId, now.plus(spaceSelectionDuration));
+        }
         subscriptionPolicy.markPaymentCompleted(subscription);
+        completePhysicalCardFulfillment(subscription);
         if (parkingAllocationService != null
                 && subscription.getStatus()
                 == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
@@ -401,6 +450,271 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         return savedSubscription;
     }
 
+    private Subscription completeRenewalPayment(Subscription subscription, Invoice invoice) {
+        SubscriptionRenewal renewal = subscriptionRenewalPortOut.findByInvoiceIdForUpdate(invoice.getInvoiceId())
+                .orElseThrow(() -> new ConflictException("Subscription renewal not found for paid invoice"));
+        if (renewal.getStatus() == SubscriptionRenewalStatus.APPLIED
+                || renewal.getStatus() == SubscriptionRenewalStatus.SCHEDULED) {
+            return subscription;
+        }
+        if (renewal.getStatus() != SubscriptionRenewalStatus.PENDING_PAYMENT) {
+            throw new ConflictException("Subscription renewal is not awaiting payment");
+        }
+
+        Instant now = Instant.now();
+        voucherPortIn.redeemSubscriptionVoucherByInvoice(
+                invoice.getInvoiceId(), subscription.getParkingLotId(), now);
+
+        if (subscription.getEffectiveTo() == null
+                || subscription.getEffectiveTo().isBefore(renewal.getEffectiveTo())) {
+            subscription.setEffectiveTo(renewal.getEffectiveTo());
+        }
+        if (Boolean.TRUE.equals(renewal.getPhysicalCardRequested())
+                && !Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
+                && subscription.getPhysicalCardStatus() == PhysicalCardFulfillmentStatus.NOT_REQUESTED) {
+            subscriptionPolicy.requestPhysicalCard(subscription, renewal.getPhysicalCardDeposit());
+            completePhysicalCardFulfillment(subscription);
+        }
+
+        if (!renewal.getEffectiveFrom().isAfter(currentDate())) {
+            applyRenewalTerms(subscription, renewal);
+            renewal.setStatus(SubscriptionRenewalStatus.APPLIED);
+            renewal.setAppliedAt(now);
+        } else {
+            renewal.setStatus(SubscriptionRenewalStatus.SCHEDULED);
+        }
+        subscriptionRenewalPortOut.save(renewal);
+        Subscription savedSubscription = subscriptionPortOut.save(subscription);
+        if (parkingAllocationService != null) {
+            parkingAllocationService.activate(savedSubscription);
+        }
+        notifySubscriptionPaymentCompleted(savedSubscription);
+        return savedSubscription;
+    }
+
+    private void applyRenewalTerms(Subscription subscription, SubscriptionRenewal renewal) {
+        subscription.setTicketTypeId(renewal.getTicketTypeId());
+        subscription.setPriceRuleId(renewal.getPriceRuleId());
+        subscription.setPeriodQuantity(renewal.getPeriodQuantity());
+        subscription.setPrice(renewal.getTicketAmount());
+        subscription.setRequestedVoucherCode(renewal.getVoucherCode());
+    }
+
+    @Override
+    @Transactional
+    public Invoice requestMyPhysicalCard(UUID subscriptionId) {
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
+        subscriptionAccessGuard.ensureCanUpdateOwn(subscription);
+
+        if (invoicePortOut.existsBySubscriptionIdAndPurposeAndStatusIn(
+                subscriptionId,
+                InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT,
+                ACTIVE_INVOICE_STATUSES
+        )) {
+            throw new ConflictException("Physical card deposit invoice already exists");
+        }
+
+        PriceRule priceRule = priceRulePortOut.findById(subscription.getPriceRuleId())
+                .orElseThrow(() -> new NotFoundException("Subscription price rule not found"));
+        BigDecimal deposit = priceRule.getLostCardFee() == null
+                ? BigDecimal.ZERO : priceRule.getLostCardFee();
+        subscriptionPolicy.requestPhysicalCard(subscription, deposit);
+
+        CustomerVehicle customerVehicle = customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
+                .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
+        Instant now = Instant.now();
+        Invoice invoice = invoicePortOut.save(buildPhysicalCardDepositInvoice(
+                subscription, customerVehicle, now));
+
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            completePhysicalCardFulfillment(subscription);
+        }
+        subscriptionPortOut.save(subscription);
+        notifySubscriptionInvoiceCreated(invoice);
+        return invoice;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SubscriptionRenewalQuote quoteMySubscriptionRenewal(
+            UUID subscriptionId,
+            UUID ticketTypeId,
+            Integer periodQuantity,
+            String voucherCode,
+            Boolean physicalCardRequested
+    ) {
+        Subscription currentSubscription = findSubscriptionOrThrow(subscriptionId);
+        subscriptionAccessGuard.ensureCanUpdateOwn(currentSubscription);
+        return prepareRenewal(
+                currentSubscription,
+                ticketTypeId,
+                periodQuantity,
+                voucherCode,
+                physicalCardRequested
+        ).quote();
+    }
+
+    @Override
+    @Transactional
+    public SubscriptionRenewalResult renewMySubscription(
+            UUID subscriptionId,
+            UUID ticketTypeId,
+            Integer periodQuantity,
+            String voucherCode,
+            Boolean physicalCardRequested,
+            String idempotencyKey
+    ) {
+        Subscription currentSubscription = findSubscriptionForUpdate(subscriptionId);
+        subscriptionAccessGuard.ensureCanUpdateOwn(currentSubscription);
+
+        String normalizedKey = normalizeIdempotencyKey(idempotencyKey);
+        if (normalizedKey != null) {
+            SubscriptionRenewal existing = subscriptionRenewalPortOut
+                    .findBySubscriptionIdAndIdempotencyKey(subscriptionId, normalizedKey)
+                    .orElse(null);
+            if (existing != null) {
+                Invoice invoice = invoicePortOut.findById(existing.getInvoiceId())
+                        .orElseThrow(() -> new NotFoundException("Renewal invoice not found"));
+                return new SubscriptionRenewalResult(existing, invoice);
+            }
+        }
+        if (subscriptionRenewalPortOut.findLiveBySubscriptionId(subscriptionId).isPresent()) {
+            throw new ConflictException("Subscription already has a renewal awaiting payment");
+        }
+
+        RenewalPreparation preparation = prepareRenewal(
+                currentSubscription,
+                ticketTypeId,
+                periodQuantity,
+                voucherCode,
+                physicalCardRequested
+        );
+        Instant now = Instant.now();
+        UUID renewalId = UUID.randomUUID();
+        Invoice invoice = invoicePortOut.save(buildRenewalInvoice(
+                currentSubscription,
+                preparation,
+                now
+        ));
+
+        VoucherQuote reservedVoucher = voucherPortIn.reserveSubscriptionVoucher(
+                preparation.quote().voucherCode(),
+                currentSubscription.getCustomerId(),
+                preparation.ticketType().getTicketTypeId(),
+                currentSubscription.getParkingLotId(),
+                preparation.quote().ticketAmount(),
+                currentSubscription.getSubscriptionId(),
+                invoice.getInvoiceId(),
+                now
+        );
+
+        SubscriptionRenewal renewal = new SubscriptionRenewal();
+        renewal.setRenewalId(renewalId);
+        renewal.setSubscriptionId(currentSubscription.getSubscriptionId());
+        renewal.setInvoiceId(invoice.getInvoiceId());
+        renewal.setTicketTypeId(preparation.ticketType().getTicketTypeId());
+        renewal.setPriceRuleId(preparation.priceRule().getPriceRuleId());
+        renewal.setPeriodQuantity(normalizePeriodQuantity(periodQuantity));
+        renewal.setEffectiveFrom(preparation.quote().effectiveFrom());
+        renewal.setEffectiveTo(preparation.quote().effectiveTo());
+        renewal.setTicketAmount(preparation.quote().ticketAmount());
+        renewal.setPhysicalCardDeposit(preparation.quote().physicalCardDeposit());
+        renewal.setDiscountAmount(reservedVoucher.discountAmount());
+        renewal.setFinalAmount(preparation.quote().ticketAmount()
+                .add(preparation.quote().physicalCardDeposit())
+                .subtract(reservedVoucher.discountAmount()));
+        renewal.setVoucherCode(reservedVoucher.voucherCode());
+        renewal.setPhysicalCardRequested(preparation.requestsNewPhysicalCard());
+        renewal.setStatus(SubscriptionRenewalStatus.PENDING_PAYMENT);
+        renewal.setIdempotencyKey(normalizedKey);
+        SubscriptionRenewal savedRenewal = subscriptionRenewalPortOut.save(renewal);
+
+        if (invoice.getStatus() == InvoiceStatus.PAID) {
+            completeRenewalPayment(currentSubscription, invoice);
+            savedRenewal = subscriptionRenewalPortOut.findByInvoiceIdForUpdate(invoice.getInvoiceId())
+                    .orElse(savedRenewal);
+        }
+        notifySubscriptionInvoiceCreated(invoice);
+        return new SubscriptionRenewalResult(savedRenewal, invoice);
+    }
+
+    private RenewalPreparation prepareRenewal(
+            Subscription currentSubscription,
+            UUID ticketTypeId,
+            Integer periodQuantity,
+            String voucherCode,
+            Boolean physicalCardRequested
+    ) {
+
+        LocalDate businessDate = currentDate();
+        if (currentSubscription.getStatus()
+                != com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
+            throw new ConflictException("Only an active subscription can be renewed");
+        }
+        if (currentSubscription.getEffectiveTo() == null
+                || currentSubscription.getEffectiveTo().isBefore(businessDate)) {
+            throw new ConflictException("Expired subscription cannot be renewed; create a new subscription instead");
+        }
+
+        Subscription candidate = new Subscription();
+        candidate.setSubscriptionId(currentSubscription.getSubscriptionId());
+        candidate.setParkingLotId(currentSubscription.getParkingLotId());
+        candidate.setCustomerId(currentSubscription.getCustomerId());
+        candidate.setCustomerVehicleId(currentSubscription.getCustomerVehicleId());
+        candidate.setTicketTypeId(ticketTypeId);
+        candidate.setPeriodQuantity(periodQuantity);
+        candidate.setRequestedVoucherCode(voucherCode);
+        candidate.setRequestedEffectiveFrom(currentSubscription.getEffectiveTo().plusDays(1));
+        candidate.setPhysicalCardRequested(false);
+
+        SubscriptionPreparedData preparedData = prepareSubscriptionData(candidate);
+        int periods = normalizePeriodQuantity(periodQuantity);
+        BigDecimal ticketAmount = preparedData.priceRule().getBasePrice()
+                .multiply(BigDecimal.valueOf(periods));
+        LocalDate effectiveFrom = currentSubscription.getEffectiveTo().plusDays(1);
+        LocalDate effectiveTo = effectiveFrom.plusDays(
+                Math.multiplyExact(preparedData.ticketType().getDurationDays(), periods) - 1L);
+
+        boolean alreadyRequested = Boolean.TRUE.equals(currentSubscription.getPhysicalCardRequested())
+                || currentSubscription.getCardId() != null
+                || (currentSubscription.getPhysicalCardStatus() != null
+                && currentSubscription.getPhysicalCardStatus() != PhysicalCardFulfillmentStatus.NOT_REQUESTED);
+        boolean requestsNewCard = Boolean.TRUE.equals(physicalCardRequested) && !alreadyRequested;
+        BigDecimal cardDeposit = requestsNewCard && preparedData.priceRule().getLostCardFee() != null
+                ? preparedData.priceRule().getLostCardFee()
+                : BigDecimal.ZERO;
+        if (cardDeposit.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("physicalCardDeposit must not be negative");
+        }
+
+        VoucherQuote voucherQuote = voucherPortIn.quoteSubscriptionVoucher(
+                voucherCode,
+                currentSubscription.getCustomerId(),
+                preparedData.ticketType().getTicketTypeId(),
+                currentSubscription.getParkingLotId(),
+                ticketAmount,
+                Instant.now()
+        );
+        SubscriptionRenewalQuote quote = new SubscriptionRenewalQuote(
+                effectiveFrom,
+                effectiveTo,
+                ticketAmount,
+                cardDeposit,
+                voucherQuote.voucherCode(),
+                voucherQuote.discountAmount(),
+                voucherQuote.finalAmount().add(cardDeposit),
+                alreadyRequested,
+                alreadyRequested && currentSubscription.getPhysicalCardStatus()
+                        != PhysicalCardFulfillmentStatus.ASSIGNED
+        );
+        return new RenewalPreparation(
+                preparedData.ticketType(),
+                preparedData.priceRule(),
+                quote,
+                requestsNewCard
+        );
+    }
+
     @Override
     @Transactional
     public Subscription assignReservedCard(UUID subscriptionId) {
@@ -408,29 +722,90 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
 
         Subscription subscription = findSubscriptionForUpdate(subscriptionId);
         subscriptionAccessGuard.ensureCanOperate(subscription);
-        TicketType ticketType = findActiveSubscriptionTicketType(subscription.getTicketTypeId());
 
-        invoicePortOut.findFirstBySubscriptionIdAndStatus(subscriptionId, InvoiceStatus.PAID)
-                .orElseThrow(() -> new ConflictException("Paid invoice not found for subscription"));
+        ensurePhysicalCardDepositPaid(subscription);
 
-        Card reservedCard = cardPortOut.findById(subscription.getCardId())
-                .orElseThrow(() -> new NotFoundException("Reserved card not found"));
+        Card reservedCard;
+        if (subscription.getCardId() == null) {
+            reservedCard = cardPortOut.findFirstAvailableRegisteredInParkingLot(subscription.getParkingLotId())
+                    .orElseThrow(() -> new ConflictException("No available registered card"));
+            cardPolicy.reserve(reservedCard);
+            subscription.setCardId(reservedCard.getCardId());
+        } else {
+            reservedCard = cardPortOut.findById(subscription.getCardId())
+                    .orElseThrow(() -> new NotFoundException("Reserved card not found"));
+        }
         ensureCardBelongsToSubscriptionLot(reservedCard, subscription);
 
         Instant now = Instant.now();
         cardPolicy.assignReserved(reservedCard, now);
         subscriptionPolicy.assignReservedCard(
                 subscription,
-                currentDate(),
-                totalDurationDays(subscription, ticketType)
+                currentDate()
         );
-
-        if (parkingAllocationService != null) {
-            parkingAllocationService.activate(subscription);
-        }
 
         cardPortOut.save(reservedCard);
         return subscriptionPortOut.save(subscription);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SubscriptionSpaceSelection getMySpaceSelection(UUID subscriptionId) {
+        Subscription subscription = findSubscriptionOrThrow(subscriptionId);
+        subscriptionAccessGuard.ensureCanReadOwn(subscription);
+        ensureSpaceSelectionAvailable(subscription);
+        UUID vehicleTypeId = subscriptionPortOut.findOperationalVehicleTypeIdBySubscriptionId(subscriptionId)
+                .orElseThrow(() -> new ConflictException("Subscription vehicle type is unavailable"));
+        return parkingAllocationService.getSpaceSelection(subscription, vehicleTypeId);
+    }
+
+    @Override
+    @Transactional
+    public SubscriptionSpaceSelection selectMyParkingSpace(UUID subscriptionId, UUID parkingSpaceId) {
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
+        subscriptionAccessGuard.ensureCanUpdateOwn(subscription);
+        ensureSpaceSelectionAvailable(subscription);
+        UUID vehicleTypeId = subscriptionPortOut.findOperationalVehicleTypeIdBySubscriptionId(subscriptionId)
+                .orElseThrow(() -> new ConflictException("Subscription vehicle type is unavailable"));
+        parkingAllocationService.changeHeldSpace(subscription, parkingSpaceId, vehicleTypeId);
+        return parkingAllocationService.getSpaceSelection(subscription, vehicleTypeId);
+    }
+
+    @Override
+    @Transactional
+    public Subscription confirmMySpaceSelection(UUID subscriptionId) {
+        Subscription subscription = findSubscriptionForUpdate(subscriptionId);
+        subscriptionAccessGuard.ensureCanUpdateOwn(subscription);
+        ensureSpaceSelectionAvailable(subscription);
+        parkingAllocationService.activate(subscription);
+        subscriptionPolicy.confirmSpaceSelection(subscription, Instant.now());
+        return subscriptionPortOut.save(subscription);
+    }
+
+    private void ensureSpaceSelectionAvailable(Subscription subscription) {
+        if (!Boolean.TRUE.equals(subscription.getSpaceSelectionRequired())
+                || subscription.getSpaceSelectionConfirmedAt() != null) {
+            throw new ConflictException("Subscription is not waiting for parking space selection");
+        }
+        if (subscription.getStatus()
+                != com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.PENDING_SPACE) {
+            throw new ConflictException("Complete subscription payment before selecting a parking space");
+        }
+    }
+
+    @Override
+    @Transactional
+    public int finalizeExpiredSpaceSelections(Instant now) {
+        if (now == null) {
+            throw new BadRequestException("now must not be null");
+        }
+        List<Subscription> subscriptions = subscriptionPortOut.findExpiredSpaceSelectionsForUpdate(now);
+        for (Subscription subscription : subscriptions) {
+            parkingAllocationService.activate(subscription);
+            subscriptionPolicy.confirmSpaceSelection(subscription, now);
+            subscriptionPortOut.save(subscription);
+        }
+        return subscriptions.size();
     }
 
     @Override
@@ -707,6 +1082,7 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         invoice.setInvoiceId(UUID.randomUUID());
         invoice.setCustomerId(subscription.getCustomerId());
         invoice.setSubscriptionId(subscription.getSubscriptionId());
+        invoice.setPurpose(InvoicePurpose.SUBSCRIPTION_PURCHASE);
         invoice.setParkingLotId(subscription.getParkingLotId());
         invoice.setAmount(subscriptionChargeBase(subscription));
         invoice.setDiscountAmount(discountAmount);
@@ -723,6 +1099,88 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
         );
 
         return invoice;
+    }
+
+    private Invoice buildPhysicalCardDepositInvoice(
+            Subscription subscription,
+            CustomerVehicle customerVehicle,
+            Instant now
+    ) {
+        Invoice invoice = new Invoice();
+        invoice.setInvoiceId(UUID.randomUUID());
+        invoice.setCustomerId(subscription.getCustomerId());
+        invoice.setSubscriptionId(subscription.getSubscriptionId());
+        invoice.setParkingLotId(subscription.getParkingLotId());
+        invoice.setPurpose(InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT);
+        invoice.setAmount(subscription.getPhysicalCardDeposit());
+        invoice.setDiscountAmount(BigDecimal.ZERO);
+        LicensePlateResolution plate = new LicensePlatePolicy().resolve(customerVehicle.getLicensePlate(), null);
+        invoice.setLicensePlateNormalizedSnapshot(plate.normalized());
+        invoice.setLicensePlateDisplaySnapshot(plate.display());
+        invoice.setLicensePlateFormatSnapshot(plate.format().name());
+        invoice.setLicensePlateFormatVersion(LicensePlatePolicy.FORMAT_VERSION);
+        invoicePolicy.initializeNewInvoice(invoice, generateInvoiceNo(invoice.getInvoiceId(), now), now);
+        return invoice;
+    }
+
+    private Invoice buildRenewalInvoice(
+            Subscription subscription,
+            RenewalPreparation preparation,
+            Instant now
+    ) {
+        CustomerVehicle customerVehicle = customerVehiclePortOut.findById(subscription.getCustomerVehicleId())
+                .orElseThrow(() -> new NotFoundException("Customer vehicle not found"));
+        Invoice invoice = new Invoice();
+        invoice.setInvoiceId(UUID.randomUUID());
+        invoice.setCustomerId(subscription.getCustomerId());
+        invoice.setSubscriptionId(subscription.getSubscriptionId());
+        invoice.setParkingLotId(subscription.getParkingLotId());
+        invoice.setPurpose(InvoicePurpose.SUBSCRIPTION_RENEWAL);
+        invoice.setAmount(preparation.quote().ticketAmount()
+                .add(preparation.quote().physicalCardDeposit()));
+        invoice.setDiscountAmount(preparation.quote().discountAmount());
+        LicensePlateResolution plate = new LicensePlatePolicy().resolve(customerVehicle.getLicensePlate(), null);
+        invoice.setLicensePlateNormalizedSnapshot(plate.normalized());
+        invoice.setLicensePlateDisplaySnapshot(plate.display());
+        invoice.setLicensePlateFormatSnapshot(plate.format().name());
+        invoice.setLicensePlateFormatVersion(LicensePlatePolicy.FORMAT_VERSION);
+        invoicePolicy.initializeNewInvoice(invoice, generateInvoiceNo(invoice.getInvoiceId(), now), now);
+        return invoice;
+    }
+
+    private void completePhysicalCardFulfillment(Subscription subscription) {
+        if (!Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
+                || subscription.getPhysicalCardStatus() != PhysicalCardFulfillmentStatus.PAYMENT_PENDING) {
+            return;
+        }
+
+        var availableCard = cardPortOut.findFirstAvailableRegisteredInParkingLot(subscription.getParkingLotId());
+        if (availableCard.isEmpty()) {
+            subscriptionPolicy.waitForPhysicalCardInventory(subscription);
+            return;
+        }
+
+        Card card = availableCard.get();
+        ensureCardBelongsToSubscriptionLot(card, subscription);
+        cardPolicy.reserve(card);
+        cardPortOut.save(card);
+        subscriptionPolicy.reservePhysicalCard(subscription, card.getCardId());
+    }
+
+    private void ensurePhysicalCardDepositPaid(Subscription subscription) {
+        boolean separateDepositPaid = invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                subscription.getSubscriptionId(),
+                InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT,
+                InvoiceStatus.PAID
+        ).isPresent();
+        boolean purchasePaid = invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                subscription.getSubscriptionId(),
+                InvoicePurpose.SUBSCRIPTION_PURCHASE,
+                InvoiceStatus.PAID
+        ).isPresent();
+        if (!separateDepositPaid && !purchasePaid) {
+            throw new ConflictException("Paid physical card deposit not found for subscription");
+        }
     }
 
     private String generateInvoiceNo(UUID invoiceId, Instant now) {
@@ -874,6 +1332,14 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             CustomerVehicle customerVehicle,
             TicketType ticketType,
             PriceRule priceRule
+    ) {
+    }
+
+    private record RenewalPreparation(
+            TicketType ticketType,
+            PriceRule priceRule,
+            SubscriptionRenewalQuote quote,
+            boolean requestsNewPhysicalCard
     ) {
     }
 }

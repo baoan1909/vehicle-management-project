@@ -40,11 +40,18 @@ export type CustomerPortalPriceRule = PriceRuleApiResponse;
 export type CustomerPortalSubscriptionStatus =
   | "PENDING"
   | "PENDING_PAYMENT"
-  | "PENDING_CARD"
+  | "PENDING_SPACE"
   | "ACTIVE"
   | "EXPIRED"
   | "CANCELLED"
   | "REJECTED";
+
+export type CustomerPortalPhysicalCardStatus =
+  | "NOT_REQUESTED"
+  | "PAYMENT_PENDING"
+  | "RESERVED"
+  | "WAITING_INVENTORY"
+  | "ASSIGNED";
 
 export type CustomerPortalSubscription = {
   parkingLotId?: string | null;
@@ -66,6 +73,7 @@ export type CustomerPortalSubscription = {
   periodQuantity?: number | null;
   physicalCardRequested?: boolean | null;
   physicalCardDeposit?: number | string | null;
+  physicalCardStatus?: CustomerPortalPhysicalCardStatus | null;
   rejectedAt?: string | null;
   rejectedBy?: string | null;
   rejectionReason?: string | null;
@@ -76,6 +84,32 @@ export type CustomerPortalSubscription = {
   ticketTypeId: string;
   updatedAt?: string | null;
   updatedBy?: string | null;
+  spaceSelectionRequired?: boolean | null;
+  spaceSelectionConfirmedAt?: string | null;
+  spaceSelectionExpiresAt?: string | null;
+};
+
+export type CustomerPortalSubscriptionSpace = {
+  parkingSpaceId: string;
+  code: string;
+  status: string;
+  x: number | string | null;
+  y: number | string | null;
+  width: number | string | null;
+  height: number | string | null;
+  rotation: number | string | null;
+  selected: boolean;
+  selectable: boolean;
+};
+
+export type CustomerPortalSpaceSelection = {
+  subscriptionId: string;
+  selectedParkingSpaceId: string;
+  selectedParkingSpaceCode: string;
+  canvasWidth: number | string;
+  canvasHeight: number | string;
+  selectionExpiresAt?: string | null;
+  spaces: CustomerPortalSubscriptionSpace[];
 };
 
 export type CreateMySubscriptionRequest = {
@@ -222,6 +256,29 @@ export async function createMySubscription(payload: CreateMySubscriptionRequest,
   return response.data;
 }
 
+export async function getMySubscriptionSpaceSelection(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<CustomerPortalSpaceSelection>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/space-selection`,
+  );
+  return response.data;
+}
+
+export async function selectMySubscriptionParkingSpace(subscriptionId: string, parkingSpaceId: string) {
+  const response = await apiClient<ApiResponse<CustomerPortalSpaceSelection>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/space-selection`,
+    { body: { parkingSpaceId }, method: "PUT" },
+  );
+  return response.data;
+}
+
+export async function confirmMySubscriptionSpaceSelection(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<CustomerPortalSubscription>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/space-selection/confirm`,
+    { method: "POST" },
+  );
+  return response.data;
+}
+
 export type CustomerPortalParkingLot = {
   parkingLotId: string;
   name: string;
@@ -276,9 +333,18 @@ export type CustomerPortalInvoice = {
   invoiceNo: string;
   issuedAt?: string | null;
   paidAt?: string | null;
+  purpose?: CustomerPortalInvoicePurpose | null;
   status: "UNPAID" | "PAID" | "CANCELLED" | "REFUNDED";
   subscriptionId?: string | null;
 };
+
+export type CustomerPortalInvoicePurpose =
+  | "MANUAL"
+  | "PARKING_SESSION"
+  | "SUBSCRIPTION_PURCHASE"
+  | "SUBSCRIPTION_RENEWAL"
+  | "SUBSCRIPTION_CARD_DEPOSIT"
+  | "LOST_CARD";
 
 export async function getMySubscriptionInvoices(subscriptionIds: string[]) {
   const params = new URLSearchParams();
@@ -292,12 +358,103 @@ export async function getMySubscriptionInvoices(subscriptionIds: string[]) {
 
 export async function getMySubscriptionInvoice(subscriptionId: string) {
   const invoices = await getMySubscriptionInvoices([subscriptionId]);
+  const purchaseInvoices = invoices.filter((invoice) => (
+    !invoice.purpose || invoice.purpose === "SUBSCRIPTION_PURCHASE"
+  ));
   return (
-    invoices.find((invoice) => invoice.status === "UNPAID")
-    ?? invoices.find((invoice) => invoice.status === "PAID")
-    ?? invoices[0]
+    purchaseInvoices.find((invoice) => invoice.status === "UNPAID")
+    ?? purchaseInvoices.find((invoice) => invoice.status === "PAID")
+    ?? purchaseInvoices[0]
     ?? null
   );
+}
+
+export async function getMySubscriptionCardDepositInvoice(subscriptionId: string) {
+  const invoices = await getMySubscriptionInvoices([subscriptionId]);
+  const depositInvoices = invoices.filter((invoice) => invoice.purpose === "SUBSCRIPTION_CARD_DEPOSIT");
+  return (
+    depositInvoices.find((invoice) => invoice.status === "UNPAID")
+    ?? depositInvoices.find((invoice) => invoice.status === "PAID")
+    ?? depositInvoices[0]
+    ?? null
+  );
+}
+
+export async function requestMySubscriptionPhysicalCard(subscriptionId: string) {
+  const response = await apiClient<ApiResponse<CustomerPortalInvoice>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/physical-card-request`,
+    { method: "POST" },
+  );
+  return response.data;
+}
+
+export async function renewMySubscription(
+  subscriptionId: string,
+  payload: CustomerPortalSubscriptionRenewalRequest,
+  idempotencyKey?: string,
+) {
+  const response = await apiClient<ApiResponse<CustomerPortalSubscriptionRenewalResult>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/renewal`,
+    {
+      body: payload,
+      headers: idempotencyKey ? { "Idempotency-Key": idempotencyKey } : undefined,
+      method: "POST",
+    },
+  );
+  return response.data;
+}
+
+export type CustomerPortalSubscriptionRenewalRequest = {
+  ticketTypeId: string;
+  periodQuantity: number;
+  voucherCode?: string;
+  physicalCardRequested: boolean;
+};
+
+export type CustomerPortalSubscriptionRenewalQuote = {
+  effectiveFrom: string;
+  effectiveTo: string;
+  ticketAmount: number | string;
+  physicalCardDeposit: number | string;
+  voucherCode?: string | null;
+  discountAmount: number | string;
+  finalAmount: number | string;
+  reusesExistingCard: boolean;
+  physicalCardRequestPending: boolean;
+};
+
+export type CustomerPortalSubscriptionRenewal = {
+  renewalId: string;
+  subscriptionId: string;
+  invoiceId: string;
+  ticketTypeId: string;
+  priceRuleId: string;
+  periodQuantity: number;
+  effectiveFrom: string;
+  effectiveTo: string;
+  ticketAmount: number | string;
+  physicalCardDeposit: number | string;
+  discountAmount: number | string;
+  finalAmount: number | string;
+  voucherCode?: string | null;
+  physicalCardRequested: boolean;
+  status: "PENDING_PAYMENT" | "SCHEDULED" | "APPLIED" | "CANCELLED";
+};
+
+export type CustomerPortalSubscriptionRenewalResult = {
+  renewal: CustomerPortalSubscriptionRenewal;
+  invoice: CustomerPortalInvoice;
+};
+
+export async function quoteMySubscriptionRenewal(
+  subscriptionId: string,
+  payload: CustomerPortalSubscriptionRenewalRequest,
+) {
+  const response = await apiClient<ApiResponse<CustomerPortalSubscriptionRenewalQuote>>(
+    `${apiEndpoints.accessControl.subscriptions}/me/${subscriptionId}/renewal/quote`,
+    { body: payload, method: "POST" },
+  );
+  return response.data;
 }
 
 export async function getCustomerPortalVoucherBanners(parkingLotId?: string) {

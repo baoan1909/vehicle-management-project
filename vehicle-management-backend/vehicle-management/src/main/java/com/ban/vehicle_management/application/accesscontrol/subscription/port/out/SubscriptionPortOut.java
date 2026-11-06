@@ -71,6 +71,8 @@ public interface SubscriptionPortOut {
             LocalDate requestedEffectiveDateCutoff
     );
 
+    List<Subscription> findExpiredSpaceSelectionsForUpdate(Instant now);
+
     int expireActiveSubscriptionsBefore(LocalDate businessDate);
 
     List<Subscription> findActiveSubscriptionsExpiringOn(LocalDate effectiveTo);
