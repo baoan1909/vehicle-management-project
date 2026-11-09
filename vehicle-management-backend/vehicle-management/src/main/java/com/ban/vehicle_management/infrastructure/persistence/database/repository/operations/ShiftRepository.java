@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ShiftEntity;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftStatus;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionParkingResourceProjection;
 import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
 import java.util.List;
@@ -16,6 +17,13 @@ import org.springframework.data.repository.query.Param;
 public interface ShiftRepository
         extends JpaRepository<ShiftEntity, UUID>,
         JpaSpecificationExecutor<ShiftEntity> {
+
+    @Query(value = """
+        select shift_id as "resourceId", parking_lot_id as "parkingLotId"
+        from operations.shifts where opened_by=:accountId and status='OPEN'
+        """, nativeQuery = true)
+    List<AccountDeletionParkingResourceProjection> findDeletionBlockingResponsibilities(
+            @Param("accountId") UUID accountId);
 
     boolean existsByShiftCode(String shiftCode);
 

@@ -23,6 +23,8 @@ public class ProvisionedAccountPolicy {
             case LOCKED -> UserProfileStatus.SUSPENDED;
             case DISABLED -> UserProfileStatus.INACTIVE;
             case PENDING -> throw new BadRequestException("Provisioned accounts do not support PENDING status");
+            case PENDING_DELETION, DELETED -> throw new BadRequestException(
+                    "Pending-deletion or deleted accounts cannot be provisioned or updated");
         };
     }
 
@@ -38,6 +40,8 @@ public class ProvisionedAccountPolicy {
             case LOCKED -> EmployeeStatus.SUSPENDED;
             case DISABLED -> EmployeeStatus.INACTIVE;
             case PENDING -> throw new BadRequestException("Provisioned accounts do not support PENDING status");
+            case PENDING_DELETION, DELETED -> throw new BadRequestException(
+                    "Pending-deletion or deleted accounts cannot be provisioned or updated");
         };
     }
 
@@ -46,6 +50,8 @@ public class ProvisionedAccountPolicy {
             case ACTIVE -> CustomerStatus.ACTIVE;
             case LOCKED, DISABLED -> CustomerStatus.INACTIVE;
             case PENDING -> throw new BadRequestException("Provisioned accounts do not support PENDING status");
+            case PENDING_DELETION, DELETED -> throw new BadRequestException(
+                    "Pending-deletion or deleted accounts cannot be provisioned or updated");
         };
     }
 

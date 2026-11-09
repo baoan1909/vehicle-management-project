@@ -131,7 +131,9 @@ public class NotificationPersistenceAdapter implements NotificationPortOut {
 
     @Override
     public boolean existsAccountById(UUID accountId) {
-        return accountRepository.existsById(accountId);
+        return accountRepository.findById(accountId)
+                .map(account -> account.getStatus() == AccountStatus.ACTIVE)
+                .orElse(false);
     }
 
     @Override

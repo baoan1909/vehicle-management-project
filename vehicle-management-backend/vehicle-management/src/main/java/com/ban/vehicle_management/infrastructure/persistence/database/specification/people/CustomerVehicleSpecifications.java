@@ -3,6 +3,10 @@ package com.ban.vehicle_management.infrastructure.persistence.database.specifica
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerVehicleEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.SubscriptionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatus;
@@ -53,6 +57,13 @@ public final class CustomerVehicleSpecifications {
     ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+            Join<CustomerVehicleEntity, CustomerEntity> visibleCustomer = root.join("customer", JoinType.INNER);
+            Join<CustomerEntity, UserProfileEntity> visibleProfile = visibleCustomer.join("userProfile", JoinType.INNER);
+            Join<UserProfileEntity, AccountEntity> visibleAccount = visibleProfile.join("account", JoinType.INNER);
+            predicates.add(criteriaBuilder.notEqual(visibleCustomer.get("status"), CustomerStatus.DELETED));
+            predicates.add(criteriaBuilder.notEqual(visibleProfile.get("status"), UserProfileStatus.DELETED));
+            predicates.add(criteriaBuilder.not(visibleAccount.get("status").in(
+                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED)));
 
             if (customerId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("customerId"), customerId));
@@ -87,6 +98,10 @@ public final class CustomerVehicleSpecifications {
             query.orderBy(criteriaBuilder.asc(root.get("licensePlate")));
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    public static Specification<CustomerVehicleEntity> businessVisible() {
+        return withFilters(null, null, null, null, null);
     }
 
     private static boolean hasText(String value) {

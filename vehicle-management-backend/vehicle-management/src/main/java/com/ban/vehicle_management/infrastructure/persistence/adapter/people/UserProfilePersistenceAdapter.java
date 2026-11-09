@@ -47,7 +47,7 @@ public class    UserProfilePersistenceAdapter implements UserProfilePortOut {
 
     @Override
     public Optional<UserProfile> findById(UUID userProfileId) {
-        return userProfileRepository.findById(userProfileId)
+        return userProfileRepository.findBusinessVisibleById(userProfileId)
                 .map(userProfilePersistenceMapper::toDomain);
     }
 

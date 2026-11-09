@@ -33,7 +33,6 @@ import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
-import jakarta.persistence.EntityManager;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +59,6 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
     private final AccountStatusHistoryPersistenceMapper accountStatusHistoryPersistenceMapper;
     private final ProvisionedAccountReadModelMapper provisionedAccountReadModelMapper;
     private final UserProfilePersistenceMapper userProfilePersistenceMapper;
-    private final EntityManager entityManager;
 
     public ProvisionedAccountPersistenceAdapter(
             AccountRepository accountRepository,
@@ -72,8 +70,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
             AccountPersistenceMapper accountPersistenceMapper,
             AccountStatusHistoryPersistenceMapper accountStatusHistoryPersistenceMapper,
             ProvisionedAccountReadModelMapper provisionedAccountReadModelMapper,
-            UserProfilePersistenceMapper userProfilePersistenceMapper,
-            EntityManager entityManager
+            UserProfilePersistenceMapper userProfilePersistenceMapper
     ) {
         this.accountRepository = accountRepository;
         this.roleRepository = roleRepository;
@@ -85,7 +82,6 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
         this.accountStatusHistoryPersistenceMapper = accountStatusHistoryPersistenceMapper;
         this.provisionedAccountReadModelMapper = provisionedAccountReadModelMapper;
         this.userProfilePersistenceMapper = userProfilePersistenceMapper;
-        this.entityManager = entityManager;
     }
 
     @Override
@@ -109,7 +105,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
     public void provisionAccount(Account account, UserProfile userProfile) {
         userProfileRepository.save(userProfilePersistenceMapper.toEntity(userProfile));
         accountRepository.save(accountPersistenceMapper.toEntity(account));
-        flushAndClear();
+        flushChanges();
     }
 
     @Override
@@ -128,6 +124,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
     @Override
     public Optional<ProvisionedAccountResult> findProvisionedAccountById(UUID accountId) {
         return accountRepository.findById(accountId)
+                .filter(entity -> isBusinessVisible(entity.getStatus()))
                 .map(entity -> withLifecycle(
                         provisionedAccountReadModelMapper.toResult(entity),
                         entity,
@@ -324,6 +321,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
             String reason
     ) {
         AccountEntity accountEntity = accountRepository.findById(accountId)
+                .filter(entity -> isBusinessVisible(entity.getStatus()))
                 .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
         UserProfileEntity userProfileEntity = resolveUserProfile(accountEntity.getUserProfileId());
         CustomerEntity customerEntity = resolveCustomer(accountEntity.getUserProfileId());
@@ -366,21 +364,25 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
         if (employeeEntity != null && employeeStatus != null) {
             employeeRepository.save(employeeEntity);
         }
-        flushAndClear();
+        flushChanges();
     }
 
     @Override
     public void updateProvisionedAccountRole(UUID accountId, UUID roleId) {
         AccountEntity accountEntity = accountRepository.findById(accountId)
+                .filter(entity -> isBusinessVisible(entity.getStatus()))
                 .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
         accountEntity.setRoleId(roleId);
         accountRepository.save(accountEntity);
-        flushAndClear();
+        flushChanges();
     }
 
-    private void flushAndClear() {
+    private boolean isBusinessVisible(AccountStatus status) {
+        return status != AccountStatus.PENDING_DELETION && status != AccountStatus.DELETED;
+    }
+
+    private void flushChanges() {
         accountRepository.flush();
-        entityManager.clear();
     }
 
     private UserProfileEntity resolveUserProfile(UUID userProfileId) {

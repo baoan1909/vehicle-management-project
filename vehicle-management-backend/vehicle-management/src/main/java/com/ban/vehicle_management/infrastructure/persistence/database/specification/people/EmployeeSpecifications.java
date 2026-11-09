@@ -4,6 +4,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -19,6 +21,12 @@ public final class EmployeeSpecifications {
     public static Specification<EmployeeEntity> withFilters(EmployeeStatus status, String keyword) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+            Join<EmployeeEntity, UserProfileEntity> visibleProfile = root.join("userProfile", JoinType.INNER);
+            Join<UserProfileEntity, AccountEntity> visibleAccount = visibleProfile.join("account", JoinType.INNER);
+            predicates.add(criteriaBuilder.notEqual(root.get("status"), EmployeeStatus.DELETED));
+            predicates.add(criteriaBuilder.notEqual(visibleProfile.get("status"), UserProfileStatus.DELETED));
+            predicates.add(criteriaBuilder.not(visibleAccount.get("status").in(
+                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED)));
             if (query.getResultType() != Long.class && query.getResultType() != long.class) {
                 root.fetch("userProfile", JoinType.LEFT).fetch("account", JoinType.LEFT).fetch("role", JoinType.LEFT);
             }
@@ -29,13 +37,11 @@ public final class EmployeeSpecifications {
 
             if (hasText(keyword)) {
                 String normalizedKeyword = "%" + keyword.trim().toLowerCase() + "%";
-                Join<EmployeeEntity, UserProfileEntity> userProfileJoin = root.join("userProfile", JoinType.LEFT);
-                Join<UserProfileEntity, AccountEntity> accountJoin = userProfileJoin.join("account", JoinType.LEFT);
                 predicates.add(criteriaBuilder.or(
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("employeeCode")), normalizedKeyword),
                         criteriaBuilder.like(criteriaBuilder.lower(root.get("jobTitle")), normalizedKeyword),
-                        criteriaBuilder.like(criteriaBuilder.lower(userProfileJoin.get("fullName")), normalizedKeyword),
-                        criteriaBuilder.like(criteriaBuilder.lower(accountJoin.get("email")), normalizedKeyword)
+                        criteriaBuilder.like(criteriaBuilder.lower(visibleProfile.get("fullName")), normalizedKeyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(visibleAccount.get("email")), normalizedKeyword)
                 ));
             }
 

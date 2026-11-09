@@ -18,6 +18,28 @@ import org.springframework.data.repository.query.Param;
 
 public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity, UUID>, JpaSpecificationExecutor<SubscriptionEntity> {
 
+    @Query(value = """
+        select subscription_id from access_control.subscriptions
+        where customer_id=:customerId
+          and status in ('PENDING','PENDING_PAYMENT','PENDING_CARD','ACTIVE') limit 1
+        """, nativeQuery = true)
+    Optional<UUID> findDeletionBlockingSubscriptionId(@Param("customerId") UUID customerId);
+
+    @Query("""
+            select subscription
+            from SubscriptionEntity subscription
+            join subscription.customer customer
+            join customer.userProfile profile
+            join profile.account account
+            where subscription.subscriptionId = :subscriptionId
+              and customer.status <> com.ban.vehicle_management.shared.enumeration.people.CustomerStatus.DELETED
+              and profile.status <> com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus.DELETED
+              and account.status not in (
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
+            """)
+    Optional<SubscriptionEntity> findBusinessVisibleById(@Param("subscriptionId") UUID subscriptionId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select subscription from SubscriptionEntity subscription where subscription.subscriptionId = :subscriptionId")
     Optional<SubscriptionEntity> findByIdForUpdate(@Param("subscriptionId") UUID subscriptionId);

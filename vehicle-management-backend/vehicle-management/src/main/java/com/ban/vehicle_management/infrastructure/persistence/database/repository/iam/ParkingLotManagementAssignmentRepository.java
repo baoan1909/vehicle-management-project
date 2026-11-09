@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.ParkingLotManagementAssignmentEntity;
 import com.ban.vehicle_management.shared.enumeration.iam.ManagementAssignmentStatus;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionManagementAssignmentProjection;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
@@ -15,6 +16,16 @@ import org.springframework.data.repository.query.Param;
 
 public interface ParkingLotManagementAssignmentRepository
         extends JpaRepository<ParkingLotManagementAssignmentEntity, UUID> {
+
+    @Query(value = """
+        select assignment_id as "assignmentId", organization_id as "organizationId",
+               parking_lot_id as "parkingLotId", status as "status"
+        from iam.parking_lot_management_assignments
+        where manager_account_id=:accountId and status in ('PENDING_ACCEPTANCE','ACTIVE')
+          and (effective_to is null or effective_to>now())
+        """, nativeQuery = true)
+    List<AccountDeletionManagementAssignmentProjection> findDeletionBlockingAssignments(
+            @Param("accountId") UUID accountId);
 
     @Query(value = """
         select assignment.parking_lot_id

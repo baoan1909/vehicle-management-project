@@ -4,6 +4,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardNumberSeries;
 import com.ban.vehicle_management.infrastructure.mapper.accesscontrol.CardPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.CardEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
@@ -52,5 +53,16 @@ class CardPersistenceAdapterTest {
         cardPersistenceAdapter.save(card);
 
         verify(cardRepository).saveAndFlush(cardEntity);
+    }
+
+    @Test
+    void shouldUseTypedRepositoryMethodsForCardNumberSequences() {
+        when(cardRepository.nextRegisteredCardNumberSequence()).thenReturn(11L);
+        when(cardRepository.nextVisitorCardNumberSequence()).thenReturn(22L);
+
+        org.junit.jupiter.api.Assertions.assertEquals(
+                11L, cardPersistenceAdapter.nextCardNumberSequence(CardNumberSeries.REGISTERED));
+        org.junit.jupiter.api.Assertions.assertEquals(
+                22L, cardPersistenceAdapter.nextCardNumberSequence(CardNumberSeries.VISITOR));
     }
 }

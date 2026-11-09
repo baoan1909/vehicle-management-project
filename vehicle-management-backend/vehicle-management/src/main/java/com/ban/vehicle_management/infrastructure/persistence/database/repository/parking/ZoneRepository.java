@@ -16,6 +16,13 @@ import java.util.UUID;
 
 public interface ZoneRepository extends JpaRepository<ZoneEntity, UUID>, JpaSpecificationExecutor<ZoneEntity> {
 
+    @Query("""
+            select coalesce(sum(zone.capacity), 0)
+            from ZoneEntity zone
+            where zone.status = com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus.ACTIVE
+            """)
+    long sumDashboardActiveCapacity();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select zone from ZoneEntity zone where zone.zoneId = :zoneId")
     Optional<ZoneEntity> findByIdForUpdate(@Param("zoneId") UUID zoneId);

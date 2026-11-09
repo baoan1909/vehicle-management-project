@@ -17,6 +17,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.shared.enumeration.iam.OrganizationMembershipStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
@@ -62,24 +63,28 @@ public class AccountAuthorizationPersistenceAdapter implements AccountAuthorizat
     @Override
     public Optional<CurrentAccountAccess> findByAccountId(UUID accountId) {
         return accountRepository.findById(accountId)
+                .filter(account -> account.getStatus() != AccountStatus.DELETED)
                 .map(this::toCurrentAccountAccess);
     }
 
     @Override
     public Optional<CurrentAccountAccess> findByKeycloakUserId(String keycloakUserId) {
         return accountRepository.findByKeycloakUserId(keycloakUserId)
+                .filter(account -> account.getStatus() != AccountStatus.DELETED)
                 .map(this::toCurrentAccountAccess);
     }
 
     @Override
     public Optional<UUID> findCreatedByAccountId(UUID accountId) {
         return accountRepository.findById(accountId)
+                .filter(account -> account.getStatus() != AccountStatus.DELETED)
                 .map(AccountEntity::getCreatedBy);
     }
 
     @Override
     public Set<String> findPermissionCodesByAccountId(UUID accountId) {
         return accountRepository.findById(accountId)
+                .filter(account -> account.getStatus() != AccountStatus.DELETED)
                 .map(AccountEntity::getRoleId)
                 .map(rolePermissionRepository::findActivePermissionCodesByRoleId)
                 .orElseGet(Set::of);

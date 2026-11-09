@@ -7,14 +7,38 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 
 public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>, JpaSpecificationExecutor<EmployeeEntity> {
 
     @Query(value = """
+        select employee.employee_id from iam.accounts account
+        join people.employees employee on employee.user_profile_id=account.user_profile_id
+        where account.account_id=:accountId and employee.status<>'DELETED'
+        limit 1
+        """, nativeQuery = true)
+    Optional<UUID> findDeletionEmployeeIdByAccountId(@Param("accountId") UUID accountId);
+
+    @Modifying
+    @Query(value = """
+        update people.employees set employee_code=:marker, job_title=null, hired_at=null,
+               status='DELETED', updated_at=:now where user_profile_id=:profileId
+        """, nativeQuery = true)
+    int tombstoneByUserProfileId(
+            @Param("profileId") UUID profileId,
+            @Param("marker") String marker,
+            @Param("now") java.time.Instant now);
+
+    @Query(value = """
         SELECT employee.employee_id
         FROM people.employees employee
-        WHERE EXISTS (
+        JOIN people.user_profiles profile ON profile.user_profile_id = employee.user_profile_id
+        JOIN iam.accounts visible_account ON visible_account.user_profile_id = profile.user_profile_id
+        WHERE employee.status <> 'DELETED'
+          AND profile.status <> 'DELETED'
+          AND visible_account.status NOT IN ('PENDING_DELETION', 'DELETED')
+          AND (EXISTS (
             SELECT 1
             FROM operations.shift_assignments assignment
             JOIN operations.shifts shift ON shift.shift_id = assignment.shift_id
@@ -31,7 +55,7 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
             WHERE account.user_profile_id = employee.user_profile_id
               AND membership.status = 'ACTIVE'
               AND scope.parking_lot_id = :parkingLotId
-        )
+        ))
         """, nativeQuery = true)
     List<UUID> findEmployeeIdsLinkedToParkingLot(@Param("parkingLotId") UUID parkingLotId);
 
@@ -50,6 +74,11 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
         LEFT JOIN FETCH userProfile.account account
         LEFT JOIN FETCH account.role
         WHERE employee.employeeId = :employeeId
+          AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+          AND userProfile.status <> com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus.DELETED
+          AND account.status NOT IN (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
         """)
     Optional<EmployeeEntity> findDetailedByEmployeeId(@Param("employeeId") UUID employeeId);
 
@@ -62,6 +91,11 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
         JOIN AccountEntity account
           ON account.userProfileId = employee.userProfileId
         WHERE account.accountId = :accountId
+          AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+          AND userProfile.status <> com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus.DELETED
+          AND fetchedAccount.status NOT IN (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
         """)
     Optional<EmployeeEntity> findByAccountId(
             @Param("accountId") UUID accountId
@@ -73,6 +107,10 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
         JOIN AccountEntity account
           ON account.userProfileId = employee.userProfileId
         WHERE employee.employeeId = :employeeId
+          AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+          AND account.status NOT IN (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
         """)
     Optional<UUID> findAccountIdByEmployeeId(
             @Param("employeeId") UUID employeeId

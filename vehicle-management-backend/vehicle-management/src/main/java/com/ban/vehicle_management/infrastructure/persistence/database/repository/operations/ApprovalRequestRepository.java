@@ -9,11 +9,34 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 
 public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequestEntity, UUID> {
+
+    @Query(value = """
+        select approval_request_id from operations.approval_requests
+        where requested_by=:accountId and status='PENDING'
+          and request_type not in ('PARTNER_REGISTRATION','INTERNAL_EMPLOYEE_ONBOARDING',
+                                   'CUSTOMER_ONBOARDING','SYSTEM_ADMIN_ONBOARDING')
+        """, nativeQuery = true)
+    List<UUID> findDeletionBlockingOperationalApprovalIds(@Param("accountId") UUID accountId);
+
+    @Modifying
+    @Query(value = """
+        update operations.approval_requests set status='CANCELLED', updated_at=:now
+        where status='PENDING'
+          and request_type in ('PARTNER_REGISTRATION','INTERNAL_EMPLOYEE_ONBOARDING',
+                               'CUSTOMER_ONBOARDING','SYSTEM_ADMIN_ONBOARDING')
+          and (requested_by=:accountId or target_id=:accountId or target_id=:profileId or target_id in (
+              select employee_id from people.employees where user_profile_id=:profileId))
+        """, nativeQuery = true)
+    int cancelPendingOnboardingForDeletedAccount(
+            @Param("accountId") UUID accountId,
+            @Param("profileId") UUID profileId,
+            @Param("now") Instant now);
     interface EmployeeApprovalTimelineProjection {
         UUID getEventId();
 
@@ -216,6 +239,8 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
               AND approval.status = :status
               AND approval.targetId = employee.employeeId
               AND employee.userProfileId = account.userProfileId
+              AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+              AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION
               AND account.roleId = role.roleId
               AND role.code = :targetRoleCode
             """)
@@ -239,6 +264,8 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
               AND approval.status = :status
               AND approval.targetId = employee.employeeId
               AND employee.userProfileId = account.userProfileId
+              AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+              AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION
               AND account.roleId = role.roleId
               AND role.code = :targetRoleCode
               AND account.createdBy = :createdByAccountId
@@ -264,6 +291,8 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
               AND approval.status = :status
               AND approval.targetId = employee.employeeId
               AND employee.userProfileId = account.userProfileId
+              AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+              AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION
               AND account.roleId = role.roleId
               AND role.code <> :excludedTargetRoleCode
             """)
@@ -289,6 +318,8 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
               AND approval.status = :status
               AND approval.targetId = employee.employeeId
               AND employee.userProfileId = account.userProfileId
+              AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+              AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION
               AND account.roleId = role.roleId
               AND role.code <> :excludedTargetRoleCode
               AND membership.accountId = account.accountId
@@ -312,8 +343,12 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
                    approval.status AS status,
                    approval.note AS note,
                    COALESCE(approval.approvedBy, approval.requestedBy) AS actorAccountId,
-                   COALESCE(approvedByAccount.username, requestedByAccount.username) AS actorUsername,
-                   COALESCE(approvedByProfile.fullName, requestedByProfile.fullName) AS actorFullName
+                   CASE WHEN COALESCE(approvedByAccount.status, requestedByAccount.status) = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa'
+                        ELSE COALESCE(approvedByAccount.username, requestedByAccount.username) END AS actorUsername,
+                   CASE WHEN COALESCE(approvedByAccount.status, requestedByAccount.status) = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa'
+                        ELSE COALESCE(approvedByProfile.fullName, requestedByProfile.fullName) END AS actorFullName
             FROM ApprovalRequestEntity approval
                      LEFT JOIN approval.approvedByAccount approvedByAccount
                      LEFT JOIN approval.requestedByAccount requestedByAccount

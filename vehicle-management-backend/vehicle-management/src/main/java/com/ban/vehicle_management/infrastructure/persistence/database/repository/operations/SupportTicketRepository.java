@@ -14,6 +14,25 @@ import org.springframework.data.repository.query.Param;
 public interface SupportTicketRepository
         extends JpaRepository<SupportTicketEntity, UUID>, JpaSpecificationExecutor<SupportTicketEntity> {
 
+    @Query(value = """
+        select support_ticket_id from operations.support_tickets
+        where assigned_to=:accountId and status in ('OPEN','IN_PROGRESS')
+        """, nativeQuery = true)
+    List<UUID> findDeletionBlockingTicketIds(@Param("accountId") UUID accountId);
+
+    @Query("""
+            select ticket
+            from SupportTicketEntity ticket
+            left join ticket.customer customer
+            left join customer.userProfile profile
+            left join profile.account account
+            where ticket.supportTicketId = :supportTicketId
+              and (ticket.customerId is null or account.status not in (
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
+            """)
+    Optional<SupportTicketEntity> findBusinessVisibleById(@Param("supportTicketId") UUID supportTicketId);
+
     boolean existsByCategoryIdAndStatusIn(UUID categoryId, Collection<SupportTicketStatus> statuses);
 
     boolean existsByCustomerIdAndCategoryIdAndStatusIn(

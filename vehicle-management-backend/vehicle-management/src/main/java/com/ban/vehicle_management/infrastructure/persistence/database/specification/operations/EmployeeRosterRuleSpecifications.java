@@ -1,6 +1,14 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.specification.operations;
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.EmployeeRosterRuleEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import com.ban.vehicle_management.shared.enumeration.operations.AssignmentMode;
 import com.ban.vehicle_management.shared.enumeration.operations.RosterRuleStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftType;
@@ -25,7 +33,8 @@ public final class EmployeeRosterRuleSpecifications {
             LocalDate effectiveDate
     ) {
         return Specification
-                .where(hasParkingLotId(parkingLotId))
+                .where(businessVisibleEmployee())
+                .and(hasParkingLotId(parkingLotId))
                 .and(hasEmployeeId(employeeId))
                 .and(hasPreferredShiftType(preferredShiftType))
                 .and(hasPreferredGateId(preferredGateId))
@@ -33,6 +42,19 @@ public final class EmployeeRosterRuleSpecifications {
                 .and(hasAssignmentMode(assignmentMode))
                 .and(hasStatus(status))
                 .and(isEffectiveOn(effectiveDate));
+    }
+
+    private static Specification<EmployeeRosterRuleEntity> businessVisibleEmployee() {
+        return (root, query, cb) -> {
+            Join<EmployeeRosterRuleEntity, EmployeeEntity> employee = root.join("employee", JoinType.INNER);
+            Join<EmployeeEntity, UserProfileEntity> profile = employee.join("userProfile", JoinType.INNER);
+            Join<UserProfileEntity, AccountEntity> account = profile.join("account", JoinType.INNER);
+            return cb.and(
+                    cb.notEqual(employee.get("status"), EmployeeStatus.DELETED),
+                    cb.notEqual(profile.get("status"), UserProfileStatus.DELETED),
+                    cb.not(account.get("status").in(AccountStatus.PENDING_DELETION, AccountStatus.DELETED))
+            );
+        };
     }
 
     private static Specification<EmployeeRosterRuleEntity> hasParkingLotId(

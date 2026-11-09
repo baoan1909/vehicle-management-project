@@ -1,10 +1,9 @@
 package com.ban.vehicle_management.infrastructure.health;
 
-import java.util.List;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeChunkRepository;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.contributor.Status;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /**
@@ -15,24 +14,17 @@ import org.springframework.stereotype.Component;
 @Component("unaccent")
 public class UnaccentHealthIndicator implements HealthIndicator {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final KnowledgeChunkRepository repository;
 
-    public UnaccentHealthIndicator(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public UnaccentHealthIndicator(KnowledgeChunkRepository repository) {
+        this.repository = repository;
     }
 
     @Override
     public Health health() {
         try {
-            String extensionVersion = singleValue(
-                    "SELECT extversion FROM pg_extension WHERE extname = 'unaccent'");
-            String wrapper = singleValue("""
-                    SELECT proname
-                    FROM pg_proc procedure
-                    JOIN pg_namespace namespace ON namespace.oid = procedure.pronamespace
-                    WHERE namespace.nspname = 'ai'
-                      AND procedure.proname = 'immutable_unaccent'
-                    """);
+            String extensionVersion = repository.findUnaccentExtensionVersion();
+            String wrapper = repository.findImmutableUnaccentWrapper();
             if (wrapper == null) {
                 return Health.down().withDetail("reason", "UNACCENT_WRAPPER_MISSING").build();
             }
@@ -62,8 +54,4 @@ public class UnaccentHealthIndicator implements HealthIndicator {
         }
     }
 
-    private String singleValue(String sql) {
-        List<String> values = jdbcTemplate.query(sql, (resultSet, rowNumber) -> resultSet.getString(1));
-        return values.isEmpty() ? null : values.getFirst();
-    }
 }

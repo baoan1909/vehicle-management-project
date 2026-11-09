@@ -7,13 +7,52 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 public interface AccountRepository extends JpaRepository<AccountEntity, UUID>, JpaSpecificationExecutor<AccountEntity> {
+
+    @Query(value = """
+        select exists(select 1 from iam.accounts account
+        join people.user_profiles profile on profile.user_profile_id = account.user_profile_id
+        where account.account_id = :accountId
+          and account.status in ('ACTIVE', 'PENDING', 'PENDING_DELETION')
+          and profile.status <> 'DELETED'
+          and (exists (select 1 from people.customers customer
+                       where customer.user_profile_id=profile.user_profile_id and customer.status <> 'DELETED')
+            or exists (select 1 from people.employees employee
+                       where employee.user_profile_id=profile.user_profile_id and employee.status <> 'DELETED')
+            or exists (select 1 from iam.organization_memberships membership
+                       where membership.account_id=account.account_id and membership.status='ACTIVE')
+            or exists (select 1 from operations.approval_requests approval
+                       where approval.requested_by=account.account_id and approval.status='PENDING'
+                         and approval.request_type in ('PARTNER_REGISTRATION','INTERNAL_EMPLOYEE_ONBOARDING'))))
+        """, nativeQuery = true)
+    boolean isEligibleForDeletion(@Param("accountId") UUID accountId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select account from AccountEntity account where account.accountId = :accountId")
+    Optional<AccountEntity> findByIdForUpdate(@Param("accountId") UUID accountId);
+
+    @Query("""
+            select count(account)
+            from AccountEntity account
+            where account.createdAt >= :from and account.createdAt < :to
+              and account.status not in (
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
+            """)
+    long countDashboardNewAccounts(@Param("from") Instant from, @Param("to") Instant to);
+
+    @Query(value = "SELECT 1::bigint FROM pg_advisory_xact_lock(hashtextextended(CAST(:lockKey AS text), 0))",
+            nativeQuery = true)
+    long lockRegistrationKey(@Param("lockKey") String lockKey);
     interface ProvisionedAccountLifecycleProjection {
         UUID getAccountId();
         String getEmployeeStatus();
@@ -30,6 +69,8 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID>, J
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);
+
+    boolean existsByAccountIdAndStatusNot(UUID accountId, AccountStatus status);
 
     Optional<AccountEntity> findByKeycloakUserId(String keycloakUserId);
 

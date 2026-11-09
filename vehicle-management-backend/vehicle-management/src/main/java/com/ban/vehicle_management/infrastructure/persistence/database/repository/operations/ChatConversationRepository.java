@@ -12,6 +12,12 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatConversationRepository extends JpaRepository<ChatConversationEntity, UUID> {
 
+    @Query(value = """
+        select conversation_id from operations.chat_conversations
+        where (owner_account_id=:accountId or assigned_to=:accountId) and status='ACTIVE'
+        """, nativeQuery = true)
+    List<UUID> findDeletionBlockingOwnershipIds(@Param("accountId") UUID accountId);
+
     @Query("""
             SELECT conversation
             FROM ChatConversationEntity conversation

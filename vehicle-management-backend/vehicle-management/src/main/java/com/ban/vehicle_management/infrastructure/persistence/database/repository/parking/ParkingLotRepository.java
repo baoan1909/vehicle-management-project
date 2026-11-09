@@ -14,9 +14,75 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
+import java.util.List;
+import java.math.BigDecimal;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotManagementState;
 
 public interface ParkingLotRepository extends JpaRepository<ParkingLotEntity, UUID>, JpaSpecificationExecutor<ParkingLotEntity> {
+
+    @Query(value = "select extversion from pg_extension where extname='postgis'", nativeQuery = true)
+    String findPostGisExtensionVersion();
+
+    @Query(value = """
+        select format_type(attribute.atttypid, attribute.atttypmod)
+        from pg_attribute attribute
+        join pg_class relation on relation.oid=attribute.attrelid
+        join pg_namespace namespace on namespace.oid=relation.relnamespace
+        where namespace.nspname='parking' and relation.relname='parking_lots'
+          and attribute.attname='location' and not attribute.attisdropped
+        limit 1
+        """, nativeQuery = true)
+    String findLocationColumnType();
+
+    @Query(value = """
+        select indexname from pg_indexes where schemaname='parking'
+          and tablename='parking_lots' and indexname='idx_parking_lots_active_location_gist'
+        limit 1
+        """, nativeQuery = true)
+    String findActiveLocationSpatialIndex();
+
+    @Query(value = "select count(*) from parking.parking_lots where status='ACTIVE' and location is null",
+            nativeQuery = true)
+    long countActiveWithoutLocation();
+
+    @Query(value = "select count(*) from parking.parking_lots where geocoding_status='NEEDS_REVIEW'",
+            nativeQuery = true)
+    long countAddressNeedsReview();
+
+    @Query(value = """
+            WITH search_point AS (
+                SELECT public.ST_SetSRID(
+                    public.ST_MakePoint(
+                        CAST(:longitude AS double precision),
+                        CAST(:latitude AS double precision)
+                    ),
+                    4326
+                )::geography AS location
+            )
+            SELECT pl.parking_lot_id AS "parkingLotId",
+                   pl.name AS "name",
+                   pl.address_display AS "addressDisplay",
+                   pl.latitude AS "latitude",
+                   pl.longitude AS "longitude",
+                   pl.status AS "status",
+                   public.ST_Distance(pl.location, search_point.location) AS "distanceMeters"
+            FROM parking.parking_lots pl
+            CROSS JOIN search_point
+            WHERE pl.status IN ('ACTIVE', 'SETUP', 'MAINTENANCE')
+              AND pl.location IS NOT NULL
+              AND public.ST_DWithin(
+                  pl.location,
+                  search_point.location,
+                  CAST(:radiusMeters AS double precision)
+              )
+            ORDER BY "distanceMeters" ASC, pl.parking_lot_id ASC
+            LIMIT :resultLimit
+            """, nativeQuery = true)
+    List<NearbyParkingLotProjection> findNearby(
+            @Param("latitude") BigDecimal latitude,
+            @Param("longitude") BigDecimal longitude,
+            @Param("radiusMeters") BigDecimal radiusMeters,
+            @Param("resultLimit") int resultLimit);
 
     boolean existsByOrganizationIdAndCode(UUID organizationId, String code);
 

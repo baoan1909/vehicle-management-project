@@ -4,6 +4,7 @@ import com.ban.vehicle_management.application.iam.account.model.command.Provisio
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.RoleEntity;
 import com.ban.vehicle_management.shared.enumeration.iam.AdminProvisionableAccountRoleCode;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -22,6 +23,8 @@ public final class ProvisionedAccountSpecifications {
             Join<AccountEntity, RoleEntity> roleJoin = root.join("role", JoinType.INNER);
 
             List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.not(root.get("status").in(
+                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED)));
             Set<AdminProvisionableAccountRoleCode> managedRoleCodes = command.managedRoleCodes();
             if (managedRoleCodes == null || managedRoleCodes.isEmpty()) {
                 return criteriaBuilder.disjunction();

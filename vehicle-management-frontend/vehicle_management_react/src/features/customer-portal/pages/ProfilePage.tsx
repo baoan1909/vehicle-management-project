@@ -18,6 +18,13 @@ import { VehicleVisual } from "@/features/customer-portal/components/VehicleVisu
 import { parsePortalDate } from "@/features/customer-portal/utils/portalDate";
 import { requestPasswordReset } from "@/features/auth/api/authApi";
 import { useAuth } from "@/core/auth/useAuth";
+import { logoutCurrentUser } from "@/core/auth/logout";
+import {
+  cancelCurrentAccountDeletion,
+  getCurrentAccountDeletionRequest,
+  requestCurrentAccountDeletion,
+  type AccountDeletionRequest,
+} from "@/features/iam/api/accountDeletionApi";
 import { completeMyAccountProfile, getMyAvatarModerationStatus, uploadMyAccountAvatar, type AvatarModerationStatus, type UpdateAccountProfileRequest } from "@/features/iam/api/accountProfileApi";
 import { AvatarModerationStatusCard } from "@/features/iam/components/AvatarModerationStatusCard";
 import { mergeProfileDetails } from "@/features/iam/utils/accountProfileMapper";
@@ -69,6 +76,17 @@ function formatDate(value?: string | null) {
 function compactCode(value?: string | null) {
   if (!value) return "--";
   return value.length > 18 ? `${value.slice(0, 8)}...${value.slice(-6)}` : value;
+}
+
+function formatCountdown(target?: string | null, now = Date.now()) {
+  if (!target) return "";
+  const remaining = new Date(target).getTime() - now;
+  if (!Number.isFinite(remaining) || remaining <= 0) return "Đã đến hạn xử lý";
+  const totalMinutes = Math.ceil(remaining / 60_000);
+  const days = Math.floor(totalMinutes / 1_440);
+  const hours = Math.floor((totalMinutes % 1_440) / 60);
+  const minutes = totalMinutes % 60;
+  return `${days} ngày ${hours} giờ ${minutes} phút`;
 }
 
 function accountStatusLabel(status?: string | null) {
@@ -138,6 +156,10 @@ export function ProfilePage() {
   const [avatarModeration, setAvatarModeration] = useState<AvatarModerationStatus | null>(null);
   const [form, setForm] = useState<ProfileForm>(emptyForm);
   const [passwordOpen, setPasswordOpen] = useState(false);
+  const [deletionOpen, setDeletionOpen] = useState(false);
+  const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequest | null>(null);
+  const [deletionSubmitting, setDeletionSubmitting] = useState(false);
+  const [countdownNow, setCountdownNow] = useState(Date.now());
   const [passwordSending, setPasswordSending] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -187,6 +209,20 @@ export function ProfilePage() {
         } catch {
           if (!ignore) setAvatarModeration(null);
         }
+        if (nextProfile.account?.permissionCodes?.includes("ACCOUNT_DELETION_READ_SELF")) {
+          try {
+            const currentDeletion = await getCurrentAccountDeletionRequest();
+            if (!ignore) {
+              setDeletionRequest(currentDeletion);
+              if (!currentDeletion && sessionStorage.getItem("vm_account_deletion_requested") === "1") {
+                sessionStorage.removeItem("vm_account_deletion_requested");
+                setNotice("Yêu cầu xóa tài khoản đã được tự động hủy khi bạn đăng nhập lại.");
+              }
+            }
+          } catch {
+            if (!ignore) setDeletionRequest(null);
+          }
+        }
       } catch (requestError) {
         if (!ignore) setError(requestError instanceof Error ? requestError.message : "Không thể tải hồ sơ khách hàng.");
       } finally {
@@ -199,6 +235,12 @@ export function ProfilePage() {
       ignore = true;
     };
   }, [profileInvalidationVersion, setUser]);
+
+  useEffect(() => {
+    if (!deletionRequest?.scheduledDeletionAt) return undefined;
+    const timer = window.setInterval(() => setCountdownNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, [deletionRequest?.scheduledDeletionAt]);
 
   const displayName = form.fullName || profile?.account?.username || "Khách hàng";
   const avatarUrl = profile?.profile?.avatarUrl?.trim();
@@ -229,6 +271,9 @@ export function ProfilePage() {
   const saveButtonDisabled = saving || resubmitting || avatarUploading || !profile || (!isOnboardingRequired && !formChanged);
   const currentApprovalStatus = effectiveApprovalStatus ?? "--";
   const showSaveProfileButton = currentApprovalStatus === "APPROVED";
+  const canRequestDeletion = profile?.account?.permissionCodes?.includes("ACCOUNT_DELETION_REQUEST_SELF") ?? false;
+  const canCancelDeletion = profile?.account?.permissionCodes?.includes("ACCOUNT_DELETION_CANCEL_SELF") ?? false;
+  const deletionCountdown = formatCountdown(deletionRequest?.scheduledDeletionAt, countdownNow);
   const showUndoButton = showSaveProfileButton || formChanged;
   const saveButtonLabel = saving ? "Đang lưu..." : "Lưu thay đổi";
   const activeSubscription = subscriptions.find((subscription) => subscription.status === "ACTIVE");
@@ -361,6 +406,36 @@ export function ProfilePage() {
       setPasswordError(requestError instanceof Error ? requestError.message : "Không thể gửi liên kết đổi mật khẩu.");
     } finally {
       setPasswordSending(false);
+    }
+  };
+
+  const handleRequestDeletion = async () => {
+    setDeletionSubmitting(true);
+    setError("");
+    try {
+      const created = await requestCurrentAccountDeletion();
+      setDeletionRequest(created);
+      setDeletionOpen(false);
+      sessionStorage.setItem("vm_account_deletion_requested", "1");
+      logoutCurrentUser(setUser);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Không thể tạo yêu cầu xóa tài khoản.");
+    } finally {
+      setDeletionSubmitting(false);
+    }
+  };
+
+  const handleCancelDeletion = async () => {
+    setDeletionSubmitting(true);
+    setError("");
+    try {
+      const cancelled = await cancelCurrentAccountDeletion("ACCOUNT_OWNER_CANCELLED_FROM_PROFILE");
+      setDeletionRequest(cancelled.status === "CANCELLED" ? null : cancelled);
+      setNotice("Đã hủy yêu cầu xóa tài khoản.");
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Không thể hủy yêu cầu xóa tài khoản.");
+    } finally {
+      setDeletionSubmitting(false);
     }
   };
 
@@ -586,6 +661,28 @@ export function ProfilePage() {
 
       <section className="vm-profile-support-banner tw-mt-4 tw-flex tw-items-center tw-gap-4 tw-rounded-[11px] tw-bg-[linear-gradient(100deg,#051d4d,#072969)] tw-px-6 tw-py-4 tw-text-white"><span className="tw-grid tw-h-[42px] tw-w-[42px] tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-[#d7ad5a] tw-text-[#f2cc76]"><i className="fas fa-headset" /></span><div><strong> Cần hỗ trợ?</strong><p className="tw-m-0 tw-mt-0.5 tw-text-[0.78rem] tw-text-[#bccce7]">Chúng tôi luôn sẵn sàng hỗ trợ bạn.</p></div><span className="tw-ml-auto tw-text-[0.78rem] tw-font-semibold tw-text-[#dceaff]"><i className="fas fa-phone-alt tw-mr-2" />Hotline: 1900 1234</span><Link className="tw-rounded-md tw-border tw-border-solid tw-border-[#d7ad5a] tw-px-4 tw-py-2 tw-text-[0.78rem] tw-font-semibold tw-text-[#f5ce7d] hover:tw-no-underline" to="/customer/support">Gửi yêu cầu hỗ trợ</Link></section>
 
+      {canRequestDeletion ? (
+        <section className="tw-mt-4 tw-flex tw-items-center tw-gap-4 tw-rounded-xl tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-4 max-[640px]:tw-items-start max-[640px]:tw-flex-col">
+          <div className="tw-min-w-0">
+            <h2 className="tw-m-0 tw-text-base tw-font-bold tw-text-red-800">Xóa tài khoản</h2>
+            <p className="tw-mb-0 tw-mt-1 tw-text-sm tw-leading-6 tw-text-red-700">
+              {deletionRequest
+                ? `Tài khoản dự kiến bị xóa lúc ${formatInApplicationTime(deletionRequest.scheduledDeletionAt, "vi-VN", { dateStyle: "short", timeStyle: "short" })} (còn ${deletionCountdown}). Đăng nhập lại bằng phiên mới trước thời điểm này cũng sẽ tự hủy yêu cầu.`
+                : "Yêu cầu xóa có thời gian chờ. Hệ thống sẽ đăng xuất mọi phiên ngay sau khi tiếp nhận yêu cầu."}
+            </p>
+          </div>
+          {deletionRequest?.cancellable && canCancelDeletion ? (
+            <button className="tw-ml-auto tw-shrink-0 tw-rounded-md tw-border tw-border-solid tw-border-red-300 tw-bg-white tw-px-4 tw-py-2 tw-font-semibold tw-text-red-700 disabled:tw-opacity-60 max-[640px]:tw-ml-0" type="button" disabled={deletionSubmitting} onClick={handleCancelDeletion}>
+              {deletionSubmitting ? "Đang hủy..." : "Hủy yêu cầu xóa"}
+            </button>
+          ) : !deletionRequest ? (
+            <button className="tw-ml-auto tw-shrink-0 tw-rounded-md tw-border-0 tw-bg-red-600 tw-px-4 tw-py-2 tw-font-semibold tw-text-white disabled:tw-opacity-60 max-[640px]:tw-ml-0" type="button" disabled={deletionSubmitting} onClick={() => setDeletionOpen(true)}>
+              Yêu cầu xóa tài khoản
+            </button>
+          ) : null}
+        </section>
+      ) : null}
+
       <Modal
         open={passwordOpen}
         title="Đổi mật khẩu"
@@ -613,6 +710,25 @@ export function ProfilePage() {
           <div className="vm-info-note">
             <i className="fas fa-info-circle" /> Sau khi xác nhận, vui lòng kiểm tra email và làm theo hướng dẫn từ hệ thống xác thực.
           </div>
+        </div>
+      </Modal>
+      <Modal
+        open={deletionOpen}
+        title="Xác nhận yêu cầu xóa tài khoản"
+        description="Bạn sẽ bị đăng xuất ngay. Trong thời gian chờ, đăng nhập lại bằng phiên mới sẽ hủy yêu cầu xóa."
+        width="sm"
+        onClose={() => !deletionSubmitting && setDeletionOpen(false)}
+        actions={
+          <div className="tw-flex tw-justify-end tw-gap-3">
+            <button className="vm-outline-btn" type="button" disabled={deletionSubmitting} onClick={() => setDeletionOpen(false)}>Quay lại</button>
+            <button className="tw-rounded-md tw-border-0 tw-bg-red-600 tw-px-4 tw-py-2 tw-font-semibold tw-text-white disabled:tw-opacity-60" type="button" disabled={deletionSubmitting} onClick={handleRequestDeletion}>
+              {deletionSubmitting ? "Đang gửi..." : "Xác nhận xóa"}
+            </button>
+          </div>
+        }
+      >
+        <div className="tw-rounded-lg tw-bg-red-50 tw-p-4 tw-text-sm tw-leading-6 tw-text-red-800">
+          Trước ngày xóa, hãy hoàn tất phiên gửi xe, hóa đơn, thanh toán, vé tháng, báo mất thẻ và lệnh nạp ví đang xử lý. Sau khi xóa hoàn tất, dữ liệu đăng nhập cũ sẽ được giải phóng để đăng ký tài khoản mới.
         </div>
       </Modal>
     </CustomerPortalLayout>

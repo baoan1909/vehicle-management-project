@@ -61,7 +61,7 @@ class SubscriptionPersistenceAdapterTest {
         Subscription subscription = new Subscription();
         subscription.setSubscriptionId(subscriptionId);
 
-        when(subscriptionRepository.findById(subscriptionId)).thenReturn(Optional.of(entity));
+        when(subscriptionRepository.findBusinessVisibleById(subscriptionId)).thenReturn(Optional.of(entity));
         when(subscriptionPersistenceMapper.toDomain(entity)).thenReturn(subscription);
 
         Optional<Subscription> result = subscriptionPersistenceAdapter.findById(subscriptionId);
@@ -73,7 +73,7 @@ class SubscriptionPersistenceAdapterTest {
     @Test
     void shouldReturnEmptyWhenFindingByIdAndEntityDoesNotExist() {
         UUID subscriptionId = UUID.randomUUID();
-        when(subscriptionRepository.findById(subscriptionId)).thenReturn(Optional.empty());
+        when(subscriptionRepository.findBusinessVisibleById(subscriptionId)).thenReturn(Optional.empty());
 
         Optional<Subscription> result = subscriptionPersistenceAdapter.findById(subscriptionId);
 

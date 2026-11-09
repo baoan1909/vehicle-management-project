@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -115,12 +116,15 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
 
     @Override
     public Optional<ParkingSession> findById(UUID parkingSessionId) {
-        return parkingSessionRepository.findById(parkingSessionId)
+        return parkingSessionRepository.findBusinessVisibleById(parkingSessionId)
                 .map(parkingSessionPersistenceMapper::toDomain);
     }
 
     @Override
     public Optional<ParkingSession> findByIdForUpdate(UUID parkingSessionId) {
+        if (findById(parkingSessionId).isEmpty()) {
+            return Optional.empty();
+        }
         return parkingSessionRepository.findByIdForUpdate(parkingSessionId)
                 .map(parkingSessionPersistenceMapper::toDomain);
     }

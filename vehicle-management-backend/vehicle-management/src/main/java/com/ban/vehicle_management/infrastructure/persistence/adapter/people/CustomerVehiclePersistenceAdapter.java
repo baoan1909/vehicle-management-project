@@ -69,7 +69,7 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
 
     @Override
     public Optional<CustomerVehicle> findById(UUID customerVehicleId) {
-        return customerVehicleRepository.findById(customerVehicleId)
+        return customerVehicleRepository.findBusinessVisibleById(customerVehicleId)
                 .map(customerVehiclePersistenceMapper::toDomain);
     }
 
@@ -123,9 +123,11 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
 
     @Override
     public boolean existsInParkingLots(UUID customerVehicleId, Set<UUID> parkingLotIds) {
-        return customerVehicleRepository.exists(Specification.<CustomerVehicleEntity>where(
-                (root, query, cb) -> cb.equal(root.get("customerVehicleId"), customerVehicleId))
-                .and(CustomerVehicleSpecifications.inParkingLots(parkingLotIds)));
+        if (parkingLotIds == null) {
+            return customerVehicleRepository.findBusinessVisibleById(customerVehicleId).isPresent();
+        }
+        return !parkingLotIds.isEmpty()
+                && customerVehicleRepository.existsBusinessVisibleInParkingLots(customerVehicleId, parkingLotIds);
     }
 
     @Override
@@ -140,7 +142,7 @@ public class CustomerVehiclePersistenceAdapter implements CustomerVehiclePortOut
 
     @Override
     public boolean existsCustomerById(UUID customerId) {
-        return customerRepository.existsById(customerId);
+        return customerRepository.existsBusinessVisibleById(customerId);
     }
 
     @Override

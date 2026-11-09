@@ -81,11 +81,49 @@ class EffectiveAccountAccessPolicyTest {
                 "PARTNER_ADMIN", true, true, Set.of(UUID.randomUUID()), Set.of(),
                 AccountStatus.PENDING, null, null, null);
 
-        assertFalse(policy.canUseEffectivePermissions(pendingPartner));
+        assertTrue(policy.canUseEffectivePermissions(pendingPartner));
         assertTrue(policy.resolveEffectivePermissionCodes(
                 pendingPartner,
                 Set.of("SUPPORT_WIDGET_ACCESS_OWN", "ORGANIZATION_READ_ALL"))
                 .isEmpty());
+    }
+
+    @Test
+    void pendingDeletionKeepsOnlySelfDeletionLifecyclePermissions() {
+        var pendingDeletion = state("CUSTOM_INTERNAL_ROLE", true, AccountStatus.PENDING_DELETION);
+
+        assertEquals(Set.of("ACCOUNT_DELETION_READ_SELF", "ACCOUNT_DELETION_CANCEL_SELF"),
+                policy.resolveEffectivePermissionCodes(pendingDeletion, Set.of(
+                        "ACCOUNT_READ_ALL", "EMPLOYEE_UPDATE_ALL",
+                        "ACCOUNT_DELETION_REQUEST_SELF",
+                        "ACCOUNT_DELETION_READ_SELF", "ACCOUNT_DELETION_CANCEL_SELF")));
+        assertFalse(policy.canUseBusinessPermissions(pendingDeletion));
+    }
+
+    @Test
+    void incompleteInternalOnboardingDoesNotExposeDeletionLifecyclePermissions() {
+        var onboardingRequired = new EffectiveAccountAccessPolicy.AccessState(
+                "EMPLOYEE", true, false, Set.of(), Set.of(),
+                AccountStatus.ACTIVE, null, null, null, true, null);
+
+        assertTrue(policy.resolveEffectivePermissionCodes(onboardingRequired, Set.of(
+                "ACCOUNT_DELETION_REQUEST_SELF",
+                "ACCOUNT_DELETION_READ_SELF",
+                "ACCOUNT_DELETION_CANCEL_SELF")).isEmpty());
+    }
+
+    @Test
+    void missingAssignedParkingScopeDoesNotExposeDeletionLifecyclePermissions() {
+        var missingParkingScope = new EffectiveAccountAccessPolicy.AccessState(
+                "PARKING_MANAGER", true, true, Set.of(UUID.randomUUID()), Set.of(),
+                AccountStatus.ACTIVE, EmployeeStatus.ACTIVE, null, null, false,
+                ApprovalRequestStatus.APPROVED);
+
+        assertTrue(policy.resolveEffectivePermissionCodes(missingParkingScope, Set.of(
+                "PARKING_SCOPE_ASSIGNED",
+                "ACCOUNT_DELETION_REQUEST_SELF",
+                "ACCOUNT_DELETION_READ_SELF",
+                "ACCOUNT_DELETION_CANCEL_SELF")).isEmpty());
     }
 
     @Test

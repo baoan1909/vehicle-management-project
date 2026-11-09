@@ -2,6 +2,12 @@ package com.ban.vehicle_management.infrastructure.persistence.database.specifica
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ShiftAssignmentEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ShiftEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftAssignmentStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftType;
 import jakarta.persistence.criteria.Join;
@@ -29,7 +35,8 @@ public final class ShiftAssignmentSpecifications {
             ShiftType shiftType
     ) {
         return Specification
-                .where(hasShiftId(shiftId))
+                .where(businessVisibleEmployee())
+                .and(hasShiftId(shiftId))
                 .and(hasEmployeeId(employeeId))
                 .and(hasGateId(gateId))
                 .and(hasStatus(status))
@@ -39,6 +46,19 @@ public final class ShiftAssignmentSpecifications {
                         toDate,
                         shiftType
                 ));
+    }
+
+    private static Specification<ShiftAssignmentEntity> businessVisibleEmployee() {
+        return (root, query, cb) -> {
+            Join<ShiftAssignmentEntity, EmployeeEntity> employee = root.join("employee", JoinType.INNER);
+            Join<EmployeeEntity, UserProfileEntity> profile = employee.join("userProfile", JoinType.INNER);
+            Join<UserProfileEntity, AccountEntity> account = profile.join("account", JoinType.INNER);
+            return cb.and(
+                    cb.notEqual(employee.get("status"), EmployeeStatus.DELETED),
+                    cb.notEqual(profile.get("status"), UserProfileStatus.DELETED),
+                    cb.not(account.get("status").in(AccountStatus.PENDING_DELETION, AccountStatus.DELETED))
+            );
+        };
     }
 
     private static Specification<ShiftAssignmentEntity> hasShiftId(

@@ -1,6 +1,6 @@
 package com.ban.vehicle_management.infrastructure.security.adapter;
 
-import org.springframework.jdbc.core.JdbcTemplate;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.UUID;
@@ -9,18 +9,11 @@ import java.util.UUID;
 public class DatabaseSystemAccountIdProvider implements SystemAccountIdProvider {
 
     private static final String SYSTEM_USERNAME = "SYSTEM";
-    private static final String FIND_SYSTEM_ACCOUNT_ID_SQL = """
-            SELECT account_id
-            FROM iam.accounts
-            WHERE username = ?
-            LIMIT 1
-            """;
-
-    private final JdbcTemplate jdbcTemplate;
+    private final AccountRepository accountRepository;
     private volatile UUID cachedSystemAccountId;
 
-    public DatabaseSystemAccountIdProvider(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public DatabaseSystemAccountIdProvider(AccountRepository accountRepository) {
+        this.accountRepository = accountRepository;
     }
 
     @Override
@@ -30,11 +23,9 @@ public class DatabaseSystemAccountIdProvider implements SystemAccountIdProvider 
             return cached;
         }
 
-        UUID resolved = jdbcTemplate.query(
-                FIND_SYSTEM_ACCOUNT_ID_SQL,
-                preparedStatement -> preparedStatement.setString(1, SYSTEM_USERNAME),
-                resultSet -> resultSet.next() ? resultSet.getObject("account_id", UUID.class) : null
-        );
+        UUID resolved = accountRepository.findByUsername(SYSTEM_USERNAME)
+                .map(account -> account.getAccountId())
+                .orElse(null);
 
         if (resolved == null) {
             throw new IllegalStateException("SYSTEM account is not found.");

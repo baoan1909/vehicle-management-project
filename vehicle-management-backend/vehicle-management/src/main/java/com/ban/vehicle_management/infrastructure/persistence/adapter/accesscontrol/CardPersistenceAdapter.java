@@ -18,7 +18,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.Set;
-import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -29,7 +28,6 @@ public class CardPersistenceAdapter implements CardPortOut {
     private final LostCardReportRepository lostCardReportRepository;
     private final ParkingSessionRepository parkingSessionRepository;
     private final CardPersistenceMapper cardPersistenceMapper;
-    private final EntityManager entityManager;
     private static final String CARD_TYPE_REGISTERED = "REGISTERED";
 
     public CardPersistenceAdapter(
@@ -37,15 +35,13 @@ public class CardPersistenceAdapter implements CardPortOut {
             SubscriptionRepository subscriptionRepository,
             LostCardReportRepository lostCardReportRepository,
             ParkingSessionRepository parkingSessionRepository,
-            CardPersistenceMapper cardPersistenceMapper,
-            EntityManager entityManager
+            CardPersistenceMapper cardPersistenceMapper
     ) {
         this.cardRepository = cardRepository;
         this.subscriptionRepository = subscriptionRepository;
         this.lostCardReportRepository = lostCardReportRepository;
         this.parkingSessionRepository = parkingSessionRepository;
         this.cardPersistenceMapper = cardPersistenceMapper;
-        this.entityManager = entityManager;
     }
 
     @Override
@@ -121,15 +117,10 @@ public class CardPersistenceAdapter implements CardPortOut {
 
     @Override
     public long nextCardNumberSequence(CardNumberSeries series) {
-        String sequenceName = switch (series) {
-            case REGISTERED -> "access_control.registered_card_number_seq";
-            case VISITOR -> "access_control.visitor_card_number_seq";
+        return switch (series) {
+            case REGISTERED -> cardRepository.nextRegisteredCardNumberSequence();
+            case VISITOR -> cardRepository.nextVisitorCardNumberSequence();
         };
-
-        return ((Number) entityManager
-                .createNativeQuery("SELECT nextval('" + sequenceName + "')")
-                .getSingleResult())
-                .longValue();
     }
 
     @Override

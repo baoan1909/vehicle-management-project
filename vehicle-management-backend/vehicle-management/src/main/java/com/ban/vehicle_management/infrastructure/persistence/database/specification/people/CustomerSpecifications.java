@@ -8,6 +8,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.par
 import com.ban.vehicle_management.shared.enumeration.people.CustomerApprovalStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
 import com.ban.vehicle_management.shared.enumeration.people.CustomerType;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
@@ -54,6 +56,12 @@ public final class CustomerSpecifications {
     ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+            Join<CustomerEntity, UserProfileEntity> visibleProfile = root.join("userProfile", JoinType.INNER);
+            Join<UserProfileEntity, AccountEntity> visibleAccount = visibleProfile.join("account", JoinType.INNER);
+            predicates.add(criteriaBuilder.notEqual(root.get("status"), CustomerStatus.DELETED));
+            predicates.add(criteriaBuilder.notEqual(visibleProfile.get("status"), UserProfileStatus.DELETED));
+            predicates.add(criteriaBuilder.not(visibleAccount.get("status").in(
+                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED)));
             if (query.getResultType() != Long.class && query.getResultType() != long.class) {
                 root.fetch("userProfile", JoinType.LEFT).fetch("account", JoinType.LEFT);
             }
@@ -83,5 +91,9 @@ public final class CustomerSpecifications {
             query.orderBy(criteriaBuilder.asc(root.get("customerCode")));
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    public static Specification<CustomerEntity> businessVisible() {
+        return withFilters(null, null, null, null);
     }
 }

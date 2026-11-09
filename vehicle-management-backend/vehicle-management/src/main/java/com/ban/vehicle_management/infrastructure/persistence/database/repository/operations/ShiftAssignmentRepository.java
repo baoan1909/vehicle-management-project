@@ -3,6 +3,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.operations.ShiftAssignmentEntity;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftAssignmentStatus;
 import com.ban.vehicle_management.shared.enumeration.operations.ShiftType;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionShiftAssignmentProjection;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -20,6 +21,17 @@ import org.springframework.data.repository.query.Param;
 public interface ShiftAssignmentRepository
         extends JpaRepository<ShiftAssignmentEntity, UUID>,
         JpaSpecificationExecutor<ShiftAssignmentEntity> {
+
+    @Query(value = """
+        select assignment.shift_assignment_id as "assignmentId",
+               shift.parking_lot_id as "parkingLotId", shift.status as "shiftStatus"
+        from operations.shift_assignments assignment
+        join operations.shifts shift on shift.shift_id=assignment.shift_id
+        where assignment.employee_id=:employeeId and assignment.status in ('DRAFT','SCHEDULED','ACTIVE')
+          and shift.status not in ('CLOSED','CANCELLED')
+        """, nativeQuery = true)
+    List<AccountDeletionShiftAssignmentProjection> findDeletionBlockingAssignments(
+            @Param("employeeId") UUID employeeId);
 
     @Query("""
             SELECT DISTINCT assignment.shift.parkingLotId

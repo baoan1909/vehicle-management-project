@@ -14,6 +14,13 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatConversationMemberRepository extends JpaRepository<ChatConversationMemberEntity, UUID> {
 
+    @Modifying
+    @Query(value = """
+        update operations.chat_conversation_members set status='REMOVED', left_at=:now, updated_at=:now
+        where account_id=:accountId and status='ACTIVE'
+        """, nativeQuery = true)
+    int removeAllForDeletedAccount(@Param("accountId") UUID accountId, @Param("now") java.time.Instant now);
+
     Optional<ChatConversationMemberEntity> findByConversationIdAndAccountId(UUID conversationId, UUID accountId);
 
     boolean existsByConversationIdAndAccountIdAndStatus(
@@ -28,12 +35,16 @@ public interface ChatConversationMemberRepository extends JpaRepository<ChatConv
             SELECT member.conversationId AS conversationId,
                    member.accountId AS accountId,
                    member.memberRole AS memberRole,
-                   account.username AS username,
-                   account.email AS email,
+                   CASE WHEN account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa' ELSE account.username END AS username,
+                   CASE WHEN account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN NULL ELSE account.email END AS email,
                    role.code AS accountRoleCode,
                    role.name AS accountRoleName,
-                   profile.fullName AS fullName,
-                   avatar.objectKey AS avatarObjectKey
+                   CASE WHEN account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN 'Tài khoản đã xóa' ELSE profile.fullName END AS fullName,
+                   CASE WHEN account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+                        THEN NULL ELSE avatar.objectKey END AS avatarObjectKey
             FROM ChatConversationMemberEntity member
             JOIN AccountEntity account
                 ON account.accountId = member.accountId
@@ -44,7 +55,11 @@ public interface ChatConversationMemberRepository extends JpaRepository<ChatConv
                 ON avatar.userProfileId = account.userProfileId
                AND avatar.current = TRUE
             WHERE member.conversationId IN :conversationIds
-              AND member.status = com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus.ACTIVE
+              AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION
+              AND (
+                    member.status = com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus.ACTIVE
+                    OR account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+              )
             ORDER BY member.joinedAt ASC, member.conversationMemberId ASC
             """)
     List<ChatConversationParticipantProjection> findActiveParticipantsByConversationIds(
@@ -54,8 +69,10 @@ public interface ChatConversationMemberRepository extends JpaRepository<ChatConv
     @Query("""
             SELECT member.accountId
             FROM ChatConversationMemberEntity member
+            JOIN AccountEntity account ON account.accountId = member.accountId
             WHERE member.conversationId = :conversationId
               AND member.status = com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus.ACTIVE
+              AND account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.ACTIVE
             """)
     List<UUID> findActiveMemberAccountIds(@Param("conversationId") UUID conversationId);
 

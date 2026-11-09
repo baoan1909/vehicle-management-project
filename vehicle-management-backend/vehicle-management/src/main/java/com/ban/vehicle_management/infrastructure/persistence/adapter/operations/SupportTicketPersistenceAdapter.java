@@ -58,7 +58,7 @@ public class SupportTicketPersistenceAdapter implements SupportTicketPortOut {
 
     @Override
     public Optional<SupportTicket> findById(UUID supportTicketId) {
-        return supportTicketRepository.findById(supportTicketId)
+        return supportTicketRepository.findBusinessVisibleById(supportTicketId)
                 .map(this::mapToDomain);
     }
 

@@ -60,12 +60,15 @@ public class SubscriptionPersistenceAdapter implements SubscriptionPortOut {
 
     @Override
     public Optional<Subscription> findById(UUID subscriptionId) {
-        return subscriptionRepository.findById(subscriptionId)
+        return subscriptionRepository.findBusinessVisibleById(subscriptionId)
                 .map(subscriptionPersistenceMapper::toDomain);
     }
 
     @Override
     public Optional<Subscription> findByIdForUpdate(UUID subscriptionId) {
+        if (findById(subscriptionId).isEmpty()) {
+            return Optional.empty();
+        }
         return subscriptionRepository.findByIdForUpdate(subscriptionId)
                 .map(subscriptionPersistenceMapper::toDomain);
     }

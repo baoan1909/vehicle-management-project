@@ -14,7 +14,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.billing.InvoiceSpecifications;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
-import jakarta.persistence.criteria.CriteriaBuilder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -58,12 +57,15 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
 
     @Override
     public Optional<Invoice> findById(UUID invoiceId){
-        return invoiceRepository.findById(invoiceId)
+        return invoiceRepository.findBusinessVisibleById(invoiceId)
                 .map(invoicePersistenceMapper::toDomain);
     }
 
     @Override
     public Optional<Invoice> findByIdForUpdate(UUID invoiceId) {
+        if (findById(invoiceId).isEmpty()) {
+            return Optional.empty();
+        }
         return invoiceRepository.findByIdForUpdate(invoiceId)
                 .map(invoicePersistenceMapper::toDomain);
     }
@@ -131,7 +133,7 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
 
     @Override
     public  boolean existsCustomerById(UUID customerId){
-        return  customerRepository.existsById(customerId);
+        return customerRepository.existsBusinessVisibleById(customerId);
     }
 
     @Override

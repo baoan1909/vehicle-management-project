@@ -48,6 +48,9 @@ public class PublicAuthPolicy {
                     "Tên đăng nhập phải bắt đầu bằng chữ cái và chỉ gồm chữ cái không dấu, chữ số, dấu chấm hoặc dấu gạch dưới."
             );
         }
+        if (normalizedUsername.toLowerCase(Locale.ROOT).startsWith("_deleted_")) {
+            throw new BadRequestException("Tên đăng nhập sử dụng namespace dành riêng cho hệ thống.");
+        }
         return normalizedUsername;
     }
 
@@ -60,6 +63,9 @@ public class PublicAuthPolicy {
         ).toLowerCase(Locale.ROOT);
         if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
             throw new BadRequestException("Địa chỉ email không hợp lệ.");
+        }
+        if (normalizedEmail.endsWith("@deleted.invalid")) {
+            throw new BadRequestException("Tên miền email này được dành riêng cho hệ thống.");
         }
         return normalizedEmail;
     }

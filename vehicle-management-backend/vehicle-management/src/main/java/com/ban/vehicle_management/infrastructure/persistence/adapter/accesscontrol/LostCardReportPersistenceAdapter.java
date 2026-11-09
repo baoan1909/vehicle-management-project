@@ -10,15 +10,12 @@ import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportContext;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.LostCardReportStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
-import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -47,7 +44,7 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
 
     @Override
     public Optional<LostCardReport> findById(UUID lostCardReportId) {
-        return lostCardReportRepository.findById(lostCardReportId)
+        return lostCardReportRepository.findBusinessVisibleById(lostCardReportId)
                 .map(lostCardReportPersistenceMapper::toDomain);
     }
 
@@ -80,7 +77,7 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
         if (parkingLotIds != null && parkingLotIds.isEmpty()) {
             return List.of();
         }
-        return lostCardReportRepository.findAll(buildSpecification(
+        return lostCardReportRepository.findBusinessVisibleWithFilters(
                 status,
                 context,
                 customerId,
@@ -89,9 +86,10 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
                 subscriptionId,
                 fromDate,
                 toDate,
-                normalizeKeyword(keyword),
-                parkingLotIds
-        )).stream().map(lostCardReportPersistenceMapper::toDomain).toList();
+                toKeywordPattern(keyword),
+                parkingLotIds != null,
+                queryIds(parkingLotIds)
+        ).stream().map(lostCardReportPersistenceMapper::toDomain).toList();
     }
 
     @Override
@@ -172,68 +170,6 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
         }
         return lostCardReportRepository.countDistinctCardsByCardStatus(
                 cardStatus, parkingLotIds != null, queryIds(parkingLotIds));
-    }
-
-    private Specification<LostCardReportEntity> buildSpecification(
-            LostCardReportStatus status,
-            LostCardReportContext context,
-            UUID customerId,
-            UUID cardId,
-            UUID parkingSessionId,
-            UUID subscriptionId,
-            Instant fromDate,
-            Instant toDate,
-            String keyword,
-            Set<UUID> parkingLotIds
-    ) {
-        return (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-
-            if (parkingLotIds != null) {
-                predicates.add(root.get("parkingLotId").in(parkingLotIds));
-            }
-
-            if (status != null) {
-                predicates.add(cb.equal(root.get("status"), status));
-            }
-            if (context != null) {
-                predicates.add(cb.equal(root.get("context"), context));
-            }
-            if (customerId != null) {
-                predicates.add(cb.equal(root.get("customerId"), customerId));
-            }
-            if (cardId != null) {
-                predicates.add(cb.equal(root.get("cardId"), cardId));
-            }
-            if (parkingSessionId != null) {
-                predicates.add(cb.equal(root.get("parkingSessionId"), parkingSessionId));
-            }
-            if (subscriptionId != null) {
-                predicates.add(cb.equal(root.get("subscriptionId"), subscriptionId));
-            }
-            if (fromDate != null) {
-                predicates.add(cb.greaterThanOrEqualTo(root.get("notificationTime"), fromDate));
-            }
-            if (toDate != null) {
-                predicates.add(cb.lessThanOrEqualTo(root.get("notificationTime"), toDate));
-            }
-            if (keyword != null) {
-                String pattern = "%" + keyword.toLowerCase() + "%";
-                predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("reporterName")), pattern),
-                        cb.like(cb.lower(root.get("reporterPhone")), pattern),
-                        cb.like(cb.lower(root.get("identifyCard")), pattern),
-                        cb.like(cb.lower(root.get("registrationLicense")), pattern)
-                ));
-            }
-
-            query.orderBy(cb.desc(root.get("notificationTime")));
-            return cb.and(predicates.toArray(Predicate[]::new));
-        };
-    }
-
-    private String normalizeKeyword(String keyword) {
-        return keyword == null || keyword.isBlank() ? null : keyword.trim();
     }
 
     private boolean isEmptyScope(Set<UUID> parkingLotIds) {

@@ -3,6 +3,10 @@ package com.ban.vehicle_management.infrastructure.persistence.database.specifica
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.CardEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.catalog.VehicleTypeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Join;
@@ -31,6 +35,7 @@ public final class ParkingSessionSpecifications {
     ) {
         return Specification
                 .where(distinct())
+                .and(businessVisible())
                 .and(hasStatus(status))
                 .and(hasVehicleType(vehicleTypeId))
                 .and(hasCustomerVehicleIn(customerVehicleIds))
@@ -39,6 +44,16 @@ public final class ParkingSessionSpecifications {
                 .and(checkInFrom(checkInFrom))
                 .and(checkInTo(checkInTo))
                 .and(containsKeyword(keyword));
+    }
+
+    public static Specification<ParkingSessionEntity> businessVisible() {
+        return (root, query, cb) -> {
+            Join<ParkingSessionEntity, CustomerEntity> customer = root.join("customer", JoinType.LEFT);
+            Join<CustomerEntity, UserProfileEntity> profile = customer.join("userProfile", JoinType.LEFT);
+            Join<UserProfileEntity, AccountEntity> account = profile.join("account", JoinType.LEFT);
+            return cb.or(cb.isNull(root.get("customerId")), cb.not(account.get("status").in(
+                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED)));
+        };
     }
 
     private static Specification<ParkingSessionEntity> distinct() {

@@ -2,6 +2,12 @@ package com.ban.vehicle_management.infrastructure.persistence.database.specifica
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.accesscontrol.SubscriptionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerVehicleEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.people.CustomerStatus;
+import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -38,6 +44,13 @@ public final class SubscriptionSpecifications {
             String keyword, Set<UUID> parkingLotIds) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+            Join<SubscriptionEntity, CustomerEntity> visibleCustomer = root.join("customer", JoinType.INNER);
+            Join<CustomerEntity, UserProfileEntity> visibleProfile = visibleCustomer.join("userProfile", JoinType.INNER);
+            Join<UserProfileEntity, AccountEntity> visibleAccount = visibleProfile.join("account", JoinType.INNER);
+            predicates.add(criteriaBuilder.notEqual(visibleCustomer.get("status"), CustomerStatus.DELETED));
+            predicates.add(criteriaBuilder.notEqual(visibleProfile.get("status"), UserProfileStatus.DELETED));
+            predicates.add(criteriaBuilder.not(visibleAccount.get("status").in(
+                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED)));
 
             if (parkingLotIds != null) {
                 predicates.add(root.get("parkingLotId").in(parkingLotIds));
@@ -87,6 +100,10 @@ public final class SubscriptionSpecifications {
             query.orderBy(criteriaBuilder.desc(root.get("createdAt")));
             return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
         };
+    }
+
+    public static Specification<SubscriptionEntity> businessVisible() {
+        return withFilters(null, null, null, null, null, null, null, null);
     }
     private static String normalizePlateKeyword(String value) {
         String normalized = value.trim().toUpperCase().replace(" ", "").replace("-", "").replace(".", "");

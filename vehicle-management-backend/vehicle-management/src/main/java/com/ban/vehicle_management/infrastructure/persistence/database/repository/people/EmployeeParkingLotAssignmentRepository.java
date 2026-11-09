@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeParkingLotAssignmentEntity;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeParkingLotAssignmentStatus;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
 import jakarta.persistence.LockModeType;
 import java.time.Instant;
 import java.util.List;
@@ -15,6 +16,16 @@ import org.springframework.data.repository.query.Param;
 
 public interface EmployeeParkingLotAssignmentRepository
         extends JpaRepository<EmployeeParkingLotAssignmentEntity, UUID> {
+
+    @Query(value = """
+        select assignment_id as "resourceId", organization_id as "organizationId",
+               parking_lot_id as "parkingLotId"
+        from people.employee_parking_lot_assignments
+        where employee_id=:employeeId and status in ('SCHEDULED','ACTIVE','PENDING_REVIEW')
+          and (effective_to is null or effective_to>now())
+        """, nativeQuery = true)
+    List<AccountDeletionResourceScopeProjection> findDeletionBlockingAssignments(
+            @Param("employeeId") UUID employeeId);
 
     List<EmployeeParkingLotAssignmentEntity> findAllByOrganizationIdOrderByEffectiveFromDesc(UUID organizationId);
 

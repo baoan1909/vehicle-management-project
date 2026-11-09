@@ -1,10 +1,9 @@
 package com.ban.vehicle_management.infrastructure.health;
 
-import java.util.List;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeEmbeddingRepository;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.contributor.Status;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component("pgVector")
@@ -13,28 +12,17 @@ public class PgVectorHealthIndicator implements HealthIndicator {
     public static final String MINIMUM_VERSION = "0.8.0";
     public static final String EXPECTED_COLUMN_TYPE = "vector(768)";
 
-    private final JdbcTemplate jdbcTemplate;
+    private final KnowledgeEmbeddingRepository repository;
 
-    public PgVectorHealthIndicator(JdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public PgVectorHealthIndicator(KnowledgeEmbeddingRepository repository) {
+        this.repository = repository;
     }
 
     @Override
     public Health health() {
         try {
-            String extensionVersion = singleValue(
-                    "SELECT extversion FROM pg_extension WHERE extname = 'vector'"
-            );
-            String columnType = singleValue("""
-                    SELECT format_type(attribute.atttypid, attribute.atttypmod)
-                    FROM pg_attribute attribute
-                    JOIN pg_class relation ON relation.oid = attribute.attrelid
-                    JOIN pg_namespace namespace ON namespace.oid = relation.relnamespace
-                    WHERE namespace.nspname = 'ai'
-                      AND relation.relname = 'knowledge_embeddings'
-                      AND attribute.attname = 'embedding'
-                      AND NOT attribute.attisdropped
-                    """);
+            String extensionVersion = repository.findPgVectorExtensionVersion();
+            String columnType = repository.findEmbeddingColumnType();
 
             if (extensionVersion == null) {
                 return Health.down().withDetail("reason", "PGVECTOR_EXTENSION_MISSING").build();
@@ -70,11 +58,6 @@ public class PgVectorHealthIndicator implements HealthIndicator {
         if (!Status.UP.equals(health.getStatus())) {
             throw new IllegalStateException("pgvector chưa sẵn sàng: " + health.getDetails());
         }
-    }
-
-    private String singleValue(String sql) {
-        List<String> values = jdbcTemplate.query(sql, (resultSet, rowNumber) -> resultSet.getString(1));
-        return values.isEmpty() ? null : values.getFirst();
     }
 
     static int compareVersions(String left, String right) {

@@ -2,178 +2,123 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeStagedEmbedding;
 import com.ban.vehicle_management.domain.ai.model.EmbeddingVector;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
-import java.sql.Timestamp;
-import java.util.ArrayList;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.ai.KnowledgeStagedEmbeddingEntity;
+import com.ban.vehicle_management.shared.enumeration.ai.AiProvider;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-/**
- * Native persistence for pre-review embeddings. The staged table carries a pgvector
- * column which has no Hibernate type mapping, so inserts go through the same vector
- * literal helper used by the final embeddings table.
- */
-@Repository
-public class KnowledgeStagedEmbeddingRepository {
+public interface KnowledgeStagedEmbeddingRepository
+        extends JpaRepository<KnowledgeStagedEmbeddingEntity, UUID> {
 
-    @PersistenceContext
-    private EntityManager entityManager;
+    interface StagedEmbeddingProjection {
+        UUID getStagedEmbeddingId();
+        UUID getChunkId();
+        String getProvider();
+        UUID getModelConfigurationId();
+        String getModelId();
+        Integer getEmbeddingDimension();
+        String getEmbeddingPromptVersion();
+        String getChunkerVersion();
+        String getContentHash();
+        String getEmbeddingFingerprint();
+        String getEmbeddingLiteral();
+        Instant getCreatedAt();
+    }
 
-    @Transactional
-    public void replaceForChunk(UUID chunkId, List<KnowledgeStagedEmbedding> staged) {
+    default void replaceForChunk(UUID chunkId, List<KnowledgeStagedEmbedding> staged) {
         deleteByChunkIds(List.of(chunkId));
-        for (KnowledgeStagedEmbedding embedding : staged) {
-            entityManager.createNativeQuery("""
-                            INSERT INTO ai.knowledge_staged_embeddings (
-                                chunk_id,
-                                provider,
-                                model_configuration_id,
-                                model_id,
-                                embedding_dimension,
-                                embedding_prompt_version,
-                                chunker_version,
-                                content_hash,
-                                embedding_fingerprint,
-                                embedding,
-                                created_at
-                            ) VALUES (
-                                :chunkId,
-                                :provider,
-                                :modelConfigurationId,
-                                :modelId,
-                                :dimension,
-                                :promptVersion,
-                                :chunkerVersion,
-                                :contentHash,
-                                :fingerprint,
-                                CAST(:embedding AS vector),
-                                :createdAt
-                            )
-                            ON CONFLICT (chunk_id, embedding_fingerprint) DO NOTHING
-                            """)
-                    .setParameter("chunkId", chunkId)
-                    .setParameter("provider", embedding.getProvider().name())
-                    .setParameter("modelConfigurationId", embedding.getModelConfigurationId())
-                    .setParameter("modelId", embedding.getModelId())
-                    .setParameter("dimension", embedding.getEmbeddingDimension())
-                    .setParameter("promptVersion", embedding.getEmbeddingPromptVersion())
-                    .setParameter("chunkerVersion", embedding.getChunkerVersion())
-                    .setParameter("contentHash", embedding.getContentHash())
-                    .setParameter("fingerprint", embedding.getEmbeddingFingerprint())
-                    .setParameter("embedding", toVectorLiteral(embedding.getEmbedding()))
-                    .setParameter("createdAt", Timestamp.from(embedding.getCreatedAt()))
-                    .executeUpdate();
-        }
+        staged.forEach(item -> insertStagedEmbedding(
+                chunkId, item.getProvider().name(), item.getModelConfigurationId(), item.getModelId(),
+                item.getEmbeddingDimension(), item.getEmbeddingPromptVersion(), item.getChunkerVersion(),
+                item.getContentHash(), item.getEmbeddingFingerprint(),
+                KnowledgeEmbeddingRepository.toVectorLiteral(item.getEmbedding()), item.getCreatedAt()));
     }
 
-    @Transactional
-    public void deleteByChunkIds(Collection<UUID> chunkIds) {
-        if (chunkIds == null || chunkIds.isEmpty()) {
-            return;
-        }
-        entityManager.createNativeQuery("""
-                        DELETE FROM ai.knowledge_staged_embeddings
-                        WHERE chunk_id IN (:chunkIds)
-                        """)
-                .setParameter("chunkIds", chunkIds)
-                .executeUpdate();
+    @Modifying
+    @Query(value = """
+        insert into ai.knowledge_staged_embeddings (
+            chunk_id, provider, model_configuration_id, model_id, embedding_dimension,
+            embedding_prompt_version, chunker_version, content_hash,
+            embedding_fingerprint, embedding, created_at
+        ) values (
+            :chunkId, :provider, :modelConfigurationId, :modelId, :dimension,
+            :promptVersion, :chunkerVersion, :contentHash,
+            :fingerprint, cast(:embedding as vector), :createdAt
+        ) on conflict (chunk_id, embedding_fingerprint) do nothing
+        """, nativeQuery = true)
+    int insertStagedEmbedding(@Param("chunkId") UUID chunkId,
+            @Param("provider") String provider,
+            @Param("modelConfigurationId") UUID modelConfigurationId,
+            @Param("modelId") String modelId,
+            @Param("dimension") int dimension,
+            @Param("promptVersion") String promptVersion,
+            @Param("chunkerVersion") String chunkerVersion,
+            @Param("contentHash") String contentHash,
+            @Param("fingerprint") String fingerprint,
+            @Param("embedding") String embedding,
+            @Param("createdAt") Instant createdAt);
+
+    default void deleteByChunkIds(Collection<UUID> chunkIds) {
+        if (chunkIds != null && !chunkIds.isEmpty()) deleteExistingByChunkIds(chunkIds);
     }
 
-    @SuppressWarnings("unchecked")
-    public List<KnowledgeStagedEmbedding> findByChunkIds(Collection<UUID> chunkIds) {
-        if (chunkIds == null || chunkIds.isEmpty()) {
-            return List.of();
-        }
-        List<Object[]> rows = entityManager.createNativeQuery("""
-                        SELECT staged.staged_embedding_id,
-                               staged.chunk_id,
-                               staged.provider,
-                               staged.model_configuration_id,
-                               staged.model_id,
-                               staged.embedding_dimension,
-                               staged.embedding_prompt_version,
-                               staged.chunker_version,
-                               staged.content_hash,
-                               staged.embedding_fingerprint,
-                               staged.embedding::text,
-                               staged.created_at
-                        FROM ai.knowledge_staged_embeddings staged
-                        WHERE staged.chunk_id IN (:chunkIds)
-                        """)
-                .setParameter("chunkIds", chunkIds)
-                .getResultList();
-        List<KnowledgeStagedEmbedding> result = new ArrayList<>();
-        for (Object[] row : rows) {
+    @Modifying
+    @Query(value = "delete from ai.knowledge_staged_embeddings where chunk_id in (:chunkIds)",
+            nativeQuery = true)
+    int deleteExistingByChunkIds(@Param("chunkIds") Collection<UUID> chunkIds);
+
+    default List<KnowledgeStagedEmbedding> findByChunkIds(Collection<UUID> chunkIds) {
+        if (chunkIds == null || chunkIds.isEmpty()) return List.of();
+        return findRowsByChunkIds(chunkIds).stream().map(row -> {
             KnowledgeStagedEmbedding staged = new KnowledgeStagedEmbedding();
-            staged.setStagedEmbeddingId((UUID) row[0]);
-            staged.setChunkId((UUID) row[1]);
-            staged.setProvider(com.ban.vehicle_management.shared.enumeration.ai.AiProvider.valueOf((String) row[2]));
-            staged.setModelConfigurationId((UUID) row[3]);
-            staged.setModelId((String) row[4]);
-            staged.setEmbeddingDimension(((Number) row[5]).intValue());
-            staged.setEmbeddingPromptVersion((String) row[6]);
-            staged.setChunkerVersion((String) row[7]);
-            staged.setContentHash((String) row[8]);
-            staged.setEmbeddingFingerprint((String) row[9]);
-            staged.setEmbedding(fromVectorLiteral((String) row[10], staged.getEmbeddingDimension()));
-            staged.setCreatedAt(toInstant(row[11]));
-            result.add(staged);
-        }
-        return result;
+            staged.setStagedEmbeddingId(row.getStagedEmbeddingId());
+            staged.setChunkId(row.getChunkId());
+            staged.setProvider(AiProvider.valueOf(row.getProvider()));
+            staged.setModelConfigurationId(row.getModelConfigurationId());
+            staged.setModelId(row.getModelId());
+            staged.setEmbeddingDimension(row.getEmbeddingDimension());
+            staged.setEmbeddingPromptVersion(row.getEmbeddingPromptVersion());
+            staged.setChunkerVersion(row.getChunkerVersion());
+            staged.setContentHash(row.getContentHash());
+            staged.setEmbeddingFingerprint(row.getEmbeddingFingerprint());
+            staged.setEmbedding(fromVectorLiteral(row.getEmbeddingLiteral(), row.getEmbeddingDimension()));
+            staged.setCreatedAt(row.getCreatedAt());
+            return staged;
+        }).toList();
     }
 
-    public long countByChunkId(UUID chunkId) {
-        Object result = entityManager.createNativeQuery("""
-                        SELECT COUNT(*)
-                        FROM ai.knowledge_staged_embeddings
-                        WHERE chunk_id = :chunkId
-                        """)
-                .setParameter("chunkId", chunkId)
-                .getSingleResult();
-        return ((Number) result).longValue();
-    }
+    @Query(value = """
+        select staged_embedding_id as "stagedEmbeddingId", chunk_id as "chunkId",
+               provider as "provider", model_configuration_id as "modelConfigurationId",
+               model_id as "modelId", embedding_dimension as "embeddingDimension",
+               embedding_prompt_version as "embeddingPromptVersion",
+               chunker_version as "chunkerVersion", content_hash as "contentHash",
+               embedding_fingerprint as "embeddingFingerprint",
+               embedding::text as "embeddingLiteral", created_at as "createdAt"
+        from ai.knowledge_staged_embeddings where chunk_id in (:chunkIds)
+        """, nativeQuery = true)
+    List<StagedEmbeddingProjection> findRowsByChunkIds(@Param("chunkIds") Collection<UUID> chunkIds);
+
+    @Query(value = "select count(*) from ai.knowledge_staged_embeddings where chunk_id=:chunkId",
+            nativeQuery = true)
+    long countByChunkId(@Param("chunkId") UUID chunkId);
 
     static EmbeddingVector fromVectorLiteral(String literal, int dimension) {
-        if (literal == null || literal.length() < 2
-                || literal.charAt(0) != '['
+        if (literal == null || literal.length() < 2 || literal.charAt(0) != '['
                 || literal.charAt(literal.length() - 1) != ']') {
             throw new IllegalArgumentException("Invalid pgvector literal");
         }
         String content = literal.substring(1, literal.length() - 1).trim();
-        if (content.isEmpty()) {
-            return EmbeddingVector.of(new double[0], dimension);
-        }
+        if (content.isEmpty()) return EmbeddingVector.of(new double[0], dimension);
         String[] encodedValues = content.split(",");
         double[] values = new double[encodedValues.length];
-        for (int index = 0; index < encodedValues.length; index++) {
-            values[index] = Double.parseDouble(encodedValues[index].trim());
-        }
+        for (int i = 0; i < encodedValues.length; i++) values[i] = Double.parseDouble(encodedValues[i].trim());
         return EmbeddingVector.of(values, dimension);
-    }
-
-    private java.time.Instant toInstant(Object value) {
-        if (value instanceof Timestamp timestamp) {
-            return timestamp.toInstant();
-        }
-        if (value instanceof java.util.Date date) {
-            return date.toInstant();
-        }
-        return java.time.Instant.now();
-    }
-
-    private String toVectorLiteral(EmbeddingVector vector) {
-        double[] values = vector.values();
-        StringBuilder literal = new StringBuilder("[");
-        for (int index = 0; index < values.length; index++) {
-            if (index > 0) {
-                literal.append(',');
-            }
-            literal.append(values[index]);
-        }
-        return literal.append(']').toString();
     }
 }

@@ -17,7 +17,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.EmployeeRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
-import jakarta.persistence.EntityManager;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,9 +57,6 @@ class ProvisionedAccountPersistenceAdapterTest {
     @Mock
     private UserProfilePersistenceMapper userProfilePersistenceMapper;
 
-    @Mock
-    private EntityManager entityManager;
-
     @InjectMocks
     private ProvisionedAccountPersistenceAdapter adapter;
 
@@ -78,7 +74,6 @@ class ProvisionedAccountPersistenceAdapterTest {
         verify(userProfileRepository).save(userProfileEntity);
         verify(accountRepository).save(accountEntity);
         verify(accountRepository).flush();
-        verify(entityManager).clear();
     }
 
     @Test
@@ -92,6 +87,5 @@ class ProvisionedAccountPersistenceAdapterTest {
 
         verify(accountRepository).save(accountEntity);
         verify(accountRepository).flush();
-        verify(entityManager).clear();
     }
 }

@@ -65,6 +65,30 @@ class PublicAuthPolicyTest {
     }
 
     @Test
+    void shouldRejectReservedTombstoneEmailDomain() {
+        RegisterAccountCommand command = new RegisterAccountCommand(
+                "baoan3236",
+                "reserved@deleted.invalid",
+                "MatKhau1!",
+                "Nguyen Bao An"
+        );
+
+        assertThrows(BadRequestException.class, () -> policy.normalizeRegisterCommand(command));
+    }
+
+    @Test
+    void shouldRejectReservedTombstoneUsernameNamespace() {
+        RegisterAccountCommand command = new RegisterAccountCommand(
+                "_deleted_00000000-0000-0000-0000-000000000001",
+                "baoan3236@gmail.com",
+                "MatKhau1!",
+                "Nguyen Bao An"
+        );
+
+        assertThrows(BadRequestException.class, () -> policy.normalizeRegisterCommand(command));
+    }
+
+    @Test
     void shouldRejectFullNameContainingDigits() {
         RegisterAccountCommand command = new RegisterAccountCommand(
                 "baoan3236",

@@ -15,6 +15,11 @@ import java.util.stream.Collectors;
 /** Resolves effective permissions without granting or denying from a role name. */
 public final class EffectiveAccountAccessPolicy {
 
+    private static final Set<String> PENDING_DELETION_PERMISSIONS = Set.of(
+            "ACCOUNT_DELETION_READ_SELF",
+            "ACCOUNT_DELETION_CANCEL_SELF"
+    );
+
     private final PermissionAccessPrerequisitePolicy prerequisitePolicy =
             new PermissionAccessPrerequisitePolicy();
 
@@ -29,8 +34,12 @@ public final class EffectiveAccountAccessPolicy {
         return canUseBusinessPermissions(state)
                 || (state != null
                 && state.roleActive()
+                && AccountStatus.PENDING_DELETION.equals(state.accountStatus()))
+                || (state != null
+                && state.roleActive()
                 && AccountStatus.PENDING.equals(state.accountStatus())
-                && (CustomerApprovalStatus.PENDING.equals(state.customerApprovalStatus())
+                && (state.customerApprovalStatus() == null
+                || CustomerApprovalStatus.PENDING.equals(state.customerApprovalStatus())
                 || CustomerApprovalStatus.REJECTED.equals(state.customerApprovalStatus())));
     }
 
@@ -46,6 +55,18 @@ public final class EffectiveAccountAccessPolicy {
 
         Set<String> normalizedAssignedPermissions = prerequisitePolicy
                 .normalizeAssignedPermissions(assignedPermissionCodes);
+        if (AccountStatus.PENDING_DELETION.equals(state.accountStatus())) {
+            return normalizedAssignedPermissions.stream()
+                    .filter(PENDING_DELETION_PERMISSIONS::contains)
+                    .sorted()
+                    .collect(Collectors.collectingAndThen(
+                            Collectors.toCollection(LinkedHashSet::new),
+                            Collections::unmodifiableSet));
+        }
+        if (AccountStatus.PENDING.equals(state.accountStatus())
+                && !isCustomerPreApprovalSupportState(state)) {
+            return Set.of();
+        }
         if (mustRestrictToLifecycleSafePermissions(state, normalizedAssignedPermissions)) {
             if (!isCustomerPreApprovalSupportState(state)) {
                 return Set.of();

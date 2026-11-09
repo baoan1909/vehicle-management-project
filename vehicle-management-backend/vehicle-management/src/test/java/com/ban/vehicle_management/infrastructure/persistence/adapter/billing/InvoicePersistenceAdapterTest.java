@@ -73,7 +73,7 @@ class InvoicePersistenceAdapterTest {
         Invoice invoice = new Invoice();
         invoice.setInvoiceId(invoiceId);
 
-        when(invoiceRepository.findById(invoiceId)).thenReturn(Optional.of(entity));
+        when(invoiceRepository.findBusinessVisibleById(invoiceId)).thenReturn(Optional.of(entity));
         when(invoicePersistenceMapper.toDomain(entity)).thenReturn(invoice);
 
         Optional<Invoice> result = invoicePersistenceAdapter.findById(invoiceId);
@@ -114,12 +114,12 @@ class InvoicePersistenceAdapterTest {
     @Test
     void shouldDelegateExistsCustomerById() {
         UUID customerId = UUID.randomUUID();
-        when(customerRepository.existsById(customerId)).thenReturn(true);
+        when(customerRepository.existsBusinessVisibleById(customerId)).thenReturn(true);
 
         boolean exists = invoicePersistenceAdapter.existsCustomerById(customerId);
 
         assertTrue(exists);
-        verify(customerRepository).existsById(customerId);
+        verify(customerRepository).existsBusinessVisibleById(customerId);
     }
 
     @Test
