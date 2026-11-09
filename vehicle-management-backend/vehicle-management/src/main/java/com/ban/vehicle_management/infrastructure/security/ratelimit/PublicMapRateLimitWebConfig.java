@@ -21,7 +21,8 @@ public class PublicMapRateLimitWebConfig implements WebMvcConfigurer {
                         "/api/public/parking-lots/directory",
                         "/api/public/parking-lots/*/space-availability",
                         "/api/public/parking-lots/telemetry/**",
-                        "/api/public/parking-locations/**"
+                        "/api/public/parking-locations/**",
+                        "/api/public/parking/reservations/lookup"
                 );
     }
 }

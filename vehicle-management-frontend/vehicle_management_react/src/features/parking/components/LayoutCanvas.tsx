@@ -52,7 +52,7 @@ type CanvasProps = {
 };
 
 export type LayoutSpaceVisualState = {
-  status: "AVAILABLE" | "OCCUPIED" | "RESERVED" | "MAINTENANCE";
+  status: "AVAILABLE" | "OCCUPIED" | "RESERVED" | "MAINTENANCE" | "UNAVAILABLE";
   allocated?: boolean;
 };
 
@@ -63,6 +63,7 @@ const LIVE_SPACE_VISUALS: Record<LayoutSpaceVisualState["status"], {
   label: string;
 }> = {
   AVAILABLE: { fill: "#dcfce7", stroke: "#16a34a", glyph: "✓", label: "Còn trống" },
+  UNAVAILABLE: { fill: "#e2e8f0", stroke: "#64748b", glyph: "×", label: "Không thể đặt" },
   OCCUPIED: { fill: "#fee2e2", stroke: "#dc2626", glyph: "●", label: "Đang có xe" },
   RESERVED: { fill: "#fef3c7", stroke: "#d97706", glyph: "◐", label: "Đặt trước" },
   MAINTENANCE: { fill: "#e2e8f0", stroke: "#64748b", glyph: "■", label: "Bảo trì" },

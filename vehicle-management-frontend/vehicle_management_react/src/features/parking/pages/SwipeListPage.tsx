@@ -304,6 +304,7 @@ export function SwipeListPage() {
   const [checkOutRefreshVersion, setCheckOutRefreshVersion] = useState(0);
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [subscriptionQrPayload, setSubscriptionQrPayload] = useState("");
+  const [reservationQrPayload, setReservationQrPayload] = useState("");
   const [subscriptionQrLicensePlate, setSubscriptionQrLicensePlate] = useState("");
   const [ocrStatus, setOcrStatus] = useState<OcrStatus>("idle");
   const [ocrMessage, setOcrMessage] = useState("");
@@ -496,6 +497,7 @@ export function SwipeListPage() {
       laneId,
       licensePlate: normalizedPlate,
       subscriptionQrPayload: isQrCheckIn ? subscriptionQrPayload : undefined,
+      reservationQrPayload: reservationQrPayload.trim() || undefined,
       vehicleTypeId: !isQrCheckIn && selectedRequiresVehicleType ? vehicleTypeId : undefined,
     };
   }, [
@@ -511,6 +513,7 @@ export function SwipeListPage() {
     selectedParkingCard,
     selectedRequiresVehicleType,
     subscriptionQrPayload,
+    reservationQrPayload,
     vehicleTypeId,
   ]);
   const {
@@ -911,6 +914,7 @@ export function SwipeListPage() {
   useEffect(() => {
     setCardUid("");
     setSubscriptionQrPayload("");
+    setReservationQrPayload("");
     setSubscriptionQrLicensePlate("");
     setVehicleTypeId("");
     setLicensePlate("");
@@ -940,6 +944,7 @@ export function SwipeListPage() {
     }
     setCardUid("");
     setSubscriptionQrPayload("");
+    setReservationQrPayload("");
     setSubscriptionQrLicensePlate("");
     setVehicleTypeId("");
     setLicensePlate("");
@@ -1234,6 +1239,16 @@ export function SwipeListPage() {
     lastAutoCapturedCardRef.current = "";
   }
 
+  function handleConfirmReservationQr(qrPayload: string) {
+    setSubscriptionQrPayload("");
+    setSubscriptionQrLicensePlate("");
+    setReservationQrPayload(qrPayload);
+    clearCheckInPreview();
+    setSubmitError("");
+    setQrScannerOpen(false);
+    setOcrMessage("Đã đọc QR đặt chỗ. Hãy chọn thẻ vãng lai và đối chiếu biển số thực tế trước khi xác nhận xe vào.");
+  }
+
   function resetOcrState() {
     setOcrStatus("idle");
     setOcrMessage("");
@@ -1448,6 +1463,7 @@ export function SwipeListPage() {
             cardUid: isQrCheckIn ? undefined : matchedCard?.uid ?? cardUid.trim(),
             parkingSpaceId,
             subscriptionQrPayload: isQrCheckIn ? subscriptionQrPayload : undefined,
+            reservationQrPayload: reservationQrPayload.trim() || undefined,
             vehicleTypeId: !isQrCheckIn && matchedCardRequiresVehicleType ? vehicleTypeId : undefined,
             plateFormatConfirmed: ocrStatus === "review",
           },
@@ -1475,7 +1491,7 @@ export function SwipeListPage() {
         const checkOutResult = response.data;
         setParkingSessionResult(checkOutResult);
 
-        if (checkOutResult.customerType === "VISITOR") {
+        if (checkOutResult.customerType === "VISITOR" && checkOutResult.barrierAction !== "OPEN") {
           const invoice = checkOutResult.invoice;
           const amount = invoice?.finalAmount;
           if (!invoice || typeof amount !== "number" || !Number.isFinite(amount)) {
@@ -1501,7 +1517,7 @@ export function SwipeListPage() {
           }
         } else {
           toast.success(
-            response.message || "Đã ghi nhận xe ra thành công. Vé đăng ký không phát sinh thanh toán.",
+            response.message || "Đã ghi nhận xe ra thành công. Không cần thanh toán thêm.",
             "Ghi nhận xe ra thành công",
           );
         }
@@ -1510,6 +1526,7 @@ export function SwipeListPage() {
       setCards((currentCards) => currentCards.filter((card) => card.cardId !== matchedCard?.cardId));
       setCardUid("");
       setSubscriptionQrPayload("");
+      setReservationQrPayload("");
       setSubscriptionQrLicensePlate("");
       setVehicleTypeId("");
       setLicensePlate("");
@@ -1776,6 +1793,7 @@ export function SwipeListPage() {
         mode={mode}
         onClose={() => setQrScannerOpen(false)}
         onConfirm={handleConfirmSubscriptionQr}
+        onConfirmReservation={handleConfirmReservationQr}
         open={qrScannerOpen}
         parkingLotId={parkingLotId}
       />

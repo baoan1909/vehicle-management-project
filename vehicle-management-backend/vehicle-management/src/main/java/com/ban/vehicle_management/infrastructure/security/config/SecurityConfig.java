@@ -99,6 +99,11 @@ public class SecurityConfig {
                                 "/api/public/parking-locations/**",
                                 "/api/public/administrative-divisions/**",
                                 "/api/public/pricing/**",
+                                "/api/parking/reservations/options",
+                                "/api/public/parking/reservations/options",
+                                "/api/public/parking/reservations/options/*/layout",
+                                "/api/public/parking/reservations/lookup",
+                                "/api/public/parking/reservations/*",
                                 "/api/catalog/vouchers/promotions",
                                 "/api/public/payments/vnpay/**",
                                 "/api/public/wallet-topups/vnpay/**",
@@ -108,7 +113,10 @@ public class SecurityConfig {
                                 "/api/public/parking-lots/telemetry/geolocation",
                                 "/api/public/support/requests",
                                 "/api/public/support/requests/access",
-                                "/api/public/support/assistant/messages"
+                                "/api/public/support/assistant/messages",
+                                "/api/public/parking/reservations",
+                                "/api/public/parking/reservations/*/cancel",
+                                "/api/public/parking/reservations/*/payments/vnpay"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
@@ -135,7 +143,8 @@ public class SecurityConfig {
                 "Accept",
                 "Origin",
                 "X-Requested-With",
-                "Idempotency-Key"
+                "Idempotency-Key",
+                "X-Reservation-Access"
         ));
         configuration.setExposedHeaders(List.of("Location"));
         configuration.setAllowCredentials(true);

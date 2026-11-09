@@ -86,6 +86,7 @@ export type CheckInParkingSessionRequest = {
   plateIdentityOverride?: boolean;
   parkingSpaceId?: string;
   subscriptionQrPayload?: string;
+  reservationQrPayload?: string;
   vehicleTypeId?: string;
 };
 
@@ -94,8 +95,20 @@ export type CheckInPreviewRequest = {
   laneId: string;
   licensePlate: string;
   subscriptionQrPayload?: string;
+  reservationQrPayload?: string;
   vehicleTypeId?: string;
 };
+
+export async function decodeCheckInQrImage(image: File, parkingLotId: string) {
+  const formData = new FormData();
+  formData.append("image", image, image.name);
+  formData.append("parkingLotId", parkingLotId);
+  const response = await apiClient<ApiResponse<{ qrPayload: string }>>(
+    `${apiEndpoints.parking.parkingSessions}/qr/decode-image`,
+    { body: formData, method: "POST" },
+  );
+  return response.data.qrPayload;
+}
 
 export type EligibleParkingSpace = {
   code: string;

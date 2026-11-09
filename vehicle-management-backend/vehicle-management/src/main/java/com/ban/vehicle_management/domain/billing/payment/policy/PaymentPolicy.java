@@ -134,8 +134,10 @@ public class PaymentPolicy {
         }
 
         if (PaymentStatus.PENDING.equals(payment.getStatus())) {
-            if (!PaymentMethod.VNPAY.equals(payment.getPaymentMethod())) {
-                throw new BadRequestException("Only VNPAY payment can be pending");
+            if (!PaymentMethod.VNPAY.equals(payment.getPaymentMethod())
+                    && !PaymentMethod.PAYOS.equals(payment.getPaymentMethod())
+                    && !PaymentMethod.STRIPE.equals(payment.getPaymentMethod())) {
+                throw new BadRequestException("Only online payment can be pending");
             }
             if (payment.getPaidAt() != null || payment.getReceivedBy() != null) {
                 throw new BadRequestException("Pending payment cannot have paidAt or receivedBy");

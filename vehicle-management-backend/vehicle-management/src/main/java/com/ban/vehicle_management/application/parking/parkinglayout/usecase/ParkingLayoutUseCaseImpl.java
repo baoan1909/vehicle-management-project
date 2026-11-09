@@ -32,6 +32,8 @@ import com.ban.vehicle_management.domain.parking.zone.policy.ZonePolicy;
 import com.ban.vehicle_management.shared.enumeration.parking.LayoutVersionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
@@ -119,6 +121,20 @@ public class ParkingLayoutUseCaseImpl implements ParkingLayoutPortIn {
     public ZoneLayoutResult getPublishedLayout(UUID zoneId) {
         Zone zone = findReadableZone(zoneId);
         return toResult(layoutPortOut.findPublishedByZoneId(zone.getZoneId())
+                .orElseThrow(() -> new NotFoundException("Published layout not found")));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ZoneLayoutResult getPublicPublishedLayout(UUID parkingLotId, UUID zoneId) {
+        Zone zone = getZone(zoneId);
+        if (!zone.getParkingLotId().equals(parkingLotId)
+                || zone.getStatus() != ZoneStatus.ACTIVE
+                || zone.getTrackingMode() != TrackingMode.SPACE
+                || getLot(parkingLotId).getStatus() != ParkingLotStatus.ACTIVE) {
+            throw new NotFoundException("Published layout not found");
+        }
+        return toResult(layoutPortOut.findPublishedByZoneId(zoneId)
                 .orElseThrow(() -> new NotFoundException("Published layout not found")));
     }
 

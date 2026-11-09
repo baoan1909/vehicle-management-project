@@ -1,5 +1,8 @@
 package com.ban.vehicle_management.application.parking.parkingsession.usecase;
 
+import com.ban.vehicle_management.application.parking.customerreservation.port.out.CustomerReservationPortOut;
+import com.ban.vehicle_management.domain.parking.customerreservation.model.CustomerReservation;
+
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.service.SubscriptionQrTokenService;
@@ -125,6 +128,12 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     private final SubscriptionQrPolicy subscriptionQrPolicy = new SubscriptionQrPolicy();
     private final ParkingCheckOutPolicy parkingCheckOutPolicy = new ParkingCheckOutPolicy();
     private final ParkingCheckoutPricePolicy parkingCheckoutPricePolicy = new ParkingCheckoutPricePolicy();
+    private CustomerReservationPortOut reservationPortOut;
+
+    @Autowired
+    public void setReservationPortOut(CustomerReservationPortOut reservationPortOut) {
+        this.reservationPortOut = reservationPortOut;
+    }
     private final ParkingLicensePlatePolicy licensePlatePolicy = new ParkingLicensePlatePolicy();
     private final ParkingSessionPolicy parkingSessionPolicy = new ParkingSessionPolicy();
     private final LicensePlatePolicy licensePlateSnapshotPolicy = new LicensePlatePolicy();
@@ -266,14 +275,17 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         }
 
         boolean subscriptionSession = isSubscriptionSession(parkingSession);
-        if (!subscriptionSession) {
+        CustomerReservation reservation = reservationFor(parkingSession);
+        boolean prepaidCovered = reservation != null
+                && calculateVisitorPrice(parkingSession, now).signum() == 0;
+        if (!subscriptionSession && !prepaidCovered) {
             throw new ConflictException("Visitor checkout must be prepared and paid before completion");
         }
         BigDecimal totalPrice = subscriptionSession
                 ? BigDecimal.ZERO
-                : calculateVisitorPrice(parkingSession, now);
+                : reservation.getPrepaidAmount();
         String customerType = subscriptionSession ? CUSTOMER_TYPE_SUBSCRIPTION : CUSTOMER_TYPE_VISITOR;
-        String barrierAction = subscriptionSession ? BARRIER_ACTION_OPEN : BARRIER_ACTION_WAIT_PAYMENT;
+        String barrierAction = BARRIER_ACTION_OPEN;
 
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         UUID parkingEventId = UUID.randomUUID();
@@ -324,7 +336,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
             ParkingEvent savedParkingEvent = parkingEventPortOut.save(parkingEvent);
             publishAvailabilityChanged(savedParkingSession);
 
-            Invoice invoice = subscriptionSession ? null : createParkingSessionInvoice(savedParkingSession, totalPrice, now);
+            Invoice invoice = null;
 
             return new CheckOutResult(
                     savedParkingSession,
@@ -392,6 +404,9 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         }
 
         BigDecimal totalPrice = calculateVisitorPrice(parkingSession, now);
+        if (totalPrice.signum() == 0 && reservationFor(parkingSession) != null) {
+            return checkOut(command);
+        }
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         UUID parkingEventId = UUID.randomUUID();
         StoredFile storedLicensePlateImage = null;
@@ -529,7 +544,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
                 parkingSession,
                 checkOutTime,
                 pendingEvent.getLicensePlateDetected(),
-                invoice.getFinalAmount()
+                invoice.getFinalAmount().add(prepaidFor(parkingSession))
         );
         parkingSessionPortOut.save(parkingSession);
         releaseSpaceForCheckOut(parkingSession);
@@ -709,6 +724,18 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     }
 
     private BigDecimal calculateVisitorPrice(ParkingSession parkingSession, Instant checkOutTime) {
+        CustomerReservation reservation = reservationFor(parkingSession);
+        if (reservation != null) {
+            if (reservation.getPaidAt() == null) {
+                throw new ConflictException("Reservation payment time is missing");
+            }
+            BigDecimal gross = parkingCheckoutPricePolicy.calculateVisitorPrice(
+                    LocalDateTime.ofInstant(reservation.getPaidAt(), DateTimeUtils.VIETNAM_ZONE),
+                    LocalDateTime.ofInstant(checkOutTime, DateTimeUtils.VIETNAM_ZONE),
+                    reservation.getDayPrice(), reservation.getNightPrice(),
+                    reservation.getDayStart(), reservation.getDayEnd());
+            return gross.subtract(reservation.getPrepaidAmount()).max(BigDecimal.ZERO);
+        }
         LocalDate effectiveDate = DateTimeUtils.toVietnamLocalDate(checkOutTime);
         PriceRule dayRule = priceRulePortOut.findActiveVisitorRuleByTime(
                         parkingSession.getVehicleTypeId(),
@@ -737,6 +764,16 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
                 dayRule.getTimeFrom(),
                 dayRule.getTimeTo()
         );
+    }
+
+    private CustomerReservation reservationFor(ParkingSession session) {
+        return reservationPortOut == null ? null
+                : reservationPortOut.findBySessionId(session.getParkingSessionId()).orElse(null);
+    }
+
+    private BigDecimal prepaidFor(ParkingSession session) {
+        CustomerReservation reservation = reservationFor(session);
+        return reservation == null ? BigDecimal.ZERO : reservation.getPrepaidAmount();
     }
 
     private Invoice createParkingSessionInvoice(ParkingSession parkingSession, BigDecimal totalPrice, Instant issuedAt) {

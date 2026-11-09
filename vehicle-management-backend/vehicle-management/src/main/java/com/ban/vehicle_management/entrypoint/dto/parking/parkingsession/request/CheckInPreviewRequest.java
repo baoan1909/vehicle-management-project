@@ -7,7 +7,8 @@ public record CheckInPreviewRequest(
         UUID laneId,
         UUID vehicleTypeId,
         String licensePlate,
-        String subscriptionQrPayload
+        String subscriptionQrPayload,
+        String reservationQrPayload
 ) {
 }
 
