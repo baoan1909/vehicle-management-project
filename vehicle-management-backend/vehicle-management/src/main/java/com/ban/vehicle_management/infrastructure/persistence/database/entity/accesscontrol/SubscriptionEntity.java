@@ -9,6 +9,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerVehicleEntity;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
@@ -89,6 +90,10 @@ public class SubscriptionEntity extends AuditableEntity {
     @Column(name = "physical_card_deposit", nullable = false, precision = 12, scale = 2)
     private BigDecimal physicalCardDeposit = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "physical_card_status", nullable = false)
+    private PhysicalCardFulfillmentStatus physicalCardStatus = PhysicalCardFulfillmentStatus.NOT_REQUESTED;
+
     @Column(name = "requested_effective_from", nullable = false)
     private LocalDate requestedEffectiveFrom;
 
@@ -160,6 +165,15 @@ public class SubscriptionEntity extends AuditableEntity {
 
     @Column(name = "access_restored_by")
     private UUID accessRestoredBy;
+
+    @Column(name = "space_selection_required", nullable = false)
+    private Boolean spaceSelectionRequired = false;
+
+    @Column(name = "space_selection_confirmed_at")
+    private Instant spaceSelectionConfirmedAt;
+
+    @Column(name = "space_selection_expires_at")
+    private Instant spaceSelectionExpiresAt;
 
     @OneToMany(mappedBy = "subscription")
     private Set<InvoiceEntity> invoices = new HashSet<>();

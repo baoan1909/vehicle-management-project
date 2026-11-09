@@ -4,6 +4,7 @@ public enum SubscriptionStatus {
     PENDING,
     PENDING_PAYMENT,
     PENDING_CARD,
+    PENDING_SPACE,
     ACTIVE,
     EXPIRED,
     CANCELLED,

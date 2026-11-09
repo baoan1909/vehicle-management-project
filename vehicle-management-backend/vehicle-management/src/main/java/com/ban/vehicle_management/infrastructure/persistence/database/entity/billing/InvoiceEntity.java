@@ -7,6 +7,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.bil
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSessionEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.CustomerEntity;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
@@ -68,6 +69,10 @@ public class InvoiceEntity extends AuditableEntity {
 
     @Column(name = "lost_card_report_id")
     private UUID lostCardReportId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "purpose", nullable = false)
+    private InvoicePurpose purpose = InvoicePurpose.MANUAL;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lost_card_report_id", referencedColumnName = "lost_card_report_id", insertable = false, updatable = false)

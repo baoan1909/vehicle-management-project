@@ -3,6 +3,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.ca
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.shared.enumeration.catalog.VoucherDiscountType;
 import com.ban.vehicle_management.shared.enumeration.catalog.VoucherStatus;
+import com.ban.vehicle_management.shared.enumeration.catalog.VoucherScopeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -27,6 +28,13 @@ public class VoucherEntity extends AuditableEntity {
     @Id
     @Column(name = "voucher_id", nullable = false)
     private UUID voucherId;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "scope_type", nullable = false)
+    private VoucherScopeType scopeType;
+    @Column(name = "organization_id")
+    private UUID organizationId;
+    @Column(name = "parking_lot_id")
+    private UUID parkingLotId;
     @Column(name = "code", nullable = false, unique = true, length = 50)
     private String code;
     @Column(name = "name", nullable = false, length = 150)

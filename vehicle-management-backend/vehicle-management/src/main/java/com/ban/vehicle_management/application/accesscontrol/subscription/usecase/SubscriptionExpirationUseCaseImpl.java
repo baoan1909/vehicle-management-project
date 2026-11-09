@@ -2,15 +2,18 @@ package com.ban.vehicle_management.application.accesscontrol.subscription.usecas
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionExpirationPortIn;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
+import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionRenewalPortOut;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.people.customer.port.out.CustomerPortOut;
 import com.ban.vehicle_management.application.parking.allocation.SubscriptionParkingAllocationService;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionRenewalStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,23 +28,35 @@ public class SubscriptionExpirationUseCaseImpl implements SubscriptionExpiration
     private final CustomerPortOut customerPortOut;
     private final NotificationPortIn notificationPortIn;
     private final SubscriptionParkingAllocationService parkingAllocationService;
+    private final SubscriptionRenewalPortOut subscriptionRenewalPortOut;
 
     @Autowired
     public SubscriptionExpirationUseCaseImpl(
             SubscriptionPortOut subscriptionPortOut,
             CustomerPortOut customerPortOut,
             NotificationPortIn notificationPortIn,
-            SubscriptionParkingAllocationService parkingAllocationService
+            SubscriptionParkingAllocationService parkingAllocationService,
+            SubscriptionRenewalPortOut subscriptionRenewalPortOut
     ) {
         this.subscriptionPortOut = subscriptionPortOut;
         this.customerPortOut = customerPortOut;
         this.notificationPortIn = notificationPortIn;
         this.parkingAllocationService = parkingAllocationService;
+        this.subscriptionRenewalPortOut = subscriptionRenewalPortOut;
     }
 
     public SubscriptionExpirationUseCaseImpl(SubscriptionPortOut subscriptionPortOut,
             CustomerPortOut customerPortOut, NotificationPortIn notificationPortIn) {
         this(subscriptionPortOut, customerPortOut, notificationPortIn, null);
+    }
+
+    public SubscriptionExpirationUseCaseImpl(
+            SubscriptionPortOut subscriptionPortOut,
+            CustomerPortOut customerPortOut,
+            NotificationPortIn notificationPortIn,
+            SubscriptionParkingAllocationService parkingAllocationService
+    ) {
+        this(subscriptionPortOut, customerPortOut, notificationPortIn, parkingAllocationService, null);
     }
 
     @Override
@@ -55,6 +70,7 @@ public class SubscriptionExpirationUseCaseImpl implements SubscriptionExpiration
             throw new BadRequestException("businessDate must not be null");
         }
 
+        applyScheduledRenewals(businessDate);
         notifyExpiringSoonSubscriptions(businessDate.plusDays(EXPIRING_SOON_DAYS));
         List<Subscription> expiredSubscriptions = subscriptionPortOut.findActiveSubscriptionsExpiredBefore(businessDate);
         if (parkingAllocationService != null) {
@@ -64,6 +80,24 @@ public class SubscriptionExpirationUseCaseImpl implements SubscriptionExpiration
         int expiredCount = subscriptionPortOut.expireActiveSubscriptionsBefore(businessDate);
         expiredSubscriptions.forEach(this::notifyExpiredSubscription);
         return expiredCount;
+    }
+
+    private void applyScheduledRenewals(LocalDate businessDate) {
+        if (subscriptionRenewalPortOut == null) return;
+        subscriptionRenewalPortOut.findScheduledStartingOnOrBefore(businessDate).forEach(renewal -> {
+            Subscription subscription = subscriptionPortOut.findByIdForUpdate(renewal.getSubscriptionId())
+                    .orElse(null);
+            if (subscription == null) return;
+            subscription.setTicketTypeId(renewal.getTicketTypeId());
+            subscription.setPriceRuleId(renewal.getPriceRuleId());
+            subscription.setPeriodQuantity(renewal.getPeriodQuantity());
+            subscription.setPrice(renewal.getTicketAmount());
+            subscription.setRequestedVoucherCode(renewal.getVoucherCode());
+            subscriptionPortOut.save(subscription);
+            renewal.setStatus(SubscriptionRenewalStatus.APPLIED);
+            renewal.setAppliedAt(Instant.now());
+            subscriptionRenewalPortOut.save(renewal);
+        });
     }
 
     private void notifyExpiringSoonSubscriptions(LocalDate effectiveTo) {

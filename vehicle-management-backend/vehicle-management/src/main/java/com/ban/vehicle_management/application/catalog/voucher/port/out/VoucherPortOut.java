@@ -18,6 +18,7 @@ public interface VoucherPortOut {
     List<Voucher> findAllVouchers();
     VoucherRedemption saveRedemption(VoucherRedemption redemption);
     Optional<VoucherRedemption> findRedemptionBySubscriptionId(UUID subscriptionId);
+    Optional<VoucherRedemption> findRedemptionByInvoiceId(UUID invoiceId);
     long countRedemptionsByVoucherIdAndStatusIn(UUID voucherId, Collection<VoucherRedemptionStatus> statuses);
     long countRedemptionsByVoucherIdAndCustomerIdAndStatusIn(UUID voucherId, UUID customerId, Collection<VoucherRedemptionStatus> statuses);
 }

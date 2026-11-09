@@ -532,6 +532,15 @@ export function PricingPage() {
     return () => { ignore = true; };
   }, []);
 
+  useEffect(() => {
+    if (!detailMode || !selectedParkingLotId) return;
+    let ignore = false;
+    getCustomerPortalVoucherBanners(selectedParkingLotId)
+      .then((items) => { if (!ignore) setVouchers(items); })
+      .catch(() => { if (!ignore) setVouchers([]); });
+    return () => { ignore = true; };
+  }, [detailMode, selectedParkingLotId]);
+
   const canPersistFavorites = user?.role === "CUSTOMER";
 
   useEffect(() => {

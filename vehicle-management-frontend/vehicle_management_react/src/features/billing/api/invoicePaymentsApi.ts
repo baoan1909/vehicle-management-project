@@ -21,6 +21,7 @@ export type InvoiceSummaryResponse = {
   issuedAt?: string | null;
   lostCardReportId?: string | null;
   paidAt?: string | null;
+  purpose?: "MANUAL" | "PARKING_SESSION" | "SUBSCRIPTION_PURCHASE" | "SUBSCRIPTION_RENEWAL" | "SUBSCRIPTION_CARD_DEPOSIT" | "LOST_CARD" | null;
   parkingSessionId?: string | null;
   status: "UNPAID" | "PAID" | "CANCELLED" | "REFUNDED";
   subscriptionId?: string | null;
@@ -54,12 +55,19 @@ function buildQuery(filter: Record<string, string | undefined>) {
   return params.toString();
 }
 
-export async function getSubscriptionInvoice(subscriptionId: string) {
+export async function getSubscriptionInvoice(
+  subscriptionId: string,
+  purpose: InvoiceSummaryResponse["purpose"] = "SUBSCRIPTION_PURCHASE",
+) {
   const query = buildQuery({ subscriptionId });
   const response = await apiClient<ApiResponse<InvoiceSummaryResponse[]>>(
     `${apiEndpoints.billing.invoices}?${query}`,
   );
-  const invoices = response.data ?? [];
+  const invoices = (response.data ?? []).filter((invoice) => (
+    purpose === "SUBSCRIPTION_PURCHASE"
+      ? !invoice.purpose || invoice.purpose === purpose
+      : invoice.purpose === purpose
+  ));
   return (
     invoices.find((invoice) => invoice.status === "UNPAID")
     ?? invoices.find((invoice) => invoice.status === "PAID")

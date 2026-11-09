@@ -201,7 +201,7 @@ class VnpayPaymentUseCaseImplTest {
         assertEquals(PaymentStatus.SUCCESS, payment.getStatus());
         assertEquals(InvoiceStatus.PAID, invoice.getStatus());
         assertEquals(paidAt, invoice.getPaidAt());
-        verify(subscriptionPortIn).markSubscriptionPaymentCompleted(subscriptionId);
+        verify(subscriptionPortIn).markSubscriptionInvoicePaymentCompleted(subscriptionId, invoiceId);
         verify(settlementPortIn).allocateForCompletedPayment(payment.getPaymentId());
     }
 
@@ -239,7 +239,7 @@ class VnpayPaymentUseCaseImplTest {
         assertEquals(PaymentStatus.SUCCESS, payment.getStatus());
         assertEquals(InvoiceStatus.PAID, invoice.getStatus());
         assertEquals(paidAt, invoice.getPaidAt());
-        verify(subscriptionPortIn).markSubscriptionPaymentCompleted(subscriptionId);
+        verify(subscriptionPortIn).markSubscriptionInvoicePaymentCompleted(subscriptionId, invoiceId);
         verify(settlementPortIn).allocateForCompletedPayment(payment.getPaymentId());
     }
 

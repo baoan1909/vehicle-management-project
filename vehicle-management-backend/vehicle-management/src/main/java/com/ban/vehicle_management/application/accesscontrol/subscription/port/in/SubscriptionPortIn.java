@@ -1,9 +1,14 @@
 package com.ban.vehicle_management.application.accesscontrol.subscription.port.in;
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionSpaceSelection;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalQuote;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalResult;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
+import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -45,4 +50,33 @@ public interface SubscriptionPortIn {
     Subscription expireSubscription(UUID subscriptionId);
 
     Subscription markSubscriptionPaymentCompleted(UUID subscriptionId);
+
+    Subscription markSubscriptionInvoicePaymentCompleted(UUID subscriptionId, UUID invoiceId);
+
+    Invoice requestMyPhysicalCard(UUID subscriptionId);
+
+    SubscriptionRenewalQuote quoteMySubscriptionRenewal(
+            UUID subscriptionId,
+            UUID ticketTypeId,
+            Integer periodQuantity,
+            String voucherCode,
+            Boolean physicalCardRequested
+    );
+
+    SubscriptionRenewalResult renewMySubscription(
+            UUID subscriptionId,
+            UUID ticketTypeId,
+            Integer periodQuantity,
+            String voucherCode,
+            Boolean physicalCardRequested,
+            String idempotencyKey
+    );
+
+    SubscriptionSpaceSelection getMySpaceSelection(UUID subscriptionId);
+
+    SubscriptionSpaceSelection selectMyParkingSpace(UUID subscriptionId, UUID parkingSpaceId);
+
+    Subscription confirmMySpaceSelection(UUID subscriptionId);
+
+    int finalizeExpiredSpaceSelections(Instant now);
 }

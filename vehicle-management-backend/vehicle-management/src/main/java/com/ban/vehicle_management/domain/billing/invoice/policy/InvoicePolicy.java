@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.billing.invoice.policy;
 
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 
 import java.math.BigDecimal;
@@ -74,9 +75,11 @@ public class InvoicePolicy {
         requireField(invoice.getFinalAmount(), "finalAmount");
         requireField(invoice.getStatus(), "status");
         requireField(invoice.getIssuedAt(), "issuedAt");
+        requireField(invoice.getPurpose(), "purpose");
 
         validateAmounts(invoice);
         validateSource(invoice);
+        validatePurpose(invoice);
 
         BigDecimal expectedFinalAmount = invoice.getAmount().subtract(invoice.getDiscountAmount());
         if(invoice.getFinalAmount().compareTo(expectedFinalAmount) != 0){
@@ -133,6 +136,22 @@ public class InvoicePolicy {
 
         if(sourceCount > 1){
             throw new BadRequestException("Invoice can belong to only one bussiness source");
+        }
+    }
+
+    private void validatePurpose(Invoice invoice) {
+        InvoicePurpose purpose = invoice.getPurpose();
+        if (purpose == InvoicePurpose.PARKING_SESSION && invoice.getParkingSessionId() == null) {
+            throw new BadRequestException("Parking-session invoice must reference a parking session");
+        }
+        if ((purpose == InvoicePurpose.SUBSCRIPTION_PURCHASE
+                || purpose == InvoicePurpose.SUBSCRIPTION_RENEWAL
+                || purpose == InvoicePurpose.SUBSCRIPTION_CARD_DEPOSIT)
+                && invoice.getSubscriptionId() == null) {
+            throw new BadRequestException("Subscription invoice must reference a subscription");
+        }
+        if (purpose == InvoicePurpose.LOST_CARD && invoice.getLostCardReportId() == null) {
+            throw new BadRequestException("Lost-card invoice must reference a lost card report");
         }
     }
 

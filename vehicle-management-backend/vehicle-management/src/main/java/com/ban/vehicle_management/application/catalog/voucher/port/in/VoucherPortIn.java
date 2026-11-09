@@ -13,11 +13,13 @@ public interface VoucherPortIn {
     Voucher updateVoucher(UUID voucherId, Voucher voucher);
     Voucher getVoucherById(UUID voucherId);
     List<Voucher> getVouchers();
-    List<Voucher> getCustomerVisibleVouchers(Instant now);
+    List<Voucher> getCustomerVisibleVouchers(UUID parkingLotId, Instant now);
     Voucher activateVoucher(UUID voucherId);
     Voucher pauseVoucher(UUID voucherId);
-    VoucherQuote quoteSubscriptionVoucher(String voucherCode, UUID customerId, UUID ticketTypeId, BigDecimal subscriptionAmount, Instant now);
-    VoucherQuote reserveSubscriptionVoucher(String voucherCode, UUID customerId, UUID ticketTypeId, BigDecimal subscriptionAmount, UUID subscriptionId, UUID invoiceId, Instant now);
-    void redeemSubscriptionVoucher(UUID subscriptionId, Instant redeemedAt);
+    VoucherQuote quoteSubscriptionVoucher(String voucherCode, UUID customerId, UUID ticketTypeId, UUID parkingLotId, BigDecimal subscriptionAmount, Instant now);
+    VoucherQuote reserveSubscriptionVoucher(String voucherCode, UUID customerId, UUID ticketTypeId, UUID parkingLotId, BigDecimal subscriptionAmount, UUID subscriptionId, UUID invoiceId, Instant now);
+    void redeemSubscriptionVoucher(UUID subscriptionId, UUID parkingLotId, Instant redeemedAt);
+    void redeemSubscriptionVoucherByInvoice(UUID invoiceId, UUID parkingLotId, Instant redeemedAt);
     void releaseSubscriptionVoucher(UUID subscriptionId, String reason, Instant releasedAt);
+    void releaseSubscriptionVoucherByInvoice(UUID invoiceId, String reason, Instant releasedAt);
 }

@@ -19,8 +19,18 @@ public class SubscriptionTimeProperties {
     @NotNull
     private Duration paymentTimeout = Duration.ofHours(48);
 
+    @NotNull
+    private Duration spaceSelectionTimeout = Duration.ofHours(24);
+
     @AssertTrue(message = "app.subscription.payment-timeout must be greater than zero")
     public boolean isPaymentTimeoutValid() {
         return paymentTimeout != null && !paymentTimeout.isZero() && !paymentTimeout.isNegative();
+    }
+
+    @AssertTrue(message = "app.subscription.space-selection-timeout must be greater than zero")
+    public boolean isSpaceSelectionTimeoutValid() {
+        return spaceSelectionTimeout != null
+                && !spaceSelectionTimeout.isZero()
+                && !spaceSelectionTimeout.isNegative();
     }
 }

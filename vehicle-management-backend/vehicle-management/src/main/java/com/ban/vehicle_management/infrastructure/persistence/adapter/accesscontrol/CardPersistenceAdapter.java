@@ -146,6 +146,7 @@ public class CardPersistenceAdapter implements CardPortOut {
                 List.of(
                         SubscriptionStatus.PENDING_PAYMENT,
                         SubscriptionStatus.PENDING_CARD,
+                        SubscriptionStatus.PENDING_SPACE,
                         SubscriptionStatus.ACTIVE
                 )
         )
@@ -166,11 +167,12 @@ public class CardPersistenceAdapter implements CardPortOut {
             case AVAILABLE -> !hasActiveUsage(cardId);
             case RESERVED -> subscriptionRepository.existsByCardIdAndStatusIn(
                     cardId,
-                    List.of(SubscriptionStatus.PENDING_PAYMENT, SubscriptionStatus.PENDING_CARD)
+                    List.of(SubscriptionStatus.PENDING_PAYMENT, SubscriptionStatus.PENDING_CARD,
+                            SubscriptionStatus.PENDING_SPACE)
             );
             case ASSIGNED -> subscriptionRepository.existsByCardIdAndStatusIn(
                     cardId,
-                    List.of(SubscriptionStatus.ACTIVE)
+                    List.of(SubscriptionStatus.ACTIVE, SubscriptionStatus.PENDING_SPACE)
             )
                     && !parkingSessionRepository.existsByCardIdAndStatus(cardId, ParkingSessionStatus.OPEN);
             case IN_USE -> parkingSessionRepository.existsByCardIdAndStatus(cardId, ParkingSessionStatus.OPEN);

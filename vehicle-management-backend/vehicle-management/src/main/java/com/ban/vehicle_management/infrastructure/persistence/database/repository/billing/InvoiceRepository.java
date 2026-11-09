@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -20,9 +21,21 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID>, J
 
     boolean existsBySubscriptionIdAndStatusIn(UUID subcriptionId, Collection<InvoiceStatus> statuses);
 
+    boolean existsBySubscriptionIdAndPurposeAndStatusIn(
+            UUID subscriptionId,
+            InvoicePurpose purpose,
+            Collection<InvoiceStatus> statuses
+    );
+
     boolean existsByLostCardReportIdAndStatusIn(UUID lostCardReportId, Collection<InvoiceStatus> statuses);
 
     Optional<InvoiceEntity> findFirstBySubscriptionIdAndStatus(UUID subscriptionId, InvoiceStatus status);
+
+    Optional<InvoiceEntity> findFirstBySubscriptionIdAndPurposeAndStatus(
+            UUID subscriptionId,
+            InvoicePurpose purpose,
+            InvoiceStatus status
+    );
 
     Optional<InvoiceEntity> findFirstBySubscriptionIdAndStatusIn(
             UUID subscriptionId,

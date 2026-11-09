@@ -14,6 +14,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.billing.InvoiceSpecifications;
 import com.ban.vehicle_management.infrastructure.persistence.database.specification.people.CustomerSpecifications;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import org.springframework.stereotype.Component;
 
@@ -166,6 +167,15 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
     }
 
     @Override
+    public boolean existsBySubscriptionIdAndPurposeAndStatusIn(
+            UUID subscriptionId,
+            InvoicePurpose purpose,
+            Collection<InvoiceStatus> statuses
+    ) {
+        return invoiceRepository.existsBySubscriptionIdAndPurposeAndStatusIn(subscriptionId, purpose, statuses);
+    }
+
+    @Override
     public boolean existsByLostCardReportIdAndStatusIn(UUID lostCardReportId, Collection<InvoiceStatus> statuses) {
         return invoiceRepository.existsByLostCardReportIdAndStatusIn(lostCardReportId, statuses);
     }
@@ -176,6 +186,16 @@ public class InvoicePersistenceAdapter implements InvoicePortOut {
             InvoiceStatus status
     ) {
         return invoiceRepository.findFirstBySubscriptionIdAndStatus(subscriptionId, status)
+                .map(invoicePersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Invoice> findFirstBySubscriptionIdAndPurposeAndStatus(
+            UUID subscriptionId,
+            InvoicePurpose purpose,
+            InvoiceStatus status
+    ) {
+        return invoiceRepository.findFirstBySubscriptionIdAndPurposeAndStatus(subscriptionId, purpose, status)
                 .map(invoicePersistenceMapper::toDomain);
     }
 

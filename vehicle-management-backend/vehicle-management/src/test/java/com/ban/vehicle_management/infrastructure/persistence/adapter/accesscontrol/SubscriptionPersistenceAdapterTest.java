@@ -158,6 +158,7 @@ class SubscriptionPersistenceAdapterTest {
                         SubscriptionStatus.PENDING,
                         SubscriptionStatus.PENDING_PAYMENT,
                         SubscriptionStatus.PENDING_CARD,
+                        SubscriptionStatus.PENDING_SPACE,
                         SubscriptionStatus.ACTIVE
                 ),
                 List.copyOf(statusesCaptor.getValue())
@@ -186,6 +187,7 @@ class SubscriptionPersistenceAdapterTest {
                 List.of(
                         SubscriptionStatus.PENDING_PAYMENT,
                         SubscriptionStatus.PENDING_CARD,
+                        SubscriptionStatus.PENDING_SPACE,
                         SubscriptionStatus.ACTIVE
                 ),
                 List.copyOf(statusesCaptor.getValue())

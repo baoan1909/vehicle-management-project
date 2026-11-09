@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.catalog.voucher.model;
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.catalog.VoucherDiscountType;
 import com.ban.vehicle_management.shared.enumeration.catalog.VoucherStatus;
+import com.ban.vehicle_management.shared.enumeration.catalog.VoucherScopeType;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -18,6 +19,9 @@ import lombok.Setter;
 public class Voucher extends AuditableDomainModel {
 
     private UUID voucherId;
+    private VoucherScopeType scopeType;
+    private UUID organizationId;
+    private UUID parkingLotId;
     private String code;
     private String name;
     private String description;

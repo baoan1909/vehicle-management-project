@@ -10,9 +10,13 @@ type ApiResponse<T> = {
 
 export type VoucherDiscountType = "PERCENTAGE" | "FIXED_AMOUNT";
 export type VoucherStatus = "DRAFT" | "ACTIVE" | "PAUSED" | "EXPIRED";
+export type VoucherScopeType = "PLATFORM" | "PARTNER" | "PARKING_LOT";
 
 export type VoucherResponse = {
   voucherId: string;
+  scopeType: VoucherScopeType;
+  organizationId: string | null;
+  parkingLotId: string | null;
   code: string;
   name: string;
   description: string | null;

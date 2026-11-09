@@ -17,6 +17,8 @@ import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.billing.payment.policy.PaymentPolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Duration;
@@ -142,13 +144,23 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
     }
 
     private boolean completeWhenInvoiceWasPaid(Subscription subscription, Instant now) {
-        return invoicePortOut.findFirstBySubscriptionIdAndStatus(
-                        subscription.getSubscriptionId(),
-                        InvoiceStatus.PAID
-                )
+        var paidPurchaseInvoice = invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                subscription.getSubscriptionId(),
+                InvoicePurpose.SUBSCRIPTION_PURCHASE,
+                InvoiceStatus.PAID
+        ).or(() -> invoicePortOut.findFirstBySubscriptionIdAndStatus(
+                subscription.getSubscriptionId(),
+                InvoiceStatus.PAID
+        ));
+        return paidPurchaseInvoice
                 .map(invoice -> {
-                    voucherPortIn.redeemSubscriptionVoucher(subscription.getSubscriptionId(), now);
+                    voucherPortIn.redeemSubscriptionVoucher(
+                            subscription.getSubscriptionId(),
+                            subscription.getParkingLotId(),
+                            now
+                    );
                     subscriptionPolicy.markPaymentCompleted(subscription);
+                    completePhysicalCardFulfillment(subscription);
                     if (parkingAllocationService != null
                             && subscription.getStatus()
                             == com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus.ACTIVE) {
@@ -158,6 +170,25 @@ public class SubscriptionPaymentTimeoutUseCaseImpl implements SubscriptionPaymen
                     return true;
                 })
                 .orElse(false);
+    }
+
+    private void completePhysicalCardFulfillment(Subscription subscription) {
+        if (!Boolean.TRUE.equals(subscription.getPhysicalCardRequested())
+                || subscription.getPhysicalCardStatus() != PhysicalCardFulfillmentStatus.PAYMENT_PENDING) {
+            return;
+        }
+
+        var availableCard = cardPortOut.findFirstAvailableRegisteredInParkingLot(
+                subscription.getParkingLotId());
+        if (availableCard.isEmpty()) {
+            subscriptionPolicy.waitForPhysicalCardInventory(subscription);
+            return;
+        }
+
+        Card card = availableCard.get();
+        cardPolicy.reserve(card);
+        cardPortOut.save(card);
+        subscriptionPolicy.reservePhysicalCard(subscription, card.getCardId());
     }
 
     private void cancelInvoiceAndPendingPayments(Subscription subscription) {

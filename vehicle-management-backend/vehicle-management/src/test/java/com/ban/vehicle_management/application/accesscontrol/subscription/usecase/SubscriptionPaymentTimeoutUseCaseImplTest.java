@@ -17,8 +17,10 @@ import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscr
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.CardStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import java.math.BigDecimal;
@@ -35,6 +37,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class SubscriptionPaymentTimeoutUseCaseImplTest {
+    private static final UUID PARKING_LOT_ID = UUID.fromString("00000000-0000-0000-0000-000000000701");
 
     @Mock
     private SubscriptionPortOut subscriptionPortOut;
@@ -127,12 +130,46 @@ class SubscriptionPaymentTimeoutUseCaseImplTest {
         int cancelledCount = useCase.cancelExpiredPendingPayments(now);
 
         assertEquals(0, cancelledCount);
-        assertEquals(SubscriptionStatus.PENDING_CARD, subscription.getStatus());
+        assertEquals(SubscriptionStatus.ACTIVE, subscription.getStatus());
         verify(subscriptionPortOut).save(subscription);
-        verify(voucherPortIn).redeemSubscriptionVoucher(subscription.getSubscriptionId(), now);
+        verify(voucherPortIn).redeemSubscriptionVoucher(subscription.getSubscriptionId(), PARKING_LOT_ID, now);
         verify(invoicePortOut, never()).save(any());
         verify(paymentPortOut, never()).save(any());
         verify(cardPortOut, never()).save(any());
+    }
+
+    @Test
+    void shouldReservePhysicalCardWhenLatePurchasePaymentIsDetected() {
+        Instant now = Instant.parse("2026-07-28T03:00:00Z");
+        Subscription subscription = pendingPaymentSubscription();
+        subscription.setCardId(null);
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.PAYMENT_PENDING);
+        Invoice paidInvoice = unpaidInvoice(subscription.getSubscriptionId());
+        paidInvoice.setPurpose(InvoicePurpose.SUBSCRIPTION_PURCHASE);
+        paidInvoice.setStatus(InvoiceStatus.PAID);
+        paidInvoice.setPaidAt(now.minusSeconds(10));
+        Card availableCard = reservedCard(UUID.randomUUID());
+        availableCard.setStatus(CardStatus.AVAILABLE);
+
+        when(subscriptionPortOut.findExpiredPendingPaymentsForUpdate(any(), any()))
+                .thenReturn(List.of(subscription));
+        when(invoicePortOut.findFirstBySubscriptionIdAndPurposeAndStatus(
+                subscription.getSubscriptionId(),
+                InvoicePurpose.SUBSCRIPTION_PURCHASE,
+                InvoiceStatus.PAID
+        )).thenReturn(Optional.of(paidInvoice));
+        when(cardPortOut.findFirstAvailableRegisteredInParkingLot(PARKING_LOT_ID))
+                .thenReturn(Optional.of(availableCard));
+
+        int cancelledCount = useCase.cancelExpiredPendingPayments(now);
+
+        assertEquals(0, cancelledCount);
+        assertEquals(SubscriptionStatus.ACTIVE, subscription.getStatus());
+        assertEquals(PhysicalCardFulfillmentStatus.RESERVED, subscription.getPhysicalCardStatus());
+        assertEquals(availableCard.getCardId(), subscription.getCardId());
+        assertEquals(CardStatus.RESERVED, availableCard.getStatus());
+        verify(cardPortOut).save(availableCard);
+        verify(subscriptionPortOut).save(subscription);
     }
 
     @Test
@@ -156,11 +193,15 @@ class SubscriptionPaymentTimeoutUseCaseImplTest {
         subscription.setCustomerVehicleId(UUID.randomUUID());
         subscription.setCardId(UUID.randomUUID());
         subscription.setTicketTypeId(UUID.randomUUID());
+        subscription.setParkingLotId(PARKING_LOT_ID);
         subscription.setPriceRuleId(UUID.randomUUID());
         subscription.setRequestedEffectiveFrom(LocalDate.of(2026, 7, 30));
         subscription.setEffectiveFrom(LocalDate.of(2026, 7, 30));
         subscription.setEffectiveTo(LocalDate.of(2026, 8, 28));
         subscription.setPrice(new BigDecimal("80000"));
+        subscription.setPhysicalCardRequested(true);
+        subscription.setPhysicalCardDeposit(new BigDecimal("50000"));
+        subscription.setPhysicalCardStatus(PhysicalCardFulfillmentStatus.RESERVED);
         subscription.setStatus(SubscriptionStatus.PENDING_PAYMENT);
         subscription.setApprovedBy(UUID.randomUUID());
         subscription.setApprovedAt(Instant.parse("2026-07-25T03:00:00Z"));

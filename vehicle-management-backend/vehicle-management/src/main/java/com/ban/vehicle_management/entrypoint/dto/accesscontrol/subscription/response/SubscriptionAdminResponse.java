@@ -3,6 +3,7 @@ package com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.res
 import java.time.Instant;
 
 import com.ban.vehicle_management.shared.enumeration.accesscontrol.SubscriptionStatus;
+import com.ban.vehicle_management.shared.enumeration.accesscontrol.PhysicalCardFulfillmentStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
@@ -25,6 +26,7 @@ public class SubscriptionAdminResponse {
     private Integer periodQuantity;
     private Boolean physicalCardRequested;
     private BigDecimal physicalCardDeposit;
+    private PhysicalCardFulfillmentStatus physicalCardStatus;
     private LocalDate requestedEffectiveFrom;
     private LocalDate effectiveFrom;
     private LocalDate effectiveTo;
@@ -42,6 +44,9 @@ public class SubscriptionAdminResponse {
     private UUID accessBlockedBy;
     private Instant accessRestoredAt;
     private UUID accessRestoredBy;
+    private Boolean spaceSelectionRequired;
+    private Instant spaceSelectionConfirmedAt;
+    private Instant spaceSelectionExpiresAt;
     private Instant createdAt;
     private UUID createdBy;
     private Instant updatedAt;

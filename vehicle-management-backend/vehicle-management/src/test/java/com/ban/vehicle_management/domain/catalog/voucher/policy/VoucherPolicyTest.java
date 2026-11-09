@@ -8,9 +8,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.ban.vehicle_management.domain.catalog.voucher.model.Voucher;
 import com.ban.vehicle_management.shared.enumeration.catalog.VoucherDiscountType;
 import com.ban.vehicle_management.shared.enumeration.catalog.VoucherStatus;
+import com.ban.vehicle_management.shared.enumeration.catalog.VoucherScopeType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class VoucherPolicyTest {
@@ -99,8 +101,24 @@ class VoucherPolicyTest {
         assertThrows(BadRequestException.class, () -> voucherPolicy.initialize(voucher));
     }
 
+    @Test
+    void shouldRejectParkingLotVoucherAtAnotherParkingLot() {
+        UUID organizationId = UUID.randomUUID();
+        UUID parkingLotId = UUID.randomUUID();
+        Voucher voucher = validVoucher();
+        voucher.setScopeType(VoucherScopeType.PARKING_LOT);
+        voucher.setOrganizationId(organizationId);
+        voucher.setParkingLotId(parkingLotId);
+
+        voucherPolicy.initialize(voucher);
+
+        assertThrows(BadRequestException.class, () -> voucherPolicy.ensureApplicableAt(
+                voucher, UUID.randomUUID(), organizationId));
+    }
+
     private Voucher validVoucher() {
         Voucher voucher = new Voucher();
+        voucher.setScopeType(VoucherScopeType.PLATFORM);
         voucher.setCode("WELCOME10");
         voucher.setName("Ưu đãi khách mới");
         voucher.setDiscountType(VoucherDiscountType.PERCENTAGE);
