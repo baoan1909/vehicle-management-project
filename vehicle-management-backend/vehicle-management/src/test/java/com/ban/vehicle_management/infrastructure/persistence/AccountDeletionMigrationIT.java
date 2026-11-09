@@ -49,5 +49,35 @@ class AccountDeletionMigrationIT extends PostgresIntegrationTestSupport {
                 where table_schema='people' and table_name='user_profiles' and column_name='phone_number'
                 """, Integer.class);
         assertTrue(markerCapacity >= 64);
+
+        Integer previousStatusColumn = jdbcTemplate.queryForObject("""
+                select count(*) from information_schema.columns
+                where table_schema='iam' and table_name='account_deletion_requests'
+                  and column_name='previous_account_status' and is_nullable='NO'
+                """, Integer.class);
+        assertEquals(1, previousStatusColumn);
+
+        String accountStatusConstraint = jdbcTemplate.queryForObject("""
+                select pg_get_constraintdef(oid) from pg_constraint
+                where conname='ck_accounts_status' and conrelid='iam.accounts'::regclass
+                """, String.class);
+        assertTrue(accountStatusConstraint.contains("PENDING_DELETION"));
+        assertTrue(accountStatusConstraint.contains("DELETED"));
+
+        String employeeStatusConstraint = jdbcTemplate.queryForObject("""
+                select pg_get_constraintdef(oid) from pg_constraint
+                where conname='ck_employees_status' and conrelid='people.employees'::regclass
+                """, String.class);
+        assertTrue(employeeStatusConstraint.contains("DELETED"));
+
+        Integer internalRoleGrantCount = jdbcTemplate.queryForObject("""
+                select count(*) from iam.role_permissions grant_row
+                join iam.roles role on role.role_id=grant_row.role_id
+                join iam.permissions permission on permission.permission_id=grant_row.permission_id
+                where role.code in ('PARTNER_ADMIN','PARKING_MANAGER','EMPLOYEE')
+                  and permission.permission_code like 'ACCOUNT_DELETION_%_SELF'
+                  and grant_row.is_active=true
+                """, Integer.class);
+        assertEquals(9, internalRoleGrantCount);
     }
 }

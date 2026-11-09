@@ -10,9 +10,12 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.out.AccountDeletionPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
+import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
+import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionBlocker;
 import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionRequest;
 import com.ban.vehicle_management.infrastructure.security.config.AccountDeletionTimeProperties;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountDeletionRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -30,36 +33,43 @@ class AccountDeletionProcessorTest {
     private final String claimToken = UUID.randomUUID().toString();
     private AccountDeletionPortOut persistence;
     private IdentityProviderAdminPortOut identityProvider;
+    private FileStoragePort fileStorage;
     private AccountDeletionProcessor processor;
 
     @BeforeEach
     void setUp() {
         persistence = mock(AccountDeletionPortOut.class);
         identityProvider = mock(IdentityProviderAdminPortOut.class);
+        fileStorage = mock(FileStoragePort.class);
         AccountDeletionTimeProperties properties = new AccountDeletionTimeProperties();
         properties.setMaxAttempts(3);
-        processor = new AccountDeletionProcessor(persistence, identityProvider, properties,
+        processor = new AccountDeletionProcessor(persistence, identityProvider, properties, fileStorage,
                 Clock.fixed(NOW, ZoneOffset.UTC));
         when(persistence.findClaimed(requestId, claimToken)).thenReturn(Optional.of(new AccountDeletionRequest(
                 requestId, accountId, AccountDeletionRequestStatus.PROCESSING,
-                NOW.minusSeconds(1_209_600), NOW.minusSeconds(1), null, null, 1, null)));
+                NOW.minusSeconds(1_209_600), NOW.minusSeconds(1), null, null, 1, null,
+                AccountStatus.ACTIVE)));
     }
 
     @Test
     void deletesExternalIdentityBeforeReleasingLocalIdentity() {
         when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of());
         when(persistence.findKeycloakUserId(accountId)).thenReturn("keycloak-user-id");
+        when(persistence.completeWithTombstones(requestId, accountId, NOW)).thenReturn(List.of("avatar-object-key"));
 
         processor.process(requestId, claimToken);
 
-        var ordered = org.mockito.Mockito.inOrder(identityProvider, persistence);
+        var ordered = org.mockito.Mockito.inOrder(identityProvider, persistence, fileStorage);
         ordered.verify(identityProvider).deleteUser("keycloak-user-id");
         ordered.verify(persistence).completeWithTombstones(requestId, accountId, NOW);
+        ordered.verify(fileStorage).delete("avatar-object-key");
+        ordered.verify(persistence).completeFileCleanup(requestId, accountId, NOW);
     }
 
     @Test
     void changedEligibilityMovesRequestToReviewWithoutDeletingIdentity() {
-        when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of("UNPAID_INVOICE"));
+        when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of(AccountDeletionBlocker.of(
+                "UNPAID_INVOICE", "Cần thanh toán hóa đơn.", "INVOICE", UUID.randomUUID())));
 
         processor.process(requestId, claimToken);
 
@@ -81,5 +91,21 @@ class AccountDeletionProcessorTest {
         verify(persistence, never()).completeWithTombstones(any(), any(), any());
         verify(persistence).fail(eq(requestId), eq(NOW), any(Instant.class), eq(3),
                 eq("PROCESSING_FAILED"), eq("Keycloak unavailable"));
+    }
+
+    @Test
+    void fileCleanupFailureRetriesWithoutRollingBackLocalTombstone() {
+        when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of());
+        when(persistence.findKeycloakUserId(accountId)).thenReturn("_deleted_" + accountId);
+        when(persistence.completeWithTombstones(requestId, accountId, NOW)).thenReturn(List.of("avatar-object-key"));
+        doThrow(new IllegalStateException("Object storage unavailable"))
+                .when(fileStorage).delete("avatar-object-key");
+
+        processor.process(requestId, claimToken);
+
+        verify(persistence).completeWithTombstones(requestId, accountId, NOW);
+        verify(persistence, never()).completeFileCleanup(any(), any(), any());
+        verify(persistence).fail(eq(requestId), eq(NOW), any(Instant.class), eq(3),
+                eq("PROCESSING_FAILED"), eq("Object storage unavailable"));
     }
 }

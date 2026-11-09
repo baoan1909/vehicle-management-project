@@ -19,8 +19,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.SocialIdentityProvider;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -39,27 +37,20 @@ class SocialAccountRegistrationPersistenceAdapterTest {
     @Mock private AccountPersistenceMapper accountPersistenceMapper;
     @Mock private AccountIdentityPersistenceMapper accountIdentityPersistenceMapper;
     @Mock private UserProfilePersistenceMapper userProfilePersistenceMapper;
-    @Mock private EntityManager entityManager;
-    @Mock private Query query;
 
     @InjectMocks
     private SocialAccountRegistrationPersistenceAdapter adapter;
 
     @Test
     void shouldAcquireTransactionLocksForIdentityAndEmail() {
-        when(entityManager.createNativeQuery(org.mockito.ArgumentMatchers.anyString())).thenReturn(query);
-        when(query.setParameter(org.mockito.ArgumentMatchers.eq("lockKey"), org.mockito.ArgumentMatchers.anyString()))
-                .thenReturn(query);
-
         adapter.lockRegistration(
                 SocialIdentityProvider.GOOGLE,
                 "google-sub-123",
                 "customer@example.com"
         );
 
-        verify(query).setParameter("lockKey", "EMAIL:customer@example.com");
-        verify(query).setParameter("lockKey", "SOCIAL:GOOGLE:google-sub-123");
-        verify(query, org.mockito.Mockito.times(2)).getSingleResult();
+        verify(accountRepository).lockRegistrationKey("EMAIL:customer@example.com");
+        verify(accountRepository).lockRegistrationKey("SOCIAL:GOOGLE:google-sub-123");
     }
 
     @Test

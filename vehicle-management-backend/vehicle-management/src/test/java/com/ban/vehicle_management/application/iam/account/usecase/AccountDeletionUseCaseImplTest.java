@@ -12,9 +12,12 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.iam.account.port.out.AccountDeletionPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionRequest;
+import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionBlocker;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.security.config.AccountDeletionTimeProperties;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountDeletionRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.exception.AccountDeletionBlockedException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.Clock;
 import java.time.Duration;
@@ -53,19 +56,21 @@ class AccountDeletionUseCaseImplTest {
         CurrentAccountAccess access = mock(CurrentAccountAccess.class);
         when(access.accountId()).thenReturn(accountId);
         when(access.subject()).thenReturn("keycloak-user");
-        when(access.roleCode()).thenReturn("NOT_CUSTOMER");
         when(currentAccount.getCurrentAccountOrThrow()).thenReturn(access);
-        when(persistence.isActiveCustomerAccount(accountId)).thenReturn(true);
+        when(persistence.lockAccount(accountId)).thenReturn(AccountStatus.ACTIVE);
+        when(persistence.isEligibleAccount(accountId)).thenReturn(true);
         when(persistence.findActive(accountId, true)).thenReturn(Optional.empty());
         when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of());
         AccountDeletionRequest created = request(AccountDeletionRequestStatus.GRACE_PERIOD, NOW,
                 NOW.plus(Duration.ofDays(14)));
-        when(persistence.create(accountId, NOW, NOW.plus(Duration.ofDays(14)))).thenReturn(created);
+        when(persistence.create(accountId, AccountStatus.ACTIVE, NOW, NOW.plus(Duration.ofDays(14))))
+                .thenReturn(created);
 
-        AccountDeletionRequest result = useCase.requestCurrentCustomerDeletion();
+        AccountDeletionRequest result = useCase.requestCurrentAccountDeletion();
 
         assertEquals(created, result);
         verify(currentAccount).requirePermission(AccountDeletionUseCaseImpl.REQUEST_SELF);
+        verify(persistence).markPendingDeletion(accountId);
         verify(identityProvider).logoutUserSessions("keycloak-user");
     }
 
@@ -74,7 +79,7 @@ class AccountDeletionUseCaseImplTest {
         doThrow(new AccessDeniedException("denied"))
                 .when(currentAccount).requirePermission(AccountDeletionUseCaseImpl.REQUEST_SELF);
 
-        assertThrows(AccessDeniedException.class, useCase::requestCurrentCustomerDeletion);
+        assertThrows(AccessDeniedException.class, useCase::requestCurrentAccountDeletion);
     }
 
     @Test
@@ -82,9 +87,11 @@ class AccountDeletionUseCaseImplTest {
         CurrentAccountAccess access = mock(CurrentAccountAccess.class);
         when(access.accountId()).thenReturn(accountId);
         when(currentAccount.getCurrentAccountOrThrow()).thenReturn(access);
-        when(persistence.isActiveCustomerAccount(accountId)).thenReturn(false);
+        when(persistence.lockAccount(accountId)).thenReturn(AccountStatus.ACTIVE);
+        when(persistence.findActive(accountId, true)).thenReturn(Optional.empty());
+        when(persistence.isEligibleAccount(accountId)).thenReturn(false);
 
-        assertThrows(ConflictException.class, useCase::requestCurrentCustomerDeletion);
+        assertThrows(ConflictException.class, useCase::requestCurrentAccountDeletion);
     }
 
     @Test
@@ -92,11 +99,11 @@ class AccountDeletionUseCaseImplTest {
         CurrentAccountAccess access = mock(CurrentAccountAccess.class);
         when(access.accountId()).thenReturn(accountId);
         when(currentAccount.getCurrentAccountOrThrow()).thenReturn(access);
-        when(persistence.isActiveCustomerAccount(accountId)).thenReturn(true);
+        when(persistence.lockAccount(accountId)).thenReturn(AccountStatus.ACTIVE);
         when(persistence.findActive(accountId, true)).thenReturn(Optional.of(request(
                 AccountDeletionRequestStatus.GRACE_PERIOD, NOW, NOW.plus(Duration.ofDays(14)))));
 
-        assertThrows(ConflictException.class, useCase::requestCurrentCustomerDeletion);
+        assertThrows(ConflictException.class, useCase::requestCurrentAccountDeletion);
     }
 
     @Test
@@ -104,11 +111,13 @@ class AccountDeletionUseCaseImplTest {
         CurrentAccountAccess access = mock(CurrentAccountAccess.class);
         when(access.accountId()).thenReturn(accountId);
         when(currentAccount.getCurrentAccountOrThrow()).thenReturn(access);
-        when(persistence.isActiveCustomerAccount(accountId)).thenReturn(true);
+        when(persistence.lockAccount(accountId)).thenReturn(AccountStatus.ACTIVE);
+        when(persistence.isEligibleAccount(accountId)).thenReturn(true);
         when(persistence.findActive(accountId, true)).thenReturn(Optional.empty());
-        when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of("UNPAID_INVOICE"));
+        when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of(AccountDeletionBlocker.of(
+                "UNPAID_INVOICE", "Cần thanh toán hóa đơn.", "INVOICE", UUID.randomUUID())));
 
-        assertThrows(ConflictException.class, useCase::requestCurrentCustomerDeletion);
+        assertThrows(AccountDeletionBlockedException.class, useCase::requestCurrentAccountDeletion);
     }
 
     @Test
@@ -138,6 +147,7 @@ class AccountDeletionUseCaseImplTest {
     private AccountDeletionRequest request(AccountDeletionRequestStatus status, Instant requestedAt,
             Instant scheduledAt) {
         return new AccountDeletionRequest(requestId, accountId, status, requestedAt, scheduledAt,
-                status == AccountDeletionRequestStatus.CANCELLED ? NOW : null, null, 0, null);
+                status == AccountDeletionRequestStatus.CANCELLED ? NOW : null, null, 0, null,
+                AccountStatus.ACTIVE);
     }
 }
