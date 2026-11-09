@@ -5,6 +5,8 @@ import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportListItemResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportSummaryResult;
 import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReportWorkflowResult;
+import com.ban.vehicle_management.application.accesscontrol.lostcardreport.model.result.LostCardReplacementCardResult;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReplacementCardResponse;
 import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingSessionApiMapper;
 import com.ban.vehicle_management.domain.accesscontrol.lostcardreport.model.LostCardReport;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
@@ -106,6 +108,11 @@ public interface LostCardReportApiMapper {
     LostCardReportWorkflowResponse toWorkflowResponse(LostCardReportWorkflowResult result);
 
     LostCardReportSummaryResponse toSummaryResponse(LostCardReportSummaryResult result);
+
+    LostCardReplacementCardResponse toReplacementCardResponse(LostCardReplacementCardResult result);
+
+    List<LostCardReplacementCardResponse> toReplacementCardResponses(
+            List<LostCardReplacementCardResult> results);
 
     default LostCardReportDetailResponse toDetailResponse(LostCardReportDetailResult detail) {
         if (detail == null) {

@@ -50,7 +50,8 @@ public class OrganizationProfileController {
     @PreAuthorize("@permissionAuthorizer.hasPermission('ORGANIZATION_PROFILE_REVIEW_ALL')")
     public ResponseEntity<ApiResponse<List<OrganizationProfileUpdateRequestResponse>>> getProfileUpdateRequests(@RequestParam(required = false) ApprovalRequestStatus status) {
         return ResponseEntity.ok(ApiResponse.ok("Fetched organization profile update requests successfully",
-                organizationProfilePortIn.getProfileUpdateRequests(status).stream().map(organizationProfileApiMapper::toResponse).toList()));
+                organizationProfileApiMapper.toResponses(
+                        organizationProfilePortIn.getProfileUpdateRequests(status))));
     }
 
     @PostMapping("/organization-profile-update-requests/{approvalRequestId}/approve")

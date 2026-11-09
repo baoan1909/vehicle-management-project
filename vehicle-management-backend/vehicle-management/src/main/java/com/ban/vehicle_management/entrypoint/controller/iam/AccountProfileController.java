@@ -6,6 +6,7 @@ import com.ban.vehicle_management.application.iam.account.port.in.AccountProfile
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.in.AvatarModerationPortIn;
 import com.ban.vehicle_management.application.people.userprofile.model.AvatarModerationResult;
+import com.ban.vehicle_management.application.people.userprofile.mapper.AvatarModerationApiMapper;
 import com.ban.vehicle_management.entrypoint.dto.people.userprofile.response.AvatarModerationResponse;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.request.CompleteAccountProfileRequest;
@@ -26,17 +27,20 @@ public class AccountProfileController {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final AccountProfileApiMapper accountProfileApiMapper;
     private final AvatarModerationPortIn avatarModerationPortIn;
+    private final AvatarModerationApiMapper avatarModerationApiMapper;
 
     public AccountProfileController(
             AccountProfilePortIn accountProfilePortIn,
             CurrentAccountPortIn currentAccountPortIn,
             AccountProfileApiMapper accountProfileApiMapper,
-            AvatarModerationPortIn avatarModerationPortIn
+            AvatarModerationPortIn avatarModerationPortIn,
+            AvatarModerationApiMapper avatarModerationApiMapper
     ) {
         this.accountProfilePortIn = accountProfilePortIn;
         this.currentAccountPortIn = currentAccountPortIn;
         this.accountProfileApiMapper = accountProfileApiMapper;
         this.avatarModerationPortIn = avatarModerationPortIn;
+        this.avatarModerationApiMapper = avatarModerationApiMapper;
     }
 
     @GetMapping("/current-access")
@@ -105,14 +109,8 @@ public class AccountProfileController {
 
     @GetMapping("/profile/avatar-status")
     public ResponseEntity<ApiResponse<AvatarModerationResponse>> getMyAvatarStatus() {
-        AvatarModerationResponse response = avatarModerationPortIn.getMyAvatarModerationStatus()
-                .map(this::toAvatarResponse).orElse(null);
+        AvatarModerationResponse response = avatarModerationApiMapper.toResponse(
+                avatarModerationPortIn.getMyAvatarModerationStatus().orElse(null));
         return ResponseEntity.ok(ApiResponse.ok("Fetched avatar moderation status successfully", response));
-    }
-
-    private AvatarModerationResponse toAvatarResponse(AvatarModerationResult result) {
-        return new AvatarModerationResponse(result.avatarId(), result.approvalRequestId(), result.userProfileId(),
-                result.ownerAccountId(), result.approvalStatus(), result.reviewNote(), result.displayedAvatarUrl(),
-                result.candidatePreviewUrl(), result.submittedAt());
     }
 }

@@ -72,16 +72,9 @@ public class InvoiceController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer limit
     ) {
-        List<UUID> scopedSubscriptionIds = new ArrayList<>();
-        if (subscriptionId != null) {
-            scopedSubscriptionIds.add(subscriptionId);
-        }
-        if (subscriptionIds != null) {
-            scopedSubscriptionIds.addAll(subscriptionIds);
-        }
-
         List<Invoice> invoices = invoicePortIn.getOwnInvoices(
-                scopedSubscriptionIds,
+                subscriptionId,
+                subscriptionIds,
                 status,
                 fromDate,
                 toDate,

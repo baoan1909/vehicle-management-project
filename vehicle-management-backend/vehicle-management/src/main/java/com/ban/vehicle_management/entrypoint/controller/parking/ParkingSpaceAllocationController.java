@@ -97,8 +97,8 @@ public class ParkingSpaceAllocationController {
     public ResponseEntity<ApiResponse<ParkingSpaceAllocationResponse>> activate(
             @PathVariable UUID allocationId
     ) {
-        return updated("Parking space allocation activated successfully",
-                allocationPortIn.activateAllocation(allocationId));
+        return ResponseEntity.ok(ApiResponse.ok("Parking space allocation activated successfully",
+                mapper.toResponse(allocationPortIn.activateAllocation(allocationId))));
     }
 
     @PatchMapping("/api/parking/allocations/{allocationId}/release")
@@ -106,8 +106,8 @@ public class ParkingSpaceAllocationController {
     public ResponseEntity<ApiResponse<ParkingSpaceAllocationResponse>> release(
             @PathVariable UUID allocationId
     ) {
-        return updated("Parking space allocation released successfully",
-                allocationPortIn.releaseAllocation(allocationId));
+        return ResponseEntity.ok(ApiResponse.ok("Parking space allocation released successfully",
+                mapper.toResponse(allocationPortIn.releaseAllocation(allocationId))));
     }
 
     @PatchMapping("/api/parking/allocations/{allocationId}/cancel")
@@ -115,8 +115,8 @@ public class ParkingSpaceAllocationController {
     public ResponseEntity<ApiResponse<ParkingSpaceAllocationResponse>> cancel(
             @PathVariable UUID allocationId
     ) {
-        return updated("Parking space allocation cancelled successfully",
-                allocationPortIn.cancelAllocation(allocationId));
+        return ResponseEntity.ok(ApiResponse.ok("Parking space allocation cancelled successfully",
+                mapper.toResponse(allocationPortIn.cancelAllocation(allocationId))));
     }
 
     @PatchMapping("/api/parking/allocations/{allocationId}/hold-expiration")
@@ -125,12 +125,7 @@ public class ParkingSpaceAllocationController {
             @PathVariable UUID allocationId,
             @RequestBody UpdateAllocationHoldRequest request
     ) {
-        return updated("Parking space allocation hold updated successfully",
-                allocationPortIn.setHoldExpiration(allocationId, request.holdExpiresAt()));
-    }
-
-    private ResponseEntity<ApiResponse<ParkingSpaceAllocationResponse>> updated(
-            String message, ParkingSpaceAllocation allocation) {
-        return ResponseEntity.ok(ApiResponse.ok(message, mapper.toResponse(allocation)));
+        return ResponseEntity.ok(ApiResponse.ok("Parking space allocation hold updated successfully",
+                mapper.toResponse(allocationPortIn.setHoldExpiration(allocationId, request.holdExpiresAt()))));
     }
 }

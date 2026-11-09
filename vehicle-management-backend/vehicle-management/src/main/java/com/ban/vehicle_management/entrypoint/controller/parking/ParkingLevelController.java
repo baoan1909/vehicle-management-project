@@ -61,17 +61,7 @@ public class ParkingLevelController {
             @PathVariable UUID lotId,
             @RequestBody CreateParkingLevelRequest request
     ) {
-        ParkingLevel domain = parkingLevelApiMapper.toDomain(
-                new CreateParkingLevelRequest(
-                        lotId,
-                        request.code(),
-                        request.name(),
-                        request.displayOrder(),
-                        request.elevation(),
-                        request.floorHeight(),
-                        request.canvasWidth(),
-                        request.canvasHeight()
-                ));
+        ParkingLevel domain = parkingLevelApiMapper.toDomain(request, lotId);
         ParkingLevel created = parkingLevelPortIn.createParkingLevel(domain);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Parking level created successfully",
@@ -168,14 +158,9 @@ public class ParkingLevelController {
             @PathVariable UUID levelId
     ) {
         LevelMapResult result = spaceSummaryPortIn.getLevelMap(levelId);
-        LevelMapResponse response = new LevelMapResponse();
-        response.setLevel(parkingLevelApiMapper.toAdminResponse(result.level()));
-        response.setZones(zoneApiMapper.toAdminResponses(result.zones()));
-        response.setSpaces(parkingSpaceApiMapper.toAdminResponses(result.spaces()));
-        response.setSummary(spaceSummaryApiMapper.toResponse(result.summary()));
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched level map successfully",
-                response
+                parkingLevelApiMapper.toLevelMapResponse(result)
         ));
     }
 }

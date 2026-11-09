@@ -271,13 +271,14 @@ public class ParkingSpaceUseCaseImpl implements ParkingSpacePortIn {
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<ParkingSession> findOpenSessionBySpace(UUID parkingSpaceId) {
+    public ParkingSession findOpenSessionBySpace(UUID parkingSpaceId) {
         ParkingSpace parkingSpace = getParkingSpaceOrThrow(parkingSpaceId);
         ensureCanAccessZone(parkingSpace.getZoneId());
         if (parkingSessionPortOut == null) {
-            return Optional.empty();
+            throw new NotFoundException("No open parking session for this space");
         }
-        return parkingSessionPortOut.findOpenByParkingSpaceId(parkingSpace.getParkingSpaceId());
+        return parkingSessionPortOut.findOpenByParkingSpaceId(parkingSpace.getParkingSpaceId())
+                .orElseThrow(() -> new NotFoundException("No open parking session for this space"));
     }
 
     private Zone findReadableZone(UUID zoneId) {

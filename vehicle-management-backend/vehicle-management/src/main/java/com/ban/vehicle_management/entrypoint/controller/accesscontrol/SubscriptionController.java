@@ -28,6 +28,7 @@ import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.resp
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceUserResponse;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import com.ban.vehicle_management.entrypoint.converter.MultipartFileBytesConverter;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -58,19 +59,22 @@ public class SubscriptionController {
     private final SubscriptionQrPortIn subscriptionQrPortIn;
     private final SubscriptionQrApiMapper subscriptionQrApiMapper;
     private final InvoiceApiMapper invoiceApiMapper;
+    private final MultipartFileBytesConverter multipartFileBytesConverter;
 
     public SubscriptionController(
             SubscriptionPortIn subscriptionPortIn,
             SubscriptionApiMapper subscriptionApiMapper,
             SubscriptionQrPortIn subscriptionQrPortIn,
             SubscriptionQrApiMapper subscriptionQrApiMapper,
-            InvoiceApiMapper invoiceApiMapper
+            InvoiceApiMapper invoiceApiMapper,
+            MultipartFileBytesConverter multipartFileBytesConverter
     ) {
         this.subscriptionPortIn = subscriptionPortIn;
         this.subscriptionApiMapper = subscriptionApiMapper;
         this.subscriptionQrPortIn = subscriptionQrPortIn;
         this.subscriptionQrApiMapper = subscriptionQrApiMapper;
         this.invoiceApiMapper = invoiceApiMapper;
+        this.multipartFileBytesConverter = multipartFileBytesConverter;
     }
 
     @PostMapping("/me")
@@ -127,10 +131,7 @@ public class SubscriptionController {
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Subscription renewal invoice created successfully",
-                new SubscriptionRenewalResponse(
-                        toRenewalResponse(result),
-                        invoiceApiMapper.toUserResponse(result.invoice())
-                )
+                subscriptionApiMapper.toRenewalResponse(result)
         ));
     }
 
@@ -148,23 +149,8 @@ public class SubscriptionController {
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Subscription renewal quote calculated successfully",
-                new SubscriptionRenewalQuoteResponse(
-                        quote.effectiveFrom(), quote.effectiveTo(), quote.ticketAmount(),
-                        quote.physicalCardDeposit(), quote.voucherCode(), quote.discountAmount(),
-                        quote.finalAmount(), quote.reusesExistingCard(), quote.physicalCardRequestPending()
-                )
+                subscriptionApiMapper.toRenewalQuoteResponse(quote)
         ));
-    }
-
-    private SubscriptionRenewalDetailResponse toRenewalResponse(SubscriptionRenewalResult result) {
-        var renewal = result.renewal();
-        return new SubscriptionRenewalDetailResponse(
-                renewal.getRenewalId(), renewal.getSubscriptionId(), renewal.getInvoiceId(),
-                renewal.getTicketTypeId(), renewal.getPriceRuleId(), renewal.getPeriodQuantity(),
-                renewal.getEffectiveFrom(), renewal.getEffectiveTo(), renewal.getTicketAmount(),
-                renewal.getPhysicalCardDeposit(), renewal.getDiscountAmount(), renewal.getFinalAmount(),
-                renewal.getVoucherCode(), renewal.getPhysicalCardRequested(), renewal.getStatus()
-        );
     }
 
     @GetMapping("/me/{subscriptionId}/space-selection")
@@ -277,15 +263,14 @@ public class SubscriptionController {
             @RequestParam UUID parkingLotId,
             @RequestParam(required = false) String licensePlate
     ) {
-        try {
-            return ResponseEntity.ok(ApiResponse.ok(
-                    "Subscription QR image verified successfully",
-                    subscriptionQrApiMapper.toResponse(
-                            subscriptionQrPortIn.verifyQrImage(image.getBytes(), parkingLotId, licensePlate))
-            ));
-        } catch (java.io.IOException exception) {
-            throw new BadRequestException("Unable to read QR image");
-        }
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Subscription QR image verified successfully",
+                subscriptionQrApiMapper.toResponse(subscriptionQrPortIn.verifyQrImage(
+                        multipartFileBytesConverter.read(image, "Unable to read QR image"),
+                        parkingLotId,
+                        licensePlate
+                ))
+        ));
     }
 
     @PostMapping("/me/voucher-quote")

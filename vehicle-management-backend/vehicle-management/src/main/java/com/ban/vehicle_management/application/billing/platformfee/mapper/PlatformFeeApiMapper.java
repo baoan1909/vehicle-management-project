@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.billing.platformfee.mapper;
 import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeePageResult;
 import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeePreviewResult;
 import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeeTypeDetailResult;
+import com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeeConfigurationResult;
 import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeRuleVersion;
 import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeType;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.request.CreatePlatformFeeTypeRequest;
@@ -12,6 +13,7 @@ import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.Pl
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeeTypeAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeeTypeDetailResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeeVersionAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeeConfigurationResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -47,6 +49,8 @@ public interface PlatformFeeApiMapper {
     PlatformFeeTypeAdminResponse toAdminResponse(PlatformFeeType domain);
 
     PlatformFeeVersionAdminResponse toVersionResponse(PlatformFeeRuleVersion domain);
+
+    PlatformFeeConfigurationResponse toConfigurationResponse(PlatformFeeConfigurationResult result);
 
     java.util.List<PlatformFeeVersionAdminResponse> toVersionResponses(
             java.util.List<PlatformFeeRuleVersion> domains);

@@ -36,6 +36,12 @@ public class VoucherUseCaseImpl implements VoucherPortIn {
     private final VoucherAccessGuard voucherAccessGuard;
     private final VoucherPolicy voucherPolicy = new VoucherPolicy();
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<Voucher> getCustomerVisibleVouchers(UUID parkingLotId) {
+        return getCustomerVisibleVouchers(parkingLotId, Instant.now());
+    }
+
     public VoucherUseCaseImpl(
             VoucherPortOut voucherPortOut,
             ParkingLotPortOut parkingLotPortOut,

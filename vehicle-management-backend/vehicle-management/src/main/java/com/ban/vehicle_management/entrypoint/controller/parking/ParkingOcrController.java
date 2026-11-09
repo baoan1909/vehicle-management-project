@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.entrypoint.controller.parking;
 
-import com.ban.vehicle_management.application.parking.ocr.model.LicensePlateOcrCommand;
-import com.ban.vehicle_management.application.parking.ocr.model.LicensePlateOcrResult;
+import com.ban.vehicle_management.application.parking.ocr.mapper.LicensePlateOcrApiMapper;
 import com.ban.vehicle_management.application.parking.ocr.port.in.LicensePlateOcrPortIn;
 import com.ban.vehicle_management.entrypoint.dto.parking.ocr.response.LicensePlateOcrResponse;
 import com.ban.vehicle_management.shared.enumeration.parking.LaneDirection;
@@ -21,9 +20,11 @@ import org.springframework.web.multipart.MultipartFile;
 public class ParkingOcrController {
 
     private final LicensePlateOcrPortIn licensePlateOcrPortIn;
+    private final LicensePlateOcrApiMapper apiMapper;
 
-    public ParkingOcrController(LicensePlateOcrPortIn licensePlateOcrPortIn) {
+    public ParkingOcrController(LicensePlateOcrPortIn licensePlateOcrPortIn, LicensePlateOcrApiMapper apiMapper) {
         this.licensePlateOcrPortIn = licensePlateOcrPortIn;
+        this.apiMapper = apiMapper;
     }
 
     @PostMapping(value = "/license-plate", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -32,14 +33,10 @@ public class ParkingOcrController {
             @RequestParam(required = false) UUID laneId,
             @RequestParam(required = false) LaneDirection direction
     ) {
-        LicensePlateOcrResult result = licensePlateOcrPortIn.recognize(new LicensePlateOcrCommand(
-                image,
-                laneId,
-                direction
-        ));
         return ResponseEntity.ok(ApiResponse.ok(
                 "License plate recognized successfully",
-                LicensePlateOcrResponse.from(result)
+                apiMapper.toResponse(licensePlateOcrPortIn.recognize(
+                        apiMapper.toCommand(image, laneId, direction)))
         ));
     }
 }

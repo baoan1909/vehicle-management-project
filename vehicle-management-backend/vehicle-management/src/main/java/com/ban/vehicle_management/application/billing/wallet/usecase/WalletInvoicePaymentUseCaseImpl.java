@@ -91,7 +91,12 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
         if (invoiceId == null) {
             throw new BadRequestException("invoiceId must not be null");
         }
-        String normalizedKey = TextValidationUtils.normalizeRequiredText(idempotencyKey, "idempotencyKey", 100);
+        String normalizedKey = TextValidationUtils.normalizeRequiredText(
+                idempotencyKey == null || idempotencyKey.isBlank()
+                        ? UUID.randomUUID().toString()
+                        : idempotencyKey,
+                "idempotencyKey",
+                100);
 
         var existingPayment = paymentPortOut.findByIdempotencyKey(normalizedKey);
         if (existingPayment.isPresent()) {

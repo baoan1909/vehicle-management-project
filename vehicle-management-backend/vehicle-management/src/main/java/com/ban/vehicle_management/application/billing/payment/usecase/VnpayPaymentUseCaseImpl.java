@@ -79,7 +79,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
     @Transactional
     public VnpayPaymentResult createPayment(UUID invoiceId, CreateVnpayPaymentCommand command) {
         if (command == null) {
-            throw new BadRequestException("payment request must not be null");
+            command = new CreateVnpayPaymentCommand(null, "vn", null);
         }
 
         Invoice invoice = invoicePortOut.findById(invoiceId)

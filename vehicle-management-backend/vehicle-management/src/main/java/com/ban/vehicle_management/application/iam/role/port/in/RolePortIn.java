@@ -13,5 +13,7 @@ public interface RolePortIn {
 
     List<Role> getRoles(Boolean isActive, Boolean isSystem, String keyword);
 
+    List<Role> getActiveRolesOrderedByCode();
+
     void deleteRole(UUID roleId);
 }

@@ -59,7 +59,7 @@ public class NotificationController {
     public ResponseEntity<ApiResponse<NotificationUnreadCountResponse>> countMyUnreadNotifications() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched unread notification count successfully",
-                new NotificationUnreadCountResponse(notificationPortIn.countMyUnread())
+                notificationApiMapper.toUnreadCountResponse(notificationPortIn.countMyUnread())
         ));
     }
 
@@ -70,18 +70,9 @@ public class NotificationController {
             "'BROADCAST_NOTIFICATION_UPDATE_ALL', " +
             "'BROADCAST_NOTIFICATION_PUBLISH_ALL')")
     public ResponseEntity<ApiResponse<List<NotificationActiveRoleResponse>>> getActiveRolesForAnnouncements() {
-        List<NotificationActiveRoleResponse> response = rolePortIn.getRoles(true, null, null).stream()
-                .sorted(Comparator.comparing(Role::getCode))
-                .map(role -> new NotificationActiveRoleResponse(
-                        role.getRoleId(),
-                        role.getCode(),
-                        role.getName()
-                ))
-                .toList();
-
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched active notification roles successfully",
-                response
+                notificationApiMapper.toActiveRoleResponses(rolePortIn.getActiveRolesOrderedByCode())
         ));
     }
 

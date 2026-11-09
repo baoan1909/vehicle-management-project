@@ -4,6 +4,8 @@ import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.CreateVehicleTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.request.UpdateVehicleTypeRequest;
 import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.response.VehicleTypeAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.catalog.vehicletype.response.VehicleTypeDeactivationImpactResponse;
+import com.ban.vehicle_management.application.catalog.vehicletype.model.VehicleTypeDeactivationImpact;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
@@ -30,6 +32,10 @@ public interface VehicleTypeApiMapper {
     VehicleTypeAdminResponse toAdminResponse(VehicleType vehicleType);
 
     List<VehicleTypeAdminResponse> toAdminResponses(List<VehicleType> vehicleTypes);
+
+    @Mapping(target = "requiresPriceRuleCascade", expression = "java(impact.requiresPriceRuleCascade())")
+    @Mapping(target = "hasOperationalBlockers", expression = "java(impact.hasOperationalBlockers())")
+    VehicleTypeDeactivationImpactResponse toDeactivationImpactResponse(VehicleTypeDeactivationImpact impact);
 
 }
 

@@ -133,19 +133,9 @@ public class LostCardReportController {
     ) {
         List<LostCardReplacementCardResult> cards =
                 lostCardReportPortIn.getAvailableReplacementCards(lostCardReportId);
-        List<LostCardReplacementCardResponse> response = cards.stream()
-                .map(card -> new LostCardReplacementCardResponse(
-                        card.cardId(),
-                        card.cardNumber(),
-                        card.uid(),
-                        card.cardTypeId(),
-                        card.status()
-                ))
-                .toList();
-
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched available replacement cards successfully",
-                response
+                lostCardReportApiMapper.toReplacementCardResponses(cards)
         ));
     }
 

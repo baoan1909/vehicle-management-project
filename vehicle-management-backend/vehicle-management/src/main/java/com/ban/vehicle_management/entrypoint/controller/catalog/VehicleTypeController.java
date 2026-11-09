@@ -101,17 +101,10 @@ public class VehicleTypeController {
     public ResponseEntity<ApiResponse<VehicleTypeDeactivationImpactResponse>> getDeactivationImpact(
             @PathVariable UUID vehicleTypeId
     ) {
-        VehicleTypeDeactivationImpact impact = vehicleTypePortIn.getDeactivationImpact(vehicleTypeId);
-        VehicleTypeDeactivationImpactResponse response = new VehicleTypeDeactivationImpactResponse(
-                impact.activePriceRuleCount(),
-                impact.activeCustomerVehicleCount(),
-                impact.activeSubscriptionCount(),
-                impact.openParkingSessionCount(),
-                impact.assignedZoneCount(),
-                impact.requiresPriceRuleCascade(),
-                impact.hasOperationalBlockers()
-        );
-        return ResponseEntity.ok(ApiResponse.ok("Fetched vehicle type deactivation impact", response));
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched vehicle type deactivation impact",
+                vehicleTypeApiMapper.toDeactivationImpactResponse(
+                        vehicleTypePortIn.getDeactivationImpact(vehicleTypeId))));
     }
 
     @PatchMapping("/{vehicleTypeId}/activate")

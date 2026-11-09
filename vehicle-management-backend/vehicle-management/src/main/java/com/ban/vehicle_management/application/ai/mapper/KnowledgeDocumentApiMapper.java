@@ -2,6 +2,10 @@ package com.ban.vehicle_management.application.ai.mapper;
 
 import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeChunkSnapshot;
 import com.ban.vehicle_management.application.ai.command.UploadKnowledgeDocumentCommand;
+import com.ban.vehicle_management.application.ai.command.ArchiveKnowledgeDocumentCommand;
+import com.ban.vehicle_management.application.ai.command.PublishKnowledgeDocumentCommand;
+import com.ban.vehicle_management.application.ai.command.ReindexKnowledgeDocumentCommand;
+import com.ban.vehicle_management.application.ai.command.RejectKnowledgeDocumentCommand;
 import com.ban.vehicle_management.application.ai.query.KnowledgeDocumentQuery;
 import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeDocument;
 import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeDocumentBlock;
@@ -14,6 +18,7 @@ import com.ban.vehicle_management.entrypoint.dto.common.PageResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.mapstruct.Mapper;
 import org.springframework.data.domain.Page;
 
@@ -21,6 +26,22 @@ import org.springframework.data.domain.Page;
 public interface KnowledgeDocumentApiMapper {
 
     UploadKnowledgeDocumentCommand toUploadCommand(UploadKnowledgeDocumentRequest request);
+
+    UploadKnowledgeDocumentCommand toUploadCommand(
+            UUID sourceId,
+            String title,
+            String originalFilename,
+            String contentType,
+            byte[] content,
+            String idempotencyKey);
+
+    PublishKnowledgeDocumentCommand toPublishCommand(UUID documentId);
+
+    RejectKnowledgeDocumentCommand toRejectCommand(UUID documentId);
+
+    ArchiveKnowledgeDocumentCommand toArchiveCommand(UUID documentId);
+
+    ReindexKnowledgeDocumentCommand toReindexCommand(UUID documentId, String idempotencyKey);
 
     KnowledgeDocumentQuery toQuery(KnowledgeDocumentFilterRequest request);
 

@@ -11,6 +11,9 @@ import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.CreateUserGuideRequest;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UpdateUserGuideFeatureRequest;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UpdateUserGuideRequest;
+import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.CreateUserGuideVersionRequest;
+import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UpdateUserGuideVersionRequest;
+import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UserGuideVersionPayload;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UserGuideAudiencePayload;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UserGuideStepPayload;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideAdminResponse;
@@ -21,11 +24,14 @@ import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideUserStateResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideVersionAdminResponse;
+import com.ban.vehicle_management.application.notification.userguide.model.result.ResolvedUserGuide;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStepPlacement;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.springframework.data.domain.Page;
 
 @Mapper(componentModel = "spring")
@@ -67,6 +73,13 @@ public interface UserGuideApiMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "updatedBy", ignore = true)
     UserGuide toDomain(UpdateUserGuideRequest request);
+
+    UserGuideVersion toDomain(UserGuideVersionPayload request);
+
+    UserGuideVersion toDomain(CreateUserGuideVersionRequest request);
+
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    UserGuideVersion toDomain(UpdateUserGuideVersionRequest request);
 
     default UserGuideStep toDomainStep(UserGuideStepPayload payload) {
         if (payload == null) {
@@ -176,6 +189,17 @@ public interface UserGuideApiMapper {
         return response;
     }
 
+    default UserGuideUserResponse toUserResponse(ResolvedUserGuide resolved) {
+        return toUserResponse(
+                resolved.guide(),
+                resolved.version(),
+                resolved.userState(),
+                resolved.mediaUrls()
+        );
+    }
+
+    List<UserGuideUserResponse> toUserResponses(List<ResolvedUserGuide> resolvedGuides);
+
     default <T> PageResponse<T> toPageResponse(Page<T> page) {
         return new PageResponse<>(
                 page.getContent(),
@@ -185,5 +209,18 @@ public interface UserGuideApiMapper {
                 page.getTotalPages(),
                 page.isFirst(),
                 page.isLast());
+    }
+
+    default PageResponse<UserGuideAdminResponse> toAdminPageResponse(Page<UserGuide> page) {
+        return new PageResponse<>(
+                toAdminResponses(page.getContent()), page.getNumber(), page.getSize(),
+                page.getTotalElements(), page.getTotalPages(), page.isFirst(), page.isLast());
+    }
+
+    default PageResponse<UserGuideFeatureAdminResponse> toFeatureAdminPageResponse(
+            Page<UserGuideFeature> page) {
+        return new PageResponse<>(
+                toFeatureAdminResponses(page.getContent()), page.getNumber(), page.getSize(),
+                page.getTotalElements(), page.getTotalPages(), page.isFirst(), page.isLast());
     }
 }

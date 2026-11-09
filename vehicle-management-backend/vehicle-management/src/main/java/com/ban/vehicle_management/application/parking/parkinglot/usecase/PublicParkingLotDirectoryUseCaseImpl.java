@@ -67,6 +67,12 @@ public class PublicParkingLotDirectoryUseCaseImpl implements PublicParkingLotDir
 
     @Override
     @Transactional(readOnly = true)
+    public List<ParkingLot> getActiveParkingLots() {
+        return parkingLotPortOut.findAll(ParkingLotStatus.ACTIVE, null, null, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<PublicParkingLotDirectoryResult> getDirectory() {
         Instant snapshotAt = Instant.now();
         LocalDate businessDate = DateTimeUtils.toAppLocalDate(snapshotAt);

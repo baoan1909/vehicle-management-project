@@ -1,6 +1,10 @@
 package com.ban.vehicle_management.application.accesscontrol.subscription.mapper;
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionVoucherQuote;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalQuote;
+import com.ban.vehicle_management.application.accesscontrol.subscription.model.result.SubscriptionRenewalResult;
+import com.ban.vehicle_management.application.billing.invoice.mapper.InvoiceApiMapper;
+import com.ban.vehicle_management.domain.accesscontrol.subscription.model.SubscriptionRenewal;
 import com.ban.vehicle_management.domain.accesscontrol.subscription.model.Subscription;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.CreateSubscriptionAdminRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.request.CreateSubscriptionRequest;
@@ -8,13 +12,16 @@ import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.requ
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionVoucherQuoteResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionRenewalDetailResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionRenewalQuoteResponse;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.subscription.response.SubscriptionRenewalResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = InvoiceApiMapper.class)
 public interface SubscriptionApiMapper {
 
     @Mapping(target = "subscriptionId", ignore = true)
@@ -124,6 +131,12 @@ public interface SubscriptionApiMapper {
     SubscriptionAdminResponse toAdminResponse(Subscription subscription);
 
     SubscriptionVoucherQuoteResponse toVoucherQuoteResponse(SubscriptionVoucherQuote quote);
+
+    SubscriptionRenewalDetailResponse toRenewalDetailResponse(SubscriptionRenewal renewal);
+
+    SubscriptionRenewalResponse toRenewalResponse(SubscriptionRenewalResult result);
+
+    SubscriptionRenewalQuoteResponse toRenewalQuoteResponse(SubscriptionRenewalQuote quote);
 
     List<SubscriptionAdminResponse> toAdminResponses(List<Subscription> subscriptions);
 

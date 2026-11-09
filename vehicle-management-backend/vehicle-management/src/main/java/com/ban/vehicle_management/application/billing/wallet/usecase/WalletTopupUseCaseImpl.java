@@ -91,7 +91,10 @@ public class WalletTopupUseCaseImpl implements WalletTopupPortIn {
     public WalletTopupOrder createTopup(BigDecimal amount, String idempotencyKey, String clientIp) {
         currentAccountPortIn.requirePermission(TOP_UP_PERMISSION);
         topupPolicy.requireValidAmount(amount);
-        String normalizedKey = TextValidationUtils.normalizeRequiredText(idempotencyKey, "idempotencyKey", 100);
+        String normalizedKey = TextValidationUtils.normalizeRequiredText(
+                StringUtils.hasText(idempotencyKey) ? idempotencyKey : UUID.randomUUID().toString(),
+                "idempotencyKey",
+                100);
 
         topupPortOut.lockIdempotencyKey(normalizedKey);
         var existingByKey = topupPortOut.findByIdempotencyKey(normalizedKey);

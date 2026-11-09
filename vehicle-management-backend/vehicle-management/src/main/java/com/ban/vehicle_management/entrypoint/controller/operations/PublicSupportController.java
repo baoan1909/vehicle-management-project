@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.operations.guestsupport.service.Gu
 import com.ban.vehicle_management.application.operations.guestsupport.service.CaptchaProofService;
 import com.ban.vehicle_management.application.operations.guestsupport.config.GuestSupportProperties;
 import com.ban.vehicle_management.application.operations.guestsupport.model.CaptchaProof;
+import com.ban.vehicle_management.application.operations.guestsupport.mapper.GuestSupportApiMapper;
 import com.ban.vehicle_management.application.operations.supportticketcategory.port.in.SupportTicketCategoryPortIn;
 import com.ban.vehicle_management.domain.operations.guestsupport.model.GuestSupportRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.guestsupport.request.AccessGuestSupportRequest;
@@ -38,30 +39,29 @@ public class PublicSupportController {
     private final SupportTicketCategoryPortIn categoryPortIn;
     private final CaptchaProofService captchaProofService;
     private final GuestSupportProperties guestSupportProperties;
+    private final GuestSupportApiMapper apiMapper;
 
     public PublicSupportController(
             GuestSupportService guestSupportService,
             GuestPublicAssistantService assistantService,
             SupportTicketCategoryPortIn categoryPortIn,
             CaptchaProofService captchaProofService,
-            GuestSupportProperties guestSupportProperties
+            GuestSupportProperties guestSupportProperties,
+            GuestSupportApiMapper apiMapper
     ) {
         this.guestSupportService = guestSupportService;
         this.assistantService = assistantService;
         this.categoryPortIn = categoryPortIn;
         this.captchaProofService = captchaProofService;
         this.guestSupportProperties = guestSupportProperties;
+        this.apiMapper = apiMapper;
     }
 
     @GetMapping("/categories")
     public ResponseEntity<ApiResponse<List<PublicSupportCategoryResponse>>> categories() {
-        List<PublicSupportCategoryResponse> data = categoryPortIn
-                .getCategories(SupportTicketCategoryStatus.ACTIVE, null, null).stream()
-                .map(category -> new PublicSupportCategoryResponse(
-                        category.getCategoryId(), category.getCode(), category.getName(),
-                        category.getDescription(), category.getPriority()))
-                .toList();
-        return ResponseEntity.ok(ApiResponse.ok("Fetched public support categories successfully", data));
+        return ResponseEntity.ok(ApiResponse.ok("Fetched public support categories successfully",
+                apiMapper.toCategoryResponses(
+                        categoryPortIn.getCategories(SupportTicketCategoryStatus.ACTIVE, null, null))));
     }
 
     @PostMapping("/requests")
@@ -75,7 +75,8 @@ public class PublicSupportController {
         HttpStatus status = created.replayed() ? HttpStatus.OK : HttpStatus.CREATED;
         return ResponseEntity.status(status).body(ApiResponse.ok(
                 created.replayed() ? "Guest support request already exists" : "Guest support request created successfully",
-                toResponse(created.request(), created.capabilityToken())));
+                apiMapper.toResponse(created.request(), guestSupportService.maskedContact(created.request()),
+                        created.capabilityToken())));
     }
 
     @PostMapping("/requests/access")
@@ -83,13 +84,14 @@ public class PublicSupportController {
             @Valid @RequestBody AccessGuestSupportRequest request
     ) {
         GuestSupportRequest found = guestSupportService.access(request.referenceCode(), request.capabilityToken());
-        return ResponseEntity.ok(ApiResponse.ok("Fetched guest support request successfully", toResponse(found, null)));
+        return ResponseEntity.ok(ApiResponse.ok("Fetched guest support request successfully",
+                apiMapper.toResponse(found, guestSupportService.maskedContact(found), null)));
     }
 
     @GetMapping("/assistant/status")
     public ResponseEntity<ApiResponse<PublicSupportStatusResponse>> assistantStatus() {
         return ResponseEntity.ok(ApiResponse.ok("Fetched public assistant status successfully",
-                new PublicSupportStatusResponse(
+                apiMapper.toStatusResponse(
                         assistantService.isEnabled(),
                         guestSupportProperties.isCaptchaEnabled(),
                         guestSupportProperties.isCaptchaEnabled() ? guestSupportProperties.getCaptchaProvider() : null,
@@ -106,7 +108,7 @@ public class PublicSupportController {
         CaptchaProof proof = captchaProofService.verifyAndIssue(
                 request.purpose(), request.challengeToken(), request.sessionId(), servletRequest.getRemoteAddr());
         return ResponseEntity.ok(ApiResponse.ok("CAPTCHA verified successfully",
-                new CaptchaProofResponse(proof.token(), proof.expiresAt())));
+                apiMapper.toResponse(proof)));
     }
 
     @PostMapping("/assistant/messages")
@@ -119,10 +121,4 @@ public class PublicSupportController {
                         request.message(), request.sessionId(), request.captchaProof(), servletRequest.getRemoteAddr())));
     }
 
-    private GuestSupportRequestResponse toResponse(GuestSupportRequest request, String token) {
-        return new GuestSupportRequestResponse(
-                request.getPublicReferenceCode(), request.getCategoryId(), request.getTitle(), request.getContent(),
-                guestSupportService.maskedContact(request), request.getStatus(), request.getCreatedAt(),
-                request.getCapabilityExpiresAt(), token);
-    }
 }

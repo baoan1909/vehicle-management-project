@@ -1,9 +1,6 @@
 package com.ban.vehicle_management.entrypoint.controller.parking;
 
-import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingSessionApiMapper;
-import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInResult;
-import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingSessionPortIn;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInPreviewRequest;
@@ -16,9 +13,8 @@ import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionManagementResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionUserResponse;
+import com.ban.vehicle_management.entrypoint.converter.ParkingSessionRequestConverter;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -39,17 +35,18 @@ import java.util.UUID;
 @RequestMapping("/api/parking/parking-sessions")
 public class ParkingSessionController {
 
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
     private final ParkingSessionPortIn parkingSessionPortIn;
     private final ParkingSessionApiMapper parkingSessionApiMapper;
+    private final ParkingSessionRequestConverter requestConverter;
 
     public ParkingSessionController(
             ParkingSessionPortIn parkingSessionPortIn,
-            ParkingSessionApiMapper parkingSessionApiMapper
+            ParkingSessionApiMapper parkingSessionApiMapper,
+            ParkingSessionRequestConverter requestConverter
     ) {
         this.parkingSessionPortIn = parkingSessionPortIn;
         this.parkingSessionApiMapper = parkingSessionApiMapper;
+        this.requestConverter = requestConverter;
     }
 
     @GetMapping
@@ -99,9 +96,11 @@ public class ParkingSessionController {
             @RequestPart("licensePlateImage") MultipartFile licensePlateImage,
             @RequestPart("personImage") MultipartFile personImage
     ) {
-        return buildCheckInResponse(parkingSessionPortIn.checkIn(
-                parkingSessionApiMapper.toCommand(parseCheckInRequest(request), licensePlateImage, personImage)
-        ));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                "Parking session checked in successfully",
+                parkingSessionApiMapper.toCheckInResponse(parkingSessionPortIn.checkIn(
+                        parkingSessionApiMapper.toCommand(
+                                requestConverter.toCheckInRequest(request), licensePlateImage, personImage)))));
     }
 
     @PostMapping(value = "/check-in/preview", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -121,9 +120,11 @@ public class ParkingSessionController {
             @RequestPart("licensePlateImage") MultipartFile licensePlateImage,
             @RequestPart("personImage") MultipartFile personImage
     ) {
-        return buildCheckOutResponse(parkingSessionPortIn.checkOut(
-                parkingSessionApiMapper.toCommand(parseCheckOutRequest(request), licensePlateImage, personImage)
-        ));
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Parking session checked out successfully",
+                parkingSessionApiMapper.toCheckOutResponse(parkingSessionPortIn.checkOut(
+                        parkingSessionApiMapper.toCommand(
+                                requestConverter.toCheckOutRequest(request), licensePlateImage, personImage)))));
     }
 
     @PostMapping(value = "/check-out/prepare", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -137,7 +138,7 @@ public class ParkingSessionController {
                 "Visitor checkout prepared successfully",
                 parkingSessionApiMapper.toCheckOutResponse(parkingSessionPortIn.prepareVisitorCheckOut(
                         parkingSessionApiMapper.toCommand(
-                                parseCheckOutRequest(request),
+                                requestConverter.toCheckOutRequest(request),
                                 licensePlateImage,
                                 personImage
                         )
@@ -183,33 +184,4 @@ public class ParkingSessionController {
         ));
     }
 
-    private CheckInParkingSessionRequest parseCheckInRequest(String request) {
-        try {
-            return OBJECT_MAPPER.readValue(request, CheckInParkingSessionRequest.class);
-        } catch (JsonProcessingException exception) {
-            throw new BadRequestException("request part must be valid JSON");
-        }
-    }
-
-    private CheckOutParkingSessionRequest parseCheckOutRequest(String request) {
-        try {
-            return OBJECT_MAPPER.readValue(request, CheckOutParkingSessionRequest.class);
-        } catch (JsonProcessingException exception) {
-            throw new BadRequestException("request part must be valid JSON");
-        }
-    }
-
-    private ResponseEntity<ApiResponse<ParkingSessionCheckInResponse>> buildCheckInResponse(CheckInResult result) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
-                "Parking session checked in successfully",
-                parkingSessionApiMapper.toCheckInResponse(result)
-        ));
-    }
-
-    private ResponseEntity<ApiResponse<ParkingSessionCheckOutResponse>> buildCheckOutResponse(CheckOutResult result) {
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Parking session checked out successfully",
-                parkingSessionApiMapper.toCheckOutResponse(result)
-        ));
-    }
 }

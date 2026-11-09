@@ -5,8 +5,6 @@ import com.ban.vehicle_management.application.iam.account.mapper.AccountDeletion
 import com.ban.vehicle_management.entrypoint.dto.iam.account.request.CancelAccountDeletionRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.response.AccountDeletionResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
-import java.time.Clock;
-import java.time.Instant;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -21,12 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountDeletionController {
 
     private final AccountDeletionPortIn useCase;
-    private final Clock clock;
     private final AccountDeletionApiMapper mapper;
 
-    public AccountDeletionController(AccountDeletionPortIn useCase, Clock clock, AccountDeletionApiMapper mapper) {
+    public AccountDeletionController(AccountDeletionPortIn useCase, AccountDeletionApiMapper mapper) {
         this.useCase = useCase;
-        this.clock = clock;
         this.mapper = mapper;
     }
 
@@ -35,14 +31,14 @@ public class AccountDeletionController {
     public ResponseEntity<ApiResponse<AccountDeletionResponse>> requestDeletion() {
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
                 .body(ApiResponse.ok("Đã tạo yêu cầu xóa tài khoản", mapper.toResponse(
-                        useCase.requestCurrentAccountDeletion(), Instant.now(clock))));
+                        useCase.requestCurrentAccountDeletionView())));
     }
 
     @GetMapping("/current")
     @PreAuthorize("hasAuthority('ACCOUNT_DELETION_READ_SELF')")
     public ResponseEntity<ApiResponse<AccountDeletionResponse>> currentRequest() {
-        AccountDeletionResponse response = useCase.getCurrentRequest()
-                .map(request -> mapper.toResponse(request, Instant.now(clock))).orElse(null);
+        AccountDeletionResponse response = mapper.toResponse(
+                useCase.getCurrentRequestView().orElse(null));
         return ResponseEntity.ok(ApiResponse.ok("Đã tải trạng thái yêu cầu xóa tài khoản", response));
     }
 
@@ -53,6 +49,6 @@ public class AccountDeletionController {
     ) {
         String reason = body == null ? null : body.reason();
         return ResponseEntity.ok(ApiResponse.ok("Đã hủy yêu cầu xóa tài khoản", mapper.toResponse(
-                useCase.cancelCurrentRequest(reason), Instant.now(clock))));
+                useCase.cancelCurrentRequestView(reason))));
     }
 }

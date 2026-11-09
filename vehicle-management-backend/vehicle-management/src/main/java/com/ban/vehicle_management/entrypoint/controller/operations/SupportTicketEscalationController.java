@@ -53,9 +53,8 @@ public class SupportTicketEscalationController {
     public ResponseEntity<ApiResponse<SupportTicketEscalationResponse>> getMyCurrent(
             @PathVariable UUID supportTicketId
     ) {
-        SupportTicketEscalationResponse response = portIn.getMyCurrent(supportTicketId)
-                .map(mapper::toResponse)
-                .orElse(null);
+        SupportTicketEscalationResponse response = mapper.toResponse(
+                portIn.getMyCurrent(supportTicketId).orElse(null));
         return ResponseEntity.ok(ApiResponse.ok("Current support ticket escalation fetched successfully", response));
     }
 

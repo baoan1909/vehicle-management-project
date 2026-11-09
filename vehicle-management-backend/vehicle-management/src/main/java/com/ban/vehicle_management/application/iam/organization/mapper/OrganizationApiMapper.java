@@ -8,6 +8,10 @@ import com.ban.vehicle_management.domain.shared.address.VietnamAddress;
 import com.ban.vehicle_management.entrypoint.dto.shared.address.request.VietnamAddressRequest;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import com.ban.vehicle_management.entrypoint.dto.iam.organization.response.ParkingManagerScopeAdminResponse;
+import com.ban.vehicle_management.application.iam.organization.model.result.ParkingManagerScopeResult;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -31,6 +35,8 @@ public interface OrganizationApiMapper {
     OrganizationAdminResponse toAdminResponse(Organization organization);
 
     List<OrganizationAdminResponse> toAdminResponses(List<Organization> organizations);
+
+    ParkingManagerScopeAdminResponse toParkingManagerScopeResponse(ParkingManagerScopeResult result);
 
     default VietnamAddress toDomain(VietnamAddressRequest request) {
         return request == null ? null : new VietnamAddress(
