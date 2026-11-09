@@ -16,6 +16,8 @@ public interface ParkingLayoutPortIn {
 
     ZoneLayoutResult getPublishedLayout(UUID zoneId);
 
+    ZoneLayoutResult getPublicPublishedLayout(UUID parkingLotId, UUID zoneId);
+
     List<ParkingLayoutVersion> getLayoutVersions(UUID zoneId);
 
     ZoneLayoutResult saveLayout(UUID zoneId, Long expectedDraftRevision,

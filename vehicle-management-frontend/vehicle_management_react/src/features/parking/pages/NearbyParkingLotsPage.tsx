@@ -1,4 +1,5 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   getNearbyParkingLots,
@@ -11,12 +12,15 @@ import {
 } from "@/features/parking/api/publicParkingApi";
 import {
   NearbyParkingMap,
+  type FocusedParkingLot,
   type MapPoint,
 } from "@/features/parking/components/NearbyParkingMap";
 import {
   ParkingAddressPicker,
   type ParkingAddressValue,
 } from "@/features/parking/components/ParkingAddressPicker";
+import { lookupParkingByPlate, type ParkingPlateLookup } from "@/features/parking/api/customerReservationApi";
+import { CustomerReservationPage } from "@/features/parking/pages/CustomerReservationPage";
 
 const RADIUS_OPTIONS = [1, 3, 5] as const;
 const LOW_ACCURACY_THRESHOLD_METERS = 500;
@@ -84,6 +88,26 @@ function formatDistance(lot: NearbyParkingLot) {
   return `${Number(lot.distanceKm).toFixed(2)} km`;
 }
 
+function formatLookupDate(value: string) {
+  return new Date(value).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+}
+
+function formatLookupLocation(level: string | null, zone: string | null, space: string | null) {
+  return `${level ?? "Chưa phân tầng"} · ${zone ?? "Chưa rõ khu"} · ${space ? `Ô ${space}` : "Vị trí bố trí khi đến"}`;
+}
+
+function formatLookupRemaining(milliseconds: number) {
+  const seconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+function lookupRemainingPercent(paidAt: string, deadline: string, now: number) {
+  const startTime = new Date(paidAt).getTime();
+  const deadlineTime = new Date(deadline).getTime();
+  if (!Number.isFinite(startTime) || !Number.isFinite(deadlineTime) || deadlineTime <= startTime) return 0;
+  return Math.max(0, Math.min(100, (deadlineTime - now) / (deadlineTime - startTime) * 100));
+}
+
 function createDirectionsUrl(origin: MapPoint, destination: NearbyParkingLot) {
   const url = new URL("https://www.google.com/maps/dir/");
   url.search = new URLSearchParams({
@@ -105,12 +129,22 @@ function createLocationUrl(destination: NearbyParkingLot) {
 }
 
 export function NearbyParkingLotsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const modalReservationId = searchParams.get("reservationId");
   const [featureStatus, setFeatureStatus] = useState<ParkingMapFeatureStatus | null>(null);
   const [featureStatusError, setFeatureStatusError] = useState(false);  const [radiusKm, setRadiusKm] = useState<(typeof RADIUS_OPTIONS)[number]>(5);
   const [userLocation, setUserLocation] = useState<MapPoint | null>(null);
   const [locationLabel, setLocationLabel] = useState("");
   const [lots, setLots] = useState<NearbyParkingLot[]>([]);
   const [selectedLotId, setSelectedLotId] = useState<string | null>(null);
+  const [focusedLot, setFocusedLot] = useState<FocusedParkingLot | null>(null);
+  const [bookingLotId, setBookingLotId] = useState<string | null>(null);
+  const [lookupOpen, setLookupOpen] = useState(false);
+  const [lookupPlate, setLookupPlate] = useState("");
+  const [lookupResult, setLookupResult] = useState<ParkingPlateLookup | null>(null);
+  const [lookupBusy, setLookupBusy] = useState(false);
+  const [lookupError, setLookupError] = useState("");
+  const [lookupNow, setLookupNow] = useState(() => Date.now());
   const [isLocating, setIsLocating] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
@@ -126,6 +160,55 @@ export function NearbyParkingLotsPage() {
     legacyWardCode: null,
   });
   const searchSequence = useRef(0);
+  const lookupSequence = useRef(0);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const closeReservationModal = useCallback(() => {
+    setBookingLotId(null);
+    if (modalReservationId) setSearchParams({}, { replace: true });
+  }, [modalReservationId, setSearchParams]);
+  const activeLookupReservations = useMemo(() => lookupResult?.reservations.filter((reservation) =>
+    new Date(reservation.checkInDeadline).getTime() > lookupNow) ?? [], [lookupResult, lookupNow]);
+
+  useEffect(() => {
+    if (!lookupOpen || !lookupResult?.reservations.length) return;
+    const timer = window.setInterval(() => setLookupNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [lookupOpen, lookupResult]);
+
+  async function submitPlateLookup() {
+    if (!lookupPlate.trim()) return;
+    const sequence = ++lookupSequence.current;
+    setLookupBusy(true);
+    setLookupError("");
+    setLookupResult(null);
+    try {
+      const response = await lookupParkingByPlate(lookupPlate.trim());
+      if (sequence === lookupSequence.current) {
+        setLookupNow(Date.now());
+        setLookupResult(response.data);
+      }
+    } catch (cause) {
+      if (sequence === lookupSequence.current) {
+        setLookupError(cause instanceof Error ? cause.message : "Không thể tra cứu. Vui lòng thử lại.");
+      }
+    } finally {
+      if (sequence === lookupSequence.current) setLookupBusy(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!bookingLotId && !modalReservationId) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeReservationModal();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  }, [bookingLotId, modalReservationId, closeReservationModal]);
 
   useEffect(() => {
     let active = true;
@@ -149,6 +232,7 @@ export function NearbyParkingLotsPage() {
     const sequence = ++searchSequence.current;
     setIsSearching(true);
     setError(null);
+    setFocusedLot(null);
     try {
       const response = await getNearbyParkingLots(point.latitude, point.longitude, nextRadiusKm, 50);
       if (sequence !== searchSequence.current) return;
@@ -275,10 +359,40 @@ export function NearbyParkingLotsPage() {
     if (userLocation) void searchNearby(userLocation, nextRadius);
   }
 
+  function focusLookupLot(record: {
+    parkingLotId: string;
+    parkingLotName: string | null;
+    latitude: number | null;
+    longitude: number | null;
+  }) {
+    if (record.latitude == null || record.longitude == null
+      || !Number.isFinite(record.latitude) || !Number.isFinite(record.longitude)) {
+      setLookupError("Bãi xe này chưa có tọa độ để hiển thị trên bản đồ.");
+      return;
+    }
+    setLookupError("");
+    setSelectedLotId(record.parkingLotId);
+    setFocusedLot({ parkingLotId: record.parkingLotId, name: record.parkingLotName ?? "Bãi xe đã tra cứu",
+      latitude: record.latitude, longitude: record.longitude });
+    mapContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  const reservationModal = bookingLotId || modalReservationId ? (
+    <div className="tw-fixed tw-inset-0 tw-z-[1000] tw-flex tw-items-center tw-justify-center tw-bg-slate-950/60 tw-p-3 sm:tw-p-6"
+      role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closeReservationModal(); }}>
+      <div role="dialog" aria-modal="true" aria-label={modalReservationId ? "Kết quả đặt chỗ" : "Đặt chỗ trước"}
+        className="tw-max-h-[calc(100vh-1.5rem)] tw-w-full tw-max-w-5xl tw-overflow-y-auto tw-rounded-2xl tw-bg-slate-50 tw-shadow-2xl sm:tw-max-h-[calc(100vh-3rem)]">
+        <CustomerReservationPage key={modalReservationId ?? bookingLotId} modalParkingLotId={bookingLotId ?? undefined}
+          modalReservationId={modalReservationId ?? undefined} onClose={closeReservationModal} />
+      </div>
+    </div>
+  ) : null;
+
   if (!featureStatus && !featureStatusError) {
     return (
       <main className="tw-grid tw-min-h-[calc(100vh-72px)] tw-place-items-center tw-bg-slate-50 tw-p-6" role="status">
         <p className="tw-font-extrabold tw-text-slate-700">Đang kiểm tra trạng thái bản đồ...</p>
+        {reservationModal}
       </main>
     );
   }
@@ -295,6 +409,7 @@ export function NearbyParkingLotsPage() {
           <h1 className="tw-mb-2 tw-mt-4 tw-text-2xl tw-font-black tw-text-slate-950">Bản đồ tìm bãi hiện chưa được bật</h1>
           <p className="tw-m-0 tw-text-slate-600">Hệ thống đang triển khai theo từng giai đoạn. Vui lòng quay lại sau.</p>
         </section>
+        {reservationModal}
       </main>
     );
   }
@@ -414,13 +529,14 @@ export function NearbyParkingLotsPage() {
         </div>
 
         <section className="tw-mt-4 tw-grid tw-gap-4 lg:tw-grid-cols-[minmax(0,1.45fr)_minmax(340px,.75fr)]" aria-label="Kết quả tìm bãi xe">
-          <div className="tw-relative tw-min-h-[360px] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-shadow-sm lg:tw-sticky lg:tw-top-[88px] lg:tw-h-[calc(100vh-112px)] lg:tw-min-h-[540px]">
+          <div ref={mapContainerRef} className="tw-relative tw-min-h-[360px] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-shadow-sm lg:tw-sticky lg:tw-top-[88px] lg:tw-h-[calc(100vh-112px)] lg:tw-min-h-[540px]">
             <MapErrorBoundary onError={() => setMapFailed(true)}>
               <NearbyParkingMap
+                focusedLot={focusedLot}
                 lots={lots}
                 onMapError={() => setMapFailed(true)}
                 onPickLocation={handlePickLocation}
-                onSelectLot={setSelectedLotId}
+                onSelectLot={(parkingLotId) => { setFocusedLot(null); setSelectedLotId(parkingLotId); }}
                 pickingEnabled={pickingEnabled}
                 radiusKm={radiusKm}
                 selectedLotId={selectedLotId}
@@ -437,11 +553,90 @@ export function NearbyParkingLotsPage() {
           <div className="tw-min-w-0">
             <div className="tw-mb-3 tw-flex tw-items-end tw-justify-between tw-gap-3">
               <div>
-                <p className="tw-m-0 tw-text-xs tw-font-extrabold tw-uppercase tw-tracking-wide tw-text-blue-700">Kết quả gần nhất</p>
+                <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+                  <p className="tw-m-0 tw-text-xs tw-font-extrabold tw-uppercase tw-tracking-wide tw-text-blue-700">Kết quả gần nhất</p>
+                  <button type="button" aria-expanded={lookupOpen} onClick={() => {
+                    lookupSequence.current += 1;
+                    setLookupBusy(false);
+                    setLookupNow(Date.now());
+                    setLookupOpen((open) => !open);
+                  }} className="tw-rounded-full tw-border tw-border-solid tw-border-blue-200 tw-bg-white tw-px-3 tw-py-1 tw-text-xs tw-font-bold tw-text-blue-700 hover:tw-bg-blue-50">
+                    Tra cứu vị trí đỗ xe
+                  </button>
+                </div>
                 <h2 className="tw-mb-0 tw-mt-1 tw-text-2xl tw-font-black tw-text-slate-950">Bãi xe trong {radiusKm} km</h2>
               </div>
               {userLocation && !isSearching ? <span className="tw-text-sm tw-font-bold tw-text-slate-500">{lots.length} bãi</span> : null}
             </div>
+
+            {lookupOpen ? (
+              <section className="tw-mb-4 tw-space-y-3" aria-label="Tra cứu vị trí đỗ xe theo biển số">
+                <form onSubmit={(event) => { event.preventDefault(); void submitPlateLookup(); }}
+                  className="tw-flex tw-flex-wrap tw-gap-2 tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-3 tw-shadow-sm">
+                  <label htmlFor="parking-plate-lookup" className="tw-w-full tw-text-sm tw-font-bold tw-text-slate-800">Biển số xe</label>
+                  <input id="parking-plate-lookup" value={lookupPlate} maxLength={20}
+                    onChange={(event) => {
+                      lookupSequence.current += 1;
+                      setLookupPlate(event.target.value);
+                      setLookupResult(null);
+                      setLookupError("");
+                      setLookupBusy(false);
+                    }}
+                    placeholder="Ví dụ: 60A-999.99"
+                    className="tw-min-h-10 tw-min-w-0 tw-flex-1 tw-rounded-lg tw-border tw-border-solid tw-border-slate-300 tw-px-3" />
+                  <button type="submit" disabled={lookupBusy || !lookupPlate.trim()}
+                    className="tw-min-h-10 tw-rounded-lg tw-border-0 tw-bg-blue-700 tw-px-4 tw-font-bold tw-text-white disabled:tw-opacity-50">
+                    {lookupBusy ? "Đang tìm..." : "Tra cứu"}
+                  </button>
+                </form>
+                {lookupError ? <p role="alert" className="tw-rounded-lg tw-bg-red-50 tw-p-3 tw-text-sm tw-text-red-800">{lookupError}</p> : null}
+                {lookupResult && lookupResult.sessions.length === 0 && activeLookupReservations.length === 0 ? (
+                  <p role="status" className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-4 tw-text-sm">
+                    Không có phiên gửi xe đang mở hoặc đặt chỗ còn hiệu lực cho biển số này.
+                  </p>
+                ) : null}
+                {lookupResult?.sessions.map((session, index) => (
+                  <article key={`${session.parkingLotName}-${session.checkInTime}-${index}`}
+                    role="button" tabIndex={0} onClick={() => focusLookupLot(session)}
+                    onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); focusLookupLot(session); } }}
+                    className="tw-cursor-pointer tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-sm tw-transition hover:tw-border-blue-500 hover:tw-shadow-md focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-blue-600">
+                    <h3 className="tw-mt-0 tw-text-base tw-font-black tw-text-slate-950">Phiên gửi xe đang diễn ra</h3>
+                    <p className="tw-mb-1 tw-text-sm">Biển số: <strong>{session.licensePlate}</strong> · Loại xe: <strong>{session.vehicleTypeName ?? "Chưa rõ"}</strong></p>
+                    <p className="tw-mb-1 tw-text-sm">Check-in: <strong>{formatLookupDate(session.checkInTime)}</strong></p>
+                    <p className="tw-mb-1 tw-text-sm">Bãi xe: <strong>{session.parkingLotName ?? "Chưa rõ"}</strong></p>
+                    <p className="tw-mb-0 tw-text-sm">Vị trí: <strong>{formatLookupLocation(session.parkingLevelName, session.zoneName, session.parkingSpaceCode)}</strong></p>
+                    <p className="tw-mb-0 tw-mt-2 tw-text-xs tw-font-bold tw-text-blue-700">Nhấn để xem bãi xe trên bản đồ</p>
+                  </article>
+                ))}
+                {activeLookupReservations.map((reservation, index) => {
+                  const remainingPercent = lookupRemainingPercent(reservation.paidAt, reservation.checkInDeadline, lookupNow);
+                  return (
+                    <article key={`${reservation.parkingLotName}-${reservation.checkInDeadline}-${index}`}
+                      role="button" tabIndex={0} onClick={() => focusLookupLot(reservation)}
+                      onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); focusLookupLot(reservation); } }}
+                      className="tw-cursor-pointer tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-sm tw-transition hover:tw-border-blue-500 hover:tw-shadow-md focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-blue-600">
+                      <h3 className="tw-mt-0 tw-text-base tw-font-black tw-text-slate-950">Đặt chỗ còn hiệu lực</h3>
+                      <p className="tw-mb-1 tw-text-sm">Biển số: <strong>{reservation.licensePlate}</strong> · Đã trả trước: <strong>{new Intl.NumberFormat("vi-VN").format(reservation.prepaidAmount)}đ</strong></p>
+                      <p className="tw-mb-1 tw-text-sm">Thanh toán: <strong>{formatLookupDate(reservation.paidAt)}</strong></p>
+                      <p className="tw-mb-1 tw-text-sm">Hạn check-in: <strong>{formatLookupDate(reservation.checkInDeadline)}</strong></p>
+                      <p className="tw-mb-1 tw-text-sm">Bãi xe: <strong>{reservation.parkingLotName ?? "Chưa rõ"}</strong></p>
+                      <p className="tw-mb-0 tw-text-sm">Vị trí: <strong>{formatLookupLocation(reservation.parkingLevelName, reservation.zoneName, reservation.parkingSpaceCode)}</strong></p>
+                      <div className="tw-mt-3 tw-flex tw-justify-between tw-text-xs tw-font-bold">
+                        <span>Thời gian còn lại để check-in</span>
+                        <span>{formatLookupRemaining(new Date(reservation.checkInDeadline).getTime() - lookupNow)}</span>
+                      </div>
+                      <div className="tw-mt-1 tw-h-2 tw-overflow-hidden tw-rounded-full tw-bg-slate-200" role="progressbar"
+                        aria-label="Thời gian giữ chỗ còn lại" aria-valuemin={0} aria-valuemax={100}
+                        aria-valuenow={Math.round(remainingPercent)}>
+                        <div className="tw-h-full tw-rounded-full tw-bg-blue-600 tw-transition-[width] tw-duration-1000"
+                          style={{ width: `${remainingPercent}%` }} />
+                      </div>
+                      <p className="tw-mb-0 tw-mt-2 tw-text-xs tw-font-bold tw-text-blue-700">Nhấn để xem bãi xe trên bản đồ</p>
+                    </article>
+                  );
+                })}
+              </section>
+            ) : null}
 
             {locationLabel ? (
               <p className="tw-rounded-vm-md tw-bg-blue-50 tw-p-3 tw-text-sm tw-font-bold tw-text-blue-900">
@@ -482,7 +677,7 @@ export function NearbyParkingLotsPage() {
                           className="tw-w-full tw-border-0 tw-bg-transparent tw-p-0 tw-text-left"
                           type="button"
                           aria-expanded={selected}
-                          onClick={() => setSelectedLotId(lot.parkingLotId)}
+                          onClick={() => { setFocusedLot(null); setSelectedLotId(lot.parkingLotId); }}
                         >
                           <div className="tw-flex tw-items-start tw-gap-3">
                             <span className={`tw-grid tw-h-9 tw-w-9 tw-flex-none tw-place-items-center tw-rounded-full tw-font-black tw-text-white ${statusMeta.numberClass}`} aria-hidden="true">{index + 1}</span>
@@ -505,16 +700,24 @@ export function NearbyParkingLotsPage() {
                                 Bãi xe {statusMeta.label.toLocaleLowerCase("vi-VN")} và chưa nhận xe. Bạn có thể xem vị trí để tham khảo cho lần sau.
                               </p>
                             ) : null}
-                            <a
-                              className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-2 tw-rounded-full tw-bg-slate-950 tw-px-4 tw-font-black tw-text-white hover:tw-bg-blue-700 hover:tw-text-white hover:tw-no-underline"
-                              href={lot.status === "ACTIVE" ? createDirectionsUrl(userLocation, lot) : createLocationUrl(lot)}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              aria-label={lot.status === "ACTIVE" ? `Mở Google Maps chỉ đường đến ${lot.name}` : `Xem vị trí ${lot.name} trên Google Maps`}
-                            >
-                              <i className={`fas ${lot.status === "ACTIVE" ? "fa-directions" : "fa-map-marker-alt"}`} aria-hidden="true" />
-                              {lot.status === "ACTIVE" ? "Chỉ đường bằng Google Maps" : "Xem vị trí trên Google Maps"}
-                            </a>
+                            <div className="tw-flex tw-gap-2">
+                              <a
+                                className={`tw-inline-flex tw-min-h-11 tw-min-w-0 tw-items-center tw-justify-center tw-gap-2 tw-rounded-full tw-bg-slate-950 tw-px-2 tw-text-sm tw-font-black tw-text-white hover:tw-bg-blue-700 hover:tw-text-white hover:tw-no-underline ${lot.status === "ACTIVE" ? "tw-flex-1" : "tw-w-full"}`}
+                                href={lot.status === "ACTIVE" ? createDirectionsUrl(userLocation, lot) : createLocationUrl(lot)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={lot.status === "ACTIVE" ? `Mở Google Maps chỉ đường đến ${lot.name}` : `Xem vị trí ${lot.name} trên Google Maps`}
+                              >
+                                <i className={`fas ${lot.status === "ACTIVE" ? "fa-directions" : "fa-map-marker-alt"}`} aria-hidden="true" />
+                                {lot.status === "ACTIVE" ? "Chỉ đường" : "Xem vị trí trên Google Maps"}
+                              </a>
+                              {lot.status === "ACTIVE" ? (
+                                <button type="button" onClick={() => setBookingLotId(lot.parkingLotId)}
+                                  className="tw-inline-flex tw-min-h-11 tw-min-w-0 tw-flex-1 tw-items-center tw-justify-center tw-rounded-full tw-bg-blue-700 tw-px-2 tw-text-sm tw-font-bold tw-text-white hover:tw-bg-blue-800 hover:tw-text-white hover:tw-no-underline">
+                                  <i className="fas fa-calendar-check tw-mr-2" aria-hidden="true" />Đặt chỗ trước
+                                </button>
+                              ) : null}
+                            </div>
                           </div>
                         ) : null}
                       </article>
@@ -534,6 +737,7 @@ export function NearbyParkingLotsPage() {
           </div>
         </section>
       </div>
+      {reservationModal}
     </main>
   );
 }

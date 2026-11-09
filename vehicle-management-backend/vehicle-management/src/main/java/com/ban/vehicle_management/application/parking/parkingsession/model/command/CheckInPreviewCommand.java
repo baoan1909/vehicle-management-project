@@ -7,10 +7,16 @@ public record CheckInPreviewCommand(
         UUID laneId,
         UUID vehicleTypeId,
         String licensePlate,
-        String subscriptionQrPayload
+        String subscriptionQrPayload,
+        String reservationQrPayload
 ) {
     public CheckInPreviewCommand(String cardUid, UUID laneId, UUID vehicleTypeId, String licensePlate) {
-        this(cardUid, laneId, vehicleTypeId, licensePlate, null);
+        this(cardUid, laneId, vehicleTypeId, licensePlate, null, null);
+    }
+
+    public CheckInPreviewCommand(String cardUid, UUID laneId, UUID vehicleTypeId,
+            String licensePlate, String subscriptionQrPayload) {
+        this(cardUid, laneId, vehicleTypeId, licensePlate, subscriptionQrPayload, null);
     }
 }
 

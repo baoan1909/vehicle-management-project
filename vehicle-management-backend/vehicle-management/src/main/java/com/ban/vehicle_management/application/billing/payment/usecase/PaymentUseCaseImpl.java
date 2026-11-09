@@ -186,6 +186,10 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
         if (PaymentMethod.VNPAY.equals(payment.getPaymentMethod())) {
             throw new BadRequestException("Use the VNPAY payment endpoint for VNPAY transactions");
         }
+        if (PaymentMethod.PAYOS.equals(payment.getPaymentMethod())
+                || PaymentMethod.STRIPE.equals(payment.getPaymentMethod())) {
+            throw new BadRequestException("This payment method is no longer available");
+        }
         if (PaymentMethod.WALLET.equals(payment.getPaymentMethod())) {
             throw new BadRequestException("Use the wallet payment endpoint for WALLET transactions");
         }

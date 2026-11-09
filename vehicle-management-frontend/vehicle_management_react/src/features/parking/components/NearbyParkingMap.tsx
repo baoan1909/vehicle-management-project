@@ -11,7 +11,10 @@ export type MapPoint = {
   accuracy?: number;
 };
 
+export type FocusedParkingLot = MapPoint & { parkingLotId: string; name: string };
+
 type Props = {
+  focusedLot: FocusedParkingLot | null;
   lots: NearbyParkingLot[];
   onMapError: () => void;
   onPickLocation: (point: MapPoint) => void;
@@ -40,14 +43,19 @@ function getLotStatusLabel(status: NearbyParkingLot["status"]) {
 }
 
 function ViewportController({
+  focusedLot,
   lots,
   radiusKm,
   selectedLotId,
   userLocation,
-}: Pick<Props, "lots" | "radiusKm" | "selectedLotId" | "userLocation">) {
+}: Pick<Props, "focusedLot" | "lots" | "radiusKm" | "selectedLotId" | "userLocation">) {
   const map = useMap();
 
   useEffect(() => {
+    if (focusedLot) {
+      map.flyTo([focusedLot.latitude, focusedLot.longitude], Math.max(map.getZoom(), 16), { duration: 0.8 });
+      return;
+    }
     const selectedLot = lots.find((lot) => lot.parkingLotId === selectedLotId);
     if (selectedLot) {
       map.flyTo([selectedLot.latitude, selectedLot.longitude], Math.max(map.getZoom(), 16), { duration: 0.5 });
@@ -61,7 +69,7 @@ function ViewportController({
       ).toBounds(radiusKm * METERS_PER_KILOMETER * 2);
       map.fitBounds(searchBounds, { padding: [36, 36] });
     }
-  }, [lots, map, radiusKm, selectedLotId, userLocation]);
+  }, [focusedLot, lots, map, radiusKm, selectedLotId, userLocation]);
 
   return null;
 }
@@ -78,6 +86,7 @@ function PointPicker({ enabled, onPick }: { enabled: boolean; onPick: Props["onP
 }
 
 export function NearbyParkingMap({
+  focusedLot,
   lots,
   onMapError,
   onPickLocation,
@@ -91,6 +100,11 @@ export function NearbyParkingMap({
     className: "",
     html: '<div aria-hidden="true" style="display:grid;place-items:center;width:34px;height:34px;border:3px solid white;border-radius:999px;background:#2563eb;color:white;font-size:17px;box-shadow:0 3px 12px rgba(15,23,42,.35)">●</div>',
     iconAnchor: [17, 17],
+  }), []);
+  const focusedIcon = useMemo(() => L.divIcon({
+    className: "",
+    html: '<div aria-hidden="true" style="display:grid;place-items:center;width:38px;height:38px;border:3px solid white;border-radius:999px;background:#dc2626;color:white;font-size:20px;font-weight:900;box-shadow:0 0 0 8px rgba(220,38,38,.18),0 3px 14px rgba(15,23,42,.4)">P</div>',
+    iconAnchor: [19, 19],
   }), []);
 
   const lotIcons = useMemo(() => new Map(lots.map((lot, index) => [
@@ -115,6 +129,7 @@ export function NearbyParkingMap({
         eventHandlers={{ tileerror: onMapError }}
       />
       <ViewportController
+        focusedLot={focusedLot}
         lots={lots}
         radiusKm={radiusKm}
         selectedLotId={selectedLotId}
@@ -152,6 +167,12 @@ export function NearbyParkingMap({
           <Tooltip>{index + 1}. {lot.name} · {getLotStatusLabel(lot.status)}</Tooltip>
         </Marker>
       ))}
+      {focusedLot && !lots.some((lot) => lot.parkingLotId === focusedLot.parkingLotId) ? (
+        <Marker icon={focusedIcon} position={[focusedLot.latitude, focusedLot.longitude]}
+          title={focusedLot.name} alt={focusedLot.name} keyboard>
+          <Tooltip>{focusedLot.name}</Tooltip>
+        </Marker>
+      ) : null}
     </MapContainer>
   );
 }

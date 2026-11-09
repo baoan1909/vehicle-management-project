@@ -63,6 +63,7 @@ const AnnouncementManagementPage = lazyPage(() => import("@/features/notificatio
 const UserGuideManagementPage = lazyPage(() => import("@/features/user-guide"), "UserGuideManagementPage");
 const UserGuidePublicPage = lazyPage(() => import("@/features/user-guide"), "UserGuidePublicPage");
 const NearbyParkingLotsPage = lazyPage(() => import("@/features/parking"), "NearbyParkingLotsPage");
+const CustomerReservationPage = lazyPage(() => import("@/features/parking"), "CustomerReservationPage");
 const ParkingLiveMapPage = lazyPage(() => import("@/features/parking"), "ParkingLiveMapPage");
 const ParkingLayoutEditorPage = lazyPage(() => import("@/features/parking"), "ParkingLayoutEditorPage");
 const ParkingLotOverviewPage = lazyPage(() => import("@/features/parking"), "ParkingLotOverviewPage");
@@ -140,6 +141,9 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/support-center", title: "Trung tam ho tro van hanh", layout: "fullscreen", element: <OperationsSupportCenterPage /> },
   { path: "/", title: "Gioi thieu CoParking", layout: "client", element: <AboutPage /> },
   { path: "/parking-lots/nearby", title: "Tìm bãi xe gần tôi", layout: "client", element: <NearbyParkingLotsPage /> },
+  { path: "/parking-lots/:parkingLotId/reserve", title: "Đặt chỗ trước", layout: "client", element: <CustomerReservationPage /> },
+  { path: "/reservations", title: "Đặt chỗ đã lưu", layout: "client", element: <CustomerReservationPage /> },
+  { path: "/reservations/:reservationId", title: "Chi tiết đặt chỗ", layout: "client", element: <CustomerReservationPage /> },
   { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },
   { path: "/pricing/:parkingLotId", title: "Chi tiet bang gia bai xe", layout: "client", element: <PricingPage /> },
   { path: "/guide", title: "Huong dan", layout: "client", element: <GuidePage /> },
@@ -158,6 +162,8 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/customer/profile", title: "Ho so ca nhan", layout: "client", element: <ProfilePage /> },
   { path: "/customer/vehicles", title: "Xe cua toi", layout: "client", element: <VehiclePage /> },
   { path: "/customer/subscriptions", title: "Ve thang", layout: "client", element: <SubscriptionPage /> },
+  { path: "/customer/reservations", title: "Đặt chỗ của tôi", layout: "client", element: <CustomerReservationPage /> },
+  { path: "/customer/reservations/:reservationId", title: "Chi tiết đặt chỗ", layout: "client", element: <CustomerReservationPage /> },
   { path: "/customer/parking-history", title: "Lich su gui xe", layout: "client", element: <CustomerHistoryPage /> },
   { path: "/customer/support", title: "Ho tro", layout: "client", element: <SupportPage /> },
   { path: "/customer/support/chat", title: "Hội thoại hỗ trợ", layout: "fullscreen", element: <OperationsSupportCenterPage /> },

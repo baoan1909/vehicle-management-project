@@ -14,7 +14,8 @@ public record CheckInCommand(
         Boolean plateFormatConfirmed,
         Boolean plateIdentityOverride,
         UUID parkingSpaceId,
-        String subscriptionQrPayload
+        String subscriptionQrPayload,
+        String reservationQrPayload
 ) {
     public CheckInCommand(
             String cardUid,
@@ -26,7 +27,7 @@ public record CheckInCommand(
             String note
     ) {
         this(cardUid, laneId, vehicleTypeId, licensePlate, licensePlateImage, personImage, note,
-                false, false, null, null);
+                false, false, null, null, null);
     }
 
     public CheckInCommand(
@@ -42,6 +43,15 @@ public record CheckInCommand(
             UUID parkingSpaceId
     ) {
         this(cardUid, laneId, vehicleTypeId, licensePlate, licensePlateImage, personImage, note,
-                plateFormatConfirmed, plateIdentityOverride, parkingSpaceId, null);
+                plateFormatConfirmed, plateIdentityOverride, parkingSpaceId, null, null);
+    }
+
+    public CheckInCommand(String cardUid, UUID laneId, UUID vehicleTypeId, String licensePlate,
+            MultipartFile licensePlateImage, MultipartFile personImage, String note,
+            Boolean plateFormatConfirmed, Boolean plateIdentityOverride, UUID parkingSpaceId,
+            String subscriptionQrPayload) {
+        this(cardUid, laneId, vehicleTypeId, licensePlate, licensePlateImage, personImage,
+                note, plateFormatConfirmed, plateIdentityOverride, parkingSpaceId,
+                subscriptionQrPayload, null);
     }
 }

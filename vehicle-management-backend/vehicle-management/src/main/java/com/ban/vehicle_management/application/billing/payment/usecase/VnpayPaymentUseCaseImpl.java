@@ -19,6 +19,9 @@ import com.ban.vehicle_management.application.notification.notification.model.Se
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
+import com.ban.vehicle_management.application.parking.customerreservation.port.in.CustomerReservationPaymentPortIn;
+import com.ban.vehicle_management.application.parking.customerreservation.port.in.CustomerReservationPortIn;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.billing.payment.policy.PaymentPolicy;
@@ -52,6 +55,18 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
     private final BigDecimal vnpayMinimumAmount;
     private final PaymentPolicy paymentPolicy = new PaymentPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
+    private CustomerReservationPaymentPortIn reservationPaymentPortIn;
+    private CustomerReservationPortIn reservationPortIn;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setReservationPaymentPortIn(CustomerReservationPaymentPortIn reservationPaymentPortIn) {
+        this.reservationPaymentPortIn = reservationPaymentPortIn;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setReservationPortIn(CustomerReservationPortIn reservationPortIn) {
+        this.reservationPortIn = reservationPortIn;
+    }
 
     public VnpayPaymentUseCaseImpl(
             PaymentPortOut paymentPortOut,
@@ -78,13 +93,31 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
     @Override
     @Transactional
     public VnpayPaymentResult createPayment(UUID invoiceId, CreateVnpayPaymentCommand command) {
+        return createPaymentInternal(invoiceId, command, false);
+    }
+
+    @Override
+    @Transactional
+    public VnpayPaymentResult createGuestReservationPayment(UUID reservationId,
+            String accessToken, CreateVnpayPaymentCommand command) {
+        UUID invoiceId = reservationPortIn.authorizeGuestPayment(reservationId, accessToken);
+        return createPaymentInternal(invoiceId, command, true);
+    }
+
+    private VnpayPaymentResult createPaymentInternal(UUID invoiceId,
+            CreateVnpayPaymentCommand command, boolean guestAuthorized) {
         if (command == null) {
             command = new CreateVnpayPaymentCommand(null, "vn", null);
         }
 
         Invoice invoice = invoicePortOut.findById(invoiceId)
                 .orElseThrow(() -> new NotFoundException("Invoice not found"));
-        paymentAccessGuard.ensureCanCreateVnpayPayment(invoice);
+        if (guestAuthorized && invoice.getPurpose() != InvoicePurpose.RESERVATION_PREPAYMENT) {
+            throw new ConflictException("Guest payment is limited to reservation invoices");
+        }
+        if (!guestAuthorized) {
+            paymentAccessGuard.ensureCanCreateVnpayPayment(invoice);
+        }
         validatePayableInvoice(invoice);
         validateVnpayAmount(invoice);
 
@@ -291,6 +324,12 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
 
         invoicePolicy.markPaid(invoice, paidAt);
         invoicePortOut.save(invoice);
+        if (invoice.getPurpose() == InvoicePurpose.RESERVATION_PREPAYMENT) {
+            if (reservationPaymentPortIn == null) {
+                throw new IllegalStateException("Reservation payment handler is unavailable");
+            }
+            reservationPaymentPortIn.onPaymentConfirmed(invoice.getInvoiceId(), paidAt);
+        }
         if (invoice.getSubscriptionId() != null) {
             subscriptionPortIn.markSubscriptionInvoicePaymentCompleted(
                     invoice.getSubscriptionId(), invoice.getInvoiceId());

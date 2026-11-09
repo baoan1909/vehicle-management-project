@@ -79,6 +79,10 @@ public class PaymentAccessGuard {
     }
 
     public void ensureCanCreateVnpayPayment(Invoice invoice) {
+        ensureCanCreateOnlinePayment(invoice);
+    }
+
+    public void ensureCanCreateOnlinePayment(Invoice invoice) {
         if (currentAccountPortIn.hasPermission(CREATE_PERMISSION)) {
             ensureCanRecordPayment(invoice);
             return;
