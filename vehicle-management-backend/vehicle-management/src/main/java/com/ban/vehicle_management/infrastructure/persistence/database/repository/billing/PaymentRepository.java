@@ -15,6 +15,13 @@ import org.springframework.data.domain.Pageable;
 
 public interface PaymentRepository extends JpaRepository<PaymentEntity, UUID>, JpaSpecificationExecutor<PaymentEntity> {
 
+    @Query(value = """
+        select payment.payment_id from billing.payments payment
+        join billing.invoices invoice on invoice.invoice_id=payment.invoice_id
+        where invoice.customer_id=:customerId and payment.status='PENDING' limit 1
+        """, nativeQuery = true)
+    Optional<UUID> findDeletionBlockingPaymentId(@Param("customerId") UUID customerId);
+
     List<PaymentEntity> findByInvoiceIdOrderByPaidAtAsc(UUID invoiceId);
 
     boolean existsByInvoiceIdAndStatus(UUID invoiceId, PaymentStatus status);

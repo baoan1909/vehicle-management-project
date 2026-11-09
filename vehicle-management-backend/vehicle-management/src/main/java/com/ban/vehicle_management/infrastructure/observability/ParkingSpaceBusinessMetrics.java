@@ -3,21 +3,31 @@ package com.ban.vehicle_management.infrastructure.observability;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.atomic.AtomicLong;
-import org.springframework.jdbc.core.JdbcTemplate;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSpaceAllocationRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSpaceRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ParkingSpaceBusinessMetrics {
 
-    private final JdbcTemplate jdbcTemplate;
+    private final ParkingSpaceRepository parkingSpaceRepository;
+    private final ParkingSpaceAllocationRepository allocationRepository;
+    private final ParkingSessionRepository parkingSessionRepository;
     private final AtomicLong activeSpaces = new AtomicLong(-1);
     private final AtomicLong occupiedSpaces = new AtomicLong(-1);
     private final AtomicLong activeAllocations = new AtomicLong(-1);
     private final AtomicLong openSessionsWithSpace = new AtomicLong(-1);
 
-    public ParkingSpaceBusinessMetrics(JdbcTemplate jdbcTemplate, MeterRegistry meterRegistry) {
-        this.jdbcTemplate = jdbcTemplate;
+    public ParkingSpaceBusinessMetrics(
+            ParkingSpaceRepository parkingSpaceRepository,
+            ParkingSpaceAllocationRepository allocationRepository,
+            ParkingSessionRepository parkingSessionRepository,
+            MeterRegistry meterRegistry) {
+        this.parkingSpaceRepository = parkingSpaceRepository;
+        this.allocationRepository = allocationRepository;
+        this.parkingSessionRepository = parkingSessionRepository;
         Gauge.builder("parking.spaces.active", activeSpaces, AtomicLong::get).register(meterRegistry);
         Gauge.builder("parking.spaces.occupied", occupiedSpaces, AtomicLong::get).register(meterRegistry);
         Gauge.builder("parking.allocations.active", activeAllocations, AtomicLong::get).register(meterRegistry);
@@ -31,14 +41,10 @@ public class ParkingSpaceBusinessMetrics {
     )
     public void refresh() {
         try {
-            activeSpaces.set(count(
-                    "SELECT COUNT(*) FROM parking.parking_spaces WHERE lifecycle_status = 'ACTIVE'"));
-            occupiedSpaces.set(count(
-                    "SELECT COUNT(*) FROM parking.parking_spaces WHERE lifecycle_status = 'ACTIVE' AND status = 'OCCUPIED'"));
-            activeAllocations.set(count(
-                    "SELECT COUNT(*) FROM parking.parking_space_allocations WHERE allocation_status IN ('HELD', 'ACTIVE')"));
-            openSessionsWithSpace.set(count(
-                    "SELECT COUNT(*) FROM parking.parking_sessions WHERE status = 'OPEN' AND parking_space_id IS NOT NULL"));
+            activeSpaces.set(parkingSpaceRepository.countActiveForMetrics());
+            occupiedSpaces.set(parkingSpaceRepository.countOccupiedForMetrics());
+            activeAllocations.set(allocationRepository.countActiveForMetrics());
+            openSessionsWithSpace.set(parkingSessionRepository.countOpenWithSpaceForMetrics());
         } catch (RuntimeException exception) {
             activeSpaces.set(-1);
             occupiedSpaces.set(-1);
@@ -47,8 +53,4 @@ public class ParkingSpaceBusinessMetrics {
         }
     }
 
-    private long count(String sql) {
-        Long value = jdbcTemplate.queryForObject(sql, Long.class);
-        return value == null ? -1 : value;
-    }
 }

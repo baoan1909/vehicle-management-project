@@ -116,9 +116,7 @@ public class ParkingSessionPersistenceAdapter implements ParkingSessionPortOut {
 
     @Override
     public Optional<ParkingSession> findById(UUID parkingSessionId) {
-        return parkingSessionRepository.findOne(Specification.<ParkingSessionEntity>where(
-                        (root, query, cb) -> cb.equal(root.get("parkingSessionId"), parkingSessionId))
-                .and(ParkingSessionSpecifications.businessVisible()))
+        return parkingSessionRepository.findBusinessVisibleById(parkingSessionId)
                 .map(parkingSessionPersistenceMapper::toDomain);
     }
 

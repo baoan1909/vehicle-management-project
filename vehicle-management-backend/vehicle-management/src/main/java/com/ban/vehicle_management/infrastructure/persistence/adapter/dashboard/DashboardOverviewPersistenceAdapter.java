@@ -6,7 +6,15 @@ import com.ban.vehicle_management.entrypoint.dto.dashboard.response.DeviceStatus
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.RevenueTrendPointResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.VehicleTypeRatioItemResponse;
 import com.ban.vehicle_management.entrypoint.dto.dashboard.response.VehicleTypeRatioResponse;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.dashboard.DashboardOverviewQueryRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.CardRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.InvoiceRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.hardware.DeviceRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ParkingSessionRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.parking.ZoneRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.CustomerVehicleRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.dashboard.VehicleTypeCountProjection;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -19,36 +27,58 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPortOut {
-    private final DashboardOverviewQueryRepository repository;
+    private final InvoiceRepository invoiceRepository;
+    private final ParkingSessionRepository parkingSessionRepository;
+    private final ZoneRepository zoneRepository;
+    private final CardRepository cardRepository;
+    private final AccountRepository accountRepository;
+    private final CustomerRepository customerRepository;
+    private final CustomerVehicleRepository customerVehicleRepository;
+    private final DeviceRepository deviceRepository;
 
-    public DashboardOverviewPersistenceAdapter(DashboardOverviewQueryRepository repository) {
-        this.repository = repository;
+    public DashboardOverviewPersistenceAdapter(
+            InvoiceRepository invoiceRepository,
+            ParkingSessionRepository parkingSessionRepository,
+            ZoneRepository zoneRepository,
+            CardRepository cardRepository,
+            AccountRepository accountRepository,
+            CustomerRepository customerRepository,
+            CustomerVehicleRepository customerVehicleRepository,
+            DeviceRepository deviceRepository) {
+        this.invoiceRepository = invoiceRepository;
+        this.parkingSessionRepository = parkingSessionRepository;
+        this.zoneRepository = zoneRepository;
+        this.cardRepository = cardRepository;
+        this.accountRepository = accountRepository;
+        this.customerRepository = customerRepository;
+        this.customerVehicleRepository = customerVehicleRepository;
+        this.deviceRepository = deviceRepository;
     }
 
     @Override
     public BigDecimal sumPaidRevenue(Instant from, Instant to) {
-        BigDecimal value = repository.sumPaidRevenue(from, to);
+        BigDecimal value = invoiceRepository.sumPaidRevenue(from, to);
         return value == null ? BigDecimal.ZERO : value;
     }
 
     @Override
     public long countCheckIns(Instant from, Instant to) {
-        return repository.countCheckIns(from, to);
+        return parkingSessionRepository.countDashboardCheckIns(from, to);
     }
 
     @Override
     public long countCheckOuts(Instant from, Instant to) {
-        return repository.countCheckOuts(from, to);
+        return parkingSessionRepository.countDashboardCheckOuts(from, to);
     }
 
     @Override
     public long countParkingAt(Instant at) {
-        return repository.countParkingAt(at);
+        return parkingSessionRepository.countDashboardParkingAt(at);
     }
 
     @Override
     public long sumActiveZoneCapacity() {
-        return repository.sumActiveZoneCapacity();
+        return zoneRepository.sumDashboardActiveCapacity();
     }
 
     @Override
@@ -58,8 +88,8 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
         for (LocalDate date = fromDate; !date.isAfter(toDate); date = date.plusDays(1)) {
             values.put(date, BigDecimal.ZERO);
         }
-        repository.findRevenueByDate(from, to, DateTimeUtils.getAppZone().getId())
-                .forEach(row -> values.put(row.date(), row.revenue()));
+        invoiceRepository.findRevenueByDate(from, to, DateTimeUtils.getAppZone().getId())
+                .forEach(row -> values.put(row.getDate(), row.getRevenue()));
         return values.entrySet().stream()
                 .map(entry -> new RevenueTrendPointResponse(entry.getKey(), entry.getValue()))
                 .toList();
@@ -67,13 +97,13 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
 
     @Override
     public VehicleTypeRatioResponse getVehicleTypeRatio(Instant from, Instant to) {
-        var rows = repository.findVehicleTypeCounts(from, to);
-        long total = rows.stream().mapToLong(DashboardOverviewQueryRepository.VehicleTypeCountRow::total).sum();
+        var rows = parkingSessionRepository.findDashboardVehicleTypeCounts(from, to);
+        long total = rows.stream().mapToLong(VehicleTypeCountProjection::getTotal).sum();
         var items = rows.stream().map(row -> new VehicleTypeRatioItemResponse(
-                row.vehicleTypeId(),
-                row.vehicleTypeName() == null ? "Không xác định" : row.vehicleTypeName(),
-                row.total(),
-                total == 0 ? BigDecimal.ZERO : BigDecimal.valueOf(row.total())
+                row.getVehicleTypeId(),
+                row.getVehicleTypeName() == null ? "Không xác định" : row.getVehicleTypeName(),
+                row.getTotal(),
+                total == 0 ? BigDecimal.ZERO : BigDecimal.valueOf(row.getTotal())
                         .multiply(BigDecimal.valueOf(100))
                         .divide(BigDecimal.valueOf(total), 2, RoundingMode.HALF_UP))).toList();
         return new VehicleTypeRatioResponse(total, items);
@@ -81,23 +111,23 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
 
     @Override
     public CardStatusOverviewResponse getCardStatusOverview() {
-        var row = repository.getCardStatusCounts();
-        return new CardStatusOverviewResponse(row.memberCards(), row.visitorCards(), row.lostCards());
+        var row = cardRepository.getDashboardStatusCounts();
+        return new CardStatusOverviewResponse(row.getMemberCards(), row.getVisitorCards(), row.getLostCards());
     }
 
     @Override
     public long countNewAccounts(Instant from, Instant to) {
-        return repository.countNewAccounts(from, to);
+        return accountRepository.countDashboardNewAccounts(from, to);
     }
 
     @Override
     public long countNewCustomers(Instant from, Instant to) {
-        return repository.countNewCustomers(from, to);
+        return customerRepository.countDashboardNewCustomers(from, to);
     }
 
     @Override
     public long countNewCustomerVehicles(Instant from, Instant to) {
-        return repository.countNewCustomerVehicles(from, to);
+        return customerVehicleRepository.countDashboardNewVehicles(from, to);
     }
 
     @Override
@@ -107,12 +137,12 @@ public class DashboardOverviewPersistenceAdapter implements DashboardOverviewPor
         counters.put("KIOSK", new DeviceCounter("KIOSK", "Máy tính"));
         counters.put("CARD_READER", new DeviceCounter("CARD_READER", "Đầu đọc thẻ"));
         counters.put("BARRIER", new DeviceCounter("BARRIER", "Barrier"));
-        repository.findDeviceStatusCounts().forEach(row -> {
-            DeviceCounter counter = counters.computeIfAbsent(row.deviceType(), key -> new DeviceCounter(key, key));
-            switch (row.status()) {
-                case "ACTIVE" -> counter.activeCount += row.total();
-                case "OFFLINE" -> counter.offlineCount += row.total();
-                case "MAINTENANCE" -> counter.maintenanceCount += row.total();
+        deviceRepository.findDashboardStatusCounts().forEach(row -> {
+            DeviceCounter counter = counters.computeIfAbsent(row.getDeviceType(), key -> new DeviceCounter(key, key));
+            switch (row.getStatus()) {
+                case "ACTIVE" -> counter.activeCount += row.getTotal();
+                case "OFFLINE" -> counter.offlineCount += row.getTotal();
+                case "MAINTENANCE" -> counter.maintenanceCount += row.getTotal();
                 default -> { }
             }
         });

@@ -13,6 +13,16 @@ import java.util.UUID;
 
 public interface ParkingSpaceRepository extends JpaRepository<ParkingSpaceEntity, UUID> {
 
+    @Query(value = "select count(*) from parking.parking_spaces where lifecycle_status='ACTIVE'",
+            nativeQuery = true)
+    long countActiveForMetrics();
+
+    @Query(value = """
+        select count(*) from parking.parking_spaces
+        where lifecycle_status='ACTIVE' and status='OCCUPIED'
+        """, nativeQuery = true)
+    long countOccupiedForMetrics();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select space from ParkingSpaceEntity space where space.parkingSpaceId = :parkingSpaceId")
     Optional<ParkingSpaceEntity> findByIdForUpdate(@Param("parkingSpaceId") UUID parkingSpaceId);

@@ -12,8 +12,21 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.dashboard.CardStatusCountProjection;
 
 public interface CardRepository extends JpaRepository<CardEntity, UUID>, JpaSpecificationExecutor<CardEntity> {
+
+    @Query(value = """
+            select coalesce(sum(case when type.code = 'REGISTERED' and card.status <> 'LOST' then 1 else 0 end), 0)
+                       as "memberCards",
+                   coalesce(sum(case when type.code = 'VISITOR' and card.status <> 'LOST' then 1 else 0 end), 0)
+                       as "visitorCards",
+                   coalesce(sum(case when card.status = 'LOST' then 1 else 0 end), 0)
+                       as "lostCards"
+            from access_control.cards card
+            join catalog.card_types type on type.card_type_id = card.card_type_id
+            """, nativeQuery = true)
+    CardStatusCountProjection getDashboardStatusCounts();
 
     @Query(value = "SELECT nextval('access_control.registered_card_number_seq')", nativeQuery = true)
     long nextRegisteredCardNumberSequence();

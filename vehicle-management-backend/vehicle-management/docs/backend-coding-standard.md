@@ -441,6 +441,16 @@ Before implementing a new function, endpoint, use case, or business flow:
 - avoid deleting code unless it is truly unnecessary, clearly inefficient, duplicated beyond safe maintenance, or logically incorrect
 - create new code only when reuse is not suitable, and keep the new implementation aligned with the current Clean Architecture rules and schema-first package structure
 
+## 18.2. Database query ownership rule
+
+- persistence adapters, security providers, health indicators, schedulers, metrics collectors, controllers, and application services must not execute SQL or access the database directly
+- do not inject or use `JdbcTemplate`, `NamedParameterJdbcTemplate`, `EntityManager`, `DataSource`, JDBC connections, prepared statements, or runtime-created JPA/native queries outside Spring Data repositories
+- all fixed JPQL/native SQL must be declared in a Spring Data JPA repository interface with `@Query`; write operations must use `@Modifying` and remain inside an explicit transactional use-case/adapter boundary
+- reuse the existing aggregate repository first; create a repository only when the table is a distinct persistence aggregate and no suitable repository exists
+- use typed interface projections for native query results instead of `Object[]`, manual result-set mapping, maps, or stringly typed rows
+- adapters may coordinate several repositories and map projections into domain models, but must not own query text, Criteria lambdas, database locks, sequences, or persistence-context operations
+- do not introduce concrete custom repository classes merely to hold SQL; PostgreSQL-specific functions such as PostGIS, pgvector, advisory locks, `ON CONFLICT`, and `SKIP LOCKED` still belong in Spring Data repository interfaces
+
 ## 19. How to use this file with the architecture guide
 
 When starting a new module:

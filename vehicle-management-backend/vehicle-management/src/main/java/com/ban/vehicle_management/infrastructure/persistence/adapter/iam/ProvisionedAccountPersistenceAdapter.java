@@ -18,7 +18,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.peo
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.EmployeeEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.people.UserProfileEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountPersistenceContextRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountRepository.ProvisionedAccountLifecycleProjection;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountStatusHistoryRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.RoleRepository;
@@ -60,7 +59,6 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
     private final AccountStatusHistoryPersistenceMapper accountStatusHistoryPersistenceMapper;
     private final ProvisionedAccountReadModelMapper provisionedAccountReadModelMapper;
     private final UserProfilePersistenceMapper userProfilePersistenceMapper;
-    private final AccountPersistenceContextRepository persistenceContextRepository;
 
     public ProvisionedAccountPersistenceAdapter(
             AccountRepository accountRepository,
@@ -72,8 +70,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
             AccountPersistenceMapper accountPersistenceMapper,
             AccountStatusHistoryPersistenceMapper accountStatusHistoryPersistenceMapper,
             ProvisionedAccountReadModelMapper provisionedAccountReadModelMapper,
-            UserProfilePersistenceMapper userProfilePersistenceMapper,
-            AccountPersistenceContextRepository persistenceContextRepository
+            UserProfilePersistenceMapper userProfilePersistenceMapper
     ) {
         this.accountRepository = accountRepository;
         this.roleRepository = roleRepository;
@@ -85,7 +82,6 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
         this.accountStatusHistoryPersistenceMapper = accountStatusHistoryPersistenceMapper;
         this.provisionedAccountReadModelMapper = provisionedAccountReadModelMapper;
         this.userProfilePersistenceMapper = userProfilePersistenceMapper;
-        this.persistenceContextRepository = persistenceContextRepository;
     }
 
     @Override
@@ -109,7 +105,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
     public void provisionAccount(Account account, UserProfile userProfile) {
         userProfileRepository.save(userProfilePersistenceMapper.toEntity(userProfile));
         accountRepository.save(accountPersistenceMapper.toEntity(account));
-        flushAndClear();
+        flushChanges();
     }
 
     @Override
@@ -368,7 +364,7 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
         if (employeeEntity != null && employeeStatus != null) {
             employeeRepository.save(employeeEntity);
         }
-        flushAndClear();
+        flushChanges();
     }
 
     @Override
@@ -378,16 +374,15 @@ public class ProvisionedAccountPersistenceAdapter implements ProvisionedAccountP
                 .orElseThrow(() -> new NotFoundException("Provisioned account not found"));
         accountEntity.setRoleId(roleId);
         accountRepository.save(accountEntity);
-        flushAndClear();
+        flushChanges();
     }
 
     private boolean isBusinessVisible(AccountStatus status) {
         return status != AccountStatus.PENDING_DELETION && status != AccountStatus.DELETED;
     }
 
-    private void flushAndClear() {
+    private void flushChanges() {
         accountRepository.flush();
-        persistenceContextRepository.clear();
     }
 
     private UserProfileEntity resolveUserProfile(UUID userProfileId) {

@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.infrastructure.location;
 
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.AdministrativeBoundaryPortOut;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.reference.AdministrativeBoundaryQueryRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.reference.WardRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import org.springframework.stereotype.Component;
@@ -9,9 +9,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class PostGisAdministrativeBoundaryAdapter implements AdministrativeBoundaryPortOut {
 
-    private final AdministrativeBoundaryQueryRepository repository;
+    private final WardRepository repository;
 
-    public PostGisAdministrativeBoundaryAdapter(AdministrativeBoundaryQueryRepository repository) {
+    public PostGisAdministrativeBoundaryAdapter(WardRepository repository) {
         this.repository = repository;
     }
 

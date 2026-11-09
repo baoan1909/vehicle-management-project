@@ -9,11 +9,34 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 
 public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequestEntity, UUID> {
+
+    @Query(value = """
+        select approval_request_id from operations.approval_requests
+        where requested_by=:accountId and status='PENDING'
+          and request_type not in ('PARTNER_REGISTRATION','INTERNAL_EMPLOYEE_ONBOARDING',
+                                   'CUSTOMER_ONBOARDING','SYSTEM_ADMIN_ONBOARDING')
+        """, nativeQuery = true)
+    List<UUID> findDeletionBlockingOperationalApprovalIds(@Param("accountId") UUID accountId);
+
+    @Modifying
+    @Query(value = """
+        update operations.approval_requests set status='CANCELLED', updated_at=:now
+        where status='PENDING'
+          and request_type in ('PARTNER_REGISTRATION','INTERNAL_EMPLOYEE_ONBOARDING',
+                               'CUSTOMER_ONBOARDING','SYSTEM_ADMIN_ONBOARDING')
+          and (requested_by=:accountId or target_id=:accountId or target_id=:profileId or target_id in (
+              select employee_id from people.employees where user_profile_id=:profileId))
+        """, nativeQuery = true)
+    int cancelPendingOnboardingForDeletedAccount(
+            @Param("accountId") UUID accountId,
+            @Param("profileId") UUID profileId,
+            @Param("now") Instant now);
     interface EmployeeApprovalTimelineProjection {
         UUID getEventId();
 

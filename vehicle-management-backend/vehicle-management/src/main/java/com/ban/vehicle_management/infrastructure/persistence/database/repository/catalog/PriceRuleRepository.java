@@ -15,6 +15,29 @@ import org.springframework.data.repository.query.Param;
 
 public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID>, JpaSpecificationExecutor<PriceRuleEntity> {
 
+    @Modifying
+    @Query(value = """
+            insert into catalog.price_rules
+                (price_rule_id, organization_id, price_plan_id, vehicle_type_id, ticket_type_id,
+                 rule_name, time_from, time_to, base_price, unit, lost_card_fee, priority, is_active, created_at)
+            select gen_random_uuid(), :organizationId, target_plan.price_plan_id, target_vehicle.vehicle_type_id,
+                   target_ticket.ticket_type_id, source.rule_name, source.time_from, source.time_to,
+                   source.base_price, source.unit, source.lost_card_fee, source.priority, source.is_active, now()
+            from catalog.price_rules source
+            join iam.organizations template on template.organization_id = source.organization_id
+            join catalog.price_plans source_plan on source_plan.price_plan_id = source.price_plan_id
+            join catalog.vehicle_types source_vehicle on source_vehicle.vehicle_type_id = source.vehicle_type_id
+            left join catalog.ticket_types source_ticket on source_ticket.ticket_type_id = source.ticket_type_id
+            join catalog.price_plans target_plan on target_plan.organization_id = :organizationId
+                and target_plan.code = source_plan.code
+            join catalog.vehicle_types target_vehicle on target_vehicle.organization_id = :organizationId
+                and target_vehicle.code = source_vehicle.code
+            left join catalog.ticket_types target_ticket on target_ticket.organization_id = :organizationId
+                and target_ticket.code = source_ticket.code
+            where template.code = 'COPARKING_INTERNAL'
+            """, nativeQuery = true)
+    int copyInternalCatalog(@Param("organizationId") UUID organizationId);
+
     boolean existsByPricePlanId(UUID pricePlanId);
 
     boolean existsByTicketTypeIdAndIsActiveTrue(UUID ticketTypeId);

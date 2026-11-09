@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -18,6 +19,66 @@ import org.springframework.data.repository.query.Param;
 public interface LostCardReportRepository extends
         JpaRepository<LostCardReportEntity, UUID>,
         JpaSpecificationExecutor<LostCardReportEntity> {
+
+    @Query(value = """
+        select lost_card_report_id from access_control.lost_card_reports
+        where customer_id=:customerId and status='OPEN' limit 1
+        """, nativeQuery = true)
+    Optional<UUID> findDeletionBlockingReportId(@Param("customerId") UUID customerId);
+
+    @Query("""
+        select report
+        from LostCardReportEntity report
+        left join report.customer customer
+        left join customer.userProfile customerProfile
+        left join customerProfile.account customerAccount
+        where report.lostCardReportId = :lostCardReportId
+          and (report.customerId is null or customerAccount.status not in (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
+        """)
+    java.util.Optional<LostCardReportEntity> findBusinessVisibleById(
+            @Param("lostCardReportId") UUID lostCardReportId);
+
+    @Query("""
+        select report
+        from LostCardReportEntity report
+        left join report.customer customer
+        left join customer.userProfile customerProfile
+        left join customerProfile.account customerAccount
+        where (:status is null or report.status = :status)
+          and (:context is null or report.context = :context)
+          and (:customerId is null or report.customerId = :customerId)
+          and (:cardId is null or report.cardId = :cardId)
+          and (:parkingSessionId is null or report.parkingSessionId = :parkingSessionId)
+          and (:subscriptionId is null or report.subscriptionId = :subscriptionId)
+          and (:fromDate is null or report.notificationTime >= :fromDate)
+          and (:toDate is null or report.notificationTime <= :toDate)
+          and (report.customerId is null or customerAccount.status not in (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
+          and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
+          and (
+              :keyword = ''
+              or lower(coalesce(report.reporterName, '')) like :keyword
+              or lower(coalesce(report.reporterPhone, '')) like :keyword
+              or lower(coalesce(report.identifyCard, '')) like :keyword
+              or lower(coalesce(report.registrationLicense, '')) like :keyword
+          )
+        order by report.notificationTime desc
+        """)
+    List<LostCardReportEntity> findBusinessVisibleWithFilters(
+            @Param("status") LostCardReportStatus status,
+            @Param("context") LostCardReportContext context,
+            @Param("customerId") UUID customerId,
+            @Param("cardId") UUID cardId,
+            @Param("parkingSessionId") UUID parkingSessionId,
+            @Param("subscriptionId") UUID subscriptionId,
+            @Param("fromDate") Instant fromDate,
+            @Param("toDate") Instant toDate,
+            @Param("keyword") String keyword,
+            @Param("scopeEnabled") boolean scopeEnabled,
+            @Param("parkingLotIds") Set<UUID> parkingLotIds);
 
     boolean existsByCardIdAndStatus(UUID cardId, LostCardReportStatus status);
 

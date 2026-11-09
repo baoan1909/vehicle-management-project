@@ -6,6 +6,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.dashboard.VehicleTypeCountProjection;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -17,6 +19,64 @@ import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 
 public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEntity, UUID>, JpaSpecificationExecutor<ParkingSessionEntity> {
+
+    @Query(value = """
+        select count(*) from parking.parking_sessions
+        where status='OPEN' and parking_space_id is not null
+        """, nativeQuery = true)
+    long countOpenWithSpaceForMetrics();
+
+    @Query(value = """
+        select parking_session_id from parking.parking_sessions
+        where customer_id=:customerId and status in ('OPEN','LOST_CARD') limit 1
+        """, nativeQuery = true)
+    Optional<UUID> findDeletionBlockingSessionId(@Param("customerId") UUID customerId);
+
+    @Query(value = """
+            select count(*) from parking.parking_sessions
+            where check_in_time >= :from and check_in_time < :to
+            """, nativeQuery = true)
+    long countDashboardCheckIns(@Param("from") Instant from, @Param("to") Instant to);
+
+    @Query(value = """
+            select count(*) from parking.parking_sessions
+            where status = 'CLOSED' and check_out_time >= :from and check_out_time < :to
+            """, nativeQuery = true)
+    long countDashboardCheckOuts(@Param("from") Instant from, @Param("to") Instant to);
+
+    @Query(value = """
+            select count(*) from parking.parking_sessions
+            where status <> 'CANCELLED' and check_in_time < :at
+              and (check_out_time is null or check_out_time >= :at)
+            """, nativeQuery = true)
+    long countDashboardParkingAt(@Param("at") Instant at);
+
+    @Query(value = """
+            select session.vehicle_type_id as "vehicleTypeId",
+                   type.name as "vehicleTypeName",
+                   count(*) as "total"
+            from parking.parking_sessions session
+            left join catalog.vehicle_types type on type.vehicle_type_id = session.vehicle_type_id
+            where session.check_in_time >= :from and session.check_in_time < :to
+            group by session.vehicle_type_id, type.name
+            order by "total" desc
+            """, nativeQuery = true)
+    List<VehicleTypeCountProjection> findDashboardVehicleTypeCounts(
+            @Param("from") Instant from,
+            @Param("to") Instant to);
+
+    @Query("""
+            select parkingSession
+            from ParkingSessionEntity parkingSession
+            left join parkingSession.customer customer
+            left join customer.userProfile profile
+            left join profile.account account
+            where parkingSession.parkingSessionId = :parkingSessionId
+              and (parkingSession.customerId is null or account.status not in (
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+                  com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
+            """)
+    Optional<ParkingSessionEntity> findBusinessVisibleById(@Param("parkingSessionId") UUID parkingSessionId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select parkingSession from ParkingSessionEntity parkingSession where parkingSession.parkingSessionId = :parkingSessionId")

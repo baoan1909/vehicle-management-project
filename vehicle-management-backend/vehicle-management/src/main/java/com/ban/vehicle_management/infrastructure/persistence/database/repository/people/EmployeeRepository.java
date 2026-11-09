@@ -7,9 +7,28 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 
 public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>, JpaSpecificationExecutor<EmployeeEntity> {
+
+    @Query(value = """
+        select employee.employee_id from iam.accounts account
+        join people.employees employee on employee.user_profile_id=account.user_profile_id
+        where account.account_id=:accountId and employee.status<>'DELETED'
+        limit 1
+        """, nativeQuery = true)
+    Optional<UUID> findDeletionEmployeeIdByAccountId(@Param("accountId") UUID accountId);
+
+    @Modifying
+    @Query(value = """
+        update people.employees set employee_code=:marker, job_title=null, hired_at=null,
+               status='DELETED', updated_at=:now where user_profile_id=:profileId
+        """, nativeQuery = true)
+    int tombstoneByUserProfileId(
+            @Param("profileId") UUID profileId,
+            @Param("marker") String marker,
+            @Param("now") java.time.Instant now);
 
     @Query(value = """
         SELECT employee.employee_id

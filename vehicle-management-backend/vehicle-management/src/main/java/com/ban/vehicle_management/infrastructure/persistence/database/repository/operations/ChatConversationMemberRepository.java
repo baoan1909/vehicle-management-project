@@ -14,6 +14,13 @@ import org.springframework.data.repository.query.Param;
 
 public interface ChatConversationMemberRepository extends JpaRepository<ChatConversationMemberEntity, UUID> {
 
+    @Modifying
+    @Query(value = """
+        update operations.chat_conversation_members set status='REMOVED', left_at=:now, updated_at=:now
+        where account_id=:accountId and status='ACTIVE'
+        """, nativeQuery = true)
+    int removeAllForDeletedAccount(@Param("accountId") UUID accountId, @Param("now") java.time.Instant now);
+
     Optional<ChatConversationMemberEntity> findByConversationIdAndAccountId(UUID conversationId, UUID accountId);
 
     boolean existsByConversationIdAndAccountIdAndStatus(

@@ -11,6 +11,12 @@ import java.util.UUID;
 
 public interface ParkingSpaceAllocationRepository extends JpaRepository<ParkingSpaceAllocationEntity, UUID> {
 
+    @Query(value = """
+        select count(*) from parking.parking_space_allocations
+        where allocation_status in ('HELD','ACTIVE')
+        """, nativeQuery = true)
+    long countActiveForMetrics();
+
     List<ParkingSpaceAllocationEntity> findByParkingSpaceId(UUID parkingSpaceId);
 
     List<ParkingSpaceAllocationEntity> findBySubscriptionId(UUID subscriptionId);

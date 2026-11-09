@@ -15,8 +15,7 @@ import java.util.stream.Collectors;
 /** Resolves effective permissions without granting or denying from a role name. */
 public final class EffectiveAccountAccessPolicy {
 
-    private static final Set<String> ACCOUNT_DELETION_LIFECYCLE_PERMISSIONS = Set.of(
-            "ACCOUNT_DELETION_REQUEST_SELF",
+    private static final Set<String> PENDING_DELETION_PERMISSIONS = Set.of(
             "ACCOUNT_DELETION_READ_SELF",
             "ACCOUNT_DELETION_CANCEL_SELF"
     );
@@ -58,7 +57,7 @@ public final class EffectiveAccountAccessPolicy {
                 .normalizeAssignedPermissions(assignedPermissionCodes);
         if (AccountStatus.PENDING_DELETION.equals(state.accountStatus())) {
             return normalizedAssignedPermissions.stream()
-                    .filter(ACCOUNT_DELETION_LIFECYCLE_PERMISSIONS::contains)
+                    .filter(PENDING_DELETION_PERMISSIONS::contains)
                     .sorted()
                     .collect(Collectors.collectingAndThen(
                             Collectors.toCollection(LinkedHashSet::new),
@@ -66,15 +65,14 @@ public final class EffectiveAccountAccessPolicy {
         }
         if (AccountStatus.PENDING.equals(state.accountStatus())
                 && !isCustomerPreApprovalSupportState(state)) {
-            return lifecycleDeletionPermissions(normalizedAssignedPermissions);
+            return Set.of();
         }
         if (mustRestrictToLifecycleSafePermissions(state, normalizedAssignedPermissions)) {
             if (!isCustomerPreApprovalSupportState(state)) {
-                return lifecycleDeletionPermissions(normalizedAssignedPermissions);
+                return Set.of();
             }
             return normalizedAssignedPermissions.stream()
-                    .filter(permissionCode -> ACCOUNT_DELETION_LIFECYCLE_PERMISSIONS.contains(permissionCode)
-                            || PermissionAccessPrerequisitePolicy.PermissionPrerequisite.CUSTOMER_SUPPORT
+                    .filter(permissionCode -> PermissionAccessPrerequisitePolicy.PermissionPrerequisite.CUSTOMER_SUPPORT
                             .equals(prerequisitePolicy.classificationFor(permissionCode)))
                     .filter(permissionCode -> prerequisitePolicy.isSatisfied(permissionCode, state))
                     .sorted()
@@ -90,15 +88,6 @@ public final class EffectiveAccountAccessPolicy {
                 .sorted()
                 .collect(Collectors.toCollection(LinkedHashSet::new));
         return Collections.unmodifiableSet(effectivePermissions);
-    }
-
-    private Set<String> lifecycleDeletionPermissions(Set<String> assignedPermissions) {
-        return assignedPermissions.stream()
-                .filter(ACCOUNT_DELETION_LIFECYCLE_PERMISSIONS::contains)
-                .sorted()
-                .collect(Collectors.collectingAndThen(
-                        Collectors.toCollection(LinkedHashSet::new),
-                        Collections::unmodifiableSet));
     }
 
     private boolean isCustomerPreApprovalSupportState(AccessState state) {

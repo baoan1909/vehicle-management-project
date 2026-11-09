@@ -5,6 +5,7 @@ import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
@@ -12,6 +13,48 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface KnowledgeDocumentRepository extends JpaRepository<KnowledgeDocumentEntity, UUID>, JpaSpecificationExecutor<KnowledgeDocumentEntity> {
+
+    default Optional<UUID> insertIfAbsent(KnowledgeDocumentEntity entity) {
+        List<UUID> ids = insertIfAbsentRaw(
+                entity.getDocumentId(), entity.getSourceId(), entity.getDocumentKey(),
+                entity.getSupersedesDocumentId(), entity.getTenantId(), entity.getTitle(),
+                entity.getObjectKey(), entity.getOriginalFilename(), entity.getFileExtension(),
+                entity.getMimeType(), entity.getFileSizeBytes(), entity.getChecksumSha256(),
+                entity.getDocumentVersion(), entity.getAccessScope().name(), entity.getStatus().name(),
+                entity.getFailureCode(), entity.getEffectiveFrom(), entity.getCreatedAt(), entity.getUpdatedAt());
+        return ids.stream().findFirst();
+    }
+
+    @Query(value = """
+        insert into ai.knowledge_documents (
+            document_id, source_id, document_key, supersedes_document_id, tenant_id,
+            title, object_key, original_filename, file_extension, mime_type,
+            file_size_bytes, checksum_sha256, document_version, access_scope, status,
+            failure_code, effective_from, created_at, updated_at
+        ) values (
+            :documentId, :sourceId, :documentKey, :supersedesDocumentId, :tenantId,
+            :title, :objectKey, :originalFilename, :fileExtension, :mimeType,
+            :fileSizeBytes, :checksumSha256, :documentVersion, :accessScope, :status,
+            :failureCode, :effectiveFrom, :createdAt, :updatedAt
+        ) on conflict (source_id, checksum_sha256, document_version)
+          where checksum_sha256 is not null
+        do nothing returning document_id
+        """, nativeQuery = true)
+    List<UUID> insertIfAbsentRaw(
+            @Param("documentId") UUID documentId, @Param("sourceId") UUID sourceId,
+            @Param("documentKey") UUID documentKey, @Param("supersedesDocumentId") UUID supersedesDocumentId,
+            @Param("tenantId") UUID tenantId, @Param("title") String title,
+            @Param("objectKey") String objectKey, @Param("originalFilename") String originalFilename,
+            @Param("fileExtension") String fileExtension, @Param("mimeType") String mimeType,
+            @Param("fileSizeBytes") Long fileSizeBytes, @Param("checksumSha256") String checksumSha256,
+            @Param("documentVersion") int documentVersion, @Param("accessScope") String accessScope,
+            @Param("status") String status, @Param("failureCode") String failureCode,
+            @Param("effectiveFrom") Instant effectiveFrom, @Param("createdAt") Instant createdAt,
+            @Param("updatedAt") Instant updatedAt);
+
+    @Query(value = "select pg_advisory_xact_lock(hashtextextended(cast(:documentKey as text), 0))",
+            nativeQuery = true)
+    Long lockDocumentKey(@Param("documentKey") UUID documentKey);
 
     List<KnowledgeDocumentEntity> findBySourceIdOrderByCreatedAtDesc(UUID sourceId);
 

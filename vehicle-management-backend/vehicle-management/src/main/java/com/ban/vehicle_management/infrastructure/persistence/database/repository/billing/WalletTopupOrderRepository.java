@@ -15,6 +15,17 @@ import org.springframework.data.repository.query.Param;
 
 public interface WalletTopupOrderRepository extends JpaRepository<WalletTopupOrderEntity, UUID> {
 
+    @Query(value = """
+        select topup.topup_order_id from billing.wallet_topup_orders topup
+        join billing.wallets wallet on wallet.wallet_id=topup.wallet_id
+        where wallet.customer_id=:customerId and topup.status='PENDING' limit 1
+        """, nativeQuery = true)
+    Optional<UUID> findDeletionBlockingTopupId(@Param("customerId") UUID customerId);
+
+    @Query(value = "SELECT 1::bigint FROM pg_advisory_xact_lock(hashtextextended(:idempotencyKey, 0))",
+            nativeQuery = true)
+    Long lockIdempotencyKey(@Param("idempotencyKey") String idempotencyKey);
+
     Optional<WalletTopupOrderEntity> findByTransactionRef(String transactionRef);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

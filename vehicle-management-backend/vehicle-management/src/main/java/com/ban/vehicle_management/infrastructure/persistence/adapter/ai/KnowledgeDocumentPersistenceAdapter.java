@@ -5,7 +5,6 @@ import com.ban.vehicle_management.application.ai.query.KnowledgeDocumentQuery;
 import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeDocument;
 import com.ban.vehicle_management.infrastructure.mapper.ai.KnowledgeDocumentPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.ai.KnowledgeDocumentEntity;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeDocumentCommandRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeDocumentRepository;
 import com.ban.vehicle_management.infrastructure.persistence.specification.ai.KnowledgeDocumentSpecifications;
 import java.util.List;
@@ -20,15 +19,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class KnowledgeDocumentPersistenceAdapter implements KnowledgeDocumentPortOut {
 
     private final KnowledgeDocumentRepository repository;
-    private final KnowledgeDocumentCommandRepository commandRepository;
     private final KnowledgeDocumentPersistenceMapper mapper;
 
     public KnowledgeDocumentPersistenceAdapter(
             KnowledgeDocumentRepository repository,
-            KnowledgeDocumentCommandRepository commandRepository,
             KnowledgeDocumentPersistenceMapper mapper) {
         this.repository = repository;
-        this.commandRepository = commandRepository;
         this.mapper = mapper;
     }
 
@@ -42,7 +38,7 @@ public class KnowledgeDocumentPersistenceAdapter implements KnowledgeDocumentPor
     @Transactional
     public KnowledgeDocument insertIdempotent(KnowledgeDocument document) {
         KnowledgeDocumentEntity entity = mapper.toEntity(document);
-        Optional<UUID> insertedId = commandRepository.insertIfAbsent(entity);
+        Optional<UUID> insertedId = repository.insertIfAbsent(entity);
         if (insertedId.isEmpty()) {
             // Conflict on (source_id, checksum_sha256, document_version)
             // Find the existing document by logical identity: source_id + document_version + checksum
@@ -105,7 +101,7 @@ public class KnowledgeDocumentPersistenceAdapter implements KnowledgeDocumentPor
     @Override
     @Transactional
     public Optional<LockedDocumentVersion> lockLatestVersionByDocumentKey(UUID documentKey) {
-        commandRepository.lockDocumentKey(documentKey);
+        repository.lockDocumentKey(documentKey);
         return repository.findFirstByDocumentKeyOrderByDocumentVersionDesc(documentKey)
                 .map(entity -> new LockedDocumentVersion(
                         entity.getDocumentId(),
