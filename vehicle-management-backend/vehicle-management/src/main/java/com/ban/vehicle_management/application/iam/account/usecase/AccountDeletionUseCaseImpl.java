@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.iam.account.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.in.AccountDeletionPortIn;
+import com.ban.vehicle_management.application.iam.account.model.result.AccountDeletionView;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountDeletionPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
@@ -112,6 +113,25 @@ public class AccountDeletionUseCaseImpl implements AccountDeletionPortIn {
         boolean freshLogin = authenticatedAt != null && authenticatedAt.isAfter(request.requestedAt());
         if (!freshLogin || !request.cancellableAt(now)) return Optional.empty();
         return Optional.of(persistence.cancel(request.requestId(), now, "FRESH_LOGIN_RECOVERY"));
+    }
+
+    @Override
+    public AccountDeletionView requestCurrentAccountDeletionView() {
+        return toView(requestCurrentAccountDeletion());
+    }
+
+    @Override
+    public Optional<AccountDeletionView> getCurrentRequestView() {
+        return getCurrentRequest().map(this::toView);
+    }
+
+    @Override
+    public AccountDeletionView cancelCurrentRequestView(String reason) {
+        return toView(cancelCurrentRequest(reason));
+    }
+
+    private AccountDeletionView toView(AccountDeletionRequest request) {
+        return new AccountDeletionView(request, request.cancellableAt(Instant.now(clock)));
     }
 
     private String normalizeReason(String reason, String fallback) {

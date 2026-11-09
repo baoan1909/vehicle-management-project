@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.parking.parkinglot.model.result.Pu
 import com.ban.vehicle_management.domain.parking.parkinglot.model.ParkingLot;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.CreateParkingLotRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.UpdateParkingLotRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.request.GeolocationTelemetryRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotDirectoryResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglot.response.ParkingLotPublicResponse;
@@ -16,6 +17,10 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface ParkingLotApiMapper {
+
+    default String toGeolocationOutcome(GeolocationTelemetryRequest request) {
+        return request == null ? null : request.outcome();
+    }
 
     @Mapping(target = "parkingLotId", ignore = true)
     @Mapping(target = "code", ignore = true)

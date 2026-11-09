@@ -38,6 +38,16 @@ public interface InvoicePortIn {
             Integer limit
     );
 
+    List<Invoice> getOwnInvoices(
+            UUID subscriptionId,
+            List<UUID> subscriptionIds,
+            InvoiceStatus status,
+            Instant fromDate,
+            Instant toDate,
+            String keyword,
+            Integer limit
+    );
+
     InvoiceManagementPageResult getManagementInvoices(
             InvoiceStatus status,
             PaymentMethod paymentMethod,

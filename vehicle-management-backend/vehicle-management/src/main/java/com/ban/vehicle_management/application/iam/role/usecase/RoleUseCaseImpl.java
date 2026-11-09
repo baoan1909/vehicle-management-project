@@ -91,6 +91,13 @@ public class RoleUseCaseImpl implements RolePortIn {
     }
 
     @Override
+    public List<Role> getActiveRolesOrderedByCode() {
+        return getRoles(true, null, null).stream()
+                .sorted(java.util.Comparator.comparing(Role::getCode))
+                .toList();
+    }
+
+    @Override
     @Transactional
     public void deleteRole(UUID roleId) {
         Role existingRole = getRoleById(roleId);

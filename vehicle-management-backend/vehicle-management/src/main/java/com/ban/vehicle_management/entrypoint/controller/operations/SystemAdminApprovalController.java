@@ -78,9 +78,7 @@ public class SystemAdminApprovalController {
     ) {
         SystemAdminApprovalResult result = systemAdminApprovalPortIn.approveSystemAdminApproval(
                 approvalRequestId,
-                systemAdminApprovalApiMapper.toReviewCommand(
-                        request == null ? new ReviewInternalEmployeeApprovalRequest(null) : request
-                )
+                systemAdminApprovalApiMapper.toReviewCommand(request)
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 "System admin approval request approved successfully",
@@ -96,9 +94,7 @@ public class SystemAdminApprovalController {
     ) {
         SystemAdminApprovalResult result = systemAdminApprovalPortIn.rejectSystemAdminApproval(
                 approvalRequestId,
-                systemAdminApprovalApiMapper.toReviewCommand(
-                        request == null ? new ReviewInternalEmployeeApprovalRequest(null) : request
-                )
+                systemAdminApprovalApiMapper.toReviewCommand(request)
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 "System admin approval request rejected successfully",

@@ -2,10 +2,14 @@ package com.ban.vehicle_management.application.billing.payment.mapper;
 
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayPaymentResult;
+import com.ban.vehicle_management.application.billing.payment.model.result.VnpayIpnResult;
+import com.ban.vehicle_management.application.billing.payment.model.command.CreateVnpayPaymentCommand;
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayReturnResult;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.request.CreatePaymentRequest;
+import com.ban.vehicle_management.entrypoint.dto.billing.payment.request.CreateVnpayPaymentRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.PaymentResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.VnpayPaymentResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.VnpayIpnResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.VnpayReturnResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
@@ -39,5 +43,19 @@ public interface PaymentApiMapper {
     VnpayPaymentResponse toResponse(VnpayPaymentResult result);
 
     VnpayReturnResponse toResponse(VnpayReturnResult result);
+
+    VnpayIpnResponse toResponse(VnpayIpnResult result);
+
+    @Mapping(target = "clientIp", source = "clientIp")
+    @Mapping(target = "locale", defaultValue = "vn")
+    CreateVnpayPaymentCommand toCommand(CreateVnpayPaymentRequest request, String clientIp);
+
+    default CreateVnpayPaymentCommand toCommandWithDefaults(
+            CreateVnpayPaymentRequest request, String clientIp) {
+        CreateVnpayPaymentRequest resolved = request == null
+                ? new CreateVnpayPaymentRequest(null, "vn")
+                : request;
+        return toCommand(resolved, clientIp);
+    }
 
 }

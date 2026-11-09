@@ -14,6 +14,8 @@ public interface ParkingSpaceAllocationPortIn {
 
     List<ParkingSpaceAllocation> getAllocationsByParkingSpaceId(UUID parkingSpaceId);
 
+    List<ParkingSpaceAllocation> findAllocationsForSpace(UUID parkingSpaceId, LocalDate activeOn);
+
     List<ParkingSpaceAllocation> getAllocationsBySubscriptionId(UUID subscriptionId);
 
     ParkingSpaceAllocation activateAllocation(UUID allocationId);
@@ -27,6 +29,8 @@ public interface ParkingSpaceAllocationPortIn {
     List<ParkingSpaceAllocation> findActiveAllocationsForSpaceOnDate(UUID parkingSpaceId, LocalDate date);
 
     List<ParkingSpaceAllocation> findActiveAllocationsBySubscription(UUID subscriptionId);
+
+    List<ParkingSpaceAllocation> findAllocationsForSubscription(UUID subscriptionId, boolean activeOnly);
 
     List<ParkingSpaceAllocation> findEffectiveAllocationsByZone(UUID zoneId, LocalDate date);
 

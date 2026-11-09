@@ -79,7 +79,7 @@ public class PartnerRegistrationController {
     ) {
         PartnerRegistrationResult result = partnerRegistrationPortIn.approveRegistration(
                 approvalRequestId,
-                new ReviewPartnerRegistrationCommand(request == null ? null : request.note())
+                partnerRegistrationApiMapper.toCommand(request)
         );
         return ResponseEntity.ok(ApiResponse.ok("Partner registration approved successfully", result));
     }
@@ -92,7 +92,7 @@ public class PartnerRegistrationController {
     ) {
         PartnerRegistrationResult result = partnerRegistrationPortIn.rejectRegistration(
                 approvalRequestId,
-                new ReviewPartnerRegistrationCommand(request == null ? null : request.note())
+                partnerRegistrationApiMapper.toCommand(request)
         );
         return ResponseEntity.ok(ApiResponse.ok("Partner registration rejected successfully", result));
     }

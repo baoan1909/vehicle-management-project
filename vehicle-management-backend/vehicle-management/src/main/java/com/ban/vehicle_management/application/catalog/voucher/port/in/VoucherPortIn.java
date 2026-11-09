@@ -14,6 +14,7 @@ public interface VoucherPortIn {
     Voucher getVoucherById(UUID voucherId);
     List<Voucher> getVouchers();
     List<Voucher> getCustomerVisibleVouchers(UUID parkingLotId, Instant now);
+    List<Voucher> getCustomerVisibleVouchers(UUID parkingLotId);
     Voucher activateVoucher(UUID voucherId);
     Voucher pauseVoucher(UUID voucherId);
     VoucherQuote quoteSubscriptionVoucher(String voucherCode, UUID customerId, UUID ticketTypeId, UUID parkingLotId, BigDecimal subscriptionAmount, Instant now);

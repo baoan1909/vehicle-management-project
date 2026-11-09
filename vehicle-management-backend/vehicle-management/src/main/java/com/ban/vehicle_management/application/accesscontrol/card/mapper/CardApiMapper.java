@@ -1,11 +1,10 @@
 package com.ban.vehicle_management.application.accesscontrol.card.mapper;
 
+import com.ban.vehicle_management.application.accesscontrol.card.model.result.CardAdminView;
 import com.ban.vehicle_management.domain.accesscontrol.card.model.Card;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.CreateCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.request.UpdateCardRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.card.response.CardAdminResponse;
-import com.ban.vehicle_management.shared.utils.DateTimeUtils;
-import java.time.Instant;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -82,5 +81,55 @@ public interface CardApiMapper {
     CardAdminResponse toAdminResponse(Card card);
 
     List<CardAdminResponse> toAdminResponses(List<Card> cards);
+
+    @Mapping(target = "cardId", source = "card.cardId")
+    @Mapping(target = "cardNumber", source = "card.cardNumber")
+    @Mapping(target = "uid", source = "card.uid")
+    @Mapping(target = "cardTypeId", source = "card.cardTypeId")
+    @Mapping(target = "parkingLotId", source = "card.parkingLotId")
+    @Mapping(target = "status", source = "card.status")
+    @Mapping(target = "issuedAt", source = "card.issuedAt")
+    @Mapping(target = "statusBeforeBlocked", source = "card.statusBeforeBlocked")
+    @Mapping(target = "blockedAt", source = "card.blockedAt")
+    @Mapping(target = "blockedBy", source = "card.blockedBy")
+    @Mapping(target = "blockedReason", source = "card.blockedReason")
+    @Mapping(target = "retiredAt", source = "card.retiredAt")
+    @Mapping(target = "retiredBy", source = "card.retiredBy")
+    @Mapping(target = "retiredReason", source = "card.retiredReason")
+    @Mapping(target = "recoveredAt", source = "card.recoveredAt")
+    @Mapping(target = "recoveredBy", source = "card.recoveredBy")
+    @Mapping(target = "recoveryNote", source = "card.recoveryNote")
+    @Mapping(target = "createdAt", source = "card.createdAt")
+    @Mapping(target = "createdBy", source = "card.createdBy")
+    @Mapping(target = "updatedAt", source = "card.updatedAt")
+    @Mapping(target = "updatedBy", source = "card.updatedBy")
+    @Mapping(target = "registeredVehicleTypeId", source = "customerVehicle.vehicleTypeId")
+    @Mapping(target = "registeredVehicleTypeCode", source = "registeredVehicleType.code")
+    @Mapping(target = "registeredVehicleTypeName", source = "registeredVehicleType.name")
+    @Mapping(target = "subscriptionId", source = "subscription.subscriptionId")
+    @Mapping(target = "customerId", source = "subscription.customerId")
+    @Mapping(target = "customerVehicleId", source = "subscription.customerVehicleId")
+    @Mapping(target = "ticketTypeId", source = "subscription.ticketTypeId")
+    @Mapping(target = "ticketTypeCode", source = "ticketType.code")
+    @Mapping(target = "ticketTypeName", source = "ticketType.name")
+    @Mapping(target = "requestedEffectiveFrom", source = "subscription.requestedEffectiveFrom")
+    @Mapping(target = "effectiveFrom", source = "subscription.effectiveFrom")
+    @Mapping(target = "effectiveTo", source = "subscription.effectiveTo")
+    @Mapping(target = "subscriptionPrice", source = "subscription.price")
+    @Mapping(target = "subscriptionStatus", source = "subscription.status")
+    @Mapping(target = "cardReceiptDate", source = "subscription.cardReceiptDate")
+    @Mapping(target = "licensePlate", source = "customerVehicle.licensePlate")
+    @Mapping(target = "vehicleBrand", source = "customerVehicle.brand")
+    @Mapping(target = "vehicleColor", source = "customerVehicle.color")
+    @Mapping(target = "customerCode", source = "customer.customerCode")
+    @Mapping(target = "customerType", source = "customer.customerType")
+    @Mapping(target = "customerStatus", source = "customer.status")
+    @Mapping(target = "customerApprovalStatus", source = "customer.approvalStatus")
+    @Mapping(target = "customerEmail", source = "customer.accountEmail")
+    @Mapping(target = "customerFullName", source = "customer.userProfile.fullName")
+    @Mapping(target = "customerPhoneNumber", source = "customer.userProfile.phoneNumber")
+    CardAdminResponse toAdminResponse(CardAdminView view);
+
+    List<CardAdminResponse> toAdminViewResponses(List<CardAdminView> views);
 
 }

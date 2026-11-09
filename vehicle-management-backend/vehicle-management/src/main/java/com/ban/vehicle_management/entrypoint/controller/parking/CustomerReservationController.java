@@ -35,8 +35,7 @@ public class CustomerReservationController {
     public ResponseEntity<ApiResponse<List<ReservationOptionResponse>>> options(
             @RequestParam UUID parkingLotId, @RequestParam UUID vehicleTypeId) {
         return ResponseEntity.ok(ApiResponse.ok("Reservation options fetched",
-                reservations.findOptions(parkingLotId, vehicleTypeId).stream()
-                        .map(mapper::toResponse).toList()));
+                mapper.toOptionResponses(reservations.findOptions(parkingLotId, vehicleTypeId))));
     }
 
     @PostMapping
@@ -54,7 +53,7 @@ public class CustomerReservationController {
     @PreAuthorize("@permissionAuthorizer.hasPermission('PAYMENT_CREATE_OWN')")
     public ResponseEntity<ApiResponse<List<CustomerReservationResponse>>> mine() {
         return ResponseEntity.ok(ApiResponse.ok("Reservations fetched",
-                reservations.findMine().stream().map(mapper::toResponse).toList()));
+                mapper.toResponses(reservations.findMine())));
     }
 
     @GetMapping("/{reservationId}")

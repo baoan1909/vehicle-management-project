@@ -51,7 +51,7 @@ public class UserGuideAdminController {
             @Valid @RequestBody CreateUserGuideRequest request
     ) {
         UserGuide guide = apiMapper.toDomain(request);
-        UserGuideVersion initialVersion = toDomainVersion(request);
+        UserGuideVersion initialVersion = apiMapper.toDomain(request.initialVersion());
         UserGuide created = adminPortIn.createGuide(guide, initialVersion, request.featureCode());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "User guide created successfully",
@@ -66,10 +66,9 @@ public class UserGuideAdminController {
     ) {
         Page<UserGuide> page = adminPortIn.listGuides(
                 filter.featureId(), filter.status(), filter.displayType(), filter.keyword(), pageable);
-        Page<UserGuideAdminResponse> mapped = page.map(apiMapper::toAdminResponse);
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched user guides successfully",
-                apiMapper.toPageResponse(mapped)));
+                apiMapper.toAdminPageResponse(page)));
     }
 
     @GetMapping("/{guideId}")
@@ -98,7 +97,7 @@ public class UserGuideAdminController {
             @PathVariable UUID guideId,
             @Valid @RequestBody CreateUserGuideVersionRequest request
     ) {
-        UserGuideVersion draft = toDomainVersion(request);
+        UserGuideVersion draft = apiMapper.toDomain(request);
         UserGuideVersion created =
                 adminPortIn.createDraftVersion(guideId, draft, request.cloneFromVersionNumber());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
@@ -134,7 +133,7 @@ public class UserGuideAdminController {
             @PathVariable Integer versionNumber,
             @Valid @RequestBody UpdateUserGuideVersionRequest request
     ) {
-        UserGuideVersion version = toDomainVersion(request);
+        UserGuideVersion version = apiMapper.toDomain(request);
         UserGuideVersion updated =
                 adminPortIn.updateDraftVersion(guideId, versionNumber, version, request.lockVersion());
         return ResponseEntity.ok(ApiResponse.ok(
@@ -163,39 +162,4 @@ public class UserGuideAdminController {
                 apiMapper.toAdminResponse(archived)));
     }
 
-    private UserGuideVersion toDomainVersion(CreateUserGuideRequest request) {
-        if (request.initialVersion() == null) {
-            return null;
-        }
-        UserGuideVersion version = new UserGuideVersion();
-        version.setTitle(request.initialVersion().title());
-        version.setSummary(request.initialVersion().summary());
-        version.setDeepLink(request.initialVersion().deepLink());
-        version.setAudienceMode(request.initialVersion().audienceMode());
-        version.setSteps(apiMapper.toDomainSteps(request.initialVersion().steps()));
-        version.setAudiences(apiMapper.toDomainAudiences(request.initialVersion().audiences()));
-        return version;
-    }
-
-    private UserGuideVersion toDomainVersion(CreateUserGuideVersionRequest request) {
-        UserGuideVersion version = new UserGuideVersion();
-        version.setTitle(request.title());
-        version.setSummary(request.summary());
-        version.setDeepLink(request.deepLink());
-        version.setAudienceMode(request.audienceMode());
-        version.setSteps(apiMapper.toDomainSteps(request.steps()));
-        version.setAudiences(apiMapper.toDomainAudiences(request.audiences()));
-        return version;
-    }
-
-    private UserGuideVersion toDomainVersion(UpdateUserGuideVersionRequest request) {
-        UserGuideVersion version = new UserGuideVersion();
-        version.setTitle(request.title());
-        version.setSummary(request.summary());
-        version.setDeepLink(request.deepLink());
-        version.setAudienceMode(request.audienceMode());
-        version.setSteps(request.steps() == null ? null : apiMapper.toDomainSteps(request.steps()));
-        version.setAudiences(request.audiences() == null ? null : apiMapper.toDomainAudiences(request.audiences()));
-        return version;
-    }
 }

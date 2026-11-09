@@ -36,5 +36,5 @@ public interface ParkingSpacePortIn {
 
     ParkingSpace archiveParkingSpace(UUID parkingSpaceId);
 
-    Optional<ParkingSession> findOpenSessionBySpace(UUID parkingSpaceId);
+    ParkingSession findOpenSessionBySpace(UUID parkingSpaceId);
 }

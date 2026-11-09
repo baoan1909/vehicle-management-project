@@ -22,6 +22,7 @@ import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.Pl
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeeVersionAdminResponse;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import com.ban.vehicle_management.entrypoint.converter.PaginationRequestConverter;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/billing/admin/platform-fees")
@@ -44,12 +46,15 @@ public class PlatformFeeAdminController {
 
     private final PlatformFeeManagementPortIn managementPortIn;
     private final PlatformFeeApiMapper apiMapper;
+    private final PaginationRequestConverter paginationRequestConverter;
 
     public PlatformFeeAdminController(
             PlatformFeeManagementPortIn managementPortIn,
-            PlatformFeeApiMapper apiMapper) {
+            PlatformFeeApiMapper apiMapper,
+            PaginationRequestConverter paginationRequestConverter) {
         this.managementPortIn = managementPortIn;
         this.apiMapper = apiMapper;
+        this.paginationRequestConverter = paginationRequestConverter;
     }
 
     @PostMapping
@@ -66,10 +71,10 @@ public class PlatformFeeAdminController {
     @PreAuthorize("@permissionAuthorizer.hasPermission('PLATFORM_FEE_READ_ALL')")
     public ResponseEntity<ApiResponse<PlatformFeePageResponse>> searchFeeTypes(
             @ModelAttribute PlatformFeeFilterRequest request) {
-        int page = request.page() == null ? 0 : request.page();
-        int size = request.size() == null ? 10 : request.size();
+        var pagination = paginationRequestConverter.resolve(request.page(), request.size());
         PlatformFeePageResult result = managementPortIn.searchFeeTypes(
-                request.keyword(), request.status(), request.transactionType(), request.feeBasis(), page, size);
+                request.keyword(), request.status(), request.transactionType(), request.feeBasis(),
+                pagination.page(), pagination.size());
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched platform fee types successfully",
                 apiMapper.toPageResponse(result)));
@@ -81,31 +86,25 @@ public class PlatformFeeAdminController {
         var configuration = managementPortIn.getConfiguration();
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched platform fee configuration successfully",
-                toConfigurationResponse(configuration)));
+                apiMapper.toConfigurationResponse(configuration)));
     }
 
     @PutMapping("/configuration")
     @PreAuthorize("@permissionAuthorizer.hasPermission('PLATFORM_FEE_CONFIGURE_ALL')")
     public ResponseEntity<ApiResponse<PlatformFeeConfigurationResponse>> updateConfiguration(
-            @RequestBody UpdatePlatformFeeConfigurationRequest request
+            @Valid @RequestBody UpdatePlatformFeeConfigurationRequest request
     ) {
-        if (request.maxPartnerTotalRate() == null || request.version() == null) {
-            throw new BadRequestException("maxPartnerTotalRate and version must not be null");
-        }
         var configuration = managementPortIn.updateConfiguration(
                 request.maxPartnerTotalRate(), request.version());
         return ResponseEntity.ok(ApiResponse.ok(
                 "Platform fee configuration updated successfully",
-                toConfigurationResponse(configuration)));
+                apiMapper.toConfigurationResponse(configuration)));
     }
 
     @PostMapping("/preview")
     @PreAuthorize("@permissionAuthorizer.hasPermission('PLATFORM_FEE_PREVIEW_ALL')")
     public ResponseEntity<ApiResponse<PlatformFeePreviewResponse>> previewFees(
-            @RequestBody PreviewPlatformFeesRequest request) {
-        if (request.grossAmount() == null || request.customerPaidAmount() == null) {
-            throw new BadRequestException("grossAmount and customerPaidAmount must not be null");
-        }
+            @Valid @RequestBody PreviewPlatformFeesRequest request) {
         PlatformFeePreviewResult result = managementPortIn.previewFees(
                 request.transactionType(), request.effectiveAt(),
                 request.grossAmount(), request.customerPaidAmount());
@@ -232,15 +231,5 @@ public class PlatformFeeAdminController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Platform fee rule version archived successfully",
                 apiMapper.toVersionResponse(archived)));
-    }
-
-    private PlatformFeeConfigurationResponse toConfigurationResponse(
-            com.ban.vehicle_management.application.billing.platformfee.model.result.PlatformFeeConfigurationResult configuration
-    ) {
-        return new PlatformFeeConfigurationResponse(
-                configuration.maxPartnerTotalRate(),
-                configuration.version(),
-                configuration.updatedAt(),
-                configuration.updatedBy());
     }
 }

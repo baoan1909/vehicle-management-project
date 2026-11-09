@@ -36,11 +36,9 @@ public class ParkingLotVehicleServiceController {
             @PathVariable UUID vehicleTypeId,
             @Valid @RequestBody UpdateParkingLotVehicleServiceRequest request
     ) {
-        List<ParkingLotCatalogAvailabilityResponse> result = availabilityPortIn
-                .setVehicleTypeEnabled(request.parkingLotIds(), vehicleTypeId, request.enabled())
-                .stream()
-                .map(mapper::toResponse)
-                .toList();
+        List<ParkingLotCatalogAvailabilityResponse> result = mapper.toResponses(
+                availabilityPortIn.setVehicleTypeEnabled(
+                        request.parkingLotIds(), vehicleTypeId, request.enabled()));
         return ResponseEntity.ok(ApiResponse.ok("Updated parking lot vehicle service availability", result));
     }
 }

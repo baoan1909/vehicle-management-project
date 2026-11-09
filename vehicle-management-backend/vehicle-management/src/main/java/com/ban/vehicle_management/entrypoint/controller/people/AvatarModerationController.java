@@ -2,6 +2,7 @@ package com.ban.vehicle_management.entrypoint.controller.people;
 
 import com.ban.vehicle_management.application.people.userprofile.model.AvatarModerationResult;
 import com.ban.vehicle_management.application.people.userprofile.port.in.AvatarModerationPortIn;
+import com.ban.vehicle_management.application.people.userprofile.mapper.AvatarModerationApiMapper;
 import com.ban.vehicle_management.entrypoint.dto.people.userprofile.request.ReviewAvatarRequest;
 import com.ban.vehicle_management.entrypoint.dto.people.userprofile.response.AvatarModerationResponse;
 import com.ban.vehicle_management.shared.enumeration.operations.ApprovalRequestStatus;
@@ -16,15 +17,19 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/operations/avatar-approvals")
 public class AvatarModerationController {
     private final AvatarModerationPortIn portIn;
+    private final AvatarModerationApiMapper mapper;
 
-    public AvatarModerationController(AvatarModerationPortIn portIn) { this.portIn = portIn; }
+    public AvatarModerationController(AvatarModerationPortIn portIn, AvatarModerationApiMapper mapper) {
+        this.portIn = portIn;
+        this.mapper = mapper;
+    }
 
     @GetMapping
     @PreAuthorize("@permissionAuthorizer.hasPermission('USER_PROFILE_READ_ALL')")
     public ResponseEntity<ApiResponse<List<AvatarModerationResponse>>> list(
             @RequestParam(required = false) ApprovalRequestStatus status) {
         return ResponseEntity.ok(ApiResponse.ok("Fetched avatar approvals successfully",
-                portIn.getAvatarApprovals(status).stream().map(this::toResponse).toList()));
+                mapper.toResponses(portIn.getAvatarApprovals(status))));
     }
 
     @PostMapping("/{approvalRequestId}/approve")
@@ -32,7 +37,7 @@ public class AvatarModerationController {
     public ResponseEntity<ApiResponse<AvatarModerationResponse>> approve(
             @PathVariable UUID approvalRequestId, @RequestBody(required = false) ReviewAvatarRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Avatar approved successfully",
-                toResponse(portIn.approve(approvalRequestId, request == null ? null : request.note()))));
+                mapper.toResponse(portIn.approve(approvalRequestId, mapper.toNote(request)))));
     }
 
     @PostMapping("/{approvalRequestId}/reject")
@@ -40,12 +45,6 @@ public class AvatarModerationController {
     public ResponseEntity<ApiResponse<AvatarModerationResponse>> reject(
             @PathVariable UUID approvalRequestId, @RequestBody ReviewAvatarRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Avatar rejected successfully",
-                toResponse(portIn.reject(approvalRequestId, request == null ? null : request.note()))));
-    }
-
-    private AvatarModerationResponse toResponse(AvatarModerationResult result) {
-        return new AvatarModerationResponse(result.avatarId(), result.approvalRequestId(), result.userProfileId(),
-                result.ownerAccountId(), result.approvalStatus(), result.reviewNote(), result.displayedAvatarUrl(),
-                result.candidatePreviewUrl(), result.submittedAt());
+                mapper.toResponse(portIn.reject(approvalRequestId, mapper.toNote(request)))));
     }
 }

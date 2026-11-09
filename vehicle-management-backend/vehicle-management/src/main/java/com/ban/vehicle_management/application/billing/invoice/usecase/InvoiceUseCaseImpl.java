@@ -178,6 +178,23 @@ public class InvoiceUseCaseImpl implements InvoicePortIn {
 
     @Override
     @Transactional(readOnly = true)
+    public List<Invoice> getOwnInvoices(
+            UUID subscriptionId,
+            List<UUID> subscriptionIds,
+            InvoiceStatus status,
+            Instant fromDate,
+            Instant toDate,
+            String keyword,
+            Integer limit) {
+        List<UUID> combinedIds = java.util.stream.Stream.concat(
+                        java.util.stream.Stream.ofNullable(subscriptionId),
+                        subscriptionIds == null ? java.util.stream.Stream.empty() : subscriptionIds.stream())
+                .toList();
+        return getOwnInvoices(combinedIds, status, fromDate, toDate, keyword, limit);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public InvoiceManagementPageResult getManagementInvoices(
             InvoiceStatus status,
             PaymentMethod paymentMethod,

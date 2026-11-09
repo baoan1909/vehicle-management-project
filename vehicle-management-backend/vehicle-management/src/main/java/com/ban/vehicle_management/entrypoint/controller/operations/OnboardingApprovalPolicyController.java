@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.entrypoint.controller.operations;
 
-import com.ban.vehicle_management.application.operations.approvalrequest.model.command.UpdateOnboardingApprovalPoliciesCommand;
-import com.ban.vehicle_management.application.operations.approvalrequest.model.result.OnboardingApprovalPoliciesResult;
+import com.ban.vehicle_management.application.operations.approvalrequest.mapper.OnboardingApprovalPolicyApiMapper;
 import com.ban.vehicle_management.application.operations.approvalrequest.port.in.OnboardingApprovalPolicyPortIn;
 import com.ban.vehicle_management.entrypoint.dto.operations.approvalrequest.request.UpdateOnboardingApprovalPoliciesRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.approvalrequest.response.OnboardingApprovalPoliciesResponse;
@@ -23,9 +22,14 @@ public class OnboardingApprovalPolicyController {
                     + "or @permissionAuthorizer.hasPermission('ONBOARDING_APPROVAL_REVIEW_CUSTOMER_ALL')";
 
     private final OnboardingApprovalPolicyPortIn policyPortIn;
+    private final OnboardingApprovalPolicyApiMapper mapper;
 
-    public OnboardingApprovalPolicyController(OnboardingApprovalPolicyPortIn policyPortIn) {
+    public OnboardingApprovalPolicyController(
+            OnboardingApprovalPolicyPortIn policyPortIn,
+            OnboardingApprovalPolicyApiMapper mapper
+    ) {
         this.policyPortIn = policyPortIn;
+        this.mapper = mapper;
     }
 
     @GetMapping
@@ -33,7 +37,7 @@ public class OnboardingApprovalPolicyController {
     public ResponseEntity<ApiResponse<OnboardingApprovalPoliciesResponse>> getPolicies() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched onboarding approval policies successfully",
-                toResponse(policyPortIn.getPolicies())
+                mapper.toResponse(policyPortIn.getPolicies())
         ));
     }
 
@@ -42,27 +46,9 @@ public class OnboardingApprovalPolicyController {
     public ResponseEntity<ApiResponse<OnboardingApprovalPoliciesResponse>> updatePolicies(
             @RequestBody UpdateOnboardingApprovalPoliciesRequest request
     ) {
-        OnboardingApprovalPoliciesResult result = policyPortIn.updatePolicies(
-                new UpdateOnboardingApprovalPoliciesCommand(
-                        request.customerAutoApproveEnabled(),
-                        request.partnerAutoApproveEnabled(),
-                        request.avatarAutoApproveEnabled()
-                )
-        );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Updated onboarding approval policies successfully",
-                toResponse(result)
+                mapper.toResponse(policyPortIn.updatePolicies(mapper.toCommand(request)))
         ));
-    }
-
-    private OnboardingApprovalPoliciesResponse toResponse(OnboardingApprovalPoliciesResult result) {
-        return new OnboardingApprovalPoliciesResponse(
-                result.customerAutoApproveEnabled(),
-                result.customerEffectiveFrom(),
-                result.partnerAutoApproveEnabled(),
-                result.partnerEffectiveFrom(),
-                result.avatarAutoApproveEnabled(),
-                result.avatarEffectiveFrom()
-        );
     }
 }

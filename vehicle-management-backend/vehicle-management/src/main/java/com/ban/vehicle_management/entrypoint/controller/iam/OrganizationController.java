@@ -104,9 +104,8 @@ public class OrganizationController {
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched parking manager assignments successfully",
-                new ParkingManagerScopeAdminResponse(
-                        organizationPortIn.getAssignedParkingManagerAccountIds(organizationId, parkingLotId)
-                )
+                organizationApiMapper.toParkingManagerScopeResponse(
+                        organizationPortIn.getAssignedParkingManagerScope(organizationId, parkingLotId))
         ));
     }
 

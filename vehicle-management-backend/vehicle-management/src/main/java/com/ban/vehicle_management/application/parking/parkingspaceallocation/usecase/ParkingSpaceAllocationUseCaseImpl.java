@@ -135,6 +135,13 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
     }
 
     @Override
+    public List<ParkingSpaceAllocation> findAllocationsForSpace(UUID parkingSpaceId, LocalDate activeOn) {
+        return activeOn == null
+                ? getAllocationsByParkingSpaceId(parkingSpaceId)
+                : findActiveAllocationsForSpaceOnDate(parkingSpaceId, activeOn);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<ParkingSpaceAllocation> getAllocationsBySubscriptionId(UUID subscriptionId) {
         currentAccountPortIn.requirePermission(PARKING_SPACE_READ_ALL);
@@ -225,6 +232,14 @@ public class ParkingSpaceAllocationUseCaseImpl implements ParkingSpaceAllocation
         currentAccountPortIn.requirePermission(PARKING_SPACE_READ_ALL);
         ensureCanReadSubscription(subscriptionId);
         return allocationPortOut.findActiveAllocationsBySubscription(subscriptionId);
+    }
+
+    @Override
+    public List<ParkingSpaceAllocation> findAllocationsForSubscription(
+            UUID subscriptionId, boolean activeOnly) {
+        return activeOnly
+                ? findActiveAllocationsBySubscription(subscriptionId)
+                : getAllocationsBySubscriptionId(subscriptionId);
     }
 
     @Override

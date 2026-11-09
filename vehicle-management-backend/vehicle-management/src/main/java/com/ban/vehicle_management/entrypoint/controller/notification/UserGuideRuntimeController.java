@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.entrypoint.controller.notification;
 
 import com.ban.vehicle_management.application.notification.userguide.mapper.UserGuideApiMapper;
-import com.ban.vehicle_management.application.notification.userguide.model.result.ResolvedUserGuide;
 import com.ban.vehicle_management.application.notification.userguide.port.in.UserGuideRuntimePortIn;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.RecordUserGuideEventRequest;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideUserResponse;
@@ -38,9 +37,8 @@ public class UserGuideRuntimeController {
             @RequestParam(required = false) String featureCode,
             @RequestParam(required = false) String contextKey
     ) {
-        List<UserGuideUserResponse> guides = runtimePortIn.resolveGuides(featureCode, contextKey).stream()
-                .map(this::toUserResponse)
-                .toList();
+        List<UserGuideUserResponse> guides = apiMapper.toUserResponses(
+                runtimePortIn.resolveGuides(featureCode, contextKey));
         return ResponseEntity.ok(ApiResponse.ok("Resolved user guides successfully", guides));
     }
 
@@ -51,7 +49,7 @@ public class UserGuideRuntimeController {
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched user guide successfully",
-                toUserResponse(runtimePortIn.getPublishedGuide(guideCode))));
+                apiMapper.toUserResponse(runtimePortIn.getPublishedGuide(guideCode))));
     }
 
     @PostMapping("/{guideId}/events")
@@ -64,10 +62,5 @@ public class UserGuideRuntimeController {
                 "User guide event recorded successfully",
                 apiMapper.toUserStateResponse(runtimePortIn.recordEvent(
                         guideId, request.event(), request.versionNumber(), request.stepId()))));
-    }
-
-    private UserGuideUserResponse toUserResponse(ResolvedUserGuide resolved) {
-        return apiMapper.toUserResponse(
-                resolved.guide(), resolved.version(), resolved.userState(), resolved.mediaUrls());
     }
 }

@@ -220,15 +220,24 @@ Controllers must:
 Controllers must not:
 
 - contain core business logic
+- declare helper, normalization, parsing, enrichment, validation, or response-building methods; every declared controller method must be an HTTP endpoint
 - call repositories directly
+- depend on output ports, persistence adapters, infrastructure services, JPA entities, `JdbcTemplate`, `EntityManager`, or `ObjectMapper`
 - expose entities directly
 - hardcode persistence or security rules
+- accept or assemble raw `Map` payloads; callback payloads must use a typed immutable request/converter
+- construct command/request/response DTOs manually, invoke response setters, or perform stream-based DTO mapping
+- generate identifiers, read the current time, interpret workflow state, catch broad exceptions, or perform multi-source orchestration
 
 Controllers should stay thin and predictable.
 
 ## 8. MapStruct rules
 
 Always use MapStruct for mapping between layers.
+
+Controller request/domain/command/result/response conversion must go through an injected
+MapStruct mapper. Transport-only parsing belongs in an entrypoint converter; business
+normalization, defaults, permission checks, and orchestration belong in application use cases or policies.
 
 Preferred mapping flow for non-trivial modules:
 

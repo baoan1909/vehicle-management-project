@@ -1,11 +1,11 @@
 package com.ban.vehicle_management.entrypoint.controller.billing;
 
 import com.ban.vehicle_management.application.billing.payment.mapper.PaymentApiMapper;
-import com.ban.vehicle_management.application.billing.payment.model.command.CreateVnpayPaymentCommand;
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayPaymentResult;
 import com.ban.vehicle_management.application.billing.payment.port.in.VnpayPaymentPortIn;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.request.CreateVnpayPaymentRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.VnpayPaymentResponse;
+import com.ban.vehicle_management.entrypoint.converter.ClientIpResolver;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.UUID;
@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.util.StringUtils;
 
 @RestController
 @RequestMapping("/api/billing/invoices/{invoiceId}/payments/vnpay")
@@ -24,13 +23,16 @@ public class VnpayPaymentController {
 
     private final VnpayPaymentPortIn vnpayPaymentPortIn;
     private final PaymentApiMapper paymentApiMapper;
+    private final ClientIpResolver clientIpResolver;
 
     public VnpayPaymentController(
             VnpayPaymentPortIn vnpayPaymentPortIn,
-            PaymentApiMapper paymentApiMapper
+            PaymentApiMapper paymentApiMapper,
+            ClientIpResolver clientIpResolver
     ) {
         this.vnpayPaymentPortIn = vnpayPaymentPortIn;
         this.paymentApiMapper = paymentApiMapper;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @PostMapping
@@ -39,16 +41,9 @@ public class VnpayPaymentController {
             @RequestBody(required = false) CreateVnpayPaymentRequest request,
             HttpServletRequest httpRequest
     ) {
-        CreateVnpayPaymentRequest resolvedRequest = request == null
-                ? new CreateVnpayPaymentRequest(null, "vn")
-                : request;
         VnpayPaymentResult result = vnpayPaymentPortIn.createPayment(
                 invoiceId,
-                new CreateVnpayPaymentCommand(
-                        resolvedRequest.bankCode(),
-                        resolvedRequest.locale(),
-                        resolveClientIp(httpRequest)
-                )
+                paymentApiMapper.toCommand(request, clientIpResolver.resolve(httpRequest))
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
@@ -57,11 +52,4 @@ public class VnpayPaymentController {
         ));
     }
 
-    private String resolveClientIp(HttpServletRequest request) {
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (StringUtils.hasText(forwardedFor)) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
-    }
 }

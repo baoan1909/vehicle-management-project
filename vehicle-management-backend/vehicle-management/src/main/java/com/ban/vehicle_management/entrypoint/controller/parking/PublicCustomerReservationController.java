@@ -17,6 +17,7 @@ import com.ban.vehicle_management.entrypoint.dto.parking.customerreservation.res
 import com.ban.vehicle_management.entrypoint.dto.parking.customerreservation.response.ReservationOptionResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.customerreservation.response.PublicReservationLayoutResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.customerreservation.response.ReservationCheckoutResponse;
+import com.ban.vehicle_management.entrypoint.converter.ClientIpResolver;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -44,12 +45,14 @@ public class PublicCustomerReservationController {
     private final GuestReservationCheckoutUseCase checkout;
     private final ParkingLayoutPortIn layouts;
     private final ParkingLayoutApiMapper layoutMapper;
+    private final ClientIpResolver clientIpResolver;
 
     public PublicCustomerReservationController(CustomerReservationPortIn reservations,
             ParkingPlateLookupPortIn plateLookup,
             CustomerReservationApiMapper reservationMapper, VnpayPaymentPortIn vnpay,
             PaymentApiMapper paymentMapper, GuestReservationCheckoutUseCase checkout,
-            ParkingLayoutPortIn layouts, ParkingLayoutApiMapper layoutMapper) {
+            ParkingLayoutPortIn layouts, ParkingLayoutApiMapper layoutMapper,
+            ClientIpResolver clientIpResolver) {
         this.reservations = reservations;
         this.plateLookup = plateLookup;
         this.reservationMapper = reservationMapper;
@@ -58,6 +61,7 @@ public class PublicCustomerReservationController {
         this.checkout = checkout;
         this.layouts = layouts;
         this.layoutMapper = layoutMapper;
+        this.clientIpResolver = clientIpResolver;
     }
 
     @GetMapping("/lookup")
@@ -72,16 +76,15 @@ public class PublicCustomerReservationController {
     public ResponseEntity<ApiResponse<List<ReservationOptionResponse>>> options(
             @RequestParam UUID parkingLotId, @RequestParam UUID vehicleTypeId) {
         return ResponseEntity.ok(ApiResponse.ok("Reservation options fetched",
-                reservations.findOptions(parkingLotId, vehicleTypeId).stream()
-                        .map(reservationMapper::toResponse).toList()));
+                reservationMapper.toOptionResponses(reservations.findOptions(parkingLotId, vehicleTypeId))));
     }
 
     @GetMapping("/options/{zoneId}/layout")
     public ResponseEntity<ApiResponse<PublicReservationLayoutResponse>> layout(
             @PathVariable UUID zoneId, @RequestParam UUID parkingLotId) {
-        var published = layoutMapper.toResponse(layouts.getPublicPublishedLayout(parkingLotId, zoneId));
         return ResponseEntity.ok(ApiResponse.ok("Published reservation layout fetched",
-                new PublicReservationLayoutResponse(published.getItems(), published.getElements())));
+                layoutMapper.toPublicReservationResponse(
+                        layouts.getPublicPublishedLayout(parkingLotId, zoneId))));
     }
 
     @PostMapping
@@ -89,11 +92,9 @@ public class PublicCustomerReservationController {
             @RequestBody CreateCustomerReservationRequest request, HttpServletRequest httpRequest) {
         var result = checkout.create(request.parkingLotId(), request.zoneId(),
                 request.parkingSpaceId(), request.vehicleTypeId(), request.licensePlate(),
-                request.policyAccepted(), httpRequest.getRemoteAddr());
+                request.policyAccepted(), clientIpResolver.resolve(httpRequest));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
-                "Reservation awaiting payment", new ReservationCheckoutResponse(
-                        reservationMapper.toResponse(result.reservation()), result.paymentUrl(),
-                        result.paymentMethod())));
+                "Reservation awaiting payment", reservationMapper.toResponse(result)));
     }
 
     @GetMapping("/{reservationId}")
@@ -118,11 +119,8 @@ public class PublicCustomerReservationController {
             @RequestHeader("X-Reservation-Access") String accessToken,
             @RequestBody(required = false) CreateVnpayPaymentRequest request,
             HttpServletRequest httpRequest) {
-        CreateVnpayPaymentRequest resolved = request == null
-                ? new CreateVnpayPaymentRequest(null, "vn") : request;
         var result = vnpay.createGuestReservationPayment(reservationId, accessToken,
-                new CreateVnpayPaymentCommand(resolved.bankCode(), resolved.locale(),
-                        httpRequest.getRemoteAddr()));
+                paymentMapper.toCommandWithDefaults(request, clientIpResolver.resolve(httpRequest)));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "VNPAY payment created", paymentMapper.toResponse(result)));
     }

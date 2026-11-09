@@ -3,7 +3,6 @@ package com.ban.vehicle_management.entrypoint.controller.billing;
 import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.math.BigDecimal;
-import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -44,9 +43,7 @@ public class PartnerSettlementController {
             @RequestParam UUID bankAccountId,
             @RequestParam BigDecimal amount,
             @RequestParam(required = false) String idempotencyKey) {
-        String key = idempotencyKey == null || idempotencyKey.isBlank()
-                ? UUID.randomUUID().toString() : idempotencyKey.trim();
         return ResponseEntity.status(201).body(ApiResponse.ok("Payout requested successfully",
-                settlementPortIn.requestPayout(bankAccountId, amount, key)));
+                settlementPortIn.requestPayout(bankAccountId, amount, idempotencyKey)));
     }
 }

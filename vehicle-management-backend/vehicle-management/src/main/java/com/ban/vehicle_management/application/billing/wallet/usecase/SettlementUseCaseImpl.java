@@ -225,7 +225,12 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
             throw new BadRequestException("bankAccountId and amount must not be null");
         }
         walletPolicy.requireVndWholeUnit(amount);
-        String key = TextValidationUtils.normalizeRequiredText(idempotencyKey, "idempotencyKey", 100);
+        String key = TextValidationUtils.normalizeRequiredText(
+                idempotencyKey == null || idempotencyKey.isBlank()
+                        ? UUID.randomUUID().toString()
+                        : idempotencyKey,
+                "idempotencyKey",
+                100);
         var existing = settlementPortOut.findPayoutByIdempotency(key);
         if (existing.isPresent()) {
             return existing.get();

@@ -12,6 +12,7 @@ import com.ban.vehicle_management.entrypoint.dto.iam.organization.response.Organ
 import com.ban.vehicle_management.entrypoint.dto.shared.address.request.VietnamAddressRequest;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface OrganizationProfileApiMapper {
@@ -42,6 +43,9 @@ public interface OrganizationProfileApiMapper {
     OrganizationProfileResponse toResponse(OrganizationProfileResult result);
 
     OrganizationProfileUpdateRequestResponse toResponse(OrganizationProfileUpdateRequestResult result);
+
+    List<OrganizationProfileUpdateRequestResponse> toResponses(
+            List<OrganizationProfileUpdateRequestResult> results);
 
     default VietnamAddress toDomain(VietnamAddressRequest request) {
         return request == null ? null : new VietnamAddress(

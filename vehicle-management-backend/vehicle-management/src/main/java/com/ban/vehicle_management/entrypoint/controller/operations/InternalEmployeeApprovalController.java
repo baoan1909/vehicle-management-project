@@ -78,9 +78,7 @@ public class InternalEmployeeApprovalController {
     ) {
         InternalEmployeeApprovalResult result = internalEmployeeApprovalPortIn.approveInternalEmployeeApproval(
                 approvalRequestId,
-                internalEmployeeApprovalApiMapper.toReviewCommand(
-                        request == null ? new ReviewInternalEmployeeApprovalRequest(null) : request
-                )
+                internalEmployeeApprovalApiMapper.toReviewCommand(request)
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Internal employee approval request approved successfully",
@@ -96,9 +94,7 @@ public class InternalEmployeeApprovalController {
     ) {
         InternalEmployeeApprovalResult result = internalEmployeeApprovalPortIn.rejectInternalEmployeeApproval(
                 approvalRequestId,
-                internalEmployeeApprovalApiMapper.toReviewCommand(
-                        request == null ? new ReviewInternalEmployeeApprovalRequest(null) : request
-                )
+                internalEmployeeApprovalApiMapper.toReviewCommand(request)
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Internal employee approval request rejected successfully",

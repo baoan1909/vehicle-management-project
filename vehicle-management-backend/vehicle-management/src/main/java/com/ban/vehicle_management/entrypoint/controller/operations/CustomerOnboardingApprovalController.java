@@ -79,9 +79,7 @@ public class CustomerOnboardingApprovalController {
     ) {
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortIn.approveCustomerOnboardingApproval(
                 approvalRequestId,
-                customerOnboardingApprovalApiMapper.toReviewCommand(
-                        request == null ? new ReviewInternalEmployeeApprovalRequest(null) : request
-                )
+                customerOnboardingApprovalApiMapper.toReviewCommand(request)
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Customer onboarding approval request approved successfully",
@@ -97,9 +95,7 @@ public class CustomerOnboardingApprovalController {
     ) {
         CustomerOnboardingApprovalResult result = customerOnboardingApprovalPortIn.rejectCustomerOnboardingApproval(
                 approvalRequestId,
-                customerOnboardingApprovalApiMapper.toReviewCommand(
-                        request == null ? new ReviewInternalEmployeeApprovalRequest(null) : request
-                )
+                customerOnboardingApprovalApiMapper.toReviewCommand(request)
         );
         return ResponseEntity.ok(ApiResponse.ok(
                 "Customer onboarding approval request rejected successfully",

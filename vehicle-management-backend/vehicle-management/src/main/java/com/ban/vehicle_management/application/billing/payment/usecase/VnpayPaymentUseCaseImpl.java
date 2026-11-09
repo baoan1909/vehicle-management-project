@@ -107,7 +107,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
     private VnpayPaymentResult createPaymentInternal(UUID invoiceId,
             CreateVnpayPaymentCommand command, boolean guestAuthorized) {
         if (command == null) {
-            throw new BadRequestException("payment request must not be null");
+            command = new CreateVnpayPaymentCommand(null, "vn", null);
         }
 
         Invoice invoice = invoicePortOut.findById(invoiceId)

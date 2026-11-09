@@ -7,7 +7,6 @@ import com.ban.vehicle_management.application.ai.command.RejectKnowledgeDocument
 import com.ban.vehicle_management.application.ai.mapper.KnowledgeDocumentApiMapper;
 import com.ban.vehicle_management.application.ai.port.in.KnowledgeDocumentPortIn;
 import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeDocument;
-import com.ban.vehicle_management.domain.ai.knowledge.policy.KnowledgeDocumentFilePolicy;
 import com.ban.vehicle_management.entrypoint.dto.ai.knowledge.response.KnowledgeChunkResponse;
 import com.ban.vehicle_management.entrypoint.dto.ai.knowledge.request.UploadKnowledgeDocumentRequest;
 import com.ban.vehicle_management.entrypoint.dto.ai.knowledge.request.KnowledgeDocumentFilterRequest;
@@ -16,6 +15,8 @@ import com.ban.vehicle_management.entrypoint.dto.ai.knowledge.response.Knowledge
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import com.ban.vehicle_management.entrypoint.dto.common.PageResponse;
+import com.ban.vehicle_management.entrypoint.converter.KnowledgeDocumentUploadConverter;
+import com.ban.vehicle_management.entrypoint.policy.EndpointOutcomePolicy;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -41,13 +42,19 @@ public class KnowledgeDocumentController {
 
     private final KnowledgeDocumentPortIn documentPortIn;
     private final KnowledgeDocumentApiMapper mapper;
+    private final KnowledgeDocumentUploadConverter uploadConverter;
+    private final EndpointOutcomePolicy endpointOutcomePolicy;
 
     public KnowledgeDocumentController(
             KnowledgeDocumentPortIn documentPortIn,
-            KnowledgeDocumentApiMapper mapper
+            KnowledgeDocumentApiMapper mapper,
+            KnowledgeDocumentUploadConverter uploadConverter,
+            EndpointOutcomePolicy endpointOutcomePolicy
     ) {
         this.documentPortIn = documentPortIn;
         this.mapper = mapper;
+        this.uploadConverter = uploadConverter;
+        this.endpointOutcomePolicy = endpointOutcomePolicy;
     }
 
     @PostMapping("/upload")
@@ -59,36 +66,13 @@ public class KnowledgeDocumentController {
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKeyHeader,
             @RequestParam("file") MultipartFile file
     ) {
-        if (file.getSize() > KnowledgeDocumentFilePolicy.DEFAULT_MAX_FILE_SIZE_BYTES) {
-            throw new BadRequestException("Tệp tải lên vượt quá dung lượng cho phép");
-        }
-        byte[] content;
-        try {
-            content = file.getBytes();
-        } catch (IOException exception) {
-            throw new BadRequestException("Không thể đọc tệp tải lên");
-        }
-        String effectiveIdempotencyKey = idempotencyKey != null ? idempotencyKey : idempotencyKeyHeader;
-        UploadKnowledgeDocumentRequest request = new UploadKnowledgeDocumentRequest(
-                sourceId,
-                title,
-                file.getOriginalFilename(),
-                file.getContentType(),
-                content,
-                effectiveIdempotencyKey
-        );
-        var result = documentPortIn.uploadDocument(mapper.toUploadCommand(request));
+        var result = documentPortIn.uploadDocument(uploadConverter.convert(
+                sourceId, title, idempotencyKey, idempotencyKeyHeader, file));
         KnowledgeDocumentResponse response = mapper.toResponse(result.document());
-        if (result.created()) {
-            return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(
-                    "Tải lên tài liệu thành công, đang chờ xử lý",
-                    response
-            ));
-        }
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Tài liệu đã tồn tại trong hệ thống",
-                response
-        ));
+        return endpointOutcomePolicy.acceptedOrOk(
+                result.created(), response,
+                "Tải lên tài liệu thành công, đang chờ xử lý",
+                "Tài liệu đã tồn tại trong hệ thống");
     }
 
     @GetMapping
@@ -140,7 +124,7 @@ public class KnowledgeDocumentController {
     public ResponseEntity<ApiResponse<KnowledgeDocumentResponse>> publish(@PathVariable UUID documentId) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Duyệt tài liệu thành công",
-                mapper.toResponse(documentPortIn.publishDocument(new PublishKnowledgeDocumentCommand(documentId)))
+                mapper.toResponse(documentPortIn.publishDocument(mapper.toPublishCommand(documentId)))
         ));
     }
 
@@ -149,7 +133,7 @@ public class KnowledgeDocumentController {
     public ResponseEntity<ApiResponse<KnowledgeDocumentResponse>> reject(@PathVariable UUID documentId) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Từ chối tài liệu thành công",
-                mapper.toResponse(documentPortIn.rejectDocument(new RejectKnowledgeDocumentCommand(documentId)))
+                mapper.toResponse(documentPortIn.rejectDocument(mapper.toRejectCommand(documentId)))
         ));
     }
 
@@ -158,7 +142,7 @@ public class KnowledgeDocumentController {
     public ResponseEntity<ApiResponse<KnowledgeDocumentResponse>> archive(@PathVariable UUID documentId) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Lưu trữ tài liệu thành công",
-                mapper.toResponse(documentPortIn.archiveDocument(new ArchiveKnowledgeDocumentCommand(documentId)))
+                mapper.toResponse(documentPortIn.archiveDocument(mapper.toArchiveCommand(documentId)))
         ));
     }
 
@@ -167,7 +151,8 @@ public class KnowledgeDocumentController {
     public ResponseEntity<ApiResponse<KnowledgeDocumentResponse>> reindex(
             @PathVariable UUID documentId,
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey) {
-        KnowledgeDocument reindexed = documentPortIn.reindexDocument(new ReindexKnowledgeDocumentCommand(documentId, idempotencyKey));
+        KnowledgeDocument reindexed = documentPortIn.reindexDocument(
+                mapper.toReindexCommand(documentId, idempotencyKey));
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(
                 "Yêu cầu lập chỉ mục lại đã được chấp nhận",
                 mapper.toResponse(reindexed)));

@@ -13,6 +13,9 @@ public interface SupportTicketEscalationPortIn {
     SupportTicketEscalationResult create(UUID supportTicketId, CreateSupportTicketEscalationCommand command);
 
     Optional<SupportTicketEscalationResult> getMyCurrent(UUID supportTicketId);
+    default SupportTicketEscalationResult getMyCurrentOrNull(UUID supportTicketId) {
+        return getMyCurrent(supportTicketId).orElse(null);
+    }
 
     List<SupportTicketEscalationResult> getAll(ApprovalRequestStatus status);
 

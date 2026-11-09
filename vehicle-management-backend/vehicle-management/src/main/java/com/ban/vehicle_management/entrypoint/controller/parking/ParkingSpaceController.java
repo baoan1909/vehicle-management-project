@@ -60,7 +60,7 @@ public class ParkingSpaceController {
             @RequestBody CreateParkingSpaceRequest request
     ) {
         ParkingSpace created = parkingSpacePortIn.createParkingSpace(
-                parkingSpaceApiMapper.toDomain(attachZone(zoneId, request)));
+                parkingSpaceApiMapper.toDomain(request, zoneId));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Parking space created successfully",
                 parkingSpaceApiMapper.toAdminResponse(created)
@@ -73,9 +73,8 @@ public class ParkingSpaceController {
             @PathVariable UUID zoneId,
             @RequestBody BulkCreateParkingSpaceRequest request
     ) {
-        List<CreateParkingSpaceRequest> items = request.spaces() == null ? List.of() : request.spaces();
         List<ParkingSpace> created = parkingSpacePortIn.bulkCreateParkingSpaces(
-                items.stream().map(item -> parkingSpaceApiMapper.toDomain(attachZone(zoneId, item))).toList());
+                parkingSpaceApiMapper.toDomains(request.spaces(), zoneId));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Parking spaces created successfully",
                 parkingSpaceApiMapper.toAdminResponses(created)
@@ -203,24 +202,8 @@ public class ParkingSpaceController {
     public ResponseEntity<ApiResponse<ParkingSessionResponse>> getOpenSessionBySpace(
             @PathVariable UUID spaceId
     ) {
-        return parkingSpacePortIn.findOpenSessionBySpace(spaceId)
-                .map(session -> ResponseEntity.ok(ApiResponse.ok(
-                        "Fetched open parking session successfully",
-                        parkingSessionApiMapper.toResponse(session))))
-                .orElseThrow(() -> new com.ban.vehicle_management.shared.exception.NotFoundException(
-                        "No open parking session for this space"));
-    }
-
-    private CreateParkingSpaceRequest attachZone(UUID zoneId, CreateParkingSpaceRequest request) {
-        return new CreateParkingSpaceRequest(
-                zoneId,
-                request.code(),
-                request.vehicleTypeId(),
-                request.x(),
-                request.y(),
-                request.width(),
-                request.height(),
-                request.rotation()
-        );
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched open parking session successfully",
+                parkingSessionApiMapper.toResponse(parkingSpacePortIn.findOpenSessionBySpace(spaceId))));
     }
 }

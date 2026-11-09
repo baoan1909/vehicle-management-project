@@ -16,6 +16,7 @@ import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.Invoic
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementPageResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.invoice.response.InvoiceManagementSummaryResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import com.ban.vehicle_management.entrypoint.converter.PaginationRequestConverter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,13 +31,16 @@ public class InvoiceController {
 
     private final InvoicePortIn invoicePortIn;
     private final InvoiceApiMapper invoiceApiMapper;
+    private final PaginationRequestConverter paginationRequestConverter;
 
     public  InvoiceController(
             InvoicePortIn invoicePortIn,
-            InvoiceApiMapper invoiceApiMapper
+            InvoiceApiMapper invoiceApiMapper,
+            PaginationRequestConverter paginationRequestConverter
     ){
         this.invoicePortIn = invoicePortIn;
         this.invoiceApiMapper = invoiceApiMapper;
+        this.paginationRequestConverter = paginationRequestConverter;
     }
 
     @PostMapping
@@ -72,16 +76,9 @@ public class InvoiceController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer limit
     ) {
-        List<UUID> scopedSubscriptionIds = new ArrayList<>();
-        if (subscriptionId != null) {
-            scopedSubscriptionIds.add(subscriptionId);
-        }
-        if (subscriptionIds != null) {
-            scopedSubscriptionIds.addAll(subscriptionIds);
-        }
-
         List<Invoice> invoices = invoicePortIn.getOwnInvoices(
-                scopedSubscriptionIds,
+                subscriptionId,
+                subscriptionIds,
                 status,
                 fromDate,
                 toDate,
@@ -120,8 +117,7 @@ public class InvoiceController {
     public ResponseEntity<ApiResponse<InvoiceManagementPageResponse>> getManagementInvoices(
             @ModelAttribute InvoiceManagementFilterRequest request
     ) {
-        int page = request.page() == null ? 0 : request.page();
-        int size = request.size() == null ? 10 : request.size();
+        var pagination = paginationRequestConverter.resolve(request.page(), request.size());
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched invoice management list successfully",
@@ -131,8 +127,8 @@ public class InvoiceController {
                         request.fromDate(),
                         request.toDate(),
                         request.keyword(),
-                        page,
-                        size,
+                        pagination.page(),
+                        pagination.size(),
                         request.organizationId(),
                         request.parkingLotId()
                 ))

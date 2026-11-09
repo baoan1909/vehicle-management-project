@@ -2,6 +2,7 @@ package com.ban.vehicle_management.entrypoint.controller.ai;
 
 import com.ban.vehicle_management.application.ai.port.in.AssistantStatusPortIn;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
+import com.ban.vehicle_management.application.ai.mapper.AssistantApiMapper;
 import com.ban.vehicle_management.entrypoint.dto.ai.assistant.response.AssistantMessageStatusResponse;
 import com.ban.vehicle_management.entrypoint.dto.ai.assistant.response.AssistantStatusResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
@@ -19,13 +20,16 @@ public class AssistantController {
 
     private final AssistantStatusPortIn assistantStatusPortIn;
     private final CurrentAccountPortIn currentAccountPortIn;
+    private final AssistantApiMapper apiMapper;
 
     public AssistantController(
             AssistantStatusPortIn assistantStatusPortIn,
-            CurrentAccountPortIn currentAccountPortIn
+            CurrentAccountPortIn currentAccountPortIn,
+            AssistantApiMapper apiMapper
     ) {
         this.assistantStatusPortIn = assistantStatusPortIn;
         this.currentAccountPortIn = currentAccountPortIn;
+        this.apiMapper = apiMapper;
     }
 
     @GetMapping("/status")
@@ -34,7 +38,7 @@ public class AssistantController {
         currentAccountPortIn.requirePermission("SUPPORT_WIDGET_ACCESS_OWN");
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched assistant status successfully",
-                new AssistantStatusResponse(assistantStatusPortIn.isAssistantEnabled())
+                apiMapper.toStatusResponse(assistantStatusPortIn.isAssistantEnabled())
         ));
     }
 
@@ -45,12 +49,7 @@ public class AssistantController {
         AssistantStatusPortIn.MessageStatus status = assistantStatusPortIn.getMessageStatus(inputMessageId);
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched assistant message status successfully",
-                new AssistantMessageStatusResponse(
-                        status.inputMessageId(),
-                        status.status(),
-                        status.errorCode(),
-                        status.terminal()
-                )
+                apiMapper.toMessageStatusResponse(status)
         ));
     }
 }

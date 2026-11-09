@@ -168,6 +168,13 @@ public class OrganizationUseCaseImpl implements OrganizationPortIn {
     }
 
     @Override
+    public com.ban.vehicle_management.application.iam.organization.model.result.ParkingManagerScopeResult
+            getAssignedParkingManagerScope(UUID organizationId, UUID parkingLotId) {
+        return new com.ban.vehicle_management.application.iam.organization.model.result.ParkingManagerScopeResult(
+                getAssignedParkingManagerAccountIds(organizationId, parkingLotId));
+    }
+
+    @Override
     @Transactional
     public void unassignParkingManagerFromParkingLot(
             UUID organizationId,

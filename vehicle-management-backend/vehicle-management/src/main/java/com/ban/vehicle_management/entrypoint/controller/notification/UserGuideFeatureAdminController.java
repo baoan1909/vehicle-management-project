@@ -61,10 +61,9 @@ public class UserGuideFeatureAdminController {
             Pageable pageable
     ) {
         Page<UserGuideFeature> page = featurePortIn.listFeatures(filter.enabled(), filter.keyword(), pageable);
-        Page<UserGuideFeatureAdminResponse> mapped = page.map(apiMapper::toFeatureAdminResponse);
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched user guide features successfully",
-                apiMapper.toPageResponse(mapped)));
+                apiMapper.toFeatureAdminPageResponse(page)));
     }
 
     @GetMapping("/{featureId}")

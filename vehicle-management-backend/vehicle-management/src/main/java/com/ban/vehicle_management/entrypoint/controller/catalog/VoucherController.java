@@ -54,7 +54,7 @@ public class VoucherController {
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched customer voucher banners successfully",
-                voucherApiMapper.toCustomerBannerResponses(voucherPortIn.getCustomerVisibleVouchers(parkingLotId, Instant.now()))
+                voucherApiMapper.toCustomerBannerResponses(voucherPortIn.getCustomerVisibleVouchers(parkingLotId))
         ));
     }
 

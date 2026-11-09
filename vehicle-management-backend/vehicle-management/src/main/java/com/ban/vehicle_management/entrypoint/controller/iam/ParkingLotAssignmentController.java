@@ -115,7 +115,8 @@ public class ParkingLotAssignmentController {
     public ResponseEntity<ApiResponse<MyParkingLotScopeResponse>> getMyParkingLots() {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched current parking-lot scope",
-                new MyParkingLotScopeResponse(useCase.getMyReadableParkingLots(), useCase.getMyOperableParkingLots())));
+                mapper.toScopeResponse(
+                        useCase.getMyReadableParkingLots(), useCase.getMyOperableParkingLots())));
     }
 
     @PostMapping("/organizations/{organizationId}/parking-lots/{parkingLotId}/operations/suspend")
