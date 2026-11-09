@@ -46,7 +46,12 @@ assert.ok(parkingSessionApi.includes("/open-by-subscription-qr"), "Thiếu endpo
 assert.ok(operationPage.includes("isQrCheckOut"), "Màn hình vận hành chưa tách luồng QR check-out");
 assert.ok(operationPage.includes("subscriptionQrPayload: isQrCheckOut"), "Màn hình vận hành chưa gửi QR vào yêu cầu check-out");
 assert.ok(operationPage.includes("handleConfirmSubscriptionQr"), "Màn hình vận hành chưa có bước nhân viên xác nhận QR");
-assert.ok(scannerModal.includes("verifySubscriptionQrImage"), "Bộ đọc QR chưa hỗ trợ tải ảnh lên backend");
+const uploadsQrImageForDecoding = scannerModal.includes("decodeCheckInQrImage")
+  && parkingSessionApi.includes("/qr/decode-image")
+  && parkingSessionApi.includes('formData.append("image", image, image.name)')
+  && scannerModal.includes("await verify(payload)");
+assert.ok(scannerModal.includes("verifySubscriptionQrImage") || uploadsQrImageForDecoding,
+  "Bộ đọc QR chưa hỗ trợ tải ảnh lên backend và xác thực nội dung QR");
 assert.ok(scannerModal.includes('BLOCKED: "Vé đang bị tạm khóa"'), "Bộ đọc QR chưa hiển thị trạng thái vé bị khóa");
 assert.ok(!scannerModal.includes("licensePlate.trim() || undefined"), "Bộ đọc QR vẫn đối chiếu biển số quá sớm trước bước check-in");
 assert.ok(scannerModal.includes('verification.status === "VALID"'), "QR hợp lệ chưa tự động quay lại form check-in");
