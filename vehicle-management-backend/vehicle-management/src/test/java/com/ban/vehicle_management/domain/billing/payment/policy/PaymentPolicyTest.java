@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.domain.billing.payment.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -104,6 +105,17 @@ class PaymentPolicyTest {
         payment.setStatus(PaymentStatus.PENDING);
 
         assertThrows(BadRequestException.class, () -> paymentPolicy.validateState(payment));
+    }
+
+    @Test
+    void shouldAllowPendingStripePayment() {
+        Payment payment = validPayment(PaymentMethod.STRIPE);
+        payment.setInvoiceId(UUID.randomUUID());
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.setCreatedAt(Instant.parse("2026-11-09T02:00:00Z"));
+        payment.setExpiresAt(Instant.parse("2026-11-09T02:10:00Z"));
+
+        assertDoesNotThrow(() -> paymentPolicy.validateState(payment));
     }
 
     @Test

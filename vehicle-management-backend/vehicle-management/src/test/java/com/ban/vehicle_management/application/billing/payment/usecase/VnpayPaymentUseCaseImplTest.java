@@ -23,10 +23,12 @@ import com.ban.vehicle_management.application.billing.payment.port.out.VnpayGate
 import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
+import com.ban.vehicle_management.application.parking.customerreservation.port.in.CustomerReservationPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.billing.payment.policy.PaymentPolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -59,6 +61,8 @@ class VnpayPaymentUseCaseImplTest {
     private NotificationPortIn notificationPortIn;
     @Mock
     private SettlementPortIn settlementPortIn;
+    @Mock
+    private CustomerReservationPortIn reservationPortIn;
 
     private VnpayPaymentUseCaseImpl useCase;
 
@@ -75,6 +79,28 @@ class VnpayPaymentUseCaseImplTest {
                 settlementPortIn,
                 new BigDecimal("10000")
         );
+        useCase.setReservationPortIn(reservationPortIn);
+    }
+
+    @Test
+    void guestReservationPaymentUsesSecretWithoutAccountPermission() {
+        UUID reservationId = UUID.randomUUID();
+        UUID invoiceId = UUID.randomUUID();
+        Invoice invoice = unpaidInvoice(invoiceId, null);
+        invoice.setPurpose(InvoicePurpose.RESERVATION_PREPAYMENT);
+        when(reservationPortIn.authorizeGuestPayment(reservationId, "secret"))
+                .thenReturn(invoiceId);
+        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(invoice));
+        when(vnpayGatewayPortOut.createPaymentLink(any()))
+                .thenReturn(new VnpayPaymentLink("https://sandbox.vnpayment.vn/payment",
+                        Instant.now().plusSeconds(600)));
+        when(paymentPortOut.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        useCase.createGuestReservationPayment(reservationId, "secret",
+                new CreateVnpayPaymentCommand(null, "vn", "127.0.0.1"));
+
+        verify(paymentAccessGuard, never()).ensureCanCreateVnpayPayment(invoice);
+        verify(paymentPortOut).save(any());
     }
 
     @Test

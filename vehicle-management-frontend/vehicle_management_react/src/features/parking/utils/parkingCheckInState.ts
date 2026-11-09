@@ -25,7 +25,8 @@ export function isSelectedVisitorSpaceEligible(
   return Boolean(
     parkingSpaceId
       && preview.eligibleSpaces.some(
-        (space) => space.parkingSpaceId === parkingSpaceId && space.status === "AVAILABLE",
+        (space) => space.parkingSpaceId === parkingSpaceId
+          && (space.status === "AVAILABLE" || space.status === "RESERVED"),
       ),
   );
 }

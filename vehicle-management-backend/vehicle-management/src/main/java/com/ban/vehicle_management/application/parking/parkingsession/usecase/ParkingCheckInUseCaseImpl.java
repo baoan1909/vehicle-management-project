@@ -1,5 +1,8 @@
 package com.ban.vehicle_management.application.parking.parkingsession.usecase;
 
+import com.ban.vehicle_management.application.parking.customerreservation.port.in.CustomerReservationAdmissionPortIn;
+import com.ban.vehicle_management.domain.parking.customerreservation.model.CustomerReservation;
+
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.service.SubscriptionQrTokenService;
@@ -86,6 +89,12 @@ public class ParkingCheckInUseCaseImpl {
     private static final String CUSTOMER_TYPE_SUBSCRIPTION = "SUBSCRIPTION";
     private static final String BARRIER_ACTION_OPEN = "OPEN";
     private static final int MAX_QR_PAYLOAD_LENGTH = 128;
+    private CustomerReservationAdmissionPortIn reservationAdmissionPortIn;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setReservationAdmissionPortIn(CustomerReservationAdmissionPortIn reservationAdmissionPortIn) {
+        this.reservationAdmissionPortIn = reservationAdmissionPortIn;
+    }
 
     private final ParkingSessionAccessGuard parkingSessionAccessGuard;
     private final CurrentAccountPortIn currentAccountPortIn;
@@ -230,6 +239,11 @@ public class ParkingCheckInUseCaseImpl {
         Instant now = Instant.now();
         String qrPayload = TextValidationUtils.normalizeNullableText(
                 command.subscriptionQrPayload(), "subscriptionQrPayload", MAX_QR_PAYLOAD_LENGTH);
+        String reservationQrPayload = TextValidationUtils.normalizeNullableText(
+                command.reservationQrPayload(), "reservationQrPayload", 512);
+        if (qrPayload != null && reservationQrPayload != null) {
+            throw new BadRequestException("Only one reservation or subscription QR may be used");
+        }
         boolean qrCheckIn = qrPayload != null;
         if (qrCheckIn && command.cardUid() != null && !command.cardUid().isBlank()) {
             throw new BadRequestException("Chỉ được sử dụng QR hoặc thẻ vật lý cho một lần check-in");
@@ -286,9 +300,18 @@ public class ParkingCheckInUseCaseImpl {
             throw new ConflictException("Vehicle type is not accepted at this parking lot");
         }
         parkingCheckInPolicy.validateVehicleTypeAccepted(resolvedVehicleTypeId, zone);
-        validateAdmissionAvailability(zone, customerContext.subscription(), now);
+        if (reservationQrPayload != null && customerContext.subscription() != null) {
+            throw new ConflictException("Reservation QR cannot be combined with a subscription");
+        }
+        CustomerReservation reservation = customerContext.subscription() == null
+                && reservationAdmissionPortIn != null
+                ? reservationAdmissionPortIn.resolveForCheckIn(parkingLot.getParkingLotId(),
+                        zone.getZoneId(), resolvedVehicleTypeId, licensePlate,
+                        reservationQrPayload, now) : null;
+        validateAdmissionAvailability(zone, customerContext.subscription(), now, reservation);
         ParkingSpace assignedSpace = resolveCheckInSpace(
-                zone, command.parkingSpaceId(), customerContext.subscription(), resolvedVehicleTypeId);
+                zone, command.parkingSpaceId(), customerContext.subscription(),
+                resolvedVehicleTypeId, reservation);
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         UUID parkingEventId = UUID.randomUUID();
         StoredFile storedLicensePlateImage = null;
@@ -310,6 +333,9 @@ public class ParkingCheckInUseCaseImpl {
                     now
             );
             parkingSessionPolicy.initialize(parkingSession);
+            if (reservation != null) {
+                parkingSession.setCustomerId(reservation.getCustomerId());
+            }
             if (assignedSpace != null) {
                 parkingSession.setParkingSpaceId(assignedSpace.getParkingSpaceId());
             }
@@ -321,6 +347,10 @@ public class ParkingCheckInUseCaseImpl {
                 LOGGER.warn("Check-in space race for space {}",
                         assignedSpace == null ? command.parkingSpaceId() : assignedSpace.getParkingSpaceId());
                 throw new ConflictException("A concurrent check-in already consumed this admission slot");
+            }
+            if (reservation != null) {
+                reservationAdmissionPortIn.markCheckedIn(reservation,
+                        savedParkingSession.getParkingSessionId(), now);
             }
             if (assignedSpace != null) {
                 occupySpaceForCheckIn(zone, parkingLot, assignedSpace,
@@ -376,12 +406,17 @@ public class ParkingCheckInUseCaseImpl {
         }
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public CheckInPreviewResult preview(CheckInPreviewCommand command) {
         parkingSessionAccessGuard.ensureCanCheckIn();
         requireField(command, "checkInPreviewCommand");
         String qrPayload = TextValidationUtils.normalizeNullableText(
                 command.subscriptionQrPayload(), "subscriptionQrPayload", MAX_QR_PAYLOAD_LENGTH);
+        String reservationQrPayload = TextValidationUtils.normalizeNullableText(
+                command.reservationQrPayload(), "reservationQrPayload", 512);
+        if (qrPayload != null && reservationQrPayload != null) {
+            throw new BadRequestException("Only one reservation or subscription QR may be used");
+        }
         boolean qrCheckIn = qrPayload != null;
         if (qrCheckIn && command.cardUid() != null && !command.cardUid().isBlank()) {
             throw new BadRequestException("Chỉ được sử dụng QR hoặc thẻ vật lý cho một lần check-in");
@@ -428,11 +463,21 @@ public class ParkingCheckInUseCaseImpl {
         }
         UUID vehicleTypeId = resolveVehicleTypeId(customerContext, requestedVehicleTypeId);
         parkingCheckInPolicy.validateVehicleTypeAccepted(vehicleTypeId, zone);
+        CustomerReservation reservation = customerContext.subscription() == null
+                && reservationAdmissionPortIn != null
+                ? reservationAdmissionPortIn.resolveForCheckIn(lot.getParkingLotId(),
+                        zone.getZoneId(), vehicleTypeId, plate, reservationQrPayload, Instant.now()) : null;
+        if (reservationQrPayload != null && reservation == null) {
+            throw new ConflictException("Reservation QR does not match this check-in");
+        }
         var availability = availabilityQuery == null ? null : availabilityQuery.get(zone, businessDate);
         long physicalAvailable = availability == null
                 ? Math.max(0, value(zone.getCapacity()) - parkingSessionPortOut.countOpenByZoneId(zone.getZoneId()))
                 : availability.physicalAvailable();
         long visitorAvailable = availability == null ? physicalAvailable : availability.visitorAvailable();
+        if (reservation != null && zone.getTrackingMode() == TrackingMode.CAPACITY) {
+            visitorAvailable++;
+        }
 
         List<CheckInPreviewResult.EligibleSpace> eligible = List.of();
         UUID recommended = null;
@@ -448,6 +493,16 @@ public class ParkingCheckInUseCaseImpl {
             if (subscription == null && visitorAvailable <= 0 || subscription != null && physicalAvailable <= 0) {
                 throw new ConflictException("No check-in capacity is available");
             }
+        } else if (reservation != null) {
+            ParkingSpace space = parkingSpacePortOut.findById(reservation.getParkingSpaceId())
+                    .orElseThrow(() -> new NotFoundException("Reserved parking space not found"));
+            if (space.getStatus() != ParkingSpaceStatus.RESERVED
+                    || parkingSessionPortOut.existsOpenByParkingSpaceId(space.getParkingSpaceId())) {
+                throw new ConflictException("Reserved parking space is not ready for check-in");
+            }
+            recommended = space.getParkingSpaceId();
+            eligible = List.of(new CheckInPreviewResult.EligibleSpace(
+                    space.getParkingSpaceId(), space.getCode(), space.getStatus()));
         } else if (subscription != null) {
             UUID subscriptionId = subscription.getSubscriptionId();
             var allocation = allocationPortOut.findActiveAllocationsBySubscription(subscriptionId).stream()
@@ -758,7 +813,8 @@ public class ParkingCheckInUseCaseImpl {
             Zone zone,
             UUID parkingSpaceId,
             Subscription subscription,
-            UUID resolvedVehicleTypeId
+            UUID resolvedVehicleTypeId,
+            CustomerReservation reservation
     ) {
         if (zone.getTrackingMode() != TrackingMode.SPACE) {
             if (parkingSpaceId != null) {
@@ -770,6 +826,12 @@ public class ParkingCheckInUseCaseImpl {
             throw new BadRequestException("Parking space assignment is not available");
         }
         UUID resolvedSpaceId = parkingSpaceId;
+        if (reservation != null) {
+            if (parkingSpaceId != null && !parkingSpaceId.equals(reservation.getParkingSpaceId())) {
+                throw new BadRequestException("Selected space does not match the reservation");
+            }
+            resolvedSpaceId = reservation.getParkingSpaceId();
+        }
         ParkingSpace autoAssignedSpace = null;
         Instant now = Instant.now();
         LocalDate today = DateTimeUtils.toAppLocalDate(now);
@@ -804,7 +866,7 @@ public class ParkingCheckInUseCaseImpl {
         if (!"ACTIVE".equals(space.getLifecycleStatus())) {
             throw new ConflictException("Only an active parking space can be assigned");
         }
-        ParkingSpaceStatus requiredStatus = subscription == null
+        ParkingSpaceStatus requiredStatus = subscription == null && reservation == null
                 ? ParkingSpaceStatus.AVAILABLE : ParkingSpaceStatus.RESERVED;
         if (space.getStatus() != requiredStatus) {
             throw new ConflictException("Parking space is not available for check-in");
@@ -839,7 +901,8 @@ public class ParkingCheckInUseCaseImpl {
         return space;
     }
 
-    private void validateAdmissionAvailability(Zone zone, Subscription subscription, Instant now) {
+    private void validateAdmissionAvailability(Zone zone, Subscription subscription, Instant now,
+            CustomerReservation reservation) {
         if (availabilityQuery == null) {
             parkingCheckInPolicy.validateZoneCapacity(zone,
                     parkingSessionPortOut.countOpenByZoneId(zone.getZoneId()));
@@ -847,6 +910,13 @@ public class ParkingCheckInUseCaseImpl {
         }
         LocalDate businessDate = DateTimeUtils.toVietnamLocalDate(now);
         var availability = availabilityQuery.get(zone, businessDate);
+        if (reservation != null) {
+            if (zone.getTrackingMode() == TrackingMode.CAPACITY
+                    && availability.physicalAvailable() <= 0) {
+                throw new ConflictException("Reserved capacity is no longer physically available");
+            }
+            return;
+        }
         if (subscription == null) {
             if (availability.visitorAvailable() <= 0) {
                 throw new ConflictException("No visitor capacity is available in this zone");

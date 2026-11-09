@@ -87,6 +87,8 @@ export const customerRoutePermissionGroups = {
   "/customer/profile": [],
   "/customer/vehicles": [["CUSTOMER_VEHICLE_READ_OWN", "CUSTOMER_VEHICLE_READ_ALL"]],
   "/customer/subscriptions": [["SUBSCRIPTION_READ_OWN", "SUBSCRIPTION_READ_ALL"]],
+  "/customer/reservations": [["PAYMENT_CREATE_OWN"]],
+  "/customer/reservations/:reservationId": [["PAYMENT_CREATE_OWN"]],
   "/customer/wallet": [["WALLET_READ_OWN"]],
   "/customer/wallet/topup": [["WALLET_TOP_UP_OWN"]],
   "/customer/wallet/topup-result": [["WALLET_READ_OWN"]],

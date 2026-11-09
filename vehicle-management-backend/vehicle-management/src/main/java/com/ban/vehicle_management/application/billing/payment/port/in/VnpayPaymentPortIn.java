@@ -10,6 +10,8 @@ import java.util.UUID;
 public interface VnpayPaymentPortIn {
 
     VnpayPaymentResult createPayment(UUID invoiceId, CreateVnpayPaymentCommand command);
+    VnpayPaymentResult createGuestReservationPayment(UUID reservationId,
+            String accessToken, CreateVnpayPaymentCommand command);
 
     VnpayIpnResult processIpn(VnpayCallbackCommand command);
 

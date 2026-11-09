@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.parking.availability;
 
 import com.ban.vehicle_management.application.parking.capacityallocation.port.out.SubscriptionCapacityAllocationPortOut;
+import com.ban.vehicle_management.application.parking.customerreservation.port.out.CustomerReservationPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.parking.parkingspace.port.out.ParkingSpacePortOut;
 import com.ban.vehicle_management.application.parking.parkingspaceallocation.port.out.ParkingSpaceAllocationPortOut;
@@ -25,6 +26,12 @@ public class ParkingAvailabilityQuery {
     private final ParkingSpaceAllocationPortOut spaceAllocationPortOut;
     private final SubscriptionCapacityAllocationPortOut capacityAllocationPortOut;
     private final ParkingAvailabilityPolicy policy = new ParkingAvailabilityPolicy();
+    private CustomerReservationPortOut reservationPortOut;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setReservationPortOut(CustomerReservationPortOut reservationPortOut) {
+        this.reservationPortOut = reservationPortOut;
+    }
 
     public ParkingAvailabilityQuery(ParkingSessionPortOut sessionPortOut,
             ParkingSpacePortOut spacePortOut,
@@ -58,9 +65,18 @@ public class ParkingAvailabilityQuery {
                 .filter(item -> item.getSubscriptionId() != null
                         && validSubscriptionIds.contains(item.getSubscriptionId()))
                 .count();
-        return policy.calculateCapacity(zone.getZoneId(), value(zone.getCapacity()),
+        ParkingAvailabilitySnapshot snapshot = policy.calculateCapacity(zone.getZoneId(), value(zone.getCapacity()),
                 value(zone.getUnavailableCapacity()), entitlements.size(), registered,
                 registeredEntitled, visitor);
+        long held = reservationPortOut == null ? 0
+                : reservationPortOut.countActiveByZone(zone.getZoneId(), java.time.Instant.now());
+        return new ParkingAvailabilitySnapshot(snapshot.zoneId(), snapshot.configuredCapacity(),
+                snapshot.unavailableCapacity(), snapshot.effectiveCapacity(),
+                snapshot.subscriptionReserved(), snapshot.occupiedRegistered(),
+                snapshot.occupiedVisitor(), snapshot.physicalAvailable(),
+                Math.max(0, snapshot.visitorAvailable() - held),
+                snapshot.availableSpaceCount(), snapshot.reservedSpaceCount(),
+                snapshot.occupiedSpaceCount(), snapshot.maintenanceSpaceCount());
     }
 
     private ParkingAvailabilitySnapshot getSpace(Zone zone, LocalDate date) {

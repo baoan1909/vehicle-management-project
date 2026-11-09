@@ -1,9 +1,9 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 
 import { Modal } from "@/components/ui";
+import { decodeCheckInQrImage } from "@/features/parking/api/parkingSessionApi";
 import {
   verifySubscriptionQr,
-  verifySubscriptionQrImage,
   type SubscriptionQrVerification,
 } from "@/features/subscriptions/api/subscriptionQrApi";
 import type { ParkingOperationMode } from "./OperationModeTabs";
@@ -12,6 +12,7 @@ type SubscriptionQrScannerModalProps = {
   onClose: () => void;
   mode: ParkingOperationMode;
   onConfirm: (verification: SubscriptionQrVerification, qrPayload: string) => void | Promise<void>;
+  onConfirmReservation: (qrPayload: string) => void | Promise<void>;
   open: boolean;
   parkingLotId: string;
 };
@@ -28,7 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
   VEHICLE_MISMATCH: "Biển số không khớp với vé",
 };
 
-export function SubscriptionQrScannerModal({ mode, onClose, onConfirm, open, parkingLotId }: SubscriptionQrScannerModalProps) {
+export function SubscriptionQrScannerModal({ mode, onClose, onConfirm, onConfirmReservation, open, parkingLotId }: SubscriptionQrScannerModalProps) {
   const [qrPayload, setQrPayload] = useState("");
   const [result, setResult] = useState<SubscriptionQrVerification | null>(null);
   const [error, setError] = useState("");
@@ -58,6 +59,18 @@ export function SubscriptionQrScannerModal({ mode, onClose, onConfirm, open, par
     setError("");
     setResult(null);
     try {
+      if (normalized.startsWith("COPARKING:RESERVATION:1:")) {
+        if (mode !== "check-in") {
+          setError("QR đặt chỗ chỉ dùng để check-in. Check-out dùng thẻ hoặc biển số.");
+          return;
+        }
+        if (normalized.length > 512) {
+          setError("QR đặt chỗ không hợp lệ.");
+          return;
+        }
+        await onConfirmReservation(normalized);
+        return;
+      }
       const verification = await verifySubscriptionQr({
         qrPayload: normalized,
         parkingLotId,
@@ -92,15 +105,9 @@ export function SubscriptionQrScannerModal({ mode, onClose, onConfirm, open, par
     setError("");
     setResult(null);
     try {
-      const verification = await verifySubscriptionQrImage({
-        image: file,
-        parkingLotId,
-      });
-      setResult(verification);
-      if (verification.qrPayload) setQrPayload(verification.qrPayload);
-      if (verification.status === "VALID" && verification.qrPayload) {
-        await onConfirm(verification, verification.qrPayload);
-      }
+      const payload = await decodeCheckInQrImage(file, parkingLotId);
+      setQrPayload(payload);
+      await verify(payload);
     } catch (decodeError) {
       setError(decodeError instanceof Error ? decodeError.message : "Không thể tải và kiểm tra ảnh QR.");
     } finally {
@@ -113,10 +120,10 @@ export function SubscriptionQrScannerModal({ mode, onClose, onConfirm, open, par
 
   return (
     <Modal
-      description={`QR hợp lệ sẽ được đưa vào form ${operationLabel}. Biển số thực tế được đối chiếu khi nhân viên xác nhận xe ${mode === "check-in" ? "vào" : "ra"}.`}
+      description={`QR vé đăng ký được kiểm tra ngay; QR đặt chỗ được đối chiếu với đặt chỗ và biển số khi nhân viên xác nhận xe vào. Hãy đối chiếu biển số thực tế trước khi xác nhận xe ${mode === "check-in" ? "vào" : "ra"}.`}
       onClose={onClose}
       open={open}
-      title={`Kiểm tra QR vé đăng ký để ${operationLabel}`}
+      title={`Quét QR để ${operationLabel}`}
       width="md"
     >
       <div className="tw-grid tw-gap-4">
@@ -133,7 +140,7 @@ export function SubscriptionQrScannerModal({ mode, onClose, onConfirm, open, par
           Nội dung QR
           <textarea
             className="tw-min-h-20 tw-resize-y tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-p-3 tw-font-mono tw-text-xs tw-font-normal tw-outline-none focus:tw-border-blue-500"
-            placeholder="COPARKING:SUBSCRIPTION:1:..."
+            placeholder="COPARKING:SUBSCRIPTION:1:... hoặc COPARKING:RESERVATION:1:..."
             value={qrPayload}
             onChange={(event) => setQrPayload(event.target.value)}
           />

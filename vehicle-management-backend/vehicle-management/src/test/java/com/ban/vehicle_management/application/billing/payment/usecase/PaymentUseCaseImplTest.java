@@ -112,6 +112,18 @@ class PaymentUseCaseImplTest {
     }
 
     @Test
+    void shouldRejectRetiredOnlinePaymentMethods() {
+        UUID invoiceId = UUID.randomUUID();
+        when(invoicePortOut.findById(invoiceId)).thenReturn(Optional.of(unpaidInvoice(invoiceId)));
+
+        for (PaymentMethod method : List.of(PaymentMethod.PAYOS, PaymentMethod.STRIPE)) {
+            assertThrows(BadRequestException.class,
+                    () -> paymentUseCase.recordPayment(invoiceId, validPayment(method)));
+        }
+        verify(paymentPortOut, never()).save(any(Payment.class));
+    }
+
+    @Test
     void shouldThrowWhenInvoiceNotFound() {
         UUID invoiceId = UUID.randomUUID();
 
