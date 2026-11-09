@@ -13,5 +13,8 @@ public interface AccountDeletionPortIn {
     Optional<AccountDeletionRequest> cancelOnFreshLogin(UUID accountId, Instant authenticatedAt);
     AccountDeletionView requestCurrentAccountDeletionView();
     Optional<AccountDeletionView> getCurrentRequestView();
+    default AccountDeletionView getCurrentRequestViewOrNull() {
+        return getCurrentRequestView().orElse(null);
+    }
     AccountDeletionView cancelCurrentRequestView(String reason);
 }

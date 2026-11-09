@@ -22,6 +22,7 @@ import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.Pl
 import com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response.PlatformFeeVersionAdminResponse;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import com.ban.vehicle_management.entrypoint.converter.PaginationRequestConverter;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -45,12 +46,15 @@ public class PlatformFeeAdminController {
 
     private final PlatformFeeManagementPortIn managementPortIn;
     private final PlatformFeeApiMapper apiMapper;
+    private final PaginationRequestConverter paginationRequestConverter;
 
     public PlatformFeeAdminController(
             PlatformFeeManagementPortIn managementPortIn,
-            PlatformFeeApiMapper apiMapper) {
+            PlatformFeeApiMapper apiMapper,
+            PaginationRequestConverter paginationRequestConverter) {
         this.managementPortIn = managementPortIn;
         this.apiMapper = apiMapper;
+        this.paginationRequestConverter = paginationRequestConverter;
     }
 
     @PostMapping
@@ -67,10 +71,10 @@ public class PlatformFeeAdminController {
     @PreAuthorize("@permissionAuthorizer.hasPermission('PLATFORM_FEE_READ_ALL')")
     public ResponseEntity<ApiResponse<PlatformFeePageResponse>> searchFeeTypes(
             @ModelAttribute PlatformFeeFilterRequest request) {
-        int page = request.page() == null ? 0 : request.page();
-        int size = request.size() == null ? 10 : request.size();
+        var pagination = paginationRequestConverter.resolve(request.page(), request.size());
         PlatformFeePageResult result = managementPortIn.searchFeeTypes(
-                request.keyword(), request.status(), request.transactionType(), request.feeBasis(), page, size);
+                request.keyword(), request.status(), request.transactionType(), request.feeBasis(),
+                pagination.page(), pagination.size());
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched platform fee types successfully",
                 apiMapper.toPageResponse(result)));

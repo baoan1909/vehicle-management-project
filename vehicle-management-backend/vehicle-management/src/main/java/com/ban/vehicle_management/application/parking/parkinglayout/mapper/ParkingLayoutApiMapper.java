@@ -6,16 +6,22 @@ import com.ban.vehicle_management.application.parking.parkinglayout.model.result
 import com.ban.vehicle_management.application.parking.parkinglayout.model.result.ZoneLayoutResult;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.request.LayoutElementRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.request.LayoutSpaceItemRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.request.PublishLayoutRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.response.LayoutElementResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.response.LayoutSpaceItemResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.response.PublishPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglayout.response.ZoneLayoutResponse;
+import com.ban.vehicle_management.entrypoint.dto.parking.customerreservation.response.PublicReservationLayoutResponse;
 import java.util.List;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring", uses = ParkingLayoutJsonValueMapper.class)
 public interface ParkingLayoutApiMapper {
+
+    default Long toExpectedDraftRevision(PublishLayoutRequest request) {
+        return request == null ? null : request.expectedDraftRevision();
+    }
 
     @Mapping(target = "layoutVersionId", source = "version.layoutVersionId")
     @Mapping(target = "zoneId", source = "version.zoneId")
@@ -27,6 +33,8 @@ public interface ParkingLayoutApiMapper {
     @Mapping(target = "publishedBy", source = "version.publishedBy")
     ZoneLayoutResponse toResponse(ZoneLayoutResult result);
 
+    PublicReservationLayoutResponse toPublicReservationResponse(ZoneLayoutResult result);
+
     PublishPreviewResponse toPreviewResponse(PublishPreviewResult result);
 
     LayoutSpaceItemResponse toItemResponse(ZoneLayoutResult.LayoutItemView view);
@@ -37,6 +45,11 @@ public interface ParkingLayoutApiMapper {
     SaveLayoutItemCommand toItemCommand(LayoutSpaceItemRequest request);
 
     List<SaveLayoutItemCommand> toItemCommands(List<LayoutSpaceItemRequest> requests);
+
+    default List<SaveLayoutItemCommand> toItemCommandsOrEmpty(
+            List<LayoutSpaceItemRequest> requests) {
+        return requests == null ? List.of() : toItemCommands(requests);
+    }
 
     @Mapping(target = "geometry", source = "geometry", qualifiedByName = "toLegacyJsonNode")
     @Mapping(target = "style", source = "style", qualifiedByName = "toLegacyJsonNode")

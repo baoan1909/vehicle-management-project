@@ -191,7 +191,8 @@ public class ChatConversationController {
             @PathVariable UUID conversationId,
             @RequestBody(required = false) MarkConversationReadRequest request
     ) {
-        chatConversationPortIn.markRead(conversationId, request == null ? null : request.messageId());
+        chatConversationPortIn.markRead(
+                conversationId, chatConversationApiMapper.toLastReadMessageId(request));
         return ResponseEntity.ok(ApiResponse.ok("Chat conversation marked as read successfully"));
     }
 

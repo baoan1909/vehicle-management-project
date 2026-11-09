@@ -99,9 +99,9 @@ public class WalletAdminController {
     public ResponseEntity<ApiResponse<WalletAdjustmentResponse>> rejectAdjustment(
             @PathVariable UUID adjustmentId,
             @RequestBody(required = false) RejectWalletAdjustmentRequest request) {
-        String reason = request == null ? null : request.reason();
         return ResponseEntity.ok(ApiResponse.ok(
                 "Adjustment rejected successfully",
-                walletApiMapper.toResponse(walletAdminPortIn.rejectAdjustment(adjustmentId, reason))));
+                walletApiMapper.toResponse(walletAdminPortIn.rejectAdjustment(
+                        adjustmentId, walletApiMapper.toRejectionReason(request)))));
     }
 }

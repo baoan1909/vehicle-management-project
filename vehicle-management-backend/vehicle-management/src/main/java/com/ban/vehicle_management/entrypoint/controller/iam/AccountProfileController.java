@@ -110,7 +110,7 @@ public class AccountProfileController {
     @GetMapping("/profile/avatar-status")
     public ResponseEntity<ApiResponse<AvatarModerationResponse>> getMyAvatarStatus() {
         AvatarModerationResponse response = avatarModerationApiMapper.toResponse(
-                avatarModerationPortIn.getMyAvatarModerationStatus().orElse(null));
+                avatarModerationPortIn.getMyAvatarModerationStatusOrNull());
         return ResponseEntity.ok(ApiResponse.ok("Fetched avatar moderation status successfully", response));
     }
 }

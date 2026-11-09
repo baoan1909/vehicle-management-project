@@ -16,6 +16,7 @@ import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.respon
 import com.ban.vehicle_management.entrypoint.dto.operations.supportticket.response.SupportTicketUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.response.ChatConversationUserResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import com.ban.vehicle_management.entrypoint.policy.EndpointOutcomePolicy;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -30,17 +31,20 @@ public class SupportTicketController {
     private final SupportTicketApiMapper supportTicketApiMapper;
     private final SupportTicketChatIntakeApiMapper supportTicketChatIntakeApiMapper;
     private final ChatConversationApiMapper chatConversationApiMapper;
+    private final EndpointOutcomePolicy endpointOutcomePolicy;
 
     public SupportTicketController(
             SupportTicketPortIn supportTicketPortIn,
             SupportTicketApiMapper supportTicketApiMapper,
             SupportTicketChatIntakeApiMapper supportTicketChatIntakeApiMapper,
-            ChatConversationApiMapper chatConversationApiMapper
+            ChatConversationApiMapper chatConversationApiMapper,
+            EndpointOutcomePolicy endpointOutcomePolicy
     ) {
         this.supportTicketPortIn = supportTicketPortIn;
         this.supportTicketApiMapper = supportTicketApiMapper;
         this.supportTicketChatIntakeApiMapper = supportTicketChatIntakeApiMapper;
         this.chatConversationApiMapper = chatConversationApiMapper;
+        this.endpointOutcomePolicy = endpointOutcomePolicy;
     }
 
     @PostMapping
@@ -66,12 +70,10 @@ public class SupportTicketController {
         SupportTicketChatIntake intake = supportTicketPortIn.createChatIntake(
                 supportTicketApiMapper.toDomain(request), idempotencyKey
         );
-        return ResponseEntity.status(intake.reusedActiveTicket() ? HttpStatus.OK : HttpStatus.CREATED).body(ApiResponse.ok(
-                intake.reusedActiveTicket()
-                        ? "Active support conversation opened successfully"
-                        : "Support chat intake created successfully",
-                supportTicketChatIntakeApiMapper.toResponse(intake)
-        ));
+        return endpointOutcomePolicy.createdOrOk(
+                !intake.reusedActiveTicket(), supportTicketChatIntakeApiMapper.toResponse(intake),
+                "Support chat intake created successfully",
+                "Active support conversation opened successfully");
     }
 
     @GetMapping("/assistant-conversation")

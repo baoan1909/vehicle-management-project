@@ -5,6 +5,7 @@ import com.ban.vehicle_management.application.operations.approvalrequest.model.c
 import com.ban.vehicle_management.application.operations.approvalrequest.model.result.SupportTicketEscalationResult;
 import com.ban.vehicle_management.entrypoint.dto.operations.approvalrequest.request.CreateSupportTicketEscalationRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.approvalrequest.request.ReviewSupportTicketEscalationRequest;
+import com.ban.vehicle_management.entrypoint.dto.operations.approvalrequest.request.RejectSupportTicketEscalationRequest;
 import com.ban.vehicle_management.entrypoint.dto.operations.approvalrequest.response.SupportTicketEscalationResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
@@ -14,6 +15,10 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface SupportTicketEscalationApiMapper {
+
+    default String toRejectionNote(RejectSupportTicketEscalationRequest request) {
+        return request == null ? null : request.note();
+    }
 
     @Mapping(target = "reasonCode", source = "request.reasonCode")
     @Mapping(target = "description", source = "request.description")

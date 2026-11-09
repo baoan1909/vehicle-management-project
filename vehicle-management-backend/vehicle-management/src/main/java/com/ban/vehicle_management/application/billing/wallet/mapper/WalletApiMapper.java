@@ -8,11 +8,16 @@ import com.ban.vehicle_management.entrypoint.dto.billing.wallet.response.WalletA
 import com.ban.vehicle_management.entrypoint.dto.billing.wallet.response.WalletResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.wallet.response.WalletTransactionResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.wallet.response.WalletTopupResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.wallet.request.RejectWalletAdjustmentRequest;
 import java.util.List;
 import org.mapstruct.Mapper;
 
 @Mapper(componentModel = "spring")
 public interface WalletApiMapper {
+
+    default String toRejectionReason(RejectWalletAdjustmentRequest request) {
+        return request == null ? null : request.reason();
+    }
 
     WalletResponse toResponse(Wallet wallet);
 

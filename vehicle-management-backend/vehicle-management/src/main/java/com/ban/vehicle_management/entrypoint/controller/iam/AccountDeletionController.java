@@ -38,7 +38,7 @@ public class AccountDeletionController {
     @PreAuthorize("hasAuthority('ACCOUNT_DELETION_READ_SELF')")
     public ResponseEntity<ApiResponse<AccountDeletionResponse>> currentRequest() {
         AccountDeletionResponse response = mapper.toResponse(
-                useCase.getCurrentRequestView().orElse(null));
+                useCase.getCurrentRequestViewOrNull());
         return ResponseEntity.ok(ApiResponse.ok("Đã tải trạng thái yêu cầu xóa tài khoản", response));
     }
 
@@ -47,8 +47,7 @@ public class AccountDeletionController {
     public ResponseEntity<ApiResponse<AccountDeletionResponse>> cancelDeletion(
             @RequestBody(required = false) CancelAccountDeletionRequest body
     ) {
-        String reason = body == null ? null : body.reason();
         return ResponseEntity.ok(ApiResponse.ok("Đã hủy yêu cầu xóa tài khoản", mapper.toResponse(
-                useCase.cancelCurrentRequestView(reason))));
+                useCase.cancelCurrentRequestView(mapper.toCancellationReason(body)))));
     }
 }

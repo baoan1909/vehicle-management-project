@@ -73,7 +73,8 @@ public class PublicParkingLotController {
     public ResponseEntity<ApiResponse<Void>> recordGeolocationOutcome(
             @RequestBody GeolocationTelemetryRequest request
     ) {
-        parkingMapTelemetryPortIn.recordGeolocationOutcome(request == null ? null : request.outcome());
+        parkingMapTelemetryPortIn.recordGeolocationOutcome(
+                parkingLotApiMapper.toGeolocationOutcome(request));
         return ResponseEntity.ok(ApiResponse.ok("Geolocation outcome recorded"));
     }
 }

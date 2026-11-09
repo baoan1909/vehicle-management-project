@@ -30,6 +30,10 @@ class ThinControllerArchitectureTest {
                     + "\\bMap\\s*<|"
                     + "\\bnew\\s+\\w*(?:Request|Response|Command|Dto)\\s*\\(|"
                     + "\\.(?:stream|map)\\s*\\(|"
+                    + "\\.(?:orElse|orElseGet|orElseThrow|ifPresent|isPresent|getBytes)\\s*\\(|"
+                    + "\\b(?:if|switch|for|while)\\s*\\(|"
+                    + "\\?\\s*[^:;\\r\\n]+\\s*:\\s*|"
+                    + "import\\s+.*\\.domain\\..*\\.policy\\.|"
                     + "\\b(?:Instant|LocalDateTime|OffsetDateTime)\\.now\\s*\\(|"
                     + "\\bUUID\\.randomUUID\\s*\\(|"
                     + "\\btry\\s*\\{|\\bcatch\\s*\\(");

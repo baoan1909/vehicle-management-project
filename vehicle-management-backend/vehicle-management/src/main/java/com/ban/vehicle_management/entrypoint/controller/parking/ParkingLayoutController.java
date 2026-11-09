@@ -70,11 +70,8 @@ public class ParkingLayoutController {
         ZoneLayoutResult result = parkingLayoutPortIn.saveLayout(
                 zoneId,
                 request.expectedDraftRevision(),
-                parkingLayoutApiMapper.toItemCommands(
-                        request.items() == null ? List.of() : request.items()),
-                request.elements() == null
-                        ? null
-                        : parkingLayoutApiMapper.toElementCommands(request.elements()));
+                parkingLayoutApiMapper.toItemCommandsOrEmpty(request.items()),
+                parkingLayoutApiMapper.toElementCommands(request.elements()));
         return ResponseEntity.ok(ApiResponse.ok(
                 "Draft layout saved successfully",
                 parkingLayoutApiMapper.toResponse(result)
@@ -123,7 +120,7 @@ public class ParkingLayoutController {
             @RequestBody(required = false) PublishLayoutRequest request
     ) {
         ZoneLayoutResult result = parkingLayoutPortIn.publishLayout(
-                zoneId, request == null ? null : request.expectedDraftRevision());
+                zoneId, parkingLayoutApiMapper.toExpectedDraftRevision(request));
         return ResponseEntity.ok(ApiResponse.ok(
                 "Layout published successfully",
                 parkingLayoutApiMapper.toResponse(result)

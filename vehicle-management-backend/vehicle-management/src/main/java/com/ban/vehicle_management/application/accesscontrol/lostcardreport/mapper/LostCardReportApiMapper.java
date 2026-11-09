@@ -14,6 +14,7 @@ import com.ban.vehicle_management.domain.billing.invoice.model.InvoiceDetail;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.parking.parkingsession.model.ParkingSession;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.request.CreateLostCardReportRequest;
+import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.request.ResolveLostCardReportRequest;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardPreviewResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportDetailResponse;
 import com.ban.vehicle_management.entrypoint.dto.accesscontrol.lostcardreport.response.LostCardReportListItemResponse;
@@ -28,11 +29,16 @@ import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring", uses = ParkingSessionApiMapper.class)
 public interface LostCardReportApiMapper {
+
+    default UUID toReplacementCardId(ResolveLostCardReportRequest request) {
+        return request == null ? null : request.newCardId();
+    }
 
     @Mapping(target = "lostCardReportId", ignore = true)
     @Mapping(target = "parkingLotId", ignore = true)

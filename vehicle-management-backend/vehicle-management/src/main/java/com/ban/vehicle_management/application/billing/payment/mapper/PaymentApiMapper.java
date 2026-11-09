@@ -50,4 +50,12 @@ public interface PaymentApiMapper {
     @Mapping(target = "locale", defaultValue = "vn")
     CreateVnpayPaymentCommand toCommand(CreateVnpayPaymentRequest request, String clientIp);
 
+    default CreateVnpayPaymentCommand toCommandWithDefaults(
+            CreateVnpayPaymentRequest request, String clientIp) {
+        CreateVnpayPaymentRequest resolved = request == null
+                ? new CreateVnpayPaymentRequest(null, "vn")
+                : request;
+        return toCommand(resolved, clientIp);
+    }
+
 }

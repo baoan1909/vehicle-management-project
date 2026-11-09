@@ -72,11 +72,9 @@ public class LostCardReportController {
             @PathVariable UUID lostCardReportId,
             @RequestBody(required = false) ResolveLostCardReportRequest request
     ) {
-        UUID newCardId = request == null ? null : request.newCardId();
-
         LostCardReportWorkflowResult result = lostCardReportPortIn.resolveReport(
                 lostCardReportId,
-                newCardId
+                lostCardReportApiMapper.toReplacementCardId(request)
         );
 
         return ResponseEntity.ok(ApiResponse.ok(

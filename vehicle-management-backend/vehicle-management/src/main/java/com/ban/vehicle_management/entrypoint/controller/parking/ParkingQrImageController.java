@@ -1,10 +1,10 @@
 package com.ban.vehicle_management.entrypoint.controller.parking;
 
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingQrImagePortIn;
+import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingQrImageApiMapper;
+import com.ban.vehicle_management.entrypoint.converter.MultipartFileBytesConverter;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingQrImageResponse;
-import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
-import java.io.IOException;
 import java.util.UUID;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +20,15 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/parking/parking-sessions/qr")
 public class ParkingQrImageController {
     private final ParkingQrImagePortIn qrImages;
+    private final ParkingQrImageApiMapper mapper;
+    private final MultipartFileBytesConverter fileBytesConverter;
 
-    public ParkingQrImageController(ParkingQrImagePortIn qrImages) {
+    public ParkingQrImageController(ParkingQrImagePortIn qrImages,
+            ParkingQrImageApiMapper mapper,
+            MultipartFileBytesConverter fileBytesConverter) {
         this.qrImages = qrImages;
+        this.mapper = mapper;
+        this.fileBytesConverter = fileBytesConverter;
     }
 
     @PostMapping(value = "/decode-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -30,11 +36,8 @@ public class ParkingQrImageController {
     public ResponseEntity<ApiResponse<ParkingQrImageResponse>> decodeImage(
             @RequestPart("image") MultipartFile image,
             @RequestParam UUID parkingLotId) {
-        try {
-            return ResponseEntity.ok(ApiResponse.ok("Parking QR image decoded",
-                    new ParkingQrImageResponse(qrImages.decodeForOperation(image.getBytes(), parkingLotId))));
-        } catch (IOException exception) {
-            throw new BadRequestException("Unable to read QR image");
-        }
+        return ResponseEntity.ok(ApiResponse.ok("Parking QR image decoded",
+                mapper.toResponse(qrImages.decodeForOperation(
+                        fileBytesConverter.read(image, "Unable to read QR image"), parkingLotId))));
     }
 }

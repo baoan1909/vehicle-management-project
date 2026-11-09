@@ -37,7 +37,7 @@ public class AvatarModerationController {
     public ResponseEntity<ApiResponse<AvatarModerationResponse>> approve(
             @PathVariable UUID approvalRequestId, @RequestBody(required = false) ReviewAvatarRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Avatar approved successfully",
-                mapper.toResponse(portIn.approve(approvalRequestId, request == null ? null : request.note()))));
+                mapper.toResponse(portIn.approve(approvalRequestId, mapper.toNote(request)))));
     }
 
     @PostMapping("/{approvalRequestId}/reject")
@@ -45,6 +45,6 @@ public class AvatarModerationController {
     public ResponseEntity<ApiResponse<AvatarModerationResponse>> reject(
             @PathVariable UUID approvalRequestId, @RequestBody ReviewAvatarRequest request) {
         return ResponseEntity.ok(ApiResponse.ok("Avatar rejected successfully",
-                mapper.toResponse(portIn.reject(approvalRequestId, request == null ? null : request.note()))));
+                mapper.toResponse(portIn.reject(approvalRequestId, mapper.toNote(request)))));
     }
 }

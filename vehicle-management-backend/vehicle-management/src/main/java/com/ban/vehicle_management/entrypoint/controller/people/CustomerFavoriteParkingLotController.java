@@ -7,6 +7,7 @@ import com.ban.vehicle_management.entrypoint.dto.people.customerfavoriteparkingl
 import com.ban.vehicle_management.entrypoint.dto.people.customerfavoriteparkinglot.response.CustomerFavoriteParkingLotListResponse;
 import com.ban.vehicle_management.entrypoint.dto.people.customerfavoriteparkinglot.response.CustomerFavoriteParkingLotResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import com.ban.vehicle_management.entrypoint.policy.EndpointOutcomePolicy;
 import jakarta.validation.Valid;
 import java.util.Set;
 import java.util.UUID;
@@ -24,13 +25,16 @@ public class CustomerFavoriteParkingLotController {
 
     private final CustomerFavoriteParkingLotPortIn favoriteParkingLotPortIn;
     private final CustomerFavoriteParkingLotApiMapper favoriteParkingLotApiMapper;
+    private final EndpointOutcomePolicy endpointOutcomePolicy;
 
     public CustomerFavoriteParkingLotController(
             CustomerFavoriteParkingLotPortIn favoriteParkingLotPortIn,
-            CustomerFavoriteParkingLotApiMapper favoriteParkingLotApiMapper
+            CustomerFavoriteParkingLotApiMapper favoriteParkingLotApiMapper,
+            EndpointOutcomePolicy endpointOutcomePolicy
     ) {
         this.favoriteParkingLotPortIn = favoriteParkingLotPortIn;
         this.favoriteParkingLotApiMapper = favoriteParkingLotApiMapper;
+        this.endpointOutcomePolicy = endpointOutcomePolicy;
     }
 
     @GetMapping
@@ -49,9 +53,9 @@ public class CustomerFavoriteParkingLotController {
     ) {
         CustomerFavoriteParkingLot favoriteParkingLot = favoriteParkingLotPortIn
                 .setMyFavoriteParkingLot(parkingLotId, request.favorite());
-        return ResponseEntity.ok(ApiResponse.ok(
-                request.favorite() ? "Parking lot added to favorites" : "Parking lot removed from favorites",
-                favoriteParkingLotApiMapper.toResponse(favoriteParkingLot)
-        ));
+        return endpointOutcomePolicy.okWithMessage(
+                request.favorite(), favoriteParkingLotApiMapper.toResponse(favoriteParkingLot),
+                "Parking lot added to favorites",
+                "Parking lot removed from favorites");
     }
 }

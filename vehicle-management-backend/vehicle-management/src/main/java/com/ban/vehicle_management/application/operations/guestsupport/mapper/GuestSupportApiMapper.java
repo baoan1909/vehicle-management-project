@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.operations.guestsupport.mapper;
 
 import com.ban.vehicle_management.application.operations.guestsupport.model.CaptchaProof;
+import com.ban.vehicle_management.application.operations.guestsupport.model.GuestSupportStatusResult;
 import com.ban.vehicle_management.domain.operations.guestsupport.model.GuestSupportRequest;
 import com.ban.vehicle_management.domain.operations.supportticketcategory.model.SupportTicketCategory;
 import com.ban.vehicle_management.entrypoint.dto.operations.guestsupport.response.CaptchaProofResponse;
@@ -34,4 +35,6 @@ public interface GuestSupportApiMapper {
             String captchaSiteKey,
             boolean captchaRequiredForIntake,
             boolean captchaRequiredForAssistant);
+
+    PublicSupportStatusResponse toStatusResponse(GuestSupportStatusResult result);
 }

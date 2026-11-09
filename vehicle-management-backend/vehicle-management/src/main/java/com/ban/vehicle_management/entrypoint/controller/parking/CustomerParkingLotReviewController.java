@@ -5,9 +5,9 @@ import com.ban.vehicle_management.application.parking.parkinglotreview.port.in.C
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglotreview.request.UpsertParkingLotReviewRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkinglotreview.response.MyParkingLotReviewResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import com.ban.vehicle_management.entrypoint.policy.EndpointOutcomePolicy;
 import jakarta.validation.Valid;
 import java.util.UUID;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,11 +21,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class CustomerParkingLotReviewController {
     private final CustomerParkingLotReviewPortIn portIn;
     private final ParkingLotReviewApiMapper mapper;
+    private final EndpointOutcomePolicy endpointOutcomePolicy;
 
     public CustomerParkingLotReviewController(CustomerParkingLotReviewPortIn portIn,
-                                               ParkingLotReviewApiMapper mapper) {
+                                               ParkingLotReviewApiMapper mapper,
+                                               EndpointOutcomePolicy endpointOutcomePolicy) {
         this.portIn = portIn;
         this.mapper = mapper;
+        this.endpointOutcomePolicy = endpointOutcomePolicy;
     }
 
     @GetMapping
@@ -40,9 +43,9 @@ public class CustomerParkingLotReviewController {
             @PathVariable UUID parkingLotId,
             @Valid @RequestBody UpsertParkingLotReviewRequest request) {
         var result = portIn.upsert(parkingLotId, request.rating(), request.comment());
-        HttpStatus status = result.created() ? HttpStatus.CREATED : HttpStatus.OK;
-        return ResponseEntity.status(status).body(ApiResponse.ok(
-                result.created() ? "Created parking lot review successfully" : "Updated parking lot review successfully",
-                mapper.toCurrentReview(result.review())));
+        return endpointOutcomePolicy.createdOrOk(
+                result.created(), mapper.toCurrentReview(result.review()),
+                "Created parking lot review successfully",
+                "Updated parking lot review successfully");
     }
 }

@@ -11,6 +11,9 @@ public interface AvatarModerationPortIn {
     AvatarModerationResult submitCandidate(UserProfileAvatar avatar, UUID uploaderAccountId);
     void cancelPendingCandidate(UUID userProfileId);
     Optional<AvatarModerationResult> getMyAvatarModerationStatus();
+    default AvatarModerationResult getMyAvatarModerationStatusOrNull() {
+        return getMyAvatarModerationStatus().orElse(null);
+    }
     List<AvatarModerationResult> getAvatarApprovals(ApprovalRequestStatus status);
     AvatarModerationResult approve(UUID approvalRequestId, String note);
     AvatarModerationResult reject(UUID approvalRequestId, String note);

@@ -7,7 +7,6 @@ import com.ban.vehicle_management.application.ai.command.RejectKnowledgeDocument
 import com.ban.vehicle_management.application.ai.mapper.KnowledgeDocumentApiMapper;
 import com.ban.vehicle_management.application.ai.port.in.KnowledgeDocumentPortIn;
 import com.ban.vehicle_management.domain.ai.knowledge.model.KnowledgeDocument;
-import com.ban.vehicle_management.domain.ai.knowledge.policy.KnowledgeDocumentFilePolicy;
 import com.ban.vehicle_management.entrypoint.dto.ai.knowledge.response.KnowledgeChunkResponse;
 import com.ban.vehicle_management.entrypoint.dto.ai.knowledge.request.UploadKnowledgeDocumentRequest;
 import com.ban.vehicle_management.entrypoint.dto.ai.knowledge.request.KnowledgeDocumentFilterRequest;
@@ -16,7 +15,8 @@ import com.ban.vehicle_management.entrypoint.dto.ai.knowledge.response.Knowledge
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import com.ban.vehicle_management.entrypoint.dto.common.PageResponse;
-import com.ban.vehicle_management.entrypoint.converter.MultipartFileBytesConverter;
+import com.ban.vehicle_management.entrypoint.converter.KnowledgeDocumentUploadConverter;
+import com.ban.vehicle_management.entrypoint.policy.EndpointOutcomePolicy;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -42,16 +42,19 @@ public class KnowledgeDocumentController {
 
     private final KnowledgeDocumentPortIn documentPortIn;
     private final KnowledgeDocumentApiMapper mapper;
-    private final MultipartFileBytesConverter fileBytesConverter;
+    private final KnowledgeDocumentUploadConverter uploadConverter;
+    private final EndpointOutcomePolicy endpointOutcomePolicy;
 
     public KnowledgeDocumentController(
             KnowledgeDocumentPortIn documentPortIn,
             KnowledgeDocumentApiMapper mapper,
-            MultipartFileBytesConverter fileBytesConverter
+            KnowledgeDocumentUploadConverter uploadConverter,
+            EndpointOutcomePolicy endpointOutcomePolicy
     ) {
         this.documentPortIn = documentPortIn;
         this.mapper = mapper;
-        this.fileBytesConverter = fileBytesConverter;
+        this.uploadConverter = uploadConverter;
+        this.endpointOutcomePolicy = endpointOutcomePolicy;
     }
 
     @PostMapping("/upload")
@@ -63,29 +66,13 @@ public class KnowledgeDocumentController {
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKeyHeader,
             @RequestParam("file") MultipartFile file
     ) {
-        String effectiveIdempotencyKey = idempotencyKey != null ? idempotencyKey : idempotencyKeyHeader;
-        var result = documentPortIn.uploadDocument(mapper.toUploadCommand(
-                sourceId,
-                title,
-                file.getOriginalFilename(),
-                file.getContentType(),
-                fileBytesConverter.read(
-                        file,
-                        KnowledgeDocumentFilePolicy.DEFAULT_MAX_FILE_SIZE_BYTES,
-                        "Tệp tải lên vượt quá dung lượng cho phép",
-                        "Không thể đọc tệp tải lên"),
-                effectiveIdempotencyKey));
+        var result = documentPortIn.uploadDocument(uploadConverter.convert(
+                sourceId, title, idempotencyKey, idempotencyKeyHeader, file));
         KnowledgeDocumentResponse response = mapper.toResponse(result.document());
-        if (result.created()) {
-            return ResponseEntity.status(HttpStatus.ACCEPTED).body(ApiResponse.ok(
-                    "Tải lên tài liệu thành công, đang chờ xử lý",
-                    response
-            ));
-        }
-        return ResponseEntity.ok(ApiResponse.ok(
-                "Tài liệu đã tồn tại trong hệ thống",
-                response
-        ));
+        return endpointOutcomePolicy.acceptedOrOk(
+                result.created(), response,
+                "Tải lên tài liệu thành công, đang chờ xử lý",
+                "Tài liệu đã tồn tại trong hệ thống");
     }
 
     @GetMapping

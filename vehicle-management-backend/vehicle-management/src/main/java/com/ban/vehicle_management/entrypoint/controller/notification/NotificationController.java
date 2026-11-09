@@ -10,6 +10,7 @@ import com.ban.vehicle_management.entrypoint.dto.notification.notification.respo
 import com.ban.vehicle_management.entrypoint.dto.notification.notification.response.NotificationUnreadCountResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.notification.response.NotificationUserResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
+import com.ban.vehicle_management.entrypoint.converter.PaginationRequestConverter;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -29,15 +30,18 @@ public class NotificationController {
     private final NotificationPortIn notificationPortIn;
     private final NotificationApiMapper notificationApiMapper;
     private final RolePortIn rolePortIn;
+    private final PaginationRequestConverter paginationRequestConverter;
 
     public NotificationController(
             NotificationPortIn notificationPortIn,
             NotificationApiMapper notificationApiMapper,
-            RolePortIn rolePortIn
+            RolePortIn rolePortIn,
+            PaginationRequestConverter paginationRequestConverter
     ) {
         this.notificationPortIn = notificationPortIn;
         this.notificationApiMapper = notificationApiMapper;
         this.rolePortIn = rolePortIn;
+        this.paginationRequestConverter = paginationRequestConverter;
     }
 
     @GetMapping
@@ -46,7 +50,7 @@ public class NotificationController {
     ) {
         List<Notification> notifications = notificationPortIn.getMyNotifications(
                 Boolean.TRUE.equals(request.unreadOnly()),
-                request.limit() == null ? 0 : request.limit(),
+                paginationRequestConverter.resolveLimit(request.limit()),
                 request.beforeCreatedAt()
         );
         return ResponseEntity.ok(ApiResponse.ok(

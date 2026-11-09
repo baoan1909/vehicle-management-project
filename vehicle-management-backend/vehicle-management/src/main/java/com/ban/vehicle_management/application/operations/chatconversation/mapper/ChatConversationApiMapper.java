@@ -12,8 +12,10 @@ import com.ban.vehicle_management.entrypoint.dto.operations.chatconversation.res
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.response.ChatAttachmentReadUrlResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.response.ChatAttachmentUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.response.ChatMessageUserResponse;
+import com.ban.vehicle_management.entrypoint.dto.operations.chatmessage.request.MarkConversationReadRequest;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -23,6 +25,10 @@ import org.mapstruct.NullValueMappingStrategy;
 
 @Mapper(componentModel = "spring", nullValueMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT)
 public interface ChatConversationApiMapper {
+
+    default UUID toLastReadMessageId(MarkConversationReadRequest request) {
+        return request == null ? null : request.messageId();
+    }
 
     ChatConversationUserResponse toConversationUserResponse(ChatConversation conversation);
 
