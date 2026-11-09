@@ -14,6 +14,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AccountRepository extends JpaRepository<AccountEntity, UUID>, JpaSpecificationExecutor<AccountEntity> {
+
+    @Query(value = "SELECT 1::bigint FROM pg_advisory_xact_lock(hashtextextended(CAST(:lockKey AS text), 0))",
+            nativeQuery = true)
+    long lockRegistrationKey(@Param("lockKey") String lockKey);
     interface ProvisionedAccountLifecycleProjection {
         UUID getAccountId();
         String getEmployeeStatus();

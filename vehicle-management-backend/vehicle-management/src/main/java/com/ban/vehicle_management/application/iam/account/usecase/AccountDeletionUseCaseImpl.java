@@ -5,10 +5,13 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.application.iam.account.port.out.AccountDeletionPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionRequest;
+import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionBlocker;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.security.config.AccountDeletionTimeProperties;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.exception.AccountDeletionBlockedException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.transaction.TransactionalEvents;
 import java.time.Clock;
 import java.time.Instant;
@@ -51,23 +54,27 @@ public class AccountDeletionUseCaseImpl implements AccountDeletionPortIn {
 
     @Override
     @Transactional
-    public AccountDeletionRequest requestCurrentCustomerDeletion() {
+    public AccountDeletionRequest requestCurrentAccountDeletion() {
         currentAccountPortIn.requirePermission(REQUEST_SELF);
         CurrentAccountAccess current = currentAccountPortIn.getCurrentAccountOrThrow();
-        persistence.lockAccount(current.accountId());
-        if (!persistence.isActiveCustomerAccount(current.accountId())) {
-            throw new ConflictException("Tài khoản hiện tại không có Customer aggregate đủ điều kiện để xóa");
-        }
+        AccountStatus previousStatus = persistence.lockAccount(current.accountId());
         if (persistence.findActive(current.accountId(), true).isPresent()) {
             throw new ConflictException("Đã tồn tại yêu cầu xóa tài khoản đang hoạt động");
         }
-        List<String> blockers = persistence.findDeletionBlockers(current.accountId());
+        if (previousStatus != AccountStatus.ACTIVE && previousStatus != AccountStatus.PENDING) {
+            throw new ConflictException("Trạng thái tài khoản hiện tại không cho phép yêu cầu xóa");
+        }
+        if (!persistence.isEligibleAccount(current.accountId())) {
+            throw new ConflictException("Tài khoản hiện tại không đủ điều kiện khởi tạo yêu cầu xóa");
+        }
+        List<AccountDeletionBlocker> blockers = persistence.findDeletionBlockers(current.accountId());
         if (!blockers.isEmpty()) {
-            throw new ConflictException("Không thể xóa tài khoản do còn nghĩa vụ chưa hoàn tất: " + String.join(", ", blockers));
+            throw new AccountDeletionBlockedException(blockers);
         }
         Instant requestedAt = Instant.now(clock);
+        persistence.markPendingDeletion(current.accountId());
         AccountDeletionRequest request = persistence.create(
-                current.accountId(), requestedAt, requestedAt.plus(properties.getGracePeriod()));
+                current.accountId(), previousStatus, requestedAt, requestedAt.plus(properties.getGracePeriod()));
         if (current.subject() != null && !current.subject().isBlank()) {
             TransactionalEvents.runAfterCommit(() -> logoutSessionsSafely(current.subject()));
         }

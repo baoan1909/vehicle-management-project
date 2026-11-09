@@ -14,7 +14,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.people.UserProfileRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.SocialIdentityProvider;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
-import jakarta.persistence.EntityManager;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -32,7 +31,6 @@ public class SocialAccountRegistrationPersistenceAdapter implements SocialAccoun
     private final AccountPersistenceMapper accountPersistenceMapper;
     private final AccountIdentityPersistenceMapper accountIdentityPersistenceMapper;
     private final UserProfilePersistenceMapper userProfilePersistenceMapper;
-    private final EntityManager entityManager;
 
     public SocialAccountRegistrationPersistenceAdapter(
             AccountRepository accountRepository,
@@ -41,8 +39,7 @@ public class SocialAccountRegistrationPersistenceAdapter implements SocialAccoun
             UserProfileRepository userProfileRepository,
             AccountPersistenceMapper accountPersistenceMapper,
             AccountIdentityPersistenceMapper accountIdentityPersistenceMapper,
-            UserProfilePersistenceMapper userProfilePersistenceMapper,
-            EntityManager entityManager
+            UserProfilePersistenceMapper userProfilePersistenceMapper
     ) {
         this.accountRepository = accountRepository;
         this.accountIdentityRepository = accountIdentityRepository;
@@ -51,7 +48,6 @@ public class SocialAccountRegistrationPersistenceAdapter implements SocialAccoun
         this.accountPersistenceMapper = accountPersistenceMapper;
         this.accountIdentityPersistenceMapper = accountIdentityPersistenceMapper;
         this.userProfilePersistenceMapper = userProfilePersistenceMapper;
-        this.entityManager = entityManager;
     }
 
     @Override
@@ -65,7 +61,7 @@ public class SocialAccountRegistrationPersistenceAdapter implements SocialAccoun
                         "EMAIL:" + email
                 )
                 .sorted()
-                .forEach(this::acquireTransactionLock);
+                .forEach(accountRepository::lockRegistrationKey);
     }
 
     @Override
@@ -112,11 +108,4 @@ public class SocialAccountRegistrationPersistenceAdapter implements SocialAccoun
         return savedAccount;
     }
 
-    private void acquireTransactionLock(String lockKey) {
-        entityManager.createNativeQuery(
-                        "select pg_advisory_xact_lock(hashtextextended(cast(:lockKey as text), 0))"
-                )
-                .setParameter("lockKey", lockKey)
-                .getSingleResult();
-    }
 }

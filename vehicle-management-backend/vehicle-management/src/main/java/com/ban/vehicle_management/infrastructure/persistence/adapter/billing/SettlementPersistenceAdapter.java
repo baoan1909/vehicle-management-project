@@ -13,13 +13,11 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.VoucherFinancialTermRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,22 +28,22 @@ public class SettlementPersistenceAdapter implements SettlementPortOut {
     private final VoucherFinancialTermRepository termRepository;
     private final PartnerBankAccountRepository bankAccountRepository;
     private final PayoutRequestRepository payoutRepository;
+    private final LedgerEntryRepository ledgerEntryRepository;
     private final WalletPersistenceMapper mapper;
-    private final JdbcTemplate jdbcTemplate;
 
     public SettlementPersistenceAdapter(
             RevenueAllocationRepository allocationRepository,
             VoucherFinancialTermRepository termRepository,
             PartnerBankAccountRepository bankAccountRepository,
             PayoutRequestRepository payoutRepository,
-            WalletPersistenceMapper mapper,
-            JdbcTemplate jdbcTemplate) {
+            LedgerEntryRepository ledgerEntryRepository,
+            WalletPersistenceMapper mapper) {
         this.allocationRepository = allocationRepository;
         this.termRepository = termRepository;
         this.bankAccountRepository = bankAccountRepository;
         this.payoutRepository = payoutRepository;
+        this.ledgerEntryRepository = ledgerEntryRepository;
         this.mapper = mapper;
-        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -137,17 +135,9 @@ public class SettlementPersistenceAdapter implements SettlementPortOut {
 
     @Override
     public Map<String, BigDecimal> sumLedgerByAccount() {
-        Map<String, BigDecimal> result = new HashMap<>();
-        try {
-            jdbcTemplate.query(
-                    "SELECT a.account_code, COALESCE(SUM(CASE WHEN e.entry_side='DEBIT' THEN e.amount ELSE -e.amount END),0) AS net"
-                            + " FROM billing.ledger_accounts a LEFT JOIN billing.ledger_entries e"
-                            + " ON e.ledger_account_id = a.ledger_account_id GROUP BY a.account_code",
-                    rs -> {
-                        result.put(rs.getString(1), rs.getBigDecimal(2));
-                    });
-        } catch (Exception ignored) {
-        }
-        return result;
+        return ledgerEntryRepository.sumNetByAccountCode().stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        LedgerEntryRepository.AccountNetProjection::getAccountCode,
+                        LedgerEntryRepository.AccountNetProjection::getNetAmount));
     }
 }

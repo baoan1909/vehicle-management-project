@@ -1,211 +1,238 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.iam;
 
 import com.ban.vehicle_management.application.iam.account.port.out.AccountDeletionPortOut;
+import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionBlocker;
 import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionRequest;
 import com.ban.vehicle_management.domain.iam.account.policy.AccountDeletionTombstones;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountDeletionRequestEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountDeletionEligibilityQueryRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountDeletionLifecycleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountDeletionRequestRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.AccountDeletionTombstoneRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountDeletionRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
-import jakarta.persistence.PersistenceContext;
+import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut {
-
     private static final List<AccountDeletionRequestStatus> ACTIVE_STATUSES = List.of(
             AccountDeletionRequestStatus.GRACE_PERIOD,
             AccountDeletionRequestStatus.PROCESSING,
             AccountDeletionRequestStatus.RETRY,
-            AccountDeletionRequestStatus.REVIEW_REQUIRED
-    );
+            AccountDeletionRequestStatus.REVIEW_REQUIRED);
 
-    private final AccountDeletionRequestRepository repository;
+    private final AccountDeletionRequestRepository requestRepository;
+    private final AccountDeletionLifecycleRepository lifecycleRepository;
+    private final AccountDeletionEligibilityQueryRepository eligibilityRepository;
+    private final AccountDeletionTombstoneRepository tombstoneRepository;
 
-    @PersistenceContext
-    private EntityManager entityManager;
-
-    public AccountDeletionPersistenceAdapter(AccountDeletionRequestRepository repository) {
-        this.repository = repository;
+    public AccountDeletionPersistenceAdapter(
+            AccountDeletionRequestRepository requestRepository,
+            AccountDeletionLifecycleRepository lifecycleRepository,
+            AccountDeletionEligibilityQueryRepository eligibilityRepository,
+            AccountDeletionTombstoneRepository tombstoneRepository
+    ) {
+        this.requestRepository = requestRepository;
+        this.lifecycleRepository = lifecycleRepository;
+        this.eligibilityRepository = eligibilityRepository;
+        this.tombstoneRepository = tombstoneRepository;
     }
 
     @Override
-    public void lockAccount(UUID accountId) {
-        entityManager.find(AccountEntity.class, accountId, LockModeType.PESSIMISTIC_WRITE);
+    public AccountStatus lockAccount(UUID accountId) {
+        return findAccountForUpdate(accountId).getStatus();
     }
 
     @Override
-    public boolean isActiveCustomerAccount(UUID accountId) {
-        Number count = (Number) entityManager.createNativeQuery("""
-                select count(*) from iam.accounts account
-                join people.user_profiles profile on profile.user_profile_id = account.user_profile_id
-                join people.customers customer on customer.user_profile_id = profile.user_profile_id
-                where account.account_id = :accountId
-                  and account.status = 'ACTIVE'
-                  and profile.status <> 'DELETED'
-                  and customer.status <> 'DELETED'
-                  and customer.approval_status = 'APPROVED'
-                """)
-                .setParameter("accountId", accountId)
-                .getSingleResult();
-        return count.longValue() > 0;
+    public boolean isEligibleAccount(UUID accountId) {
+        return eligibilityRepository.isEligibleAccount(accountId);
     }
 
     @Override
     public boolean isDeletedAccount(UUID accountId) {
-        AccountEntity account = entityManager.find(AccountEntity.class, accountId);
-        return account != null && account.getStatus() == AccountStatus.DELETED;
+        return lifecycleRepository.findAccount(accountId)
+                .map(AccountEntity::getStatus)
+                .filter(AccountStatus.DELETED::equals)
+                .isPresent();
     }
 
     @Override
     public Optional<AccountDeletionRequest> findActive(UUID accountId, boolean forUpdate) {
         Optional<AccountDeletionRequestEntity> result = forUpdate
-                ? repository.findActiveForUpdate(accountId, ACTIVE_STATUSES)
-                : repository.findFirstByAccountIdAndStatusInOrderByRequestedAtDesc(accountId, ACTIVE_STATUSES);
+                ? requestRepository.findActiveForUpdate(accountId, ACTIVE_STATUSES)
+                : requestRepository.findFirstByAccountIdAndStatusInOrderByRequestedAtDesc(accountId, ACTIVE_STATUSES);
         return result.map(this::toDomain);
     }
 
     @Override
-    public AccountDeletionRequest create(UUID accountId, Instant requestedAt, Instant scheduledAt) {
+    public AccountDeletionRequest create(
+            UUID accountId, AccountStatus previousStatus, Instant requestedAt, Instant scheduledAt) {
         AccountDeletionRequestEntity entity = new AccountDeletionRequestEntity();
         entity.setRequestId(UUID.randomUUID());
         entity.setAccountId(accountId);
         entity.setStatus(AccountDeletionRequestStatus.GRACE_PERIOD);
+        entity.setPreviousAccountStatus(previousStatus);
         entity.setRequestedAt(requestedAt);
         entity.setScheduledDeletionAt(scheduledAt);
         entity.setAttemptCount(0);
-        return toDomain(repository.saveAndFlush(entity));
+        return toDomain(requestRepository.saveAndFlush(entity));
+    }
+
+    @Override
+    public void markPendingDeletion(UUID accountId) {
+        AccountEntity account = findAccountForUpdate(accountId);
+        if (account.getStatus() == AccountStatus.PENDING_DELETION) return;
+        AccountStatus previousStatus = account.getStatus();
+        account.setStatus(AccountStatus.PENDING_DELETION);
+        lifecycleRepository.appendStatusHistory(accountId, previousStatus, AccountStatus.PENDING_DELETION,
+                "Self-service account deletion requested", Instant.now());
+        lifecycleRepository.flush();
     }
 
     @Override
     public AccountDeletionRequest cancel(UUID requestId, Instant cancelledAt, String reason) {
-        AccountDeletionRequestEntity entity = repository.findById(requestId).orElseThrow();
-        entity.setStatus(AccountDeletionRequestStatus.CANCELLED);
-        entity.setCancelledAt(cancelledAt);
-        entity.setCancellationReason(reason);
-        entity.setClaimToken(null);
-        entity.setProcessingLeaseUntil(null);
-        return toDomain(repository.saveAndFlush(entity));
+        AccountDeletionRequestEntity request = requestRepository.findById(requestId).orElseThrow();
+        AccountEntity account = findAccountForUpdate(request.getAccountId());
+        if (account.getStatus() == AccountStatus.PENDING_DELETION) {
+            account.setStatus(request.getPreviousAccountStatus());
+            lifecycleRepository.appendStatusHistory(request.getAccountId(), AccountStatus.PENDING_DELETION,
+                    request.getPreviousAccountStatus(), "Account deletion request cancelled", cancelledAt);
+        }
+        request.setStatus(AccountDeletionRequestStatus.CANCELLED);
+        request.setCancelledAt(cancelledAt);
+        request.setCancellationReason(reason);
+        request.setClaimToken(null);
+        request.setProcessingLeaseUntil(null);
+        request.setNextRetryAt(null);
+        request.setLastErrorCode(null);
+        request.setLastErrorMessage(null);
+        return toDomain(requestRepository.saveAndFlush(request));
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    @SuppressWarnings("unchecked")
     public List<UUID> claimDue(Instant now, Instant leaseUntil, String claimToken, int batchSize) {
-        List<?> values = entityManager.createNativeQuery("""
-                update iam.account_deletion_requests request
-                   set status = 'PROCESSING', claim_token = :claimToken,
-                       processing_started_at = :now, processing_lease_until = :leaseUntil,
-                       attempt_count = attempt_count + 1, updated_at = :now,
-                       version = version + 1
-                 where request.request_id in (
-                       select candidate.request_id
-                         from iam.account_deletion_requests candidate
-                        where ((candidate.status in ('GRACE_PERIOD','RETRY')
-                                and candidate.scheduled_deletion_at <= :now
-                                and (candidate.next_retry_at is null or candidate.next_retry_at <= :now))
-                               or (candidate.status = 'PROCESSING'
-                                   and candidate.processing_lease_until <= :now))
-                        order by candidate.scheduled_deletion_at, candidate.request_id
-                        for update skip locked
-                        limit :batchSize
-                 )
-                returning request.request_id
-                """)
-                .setParameter("claimToken", claimToken)
-                .setParameter("now", now)
-                .setParameter("leaseUntil", leaseUntil)
-                .setParameter("batchSize", batchSize)
-                .getResultList();
-        return values.stream().map(value -> value instanceof UUID uuid ? uuid : UUID.fromString(value.toString())).toList();
+        return lifecycleRepository.claimDue(now, leaseUntil, claimToken, batchSize);
     }
 
     @Override
     public Optional<AccountDeletionRequest> findClaimed(UUID requestId, String claimToken) {
-        return repository.findByRequestIdAndClaimToken(requestId, claimToken).map(this::toDomain);
+        return requestRepository.findByRequestIdAndClaimToken(requestId, claimToken).map(this::toDomain);
     }
 
     @Override
     public String findKeycloakUserId(UUID accountId) {
-        return entityManager.find(AccountEntity.class, accountId).getKeycloakUserId();
+        return lifecycleRepository.findAccount(accountId).map(AccountEntity::getKeycloakUserId).orElse(null);
     }
 
     @Override
-    public List<String> findDeletionBlockers(UUID accountId) {
-        List<String> blockers = new ArrayList<>();
-        UUID customerId = findCustomerId(accountId);
-        if (customerId == null) {
-            blockers.add("ACCOUNT_PROFILE_NOT_ELIGIBLE");
-            return blockers;
-        }
-        addBlocker(blockers, "ACTIVE_PARKING_SESSION", "select exists(select 1 from parking.parking_sessions where customer_id=:id and status in ('OPEN','LOST_CARD'))", customerId);
-        addBlocker(blockers, "ACTIVE_SUBSCRIPTION", "select exists(select 1 from access_control.subscriptions where customer_id=:id and status in ('PENDING','PENDING_PAYMENT','PENDING_CARD','ACTIVE'))", customerId);
-        addBlocker(blockers, "UNPAID_INVOICE", "select exists(select 1 from billing.invoices where customer_id=:id and status='UNPAID')", customerId);
-        addBlocker(blockers, "PENDING_PAYMENT", "select exists(select 1 from billing.payments payment join billing.invoices invoice on invoice.invoice_id=payment.invoice_id where invoice.customer_id=:id and payment.status='PENDING')", customerId);
-        addBlocker(blockers, "OPEN_LOST_CARD_REPORT", "select exists(select 1 from access_control.lost_card_reports where customer_id=:id and status='OPEN')", customerId);
-        addBlocker(blockers, "PENDING_WALLET_TOPUP", "select exists(select 1 from billing.wallet_topup_orders topup join billing.wallets wallet on wallet.wallet_id=topup.wallet_id where wallet.customer_id=:id and topup.status='PENDING')", customerId);
-        return blockers;
+    public List<AccountDeletionBlocker> findDeletionBlockers(UUID accountId) {
+        if (isDeletedAccount(accountId)) return List.of();
+        List<AccountDeletionBlocker> blockers = new ArrayList<>();
+        eligibilityRepository.findCustomerIdByAccountId(accountId)
+                .ifPresent(customerId -> addCustomerBlockers(blockers, customerId));
+        addOrganizationGovernanceBlockers(blockers, accountId);
+        addManagementAssignmentBlockers(blockers, accountId);
+        eligibilityRepository.findEmployeeIdByAccountId(accountId)
+                .ifPresent(employeeId -> addWorkforceBlockers(blockers, employeeId));
+        addOperationalOwnershipBlockers(blockers, accountId);
+        return List.copyOf(blockers);
+    }
+
+    private void addCustomerBlockers(List<AccountDeletionBlocker> blockers, UUID customerId) {
+        addIfPresent(eligibilityRepository.findActiveParkingSession(customerId), id -> blockers.add(
+                AccountDeletionBlocker.of("ACTIVE_PARKING_SESSION", "Cần kết thúc phiên gửi xe đang mở.", "PARKING_SESSION", id)));
+        addIfPresent(eligibilityRepository.findActiveSubscription(customerId), id -> blockers.add(
+                AccountDeletionBlocker.of("ACTIVE_SUBSCRIPTION", "Cần kết thúc đăng ký gửi xe đang hoạt động.", "SUBSCRIPTION", id)));
+        addIfPresent(eligibilityRepository.findUnpaidInvoice(customerId), id -> blockers.add(
+                AccountDeletionBlocker.of("UNPAID_INVOICE", "Cần thanh toán hóa đơn chưa hoàn tất.", "INVOICE", id)));
+        addIfPresent(eligibilityRepository.findPendingPayment(customerId), id -> blockers.add(
+                AccountDeletionBlocker.of("PENDING_PAYMENT", "Cần hoàn tất giao dịch thanh toán đang xử lý.", "PAYMENT", id)));
+        addIfPresent(eligibilityRepository.findOpenLostCardReport(customerId), id -> blockers.add(
+                AccountDeletionBlocker.of("OPEN_LOST_CARD_REPORT", "Cần xử lý báo mất thẻ đang mở.", "LOST_CARD_REPORT", id)));
+        addIfPresent(eligibilityRepository.findPendingWalletTopup(customerId), id -> blockers.add(
+                AccountDeletionBlocker.of("PENDING_WALLET_TOPUP", "Cần hoàn tất lệnh nạp ví đang xử lý.", "WALLET_TOPUP", id)));
+    }
+
+    private void addOrganizationGovernanceBlockers(List<AccountDeletionBlocker> blockers, UUID accountId) {
+        eligibilityRepository.findOrganizationsWithoutSuccessor(accountId).forEach(row -> blockers.add(
+                new AccountDeletionBlocker("LAST_ORGANIZATION_ADMIN",
+                        "Bạn cần chỉ định một tài khoản khác có quyền quản trị tổ chức trước khi xóa tài khoản.",
+                        "ORGANIZATION_MEMBERSHIP", row.membershipId(), row.organizationId(), null,
+                        "ASSIGN_ORGANIZATION_ADMIN", "/internal/organizations/" + row.organizationId() + "/members")));
+    }
+
+    private void addManagementAssignmentBlockers(List<AccountDeletionBlocker> blockers, UUID accountId) {
+        eligibilityRepository.findManagementAssignments(accountId).forEach(row -> {
+            String code = "PENDING_ACCEPTANCE".equals(row.status())
+                    ? "PENDING_MANAGEMENT_ACCEPTANCE" : "ACTIVE_MANAGEMENT_ASSIGNMENT";
+            blockers.add(new AccountDeletionBlocker(code, "Cần bàn giao hoặc kết thúc phân công quản lý bãi xe.",
+                    "MANAGEMENT_ASSIGNMENT", row.assignmentId(), row.organizationId(), row.parkingLotId(),
+                    "HANDOVER_MANAGEMENT", "/internal/parking-lots/" + row.parkingLotId() + "/management"));
+        });
+    }
+
+    private void addWorkforceBlockers(List<AccountDeletionBlocker> blockers, UUID employeeId) {
+        eligibilityRepository.findEmployeeLotAssignments(employeeId).forEach(row -> blockers.add(
+                new AccountDeletionBlocker("ACTIVE_EMPLOYEE_LOT_ASSIGNMENT",
+                        "Cần kết thúc phân công nhân sự tại bãi xe.", "EMPLOYEE_LOT_ASSIGNMENT",
+                        row.resourceId(), row.organizationId(), row.parkingLotId(), "END_EMPLOYEE_ASSIGNMENT",
+                        "/internal/parking-lots/" + row.parkingLotId() + "/employees")));
+        eligibilityRepository.findShiftAssignments(employeeId).forEach(row -> {
+            String code = "OPEN".equals(row.shiftStatus())
+                    ? "OPEN_SHIFT_PARTICIPATION" : "ACTIVE_OR_FUTURE_SHIFT_ASSIGNMENT";
+            blockers.add(new AccountDeletionBlocker(code, "Cần gỡ hoặc bàn giao ca làm việc.",
+                    "SHIFT_ASSIGNMENT", row.assignmentId(), null, row.parkingLotId(), "REASSIGN_SHIFT",
+                    "/internal/parking-lots/" + row.parkingLotId() + "/shifts"));
+        });
+        eligibilityRepository.findActiveRosterRules(employeeId).forEach(row -> blockers.add(
+                new AccountDeletionBlocker("ACTIVE_ROSTER_RULE", "Cần vô hiệu lịch phân ca tự động.",
+                        "ROSTER_RULE", row.resourceId(), null, row.parkingLotId(), "DEACTIVATE_ROSTER",
+                        "/internal/parking-lots/" + row.parkingLotId() + "/roster")));
+    }
+
+    private void addOperationalOwnershipBlockers(List<AccountDeletionBlocker> blockers, UUID accountId) {
+        eligibilityRepository.findOpenSupportTickets(accountId).forEach(id -> blockers.add(
+                AccountDeletionBlocker.of("OPEN_SUPPORT_TICKET_ASSIGNMENT",
+                        "Cần bàn giao phiếu hỗ trợ đang mở.", "SUPPORT_TICKET", id)));
+        eligibilityRepository.findOpenWorkItems(accountId).forEach(row -> blockers.add(
+                new AccountDeletionBlocker("OPEN_WORK_QUEUE_ASSIGNMENT", "Cần bàn giao công việc đang mở.",
+                        "WORK_QUEUE_ITEM", row.resourceId(), row.organizationId(), row.parkingLotId(),
+                        "REASSIGN_WORK_ITEM", "/internal/parking-lots/" + row.parkingLotId() + "/work-queue")));
+        eligibilityRepository.findActiveChatOwnerships(accountId).forEach(id -> blockers.add(
+                AccountDeletionBlocker.of("ACTIVE_CHAT_OWNERSHIP",
+                        "Cần bàn giao hội thoại đang hoạt động.", "CHAT_CONVERSATION", id)));
+        eligibilityRepository.findOpenShiftResponsibilities(accountId).forEach(row -> blockers.add(
+                new AccountDeletionBlocker("OPEN_SHIFT_RESPONSIBILITY", "Cần bàn giao trách nhiệm ca đang mở.",
+                        "SHIFT", row.resourceId(), null, row.parkingLotId(), "HANDOVER_OPEN_SHIFT",
+                        "/internal/parking-lots/" + row.parkingLotId() + "/shifts")));
+        eligibilityRepository.findProcessingOperationalApprovals(accountId).forEach(id -> blockers.add(
+                AccountDeletionBlocker.of("PROCESSING_OPERATIONAL_APPROVAL",
+                        "Cần hoàn tất hoặc hủy yêu cầu nghiệp vụ đang chờ duyệt.", "APPROVAL_REQUEST", id)));
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void completeWithTombstones(UUID requestId, UUID accountId, Instant completedAt) {
-        AccountEntity account = entityManager.find(AccountEntity.class, accountId, LockModeType.PESSIMISTIC_WRITE);
-        if (account == null) {
-            throw new IllegalStateException("Account no longer exists");
-        }
-        if (account.getStatus() == AccountStatus.DELETED) {
-            markCompleted(requestId, completedAt);
-            return;
-        }
-        String marker = AccountDeletionTombstones.marker(accountId);
+    public List<String> completeWithTombstones(UUID requestId, UUID accountId, Instant completedAt) {
+        AccountEntity account = lifecycleRepository.findAccountForUpdate(accountId)
+                .orElseThrow(() -> new IllegalStateException("Account no longer exists"));
         UUID profileId = account.getUserProfileId();
-
-        if (profileId != null) {
-            entityManager.createNativeQuery("""
-                    update people.customers set customer_code=:marker, status='DELETED',
-                           approved_by=null, updated_at=:now
-                     where user_profile_id=:profileId
-                    """).setParameter("marker", marker).setParameter("now", completedAt)
-                    .setParameter("profileId", profileId).executeUpdate();
-            entityManager.createNativeQuery("""
-                    update people.user_profiles set full_name=:marker,
-                           phone_number=:marker, identify_card=:marker, address_detail=:marker,
-                           province_code=null, district_code=null, ward_code=null,
-                           address_display=:marker, date_of_birth=null, gender=null,
-                           status='DELETED', updated_at=:now
-                     where user_profile_id=:profileId
-                    """).setParameter("marker", marker).setParameter("now", completedAt)
-                    .setParameter("profileId", profileId).executeUpdate();
-        }
-        entityManager.createNativeQuery("""
-                update iam.account_identities set provider_subject=:marker, updated_at=:now
-                 where account_id=:accountId
-                """).setParameter("marker", marker).setParameter("now", completedAt)
-                .setParameter("accountId", accountId).executeUpdate();
-        entityManager.createNativeQuery("""
-                update operations.chat_conversation_members
-                   set status='REMOVED', left_at=:now, updated_at=:now
-                 where account_id=:accountId and status='ACTIVE'
-                """).setParameter("now", completedAt).setParameter("accountId", accountId).executeUpdate();
-        entityManager.createNativeQuery("""
-                insert into iam.account_status_history(account_status_history_id, account_id, old_status,
-                                                       new_status, reason, changed_at)
-                values (gen_random_uuid(), :accountId, :oldStatus, 'DELETED',
-                        'Customer account deletion grace period completed', :now)
-                """).setParameter("accountId", accountId).setParameter("oldStatus", account.getStatus().name())
-                .setParameter("now", completedAt).executeUpdate();
-
+        List<String> objectKeys = tombstoneRepository.findAvatarObjectKeys(profileId);
+        if (account.getStatus() == AccountStatus.DELETED) return List.copyOf(objectKeys);
+        String marker = AccountDeletionTombstones.marker(accountId);
+        tombstoneRepository.tombstoneRelatedData(accountId, profileId, marker, completedAt);
+        lifecycleRepository.appendStatusHistory(accountId, account.getStatus(), AccountStatus.DELETED,
+                "Account deletion grace period completed", completedAt);
         account.setUsername(marker);
         account.setEmail(AccountDeletionTombstones.email(accountId));
         account.setKeycloakUserId(marker);
@@ -213,14 +240,22 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
         account.setLastLoginAt(null);
         account.setLockedUntil(null);
         account.setFailedLoginCount(0);
-        entityManager.flush();
+        lifecycleRepository.flush();
+        return List.copyOf(objectKeys);
+    }
+
+    @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void completeFileCleanup(UUID requestId, UUID accountId, Instant completedAt) {
+        lifecycleRepository.findAccount(accountId).ifPresent(account ->
+                tombstoneRepository.completeAvatarCleanup(account.getUserProfileId(), completedAt));
         markCompleted(requestId, completedAt);
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void fail(UUID requestId, Instant now, Instant nextRetryAt, int maxAttempts, String code, String message) {
-        AccountDeletionRequestEntity entity = repository.findById(requestId).orElseThrow();
+        AccountDeletionRequestEntity entity = requestRepository.findById(requestId).orElseThrow();
         entity.setLastErrorCode(code);
         entity.setLastErrorMessage(message == null ? null : message.substring(0, Math.min(1000, message.length())));
         entity.setClaimToken(null);
@@ -232,25 +267,16 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
             entity.setStatus(AccountDeletionRequestStatus.RETRY);
             entity.setNextRetryAt(nextRetryAt);
         }
-        repository.saveAndFlush(entity);
+        requestRepository.saveAndFlush(entity);
     }
 
-    private UUID findCustomerId(UUID accountId) {
-        List<?> result = entityManager.createNativeQuery("""
-                select customer.customer_id from iam.accounts account
-                join people.customers customer on customer.user_profile_id=account.user_profile_id
-                where account.account_id=:accountId and customer.status <> 'DELETED'
-                """).setParameter("accountId", accountId).getResultList();
-        return result.isEmpty() ? null : (UUID) result.getFirst();
-    }
-
-    private void addBlocker(List<String> blockers, String code, String sql, UUID customerId) {
-        Boolean exists = (Boolean) entityManager.createNativeQuery(sql).setParameter("id", customerId).getSingleResult();
-        if (Boolean.TRUE.equals(exists)) blockers.add(code);
+    private AccountEntity findAccountForUpdate(UUID accountId) {
+        return lifecycleRepository.findAccountForUpdate(accountId)
+                .orElseThrow(() -> new NotFoundException("Không tìm thấy tài khoản hiện tại"));
     }
 
     private void markCompleted(UUID requestId, Instant completedAt) {
-        AccountDeletionRequestEntity request = repository.findById(requestId).orElseThrow();
+        AccountDeletionRequestEntity request = requestRepository.findById(requestId).orElseThrow();
         request.setStatus(AccountDeletionRequestStatus.COMPLETED);
         request.setCompletedAt(completedAt);
         request.setClaimToken(null);
@@ -258,12 +284,17 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
         request.setNextRetryAt(null);
         request.setLastErrorCode(null);
         request.setLastErrorMessage(null);
-        repository.saveAndFlush(request);
+        requestRepository.saveAndFlush(request);
     }
 
     private AccountDeletionRequest toDomain(AccountDeletionRequestEntity entity) {
         return new AccountDeletionRequest(entity.getRequestId(), entity.getAccountId(), entity.getStatus(),
                 entity.getRequestedAt(), entity.getScheduledDeletionAt(), entity.getCancelledAt(),
-                entity.getCompletedAt(), entity.getAttemptCount(), entity.getLastErrorCode());
+                entity.getCompletedAt(), entity.getAttemptCount(), entity.getLastErrorCode(),
+                entity.getPreviousAccountStatus());
+    }
+
+    private static void addIfPresent(Optional<UUID> value, Consumer<UUID> consumer) {
+        value.ifPresent(consumer);
     }
 }

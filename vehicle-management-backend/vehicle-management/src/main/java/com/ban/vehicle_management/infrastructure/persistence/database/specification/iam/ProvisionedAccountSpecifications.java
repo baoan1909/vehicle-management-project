@@ -23,7 +23,8 @@ public final class ProvisionedAccountSpecifications {
             Join<AccountEntity, RoleEntity> roleJoin = root.join("role", JoinType.INNER);
 
             List<Predicate> predicates = new ArrayList<>();
-            predicates.add(criteriaBuilder.notEqual(root.get("status"), AccountStatus.DELETED));
+            predicates.add(criteriaBuilder.not(root.get("status").in(
+                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED)));
             Set<AdminProvisionableAccountRoleCode> managedRoleCodes = command.managedRoleCodes();
             if (managedRoleCodes == null || managedRoleCodes.isEmpty()) {
                 return criteriaBuilder.disjunction();

@@ -48,6 +48,7 @@ public interface ChatConversationMemberRepository extends JpaRepository<ChatConv
                 ON avatar.userProfileId = account.userProfileId
                AND avatar.current = TRUE
             WHERE member.conversationId IN :conversationIds
+              AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION
               AND (
                     member.status = com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus.ACTIVE
                     OR account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
@@ -61,8 +62,10 @@ public interface ChatConversationMemberRepository extends JpaRepository<ChatConv
     @Query("""
             SELECT member.accountId
             FROM ChatConversationMemberEntity member
+            JOIN AccountEntity account ON account.accountId = member.accountId
             WHERE member.conversationId = :conversationId
               AND member.status = com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus.ACTIVE
+              AND account.status = com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.ACTIVE
             """)
     List<UUID> findActiveMemberAccountIds(@Param("conversationId") UUID conversationId);
 

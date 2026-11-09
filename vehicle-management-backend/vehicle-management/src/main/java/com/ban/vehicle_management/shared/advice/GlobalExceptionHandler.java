@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.shared.advice;
 
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.exception.AccountDeletionBlockedException;
 import com.ban.vehicle_management.shared.exception.CaptchaValidationException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.CustomerIdentityRequiredException;
@@ -98,6 +99,24 @@ public class GlobalExceptionHandler {
             HttpServletRequest request
     ) {
         return buildErrorResponse(HttpStatus.CONFLICT, exception.getMessage(), request.getRequestURI());
+    }
+
+    @ExceptionHandler(AccountDeletionBlockedException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleAccountDeletionBlockedException(
+            AccountDeletionBlockedException exception,
+            HttpServletRequest request
+    ) {
+        ApiResponse<Map<String, Object>> response = ApiResponse.fail(
+                exception.getMessage(),
+                Map.of(
+                        "status", HttpStatus.CONFLICT.value(),
+                        "error", HttpStatus.CONFLICT.getReasonPhrase(),
+                        "path", request.getRequestURI(),
+                        "code", "ACCOUNT_DELETION_BLOCKED",
+                        "blockers", exception.blockers()
+                )
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
     }
 
     @ExceptionHandler(CustomerIdentityRequiredException.class)

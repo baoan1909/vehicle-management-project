@@ -15,6 +15,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface KnowledgeIndexVersionRepository extends JpaRepository<KnowledgeIndexVersionEntity, UUID> {
 
+    @Query(value = "SELECT 1::bigint FROM pg_advisory_xact_lock(hashtext(:lockKey))", nativeQuery = true)
+    long lockCandidateAdvisory(@Param("lockKey") String lockKey);
+
     List<KnowledgeIndexVersionEntity> findAllByOrderByCreatedAtDesc();
 
     List<KnowledgeIndexVersionEntity> findByStatus(KnowledgeIndexVersionStatus status);

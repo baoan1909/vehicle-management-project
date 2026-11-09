@@ -28,7 +28,9 @@ public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID>,
           ON account.userProfileId = customer.userProfileId
         WHERE customer.customerId = :customerId
           AND customer.status <> com.ban.vehicle_management.shared.enumeration.people.CustomerStatus.DELETED
-          AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+          AND account.status NOT IN (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
         """)
     Optional<UUID> findAccountIdByCustomerId(@Param("customerId") UUID customerId);
 
@@ -39,7 +41,9 @@ public interface CustomerRepository extends JpaRepository<CustomerEntity, UUID>,
           ON account.userProfileId = customer.userProfileId
         WHERE account.accountId = :accountId
           AND customer.status <> com.ban.vehicle_management.shared.enumeration.people.CustomerStatus.DELETED
-          AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED
+          AND account.status NOT IN (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
         """)
     Optional<UUID> findCustomerIdByAccountId(@Param("accountId") UUID accountId);
 }

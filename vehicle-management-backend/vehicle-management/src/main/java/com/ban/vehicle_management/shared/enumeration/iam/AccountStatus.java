@@ -1,7 +1,7 @@
 package com.ban.vehicle_management.shared.enumeration.iam;
 
 public enum AccountStatus {
-    ACTIVE, LOCKED, DISABLED, PENDING, DELETED
+    ACTIVE, LOCKED, DISABLED, PENDING, PENDING_DELETION, DELETED
 }
 
 

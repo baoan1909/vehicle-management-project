@@ -6,7 +6,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface AccountDeletionPortIn {
-    AccountDeletionRequest requestCurrentCustomerDeletion();
+    AccountDeletionRequest requestCurrentAccountDeletion();
     Optional<AccountDeletionRequest> getCurrentRequest();
     AccountDeletionRequest cancelCurrentRequest(String reason);
     Optional<AccountDeletionRequest> cancelOnFreshLogin(UUID accountId, Instant authenticatedAt);

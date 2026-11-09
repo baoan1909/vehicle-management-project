@@ -5,15 +5,10 @@ import com.ban.vehicle_management.domain.ai.model.KnowledgeIndexVersion;
 import com.ban.vehicle_management.infrastructure.mapper.ai.KnowledgeIndexVersionPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.ai.KnowledgeIndexVersionRepository;
 import com.ban.vehicle_management.shared.enumeration.ai.KnowledgeIndexVersionStatus;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.time.Instant;
-import javax.sql.DataSource;
-import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,16 +20,13 @@ public class KnowledgeIndexVersionPersistenceAdapter implements KnowledgeIndexVe
 
     private final KnowledgeIndexVersionRepository repository;
     private final KnowledgeIndexVersionPersistenceMapper mapper;
-    private final DataSource dataSource;
 
     public KnowledgeIndexVersionPersistenceAdapter(
             KnowledgeIndexVersionRepository repository,
-            KnowledgeIndexVersionPersistenceMapper mapper,
-            DataSource dataSource
+            KnowledgeIndexVersionPersistenceMapper mapper
     ) {
         this.repository = repository;
         this.mapper = mapper;
-        this.dataSource = dataSource;
     }
 
     @Override
@@ -90,17 +82,7 @@ public class KnowledgeIndexVersionPersistenceAdapter implements KnowledgeIndexVe
     @Override
     @Transactional
     public void lockCandidateAdvisory() {
-        // Use DataSourceUtils.getConnection to get a connection bound to the current Spring transaction.
-        // This ensures the advisory lock is held until the transaction commits/rollbacks.
-        Connection connection = DataSourceUtils.getConnection(dataSource);
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT pg_advisory_xact_lock(hashtext(?))")) {
-            statement.setString(1, CANDIDATE_ADVISORY_LOCK_KEY);
-            statement.execute();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Cannot acquire knowledge candidate advisory lock", exception);
-        }
-        // Do NOT close the connection - it's managed by Spring's transaction synchronization.
+        repository.lockCandidateAdvisory(CANDIDATE_ADVISORY_LOCK_KEY);
     }
 
     @Override

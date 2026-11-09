@@ -216,6 +216,8 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
               AND approval.status = :status
               AND approval.targetId = employee.employeeId
               AND employee.userProfileId = account.userProfileId
+              AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+              AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION
               AND account.roleId = role.roleId
               AND role.code = :targetRoleCode
             """)
@@ -239,6 +241,8 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
               AND approval.status = :status
               AND approval.targetId = employee.employeeId
               AND employee.userProfileId = account.userProfileId
+              AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+              AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION
               AND account.roleId = role.roleId
               AND role.code = :targetRoleCode
               AND account.createdBy = :createdByAccountId
@@ -264,6 +268,8 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
               AND approval.status = :status
               AND approval.targetId = employee.employeeId
               AND employee.userProfileId = account.userProfileId
+              AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+              AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION
               AND account.roleId = role.roleId
               AND role.code <> :excludedTargetRoleCode
             """)
@@ -289,6 +295,8 @@ public interface ApprovalRequestRepository extends JpaRepository<ApprovalRequest
               AND approval.status = :status
               AND approval.targetId = employee.employeeId
               AND employee.userProfileId = account.userProfileId
+              AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+              AND account.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION
               AND account.roleId = role.roleId
               AND role.code <> :excludedTargetRoleCode
               AND membership.accountId = account.accountId

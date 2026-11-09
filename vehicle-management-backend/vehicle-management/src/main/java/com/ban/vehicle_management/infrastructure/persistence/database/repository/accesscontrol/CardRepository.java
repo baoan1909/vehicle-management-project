@@ -15,6 +15,12 @@ import org.springframework.data.repository.query.Param;
 
 public interface CardRepository extends JpaRepository<CardEntity, UUID>, JpaSpecificationExecutor<CardEntity> {
 
+    @Query(value = "SELECT nextval('access_control.registered_card_number_seq')", nativeQuery = true)
+    long nextRegisteredCardNumberSequence();
+
+    @Query(value = "SELECT nextval('access_control.visitor_card_number_seq')", nativeQuery = true)
+    long nextVisitorCardNumberSequence();
+
     boolean existsByCardTypeId(UUID cardTypeId);
 
     boolean existsByCardTypeIdAndStatusIn(UUID cardTypeId, Collection<CardStatus> statuses);

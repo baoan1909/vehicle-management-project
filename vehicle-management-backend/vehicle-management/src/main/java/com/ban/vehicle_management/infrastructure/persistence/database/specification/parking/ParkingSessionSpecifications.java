@@ -51,7 +51,8 @@ public final class ParkingSessionSpecifications {
             Join<ParkingSessionEntity, CustomerEntity> customer = root.join("customer", JoinType.LEFT);
             Join<CustomerEntity, UserProfileEntity> profile = customer.join("userProfile", JoinType.LEFT);
             Join<UserProfileEntity, AccountEntity> account = profile.join("account", JoinType.LEFT);
-            return cb.or(cb.isNull(root.get("customerId")), cb.notEqual(account.get("status"), AccountStatus.DELETED));
+            return cb.or(cb.isNull(root.get("customerId")), cb.not(account.get("status").in(
+                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED)));
         };
     }
 

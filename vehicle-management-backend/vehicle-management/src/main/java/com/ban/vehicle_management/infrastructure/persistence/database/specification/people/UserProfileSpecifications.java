@@ -21,8 +21,9 @@ public final class UserProfileSpecifications {
             var account = root.join("account", jakarta.persistence.criteria.JoinType.LEFT);
             predicates.add(criteriaBuilder.or(
                     criteriaBuilder.isNull(account.get("accountId")),
-                    criteriaBuilder.notEqual(account.get("status"),
-                            com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
+                    criteriaBuilder.not(account.get("status").in(
+                            com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+                            com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
             ));
 
             if (status != null) {

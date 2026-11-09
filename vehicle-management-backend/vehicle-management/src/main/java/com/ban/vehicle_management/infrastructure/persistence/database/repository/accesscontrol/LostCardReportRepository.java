@@ -73,7 +73,9 @@ public interface LostCardReportRepository extends
           and (:cardId is null or report.cardId = :cardId)
           and (:parkingSessionId is null or report.parkingSessionId = :parkingSessionId)
           and (:subscriptionId is null or report.subscriptionId = :subscriptionId)
-          and (report.customerId is null or customerAccount.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
+          and (report.customerId is null or customerAccount.status not in (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
           and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
           and report.timeOfLost >= :fromDate
           and report.timeOfLost <= :toDate
@@ -121,7 +123,9 @@ public interface LostCardReportRepository extends
         left join customer.userProfile customerProfile
         left join customerProfile.account customerAccount
         where report.status = :status
-          and (report.customerId is null or customerAccount.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
+          and (report.customerId is null or customerAccount.status not in (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
           and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
         """)
     long countByStatusInParkingLots(
@@ -137,7 +141,9 @@ public interface LostCardReportRepository extends
         left join customer.userProfile customerProfile
         left join customerProfile.account customerAccount
         where report.status = :status
-          and (report.customerId is null or customerAccount.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
+          and (report.customerId is null or customerAccount.status not in (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
           and report.resolvedAt >= :fromDate
           and report.resolvedAt <= :toDate
           and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
@@ -158,7 +164,9 @@ public interface LostCardReportRepository extends
         left join customer.userProfile customerProfile
         left join customerProfile.account customerAccount
         where report.status = :reportStatus
-          and (report.customerId is null or customerAccount.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
+          and (report.customerId is null or customerAccount.status not in (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
           and invoice.status = :invoiceStatus
           and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
         """)
@@ -177,7 +185,9 @@ public interface LostCardReportRepository extends
         left join customer.userProfile customerProfile
         left join customerProfile.account customerAccount
         where card.status = :cardStatus
-          and (report.customerId is null or customerAccount.status <> com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
+          and (report.customerId is null or customerAccount.status not in (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
           and (:scopeEnabled = false or report.parkingLotId in :parkingLotIds)
         """)
     long countDistinctCardsByCardStatus(

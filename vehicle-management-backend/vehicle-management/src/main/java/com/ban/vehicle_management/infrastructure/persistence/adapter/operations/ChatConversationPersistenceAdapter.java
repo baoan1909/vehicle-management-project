@@ -302,7 +302,8 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
     @Override
     public Optional<UUID> findCustomerIdByAccountId(UUID accountId) {
         return accountRepository.findById(accountId)
-                .filter(account -> account.getStatus() != AccountStatus.DELETED)
+                .filter(account -> account.getStatus() != AccountStatus.PENDING_DELETION
+                        && account.getStatus() != AccountStatus.DELETED)
                 .map(account -> account.getUserProfileId())
                 .flatMap(customerRepository::findByUserProfileId)
                 .filter(customer -> customer.getStatus() != CustomerStatus.DELETED)
@@ -330,7 +331,8 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
         return customerRepository.findById(customerId)
                 .filter(customer -> customer.getStatus() != CustomerStatus.DELETED)
                 .flatMap(customer -> accountRepository.findByUserProfileId(customer.getUserProfileId()))
-                .filter(account -> account.getStatus() != AccountStatus.DELETED)
+                .filter(account -> account.getStatus() != AccountStatus.PENDING_DELETION
+                        && account.getStatus() != AccountStatus.DELETED)
                 .isPresent();
     }
 

@@ -62,7 +62,8 @@ public final class CustomerVehicleSpecifications {
             Join<UserProfileEntity, AccountEntity> visibleAccount = visibleProfile.join("account", JoinType.INNER);
             predicates.add(criteriaBuilder.notEqual(visibleCustomer.get("status"), CustomerStatus.DELETED));
             predicates.add(criteriaBuilder.notEqual(visibleProfile.get("status"), UserProfileStatus.DELETED));
-            predicates.add(criteriaBuilder.notEqual(visibleAccount.get("status"), AccountStatus.DELETED));
+            predicates.add(criteriaBuilder.not(visibleAccount.get("status").in(
+                    AccountStatus.PENDING_DELETION, AccountStatus.DELETED)));
 
             if (customerId != null) {
                 predicates.add(criteriaBuilder.equal(root.get("customerId"), customerId));

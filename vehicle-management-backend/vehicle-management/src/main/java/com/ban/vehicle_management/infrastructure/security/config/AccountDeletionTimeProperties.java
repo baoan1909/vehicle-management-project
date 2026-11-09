@@ -12,6 +12,7 @@ public class AccountDeletionTimeProperties {
     private Duration processingLease = Duration.ofMinutes(5);
     private Duration schedulerDelay = Duration.ofSeconds(30);
     private Duration schedulerInitialDelay = Duration.ofSeconds(30);
+    private Duration retryBaseDelay = Duration.ofMinutes(1);
     private int maxAttempts = 10;
     private int batchSize = 25;
 
@@ -23,6 +24,8 @@ public class AccountDeletionTimeProperties {
     public void setSchedulerDelay(Duration schedulerDelay) { this.schedulerDelay = schedulerDelay; }
     public Duration getSchedulerInitialDelay() { return schedulerInitialDelay; }
     public void setSchedulerInitialDelay(Duration schedulerInitialDelay) { this.schedulerInitialDelay = schedulerInitialDelay; }
+    public Duration getRetryBaseDelay() { return retryBaseDelay; }
+    public void setRetryBaseDelay(Duration retryBaseDelay) { this.retryBaseDelay = retryBaseDelay; }
     public int getMaxAttempts() { return maxAttempts; }
     public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
     public int getBatchSize() { return batchSize; }

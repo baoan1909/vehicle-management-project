@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.entity.ia
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.common.AuditableEntity;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountDeletionRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -68,6 +69,10 @@ public class AccountDeletionRequestEntity extends AuditableEntity {
 
     @Column(name = "last_error_message", length = 1000)
     private String lastErrorMessage;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "previous_account_status", nullable = false)
+    private AccountStatus previousAccountStatus;
 
     @Version
     @Column(name = "version", nullable = false)

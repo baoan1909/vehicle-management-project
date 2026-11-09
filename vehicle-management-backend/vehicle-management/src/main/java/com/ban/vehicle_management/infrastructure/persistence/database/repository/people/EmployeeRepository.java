@@ -14,7 +14,12 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
     @Query(value = """
         SELECT employee.employee_id
         FROM people.employees employee
-        WHERE EXISTS (
+        JOIN people.user_profiles profile ON profile.user_profile_id = employee.user_profile_id
+        JOIN iam.accounts visible_account ON visible_account.user_profile_id = profile.user_profile_id
+        WHERE employee.status <> 'DELETED'
+          AND profile.status <> 'DELETED'
+          AND visible_account.status NOT IN ('PENDING_DELETION', 'DELETED')
+          AND (EXISTS (
             SELECT 1
             FROM operations.shift_assignments assignment
             JOIN operations.shifts shift ON shift.shift_id = assignment.shift_id
@@ -31,7 +36,7 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
             WHERE account.user_profile_id = employee.user_profile_id
               AND membership.status = 'ACTIVE'
               AND scope.parking_lot_id = :parkingLotId
-        )
+        ))
         """, nativeQuery = true)
     List<UUID> findEmployeeIdsLinkedToParkingLot(@Param("parkingLotId") UUID parkingLotId);
 
@@ -50,6 +55,11 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
         LEFT JOIN FETCH userProfile.account account
         LEFT JOIN FETCH account.role
         WHERE employee.employeeId = :employeeId
+          AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+          AND userProfile.status <> com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus.DELETED
+          AND account.status NOT IN (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
         """)
     Optional<EmployeeEntity> findDetailedByEmployeeId(@Param("employeeId") UUID employeeId);
 
@@ -62,6 +72,11 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
         JOIN AccountEntity account
           ON account.userProfileId = employee.userProfileId
         WHERE account.accountId = :accountId
+          AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+          AND userProfile.status <> com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus.DELETED
+          AND fetchedAccount.status NOT IN (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
         """)
     Optional<EmployeeEntity> findByAccountId(
             @Param("accountId") UUID accountId
@@ -73,6 +88,10 @@ public interface EmployeeRepository extends JpaRepository<EmployeeEntity, UUID>,
         JOIN AccountEntity account
           ON account.userProfileId = employee.userProfileId
         WHERE employee.employeeId = :employeeId
+          AND employee.status <> com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus.DELETED
+          AND account.status NOT IN (
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
+              com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED)
         """)
     Optional<UUID> findAccountIdByEmployeeId(
             @Param("employeeId") UUID employeeId

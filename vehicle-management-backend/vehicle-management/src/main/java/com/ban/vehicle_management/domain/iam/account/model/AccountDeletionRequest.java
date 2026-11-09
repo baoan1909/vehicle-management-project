@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.domain.iam.account.model;
 
 import com.ban.vehicle_management.shared.enumeration.iam.AccountDeletionRequestStatus;
+import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,7 +14,8 @@ public record AccountDeletionRequest(
         Instant cancelledAt,
         Instant completedAt,
         int attemptCount,
-        String lastErrorCode
+        String lastErrorCode,
+        AccountStatus previousAccountStatus
 ) {
     public boolean cancellableAt(Instant now) {
         return status == AccountDeletionRequestStatus.GRACE_PERIOD

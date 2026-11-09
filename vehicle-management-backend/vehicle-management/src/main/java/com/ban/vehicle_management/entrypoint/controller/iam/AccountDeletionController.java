@@ -35,7 +35,7 @@ public class AccountDeletionController {
     public ResponseEntity<ApiResponse<AccountDeletionResponse>> requestDeletion() {
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
                 .body(ApiResponse.ok("Đã tạo yêu cầu xóa tài khoản", mapper.toResponse(
-                        useCase.requestCurrentCustomerDeletion(), Instant.now(clock))));
+                        useCase.requestCurrentAccountDeletion(), Instant.now(clock))));
     }
 
     @GetMapping("/current")
