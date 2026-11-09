@@ -10,6 +10,7 @@ import com.ban.vehicle_management.application.iam.account.model.result.AccountPr
 import com.ban.vehicle_management.application.iam.account.port.in.AccountProfilePortIn;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.people.userprofile.port.in.AvatarModerationPortIn;
+import com.ban.vehicle_management.application.people.userprofile.mapper.AvatarModerationApiMapper;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import java.util.List;
@@ -39,6 +40,9 @@ class AccountProfileControllerApiTest {
     @Mock
     private AvatarModerationPortIn avatarModerationPortIn;
 
+    private final AvatarModerationApiMapper avatarModerationApiMapper =
+            Mappers.getMapper(AvatarModerationApiMapper.class);
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -47,7 +51,8 @@ class AccountProfileControllerApiTest {
                 accountProfilePortIn,
                 currentAccountPortIn,
                 accountProfileApiMapper,
-                avatarModerationPortIn
+                avatarModerationPortIn,
+                avatarModerationApiMapper
         );
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }

@@ -17,6 +17,8 @@ import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckOutResponse;
+import com.ban.vehicle_management.entrypoint.converter.ParkingSessionRequestConverter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import java.util.UUID;
@@ -42,7 +44,8 @@ class ParkingSessionControllerTest {
     void shouldParseCheckInRequestJsonPartBeforeCallingUseCase() {
         ParkingSessionController controller = new ParkingSessionController(
                 parkingSessionPortIn,
-                parkingSessionApiMapper
+                parkingSessionApiMapper,
+                new ParkingSessionRequestConverter(new ObjectMapper())
         );
         UUID laneId = UUID.randomUUID();
         UUID vehicleTypeId = UUID.randomUUID();
@@ -110,7 +113,8 @@ class ParkingSessionControllerTest {
     void shouldRejectMalformedCheckInRequestJsonPart() {
         ParkingSessionController controller = new ParkingSessionController(
                 parkingSessionPortIn,
-                parkingSessionApiMapper
+                parkingSessionApiMapper,
+                new ParkingSessionRequestConverter(new ObjectMapper())
         );
         MockMultipartFile licensePlateImage = new MockMultipartFile(
                 "licensePlateImage",
@@ -137,7 +141,8 @@ class ParkingSessionControllerTest {
     void shouldParseCheckOutRequestJsonPartBeforeCallingUseCase() {
         ParkingSessionController controller = new ParkingSessionController(
                 parkingSessionPortIn,
-                parkingSessionApiMapper
+                parkingSessionApiMapper,
+                new ParkingSessionRequestConverter(new ObjectMapper())
         );
         UUID laneId = UUID.randomUUID();
         MockMultipartFile licensePlateImage = new MockMultipartFile(
@@ -204,7 +209,8 @@ class ParkingSessionControllerTest {
     void shouldParseSubscriptionQrPayloadForCheckOut() {
         ParkingSessionController controller = new ParkingSessionController(
                 parkingSessionPortIn,
-                parkingSessionApiMapper
+                parkingSessionApiMapper,
+                new ParkingSessionRequestConverter(new ObjectMapper())
         );
         UUID laneId = UUID.randomUUID();
         MockMultipartFile licensePlateImage = new MockMultipartFile(

@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.ai.port.out.AiMessageCitationPortOut;
+import com.ban.vehicle_management.application.ai.port.out.KnowledgeRetrievalAuditPortOut;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.operations.chatconversation.port.out.ChatConversationPortOut;
 import com.ban.vehicle_management.domain.ai.model.AiMessageCitation;
@@ -30,6 +31,8 @@ class AiMessageCitationUseCaseImplTest {
     private ChatConversationPortOut chatPortOut;
     @Mock
     private AiMessageCitationPortOut citationPortOut;
+    @Mock
+    private KnowledgeRetrievalAuditPortOut auditPortOut;
 
     private AiMessageCitationUseCaseImpl useCase;
     private final UUID accountId = UUID.randomUUID();
@@ -38,7 +41,7 @@ class AiMessageCitationUseCaseImplTest {
 
     @BeforeEach
     void setUp() {
-        useCase = new AiMessageCitationUseCaseImpl(currentAccountPortIn, chatPortOut, citationPortOut);
+        useCase = new AiMessageCitationUseCaseImpl(currentAccountPortIn, chatPortOut, citationPortOut, auditPortOut);
     }
 
     @Test
@@ -54,10 +57,10 @@ class AiMessageCitationUseCaseImplTest {
         when(chatPortOut.findMember(conversationId, accountId)).thenReturn(Optional.of(new ChatConversationMember()));
         when(citationPortOut.findByMessageId(messageId)).thenReturn(List.of(citation));
 
-        List<AiMessageCitation> result = useCase.citationsForMessage(messageId);
+        var result = useCase.citationsForMessage(messageId);
 
-        assertEquals(1, result.size());
-        assertEquals("C1", result.get(0).label());
+        assertEquals(1, result.citations().size());
+        assertEquals("C1", result.citations().get(0).label());
     }
 
     @Test

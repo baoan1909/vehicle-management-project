@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.catalog.availability.port.out.ParkingLotCatalogAvailabilityPortOut;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
 import com.ban.vehicle_management.application.catalog.vehicletype.port.out.VehicleTypePortOut;
+import com.ban.vehicle_management.application.catalog.priceplan.port.out.PricePlanPortOut;
+import com.ban.vehicle_management.application.catalog.pricerule.port.out.PriceRulePortOut;
 import com.ban.vehicle_management.application.iam.organization.port.out.OrganizationPortOut;
 import com.ban.vehicle_management.application.parking.parkinglot.port.out.ParkingLotPortOut;
 import com.ban.vehicle_management.domain.catalog.tickettype.model.TicketType;
@@ -35,6 +37,8 @@ class PublicParkingLotCatalogUseCaseImplTest {
     @Mock private OrganizationPortOut organizationPortOut;
     @Mock private ParkingLotPortOut parkingLotPortOut;
     @Mock private ParkingLotCatalogAvailabilityPortOut availabilityPortOut;
+    @Mock private PricePlanPortOut pricePlanPortOut;
+    @Mock private PriceRulePortOut priceRulePortOut;
     @InjectMocks private PublicParkingLotCatalogUseCaseImpl useCase;
 
     @Test
