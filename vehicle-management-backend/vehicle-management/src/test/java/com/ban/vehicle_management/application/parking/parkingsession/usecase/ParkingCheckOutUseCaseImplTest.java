@@ -51,6 +51,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSessionStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
+import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -145,6 +146,7 @@ class ParkingCheckOutUseCaseImplTest {
         Card card = card(data.cardId(), data.vehicleTypeId(), CardStatus.IN_USE);
         ParkingSession openSession = visitorOpenSession(data, Instant.now().minusSeconds(2 * 60 * 60));
         StoredFile storedLicensePlateFile = storedFile();
+        StoredFile storedVehicleFile = storedVehicleFile();
         StoredFile storedPersonFile = storedPersonFile();
 
         mockOperationalTopology(data);
@@ -154,7 +156,7 @@ class ParkingCheckOutUseCaseImplTest {
                 .thenReturn(Optional.of(priceRule(data.vehicleTypeId(), new BigDecimal("5000"), LocalTime.of(6, 0), LocalTime.of(19, 59, 59))));
         when(priceRulePortOut.findActiveVisitorRuleByTime(eq(data.vehicleTypeId()), any(LocalDate.class), eq(LocalTime.MIDNIGHT)))
                 .thenReturn(Optional.of(priceRule(data.vehicleTypeId(), new BigDecimal("10000"), LocalTime.of(20, 0), LocalTime.of(5, 59, 59))));
-        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedLicensePlateFile, storedPersonFile);
+        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedLicensePlateFile, storedVehicleFile, storedPersonFile);
         when(parkingEventPortOut.save(any(ParkingEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(invoicePortOut.findFirstByParkingSessionIdAndStatusIn(eq(data.parkingSessionId()), anyCollection()))
                 .thenReturn(Optional.empty());
@@ -164,6 +166,8 @@ class ParkingCheckOutUseCaseImplTest {
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
         when(fileAccessPort.createReadUrl(storedLicensePlateFile.objectKey(), 900))
                 .thenReturn("https://files.test/license-plate");
+        when(fileAccessPort.createReadUrl(storedVehicleFile.objectKey(), 900))
+                .thenReturn("https://files.test/vehicle");
         when(fileAccessPort.createReadUrl(storedPersonFile.objectKey(), 900))
                 .thenReturn("https://files.test/person");
 
@@ -184,10 +188,39 @@ class ParkingCheckOutUseCaseImplTest {
         assertEquals(new BigDecimal("5000"), result.invoice().getAmount());
         assertEquals(ParkingEventType.CHECK_OUT_PENDING, result.parkingEvent().getEventType());
         assertEquals("https://files.test/license-plate", result.parkingEvent().getLicensePlateImagePath());
+        assertEquals("https://files.test/vehicle", result.parkingEvent().getVehicleImagePath());
         assertEquals("https://files.test/person", result.parkingEvent().getPersonImagePath());
         verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
         verify(cardPortOut, never()).save(any(Card.class));
-        verify(fileStoragePort, times(2)).store(any(StoreFileCommand.class));
+        verify(fileStoragePort, times(3)).store(any(StoreFileCommand.class));
+    }
+
+    @Test
+    void shouldRejectCheckoutWithoutVehicleImageBeforeChangingSession() {
+        TestData data = validTestData();
+        CheckOutCommand command = new CheckOutCommand(
+                data.laneId(), "UID-001", "51A-12345", licensePlateImage(), null,
+                personImage(), null, null
+        );
+
+        assertThrows(BadRequestException.class, () -> parkingCheckOutUseCase.checkOut(command));
+
+        verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
+        verify(fileStoragePort, never()).store(any(StoreFileCommand.class));
+    }
+
+    @Test
+    void shouldRejectPrepareCheckoutWithoutVehicleImageBeforeChangingSession() {
+        TestData data = validTestData();
+        CheckOutCommand command = new CheckOutCommand(
+                data.laneId(), "UID-001", "51A-12345", licensePlateImage(), null,
+                personImage(), null, null
+        );
+
+        assertThrows(BadRequestException.class, () -> parkingCheckOutUseCase.prepareVisitorCheckOut(command));
+
+        verify(invoicePortOut, never()).save(any(Invoice.class));
+        verify(fileStoragePort, never()).store(any(StoreFileCommand.class));
     }
 
     @Test
@@ -201,7 +234,8 @@ class ParkingCheckOutUseCaseImplTest {
         when(parkingSessionPortOut.findOpenByCardId(data.cardId())).thenReturn(Optional.of(openSession));
         when(parkingSessionPortOut.save(any(ParkingSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedFile(), storedPersonFile());
+        when(fileStoragePort.store(any(StoreFileCommand.class)))
+                .thenReturn(storedFile(), storedVehicleFile(), storedPersonFile());
         when(parkingEventPortOut.save(any(ParkingEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
 
@@ -216,6 +250,36 @@ class ParkingCheckOutUseCaseImplTest {
         assertNull(result.invoice());
         verify(priceRulePortOut, never()).findActiveVisitorRuleByTime(any(), any(), any());
         verify(invoicePortOut, never()).save(any(Invoice.class));
+    }
+
+    @Test
+    void shouldDeleteAllStoredEvidenceWhenCheckoutEventPersistenceFails() {
+        TestData data = validTestData();
+        Card card = card(data.cardId(), data.vehicleTypeId(), CardStatus.IN_USE);
+        ParkingSession openSession = subscriptionOpenSession(data);
+        StoredFile storedLicensePlateFile = storedFile();
+        StoredFile storedVehicleFile = storedVehicleFile();
+        StoredFile storedPersonFile = storedPersonFile();
+
+        mockOperationalTopology(data);
+        when(cardPortOut.findByUidForUpdate("UID-001")).thenReturn(Optional.of(card));
+        when(parkingSessionPortOut.findOpenByCardId(data.cardId())).thenReturn(Optional.of(openSession));
+        when(parkingSessionPortOut.save(any(ParkingSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(fileStoragePort.store(any(StoreFileCommand.class)))
+                .thenReturn(storedLicensePlateFile, storedVehicleFile, storedPersonFile);
+        when(parkingEventPortOut.save(any(ParkingEvent.class)))
+                .thenThrow(new IllegalStateException("database write failed"));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
+
+        assertThrows(
+                IllegalStateException.class,
+                () -> parkingCheckOutUseCase.checkOut(command(data.laneId(), "51A-12345"))
+        );
+
+        verify(fileStoragePort).delete(storedLicensePlateFile.objectKey());
+        verify(fileStoragePort).delete(storedVehicleFile.objectKey());
+        verify(fileStoragePort).delete(storedPersonFile.objectKey());
     }
 
     @Test
@@ -352,8 +416,10 @@ class ParkingCheckOutUseCaseImplTest {
                 " UID-001 ",
                 licensePlate,
                 licensePlateImage(),
+                vehicleImage(),
                 personImage(),
-                " checkout "
+                " checkout ",
+                null
         );
     }
 
@@ -363,6 +429,7 @@ class ParkingCheckOutUseCaseImplTest {
                 null,
                 licensePlate,
                 licensePlateImage(),
+                vehicleImage(),
                 personImage(),
                 " checkout qr ",
                 qrPayload
@@ -493,6 +560,15 @@ class ParkingCheckOutUseCaseImplTest {
         );
     }
 
+    private MockMultipartFile vehicleImage() {
+        return new MockMultipartFile(
+                "vehicleImage",
+                "vehicle.jpg",
+                "image/jpeg",
+                new byte[] {5, 6}
+        );
+    }
+
     private StoredFile storedFile() {
         return new StoredFile(
                 "pe/2026/06/29/event/pv-checkout-plate.jpg",
@@ -510,6 +586,16 @@ class ParkingCheckOutUseCaseImplTest {
                 "image/jpeg",
                 3,
                 "checksum-person"
+        );
+    }
+
+    private StoredFile storedVehicleFile() {
+        return new StoredFile(
+                "pe/2026/06/26/event/pv-generated-vehicle.jpg",
+                "vehicle.jpg",
+                "image/jpeg",
+                3,
+                "checksum-vehicle"
         );
     }
 

@@ -31,6 +31,7 @@ class ParkingSessionApiMapperUserResponseTest {
                 Instant.parse("2026-01-01T08:00:00Z"),
                 "51F-12345",
                 "/evidence/in.jpg",
+                "/evidence/vehicle.jpg",
                 "/evidence/person.jpg",
                 UUID.randomUUID(),
                 "note"
