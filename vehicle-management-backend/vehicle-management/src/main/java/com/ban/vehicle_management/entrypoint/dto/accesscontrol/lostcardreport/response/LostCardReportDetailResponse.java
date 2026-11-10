@@ -13,6 +13,7 @@ public record LostCardReportDetailResponse(
         SubscriptionAdminResponse subscription,
         InvoiceDetailResponse invoice,
         String checkInLicensePlateImagePath,
+        String checkInVehicleImagePath,
         String checkInPersonImagePath
 ) {
 }

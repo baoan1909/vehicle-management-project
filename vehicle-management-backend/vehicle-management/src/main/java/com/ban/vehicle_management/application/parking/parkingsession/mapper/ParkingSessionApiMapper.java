@@ -38,12 +38,14 @@ import org.springframework.web.multipart.MultipartFile;
 public interface ParkingSessionApiMapper {
 
     @Mapping(target = "licensePlateImage", ignore = true)
+    @Mapping(target = "vehicleImage", ignore = true)
     @Mapping(target = "personImage", ignore = true)
     CheckInCommand toCommand(CheckInParkingSessionRequest request);
 
     default CheckInCommand toCommand(
             CheckInParkingSessionRequest request,
             MultipartFile licensePlateImage,
+            MultipartFile vehicleImage,
             MultipartFile personImage
     ) {
         CheckInCommand command = toCommand(request);
@@ -53,11 +55,13 @@ public interface ParkingSessionApiMapper {
                 command.vehicleTypeId(),
                 command.licensePlate(),
                 licensePlateImage,
+                vehicleImage,
                 personImage,
                 command.note(),
                 command.plateFormatConfirmed(),
                 command.plateIdentityOverride(),
                 command.parkingSpaceId(),
+                command.spaceHoldId(),
                 command.subscriptionQrPayload(),
                 command.reservationQrPayload()
         );
@@ -70,12 +74,14 @@ public interface ParkingSessionApiMapper {
     ParkingSessionCheckInPreviewResponse toCheckInPreviewResponse(CheckInPreviewResult result);
 
     @Mapping(target = "licensePlateImage", ignore = true)
+    @Mapping(target = "vehicleImage", ignore = true)
     @Mapping(target = "personImage", ignore = true)
     CheckOutCommand toCommand(CheckOutParkingSessionRequest request);
 
     default CheckOutCommand toCommand(
             CheckOutParkingSessionRequest request,
             MultipartFile licensePlateImage,
+            MultipartFile vehicleImage,
             MultipartFile personImage
     ) {
         CheckOutCommand command = toCommand(request);
@@ -84,6 +90,7 @@ public interface ParkingSessionApiMapper {
                 command.cardUid(),
                 command.licensePlate(),
                 licensePlateImage,
+                vehicleImage,
                 personImage,
                 command.note(),
                 command.subscriptionQrPayload()

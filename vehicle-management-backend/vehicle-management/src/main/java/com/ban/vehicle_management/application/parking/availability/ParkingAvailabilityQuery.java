@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.application.parking.availability;
 
 import com.ban.vehicle_management.application.parking.capacityallocation.port.out.SubscriptionCapacityAllocationPortOut;
+import com.ban.vehicle_management.application.parking.checkinspacehold.port.out.CheckInSpaceHoldPortOut;
 import com.ban.vehicle_management.application.parking.customerreservation.port.out.CustomerReservationPortOut;
 import com.ban.vehicle_management.application.parking.parkingsession.port.out.ParkingSessionPortOut;
 import com.ban.vehicle_management.application.parking.parkingspace.port.out.ParkingSpacePortOut;
@@ -27,10 +28,16 @@ public class ParkingAvailabilityQuery {
     private final SubscriptionCapacityAllocationPortOut capacityAllocationPortOut;
     private final ParkingAvailabilityPolicy policy = new ParkingAvailabilityPolicy();
     private CustomerReservationPortOut reservationPortOut;
+    private CheckInSpaceHoldPortOut checkInSpaceHoldPortOut;
 
     @org.springframework.beans.factory.annotation.Autowired
     public void setReservationPortOut(CustomerReservationPortOut reservationPortOut) {
         this.reservationPortOut = reservationPortOut;
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setCheckInSpaceHoldPortOut(CheckInSpaceHoldPortOut checkInSpaceHoldPortOut) {
+        this.checkInSpaceHoldPortOut = checkInSpaceHoldPortOut;
     }
 
     public ParkingAvailabilityQuery(ParkingSessionPortOut sessionPortOut,
@@ -90,9 +97,13 @@ public class ParkingAvailabilityQuery {
         long visitor = sessions.size() - registered;
         Set<UUID> occupiedIds = sessions.stream().map(ParkingSession::getParkingSpaceId)
                 .filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+        Set<UUID> heldIds = checkInSpaceHoldPortOut == null ? Set.of()
+                : Set.copyOf(checkInSpaceHoldPortOut.findHeldSpaceIdsByZone(
+                        zone.getZoneId(), java.time.Instant.now()));
         long available = spaces.stream().filter(space -> space.getStatus() == ParkingSpaceStatus.AVAILABLE)
                 .filter(space -> !allocated.contains(space.getParkingSpaceId()))
-                .filter(space -> !occupiedIds.contains(space.getParkingSpaceId())).count();
+                .filter(space -> !occupiedIds.contains(space.getParkingSpaceId()))
+                .filter(space -> !heldIds.contains(space.getParkingSpaceId())).count();
         long reserved = spaces.stream().filter(space -> space.getStatus() == ParkingSpaceStatus.RESERVED).count();
         long maintenance = spaces.stream().filter(space -> space.getStatus() == ParkingSpaceStatus.MAINTENANCE).count();
         return policy.calculateSpace(zone.getZoneId(), spaces.size(), available, reserved,

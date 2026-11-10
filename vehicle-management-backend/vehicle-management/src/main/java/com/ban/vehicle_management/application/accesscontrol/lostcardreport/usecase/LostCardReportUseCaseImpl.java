@@ -204,6 +204,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                             : session.getCustomerId()),
                     session.getLicensePlateIn(),
                     resolvePrivateReadUrl(checkInEvent == null ? null : checkInEvent.getLicensePlateImagePath()),
+                    resolvePrivateReadUrl(checkInEvent == null ? null : checkInEvent.getVehicleImagePath()),
                     resolvePrivateReadUrl(checkInEvent == null ? null : checkInEvent.getPersonImagePath())
             );
         }
@@ -230,6 +231,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 resolveCardNumber(subscription.getCardId()),
                 resolveCustomerName(subscription.getCustomerId()),
                 resolveLicensePlate(null, subscription),
+                null,
                 null,
                 null
         );
@@ -521,6 +523,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                 subscription,
                 new InvoiceDetail(invoice, paymentPortOut.findByInvoiceId(invoice.getInvoiceId())),
                 resolvePrivateReadUrl(checkInEvent == null ? null : checkInEvent.getLicensePlateImagePath()),
+                resolvePrivateReadUrl(checkInEvent == null ? null : checkInEvent.getVehicleImagePath()),
                 resolvePrivateReadUrl(checkInEvent == null ? null : checkInEvent.getPersonImagePath())
         );
     }

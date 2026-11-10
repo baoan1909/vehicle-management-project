@@ -81,6 +81,9 @@ spring:
         enabled: false
 
 app:
+  parking:
+    check-in-space-hold:
+      duration: ${CHECK_IN_SPACE_HOLD_DURATION:2m}
   billing:
     platform-fee:
       max-partner-total-rate: ${PLATFORM_FEE_MAX_PARTNER_TOTAL_RATE:0.30}

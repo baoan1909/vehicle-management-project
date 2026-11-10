@@ -21,6 +21,7 @@ public record LostCardPreviewResponse(
         String customerName,
         String licensePlate,
         String checkInLicensePlateImagePath,
+        String checkInVehicleImagePath,
         String checkInPersonImagePath
 ) {
 }

@@ -51,6 +51,21 @@ public interface ParkingSpaceRepository extends JpaRepository<ParkingSpaceEntity
                             AND allocation.hold_expires_at > :now)
                     )
               )
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM parking.customer_reservations reservation
+                  WHERE reservation.parking_space_id = space.parking_space_id
+                    AND reservation.status IN ('PENDING_PAYMENT', 'HELD')
+                    AND (reservation.status <> 'PENDING_PAYMENT'
+                         OR reservation.payment_hold_expires_at > :now)
+              )
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM parking.check_in_space_holds hold
+                  WHERE hold.parking_space_id = space.parking_space_id
+                    AND hold.status = 'HELD'
+                    AND hold.expires_at > :now
+              )
             ORDER BY space.code, space.parking_space_id
             LIMIT 1
             FOR UPDATE OF space SKIP LOCKED

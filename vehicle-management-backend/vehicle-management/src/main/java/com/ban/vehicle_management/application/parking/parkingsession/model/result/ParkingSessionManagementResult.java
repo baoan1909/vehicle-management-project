@@ -64,6 +64,7 @@ public record ParkingSessionManagementResult(
             Instant eventTime,
             String licensePlateDetected,
             String licensePlateImagePath,
+            String vehicleImagePath,
             String personImagePath,
             UUID actorAccountId,
             String note
