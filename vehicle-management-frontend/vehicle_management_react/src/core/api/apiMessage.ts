@@ -58,6 +58,8 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   "Customer vehicle is not active": "Phương tiện của khách hàng hiện không hoạt động.",
   "Detected license plate does not match subscription vehicle":
     "Biển số nhận diện không khớp với phương tiện đã đăng ký.",
+  "Detected license plate does not match check-in license plate":
+    "Biển số nhận diện khi xe ra không khớp với biển số đã ghi nhận lúc check-in. Vui lòng kiểm tra lại.",
   "Card is not in use": "Thẻ hiện không được sử dụng trong phiên gửi xe.",
   "OCR service is disabled": "Dịch vụ nhận diện biển số hiện đang tạm ngưng.",
   "Could not recognize license plate. Please enter it manually.":

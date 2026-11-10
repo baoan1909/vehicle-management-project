@@ -95,8 +95,9 @@ function customerTypeLabel(session: ParkingSessionManagementResponse) {
 function hasMissingEvidence(session: ParkingSessionManagementResponse) {
   const checkIn = getEvent(session, "CHECK_IN");
   const checkOut = getEvent(session, "CHECK_OUT");
-  const missingCheckIn = !checkIn?.licensePlateImagePath || !checkIn?.personImagePath;
-  const missingCheckOut = session.status === "CLOSED" && (!checkOut?.licensePlateImagePath || !checkOut?.personImagePath);
+  const missingCheckIn = !checkIn?.licensePlateImagePath || !checkIn?.vehicleImagePath || !checkIn?.personImagePath;
+  const missingCheckOut = session.status === "CLOSED"
+    && (!checkOut?.licensePlateImagePath || !checkOut?.vehicleImagePath || !checkOut?.personImagePath);
   return missingCheckIn || missingCheckOut;
 }
 
@@ -174,7 +175,7 @@ function EvidenceImage({ label, src }: { label: string; src?: string | null }) {
       <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">{label}</span>
       {src ? (
         <div className="tw-h-[150px] tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25">
-          <img alt={label} className="tw-h-full tw-w-full tw-object-cover" src={src} />
+          <img alt={label} className="tw-h-full tw-w-full tw-object-contain" src={src} />
         </div>
       ) : (
         <div className="tw-grid tw-h-[150px] tw-place-items-center tw-rounded-vm-md tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-vm-slate-25 tw-text-vm-slate-500">
@@ -195,8 +196,9 @@ function EventBlock({ event, title }: { event?: ParkingSessionManagementEventRes
         <strong className="tw-text-[0.96rem] tw-font-black tw-text-vm-slate-900">{title}</strong>
         <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">{formatApplicationDateTime(event?.eventTime)}</span>
       </div>
-      <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[620px]:tw-grid-cols-1">
+      <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-[900px]:tw-grid-cols-1">
         <EvidenceImage label="Ảnh biển số" src={event?.licensePlateImagePath} />
+        <EvidenceImage label="Ảnh xe / phương tiện" src={event?.vehicleImagePath} />
         <EvidenceImage label="Ảnh người / tài xế" src={event?.personImagePath} />
       </div>
       <div className="tw-grid tw-grid-cols-2 tw-gap-3 tw-text-[0.82rem] max-[620px]:tw-grid-cols-1">

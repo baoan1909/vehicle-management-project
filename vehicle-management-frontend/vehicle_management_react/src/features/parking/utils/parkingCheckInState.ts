@@ -15,25 +15,8 @@ export function getSuggestedParkingSpaceId(
     : undefined;
 }
 
-export function isSelectedVisitorSpaceEligible(
-  preview: ParkingSessionCheckInPreviewResponse | null,
-  parkingSpaceId?: string,
-) {
-  if (!preview || preview.trackingMode !== "SPACE" || preview.customerType !== "VISITOR") {
-    return false;
-  }
-  return Boolean(
-    parkingSpaceId
-      && preview.eligibleSpaces.some(
-        (space) => space.parkingSpaceId === parkingSpaceId
-          && (space.status === "AVAILABLE" || space.status === "RESERVED"),
-      ),
-  );
-}
-
 export function isCheckInPreviewAdmissible(
   preview: ParkingSessionCheckInPreviewResponse | null,
-  selectedParkingSpaceId?: string,
 ) {
   if (!preview) return false;
   if (preview.trackingMode === "CAPACITY") {
@@ -41,7 +24,9 @@ export function isCheckInPreviewAdmissible(
       && (preview.customerType !== "VISITOR" || preview.visitorAvailable > 0);
   }
   if (preview.customerType === "VISITOR") {
-    return isSelectedVisitorSpaceEligible(preview, selectedParkingSpaceId);
+    return preview.eligibleSpaces.some(
+      (space) => space.status === "AVAILABLE" || space.status === "RESERVED",
+    );
   }
   const allocatedSpaceId = getSuggestedParkingSpaceId(preview);
   return Boolean(
@@ -50,16 +35,4 @@ export function isCheckInPreviewAdmissible(
         (space) => space.parkingSpaceId === allocatedSpaceId && space.status === "RESERVED",
       ),
   );
-}
-
-export function getCheckInParkingSpaceId(
-  preview: ParkingSessionCheckInPreviewResponse | null,
-  selectedParkingSpaceId?: string,
-) {
-  if (preview?.trackingMode !== "SPACE" || preview.customerType !== "VISITOR") {
-    return undefined;
-  }
-  return isSelectedVisitorSpaceEligible(preview, selectedParkingSpaceId)
-    ? selectedParkingSpaceId
-    : undefined;
 }

@@ -84,7 +84,7 @@ export type CheckInParkingSessionRequest = {
   note?: string;
   plateFormatConfirmed?: boolean;
   plateIdentityOverride?: boolean;
-  parkingSpaceId?: string;
+  spaceHoldId?: string;
   subscriptionQrPayload?: string;
   reservationQrPayload?: string;
   vehicleTypeId?: string;
@@ -125,6 +125,25 @@ export type ParkingSessionCheckInPreviewResponse = {
   selectionRequired: boolean;
   trackingMode: TrackingMode;
   visitorAvailable: number;
+  zoneId: string;
+  vehicleTypeId: string;
+};
+
+export type CheckInSpaceHoldStatus = "HELD" | "CONSUMED" | "EXPIRED" | "CANCELLED";
+
+export type CreateCheckInSpaceHoldRequest = CheckInPreviewRequest & {
+  requestId: string;
+};
+
+export type CheckInSpaceHoldResponse = {
+  customerType: ParkingCustomerType;
+  expiresAt: string;
+  holdId: string;
+  parkingLotId: string;
+  parkingSpaceCode: string;
+  parkingSpaceId: string;
+  serverTime: string;
+  status: CheckInSpaceHoldStatus;
   zoneId: string;
 };
 
@@ -173,7 +192,7 @@ export type ParkingSessionResponse = {
 export type ParkingEventResponse = {
   actorAccountId?: string;
   eventTime?: string;
-  eventType?: "CHECK_IN" | "CHECK_OUT_PENDING" | "CHECK_OUT";
+  eventType?: "CHECK_IN" | "CHECK_OUT_PENDING" | "CHECK_OUT" | "MANUAL_REVIEW";
   laneId: string;
   licensePlateDetected?: string;
   licensePlateDetectedNormalized?: string | null;
@@ -182,6 +201,7 @@ export type ParkingEventResponse = {
   validFormat?: boolean;
   needsReview?: boolean;
   licensePlateImagePath?: string;
+  vehicleImagePath?: string;
   note?: string;
   parkingEventId: string;
   parkingSessionId: string;
@@ -233,7 +253,7 @@ export type ParkingSessionCheckOutPreviewResponse = {
 export type ParkingSessionManagementEventResponse = {
   actorAccountId?: string;
   eventTime?: string;
-  eventType?: "CHECK_IN" | "CHECK_OUT_PENDING" | "CHECK_OUT";
+  eventType?: "CHECK_IN" | "CHECK_OUT_PENDING" | "CHECK_OUT" | "MANUAL_REVIEW";
   laneCode?: string;
   laneId?: string;
   laneName?: string;
@@ -244,6 +264,7 @@ export type ParkingSessionManagementEventResponse = {
   validFormat?: boolean;
   needsReview?: boolean;
   licensePlateImagePath?: string;
+  vehicleImagePath?: string;
   note?: string;
   parkingEventId: string;
   parkingSessionId: string;
@@ -437,6 +458,27 @@ export async function previewCheckInParkingSession(
   return response.data;
 }
 
+export async function createCheckInSpaceHold(
+  request: CreateCheckInSpaceHoldRequest,
+  signal?: AbortSignal,
+) {
+  const response = await apiClient<ApiResponse<CheckInSpaceHoldResponse>>(
+    `${apiEndpoints.parking.parkingSessions}/check-in/space-holds`,
+    { body: request, method: "POST", signal },
+  );
+  return response.data;
+}
+
+export async function cancelCheckInSpaceHold(holdId: string, reason?: string) {
+  const query = new URLSearchParams();
+  if (reason) query.set("reason", reason);
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+  await apiClient<ApiResponse<void>>(
+    `${apiEndpoints.parking.parkingSessions}/check-in/space-holds/${holdId}${suffix}`,
+    { method: "DELETE" },
+  );
+}
+
 export async function fetchOpenParkingSessionBySubscriptionQr(
   subscriptionQrPayload: string,
   parkingLotId: string,
@@ -473,11 +515,13 @@ export async function fetchParkingSessions(filters: ParkingSessionManagementFilt
 export async function checkInParkingSession(
   request: CheckInParkingSessionRequest,
   licensePlateImage: File,
+  vehicleImage: File,
   personImage: File,
 ) {
   const formData = new FormData();
   formData.append("request", JSON.stringify(request));
   formData.append("licensePlateImage", licensePlateImage, licensePlateImage.name);
+  formData.append("vehicleImage", vehicleImage, vehicleImage.name);
   formData.append("personImage", personImage, personImage.name);
 
   return postMultipart<ApiResponse<ParkingSessionCheckInResponse>>(
@@ -489,11 +533,13 @@ export async function checkInParkingSession(
 export async function checkOutParkingSession(
   request: CheckOutParkingSessionRequest,
   licensePlateImage: File,
+  vehicleImage: File,
   personImage: File,
 ) {
   const formData = new FormData();
   formData.append("request", JSON.stringify(request));
   formData.append("licensePlateImage", licensePlateImage, licensePlateImage.name);
+  formData.append("vehicleImage", vehicleImage, vehicleImage.name);
   formData.append("personImage", personImage, personImage.name);
 
   return postMultipart<ApiResponse<ParkingSessionCheckOutResponse>>(
@@ -505,11 +551,13 @@ export async function checkOutParkingSession(
 export async function prepareVisitorParkingCheckOut(
   request: CheckOutParkingSessionRequest,
   licensePlateImage: File,
+  vehicleImage: File,
   personImage: File,
 ) {
   const formData = new FormData();
   formData.append("request", JSON.stringify(request));
   formData.append("licensePlateImage", licensePlateImage, licensePlateImage.name);
+  formData.append("vehicleImage", vehicleImage, vehicleImage.name);
   formData.append("personImage", personImage, personImage.name);
 
   return postMultipart<ApiResponse<ParkingSessionCheckOutResponse>>(

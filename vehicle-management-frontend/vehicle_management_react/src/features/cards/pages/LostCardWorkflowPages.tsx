@@ -1010,7 +1010,7 @@ export function LostCardCreatePage() {
                     : "Tra cứu biển số để xác định bãi xe"}
                 />
 
-                <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-md:tw-grid-cols-1">
+                <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-md:tw-grid-cols-1">
                   <LostCardEvidenceImage
                     alt="Ảnh người gửi xe khi vào bãi"
                     emptyText="Phiên gửi xe chưa có ảnh người gửi xe"
@@ -1022,6 +1022,12 @@ export function LostCardCreatePage() {
                     emptyText="Phiên gửi xe chưa có ảnh biển số"
                     imagePath={preview?.checkInLicensePlateImagePath}
                     label="Ảnh biển số khi vào"
+                  />
+                  <LostCardEvidenceImage
+                    alt="Ảnh xe khi vào bãi"
+                    emptyText="Phiên gửi xe chưa có ảnh xe"
+                    imagePath={preview?.checkInVehicleImagePath}
+                    label="Ảnh xe / phương tiện khi vào"
                   />
                 </div>
 
@@ -1506,7 +1512,7 @@ export function LostCardDetailPage() {
                       <p className="tw-m-0 tw-mt-1 tw-text-[0.92rem] tw-font-semibold tw-leading-relaxed tw-text-slate-900">{report.note}</p>
                     </div>
                   ) : null}
-                  <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-md:tw-grid-cols-1">
+                  <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-md:tw-grid-cols-1">
                     <LostCardEvidenceImage
                       alt="Ảnh người gửi xe khi vào bãi"
                       emptyText="Phiên gửi xe chưa có ảnh người gửi xe"
@@ -1518,6 +1524,12 @@ export function LostCardDetailPage() {
                       emptyText="Phiên gửi xe chưa có ảnh biển số"
                       imagePath={detail.checkInLicensePlateImagePath}
                       label="Ảnh biển số khi vào"
+                    />
+                    <LostCardEvidenceImage
+                      alt="Ảnh xe khi vào bãi"
+                      emptyText="Phiên gửi xe chưa có ảnh xe"
+                      imagePath={detail.checkInVehicleImagePath}
+                      label="Ảnh xe / phương tiện khi vào"
                     />
                   </div>
                 </div>

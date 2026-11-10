@@ -1,16 +1,15 @@
-import { Button } from "@/components/ui";
-import type { ParkingSessionCheckInPreviewResponse } from "@/features/parking/api/parkingSessionApi";
-import { getSuggestedParkingSpaceId } from "@/features/parking/utils/parkingCheckInState";
+import type { CheckInSpaceHoldResponse, ParkingSessionCheckInPreviewResponse } from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
 
 type ParkingCheckInLocationPanelProps = {
   isLoading: boolean;
+  hold?: CheckInSpaceHoldResponse | null;
+  holdError?: string;
+  holdRemainingSeconds?: number;
   levelLabel?: string;
-  onChooseSpace: () => void;
   preview: ParkingSessionCheckInPreviewResponse | null;
   previewError?: string;
   previewStale?: boolean;
-  selectedParkingSpaceId?: string;
   zoneLabel?: string;
 };
 
@@ -25,24 +24,19 @@ function Metric({ label, value }: { label: string; value: string | number }) {
 
 export function ParkingCheckInLocationPanel({
   isLoading,
+  hold,
+  holdError,
+  holdRemainingSeconds = 0,
   levelLabel,
-  onChooseSpace,
   preview,
   previewError,
   previewStale = false,
-  selectedParkingSpaceId,
   zoneLabel,
 }: ParkingCheckInLocationPanelProps) {
   if (!preview && !isLoading && !previewError) return null;
 
-  const selectedSpace = preview?.eligibleSpaces.find(
-    (space) => space.parkingSpaceId === selectedParkingSpaceId,
-  );
-  const allocatedSpaceId = getSuggestedParkingSpaceId(preview);
-  const allocatedSpace = preview?.eligibleSpaces.find(
-    (space) => space.parkingSpaceId === allocatedSpaceId,
-  );
   const location = [zoneLabel, levelLabel].filter(Boolean).join(" • ") || "Đang xác định khu vực";
+  const countdown = `${String(Math.floor(holdRemainingSeconds / 60)).padStart(2, "0")}:${String(holdRemainingSeconds % 60).padStart(2, "0")}`;
 
   return (
     <section
@@ -83,6 +77,11 @@ export function ParkingCheckInLocationPanel({
           <i className="fas fa-exclamation-circle tw-mt-0.5" /> {previewError}
         </div>
       ) : null}
+      {holdError ? (
+        <div className="tw-flex tw-items-start tw-gap-2 tw-text-[0.76rem] tw-font-bold tw-text-red-600">
+          <i className="fas fa-exclamation-circle tw-mt-0.5" /> {holdError}
+        </div>
+      ) : null}
 
       {preview?.trackingMode === "CAPACITY" ? (
         <>
@@ -95,20 +94,14 @@ export function ParkingCheckInLocationPanel({
       ) : null}
 
       {preview?.trackingMode === "SPACE" && preview.customerType === "VISITOR" ? (
-        <div className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-sm tw-bg-white tw-p-2.5">
+        <div className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-sm tw-border tw-border-solid tw-border-amber-200 tw-bg-white tw-p-3">
           <div className="tw-grid tw-gap-0.5">
-            <span className="tw-text-[0.7rem] tw-font-bold tw-text-vm-slate-500">
-              {preview.eligibleSpaces.length} ô phù hợp
-            </span>
-            <strong className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-900">
-              {selectedSpace ? `Ô đã chọn: ${selectedSpace.code}` : "Chưa chọn ô đỗ"}
+            <span className="tw-text-[0.7rem] tw-font-bold tw-text-amber-700">Ô được hệ thống tạm giữ</span>
+            <strong className="tw-text-[1.15rem] tw-font-black tw-text-vm-slate-900">
+              {hold ? `Ô ${hold.parkingSpaceCode}` : "Đang tự động gán ô..."}
             </strong>
           </div>
-          {preview.selectionRequired ? (
-            <Button size="sm" variant="secondary" onClick={onChooseSpace}>
-              <i className="fas fa-th-large" /> {selectedSpace ? "Đổi ô" : "Chọn ô đỗ"}
-            </Button>
-          ) : null}
+          {hold ? <strong className={holdRemainingSeconds <= 30 ? "tw-text-red-600" : "tw-text-amber-700"}>{countdown}</strong> : null}
         </div>
       ) : null}
 
@@ -116,7 +109,7 @@ export function ParkingCheckInLocationPanel({
         <div className="tw-grid tw-gap-1 tw-rounded-vm-sm tw-border tw-border-solid tw-border-emerald-100 tw-bg-white tw-p-2.5">
           <span className="tw-text-[0.7rem] tw-font-bold tw-text-vm-slate-500">Ô cố định được cấp</span>
           <strong className="tw-text-[0.86rem] tw-font-extrabold tw-text-emerald-700">
-            {allocatedSpace ? `${allocatedSpace.code} • ${allocatedSpace.status}` : "Không có allocation hợp lệ"}
+            {hold ? `${hold.parkingSpaceCode} • tạm giữ ${countdown}` : "Đang xác nhận ô được cấp..."}
           </strong>
         </div>
       ) : null}

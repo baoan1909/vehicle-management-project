@@ -30,7 +30,6 @@ type ParkingOperationFormProps = {
   checkOutCustomerType?: string;
   checkOutPaymentMethod: CheckOutPaymentMethod;
   estimatedPaymentAmount?: number | null;
-  error?: string;
   checkInLocationPanel?: ReactNode;
   isSubmitting?: boolean;
   isLoadingCards?: boolean;
@@ -45,6 +44,7 @@ type ParkingOperationFormProps = {
   ocrResult?: LicensePlateOcrResponse | null;
   ocrStatus?: OcrStatus;
   personImageReady?: boolean;
+  vehicleImageReady?: boolean;
   submitDisabled?: boolean;
   submitLabel?: string;
   qrScanDisabled?: boolean;
@@ -97,12 +97,12 @@ function FieldError({ message }: { message?: string }) {
 
 function FieldShell({
   actionIcon,
+  error,
   icon,
   label,
   onChange,
   placeholder,
   value,
-  error,
   onCommit,
 }: {
   actionIcon?: string;
@@ -378,7 +378,6 @@ export function ParkingOperationForm({
   checkOutCustomerType,
   checkOutPaymentMethod,
   estimatedPaymentAmount,
-  error,
   checkInLocationPanel,
   isLoadingCards = false,
   isSubmitting = false,
@@ -393,6 +392,7 @@ export function ParkingOperationForm({
   ocrResult,
   ocrStatus = "idle",
   personImageReady = true,
+  vehicleImageReady = true,
   submitDisabled = false,
   submitLabel,
   qrScanDisabled = false,
@@ -423,6 +423,7 @@ export function ParkingOperationForm({
     isCheckIn && vehicleTypeRequired && !vehicleTypeId ? "loại xe" : "",
     !licensePlate.trim() ? "biển số" : "",
     !licensePlateImageReady ? "ảnh biển số" : "",
+    !vehicleImageReady ? "ảnh xe/phương tiện" : "",
     !personImageReady ? "ảnh người/tài xế" : "",
     !checkOutPreviewReady ? "phiên gửi xe" : "",
     ocrStatus === "recognizing" ? "OCR đang xử lý" : "",
@@ -442,6 +443,9 @@ export function ParkingOperationForm({
           style: "currency",
         }).format(estimatedPaymentAmount)
       : "--";
+  const selectedVehicleTypeLabel = vehicleTypeId
+    ? vehicleTypeOptions.find((option) => option.value === vehicleTypeId)?.label ?? "Loại xe trong phiên gửi"
+    : "--";
 
   return (
     <Card className="tw-flex tw-min-h-0 tw-flex-col tw-overflow-hidden">
@@ -496,17 +500,26 @@ export function ParkingOperationForm({
               <span className={cn("tw-inline-flex tw-w-5 tw-flex-shrink-0 tw-items-center tw-justify-center", validationErrors.vehicleTypeId ? "tw-text-red-500" : "tw-text-vm-slate-700")}>
                 <i className="fas fa-car" />
               </span>
-              <SelectMenu
-                className="tw-min-w-0 tw-flex-1"
-                ariaLabel="Chọn loại xe"
-                options={vehicleTypeOptions.length ? vehicleTypeOptions : [{ label: "Chưa có loại xe active", value: "" }]}
-                value={vehicleTypeId}
-                clearValue=""
-                disabled={vehicleTypeDisabled}
-                onChange={onVehicleTypeChange}
-                menuClassName="tw-min-w-[240px]"
-                triggerClassName="!tw-h-10 !tw-border-0 !tw-px-0 !tw-shadow-none tw-text-[0.92rem] tw-font-bold"
-              />
+              {!isCheckIn ? (
+                <input
+                  aria-label="Loại xe check-out"
+                  className="tw-h-10 tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.92rem] tw-font-bold tw-text-slate-900 tw-outline-none"
+                  readOnly
+                  value={selectedVehicleTypeLabel}
+                />
+              ) : (
+                <SelectMenu
+                  className="tw-min-w-0 tw-flex-1"
+                  ariaLabel="Chọn loại xe"
+                  options={vehicleTypeOptions.length ? vehicleTypeOptions : [{ label: "Chưa có loại xe active", value: "" }]}
+                  value={vehicleTypeId}
+                  clearValue=""
+                  disabled={vehicleTypeDisabled}
+                  onChange={onVehicleTypeChange}
+                  menuClassName="tw-min-w-[240px]"
+                  triggerClassName="!tw-h-10 !tw-border-0 !tw-px-0 !tw-shadow-none tw-text-[0.92rem] tw-font-bold"
+                />
+              )}
             </div>
             <FieldError message={validationErrors.vehicleTypeId} />
           </label>
@@ -650,12 +663,6 @@ export function ParkingOperationForm({
             <span className="tw-absolute tw-bottom-3 tw-right-4 tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">{note.length} / 200</span>
           </span>
         </label>
-
-        {error ? (
-          <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-px-3 tw-py-2 tw-text-[0.82rem] tw-font-bold tw-text-red-600">
-            {error}
-          </div>
-        ) : null}
 
         <Button
           className={cn(
