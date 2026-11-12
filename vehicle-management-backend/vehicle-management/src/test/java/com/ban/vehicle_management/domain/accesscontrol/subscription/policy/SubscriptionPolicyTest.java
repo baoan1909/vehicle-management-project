@@ -298,6 +298,32 @@ class SubscriptionPolicyTest {
     }
 
     @Test
+    void shouldTerminateActiveSubscriptionWithoutRefundForAccountDeletion() {
+        Subscription subscription = activeQrSubscription(LocalDate.of(2026, 6, 16));
+        UUID deletionRequestId = UUID.randomUUID();
+        Instant terminatedAt = Instant.parse("2026-07-01T10:00:00Z");
+
+        subscriptionPolicy.terminateForAccountDeletion(subscription, deletionRequestId, terminatedAt);
+
+        assertEquals(SubscriptionStatus.TERMINATED, subscription.getStatus());
+        assertEquals(terminatedAt, subscription.getTerminatedAt());
+        assertEquals("ACCOUNT_DELETION", subscription.getTerminationReason());
+        assertEquals(deletionRequestId, subscription.getAccountDeletionRequestId());
+        assertEquals(terminatedAt, subscription.getQrRevokedAt());
+        assertEquals(true, subscription.getAccessBlocked());
+        assertEquals(terminatedAt, subscription.getAccessBlockedAt());
+    }
+
+    @Test
+    void shouldNotTerminateSubscriptionThatIsNotActive() {
+        Subscription subscription = approvedSubscription(
+                LocalDate.of(2026, 6, 16), SubscriptionStatus.EXPIRED);
+
+        assertThrows(ConflictException.class, () -> subscriptionPolicy.terminateForAccountDeletion(
+                subscription, UUID.randomUUID(), Instant.parse("2026-07-01T10:00:00Z")));
+    }
+
+    @Test
     void shouldRejectRequestedDateOutsideAllowedWindow() {
         LocalDate currentDate = LocalDate.of(2026, 6, 16);
         Subscription subscription = baseSubscription();

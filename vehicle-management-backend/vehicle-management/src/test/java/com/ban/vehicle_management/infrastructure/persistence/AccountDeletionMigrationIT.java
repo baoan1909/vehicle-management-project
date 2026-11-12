@@ -4,7 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.accesscontrol.LostCardReportRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationMembershipRepository;
+import java.time.Instant;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,6 +22,12 @@ class AccountDeletionMigrationIT extends PostgresIntegrationTestSupport {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private OrganizationMembershipRepository organizationMembershipRepository;
+
+    @Autowired
+    private LostCardReportRepository lostCardReportRepository;
 
     @Test
     void migrationCreatesPostgresLifecycleIndexesAndPermissionVocabulary() {
@@ -79,5 +90,30 @@ class AccountDeletionMigrationIT extends PostgresIntegrationTestSupport {
                   and grant_row.is_active=true
                 """, Integer.class);
         assertEquals(9, internalRoleGrantCount);
+    }
+
+    @Test
+    void lastPermissionHolderQueryUsesPostgresSafeAliases() {
+        assertTrue(organizationMembershipRepository
+                .findOrganizationsWhereAccountIsLastPermissionHolder(
+                        UUID.randomUUID(), "ORGANIZATION_CLOSE_OWN")
+                .isEmpty());
+    }
+
+    @Test
+    void accountDeletionLostCardLookupDoesNotBindNullableDateParameters() {
+        assertTrue(lostCardReportRepository
+                .findAllByCustomerIdOrderByNotificationTimeDesc(UUID.randomUUID())
+                .isEmpty());
+    }
+
+    @Test
+    void lostCardFilterAcceptsTypedDefaultDateBounds() {
+        assertTrue(lostCardReportRepository.findBusinessVisibleWithFilters(
+                null, null, UUID.randomUUID(), null, null, null,
+                Instant.parse("1900-01-01T00:00:00Z"),
+                Instant.parse("9999-12-31T23:59:59Z"),
+                "", false, Set.of(new UUID(0L, 0L)))
+                .isEmpty());
     }
 }
