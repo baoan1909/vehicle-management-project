@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.ban.vehicle_management.domain.people.userprofile.model.UserProfile;
 import com.ban.vehicle_management.shared.enumeration.people.UserProfileStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +32,7 @@ class UserProfilePolicyTest {
         UserProfile userProfile = new UserProfile();
         userProfile.setFullName("Nguyen Van A");
         userProfile.setStatus(UserProfileStatus.ACTIVE);
-        userProfile.setDateOfBirth(LocalDate.now().plusDays(1));
+        userProfile.setDateOfBirth(LocalDate.now(DateTimeUtils.getAppZone()).plusYears(1));
 
         assertThrows(BadRequestException.class, () -> userProfilePolicy.validateState(userProfile));
     }
