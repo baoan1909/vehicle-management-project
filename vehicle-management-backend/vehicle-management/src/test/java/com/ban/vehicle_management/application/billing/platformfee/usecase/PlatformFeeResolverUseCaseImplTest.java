@@ -15,6 +15,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeBasis;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeCalculationType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeChargedTo;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeRuleVersionStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus;
 import java.math.BigDecimal;
@@ -51,6 +52,48 @@ class PlatformFeeResolverUseCaseImplTest {
                 PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE, effectiveAt, 1000000L, 900000L);
 
         assertTrue(resolution.getFeeLines().isEmpty());
+        assertEquals(0L, resolution.getTotalFeeAmount());
+        assertEquals(false, resolution.isConfigurationFound());
+    }
+
+    @Test
+    void shouldFallbackToGlobalWhenSpecificConfigurationIsNotEffective() {
+        PlatformFeeType specific = feeType("FUTURE_SPECIFIC", PlatformFeeBasis.GROSS_AMOUNT);
+        PlatformFeeType global = feeType("GLOBAL_FEE", PlatformFeeBasis.GROSS_AMOUNT);
+        global.setScopeType(PlatformFeeScopeType.GLOBAL);
+        global.setTransactionType(null);
+        when(feeTypePortOut.findActiveByTransactionType(PlatformFeeTransactionType.PARKING_SESSION))
+                .thenReturn(List.of(specific));
+        when(ruleVersionPortOut.findEffectiveVersion(specific.getPlatformFeeTypeId(), effectiveAt))
+                .thenReturn(Optional.empty());
+        when(feeTypePortOut.findActiveByScope(PlatformFeeScopeType.GLOBAL, null))
+                .thenReturn(List.of(global));
+        when(ruleVersionPortOut.findEffectiveVersion(global.getPlatformFeeTypeId(), effectiveAt))
+                .thenReturn(Optional.of(version(global.getPlatformFeeTypeId(), 1, new BigDecimal("0.05"))));
+
+        PlatformFeeResolution resolution = resolver.resolveFees(
+                PlatformFeeTransactionType.PARKING_SESSION, effectiveAt, 100000L, 100000L);
+
+        assertEquals(PlatformFeeScopeType.GLOBAL, resolution.getResolvedScope());
+        assertTrue(resolution.isFallbackApplied());
+        assertEquals(5000L, resolution.getTotalFeeAmount());
+    }
+
+    @Test
+    void shouldKeepSpecificZeroPercentInsteadOfFallingBackToGlobal() {
+        PlatformFeeType exemption = feeType("CARD_DEPOSIT_EXEMPT", PlatformFeeBasis.GROSS_AMOUNT);
+        exemption.setTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_CARD_DEPOSIT);
+        when(feeTypePortOut.findActiveByTransactionType(
+                PlatformFeeTransactionType.SUBSCRIPTION_CARD_DEPOSIT)).thenReturn(List.of(exemption));
+        when(ruleVersionPortOut.findEffectiveVersion(exemption.getPlatformFeeTypeId(), effectiveAt))
+                .thenReturn(Optional.of(version(exemption.getPlatformFeeTypeId(), 1, BigDecimal.ZERO)));
+
+        PlatformFeeResolution resolution = resolver.resolveFees(
+                PlatformFeeTransactionType.SUBSCRIPTION_CARD_DEPOSIT, effectiveAt, 100000L, 100000L);
+
+        assertEquals(PlatformFeeScopeType.TRANSACTION_TYPE, resolution.getResolvedScope());
+        assertEquals(false, resolution.isFallbackApplied());
+        assertTrue(resolution.isConfigurationFound());
         assertEquals(0L, resolution.getTotalFeeAmount());
     }
 
@@ -111,6 +154,7 @@ class PlatformFeeResolverUseCaseImplTest {
         type.setPlatformFeeTypeId(UUID.randomUUID());
         type.setFeeCode(code);
         type.setName(code);
+        type.setScopeType(PlatformFeeScopeType.TRANSACTION_TYPE);
         type.setTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE);
         type.setCalculationType(PlatformFeeCalculationType.PERCENTAGE);
         type.setFeeBasis(basis);

@@ -13,6 +13,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeBasis;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeCalculationType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeChargedTo;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeRuleVersionStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus;
 import java.math.BigDecimal;
@@ -121,6 +122,7 @@ class PlatformFeePersistenceIT extends com.ban.vehicle_management.testsupport.Po
         type.setPlatformFeeTypeId(UUID.randomUUID());
         type.setFeeCode(code);
         type.setName(code);
+        type.setScopeType(PlatformFeeScopeType.TRANSACTION_TYPE);
         type.setTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE);
         type.setCalculationType(PlatformFeeCalculationType.PERCENTAGE);
         type.setFeeBasis(PlatformFeeBasis.GROSS_AMOUNT);

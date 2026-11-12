@@ -87,8 +87,7 @@ class PlatformFeeManagementUseCaseImplTest {
         PlatformFeeConfigurationResult updated = new PlatformFeeConfigurationResult(
                 new BigDecimal("0.25"), 3L, Instant.parse("2026-10-16T02:00:00Z"), actorId);
         when(configurationPortOut.findGlobal()).thenReturn(Optional.of(existing));
-        when(feeTypePortOut.findActiveByTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE))
-                .thenReturn(List.of());
+        when(feeTypePortOut.findAllActive()).thenReturn(List.of());
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(actorId);
         when(configurationPortOut.updateGlobal(any(), anyLong(), any(), any()))
                 .thenReturn(Optional.of(updated));
@@ -119,8 +118,7 @@ class PlatformFeeManagementUseCaseImplTest {
         activeVersion.setEffectiveFrom(Instant.parse("2020-01-01T00:00:00Z"));
 
         when(configurationPortOut.findGlobal()).thenReturn(Optional.of(configuration("0.30", 2L)));
-        when(feeTypePortOut.findActiveByTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE))
-                .thenReturn(List.of(activeType));
+        when(feeTypePortOut.findAllActive()).thenReturn(List.of(activeType));
         when(ruleVersionPortOut.findActiveByFeeTypeId(activeType.getPlatformFeeTypeId()))
                 .thenReturn(List.of(activeVersion));
         when(ruleVersionPortOut.findEffectiveVersion(eq(activeType.getPlatformFeeTypeId()), any()))

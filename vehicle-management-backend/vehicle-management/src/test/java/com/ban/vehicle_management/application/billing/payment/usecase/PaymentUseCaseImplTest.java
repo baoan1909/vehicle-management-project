@@ -11,8 +11,8 @@ import static org.mockito.Mockito.when;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuard;
+import com.ban.vehicle_management.application.billing.payment.port.in.PaymentCompletionPortIn;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
-import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
@@ -52,7 +52,7 @@ class PaymentUseCaseImplTest {
     private ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
 
     @Mock
-    private SettlementPortIn settlementPortIn;
+    private PaymentCompletionPortIn paymentCompletionPortIn;
 
     @InjectMocks
     private PaymentUseCaseImpl paymentUseCase;
@@ -86,7 +86,7 @@ class PaymentUseCaseImplTest {
         verify(paymentPortOut).save(savedPayment);
         verify(invoicePortOut).save(invoice);
         verify(subscriptionPortIn).markSubscriptionInvoicePaymentCompleted(subscriptionId, invoiceId);
-        verify(settlementPortIn).allocateForCompletedPayment(savedPayment.getPaymentId());
+        verify(paymentCompletionPortIn).completePaymentTruth(savedPayment.getPaymentId());
         verify(parkingCheckoutCompletionPortIn).completePaidCheckout(invoiceId);
     }
 
@@ -107,7 +107,7 @@ class PaymentUseCaseImplTest {
 
         assertEquals(PaymentStatus.SUCCESS, savedPayment.getStatus());
         verify(paymentPortOut, never()).existsByTransactionRefAndStatus(any(), any());
-        verify(settlementPortIn, never()).allocateForCompletedPayment(any());
+        verify(paymentCompletionPortIn).completePaymentTruth(savedPayment.getPaymentId());
         verify(parkingCheckoutCompletionPortIn).completePaidCheckout(invoiceId);
     }
 
