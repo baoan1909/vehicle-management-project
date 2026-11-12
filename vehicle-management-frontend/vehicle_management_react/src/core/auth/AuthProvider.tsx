@@ -34,6 +34,10 @@ import { getMyAccountAccess } from "@/features/iam/api/currentAccountAccessApi";
 import { getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
 import { mergeAuthorizationSnapshot } from "@/features/iam/utils/accountProfileMapper";
 import type { CurrentUser } from "@/shared/types/common";
+import {
+  markAccountDeletionFreshLoginRequired,
+  subscribeAccountSessionTermination,
+} from "@/core/auth/accountSessionTermination";
 
 const ACCESS_REQUEST_TIMEOUT_MS = 8000;
 const ACCESS_REFRESH_INTERVAL_MS = 60_000;
@@ -130,6 +134,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     clearLegacyAuthStorage();
     void removeOidcUser();
   }, [clearAccessSnapshot]);
+
+  useEffect(() => subscribeAccountSessionTermination((reason) => {
+    if (reason === "account-pending-deletion") {
+      markAccountDeletionFreshLoginRequired();
+    }
+    clearSession();
+    window.location.replace("/");
+  }), [clearSession]);
 
   const beginAuthenticatedSession = useCallback((oidcUser: User) => {
     cancelAccessWork();

@@ -574,6 +574,7 @@ CREATE TABLE parking.parking_events (
     event_time TIMESTAMPTZ NOT NULL,
     license_plate_detected VARCHAR(20),
     license_plate_image_path VARCHAR(255),
+    vehicle_image_path VARCHAR(255),
     person_image_path VARCHAR(255),
     actor_account_id UUID,
     note TEXT,

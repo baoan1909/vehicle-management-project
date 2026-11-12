@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { Badge, Button, Card, DateRangeInput, PaginationFooter, SelectMenu, useToast } from "@/components/ui";
 import {
@@ -229,6 +230,8 @@ function InvoiceDetailPanel({ detail, loading, lotName, onPrint }: { detail: Inv
 }
 
 export function InvoiceManagementPage() {
+  const [searchParams] = useSearchParams();
+  const requestedInvoiceId = searchParams.get("invoiceId")?.trim() ?? "";
   const toast = useToast();
   const { scope, permittedLotIds } = usePlatformMonitoringScope();
   const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
@@ -236,12 +239,12 @@ export function InvoiceManagementPage() {
   const [summary, setSummary] = useState(emptySummary);
   const [items, setItems] = useState<InvoiceManagementItem[]>([]);
   const [detail, setDetail] = useState<InvoiceManagementDetail | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(requestedInvoiceId || null);
   const [status, setStatus] = useState("all");
   const [paymentMethod, setPaymentMethod] = useState("all");
   const [dateRange, setDateRange] = useState("");
-  const [keywordInput, setKeywordInput] = useState("");
-  const [keyword, setKeyword] = useState("");
+  const [keywordInput, setKeywordInput] = useState(requestedInvoiceId);
+  const [keyword, setKeyword] = useState(requestedInvoiceId);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalRecords, setTotalRecords] = useState(0);

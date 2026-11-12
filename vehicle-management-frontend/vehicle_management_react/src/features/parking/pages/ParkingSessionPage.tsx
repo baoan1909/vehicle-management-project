@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { Badge, DateRangeInput, Drawer, FilterToolbar, PaginationFooter, SelectMenu } from "@/components/ui";
 import {
@@ -95,8 +96,9 @@ function customerTypeLabel(session: ParkingSessionManagementResponse) {
 function hasMissingEvidence(session: ParkingSessionManagementResponse) {
   const checkIn = getEvent(session, "CHECK_IN");
   const checkOut = getEvent(session, "CHECK_OUT");
-  const missingCheckIn = !checkIn?.licensePlateImagePath || !checkIn?.personImagePath;
-  const missingCheckOut = session.status === "CLOSED" && (!checkOut?.licensePlateImagePath || !checkOut?.personImagePath);
+  const missingCheckIn = !checkIn?.licensePlateImagePath || !checkIn?.vehicleImagePath || !checkIn?.personImagePath;
+  const missingCheckOut = session.status === "CLOSED"
+    && (!checkOut?.licensePlateImagePath || !checkOut?.vehicleImagePath || !checkOut?.personImagePath);
   return missingCheckIn || missingCheckOut;
 }
 
@@ -174,7 +176,7 @@ function EvidenceImage({ label, src }: { label: string; src?: string | null }) {
       <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">{label}</span>
       {src ? (
         <div className="tw-h-[150px] tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25">
-          <img alt={label} className="tw-h-full tw-w-full tw-object-cover" src={src} />
+          <img alt={label} className="tw-h-full tw-w-full tw-object-contain" src={src} />
         </div>
       ) : (
         <div className="tw-grid tw-h-[150px] tw-place-items-center tw-rounded-vm-md tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-vm-slate-25 tw-text-vm-slate-500">
@@ -195,8 +197,9 @@ function EventBlock({ event, title }: { event?: ParkingSessionManagementEventRes
         <strong className="tw-text-[0.96rem] tw-font-black tw-text-vm-slate-900">{title}</strong>
         <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">{formatApplicationDateTime(event?.eventTime)}</span>
       </div>
-      <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[620px]:tw-grid-cols-1">
+      <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-[900px]:tw-grid-cols-1">
         <EvidenceImage label="Ảnh biển số" src={event?.licensePlateImagePath} />
+        <EvidenceImage label="Ảnh xe / phương tiện" src={event?.vehicleImagePath} />
         <EvidenceImage label="Ảnh người / tài xế" src={event?.personImagePath} />
       </div>
       <div className="tw-grid tw-grid-cols-2 tw-gap-3 tw-text-[0.82rem] max-[620px]:tw-grid-cols-1">
@@ -263,6 +266,8 @@ function SessionDetailDrawer({
 }
 
 export function ParkingSessionPage() {
+  const [searchParams] = useSearchParams();
+  const requestedSessionId = searchParams.get("sessionId")?.trim() ?? "";
   const { user } = useAuth();
   const hasPartnerParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const hasAssignedParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"]);
@@ -275,11 +280,11 @@ export function ParkingSessionPage() {
   const defaultDateRange = `${daysAgoIso(6)}|${todayIso()}`;
   const [activeTab, setActiveTab] = useState<SessionTab>("all");
   const [dateRange, setDateRange] = useState(defaultDateRange);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(Boolean(requestedSessionId));
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(requestedSessionId);
   const [selectedSession, setSelectedSession] = useState<ParkingSessionManagementResponse | null>(null);
   const [sessions, setSessions] = useState<ParkingSessionManagementResponse[]>([]);
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState("all");
@@ -416,6 +421,8 @@ export function ParkingSessionPage() {
           : nextSessions;
         setSessions(visibleSessions);
         setSelectedSession((current) => {
+          const requested = visibleSessions.find((session) => session.parkingSessionId === requestedSessionId);
+          if (requested) return requested;
           if (!current) return visibleSessions[0] ?? null;
           return visibleSessions.find((session) => session.parkingSessionId === current.parkingSessionId) ?? visibleSessions[0] ?? null;
         });
@@ -437,7 +444,7 @@ export function ParkingSessionPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [dateRange, permittedLotIds, searchValue, vehicleTypeFilter, zoneFilter, parkingLotFilter, showParkingLotFilter]);
+  }, [dateRange, permittedLotIds, requestedSessionId, searchValue, vehicleTypeFilter, zoneFilter, parkingLotFilter, showParkingLotFilter]);
 
   const vehicleTypeOptions = useMemo(() => buildVehicleTypeOptions(vehicleTypes), [vehicleTypes]);
   const parkingLotOptions = useMemo(() => [

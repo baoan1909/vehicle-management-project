@@ -9,10 +9,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.iam.account.port.out.AccountDeletionPortOut;
-import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
-import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
+import com.ban.vehicle_management.application.iam.account.port.out.OrganizationClosurePortOut;
 import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionBlocker;
+import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionAutomaticAction;
 import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionRequest;
+import com.ban.vehicle_management.domain.iam.account.model.CustomerDeletionResourceDecision;
 import com.ban.vehicle_management.infrastructure.security.config.AccountDeletionTimeProperties;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountDeletionRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
@@ -32,19 +33,29 @@ class AccountDeletionProcessorTest {
     private final UUID accountId = UUID.randomUUID();
     private final String claimToken = UUID.randomUUID().toString();
     private AccountDeletionPortOut persistence;
-    private IdentityProviderAdminPortOut identityProvider;
-    private FileStoragePort fileStorage;
     private AccountDeletionProcessor processor;
+    private OrganizationClosurePortOut organizationClosure;
+    private AccountDeletionCompletionService completionService;
+    private AccountDeletionExternalCleanupProcessor cleanupProcessor;
+    private CustomerAccountDeletionImpactService customerImpactService;
+    private CustomerAccountDeletionFinalizer customerFinalizer;
 
     @BeforeEach
     void setUp() {
         persistence = mock(AccountDeletionPortOut.class);
-        identityProvider = mock(IdentityProviderAdminPortOut.class);
-        fileStorage = mock(FileStoragePort.class);
+        organizationClosure = mock(OrganizationClosurePortOut.class);
+        completionService = mock(AccountDeletionCompletionService.class);
+        cleanupProcessor = mock(AccountDeletionExternalCleanupProcessor.class);
+        customerImpactService = mock(CustomerAccountDeletionImpactService.class);
+        customerFinalizer = mock(CustomerAccountDeletionFinalizer.class);
         AccountDeletionTimeProperties properties = new AccountDeletionTimeProperties();
         properties.setMaxAttempts(3);
-        processor = new AccountDeletionProcessor(persistence, identityProvider, properties, fileStorage,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+        processor = new AccountDeletionProcessor(persistence, properties,
+                Clock.fixed(NOW, ZoneOffset.UTC), organizationClosure, completionService,
+                cleanupProcessor, customerImpactService, customerFinalizer);
+        when(customerImpactService.analyze(eq(accountId), any())).thenReturn(
+                new com.ban.vehicle_management.domain.iam.account.model.CustomerDeletionResourceDecision(
+                        List.of(), List.of()));
         when(persistence.findClaimed(requestId, claimToken)).thenReturn(Optional.of(new AccountDeletionRequest(
                 requestId, accountId, AccountDeletionRequestStatus.PROCESSING,
                 NOW.minusSeconds(1_209_600), NOW.minusSeconds(1), null, null, 1, null,
@@ -52,58 +63,82 @@ class AccountDeletionProcessorTest {
     }
 
     @Test
-    void deletesExternalIdentityBeforeReleasingLocalIdentity() {
-        when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of());
-        when(persistence.findKeycloakUserId(accountId)).thenReturn("keycloak-user-id");
-        when(persistence.completeWithTombstones(requestId, accountId, NOW)).thenReturn(List.of("avatar-object-key"));
+    void commitsDatabaseBeforeProcessingDurableExternalCleanup() {
+        when(organizationClosure.findOrganizationIds(requestId)).thenReturn(List.of());
+        when(persistence.findDeletionBlockers(accountId, List.of())).thenReturn(List.of());
+        when(completionService.completeDatabase(requestId, accountId, NOW)).thenReturn(List.of("avatar-object-key"));
 
         processor.process(requestId, claimToken);
 
-        var ordered = org.mockito.Mockito.inOrder(identityProvider, persistence, fileStorage);
-        ordered.verify(identityProvider).deleteUser("keycloak-user-id");
-        ordered.verify(persistence).completeWithTombstones(requestId, accountId, NOW);
-        ordered.verify(fileStorage).delete("avatar-object-key");
+        var ordered = org.mockito.Mockito.inOrder(completionService, cleanupProcessor, persistence);
+        ordered.verify(completionService).completeDatabase(requestId, accountId, NOW);
+        ordered.verify(cleanupProcessor).processForRequest(requestId, NOW);
         ordered.verify(persistence).completeFileCleanup(requestId, accountId, NOW);
     }
 
     @Test
     void changedEligibilityMovesRequestToReviewWithoutDeletingIdentity() {
-        when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of(AccountDeletionBlocker.of(
+        when(organizationClosure.findOrganizationIds(requestId)).thenReturn(List.of());
+        when(persistence.findDeletionBlockers(accountId, List.of())).thenReturn(List.of(AccountDeletionBlocker.of(
                 "UNPAID_INVOICE", "Cần thanh toán hóa đơn.", "INVOICE", UUID.randomUUID())));
 
         processor.process(requestId, claimToken);
 
-        verify(identityProvider, never()).deleteUser(any());
-        verify(persistence).fail(requestId, NOW, null, 1,
-                "PRECONDITION_CHANGED", "UNPAID_INVOICE");
-        verify(persistence, never()).completeWithTombstones(any(), any(), any());
+        verify(cleanupProcessor, never()).processForRequest(any(), any());
+        verify(organizationClosure).cancel(requestId, NOW, true);
+        verify(persistence).block(requestId, NOW, "PRECONDITION_CHANGED", "UNPAID_INVOICE");
+        verify(completionService, never()).completeDatabase(any(), any(), any());
     }
 
     @Test
-    void keycloakFailureRetriesWithoutReleasingLocalIdentity() {
-        when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of());
-        when(persistence.findKeycloakUserId(accountId)).thenReturn("keycloak-user-id");
-        doThrow(new IllegalStateException("Keycloak unavailable"))
-                .when(identityProvider).deleteUser("keycloak-user-id");
+    void activeSubscriptionIsTerminatedOnlyWhenDueRequestIsProcessed() {
+        when(organizationClosure.findOrganizationIds(requestId)).thenReturn(List.of());
+        when(persistence.findDeletionBlockers(accountId, List.of())).thenReturn(List.of());
+        AccountDeletionAutomaticAction terminateAction = new AccountDeletionAutomaticAction(
+                "TERMINATE_ACTIVE_SUBSCRIPTION",
+                "Chấm dứt vé đang hoạt động và không hoàn tiền.",
+                "SUBSCRIPTION",
+                UUID.randomUUID(),
+                "TERMINATE_WITHOUT_REFUND",
+                NOW,
+                java.math.BigDecimal.ZERO,
+                null);
+        when(customerImpactService.analyze(accountId, NOW)).thenReturn(
+                new CustomerDeletionResourceDecision(List.of(), List.of(terminateAction)),
+                new CustomerDeletionResourceDecision(List.of(), List.of()));
 
         processor.process(requestId, claimToken);
 
-        verify(persistence, never()).completeWithTombstones(any(), any(), any());
+        verify(customerFinalizer).terminateActiveSubscriptions(any(AccountDeletionRequest.class), eq(NOW));
+        verify(completionService).completeDatabase(requestId, accountId, NOW);
+    }
+
+    @Test
+    void externalCleanupFailureRetriesAfterDatabaseCompletion() {
+        when(organizationClosure.findOrganizationIds(requestId)).thenReturn(List.of());
+        when(persistence.findDeletionBlockers(accountId, List.of())).thenReturn(List.of());
+        when(completionService.completeDatabase(requestId, accountId, NOW)).thenReturn(List.of());
+        doThrow(new IllegalStateException("Keycloak unavailable"))
+                .when(cleanupProcessor).processForRequest(requestId, NOW);
+
+        processor.process(requestId, claimToken);
+
+        verify(completionService).completeDatabase(requestId, accountId, NOW);
         verify(persistence).fail(eq(requestId), eq(NOW), any(Instant.class), eq(3),
                 eq("PROCESSING_FAILED"), eq("Keycloak unavailable"));
     }
 
     @Test
     void fileCleanupFailureRetriesWithoutRollingBackLocalTombstone() {
-        when(persistence.findDeletionBlockers(accountId)).thenReturn(List.of());
-        when(persistence.findKeycloakUserId(accountId)).thenReturn("_deleted_" + accountId);
-        when(persistence.completeWithTombstones(requestId, accountId, NOW)).thenReturn(List.of("avatar-object-key"));
+        when(organizationClosure.findOrganizationIds(requestId)).thenReturn(List.of());
+        when(persistence.findDeletionBlockers(accountId, List.of())).thenReturn(List.of());
+        when(completionService.completeDatabase(requestId, accountId, NOW)).thenReturn(List.of("avatar-object-key"));
         doThrow(new IllegalStateException("Object storage unavailable"))
-                .when(fileStorage).delete("avatar-object-key");
+                .when(cleanupProcessor).processForRequest(requestId, NOW);
 
         processor.process(requestId, claimToken);
 
-        verify(persistence).completeWithTombstones(requestId, accountId, NOW);
+        verify(completionService).completeDatabase(requestId, accountId, NOW);
         verify(persistence, never()).completeFileCleanup(any(), any(), any());
         verify(persistence).fail(eq(requestId), eq(NOW), any(Instant.class), eq(3),
                 eq("PROCESSING_FAILED"), eq("Object storage unavailable"));

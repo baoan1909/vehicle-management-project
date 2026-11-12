@@ -3,12 +3,14 @@ export type ApiErrorKind = "http" | "network" | "timeout" | "abort" | "invalid-r
 type ApiErrorOptions = {
   cause?: unknown;
   code?: string;
+  data?: unknown;
   kind: ApiErrorKind;
   status?: number;
 };
 
 export class ApiError extends Error {
   readonly code?: string;
+  readonly data?: unknown;
   readonly kind: ApiErrorKind;
   readonly status?: number;
 
@@ -18,6 +20,7 @@ export class ApiError extends Error {
     this.kind = options.kind;
     this.status = options.status;
     this.code = options.code;
+    this.data = options.data;
   }
 }
 

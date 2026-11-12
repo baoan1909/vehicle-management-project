@@ -59,6 +59,7 @@ public class ParkingSessionUserResponse {
         private String licensePlateDetected;
         private String licensePlateDetectedDisplay;
         private String licensePlateImagePath;
+        private String vehicleImagePath;
         private String note;
     }
 }

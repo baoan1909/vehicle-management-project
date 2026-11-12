@@ -72,6 +72,7 @@ public class ParkingSessionManagementResponse {
         private Boolean validFormat;
         private Boolean needsReview;
         private String licensePlateImagePath;
+        private String vehicleImagePath;
         private String personImagePath;
         private UUID actorAccountId;
         private String note;

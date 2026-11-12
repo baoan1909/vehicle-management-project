@@ -10,8 +10,19 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
+import java.util.Collection;
 
 public interface PayoutRequestRepository extends JpaRepository<PayoutRequestEntity, UUID> {
+
+    @Query(value = """
+        select payout_request_id as "resourceId", organization_id as "organizationId",
+               null::uuid as "parkingLotId"
+          from billing.payout_requests
+         where organization_id in (:organizationIds) and status in ('PENDING', 'APPROVED')
+        """, nativeQuery = true)
+    List<AccountDeletionResourceScopeProjection> findOrganizationDeletionBlockers(
+            @Param("organizationIds") Collection<UUID> organizationIds);
 
     Optional<PayoutRequestEntity> findByIdempotencyKey(String idempotencyKey);
 

@@ -84,12 +84,19 @@ public class LostCardReportPersistenceAdapter implements LostCardReportPortOut {
                 cardId,
                 parkingSessionId,
                 subscriptionId,
-                fromDate,
-                toDate,
+                fromDateOrDefault(fromDate),
+                toDateOrDefault(toDate),
                 toKeywordPattern(keyword),
                 parkingLotIds != null,
                 queryIds(parkingLotIds)
         ).stream().map(lostCardReportPersistenceMapper::toDomain).toList();
+    }
+
+    @Override
+    public List<LostCardReport> findForAccountDeletionByCustomerId(UUID customerId) {
+        return lostCardReportRepository.findAllByCustomerIdOrderByNotificationTimeDesc(customerId).stream()
+                .map(lostCardReportPersistenceMapper::toDomain)
+                .toList();
     }
 
     @Override

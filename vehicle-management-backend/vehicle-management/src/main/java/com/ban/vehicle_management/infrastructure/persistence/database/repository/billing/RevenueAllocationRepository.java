@@ -11,8 +11,19 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
+import java.util.Collection;
 
 public interface RevenueAllocationRepository extends JpaRepository<RevenueAllocationEntity, UUID> {
+
+    @Query(value = """
+        select revenue_allocation_id as "resourceId", organization_id as "organizationId",
+               parking_lot_id as "parkingLotId"
+          from billing.revenue_allocations
+         where organization_id in (:organizationIds) and status = 'POSTED' and settled_at is null
+        """, nativeQuery = true)
+    List<AccountDeletionResourceScopeProjection> findOrganizationDeletionBlockers(
+            @Param("organizationIds") Collection<UUID> organizationIds);
 
     Optional<RevenueAllocationEntity> findByPaymentId(UUID paymentId);
 

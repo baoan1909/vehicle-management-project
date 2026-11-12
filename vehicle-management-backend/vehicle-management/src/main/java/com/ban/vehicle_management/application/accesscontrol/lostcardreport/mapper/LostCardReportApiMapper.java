@@ -134,6 +134,7 @@ public interface LostCardReportApiMapper {
                 toSubscriptionResponse(detail.subscription()),
                 toInvoiceDetailResponse(detail.invoiceDetail()),
                 detail.checkInLicensePlateImagePath(),
+                detail.checkInVehicleImagePath(),
                 detail.checkInPersonImagePath()
         );
     }

@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.iam.organization.model;
 import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.domain.shared.address.VietnamAddress;
 import com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus;
+import java.time.Instant;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -22,6 +23,10 @@ public class Organization extends AuditableDomainModel {
     private String districtCode;
     private String addressDisplay;
     private OrganizationStatus status;
+    private Instant closedAt;
+    private UUID closedBy;
+    private String closureReason;
+    private UUID closureRequestId;
 
     public VietnamAddress getStructuredAddress() {
         if (addressDetail == null && provinceCode == null && wardCode == null) {

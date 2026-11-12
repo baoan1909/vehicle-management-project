@@ -75,7 +75,8 @@ class ParkingLotPersistenceAdapterTest {
         ParkingLot parkingLot = new ParkingLot();
         parkingLot.setParkingLotId(parkingLotId);
 
-        when(parkingLotRepository.findById(parkingLotId)).thenReturn(Optional.of(parkingLotEntity));
+        when(parkingLotRepository.findBusinessVisibleById(parkingLotId))
+                .thenReturn(Optional.of(parkingLotEntity));
         when(parkingLotPersistenceMapper.toDomain(parkingLotEntity)).thenReturn(parkingLot);
 
         Optional<ParkingLot> result = parkingLotPersistenceAdapter.findById(parkingLotId);

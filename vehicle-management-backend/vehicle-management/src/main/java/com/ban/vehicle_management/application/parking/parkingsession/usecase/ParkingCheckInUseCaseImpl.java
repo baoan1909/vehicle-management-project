@@ -1,7 +1,11 @@
 package com.ban.vehicle_management.application.parking.parkingsession.usecase;
 
 import com.ban.vehicle_management.application.parking.customerreservation.port.in.CustomerReservationAdmissionPortIn;
+import com.ban.vehicle_management.application.parking.checkinspacehold.port.out.CheckInSpaceHoldPortOut;
+import com.ban.vehicle_management.application.parking.checkinspacehold.exception.CheckInSpaceHoldExpiredException;
 import com.ban.vehicle_management.domain.parking.customerreservation.model.CustomerReservation;
+import com.ban.vehicle_management.domain.parking.checkinspacehold.model.CheckInSpaceHold;
+import com.ban.vehicle_management.domain.parking.checkinspacehold.policy.CheckInSpaceHoldPolicy;
 
 import com.ban.vehicle_management.application.accesscontrol.card.port.out.CardPortOut;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.out.SubscriptionPortOut;
@@ -57,6 +61,8 @@ import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.enumeration.parking.ManualOccupancyType;
+import com.ban.vehicle_management.shared.enumeration.parking.CheckInSpaceHoldStatus;
+import com.ban.vehicle_management.shared.enumeration.parking.ParkingEventType;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceAllocationStatus;
 import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
@@ -66,8 +72,12 @@ import com.ban.vehicle_management.shared.enumeration.storage.StorageBucket;
 import com.ban.vehicle_management.shared.enumeration.storage.StorageFolder;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.List;
 import java.util.UUID;
@@ -90,6 +100,12 @@ public class ParkingCheckInUseCaseImpl {
     private static final String BARRIER_ACTION_OPEN = "OPEN";
     private static final int MAX_QR_PAYLOAD_LENGTH = 128;
     private CustomerReservationAdmissionPortIn reservationAdmissionPortIn;
+    private CheckInSpaceHoldPortOut checkInSpaceHoldPortOut;
+
+    @Autowired
+    public void setCheckInSpaceHoldPortOut(CheckInSpaceHoldPortOut checkInSpaceHoldPortOut) {
+        this.checkInSpaceHoldPortOut = checkInSpaceHoldPortOut;
+    }
 
     @org.springframework.beans.factory.annotation.Autowired
     public void setReservationAdmissionPortIn(CustomerReservationAdmissionPortIn reservationAdmissionPortIn) {
@@ -125,6 +141,7 @@ public class ParkingCheckInUseCaseImpl {
     private final ParkingSessionPolicy parkingSessionPolicy = new ParkingSessionPolicy();
     private final ParkingEventPolicy parkingEventPolicy = new ParkingEventPolicy();
     private final SubscriptionQrPolicy subscriptionQrPolicy = new SubscriptionQrPolicy();
+    private final CheckInSpaceHoldPolicy checkInSpaceHoldPolicy = new CheckInSpaceHoldPolicy();
 
     public ParkingCheckInUseCaseImpl(
             ParkingSessionAccessGuard parkingSessionAccessGuard,
@@ -229,11 +246,12 @@ public class ParkingCheckInUseCaseImpl {
                 new SubscriptionQrTokenService());
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = CheckInSpaceHoldExpiredException.class)
     public CheckInResult checkIn(CheckInCommand command) {
         parkingSessionAccessGuard.ensureCanCheckIn();
         requireCommand(command);
         requireLicensePlateImage(command.licensePlateImage());
+        requireVehicleImage(command.vehicleImage());
         requirePersonImage(command.personImage());
 
         Instant now = Instant.now();
@@ -272,6 +290,12 @@ public class ParkingCheckInUseCaseImpl {
         Zone zone = findZone(gate.getZoneId());
         ParkingLot parkingLot = findParkingLot(zone.getParkingLotId());
         parkingCheckInPolicy.validateOperationalTopology(lane, gate, zone, parkingLot);
+        UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
+        CheckInSpaceHold spaceHold = resolveCheckInSpaceHold(
+                command, zone, parkingLot, licensePlate, actorAccountId, now);
+        if (spaceHold != null && spaceHold.getStatus() == CheckInSpaceHoldStatus.CONSUMED) {
+            return resolveConsumedHoldResult(spaceHold);
+        }
 
         CheckInCustomerContext customerContext;
         if (qrCheckIn) {
@@ -290,6 +314,7 @@ public class ParkingCheckInUseCaseImpl {
                     card, cardType, licensePlate, now, identityOverride);
         }
         UUID resolvedVehicleTypeId = resolveVehicleTypeId(customerContext, requestedVehicleTypeId);
+        validateHoldContext(spaceHold, customerContext, resolvedVehicleTypeId);
         UUID lockedZoneId = zone.getZoneId();
         zone = zonePortOut.findByIdForUpdate(lockedZoneId)
                 .or(() -> zonePortOut.findById(lockedZoneId))
@@ -308,13 +333,16 @@ public class ParkingCheckInUseCaseImpl {
                 ? reservationAdmissionPortIn.resolveForCheckIn(parkingLot.getParkingLotId(),
                         zone.getZoneId(), resolvedVehicleTypeId, licensePlate,
                         reservationQrPayload, now) : null;
-        validateAdmissionAvailability(zone, customerContext.subscription(), now, reservation);
+        validateHoldReservation(spaceHold, reservation);
+        if (spaceHold == null) {
+            validateAdmissionAvailability(zone, customerContext.subscription(), now, reservation);
+        }
         ParkingSpace assignedSpace = resolveCheckInSpace(
                 zone, command.parkingSpaceId(), customerContext.subscription(),
-                resolvedVehicleTypeId, reservation);
-        UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
+                resolvedVehicleTypeId, reservation, spaceHold);
         UUID parkingEventId = UUID.randomUUID();
         StoredFile storedLicensePlateImage = null;
+        StoredFile storedVehicleImage = null;
         StoredFile storedPersonImage = null;
 
         try {
@@ -365,6 +393,12 @@ public class ParkingCheckInUseCaseImpl {
                     actorAccountId,
                     licensePlate
             );
+            storedVehicleImage = storeVehicleImage(
+                    command.vehicleImage(),
+                    parkingEventId,
+                    actorAccountId,
+                    licensePlate
+            );
             storedPersonImage = storePersonImage(
                     command.personImage(),
                     parkingEventId,
@@ -378,6 +412,7 @@ public class ParkingCheckInUseCaseImpl {
                     lane.getLaneId(),
                     licensePlate,
                     storedLicensePlateImage.objectKey(),
+                    storedVehicleImage.objectKey(),
                     storedPersonImage.objectKey(),
                     actorAccountId,
                     note,
@@ -385,6 +420,17 @@ public class ParkingCheckInUseCaseImpl {
             );
             parkingEventPolicy.initialize(parkingEvent);
             ParkingEvent savedParkingEvent = parkingEventPortOut.save(parkingEvent);
+            if (spaceHold != null) {
+                checkInSpaceHoldPolicy.consume(spaceHold, savedParkingSession.getParkingSessionId(), now);
+                checkInSpaceHoldPortOut.save(spaceHold);
+                ParkingRealtimeAfterCommit.publishAfterCommit(parkingRealtimePublisher,
+                        new ParkingRealtimeEvent("PARKING_SPACE_HOLD_CONSUMED",
+                                parkingLot.getParkingLotId(), zone.getParkingLevelId(), zone.getZoneId(),
+                                spaceHold.getParkingSpaceId(), CheckInSpaceHoldStatus.CONSUMED.name(),
+                                zone.getLayoutVersion(), Map.of(
+                                        "holdId", spaceHold.getHoldId().toString(),
+                                        "parkingSessionId", savedParkingSession.getParkingSessionId().toString())));
+            }
             publishAvailabilityChanged(zone);
 
             UUID subscriptionId = customerContext.subscription() == null
@@ -401,6 +447,7 @@ public class ParkingCheckInUseCaseImpl {
             );
         } catch (RuntimeException exception) {
             deleteStoredFileQuietly(storedLicensePlateImage);
+            deleteStoredFileQuietly(storedVehicleImage);
             deleteStoredFileQuietly(storedPersonImage);
             throw exception;
         }
@@ -522,8 +569,12 @@ public class ParkingCheckInUseCaseImpl {
                     space.getParkingSpaceId(), space.getCode(), space.getStatus()));
         } else {
             UUID resolvedType = vehicleTypeId;
+            var heldSpaceIds = checkInSpaceHoldPortOut == null ? java.util.Set.<UUID>of()
+                    : java.util.Set.copyOf(checkInSpaceHoldPortOut.findHeldSpaceIdsByZone(
+                            zone.getZoneId(), Instant.now()));
             eligible = parkingSpacePortOut.findByZoneIdAndLifecycleStatus(zone.getZoneId(), "ACTIVE")
-                    .stream().filter(space -> visitorSpaceEligible(space, resolvedType)).map(space ->
+                    .stream().filter(space -> visitorSpaceEligible(space, resolvedType))
+                    .filter(space -> !heldSpaceIds.contains(space.getParkingSpaceId())).map(space ->
                             new CheckInPreviewResult.EligibleSpace(
                                     space.getParkingSpaceId(), space.getCode(), space.getStatus()))
                     .toList();
@@ -534,8 +585,10 @@ public class ParkingCheckInUseCaseImpl {
                 recommended = eligible.get(0).parkingSpaceId();
             }
         }
-        return new CheckInPreviewResult(lot.getParkingLotId(), zone.getZoneId(), zone.getTrackingMode(),
-                customerType, physicalAvailable, visitorAvailable, eligible.size() > 1,
+        return new CheckInPreviewResult(lot.getParkingLotId(), zone.getZoneId(), vehicleTypeId, zone.getTrackingMode(),
+                customerType, subscription == null ? null : subscription.getSubscriptionId(),
+                reservation == null ? null : reservation.getReservationId(),
+                physicalAvailable, visitorAvailable, eligible.size() > 1,
                 recommended, eligible);
     }
 
@@ -599,6 +652,30 @@ public class ParkingCheckInUseCaseImpl {
                 Map.of(
                         "event_type", "CHECK_IN",
                         "image_type", "PERSON",
+                        "license_plate", licensePlate
+                )
+        ));
+    }
+
+    private StoredFile storeVehicleImage(
+            MultipartFile vehicleImage,
+            UUID parkingEventId,
+            UUID actorAccountId,
+            String licensePlate
+    ) {
+        if (vehicleImage == null || vehicleImage.isEmpty()) {
+            throw new BadRequestException("vehicleImage must not be empty");
+        }
+        return fileStoragePort.store(new StoreFileCommand(
+                vehicleImage,
+                StorageBucket.PRIVATE,
+                StorageFolder.PARKING_EVENT,
+                PARKING_EVENT_RESOURCE_TYPE,
+                parkingEventId,
+                actorAccountId,
+                Map.of(
+                        "event_type", "CHECK_IN",
+                        "image_type", "VEHICLE",
                         "license_plate", licensePlate
                 )
         ));
@@ -809,12 +886,140 @@ public class ParkingCheckInUseCaseImpl {
         return parkingLot;
     }
 
+    private CheckInSpaceHold resolveCheckInSpaceHold(
+            CheckInCommand command,
+            Zone zone,
+            ParkingLot parkingLot,
+            String licensePlate,
+            UUID operatorAccountId,
+            Instant now
+    ) {
+        if (checkInSpaceHoldPortOut == null) {
+            return null;
+        }
+        if (zone.getTrackingMode() != TrackingMode.SPACE) {
+            if (command.spaceHoldId() != null) {
+                throw new BadRequestException("spaceHoldId must be null for CAPACITY zones");
+            }
+            return null;
+        }
+        if (command.parkingSpaceId() != null) {
+            throw new BadRequestException("parkingSpaceId cannot be selected for SPACE-zone check-in");
+        }
+        if (command.spaceHoldId() == null) {
+            throw new BadRequestException("spaceHoldId is required for SPACE-zone check-in");
+        }
+        CheckInSpaceHold hold = checkInSpaceHoldPortOut.findByIdForUpdate(command.spaceHoldId())
+                .orElseThrow(() -> new NotFoundException("Check-in parking-space hold not found"));
+        if (!operatorAccountId.equals(hold.getOperatorAccountId())) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Check-in parking-space hold belongs to another operator");
+        }
+        if (!parkingLot.getParkingLotId().equals(hold.getParkingLotId())
+                || !zone.getZoneId().equals(hold.getZoneId())
+                || !command.laneId().equals(hold.getLaneId())) {
+            throw new ConflictException("Check-in parking-space hold does not match the current lane and zone");
+        }
+        if (!licensePlatePolicy.matches(hold.getLicensePlateNormalized(), licensePlate)) {
+            throw new ConflictException("License plate does not match the check-in parking-space hold");
+        }
+        String currentCredentialHash = hashCheckInCredential(command);
+        if (!MessageDigest.isEqual(
+                hold.getCredentialHash().getBytes(StandardCharsets.US_ASCII),
+                currentCredentialHash.getBytes(StandardCharsets.US_ASCII))) {
+            throw new ConflictException("Card or QR does not match the check-in parking-space hold");
+        }
+        checkInSpaceHoldPolicy.expireIfDue(hold, now);
+        if (hold.getStatus() == CheckInSpaceHoldStatus.EXPIRED) {
+            checkInSpaceHoldPortOut.save(hold);
+            ParkingRealtimeAfterCommit.publishAfterCommit(parkingRealtimePublisher,
+                    new ParkingRealtimeEvent("PARKING_SPACE_HOLD_EXPIRED",
+                            parkingLot.getParkingLotId(), zone.getParkingLevelId(), zone.getZoneId(),
+                            hold.getParkingSpaceId(), CheckInSpaceHoldStatus.EXPIRED.name(),
+                            zone.getLayoutVersion(), Map.of("holdId", hold.getHoldId().toString())));
+            throw new CheckInSpaceHoldExpiredException(
+                    "Check-in parking-space hold has expired; scan the card again");
+        }
+        if (hold.getStatus() == CheckInSpaceHoldStatus.CANCELLED) {
+            throw new ConflictException("Check-in parking-space hold was cancelled; scan the card again");
+        }
+        return hold;
+    }
+
+    private String hashCheckInCredential(CheckInCommand command) {
+        String credential = String.join("|",
+                normalizedCredentialPart(command.cardUid()),
+                normalizedCredentialPart(command.subscriptionQrPayload()),
+                normalizedCredentialPart(command.reservationQrPayload()));
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                    .digest(credential.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
+    }
+
+    private String normalizedCredentialPart(String value) {
+        return value == null ? "" : value.trim();
+    }
+
+    private void validateHoldContext(
+            CheckInSpaceHold hold,
+            CheckInCustomerContext customerContext,
+            UUID vehicleTypeId
+    ) {
+        if (hold == null) {
+            return;
+        }
+        if (!vehicleTypeId.equals(hold.getVehicleTypeId())) {
+            throw new ConflictException("Vehicle type does not match the check-in parking-space hold");
+        }
+        if (!customerContext.customerType().equals(hold.getCustomerType())) {
+            throw new ConflictException("Customer type does not match the check-in parking-space hold");
+        }
+        if (hold.getCardId() != null && (customerContext.card() == null
+                || !hold.getCardId().equals(customerContext.card().getCardId()))) {
+            throw new ConflictException("Card does not match the check-in parking-space hold");
+        }
+        if (hold.getSubscriptionId() != null && (customerContext.subscription() == null
+                || !hold.getSubscriptionId().equals(customerContext.subscription().getSubscriptionId()))) {
+            throw new ConflictException("Subscription does not match the check-in parking-space hold");
+        }
+    }
+
+    private void validateHoldReservation(CheckInSpaceHold hold, CustomerReservation reservation) {
+        if (hold == null || hold.getCustomerReservationId() == null) {
+            return;
+        }
+        if (reservation == null
+                || !hold.getCustomerReservationId().equals(reservation.getReservationId())) {
+            throw new ConflictException("Reservation does not match the check-in parking-space hold");
+        }
+    }
+
+    private CheckInResult resolveConsumedHoldResult(CheckInSpaceHold hold) {
+        UUID sessionId = hold.getConsumedSessionId();
+        if (sessionId == null) {
+            throw new ConflictException("Consumed check-in parking-space hold has no parking session");
+        }
+        ParkingSession session = parkingSessionPortOut.findById(sessionId)
+                .orElseThrow(() -> new NotFoundException("Consumed parking session not found"));
+        ParkingEvent event = parkingEventPortOut.findLatestBySessionIdAndEventType(
+                        sessionId, ParkingEventType.CHECK_IN)
+                .orElseThrow(() -> new NotFoundException("Check-in parking event not found"));
+        ParkingSpace space = parkingSpacePortOut.findById(hold.getParkingSpaceId())
+                .orElseThrow(() -> new NotFoundException("Parking space not found"));
+        return new CheckInResult(session, event, session.getSubscriptionId(), hold.getCustomerType(),
+                BARRIER_ACTION_OPEN, space.getCode());
+    }
+
     private ParkingSpace resolveCheckInSpace(
             Zone zone,
             UUID parkingSpaceId,
             Subscription subscription,
             UUID resolvedVehicleTypeId,
-            CustomerReservation reservation
+            CustomerReservation reservation,
+            CheckInSpaceHold spaceHold
     ) {
         if (zone.getTrackingMode() != TrackingMode.SPACE) {
             if (parkingSpaceId != null) {
@@ -825,9 +1030,9 @@ public class ParkingCheckInUseCaseImpl {
         if (parkingSpacePortOut == null) {
             throw new BadRequestException("Parking space assignment is not available");
         }
-        UUID resolvedSpaceId = parkingSpaceId;
+        UUID resolvedSpaceId = spaceHold == null ? parkingSpaceId : spaceHold.getParkingSpaceId();
         if (reservation != null) {
-            if (parkingSpaceId != null && !parkingSpaceId.equals(reservation.getParkingSpaceId())) {
+            if (resolvedSpaceId != null && !resolvedSpaceId.equals(reservation.getParkingSpaceId())) {
                 throw new BadRequestException("Selected space does not match the reservation");
             }
             resolvedSpaceId = reservation.getParkingSpaceId();
@@ -843,10 +1048,10 @@ public class ParkingCheckInUseCaseImpl {
                     .findFirst()
                     .orElseThrow(() -> new ConflictException(
                             "Active subscription has no effective parking-space allocation"));
-            resolvedSpaceId = ownAllocation.getParkingSpaceId();
-            if (parkingSpaceId != null && !parkingSpaceId.equals(resolvedSpaceId)) {
+            if (resolvedSpaceId != null && !ownAllocation.getParkingSpaceId().equals(resolvedSpaceId)) {
                 throw new BadRequestException("parkingSpaceId does not match the subscription allocation");
             }
+            resolvedSpaceId = ownAllocation.getParkingSpaceId();
         } else if (resolvedSpaceId == null) {
             autoAssignedSpace = parkingSpacePortOut.findFirstVisitorAvailableForUpdate(
                             zone.getZoneId(), resolvedVehicleTypeId, now)
@@ -990,6 +1195,12 @@ public class ParkingCheckInUseCaseImpl {
     private void requirePersonImage(MultipartFile personImage) {
         if (personImage == null || personImage.isEmpty()) {
             throw new BadRequestException("personImage must not be empty");
+        }
+    }
+
+    private void requireVehicleImage(MultipartFile vehicleImage) {
+        if (vehicleImage == null || vehicleImage.isEmpty()) {
+            throw new BadRequestException("vehicleImage must not be empty");
         }
     }
 

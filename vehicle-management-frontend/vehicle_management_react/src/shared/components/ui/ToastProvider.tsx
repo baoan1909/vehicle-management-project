@@ -13,6 +13,7 @@ type Toast = {
 };
 
 type ToastInput = {
+  durationMs?: number;
   message: string;
   notificationTime?: string;
   title?: string;
@@ -129,7 +130,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
     };
 
     setToasts((current) => [toast, ...current].slice(0, 4));
-    window.setTimeout(() => remove(id), 4200);
+    window.setTimeout(() => remove(id), Math.max(1000, input.durationMs ?? 4200));
   }, [remove]);
 
   const value = useMemo<ToastContextValue>(() => ({

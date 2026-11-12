@@ -1,4 +1,5 @@
 export { AccountListPage } from "./pages/AccountListPage";
+export { AccountDeletionArchivePage } from "./pages/AccountDeletionArchivePage";
 export { InternalProfilePage } from "./pages/InternalProfilePage";
 export { AvatarApprovalManagementPage } from "./pages/AvatarApprovalManagementPage";
 export { OnboardingApprovalPage } from "./pages/OnboardingApprovalPage";

@@ -4,5 +4,6 @@ import java.util.UUID;
 
 public interface AccountDeletionParkingResourceProjection {
     UUID getResourceId();
+    UUID getOrganizationId();
     UUID getParkingLotId();
 }

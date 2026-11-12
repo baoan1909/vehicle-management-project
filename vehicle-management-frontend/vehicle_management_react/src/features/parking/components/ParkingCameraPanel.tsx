@@ -19,13 +19,14 @@ type CameraCaptureBoxProps = {
   label: string;
   onCaptureChange?: (capture: CaptureResult | null) => void;
   restoredImageUrl?: string;
-  scene: "lane" | "driver";
+  scene: "lane" | "driver" | "vehicle";
 };
 
 export type CameraCaptureBoxHandle = {
   captureFrame: () => boolean;
   clear: (restartCamera?: boolean) => void;
   startCamera: () => Promise<void>;
+  stopCamera: () => void;
   uploadFile: (file: File) => void;
 };
 
@@ -60,6 +61,7 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
   const [restoredImageDismissed, setRestoredImageDismissed] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const isStartingCameraRef = useRef(false);
 
   useEffect(() => {
     setRestoredImageDismissed(false);
@@ -80,7 +82,8 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
 
   async function startCamera(force = false) {
     if (!force && restoredImageUrl && !restoredImageDismissed) return;
-    if (stream || isCapturing) return;
+    if (stream || isCapturing || isStartingCameraRef.current) return;
+    isStartingCameraRef.current = true;
     try {
       setCameraError("");
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -95,6 +98,8 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
     } catch {
       setCameraError("Không thể mở camera");
       setIsCapturing(false);
+    } finally {
+      isStartingCameraRef.current = false;
     }
   }
 
@@ -126,6 +131,7 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
     captureFrame,
     clear: clearCapture,
     startCamera,
+    stopCamera,
     uploadFile,
   }));
 
@@ -170,9 +176,9 @@ const CameraCaptureBox = forwardRef<CameraCaptureBoxHandle, CameraCaptureBoxProp
       {isCapturing ? (
         <video ref={videoRef} autoPlay playsInline muted className="tw-h-full tw-w-full tw-bg-slate-900 tw-object-cover" />
       ) : capture ? (
-        <img src={capture.url} alt={label} className="tw-h-full tw-w-full tw-object-cover" />
+        <img src={capture.url} alt={label} className="tw-h-full tw-w-full tw-object-contain tw-object-center" />
       ) : visibleRestoredImageUrl ? (
-        <img src={visibleRestoredImageUrl} alt={label} className="tw-h-full tw-w-full tw-object-cover" />
+        <img src={visibleRestoredImageUrl} alt={label} className="tw-h-full tw-w-full tw-object-contain tw-object-center" />
       ) : (
         <CameraLoadingScene compact={compact} />
       )}
@@ -267,15 +273,19 @@ type ParkingCameraPanelProps = {
   cameraLabel?: string;
   cameraStatus?: CameraStatus;
   licensePlateImageError?: string;
+  mode: "check-in" | "check-out";
   ocrMessage?: string;
   ocrStatus?: OcrStatus;
   personImageError?: string;
+  vehicleImageError?: string;
   resetKey?: number;
   restoredLicensePlateImageUrl?: string;
   restoredPersonImageUrl?: string;
+  restoredVehicleImageUrl?: string;
   onAutoCaptureFailed?: () => void;
   onLicensePlateImageChange: (file: File | null) => void;
   onPersonImageChange: (file: File | null) => void;
+  onVehicleImageChange: (file: File | null) => void;
   onRequireCardBeforeCapture?: () => void;
 };
 
@@ -339,30 +349,38 @@ export function ParkingCameraPanel({
   cameraLabel = "Chưa chọn camera",
   cameraStatus,
   licensePlateImageError,
+  mode,
   ocrMessage,
   ocrStatus = "idle",
   personImageError,
+  vehicleImageError,
   resetKey = 0,
   restoredLicensePlateImageUrl,
   restoredPersonImageUrl,
+  restoredVehicleImageUrl,
   onAutoCaptureFailed,
   onLicensePlateImageChange,
   onPersonImageChange,
+  onVehicleImageChange,
   onRequireCardBeforeCapture,
 }: ParkingCameraPanelProps) {
   const laneCameraRef = useRef<CameraCaptureBoxHandle | null>(null);
+  const vehicleCameraRef = useRef<CameraCaptureBoxHandle | null>(null);
   const driverCameraRef = useRef<CameraCaptureBoxHandle | null>(null);
   const laneUploadRef = useRef<HTMLInputElement | null>(null);
+  const vehicleUploadRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!autoStartLaneCamera) return;
     void laneCameraRef.current?.startCamera();
+    void vehicleCameraRef.current?.startCamera();
     void driverCameraRef.current?.startCamera();
   }, [autoStartLaneCamera]);
 
   useEffect(() => {
     if (!resetKey) return;
     laneCameraRef.current?.clear(true);
+    vehicleCameraRef.current?.clear(true);
     driverCameraRef.current?.clear(true);
   }, [resetKey]);
 
@@ -408,6 +426,7 @@ export function ParkingCameraPanel({
   function handleCaptureLanePhoto() {
     if (!ensureCanCaptureMedia()) return;
 
+    vehicleCameraRef.current?.stopCamera();
     let attempt = 0;
     const tryCapture = () => {
       const captured = laneCameraRef.current?.captureFrame() ?? false;
@@ -441,6 +460,29 @@ export function ParkingCameraPanel({
     });
   }
 
+  function handleCaptureVehiclePhoto() {
+    if (!ensureCanCaptureMedia()) return;
+
+    laneCameraRef.current?.stopCamera();
+    let attempt = 0;
+    const tryCapture = () => {
+      const captured = vehicleCameraRef.current?.captureFrame() ?? false;
+      if (captured || attempt >= 8) return;
+      attempt += 1;
+      window.setTimeout(tryCapture, 250);
+    };
+
+    void vehicleCameraRef.current?.startCamera().finally(() => {
+      window.setTimeout(tryCapture, 120);
+    });
+  }
+
+  function handleReloadVehicleCamera() {
+    if (!ensureCanCaptureMedia()) return;
+    laneCameraRef.current?.stopCamera();
+    vehicleCameraRef.current?.clear();
+  }
+
   function handleReloadDriverCamera() {
     if (!ensureCanCaptureMedia()) return;
     driverCameraRef.current?.clear();
@@ -461,6 +503,14 @@ export function ParkingCameraPanel({
     const file = event.target.files?.[0];
     if (!file) return;
     void handleLaneFile(file);
+    event.target.value = "";
+  }
+
+  async function handleVehicleUploadChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file || !ensureCanCaptureMedia()) return;
+    const normalizedFile = await normalizeLaneImageFile(file);
+    vehicleCameraRef.current?.uploadFile(normalizedFile);
     event.target.value = "";
   }
 
@@ -518,15 +568,95 @@ export function ParkingCameraPanel({
         />
         <OcrCameraStatus message={ocrMessage} status={ocrStatus} />
 
-        <div className="tw-min-h-0 tw-flex-1 tw-p-3">
-          <div className="tw-mb-2 tw-flex tw-items-center tw-gap-2">
+        <div
+          className={cn(
+            "tw-grid tw-min-h-0",
+            mode === "check-in"
+              ? "tw-grid-cols-2 tw-gap-3 tw-p-3 max-[720px]:tw-grid-cols-1"
+              : "tw-grid-cols-1",
+          )}
+        >
+        <div className={cn("tw-min-h-0", mode === "check-in" ? "tw-p-0" : "tw-p-3 tw-pb-0")}>
+          <div className="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
+            <h3 className="tw-m-0 tw-text-[0.92rem] tw-font-extrabold tw-text-slate-900">Ảnh xe / phương tiện</h3>
+            <span className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-emerald-50 tw-px-2.5 tw-py-1 tw-text-[0.7rem] tw-font-extrabold tw-text-emerald-700">
+              <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-500" />
+              Ảnh bắt buộc
+            </span>
+          </div>
+          <div
+            className={cn(
+              "tw-grid tw-gap-3",
+              mode === "check-in"
+                ? "tw-grid-cols-1"
+                : "tw-grid-cols-[minmax(0,1fr)_132px] max-[1280px]:tw-grid-cols-1",
+            )}
+          >
+            <CameraCaptureBox
+              ref={vehicleCameraRef}
+              compact
+              label="Ảnh xe / phương tiện"
+              restoredImageUrl={restoredVehicleImageUrl}
+              scene="vehicle"
+              onCaptureChange={(capture) => onVehicleImageChange(capture?.file ?? null)}
+            />
+            <div
+              className={cn(
+                "tw-gap-2",
+                mode === "check-in"
+                  ? "tw-grid tw-grid-cols-3"
+                  : "tw-flex tw-min-h-[180px] tw-flex-col tw-justify-center",
+              )}
+            >
+              <button
+                type="button"
+                className={cn("tw-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-white tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700", mode === "check-in" ? "tw-h-11" : "tw-h-[52px]")}
+                onClick={handleReloadVehicleCamera}
+              >
+                <i className="fas fa-sync-alt" /> Chụp lại
+              </button>
+              <button
+                type="button"
+                className={cn("tw-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50 tw-text-[0.8rem] tw-font-extrabold tw-text-vm-primary", mode === "check-in" ? "tw-h-11" : "tw-h-[52px]")}
+                onClick={handleCaptureVehiclePhoto}
+              >
+                <i className="fas fa-camera" /> Chụp ảnh
+              </button>
+              <button
+                type="button"
+                className={cn("tw-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700", mode === "check-in" ? "tw-h-11" : "tw-h-[52px]")}
+                onClick={() => vehicleUploadRef.current?.click()}
+              >
+                <i className="fas fa-cloud-upload-alt" /> Tải ảnh
+              </button>
+              <input
+                ref={vehicleUploadRef}
+                className="tw-hidden"
+                type="file"
+                accept="image/*"
+                onChange={handleVehicleUploadChange}
+              />
+            </div>
+          </div>
+          <CaptureFieldError message={vehicleImageError} />
+        </div>
+
+        <div className={cn("tw-min-h-0", mode === "check-in" ? "tw-p-0" : "tw-p-3")}>
+          <div className="tw-mb-2 tw-flex tw-flex-wrap tw-items-center tw-gap-2">
             <h3 className="tw-m-0 tw-text-[0.92rem] tw-font-extrabold tw-text-slate-900">Ảnh người / tài xế</h3>
             <span className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-full tw-bg-emerald-50 tw-px-2.5 tw-py-1 tw-text-[0.7rem] tw-font-extrabold tw-text-emerald-700">
               <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-emerald-500" />
               Ảnh bắt buộc
             </span>
           </div>
-          <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_132px] tw-gap-3 max-[1280px]:tw-grid-cols-1">
+          <div
+            className={cn(
+              "tw-grid tw-gap-3",
+              mode === "check-in"
+                ? "tw-grid-cols-1"
+                : "tw-grid-cols-[minmax(0,1fr)_132px] max-[1280px]:tw-grid-cols-1",
+            )}
+          >
             <CameraCaptureBox
               ref={driverCameraRef}
               compact
@@ -535,10 +665,17 @@ export function ParkingCameraPanel({
               scene="driver"
               onCaptureChange={(capture) => onPersonImageChange(capture?.file ?? null)}
             />
-            <div className="tw-flex tw-min-h-[180px] tw-flex-col tw-justify-center tw-gap-2">
+            <div
+              className={cn(
+                "tw-gap-2",
+                mode === "check-in"
+                  ? "tw-grid tw-grid-cols-2"
+                  : "tw-flex tw-min-h-[180px] tw-flex-col tw-justify-center",
+              )}
+            >
               <button
                 type="button"
-                className="tw-flex tw-h-[62px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-white tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-border-brand-200 hover:tw-bg-brand-50 hover:tw-text-vm-primary"
+                className={cn("tw-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-white tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-border-brand-200 hover:tw-bg-brand-50 hover:tw-text-vm-primary", mode === "check-in" ? "tw-h-11" : "tw-h-[62px]")}
                 onClick={handleReloadDriverCamera}
               >
                 <span className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-text-[0.95rem]">
@@ -548,7 +685,7 @@ export function ParkingCameraPanel({
               </button>
               <button
                 type="button"
-                className="tw-flex tw-h-[62px] tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50 tw-text-[0.8rem] tw-font-extrabold tw-text-vm-primary tw-transition hover:tw-border-brand-200 hover:tw-bg-brand-100"
+                className={cn("tw-flex tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-brand-50 tw-text-[0.8rem] tw-font-extrabold tw-text-vm-primary tw-transition hover:tw-border-brand-200 hover:tw-bg-brand-100", mode === "check-in" ? "tw-h-11" : "tw-h-[62px]")}
                 onClick={handleCaptureDriverPhoto}
               >
                 <span className="tw-inline-flex tw-h-8 tw-w-8 tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-white tw-text-[0.95rem]">
@@ -559,6 +696,7 @@ export function ParkingCameraPanel({
             </div>
           </div>
           <CaptureFieldError message={personImageError} />
+        </div>
         </div>
       </CardContent>
     </Card>

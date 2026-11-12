@@ -16,6 +16,8 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
+import java.util.Collection;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -27,6 +29,16 @@ public interface InvoiceRepository extends JpaRepository<InvoiceEntity, UUID>, J
         where customer_id=:customerId and status='UNPAID' limit 1
         """, nativeQuery = true)
     Optional<UUID> findDeletionBlockingInvoiceId(@Param("customerId") UUID customerId);
+
+    @Query(value = """
+        select invoice.invoice_id as "resourceId", lot.organization_id as "organizationId",
+               lot.parking_lot_id as "parkingLotId"
+          from billing.invoices invoice
+          join parking.parking_lots lot on lot.parking_lot_id = invoice.parking_lot_id
+         where lot.organization_id in (:organizationIds) and invoice.status = 'UNPAID'
+        """, nativeQuery = true)
+    List<AccountDeletionResourceScopeProjection> findOrganizationDeletionBlockers(
+            @Param("organizationIds") Collection<UUID> organizationIds);
     @Query(value = """
             select coalesce(sum(final_amount), 0)
             from billing.invoices

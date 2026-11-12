@@ -7,6 +7,8 @@ import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
+import java.util.Collection;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
@@ -75,4 +77,15 @@ public interface ZoneRepository extends JpaRepository<ZoneEntity, UUID>, JpaSpec
     long sumActiveCapacityByVehicleTypeIdAndParkingLotId(UUID vehicleTypeId, UUID parkingLotId);
 
     long countByParkingLotIdAndTrackingModeAndLayoutStatus(UUID parkingLotId, TrackingMode trackingMode, LayoutStatus layoutStatus);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        update parking.zones zone set status = 'CLOSED', updated_at = :now
+          from parking.parking_lots lot
+         where lot.parking_lot_id = zone.parking_lot_id
+           and lot.organization_id in (:organizationIds) and zone.status <> 'CLOSED'
+        """, nativeQuery = true)
+    int closeAllByOrganizationIds(
+            @Param("organizationIds") Collection<UUID> organizationIds,
+            @Param("now") java.time.Instant now);
 }

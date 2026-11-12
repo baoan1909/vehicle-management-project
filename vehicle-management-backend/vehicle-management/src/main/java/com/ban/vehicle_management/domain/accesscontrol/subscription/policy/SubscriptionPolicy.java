@@ -272,6 +272,22 @@ public class SubscriptionPolicy {
         validateState(subscription);
     }
 
+    public void terminateForAccountDeletion(
+            Subscription subscription, UUID requestId, Instant terminatedAt) {
+        requireSubscription(subscription);
+        requireField(requestId, "accountDeletionRequestId");
+        requireField(terminatedAt, "terminatedAt");
+        if (subscription.getStatus() == SubscriptionStatus.TERMINATED) return;
+        requireStatus(subscription, SubscriptionStatus.ACTIVE);
+        subscription.setStatus(SubscriptionStatus.TERMINATED);
+        subscription.setTerminatedAt(terminatedAt);
+        subscription.setTerminationReason("ACCOUNT_DELETION");
+        subscription.setAccountDeletionRequestId(requestId);
+        subscription.setQrRevokedAt(terminatedAt);
+        subscription.setAccessBlocked(true);
+        subscription.setAccessBlockedAt(terminatedAt);
+    }
+
     public void validateState(Subscription subscription) {
         requireSubscription(subscription);
         requireField(subscription.getSubscriptionId(), "subscriptionId");
@@ -350,6 +366,13 @@ public class SubscriptionPolicy {
                         && subscription.getSpaceSelectionConfirmedAt() == null) {
                     throw new BadRequestException("Active subscription must have a confirmed parking space");
                 }
+            }
+            case TERMINATED -> {
+                requireApproval(subscription);
+                requireNoRejection(subscription);
+                requireField(subscription.getTerminatedAt(), "terminatedAt");
+                requireField(subscription.getTerminationReason(), "terminationReason");
+                requireField(subscription.getAccountDeletionRequestId(), "accountDeletionRequestId");
             }
             case CANCELLED -> requireNoRejection(subscription);
             case REJECTED -> {

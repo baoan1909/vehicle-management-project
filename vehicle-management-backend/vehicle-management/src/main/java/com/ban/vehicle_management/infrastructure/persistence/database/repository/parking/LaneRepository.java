@@ -7,6 +7,9 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
+import java.util.Collection;
+import java.time.Instant;
 import org.springframework.data.repository.query.Param;
 
 public interface LaneRepository extends JpaRepository<LaneEntity, UUID>, JpaSpecificationExecutor<LaneEntity> {
@@ -62,4 +65,17 @@ public interface LaneRepository extends JpaRepository<LaneEntity, UUID>, JpaSpec
     );
 
     boolean existsByLaneIdAndStatusNot(UUID laneId, LaneStatus status);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        update parking.lanes lane set status = 'CLOSED', updated_at = :now
+          from parking.gates gate
+          join parking.zones zone on zone.zone_id = gate.zone_id
+          join parking.parking_lots lot on lot.parking_lot_id = zone.parking_lot_id
+         where lane.gate_id = gate.gate_id
+           and lot.organization_id in (:organizationIds) and lane.status <> 'CLOSED'
+        """, nativeQuery = true)
+    int closeAllByOrganizationIds(
+            @Param("organizationIds") Collection<UUID> organizationIds,
+            @Param("now") Instant now);
 }

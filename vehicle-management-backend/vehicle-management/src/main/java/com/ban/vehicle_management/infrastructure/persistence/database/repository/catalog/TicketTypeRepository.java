@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import java.util.Set;
+import java.util.Collection;
 
 public interface TicketTypeRepository
         extends JpaRepository<TicketTypeEntity, UUID>, JpaSpecificationExecutor<TicketTypeEntity> {
@@ -75,4 +76,13 @@ public interface TicketTypeRepository
 
     boolean existsByCodeAndStatusAndOrganizationIdAndTicketTypeIdNot(
             String code, TicketTypeStatus status, UUID organizationId, UUID ticketTypeId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update TicketTypeEntity item
+        set item.status = com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus.INACTIVE
+        where item.organizationId in :organizationIds
+          and item.status <> com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus.INACTIVE
+        """)
+    int deactivateAllByOrganizationIds(@Param("organizationIds") Collection<UUID> organizationIds);
 }

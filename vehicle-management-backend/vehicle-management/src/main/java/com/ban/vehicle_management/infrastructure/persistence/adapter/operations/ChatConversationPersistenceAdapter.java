@@ -91,7 +91,7 @@ public class ChatConversationPersistenceAdapter implements ChatConversationPortO
 
     @Override
     public Optional<ChatConversation> findConversationById(UUID conversationId) {
-        return conversationRepository.findById(conversationId)
+        return conversationRepository.findBusinessVisibleById(conversationId)
                 .map(conversationMapper::toDomain)
                 .map(this::attachParticipants);
     }

@@ -2,6 +2,7 @@ import { appConfig } from "@/config/env";
 import { ApiError, isAbortLikeError, isApiError } from "@/core/api/apiError";
 import { localizeApiErrorCode, localizeApiMessage, localizeApiResponseBody } from "@/core/api/apiMessage";
 import { getValidAccessToken, renewToken } from "@/core/auth/oidcSession";
+import { publishAccountSessionTermination } from "@/core/auth/accountSessionTermination";
 
 type RequestOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
@@ -85,10 +86,23 @@ export async function apiClient<T>(path: string, options: RequestOptions = {}): 
         && typeof responseBody.data.code === "string"
           ? responseBody.data.code
           : undefined;
-      const errorCode = directErrorCode ?? scopedErrorCode;
+      const headerErrorCode = response.headers.get("X-Auth-Error-Code") ?? undefined;
+      const errorCode = directErrorCode ?? scopedErrorCode ?? headerErrorCode;
+      const errorData = responseBody
+        && typeof responseBody === "object"
+        && "data" in responseBody
+          ? responseBody.data
+          : undefined;
+
+      if (errorCode === "ACCOUNT_PENDING_DELETION") {
+        publishAccountSessionTermination("account-pending-deletion");
+      } else if (errorCode === "ACCOUNT_DELETED") {
+        publishAccountSessionTermination("account-deleted");
+      }
 
       throw new ApiError(localizeApiErrorCode(errorCode) ?? localizeApiMessage(rawMessage, response.status), {
         code: errorCode,
+        data: errorData,
         kind: "http",
         status: response.status,
       });

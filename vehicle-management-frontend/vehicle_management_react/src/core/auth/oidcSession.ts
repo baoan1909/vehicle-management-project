@@ -87,8 +87,12 @@ export async function refreshAccessToken() {
   return (await renewToken())?.access_token ?? null;
 }
 
-export function signinRedirect(options: { prompt?: "login" } = {}) {
-  return oidcUserManager.signinRedirect({ ...options, redirectMethod: "replace" });
+export function signinRedirect(options: { prompt?: "login"; maxAge?: number } = {}) {
+  return oidcUserManager.signinRedirect({
+    prompt: options.prompt,
+    max_age: options.maxAge,
+    redirectMethod: "replace",
+  });
 }
 
 export function handleSigninCallback(url = window.location.href) {

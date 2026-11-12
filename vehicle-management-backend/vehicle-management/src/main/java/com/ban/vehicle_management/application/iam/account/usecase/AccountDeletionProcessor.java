@@ -1,10 +1,9 @@
 package com.ban.vehicle_management.application.iam.account.usecase;
 
 import com.ban.vehicle_management.application.iam.account.port.out.AccountDeletionPortOut;
-import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
+import com.ban.vehicle_management.application.iam.account.port.out.OrganizationClosurePortOut;
 import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionRequest;
 import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionBlocker;
-import com.ban.vehicle_management.application.storage.port.out.FileStoragePort;
 import com.ban.vehicle_management.infrastructure.security.config.AccountDeletionTimeProperties;
 import java.time.Clock;
 import java.time.Duration;
@@ -20,21 +19,30 @@ public class AccountDeletionProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(AccountDeletionProcessor.class);
     private final AccountDeletionPortOut persistence;
-    private final IdentityProviderAdminPortOut identityProvider;
     private final AccountDeletionTimeProperties properties;
-    private final FileStoragePort fileStorage;
     private final Clock clock;
+    private final OrganizationClosurePortOut organizationClosurePort;
+    private final AccountDeletionCompletionService completionService;
+    private final AccountDeletionExternalCleanupProcessor cleanupProcessor;
+    private final CustomerAccountDeletionImpactService customerImpactService;
+    private final CustomerAccountDeletionFinalizer customerFinalizer;
 
     public AccountDeletionProcessor(AccountDeletionPortOut persistence,
-            IdentityProviderAdminPortOut identityProvider,
             AccountDeletionTimeProperties properties,
-            FileStoragePort fileStorage,
-            Clock clock) {
+            Clock clock,
+            OrganizationClosurePortOut organizationClosurePort,
+            AccountDeletionCompletionService completionService,
+            AccountDeletionExternalCleanupProcessor cleanupProcessor,
+            CustomerAccountDeletionImpactService customerImpactService,
+            CustomerAccountDeletionFinalizer customerFinalizer) {
         this.persistence = persistence;
-        this.identityProvider = identityProvider;
         this.properties = properties;
-        this.fileStorage = fileStorage;
         this.clock = clock;
+        this.organizationClosurePort = organizationClosurePort;
+        this.completionService = completionService;
+        this.cleanupProcessor = cleanupProcessor;
+        this.customerImpactService = customerImpactService;
+        this.customerFinalizer = customerFinalizer;
     }
 
     public void process(UUID requestId, String claimToken) {
@@ -42,20 +50,34 @@ public class AccountDeletionProcessor {
         if (request == null) return;
         Instant now = Instant.now(clock);
         try {
-            List<AccountDeletionBlocker> blockers = persistence.findDeletionBlockers(request.accountId());
+            List<UUID> organizationIds = organizationClosurePort.findOrganizationIds(requestId);
+            List<AccountDeletionBlocker> blockers = new java.util.ArrayList<>(
+                    persistence.findDeletionBlockers(request.accountId(), organizationIds));
+            var customerDecision = customerImpactService.analyze(request.accountId(), now);
+            blockers.addAll(customerDecision.blockers());
+            blockers.addAll(organizationClosurePort.findBlockers(organizationIds));
             if (!blockers.isEmpty()) {
-                persistence.fail(requestId, now, null, 1, "PRECONDITION_CHANGED",
-                        blockers.stream().map(AccountDeletionBlocker::code).distinct()
-                                .collect(java.util.stream.Collectors.joining(",")));
+                String blockerCodes = blockers.stream().map(AccountDeletionBlocker::code).distinct()
+                        .collect(java.util.stream.Collectors.joining(","));
+                organizationClosurePort.cancel(requestId, now, true);
+                persistence.block(requestId, now, "PRECONDITION_CHANGED", blockerCodes);
                 return;
             }
-            String keycloakUserId = persistence.findKeycloakUserId(request.accountId());
-            if (keycloakUserId != null && !keycloakUserId.isBlank()
-                    && !keycloakUserId.startsWith("_deleted_")) {
-                identityProvider.deleteUser(keycloakUserId);
+            if (customerDecision.automaticActions().stream()
+                    .anyMatch(action -> "TERMINATE_ACTIVE_SUBSCRIPTION".equals(action.code()))) {
+                customerFinalizer.terminateActiveSubscriptions(request, now);
+                customerDecision = customerImpactService.analyze(request.accountId(), now);
             }
-            List<String> avatarObjectKeys = persistence.completeWithTombstones(requestId, request.accountId(), now);
-            avatarObjectKeys.forEach(fileStorage::delete);
+            if (!customerDecision.automaticActions().isEmpty()) {
+                String actionCodes = customerDecision.automaticActions().stream()
+                        .map(com.ban.vehicle_management.domain.iam.account.model.AccountDeletionAutomaticAction::code)
+                        .distinct().collect(java.util.stream.Collectors.joining(","));
+                organizationClosurePort.cancel(requestId, now, true);
+                persistence.block(requestId, now, "AUTOMATIC_CLEANUP_REQUIRED", actionCodes);
+                return;
+            }
+            completionService.completeDatabase(requestId, request.accountId(), now);
+            cleanupProcessor.processForRequest(requestId, now);
             persistence.completeFileCleanup(requestId, request.accountId(), now);
         } catch (RuntimeException exception) {
             long exponent = Math.min(request.attemptCount(), 8);

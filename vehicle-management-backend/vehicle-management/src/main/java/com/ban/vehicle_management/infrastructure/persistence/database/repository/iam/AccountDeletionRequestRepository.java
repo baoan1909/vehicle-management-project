@@ -13,8 +13,54 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 public interface AccountDeletionRequestRepository extends JpaRepository<AccountDeletionRequestEntity, UUID> {
+
+    interface DeletedAccountArchiveProjection {
+        UUID getAccountId();
+        String getAccountStatus();
+        UUID getRequestId();
+        String getRequestStatus();
+        Instant getRequestedAt();
+        Instant getScheduledDeletionAt();
+        Instant getCompletedAt();
+    }
+
+    @Query(value = """
+        select account.account_id as "accountId",
+               cast(account.status as varchar) as "accountStatus",
+               request.request_id as "requestId",
+               cast(request.status as varchar) as "requestStatus",
+               request.requested_at as "requestedAt",
+               request.scheduled_deletion_at as "scheduledDeletionAt",
+               request.completed_at as "completedAt"
+        from iam.account_deletion_requests request
+        join iam.accounts account on account.account_id = request.account_id
+        where account.status = 'DELETED'
+          and request.status = 'COMPLETED'
+        order by request.completed_at desc, request.request_id desc
+        """, nativeQuery = true)
+    List<DeletedAccountArchiveProjection> findDeletedAccountArchive(Pageable pageable);
+
+    @Query(value = """
+        select account.account_id as "accountId",
+               cast(account.status as varchar) as "accountStatus",
+               request.request_id as "requestId",
+               cast(request.status as varchar) as "requestStatus",
+               request.requested_at as "requestedAt",
+               request.scheduled_deletion_at as "scheduledDeletionAt",
+               request.completed_at as "completedAt"
+        from iam.account_deletion_requests request
+        join iam.accounts account on account.account_id = request.account_id
+        where account.account_id = :accountId
+          and account.status = 'DELETED'
+          and request.status = 'COMPLETED'
+        order by request.completed_at desc, request.request_id desc
+        limit 1
+        """, nativeQuery = true)
+    Optional<DeletedAccountArchiveProjection> findDeletedAccountArchiveByAccountId(
+            @Param("accountId") UUID accountId);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """

@@ -12,8 +12,21 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
+import java.util.Collection;
+import java.util.List;
 
 public interface WalletRepository extends JpaRepository<WalletEntity, UUID> {
+
+    @Query(value = """
+        select wallet.wallet_id as "resourceId", wallet.organization_id as "organizationId",
+               null::uuid as "parkingLotId"
+          from billing.wallets wallet
+         where wallet.organization_id in (:organizationIds)
+           and (wallet.available_balance <> 0 or wallet.pending_balance <> 0 or wallet.held_balance <> 0)
+        """, nativeQuery = true)
+    List<AccountDeletionResourceScopeProjection> findOrganizationDeletionBlockers(
+            @Param("organizationIds") Collection<UUID> organizationIds);
 
     @Modifying
     @Query(value = """

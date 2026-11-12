@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Collection;
 
 public interface VehicleTypeRepository extends JpaRepository<VehicleTypeEntity, UUID>, JpaSpecificationExecutor<VehicleTypeEntity> {
 
@@ -75,6 +76,10 @@ public interface VehicleTypeRepository extends JpaRepository<VehicleTypeEntity, 
 
     @Query("select vehicleType.code from VehicleTypeEntity vehicleType where vehicleType.vehicleTypeId = :vehicleTypeId")
     Optional<String> findCodeById(@Param("vehicleTypeId") UUID vehicleTypeId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update VehicleTypeEntity item set item.isActive = false where item.organizationId in :organizationIds and item.isActive = true")
+    int deactivateAllByOrganizationIds(@Param("organizationIds") Collection<UUID> organizationIds);
 }
 
 

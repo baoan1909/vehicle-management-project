@@ -14,6 +14,7 @@ public record LostCardReportDetailResult(
         Subscription subscription,
         InvoiceDetail invoiceDetail,
         String checkInLicensePlateImagePath,
+        String checkInVehicleImagePath,
         String checkInPersonImagePath
 ) {
 }

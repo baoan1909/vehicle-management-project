@@ -44,6 +44,12 @@ export const adminRoutePermissions = {
   // Either account administration or Partner-registration review may open this
   // shared workspace; each tab still checks its own permission before rendering.
   "/admin/account": ["ACCOUNT_READ_ALL", "ORGANIZATION_REGISTRATION_REVIEW_ALL"],
+  "/admin/deletion-audit": [
+    "DELETED_ACCOUNT_READ_ALL",
+    "CLOSED_ORGANIZATION_READ_ALL",
+    "ACCOUNT_DELETION_AUDIT_READ_ALL",
+    "DELETED_IDENTITY_LOOKUP_ALL",
+  ],
   "/admin/account/form": ["ACCOUNT_CREATE_ALL", "ACCOUNT_UPDATE_ALL"],
   "/admin/avatar-approvals": ["USER_PROFILE_READ_ALL"],
   "/admin/onboarding-approvals": ["ACCOUNT_READ_ALL"],

@@ -57,11 +57,13 @@ import com.ban.vehicle_management.shared.enumeration.people.CustomerVehicleStatu
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mapstruct.factory.Mappers;
@@ -146,8 +148,10 @@ class ParkingCheckInUseCaseImplTest {
         TestData data = validTestData();
         Card visitorCard = card(data.cardId(), data.vehicleTypeId(), CardStatus.AVAILABLE);
         MockMultipartFile licensePlateImage = licensePlateImage();
+        MockMultipartFile vehicleImage = vehicleImage();
         MockMultipartFile personImage = personImage();
         StoredFile storedLicensePlateFile = storedFile();
+        StoredFile storedVehicleFile = storedVehicleFile();
         StoredFile storedPersonFile = storedPersonFile();
         CheckInCommand command = new CheckInCommand(
                 " UID-001 ",
@@ -155,6 +159,7 @@ class ParkingCheckInUseCaseImplTest {
                 data.vehicleTypeId(),
                 " 51A-12345 ",
                 licensePlateImage,
+                vehicleImage,
                 personImage,
                 " gate 1 "
         );
@@ -167,7 +172,7 @@ class ParkingCheckInUseCaseImplTest {
         when(parkingSessionPortOut.countOpenByZoneId(data.zoneId())).thenReturn(3L);
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(parkingSessionPortOut.save(any(ParkingSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedLicensePlateFile, storedPersonFile);
+        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedLicensePlateFile, storedVehicleFile, storedPersonFile);
         when(parkingEventPortOut.save(any(ParkingEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
 
@@ -188,9 +193,10 @@ class ParkingCheckInUseCaseImplTest {
         assertEquals(data.laneId(), result.parkingEvent().getLaneId());
         assertEquals(data.actorAccountId(), result.parkingEvent().getActorAccountId());
         assertEquals(storedLicensePlateFile.objectKey(), result.parkingEvent().getLicensePlateImagePath());
+        assertEquals(storedVehicleFile.objectKey(), result.parkingEvent().getVehicleImagePath());
         assertEquals(storedPersonFile.objectKey(), result.parkingEvent().getPersonImagePath());
         assertEquals("gate 1", result.parkingEvent().getNote());
-        verify(fileStoragePort, times(2)).store(any(StoreFileCommand.class));
+        verify(fileStoragePort, times(3)).store(any(StoreFileCommand.class));
     }
 
     @Test
@@ -198,8 +204,10 @@ class ParkingCheckInUseCaseImplTest {
         TestData data = validTestData();
         Card visitorCard = card(data.cardId(), data.vehicleTypeId(), CardStatus.AVAILABLE);
         MockMultipartFile licensePlateImage = licensePlateImage();
+        MockMultipartFile vehicleImage = vehicleImage();
         MockMultipartFile personImage = personImage();
         StoredFile storedLicensePlateFile = storedFile();
+        StoredFile storedVehicleFile = storedVehicleFile();
         StoredFile storedPersonFile = storedPersonFile();
         CheckInCommand command = new CheckInCommand(
                 " UID-001 ",
@@ -207,6 +215,7 @@ class ParkingCheckInUseCaseImplTest {
                 data.vehicleTypeId(),
                 " 51A-12345 ",
                 licensePlateImage,
+                vehicleImage,
                 personImage,
                 " gate 1 "
         );
@@ -219,15 +228,62 @@ class ParkingCheckInUseCaseImplTest {
         when(parkingSessionPortOut.countOpenByZoneId(data.zoneId())).thenReturn(3L);
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(parkingSessionPortOut.save(any(ParkingSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedLicensePlateFile, storedPersonFile);
+        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedLicensePlateFile, storedVehicleFile, storedPersonFile);
         when(parkingEventPortOut.save(any(ParkingEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
 
         CheckInResult result = parkingCheckInUseCase.checkIn(command);
 
         assertEquals(storedLicensePlateFile.objectKey(), result.parkingEvent().getLicensePlateImagePath());
+        assertEquals(storedVehicleFile.objectKey(), result.parkingEvent().getVehicleImagePath());
         assertEquals(storedPersonFile.objectKey(), result.parkingEvent().getPersonImagePath());
-        verify(fileStoragePort, times(2)).store(any(StoreFileCommand.class));
+        ArgumentCaptor<StoreFileCommand> storageCommandCaptor = ArgumentCaptor.forClass(StoreFileCommand.class);
+        verify(fileStoragePort, times(3)).store(storageCommandCaptor.capture());
+        assertEquals(
+                List.of("LICENSE_PLATE", "VEHICLE", "PERSON"),
+                storageCommandCaptor.getAllValues().stream()
+                        .map(storageCommand -> storageCommand.metadata().get("image_type"))
+                        .toList()
+        );
+    }
+
+    @Test
+    void shouldDeleteAllStoredEvidenceWhenEventPersistenceFails() {
+        TestData data = validTestData();
+        Card visitorCard = card(data.cardId(), data.vehicleTypeId(), CardStatus.AVAILABLE);
+        StoredFile storedLicensePlateFile = storedFile();
+        StoredFile storedVehicleFile = storedVehicleFile();
+        StoredFile storedPersonFile = storedPersonFile();
+        CheckInCommand command = new CheckInCommand(
+                "UID-001",
+                data.laneId(),
+                data.vehicleTypeId(),
+                "51A-12345",
+                licensePlateImage(),
+                vehicleImage(),
+                personImage(),
+                null
+        );
+
+        mockOperationalTopology(data);
+        when(cardPortOut.findByUidForUpdate("UID-001")).thenReturn(Optional.of(visitorCard));
+        when(cardTypePortOut.findById(visitorCard.getCardTypeId()))
+                .thenReturn(Optional.of(cardType(visitorCard.getCardTypeId(), "VISITOR")));
+        when(parkingSessionPortOut.existsOpenByCardId(data.cardId())).thenReturn(false);
+        when(parkingSessionPortOut.countOpenByZoneId(data.zoneId())).thenReturn(0L);
+        when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(parkingSessionPortOut.save(any(ParkingSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(fileStoragePort.store(any(StoreFileCommand.class)))
+                .thenReturn(storedLicensePlateFile, storedVehicleFile, storedPersonFile);
+        when(parkingEventPortOut.save(any(ParkingEvent.class)))
+                .thenThrow(new IllegalStateException("database write failed"));
+        when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
+
+        assertThrows(IllegalStateException.class, () -> parkingCheckInUseCase.checkIn(command));
+
+        verify(fileStoragePort).delete(storedLicensePlateFile.objectKey());
+        verify(fileStoragePort).delete(storedVehicleFile.objectKey());
+        verify(fileStoragePort).delete(storedPersonFile.objectKey());
     }
 
     @Test
@@ -251,12 +307,12 @@ class ParkingCheckInUseCaseImplTest {
         when(customerVehiclePortOut.findById(data.customerVehicleId())).thenReturn(Optional.of(customerVehicle));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(parkingSessionPortOut.save(any(ParkingSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedFile(), storedPersonFile());
+        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedFile(), storedVehicleFile(), storedPersonFile());
         when(parkingEventPortOut.save(any(ParkingEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
 
         CheckInResult result = parkingCheckInUseCase.checkIn(
-                new CheckInCommand("UID-001", data.laneId(), data.vehicleTypeId(), "51a-12345", licensePlateImage(), personImage(), null)
+                new CheckInCommand("UID-001", data.laneId(), data.vehicleTypeId(), "51a-12345", licensePlateImage(), vehicleImage(), personImage(), null)
         );
 
         assertEquals(CardStatus.IN_USE, subscriptionCard.getStatus());
@@ -295,7 +351,7 @@ class ParkingCheckInUseCaseImplTest {
         when(parkingSessionPortOut.existsOpenBySubscriptionId(data.subscriptionId())).thenReturn(false);
         when(parkingSessionPortOut.countOpenByZoneId(data.zoneId())).thenReturn(3L);
         when(parkingSessionPortOut.save(any(ParkingSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedFile(), storedPersonFile());
+        when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedFile(), storedVehicleFile(), storedPersonFile());
         when(parkingEventPortOut.save(any(ParkingEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(data.actorAccountId());
 
@@ -305,6 +361,7 @@ class ParkingCheckInUseCaseImplTest {
                 null,
                 "51A-12345",
                 licensePlateImage(),
+                vehicleImage(),
                 personImage(),
                 null,
                 false,
@@ -350,6 +407,7 @@ class ParkingCheckInUseCaseImplTest {
                 null,
                 "51A-12345",
                 licensePlateImage(),
+                vehicleImage(),
                 personImage(),
                 null,
                 false,
@@ -375,7 +433,7 @@ class ParkingCheckInUseCaseImplTest {
 
         assertThrows(ConflictException.class, () -> parkingCheckInUseCase.checkIn(
                 new CheckInCommand("UID-001", data.laneId(), data.vehicleTypeId(), "51A-12345",
-                        licensePlateImage(), personImage(), null)));
+                        licensePlateImage(), vehicleImage(), personImage(), null)));
         verify(parkingSessionPortOut, never()).save(any(ParkingSession.class));
     }
 
@@ -394,6 +452,7 @@ class ParkingCheckInUseCaseImplTest {
                         data.vehicleTypeId(),
                         "51A-12345",
                         licensePlateImage(),
+                        vehicleImage(),
                         personImage(),
                         null
                 ))
@@ -413,6 +472,7 @@ class ParkingCheckInUseCaseImplTest {
                         data.vehicleTypeId(),
                         "51A-12345",
                         null,
+                        vehicleImage(),
                         personImage(),
                         null
                 ))
@@ -433,7 +493,29 @@ class ParkingCheckInUseCaseImplTest {
                         data.vehicleTypeId(),
                         "51A-12345",
                         licensePlateImage(),
+                        vehicleImage(),
                         null,
+                        null
+                ))
+        );
+        verify(lanePortOut, never()).findById(any());
+        verify(fileStoragePort, never()).store(any(StoreFileCommand.class));
+    }
+
+    @Test
+    void shouldRejectMissingVehicleImage() {
+        TestData data = validTestData();
+
+        assertThrows(
+                BadRequestException.class,
+                () -> parkingCheckInUseCase.checkIn(new CheckInCommand(
+                        "UID-001",
+                        data.laneId(),
+                        data.vehicleTypeId(),
+                        "51A-12345",
+                        licensePlateImage(),
+                        null,
+                        personImage(),
                         null
                 ))
         );
@@ -460,6 +542,7 @@ class ParkingCheckInUseCaseImplTest {
                         data.vehicleTypeId(),
                         "51A-12345",
                         licensePlateImage(),
+                        vehicleImage(),
                         personImage(),
                         null
                 ))
@@ -487,6 +570,7 @@ class ParkingCheckInUseCaseImplTest {
                         data.vehicleTypeId(),
                         "51A-12345",
                         licensePlateImage(),
+                        vehicleImage(),
                         personImage(),
                         null
                 ))
@@ -516,6 +600,15 @@ class ParkingCheckInUseCaseImplTest {
         );
     }
 
+    private MockMultipartFile vehicleImage() {
+        return new MockMultipartFile(
+                "vehicleImage",
+                "vehicle.jpg",
+                "image/jpeg",
+                new byte[] {7, 8, 9}
+        );
+    }
+
     private StoredFile storedFile() {
         return new StoredFile(
                 "pe/2026/06/26/event/pv-generated-parking-event.jpg",
@@ -533,6 +626,16 @@ class ParkingCheckInUseCaseImplTest {
                 "image/jpeg",
                 3,
                 "checksum-person"
+        );
+    }
+
+    private StoredFile storedVehicleFile() {
+        return new StoredFile(
+                "private/parking-events/vehicle.jpg",
+                "vehicle.jpg",
+                "image/jpeg",
+                3L,
+                "vehicle-checksum"
         );
     }
 

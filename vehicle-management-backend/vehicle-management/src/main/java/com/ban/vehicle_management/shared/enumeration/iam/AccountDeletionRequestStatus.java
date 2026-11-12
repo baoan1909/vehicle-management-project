@@ -5,6 +5,7 @@ public enum AccountDeletionRequestStatus {
     CANCELLED,
     PROCESSING,
     RETRY,
+    BLOCKED,
     REVIEW_REQUIRED,
     COMPLETED
 }

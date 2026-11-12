@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Collection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -150,4 +151,8 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
             @Param("effectiveDate") LocalDate effectiveDate,
             @Param("localTime") LocalTime localTime
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update PriceRuleEntity item set item.isActive = false where item.organizationId in :organizationIds and item.isActive = true")
+    int deactivateAllByOrganizationIds(@Param("organizationIds") Collection<UUID> organizationIds);
 }

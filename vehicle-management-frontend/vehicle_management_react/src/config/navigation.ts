@@ -94,6 +94,7 @@ export const adminNavigation: AdminSidebarEntry[] = [
     icon: "settings",
     items: [
       { label: "Tài khoản", to: "/admin/account", matches: ["/admin/account"] },
+      { label: "Lưu trữ xóa tài khoản", to: "/admin/deletion-audit", matches: ["/admin/deletion-audit"] },
       { label: "Duyệt ảnh đại diện", to: "/admin/avatar-approvals", matches: ["/admin/avatar-approvals"] },
       { label: "Vai trò & Quyền", to: "/admin/role", matches: ["/admin/role"] },
       { label: "Model AI", to: "/admin/ai-models", matches: ["/admin/ai-models"] },
@@ -125,6 +126,7 @@ export const platformAdminNavigation: AdminSidebarEntry[] = [
   { kind: "link", label: "Quản lý ví & giao dịch", to: "/admin/wallets", matches: ["/admin/wallets"], icon: "pricing" },
   { kind: "planned", label: "Giao dịch & đối soát" },
   { kind: "link", label: "Tài khoản", to: "/admin/account", matches: ["/admin/account"], icon: "role" },
+  { kind: "link", label: "Lưu trữ xóa tài khoản", to: "/admin/deletion-audit", matches: ["/admin/deletion-audit"], icon: "role" },
   { kind: "link", label: "Vai trò & phân quyền", to: "/admin/role", matches: ["/admin/role"], icon: "settings" },
   { kind: "planned", label: "Nhật ký hệ thống" },
   { kind: "link", label: "Hỗ trợ", to: "/admin/support-tickets", matches: ["/admin/support-tickets"], icon: "support" },

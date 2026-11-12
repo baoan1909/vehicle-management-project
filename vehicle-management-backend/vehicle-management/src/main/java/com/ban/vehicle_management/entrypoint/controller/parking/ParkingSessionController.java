@@ -2,6 +2,10 @@ package com.ban.vehicle_management.entrypoint.controller.parking;
 
 import com.ban.vehicle_management.application.parking.parkingsession.mapper.ParkingSessionApiMapper;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingSessionPortIn;
+import com.ban.vehicle_management.application.parking.checkinspacehold.mapper.CheckInSpaceHoldApiMapper;
+import com.ban.vehicle_management.application.parking.checkinspacehold.port.in.CheckInSpaceHoldPortIn;
+import com.ban.vehicle_management.entrypoint.dto.parking.checkinspacehold.request.CreateCheckInSpaceHoldRequest;
+import com.ban.vehicle_management.entrypoint.dto.parking.checkinspacehold.response.CheckInSpaceHoldResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInPreviewRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutParkingSessionRequest;
@@ -20,6 +24,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,15 +44,42 @@ public class ParkingSessionController {
     private final ParkingSessionPortIn parkingSessionPortIn;
     private final ParkingSessionApiMapper parkingSessionApiMapper;
     private final ParkingSessionRequestConverter requestConverter;
+    private final CheckInSpaceHoldPortIn checkInSpaceHoldPortIn;
+    private final CheckInSpaceHoldApiMapper checkInSpaceHoldApiMapper;
 
     public ParkingSessionController(
             ParkingSessionPortIn parkingSessionPortIn,
             ParkingSessionApiMapper parkingSessionApiMapper,
-            ParkingSessionRequestConverter requestConverter
+            ParkingSessionRequestConverter requestConverter,
+            CheckInSpaceHoldPortIn checkInSpaceHoldPortIn,
+            CheckInSpaceHoldApiMapper checkInSpaceHoldApiMapper
     ) {
         this.parkingSessionPortIn = parkingSessionPortIn;
         this.parkingSessionApiMapper = parkingSessionApiMapper;
         this.requestConverter = requestConverter;
+        this.checkInSpaceHoldPortIn = checkInSpaceHoldPortIn;
+        this.checkInSpaceHoldApiMapper = checkInSpaceHoldApiMapper;
+    }
+
+    @PostMapping(value = "/check-in/space-holds", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SESSION_CHECK_IN_ALL')")
+    public ResponseEntity<ApiResponse<CheckInSpaceHoldResponse>> createCheckInSpaceHold(
+            @RequestBody CreateCheckInSpaceHoldRequest request
+    ) {
+        var result = checkInSpaceHoldPortIn.create(checkInSpaceHoldApiMapper.toCommand(request));
+        return ResponseEntity.status(checkInSpaceHoldApiMapper.toCreateStatus(result)).body(ApiResponse.ok(
+                checkInSpaceHoldApiMapper.toCreateMessage(result),
+                checkInSpaceHoldApiMapper.toResponse(result)));
+    }
+
+    @DeleteMapping("/check-in/space-holds/{holdId}")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('PARKING_SESSION_CHECK_IN_ALL')")
+    public ResponseEntity<ApiResponse<Void>> cancelCheckInSpaceHold(
+            @PathVariable UUID holdId,
+            @RequestParam(required = false) String reason
+    ) {
+        checkInSpaceHoldPortIn.cancel(holdId, reason);
+        return ResponseEntity.ok(ApiResponse.ok("Check-in parking-space hold cancelled"));
     }
 
     @GetMapping
@@ -94,13 +127,14 @@ public class ParkingSessionController {
     public ResponseEntity<ApiResponse<ParkingSessionCheckInResponse>> checkIn(
             @RequestPart("request") String request,
             @RequestPart("licensePlateImage") MultipartFile licensePlateImage,
+            @RequestPart("vehicleImage") MultipartFile vehicleImage,
             @RequestPart("personImage") MultipartFile personImage
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "Parking session checked in successfully",
                 parkingSessionApiMapper.toCheckInResponse(parkingSessionPortIn.checkIn(
                         parkingSessionApiMapper.toCommand(
-                                requestConverter.toCheckInRequest(request), licensePlateImage, personImage)))));
+                                requestConverter.toCheckInRequest(request), licensePlateImage, vehicleImage, personImage)))));
     }
 
     @PostMapping(value = "/check-in/preview", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -118,13 +152,14 @@ public class ParkingSessionController {
     public ResponseEntity<ApiResponse<ParkingSessionCheckOutResponse>> checkOut(
             @RequestPart("request") String request,
             @RequestPart("licensePlateImage") MultipartFile licensePlateImage,
+            @RequestPart("vehicleImage") MultipartFile vehicleImage,
             @RequestPart("personImage") MultipartFile personImage
     ) {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Parking session checked out successfully",
                 parkingSessionApiMapper.toCheckOutResponse(parkingSessionPortIn.checkOut(
                         parkingSessionApiMapper.toCommand(
-                                requestConverter.toCheckOutRequest(request), licensePlateImage, personImage)))));
+                                requestConverter.toCheckOutRequest(request), licensePlateImage, vehicleImage, personImage)))));
     }
 
     @PostMapping(value = "/check-out/prepare", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -132,6 +167,7 @@ public class ParkingSessionController {
     public ResponseEntity<ApiResponse<ParkingSessionCheckOutResponse>> prepareVisitorCheckOut(
             @RequestPart("request") String request,
             @RequestPart("licensePlateImage") MultipartFile licensePlateImage,
+            @RequestPart("vehicleImage") MultipartFile vehicleImage,
             @RequestPart("personImage") MultipartFile personImage
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
@@ -140,6 +176,7 @@ public class ParkingSessionController {
                         parkingSessionApiMapper.toCommand(
                                 requestConverter.toCheckOutRequest(request),
                                 licensePlateImage,
+                                vehicleImage,
                                 personImage
                         )
                 ))

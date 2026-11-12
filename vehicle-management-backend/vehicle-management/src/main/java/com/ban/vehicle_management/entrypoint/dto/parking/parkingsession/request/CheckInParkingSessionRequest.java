@@ -11,6 +11,7 @@ public record CheckInParkingSessionRequest(
         Boolean plateFormatConfirmed,
         Boolean plateIdentityOverride,
         UUID parkingSpaceId,
+        UUID spaceHoldId,
         String subscriptionQrPayload,
         String reservationQrPayload
 ) {
@@ -21,13 +22,13 @@ public record CheckInParkingSessionRequest(
             String licensePlate,
             String note
     ) {
-        this(cardUid, laneId, vehicleTypeId, licensePlate, note, false, false, null, null, null);
+        this(cardUid, laneId, vehicleTypeId, licensePlate, note, false, false, null, null, null, null);
     }
 
     public CheckInParkingSessionRequest(String cardUid, UUID laneId, UUID vehicleTypeId,
             String licensePlate, String note, Boolean plateFormatConfirmed,
             Boolean plateIdentityOverride, UUID parkingSpaceId, String subscriptionQrPayload) {
         this(cardUid, laneId, vehicleTypeId, licensePlate, note, plateFormatConfirmed,
-                plateIdentityOverride, parkingSpaceId, subscriptionQrPayload, null);
+                plateIdentityOverride, parkingSpaceId, null, subscriptionQrPayload, null);
     }
 }

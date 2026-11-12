@@ -19,6 +19,7 @@ public interface ParkingCheckOutMapper {
     @Mapping(target = "eventTime", source = "eventTime")
     @Mapping(target = "licensePlateDetected", source = "licensePlate")
     @Mapping(target = "licensePlateImagePath", source = "licensePlateImagePath")
+    @Mapping(target = "vehicleImagePath", source = "vehicleImagePath")
     @Mapping(target = "personImagePath", source = "personImagePath")
     @Mapping(target = "actorAccountId", source = "actorAccountId")
     @Mapping(target = "note", source = "note")
@@ -28,6 +29,7 @@ public interface ParkingCheckOutMapper {
             UUID laneId,
             String licensePlate,
             String licensePlateImagePath,
+            String vehicleImagePath,
             String personImagePath,
             UUID actorAccountId,
             String note,

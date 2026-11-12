@@ -19,10 +19,16 @@ import { parsePortalDate } from "@/features/customer-portal/utils/portalDate";
 import { requestPasswordReset } from "@/features/auth/api/authApi";
 import { useAuth } from "@/core/auth/useAuth";
 import { logoutCurrentUser } from "@/core/auth/logout";
+import { markAccountDeletionFreshLoginRequired } from "@/core/auth/accountSessionTermination";
 import {
   cancelCurrentAccountDeletion,
+  getAccountDeletionBlockers,
+  getAccountDeletionRemediationPath,
+  getCurrentAccountDeletionImpact,
   getCurrentAccountDeletionRequest,
   requestCurrentAccountDeletion,
+  type AccountDeletionBlocker,
+  type AccountDeletionImpact,
   type AccountDeletionRequest,
 } from "@/features/iam/api/accountDeletionApi";
 import { completeMyAccountProfile, getMyAvatarModerationStatus, uploadMyAccountAvatar, type AvatarModerationStatus, type UpdateAccountProfileRequest } from "@/features/iam/api/accountProfileApi";
@@ -158,6 +164,9 @@ export function ProfilePage() {
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [deletionOpen, setDeletionOpen] = useState(false);
   const [deletionRequest, setDeletionRequest] = useState<AccountDeletionRequest | null>(null);
+  const [deletionBlockers, setDeletionBlockers] = useState<AccountDeletionBlocker[]>([]);
+  const [deletionImpact, setDeletionImpact] = useState<AccountDeletionImpact | null>(null);
+  const [confirmNoRefundTermination, setConfirmNoRefundTermination] = useState(false);
   const [deletionSubmitting, setDeletionSubmitting] = useState(false);
   const [countdownNow, setCountdownNow] = useState(Date.now());
   const [passwordSending, setPasswordSending] = useState(false);
@@ -412,14 +421,36 @@ export function ProfilePage() {
   const handleRequestDeletion = async () => {
     setDeletionSubmitting(true);
     setError("");
+    setDeletionBlockers([]);
     try {
-      const created = await requestCurrentAccountDeletion();
+      const created = await requestCurrentAccountDeletion(false, confirmNoRefundTermination);
       setDeletionRequest(created);
       setDeletionOpen(false);
       sessionStorage.setItem("vm_account_deletion_requested", "1");
+      markAccountDeletionFreshLoginRequired();
       logoutCurrentUser(setUser);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Không thể tạo yêu cầu xóa tài khoản.");
+      const blockers = getAccountDeletionBlockers(requestError);
+      setDeletionBlockers(blockers);
+      if (blockers.length === 0) {
+        setError(requestError instanceof Error ? requestError.message : "Không thể tạo yêu cầu xóa tài khoản.");
+      }
+    } finally {
+      setDeletionSubmitting(false);
+    }
+  };
+
+  const openDeletionImpact = async () => {
+    setDeletionSubmitting(true);
+    setDeletionBlockers([]);
+    try {
+      const impact = await getCurrentAccountDeletionImpact();
+      setDeletionImpact(impact);
+      setConfirmNoRefundTermination(false);
+      setDeletionBlockers([...(impact.accountBlockers ?? []), ...(impact.organizationBlockers ?? [])]);
+      setDeletionOpen(true);
+    } catch (impactError) {
+      setError(impactError instanceof Error ? impactError.message : "Không thể phân tích tác động xóa tài khoản.");
     } finally {
       setDeletionSubmitting(false);
     }
@@ -662,22 +693,22 @@ export function ProfilePage() {
       <section className="vm-profile-support-banner tw-mt-4 tw-flex tw-items-center tw-gap-4 tw-rounded-[11px] tw-bg-[linear-gradient(100deg,#051d4d,#072969)] tw-px-6 tw-py-4 tw-text-white"><span className="tw-grid tw-h-[42px] tw-w-[42px] tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-[#d7ad5a] tw-text-[#f2cc76]"><i className="fas fa-headset" /></span><div><strong> Cần hỗ trợ?</strong><p className="tw-m-0 tw-mt-0.5 tw-text-[0.78rem] tw-text-[#bccce7]">Chúng tôi luôn sẵn sàng hỗ trợ bạn.</p></div><span className="tw-ml-auto tw-text-[0.78rem] tw-font-semibold tw-text-[#dceaff]"><i className="fas fa-phone-alt tw-mr-2" />Hotline: 1900 1234</span><Link className="tw-rounded-md tw-border tw-border-solid tw-border-[#d7ad5a] tw-px-4 tw-py-2 tw-text-[0.78rem] tw-font-semibold tw-text-[#f5ce7d] hover:tw-no-underline" to="/customer/support">Gửi yêu cầu hỗ trợ</Link></section>
 
       {canRequestDeletion ? (
-        <section className="tw-mt-4 tw-flex tw-items-center tw-gap-4 tw-rounded-xl tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-4 max-[640px]:tw-items-start max-[640px]:tw-flex-col">
+        <section className="tw-mt-4 tw-flex tw-items-center tw-gap-4 tw-p-4 max-[640px]:tw-items-start max-[640px]:tw-flex-col">
           <div className="tw-min-w-0">
-            <h2 className="tw-m-0 tw-text-base tw-font-bold tw-text-red-800">Xóa tài khoản</h2>
-            <p className="tw-mb-0 tw-mt-1 tw-text-sm tw-leading-6 tw-text-red-700">
+            <h2 className="tw-m-0 tw-text-base tw-font-bold tw-text-slate-950">Xóa tài khoản</h2>
+            <p className="tw-mb-0 tw-mt-1 tw-text-sm tw-leading-6 tw-text-slate-900">
               {deletionRequest
                 ? `Tài khoản dự kiến bị xóa lúc ${formatInApplicationTime(deletionRequest.scheduledDeletionAt, "vi-VN", { dateStyle: "short", timeStyle: "short" })} (còn ${deletionCountdown}). Đăng nhập lại bằng phiên mới trước thời điểm này cũng sẽ tự hủy yêu cầu.`
                 : "Yêu cầu xóa có thời gian chờ. Hệ thống sẽ đăng xuất mọi phiên ngay sau khi tiếp nhận yêu cầu."}
             </p>
           </div>
           {deletionRequest?.cancellable && canCancelDeletion ? (
-            <button className="tw-ml-auto tw-shrink-0 tw-rounded-md tw-border tw-border-solid tw-border-red-300 tw-bg-white tw-px-4 tw-py-2 tw-font-semibold tw-text-red-700 disabled:tw-opacity-60 max-[640px]:tw-ml-0" type="button" disabled={deletionSubmitting} onClick={handleCancelDeletion}>
+            <button className="tw-ml-auto tw-shrink-0 tw-cursor-pointer tw-border-0 tw-bg-transparent tw-p-0 tw-font-semibold tw-text-red-600 hover:tw-underline focus-visible:tw-rounded-sm focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-offset-4 focus-visible:tw-outline-red-600 disabled:tw-cursor-not-allowed disabled:tw-opacity-60 max-[640px]:tw-ml-0" type="button" disabled={deletionSubmitting} onClick={handleCancelDeletion}>
               {deletionSubmitting ? "Đang hủy..." : "Hủy yêu cầu xóa"}
             </button>
           ) : !deletionRequest ? (
-            <button className="tw-ml-auto tw-shrink-0 tw-rounded-md tw-border-0 tw-bg-red-600 tw-px-4 tw-py-2 tw-font-semibold tw-text-white disabled:tw-opacity-60 max-[640px]:tw-ml-0" type="button" disabled={deletionSubmitting} onClick={() => setDeletionOpen(true)}>
-              Yêu cầu xóa tài khoản
+            <button className="tw-ml-auto tw-shrink-0 tw-cursor-pointer tw-border-0 tw-bg-transparent tw-p-0 tw-font-semibold tw-text-red-600 hover:tw-underline focus-visible:tw-rounded-sm focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-offset-4 focus-visible:tw-outline-red-600 disabled:tw-cursor-not-allowed disabled:tw-opacity-60 max-[640px]:tw-ml-0" type="button" disabled={deletionSubmitting} onClick={openDeletionImpact}>
+              {deletionSubmitting ? "Đang phân tích..." : "Yêu cầu xóa tài khoản"}
             </button>
           ) : null}
         </section>
@@ -721,14 +752,75 @@ export function ProfilePage() {
         actions={
           <div className="tw-flex tw-justify-end tw-gap-3">
             <button className="vm-outline-btn" type="button" disabled={deletionSubmitting} onClick={() => setDeletionOpen(false)}>Quay lại</button>
-            <button className="tw-rounded-md tw-border-0 tw-bg-red-600 tw-px-4 tw-py-2 tw-font-semibold tw-text-white disabled:tw-opacity-60" type="button" disabled={deletionSubmitting} onClick={handleRequestDeletion}>
+            <button className="tw-rounded-md tw-border-0 tw-bg-red-600 tw-px-4 tw-py-2 tw-font-semibold tw-text-white disabled:tw-opacity-60" type="button" disabled={deletionSubmitting || deletionBlockers.length > 0 || Boolean(deletionImpact?.automaticActions.some((action) => action.code === "TERMINATE_ACTIVE_SUBSCRIPTION") && !confirmNoRefundTermination)} onClick={handleRequestDeletion}>
               {deletionSubmitting ? "Đang gửi..." : "Xác nhận xóa"}
             </button>
           </div>
         }
       >
-        <div className="tw-rounded-lg tw-bg-red-50 tw-p-4 tw-text-sm tw-leading-6 tw-text-red-800">
-          Trước ngày xóa, hãy hoàn tất phiên gửi xe, hóa đơn, thanh toán, vé tháng, báo mất thẻ và lệnh nạp ví đang xử lý. Sau khi xóa hoàn tất, dữ liệu đăng nhập cũ sẽ được giải phóng để đăng ký tài khoản mới.
+        <div className="tw-grid tw-gap-3">
+          <div className="tw-rounded-lg tw-bg-slate-50 tw-p-4 tw-text-sm tw-leading-6 tw-text-slate-800">
+            Dịch vụ chưa sử dụng có thể được tự động hủy sau thời gian chờ. Phí của dịch vụ đã sử dụng và giao dịch đang xử lý vẫn phải được hoàn tất.
+          </div>
+          {(deletionImpact?.automaticActions.length ?? 0) > 0 ? (
+            <div className="tw-rounded-lg tw-border tw-border-solid tw-border-emerald-200 tw-bg-emerald-50 tw-p-4 tw-text-sm tw-text-emerald-900">
+              <strong>Sẽ được hệ thống tự động xử lý</strong>
+              <ul className="tw-mb-0 tw-mt-2 tw-grid tw-gap-1.5 tw-pl-5">
+                {deletionImpact?.automaticActions.map((action) => (
+                  <li key={`${action.code}-${action.resourceId ?? action.resourceType}`}>{action.message}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {deletionImpact?.automaticActions.some((action) => action.code === "TERMINATE_ACTIVE_SUBSCRIPTION") ? (
+            <label className="tw-flex tw-cursor-pointer tw-items-start tw-gap-3 tw-rounded-lg tw-border tw-border-solid tw-border-red-300 tw-bg-red-50 tw-p-4 tw-text-sm tw-font-semibold tw-leading-6 tw-text-red-900">
+              <input
+                checked={confirmNoRefundTermination}
+                className="tw-peer tw-sr-only"
+                type="checkbox"
+                onChange={(event) => setConfirmNoRefundTermination(event.target.checked)}
+              />
+              <span
+                aria-hidden="true"
+                className="tw-mt-1 tw-grid tw-h-5 tw-w-5 tw-shrink-0 tw-place-items-center tw-rounded-[3px] tw-border tw-border-solid tw-border-red-500 tw-bg-white tw-text-white peer-checked:tw-border-red-600 peer-checked:tw-bg-red-600 peer-focus-visible:tw-outline peer-focus-visible:tw-outline-2 peer-focus-visible:tw-outline-offset-2 peer-focus-visible:tw-outline-red-600"
+              >
+                {confirmNoRefundTermination ? (
+                  <svg className="tw-h-3.5 tw-w-3.5" fill="none" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M3 8.5 6.25 12 13 4.5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.25" />
+                  </svg>
+                ) : null}
+              </span>
+              <span>Tôi hiểu vé đang hoạt động sẽ bị chấm dứt sau thời gian chờ và tôi đồng ý không nhận hoàn tiền.</span>
+            </label>
+          ) : null}
+          {deletionBlockers.length > 0 ? (
+            <div className="tw-rounded-lg tw-border tw-border-solid tw-border-amber-300 tw-bg-amber-50 tw-p-4 tw-text-sm tw-text-amber-900" role="alert">
+              <strong className="tw-flex tw-items-center tw-gap-2">
+                <i className="fas fa-exclamation-triangle" />
+                Chưa thể xóa tài khoản
+              </strong>
+              <p className="tw-mb-2 tw-mt-1 tw-leading-5">Vui lòng hoàn tất các nghiệp vụ sau rồi thử lại:</p>
+              <ul className="tw-m-0 tw-grid tw-gap-1.5 tw-pl-5">
+                {deletionBlockers.map((blocker) => (
+                  <li className="tw-pl-0.5" key={`${blocker.code}-${blocker.resourceId ?? blocker.resourceType}`}>
+                    <div className="tw-flex tw-items-start tw-justify-between tw-gap-3">
+                      <span>{blocker.message}</span>
+                      {getAccountDeletionRemediationPath(blocker) ? (
+                        <Link
+                          aria-label={`Xử lý: ${blocker.message}`}
+                          className="tw-inline-flex tw-shrink-0 tw-items-center tw-gap-1.5 tw-font-bold tw-text-red-600 hover:tw-text-red-700 hover:tw-no-underline focus-visible:tw-rounded-sm focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-offset-2 focus-visible:tw-outline-red-600"
+                          to={getAccountDeletionRemediationPath(blocker) ?? "#"}
+                        >
+                          Xử lý
+                          <i aria-hidden="true" className="fas fa-arrow-right tw-text-xs" />
+                        </Link>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       </Modal>
     </CustomerPortalLayout>
