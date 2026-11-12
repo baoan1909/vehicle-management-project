@@ -58,12 +58,13 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
 
     @Override
     public Optional<Organization> findById(UUID organizationId) {
-        return organizationRepository.findById(organizationId).map(organizationPersistenceMapper::toDomain);
+        return organizationRepository.findBusinessVisibleById(organizationId)
+                .map(organizationPersistenceMapper::toDomain);
     }
 
     @Override
     public Optional<Organization> findByCode(String code) {
-        return organizationRepository.findByCode(code).map(organizationPersistenceMapper::toDomain);
+        return organizationRepository.findBusinessVisibleByCode(code).map(organizationPersistenceMapper::toDomain);
     }
 
     @Override
@@ -71,14 +72,15 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
         if (organizationIds == null || organizationIds.isEmpty()) {
             return List.of();
         }
-        return organizationRepository.findAllByOrganizationIdIn(organizationIds).stream()
+        return organizationRepository.findAllBusinessVisibleByIds(organizationIds).stream()
                 .map(organizationPersistenceMapper::toDomain)
                 .toList();
     }
 
     @Override
     public List<Organization> findAll() {
-        return organizationRepository.findAll().stream().map(organizationPersistenceMapper::toDomain).toList();
+        return organizationRepository.findAllBusinessVisible().stream()
+                .map(organizationPersistenceMapper::toDomain).toList();
     }
 
     @Override
@@ -228,7 +230,7 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
     public boolean allParkingLotsBelongToOrganization(UUID organizationId, Set<UUID> parkingLotIds) {
         return parkingLotIds != null
                 && !parkingLotIds.isEmpty()
-                && parkingLotRepository.countByOrganizationIdAndParkingLotIdIn(
+                && parkingLotRepository.countBusinessWritableByOrganizationIdAndParkingLotIdIn(
                         organizationId,
                         parkingLotIds
                 ) == parkingLotIds.size();
@@ -240,7 +242,7 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
             return Optional.empty();
         }
 
-        return parkingLotRepository.findById(parkingLotId)
+        return parkingLotRepository.findBusinessVisibleById(parkingLotId)
                 .map(com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingLotEntity::getOrganizationId);
     }
 

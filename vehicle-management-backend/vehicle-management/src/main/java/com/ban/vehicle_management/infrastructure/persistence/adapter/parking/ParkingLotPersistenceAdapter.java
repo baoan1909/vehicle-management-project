@@ -54,7 +54,7 @@ public class ParkingLotPersistenceAdapter implements ParkingLotPortOut {
 
     @Override
     public Optional<ParkingLot> findById(UUID parkingLotId) {
-        return parkingLotRepository.findById(parkingLotId)
+        return parkingLotRepository.findBusinessVisibleById(parkingLotId)
                 .map(parkingLotPersistenceMapper::toDomain);
     }
 

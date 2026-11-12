@@ -30,6 +30,9 @@ public class CustomerReservationPersistenceAdapter implements CustomerReservatio
     @Override public Optional<CustomerReservation> findByIdForUpdate(UUID id) {
         return repository.findLocked(id).map(mapper::toDomain);
     }
+    @Override public Optional<CustomerReservation> findByInvoiceId(UUID invoiceId) {
+        return repository.findByInvoiceId(invoiceId).map(mapper::toDomain);
+    }
     @Override public Optional<CustomerReservation> findByInvoiceIdForUpdate(UUID invoiceId) {
         return repository.findByInvoiceIdLocked(invoiceId).map(mapper::toDomain);
     }

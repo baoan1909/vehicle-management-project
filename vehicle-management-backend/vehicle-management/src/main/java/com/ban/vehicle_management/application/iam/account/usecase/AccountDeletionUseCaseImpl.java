@@ -5,12 +5,17 @@ import com.ban.vehicle_management.application.iam.account.model.result.AccountDe
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountDeletionPortOut;
 import com.ban.vehicle_management.application.iam.account.port.out.IdentityProviderAdminPortOut;
+import com.ban.vehicle_management.application.iam.account.port.out.AccountSessionTerminationPortOut;
 import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionRequest;
 import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionBlocker;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
 import com.ban.vehicle_management.infrastructure.security.config.AccountDeletionTimeProperties;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.AccountDeletionBlockedException;
+import com.ban.vehicle_management.shared.exception.OrganizationClosureConfirmationRequiredException;
+import com.ban.vehicle_management.domain.iam.account.model.AccountDeletionImpact;
+import com.ban.vehicle_management.domain.iam.account.model.OrganizationClosureImpact;
+import com.ban.vehicle_management.application.iam.account.port.out.OrganizationClosurePortOut;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.shared.transaction.TransactionalEvents;
@@ -38,24 +43,38 @@ public class AccountDeletionUseCaseImpl implements AccountDeletionPortIn {
     private final IdentityProviderAdminPortOut identityProvider;
     private final AccountDeletionTimeProperties properties;
     private final Clock clock;
+    private final AccountDeletionImpactService impactService;
+    private final OrganizationClosurePortOut organizationClosurePort;
+    private final AccountSessionTerminationPortOut sessionTerminationPort;
 
     public AccountDeletionUseCaseImpl(
             CurrentAccountPortIn currentAccountPortIn,
             AccountDeletionPortOut persistence,
             IdentityProviderAdminPortOut identityProvider,
             AccountDeletionTimeProperties properties,
-            Clock clock
+            Clock clock,
+            AccountDeletionImpactService impactService,
+            OrganizationClosurePortOut organizationClosurePort,
+            AccountSessionTerminationPortOut sessionTerminationPort
     ) {
         this.currentAccountPortIn = currentAccountPortIn;
         this.persistence = persistence;
         this.identityProvider = identityProvider;
         this.properties = properties;
         this.clock = clock;
+        this.impactService = impactService;
+        this.organizationClosurePort = organizationClosurePort;
+        this.sessionTerminationPort = sessionTerminationPort;
     }
 
     @Override
     @Transactional
     public AccountDeletionRequest requestCurrentAccountDeletion() {
+        return requestCurrentAccountDeletion(false, false);
+    }
+
+    private AccountDeletionRequest requestCurrentAccountDeletion(boolean confirmOrganizationClosure,
+            boolean confirmActiveSubscriptionTerminationWithoutRefund) {
         currentAccountPortIn.requirePermission(REQUEST_SELF);
         CurrentAccountAccess current = currentAccountPortIn.getCurrentAccountOrThrow();
         AccountStatus previousStatus = persistence.lockAccount(current.accountId());
@@ -68,17 +87,33 @@ public class AccountDeletionUseCaseImpl implements AccountDeletionPortIn {
         if (!persistence.isEligibleAccount(current.accountId())) {
             throw new ConflictException("Tài khoản hiện tại không đủ điều kiện khởi tạo yêu cầu xóa");
         }
-        List<AccountDeletionBlocker> blockers = persistence.findDeletionBlockers(current.accountId());
+        AccountDeletionImpact impact = impactService.analyze(current.accountId(), true);
+        List<AccountDeletionBlocker> blockers = impact.allBlockers();
         if (!blockers.isEmpty()) {
             throw new AccountDeletionBlockedException(blockers);
+        }
+        if (impact.confirmationRequired() && !confirmOrganizationClosure) {
+            throw new OrganizationClosureConfirmationRequiredException(impact);
+        }
+        boolean terminatesActiveSubscription = impact.automaticActions().stream()
+                .anyMatch(action -> "TERMINATE_ACTIVE_SUBSCRIPTION".equals(action.code()));
+        if (terminatesActiveSubscription && !confirmActiveSubscriptionTerminationWithoutRefund) {
+            throw new ConflictException(
+                    "Bạn phải xác nhận vé đang hoạt động sẽ bị chấm dứt và không được hoàn tiền");
         }
         Instant requestedAt = Instant.now(clock);
         persistence.markPendingDeletion(current.accountId());
         AccountDeletionRequest request = persistence.create(
-                current.accountId(), previousStatus, requestedAt, requestedAt.plus(properties.getGracePeriod()));
-        if (current.subject() != null && !current.subject().isBlank()) {
-            TransactionalEvents.runAfterCommit(() -> logoutSessionsSafely(current.subject()));
-        }
+                current.accountId(), previousStatus, requestedAt, requestedAt.plus(properties.getGracePeriod()),
+                confirmActiveSubscriptionTerminationWithoutRefund);
+        organizationClosurePort.begin(request.requestId(), current.accountId(), impact.organizationClosureScopes().stream()
+                .map(OrganizationClosureImpact::organizationId).toList(), requestedAt);
+        TransactionalEvents.runAfterCommit(() -> {
+            publishSessionTerminationSafely(current.accountId(), request.requestId(), requestedAt);
+            if (current.subject() != null && !current.subject().isBlank()) {
+                logoutSessionsSafely(current.subject());
+            }
+        });
         return request;
     }
 
@@ -100,7 +135,11 @@ public class AccountDeletionUseCaseImpl implements AccountDeletionPortIn {
         if (!request.cancellableAt(now)) {
             throw new ConflictException("Yêu cầu xóa đã hết thời hạn hủy hoặc đang được xử lý");
         }
-        return persistence.cancel(request.requestId(), now, normalizeReason(reason, "USER_CANCELLED"));
+        organizationClosurePort.cancel(request.requestId(), now, false);
+        AccountDeletionRequest cancelled = persistence.cancel(
+                request.requestId(), now, normalizeReason(reason, "USER_CANCELLED"));
+        refreshCurrentAccountSnapshot();
+        return cancelled;
     }
 
     @Override
@@ -112,20 +151,48 @@ public class AccountDeletionUseCaseImpl implements AccountDeletionPortIn {
         Instant now = Instant.now(clock);
         boolean freshLogin = authenticatedAt != null && authenticatedAt.isAfter(request.requestedAt());
         if (!freshLogin || !request.cancellableAt(now)) return Optional.empty();
-        return Optional.of(persistence.cancel(request.requestId(), now, "FRESH_LOGIN_RECOVERY"));
+        organizationClosurePort.cancel(request.requestId(), now, false);
+        AccountDeletionRequest cancelled = persistence.cancel(
+                request.requestId(), now, "FRESH_LOGIN_RECOVERY");
+        refreshCurrentAccountSnapshot();
+        return Optional.of(cancelled);
     }
 
     @Override
+    @Transactional
     public AccountDeletionView requestCurrentAccountDeletionView() {
         return toView(requestCurrentAccountDeletion());
     }
 
     @Override
+    @Transactional
+    public AccountDeletionView requestCurrentAccountDeletionView(boolean confirmOrganizationClosure) {
+        return toView(requestCurrentAccountDeletion(confirmOrganizationClosure, false));
+    }
+
+    @Override
+    @Transactional
+    public AccountDeletionView requestCurrentAccountDeletionView(boolean confirmOrganizationClosure,
+            boolean confirmActiveSubscriptionTerminationWithoutRefund) {
+        return toView(requestCurrentAccountDeletion(
+                confirmOrganizationClosure, confirmActiveSubscriptionTerminationWithoutRefund));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AccountDeletionImpact getCurrentAccountDeletionImpact() {
+        currentAccountPortIn.requirePermission(REQUEST_SELF);
+        return impactService.analyze(currentAccountPortIn.getCurrentAccountIdOrThrow(), false);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Optional<AccountDeletionView> getCurrentRequestView() {
         return getCurrentRequest().map(this::toView);
     }
 
     @Override
+    @Transactional
     public AccountDeletionView cancelCurrentRequestView(String reason) {
         return toView(cancelCurrentRequest(reason));
     }
@@ -140,12 +207,26 @@ public class AccountDeletionUseCaseImpl implements AccountDeletionPortIn {
         return trimmed.substring(0, Math.min(trimmed.length(), 500));
     }
 
+    private void refreshCurrentAccountSnapshot() {
+        currentAccountPortIn.invalidateCurrentAccountSnapshot();
+        currentAccountPortIn.refreshCurrentAccountOrThrow();
+    }
+
     private void logoutSessionsSafely(String keycloakUserId) {
         try {
             identityProvider.logoutUserSessions(keycloakUserId);
         } catch (RuntimeException exception) {
             // The persisted pending state and lifecycle filter still block all stale sessions.
             LOGGER.error("Could not revoke Keycloak sessions after account deletion request", exception);
+        }
+    }
+
+    private void publishSessionTerminationSafely(UUID accountId, UUID requestId, Instant occurredAt) {
+        try {
+            sessionTerminationPort.publish(accountId, requestId, occurredAt);
+        } catch (RuntimeException exception) {
+            // Keycloak revocation and the lifecycle filter remain authoritative fallbacks.
+            LOGGER.error("Could not publish account deletion session termination event", exception);
         }
     }
 }

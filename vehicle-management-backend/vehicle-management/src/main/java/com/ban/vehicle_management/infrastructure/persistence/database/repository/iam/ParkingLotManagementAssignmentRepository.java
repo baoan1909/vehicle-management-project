@@ -12,6 +12,8 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
+import java.util.Collection;
 import org.springframework.data.repository.query.Param;
 
 public interface ParkingLotManagementAssignmentRepository
@@ -102,4 +104,15 @@ public interface ParkingLotManagementAssignmentRepository
             @Param("statuses") Set<ManagementAssignmentStatus> statuses,
             @Param("at") Instant at
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        update iam.parking_lot_management_assignments
+           set status = case when status = 'ACTIVE' then 'ENDED' else 'CANCELLED' end,
+               effective_to = coalesce(effective_to, :now), updated_at = :now
+         where organization_id in (:organizationIds) and status in ('ACTIVE', 'PENDING_ACCEPTANCE')
+        """, nativeQuery = true)
+    int closeAllByOrganizationIds(
+            @Param("organizationIds") Collection<UUID> organizationIds,
+            @Param("now") Instant now);
 }

@@ -16,6 +16,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 
 public interface ShiftAssignmentRepository
@@ -24,9 +25,11 @@ public interface ShiftAssignmentRepository
 
     @Query(value = """
         select assignment.shift_assignment_id as "assignmentId",
+               lot.organization_id as "organizationId",
                shift.parking_lot_id as "parkingLotId", shift.status as "shiftStatus"
         from operations.shift_assignments assignment
         join operations.shifts shift on shift.shift_id=assignment.shift_id
+        join parking.parking_lots lot on lot.parking_lot_id=shift.parking_lot_id
         where assignment.employee_id=:employeeId and assignment.status in ('DRAFT','SCHEDULED','ACTIVE')
           and shift.status not in ('CLOSED','CANCELLED')
         """, nativeQuery = true)
@@ -202,4 +205,17 @@ public interface ShiftAssignmentRepository
             @Param("removedStatus") ShiftAssignmentStatus removedStatus,
             Pageable pageable
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        update operations.shift_assignments assignment
+           set status = 'REMOVED', updated_at = :now
+          from operations.shifts shift
+          join parking.parking_lots lot on lot.parking_lot_id = shift.parking_lot_id
+         where assignment.shift_id = shift.shift_id
+           and lot.organization_id in (:organizationIds) and assignment.status <> 'REMOVED'
+        """, nativeQuery = true)
+    int removeAllByOrganizationIds(
+            @Param("organizationIds") Collection<UUID> organizationIds,
+            @Param("now") Instant now);
 }

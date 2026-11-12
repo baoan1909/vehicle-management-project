@@ -2,6 +2,7 @@ package com.ban.vehicle_management.shared.advice;
 
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.AccountDeletionBlockedException;
+import com.ban.vehicle_management.shared.exception.OrganizationClosureConfirmationRequiredException;
 import com.ban.vehicle_management.shared.exception.CaptchaValidationException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
 import com.ban.vehicle_management.shared.exception.CustomerIdentityRequiredException;
@@ -117,6 +118,21 @@ public class GlobalExceptionHandler {
                 )
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    @ExceptionHandler(OrganizationClosureConfirmationRequiredException.class)
+    public ResponseEntity<ApiResponse<Map<String, Object>>> handleOrganizationClosureConfirmationRequiredException(
+            OrganizationClosureConfirmationRequiredException exception,
+            HttpServletRequest request
+    ) {
+        Map<String, Object> data = new java.util.LinkedHashMap<>();
+        data.put("status", HttpStatus.CONFLICT.value());
+        data.put("error", HttpStatus.CONFLICT.getReasonPhrase());
+        data.put("path", request.getRequestURI());
+        data.put("code", "ORGANIZATION_CLOSURE_CONFIRMATION_REQUIRED");
+        data.put("impact", exception.impact());
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.fail(exception.getMessage(), data));
     }
 
     @ExceptionHandler(CustomerIdentityRequiredException.class)

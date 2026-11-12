@@ -5,6 +5,8 @@ import com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.data.jpa.domain.Specification;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.OrganizationEntity;
+import com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus;
 
 public final class ParkingLotSpecifications {
 
@@ -18,10 +20,27 @@ public final class ParkingLotSpecifications {
             Set<UUID> parkingLotIds
     ) {
         return Specification
-                .where(hasStatus(status))
+                .where(isBusinessVisible())
+                .and(hasStatus(status))
                 .and(containsKeyword(keyword))
                 .and(hasOrganizationIds(organizationIds))
                 .and(hasParkingLotIds(parkingLotIds));
+    }
+
+    private static Specification<ParkingLotEntity> isBusinessVisible() {
+        return (root, query, criteriaBuilder) -> {
+            var organization = query.subquery(UUID.class);
+            var organizationRoot = organization.from(OrganizationEntity.class);
+            organization.select(organizationRoot.get("organizationId"));
+            organization.where(
+                    criteriaBuilder.equal(
+                            organizationRoot.get("organizationId"), root.get("organizationId")),
+                    organizationRoot.get("status").in(
+                            OrganizationStatus.ACTIVE, OrganizationStatus.SUSPENDED));
+            return criteriaBuilder.and(
+                    criteriaBuilder.notEqual(root.get("status"), ParkingLotStatus.CLOSED),
+                    criteriaBuilder.exists(organization));
+        };
     }
 
     private static Specification<ParkingLotEntity> hasStatus(ParkingLotStatus status) {

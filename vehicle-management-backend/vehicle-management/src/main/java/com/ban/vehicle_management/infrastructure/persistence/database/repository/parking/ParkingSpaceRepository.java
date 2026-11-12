@@ -3,6 +3,8 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.parking.ParkingSpaceEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
+import java.util.Collection;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
@@ -106,4 +108,17 @@ public interface ParkingSpaceRepository extends JpaRepository<ParkingSpaceEntity
     long countByZoneIdAndStatus(UUID zoneId, com.ban.vehicle_management.shared.enumeration.parking.ParkingSpaceStatus status);
 
     long countByZoneIdAndLifecycleStatus(UUID zoneId, String lifecycleStatus);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        update parking.parking_spaces space
+           set lifecycle_status = 'ARCHIVED', updated_at = :now, version = version + 1
+          from parking.zones zone
+          join parking.parking_lots lot on lot.parking_lot_id = zone.parking_lot_id
+         where space.zone_id = zone.zone_id
+           and lot.organization_id in (:organizationIds) and space.lifecycle_status <> 'ARCHIVED'
+        """, nativeQuery = true)
+    int archiveAllByOrganizationIds(
+            @Param("organizationIds") Collection<UUID> organizationIds,
+            @Param("now") Instant now);
 }

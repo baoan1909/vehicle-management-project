@@ -35,6 +35,8 @@ public interface LostCardReportPortOut {
             Set<UUID> parkingLotIds
     );
 
+    List<LostCardReport> findForAccountDeletionByCustomerId(UUID customerId);
+
     List<LostCardReportListItemResult> findListItems(
             LostCardReportStatus status,
             LostCardReportContext context,

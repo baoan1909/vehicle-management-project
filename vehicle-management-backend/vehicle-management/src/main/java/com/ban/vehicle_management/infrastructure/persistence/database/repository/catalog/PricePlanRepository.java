@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.cat
 import com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.Collection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
@@ -59,4 +60,8 @@ public interface PricePlanRepository extends JpaRepository<PricePlanEntity, UUID
             @Param("effectiveToBoundary") LocalDate effectiveToBoundary,
             @Param("excludedPricePlanId") UUID excludedPricePlanId
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("update PricePlanEntity item set item.isActive = false where item.organizationId in :organizationIds and item.isActive = true")
+    int deactivateAllByOrganizationIds(@Param("organizationIds") Collection<UUID> organizationIds);
 }

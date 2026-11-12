@@ -40,6 +40,19 @@ public interface RolePermissionRepository extends JpaRepository<RolePermissionEn
       and r.is_active = true
     """, nativeQuery = true)
     Set<String> findActivePermissionCodesByRoleId(@Param("roleId") UUID roleId);
+
+    @Query(value = """
+    select distinct permission.permission_code
+      from iam.accounts account
+      join iam.roles role on role.role_id = account.role_id and role.is_active = true
+      join iam.role_permissions role_permission
+        on role_permission.role_id = role.role_id and role_permission.is_active = true
+      join iam.permissions permission
+        on permission.permission_id = role_permission.permission_id
+     where account.account_id = :accountId
+       and account.status <> 'DELETED'
+    """, nativeQuery = true)
+    Set<String> findEffectivePermissionCodesByAccountId(@Param("accountId") UUID accountId);
 }
 
 

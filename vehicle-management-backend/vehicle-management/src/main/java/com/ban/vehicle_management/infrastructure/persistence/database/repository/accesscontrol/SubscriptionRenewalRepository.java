@@ -14,6 +14,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface SubscriptionRenewalRepository extends JpaRepository<SubscriptionRenewalEntity, UUID> {
+    Optional<SubscriptionRenewalEntity> findByInvoiceId(UUID invoiceId);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from SubscriptionRenewalEntity r where r.invoiceId = :invoiceId")
     Optional<SubscriptionRenewalEntity> findByInvoiceIdForUpdate(@Param("invoiceId") UUID invoiceId);

@@ -182,4 +182,13 @@ public interface MemberParkingLotScopeRepository extends JpaRepository<MemberPar
         """, nativeQuery = true)
     int deleteAllByAccountId(@Param("accountId") UUID accountId);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        delete from iam.member_parking_lot_scopes scope
+        using iam.organization_memberships membership
+        where scope.organization_membership_id = membership.organization_membership_id
+          and membership.organization_id in (:organizationIds)
+        """, nativeQuery = true)
+    int deleteAllByOrganizationIds(@Param("organizationIds") Collection<UUID> organizationIds);
+
 }

@@ -31,6 +31,11 @@ public class SubscriptionRenewalPersistenceAdapter implements SubscriptionRenewa
     }
 
     @Override
+    public Optional<SubscriptionRenewal> findByInvoiceId(UUID invoiceId) {
+        return repository.findByInvoiceId(invoiceId).map(mapper::toDomain);
+    }
+
+    @Override
     public Optional<SubscriptionRenewal> findByInvoiceIdForUpdate(UUID invoiceId) {
         return repository.findByInvoiceIdForUpdate(invoiceId).map(mapper::toDomain);
     }

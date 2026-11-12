@@ -15,6 +15,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
+import java.util.Collection;
 
 public interface LostCardReportRepository extends
         JpaRepository<LostCardReportEntity, UUID>,
@@ -25,6 +27,16 @@ public interface LostCardReportRepository extends
         where customer_id=:customerId and status='OPEN' limit 1
         """, nativeQuery = true)
     Optional<UUID> findDeletionBlockingReportId(@Param("customerId") UUID customerId);
+
+    @Query(value = """
+        select report.lost_card_report_id as "resourceId", lot.organization_id as "organizationId",
+               lot.parking_lot_id as "parkingLotId"
+          from access_control.lost_card_reports report
+          join parking.parking_lots lot on lot.parking_lot_id = report.parking_lot_id
+         where lot.organization_id in (:organizationIds) and report.status = 'OPEN'
+        """, nativeQuery = true)
+    List<AccountDeletionResourceScopeProjection> findOrganizationDeletionBlockers(
+            @Param("organizationIds") Collection<UUID> organizationIds);
 
     @Query("""
         select report
@@ -52,8 +64,8 @@ public interface LostCardReportRepository extends
           and (:cardId is null or report.cardId = :cardId)
           and (:parkingSessionId is null or report.parkingSessionId = :parkingSessionId)
           and (:subscriptionId is null or report.subscriptionId = :subscriptionId)
-          and (:fromDate is null or report.notificationTime >= :fromDate)
-          and (:toDate is null or report.notificationTime <= :toDate)
+          and report.notificationTime >= :fromDate
+          and report.notificationTime <= :toDate
           and (report.customerId is null or customerAccount.status not in (
               com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.PENDING_DELETION,
               com.ban.vehicle_management.shared.enumeration.iam.AccountStatus.DELETED))
@@ -79,6 +91,8 @@ public interface LostCardReportRepository extends
             @Param("keyword") String keyword,
             @Param("scopeEnabled") boolean scopeEnabled,
             @Param("parkingLotIds") Set<UUID> parkingLotIds);
+
+    List<LostCardReportEntity> findAllByCustomerIdOrderByNotificationTimeDesc(UUID customerId);
 
     boolean existsByCardIdAndStatus(UUID cardId, LostCardReportStatus status);
 

@@ -3,7 +3,9 @@ package com.ban.vehicle_management.entrypoint.controller.iam;
 import com.ban.vehicle_management.application.iam.account.port.in.AccountDeletionPortIn;
 import com.ban.vehicle_management.application.iam.account.mapper.AccountDeletionApiMapper;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.request.CancelAccountDeletionRequest;
+import com.ban.vehicle_management.entrypoint.dto.iam.account.request.CreateAccountDeletionRequest;
 import com.ban.vehicle_management.entrypoint.dto.iam.account.response.AccountDeletionResponse;
+import com.ban.vehicle_management.entrypoint.dto.iam.account.response.AccountDeletionImpactResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,10 +30,20 @@ public class AccountDeletionController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('ACCOUNT_DELETION_REQUEST_SELF')")
-    public ResponseEntity<ApiResponse<AccountDeletionResponse>> requestDeletion() {
+    public ResponseEntity<ApiResponse<AccountDeletionResponse>> requestDeletion(
+            @RequestBody(required = false) CreateAccountDeletionRequest body) {
         return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
                 .body(ApiResponse.ok("Đã tạo yêu cầu xóa tài khoản", mapper.toResponse(
-                        useCase.requestCurrentAccountDeletionView())));
+                        useCase.requestCurrentAccountDeletionView(
+                                mapper.toOrganizationClosureConfirmation(body),
+                                mapper.toNoRefundSubscriptionConfirmation(body)))));
+    }
+
+    @GetMapping("/impact")
+    @PreAuthorize("hasAuthority('ACCOUNT_DELETION_REQUEST_SELF')")
+    public ResponseEntity<ApiResponse<AccountDeletionImpactResponse>> impact() {
+        return ResponseEntity.ok(ApiResponse.ok("Đã phân tích tác động xóa tài khoản",
+                mapper.toResponse(useCase.getCurrentAccountDeletionImpact())));
     }
 
     @GetMapping("/current")
