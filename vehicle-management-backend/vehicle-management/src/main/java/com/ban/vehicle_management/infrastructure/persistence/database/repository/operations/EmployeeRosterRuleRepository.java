@@ -8,6 +8,8 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
+import java.util.Collection;
 import org.springframework.data.repository.query.Param;
 
 public interface EmployeeRosterRuleRepository
@@ -15,10 +17,12 @@ public interface EmployeeRosterRuleRepository
         JpaSpecificationExecutor<EmployeeRosterRuleEntity> {
 
     @Query(value = """
-        select roster_rule_id as "resourceId", parking_lot_id as "parkingLotId"
-        from operations.employee_roster_rules
-        where employee_id=:employeeId and status='ACTIVE'
-          and (effective_to is null or effective_to>=current_date)
+        select rule.roster_rule_id as "resourceId", lot.organization_id as "organizationId",
+               rule.parking_lot_id as "parkingLotId"
+        from operations.employee_roster_rules rule
+        join parking.parking_lots lot on lot.parking_lot_id=rule.parking_lot_id
+        where rule.employee_id=:employeeId and rule.status='ACTIVE'
+          and (rule.effective_to is null or rule.effective_to>=current_date)
         """, nativeQuery = true)
     List<AccountDeletionParkingResourceProjection> findDeletionBlockingRosterRules(
             @Param("employeeId") UUID employeeId);
@@ -27,4 +31,16 @@ public interface EmployeeRosterRuleRepository
             UUID parkingLotId,
             RosterRuleStatus status
     );
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        update operations.employee_roster_rules rule
+           set status = 'INACTIVE', updated_at = :now
+          from parking.parking_lots lot
+         where lot.parking_lot_id = rule.parking_lot_id
+           and lot.organization_id in (:organizationIds) and rule.status = 'ACTIVE'
+        """, nativeQuery = true)
+    int deactivateAllByOrganizationIds(
+            @Param("organizationIds") Collection<UUID> organizationIds,
+            @Param("now") java.time.Instant now);
 }

@@ -146,7 +146,7 @@ public class SecurityConfig {
                 "Idempotency-Key",
                 "X-Reservation-Access"
         ));
-        configuration.setExposedHeaders(List.of("Location"));
+        configuration.setExposedHeaders(List.of("Location", "X-Auth-Error-Code"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

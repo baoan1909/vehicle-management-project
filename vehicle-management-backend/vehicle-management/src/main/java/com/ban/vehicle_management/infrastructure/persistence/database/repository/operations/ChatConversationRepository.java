@@ -8,15 +8,27 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 
 public interface ChatConversationRepository extends JpaRepository<ChatConversationEntity, UUID> {
 
-    @Query(value = """
-        select conversation_id from operations.chat_conversations
-        where (owner_account_id=:accountId or assigned_to=:accountId) and status='ACTIVE'
-        """, nativeQuery = true)
-    List<UUID> findDeletionBlockingOwnershipIds(@Param("accountId") UUID accountId);
+    @Query("""
+        select conversation from ChatConversationEntity conversation
+        where conversation.conversationId = :conversationId
+          and conversation.status = com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus.ACTIVE
+        """)
+    Optional<ChatConversationEntity> findBusinessVisibleById(@Param("conversationId") UUID conversationId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update ChatConversationEntity conversation
+        set conversation.status = com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus.ARCHIVED,
+            conversation.assignedTo = null
+        where conversation.organizationId in :organizationIds
+          and conversation.status = com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus.ACTIVE
+        """)
+    int archiveActiveByOrganizationIds(@Param("organizationIds") java.util.Collection<UUID> organizationIds);
 
     @Query("""
             SELECT conversation
@@ -25,6 +37,7 @@ public interface ChatConversationRepository extends JpaRepository<ChatConversati
                 ON member.conversationId = conversation.conversationId
             WHERE member.accountId = :accountId
               AND member.status = com.ban.vehicle_management.shared.enumeration.operations.ChatMemberStatus.ACTIVE
+              AND conversation.status = com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus.ACTIVE
             ORDER BY
                 CASE WHEN conversation.lastMessageAt IS NULL THEN 1 ELSE 0 END,
                 conversation.lastMessageAt DESC,
@@ -36,7 +49,7 @@ public interface ChatConversationRepository extends JpaRepository<ChatConversati
             SELECT conversation
             FROM ChatConversationEntity conversation
             WHERE conversation.conversationType = :conversationType
-              AND conversation.status <> com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus.CLOSED
+              AND conversation.status = com.ban.vehicle_management.shared.enumeration.operations.ChatConversationStatus.ACTIVE
               AND EXISTS (
                     SELECT 1 FROM ChatConversationMemberEntity firstMember
                     WHERE firstMember.conversationId = conversation.conversationId

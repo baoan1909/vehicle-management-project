@@ -131,7 +131,7 @@ class ParkingCheckInSpaceAssignmentTest {
         when(parkingSpacePortOut.save(any(ParkingSpace.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(fileStoragePort.store(any(StoreFileCommand.class)))
-                .thenReturn(storedFile("plate.jpg"), storedFile("person.jpg"));
+                .thenReturn(storedFile("plate.jpg"), storedFile("vehicle.jpg"), storedFile("person.jpg"));
         when(parkingEventPortOut.save(any(ParkingEvent.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
@@ -160,7 +160,7 @@ class ParkingCheckInSpaceAssignmentTest {
         when(parkingSpacePortOut.save(any(ParkingSpace.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(fileStoragePort.store(any(StoreFileCommand.class)))
-                .thenReturn(storedFile("plate.jpg"), storedFile("person.jpg"));
+                .thenReturn(storedFile("plate.jpg"), storedFile("vehicle.jpg"), storedFile("person.jpg"));
         when(parkingEventPortOut.save(any(ParkingEvent.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
@@ -287,7 +287,7 @@ class ParkingCheckInSpaceAssignmentTest {
         when(parkingSpacePortOut.save(any(ParkingSpace.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(fileStoragePort.store(any(StoreFileCommand.class)))
-                .thenReturn(storedFile("plate.jpg"), storedFile("person.jpg"));
+                .thenReturn(storedFile("plate.jpg"), storedFile("vehicle.jpg"), storedFile("person.jpg"));
         when(parkingEventPortOut.save(any(ParkingEvent.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
@@ -300,7 +300,8 @@ class ParkingCheckInSpaceAssignmentTest {
 
     private CheckInCommand commandWithSpace(UUID parkingSpaceId) {
         return new CheckInCommand("UID-001", laneId, vehicleTypeId, "51A-12345",
-                image("plate.jpg"), image("person.jpg"), null, false, false, parkingSpaceId);
+                image("plate.jpg"), image("vehicle.jpg"), image("person.jpg"), null,
+                false, false, parkingSpaceId, null);
     }
 
     private void mockSpaceTopology() {

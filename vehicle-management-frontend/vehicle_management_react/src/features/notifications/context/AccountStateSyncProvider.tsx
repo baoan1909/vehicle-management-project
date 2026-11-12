@@ -21,11 +21,13 @@ import { publishNotificationReceived } from "@/features/notifications/utils/noti
 import {
   classifyAccountStateInvalidation,
   hasAccountStateInvalidation,
+  isAccountDeletionSessionTermination,
   type AccountStateInvalidation,
 } from "@/features/notifications/utils/accountStateInvalidation";
 import { AccountStateSyncCoordinator } from "@/features/notifications/utils/accountStateSyncCoordinator";
 import { getMyAccountProfile } from "@/features/iam/api/accountProfileApi";
 import { mergeProfileDetails } from "@/features/iam/utils/accountProfileMapper";
+import { publishAccountSessionTermination } from "@/core/auth/accountSessionTermination";
 
 const FOREGROUND_RECONCILE_THROTTLE_MS = 15_000;
 const MAX_PROCESSED_NOTIFICATION_IDS = 100;
@@ -149,6 +151,10 @@ export function AccountStateSyncProvider({ children }: PropsWithChildren) {
   }, []);
 
   const processNotification = useCallback((notification: NotificationUserResponse, showToast: boolean) => {
+    if (isAccountDeletionSessionTermination(notification)) {
+      publishAccountSessionTermination("account-pending-deletion");
+      return;
+    }
     const accountId = accountIdRef.current;
     if (!accountId || !notification.notificationId || processedIdsRef.current.has(notification.notificationId)) {
       return;
@@ -236,6 +242,10 @@ export function AccountStateSyncProvider({ children }: PropsWithChildren) {
       onConnected: reconcileAfterConnection,
       onNotification: (notification) => {
         if (!active) return;
+        if (isAccountDeletionSessionTermination(notification)) {
+          processNotification(notification, false);
+          return;
+        }
         setItems((current) => [
           notification,
           ...current.filter((item) => item.notificationId !== notification.notificationId),

@@ -81,6 +81,14 @@ spring:
         enabled: false
 
 app:
+  iam:
+    account-deletion:
+      # Inject from a secret manager. Never put the actual HMAC key in source or time.properties.
+      identity-fingerprint-secret: ${ACCOUNT_DELETION_IDENTITY_FINGERPRINT_SECRET:}
+      identity-fingerprint-key-version: ${ACCOUNT_DELETION_IDENTITY_FINGERPRINT_KEY_VERSION:v1}
+  parking:
+    check-in-space-hold:
+      duration: ${CHECK_IN_SPACE_HOLD_DURATION:2m}
   billing:
     platform-fee:
       max-partner-total-rate: ${PLATFORM_FEE_MAX_PARTNER_TOTAL_RATE:0.30}

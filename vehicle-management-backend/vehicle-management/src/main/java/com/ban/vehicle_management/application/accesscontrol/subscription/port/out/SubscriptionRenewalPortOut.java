@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public interface SubscriptionRenewalPortOut {
     SubscriptionRenewal save(SubscriptionRenewal renewal);
+    Optional<SubscriptionRenewal> findByInvoiceId(UUID invoiceId);
     Optional<SubscriptionRenewal> findByInvoiceIdForUpdate(UUID invoiceId);
     Optional<SubscriptionRenewal> findBySubscriptionIdAndIdempotencyKey(UUID subscriptionId, String idempotencyKey);
     Optional<SubscriptionRenewal> findLiveBySubscriptionId(UUID subscriptionId);

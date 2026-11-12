@@ -29,6 +29,10 @@ public interface OrganizationApiMapper {
     @Mapping(target = "wardCode", ignore = true)
     @Mapping(target = "districtCode", ignore = true)
     @Mapping(target = "addressDisplay", ignore = true)
+    @Mapping(target = "closedAt", ignore = true)
+    @Mapping(target = "closedBy", ignore = true)
+    @Mapping(target = "closureReason", ignore = true)
+    @Mapping(target = "closureRequestId", ignore = true)
     @Mapping(target = "structuredAddress", source = "structuredAddress")
     Organization toDomain(CreateOrganizationRequest request);
 

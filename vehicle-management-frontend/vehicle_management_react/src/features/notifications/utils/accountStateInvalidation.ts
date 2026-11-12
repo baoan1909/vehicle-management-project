@@ -16,6 +16,12 @@ export const noAccountStateInvalidation: AccountStateInvalidation = {
   refreshProfile: false,
 };
 
+export function isAccountDeletionSessionTermination(notification: NotificationUserResponse) {
+  return notification.notificationType === "ACCOUNT_STATUS_CHANGED"
+    && notification.relatedSchema === "iam"
+    && notification.relatedTable === "account_deletion_requests";
+}
+
 const ACCESS_AND_PROFILE_TYPES = new Set([
   "ACCOUNT_ACCESS_CHANGED",
   "ACCOUNT_STATUS_CHANGED",

@@ -155,6 +155,7 @@ export function ParkingLotOverviewPage() {
     && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const canCreateLots = hasAnyPermission(user, ["PARKING_LOT_CREATE_ALL"]);
   const canManageAssignments = hasAnyPermission(user, ["ORGANIZATION_MEMBERSHIP_MANAGE_ALL"]);
+  const requestedAction = searchParams.get("action");
   const isParkingManager = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"]);
   const canDirectlyActivate = canManageLots;
   const selectedLot = useMemo(
@@ -241,6 +242,16 @@ export function ParkingLotOverviewPage() {
     if (selectedLot) void loadOverview(selectedLot);
     else setData(EMPTY_DATA);
   }, [loadOverview, selectedLot]);
+
+  useEffect(() => {
+    if (!selectedLot || !canManageAssignments || requestedAction !== "manage-assignments") return;
+    setManagerAssignmentOpen(true);
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("action");
+      return next;
+    }, { replace: true });
+  }, [canManageAssignments, requestedAction, selectedLot, setSearchParams]);
 
   const activeLevels = data.levels.filter((level) => level.status === "ACTIVE").length;
   const activeGates = data.gates.filter((gate) => gate.status === "ACTIVE").length;

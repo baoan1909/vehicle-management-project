@@ -41,6 +41,9 @@ public class ChatConversationEntity extends AuditableEntity {
     @Column(name = "status", nullable = false)
     private ChatConversationStatus status;
 
+    @Column(name = "organization_id")
+    private UUID organizationId;
+
     @Column(name = "customer_id")
     private UUID customerId;
 

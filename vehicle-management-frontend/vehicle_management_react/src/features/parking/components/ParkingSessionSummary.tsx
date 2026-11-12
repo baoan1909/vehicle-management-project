@@ -17,7 +17,6 @@ type ParkingSessionSummaryProps = {
   paymentActionError?: string;
   preview?: ParkingSessionCheckOutPreviewResponse | null;
   result?: ParkingSessionOperationResponse | null;
-  levelLabel?: string;
   parkingSpaceCode?: string;
   trackingMode?: "CAPACITY" | "SPACE" | null;
   zoneLabel?: string;
@@ -33,7 +32,7 @@ function formatCurrency(value?: number | null) {
 }
 
 function fallback(value?: string | null) {
-  return value?.trim() || "Chưa có dữ liệu";
+  return value?.trim() || "--";
 }
 
 function formatCurrentCheckOutTime() {
@@ -61,22 +60,22 @@ function DetailRow({ icon, label, tone, value }: { icon: string; label: string; 
 function MiniLaneImage({ alt, empty, imagePath }: { alt: string; empty?: boolean; imagePath?: string | null }) {
   if (imagePath) {
     return (
-      <div className="tw-relative tw-h-[210px] tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25">
-        <img src={imagePath} alt={alt} className="tw-h-full tw-w-full tw-object-cover" />
+      <div className="tw-relative tw-h-[150px] tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-slate-950">
+        <img src={imagePath} alt={alt} className="tw-h-full tw-w-full tw-object-contain tw-object-center" />
       </div>
     );
   }
 
   if (empty) {
     return (
-      <div className="tw-flex tw-h-[210px] tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-text-[2rem] tw-text-vm-slate-500">
-        <i className="far fa-image" />
+      <div className="tw-flex tw-h-[150px] tw-items-center tw-justify-center tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-text-[1rem] tw-font-extrabold tw-text-vm-slate-500">
+        --
       </div>
     );
   }
 
   return (
-    <div className="tw-relative tw-h-[210px] tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100">
+    <div className="tw-relative tw-h-[150px] tw-overflow-hidden tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100">
       <div className="tw-absolute tw-inset-0 tw-bg-[linear-gradient(90deg,#d9e4d1_0_14%,#56616d_14%_76%,#f59e0b_76%_80%,#e2e8f0_80%)]" />
       <div className="tw-absolute tw-bottom-[22%] tw-left-[29%] tw-h-[44%] tw-w-[46%] tw-rounded-[20px_20px_8px_8px] tw-bg-white tw-shadow-[0_10px_20px_rgba(15,23,42,0.28)]" />
       <div className="tw-absolute tw-bottom-[28%] tw-left-[43%] tw-h-[14%] tw-w-[18%] tw-rounded-vm-sm tw-border tw-border-solid tw-border-slate-700 tw-bg-white" />
@@ -112,10 +111,24 @@ function FeeHighlight({ amount, isCheckIn }: { amount?: number | null; isCheckIn
   );
 }
 
+function LicensePlateHighlight({ value }: { value: string }) {
+  return (
+    <div className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-200 tw-bg-brand-50 tw-px-4 tw-py-3">
+      <span className="tw-flex tw-items-center tw-gap-2 tw-text-[0.82rem] tw-font-extrabold tw-text-vm-primary">
+        <i className="fas fa-car" />
+        Biển số
+      </span>
+      <strong className="tw-min-w-0 tw-text-right tw-text-[1.4rem] tw-font-black tw-leading-none tw-text-slate-950">
+        {value}
+      </strong>
+    </div>
+  );
+}
+
 function customerTypeLabel(customerType?: string) {
   if (customerType === "SUBSCRIPTION") return "Khách đăng ký";
   if (customerType === "VISITOR") return "Khách vãng lai";
-  return "Chưa có dữ liệu";
+  return "--";
 }
 
 export function ParkingSessionSummary({
@@ -126,7 +139,6 @@ export function ParkingSessionSummary({
   paymentActionError,
   preview,
   result,
-  levelLabel,
   parkingSpaceCode,
   trackingMode,
   zoneLabel,
@@ -140,10 +152,17 @@ export function ParkingSessionSummary({
   const customerType = result?.customerType ?? preview?.customerType;
   const resolvedTrackingMode = session?.trackingMode ?? trackingMode;
   const resolvedSpaceCode = session?.parkingSpaceCode ?? parkingSpaceCode;
+  const licensePlate = fallback(
+    session?.licensePlateOutDisplay
+    ?? session?.licensePlateInDisplay
+    ?? event?.licensePlateDetectedDisplay
+    ?? displayLicensePlate(session?.licensePlateOut ?? session?.licensePlateIn ?? event?.licensePlateDetected),
+  );
   const checkOutTime = result
     ? session?.checkOutTime ?? event?.eventTime ?? preview?.previewCheckOutTime
     : preview?.previewCheckOutTime ?? (isCheckIn ? null : formatCurrentCheckOutTime());
   const checkInImagePath = checkInEvent?.licensePlateImagePath;
+  const checkInVehicleImagePath = checkInEvent?.vehicleImagePath;
   const checkInPersonImagePath = checkInEvent?.personImagePath;
   const hasPricingWarning = Boolean(preview?.pricingMessage && !invoice);
   const paid = !hasPricingWarning && (invoice?.status === "PAID" || payableAmount === 0);
@@ -172,53 +191,44 @@ export function ParkingSessionSummary({
         <div className="tw-grid tw-gap-2.5">
           <DetailRow icon="far fa-user" label="Loại hành khách" value={customerTypeLabel(customerType)} />
           <DetailRow icon="fas fa-map-marker-alt" label="Khu vực" value={fallback(zoneLabel)} />
-          {levelLabel ? <DetailRow icon="fas fa-layer-group" label="Tầng" value={levelLabel} /> : null}
-          {resolvedTrackingMode ? (
-            <DetailRow
-              icon="fas fa-route"
-              label="Chế độ theo dõi"
-              value={resolvedTrackingMode === "SPACE" ? "Theo từng ô" : "Theo sức chứa"}
-            />
-          ) : null}
           {resolvedTrackingMode !== "CAPACITY" && (session?.parkingSpaceId || resolvedSpaceCode) ? (
             <DetailRow icon="fas fa-parking" label="Ô đỗ" value={fallback(resolvedSpaceCode)} />
           ) : null}
-          <DetailRow icon="far fa-address-card" label="Mã phiên đỗ xe" value={session?.parkingSessionId?.slice(0, 13) ?? "Chưa có dữ liệu"} />
+          <DetailRow icon="far fa-address-card" label="Mã phiên đỗ xe" value={session?.parkingSessionId?.slice(0, 13) ?? "--"} />
           <DetailRow icon="far fa-clock" label="Thời gian check-in" value={formatApplicationDateTime(session?.checkInTime)} />
           <DetailRow
             icon="far fa-clock"
             label="Thời gian check-out"
             value={event?.eventType === "CHECK_OUT_PENDING" ? "Chưa hoàn tất" : formatApplicationDateTime(checkOutTime)}
           />
-          <DetailRow
-            icon="fas fa-car"
-            label="Biển số"
-            value={fallback(
-              session?.licensePlateOutDisplay
-              ?? session?.licensePlateInDisplay
-              ?? event?.licensePlateDetectedDisplay
-              ?? displayLicensePlate(session?.licensePlateOut ?? session?.licensePlateIn ?? event?.licensePlateDetected),
-            )}
-          />
         </div>
 
-        <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
-          <div className="tw-mb-3 tw-flex tw-items-baseline tw-gap-2">
-            <h3 className="tw-m-0 tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900">Đối chiếu ảnh</h3>
-          </div>
+        <LicensePlateHighlight value={licensePlate} />
 
-          <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[1280px]:tw-grid-cols-1">
-            <div className="tw-grid tw-gap-2">
-              <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-700">Ảnh xe khi vào</span>
-              <MiniLaneImage alt="Ảnh xe khi vào" empty={!session && !checkInImagePath} imagePath={checkInImagePath} />
+        {!isCheckIn ? (
+          <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
+            <div className="tw-mb-3 tw-grid tw-gap-1">
+              <h3 className="tw-m-0 tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900">Hình ảnh khi vào</h3>
+              <span className="tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">
+                Nhân viên đối chiếu với hình ảnh camera hiện tại trước khi xác nhận check-out.
+              </span>
             </div>
-            <div className="tw-grid tw-gap-2">
-              <span className="tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-700">Ảnh người / tài xế khi vào</span>
-              <MiniLaneImage alt="Ảnh người / tài xế khi vào" empty={!session && !checkInPersonImagePath} imagePath={checkInPersonImagePath} />
+
+            <div className="tw-grid tw-grid-cols-[96px_minmax(0,1fr)] tw-gap-2.5">
+              <span className="tw-self-center tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-700">Biển số</span>
+              <MiniLaneImage alt="Ảnh biển số khi vào" empty={!checkInImagePath} imagePath={checkInImagePath} />
+
+              <span className="tw-self-center tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-700">Xe / phương tiện</span>
+              <MiniLaneImage alt="Ảnh xe khi vào" empty={!checkInVehicleImagePath} imagePath={checkInVehicleImagePath} />
+
+              <span className="tw-self-center tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-700">Người / tài xế</span>
+              <MiniLaneImage alt="Ảnh người khi vào" empty={!checkInPersonImagePath} imagePath={checkInPersonImagePath} />
+
+              <span />
+              <span className="tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">{formatApplicationDateTime(session?.checkInTime ?? checkInEvent?.eventTime)}</span>
             </div>
-            <span className="tw-col-span-full tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">{formatApplicationDateTime(session?.checkInTime ?? checkInEvent?.eventTime)}</span>
           </div>
-        </div>
+        ) : null}
 
         <div className="tw-grid tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
           <PaymentStatus label="Mã hóa đơn" value={invoice?.invoiceNo ?? "--"} />

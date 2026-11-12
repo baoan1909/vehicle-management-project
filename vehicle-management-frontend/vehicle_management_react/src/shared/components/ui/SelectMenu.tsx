@@ -8,11 +8,21 @@ export type SelectMenuOption = {
   value: string;
 };
 
+export type SelectMenuOptionAction = {
+  ariaLabel: string;
+  closeMenu?: boolean;
+  content: ReactNode;
+  disabled?: boolean;
+  onSelect: () => void;
+  title?: string;
+};
+
 type SelectMenuProps = {
   ariaLabel: string;
   className?: string;
   clearValue?: string;
   disabled?: boolean;
+  getOptionAction?: (option: SelectMenuOption) => SelectMenuOptionAction | undefined;
   menuClassName?: string;
   onChange: (value: string) => void;
   optionClassName?: string;
@@ -34,6 +44,7 @@ export function SelectMenu({
   className,
   clearValue = "all",
   disabled = false,
+  getOptionAction,
   menuClassName,
   onChange,
   optionClassName,
@@ -184,6 +195,58 @@ export function SelectMenu({
 
       {visibleOptions.map((option) => {
         const selectedOption = option.value === value;
+        const optionAction = getOptionAction?.(option);
+
+        if (optionAction) {
+          return (
+            <div
+              className={cn(
+                "vm-select-menu-option tw-group tw-flex tw-min-h-[38px] tw-w-full tw-items-stretch tw-transition hover:tw-bg-vm-slate-25",
+                selectedOption ? "tw-text-[#111827]" : "tw-text-vm-slate-700",
+              )}
+              key={option.value}
+            >
+              <button
+                className={cn(
+                  "tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-[0.65rem] tw-border-0 tw-bg-transparent tw-px-[0.85rem] tw-py-[0.55rem] tw-text-left tw-text-[0.9rem] tw-font-semibold tw-text-inherit tw-transition group-hover:tw-text-vm-primary",
+                  selectedOption ? "tw-font-extrabold" : "",
+                  optionClassName,
+                )}
+                type="button"
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+              >
+                <span
+                  className={cn(
+                    "tw-inline-flex tw-h-4 tw-w-4 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-border-2 tw-border-solid",
+                    selectedOption
+                      ? "tw-border-vm-primary tw-bg-vm-primary"
+                      : "tw-border-vm-slate-400 tw-bg-white tw-shadow-[inset_0_0_0_2px_rgba(15,23,42,0.04)]",
+                  )}
+                >
+                  {selectedOption ? <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-white" /> : null}
+                </span>
+                <span className="tw-min-w-0 tw-flex-1 tw-truncate">{option.label}</span>
+                {selectedOption ? selectedOptionAdornment : null}
+              </button>
+              <button
+                aria-label={optionAction.ariaLabel}
+                className="tw-mr-2 tw-my-1 tw-inline-flex tw-min-w-8 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-sm tw-border-0 tw-bg-transparent tw-px-1.5 tw-text-[0.72rem] tw-font-extrabold tw-text-amber-600 tw-transition hover:tw-bg-amber-50 disabled:tw-cursor-default disabled:hover:tw-bg-transparent"
+                disabled={optionAction.disabled}
+                title={optionAction.title}
+                type="button"
+                onClick={() => {
+                  optionAction.onSelect();
+                  if (optionAction.closeMenu !== false) setOpen(false);
+                }}
+              >
+                {optionAction.content}
+              </button>
+            </div>
+          );
+        }
 
         return (
           <button

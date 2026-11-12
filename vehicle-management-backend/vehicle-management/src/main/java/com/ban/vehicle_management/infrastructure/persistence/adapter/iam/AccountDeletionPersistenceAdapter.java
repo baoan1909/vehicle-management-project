@@ -27,7 +27,6 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.WalletTopupOrderRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ApprovalRequestRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ChatConversationMemberRepository;
-import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ChatConversationRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.EmployeeRosterRuleRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ParkingLotWorkQueueRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.ShiftAssignmentRepository;
@@ -35,13 +34,18 @@ import com.ban.vehicle_management.infrastructure.persistence.database.repository
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.operations.SupportTicketRepository;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountDeletionRequestStatus;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.exception.NotFoundException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.Map;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,7 +76,6 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
     private final EmployeeRosterRuleRepository rosterRuleRepository;
     private final SupportTicketRepository supportTicketRepository;
     private final ParkingLotWorkQueueRepository workQueueRepository;
-    private final ChatConversationRepository chatConversationRepository;
     private final ShiftRepository shiftRepository;
     private final ApprovalRequestRepository approvalRequestRepository;
     private final UserProfileAvatarRepository avatarRepository;
@@ -100,7 +103,6 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
             EmployeeRosterRuleRepository rosterRuleRepository,
             SupportTicketRepository supportTicketRepository,
             ParkingLotWorkQueueRepository workQueueRepository,
-            ChatConversationRepository chatConversationRepository,
             ShiftRepository shiftRepository,
             ApprovalRequestRepository approvalRequestRepository,
             UserProfileAvatarRepository avatarRepository,
@@ -127,7 +129,6 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
         this.rosterRuleRepository = rosterRuleRepository;
         this.supportTicketRepository = supportTicketRepository;
         this.workQueueRepository = workQueueRepository;
-        this.chatConversationRepository = chatConversationRepository;
         this.shiftRepository = shiftRepository;
         this.approvalRequestRepository = approvalRequestRepository;
         this.avatarRepository = avatarRepository;
@@ -165,7 +166,8 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
 
     @Override
     public AccountDeletionRequest create(
-            UUID accountId, AccountStatus previousStatus, Instant requestedAt, Instant scheduledAt) {
+            UUID accountId, AccountStatus previousStatus, Instant requestedAt, Instant scheduledAt,
+            boolean activeSubscriptionTerminationWithoutRefundConfirmed) {
         AccountDeletionRequestEntity entity = new AccountDeletionRequestEntity();
         entity.setRequestId(UUID.randomUUID());
         entity.setAccountId(accountId);
@@ -174,6 +176,7 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
         entity.setRequestedAt(requestedAt);
         entity.setScheduledDeletionAt(scheduledAt);
         entity.setAttemptCount(0);
+        entity.setActiveSubscriptionNoRefundConfirmed(activeSubscriptionTerminationWithoutRefundConfirmed);
         return toDomain(requestRepository.saveAndFlush(entity));
     }
 
@@ -225,96 +228,164 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
     }
 
     @Override
+    public String findIdentityProviderSubjectSnapshot(UUID requestId) {
+        return requestRepository.findById(requestId)
+                .map(AccountDeletionRequestEntity::getIdentityProviderSubjectSnapshot)
+                .orElse(null);
+    }
+
+    @Override
+    public Optional<UUID> findDeletionCustomerId(UUID accountId) {
+        return customerRepository.findDeletionCustomerIdByAccountId(accountId);
+    }
+
+    @Override
     public List<AccountDeletionBlocker> findDeletionBlockers(UUID accountId) {
+        return findDeletionBlockers(accountId, List.of());
+    }
+
+    @Override
+    public List<AccountDeletionBlocker> findDeletionBlockers(
+            UUID accountId, Collection<UUID> closingOrganizationIds) {
         if (isDeletedAccount(accountId)) return List.of();
+        Set<UUID> closingOrganizations = closingOrganizationIds == null
+                ? Set.of() : Set.copyOf(closingOrganizationIds);
         List<AccountDeletionBlocker> blockers = new ArrayList<>();
         customerRepository.findDeletionCustomerIdByAccountId(accountId)
                 .ifPresent(customerId -> addCustomerBlockers(blockers, customerId));
-        addOrganizationGovernanceBlockers(blockers, accountId);
-        addManagementAssignmentBlockers(blockers, accountId);
+        addManagementAssignmentBlockers(blockers, accountId, closingOrganizations);
         employeeRepository.findDeletionEmployeeIdByAccountId(accountId)
-                .ifPresent(employeeId -> addWorkforceBlockers(blockers, employeeId));
-        addOperationalOwnershipBlockers(blockers, accountId);
+                .ifPresent(employeeId -> addWorkforceBlockers(blockers, employeeId, closingOrganizations));
+        addOperationalOwnershipBlockers(blockers, accountId, closingOrganizations);
         return List.copyOf(blockers);
     }
 
     private void addCustomerBlockers(List<AccountDeletionBlocker> blockers, UUID customerId) {
         addIfPresent(parkingSessionRepository.findDeletionBlockingSessionId(customerId), id -> blockers.add(
-                AccountDeletionBlocker.of("ACTIVE_PARKING_SESSION", "Cần kết thúc phiên gửi xe đang mở.", "PARKING_SESSION", id)));
-        addIfPresent(subscriptionRepository.findDeletionBlockingSubscriptionId(customerId), id -> blockers.add(
-                AccountDeletionBlocker.of("ACTIVE_SUBSCRIPTION", "Cần kết thúc đăng ký gửi xe đang hoạt động.", "SUBSCRIPTION", id)));
-        addIfPresent(invoiceRepository.findDeletionBlockingInvoiceId(customerId), id -> blockers.add(
-                AccountDeletionBlocker.of("UNPAID_INVOICE", "Cần thanh toán hóa đơn chưa hoàn tất.", "INVOICE", id)));
-        addIfPresent(paymentRepository.findDeletionBlockingPaymentId(customerId), id -> blockers.add(
-                AccountDeletionBlocker.of("PENDING_PAYMENT", "Cần hoàn tất giao dịch thanh toán đang xử lý.", "PAYMENT", id)));
-        addIfPresent(lostCardReportRepository.findDeletionBlockingReportId(customerId), id -> blockers.add(
-                AccountDeletionBlocker.of("OPEN_LOST_CARD_REPORT", "Cần xử lý báo mất thẻ đang mở.", "LOST_CARD_REPORT", id)));
+                remediationBlocker("ACTIVE_PARKING_SESSION", "Cần kết thúc phiên gửi xe đang mở.",
+                        "PARKING_SESSION", id, null, null, "CLOSE_PARKING_SESSION",
+                        "/customer/parking-history?sessionId=" + id)));
         addIfPresent(walletTopupOrderRepository.findDeletionBlockingTopupId(customerId), id -> blockers.add(
-                AccountDeletionBlocker.of("PENDING_WALLET_TOPUP", "Cần hoàn tất lệnh nạp ví đang xử lý.", "WALLET_TOPUP", id)));
+                remediationBlocker("PENDING_WALLET_TOPUP", "Cần hoàn tất lệnh nạp ví đang xử lý.",
+                        "WALLET_TOPUP", id, null, null, "REVIEW_WALLET_TOPUP",
+                        "/customer/wallet/topup-result?topupOrderId=" + id)));
     }
 
-    private void addOrganizationGovernanceBlockers(List<AccountDeletionBlocker> blockers, UUID accountId) {
-        organizationMembershipRepository.findDeletionGovernanceBlockers(accountId).forEach(row -> blockers.add(
-                new AccountDeletionBlocker("LAST_ORGANIZATION_ADMIN",
-                        "Bạn cần chỉ định một tài khoản khác có quyền quản trị tổ chức trước khi xóa tài khoản.",
-                        "ORGANIZATION_MEMBERSHIP", row.getMembershipId(), row.getOrganizationId(), null,
-                        "ASSIGN_ORGANIZATION_ADMIN", "/internal/organizations/" + row.getOrganizationId() + "/members")));
-    }
-
-    private void addManagementAssignmentBlockers(List<AccountDeletionBlocker> blockers, UUID accountId) {
-        managementAssignmentRepository.findDeletionBlockingAssignments(accountId).forEach(row -> {
+    private void addManagementAssignmentBlockers(
+            List<AccountDeletionBlocker> blockers, UUID accountId, Set<UUID> closingOrganizations) {
+        managementAssignmentRepository.findDeletionBlockingAssignments(accountId).stream()
+                .filter(row -> !closingOrganizations.contains(row.getOrganizationId())).forEach(row -> {
             String code = "PENDING_ACCEPTANCE".equals(row.getStatus())
                     ? "PENDING_MANAGEMENT_ACCEPTANCE" : "ACTIVE_MANAGEMENT_ASSIGNMENT";
-            blockers.add(new AccountDeletionBlocker(code, "Cần bàn giao hoặc kết thúc phân công quản lý bãi xe.",
+            blockers.add(remediationBlocker(code, "Cần bàn giao hoặc kết thúc phân công quản lý bãi xe.",
                     "MANAGEMENT_ASSIGNMENT", row.getAssignmentId(), row.getOrganizationId(), row.getParkingLotId(),
-                    "HANDOVER_MANAGEMENT", "/internal/parking-lots/" + row.getParkingLotId() + "/management"));
+                    "HANDOVER_MANAGEMENT", "/admin/parking-lots?lotId=" + row.getParkingLotId()
+                            + "&action=manage-assignments"));
         });
     }
 
-    private void addWorkforceBlockers(List<AccountDeletionBlocker> blockers, UUID employeeId) {
-        employeeLotAssignmentRepository.findDeletionBlockingAssignments(employeeId).forEach(row -> blockers.add(
-                new AccountDeletionBlocker("ACTIVE_EMPLOYEE_LOT_ASSIGNMENT",
+    private void addWorkforceBlockers(
+            List<AccountDeletionBlocker> blockers, UUID employeeId, Set<UUID> closingOrganizations) {
+        employeeLotAssignmentRepository.findDeletionBlockingAssignments(employeeId).stream()
+                .filter(row -> !closingOrganizations.contains(row.getOrganizationId())).forEach(row -> blockers.add(
+                remediationBlocker("ACTIVE_EMPLOYEE_LOT_ASSIGNMENT",
                         "Cần kết thúc phân công nhân sự tại bãi xe.", "EMPLOYEE_LOT_ASSIGNMENT",
                         row.getResourceId(), row.getOrganizationId(), row.getParkingLotId(), "END_EMPLOYEE_ASSIGNMENT",
-                        "/internal/parking-lots/" + row.getParkingLotId() + "/employees")));
-        shiftAssignmentRepository.findDeletionBlockingAssignments(employeeId).forEach(row -> {
+                        "/admin/shifts?workspace=parkingAssignments&parkingLotId=" + row.getParkingLotId())));
+        shiftAssignmentRepository.findDeletionBlockingAssignments(employeeId).stream()
+                .filter(row -> outsideClosingOrganizations(row.getOrganizationId(), closingOrganizations))
+                .forEach(row -> {
             String code = "OPEN".equals(row.getShiftStatus())
                     ? "OPEN_SHIFT_PARTICIPATION" : "ACTIVE_OR_FUTURE_SHIFT_ASSIGNMENT";
-            blockers.add(new AccountDeletionBlocker(code, "Cần gỡ hoặc bàn giao ca làm việc.",
-                    "SHIFT_ASSIGNMENT", row.getAssignmentId(), null, row.getParkingLotId(), "REASSIGN_SHIFT",
-                    "/internal/parking-lots/" + row.getParkingLotId() + "/shifts"));
+            blockers.add(remediationBlocker(code, "Cần gỡ hoặc bàn giao ca làm việc.",
+                    "SHIFT_ASSIGNMENT", row.getAssignmentId(), row.getOrganizationId(), row.getParkingLotId(),
+                    "REASSIGN_SHIFT",
+                    "/admin/shifts?workspace=schedule&parkingLotId=" + row.getParkingLotId()
+                            + "&assignmentId=" + row.getAssignmentId()));
         });
-        rosterRuleRepository.findDeletionBlockingRosterRules(employeeId).forEach(row -> blockers.add(
-                new AccountDeletionBlocker("ACTIVE_ROSTER_RULE", "Cần vô hiệu lịch phân ca tự động.",
-                        "ROSTER_RULE", row.getResourceId(), null, row.getParkingLotId(), "DEACTIVATE_ROSTER",
-                        "/internal/parking-lots/" + row.getParkingLotId() + "/roster")));
+        rosterRuleRepository.findDeletionBlockingRosterRules(employeeId).stream()
+                .filter(row -> outsideClosingOrganizations(row.getOrganizationId(), closingOrganizations))
+                .forEach(row -> blockers.add(remediationBlocker(
+                        "ACTIVE_ROSTER_RULE", "Cần vô hiệu lịch phân ca tự động.",
+                        "ROSTER_RULE", row.getResourceId(), row.getOrganizationId(), row.getParkingLotId(),
+                        "DEACTIVATE_ROSTER", "/admin/shifts?workspace=rules&parkingLotId=" + row.getParkingLotId()
+                                + "&rosterRuleId=" + row.getResourceId())));
     }
 
-    private void addOperationalOwnershipBlockers(List<AccountDeletionBlocker> blockers, UUID accountId) {
-        supportTicketRepository.findDeletionBlockingTicketIds(accountId).forEach(id -> blockers.add(
-                AccountDeletionBlocker.of("OPEN_SUPPORT_TICKET_ASSIGNMENT",
-                        "Cần bàn giao phiếu hỗ trợ đang mở.", "SUPPORT_TICKET", id)));
-        workQueueRepository.findDeletionBlockingItems(accountId).forEach(row -> blockers.add(
-                new AccountDeletionBlocker("OPEN_WORK_QUEUE_ASSIGNMENT", "Cần bàn giao công việc đang mở.",
+    private void addOperationalOwnershipBlockers(
+            List<AccountDeletionBlocker> blockers, UUID accountId, Set<UUID> closingOrganizations) {
+        resourcesRequiringHandover(
+                supportTicketRepository.findDeletionBlockingTicketScopes(accountId), closingOrganizations)
+                .forEach(row -> blockers.add(remediationBlocker("OPEN_SUPPORT_TICKET_ASSIGNMENT",
+                        "Cần bàn giao phiếu hỗ trợ đang mở.", "SUPPORT_TICKET", row.getResourceId(),
+                        row.getOrganizationId(), row.getParkingLotId(), "HANDOVER_SUPPORT_TICKET",
+                        "/admin/support-tickets?ticketId=" + row.getResourceId())));
+        workQueueRepository.findDeletionBlockingItems(accountId).stream()
+                .filter(row -> !closingOrganizations.contains(row.getOrganizationId())).forEach(row -> blockers.add(
+                remediationBlocker("OPEN_WORK_QUEUE_ASSIGNMENT", "Cần bàn giao công việc đang mở.",
                         "WORK_QUEUE_ITEM", row.getResourceId(), row.getOrganizationId(), row.getParkingLotId(),
-                        "REASSIGN_WORK_ITEM", "/internal/parking-lots/" + row.getParkingLotId() + "/work-queue")));
-        chatConversationRepository.findDeletionBlockingOwnershipIds(accountId).forEach(id -> blockers.add(
-                AccountDeletionBlocker.of("ACTIVE_CHAT_OWNERSHIP",
-                        "Cần bàn giao hội thoại đang hoạt động.", "CHAT_CONVERSATION", id)));
-        shiftRepository.findDeletionBlockingResponsibilities(accountId).forEach(row -> blockers.add(
-                new AccountDeletionBlocker("OPEN_SHIFT_RESPONSIBILITY", "Cần bàn giao trách nhiệm ca đang mở.",
-                        "SHIFT", row.getResourceId(), null, row.getParkingLotId(), "HANDOVER_OPEN_SHIFT",
-                        "/internal/parking-lots/" + row.getParkingLotId() + "/shifts")));
-        approvalRequestRepository.findDeletionBlockingOperationalApprovalIds(accountId).forEach(id -> blockers.add(
-                AccountDeletionBlocker.of("PROCESSING_OPERATIONAL_APPROVAL",
-                        "Cần hoàn tất hoặc hủy yêu cầu nghiệp vụ đang chờ duyệt.", "APPROVAL_REQUEST", id)));
+                        "REASSIGN_WORK_ITEM", "/admin/support-center?workQueueItemId=" + row.getResourceId())));
+        shiftRepository.findDeletionBlockingResponsibilities(accountId).stream()
+                .filter(row -> outsideClosingOrganizations(row.getOrganizationId(), closingOrganizations))
+                .forEach(row -> blockers.add(remediationBlocker(
+                        "OPEN_SHIFT_RESPONSIBILITY", "Cần bàn giao trách nhiệm ca đang mở.",
+                        "SHIFT", row.getResourceId(), row.getOrganizationId(), row.getParkingLotId(),
+                        "HANDOVER_OPEN_SHIFT", "/admin/shifts?workspace=schedule&parkingLotId="
+                                + row.getParkingLotId() + "&shiftId=" + row.getResourceId())));
+        resourcesRequiringHandover(
+                approvalRequestRepository.findDeletionBlockingOperationalApprovalScopes(accountId),
+                closingOrganizations).forEach(row -> blockers.add(remediationBlocker(
+                        "PENDING_OPERATIONAL_APPROVAL",
+                        "Cần hoàn tất hoặc hủy yêu cầu nghiệp vụ đang chờ duyệt.", "APPROVAL_REQUEST",
+                        row.getResourceId(), row.getOrganizationId(), row.getParkingLotId(),
+                        "RESOLVE_APPROVAL_REQUEST",
+                        "/admin/account?tab=onboarding&approvalRequestId=" + row.getResourceId())));
+    }
+
+    private static boolean outsideClosingOrganizations(UUID organizationId, Set<UUID> closingOrganizations) {
+        return organizationId == null || !closingOrganizations.contains(organizationId);
+    }
+
+    private static List<AccountDeletionResourceScopeProjection> resourcesRequiringHandover(
+            List<AccountDeletionResourceScopeProjection> rows, Set<UUID> closingOrganizations) {
+        Map<UUID, List<AccountDeletionResourceScopeProjection>> rowsByResource = rows.stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        AccountDeletionResourceScopeProjection::getResourceId));
+        return rowsByResource.values().stream()
+                .filter(scopes -> scopes.stream().anyMatch(
+                        scope -> outsideClosingOrganizations(scope.getOrganizationId(), closingOrganizations)))
+                .map(scopes -> scopes.stream()
+                        .filter(scope -> outsideClosingOrganizations(
+                                scope.getOrganizationId(), closingOrganizations))
+                        .findFirst().orElseThrow())
+                .toList();
+    }
+
+    private static AccountDeletionBlocker remediationBlocker(
+            String code,
+            String message,
+            String resourceType,
+            UUID resourceId,
+            UUID organizationId,
+            UUID parkingLotId,
+            String remediationAction,
+            String remediationUrl) {
+        return new AccountDeletionBlocker(code, message, resourceType, resourceId, organizationId, parkingLotId,
+                remediationAction, remediationUrl);
     }
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public List<String> completeWithTombstones(UUID requestId, UUID accountId, Instant completedAt) {
         AccountEntity account = accountRepository.findByIdForUpdate(accountId)
                 .orElseThrow(() -> new IllegalStateException("Account no longer exists"));
+        AccountDeletionRequestEntity request = requestRepository.findById(requestId).orElseThrow();
+        if (request.getIdentityProviderSubjectSnapshot() == null
+                && account.getKeycloakUserId() != null
+                && !account.getKeycloakUserId().startsWith("_deleted_")) {
+            request.setIdentityProviderSubjectSnapshot(account.getKeycloakUserId());
+            requestRepository.save(request);
+        }
         UUID profileId = account.getUserProfileId();
         List<String> objectKeys = profileId == null
                 ? List.of()
@@ -352,6 +423,9 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
             userProfileRepository.tombstoneForAccountDeletion(profileId, marker, now);
         }
         approvalRequestRepository.cancelPendingOnboardingForDeletedAccount(accountId, profileId, now);
+        if (profileId != null) {
+            approvalRequestRepository.cancelPendingAvatarApprovalsForDeletedAccount(profileId, now);
+        }
         memberParkingLotScopeRepository.deleteAllByAccountId(accountId);
         organizationMembershipRepository.deactivateForDeletedAccount(accountId, now);
         accountIdentityRepository.tombstoneProviderSubjects(accountId, marker, now);
@@ -373,6 +447,25 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
             entity.setStatus(AccountDeletionRequestStatus.RETRY);
             entity.setNextRetryAt(nextRetryAt);
         }
+        requestRepository.saveAndFlush(entity);
+    }
+
+    @Override
+    public void block(UUID requestId, Instant now, String code, String message) {
+        AccountDeletionRequestEntity entity = requestRepository.findById(requestId).orElseThrow();
+        AccountEntity account = findAccountForUpdate(entity.getAccountId());
+        if (account.getStatus() == AccountStatus.PENDING_DELETION) {
+            account.setStatus(entity.getPreviousAccountStatus());
+            appendStatusHistory(entity.getAccountId(), AccountStatus.PENDING_DELETION,
+                    entity.getPreviousAccountStatus(), "Account deletion blocked by changed precondition", now);
+            accountRepository.saveAndFlush(account);
+        }
+        entity.setStatus(AccountDeletionRequestStatus.BLOCKED);
+        entity.setLastErrorCode(code);
+        entity.setLastErrorMessage(message == null ? null : message.substring(0, Math.min(1000, message.length())));
+        entity.setClaimToken(null);
+        entity.setProcessingLeaseUntil(null);
+        entity.setNextRetryAt(null);
         requestRepository.saveAndFlush(entity);
     }
 
@@ -407,7 +500,7 @@ public class AccountDeletionPersistenceAdapter implements AccountDeletionPortOut
         return new AccountDeletionRequest(entity.getRequestId(), entity.getAccountId(), entity.getStatus(),
                 entity.getRequestedAt(), entity.getScheduledDeletionAt(), entity.getCancelledAt(),
                 entity.getCompletedAt(), entity.getAttemptCount(), entity.getLastErrorCode(),
-                entity.getPreviousAccountStatus());
+                entity.getPreviousAccountStatus(), entity.isActiveSubscriptionNoRefundConfirmed());
     }
 
     private static void addIfPresent(Optional<UUID> value, Consumer<UUID> consumer) {

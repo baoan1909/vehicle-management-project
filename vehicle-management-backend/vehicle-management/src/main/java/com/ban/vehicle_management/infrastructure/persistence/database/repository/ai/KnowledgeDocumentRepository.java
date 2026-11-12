@@ -11,6 +11,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Modifying;
+import java.util.Collection;
 
 public interface KnowledgeDocumentRepository extends JpaRepository<KnowledgeDocumentEntity, UUID>, JpaSpecificationExecutor<KnowledgeDocumentEntity> {
 
@@ -72,5 +74,24 @@ public interface KnowledgeDocumentRepository extends JpaRepository<KnowledgeDocu
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT document FROM KnowledgeDocumentEntity document WHERE document.documentId = :documentId")
     Optional<KnowledgeDocumentEntity> findByIdForUpdate(@Param("documentId") UUID documentId);
+
+    @Query(value = """
+        select object_key from ai.knowledge_documents
+         where tenant_id in (:tenantIds) and access_scope = 'TENANT_PRIVATE'
+           and object_key is not null and status <> 'ARCHIVED'
+        """, nativeQuery = true)
+    List<String> findTenantPrivateObjectKeys(@Param("tenantIds") Collection<UUID> tenantIds);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        update ai.knowledge_documents
+           set status = 'ARCHIVED', archived_at = :now, archived_by = :actorAccountId,
+               effective_to = coalesce(effective_to, :now), updated_at = :now
+         where tenant_id in (:tenantIds) and access_scope = 'TENANT_PRIVATE' and status <> 'ARCHIVED'
+        """, nativeQuery = true)
+    int archiveTenantPrivate(
+            @Param("tenantIds") Collection<UUID> tenantIds,
+            @Param("actorAccountId") UUID actorAccountId,
+            @Param("now") Instant now);
 
 }

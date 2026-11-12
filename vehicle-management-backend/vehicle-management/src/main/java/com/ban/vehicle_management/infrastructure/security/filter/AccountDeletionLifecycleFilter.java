@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.security.filter;
 
 import com.ban.vehicle_management.application.iam.account.port.in.AccountDeletionPortIn;
 import com.ban.vehicle_management.application.iam.account.port.out.AccountDeletionPortOut;
+import com.ban.vehicle_management.infrastructure.security.principal.AuthenticatedAccountPrincipal;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -40,7 +41,7 @@ public class AccountDeletionLifecycleFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
+        String path = requestPath(request);
         return HttpMethod.OPTIONS.matches(request.getMethod())
                 || (!path.startsWith("/api/") && !path.startsWith("/ws"));
     }
@@ -53,7 +54,7 @@ public class AccountDeletionLifecycleFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        Optional<UUID> accountId = parseUuid(jwt.getToken().getClaim("account_id"));
+        Optional<UUID> accountId = resolveAccountId(jwt);
         if (accountId.isEmpty()) {
             filterChain.doFilter(request, response);
             return;
@@ -74,9 +75,31 @@ public class AccountDeletionLifecycleFilter extends OncePerRequestFilter {
     }
 
     private boolean isDeletionManagementRequest(HttpServletRequest request) {
-        return (DELETION_BASE_PATH.equals(request.getRequestURI()) && HttpMethod.POST.matches(request.getMethod()))
-                || (DELETION_CURRENT_PATH.equals(request.getRequestURI())
+        String path = requestPath(request);
+        return (DELETION_BASE_PATH.equals(path) && HttpMethod.POST.matches(request.getMethod()))
+                || (DELETION_CURRENT_PATH.equals(path)
                 && (HttpMethod.GET.matches(request.getMethod()) || HttpMethod.DELETE.matches(request.getMethod())));
+    }
+
+    private String requestPath(HttpServletRequest request) {
+        String servletPath = request.getServletPath();
+        if (servletPath != null && !servletPath.isBlank()) {
+            return servletPath;
+        }
+        String requestUri = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        if (contextPath != null && !contextPath.isBlank() && requestUri.startsWith(contextPath)) {
+            return requestUri.substring(contextPath.length());
+        }
+        return requestUri;
+    }
+
+    private Optional<UUID> resolveAccountId(JwtAuthenticationToken authentication) {
+        if (authentication.getDetails() instanceof AuthenticatedAccountPrincipal principal
+                && principal.accountId() != null) {
+            return Optional.of(principal.accountId());
+        }
+        return parseUuid(authentication.getToken().getClaim("account_id"));
     }
 
     private Optional<UUID> parseUuid(Object value) {

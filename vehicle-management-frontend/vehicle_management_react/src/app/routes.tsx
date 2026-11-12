@@ -53,6 +53,7 @@ const ShiftSchedulePage = lazyPage(() => import("@/features/employees"), "ShiftS
 const DeviceManagementPage = lazyPage(() => import("@/features/hardware"), "DeviceManagementPage");
 const AccountFormPage = lazyPage(() => import("@/features/iam"), "AccountFormPage");
 const AccountListPage = lazyPage(() => import("@/features/iam"), "AccountListPage");
+const AccountDeletionArchivePage = lazyPage(() => import("@/features/iam"), "AccountDeletionArchivePage");
 const AvatarApprovalManagementPage = lazyPage(() => import("@/features/iam"), "AvatarApprovalManagementPage");
 const InternalProfilePage = lazyPage(() => import("@/features/iam"), "InternalProfilePage");
 const RoleFormPage = lazyPage(() => import("@/features/iam"), "RoleFormPage");
@@ -122,6 +123,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/admin/employee/form", title: "Thong tin nhan vien", layout: "admin", element: <Navigate to="/admin/employee" replace /> },
   { path: "/admin/shifts", title: "Ca trực & Phân công", layout: "admin", element: <ShiftSchedulePage /> },
   { path: "/admin/account", title: "Tài khoản", layout: "admin", element: <AccountListPage /> },
+  { path: "/admin/deletion-audit", title: "Lưu trữ xóa tài khoản", layout: "admin", element: <AccountDeletionArchivePage /> },
   { path: "/admin/account/form", title: "Thong tin tai khoan", layout: "admin", element: <AccountFormPage /> },
   { path: "/admin/avatar-approvals", title: "Duyệt ảnh đại diện", layout: "admin", element: <AvatarApprovalManagementPage /> },
   { path: "/admin/onboarding-approvals", title: "Duyet onboarding", layout: "admin", element: <Navigate to="/admin/account?tab=onboarding" replace /> },

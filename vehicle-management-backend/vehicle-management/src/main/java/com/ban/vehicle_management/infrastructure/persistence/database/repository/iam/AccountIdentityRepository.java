@@ -3,6 +3,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountIdentityEntity;
 import com.ban.vehicle_management.shared.enumeration.iam.SocialIdentityProvider;
 import java.util.Optional;
+import java.util.List;
 import java.util.UUID;
 import java.time.Instant;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface AccountIdentityRepository extends JpaRepository<AccountIdentityEntity, UUID> {
+
+    List<AccountIdentityEntity> findAllByAccountId(UUID accountId);
 
     @Modifying
     @Query(value = """

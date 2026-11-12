@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { Badge, Button, Card, EntityAvatar, Modal, SelectMenu, useToast } from "@/components/ui";
 import { ShiftConfigurationPanel } from "@/features/employees/components/ShiftConfigurationPanel";
@@ -1322,6 +1323,10 @@ function EmployeeParkingLotAssignmentsPanel({
 }
 
 export function ShiftSchedulePage() {
+  const [searchParams] = useSearchParams();
+  const requestedWorkspace = searchParams.get("workspace");
+  const requestedParkingLotId = searchParams.get("parkingLotId")?.trim() ?? "";
+  const requestedShiftId = searchParams.get("shiftId")?.trim() ?? "";
   const { user } = useAuth();
   const canReadAllAssignments = hasAnyPermission(user, ["SHIFT_ASSIGNMENT_READ_ALL"]);
   const canReadOwnAssignments = hasAnyPermission(user, ["SHIFT_ASSIGNMENT_READ_OWN"]);
@@ -1341,12 +1346,16 @@ export function ShiftSchedulePage() {
   const [shiftTemplates, setShiftTemplates] = useState<ShiftTemplateApiResponse[]>([]);
   const [rosterRules, setRosterRules] = useState<EmployeeRosterRuleApiResponse[]>([]);
   const [employeeParkingLotAssignments, setEmployeeParkingLotAssignments] = useState<EmployeeParkingLotAssignmentApiResponse[]>([]);
-  const [workspace, setWorkspace] = useState<ShiftWorkspace>("schedule");
-  const [selectedLot, setSelectedLot] = useState("all");
+  const [workspace, setWorkspace] = useState<ShiftWorkspace>(() => (
+    requestedWorkspace === "parkingAssignments" || requestedWorkspace === "templates" || requestedWorkspace === "rules"
+      ? requestedWorkspace
+      : "schedule"
+  ));
+  const [selectedLot, setSelectedLot] = useState(requestedParkingLotId || "all");
   const [selectedShiftType, setSelectedShiftType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedShiftId, setSelectedShiftId] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedShiftId, setSelectedShiftId] = useState<string | null>(requestedShiftId || null);
+  const [drawerOpen, setDrawerOpen] = useState(Boolean(requestedShiftId));
   const [employeeParkingLotAssignmentOpen, setEmployeeParkingLotAssignmentOpen] = useState(false);
   const [weekStartDate, setWeekStartDate] = useState(() => toIsoDate(startOfWeek(parseIsoDate(todayApplicationIsoDate()))));
   const [searchValue, setSearchValue] = useState("");

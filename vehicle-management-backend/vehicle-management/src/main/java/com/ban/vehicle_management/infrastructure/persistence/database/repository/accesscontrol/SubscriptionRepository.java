@@ -15,6 +15,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
 
 public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity, UUID>, JpaSpecificationExecutor<SubscriptionEntity> {
 
@@ -24,6 +25,17 @@ public interface SubscriptionRepository extends JpaRepository<SubscriptionEntity
           and status in ('PENDING','PENDING_PAYMENT','PENDING_CARD','ACTIVE') limit 1
         """, nativeQuery = true)
     Optional<UUID> findDeletionBlockingSubscriptionId(@Param("customerId") UUID customerId);
+
+    @Query(value = """
+        select subscription.subscription_id as "resourceId", lot.organization_id as "organizationId",
+               lot.parking_lot_id as "parkingLotId"
+          from access_control.subscriptions subscription
+          join parking.parking_lots lot on lot.parking_lot_id = subscription.parking_lot_id
+         where lot.organization_id in (:organizationIds)
+           and subscription.status in ('PENDING', 'PENDING_PAYMENT', 'PENDING_CARD', 'ACTIVE')
+        """, nativeQuery = true)
+    List<AccountDeletionResourceScopeProjection> findOrganizationDeletionBlockers(
+            @Param("organizationIds") Collection<UUID> organizationIds);
 
     @Query("""
             select subscription

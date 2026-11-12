@@ -8,5 +8,6 @@ public enum SubscriptionStatus {
     ACTIVE,
     EXPIRED,
     CANCELLED,
-    REJECTED
+    REJECTED,
+    TERMINATED
 }

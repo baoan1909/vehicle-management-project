@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import {
   getMyParkingSessions,
@@ -106,9 +106,14 @@ function toDateRangeValue(filters: Pick<HistoryFilters, "fromDate" | "toDate">) 
 }
 
 export function CustomerHistoryPage() {
+  const [searchParams] = useSearchParams();
+  const requestedSessionId = searchParams.get("sessionId")?.trim() ?? "";
   const [sessions, setSessions] = useState<CustomerPortalParkingSession[]>([]);
-  const [selectedSessionId, setSelectedSessionId] = useState("");
-  const [filters, setFilters] = useState<HistoryFilters>(createInitialFilters);
+  const [selectedSessionId, setSelectedSessionId] = useState(requestedSessionId);
+  const [filters, setFilters] = useState<HistoryFilters>(() => ({
+    ...createInitialFilters(),
+    keyword: requestedSessionId,
+  }));
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);
@@ -269,7 +274,7 @@ export function CustomerHistoryPage() {
               {selectedSession.status === "CLOSED" && selectedSession.parkingLotId ? <Link className="tw-mt-3 tw-inline-flex tw-items-center tw-gap-2 tw-rounded-lg tw-bg-blue-700 tw-px-4 tw-py-2.5 tw-text-sm tw-font-bold tw-text-white hover:tw-text-white hover:tw-no-underline" to={`/pricing/${selectedSession.parkingLotId}#write-review`}><i className="fas fa-star" />Đánh giá / sửa đánh giá</Link> : null}
               <h3 className="tw-m-0 tw-mt-3 tw-text-base tw-font-bold tw-text-slate-900">Sự kiện vào / ra</h3>
               <div className="tw-mt-3 tw-grid tw-gap-0">{selectedEvents.map((event, index) => <div className="vm-history-event-row tw-grid tw-grid-cols-[22px_minmax(0,1fr)_minmax(76px,.55fr)] tw-gap-3" key={event.parkingEventId}><div className="tw-relative tw-flex tw-justify-center">{index < selectedEvents.length - 1 ? <i aria-hidden="true" className="tw-absolute tw-bottom-[-8px] tw-left-1/2 tw-top-2 tw-w-px [transform:translateX(-50%)] tw-bg-blue-500" /> : null}<span aria-hidden="true" className={`tw-relative tw-z-10 tw-mt-1 tw-h-3 tw-w-3 tw-shrink-0 tw-rounded-full tw-border-2 tw-border-solid tw-border-blue-600 ${event.eventType === "CHECK_IN" ? "tw-bg-blue-600" : "tw-bg-white"}`} /></div><div className="tw-pb-4"><strong className="tw-block tw-text-sm tw-font-semibold tw-text-blue-700">{eventLabel(event.eventType)}</strong><span className="tw-mt-1 tw-block tw-text-xs tw-font-semibold tw-text-slate-600">{formatDateTime(event.eventTime)}</span></div><div className="tw-pb-4 tw-text-xs tw-font-semibold tw-leading-5 tw-text-slate-600"><strong className="tw-block tw-text-slate-800">{event.laneName || "--"}</strong>Biển số: {event.licensePlateDetected || "--"}</div></div>)}{selectedEvents.length === 0 ? <p className="tw-mt-3 tw-text-sm tw-font-semibold tw-text-slate-500">Chưa có sự kiện vào/ra.</p> : null}</div>
-              <div className="vm-history-evidence-grid tw-mt-2 tw-grid tw-grid-cols-2 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-slate-100 tw-pt-4"><div><strong className="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-text-slate-700">Ảnh xe vào</strong><EvidenceImage alt="Ảnh xe vào" src={checkInEvent?.licensePlateImagePath} /></div><div><strong className="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-text-slate-700">Ảnh xe ra</strong><EvidenceImage alt="Ảnh xe ra" src={checkOutEvent?.licensePlateImagePath} /></div></div>
+              <div className="vm-history-evidence-grid tw-mt-2 tw-grid tw-grid-cols-2 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-slate-100 tw-pt-4"><div><strong className="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-text-slate-700">Ảnh biển số vào</strong><EvidenceImage alt="Ảnh biển số vào" src={checkInEvent?.licensePlateImagePath} /></div><div><strong className="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-text-slate-700">Ảnh biển số ra</strong><EvidenceImage alt="Ảnh biển số ra" src={checkOutEvent?.licensePlateImagePath} /></div><div><strong className="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-text-slate-700">Ảnh xe vào</strong><EvidenceImage alt="Ảnh xe vào" src={checkInEvent?.vehicleImagePath} /></div><div><strong className="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-text-slate-700">Ảnh xe ra</strong><EvidenceImage alt="Ảnh xe ra" src={checkOutEvent?.vehicleImagePath} /></div></div>
             </div>
           </> : <div className="tw-grid tw-min-h-[330px] tw-place-items-center tw-p-8 tw-text-center tw-text-slate-500"><div><i className="far fa-hand-pointer tw-text-3xl tw-text-blue-500" /><strong className="tw-mt-3 tw-block tw-text-base tw-text-slate-800">Chưa có phiên gửi xe</strong><p className="tw-mt-2 tw-text-sm tw-font-semibold">Chọn khoảng thời gian khác để xem lịch sử.</p></div></div>}
         </aside>

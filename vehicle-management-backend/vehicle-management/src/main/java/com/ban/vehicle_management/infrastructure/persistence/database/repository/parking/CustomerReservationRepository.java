@@ -12,6 +12,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface CustomerReservationRepository extends JpaRepository<CustomerReservationEntity, UUID> {
+    Optional<CustomerReservationEntity> findByInvoiceId(UUID invoiceId);
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from CustomerReservationEntity r where r.reservationId = :id")
     Optional<CustomerReservationEntity> findLocked(@Param("id") UUID id);

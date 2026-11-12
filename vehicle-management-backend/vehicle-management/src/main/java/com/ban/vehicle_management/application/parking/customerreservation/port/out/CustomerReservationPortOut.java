@@ -10,6 +10,7 @@ public interface CustomerReservationPortOut {
     CustomerReservation save(CustomerReservation reservation);
     Optional<CustomerReservation> findById(UUID id);
     Optional<CustomerReservation> findByIdForUpdate(UUID id);
+    Optional<CustomerReservation> findByInvoiceId(UUID invoiceId);
     Optional<CustomerReservation> findByInvoiceIdForUpdate(UUID invoiceId);
     Optional<CustomerReservation> findBySessionId(UUID sessionId);
     Optional<CustomerReservation> findByQrTokenForUpdate(String token);

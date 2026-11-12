@@ -79,6 +79,7 @@ export type LostCardPreviewResponse = {
   customerName: string | null;
   licensePlate: string | null;
   checkInLicensePlateImagePath: string | null;
+  checkInVehicleImagePath: string | null;
   checkInPersonImagePath: string | null;
 };
 
@@ -219,6 +220,7 @@ export type LostCardReportDetailResponse = {
   subscription: LostCardSubscriptionResponse | null;
   invoice: LostCardInvoiceDetailResponse | null;
   checkInLicensePlateImagePath: string | null;
+  checkInVehicleImagePath: string | null;
   checkInPersonImagePath: string | null;
 };
 

@@ -106,7 +106,7 @@ class ParkingCheckOutSpaceReleaseTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(fileStoragePort.store(any(StoreFileCommand.class)))
-                .thenReturn(storedFile(), storedFile());
+                .thenReturn(storedFile(), storedFile(), storedFile());
         when(parkingEventPortOut.save(any(ParkingEvent.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
@@ -134,7 +134,7 @@ class ParkingCheckOutSpaceReleaseTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(cardPortOut.save(any(Card.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(fileStoragePort.store(any(StoreFileCommand.class)))
-                .thenReturn(storedFile(), storedFile());
+                .thenReturn(storedFile(), storedFile(), storedFile());
         when(parkingEventPortOut.save(any(ParkingEvent.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(currentAccountPortIn.getCurrentAccountIdOrThrow()).thenReturn(UUID.randomUUID());
@@ -155,8 +155,9 @@ class ParkingCheckOutSpaceReleaseTest {
     private CheckOutCommand command() {
         return new CheckOutCommand(laneId, "UID-001", "51A-12345",
                 new MockMultipartFile("plate", "plate.jpg", "image/jpeg", new byte[] {1}),
+                new MockMultipartFile("vehicle", "vehicle.jpg", "image/jpeg", new byte[] {3}),
                 new MockMultipartFile("person", "person.jpg", "image/jpeg", new byte[] {2}),
-                null);
+                null, null);
     }
 
     private void mockTopology() {

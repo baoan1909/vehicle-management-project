@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { getTopupOrder, payInvoiceByWallet } from "@/features/billing/api/walletApi";
 import { CustomerPortalLayout } from "@/features/customer-portal/pages/PortalShared";
 
@@ -8,11 +8,13 @@ const MAX_POLL_ATTEMPTS = 30;
 
 export function WalletTopupResultPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [status, setStatus] = useState<string>("Đang kiểm tra...");
   const paymentStartedRef = useRef(false);
 
   useEffect(() => {
-    const pendingTopupOrderId = sessionStorage.getItem("wallet-topup-pending-order");
+    const pendingTopupOrderId = searchParams.get("topupOrderId")?.trim()
+      || sessionStorage.getItem("wallet-topup-pending-order");
     if (!pendingTopupOrderId) {
       setStatus("Không tìm thấy đơn nạp tiền để đối chiếu. Vui lòng kiểm tra lịch sử ví.");
       return;
@@ -86,7 +88,7 @@ export function WalletTopupResultPage() {
       cancelled = true;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [navigate]);
+  }, [navigate, searchParams]);
 
   return (
     <CustomerPortalLayout>

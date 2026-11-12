@@ -41,6 +41,7 @@ public abstract class ParkingSessionManagementResultMapper {
 
     @Named("resolveEvent")
     @Mapping(target = "licensePlateImagePath", source = "licensePlateImagePath", qualifiedByName = "resolvePrivateReadUrl")
+    @Mapping(target = "vehicleImagePath", source = "vehicleImagePath", qualifiedByName = "resolvePrivateReadUrl")
     @Mapping(target = "personImagePath", source = "personImagePath", qualifiedByName = "resolvePrivateReadUrl")
     abstract ParkingSessionManagementResult.EventResult resolveEvent(
             ParkingSessionManagementResult.EventResult event,

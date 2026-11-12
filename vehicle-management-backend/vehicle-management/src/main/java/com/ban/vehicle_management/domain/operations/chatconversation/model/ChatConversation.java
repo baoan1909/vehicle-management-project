@@ -31,5 +31,6 @@ public class ChatConversation extends AuditableDomainModel {
     private UUID lastMessageId;
     private Instant lastMessageAt;
     private String metadata;
+    private UUID organizationId;
     private List<ChatConversationParticipant> participants = List.of();
 }

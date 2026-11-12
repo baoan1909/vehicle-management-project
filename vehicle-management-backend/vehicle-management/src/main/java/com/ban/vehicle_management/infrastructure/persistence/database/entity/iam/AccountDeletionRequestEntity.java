@@ -74,6 +74,12 @@ public class AccountDeletionRequestEntity extends AuditableEntity {
     @Column(name = "previous_account_status", nullable = false)
     private AccountStatus previousAccountStatus;
 
+    @Column(name = "identity_provider_subject_snapshot", length = 255)
+    private String identityProviderSubjectSnapshot;
+
+    @Column(name = "active_subscription_no_refund_confirmed", nullable = false)
+    private boolean activeSubscriptionNoRefundConfirmed;
+
     @Version
     @Column(name = "version", nullable = false)
     private long version;

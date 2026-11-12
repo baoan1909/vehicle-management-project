@@ -18,6 +18,31 @@ import jakarta.persistence.LockModeType;
 
 public interface AccountRepository extends JpaRepository<AccountEntity, UUID>, JpaSpecificationExecutor<AccountEntity> {
 
+    interface DeletionIdentityProjection {
+        String getUsername();
+        String getEmail();
+        String getPhoneNumber();
+        String getIdentifyCard();
+        String getCustomerCode();
+        String getEmployeeCode();
+    }
+
+    @Query("""
+        select account.username as username,
+               account.email as email,
+               profile.phoneNumber as phoneNumber,
+               profile.identifyCard as identifyCard,
+               customer.customerCode as customerCode,
+               employee.employeeCode as employeeCode
+        from AccountEntity account
+        left join UserProfileEntity profile on profile.userProfileId = account.userProfileId
+        left join CustomerEntity customer on customer.userProfileId = profile.userProfileId
+        left join EmployeeEntity employee on employee.userProfileId = profile.userProfileId
+        where account.accountId = :accountId
+        """)
+    Optional<DeletionIdentityProjection> findDeletionIdentityByAccountId(
+            @Param("accountId") UUID accountId);
+
     @Query(value = """
         select exists(select 1 from iam.accounts account
         join people.user_profiles profile on profile.user_profile_id = account.user_profile_id

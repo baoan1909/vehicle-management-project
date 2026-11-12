@@ -17,6 +17,16 @@ import org.springframework.data.repository.query.Param;
 
 public interface KnowledgeChunkRepository extends JpaRepository<KnowledgeChunkEntity, UUID> {
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query(value = """
+        update ai.knowledge_chunks
+           set status = 'ARCHIVED', updated_at = :now
+         where tenant_id in (:tenantIds) and access_scope = 'TENANT_PRIVATE' and status <> 'ARCHIVED'
+        """, nativeQuery = true)
+    int archiveTenantPrivate(
+            @Param("tenantIds") java.util.Collection<UUID> tenantIds,
+            @Param("now") java.time.Instant now);
+
     @Query(value = "select extversion from pg_extension where extname='unaccent'", nativeQuery = true)
     String findUnaccentExtensionVersion();
 

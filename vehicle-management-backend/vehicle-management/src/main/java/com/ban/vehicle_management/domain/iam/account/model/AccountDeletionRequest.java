@@ -15,8 +15,15 @@ public record AccountDeletionRequest(
         Instant completedAt,
         int attemptCount,
         String lastErrorCode,
-        AccountStatus previousAccountStatus
+        AccountStatus previousAccountStatus,
+        boolean activeSubscriptionNoRefundConfirmed
 ) {
+    public AccountDeletionRequest(UUID requestId, UUID accountId, AccountDeletionRequestStatus status,
+            Instant requestedAt, Instant scheduledDeletionAt, Instant cancelledAt, Instant completedAt,
+            int attemptCount, String lastErrorCode, AccountStatus previousAccountStatus) {
+        this(requestId, accountId, status, requestedAt, scheduledDeletionAt, cancelledAt, completedAt,
+                attemptCount, lastErrorCode, previousAccountStatus, false);
+    }
     public boolean cancellableAt(Instant now) {
         return status == AccountDeletionRequestStatus.GRACE_PERIOD
                 && now != null

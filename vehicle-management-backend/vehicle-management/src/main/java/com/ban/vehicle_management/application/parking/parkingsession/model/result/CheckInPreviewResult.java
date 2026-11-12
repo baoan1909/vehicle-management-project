@@ -8,8 +8,11 @@ import java.util.UUID;
 public record CheckInPreviewResult(
         UUID parkingLotId,
         UUID zoneId,
+        UUID vehicleTypeId,
         TrackingMode trackingMode,
         String customerType,
+        UUID subscriptionId,
+        UUID customerReservationId,
         long physicalAvailable,
         long visitorAvailable,
         boolean selectionRequired,

@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { getLogoutRedirectPath, isLogoutRedirectGuardActive } from "@/core/auth/logout";
+import {
+  clearAccountDeletionFreshLoginRequired,
+  isAccountDeletionFreshLoginRequired,
+} from "@/core/auth/accountSessionTermination";
 import { AccessErrorScreen } from "@/core/auth/AccessStatusScreens";
 import { resolvePostLoginPath } from "@/core/auth/landing";
 import { handleSigninCallback, isOidcSigninResponse, removeOidcUser, signinRedirect } from "@/core/auth/oidcSession";
@@ -101,6 +105,7 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
     async function completeCallback() {
       try {
         const oidcUser = await handleSigninCallback();
+        clearAccountDeletionFreshLoginRequired();
         if (getIdentityProvider(oidcUser) === "google") {
           await bootstrapSocialAccount({ timeoutMs: ACCESS_REQUEST_TIMEOUT_MS });
         }
@@ -137,7 +142,10 @@ function KeycloakRedirectScreen({ label }: { label: string }) {
     ) return;
 
     redirectStarted.current = true;
-    void signinRedirect().catch((error) => {
+    const requiresFreshLogin = isAccountDeletionFreshLoginRequired();
+    void signinRedirect(requiresFreshLogin
+      ? { prompt: "login", maxAge: 0 }
+      : {}).catch((error) => {
       redirectStarted.current = false;
       setCallbackFailure({
         message: error instanceof Error && error.message

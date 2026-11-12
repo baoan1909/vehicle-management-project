@@ -175,6 +175,15 @@ public class SubscriptionEntity extends AuditableEntity {
     @Column(name = "space_selection_expires_at")
     private Instant spaceSelectionExpiresAt;
 
+    @Column(name = "terminated_at")
+    private Instant terminatedAt;
+
+    @Column(name = "termination_reason", length = 100)
+    private String terminationReason;
+
+    @Column(name = "account_deletion_request_id")
+    private UUID accountDeletionRequestId;
+
     @OneToMany(mappedBy = "subscription")
     private Set<InvoiceEntity> invoices = new HashSet<>();
 

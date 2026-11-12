@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.time.Instant;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.dashboard.VehicleTypeCountProjection;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -31,6 +32,16 @@ public interface ParkingSessionRepository extends JpaRepository<ParkingSessionEn
         where customer_id=:customerId and status in ('OPEN','LOST_CARD') limit 1
         """, nativeQuery = true)
     Optional<UUID> findDeletionBlockingSessionId(@Param("customerId") UUID customerId);
+
+    @Query(value = """
+        select session.parking_session_id as "resourceId", lot.organization_id as "organizationId",
+               lot.parking_lot_id as "parkingLotId"
+          from parking.parking_sessions session
+          join parking.parking_lots lot on lot.parking_lot_id = session.parking_lot_id
+         where lot.organization_id in (:organizationIds) and session.status in ('OPEN', 'LOST_CARD')
+        """, nativeQuery = true)
+    List<AccountDeletionResourceScopeProjection> findOrganizationDeletionBlockers(
+            @Param("organizationIds") Collection<UUID> organizationIds);
 
     @Query(value = """
             select count(*) from parking.parking_sessions

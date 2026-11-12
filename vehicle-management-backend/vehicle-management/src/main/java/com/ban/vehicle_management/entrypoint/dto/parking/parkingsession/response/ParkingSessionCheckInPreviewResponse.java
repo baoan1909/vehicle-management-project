@@ -14,6 +14,7 @@ import lombok.Setter;
 public class ParkingSessionCheckInPreviewResponse {
     private UUID parkingLotId;
     private UUID zoneId;
+    private UUID vehicleTypeId;
     private TrackingMode trackingMode;
     private String customerType;
     private long physicalAvailable;

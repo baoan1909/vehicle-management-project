@@ -243,6 +243,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         parkingSessionAccessGuard.ensureCanCheckOut();
         requireCommand(command);
         requireLicensePlateImage(command.licensePlateImage());
+        requireVehicleImage(command.vehicleImage());
         requirePersonImage(command.personImage());
 
         Instant now = Instant.now();
@@ -290,6 +291,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         UUID parkingEventId = UUID.randomUUID();
         StoredFile storedLicensePlateImage = null;
+        StoredFile storedVehicleImage = null;
         StoredFile storedPersonImage = null;
 
         try {
@@ -311,14 +313,24 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
                     parkingEventId,
                     savedParkingSession.getParkingSessionId(),
                     actorAccountId,
-                    licensePlate
+                    licensePlate,
+                    ParkingEventType.CHECK_OUT
+            );
+            storedVehicleImage = storeCheckOutVehicleImage(
+                    command.vehicleImage(),
+                    parkingEventId,
+                    savedParkingSession.getParkingSessionId(),
+                    actorAccountId,
+                    licensePlate,
+                    ParkingEventType.CHECK_OUT
             );
             storedPersonImage = storeCheckOutPersonImage(
                     command.personImage(),
                     parkingEventId,
                     savedParkingSession.getParkingSessionId(),
                     actorAccountId,
-                    licensePlate
+                    licensePlate,
+                    ParkingEventType.CHECK_OUT
             );
 
             ParkingEvent parkingEvent = parkingCheckOutMapper.toCheckOutEvent(
@@ -327,6 +339,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
                     lane.getLaneId(),
                     licensePlate,
                     storedLicensePlateImage.objectKey(),
+                    storedVehicleImage.objectKey(),
                     storedPersonImage.objectKey(),
                     actorAccountId,
                     note,
@@ -335,6 +348,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
             parkingEventPolicy.initialize(parkingEvent);
             ParkingEvent savedParkingEvent = parkingEventPortOut.save(parkingEvent);
             publishAvailabilityChanged(savedParkingSession);
+            resolveParkingEventImageUrls(savedParkingEvent);
 
             Invoice invoice = null;
 
@@ -347,6 +361,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
             );
         } catch (RuntimeException exception) {
             deleteStoredFileQuietly(storedLicensePlateImage);
+            deleteStoredFileQuietly(storedVehicleImage);
             deleteStoredFileQuietly(storedPersonImage);
             throw exception;
         }
@@ -357,6 +372,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         parkingSessionAccessGuard.ensureCanCheckOut();
         requireCommand(command);
         requireLicensePlateImage(command.licensePlateImage());
+        requireVehicleImage(command.vehicleImage());
         requirePersonImage(command.personImage());
 
         Instant now = Instant.now();
@@ -410,6 +426,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         UUID actorAccountId = currentAccountPortIn.getCurrentAccountIdOrThrow();
         UUID parkingEventId = UUID.randomUUID();
         StoredFile storedLicensePlateImage = null;
+        StoredFile storedVehicleImage = null;
         StoredFile storedPersonImage = null;
 
         try {
@@ -418,14 +435,24 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
                     parkingEventId,
                     parkingSession.getParkingSessionId(),
                     actorAccountId,
-                    licensePlate
+                    licensePlate,
+                    ParkingEventType.CHECK_OUT_PENDING
+            );
+            storedVehicleImage = storeCheckOutVehicleImage(
+                    command.vehicleImage(),
+                    parkingEventId,
+                    parkingSession.getParkingSessionId(),
+                    actorAccountId,
+                    licensePlate,
+                    ParkingEventType.CHECK_OUT_PENDING
             );
             storedPersonImage = storeCheckOutPersonImage(
                     command.personImage(),
                     parkingEventId,
                     parkingSession.getParkingSessionId(),
                     actorAccountId,
-                    licensePlate
+                    licensePlate,
+                    ParkingEventType.CHECK_OUT_PENDING
             );
 
             ParkingEvent pendingEvent = parkingCheckOutMapper.toCheckOutEvent(
@@ -434,6 +461,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
                     lane.getLaneId(),
                     licensePlate,
                     storedLicensePlateImage.objectKey(),
+                    storedVehicleImage.objectKey(),
                     storedPersonImage.objectKey(),
                     actorAccountId,
                     note,
@@ -454,6 +482,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
             );
         } catch (RuntimeException exception) {
             deleteStoredFileQuietly(storedLicensePlateImage);
+            deleteStoredFileQuietly(storedVehicleImage);
             deleteStoredFileQuietly(storedPersonImage);
             throw exception;
         }
@@ -685,6 +714,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
             return;
         }
         checkInEvent.setLicensePlateImagePath(resolvePrivateReadUrl(checkInEvent.getLicensePlateImagePath()));
+        checkInEvent.setVehicleImagePath(resolvePrivateReadUrl(checkInEvent.getVehicleImagePath()));
         checkInEvent.setPersonImagePath(resolvePrivateReadUrl(checkInEvent.getPersonImagePath()));
     }
 
@@ -693,6 +723,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
             return;
         }
         parkingEvent.setLicensePlateImagePath(resolvePrivateReadUrl(parkingEvent.getLicensePlateImagePath()));
+        parkingEvent.setVehicleImagePath(resolvePrivateReadUrl(parkingEvent.getVehicleImagePath()));
         parkingEvent.setPersonImagePath(resolvePrivateReadUrl(parkingEvent.getPersonImagePath()));
     }
 
@@ -816,7 +847,8 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
             UUID parkingEventId,
             UUID parkingSessionId,
             UUID actorAccountId,
-            String licensePlate
+            String licensePlate,
+            ParkingEventType eventType
     ) {
         if (licensePlateImage == null || licensePlateImage.isEmpty()) {
             throw new BadRequestException("licensePlateImage must not be empty");
@@ -829,7 +861,7 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
                 parkingEventId,
                 actorAccountId,
                 Map.of(
-                        "event_type", "CHECK_OUT",
+                        "event_type", eventType.name(),
                         "image_type", "LICENSE_PLATE",
                         "license_plate", licensePlate,
                         "parking_session_id", parkingSessionId.toString()
@@ -842,7 +874,8 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
             UUID parkingEventId,
             UUID parkingSessionId,
             UUID actorAccountId,
-            String licensePlate
+            String licensePlate,
+            ParkingEventType eventType
     ) {
         if (personImage == null || personImage.isEmpty()) {
             throw new BadRequestException("personImage must not be empty");
@@ -855,8 +888,35 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
                 parkingEventId,
                 actorAccountId,
                 Map.of(
-                        "event_type", "CHECK_OUT",
+                        "event_type", eventType.name(),
                         "image_type", "PERSON",
+                        "license_plate", licensePlate,
+                        "parking_session_id", parkingSessionId.toString()
+                )
+        ));
+    }
+
+    private StoredFile storeCheckOutVehicleImage(
+            MultipartFile vehicleImage,
+            UUID parkingEventId,
+            UUID parkingSessionId,
+            UUID actorAccountId,
+            String licensePlate,
+            ParkingEventType eventType
+    ) {
+        if (vehicleImage == null || vehicleImage.isEmpty()) {
+            throw new BadRequestException("vehicleImage must not be empty");
+        }
+        return fileStoragePort.store(new StoreFileCommand(
+                vehicleImage,
+                StorageBucket.PRIVATE,
+                StorageFolder.PARKING_EVENT,
+                PARKING_EVENT_RESOURCE_TYPE,
+                parkingEventId,
+                actorAccountId,
+                Map.of(
+                        "event_type", eventType.name(),
+                        "image_type", "VEHICLE",
                         "license_plate", licensePlate,
                         "parking_session_id", parkingSessionId.toString()
                 )
@@ -972,6 +1032,12 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
     private void requirePersonImage(MultipartFile personImage) {
         if (personImage == null || personImage.isEmpty()) {
             throw new BadRequestException("personImage must not be empty");
+        }
+    }
+
+    private void requireVehicleImage(MultipartFile vehicleImage) {
+        if (vehicleImage == null || vehicleImage.isEmpty()) {
+            throw new BadRequestException("vehicleImage must not be empty");
         }
     }
 

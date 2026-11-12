@@ -11,16 +11,26 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import com.ban.vehicle_management.infrastructure.persistence.database.projection.iam.AccountDeletionResourceScopeProjection;
+import java.util.Collection;
 import org.springframework.data.domain.Pageable;
 
 public interface PaymentRepository extends JpaRepository<PaymentEntity, UUID>, JpaSpecificationExecutor<PaymentEntity> {
 
+    Optional<PaymentEntity> findFirstByInvoice_CustomerIdAndStatusOrderByCreatedAtAsc(
+            UUID customerId,
+            PaymentStatus status);
+
     @Query(value = """
-        select payment.payment_id from billing.payments payment
-        join billing.invoices invoice on invoice.invoice_id=payment.invoice_id
-        where invoice.customer_id=:customerId and payment.status='PENDING' limit 1
+        select payment.payment_id as "resourceId", lot.organization_id as "organizationId",
+               lot.parking_lot_id as "parkingLotId"
+          from billing.payments payment
+          join billing.invoices invoice on invoice.invoice_id = payment.invoice_id
+          join parking.parking_lots lot on lot.parking_lot_id = invoice.parking_lot_id
+         where lot.organization_id in (:organizationIds) and payment.status = 'PENDING'
         """, nativeQuery = true)
-    Optional<UUID> findDeletionBlockingPaymentId(@Param("customerId") UUID customerId);
+    List<AccountDeletionResourceScopeProjection> findOrganizationDeletionBlockers(
+            @Param("organizationIds") Collection<UUID> organizationIds);
 
     List<PaymentEntity> findByInvoiceIdOrderByPaidAtAsc(UUID invoiceId);
 

@@ -94,9 +94,32 @@ public interface ParkingLotRepository extends JpaRepository<ParkingLotEntity, UU
 
     long countByOrganizationIdAndParkingLotIdIn(UUID organizationId, Collection<UUID> parkingLotIds);
 
+    @Query("""
+        select count(lot) from ParkingLotEntity lot, OrganizationEntity organization
+        where lot.organizationId = :organizationId
+          and lot.parkingLotId in :parkingLotIds
+          and organization.organizationId = lot.organizationId
+          and organization.status = com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus.ACTIVE
+          and lot.status <> com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus.CLOSED
+        """)
+    long countBusinessWritableByOrganizationIdAndParkingLotIdIn(
+            @Param("organizationId") UUID organizationId,
+            @Param("parkingLotIds") Collection<UUID> parkingLotIds);
+
     long countByOrganizationId(UUID organizationId);
 
     long countByOrganizationIdAndStatus(UUID organizationId, ParkingLotStatus status);
+
+    @Query("""
+        select lot from ParkingLotEntity lot, OrganizationEntity organization
+        where lot.parkingLotId = :parkingLotId
+          and organization.organizationId = lot.organizationId
+          and lot.status <> com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus.CLOSED
+          and organization.status not in (
+              com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus.CLOSING,
+              com.ban.vehicle_management.shared.enumeration.iam.OrganizationStatus.CLOSED)
+        """)
+    Optional<ParkingLotEntity> findBusinessVisibleById(@Param("parkingLotId") UUID parkingLotId);
 
     boolean existsByParkingLotIdAndStatus(UUID parkingLotId, ParkingLotStatus status);
 
@@ -116,4 +139,13 @@ public interface ParkingLotRepository extends JpaRepository<ParkingLotEntity, UU
     int updateManagementState(
             @Param("parkingLotId") UUID parkingLotId,
             @Param("state") ParkingLotManagementState state);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update ParkingLotEntity lot
+        set lot.status = com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus.CLOSED
+        where lot.organizationId in :organizationIds
+          and lot.status <> com.ban.vehicle_management.shared.enumeration.parking.ParkingLotStatus.CLOSED
+        """)
+    int closeAllByOrganizationIds(@Param("organizationIds") Collection<UUID> organizationIds);
 }

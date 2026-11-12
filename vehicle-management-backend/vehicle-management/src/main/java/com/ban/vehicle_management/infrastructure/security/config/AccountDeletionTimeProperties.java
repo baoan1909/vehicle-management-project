@@ -15,6 +15,7 @@ public class AccountDeletionTimeProperties {
     private Duration retryBaseDelay = Duration.ofMinutes(1);
     private int maxAttempts = 10;
     private int batchSize = 25;
+    private Duration organizationDocumentRetention = Duration.ofDays(30);
 
     public Duration getGracePeriod() { return gracePeriod; }
     public void setGracePeriod(Duration gracePeriod) { this.gracePeriod = gracePeriod; }
@@ -30,4 +31,8 @@ public class AccountDeletionTimeProperties {
     public void setMaxAttempts(int maxAttempts) { this.maxAttempts = maxAttempts; }
     public int getBatchSize() { return batchSize; }
     public void setBatchSize(int batchSize) { this.batchSize = batchSize; }
+    public Duration getOrganizationDocumentRetention() { return organizationDocumentRetention; }
+    public void setOrganizationDocumentRetention(Duration organizationDocumentRetention) {
+        this.organizationDocumentRetention = organizationDocumentRetention;
+    }
 }

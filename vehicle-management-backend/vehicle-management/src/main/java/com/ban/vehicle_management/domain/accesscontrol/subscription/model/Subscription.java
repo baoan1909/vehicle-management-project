@@ -53,4 +53,7 @@ public class Subscription extends AuditableDomainModel {
     private Boolean spaceSelectionRequired = false;
     private Instant spaceSelectionConfirmedAt;
     private Instant spaceSelectionExpiresAt;
+    private Instant terminatedAt;
+    private String terminationReason;
+    private UUID accountDeletionRequestId;
 }

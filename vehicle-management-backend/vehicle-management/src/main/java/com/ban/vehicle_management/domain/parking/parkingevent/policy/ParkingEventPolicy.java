@@ -27,6 +27,11 @@ public class ParkingEventPolicy {
                 "licensePlateImagePath",
                 255
         ));
+        parkingEvent.setVehicleImagePath(TextValidationUtils.normalizeNullableText(
+                parkingEvent.getVehicleImagePath(),
+                "vehicleImagePath",
+                255
+        ));
         parkingEvent.setPersonImagePath(TextValidationUtils.normalizeNullableText(
                 parkingEvent.getPersonImagePath(),
                 "personImagePath",

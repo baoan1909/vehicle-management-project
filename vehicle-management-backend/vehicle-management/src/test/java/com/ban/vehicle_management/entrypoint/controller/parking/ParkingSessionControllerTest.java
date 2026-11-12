@@ -13,6 +13,8 @@ import com.ban.vehicle_management.application.parking.parkingsession.model.comma
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckInResult;
 import com.ban.vehicle_management.application.parking.parkingsession.model.result.CheckOutResult;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingSessionPortIn;
+import com.ban.vehicle_management.application.parking.checkinspacehold.mapper.CheckInSpaceHoldApiMapper;
+import com.ban.vehicle_management.application.parking.checkinspacehold.port.in.CheckInSpaceHoldPortIn;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckInParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.request.CheckOutParkingSessionRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.parkingsession.response.ParkingSessionCheckInResponse;
@@ -40,13 +42,25 @@ class ParkingSessionControllerTest {
     @Mock
     private ParkingSessionApiMapper parkingSessionApiMapper;
 
-    @Test
-    void shouldParseCheckInRequestJsonPartBeforeCallingUseCase() {
-        ParkingSessionController controller = new ParkingSessionController(
+    @Mock
+    private CheckInSpaceHoldPortIn checkInSpaceHoldPortIn;
+
+    @Mock
+    private CheckInSpaceHoldApiMapper checkInSpaceHoldApiMapper;
+
+    private ParkingSessionController controller() {
+        return new ParkingSessionController(
                 parkingSessionPortIn,
                 parkingSessionApiMapper,
-                new ParkingSessionRequestConverter(new ObjectMapper())
+                new ParkingSessionRequestConverter(new ObjectMapper()),
+                checkInSpaceHoldPortIn,
+                checkInSpaceHoldApiMapper
         );
+    }
+
+    @Test
+    void shouldParseCheckInRequestJsonPartBeforeCallingUseCase() {
+        ParkingSessionController controller = controller();
         UUID laneId = UUID.randomUUID();
         UUID vehicleTypeId = UUID.randomUUID();
         MockMultipartFile licensePlateImage = new MockMultipartFile(
@@ -61,6 +75,7 @@ class ParkingSessionControllerTest {
                 "image/jpeg",
                 new byte[] {4, 5, 6}
         );
+        MockMultipartFile vehicleImage = vehicleImage();
         CheckInCommand command = new CheckInCommand(
                 "RFID-REGISTERED-001",
                 laneId,
@@ -78,6 +93,7 @@ class ParkingSessionControllerTest {
         when(parkingSessionApiMapper.toCommand(
                 any(CheckInParkingSessionRequest.class),
                 same(licensePlateImage),
+                same(vehicleImage),
                 same(personImage)
         ))
                 .thenReturn(command);
@@ -94,12 +110,13 @@ class ParkingSessionControllerTest {
                 }
                 """.formatted(laneId),
                 licensePlateImage,
+                vehicleImage,
                 personImage
         );
 
         ArgumentCaptor<CheckInParkingSessionRequest> requestCaptor =
                 ArgumentCaptor.forClass(CheckInParkingSessionRequest.class);
-        verify(parkingSessionApiMapper).toCommand(requestCaptor.capture(), same(licensePlateImage), same(personImage));
+        verify(parkingSessionApiMapper).toCommand(requestCaptor.capture(), same(licensePlateImage), same(vehicleImage), same(personImage));
         CheckInParkingSessionRequest parsedRequest = requestCaptor.getValue();
         assertEquals("RFID-REGISTERED-001", parsedRequest.cardUid());
         assertEquals(laneId, parsedRequest.laneId());
@@ -111,11 +128,7 @@ class ParkingSessionControllerTest {
 
     @Test
     void shouldRejectMalformedCheckInRequestJsonPart() {
-        ParkingSessionController controller = new ParkingSessionController(
-                parkingSessionPortIn,
-                parkingSessionApiMapper,
-                new ParkingSessionRequestConverter(new ObjectMapper())
-        );
+        ParkingSessionController controller = controller();
         MockMultipartFile licensePlateImage = new MockMultipartFile(
                 "licensePlateImage",
                 "plate.jpg",
@@ -128,10 +141,11 @@ class ParkingSessionControllerTest {
                 "image/jpeg",
                 new byte[] {4, 5, 6}
         );
+        MockMultipartFile vehicleImage = vehicleImage();
 
         BadRequestException exception = assertThrows(
                 BadRequestException.class,
-                () -> controller.checkIn("{", licensePlateImage, personImage)
+                () -> controller.checkIn("{", licensePlateImage, vehicleImage, personImage)
         );
 
         assertEquals("request part must be valid JSON", exception.getMessage());
@@ -139,11 +153,7 @@ class ParkingSessionControllerTest {
 
     @Test
     void shouldParseCheckOutRequestJsonPartBeforeCallingUseCase() {
-        ParkingSessionController controller = new ParkingSessionController(
-                parkingSessionPortIn,
-                parkingSessionApiMapper,
-                new ParkingSessionRequestConverter(new ObjectMapper())
-        );
+        ParkingSessionController controller = controller();
         UUID laneId = UUID.randomUUID();
         MockMultipartFile licensePlateImage = new MockMultipartFile(
                 "licensePlateImage",
@@ -157,6 +167,7 @@ class ParkingSessionControllerTest {
                 "image/jpeg",
                 new byte[] {4, 5, 6}
         );
+        MockMultipartFile vehicleImage = vehicleImage();
         CheckOutCommand command = new CheckOutCommand(
                 laneId,
                 "RFID-VISITOR-001",
@@ -173,6 +184,7 @@ class ParkingSessionControllerTest {
         when(parkingSessionApiMapper.toCommand(
                 any(CheckOutParkingSessionRequest.class),
                 same(licensePlateImage),
+                same(vehicleImage),
                 same(personImage)
         ))
                 .thenReturn(command);
@@ -189,12 +201,13 @@ class ParkingSessionControllerTest {
                 }
                 """.formatted(laneId),
                 licensePlateImage,
+                vehicleImage,
                 personImage
         );
 
         ArgumentCaptor<CheckOutParkingSessionRequest> requestCaptor =
                 ArgumentCaptor.forClass(CheckOutParkingSessionRequest.class);
-        verify(parkingSessionApiMapper).toCommand(requestCaptor.capture(), same(licensePlateImage), same(personImage));
+        verify(parkingSessionApiMapper).toCommand(requestCaptor.capture(), same(licensePlateImage), same(vehicleImage), same(personImage));
         CheckOutParkingSessionRequest parsedRequest = requestCaptor.getValue();
         assertEquals(laneId, parsedRequest.laneId());
         assertEquals("RFID-VISITOR-001", parsedRequest.cardUid());
@@ -207,11 +220,7 @@ class ParkingSessionControllerTest {
 
     @Test
     void shouldParseSubscriptionQrPayloadForCheckOut() {
-        ParkingSessionController controller = new ParkingSessionController(
-                parkingSessionPortIn,
-                parkingSessionApiMapper,
-                new ParkingSessionRequestConverter(new ObjectMapper())
-        );
+        ParkingSessionController controller = controller();
         UUID laneId = UUID.randomUUID();
         MockMultipartFile licensePlateImage = new MockMultipartFile(
                 "licensePlateImage", "plate.jpg", "image/jpeg", new byte[] {1}
@@ -219,12 +228,14 @@ class ParkingSessionControllerTest {
         MockMultipartFile personImage = new MockMultipartFile(
                 "personImage", "person.jpg", "image/jpeg", new byte[] {2}
         );
+        MockMultipartFile vehicleImage = vehicleImage();
         String qrPayload = "COPARKING:SUBSCRIPTION:1:abcdefghijklmnopqrstuvwxyzABCDEFGH123456789";
         CheckOutCommand command = new CheckOutCommand(
                 laneId,
                 null,
                 "60K8-2301",
                 licensePlateImage,
+                vehicleImage,
                 personImage,
                 null,
                 qrPayload
@@ -236,6 +247,7 @@ class ParkingSessionControllerTest {
         when(parkingSessionApiMapper.toCommand(
                 any(CheckOutParkingSessionRequest.class),
                 same(licensePlateImage),
+                same(vehicleImage),
                 same(personImage)
         )).thenReturn(command);
         when(parkingSessionPortIn.checkOut(command)).thenReturn(result);
@@ -250,6 +262,7 @@ class ParkingSessionControllerTest {
                 }
                 """.formatted(laneId, qrPayload),
                 licensePlateImage,
+                vehicleImage,
                 personImage
         );
 
@@ -258,9 +271,16 @@ class ParkingSessionControllerTest {
         verify(parkingSessionApiMapper).toCommand(
                 requestCaptor.capture(),
                 same(licensePlateImage),
+                same(vehicleImage),
                 same(personImage)
         );
         assertEquals(qrPayload, requestCaptor.getValue().subscriptionQrPayload());
         assertEquals(null, requestCaptor.getValue().cardUid());
+    }
+
+    private MockMultipartFile vehicleImage() {
+        return new MockMultipartFile(
+                "vehicleImage", "vehicle.jpg", "image/jpeg", new byte[] {7, 8, 9}
+        );
     }
 }
