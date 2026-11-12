@@ -2,8 +2,14 @@
 
 ## Khởi động môi trường phát triển
 
-Image nội bộ được build từ `pgvector/pgvector:0.8.6-pg17` và cài thêm
-PostGIS cho PostgreSQL 17:
+Image nội bộ được build từ `postgis/postgis:17-3.7` đã khóa digest và biên
+dịch pgvector `0.8.6` từ commit đã khóa trên chính PostgreSQL 17 của image.
+Cách này bảo đảm PostGIS, pgvector và PostgreSQL dùng cùng ABI, đồng thời ngăn
+CI tự lấy một binary extension mới không tương thích từ APT:
+
+Image cũng duy trì alias IANA `Asia/Saigon` trỏ tới timezone chuẩn
+`Asia/Ho_Chi_Minh` để JDBC client trên các hệ điều hành khác nhau đều kết nối
+được trước khi migration chuẩn hóa timezone của database.
 
 ```powershell
 $env:DB_HOST_PORT = "5434"

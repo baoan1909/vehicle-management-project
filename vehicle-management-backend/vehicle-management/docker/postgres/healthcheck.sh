@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+export PGCONNECT_TIMEOUT=5
+
 pg_isready --username "${POSTGRES_USER}" --dbname "${POSTGRES_DB}" >/dev/null
 
 extension_count="$(

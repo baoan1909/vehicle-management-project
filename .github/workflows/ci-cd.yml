@@ -282,6 +282,10 @@ jobs:
             if docker exec coparking-ci-postgres /usr/local/bin/vehicle-postgres-healthcheck; then
               exit 0
             fi
+            if [ "$(docker inspect --format '{{.State.Running}}' coparking-ci-postgres)" != "true" ]; then
+              docker logs coparking-ci-postgres
+              exit 1
+            fi
             sleep 2
           done
           docker logs coparking-ci-postgres
