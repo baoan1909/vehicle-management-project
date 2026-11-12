@@ -6,11 +6,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.ban.vehicle_management.shared.time.ApplicationTimeService;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -24,6 +32,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Import(ParkingLocationApiSecurityIntegrationTest.FixedRateLimitTimeConfiguration.class)
 class ParkingLocationApiSecurityIntegrationTest extends com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport {
 
     @Autowired
@@ -83,5 +92,19 @@ class ParkingLocationApiSecurityIntegrationTest extends com.ban.vehicle_manageme
             request.setRemoteAddr(value);
             return request;
         };
+    }
+
+    @TestConfiguration(proxyBeanMethods = false)
+    static class FixedRateLimitTimeConfiguration {
+
+        @Bean
+        @Primary
+        ApplicationTimeService fixedRateLimitApplicationTimeService() {
+            ZoneId appZone = ZoneId.of("Asia/Ho_Chi_Minh");
+            return new ApplicationTimeService(
+                    appZone,
+                    Clock.fixed(Instant.parse("2026-11-12T18:00:30Z"), appZone)
+            );
+        }
     }
 }

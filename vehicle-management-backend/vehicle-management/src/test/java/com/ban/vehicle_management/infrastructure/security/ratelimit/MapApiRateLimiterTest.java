@@ -6,11 +6,18 @@ import static org.mockito.Mockito.mock;
 
 import com.ban.vehicle_management.infrastructure.cache.RedisProperties;
 import com.ban.vehicle_management.shared.exception.MapRequestLimitException;
+import com.ban.vehicle_management.shared.time.ApplicationTimeService;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
 class MapApiRateLimiterTest {
+
+    private static final ZoneId APP_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final Instant NOW = Instant.parse("2026-11-12T17:59:59Z");
 
     @Test
     void shouldApplyLowerLimitToAnonymousIp() {
@@ -55,6 +62,15 @@ class MapApiRateLimiterTest {
     private MapApiRateLimiter limiter(MapApiRateLimitProperties properties) {
         RedisProperties redisProperties = new RedisProperties();
         redisProperties.setEnabled(false);
-        return new MapApiRateLimiter(properties, redisProperties, mock(ObjectProvider.class));
+        ApplicationTimeService timeService = new ApplicationTimeService(
+                APP_ZONE,
+                Clock.fixed(NOW, APP_ZONE)
+        );
+        return new MapApiRateLimiter(
+                properties,
+                redisProperties,
+                mock(ObjectProvider.class),
+                timeService
+        );
     }
 }
