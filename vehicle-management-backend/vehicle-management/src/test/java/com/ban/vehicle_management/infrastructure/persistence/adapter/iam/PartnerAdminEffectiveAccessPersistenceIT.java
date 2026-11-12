@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.infrastructure.persistence.adapter.iam;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.ban.vehicle_management.domain.iam.account.model.AccountProfileState;
 import com.ban.vehicle_management.domain.iam.account.model.CurrentAccountAccess;
@@ -43,7 +42,7 @@ class PartnerAdminEffectiveAccessPersistenceIT extends PostgresIntegrationTestSu
         UUID organizationId = createOrganization(OrganizationStatus.ACTIVE);
         createMembership(organizationId, accountId, OrganizationMembershipStatus.ACTIVE);
 
-        assertEffectiveAccess(accountId, true, true, true);
+        assertEffectiveAccess(accountId, true, true, true, true);
         assertEquals(0L, countPartnerApprovalRequests(accountId));
     }
 
@@ -51,7 +50,7 @@ class PartnerAdminEffectiveAccessPersistenceIT extends PostgresIntegrationTestSu
     void activePartnerWithoutMembershipShouldNotUsePermissions() {
         UUID accountId = createAccount("PARTNER_ADMIN", AccountStatus.ACTIVE);
 
-        assertEffectiveAccess(accountId, true, false, false);
+        assertEffectiveAccess(accountId, true, false, false, false);
     }
 
     @Test
@@ -60,7 +59,7 @@ class PartnerAdminEffectiveAccessPersistenceIT extends PostgresIntegrationTestSu
         UUID organizationId = createOrganization(OrganizationStatus.SUSPENDED);
         createMembership(organizationId, accountId, OrganizationMembershipStatus.ACTIVE);
 
-        assertEffectiveAccess(accountId, true, false, false);
+        assertEffectiveAccess(accountId, true, false, false, false);
     }
 
     @Test
@@ -69,7 +68,7 @@ class PartnerAdminEffectiveAccessPersistenceIT extends PostgresIntegrationTestSu
         UUID organizationId = createOrganization(OrganizationStatus.ACTIVE);
         createMembership(organizationId, accountId, OrganizationMembershipStatus.INACTIVE);
 
-        assertEffectiveAccess(accountId, true, false, false);
+        assertEffectiveAccess(accountId, true, false, false, false);
     }
 
     @Test
@@ -80,7 +79,7 @@ class PartnerAdminEffectiveAccessPersistenceIT extends PostgresIntegrationTestSu
         createMembership(inactiveOrganizationId, accountId, OrganizationMembershipStatus.ACTIVE);
         createMembership(activeOrganizationId, accountId, OrganizationMembershipStatus.ACTIVE);
 
-        assertEffectiveAccess(accountId, true, true, true);
+        assertEffectiveAccess(accountId, true, true, true, true);
     }
 
     @Test
@@ -89,7 +88,7 @@ class PartnerAdminEffectiveAccessPersistenceIT extends PostgresIntegrationTestSu
         UUID organizationId = createOrganization(OrganizationStatus.ACTIVE);
         createMembership(organizationId, accountId, OrganizationMembershipStatus.ACTIVE);
 
-        assertEffectiveAccess(accountId, false, false, true);
+        assertEffectiveAccess(accountId, false, false, false, true);
     }
 
     @Test
@@ -102,19 +101,20 @@ class PartnerAdminEffectiveAccessPersistenceIT extends PostgresIntegrationTestSu
         UUID organizationId = createOrganization(OrganizationStatus.ACTIVE);
         createMembership(organizationId, accountId, OrganizationMembershipStatus.ACTIVE);
 
-        assertEffectiveAccess(accountId, false, false, false);
+        assertEffectiveAccess(accountId, false, false, false, true);
     }
 
     @Test
     void systemAdminStillUsesPermissionsWithoutOrganizationMembership() {
         UUID accountId = createAccount("SYSTEM_ADMIN", AccountStatus.ACTIVE);
 
-        assertEffectiveAccess(accountId, true, false, false);
+        assertEffectiveAccess(accountId, true, true, false, false);
     }
 
     private void assertEffectiveAccess(
             UUID accountId,
             boolean expectedCommonGate,
+            boolean expectedCommonPermission,
             boolean expectedPartnerScope,
             boolean expectedActivePartnerMembership
     ) {
@@ -134,22 +134,28 @@ class PartnerAdminEffectiveAccessPersistenceIT extends PostgresIntegrationTestSu
         );
         assertEquals(expectedPartnerScope,
                 currentAccess.getEffectivePermissionCodes().contains("PARKING_SCOPE_PARTNER"));
-        if (expectedCommonGate) {
-            assertTrue(onboarding.permissionCodes().contains("ORGANIZATION_READ_ALL"));
-        }
+        assertEquals(expectedCommonPermission,
+                onboarding.permissionCodes().contains("ORGANIZATION_READ_ALL"));
     }
 
     private UUID createAccount(String roleCode, AccountStatus status) {
         UUID accountId = UUID.randomUUID();
         UUID roleId = "PARTNER_ADMIN".equals(roleCode) ? PARTNER_ADMIN_ROLE_ID : SYSTEM_ADMIN_ROLE_ID;
+        UUID profileId = UUID.randomUUID();
+        jdbcTemplate.update(
+                "insert into people.user_profiles (user_profile_id, full_name, status, created_at) "
+                        + "values (?, ?, 'ACTIVE', now())",
+                profileId, "Account " + accountId
+        );
         jdbcTemplate.update(
                 """
                 insert into iam.accounts (
-                    account_id, username, email, keycloak_user_id, role_id,
+                    account_id, user_profile_id, username, email, keycloak_user_id, role_id,
                     status, failed_login_count, created_at
-                ) values (?, ?, ?, ?, ?, ?, 0, now())
+                ) values (?, ?, ?, ?, ?, ?, ?, 0, now())
                 """,
                 accountId,
+                profileId,
                 "account-" + accountId,
                 "account-" + accountId + "@example.com",
                 "subject-" + accountId,

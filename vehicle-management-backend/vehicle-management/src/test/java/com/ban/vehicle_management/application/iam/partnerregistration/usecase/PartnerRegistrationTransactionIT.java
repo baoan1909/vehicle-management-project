@@ -20,7 +20,10 @@ import com.ban.vehicle_management.infrastructure.mail.VehicleMailService;
 import com.ban.vehicle_management.infrastructure.persistence.adapter.iam.AccountAuthorizationPersistenceAdapter;
 import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import com.ban.vehicle_management.testsupport.PostgresIntegrationTestSupport;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +51,9 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
     @MockitoBean VehicleMailService vehicleMailService;
     @MockitoBean RequiresNewNotificationSender notificationSender;
 
+    private final Set<UUID> createdAccountIds = new HashSet<>();
+    private final Set<UUID> createdProfileIds = new HashSet<>();
+    private final Set<String> createdOrganizationCodes = new HashSet<>();
     private UUID reviewerId;
 
     @BeforeEach
@@ -56,6 +62,20 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
         reviewerId = createAccount(null, SYSTEM_ADMIN_ROLE_ID, AccountStatus.ACTIVE, "reviewer");
         when(currentAccount.getCurrentAccountIdOrThrow()).thenReturn(reviewerId);
         when(identityProvider.isEmailVerified(any())).thenReturn(true);
+    }
+
+    @AfterEach
+    void cleanUpCommittedFixtures() {
+        createdAccountIds.forEach(accountId -> {
+            jdbcTemplate.update("delete from operations.approval_requests where requested_by = ?", accountId);
+            jdbcTemplate.update("delete from iam.organization_memberships where account_id = ?", accountId);
+        });
+        createdOrganizationCodes.forEach(code ->
+                jdbcTemplate.update("delete from iam.organizations where code = ?", code));
+        createdAccountIds.forEach(accountId ->
+                jdbcTemplate.update("delete from iam.accounts where account_id = ?", accountId));
+        createdProfileIds.forEach(profileId ->
+                jdbcTemplate.update("delete from people.user_profiles where user_profile_id = ?", profileId));
     }
 
     @Test
@@ -149,9 +169,11 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
 
     private Fixture createPendingRegistration() {
         UUID profileId = UUID.randomUUID();
+        createdProfileIds.add(profileId);
         UUID accountId = createAccount(null, PARTNER_ADMIN_ROLE_ID, AccountStatus.PENDING, "partner");
         UUID approvalId = UUID.randomUUID();
         String organizationCode = ("PARTNER-" + UUID.randomUUID().toString().substring(0, 8)).toUpperCase();
+        createdOrganizationCodes.add(organizationCode);
         String phone = "09" + String.format("%08d", Math.abs(accountId.hashCode() % 100_000_000));
         String identity = "ID" + accountId.toString().replace("-", "").substring(0, 12);
 
@@ -187,6 +209,7 @@ class PartnerRegistrationTransactionIT extends PostgresIntegrationTestSupport {
 
     private UUID createAccount(UUID profileId, UUID roleId, AccountStatus status, String prefix) {
         UUID accountId = UUID.randomUUID();
+        createdAccountIds.add(accountId);
         jdbcTemplate.update(
                 """
                 insert into iam.accounts (

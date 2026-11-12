@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.entrypoint.operations;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -21,6 +22,7 @@ import org.hibernate.stat.Statistics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.TaskScheduler;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -51,6 +53,7 @@ class PendingCustomerSupportFlowIT extends PostgresIntegrationTestSupport {
     @Autowired EntityManagerFactory entityManagerFactory;
     @Autowired EntityManager entityManager;
     @MockitoBean JwtDecoder jwtDecoder;
+    @MockitoBean TaskScheduler taskScheduler;
     private Statistics statistics;
 
     @BeforeEach
@@ -70,8 +73,8 @@ class PendingCustomerSupportFlowIT extends PostgresIntegrationTestSupport {
         mockMvc.perform(get("/api/operations/support-tickets/mine")
                         .header("Authorization", "Bearer pending-support-token"))
                 .andExpect(status().isOk());
-        assertEquals(7L, statistics.getPrepareStatementCount(),
-                "current-access aggregate (5) + narrow customer lookup (1) + ticket query (1)");
+        assertEquals(9L, statistics.getPrepareStatementCount(),
+                "current-access aggregate (5) + deletion guard (2) + narrow customer lookup (1) + ticket query (1)");
 
         UUID categoryId = jdbcTemplate.queryForObject(
                 "select category_id from operations.support_ticket_categories where status = 'ACTIVE' limit 1",
@@ -114,14 +117,16 @@ class PendingCustomerSupportFlowIT extends PostgresIntegrationTestSupport {
                         .content("{\"content\":\"I need onboarding help\"}"))
                 .andExpect(status().isCreated());
         long sendStatements = statistics.getPrepareStatementCount();
-        assertEquals(24L, createStatements,
-                "authorization (5), identity (1), idempotent ticket write and notification fan-out");
-        assertEquals(15L, assistantStatements,
-                "authorization (5), identity (1), assistant conversation/member lookup and creation");
-        assertEquals(9L, historyStatements,
-                "authorization (5), conversation ownership/membership and history read");
-        assertEquals(16L, sendStatements,
-                "authorization (5), membership recheck, message write and assistant job enqueue");
+        assertAll(
+                () -> assertEquals(25L, createStatements,
+                        "authorization, deletion guard, identity, idempotent ticket write and notification fan-out"),
+                () -> assertEquals(18L, assistantStatements,
+                        "authorization, deletion guard, identity, assistant conversation/member lookup and creation"),
+                () -> assertEquals(11L, historyStatements,
+                        "authorization, deletion guard, conversation ownership/membership and history read"),
+                () -> assertEquals(20L, sendStatements,
+                        "authorization, deletion guard, membership recheck, message write and assistant job enqueue")
+        );
     }
 
     @Test
@@ -137,7 +142,7 @@ class PendingCustomerSupportFlowIT extends PostgresIntegrationTestSupport {
         mockMvc.perform(get("/api/operations/support-tickets/mine")
                         .header("Authorization", "Bearer rejected-support-token"))
                 .andExpect(status().isOk());
-        assertEquals(7L, statistics.getPrepareStatementCount());
+        assertEquals(9L, statistics.getPrepareStatementCount());
 
         String currentAccess = mockMvc.perform(get("/api/iam/accounts/current-access")
                         .header("Authorization", "Bearer rejected-support-token"))

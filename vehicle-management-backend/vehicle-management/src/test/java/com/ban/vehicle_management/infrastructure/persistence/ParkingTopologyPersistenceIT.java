@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -26,6 +27,7 @@ import com.ban.vehicle_management.shared.enumeration.parking.TrackingMode;
 import com.ban.vehicle_management.shared.enumeration.parking.ZoneStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import com.ban.vehicle_management.shared.exception.ConflictException;
+import com.ban.vehicle_management.shared.utils.IdentifierGenerationUtils;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -125,7 +127,7 @@ class ParkingTopologyPersistenceIT extends com.ban.vehicle_management.testsuppor
 
         assertEquals(lotA, created.getParkingLotId());
         assertEquals(levelA1, created.getParkingLevelId());
-        assertEquals("Z1", created.getCode());
+        assertEquals(IdentifierGenerationUtils.generateZoneCode(created.getZoneId()), created.getCode());
         assertEquals(ZoneStatus.ACTIVE, created.getStatus());
 
         Zone reloaded = zoneUseCase.getZoneById(created.getZoneId());
@@ -136,7 +138,7 @@ class ParkingTopologyPersistenceIT extends com.ban.vehicle_management.testsuppor
                 "SELECT parking_lot_id, parking_level_id, code FROM parking.zones WHERE zone_id = ?", created.getZoneId());
         assertEquals(lotA, row.get("parking_lot_id"));
         assertEquals(levelA1, row.get("parking_level_id"));
-        assertEquals("Z1", row.get("code"));
+        assertEquals(created.getCode(), row.get("code"));
     }
 
     @Test
@@ -148,10 +150,13 @@ class ParkingTopologyPersistenceIT extends com.ban.vehicle_management.testsuppor
     }
 
     @Test
-    void shouldRejectDuplicateZoneCodeInSameLot() {
-        zoneUseCase.createZone(newZone(levelA1, "DUP", "Zone Dup", 10));
+    void shouldGenerateUniqueZoneCodesInSameLot() {
+        Zone first = zoneUseCase.createZone(newZone(levelA1, "DUP", "Zone Dup", 10));
+        Zone second = zoneUseCase.createZone(newZone(levelA2, "dup", "Zone Dup 2", 5));
 
-        assertThrows(ConflictException.class, () -> zoneUseCase.createZone(newZone(levelA2, "dup", "Zone Dup 2", 5)));
+        assertNotEquals(first.getCode(), second.getCode());
+        assertEquals(IdentifierGenerationUtils.generateZoneCode(first.getZoneId()), first.getCode());
+        assertEquals(IdentifierGenerationUtils.generateZoneCode(second.getZoneId()), second.getCode());
     }
 
     @Test
@@ -194,18 +199,20 @@ class ParkingTopologyPersistenceIT extends com.ban.vehicle_management.testsuppor
     }
 
     @Test
-    void shouldCreateGateAndEnforceCodeScopePerZone() {
+    void shouldCreateGateWithGeneratedCodePerZone() {
         Zone zoneA = zoneUseCase.createZone(newZone(levelA1, "GA", "Zone GA", 10));
         Zone zoneB = zoneUseCase.createZone(newZone(levelA1, "GB", "Zone GB", 10));
 
         Gate created = gateUseCase.createGate(newGate(zoneA.getZoneId(), "g1", "Gate 1"));
-        assertEquals("G1", created.getCode());
+        assertEquals(IdentifierGenerationUtils.generateGateCode(created.getGateId()), created.getCode());
         assertEquals(GateStatus.ACTIVE, created.getStatus());
 
-        assertThrows(ConflictException.class, () -> gateUseCase.createGate(newGate(zoneA.getZoneId(), "G1", "Gate Dup")));
+        Gate sameZone = gateUseCase.createGate(newGate(zoneA.getZoneId(), "G1", "Gate Dup"));
+        assertNotEquals(created.getCode(), sameZone.getCode());
 
         Gate otherZone = gateUseCase.createGate(newGate(zoneB.getZoneId(), "G1", "Gate Same Code"));
         assertEquals(zoneB.getZoneId(), otherZone.getZoneId());
+        assertEquals(IdentifierGenerationUtils.generateGateCode(otherZone.getGateId()), otherZone.getCode());
     }
 
     @Test
@@ -226,7 +233,7 @@ class ParkingTopologyPersistenceIT extends com.ban.vehicle_management.testsuppor
         Gate gate = gateUseCase.createGate(newGate(zone.getZoneId(), "GL1", "Gate Lane"));
 
         Lane created = laneUseCase.createLane(newLane(gate.getGateId(), "l-in", "Lane In", LaneDirection.IN));
-        assertEquals("L-IN", created.getCode());
+        assertEquals(IdentifierGenerationUtils.generateLaneCode(created.getLaneId()), created.getCode());
         assertEquals(LaneDirection.IN, created.getDirection());
         assertEquals(LaneStatus.ACTIVE, created.getStatus());
 
@@ -237,8 +244,9 @@ class ParkingTopologyPersistenceIT extends com.ban.vehicle_management.testsuppor
         Lane updated = laneUseCase.updateLane(created.getLaneId(), update);
         assertEquals(LaneDirection.OUT, updated.getDirection());
 
-        assertThrows(ConflictException.class,
-                () -> laneUseCase.createLane(newLane(gate.getGateId(), "L-OUT", "Lane Dup", LaneDirection.IN)));
+        Lane anotherLane = laneUseCase.createLane(
+                newLane(gate.getGateId(), "L-OUT", "Lane Dup", LaneDirection.IN));
+        assertNotEquals(created.getCode(), anotherLane.getCode());
 
         assertEquals(LaneStatus.MAINTENANCE, laneUseCase.markLaneMaintenance(created.getLaneId()).getStatus());
         assertEquals(LaneStatus.ACTIVE, laneUseCase.activateLane(created.getLaneId()).getStatus());

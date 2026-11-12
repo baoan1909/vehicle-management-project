@@ -35,6 +35,12 @@ public abstract class PostgresIntegrationTestSupport {
         registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
+        // Integration tests create several distinct Spring contexts (for example,
+        // different @MockitoBean sets). Hikari's production-oriented defaults can
+        // otherwise leave up to ten connections in every cached context and
+        // exhaust the shared PostgreSQL container before a later test can connect.
+        registry.add("spring.datasource.hikari.minimum-idle", () -> 0);
+        registry.add("spring.datasource.hikari.maximum-pool-size", () -> 4);
         registry.add("spring.flyway.url", POSTGRES::getJdbcUrl);
         registry.add("spring.flyway.user", POSTGRES::getUsername);
         registry.add("spring.flyway.password", POSTGRES::getPassword);
