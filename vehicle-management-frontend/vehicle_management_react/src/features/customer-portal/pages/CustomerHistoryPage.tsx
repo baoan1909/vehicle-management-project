@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import {
   getMyParkingSessions,
@@ -106,9 +106,14 @@ function toDateRangeValue(filters: Pick<HistoryFilters, "fromDate" | "toDate">) 
 }
 
 export function CustomerHistoryPage() {
+  const [searchParams] = useSearchParams();
+  const requestedSessionId = searchParams.get("sessionId")?.trim() ?? "";
   const [sessions, setSessions] = useState<CustomerPortalParkingSession[]>([]);
-  const [selectedSessionId, setSelectedSessionId] = useState("");
-  const [filters, setFilters] = useState<HistoryFilters>(createInitialFilters);
+  const [selectedSessionId, setSelectedSessionId] = useState(requestedSessionId);
+  const [filters, setFilters] = useState<HistoryFilters>(() => ({
+    ...createInitialFilters(),
+    keyword: requestedSessionId,
+  }));
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [loading, setLoading] = useState(false);

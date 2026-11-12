@@ -13,6 +13,7 @@ import {
   type UpdateAccountProfileRequest
 } from "@/features/iam/api/accountProfileApi";
 import { AvatarModerationStatusCard } from "@/features/iam/components/AvatarModerationStatusCard";
+import { AccountDeletionPanel } from "@/features/iam/components/AccountDeletionPanel";
 import {
   fetchMyOnboardingApproval,
   resubmitMyOnboardingApproval,
@@ -1010,6 +1011,7 @@ export function InternalProfilePage() {
               </div>
             </div>
 
+            <AccountDeletionPanel />
             <ChangePasswordModal open={passwordOpen} onClose={closePasswordModal} onSubmit={handleChangePassword} />
           </div>
         </div>

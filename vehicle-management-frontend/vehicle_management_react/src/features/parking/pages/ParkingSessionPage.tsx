@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { Badge, DateRangeInput, Drawer, FilterToolbar, PaginationFooter, SelectMenu } from "@/components/ui";
 import {
@@ -265,6 +266,8 @@ function SessionDetailDrawer({
 }
 
 export function ParkingSessionPage() {
+  const [searchParams] = useSearchParams();
+  const requestedSessionId = searchParams.get("sessionId")?.trim() ?? "";
   const { user } = useAuth();
   const hasPartnerParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const hasAssignedParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"]);
@@ -277,11 +280,11 @@ export function ParkingSessionPage() {
   const defaultDateRange = `${daysAgoIso(6)}|${todayIso()}`;
   const [activeTab, setActiveTab] = useState<SessionTab>("all");
   const [dateRange, setDateRange] = useState(defaultDateRange);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(Boolean(requestedSessionId));
   const [isLoading, setIsLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [searchValue, setSearchValue] = useState("");
+  const [searchValue, setSearchValue] = useState(requestedSessionId);
   const [selectedSession, setSelectedSession] = useState<ParkingSessionManagementResponse | null>(null);
   const [sessions, setSessions] = useState<ParkingSessionManagementResponse[]>([]);
   const [vehicleTypeFilter, setVehicleTypeFilter] = useState("all");
@@ -418,6 +421,8 @@ export function ParkingSessionPage() {
           : nextSessions;
         setSessions(visibleSessions);
         setSelectedSession((current) => {
+          const requested = visibleSessions.find((session) => session.parkingSessionId === requestedSessionId);
+          if (requested) return requested;
           if (!current) return visibleSessions[0] ?? null;
           return visibleSessions.find((session) => session.parkingSessionId === current.parkingSessionId) ?? visibleSessions[0] ?? null;
         });
@@ -439,7 +444,7 @@ export function ParkingSessionPage() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [dateRange, permittedLotIds, searchValue, vehicleTypeFilter, zoneFilter, parkingLotFilter, showParkingLotFilter]);
+  }, [dateRange, permittedLotIds, requestedSessionId, searchValue, vehicleTypeFilter, zoneFilter, parkingLotFilter, showParkingLotFilter]);
 
   const vehicleTypeOptions = useMemo(() => buildVehicleTypeOptions(vehicleTypes), [vehicleTypes]);
   const parkingLotOptions = useMemo(() => [

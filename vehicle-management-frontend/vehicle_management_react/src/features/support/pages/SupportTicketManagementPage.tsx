@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { Badge, Button, Card, EntityAvatar, Modal, PaginationFooter, SearchInput, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
@@ -112,6 +112,8 @@ function QueueMetric({ icon, iconClassName, label, value }: { icon: string; icon
 export function SupportTicketManagementPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedTicketId = searchParams.get("ticketId")?.trim() ?? "";
   const toast = useToast();
   const canAssign = hasAnyPermission(user, ["SUPPORT_TICKET_ASSIGN"]);
   const canReviewEscalations = canAssign && hasAnyPermission(user, ["SUPPORT_TICKET_ESCALATION_REVIEW_ALL"]);
@@ -166,6 +168,13 @@ export function SupportTicketManagementPage() {
   }, [canReviewEscalations]);
 
   useEffect(() => { void loadQueue(); }, [loadQueue]);
+  useEffect(() => {
+    if (!requestedTicketId || loading) return;
+    const requestedTicket = tickets.find((ticket) => ticket.supportTicketId === requestedTicketId);
+    if (requestedTicket) void openTicket(requestedTicket);
+  // Opening is intentionally driven only by the requested id and the completed queue load.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, requestedTicketId]);
   useEffect(() => { setCurrentPage(1); }, [keyword, statusFilter, priorityFilter, assigneeFilter, pageSize]);
 
   const employeeByAccountId = useMemo(() => new Map(employees.filter((employee) => employee.accountId).map((employee) => [employee.accountId as string, employee])), [employees]);

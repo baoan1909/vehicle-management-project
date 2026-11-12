@@ -521,6 +521,7 @@ function ReviewDrawer({
 export function SubscriptionApprovalPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const customerIdFilter = searchParams.get("customerId") || undefined;
+  const requestedSubscriptionId = searchParams.get("subscriptionId")?.trim() || null;
   const toast = useToast();
   const { user } = useAuth();
   const canApproveAction = hasAnyPermission(user, ["SUBSCRIPTION_APPROVE_ALL"]);
@@ -532,8 +533,8 @@ export function SubscriptionApprovalPage() {
     && hasAnyPermission(user, ["PARKING_SCOPE_PARTNER", "PARKING_SCOPE_ASSIGNED"]);
   const [subscriptions, setSubscriptions] = useState<SubscriptionApiResponse[]>([]);
   const [lookupData, setLookupData] = useState<LookupData | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(requestedSubscriptionId);
+  const [drawerOpen, setDrawerOpen] = useState(Boolean(requestedSubscriptionId));
   const [statusFilter, setStatusFilter] = useState("all");
   const [ticketTypeFilter, setTicketTypeFilter] = useState("all");
   const [searchValue, setSearchValue] = useState("");
