@@ -4,12 +4,15 @@ import com.ban.vehicle_management.application.billing.wallet.port.out.Settlement
 import com.ban.vehicle_management.domain.billing.wallet.model.PartnerBankAccount;
 import com.ban.vehicle_management.domain.billing.wallet.model.PayoutRequest;
 import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocation;
+import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocationReversal;
+import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocationReversalTotals;
 import com.ban.vehicle_management.domain.billing.wallet.model.VoucherFinancialTerm;
 import com.ban.vehicle_management.infrastructure.mapper.billing.WalletPersistenceMapper;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.LedgerEntryRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.PartnerBankAccountRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.PayoutRequestRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.RevenueAllocationRepository;
+import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.RevenueAllocationReversalRepository;
 import com.ban.vehicle_management.infrastructure.persistence.database.repository.billing.VoucherFinancialTermRepository;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -25,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SettlementPersistenceAdapter implements SettlementPortOut {
 
     private final RevenueAllocationRepository allocationRepository;
+    private final RevenueAllocationReversalRepository reversalRepository;
     private final VoucherFinancialTermRepository termRepository;
     private final PartnerBankAccountRepository bankAccountRepository;
     private final PayoutRequestRepository payoutRepository;
@@ -33,12 +37,14 @@ public class SettlementPersistenceAdapter implements SettlementPortOut {
 
     public SettlementPersistenceAdapter(
             RevenueAllocationRepository allocationRepository,
+            RevenueAllocationReversalRepository reversalRepository,
             VoucherFinancialTermRepository termRepository,
             PartnerBankAccountRepository bankAccountRepository,
             PayoutRequestRepository payoutRepository,
             LedgerEntryRepository ledgerEntryRepository,
             WalletPersistenceMapper mapper) {
         this.allocationRepository = allocationRepository;
+        this.reversalRepository = reversalRepository;
         this.termRepository = termRepository;
         this.bankAccountRepository = bankAccountRepository;
         this.payoutRepository = payoutRepository;
@@ -59,6 +65,29 @@ public class SettlementPersistenceAdapter implements SettlementPortOut {
     @Override
     public Optional<RevenueAllocation> findAllocationByIdForUpdate(UUID allocationId) {
         return allocationRepository.findByIdForUpdate(allocationId).map(mapper::toDomain);
+    }
+
+    @Override
+    public Optional<RevenueAllocationReversal> findReversalByRefundPayment(UUID refundPaymentId) {
+        return reversalRepository.findByRefundPaymentId(refundPaymentId).map(mapper::toDomain);
+    }
+
+    @Override
+    public RevenueAllocationReversalTotals sumReversals(UUID allocationId) {
+        List<RevenueAllocationReversal> reversals = reversalRepository
+                .findByRevenueAllocationId(allocationId).stream().map(mapper::toDomain).toList();
+        return new RevenueAllocationReversalTotals(
+                sum(reversals, RevenueAllocationReversal::getRefundAmount),
+                sum(reversals, RevenueAllocationReversal::getPlatformFeeAmount),
+                sum(reversals, RevenueAllocationReversal::getVoucherCommissionAmount),
+                sum(reversals, RevenueAllocationReversal::getPartnerPayableAmount),
+                sum(reversals, RevenueAllocationReversal::getGatewayFeeAmount),
+                sum(reversals, RevenueAllocationReversal::getDiscountAmount));
+    }
+
+    @Override
+    public RevenueAllocationReversal saveReversal(RevenueAllocationReversal reversal) {
+        return mapper.toDomain(reversalRepository.saveAndFlush(mapper.toEntity(reversal)));
     }
 
     @Override
@@ -139,5 +168,11 @@ public class SettlementPersistenceAdapter implements SettlementPortOut {
                 .collect(java.util.stream.Collectors.toMap(
                         LedgerEntryRepository.AccountNetProjection::getAccountCode,
                         LedgerEntryRepository.AccountNetProjection::getNetAmount));
+    }
+
+    private BigDecimal sum(List<RevenueAllocationReversal> reversals,
+            java.util.function.Function<RevenueAllocationReversal, BigDecimal> amount) {
+        return reversals.stream().map(amount).filter(java.util.Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: docker/postgres/Dockerfile
       args:
-        PGVECTOR_IMAGE: ${PGVECTOR_IMAGE:-pgvector/pgvector:0.8.6-pg17}
+        POSTGIS_IMAGE: ${POSTGIS_IMAGE:-postgis/postgis:17-3.7@sha256:1f0d64ef12bfb344d3569ab6419aca183258b146951daec83f0585d01e6c9cc9}
     image: ${POSTGRES_SPATIAL_IMAGE:-vehicle-management/postgres-pgvector-postgis:17}
     container_name: ${PGVECTOR_CONTAINER_NAME:-vehicle-pgvector}
     environment:

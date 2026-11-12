@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.ban.vehicle_management.domain.billing.wallet.model.VoucherFinancialTerm;
 import com.ban.vehicle_management.shared.enumeration.billing.CommissionBasis;
+import com.ban.vehicle_management.shared.enumeration.billing.FundCustody;
 import com.ban.vehicle_management.shared.enumeration.billing.VoucherFundingSource;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -76,6 +77,19 @@ class RevenueAllocationPolicyTest {
 
         assertEquals(new BigDecimal("12000.00"), allocation.getPlatformFeeAmount());
         assertEquals(new BigDecimal("168000.00"), allocation.getPartnerPayableAmount());
+    }
+
+    @Test
+    void partnerCustodyDoesNotCreatePayableForGrossAlreadyCollectedByPartner() {
+        var allocation = policy.allocateWithPlatformFeeAmount(
+                UUID.randomUUID(), UUID.randomUUID(), null, UUID.randomUUID(), null,
+                new BigDecimal("200000"), BigDecimal.ZERO, new BigDecimal("200000"),
+                new BigDecimal("10000"), BigDecimal.ZERO, null, 7, Instant.now(),
+                FundCustody.PARTNER);
+
+        assertEquals(FundCustody.PARTNER, allocation.getFundCustody());
+        assertEquals(new BigDecimal("10000.00"), allocation.getPlatformFeeAmount());
+        assertEquals(new BigDecimal("0.00"), allocation.getPartnerPayableAmount());
     }
 
     @Test

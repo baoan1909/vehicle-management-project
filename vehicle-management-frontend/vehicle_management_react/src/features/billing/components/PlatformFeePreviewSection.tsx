@@ -6,6 +6,7 @@ import { hasAnyPermission } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
 import {
   previewPlatformFees,
+  type PlatformFeeTransactionType,
   type PlatformFeePreviewResponse,
 } from "@/features/billing/api/platformFeeApi";
 import { usePlatformFeeConfiguration } from "@/features/billing/components/PlatformFeeConfigurationContext";
@@ -18,6 +19,7 @@ import {
   parseMoneyInput,
   platformFeeInputClassName,
   platformFeePermissions,
+  transactionTypeLabels,
   toVersionInstant,
 } from "@/features/billing/components/platformFeeMeta";
 import { nowApplicationLocalDateTime } from "@/shared/time/applicationTime";
@@ -70,6 +72,7 @@ export function PlatformFeePreviewSection({ onBack }: PreviewSectionProps) {
   const [voucher, setVoucher] = useState(100000);
   const [voucherText, setVoucherText] = useState(() => formatMoneyInput(100000));
   const [effectiveAt, setEffectiveAt] = useState(() => nowApplicationLocalDateTime());
+  const [transactionType, setTransactionType] = useState<PlatformFeeTransactionType>("SUBSCRIPTION_PURCHASE");
   const [result, setResult] = useState<PlatformFeePreviewResponse | null>(null);
   const [calculating, setCalculating] = useState(false);
   const [formError, setFormError] = useState("");
@@ -101,7 +104,7 @@ export function PlatformFeePreviewSection({ onBack }: PreviewSectionProps) {
         customerPaidAmount: customerPaid,
         effectiveAt: effectiveAtInstant,
         grossAmount: gross,
-        transactionType: "SUBSCRIPTION_PURCHASE",
+        transactionType,
       });
       setResult(response.data);
     } catch (error) {
@@ -140,7 +143,7 @@ export function PlatformFeePreviewSection({ onBack }: PreviewSectionProps) {
       <header className="tw-grid tw-gap-1">
         <h1 className="tw-m-0 tw-text-[1.75rem] tw-font-black tw-leading-tight tw-text-vm-slate-900">Xem trước tính phí</h1>
         <p className="tw-m-0 tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-500">
-          Mô phỏng cách phân bổ phí trên một đơn mua vé tháng.
+          Mô phỏng cấu hình riêng và cơ chế fallback phí toàn cục cho từng loại giao dịch.
         </p>
       </header>
 
@@ -148,6 +151,19 @@ export function PlatformFeePreviewSection({ onBack }: PreviewSectionProps) {
         <Card className="tw-p-5">
           <h2 className="tw-m-0 tw-mb-4 tw-text-[1rem] tw-font-black tw-text-vm-slate-900">Thông tin đơn giả lập</h2>
           <div className="tw-grid tw-gap-4">
+            <label className="tw-grid tw-grid-cols-[150px_minmax(0,1fr)] tw-items-center tw-gap-3 max-[480px]:tw-grid-cols-1 max-[480px]:tw-items-stretch">
+              <span className="tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-700">Loại giao dịch</span>
+              <select
+                aria-label="Loại giao dịch"
+                className={platformFeeInputClassName}
+                value={transactionType}
+                onChange={(event) => setTransactionType(event.target.value as PlatformFeeTransactionType)}
+              >
+                {(Object.entries(transactionTypeLabels) as [PlatformFeeTransactionType, string][]).map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+            </label>
             <div className="tw-grid tw-grid-cols-[150px_minmax(0,1fr)] tw-items-center tw-gap-3 max-[480px]:tw-grid-cols-1 max-[480px]:tw-items-stretch">
               <span className="tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-700">Giá vé gốc</span>
               <MoneyField
@@ -209,6 +225,16 @@ export function PlatformFeePreviewSection({ onBack }: PreviewSectionProps) {
             </div>
           ) : (
             <div className="tw-grid tw-gap-4">
+              <div className={cn(
+                "tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-py-2.5 tw-text-[0.82rem] tw-font-semibold",
+                result.configurationFound
+                  ? "tw-border-brand-100 tw-bg-brand-50 tw-text-vm-slate-700"
+                  : "tw-border-red-200 tw-bg-red-50 tw-text-red-700",
+              )}>
+                {result.configurationFound
+                  ? `Phạm vi áp dụng: ${result.resolvedScope === "GLOBAL" ? "Toàn bộ giao dịch" : "Theo loại giao dịch"}${result.fallbackApplied ? " (fallback từ cấu hình toàn cục)" : ""}.`
+                  : result.missingConfigurationReason ?? "Không tìm thấy cấu hình phí phù hợp."}
+              </div>
               <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] tw-items-center tw-gap-2 tw-rounded-vm-lg tw-bg-brand-50 tw-p-3 max-[560px]:tw-grid-cols-1">
                 <div className="tw-rounded-vm-md tw-bg-white tw-px-3 tw-py-3 tw-text-center tw-shadow-[0_2px_8px_rgba(15,23,42,0.06)]">
                   <span className="tw-block tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Khách thanh toán</span>

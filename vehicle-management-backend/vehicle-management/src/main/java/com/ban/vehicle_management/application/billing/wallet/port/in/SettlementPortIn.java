@@ -2,6 +2,8 @@ package com.ban.vehicle_management.application.billing.wallet.port.in;
 
 import com.ban.vehicle_management.domain.billing.wallet.model.PayoutRequest;
 import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocation;
+import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocationReversal;
+import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeAssessment;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +14,11 @@ public interface SettlementPortIn {
     RevenueAllocation allocateForWalletPayment(UUID paymentId, UUID voucherId);
 
     RevenueAllocation allocateForCompletedPayment(UUID paymentId);
+
+    PlatformFeeAssessment prepareAssessmentForCompletedPayment(UUID paymentId);
+
+    RevenueAllocationReversal reverseForRefund(
+            UUID originalPaymentId, UUID refundPaymentId, BigDecimal refundAmount);
 
     int releaseDueSettlements(int batchSize);
 

@@ -2,11 +2,11 @@ package com.ban.vehicle_management.infrastructure.security.ratelimit;
 
 import com.ban.vehicle_management.infrastructure.cache.RedisProperties;
 import com.ban.vehicle_management.shared.exception.MapRequestLimitException;
+import com.ban.vehicle_management.shared.time.ApplicationTimeService;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
@@ -21,7 +21,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class MapApiRateLimiter {
 
-    private static final ZoneId VIETNAM_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final DefaultRedisScript<Long> INCREMENT_WINDOW_SCRIPT = new DefaultRedisScript<>("""
             local current = redis.call('INCR', KEYS[1])
             if current == 1 then
@@ -33,24 +32,28 @@ public class MapApiRateLimiter {
     private final MapApiRateLimitProperties properties;
     private final RedisProperties redisProperties;
     private final ObjectProvider<StringRedisTemplate> redisTemplateProvider;
+    private final ApplicationTimeService applicationTimeService;
     private final Map<String, AtomicInteger> localWindows = new ConcurrentHashMap<>();
 
     public MapApiRateLimiter(
             MapApiRateLimitProperties properties,
             RedisProperties redisProperties,
-            ObjectProvider<StringRedisTemplate> redisTemplateProvider
+            ObjectProvider<StringRedisTemplate> redisTemplateProvider,
+            ApplicationTimeService applicationTimeService
     ) {
         this.properties = properties;
         this.redisProperties = redisProperties;
         this.redisTemplateProvider = redisTemplateProvider;
+        this.applicationTimeService = applicationTimeService;
     }
 
     public void check(String remoteAddress, UUID accountId) {
         if (!properties.isEnabled()) return;
         long windowSeconds = properties.getWindow().toSeconds();
-        long windowNumber = Math.floorDiv(Instant.now().getEpochSecond(), windowSeconds);
+        Instant now = applicationTimeService.now();
+        long windowNumber = Math.floorDiv(now.getEpochSecond(), windowSeconds);
         OffsetDateTime retryAfter = Instant.ofEpochSecond((windowNumber + 1L) * windowSeconds)
-                .atZone(VIETNAM_ZONE)
+                .atZone(applicationTimeService.zoneId())
                 .toOffsetDateTime();
 
         String ipIdentity = hashIdentity(remoteAddress == null ? "unknown" : remoteAddress);

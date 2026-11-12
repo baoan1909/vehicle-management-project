@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.ban.vehicle_management.domain.people.employee.model.Employee;
 import com.ban.vehicle_management.shared.enumeration.people.EmployeeStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.LocalDate;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,7 @@ class EmployeePolicyTest {
         employee.setUserProfileId(UUID.randomUUID());
         employee.setEmployeeCode("EMP-001");
         employee.setStatus(EmployeeStatus.ACTIVE);
-        employee.setHiredAt(LocalDate.now().plusDays(1));
+        employee.setHiredAt(LocalDate.now(DateTimeUtils.getAppZone()).plusYears(1));
 
         assertThrows(BadRequestException.class, () -> employeePolicy.validateState(employee));
     }

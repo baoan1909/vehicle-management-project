@@ -130,7 +130,7 @@ export function PlatformFeeDetailSection({ feeTypeId, initialTab = "info", onBac
             customerPaidAmount: NOMINAL_PREVIEW_AMOUNT,
             effectiveAt: new Date().toISOString(),
             grossAmount: NOMINAL_PREVIEW_AMOUNT,
-            transactionType: feeType.transactionType,
+            transactionType: feeType.transactionType ?? "SUBSCRIPTION_PURCHASE",
           });
           setTotalRate(previewResponse.data.effectiveTotalRate);
         } catch {
@@ -412,7 +412,7 @@ export function PlatformFeeDetailSection({ feeTypeId, initialTab = "info", onBac
                     </label>
                     <div className="tw-grid tw-gap-1.5 tw-content-start">
                       <FeeFieldLabel>Loại giao dịch</FeeFieldLabel>
-                      <FeeLockedInput ariaLabel="Loại giao dịch" value={transactionTypeLabels[feeType.transactionType]} />
+                      <FeeLockedInput ariaLabel="Loại giao dịch" value={feeType.scopeType === "GLOBAL" ? "Toàn bộ giao dịch" : transactionTypeLabels[feeType.transactionType!]} />
                     </div>
                   </div>
                   <div className="tw-grid tw-grid-cols-2 tw-gap-4 max-[640px]:tw-grid-cols-1">
@@ -532,7 +532,9 @@ export function PlatformFeeDetailSection({ feeTypeId, initialTab = "info", onBac
           ? (<>Lưu trữ phí <strong>{feeType?.feeCode}</strong>? Phí đã lưu trữ không thể khôi phục.</>)
           : confirmKind === "deactivate"
             ? (<>Ngừng áp dụng phí <strong>{feeType?.feeCode}</strong>?</>)
-            : (<>Kích hoạt phí <strong>{feeType?.feeCode}</strong>? Phí cần thỏa mãn các điều kiện kích hoạt.</>)}
+            : feeType?.scopeType === "GLOBAL"
+              ? (<>Kích hoạt phí <strong>{feeType.feeCode}</strong> cho <strong>toàn bộ loại giao dịch</strong>? Cấu hình riêng theo loại giao dịch vẫn được ưu tiên.</>)
+              : (<>Kích hoạt phí <strong>{feeType?.feeCode}</strong>? Phí cần thỏa mãn các điều kiện kích hoạt.</>)}
         open={confirmKind !== null}
         title={confirmKind === "archive" ? "Lưu trữ phí" : confirmKind === "deactivate" ? "Ngừng áp dụng" : "Kích hoạt phí"}
         tone={confirmKind === "archive" ? "danger" : "default"}

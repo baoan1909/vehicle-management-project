@@ -33,6 +33,7 @@ public interface PlatformFeeApiMapper {
 
     @Mapping(target = "platformFeeTypeId", ignore = true)
     @Mapping(target = "feeCode", ignore = true)
+    @Mapping(target = "scopeType", ignore = true)
     @Mapping(target = "transactionType", ignore = true)
     @Mapping(target = "calculationType", ignore = true)
     @Mapping(target = "chargedTo", ignore = true)
@@ -75,7 +76,11 @@ public interface PlatformFeeApiMapper {
 
     default PlatformFeePreviewResponse toPreviewResponse(PlatformFeePreviewResult result) {
         return new PlatformFeePreviewResponse(
-                result.transactionType(),
+                result.requestedTransactionType(),
+                result.resolvedScope(),
+                result.fallbackApplied(),
+                result.configurationFound(),
+                result.missingConfigurationReason(),
                 result.effectiveAt(),
                 result.grossAmount(),
                 result.customerPaidAmount(),

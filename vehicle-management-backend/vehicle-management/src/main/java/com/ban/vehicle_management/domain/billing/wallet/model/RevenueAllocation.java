@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.domain.billing.wallet.model;
 
 import com.ban.vehicle_management.shared.enumeration.billing.RevenueAllocationStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.FundCustody;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
@@ -29,6 +30,7 @@ public class RevenueAllocation {
     private BigDecimal voucherCommissionAmount;
     private BigDecimal partnerPayableAmount;
     private BigDecimal gatewayFeeAmount;
+    private FundCustody fundCustody;
     private String fundingSourceSnapshot;
     private BigDecimal commissionRateSnapshot;
     private String commissionBasisSnapshot;

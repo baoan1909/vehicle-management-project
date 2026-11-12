@@ -68,19 +68,28 @@ class AuthorizationSqlStatementCountIT extends PostgresIntegrationTestSupport {
     private JwtDecoder jwtDecoder;
 
     private UUID accountId;
+    private UUID profileId;
     private Statistics statistics;
 
     @BeforeEach
     void setUp() {
         accountId = UUID.randomUUID();
+        profileId = UUID.randomUUID();
+        jdbcTemplate.update(
+                "insert into people.user_profiles (user_profile_id, full_name, status, created_at) "
+                        + "values (?, ?, 'ACTIVE', now())",
+                profileId,
+                "Query Count Profile"
+        );
         jdbcTemplate.update(
                 """
                 insert into iam.accounts (
-                    account_id, username, email, keycloak_user_id, role_id,
+                    account_id, user_profile_id, username, email, keycloak_user_id, role_id,
                     status, failed_login_count, created_at
-                ) values (?, ?, ?, ?, ?, 'ACTIVE', 0, now())
+                ) values (?, ?, ?, ?, ?, ?, 'ACTIVE', 0, now())
                 """,
                 accountId,
+                profileId,
                 "query-count-" + accountId,
                 "query-count-" + accountId + "@example.com",
                 "subject-" + accountId,
@@ -95,6 +104,7 @@ class AuthorizationSqlStatementCountIT extends PostgresIntegrationTestSupport {
     void tearDown() {
         SecurityContextHolder.clearContext();
         jdbcTemplate.update("delete from iam.accounts where account_id = ?", accountId);
+        jdbcTemplate.update("delete from people.user_profiles where user_profile_id = ?", profileId);
     }
 
     @Test
@@ -105,7 +115,7 @@ class AuthorizationSqlStatementCountIT extends PostgresIntegrationTestSupport {
 
         currentAccountSecurityAdapter.getCurrentAccountOrThrow();
 
-        assertEquals(3L, statistics.getPrepareStatementCount());
+        assertEquals(5L, statistics.getPrepareStatementCount());
     }
 
     @Test
@@ -116,7 +126,7 @@ class AuthorizationSqlStatementCountIT extends PostgresIntegrationTestSupport {
         currentAccountSecurityAdapter.getCurrentAccountOrThrow();
         currentAccountSecurityAdapter.getCurrentAccountOrThrow();
 
-        assertEquals(3L, statistics.getPrepareStatementCount());
+        assertEquals(5L, statistics.getPrepareStatementCount());
     }
 
     @Test
@@ -125,7 +135,7 @@ class AuthorizationSqlStatementCountIT extends PostgresIntegrationTestSupport {
 
         permissionAuthorizer.hasAnyPermission("MISSING_A", "MISSING_B", "ACCOUNT_READ_ALL");
 
-        assertEquals(3L, statistics.getPrepareStatementCount());
+        assertEquals(5L, statistics.getPrepareStatementCount());
     }
 
     @Test
@@ -137,7 +147,8 @@ class AuthorizationSqlStatementCountIT extends PostgresIntegrationTestSupport {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accountId").value(accountId.toString()));
 
-        assertEquals(3L, statistics.getPrepareStatementCount());
+        assertEquals(8L, statistics.getPrepareStatementCount(),
+                "profile-complete authorization aggregate is reused; request lifecycle guards add three statements");
     }
 
     private void bindLegacyAuthentication() {

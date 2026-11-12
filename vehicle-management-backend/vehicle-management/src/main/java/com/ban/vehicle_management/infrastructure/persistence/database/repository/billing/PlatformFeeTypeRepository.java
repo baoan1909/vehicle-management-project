@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.PlatformFeeTypeEntity;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus;
 import jakarta.persistence.LockModeType;
 import java.util.List;
@@ -20,8 +21,13 @@ public interface PlatformFeeTypeRepository
 
     boolean existsByFeeCode(String feeCode);
 
-    List<PlatformFeeTypeEntity> findByTransactionTypeAndStatus(
-            PlatformFeeTransactionType transactionType, PlatformFeeTypeStatus status);
+    List<PlatformFeeTypeEntity> findByScopeTypeAndTransactionTypeAndStatus(
+            PlatformFeeScopeType scopeType, PlatformFeeTransactionType transactionType, PlatformFeeTypeStatus status);
+
+    List<PlatformFeeTypeEntity> findByScopeTypeAndStatus(
+            PlatformFeeScopeType scopeType, PlatformFeeTypeStatus status);
+
+    List<PlatformFeeTypeEntity> findByStatus(PlatformFeeTypeStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT fee FROM PlatformFeeTypeEntity fee WHERE fee.platformFeeTypeId = :feeTypeId")
@@ -30,9 +36,20 @@ public interface PlatformFeeTypeRepository
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT fee FROM PlatformFeeTypeEntity fee
-            WHERE fee.transactionType = :transactionType
+            WHERE fee.scopeType = :scopeType
+              AND ((:transactionType IS NULL AND fee.transactionType IS NULL)
+                    OR fee.transactionType = :transactionType)
             ORDER BY fee.platformFeeTypeId
             """)
-    List<PlatformFeeTypeEntity> findAllByTransactionTypeForUpdate(
+    List<PlatformFeeTypeEntity> findAllByScopeForUpdate(
+            @Param("scopeType") PlatformFeeScopeType scopeType,
             @Param("transactionType") PlatformFeeTransactionType transactionType);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT fee FROM PlatformFeeTypeEntity fee
+            WHERE fee.status = com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus.ACTIVE
+            ORDER BY fee.platformFeeTypeId
+            """)
+    List<PlatformFeeTypeEntity> findAllActiveForUpdate();
 }

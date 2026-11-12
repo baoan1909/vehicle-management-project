@@ -45,7 +45,7 @@ function PlatformFeePageContent() {
       {view.name === "create" ? (
         <PlatformFeeCreateSection
           onBack={goList}
-          onCreated={(feeTypeId) => goDetail(feeTypeId)}
+          onCreated={(feeTypeId) => goDetail(feeTypeId, "versions")}
         />
       ) : null}
 

@@ -12,9 +12,12 @@ import com.ban.vehicle_management.shared.enumeration.iam.AccountStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
+import jakarta.persistence.QueryHint;
+import org.hibernate.jpa.HibernateHints;
 
 public interface AccountRepository extends JpaRepository<AccountEntity, UUID>, JpaSpecificationExecutor<AccountEntity> {
 
@@ -102,6 +105,14 @@ public interface AccountRepository extends JpaRepository<AccountEntity, UUID>, J
     Optional<AccountEntity> findByUserProfileId(UUID userProfileId);
 
     Optional<AccountEntity> findByUsername(String username);
+
+    /**
+     * Audit callbacks run while Hibernate is already flushing. This scalar query
+     * must therefore never trigger the default AUTO flush recursively.
+     */
+    @Query("select account.accountId from AccountEntity account where account.username = :username")
+    @QueryHints(@QueryHint(name = HibernateHints.HINT_FLUSH_MODE, value = "COMMIT"))
+    Optional<UUID> findAccountIdForAuditByUsername(@Param("username") String username);
 
     Optional<AccountEntity> findByEmail(String email);
 

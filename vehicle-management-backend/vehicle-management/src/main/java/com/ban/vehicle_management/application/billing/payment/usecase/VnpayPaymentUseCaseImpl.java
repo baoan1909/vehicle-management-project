@@ -12,9 +12,9 @@ import com.ban.vehicle_management.application.billing.payment.model.result.Vnpay
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayPaymentResult;
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayReturnResult;
 import com.ban.vehicle_management.application.billing.payment.port.in.VnpayPaymentPortIn;
+import com.ban.vehicle_management.application.billing.payment.port.in.PaymentCompletionPortIn;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.VnpayGatewayPortOut;
-import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
@@ -25,6 +25,7 @@ import com.ban.vehicle_management.shared.enumeration.billing.InvoicePurpose;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.billing.payment.policy.PaymentPolicy;
+import com.ban.vehicle_management.shared.enumeration.billing.FundCustody;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.enumeration.notification.NotificationType;
@@ -51,7 +52,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
     private final SubscriptionPortIn subscriptionPortIn;
     private final ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
     private final NotificationPortIn notificationPortIn;
-    private final SettlementPortIn settlementPortIn;
+    private final PaymentCompletionPortIn paymentCompletionPortIn;
     private final BigDecimal vnpayMinimumAmount;
     private final PaymentPolicy paymentPolicy = new PaymentPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
@@ -76,7 +77,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
             SubscriptionPortIn subscriptionPortIn,
             ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn,
             NotificationPortIn notificationPortIn,
-            SettlementPortIn settlementPortIn,
+            PaymentCompletionPortIn paymentCompletionPortIn,
             @Value("${app.payment.vnpay.minimum-amount:10000}") BigDecimal vnpayMinimumAmount
     ) {
         this.paymentPortOut = paymentPortOut;
@@ -86,7 +87,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
         this.subscriptionPortIn = subscriptionPortIn;
         this.parkingCheckoutCompletionPortIn = parkingCheckoutCompletionPortIn;
         this.notificationPortIn = notificationPortIn;
-        this.settlementPortIn = settlementPortIn;
+        this.paymentCompletionPortIn = paymentCompletionPortIn;
         this.vnpayMinimumAmount = vnpayMinimumAmount;
     }
 
@@ -162,6 +163,7 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
                 createdAt,
                 paymentLink.expiresAt()
         );
+        payment.setFundCustody(FundCustody.PLATFORM);
         Payment savedPayment = paymentPortOut.save(payment);
 
         return new VnpayPaymentResult(
@@ -333,8 +335,8 @@ public class VnpayPaymentUseCaseImpl implements VnpayPaymentPortIn {
         if (invoice.getSubscriptionId() != null) {
             subscriptionPortIn.markSubscriptionInvoicePaymentCompleted(
                     invoice.getSubscriptionId(), invoice.getInvoiceId());
-            settlementPortIn.allocateForCompletedPayment(payment.getPaymentId());
         }
+        paymentCompletionPortIn.completePaymentTruth(payment.getPaymentId());
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());
         notifyPaymentSucceeded(invoice, payment);
     }

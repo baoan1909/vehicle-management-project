@@ -18,9 +18,9 @@ import com.ban.vehicle_management.application.billing.payment.model.result.Vnpay
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayPaymentLink;
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayPaymentResult;
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayReturnResult;
+import com.ban.vehicle_management.application.billing.payment.port.in.PaymentCompletionPortIn;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.VnpayGatewayPortOut;
-import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
 import com.ban.vehicle_management.application.parking.customerreservation.port.in.CustomerReservationPortIn;
@@ -60,7 +60,7 @@ class VnpayPaymentUseCaseImplTest {
     @Mock
     private NotificationPortIn notificationPortIn;
     @Mock
-    private SettlementPortIn settlementPortIn;
+    private PaymentCompletionPortIn paymentCompletionPortIn;
     @Mock
     private CustomerReservationPortIn reservationPortIn;
 
@@ -76,7 +76,7 @@ class VnpayPaymentUseCaseImplTest {
                 subscriptionPortIn,
                 parkingCheckoutCompletionPortIn,
                 notificationPortIn,
-                settlementPortIn,
+                paymentCompletionPortIn,
                 new BigDecimal("10000")
         );
         useCase.setReservationPortIn(reservationPortIn);
@@ -228,7 +228,7 @@ class VnpayPaymentUseCaseImplTest {
         assertEquals(InvoiceStatus.PAID, invoice.getStatus());
         assertEquals(paidAt, invoice.getPaidAt());
         verify(subscriptionPortIn).markSubscriptionInvoicePaymentCompleted(subscriptionId, invoiceId);
-        verify(settlementPortIn).allocateForCompletedPayment(payment.getPaymentId());
+        verify(paymentCompletionPortIn).completePaymentTruth(payment.getPaymentId());
     }
 
     @Test
@@ -266,7 +266,7 @@ class VnpayPaymentUseCaseImplTest {
         assertEquals(InvoiceStatus.PAID, invoice.getStatus());
         assertEquals(paidAt, invoice.getPaidAt());
         verify(subscriptionPortIn).markSubscriptionInvoicePaymentCompleted(subscriptionId, invoiceId);
-        verify(settlementPortIn).allocateForCompletedPayment(payment.getPaymentId());
+        verify(paymentCompletionPortIn).completePaymentTruth(payment.getPaymentId());
     }
 
     @Test

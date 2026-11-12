@@ -1,5 +1,11 @@
 package com.ban.vehicle_management.shared.enumeration.billing;
 
 public enum PlatformFeeTransactionType {
-    SUBSCRIPTION_PURCHASE
+    PARKING_SESSION,
+    SUBSCRIPTION_PURCHASE,
+    SUBSCRIPTION_RENEWAL,
+    SUBSCRIPTION_CARD_DEPOSIT,
+    LOST_CARD,
+    MANUAL,
+    RESERVATION_PREPAYMENT
 }

@@ -9,6 +9,7 @@ import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeRu
 import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeType;
 import com.ban.vehicle_management.domain.billing.platformfee.policy.PlatformFeeCalculationPolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -50,18 +51,24 @@ public class PlatformFeeResolverUseCaseImpl implements PlatformFeeResolverPortIn
                         Comparator.nullsLast(String::compareTo)))
                 .toList();
 
-        List<PlatformFeeLine> lines = new ArrayList<>();
+        List<PlatformFeeLine> lines = resolveLines(activeTypes, resolvedAt, grossAmount, customerPaidAmount);
+        PlatformFeeScopeType resolvedScope = PlatformFeeScopeType.TRANSACTION_TYPE;
+        boolean fallbackApplied = false;
+        if (lines.isEmpty()) {
+            activeTypes = feeTypePortOut.findActiveByScope(PlatformFeeScopeType.GLOBAL, null)
+                    .stream()
+                    .sorted(Comparator.comparing(PlatformFeeType::getFeeCode,
+                            Comparator.nullsLast(String::compareTo)))
+                    .toList();
+            lines = resolveLines(activeTypes, resolvedAt, grossAmount, customerPaidAmount);
+            resolvedScope = lines.isEmpty() ? null : PlatformFeeScopeType.GLOBAL;
+            fallbackApplied = !lines.isEmpty();
+        }
+
         BigDecimal totalRate = BigDecimal.ZERO;
-        for (PlatformFeeType feeType : activeTypes) {
-            PlatformFeeRuleVersion effectiveVersion =
-                    ruleVersionPortOut.findEffectiveVersion(feeType.getPlatformFeeTypeId(), resolvedAt)
-                            .orElse(null);
-            if (effectiveVersion == null) {
-                continue;
-            }
-            lines.add(calculationPolicy.toFeeLine(feeType, effectiveVersion, grossAmount, customerPaidAmount));
-            if (effectiveVersion.getFeeRate() != null) {
-                totalRate = totalRate.add(effectiveVersion.getFeeRate());
+        for (PlatformFeeLine line : lines) {
+            if (line.getFeeRate() != null) {
+                totalRate = totalRate.add(line.getFeeRate());
             }
         }
 
@@ -69,7 +76,22 @@ public class PlatformFeeResolverUseCaseImpl implements PlatformFeeResolverPortIn
         long totalFeeAmount = lines.stream().mapToLong(PlatformFeeLine::getFeeAmount).sum();
 
         return new PlatformFeeResolution(
-                transactionType, resolvedAt, grossAmount, customerPaidAmount,
-                List.copyOf(lines), totalFeeAmount, totalRate);
+                transactionType, resolvedScope, fallbackApplied, !lines.isEmpty(), resolvedAt,
+                grossAmount, customerPaidAmount, List.copyOf(lines), totalFeeAmount, totalRate);
+    }
+
+    private List<PlatformFeeLine> resolveLines(List<PlatformFeeType> activeTypes, Instant effectiveAt,
+            long grossAmount, long customerPaidAmount) {
+        List<PlatformFeeLine> lines = new ArrayList<>();
+        for (PlatformFeeType feeType : activeTypes) {
+            PlatformFeeRuleVersion effectiveVersion =
+                    ruleVersionPortOut.findEffectiveVersion(feeType.getPlatformFeeTypeId(), effectiveAt)
+                            .orElse(null);
+            if (effectiveVersion == null) {
+                continue;
+            }
+            lines.add(calculationPolicy.toFeeLine(feeType, effectiveVersion, grossAmount, customerPaidAmount));
+        }
+        return lines;
     }
 }

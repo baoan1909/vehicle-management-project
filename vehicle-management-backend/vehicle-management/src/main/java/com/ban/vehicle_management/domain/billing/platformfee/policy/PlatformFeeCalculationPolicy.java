@@ -49,8 +49,12 @@ public class PlatformFeeCalculationPolicy {
                 feeType.getName(),
                 version.getVersion(),
                 version.getFeeRate(),
+                feeType.getScopeType(),
+                feeType.getTransactionType(),
+                feeType.getCalculationType(),
                 feeType.getFeeBasis(),
                 feeType.getChargedTo(),
+                feeType.isStackable(),
                 basisAmount,
                 feeAmount);
     }

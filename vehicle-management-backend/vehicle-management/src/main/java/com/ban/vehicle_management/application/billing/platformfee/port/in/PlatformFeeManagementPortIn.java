@@ -7,6 +7,7 @@ import com.ban.vehicle_management.application.billing.platformfee.model.result.P
 import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeRuleVersion;
 import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeBasis;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus;
 import java.math.BigDecimal;
@@ -18,7 +19,7 @@ public interface PlatformFeeManagementPortIn {
 
     PlatformFeeType createFeeType(PlatformFeeType feeType);
 
-    PlatformFeePageResult searchFeeTypes(String keyword, PlatformFeeTypeStatus status,
+    PlatformFeePageResult searchFeeTypes(String keyword, PlatformFeeTypeStatus status, PlatformFeeScopeType scopeType,
             PlatformFeeTransactionType transactionType, PlatformFeeBasis feeBasis, int page, int size);
 
     BigDecimal getMaxPartnerTotalRate();

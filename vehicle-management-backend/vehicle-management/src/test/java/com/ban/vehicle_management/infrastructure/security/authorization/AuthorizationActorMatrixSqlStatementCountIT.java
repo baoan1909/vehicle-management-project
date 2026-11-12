@@ -28,6 +28,8 @@ class AuthorizationActorMatrixSqlStatementCountIT extends PostgresIntegrationTes
 
     private static final UUID SYSTEM_ADMIN_ROLE_ID =
             UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID EMPLOYEE_ROLE_ID =
+            UUID.fromString("00000000-0000-0000-0000-000000000002");
 
     @Autowired JdbcTemplate jdbcTemplate;
     @Autowired EntityManagerFactory entityManagerFactory;
@@ -44,40 +46,40 @@ class AuthorizationActorMatrixSqlStatementCountIT extends PostgresIntegrationTes
     }
 
     @Test
-    void activeSystemAdminUsesOneThreeStatementAggregateLoad() {
-        UUID accountId = createAccount(SYSTEM_ADMIN_ROLE_ID, AccountStatus.ACTIVE, null);
-        assertLoad(accountId, 3L);
+    void activeSystemAdminUsesOneFiveStatementAggregateLoad() {
+        UUID accountId = createAccount(SYSTEM_ADMIN_ROLE_ID, AccountStatus.ACTIVE, createProfile());
+        assertLoad(accountId, 5L);
     }
 
     @Test
-    void partnerWithOrWithoutEligibleMembershipUsesOneFourStatementAggregateLoad() {
+    void partnerWithOrWithoutEligibleMembershipUsesOneSixStatementAggregateLoad() {
         UUID roleId = createRole("QUERY_PARTNER", true, Set.of("PARKING_SCOPE_PARTNER"));
-        UUID eligibleAccount = createAccount(roleId, AccountStatus.ACTIVE, null);
+        UUID eligibleAccount = createAccount(roleId, AccountStatus.ACTIVE, createProfile());
         UUID organizationId = createOrganization("ACTIVE");
         createMembership(organizationId, eligibleAccount, "ACTIVE");
-        assertTrue(assertLoad(eligibleAccount, 4L).hasActivePartnerOrganizationMembership());
+        assertTrue(assertLoad(eligibleAccount, 6L).hasActivePartnerOrganizationMembership());
 
-        UUID accountWithoutMembership = createAccount(roleId, AccountStatus.ACTIVE, null);
-        assertTrue(!assertLoad(accountWithoutMembership, 4L).hasActivePartnerOrganizationMembership());
+        UUID accountWithoutMembership = createAccount(roleId, AccountStatus.ACTIVE, createProfile());
+        assertTrue(!assertLoad(accountWithoutMembership, 6L).hasActivePartnerOrganizationMembership());
     }
 
     @Test
-    void assignedEmployeeUsesOneSixStatementAggregateLoad() {
-        UUID roleId = createRole("QUERY_ASSIGNED", true, Set.of("PARKING_SCOPE_ASSIGNED"));
+    void assignedEmployeeUsesOneSevenStatementAggregateLoad() {
         UUID profileId = createProfile();
-        createEmployee(profileId, "ACTIVE");
-        UUID accountId = createAccount(roleId, AccountStatus.ACTIVE, profileId);
+        UUID employeeId = createEmployee(profileId, "ACTIVE");
+        UUID accountId = createAccount(EMPLOYEE_ROLE_ID, AccountStatus.ACTIVE, profileId);
         UUID organizationId = createOrganization("ACTIVE");
-        UUID membershipId = createMembership(organizationId, accountId, "ACTIVE");
+        createMembership(organizationId, accountId, "ACTIVE");
         UUID parkingLotId = createParkingLot(organizationId);
         jdbcTemplate.update(
-                "insert into iam.member_parking_lot_scopes "
-                        + "(member_parking_lot_scope_id, organization_membership_id, parking_lot_id, created_at) "
-                        + "values (?, ?, ?, now())",
-                UUID.randomUUID(), membershipId, parkingLotId
+                "insert into people.employee_parking_lot_assignments "
+                        + "(assignment_id, organization_id, parking_lot_id, employee_id, assignment_type, "
+                        + "status, effective_from, assigned_by_account_id, assignment_source, created_at) "
+                        + "values (?, ?, ?, ?, 'PRIMARY', 'ACTIVE', now(), ?, 'MANAGER', now())",
+                UUID.randomUUID(), organizationId, parkingLotId, employeeId, accountId
         );
 
-        CurrentAccountAccess access = assertLoad(accountId, 6L);
+        CurrentAccountAccess access = assertLoad(accountId, 7L);
         assertEquals(Set.of(parkingLotId), access.assignedParkingLotIds());
     }
 
@@ -123,17 +125,17 @@ class AuthorizationActorMatrixSqlStatementCountIT extends PostgresIntegrationTes
     }
 
     @Test
-    void customRoleLockedAccountAndInactiveRoleEachUseOneThreeStatementAggregateLoad() {
+    void customRoleLockedAccountAndInactiveRoleEachUseOneFiveStatementAggregateLoad() {
         UUID customRoleId = createRole("QUERY_CUSTOM", true, Set.of("ACCOUNT_READ_ALL"));
-        UUID customAccount = createAccount(customRoleId, AccountStatus.ACTIVE, null);
-        assertTrue(assertLoad(customAccount, 3L).getEffectivePermissionCodes().contains("ACCOUNT_READ_ALL"));
+        UUID customAccount = createAccount(customRoleId, AccountStatus.ACTIVE, createProfile());
+        assertTrue(assertLoad(customAccount, 5L).getEffectivePermissionCodes().contains("ACCOUNT_READ_ALL"));
 
-        UUID lockedAccount = createAccount(customRoleId, AccountStatus.LOCKED, null);
-        assertTrue(assertLoad(lockedAccount, 3L).getEffectivePermissionCodes().isEmpty());
+        UUID lockedAccount = createAccount(customRoleId, AccountStatus.LOCKED, createProfile());
+        assertTrue(assertLoad(lockedAccount, 5L).getEffectivePermissionCodes().isEmpty());
 
         UUID inactiveRoleId = createRole("QUERY_INACTIVE", false, Set.of("ACCOUNT_READ_ALL"));
-        UUID inactiveRoleAccount = createAccount(inactiveRoleId, AccountStatus.ACTIVE, null);
-        assertTrue(assertLoad(inactiveRoleAccount, 3L).getEffectivePermissionCodes().isEmpty());
+        UUID inactiveRoleAccount = createAccount(inactiveRoleId, AccountStatus.ACTIVE, createProfile());
+        assertTrue(assertLoad(inactiveRoleAccount, 5L).getEffectivePermissionCodes().isEmpty());
     }
 
     private CurrentAccountAccess assertLoad(UUID accountId, long expectedStatements) {
@@ -187,13 +189,15 @@ class AuthorizationActorMatrixSqlStatementCountIT extends PostgresIntegrationTes
         return profileId;
     }
 
-    private void createEmployee(UUID profileId, String status) {
+    private UUID createEmployee(UUID profileId, String status) {
+        UUID employeeId = UUID.randomUUID();
         jdbcTemplate.update(
                 "insert into people.employees "
                         + "(employee_id, user_profile_id, employee_code, status, created_at) "
                         + "values (?, ?, ?, ?, now())",
-                UUID.randomUUID(), profileId, "EMP-" + UUID.randomUUID(), status
+                employeeId, profileId, "EMP-" + UUID.randomUUID(), status
         );
+        return employeeId;
     }
 
     private void createCustomer(UUID profileId, String status, String approvalStatus) {

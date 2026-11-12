@@ -94,7 +94,7 @@ export function PlatformFeeVersionsSection({ bare = false, feeTypeId, onBack }: 
             customerPaidAmount: 1000000,
             effectiveAt: new Date().toISOString(),
             grossAmount: 1000000,
-            transactionType: detailResponse.data.feeType.transactionType,
+            transactionType: detailResponse.data.feeType.transactionType ?? "SUBSCRIPTION_PURCHASE",
           });
           setTotalRate(previewResponse.data.effectiveTotalRate);
         } catch {

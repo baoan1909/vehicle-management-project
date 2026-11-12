@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
+import com.ban.vehicle_management.application.billing.payment.port.in.PaymentCompletionPortIn;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.billing.wallet.authorization.WalletAccessGuard;
 import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
@@ -21,6 +22,8 @@ import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.billing.wallet.model.LedgerAccount;
 import com.ban.vehicle_management.domain.billing.wallet.model.Wallet;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.WalletOwnerType;
 import com.ban.vehicle_management.shared.enumeration.billing.WalletPurpose;
 import com.ban.vehicle_management.shared.enumeration.billing.WalletStatus;
@@ -55,6 +58,8 @@ class WalletInvoicePaymentUseCaseImplTest {
     @Mock
     private ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
     @Mock
+    private PaymentCompletionPortIn paymentCompletionPortIn;
+    @Mock
     private SettlementPortIn settlementPortIn;
 
     private WalletInvoicePaymentUseCaseImpl useCase;
@@ -63,7 +68,8 @@ class WalletInvoicePaymentUseCaseImplTest {
     void setUp() {
         useCase = new WalletInvoicePaymentUseCaseImpl(
                 walletPortOut, invoicePortOut, paymentPortOut, ledgerPortOut, walletAccessGuard,
-                currentAccountPortIn, subscriptionPortIn, parkingCheckoutCompletionPortIn, settlementPortIn);
+                currentAccountPortIn, subscriptionPortIn, parkingCheckoutCompletionPortIn,
+                paymentCompletionPortIn, settlementPortIn);
     }
 
     @Test
@@ -110,10 +116,32 @@ class WalletInvoicePaymentUseCaseImplTest {
         Payment payment = useCase.payInvoice(invoiceId, "wallet-payment-001");
 
         assertEquals(new BigDecimal("320000.00"), wallet.getAvailableBalance());
-        verify(settlementPortIn).allocateForCompletedPayment(payment.getPaymentId());
-        InOrder order = inOrder(subscriptionPortIn, settlementPortIn, parkingCheckoutCompletionPortIn);
+        verify(paymentCompletionPortIn).completePaymentTruth(payment.getPaymentId());
+        InOrder order = inOrder(subscriptionPortIn, paymentCompletionPortIn, parkingCheckoutCompletionPortIn);
         order.verify(subscriptionPortIn).markSubscriptionInvoicePaymentCompleted(subscriptionId, invoiceId);
-        order.verify(settlementPortIn).allocateForCompletedPayment(payment.getPaymentId());
+        order.verify(paymentCompletionPortIn).completePaymentTruth(payment.getPaymentId());
         order.verify(parkingCheckoutCompletionPortIn).completePaidCheckout(invoiceId);
+    }
+
+    @Test
+    void replayedRefundRepairsMissingAllocationReversalIdempotently() {
+        UUID originalPaymentId = UUID.randomUUID();
+        UUID refundPaymentId = UUID.randomUUID();
+        Payment existingRefund = new Payment();
+        existingRefund.setPaymentId(refundPaymentId);
+        existingRefund.setReversedPaymentId(originalPaymentId);
+        existingRefund.setPaymentMethod(PaymentMethod.WALLET);
+        existingRefund.setStatus(PaymentStatus.REFUNDED);
+        existingRefund.setAmount(new BigDecimal("-25000.00"));
+        when(currentAccountPortIn.hasPermission("WALLET_REFUND_ALL")).thenReturn(true);
+        when(paymentPortOut.findByIdempotencyKey("refund-replay-001"))
+                .thenReturn(Optional.of(existingRefund));
+
+        Payment result = useCase.refundPayment(
+                originalPaymentId, new BigDecimal("25000"), "refund-replay-001", null);
+
+        assertEquals(existingRefund, result);
+        verify(settlementPortIn).reverseForRefund(
+                originalPaymentId, refundPaymentId, new BigDecimal("25000.00"));
     }
 }

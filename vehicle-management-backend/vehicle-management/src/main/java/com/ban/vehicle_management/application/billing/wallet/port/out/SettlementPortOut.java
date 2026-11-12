@@ -3,6 +3,8 @@ package com.ban.vehicle_management.application.billing.wallet.port.out;
 import com.ban.vehicle_management.domain.billing.wallet.model.PartnerBankAccount;
 import com.ban.vehicle_management.domain.billing.wallet.model.PayoutRequest;
 import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocation;
+import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocationReversal;
+import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocationReversalTotals;
 import com.ban.vehicle_management.domain.billing.wallet.model.VoucherFinancialTerm;
 import java.time.Instant;
 import java.util.List;
@@ -16,6 +18,12 @@ public interface SettlementPortOut {
     Optional<RevenueAllocation> findAllocationByPayment(UUID paymentId);
 
     Optional<RevenueAllocation> findAllocationByIdForUpdate(UUID allocationId);
+
+    Optional<RevenueAllocationReversal> findReversalByRefundPayment(UUID refundPaymentId);
+
+    RevenueAllocationReversalTotals sumReversals(UUID allocationId);
+
+    RevenueAllocationReversal saveReversal(RevenueAllocationReversal reversal);
 
     List<UUID> claimDueAllocations(int batchSize, Instant now);
 

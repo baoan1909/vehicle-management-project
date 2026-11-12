@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.bil
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.iam.AccountEntity;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.FundCustody;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Enumerated;
@@ -113,6 +114,10 @@ public class PaymentEntity {
 
     @Column(name = "refunded_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal refundedAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fund_custody", nullable = false, length = 20)
+    private FundCustody fundCustody;
 
     @PrePersist
     void initializeDefaults() {

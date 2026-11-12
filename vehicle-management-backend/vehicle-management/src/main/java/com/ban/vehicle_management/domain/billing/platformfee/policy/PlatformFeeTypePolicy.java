@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeTy
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeBasis;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeCalculationType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeChargedTo;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -26,13 +27,13 @@ public class PlatformFeeTypePolicy {
         feeType.setFeeCode(normalizeFeeCode(feeType.getFeeCode()));
         feeType.setName(TextValidationUtils.normalizeRequiredText(feeType.getName(), "name", 200));
         feeType.setDescription(TextValidationUtils.normalizeNullableText(feeType.getDescription(), "description", 1000));
-        if (feeType.getTransactionType() == null) {
-            feeType.setTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE);
+        if (feeType.getScopeType() == null) {
+            feeType.setScopeType(PlatformFeeScopeType.TRANSACTION_TYPE);
         }
         if (feeType.getCalculationType() == null) {
             feeType.setCalculationType(PlatformFeeCalculationType.PERCENTAGE);
         }
-        requireSupportedTransactionType(feeType.getTransactionType());
+        requireScopeTarget(feeType);
         requireSupportedCalculationType(feeType.getCalculationType());
         requireFeeBasis(feeType.getFeeBasis());
         requirePartnerChargedTo(feeType.getChargedTo());
@@ -95,15 +96,18 @@ public class PlatformFeeTypePolicy {
 
     public void validateState(PlatformFeeType feeType) {
         requireType(feeType);
+        if (feeType.getScopeType() == null && feeType.getTransactionType() != null) {
+            feeType.setScopeType(PlatformFeeScopeType.TRANSACTION_TYPE);
+        }
         requireField(feeType.getPlatformFeeTypeId(), "platformFeeTypeId");
         requireField(feeType.getFeeCode(), "feeCode");
         requireField(feeType.getName(), "name");
-        requireField(feeType.getTransactionType(), "transactionType");
+        requireField(feeType.getScopeType(), "scopeType");
         requireField(feeType.getCalculationType(), "calculationType");
         requireField(feeType.getFeeBasis(), "feeBasis");
         requireField(feeType.getChargedTo(), "chargedTo");
         requireField(feeType.getStatus(), "status");
-        requireSupportedTransactionType(feeType.getTransactionType());
+        requireScopeTarget(feeType);
         requireSupportedCalculationType(feeType.getCalculationType());
     }
 
@@ -116,10 +120,17 @@ public class PlatformFeeTypePolicy {
         }
     }
 
-    private void requireSupportedTransactionType(PlatformFeeTransactionType transactionType) {
-        if (!PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE.equals(transactionType)) {
-            throw new BadRequestException("Only SUBSCRIPTION_PURCHASE transactionType is supported");
+    private void requireScopeTarget(PlatformFeeType feeType) {
+        if (PlatformFeeScopeType.GLOBAL.equals(feeType.getScopeType())) {
+            if (feeType.getTransactionType() != null) {
+                throw new BadRequestException("transactionType must be null for GLOBAL scope");
+            }
+            return;
         }
+        if (!PlatformFeeScopeType.TRANSACTION_TYPE.equals(feeType.getScopeType())) {
+            throw new BadRequestException("Unsupported scopeType");
+        }
+        requireField(feeType.getTransactionType(), "transactionType");
     }
 
     private void requireSupportedCalculationType(PlatformFeeCalculationType calculationType) {

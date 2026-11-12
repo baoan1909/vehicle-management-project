@@ -23,10 +23,7 @@ public class DatabaseSystemAccountIdProvider implements SystemAccountIdProvider 
             return cached;
         }
 
-        UUID resolved = accountRepository.findByUsername(SYSTEM_USERNAME)
-                .map(account -> account.getAccountId())
-                .orElse(null);
-
+        UUID resolved = accountRepository.findAccountIdForAuditByUsername(SYSTEM_USERNAME).orElse(null);
         if (resolved == null) {
             throw new IllegalStateException("SYSTEM account is not found.");
         }

@@ -1,13 +1,18 @@
 package com.ban.vehicle_management.application.billing.platformfee.model.result;
 
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 public record PlatformFeePreviewResult(
-        PlatformFeeTransactionType transactionType,
+        PlatformFeeTransactionType requestedTransactionType,
+        PlatformFeeScopeType resolvedScope,
+        boolean fallbackApplied,
+        boolean configurationFound,
+        String missingConfigurationReason,
         Instant effectiveAt,
         long grossAmount,
         long customerPaidAmount,

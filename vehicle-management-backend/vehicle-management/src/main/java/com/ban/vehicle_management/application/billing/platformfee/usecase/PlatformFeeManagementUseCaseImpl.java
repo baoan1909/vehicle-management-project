@@ -24,6 +24,7 @@ import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccount
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeBasis;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeChargedTo;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeRuleVersionStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
@@ -99,6 +100,7 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
     @Override
     @Transactional(readOnly = true)
     public PlatformFeePageResult searchFeeTypes(String keyword, PlatformFeeTypeStatus status,
+            PlatformFeeScopeType scopeType,
             PlatformFeeTransactionType transactionType, PlatformFeeBasis feeBasis, int page, int size) {
         accessGuard.ensureCanRead();
         int resolvedPage = Math.max(page, 0);
@@ -106,7 +108,7 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
         String normalizedKeyword = normalizeKeyword(keyword);
 
         return feeTypePortOut.findAll(
-                normalizedKeyword, status, transactionType, feeBasis, resolvedPage, resolvedSize);
+                normalizedKeyword, status, scopeType, transactionType, feeBasis, resolvedPage, resolvedSize);
     }
 
     @Override
@@ -135,7 +137,7 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
             throw new BadRequestException("version must not be negative");
         }
 
-        feeTypePortOut.lockByTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE);
+        feeTypePortOut.lockAllActive();
         PlatformFeeConfigurationResult existing = currentConfiguration();
         if (existing.version() != expectedVersion) {
             throw new ConflictException("Platform fee configuration was changed; reload before saving again");
@@ -196,7 +198,7 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
     public PlatformFeeType activateFeeType(UUID feeTypeId) {
         accessGuard.ensureCanActivate();
         PlatformFeeType feeType = findTypeOrThrow(feeTypeId);
-        feeTypePortOut.lockByTransactionType(feeType.getTransactionType());
+        lockScope(feeType);
         feeType = findTypeOrThrow(feeTypeId);
         List<PlatformFeeRuleVersion> resolvableVersions = requireResolvableVersions(feeTypeId);
         requireStackableSatisfied(feeType);
@@ -278,7 +280,7 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
     public PlatformFeeRuleVersion activateRuleVersion(UUID feeTypeId, UUID versionId) {
         accessGuard.ensureCanActivate();
         PlatformFeeType feeType = findTypeOrThrow(feeTypeId);
-        feeTypePortOut.lockByTransactionType(feeType.getTransactionType());
+        lockScope(feeType);
         PlatformFeeRuleVersion version = findVersionOrThrow(feeTypeId, versionId);
         List<PlatformFeeRuleVersion> siblings = ruleVersionPortOut.findActiveByFeeTypeId(feeTypeId);
         Map<String, Object> oldData = snapshot(version);
@@ -353,7 +355,13 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
                 .toList();
         long partnerRemaining = Math.max(0L, customerPaidAmount - resolution.getTotalFeeAmount());
         return new PlatformFeePreviewResult(
-                resolution.getTransactionType(),
+                resolution.getRequestedTransactionType(),
+                resolution.getResolvedScope(),
+                resolution.isFallbackApplied(),
+                resolution.isConfigurationFound(),
+                resolution.isConfigurationFound()
+                        ? null
+                        : "Không có cấu hình phí hiệu lực cho loại giao dịch và cũng không có cấu hình toàn cục.",
                 resolution.getEffectiveAt(),
                 resolution.getGrossAmount(),
                 resolution.getCustomerPaidAmount(),
@@ -411,8 +419,7 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
     }
 
     private void requireStackableSatisfied(PlatformFeeType candidate) {
-        List<PlatformFeeType> others = feeTypePortOut
-                .findActiveByTransactionType(candidate.getTransactionType())
+        List<PlatformFeeType> others = findActiveInSameScope(candidate)
                 .stream()
                 .filter(type -> !type.getPlatformFeeTypeId().equals(candidate.getPlatformFeeTypeId()))
                 .toList();
@@ -441,8 +448,7 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
         TreeSet<Instant> checkpoints = new TreeSet<>();
         checkpoints.add(periodStart);
 
-        List<PlatformFeeType> others = feeTypePortOut
-                .findActiveByTransactionType(candidateType.getTransactionType())
+        List<PlatformFeeType> others = findActiveInSameScope(candidateType)
                 .stream()
                 .filter(type -> !type.getPlatformFeeTypeId().equals(candidateType.getPlatformFeeTypeId()))
                 .filter(type -> PlatformFeeChargedTo.PARTNER.equals(type.getChargedTo()))
@@ -490,14 +496,17 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
 
     private void requireActivePartnerFeesWithinLimit(BigDecimal maximumRate) {
         Instant now = Instant.now();
-        List<PlatformFeeType> partnerTypes = feeTypePortOut
-                .findActiveByTransactionType(PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE)
+        List<PlatformFeeType> partnerTypes = feeTypePortOut.findAllActive()
                 .stream()
                 .filter(type -> PlatformFeeChargedTo.PARTNER.equals(type.getChargedTo()))
                 .toList();
-        TreeSet<Instant> checkpoints = new TreeSet<>();
-        checkpoints.add(now);
-        for (PlatformFeeType type : partnerTypes) {
+        Map<String, List<PlatformFeeType>> typesByScope = partnerTypes.stream()
+                .collect(java.util.stream.Collectors.groupingBy(type ->
+                        type.getScopeType() + ":" + type.getTransactionType()));
+        for (List<PlatformFeeType> scopedTypes : typesByScope.values()) {
+            TreeSet<Instant> checkpoints = new TreeSet<>();
+            checkpoints.add(now);
+            for (PlatformFeeType type : scopedTypes) {
             for (PlatformFeeRuleVersion version :
                     ruleVersionPortOut.findActiveByFeeTypeId(type.getPlatformFeeTypeId())) {
                 if (version.getEffectiveFrom() != null && version.getEffectiveFrom().isAfter(now)) {
@@ -507,16 +516,17 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
                     checkpoints.add(version.getEffectiveTo());
                 }
             }
-        }
-        for (Instant checkpoint : checkpoints) {
-            List<BigDecimal> rates = new java.util.ArrayList<>();
-            for (PlatformFeeType type : partnerTypes) {
-                ruleVersionPortOut.findEffectiveVersion(type.getPlatformFeeTypeId(), checkpoint)
-                        .map(PlatformFeeRuleVersion::getFeeRate)
-                        .ifPresent(rates::add);
             }
-            calculationPolicy.requireTotalRateWithinLimit(
-                    calculationPolicy.totalRate(rates), maximumRate);
+            for (Instant checkpoint : checkpoints) {
+                List<BigDecimal> rates = new java.util.ArrayList<>();
+                for (PlatformFeeType type : scopedTypes) {
+                    ruleVersionPortOut.findEffectiveVersion(type.getPlatformFeeTypeId(), checkpoint)
+                            .map(PlatformFeeRuleVersion::getFeeRate)
+                            .ifPresent(rates::add);
+                }
+                calculationPolicy.requireTotalRateWithinLimit(
+                        calculationPolicy.totalRate(rates), maximumRate);
+            }
         }
     }
 
@@ -525,6 +535,20 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
         if (boundary != null && !boundary.isBefore(periodStart)
                 && (periodEnd == null || boundary.isBefore(periodEnd))) {
             checkpoints.add(boundary);
+        }
+    }
+
+    private List<PlatformFeeType> findActiveInSameScope(PlatformFeeType feeType) {
+        return PlatformFeeScopeType.GLOBAL.equals(feeType.getScopeType())
+                ? feeTypePortOut.findActiveByScope(PlatformFeeScopeType.GLOBAL, null)
+                : feeTypePortOut.findActiveByTransactionType(feeType.getTransactionType());
+    }
+
+    private void lockScope(PlatformFeeType feeType) {
+        if (PlatformFeeScopeType.GLOBAL.equals(feeType.getScopeType())) {
+            feeTypePortOut.lockByScope(PlatformFeeScopeType.GLOBAL, null);
+        } else {
+            feeTypePortOut.lockByTransactionType(feeType.getTransactionType());
         }
     }
 
@@ -543,6 +567,7 @@ public class PlatformFeeManagementUseCaseImpl implements PlatformFeeManagementPo
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("feeCode", text(feeType.getFeeCode()));
         values.put("name", text(feeType.getName()));
+        values.put("scopeType", text(feeType.getScopeType()));
         values.put("transactionType", text(feeType.getTransactionType()));
         values.put("feeBasis", text(feeType.getFeeBasis()));
         values.put("chargedTo", text(feeType.getChargedTo()));

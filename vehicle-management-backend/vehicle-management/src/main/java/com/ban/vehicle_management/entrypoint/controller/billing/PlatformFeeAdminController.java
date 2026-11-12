@@ -73,7 +73,7 @@ public class PlatformFeeAdminController {
             @ModelAttribute PlatformFeeFilterRequest request) {
         var pagination = paginationRequestConverter.resolve(request.page(), request.size());
         PlatformFeePageResult result = managementPortIn.searchFeeTypes(
-                request.keyword(), request.status(), request.transactionType(), request.feeBasis(),
+                request.keyword(), request.status(), request.scopeType(), request.transactionType(), request.feeBasis(),
                 pagination.page(), pagination.size());
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched platform fee types successfully",
