@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.specifica
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.PlatformFeeTypeEntity;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeBasis;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus;
 import org.springframework.data.jpa.domain.Specification;
@@ -12,12 +13,17 @@ public final class PlatformFeeTypeSpecifications {
     }
 
     public static Specification<PlatformFeeTypeEntity> withFilters(
-            String keyword, PlatformFeeTypeStatus status,
+            String keyword, PlatformFeeTypeStatus status, PlatformFeeScopeType scopeType,
             PlatformFeeTransactionType transactionType, PlatformFeeBasis feeBasis) {
         return Specification.where(hasStatus(status))
+                .and(hasScopeType(scopeType))
                 .and(hasTransactionType(transactionType))
                 .and(hasFeeBasis(feeBasis))
                 .and(containsKeyword(keyword));
+    }
+
+    private static Specification<PlatformFeeTypeEntity> hasScopeType(PlatformFeeScopeType scopeType) {
+        return (root, query, cb) -> scopeType == null ? null : cb.equal(root.get("scopeType"), scopeType);
     }
 
     private static Specification<PlatformFeeTypeEntity> hasStatus(PlatformFeeTypeStatus status) {

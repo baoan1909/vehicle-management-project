@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.billing.wallet.usecase;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
 import com.ban.vehicle_management.application.billing.platformfee.port.in.PlatformFeeResolverPortIn;
+import com.ban.vehicle_management.application.billing.platformfee.port.out.PlatformFeeAssessmentPortOut;
 import com.ban.vehicle_management.application.billing.wallet.authorization.WalletAccessGuard;
 import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.billing.wallet.port.out.LedgerPortOut;
@@ -14,17 +15,25 @@ import com.ban.vehicle_management.application.iam.organization.port.out.Organiza
 import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeResolution;
+import com.ban.vehicle_management.domain.billing.platformfee.model.PlatformFeeAssessment;
+import com.ban.vehicle_management.domain.billing.platformfee.policy.InvoicePurposePlatformFeePolicy;
+import com.ban.vehicle_management.domain.billing.platformfee.policy.PlatformFeeAssessmentPolicy;
 import com.ban.vehicle_management.domain.billing.wallet.model.FinancialTransaction;
 import com.ban.vehicle_management.domain.billing.wallet.model.LedgerAccount;
 import com.ban.vehicle_management.domain.billing.wallet.model.LedgerEntry;
 import com.ban.vehicle_management.domain.billing.wallet.model.PayoutRequest;
 import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocation;
+import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocationReversal;
+import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocationReversalTotals;
 import com.ban.vehicle_management.domain.billing.wallet.model.VoucherFinancialTerm;
 import com.ban.vehicle_management.domain.billing.wallet.model.Wallet;
 import com.ban.vehicle_management.domain.billing.wallet.policy.LedgerPostingPolicy;
 import com.ban.vehicle_management.domain.billing.wallet.policy.RevenueAllocationPolicy;
+import com.ban.vehicle_management.domain.billing.wallet.policy.RevenueAllocationReversalPolicy;
+import com.ban.vehicle_management.domain.billing.wallet.policy.FundCustodyPolicy;
 import com.ban.vehicle_management.domain.billing.wallet.policy.WalletPolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.FinancialTransactionStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.FundCustody;
 import com.ban.vehicle_management.shared.enumeration.billing.FinancialTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.LedgerAccountType;
 import com.ban.vehicle_management.shared.enumeration.billing.LedgerEntrySide;
@@ -66,12 +75,17 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
     private final WalletAccessGuard walletAccessGuard;
     private final CurrentAccountPortIn currentAccountPortIn;
     private final PlatformFeeResolverPortIn platformFeeResolverPortIn;
+    private final PlatformFeeAssessmentPortOut platformFeeAssessmentPortOut;
     private final VoucherPortOut voucherPortOut;
-    private final BigDecimal platformFeeRate;
     private final int settlementDelayDays;
     private final RevenueAllocationPolicy allocationPolicy = new RevenueAllocationPolicy();
+    private final RevenueAllocationReversalPolicy reversalPolicy = new RevenueAllocationReversalPolicy();
     private final LedgerPostingPolicy postingPolicy = new LedgerPostingPolicy();
     private final WalletPolicy walletPolicy = new WalletPolicy();
+    private final InvoicePurposePlatformFeePolicy invoicePurposePlatformFeePolicy =
+            new InvoicePurposePlatformFeePolicy();
+    private final PlatformFeeAssessmentPolicy assessmentPolicy = new PlatformFeeAssessmentPolicy();
+    private final FundCustodyPolicy fundCustodyPolicy = new FundCustodyPolicy();
 
     public SettlementUseCaseImpl(
             WalletPortOut walletPortOut,
@@ -83,8 +97,8 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
             WalletAccessGuard walletAccessGuard,
             CurrentAccountPortIn currentAccountPortIn,
             PlatformFeeResolverPortIn platformFeeResolverPortIn,
+            PlatformFeeAssessmentPortOut platformFeeAssessmentPortOut,
             VoucherPortOut voucherPortOut,
-            @Value("${app.wallet.platform-fee-rate:0.05}") BigDecimal platformFeeRate,
             @Value("${app.wallet.settlement-delay-days:7}") int settlementDelayDays) {
         this.walletPortOut = walletPortOut;
         this.invoicePortOut = invoicePortOut;
@@ -95,8 +109,8 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
         this.walletAccessGuard = walletAccessGuard;
         this.currentAccountPortIn = currentAccountPortIn;
         this.platformFeeResolverPortIn = platformFeeResolverPortIn;
+        this.platformFeeAssessmentPortOut = platformFeeAssessmentPortOut;
         this.voucherPortOut = voucherPortOut;
-        this.platformFeeRate = platformFeeRate;
         this.settlementDelayDays = settlementDelayDays;
     }
 
@@ -113,6 +127,51 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
         return allocatePayment(paymentId, null);
     }
 
+    @Override
+    @Transactional
+    public PlatformFeeAssessment prepareAssessmentForCompletedPayment(UUID paymentId) {
+        Payment payment = paymentPortOut.findByIdForUpdate(paymentId)
+                .orElseThrow(() -> new NotFoundException("Payment not found"));
+        Invoice invoice = invoicePortOut.findById(payment.getInvoiceId())
+                .orElseThrow(() -> new NotFoundException("Invoice not found"));
+        Instant appliedAt = payment.getPaidAt() == null ? Instant.now() : payment.getPaidAt();
+        return resolveOrCreateAssessment(
+                payment, invoice, resolveOrganizationId(invoice), appliedAt);
+    }
+
+    @Override
+    @Transactional
+    public RevenueAllocationReversal reverseForRefund(
+            UUID originalPaymentId, UUID refundPaymentId, BigDecimal refundAmount) {
+        var existing = settlementPortOut.findReversalByRefundPayment(refundPaymentId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        RevenueAllocation current = settlementPortOut.findAllocationByPayment(originalPaymentId)
+                .orElseGet(() -> allocatePayment(originalPaymentId, null));
+        RevenueAllocation allocation = settlementPortOut.findAllocationByIdForUpdate(
+                        current.getRevenueAllocationId())
+                .orElseThrow(() -> new NotFoundException("Revenue allocation not found"));
+        existing = settlementPortOut.findReversalByRefundPayment(refundPaymentId);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        RevenueAllocationReversalTotals prior = settlementPortOut.sumReversals(
+                allocation.getRevenueAllocationId());
+        RevenueAllocationReversal reversal = reversalPolicy.create(
+                allocation, refundPaymentId, refundAmount, prior);
+        BigDecimal receivableShortfall = reversePartnerWalletBalance(allocation, reversal);
+        FinancialTransaction transaction = postReversalLedger(
+                allocation, reversal, receivableShortfall);
+        reversal.setFinancialTransactionId(transaction.getFinancialTransactionId());
+        RevenueAllocationReversal saved = settlementPortOut.saveReversal(reversal);
+        updateAssessmentReversalStatus(
+                originalPaymentId,
+                prior.refundAmount().add(reversal.getRefundAmount()),
+                allocation.getCustomerPaidAmount());
+        return saved;
+    }
+
     private RevenueAllocation allocatePayment(UUID paymentId, UUID voucherId) {
         Payment payment = paymentPortOut.findByIdForUpdate(paymentId)
                 .orElseThrow(() -> new NotFoundException("Payment not found"));
@@ -127,22 +186,16 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
         Instant allocationTime = payment.getPaidAt() == null ? Instant.now() : payment.getPaidAt();
         VoucherFinancialTerm term = resolvedVoucherId == null ? null
                 : settlementPortOut.findActiveTerm(resolvedVoucherId, allocationTime).orElse(null);
-        RevenueAllocation allocation;
-        if (invoice.getSubscriptionId() != null) {
-            BigDecimal resolvedPlatformFee = resolveSubscriptionPlatformFee(invoice, payment.getPaidAt());
-            allocation = allocationPolicy.allocateWithPlatformFeeAmount(
-                    paymentId, invoice.getInvoiceId(), invoice.getParkingLotId(), organizationId, resolvedVoucherId,
-                    invoice.getAmount(), invoice.getDiscountAmount(), invoice.getFinalAmount(),
-                    resolvedPlatformFee, BigDecimal.ZERO, term, settlementDelayDays, payment.getPaidAt());
-        } else {
-            allocation = allocationPolicy.allocate(
-                    paymentId, invoice.getInvoiceId(), invoice.getParkingLotId(), organizationId, resolvedVoucherId,
-                    invoice.getAmount(), invoice.getDiscountAmount(), invoice.getFinalAmount(),
-                    platformFeeRate, BigDecimal.ZERO, term, settlementDelayDays, payment.getPaidAt());
-        }
+        PlatformFeeAssessment assessment = resolveOrCreateAssessment(
+                payment, invoice, organizationId, allocationTime);
+        RevenueAllocation allocation = allocationPolicy.allocateWithPlatformFeeAmount(
+                paymentId, invoice.getInvoiceId(), invoice.getParkingLotId(), organizationId, resolvedVoucherId,
+                invoice.getAmount(), invoice.getDiscountAmount(), invoice.getFinalAmount(),
+                assessment.getTotalFeeAmount(), BigDecimal.ZERO, term, settlementDelayDays,
+                payment.getPaidAt(), assessment.getFundCustody());
 
         // Partner wallet pending increases; ledger mirrors revenue split.
-        if (organizationId != null) {
+        if (organizationId != null && allocation.getPartnerPayableAmount().compareTo(BigDecimal.ZERO) > 0) {
             Wallet partnerWallet = walletPortOut.findOrganizationWalletForUpdate(
                     organizationId, "VND", WalletPurpose.ORGANIZATION_SETTLEMENT)
                     .orElseThrow(() -> new NotFoundException("Partner wallet not found"));
@@ -167,11 +220,8 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
                 Math.max(1, Math.min(batchSize, 500)), Instant.now());
         int released = 0;
         for (UUID allocationId : claimed) {
-            try {
-                releaseOne(allocationId);
-                released++;
-            } catch (Exception ignored) {
-            }
+            releaseOne(allocationId);
+            released++;
         }
         return released;
     }
@@ -367,11 +417,8 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
         if (invoice.getParkingLotId() == null) {
             return null;
         }
-        try {
-            return organizationPortOut.findOrganizationIdByParkingLotId(invoice.getParkingLotId()).orElse(null);
-        } catch (Exception exception) {
-            return null;
-        }
+        return organizationPortOut.findOrganizationIdByParkingLotId(invoice.getParkingLotId())
+                .orElseThrow(() -> new NotFoundException("Organization for invoice parking lot not found"));
     }
 
     private UUID resolveVoucherId(Invoice invoice, UUID requestedVoucherId) {
@@ -386,17 +433,23 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
                 .orElse(null);
     }
 
-    private BigDecimal resolveSubscriptionPlatformFee(Invoice invoice, Instant paidAt) {
+    private PlatformFeeAssessment resolveOrCreateAssessment(Payment payment, Invoice invoice,
+            UUID organizationId, Instant appliedAt) {
+        var existing = platformFeeAssessmentPortOut.findByPaymentId(payment.getPaymentId());
+        if (existing.isPresent()) {
+            return existing.get();
+        }
         PlatformFeeResolution resolution = platformFeeResolverPortIn.resolveFees(
-                PlatformFeeTransactionType.SUBSCRIPTION_PURCHASE,
-                paidAt,
+                invoicePurposePlatformFeePolicy.transactionTypeFor(invoice.getPurpose()),
+                appliedAt,
                 toWholeVnd(invoice.getAmount()),
                 toWholeVnd(invoice.getFinalAmount()));
-        long partnerChargedFee = resolution.getFeeLines().stream()
-                .filter(line -> PlatformFeeChargedTo.PARTNER.equals(line.getChargedTo()))
-                .mapToLong(line -> line.getFeeAmount())
-                .sum();
-        return BigDecimal.valueOf(partnerChargedFee).setScale(2, RoundingMode.UNNECESSARY);
+        FundCustody custody = fundCustodyPolicy.resolveSnapshot(
+                payment.getFundCustody(), payment.getPaymentMethod());
+        PlatformFeeAssessment assessment = assessmentPolicy.createApplied(
+                invoice.getInvoiceId(), payment.getPaymentId(), organizationId,
+                custody, resolution, appliedAt);
+        return platformFeeAssessmentPortOut.save(assessment);
     }
 
     private long toWholeVnd(BigDecimal amount) {
@@ -404,6 +457,91 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
             return 0L;
         }
         return amount.setScale(0, RoundingMode.HALF_UP).longValueExact();
+    }
+
+    private BigDecimal reversePartnerWalletBalance(
+            RevenueAllocation allocation, RevenueAllocationReversal reversal) {
+        BigDecimal payable = reversal.getPartnerPayableAmount();
+        if (allocation.getOrganizationId() == null || payable.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        Wallet partnerWallet = walletPortOut.findOrganizationWalletForUpdate(
+                        allocation.getOrganizationId(), "VND", WalletPurpose.ORGANIZATION_SETTLEMENT)
+                .orElseThrow(() -> new NotFoundException("Partner wallet not found"));
+        BigDecimal shortfall = BigDecimal.ZERO.setScale(2);
+        if (allocation.getSettledAt() == null) {
+            if (partnerWallet.getPendingBalance().compareTo(payable) < 0) {
+                throw new ConflictException("Partner pending balance is lower than the reversal amount");
+            }
+            partnerWallet.setPendingBalance(partnerWallet.getPendingBalance().subtract(payable));
+        } else {
+            BigDecimal available = partnerWallet.getAvailableBalance();
+            BigDecimal collectible = available.min(payable);
+            partnerWallet.setAvailableBalance(available.subtract(collectible));
+            shortfall = payable.subtract(collectible);
+        }
+        partnerWallet.setUpdatedAt(Instant.now());
+        walletPortOut.save(partnerWallet);
+        return shortfall;
+    }
+
+    private FinancialTransaction postReversalLedger(
+            RevenueAllocation allocation,
+            RevenueAllocationReversal reversal,
+            BigDecimal receivableShortfall) {
+        FinancialTransaction tx = settlementTransaction(
+                reversal.getRefundPaymentId(), FinancialTransactionType.REFUND);
+        tx.setIdempotencyKey("ALLOC-REV-" + reversal.getRefundPaymentId());
+        tx.setReferenceType("REVENUE_ALLOCATION_REVERSAL");
+        tx.setReferenceId(reversal.getRevenueAllocationReversalId());
+
+        BigDecimal platformRevenue = reversal.getPlatformFeeAmount()
+                .subtract(reversal.getVoucherCommissionAmount()).max(BigDecimal.ZERO);
+        BigDecimal platformExpense = reversal.getVoucherCommissionAmount()
+                .subtract(reversal.getPlatformFeeAmount()).max(BigDecimal.ZERO);
+        if ("PLATFORM".equals(allocation.getFundingSourceSnapshot())) {
+            platformExpense = platformExpense.add(reversal.getDiscountAmount());
+        }
+        BigDecimal payableDebit = reversal.getPartnerPayableAmount().subtract(receivableShortfall);
+        List<LedgerEntry> entries = new ArrayList<>();
+        addEntry(entries, tx, LedgerAccountType.PARTNER_PAYABLE, LedgerEntrySide.DEBIT, payableDebit);
+        addEntry(entries, tx, LedgerAccountType.PARTNER_RECEIVABLE, LedgerEntrySide.DEBIT, receivableShortfall);
+        addEntry(entries, tx, LedgerAccountType.PLATFORM_REVENUE, LedgerEntrySide.DEBIT, platformRevenue);
+        addEntry(entries, tx, LedgerAccountType.VOUCHER_ISSUER_PAYABLE,
+                LedgerEntrySide.DEBIT, reversal.getVoucherCommissionAmount());
+
+        if (FundCustody.PLATFORM.equals(allocation.getFundCustody())) {
+            addEntry(entries, tx, LedgerAccountType.PLATFORM_CASH_CLEARING,
+                    LedgerEntrySide.CREDIT, reversal.getRefundAmount());
+        } else {
+            addEntry(entries, tx, LedgerAccountType.PARTNER_RECEIVABLE,
+                    LedgerEntrySide.CREDIT, reversal.getPlatformFeeAmount());
+        }
+        addEntry(entries, tx, LedgerAccountType.PLATFORM_VOUCHER_EXPENSE,
+                LedgerEntrySide.CREDIT, platformExpense);
+        postingPolicy.requireBalanced(entries);
+        ledgerPortOut.postBalancedTransaction(tx, List.copyOf(entries));
+        return tx;
+    }
+
+    private void addEntry(List<LedgerEntry> entries, FinancialTransaction tx,
+            LedgerAccountType accountType, LedgerEntrySide side, BigDecimal amount) {
+        if (amount != null && amount.compareTo(BigDecimal.ZERO) > 0) {
+            entries.add(newEntry(tx, accountType.name(), side, amount));
+        }
+    }
+
+    private void updateAssessmentReversalStatus(
+            UUID originalPaymentId, BigDecimal totalRefunded, BigDecimal originalPaid) {
+        platformFeeAssessmentPortOut.findByPaymentId(originalPaymentId).ifPresent(assessment -> {
+            boolean fullyReversed = totalRefunded.compareTo(originalPaid) == 0;
+            assessment.setStatus(fullyReversed
+                    ? com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeAssessmentStatus.REVERSED
+                    : com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeAssessmentStatus.PARTIALLY_REVERSED);
+            assessment.setReversedAt(fullyReversed ? Instant.now() : null);
+            assessment.setUpdatedAt(Instant.now());
+            platformFeeAssessmentPortOut.save(assessment);
+        });
     }
 
     private void postAllocationLedger(RevenueAllocation allocation, UUID paymentId) {
@@ -427,9 +565,13 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
             platformExpense = platformExpense.add(allocation.getDiscountAmount());
         }
         List<LedgerEntry> entries = new ArrayList<>();
-        LedgerEntry debit = newEntry(tx, LedgerAccountType.PLATFORM_CASH_CLEARING.name(),
-                LedgerEntrySide.DEBIT, allocation.getCustomerPaidAmount());
-        entries.add(debit);
+        if (FundCustody.PLATFORM.equals(allocation.getFundCustody())) {
+            entries.add(newEntry(tx, LedgerAccountType.PLATFORM_CASH_CLEARING.name(),
+                    LedgerEntrySide.DEBIT, allocation.getCustomerPaidAmount()));
+        } else if (allocation.getPlatformFeeAmount().compareTo(BigDecimal.ZERO) > 0) {
+            entries.add(newEntry(tx, LedgerAccountType.PARTNER_RECEIVABLE.name(),
+                    LedgerEntrySide.DEBIT, allocation.getPlatformFeeAmount()));
+        }
         if (platformExpense.compareTo(BigDecimal.ZERO) > 0) {
             entries.add(newEntry(tx, LedgerAccountType.PLATFORM_VOUCHER_EXPENSE.name(),
                     LedgerEntrySide.DEBIT, platformExpense));
@@ -446,6 +588,9 @@ public class SettlementUseCaseImpl implements SettlementPortIn {
             LedgerEntry issuerCredit = newEntry(tx, LedgerAccountType.VOUCHER_ISSUER_PAYABLE.name(),
                     LedgerEntrySide.CREDIT, allocation.getVoucherCommissionAmount());
             entries.add(issuerCredit);
+        }
+        if (entries.isEmpty()) {
+            return;
         }
         postingPolicy.requireBalanced(entries);
         ledgerPortOut.postBalancedTransaction(tx, List.copyOf(entries));

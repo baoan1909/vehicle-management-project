@@ -12,11 +12,13 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.bil
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.WalletEntity;
 import com.ban.vehicle_management.domain.billing.wallet.model.WalletTopupOrder;
 import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocation;
+import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocationReversal;
 import com.ban.vehicle_management.domain.billing.wallet.model.VoucherFinancialTerm;
 import com.ban.vehicle_management.domain.billing.wallet.model.PartnerBankAccount;
 import com.ban.vehicle_management.domain.billing.wallet.model.PayoutRequest;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.WalletTopupOrderEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.RevenueAllocationEntity;
+import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.RevenueAllocationReversalEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.VoucherFinancialTermEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.PartnerBankAccountEntity;
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.PayoutRequestEntity;
@@ -52,6 +54,10 @@ public interface WalletPersistenceMapper {
     RevenueAllocationEntity toEntity(RevenueAllocation domain);
 
     RevenueAllocation toDomain(RevenueAllocationEntity entity);
+
+    RevenueAllocationReversalEntity toEntity(RevenueAllocationReversal domain);
+
+    RevenueAllocationReversal toDomain(RevenueAllocationReversalEntity entity);
 
     VoucherFinancialTermEntity toEntity(VoucherFinancialTerm domain);
 

@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.common.model.AuditableDomainModel;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeBasis;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeCalculationType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeChargedTo;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus;
 import java.time.Instant;
@@ -23,6 +24,7 @@ public class PlatformFeeType extends AuditableDomainModel {
     private String feeCode;
     private String name;
     private String description;
+    private PlatformFeeScopeType scopeType;
     private PlatformFeeTransactionType transactionType;
     private PlatformFeeCalculationType calculationType;
     private PlatformFeeBasis feeBasis;

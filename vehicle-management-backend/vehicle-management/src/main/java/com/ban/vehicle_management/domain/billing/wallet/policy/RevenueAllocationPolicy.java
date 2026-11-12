@@ -3,6 +3,7 @@ package com.ban.vehicle_management.domain.billing.wallet.policy;
 import com.ban.vehicle_management.domain.billing.wallet.model.RevenueAllocation;
 import com.ban.vehicle_management.domain.billing.wallet.model.VoucherFinancialTerm;
 import com.ban.vehicle_management.shared.enumeration.billing.CommissionBasis;
+import com.ban.vehicle_management.shared.enumeration.billing.FundCustody;
 import com.ban.vehicle_management.shared.enumeration.billing.VoucherFundingSource;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
@@ -38,7 +39,7 @@ public class RevenueAllocationPolicy {
         return allocateWithResolvedPlatformFee(
                 paymentId, invoiceId, parkingLotId, organizationId, voucherId,
                 grossAmount, discountAmount, customerPaidAmount, platformFee, gatewayFee,
-                term, defaultSettlementDelayDays, paidAt);
+                term, defaultSettlementDelayDays, paidAt, FundCustody.PLATFORM);
     }
 
     public RevenueAllocation allocateWithPlatformFeeAmount(
@@ -64,7 +65,24 @@ public class RevenueAllocationPolicy {
         return allocateWithResolvedPlatformFee(
                 paymentId, invoiceId, parkingLotId, organizationId, voucherId,
                 grossAmount, discountAmount, customerPaidAmount, vnd(platformFeeAmount), gatewayFee,
-                term, defaultSettlementDelayDays, paidAt);
+                term, defaultSettlementDelayDays, paidAt, FundCustody.PLATFORM);
+    }
+
+    public RevenueAllocation allocateWithPlatformFeeAmount(
+            UUID paymentId, UUID invoiceId, UUID parkingLotId, UUID organizationId, UUID voucherId,
+            BigDecimal grossAmount, BigDecimal discountAmount, BigDecimal customerPaidAmount,
+            BigDecimal platformFeeAmount, BigDecimal gatewayFee, VoucherFinancialTerm term,
+            int defaultSettlementDelayDays, Instant paidAt, FundCustody custody) {
+        if (grossAmount == null || customerPaidAmount == null || platformFeeAmount == null || custody == null) {
+            throw new BadRequestException("Allocation inputs and custody must not be null");
+        }
+        if (platformFeeAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BadRequestException("Platform fee amount must not be negative");
+        }
+        return allocateWithResolvedPlatformFee(
+                paymentId, invoiceId, parkingLotId, organizationId, voucherId,
+                grossAmount, discountAmount, customerPaidAmount, vnd(platformFeeAmount), gatewayFee,
+                term, defaultSettlementDelayDays, paidAt, custody);
     }
 
     private RevenueAllocation allocateWithResolvedPlatformFee(
@@ -80,7 +98,8 @@ public class RevenueAllocationPolicy {
             BigDecimal gatewayFee,
             VoucherFinancialTerm term,
             int defaultSettlementDelayDays,
-            Instant paidAt) {
+            Instant paidAt,
+            FundCustody custody) {
         BigDecimal discount = discountAmount == null ? BigDecimal.ZERO : discountAmount;
         BigDecimal gwFee = gatewayFee == null ? BigDecimal.ZERO : gatewayFee;
 
@@ -105,7 +124,13 @@ public class RevenueAllocationPolicy {
 
         BigDecimal partnerPayable;
         BigDecimal sponsoredDiscount = BigDecimal.ZERO;
-        if (voucherId == null || discount.compareTo(BigDecimal.ZERO) == 0) {
+        if (FundCustody.PARTNER.equals(custody)) {
+            partnerPayable = voucherId != null && funding == VoucherFundingSource.PLATFORM
+                    ? discount : BigDecimal.ZERO;
+            if (voucherId != null && funding == VoucherFundingSource.EXTERNAL_SPONSOR) {
+                sponsoredDiscount = vnd(discount);
+            }
+        } else if (voucherId == null || discount.compareTo(BigDecimal.ZERO) == 0) {
             partnerPayable = customerPaidAmount.subtract(platformFee).subtract(gwFee);
         } else if (funding == VoucherFundingSource.PARTNER) {
             partnerPayable = customerPaidAmount.subtract(platformFee).subtract(gwFee);
@@ -138,6 +163,7 @@ public class RevenueAllocationPolicy {
         allocation.setVoucherCommissionAmount(commission);
         allocation.setPartnerPayableAmount(vnd(partnerPayable));
         allocation.setGatewayFeeAmount(vnd(gwFee));
+        allocation.setFundCustody(custody);
         allocation.setFundingSourceSnapshot(funding.name());
         allocation.setCommissionRateSnapshot(rate);
         allocation.setCommissionBasisSnapshot(basis.name());

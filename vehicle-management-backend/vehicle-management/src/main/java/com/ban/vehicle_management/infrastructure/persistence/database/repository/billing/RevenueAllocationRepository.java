@@ -9,7 +9,6 @@ import java.util.UUID;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -23,15 +22,15 @@ public interface RevenueAllocationRepository extends JpaRepository<RevenueAlloca
 
     List<RevenueAllocationEntity> findByOrganizationIdOrderByCreatedAtDesc(UUID organizationId, Pageable pageable);
 
-    @Modifying
     @Query(value = """
-            UPDATE billing.revenue_allocations SET settled_at = now()
-            WHERE revenue_allocation_id IN (
-                SELECT revenue_allocation_id FROM billing.revenue_allocations
-                WHERE status = 'POSTED' AND settled_at IS NULL AND available_at <= :now
-                ORDER BY available_at ASC LIMIT :batchSize
-                FOR UPDATE SKIP LOCKED
-            ) RETURNING revenue_allocation_id
+            SELECT revenue_allocation_id
+            FROM billing.revenue_allocations
+            WHERE status = 'POSTED'
+              AND settled_at IS NULL
+              AND available_at <= :now
+            ORDER BY available_at ASC
+            LIMIT :batchSize
+            FOR UPDATE SKIP LOCKED
             """, nativeQuery = true)
     List<UUID> claimDueAllocations(@Param("now") Instant now, @Param("batchSize") int batchSize);
 }

@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.com
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeBasis;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeCalculationType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeChargedTo;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus;
 import jakarta.persistence.Column;
@@ -41,7 +42,11 @@ public class PlatformFeeTypeEntity extends AuditableEntity {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "transaction_type", nullable = false)
+    @Column(name = "scope_type", nullable = false)
+    private PlatformFeeScopeType scopeType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "transaction_type")
     private PlatformFeeTransactionType transactionType;
 
     @Enumerated(EnumType.STRING)

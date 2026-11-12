@@ -3,6 +3,7 @@ package com.ban.vehicle_management.entrypoint.dto.billing.platformfee.response;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeBasis;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeCalculationType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeChargedTo;
+import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeScopeType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTransactionType;
 import com.ban.vehicle_management.shared.enumeration.billing.PlatformFeeTypeStatus;
 import java.time.Instant;
@@ -13,6 +14,7 @@ public record PlatformFeeTypeAdminResponse(
         String feeCode,
         String name,
         String description,
+        PlatformFeeScopeType scopeType,
         PlatformFeeTransactionType transactionType,
         PlatformFeeCalculationType calculationType,
         PlatformFeeBasis feeBasis,

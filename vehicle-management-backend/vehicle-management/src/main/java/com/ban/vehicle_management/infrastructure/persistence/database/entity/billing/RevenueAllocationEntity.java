@@ -1,6 +1,7 @@
 package com.ban.vehicle_management.infrastructure.persistence.database.entity.billing;
 
 import com.ban.vehicle_management.shared.enumeration.billing.RevenueAllocationStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.FundCustody;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -65,6 +66,10 @@ public class RevenueAllocationEntity {
 
     @Column(name = "gateway_fee_amount", precision = 19, scale = 2)
     private BigDecimal gatewayFeeAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fund_custody", nullable = false)
+    private FundCustody fundCustody;
 
     @Column(name = "funding_source_snapshot")
     private String fundingSourceSnapshot;

@@ -4,8 +4,8 @@ import com.ban.vehicle_management.application.accesscontrol.subscription.port.in
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.authorization.PaymentAccessGuard;
 import com.ban.vehicle_management.application.billing.payment.port.in.PaymentPortIn;
+import com.ban.vehicle_management.application.billing.payment.port.in.PaymentCompletionPortIn;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
-import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.notification.notification.model.SendNotificationCommand;
 import com.ban.vehicle_management.application.notification.notification.port.in.NotificationPortIn;
 import com.ban.vehicle_management.application.parking.parkingsession.port.in.ParkingCheckoutCompletionPortIn;
@@ -13,6 +13,7 @@ import com.ban.vehicle_management.domain.billing.invoice.model.Invoice;
 import com.ban.vehicle_management.domain.billing.invoice.policy.InvoicePolicy;
 import com.ban.vehicle_management.domain.billing.payment.model.Payment;
 import com.ban.vehicle_management.domain.billing.payment.policy.PaymentPolicy;
+import com.ban.vehicle_management.domain.billing.wallet.policy.FundCustodyPolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
@@ -35,10 +36,11 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
     private final PaymentAccessGuard paymentAccessGuard;
     private final PaymentPolicy paymentPolicy = new PaymentPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
+    private final FundCustodyPolicy fundCustodyPolicy = new FundCustodyPolicy();
     private final SubscriptionPortIn subscriptionPortIn;
     private final ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
     private final NotificationPortIn notificationPortIn;
-    private final SettlementPortIn settlementPortIn;
+    private final PaymentCompletionPortIn paymentCompletionPortIn;
 
     public PaymentUseCaseImpl(
             PaymentPortOut paymentPortOut,
@@ -47,7 +49,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
             SubscriptionPortIn subscriptionPortIn,
             ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn,
             NotificationPortIn notificationPortIn,
-            SettlementPortIn settlementPortIn
+            PaymentCompletionPortIn paymentCompletionPortIn
     ) {
         this.paymentPortOut = paymentPortOut;
         this.invoicePortOut = invoicePortOut;
@@ -55,7 +57,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
         this.subscriptionPortIn = subscriptionPortIn;
         this.parkingCheckoutCompletionPortIn = parkingCheckoutCompletionPortIn;
         this.notificationPortIn = notificationPortIn;
-        this.settlementPortIn = settlementPortIn;
+        this.paymentCompletionPortIn = paymentCompletionPortIn;
     }
 
     @Override
@@ -75,6 +77,7 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
 
         payment.setPaymentId(UUID.randomUUID());
         paymentPolicy.initializeSuccessfulPayment(payment, invoiceId, receivedBy, Instant.now());
+        payment.setFundCustody(fundCustodyPolicy.resolve(payment.getPaymentMethod()));
 
         validateTransactionRefUnique(payment);
 
@@ -86,8 +89,8 @@ public class PaymentUseCaseImpl implements PaymentPortIn {
         if (invoice.getSubscriptionId() != null) {
             subscriptionPortIn.markSubscriptionInvoicePaymentCompleted(
                     invoice.getSubscriptionId(), invoice.getInvoiceId());
-            settlementPortIn.allocateForCompletedPayment(savedPayment.getPaymentId());
         }
+        paymentCompletionPortIn.completePaymentTruth(savedPayment.getPaymentId());
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());
 
         notifyPaymentSucceeded(invoice, savedPayment);

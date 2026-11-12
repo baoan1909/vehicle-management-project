@@ -3,6 +3,7 @@ package com.ban.vehicle_management.application.billing.wallet.usecase;
 import com.ban.vehicle_management.application.accesscontrol.subscription.port.in.SubscriptionPortIn;
 import com.ban.vehicle_management.application.billing.invoice.port.out.InvoicePortOut;
 import com.ban.vehicle_management.application.billing.payment.port.out.PaymentPortOut;
+import com.ban.vehicle_management.application.billing.payment.port.in.PaymentCompletionPortIn;
 import com.ban.vehicle_management.application.billing.wallet.authorization.WalletAccessGuard;
 import com.ban.vehicle_management.application.billing.wallet.port.in.SettlementPortIn;
 import com.ban.vehicle_management.application.billing.wallet.port.in.WalletPaymentPortIn;
@@ -21,6 +22,7 @@ import com.ban.vehicle_management.domain.billing.wallet.policy.LedgerPostingPoli
 import com.ban.vehicle_management.domain.billing.wallet.policy.WalletPolicy;
 import com.ban.vehicle_management.shared.enumeration.billing.FinancialTransactionStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.FinancialTransactionType;
+import com.ban.vehicle_management.shared.enumeration.billing.FundCustody;
 import com.ban.vehicle_management.shared.enumeration.billing.InvoiceStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.LedgerAccountType;
 import com.ban.vehicle_management.shared.enumeration.billing.LedgerEntrySide;
@@ -58,6 +60,7 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
     private final CurrentAccountPortIn currentAccountPortIn;
     private final SubscriptionPortIn subscriptionPortIn;
     private final ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn;
+    private final PaymentCompletionPortIn paymentCompletionPortIn;
     private final SettlementPortIn settlementPortIn;
     private final WalletPolicy walletPolicy = new WalletPolicy();
     private final InvoicePolicy invoicePolicy = new InvoicePolicy();
@@ -72,6 +75,7 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
             CurrentAccountPortIn currentAccountPortIn,
             SubscriptionPortIn subscriptionPortIn,
             ParkingCheckoutCompletionPortIn parkingCheckoutCompletionPortIn,
+            PaymentCompletionPortIn paymentCompletionPortIn,
             SettlementPortIn settlementPortIn) {
         this.walletPortOut = walletPortOut;
         this.invoicePortOut = invoicePortOut;
@@ -81,6 +85,7 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
         this.currentAccountPortIn = currentAccountPortIn;
         this.subscriptionPortIn = subscriptionPortIn;
         this.parkingCheckoutCompletionPortIn = parkingCheckoutCompletionPortIn;
+        this.paymentCompletionPortIn = paymentCompletionPortIn;
         this.settlementPortIn = settlementPortIn;
     }
 
@@ -150,6 +155,7 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
         payment.setPaymentId(UUID.randomUUID());
         payment.setInvoiceId(invoiceId);
         payment.setPaymentMethod(PaymentMethod.WALLET);
+        payment.setFundCustody(FundCustody.PLATFORM);
         payment.setAmount(invoice.getFinalAmount());
         payment.setTransactionRef("WLP-" + transaction.getTransactionCode());
         payment.setStatus(PaymentStatus.SUCCESS);
@@ -172,8 +178,8 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
         if (invoice.getSubscriptionId() != null) {
             subscriptionPortIn.markSubscriptionInvoicePaymentCompleted(
                     invoice.getSubscriptionId(), invoice.getInvoiceId());
-            settlementPortIn.allocateForCompletedPayment(saved.getPaymentId());
         }
+        paymentCompletionPortIn.completePaymentTruth(saved.getPaymentId());
         parkingCheckoutCompletionPortIn.completePaidCheckout(invoice.getInvoiceId());
         return saved;
     }
@@ -191,7 +197,15 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
         String normalizedKey = TextValidationUtils.normalizeRequiredText(idempotencyKey, "idempotencyKey", 100);
         var existing = paymentPortOut.findByIdempotencyKey(normalizedKey);
         if (existing.isPresent()) {
-            return existing.get();
+            Payment existingRefund = existing.get();
+            if (existingRefund.getReversedPaymentId() != null
+                    && existingRefund.getAmount() != null
+                    && existingRefund.getAmount().compareTo(BigDecimal.ZERO) < 0) {
+                settlementPortIn.reverseForRefund(
+                        existingRefund.getReversedPaymentId(), existingRefund.getPaymentId(),
+                        existingRefund.getAmount().abs());
+            }
+            return existingRefund;
         }
 
         Payment original = paymentPortOut.findByIdForUpdate(paymentId)
@@ -245,6 +259,7 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
         refundRecord.setPaymentId(UUID.randomUUID());
         refundRecord.setInvoiceId(original.getInvoiceId());
         refundRecord.setPaymentMethod(PaymentMethod.WALLET);
+        refundRecord.setFundCustody(FundCustody.PLATFORM);
         refundRecord.setAmount(refundAmount.negate());
         refundRecord.setTransactionRef("WLR-" + reversal.getTransactionCode());
         refundRecord.setStatus(PaymentStatus.REFUNDED);
@@ -255,12 +270,19 @@ public class WalletInvoicePaymentUseCaseImpl implements WalletPaymentPortIn {
         refundRecord.setRefundedAmount(BigDecimal.ZERO);
         refundRecord.setCreatedAt(Instant.now());
         refundRecord.setUpdatedAt(Instant.now());
+        Payment savedRefund;
         try {
-            return paymentPortOut.save(refundRecord);
+            savedRefund = paymentPortOut.save(refundRecord);
         } catch (DataIntegrityViolationException exception) {
-            return paymentPortOut.findByIdempotencyKey(normalizedKey)
+            Payment duplicate = paymentPortOut.findByIdempotencyKey(normalizedKey)
                     .orElseThrow(() -> new ConflictException("Refund already exists"));
+            settlementPortIn.reverseForRefund(
+                    duplicate.getReversedPaymentId(), duplicate.getPaymentId(), duplicate.getAmount().abs());
+            return duplicate;
         }
+        settlementPortIn.reverseForRefund(
+                original.getPaymentId(), savedRefund.getPaymentId(), refundAmount);
+        return savedRefund;
     }
 
     private FinancialTransaction newTransaction(FinancialTransactionType type, String idemKey, UUID refId) {
