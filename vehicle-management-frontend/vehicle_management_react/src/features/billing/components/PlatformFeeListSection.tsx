@@ -61,6 +61,12 @@ const feeBasisOptions = [
   { label: "Sau giảm giá", value: "AFTER_DISCOUNT" },
 ];
 
+const scopeOptions = [
+  { label: "Phạm vi", value: "all" },
+  { label: "Toàn bộ giao dịch", value: "GLOBAL" },
+  { label: "Theo loại giao dịch", value: "TRANSACTION_TYPE" },
+];
+
 function KpiCard({ action, icon, iconClassName, label, value }: { action?: ReactNode; icon: string; iconClassName: string; label: string; value: string }) {
   return (
     <Card className="tw-flex tw-items-center tw-gap-3.5 tw-p-4">
@@ -93,6 +99,7 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
   const [items, setItems] = useState<PlatformFeeTypeResponse[]>([]);
   const [status, setStatus] = useState("all");
   const [feeBasis, setFeeBasis] = useState("all");
+  const [scopeType, setScopeType] = useState("all");
   const [keywordInput, setKeywordInput] = useState("");
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
@@ -130,7 +137,7 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
       page: page - 1,
       size: pageSize,
       status: status === "all" ? undefined : (status as PlatformFeeTypeStatus),
-      transactionType: "SUBSCRIPTION_PURCHASE",
+      scopeType: scopeType === "all" ? undefined : (scopeType as "GLOBAL" | "TRANSACTION_TYPE"),
     })
       .then((response) => {
         if (cancelled) return;
@@ -148,14 +155,14 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
     return () => {
       cancelled = true;
     };
-  }, [feeBasis, keyword, page, status, toast]);
+  }, [feeBasis, keyword, page, scopeType, status, toast]);
 
   useEffect(() => {
     let cancelled = false;
     setSummaryLoading(true);
     Promise.all([
-      searchPlatformFeeTypes({ page: 0, size: 1, status: "ACTIVE", transactionType: "SUBSCRIPTION_PURCHASE" }),
-      searchPlatformFeeTypes({ page: 0, size: 1, status: "DRAFT", transactionType: "SUBSCRIPTION_PURCHASE" }),
+      searchPlatformFeeTypes({ page: 0, size: 1, status: "ACTIVE" }),
+      searchPlatformFeeTypes({ page: 0, size: 1, status: "DRAFT" }),
     ])
       .then(([activeResponse, draftResponse]) => {
         if (cancelled) return;
@@ -272,7 +279,7 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
       page: page - 1,
       size: pageSize,
       status: status === "all" ? undefined : (status as PlatformFeeTypeStatus),
-      transactionType: "SUBSCRIPTION_PURCHASE",
+      scopeType: scopeType === "all" ? undefined : (scopeType as "GLOBAL" | "TRANSACTION_TYPE"),
     })
       .then((response) => {
         setItems(response.data.items);
@@ -283,8 +290,8 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
         toast.error(getErrorMessage(error, "Không thể tải danh sách phí sàn."), "Tải dữ liệu thất bại");
       });
     Promise.all([
-      searchPlatformFeeTypes({ page: 0, size: 1, status: "ACTIVE", transactionType: "SUBSCRIPTION_PURCHASE" }),
-      searchPlatformFeeTypes({ page: 0, size: 1, status: "DRAFT", transactionType: "SUBSCRIPTION_PURCHASE" }),
+      searchPlatformFeeTypes({ page: 0, size: 1, status: "ACTIVE" }),
+      searchPlatformFeeTypes({ page: 0, size: 1, status: "DRAFT" }),
     ])
       .then(([activeResponse, draftResponse]) => {
         setActiveCount(activeResponse.data.totalElements);
@@ -433,7 +440,7 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
       <PlatformFeeConfigurationDialog open={configurationOpen} onClose={() => setConfigurationOpen(false)} />
 
       <Card className="tw-overflow-hidden">
-        <div className="tw-grid tw-grid-cols-[minmax(220px,1fr)_200px_200px_auto] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-4 max-[1000px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
+        <div className="tw-grid tw-grid-cols-[minmax(220px,1fr)_180px_180px_180px_auto] tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-4 max-[1100px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
           <span className="tw-relative tw-block max-[1000px]:tw-col-span-2 max-[640px]:tw-col-span-1">
             <i className="fas fa-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-vm-slate-400" aria-hidden="true" />
             <input
@@ -444,6 +451,16 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
               onChange={(event) => setKeywordInput(event.target.value)}
             />
           </span>
+          <SelectMenu
+            ariaLabel="Lọc phạm vi phí sàn"
+            options={scopeOptions}
+            portal
+            value={scopeType}
+            onChange={(value) => {
+              setScopeType(value);
+              setPage(1);
+            }}
+          />
           <SelectMenu
             ariaLabel="Lọc trạng thái phí sàn"
             options={statusOptions}
@@ -572,7 +589,9 @@ export function PlatformFeeListSection({ onCreate, onOpenDetail, onPreview }: Li
           ? (<>Lưu trữ phí <strong>{confirmAction.feeType.feeCode}</strong>? Phí đã lưu trữ không thể khôi phục.</>)
           : confirmAction?.kind === "deactivate"
             ? (<>Ngừng áp dụng phí <strong>{confirmAction.feeType.feeCode}</strong>?</>)
-            : (<>Kích hoạt phí <strong>{confirmAction?.feeType.feeCode}</strong>? Phí cần có phiên bản tỷ lệ đã kích hoạt để tính phí.</>)}
+            : confirmAction?.feeType.scopeType === "GLOBAL"
+              ? (<>Kích hoạt phí <strong>{confirmAction.feeType.feeCode}</strong> cho <strong>toàn bộ loại giao dịch</strong>? Cấu hình riêng theo loại giao dịch vẫn được ưu tiên.</>)
+              : (<>Kích hoạt phí <strong>{confirmAction?.feeType.feeCode}</strong>? Phí cần có phiên bản tỷ lệ đã kích hoạt để tính phí.</>)}
         open={confirmAction !== null}
         title={confirmAction?.kind === "archive" ? "Lưu trữ phí" : confirmAction?.kind === "deactivate" ? "Ngừng áp dụng" : "Kích hoạt phí"}
         tone={confirmAction?.kind === "archive" ? "danger" : "default"}

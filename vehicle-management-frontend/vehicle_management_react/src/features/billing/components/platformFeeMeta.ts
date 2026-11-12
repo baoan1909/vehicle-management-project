@@ -20,7 +20,13 @@ export const platformFeePermissions = {
 };
 
 export const transactionTypeLabels: Record<PlatformFeeTransactionType, string> = {
+  PARKING_SESSION: "Phiên gửi xe",
   SUBSCRIPTION_PURCHASE: "Mua vé tháng",
+  SUBSCRIPTION_RENEWAL: "Gia hạn vé tháng",
+  SUBSCRIPTION_CARD_DEPOSIT: "Đặt cọc thẻ",
+  LOST_CARD: "Mất thẻ",
+  MANUAL: "Hóa đơn thủ công",
+  RESERVATION_PREPAYMENT: "Đặt chỗ trả trước",
 };
 
 export const calculationTypeLabels: Record<PlatformFeeCalculationType, string> = {

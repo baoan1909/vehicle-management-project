@@ -3,7 +3,12 @@ import { useState } from "react";
 import { Button, Card, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
-import { createPlatformFeeType, type PlatformFeeBasis } from "@/features/billing/api/platformFeeApi";
+import {
+  createPlatformFeeType,
+  type PlatformFeeBasis,
+  type PlatformFeeScopeType,
+  type PlatformFeeTransactionType,
+} from "@/features/billing/api/platformFeeApi";
 import { FeeFieldLabel, FeeLockedInput, FeeSegmented, FeeToggle } from "@/features/billing/components/PlatformFeeControls";
 import {
   getErrorMessage,
@@ -36,6 +41,8 @@ export function PlatformFeeCreateSection({ onBack, onCreated }: CreateSectionPro
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [feeBasis, setFeeBasis] = useState<PlatformFeeBasis>("GROSS_AMOUNT");
+  const [scopeType, setScopeType] = useState<PlatformFeeScopeType>("GLOBAL");
+  const [transactionType, setTransactionType] = useState<PlatformFeeTransactionType>("SUBSCRIPTION_PURCHASE");
   const [stackable, setStackable] = useState(true);
   const [fieldError, setFieldError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -64,8 +71,9 @@ export function PlatformFeeCreateSection({ onBack, onCreated }: CreateSectionPro
         feeBasis,
         feeCode: code,
         name: name.trim(),
+        scopeType,
         stackable,
-        transactionType: "SUBSCRIPTION_PURCHASE",
+        transactionType: scopeType === "GLOBAL" ? null : transactionType,
       });
       toast.success(`Đã tạo phí ${code} ở trạng thái bản nháp.`, "Tạo phí thành công");
       onCreated(response.data.platformFeeTypeId);
@@ -151,9 +159,45 @@ export function PlatformFeeCreateSection({ onBack, onCreated }: CreateSectionPro
             <h2 className="tw-m-0 tw-text-[1.1rem] tw-font-black tw-text-vm-slate-900">Quy tắc áp dụng</h2>
 
             <div className="tw-grid tw-grid-cols-2 tw-gap-4 max-[640px]:tw-grid-cols-1">
+              <label className="tw-grid tw-gap-1.5">
+                <FeeFieldLabel required>Phạm vi phí</FeeFieldLabel>
+                <select
+                  aria-label="Phạm vi phí"
+                  className={platformFeeInputClassName}
+                  disabled={saving}
+                  value={scopeType}
+                  onChange={(event) => setScopeType(event.target.value as PlatformFeeScopeType)}
+                >
+                  <option value="GLOBAL">Toàn bộ giao dịch</option>
+                  <option value="TRANSACTION_TYPE">Theo loại giao dịch</option>
+                </select>
+              </label>
+              {scopeType === "TRANSACTION_TYPE" ? (
+                <label className="tw-grid tw-gap-1.5">
+                  <FeeFieldLabel required>Loại giao dịch</FeeFieldLabel>
+                  <select
+                    aria-label="Loại giao dịch"
+                    className={platformFeeInputClassName}
+                    disabled={saving}
+                    value={transactionType}
+                    onChange={(event) => setTransactionType(event.target.value as PlatformFeeTransactionType)}
+                  >
+                    <option value="PARKING_SESSION">Phiên gửi xe</option>
+                    <option value="SUBSCRIPTION_PURCHASE">Mua vé tháng</option>
+                    <option value="SUBSCRIPTION_RENEWAL">Gia hạn vé tháng</option>
+                    <option value="SUBSCRIPTION_CARD_DEPOSIT">Đặt cọc thẻ</option>
+                    <option value="LOST_CARD">Mất thẻ</option>
+                    <option value="MANUAL">Hóa đơn thủ công</option>
+                    <option value="RESERVATION_PREPAYMENT">Đặt chỗ trả trước</option>
+                  </select>
+                </label>
+              ) : null}
+            </div>
+
+            <div className="tw-grid tw-grid-cols-2 tw-gap-4 max-[640px]:tw-grid-cols-1">
               <div className="tw-grid tw-gap-1.5 tw-content-start">
                 <FeeFieldLabel>Loại giao dịch</FeeFieldLabel>
-                <FeeLockedInput ariaLabel="Loại giao dịch" value="Mua vé tháng — Toàn sàn" />
+                <FeeLockedInput ariaLabel="Loại giao dịch" value={scopeType === "GLOBAL" ? "Toàn bộ giao dịch" : "Loại giao dịch đã chọn"} />
                 <span className="tw-text-[0.76rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">
                   Phí này áp dụng cho giao dịch mua vé tháng trên toàn hệ thống.
                 </span>

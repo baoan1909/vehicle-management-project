@@ -8,7 +8,15 @@ type ApiResponse<T> = {
   timestamp: string;
 };
 
-export type PlatformFeeTransactionType = "SUBSCRIPTION_PURCHASE";
+export type PlatformFeeScopeType = "GLOBAL" | "TRANSACTION_TYPE";
+export type PlatformFeeTransactionType =
+  | "PARKING_SESSION"
+  | "SUBSCRIPTION_PURCHASE"
+  | "SUBSCRIPTION_RENEWAL"
+  | "SUBSCRIPTION_CARD_DEPOSIT"
+  | "LOST_CARD"
+  | "MANUAL"
+  | "RESERVATION_PREPAYMENT";
 export type PlatformFeeCalculationType = "PERCENTAGE";
 export type PlatformFeeBasis = "GROSS_AMOUNT" | "AFTER_DISCOUNT";
 export type PlatformFeeChargedTo = "PARTNER" | "CUSTOMER" | "PLATFORM";
@@ -20,7 +28,8 @@ export type PlatformFeeTypeResponse = {
   feeCode: string;
   name: string;
   description: string | null;
-  transactionType: PlatformFeeTransactionType;
+  scopeType: PlatformFeeScopeType;
+  transactionType: PlatformFeeTransactionType | null;
   calculationType: PlatformFeeCalculationType;
   feeBasis: PlatformFeeBasis;
   chargedTo: PlatformFeeChargedTo;
@@ -98,7 +107,11 @@ export type PlatformFeePreviewLineResponse = {
 };
 
 export type PlatformFeePreviewResponse = {
-  transactionType: PlatformFeeTransactionType;
+  requestedTransactionType: PlatformFeeTransactionType;
+  resolvedScope: PlatformFeeScopeType | null;
+  fallbackApplied: boolean;
+  configurationFound: boolean;
+  missingConfigurationReason: string | null;
   effectiveAt: string;
   grossAmount: number;
   customerPaidAmount: number;
@@ -111,6 +124,7 @@ export type PlatformFeePreviewResponse = {
 export type PlatformFeeTypeFilter = {
   keyword?: string;
   status?: PlatformFeeTypeStatus;
+  scopeType?: PlatformFeeScopeType;
   transactionType?: PlatformFeeTransactionType;
   feeBasis?: PlatformFeeBasis;
   page?: number;
@@ -121,7 +135,8 @@ export type CreatePlatformFeeTypeRequest = {
   feeCode: string;
   name: string;
   description?: string | null;
-  transactionType: PlatformFeeTransactionType;
+  scopeType: PlatformFeeScopeType;
+  transactionType: PlatformFeeTransactionType | null;
   calculationType: PlatformFeeCalculationType;
   feeBasis: PlatformFeeBasis;
   chargedTo: PlatformFeeChargedTo;
