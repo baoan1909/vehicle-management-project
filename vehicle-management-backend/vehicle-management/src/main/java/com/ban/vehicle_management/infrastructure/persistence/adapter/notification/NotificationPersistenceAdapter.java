@@ -132,7 +132,10 @@ public class NotificationPersistenceAdapter implements NotificationPortOut {
     @Override
     public boolean existsAccountById(UUID accountId) {
         return accountRepository.findById(accountId)
-                .map(account -> account.getStatus() == AccountStatus.ACTIVE)
+                // Pending customers are intentionally allowed to use the support
+                // flow before approval and must receive ticket/chat notifications.
+                .map(account -> account.getStatus() == AccountStatus.ACTIVE
+                        || account.getStatus() == AccountStatus.PENDING)
                 .orElse(false);
     }
 
