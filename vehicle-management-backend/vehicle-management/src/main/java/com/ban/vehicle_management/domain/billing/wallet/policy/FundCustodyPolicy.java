@@ -13,7 +13,7 @@ public class FundCustodyPolicy {
         }
         return switch (paymentMethod) {
             case CASH, BANK_TRANSFER -> FundCustody.PARTNER;
-            case QR, MOMO, VNPAY, WALLET, PAYOS, STRIPE -> FundCustody.PLATFORM;
+            case QR, MOMO, VNPAY, SEPAY, WALLET -> FundCustody.PLATFORM;
         };
     }
 

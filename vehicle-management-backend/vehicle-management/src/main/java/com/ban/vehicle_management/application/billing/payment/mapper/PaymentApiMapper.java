@@ -5,12 +5,14 @@ import com.ban.vehicle_management.application.billing.payment.model.result.Vnpay
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayIpnResult;
 import com.ban.vehicle_management.application.billing.payment.model.command.CreateVnpayPaymentCommand;
 import com.ban.vehicle_management.application.billing.payment.model.result.VnpayReturnResult;
+import com.ban.vehicle_management.application.billing.payment.model.result.SepayPaymentResult;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.request.CreatePaymentRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.request.CreateVnpayPaymentRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.PaymentResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.VnpayPaymentResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.VnpayIpnResponse;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.VnpayReturnResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.SepayPaymentResponse;
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
@@ -41,6 +43,8 @@ public interface PaymentApiMapper {
     List<PaymentResponse> toResponses(List<Payment> payments);
 
     VnpayPaymentResponse toResponse(VnpayPaymentResult result);
+
+    SepayPaymentResponse toResponse(SepayPaymentResult result);
 
     VnpayReturnResponse toResponse(VnpayReturnResult result);
 

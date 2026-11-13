@@ -2,6 +2,7 @@ package com.ban.vehicle_management.infrastructure.persistence.database.repositor
 
 import com.ban.vehicle_management.infrastructure.persistence.database.entity.billing.PaymentEntity;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
+import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -37,6 +38,9 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, UUID>, J
     boolean existsByInvoiceIdAndStatus(UUID invoiceId, PaymentStatus status);
 
     boolean existsByTransactionRefAndStatus(String transactionRef, PaymentStatus status);
+
+    boolean existsByPaymentMethodAndProviderTransactionNo(
+            PaymentMethod paymentMethod, String providerTransactionNo);
 
     Optional<PaymentEntity> findFirstByInvoiceIdAndStatusOrderByCreatedAtDesc(
             UUID invoiceId,

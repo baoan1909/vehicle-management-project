@@ -3,6 +3,7 @@ package com.ban.vehicle_management.entrypoint.controller.parking;
 import com.ban.vehicle_management.application.billing.payment.mapper.PaymentApiMapper;
 import com.ban.vehicle_management.application.billing.payment.model.command.CreateVnpayPaymentCommand;
 import com.ban.vehicle_management.application.billing.payment.port.in.VnpayPaymentPortIn;
+import com.ban.vehicle_management.application.billing.payment.port.in.SepayPaymentPortIn;
 import com.ban.vehicle_management.application.parking.customerreservation.mapper.CustomerReservationApiMapper;
 import com.ban.vehicle_management.application.parking.customerreservation.port.in.CustomerReservationPortIn;
 import com.ban.vehicle_management.application.parking.customerreservation.port.in.ParkingPlateLookupPortIn;
@@ -11,6 +12,7 @@ import com.ban.vehicle_management.application.parking.parkinglayout.mapper.Parki
 import com.ban.vehicle_management.application.parking.parkinglayout.port.in.ParkingLayoutPortIn;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.request.CreateVnpayPaymentRequest;
 import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.VnpayPaymentResponse;
+import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.SepayPaymentResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.customerreservation.request.CreateCustomerReservationRequest;
 import com.ban.vehicle_management.entrypoint.dto.parking.customerreservation.response.CustomerReservationResponse;
 import com.ban.vehicle_management.entrypoint.dto.parking.customerreservation.response.ParkingPlateLookupResponse;
@@ -41,6 +43,7 @@ public class PublicCustomerReservationController {
     private final ParkingPlateLookupPortIn plateLookup;
     private final CustomerReservationApiMapper reservationMapper;
     private final VnpayPaymentPortIn vnpay;
+    private final SepayPaymentPortIn sepay;
     private final PaymentApiMapper paymentMapper;
     private final GuestReservationCheckoutUseCase checkout;
     private final ParkingLayoutPortIn layouts;
@@ -50,13 +53,15 @@ public class PublicCustomerReservationController {
     public PublicCustomerReservationController(CustomerReservationPortIn reservations,
             ParkingPlateLookupPortIn plateLookup,
             CustomerReservationApiMapper reservationMapper, VnpayPaymentPortIn vnpay,
-            PaymentApiMapper paymentMapper, GuestReservationCheckoutUseCase checkout,
+            SepayPaymentPortIn sepay, PaymentApiMapper paymentMapper,
+            GuestReservationCheckoutUseCase checkout,
             ParkingLayoutPortIn layouts, ParkingLayoutApiMapper layoutMapper,
             ClientIpResolver clientIpResolver) {
         this.reservations = reservations;
         this.plateLookup = plateLookup;
         this.reservationMapper = reservationMapper;
         this.vnpay = vnpay;
+        this.sepay = sepay;
         this.paymentMapper = paymentMapper;
         this.checkout = checkout;
         this.layouts = layouts;
@@ -123,6 +128,15 @@ public class PublicCustomerReservationController {
                 paymentMapper.toCommandWithDefaults(request, clientIpResolver.resolve(httpRequest)));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
                 "VNPAY payment created", paymentMapper.toResponse(result)));
+    }
+
+    @PostMapping("/{reservationId}/payments/sepay")
+    public ResponseEntity<ApiResponse<SepayPaymentResponse>> createSepayPayment(
+            @PathVariable UUID reservationId,
+            @RequestHeader("X-Reservation-Access") String accessToken) {
+        var result = sepay.createGuestReservationPayment(reservationId, accessToken);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(
+                "SePay payment created", paymentMapper.toResponse(result)));
     }
 
 }
