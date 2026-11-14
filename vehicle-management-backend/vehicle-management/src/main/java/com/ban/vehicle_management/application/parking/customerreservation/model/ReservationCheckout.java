@@ -1,4 +1,14 @@
 package com.ban.vehicle_management.application.parking.customerreservation.model;
 
-public record ReservationCheckout(ReservationView reservation, String paymentUrl,
-        String paymentMethod) { }
+import java.time.Instant;
+
+public record ReservationCheckout(
+        ReservationView reservation,
+        String paymentUrl,
+        String paymentMethod,
+        String transactionRef,
+        String bankCode,
+        String accountNumber,
+        String accountHolder,
+        Instant paymentExpiresAt
+) { }

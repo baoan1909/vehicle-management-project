@@ -1,7 +1,6 @@
 package com.ban.vehicle_management.domain.billing.payment.policy;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -108,17 +107,6 @@ class PaymentPolicyTest {
     }
 
     @Test
-    void shouldAllowPendingStripePayment() {
-        Payment payment = validPayment(PaymentMethod.STRIPE);
-        payment.setInvoiceId(UUID.randomUUID());
-        payment.setStatus(PaymentStatus.PENDING);
-        payment.setCreatedAt(Instant.parse("2026-11-09T02:00:00Z"));
-        payment.setExpiresAt(Instant.parse("2026-11-09T02:10:00Z"));
-
-        assertDoesNotThrow(() -> paymentPolicy.validateState(payment));
-    }
-
-    @Test
     void shouldRejectUnsupportedCharactersInNote() {
         Payment payment = validPayment(PaymentMethod.BANK_TRANSFER);
         payment.setNote("<script>");
@@ -195,6 +183,34 @@ class PaymentPolicyTest {
         assertEquals(PaymentStatus.FAILED, payment.getStatus());
         assertNull(payment.getPaidAt());
         assertEquals("VNPAY response code 24", payment.getFailureReason());
+    }
+
+    @Test
+    void shouldInitializeAndCompletePendingSepayPayment() {
+        Payment payment = new Payment();
+        payment.setPaymentId(UUID.randomUUID());
+        Instant createdAt = Instant.parse("2026-11-13T02:00:00Z");
+        Instant expiresAt = Instant.parse("2026-11-13T02:10:00Z");
+
+        paymentPolicy.initializePendingSepayPayment(
+                payment,
+                UUID.randomUUID(),
+                new BigDecimal("9999.00"),
+                "CPR123",
+                createdAt,
+                expiresAt
+        );
+
+        assertEquals(PaymentMethod.SEPAY, payment.getPaymentMethod());
+        assertEquals(PaymentStatus.PENDING, payment.getStatus());
+
+        Instant paidAt = Instant.parse("2026-11-13T02:05:00Z");
+        paymentPolicy.markSepaySuccessful(payment, paidAt, "FT123", "MBBank");
+
+        assertEquals(PaymentStatus.SUCCESS, payment.getStatus());
+        assertEquals(paidAt, payment.getPaidAt());
+        assertEquals("FT123", payment.getProviderTransactionNo());
+        assertEquals("MBBank", payment.getBankCode());
     }
 
     private Payment validPayment(PaymentMethod paymentMethod) {

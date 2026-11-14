@@ -92,6 +92,13 @@ public class PaymentPersistenceAdapter implements PaymentPortOut {
     }
 
     @Override
+    public boolean existsByPaymentMethodAndProviderTransactionNo(
+            PaymentMethod paymentMethod, String providerTransactionNo) {
+        return paymentRepository.existsByPaymentMethodAndProviderTransactionNo(
+                paymentMethod, providerTransactionNo);
+    }
+
+    @Override
     public Optional<Payment> findFirstByInvoiceIdAndStatus(UUID invoiceId, PaymentStatus status) {
         return paymentRepository.findFirstByInvoiceIdAndStatusOrderByCreatedAtDesc(invoiceId, status)
                 .map(paymentPersistenceMapper::toDomain);

@@ -116,7 +116,9 @@ public class SecurityConfig {
                                 "/api/public/support/assistant/messages",
                                 "/api/public/parking/reservations",
                                 "/api/public/parking/reservations/*/cancel",
-                                "/api/public/parking/reservations/*/payments/vnpay"
+                                "/api/public/parking/reservations/*/payments/vnpay",
+                                "/api/public/parking/reservations/*/payments/sepay",
+                                "/api/public/payments/sepay/webhook"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
