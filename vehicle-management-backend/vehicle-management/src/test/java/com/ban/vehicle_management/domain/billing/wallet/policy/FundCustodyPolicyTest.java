@@ -30,10 +30,9 @@ class FundCustodyPolicyTest {
                 Arguments.of(PaymentMethod.CASH, FundCustody.PARTNER),
                 Arguments.of(PaymentMethod.BANK_TRANSFER, FundCustody.PARTNER),
                 Arguments.of(PaymentMethod.VNPAY, FundCustody.PLATFORM),
+                Arguments.of(PaymentMethod.SEPAY, FundCustody.PLATFORM),
                 Arguments.of(PaymentMethod.WALLET, FundCustody.PLATFORM),
                 Arguments.of(PaymentMethod.QR, FundCustody.PLATFORM),
-                Arguments.of(PaymentMethod.MOMO, FundCustody.PLATFORM),
-                Arguments.of(PaymentMethod.PAYOS, FundCustody.PLATFORM),
-                Arguments.of(PaymentMethod.STRIPE, FundCustody.PLATFORM));
+                Arguments.of(PaymentMethod.MOMO, FundCustody.PLATFORM));
     }
 }

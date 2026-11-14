@@ -44,6 +44,39 @@ public class PaymentPolicy {
         validateState(payment);
     }
 
+    public void initializePendingSepayPayment(
+            Payment payment,
+            UUID invoiceId,
+            BigDecimal amount,
+            String transactionRef,
+            Instant createdAt,
+            Instant expiresAt
+    ) {
+        require(payment, "payment");
+        require(invoiceId, "invoiceId");
+        require(amount, "amount");
+        require(createdAt, "createdAt");
+        require(expiresAt, "expiresAt");
+
+        if (!expiresAt.isAfter(createdAt)) {
+            throw new BadRequestException("expiresAt must be after createdAt");
+        }
+
+        payment.setInvoiceId(invoiceId);
+        payment.setPaymentMethod(PaymentMethod.SEPAY);
+        payment.setAmount(amount);
+        payment.setTransactionRef(normalizeTransactionRef(PaymentMethod.SEPAY, transactionRef));
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.setPaidAt(null);
+        payment.setReceivedBy(null);
+        payment.setNote("SePay VietQR payment");
+        payment.setCreatedAt(createdAt);
+        payment.setExpiresAt(expiresAt);
+        payment.setRefundedAmount(BigDecimal.ZERO);
+
+        validateState(payment);
+    }
+
     public void initializeSuccessfulPayment(Payment payment, UUID invoiceId, UUID receivedBy, Instant paidAt) {
         require(payment, "payment");
         require(invoiceId, "invoiceId");
@@ -117,6 +150,19 @@ public class PaymentPolicy {
         validateState(payment);
     }
 
+    public void markSepaySuccessful(Payment payment, Instant paidAt,
+            String providerTransactionNo, String bankCode) {
+        requirePendingSepayPayment(payment);
+        require(paidAt, "paidAt");
+
+        payment.setStatus(PaymentStatus.SUCCESS);
+        payment.setPaidAt(paidAt);
+        applyProviderResult(payment, providerTransactionNo, "00", "SUCCESS", bankCode, "VIETQR");
+        payment.setFailureReason(null);
+
+        validateState(payment);
+    }
+
     public void validateState(Payment payment) {
         require(payment, "payment");
         require(payment.getPaymentId(), "paymentId");
@@ -135,8 +181,7 @@ public class PaymentPolicy {
 
         if (PaymentStatus.PENDING.equals(payment.getStatus())) {
             if (!PaymentMethod.VNPAY.equals(payment.getPaymentMethod())
-                    && !PaymentMethod.PAYOS.equals(payment.getPaymentMethod())
-                    && !PaymentMethod.STRIPE.equals(payment.getPaymentMethod())) {
+                    && !PaymentMethod.SEPAY.equals(payment.getPaymentMethod())) {
                 throw new BadRequestException("Only online payment can be pending");
             }
             if (payment.getPaidAt() != null || payment.getReceivedBy() != null) {
@@ -182,6 +227,14 @@ public class PaymentPolicy {
         if (!PaymentMethod.VNPAY.equals(payment.getPaymentMethod())
                 || !PaymentStatus.PENDING.equals(payment.getStatus())) {
             throw new BadRequestException("Only pending VNPAY payment can be updated");
+        }
+    }
+
+    private void requirePendingSepayPayment(Payment payment) {
+        require(payment, "payment");
+        if (!PaymentMethod.SEPAY.equals(payment.getPaymentMethod())
+                || !PaymentStatus.PENDING.equals(payment.getStatus())) {
+            throw new BadRequestException("Only pending SEPAY payment can be updated");
         }
     }
 

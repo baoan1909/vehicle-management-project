@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { LayoutCanvas, type CanvasSelection, type LayoutSpaceVisualState } from "@/features/parking/components/LayoutCanvas";
-import { VNPAY_MINIMUM_AMOUNT } from "@/features/billing/api/invoicePaymentsApi";
 
 import { getPublicParkingLotDirectory, type PublicParkingLotDirectoryItem } from "@/features/parking/api/publicParkingApi";
 import {
@@ -18,6 +17,7 @@ import {
   startReservationPayment,
   type CustomerReservation,
   type PublicReservationLayout,
+  type ReservationPaymentStart,
   type ReservationOption,
 } from "@/features/parking/api/customerReservationApi";
 
@@ -27,8 +27,11 @@ const dateTime = (value: string | null) => value
 
 function errorMessage(error: unknown) {
   if (!(error instanceof Error)) return "Có lỗi xảy ra. Vui lòng thử lại.";
-  if (error.message.includes("Payment for reservations below 10,000 VND is temporarily unavailable")) {
-    return "Thanh toán đặt chỗ dưới 10.000đ đang tạm chưa hỗ trợ.";
+  if (error.message.includes("SePay monthly transaction limit has been reached")) {
+    return "SePay đã đạt giới hạn giao dịch trong tháng. Hiện chưa thể thanh toán đặt chỗ dưới 10.000đ.";
+  }
+  if (error.message.includes("SePay integration is disabled") || error.message.includes("SePay configuration is incomplete")) {
+    return "Thanh toán SePay đang tạm thời chưa được cấu hình.";
   }
   if (error.message.includes("This license plate already has an active reservation")) {
     return "Biển số này đã có đặt chỗ còn hiệu lực trong khu vực. Vị trí bạn chọn chưa bị giữ thêm.";
@@ -99,6 +102,7 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
   const [lots, setLots] = useState<PublicParkingLotDirectoryItem[]>([]);
   const [reservations, setReservations] = useState<CustomerReservation[]>([]);
   const [current, setCurrent] = useState<CustomerReservation | null>(null);
+  const [sepayPayment, setSepayPayment] = useState<ReservationPaymentStart | null>(null);
   const [vehicleTypeId, setVehicleTypeId] = useState("");
   const [options, setOptions] = useState<ReservationOption[]>([]);
   const [zoneId, setZoneId] = useState("");
@@ -155,14 +159,15 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
   }, [parkingLotId, zoneId, selectedZone?.trackingMode]);
 
   useEffect(() => {
-    if (!reservationId || current?.status !== "PENDING_PAYMENT") return;
+    const activeReservationId = current?.reservationId ?? reservationId;
+    if (!activeReservationId || current?.status !== "PENDING_PAYMENT") return;
     const timer = window.setInterval(() => {
-      void (publicFlow ? getCustomerReservation(reservationId) : getOwnedReservation(reservationId))
+      void (publicFlow ? getCustomerReservation(activeReservationId) : getOwnedReservation(activeReservationId))
         .then((response) => setCurrent(response.data))
         .catch(() => undefined);
     }, 4000);
     return () => window.clearInterval(timer);
-  }, [reservationId, current?.status, publicFlow]);
+  }, [reservationId, current?.reservationId, current?.status, publicFlow]);
 
   const lot = useMemo(() => lots.find((item) => item.parkingLotId === parkingLotId), [lots, parkingLotId]);
   const availableSpaces = useMemo(() => selectedZone?.spaces ?? [], [selectedZone]);
@@ -199,8 +204,21 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
         licensePlate: licensePlate.trim(),
         policyAccepted,
       });
-      prepareReservationReturn(created.data.paymentMethod, created.data.reservation.reservationId, Boolean(onClose));
-      window.location.assign(created.data.paymentUrl);
+      if (created.data.paymentMethod === "VNPAY") {
+        prepareReservationReturn(created.data.paymentMethod, created.data.reservation.reservationId, Boolean(onClose));
+        window.location.assign(created.data.paymentUrl);
+        return;
+      }
+      setCurrent(created.data.reservation);
+      setSepayPayment({
+        paymentMethod: "SEPAY",
+        paymentUrl: created.data.paymentUrl,
+        transactionRef: created.data.transactionRef,
+        bankCode: created.data.bankCode,
+        accountNumber: created.data.accountNumber,
+        accountHolder: created.data.accountHolder,
+        expiresAt: created.data.paymentExpiresAt,
+      });
     } catch (cause) {
       setError(errorMessage(cause));
       if (parkingLotId && vehicleTypeId) {
@@ -217,7 +235,12 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
     setBusy(true);
     setError("");
     try {
-      window.location.assign(await startReservationPayment(reservation, !publicFlow, Boolean(onClose)));
+      const payment = await startReservationPayment(reservation, !publicFlow, Boolean(onClose));
+      if (payment.paymentMethod === "VNPAY") {
+        window.location.assign(payment.paymentUrl);
+        return;
+      }
+      setSepayPayment(payment);
     } catch (cause) {
       setError(errorMessage(cause));
       setBusy(false);
@@ -253,7 +276,7 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
       {loading ? <p role="status">Đang tải...</p> : null}
       {error ? <p role="alert" className="tw-rounded-lg tw-bg-red-50 tw-p-3 tw-text-red-800">{error}</p> : null}
 
-      {reservationId && current ? (
+      {current ? (
         <section className="tw-rounded-xl tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-5 tw-shadow-sm">
           <h2 className="tw-mt-0 tw-text-lg tw-font-bold">{statusLabel(current.status)}</h2>
           <div className="tw-grid tw-gap-x-8 sm:tw-grid-cols-2">
@@ -272,10 +295,25 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
             </div>
           </div>
           {current.status === "PENDING_PAYMENT" && new Date(current.paymentHoldExpiresAt).getTime() > Date.now() ? (
-            <button disabled={busy} type="button" onClick={() => void payPending(current)}
-              className="tw-rounded-lg tw-border-0 tw-bg-blue-700 tw-px-4 tw-py-2 tw-font-bold tw-text-white">
-              Tiếp tục thanh toán
-            </button>
+            sepayPayment ? (
+              <div className="tw-mt-5 tw-grid tw-gap-5 tw-rounded-xl tw-bg-blue-50 tw-p-4 md:tw-grid-cols-[280px_1fr]">
+                <img src={sepayPayment.paymentUrl} alt="Mã VietQR thanh toán đặt chỗ qua SePay"
+                  className="tw-mx-auto tw-w-full tw-max-w-[280px] tw-rounded-xl tw-bg-white tw-p-2" />
+                <div className="tw-text-sm tw-leading-6 tw-text-slate-800">
+                  <h3 className="tw-mt-0 tw-text-base tw-font-black">Thanh toán qua SePay</h3>
+                  <p>Ngân hàng: <strong>{sepayPayment.bankCode}</strong></p>
+                  <p>Số tài khoản: <strong>{sepayPayment.accountNumber}</strong></p>
+                  <p>Chủ tài khoản: <strong>{sepayPayment.accountHolder}</strong></p>
+                  <p>Nội dung chuyển khoản: <strong>{sepayPayment.transactionRef}</strong></p>
+                  <p className="tw-mb-0 tw-text-red-700">Vui lòng giữ nguyên số tiền và nội dung chuyển khoản. Hệ thống sẽ tự cập nhật sau khi nhận webhook SePay.</p>
+                </div>
+              </div>
+            ) : (
+              <button disabled={busy} type="button" onClick={() => void payPending(current)}
+                className="tw-rounded-lg tw-border-0 tw-bg-blue-700 tw-px-4 tw-py-2 tw-font-bold tw-text-white">
+                Tiếp tục thanh toán
+              </button>
+            )
           ) : null}
           {current.status === "PAYMENT_REVIEW" ? <p>Khoản thanh toán cần được nhân viên đối soát thủ công. Chưa có chỗ được xác nhận.</p> : null}
           {current.status === "HELD" ? <p className="tw-mb-0 tw-mt-4">Vui lòng cung cấp biển số đúng với thông tin đã đăng ký đặt chỗ khi đến bãi</p> : null}
@@ -304,7 +342,7 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
         </section>
       ) : null}
 
-      {parkingLotId && !reservationId && !loading ? (
+      {parkingLotId && !reservationId && !current && !loading ? (
         <section className="tw-space-y-5 tw-rounded-xl tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-5 tw-shadow-sm">
           <div><h2 className="tw-mt-0 tw-text-lg tw-font-bold">{lot?.name ?? "Bãi xe"}</h2><p>{lot?.addressDisplay}</p></div>
           <label className="tw-block tw-font-semibold">Loại xe
@@ -359,13 +397,13 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
             <strong>Quy định đặt chỗ</strong>
             <p className="tw-mb-0">Bạn thanh toán trước {money(selectedZone.prepaidAmount)}, bằng giá một lượt gửi xe. Hãy hoàn tất thanh toán trong 10 phút sau khi xác nhận đặt. Thời gian tính phí bắt đầu khi thanh toán thành công. Bạn cần check-in trong 60 phút; chỗ sẽ được giải phóng nếu quá hạn.</p>
             <p className="tw-mb-0">Khi checkout, bảng giá được áp một lần cho toàn bộ thời gian từ thanh toán đến checkout. Khoản đã trả được cấn trừ; bạn chỉ trả phần phát sinh thêm. Hủy sau thanh toán hoặc không đến sẽ không được hoàn tiền.</p>
-            {selectedZone.prepaidAmount < VNPAY_MINIMUM_AMOUNT ? <p className="tw-mb-0 tw-font-bold">Thanh toán đặt chỗ dưới 10.000đ đang tạm chưa hỗ trợ.</p> : null}
+            <p className="tw-mb-0 tw-font-bold">Khoản dưới 10.000đ thanh toán bằng SePay; từ 10.000đ trở lên thanh toán bằng VNPay.</p>
           </div> : null}
           <label className="tw-flex tw-items-start tw-gap-2 tw-text-sm">
             <input type="checkbox" checked={policyAccepted} onChange={(event) => setPolicyAccepted(event.target.checked)} />
             <span>Tôi đã đọc và đồng ý với quy định tính phí, thời hạn check-in và không hoàn tiền.</span>
           </label>
-          <button type="button" disabled={busy || !selectedZone || selectedZone.prepaidAmount < VNPAY_MINIMUM_AMOUNT || !vehicleTypeId || !licensePlate.trim()
+          <button type="button" disabled={busy || !selectedZone || !vehicleTypeId || !licensePlate.trim()
             || !policyAccepted || selectedZone.trackingMode === "SPACE" && !parkingSpaceId}
             onClick={() => void submit()}
             className="tw-w-full tw-rounded-lg tw-border-0 tw-bg-blue-700 tw-p-3 tw-font-bold tw-text-white disabled:tw-opacity-50">

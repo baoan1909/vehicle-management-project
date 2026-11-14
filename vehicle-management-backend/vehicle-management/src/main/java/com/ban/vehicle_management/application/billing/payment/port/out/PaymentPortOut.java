@@ -40,6 +40,9 @@ public interface PaymentPortOut {
 
     boolean existsByTransactionRefAndStatus(String transactionRef, PaymentStatus status);
 
+    boolean existsByPaymentMethodAndProviderTransactionNo(
+            PaymentMethod paymentMethod, String providerTransactionNo);
+
     Optional<Payment> findFirstByInvoiceIdAndStatus(UUID invoiceId, PaymentStatus status);
 
     Optional<Payment> findByTransactionRef(String transactionRef);

@@ -41,6 +41,29 @@ export type CustomerReservation = {
   parkingLotName: string | null;
 };
 
+export type ReservationPaymentMethod = "VNPAY" | "SEPAY";
+
+export type ReservationPaymentStart = {
+  paymentMethod: ReservationPaymentMethod;
+  paymentUrl: string;
+  transactionRef: string;
+  bankCode: string | null;
+  accountNumber: string | null;
+  accountHolder: string | null;
+  expiresAt: string;
+};
+
+type SepayPaymentResponse = {
+  paymentId: string;
+  invoiceId: string;
+  transactionRef: string;
+  qrCodeUrl: string;
+  bankCode: string;
+  accountNumber: string;
+  accountHolder: string;
+  expiresAt: string;
+};
+
 export type ParkingPlateLookup = {
   sessions: {
     parkingLotId: string;
@@ -125,7 +148,16 @@ export function createCustomerReservation(input: {
   licensePlate: string;
   policyAccepted: boolean;
 }) {
-  return apiClient<ApiResponse<{ reservation: CustomerReservation; paymentUrl: string; paymentMethod: "VNPAY" }>>(publicReservationPath, {
+  return apiClient<ApiResponse<{
+    reservation: CustomerReservation;
+    paymentUrl: string;
+    paymentMethod: ReservationPaymentMethod;
+    transactionRef: string;
+    bankCode: string | null;
+    accountNumber: string | null;
+    accountHolder: string | null;
+    paymentExpiresAt: string;
+  }>>(publicReservationPath, {
     method: "POST",
     body: input,
     skipAuth: true,
@@ -135,7 +167,7 @@ export function createCustomerReservation(input: {
   });
 }
 
-export function prepareReservationReturn(paymentMethod: "VNPAY", reservationId: string, returnToNearby = false) {
+export function prepareReservationReturn(paymentMethod: ReservationPaymentMethod, reservationId: string, returnToNearby = false) {
   const target = returnToNearby
     ? `/parking-lots/nearby?reservationId=${encodeURIComponent(reservationId)}`
     : `/reservations/${reservationId}`;
@@ -175,12 +207,21 @@ export function cancelOwnedReservation(id: string) {
 }
 
 export async function startReservationPayment(reservation: CustomerReservation, owned = false, returnToNearby = false) {
-  if (reservation.prepaidAmount < VNPAY_MINIMUM_AMOUNT) {
-    throw new Error("Thanh toán đặt chỗ dưới 10.000đ đang tạm chưa hỗ trợ.");
-  }
   if (owned) {
+    if (reservation.prepaidAmount < VNPAY_MINIMUM_AMOUNT) {
+      throw new Error("Vui lòng mở đặt chỗ này bằng mã truy cập khách để tiếp tục thanh toán SePay.");
+    }
     const target = `/customer/reservations/${reservation.reservationId}`;
-    return (await createVnpayInvoicePayment(reservation.invoiceId, target)).data.paymentUrl;
+    const payment = (await createVnpayInvoicePayment(reservation.invoiceId, target)).data;
+    return {
+      paymentMethod: "VNPAY",
+      paymentUrl: payment.paymentUrl,
+      transactionRef: payment.transactionRef,
+      bankCode: null,
+      accountNumber: null,
+      accountHolder: null,
+      expiresAt: payment.expiresAt,
+    } satisfies ReservationPaymentStart;
   }
   rememberReservation(reservation);
   const target = returnToNearby
@@ -188,9 +229,31 @@ export async function startReservationPayment(reservation: CustomerReservation, 
     : `/reservations/${reservation.reservationId}`;
   const path = `${publicReservationPath}/${reservation.reservationId}/payments`;
   const headers = { "X-Reservation-Access": reservation.accessToken };
+  if (reservation.prepaidAmount < VNPAY_MINIMUM_AMOUNT) {
+    const response = await apiClient<ApiResponse<SepayPaymentResponse>>(`${path}/sepay`, {
+      method: "POST", headers, skipAuth: true,
+    });
+    return {
+      paymentMethod: "SEPAY",
+      paymentUrl: response.data.qrCodeUrl,
+      transactionRef: response.data.transactionRef,
+      bankCode: response.data.bankCode,
+      accountNumber: response.data.accountNumber,
+      accountHolder: response.data.accountHolder,
+      expiresAt: response.data.expiresAt,
+    } satisfies ReservationPaymentStart;
+  }
   const response = await apiClient<ApiResponse<VnpayPaymentResponse>>(`${path}/vnpay`, {
     method: "POST", body: { locale: "vn" }, headers, skipAuth: true,
   });
   storeVnpayReturnTarget(target);
-  return response.data.paymentUrl;
+  return {
+    paymentMethod: "VNPAY",
+    paymentUrl: response.data.paymentUrl,
+    transactionRef: response.data.transactionRef,
+    bankCode: null,
+    accountNumber: null,
+    accountHolder: null,
+    expiresAt: response.data.expiresAt,
+  } satisfies ReservationPaymentStart;
 }
