@@ -24,6 +24,7 @@ import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStatu
 import com.ban.vehicle_management.shared.exception.UserGuideException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -175,6 +176,24 @@ class UserGuideAdminUseCaseImplTest {
         UserGuide archived = useCase.archiveGuide(guide.getGuideId());
 
         assertEquals(UserGuideStatus.ARCHIVED, archived.getStatus());
+    }
+
+    @Test
+    void shouldReturnUnpagedCountsForEveryGuideStatus() {
+        UUID featureId = UUID.randomUUID();
+        Map<UserGuideStatus, Long> expected = Map.of(
+                UserGuideStatus.DRAFT, 10L,
+                UserGuideStatus.PUBLISHED, 4L,
+                UserGuideStatus.INACTIVE, 1L,
+                UserGuideStatus.ARCHIVED, 1L);
+        when(guidePortOut.countByStatus(featureId, UserGuideDisplayType.COACH_MARK, "parking"))
+                .thenReturn(expected);
+
+        Map<UserGuideStatus, Long> actual = useCase.countGuidesByStatus(
+                featureId, UserGuideDisplayType.COACH_MARK, "parking");
+
+        assertEquals(expected, actual);
+        verify(currentAccountPortIn).requirePermission("USER_GUIDE_READ_ALL");
     }
 
     private UserGuideFeature enabledFeature() {

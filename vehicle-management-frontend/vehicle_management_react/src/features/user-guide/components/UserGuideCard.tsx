@@ -9,6 +9,8 @@ type UserGuideCardProps = {
   stepIndex: number;
   isFirstStep: boolean;
   isLastStep: boolean;
+  maxHeight?: number;
+  modal: boolean;
   onDismiss: () => void;
   onNext: () => void;
   onPrevious: () => void;
@@ -20,6 +22,8 @@ export function UserGuideCard({
   stepIndex,
   isFirstStep,
   isLastStep,
+  maxHeight,
+  modal,
   onDismiss,
   onNext,
   onPrevious,
@@ -37,7 +41,8 @@ export function UserGuideCard({
       role="dialog"
       aria-labelledby={`user-guide-title-${step.stepId}`}
       aria-describedby={`user-guide-body-${step.stepId}`}
-      aria-modal="true"
+      aria-modal={modal}
+      style={maxHeight ? { maxHeight: `${maxHeight}px` } : undefined}
       tabIndex={-1}
     >
       <header className="vm-user-guide__header">

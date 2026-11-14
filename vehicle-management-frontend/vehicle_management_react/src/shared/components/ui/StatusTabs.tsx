@@ -12,6 +12,7 @@ type StatusTabsProps<TValue extends string> = {
   counts: Partial<Record<TValue, number>>;
   onChange: (value: TValue) => void;
   tabs: Array<StatusTab<TValue>>;
+  variant?: "segmented" | "tabs";
 };
 
 function formatCount(value: number) {
@@ -24,8 +25,45 @@ export function StatusTabs<TValue extends string>({
   className = "",
   counts,
   onChange,
-  tabs
+  tabs,
+  variant = "segmented",
 }: StatusTabsProps<TValue>) {
+  const countClassName =
+    "tw-inline-flex tw-h-5 tw-min-w-5 tw-items-center tw-justify-center tw-rounded-full tw-bg-[rgba(148,163,184,0.16)] tw-px-[0.35rem] tw-text-[0.78rem] tw-font-extrabold tw-leading-none tw-text-inherit";
+
+  if (variant === "tabs") {
+    return (
+      <div
+        className={cn("tw-flex tw-w-full tw-items-end tw-gap-1 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-200", className)}
+        role="tablist"
+        aria-label={ariaLabel}
+      >
+        {tabs.map((tab) => {
+          const active = tab.value === activeValue;
+          return (
+            <button
+              aria-selected={active}
+              className={cn(
+                "tw-relative tw-inline-flex tw-min-h-[46px] tw-items-center tw-gap-2 tw-border-0 tw-bg-transparent tw-px-4 tw-py-2 tw-text-[0.95rem] tw-font-extrabold tw-text-vm-slate-600 tw-transition hover:tw-text-vm-primary",
+                active
+                  ? "tw-text-vm-primary after:tw-absolute after:tw-inset-x-2 after:tw-bottom-[-1px] after:tw-h-[3px] after:tw-rounded-t-full after:tw-bg-vm-primary"
+                  : "",
+              )}
+              data-tab={tab.value}
+              key={tab.value}
+              onClick={() => onChange(tab.value)}
+              role="tab"
+              type="button"
+            >
+              <span>{tab.label}</span>
+              <strong className={cn(countClassName, active ? "tw-bg-[rgba(37,99,235,0.12)]" : "")}>{formatCount(counts[tab.value] ?? 0)}</strong>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
   const activeIndex = tabs.findIndex((tab) => tab.value === activeValue);
   const safeActiveIndex = activeIndex >= 0 ? activeIndex : 0;
   const activeTab = tabs[safeActiveIndex];
@@ -36,8 +74,6 @@ export function StatusTabs<TValue extends string>({
     "tw-relative tw-flex tw-gap-0 tw-overflow-visible tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-[0.32rem] tw-pb-[0.24rem] tw-pt-[0.28rem] tw-shadow-[0_10px_24px_rgba(15,23,42,0.03)] empty:tw-hidden";
   const tabClassName =
     "tw-relative tw-inline-flex tw-min-h-[38px] tw-items-center tw-gap-[0.55rem] tw-border tw-border-solid tw-border-transparent tw-bg-white tw-px-[1.1rem] tw-py-[0.55rem] tw-text-[0.94rem] tw-font-bold tw-text-vm-slate-700 tw-transition hover:tw-text-vm-primary";
-  const countClassName =
-    "tw-inline-flex tw-h-5 tw-min-w-5 tw-items-center tw-justify-center tw-rounded-full tw-bg-[rgba(148,163,184,0.16)] tw-px-[0.35rem] tw-text-[0.78rem] tw-font-extrabold tw-leading-none tw-text-inherit";
   const activeClassName =
     "tw-z-[2] tw-rounded-vm-md !tw-border-brand-200 tw-bg-white !tw-text-vm-primary tw-shadow-[inset_0_-3px_0_#2563EB,0_0_0_1px_rgba(37,99,235,0.08)]";
 

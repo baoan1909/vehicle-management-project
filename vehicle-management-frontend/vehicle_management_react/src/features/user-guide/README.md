@@ -25,11 +25,13 @@ startGuide(guidePresentation);
 Mark a target element without coupling the renderer to a CSS selector:
 
 ```tsx
-<button {...userGuideAnchorProps("parking.create-button")}>Create</button>
+<button {...userGuideAnchorProps("PARKING.CREATE_BUTTON")}>Create</button>
 ```
 
 The `anchorKey` returned by the backend must match this stable key. When an
 anchor-based display type cannot find its target, the host falls back to a modal.
+Anchor keys use uppercase dot-separated namespace segments; each segment may
+contain letters, digits, underscores, or hyphens.
 
 ## Deferred integration
 

@@ -13,6 +13,7 @@ import {
 import { createParkingLevel } from "@/features/parking/api/parkingLayoutApi";
 import { getProvisionedAccounts, type ProvisionedAccountResponse } from "@/features/iam/api/provisionedAccountApi";
 import { assignParkingManagerToParkingLot } from "@/features/iam/api/organizationsApi";
+import { UserGuideHelpButton, userGuideAnchorProps, useUserGuide, useUserGuideActivation } from "@/features/user-guide";
 
 type LotKind = "GROUND" | "MULTI";
 
@@ -54,6 +55,7 @@ export function ParkingLotCreateWizard({ open, onClose, onCompleted }: {
 }) {
   const { invalidateAndRefreshAccess, user } = useAuth();
   const toast = useToast();
+  const userGuide = useUserGuide();
 
   const [step, setStep] = useState(1);
   const [infoBusy, setInfoBusy] = useState(false);
@@ -78,6 +80,21 @@ export function ParkingLotCreateWizard({ open, onClose, onCompleted }: {
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
 
   const canAssignManager = hasAnyPermission(user, ["ORGANIZATION_MEMBERSHIP_MANAGE_ALL"]);
+  useUserGuideActivation("PARKING_LOT_CREATE", open);
+
+  useEffect(() => {
+    if (!open || userGuide.activeGuide?.code !== "PARKING_LOT_CREATE") return;
+    const anchorKey = userGuide.currentStep?.anchorKey;
+    if (anchorKey === "PARKING_SETUP.CREATE.LEVELS") setStep(2);
+    else if (anchorKey === "PARKING_SETUP.CREATE.MANAGER") setStep(3);
+    else setStep(1);
+  }, [open, userGuide.activeGuide?.code, userGuide.currentStep?.anchorKey]);
+
+  useEffect(() => {
+    if (open && userGuide.activeGuide?.code !== "PARKING_LOT_CREATE" && !createdLot && step !== 1) {
+      setStep(1);
+    }
+  }, [createdLot, open, step, userGuide.activeGuide?.code]);
 
   useEffect(() => {
     if (!open) return;
@@ -265,6 +282,7 @@ export function ParkingLotCreateWizard({ open, onClose, onCompleted }: {
       width="lg"
       title={stepTitles[step]}
       description={stepDescriptions[step]}
+      headerExtra={<UserGuideHelpButton enabled={open} guideCode="PARKING_LOT_CREATE" />}
       onClose={handleClose}
       actions={step === 1 ? undefined : (
         <div className="tw-flex tw-justify-end tw-gap-2">
@@ -293,10 +311,10 @@ export function ParkingLotCreateWizard({ open, onClose, onCompleted }: {
       )}
     >
       <div className="tw-grid tw-gap-4">
-        <StepDots step={step} />
+        <div {...userGuideAnchorProps("PARKING_SETUP.CREATE.OPEN")}><StepDots step={step} /></div>
 
         {step === 1 ? (
-          <ParkingLotInfoForm
+          <div {...userGuideAnchorProps("PARKING_SETUP.CREATE.INFO")}><ParkingLotInfoForm
             formKey="wizard-new-lot"
             initial={null}
             submitLabel="Tạo bãi và tiếp tục"
@@ -304,11 +322,11 @@ export function ParkingLotCreateWizard({ open, onClose, onCompleted }: {
             serverError={infoError}
             onSubmit={(info) => void handleInfoSubmit(info)}
             onClose={handleClose}
-          />
+          /></div>
         ) : null}
 
         {step === 2 ? (
-          <div className="tw-grid tw-gap-3.5">
+          <div className="tw-grid tw-gap-3.5" {...userGuideAnchorProps("PARKING_SETUP.CREATE.LEVELS")}>
             {levelsError ? (
               <p className="tw-m-0 tw-rounded-[8px] tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-px-3 tw-py-2 tw-text-[0.84rem] tw-font-semibold tw-text-red-700">
                 {levelsError}
@@ -357,7 +375,7 @@ export function ParkingLotCreateWizard({ open, onClose, onCompleted }: {
         ) : null}
 
         {step === 3 ? (
-          <div className="tw-grid tw-gap-3.5">
+          <div className="tw-grid tw-gap-3.5" {...userGuideAnchorProps("PARKING_SETUP.CREATE.MANAGER")}>
             {createdLot ? (
               <div className="tw-rounded-[8px] tw-border tw-border-solid tw-border-[#dbeafe] tw-bg-[#eff6ff] tw-px-3 tw-py-2">
                 <p className="tw-m-0 tw-text-[0.9rem] tw-font-extrabold tw-text-[#0f172a]">{createdLot.code} — {createdLot.name}</p>

@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
+import { acquireBodyScrollLock } from "@/shared/utils/bodyScrollLock";
 
 type DrawerProps = {
   actions?: ReactNode;
@@ -14,7 +15,12 @@ type DrawerProps = {
 
 export function Drawer({ actions, children, description, onClose, open, title, width = "lg" }: DrawerProps) {
   const panelRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
   const titleId = useId();
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -27,7 +33,7 @@ export function Drawer({ actions, children, description, onClose, open, title, w
             ".vm-select-menu-panel, .vm-date-picker-panel, .vm-date-time-picker-panel, .vm-date-range-panel",
           );
         if (nestedPopupOpen) return;
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (event.key !== "Tab" || !panelRef.current) return;
@@ -39,18 +45,17 @@ export function Drawer({ actions, children, description, onClose, open, title, w
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
 
-    const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement as HTMLElement | null;
-    document.body.style.overflow = "hidden";
+    const releaseBodyScrollLock = acquireBodyScrollLock();
     window.addEventListener("keydown", handleKeyDown, true);
     requestAnimationFrame(() => panelRef.current?.querySelector<HTMLElement>("button, input, select, textarea, a[href]")?.focus());
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      releaseBodyScrollLock();
       window.removeEventListener("keydown", handleKeyDown, true);
       previousFocus?.focus();
     };
-  }, [onClose, open]);
+  }, [open]);
 
   if (!open) return null;
 

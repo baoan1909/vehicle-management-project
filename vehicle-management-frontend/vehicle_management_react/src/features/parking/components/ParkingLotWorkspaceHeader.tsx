@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import type { ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 import { cn } from "@/lib/cn";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
+import { UserGuideHelpButton } from "@/features/user-guide";
 
 export type ParkingWorkspaceTab = "overview" | "structure" | "layout" | "live";
 
@@ -13,6 +14,8 @@ type Props = {
   parkingLots?: ParkingLotApiResponse[];
   onParkingLotChange?: (parkingLotId: string) => void;
   actions?: ReactNode;
+  guideCode?: string;
+  guideEnabled?: boolean;
 };
 
 const statusLabel = {
@@ -37,7 +40,7 @@ export function parkingWorkspaceHref(tab: ParkingWorkspaceTab, parkingLotId: str
   return `/admin/parking-lots?lotId=${encodedLotId}`;
 }
 
-export function ParkingLotWorkspaceHeader({ activeTab, parkingLot, parkingLots = [], onParkingLotChange, actions }: Props) {
+export function ParkingLotWorkspaceHeader({ activeTab, parkingLot, parkingLots = [], onParkingLotChange, actions, guideCode, guideEnabled }: Props) {
   const tabs: Array<{ id: ParkingWorkspaceTab; label: string }> = [
     { id: "overview", label: "Tổng quan" },
     { id: "structure", label: "Cấu trúc" },
@@ -66,6 +69,7 @@ export function ParkingLotWorkspaceHeader({ activeTab, parkingLot, parkingLots =
               <i className="fas fa-map-marker-alt tw-text-vm-slate-500" aria-hidden="true" />
               {parkingLot.addressDisplay || "Chưa cập nhật địa chỉ"}
             </p>
+            {guideCode ? <UserGuideHelpButton className="tw-mt-2" enabled={guideEnabled} guideCode={guideCode} /> : null}
           </div>
         </div>
         {parkingLots.length > 1 || actions ? (

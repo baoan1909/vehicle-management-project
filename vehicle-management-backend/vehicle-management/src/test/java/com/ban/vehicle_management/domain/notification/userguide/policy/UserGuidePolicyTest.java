@@ -51,6 +51,34 @@ class UserGuidePolicyTest {
     }
 
     @Test
+    void shouldNormalizeRouteContextKey() {
+        UserGuide guide = validGuide();
+        guide.setContextKey(" /admin/subscription-approvals ");
+
+        policy.normalizeGuide(guide);
+
+        assertEquals("/ADMIN/SUBSCRIPTION-APPROVALS", guide.getContextKey());
+    }
+
+    @Test
+    void shouldRejectMalformedRouteContextKey() {
+        for (String contextKey : List.of(
+                "ADMIN/SWIPE",
+                "/ADMIN//SWIPE",
+                "/ADMIN/SWIPE/",
+                "/ADMIN/SWIPE?MODE=CHECK-IN",
+                "/ADMIN/SWIPE#CAMERA",
+                "HTTPS://EXAMPLE.COM/ADMIN/SWIPE",
+                "/ADMIN/../SWIPE"
+        )) {
+            UserGuide guide = validGuide();
+            guide.setContextKey(contextKey);
+
+            assertThrows(BadRequestException.class, () -> policy.normalizeGuide(guide));
+        }
+    }
+
+    @Test
     void shouldRejectInvalidCodeAndUnsafeOrdinaryText() {
         UserGuideFeature feature = new UserGuideFeature();
         feature.setCode("bad code");
@@ -133,6 +161,32 @@ class UserGuidePolicyTest {
         policy.normalizeSteps(List.of(nullable));
         assertEquals(0, nullable.getCollapseMs());
         assertNull(nullable.getAnchorKey());
+    }
+
+    @Test
+    void shouldNormalizeNamespacedAnchorKey() {
+        UserGuideStep step = validStep(0);
+        step.setAnchorKey(" parking_operation.card-or_qr ");
+
+        policy.normalizeSteps(List.of(step));
+
+        assertEquals("PARKING_OPERATION.CARD-OR_QR", step.getAnchorKey());
+    }
+
+    @Test
+    void shouldRejectMalformedAnchorKeyNamespace() {
+        for (String anchorKey : List.of(
+                ".PARKING_OPERATION",
+                "PARKING_OPERATION.",
+                "PARKING_OPERATION..MODE",
+                "PARKING OPERATION.MODE",
+                "PARKING_OPERATION/MODE"
+        )) {
+            UserGuideStep step = validStep(0);
+            step.setAnchorKey(anchorKey);
+
+            assertThrows(BadRequestException.class, () -> policy.normalizeSteps(List.of(step)));
+        }
     }
 
     @Test

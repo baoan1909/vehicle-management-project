@@ -1,8 +1,9 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import { SelectMenu, useToast } from "@/components/ui";
 import { isApiError } from "@/core/api/apiError";
+import { useAuth } from "@/core/auth/useAuth";
 import {
   createParkingVnpayPayment,
   recordParkingCashPayment,
@@ -58,7 +59,13 @@ import { useCheckInPreview } from "@/features/parking/hooks/useCheckInPreview";
 import { isCheckInPreviewAdmissible } from "@/features/parking/utils/parkingCheckInState";
 import { SubscriptionQrScannerModal } from "@/features/parking/components/SubscriptionQrScannerModal";
 import type { SubscriptionQrVerification } from "@/features/subscriptions/api/subscriptionQrApi";
+import {
+  UserGuideHelpButton,
+  userGuideAnchorProps,
+  useUserGuideActivation,
+} from "@/features/user-guide";
 import { cn } from "@/lib/cn";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 import { formatApplicationDateTime, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 
 type OcrStatus = "idle" | "recognizing" | "success" | "review" | "error";
@@ -334,6 +341,7 @@ function CheckInVehicleTypeSelect({
 }
 
 export function SwipeListPage() {
+  const { user } = useAuth();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [mode, setMode] = useState<ParkingOperationMode>(() =>
@@ -394,6 +402,17 @@ export function SwipeListPage() {
   const realtimeRefreshTimeoutRef = useRef<number | undefined>(undefined);
   const lastOperationErrorToastRef = useRef("");
   const operationError = submitError || parkingLotError || laneError || cameraError || cardError || vehicleTypeError;
+  const canRunCurrentOperation = hasAnyPermission(
+    user,
+    [mode === "check-in" ? "PARKING_SESSION_CHECK_IN_ALL" : "PARKING_SESSION_CHECK_OUT_ALL"],
+  );
+  const activeGuideCode = mode === "check-in"
+    ? "PARKING_CHECK_IN_FIRST_RUN"
+    : "PARKING_CHECK_OUT_FIRST_RUN";
+  useUserGuideActivation(
+    activeGuideCode,
+    canRunCurrentOperation && parkingLots.length > 0 && !isLoadingLanes && !isLoadingCameras,
+  );
 
   useEffect(() => {
     if (!operationError) {
@@ -1786,41 +1805,42 @@ export function SwipeListPage() {
           <div className="tw-grid tw-grid-cols-[minmax(260px,390px)_minmax(0,1fr)] tw-items-center tw-gap-3 max-[860px]:tw-grid-cols-1">
             <div className="tw-flex tw-min-w-0 tw-flex-wrap tw-items-center tw-gap-x-[1.05rem] tw-gap-y-2">
               <h1 className="tw-m-0 tw-text-[1.36rem] tw-font-black tw-leading-tight tw-text-slate-950">Vận hành vào / ra bãi</h1>
-              <Link
-                className="tw-inline-flex tw-min-h-0 tw-items-center tw-gap-[0.65rem] tw-text-[0.93rem] tw-font-bold tw-leading-[1.1] tw-text-vm-primary hover:tw-text-vm-primary-hover hover:tw-no-underline"
-                to="/guide"
-              >
-                <i className="far fa-question-circle tw-text-base" />
-                <span>Hướng dẫn &amp; Trợ giúp</span>
-              </Link>
+              <UserGuideHelpButton
+                aria-label={`Mở hướng dẫn ${mode === "check-in" ? "xe vào" : "xe ra"}`}
+                className="tw-inline-flex tw-min-h-0 tw-items-center tw-gap-2 tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.93rem] tw-font-bold tw-leading-[1.1] tw-text-vm-primary hover:tw-text-vm-primary-hover disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
+                enabled={canRunCurrentOperation}
+                guideCode={activeGuideCode}
+              />
             </div>
             <div className="tw-ml-auto tw-grid tw-w-full tw-min-w-0 tw-max-w-[859px] tw-grid-cols-[372fr_227fr_240fr] tw-gap-2.5 max-[860px]:tw-grid-cols-1">
-              <FilterSelect className="tw-w-full" ariaLabel="Chọn bãi xe vận hành" icon="fas fa-parking" label="Bãi xe" options={parkingLotOptions} value={parkingLotId} onChange={setParkingLotId} />
-              <FilterSelect className="tw-w-full" ariaLabel="Chọn làn xe" label="Làn xe" options={laneOptions} value={laneId} onChange={handleLaneChange} />
-              <FilterSelect
-                className="tw-w-full"
-                ariaLabel="Chọn camera"
-                icon="fas fa-video"
-                label="Camera"
-                options={cameraOptions}
-                portalViewportPadding={24}
-                selectedOptionAdornment={cameraId ? (
-                  <span className="tw-flex-none tw-whitespace-nowrap tw-text-[0.76rem] tw-font-extrabold tw-text-emerald-600">
-                    Sẵn sàng
-                  </span>
-                ) : null}
-                value={cameraId}
-                onChange={setCameraId}
-              />
+              <div {...userGuideAnchorProps("PARKING_OPERATION.LOT")}><FilterSelect className="tw-w-full" ariaLabel="Chọn bãi xe vận hành" icon="fas fa-parking" label="Bãi xe" options={parkingLotOptions} value={parkingLotId} onChange={setParkingLotId} /></div>
+              <div {...userGuideAnchorProps("PARKING_OPERATION.LANE")}><FilterSelect className="tw-w-full" ariaLabel="Chọn làn xe" label="Làn xe" options={laneOptions} value={laneId} onChange={handleLaneChange} /></div>
+              <div {...userGuideAnchorProps("PARKING_OPERATION.CAMERA")}>
+                <FilterSelect
+                  className="tw-w-full"
+                  ariaLabel="Chọn camera"
+                  icon="fas fa-video"
+                  label="Camera"
+                  options={cameraOptions}
+                  portalViewportPadding={24}
+                  selectedOptionAdornment={cameraId ? (
+                    <span className="tw-flex-none tw-whitespace-nowrap tw-text-[0.76rem] tw-font-extrabold tw-text-emerald-600">
+                      Sẵn sàng
+                    </span>
+                  ) : null}
+                  value={cameraId}
+                  onChange={setCameraId}
+                />
+              </div>
             </div>
           </div>
           <div className="tw-grid tw-grid-cols-[minmax(260px,390px)_minmax(0,1fr)] tw-items-start tw-gap-3 max-[860px]:tw-grid-cols-1">
-            <div className="tw-max-w-[390px]">
+            <div className="tw-max-w-[390px]" {...userGuideAnchorProps("PARKING_OPERATION.MODE")}>
               <OperationModeTabs mode={mode} onChange={setMode} />
             </div>
             {mode === "check-in" ? (
               <div className="tw-ml-auto tw-grid tw-w-full tw-min-w-0 tw-max-w-[859px] tw-grid-cols-[372fr_227fr_240fr] tw-gap-2.5 max-[860px]:tw-grid-cols-1">
-                <div className="tw-col-start-3 max-[860px]:tw-col-start-auto">
+                <div className="tw-col-start-3 max-[860px]:tw-col-start-auto" {...userGuideAnchorProps("PARKING_OPERATION.VEHICLE_TYPE")}>
                   <CheckInVehicleTypeSelect
                     defaultValue={resolvedDefaultCheckInVehicleTypeId}
                     disabled={checkInVehicleTypeDisabled}
@@ -1837,6 +1857,7 @@ export function SwipeListPage() {
         </header>
 
         <div className={mode === "check-in" ? "tw-grid tw-min-h-0 tw-grid-cols-[minmax(430px,1.12fr)_minmax(340px,0.88fr)] tw-gap-3 max-[980px]:tw-grid-cols-1" : "tw-grid tw-min-h-0 tw-grid-cols-[minmax(460px,1.2fr)_minmax(350px,0.9fr)_minmax(300px,0.7fr)] tw-gap-3 max-[1380px]:tw-grid-cols-[minmax(390px,1fr)_minmax(330px,0.9fr)] max-[980px]:tw-grid-cols-1"}>
+          <div {...userGuideAnchorProps("PARKING_OPERATION.CAPTURE")} className="tw-min-h-0">
           <ParkingCameraPanel
             autoCaptureKey={autoCaptureKey}
             autoStartLaneCamera={mode === "check-in" || mode === "check-out"}
@@ -1856,13 +1877,14 @@ export function SwipeListPage() {
             onVehicleImageChange={setVehicleImage}
             onRequireCardBeforeCapture={handleRequireCapturePrerequisites}
           />
+          </div>
           <ParkingOperationForm
             cardUid={cardUid}
             cardOptions={cardOptions}
             checkOutCustomerType={checkOutPreview?.customerType}
             checkOutPaymentMethod={checkOutPaymentMethod}
             checkInLocationPanel={(
-              <ParkingCheckInLocationPanel
+              <div {...userGuideAnchorProps("PARKING_OPERATION.LOCATION_PREVIEW")}><ParkingCheckInLocationPanel
                 hold={checkInSpaceHold}
                 holdError={checkInSpaceHoldError}
                 holdRemainingSeconds={checkInSpaceHoldRemainingSeconds}
@@ -1872,7 +1894,7 @@ export function SwipeListPage() {
                 previewError={previewError}
                 previewStale={previewStale}
                 zoneLabel={checkInZoneLabel}
-              />
+              /></div>
             )}
             estimatedPaymentAmount={checkOutPreview?.estimatedTotalPrice}
             isLoadingCards={isLoadingCards}
@@ -1912,7 +1934,7 @@ export function SwipeListPage() {
             onVehicleTypeChange={handleVehicleTypeChange}
           />
           {mode === "check-out" ? (
-            <div className="tw-grid tw-min-h-0 tw-w-full tw-max-w-[440px] tw-justify-self-end tw-gap-3 max-[1380px]:tw-justify-self-start max-[980px]:tw-max-w-none">
+            <div className="tw-grid tw-min-h-0 tw-w-full tw-max-w-[440px] tw-justify-self-end tw-gap-3 max-[1380px]:tw-justify-self-start max-[980px]:tw-max-w-none" {...userGuideAnchorProps("PARKING_OPERATION.CHECKOUT_SUMMARY")}>
               <ParkingSessionSummary
                 isPaymentActionLoading={isCompletingPendingPayment}
                 mode={mode}

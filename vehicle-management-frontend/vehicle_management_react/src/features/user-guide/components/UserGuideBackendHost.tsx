@@ -1,16 +1,20 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type PropsWithChildren } from "react";
 
 import { recordUserGuideEvent } from "@/features/user-guide/api/userGuideApi";
 import { UserGuideHost } from "@/features/user-guide/components/UserGuideHost";
 import { UserGuideProvider, useUserGuide } from "@/features/user-guide/context/UserGuideContext";
+import {
+  UserGuideBackendControllerProvider,
+  useUserGuideBackendController,
+} from "@/features/user-guide/context/UserGuideBackendContext";
 import { useUserGuideRuntime } from "@/features/user-guide/hooks/useUserGuideRuntime";
 import type { UserGuideLifecycleEvent } from "@/features/user-guide/types/userGuide";
 
-type UserGuideBackendHostProps = {
+type UserGuideBackendHostProps = PropsWithChildren<{
   featureCode: string | null;
   contextKey?: string | null;
   autoStartFirst?: boolean;
-};
+}>;
 
 function findCurrentStepId(
   rawGuides: Array<{ guideId: string; userState: { currentStepId: string | null } | null }>,
@@ -46,6 +50,34 @@ function BackendAutoStarter({
   return null;
 }
 
+function BackendStateAwareStarter({ runtime }: { runtime: ReturnType<typeof useUserGuideRuntime> }) {
+  const guide = useUserGuide();
+  const { activation, hasRegistrations } = useUserGuideBackendController();
+  const startedKeyRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!activation?.enabled || runtime.state.status !== "ready") return;
+    const selected = runtime.state.guides.find((candidate) => candidate.code === activation.code);
+    if (!selected) return;
+    const startKey = `${selected.guideId}:${selected.versionNumber}`;
+    if (guide.activeGuide?.guideId === selected.guideId || startedKeyRef.current === startKey) return;
+    if (guide.activeGuide && guide.activeGuide.code !== activation.code) {
+      guide.dismissGuide();
+      return;
+    }
+    startedKeyRef.current = startKey;
+    guide.startGuide(selected, {
+      initialStepId: findCurrentStepId(runtime.rawGuides, selected.guideId),
+    });
+  }, [activation, guide, runtime.rawGuides, runtime.state]);
+
+  useEffect(() => {
+    if (hasRegistrations && !activation && guide.activeGuide) guide.dismissGuide();
+  }, [activation, guide, hasRegistrations]);
+
+  return null;
+}
+
 async function reportLifecycleEvent(event: UserGuideLifecycleEvent) {
   const eventType = event.type === "OPENED"
     ? "STARTED"
@@ -68,6 +100,7 @@ async function reportLifecycleEvent(event: UserGuideLifecycleEvent) {
  * every lifecycle event carries the rendered version to reject stale tabs.
  */
 export function UserGuideBackendHost({
+  children,
   featureCode,
   contextKey = null,
   autoStartFirst = true,
@@ -75,9 +108,13 @@ export function UserGuideBackendHost({
   const runtime = useUserGuideRuntime({ featureCode, contextKey });
 
   return (
-    <UserGuideProvider onLifecycleEvent={(event) => void reportLifecycleEvent(event)}>
-      <BackendAutoStarter runtime={runtime} enabled={autoStartFirst} />
-      <UserGuideHost />
-    </UserGuideProvider>
+    <UserGuideBackendControllerProvider>
+      <UserGuideProvider onLifecycleEvent={(event) => void reportLifecycleEvent(event)}>
+        {children}
+        <BackendStateAwareStarter runtime={runtime} />
+        <BackendAutoStarter runtime={runtime} enabled={autoStartFirst} />
+        <UserGuideHost />
+      </UserGuideProvider>
+    </UserGuideBackendControllerProvider>
   );
 }

@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/cn";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { usePlatformMonitoringScope } from "@/shared/monitoring/PlatformMonitoringScope";
+import { userGuideAnchorProps, useUserGuideActivation } from "@/features/user-guide";
 
 type OverviewData = {
   availableManagerCount: number;
@@ -162,6 +163,8 @@ export function ParkingLotOverviewPage() {
     () => lots.find((lot) => lot.parkingLotId === selectedLotId) ?? lots[0] ?? null,
     [lots, selectedLotId],
   );
+  const activationGuideEnabled = Boolean(selectedLot && !loading);
+  useUserGuideActivation("PARKING_LOT_ACTIVATION", activationGuideEnabled);
 
   const loadLots = useCallback(async () => {
     setLoading(true);
@@ -458,6 +461,8 @@ export function ParkingLotOverviewPage() {
 
         <ParkingLotWorkspaceHeader
           activeTab="overview"
+          guideCode="PARKING_LOT_ACTIVATION"
+          guideEnabled={activationGuideEnabled}
           parkingLot={selectedLot}
           parkingLots={lots}
           onParkingLotChange={setSelectedLotId}
@@ -502,7 +507,7 @@ export function ParkingLotOverviewPage() {
         </div>
 
         <div className="tw-mt-3 tw-grid tw-grid-cols-[minmax(0,1.72fr)_minmax(340px,1fr)] tw-gap-3 max-[1050px]:tw-grid-cols-1">
-          <Card className="tw-min-h-[318px] tw-px-5 tw-py-4 tw-shadow-none">
+          <Card className="tw-min-h-[318px] tw-px-5 tw-py-4 tw-shadow-none" {...userGuideAnchorProps("PARKING_SETUP.READINESS")}>
             <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-vm-slate-900">Mức độ hoàn thiện cấu hình</h2>
             <div className="tw-mt-4 tw-grid tw-grid-cols-[210px_minmax(0,1fr)] tw-items-center tw-gap-5 max-[680px]:tw-grid-cols-1">
               <div className="tw-flex tw-flex-col tw-items-center">
@@ -512,7 +517,7 @@ export function ParkingLotOverviewPage() {
                 <span className="tw-mt-3 tw-text-[0.76rem] tw-font-medium tw-text-vm-slate-500">Đã hoàn thành</span>
                 <span className="tw-mt-1 tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-500">{completedCount} / 5 hạng mục</span>
               </div>
-              <div>
+              <div {...userGuideAnchorProps("PARKING_SETUP.ACTIVATION_MISSING")}>
                 <ChecklistRow complete={informationComplete} index={1} label="Thông tin bãi xe" note={informationComplete ? "Đã hoàn thành" : "Cần bổ sung"} />
                 <ChecklistRow complete={structureComplete} index={2} label="Tầng và khu vực" note={structureComplete ? "Đã hoàn thành" : "Chưa cấu hình"} link={parkingWorkspaceHref("structure", selectedLot.parkingLotId)} />
                 <ChecklistRow complete={trafficFlowComplete} index={3} label="Cổng và làn xe" note={trafficFlowComplete ? "Đã hoàn thành" : "Chưa cấu hình"} link={parkingWorkspaceHref("structure", selectedLot.parkingLotId)} />
@@ -539,23 +544,66 @@ export function ParkingLotOverviewPage() {
                       ? "Đã phân công"
                       : "Chưa xác định"}
                 />
-                {selectedLot.status === "SETUP" && activationMissingItems.length === 0 ? (
-                  <div className="tw-mt-3 tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-200 tw-bg-emerald-50 tw-px-3 tw-py-2.5 max-[620px]:tw-flex-col max-[620px]:tw-items-stretch">
-                    <span className="tw-text-[0.76rem] tw-font-semibold tw-text-emerald-800">
-                      <i className="fas fa-check-circle tw-mr-2" aria-hidden="true" />
-                      Đã đủ điều kiện kích hoạt. Bãi vẫn ở trạng thái thiết lập cho đến khi bạn xác nhận.
-                    </span>
-                    {canDirectlyActivate ? (
-                      <Button size="sm" className="tw-flex-none tw-whitespace-nowrap" loading={activationSaving} onClick={() => beginActivation("activate")}>
+                <div
+                  className={cn(
+                    "tw-mt-3 tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-py-2.5 max-[620px]:tw-flex-col max-[620px]:tw-items-stretch",
+                    selectedLot.status !== "SETUP"
+                      ? "tw-border-blue-200 tw-bg-blue-50"
+                      : activationMissingItems.length === 0
+                        ? "tw-border-emerald-200 tw-bg-emerald-50"
+                        : "tw-border-amber-200 tw-bg-amber-50",
+                  )}
+                  {...userGuideAnchorProps("PARKING_SETUP.ACTIVATE")}
+                >
+                  <span className={cn(
+                    "tw-text-[0.76rem] tw-font-semibold",
+                    selectedLot.status !== "SETUP"
+                      ? "tw-text-blue-800"
+                      : activationMissingItems.length === 0
+                        ? "tw-text-emerald-800"
+                        : "tw-text-amber-800",
+                  )}>
+                    <i
+                      className={cn(
+                        "tw-mr-2",
+                        selectedLot.status !== "SETUP"
+                          ? "fas fa-info-circle"
+                          : activationMissingItems.length === 0
+                            ? "fas fa-check-circle"
+                            : "fas fa-exclamation-circle",
+                      )}
+                      aria-hidden="true"
+                    />
+                    {selectedLot.status !== "SETUP"
+                      ? "Bãi không còn ở trạng thái thiết lập nên không cần thực hiện kích hoạt ban đầu."
+                      : activationMissingItems.length === 0
+                        ? "Đã đủ điều kiện kích hoạt. Bãi vẫn ở trạng thái thiết lập cho đến khi bạn xác nhận."
+                        : `Còn ${activationMissingItems.length} điều kiện cần hoàn tất trước khi có thể kích hoạt bãi.`}
+                  </span>
+                  <div
+                    className="tw-flex tw-flex-none tw-items-center tw-justify-end"
+                    {...userGuideAnchorProps("PARKING_SETUP.REQUEST_ACTIVATION")}
+                  >
+                    {selectedLot.status === "SETUP" && activationMissingItems.length === 0 && canDirectlyActivate ? (
+                      <Button size="sm" className="tw-whitespace-nowrap" loading={activationSaving} onClick={() => beginActivation("activate")}>
                         <i className="fas fa-play" aria-hidden="true" /> Kích hoạt bãi
                       </Button>
-                    ) : isParkingManager ? (
+                    ) : selectedLot.status === "SETUP" && activationMissingItems.length === 0 && isParkingManager ? (
                       <Button size="sm" loading={activationSaving} onClick={() => beginActivation("request")}>
                         <i className="fas fa-paper-plane" aria-hidden="true" /> Yêu cầu kích hoạt
                       </Button>
-                    ) : null}
+                    ) : (
+                      <span className="tw-whitespace-nowrap tw-text-[0.72rem] tw-font-bold tw-text-vm-slate-500">
+                        {selectedLot.status !== "SETUP"
+                          ? "Đã xử lý"
+                          : activationMissingItems.length > 0
+                            ? "Chưa thể gửi"
+                            : "Không có quyền thực hiện"}
+                      </span>
+                    )}
                   </div>
-                ) : activeSpaceZones.length > 0 && !layoutComplete ? (
+                </div>
+                {activeSpaceZones.length > 0 && !layoutComplete ? (
                   <Button className="tw-mt-2 tw-h-11 tw-px-5" onClick={() => navigate(parkingWorkspaceHref("layout", selectedLot.parkingLotId))}>Tiếp tục thiết kế sơ đồ<i className="fas fa-chevron-right tw-text-[0.7rem]" /></Button>
                 ) : null}
               </div>
@@ -598,7 +646,7 @@ export function ParkingLotOverviewPage() {
             </div>
           </Card>
 
-          <Card className="tw-min-h-[258px] tw-px-4 tw-py-4 tw-shadow-none">
+          <Card className="tw-min-h-[258px] tw-px-4 tw-py-4 tw-shadow-none" {...userGuideAnchorProps("PARKING_SETUP.MANAGER_ASSIGNMENT")}>
             <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-vm-slate-900">Người phụ trách</h2>
             <p className="tw-m-0 tw-mt-1 tw-text-[0.68rem] tw-font-medium tw-text-vm-slate-500">Manager đang được phân công vào bãi này</p>
             <div className="tw-mt-2">

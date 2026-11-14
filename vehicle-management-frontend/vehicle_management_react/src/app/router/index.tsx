@@ -15,6 +15,8 @@ import { isResolvedAccessStatus, type AccessError } from "@/core/auth/accessStat
 import { resolvePostLoginPath } from "@/core/auth/landing";
 import { consumeLogoutRedirectGuard, getLogoutRedirectPath, isLogoutRedirectGuardActive, logoutCurrentUser } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
+import { UserGuideBackendHost } from "@/features/user-guide/components/UserGuideBackendHost";
+import { deriveGuideContext, shouldAutoStartGuide } from "@/features/user-guide/utils/guideContext";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
 import { ClientLayout } from "@/shared/components/layout/ClientLayout";
 import { FullPageCarLoader, PageTransitionLoader } from "@/shared/components/ui/PageTransitionLoader";
@@ -308,13 +310,28 @@ function AuthShell() {
 }
 
 function FullscreenShell() {
+  const location = useLocation();
+  const guideContext = deriveGuideContext(location.pathname);
+  const routeContent = (
+    <Suspense fallback={<RouteFallback />}>
+      <Outlet />
+    </Suspense>
+  );
+
   return (
     <>
       <RouteDocument layout="fullscreen" />
       <PageTransitionLoader />
-      <Suspense fallback={<RouteFallback />}>
-        <Outlet />
-      </Suspense>
+      {guideContext.featureCode ? (
+        <UserGuideBackendHost
+          key={location.pathname}
+          contextKey={guideContext.contextKey}
+          featureCode={guideContext.featureCode}
+          autoStartFirst={shouldAutoStartGuide(location.pathname)}
+        >
+          {routeContent}
+        </UserGuideBackendHost>
+      ) : routeContent}
     </>
   );
 }

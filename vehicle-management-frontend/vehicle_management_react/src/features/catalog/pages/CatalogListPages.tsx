@@ -7,6 +7,7 @@ import { Drawer } from "@/shared/components/ui/Drawer";
 import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import { ParkingLotCatalogControls } from "@/features/catalog/components/ParkingLotCatalogControls";
 import { useParkingLotCatalogScope } from "@/features/catalog/hooks/useParkingLotCatalogScope";
+import { userGuideAnchorProps, useUserGuideActivation } from "@/features/user-guide";
 import {
   CatalogFilterSelect,
   CatalogHeader,
@@ -559,6 +560,9 @@ export function TicketListPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  const ticketGuideEnabled = !isLoading && !lotScope.loading && Boolean(lotScope.selectedLot) && (canCreate || canUpdate);
+  useUserGuideActivation("CATALOG_TICKET_TYPE_SETUP", ticketGuideEnabled);
+
   const lotRecords = lotScope.selectedLot && lotScope.availability
     ? records.filter((row) => row.organizationId === lotScope.selectedLot?.organizationId
       && !lotScope.availability?.excludedTicketTypeIds.includes(row.id))
@@ -681,8 +685,11 @@ export function TicketListPage() {
 
   return (
     <CatalogPageShell>
-      <CatalogHeader createLabel="Thêm loại vé" title="Loại vé" onCreateClick={canCreate && lotScope.selectedLot ? handleOpenCreate : undefined} onExportClick={() => exportTicketTypes(filteredRecords)} />
-      <ParkingLotCatalogControls
+      <div {...userGuideAnchorProps("CATALOG_TICKET.HEADER")}>
+        <CatalogHeader createLabel="Thêm loại vé" guideCode="CATALOG_TICKET_TYPE_SETUP" guideEnabled={ticketGuideEnabled} title="Loại vé" onCreateClick={canCreate && lotScope.selectedLot ? handleOpenCreate : undefined} onExportClick={() => exportTicketTypes(filteredRecords)} />
+      </div>
+      <div {...userGuideAnchorProps("CATALOG_TICKET.LOT_SCOPE")}>
+        <ParkingLotCatalogControls
         canConfigure={canUpdate}
         excludedIds={lotScope.availability?.excludedTicketTypeIds ?? []}
         items={records.filter((row) => row.organizationId === lotScope.selectedLot?.organizationId)}
@@ -690,8 +697,9 @@ export function TicketListPage() {
         lots={lotScope.lots}
         onLotChange={(id) => { lotScope.setSelectedLotId(id); setCurrentPage(1); setSelectedId(null); }}
         onSetEnabled={(id, enabled) => lotScope.updateAvailability("ticket", id, enabled)}
-        selectedLot={lotScope.selectedLot}
-      />
+          selectedLot={lotScope.selectedLot}
+        />
+      </div>
       {lotScope.error ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-red-700" role="alert">{lotScope.error}</p> : null}
       {!lotScope.loading && lotScope.lots.length === 0 ? <p className="tw-m-0 tw-text-vm-slate-600">Chưa có bãi xe nào trong phạm vi được cấp.</p> : null}
       {records.some((row) => !row.organizationId) ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-800" role="alert">Backend chưa trả thông tin Partner của loại vé. Vui lòng khởi động lại backend phiên bản mới.</p> : null}
@@ -746,7 +754,12 @@ export function TicketListPage() {
           {isLoading ? (
             <div className="tw-px-4 tw-py-5 tw-text-[0.92rem] tw-font-bold tw-text-vm-slate-500">Đang tải dữ liệu loại vé...</div>
           ) : null}
-          <TicketCatalogTable rows={page.items} selectedId={effectiveSelectedId} onSelect={setSelectedId} />
+          <TicketCatalogTable
+            guideAnchorKey="CATALOG_TICKET.LIST"
+            rows={page.items}
+            selectedId={effectiveSelectedId}
+            onSelect={setSelectedId}
+          />
           <CatalogPagination
             currentPage={page.safeCurrentPage}
             endIndex={page.endDisplayIndex}
@@ -762,7 +775,13 @@ export function TicketListPage() {
           />
         </main>
 
-        <TicketDetailPanel row={selectedRecord} onEdit={canUpdate ? handleOpenEdit : undefined} onActivate={canUpdate ? handleActivateTicketType : undefined} onDeactivate={canUpdate ? handleDeactivateTicketType : undefined} />
+        <TicketDetailPanel
+          guideAnchorKey="CATALOG_TICKET.DETAIL"
+          row={selectedRecord}
+          onEdit={canUpdate ? handleOpenEdit : undefined}
+          onActivate={canUpdate ? handleActivateTicketType : undefined}
+          onDeactivate={canUpdate ? handleDeactivateTicketType : undefined}
+        />
       </div>
       <TicketTypeFormDrawer
         isOpen={isFormOpen}
@@ -798,6 +817,9 @@ export function VehicleListPage() {
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  const vehicleGuideEnabled = !isLoading && !lotScope.loading && Boolean(lotScope.selectedLot) && (canCreate || canUpdate);
+  useUserGuideActivation("CATALOG_VEHICLE_TYPE_SETUP", vehicleGuideEnabled);
 
   const lotRecords = lotScope.selectedLot && lotScope.availability
     ? records
@@ -978,8 +1000,11 @@ export function VehicleListPage() {
 
   return (
     <CatalogPageShell>
-      <CatalogHeader createLabel="Thêm loại xe" title="Loại phương tiện" onCreateClick={canCreate && lotScope.selectedLot ? handleOpenCreate : undefined} onExportClick={() => exportVehicleTypes(filteredRecords)} />
-      <ParkingLotCatalogControls
+      <div {...userGuideAnchorProps("CATALOG_VEHICLE.HEADER")}>
+        <CatalogHeader createLabel="Thêm loại xe" guideCode="CATALOG_VEHICLE_TYPE_SETUP" guideEnabled={vehicleGuideEnabled} title="Loại phương tiện" onCreateClick={canCreate && lotScope.selectedLot ? handleOpenCreate : undefined} onExportClick={() => exportVehicleTypes(filteredRecords)} />
+      </div>
+      <div {...userGuideAnchorProps("CATALOG_VEHICLE.LOT_SCOPE")}>
+        <ParkingLotCatalogControls
         canConfigure={false}
         drainingIds={lotScope.availability?.drainingVehicleTypeIds ?? []}
         excludedIds={lotScope.availability?.excludedVehicleTypeIds ?? []}
@@ -988,15 +1013,16 @@ export function VehicleListPage() {
         lots={lotScope.lots}
         onLotChange={(id) => { lotScope.setSelectedLotId(id); setCurrentPage(1); setSelectedId(null); }}
         onSetEnabled={(id, enabled) => lotScope.updateAvailability("vehicle", id, enabled)}
-        selectedLot={lotScope.selectedLot}
-      />
+          selectedLot={lotScope.selectedLot}
+        />
+      </div>
       {lotScope.error ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-red-700" role="alert">{lotScope.error}</p> : null}
       {!lotScope.loading && lotScope.lots.length === 0 ? <p className="tw-m-0 tw-text-vm-slate-600">Chưa có bãi xe nào trong phạm vi được cấp.</p> : null}
       {records.some((row) => !row.organizationId) ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-800" role="alert">Backend chưa trả thông tin Partner của loại xe. Vui lòng khởi động lại backend phiên bản mới.</p> : null}
       <CatalogMetricGrid items={buildVehicleMetrics(lotRecords)} />
 
       <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_minmax(300px,0.32fr)] tw-items-start tw-gap-[0.9rem] max-[1360px]:tw-grid-cols-1">
-        <main className="tw-min-w-0 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
+        <main className="tw-min-w-0 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]" {...userGuideAnchorProps("CATALOG_VEHICLE.LIST")}>
           <CatalogToolbar
             variant="vehicle"
             searchPlaceholder="Tìm mã, tên loại xe..."
@@ -1042,7 +1068,9 @@ export function VehicleListPage() {
           />
         </main>
 
-        <VehicleDetailPanel row={selectedRecord} onEdit={canUpdate ? handleOpenEdit : undefined} onActivate={canActivateSelectedRecord ? handleActivateVehicleType : undefined} onDeactivate={canStopVehicleService ? handleDeactivateVehicleType : undefined} />
+        <div {...userGuideAnchorProps("CATALOG_VEHICLE.DETAIL")}>
+          <VehicleDetailPanel row={selectedRecord} onEdit={canUpdate ? handleOpenEdit : undefined} onActivate={canActivateSelectedRecord ? handleActivateVehicleType : undefined} onDeactivate={canStopVehicleService ? handleDeactivateVehicleType : undefined} />
+        </div>
       </div>
       <VehicleTypeFormDrawer
         isOpen={isFormOpen}

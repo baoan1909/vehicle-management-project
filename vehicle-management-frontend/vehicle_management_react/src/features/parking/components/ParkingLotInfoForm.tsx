@@ -5,6 +5,7 @@ import { ParkingAddressPicker } from "@/features/parking/components/ParkingAddre
 import { ParkingLocationMap } from "@/features/parking/components/ParkingLocationMap";
 import { reverseParkingLocation, searchParkingLocations } from "@/features/parking/api/parkingLocationApi";
 import type { AddressInputSchemeApi, ParkingLotStatusApi } from "@/features/parking/api/parkingLotsApi";
+import { userGuideAnchorProps } from "@/features/user-guide";
 
 export type ParkingLotLocationResolution = "GEOCODED" | "MANUAL" | "NONE";
 
@@ -192,7 +193,7 @@ export function ParkingLotInfoForm({ formKey, initial, onClose, onSubmit, server
           />
         </label>
 
-        <section className="tw-grid tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-blue-100 tw-bg-blue-50 tw-p-4">
+        <section className="tw-grid tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-blue-100 tw-bg-blue-50 tw-p-4" {...userGuideAnchorProps("PARKING_SETUP.CREATE.ADDRESS")}>
           <div>
             <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-700">Địa chỉ bãi xe</span>
             <p className="tw-m-0 tw-mt-1 tw-text-[0.75rem] tw-font-semibold tw-leading-5 tw-text-vm-slate-500">
@@ -247,6 +248,7 @@ export function ParkingLotInfoForm({ formKey, initial, onClose, onSubmit, server
             ) : null}
           </div>
           {locationSearchError ? <span className="tw-text-[0.75rem] tw-font-semibold tw-text-red-600">{locationSearchError}</span> : null}
+          <div {...userGuideAnchorProps("PARKING_SETUP.CREATE.LOCATION")}>
           {form.latitude !== null && form.longitude !== null ? (
             <>
               <ParkingLocationMap latitude={form.latitude} longitude={form.longitude} onMarkerMoved={(lat, lon) => void handleMarkerMoved(lat, lon)} />
@@ -271,6 +273,7 @@ export function ParkingLotInfoForm({ formKey, initial, onClose, onSubmit, server
               <span>Chưa có tọa độ. Bạn vẫn có thể tạo bãi; chỉ chức năng tìm bãi gần và tính khoảng cách sẽ chờ định vị bổ sung.</span>
             </div>
           )}
+          </div>
         </section>
         <label className="tw-m-0 tw-grid tw-gap-2">
           <span className="tw-text-[0.78rem] tw-font-extrabold tw-text-vm-slate-600">Tổng sức chứa ban đầu</span>

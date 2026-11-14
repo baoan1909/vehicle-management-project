@@ -6,7 +6,7 @@ import { AdminSidebar } from "./AdminSidebar";
 import { cn } from "@/lib/cn";
 import { AdminAnnouncementTicker } from "@/features/notifications/components/AdminAnnouncementTicker";
 import { UserGuideBackendHost } from "@/features/user-guide/components/UserGuideBackendHost";
-import { deriveGuideContext } from "@/features/user-guide/utils/guideContext";
+import { deriveGuideContext, shouldAutoStartGuide } from "@/features/user-guide/utils/guideContext";
 import { PlatformMonitoringScopeProvider } from "@/shared/monitoring/PlatformMonitoringScope";
 import { MonitoringScopeBanner } from "./MonitoringScopeBanner";
 import { useAuth } from "@/core/auth/useAuth";
@@ -45,14 +45,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           )}
         >
           {!restrictedToProfile ? <MonitoringScopeBanner /> : null}
-          {children}
           {guideContext.featureCode ? (
             <UserGuideBackendHost
               key={location.pathname}
               contextKey={guideContext.contextKey}
               featureCode={guideContext.featureCode}
-            />
-          ) : null}
+              autoStartFirst={shouldAutoStartGuide(location.pathname)}
+            >
+              {children}
+            </UserGuideBackendHost>
+          ) : children}
         </div>
       </div>
     </PlatformMonitoringScopeProvider>

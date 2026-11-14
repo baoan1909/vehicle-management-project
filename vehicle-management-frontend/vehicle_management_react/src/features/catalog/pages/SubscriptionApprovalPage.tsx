@@ -28,6 +28,7 @@ import {
 } from "@/features/catalog/api/subscriptionApprovalsApi";
 import { cn } from "@/lib/cn";
 import type { ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
+import { UserGuideHelpButton, userGuideAnchorProps, useUserGuideActivation } from "@/features/user-guide";
 
 type ViewMode = "pipeline" | "table";
 
@@ -378,6 +379,8 @@ function ReviewDrawer({
   canRecordPaymentAction,
   canRejectAction,
   canManageAccessAction,
+  guideCode,
+  guideEnabled,
   onApprove,
   onAssignCard,
   onClose,
@@ -394,6 +397,8 @@ function ReviewDrawer({
   canRecordPaymentAction: boolean;
   canRejectAction: boolean;
   canManageAccessAction: boolean;
+  guideCode: string;
+  guideEnabled: boolean;
   onApprove: (request: SubscriptionView) => void;
   onAssignCard: (request: SubscriptionView) => void;
   onClose: () => void;
@@ -431,11 +436,15 @@ function ReviewDrawer({
           ) : null}
           <div className={cn("tw-grid tw-gap-3", canApprove ? "tw-grid-cols-[1fr_1fr_1.15fr]" : "tw-grid-cols-[1fr_1.15fr]")}>
             <Button variant="secondary" onClick={onClose}>Đóng</Button>
-            {canApprove && canRejectAction ? <Button disabled={actionLoading} variant="danger" onClick={() => onReject(request, rejectReason)}>Từ chối</Button> : null}
-            {canApprove && canApproveAction ? <Button disabled={actionLoading} onClick={() => onApprove(request)}>Duyệt yêu cầu</Button> : null}
-            {canAssignCard && canAssignCardAction ? <Button disabled={actionLoading} onClick={() => onAssignCard(request)}>Gán thẻ</Button> : null}
-            {waitingPayment && canRecordPaymentAction ? <Button disabled={actionLoading} onClick={() => onOpenCashPayment(request)}>Xác nhận tại quầy</Button> : null}
-            {canManageAccess ? <Button disabled={actionLoading} variant={request.accessBlocked ? "primary" : "danger"} onClick={() => onToggleAccess(request)}>{request.accessBlocked ? "Kích hoạt lại vé" : "Khóa vé"}</Button> : null}
+            {canApprove && canRejectAction ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.REJECT")} disabled={actionLoading} variant="danger" onClick={() => onReject(request, rejectReason)}>Từ chối</Button> : null}
+            {canApprove && !canRejectAction && guideCode === "SUBSCRIPTION_REVIEW_PENDING" ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.REJECT")} disabled variant="danger">Không có quyền từ chối</Button> : null}
+            {canApprove && canApproveAction ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.APPROVE")} disabled={actionLoading} onClick={() => onApprove(request)}>Duyệt yêu cầu</Button> : null}
+            {canApprove && !canApproveAction && guideCode === "SUBSCRIPTION_REVIEW_PENDING" ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.APPROVE")} disabled>Không có quyền duyệt</Button> : null}
+            {canAssignCard && canAssignCardAction ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.ASSIGN_CARD")} disabled={actionLoading} onClick={() => onAssignCard(request)}>Gán thẻ</Button> : null}
+            {!canAssignCard && guideCode === "SUBSCRIPTION_CARD_FULFILLMENT" ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.ASSIGN_CARD")} disabled>Chưa đủ điều kiện gán thẻ</Button> : null}
+            {waitingPayment && canRecordPaymentAction ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.CASH_PAYMENT")} disabled={actionLoading} onClick={() => onOpenCashPayment(request)}>Xác nhận tại quầy</Button> : null}
+            {canManageAccess ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.ACCESS_TOGGLE")} disabled={actionLoading} variant={request.accessBlocked ? "primary" : "danger"} onClick={() => onToggleAccess(request)}>{request.accessBlocked ? "Kích hoạt lại vé" : "Khóa vé"}</Button> : null}
+            {!canManageAccess && guideCode === "SUBSCRIPTION_CARD_FULFILLMENT" ? <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.ACCESS_TOGGLE")} disabled>Không có quyền đổi truy cập</Button> : null}
             {!(canApprove && (canApproveAction || canRejectAction)) && !(canAssignCard && canAssignCardAction) && !(waitingPayment && canRecordPaymentAction) && !canManageAccess ? <Button disabled>Chỉ xem</Button> : null}
           </div>
         </div>
@@ -446,7 +455,8 @@ function ReviewDrawer({
       title="Chi tiết đăng ký"
       width="md"
     >
-      <div className="tw-grid tw-gap-5">
+      <div className="tw-grid tw-gap-5" {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.DETAIL_DRAWER")}>
+        <UserGuideHelpButton className="tw-w-fit" enabled={guideEnabled} guideCode={guideCode} />
         <div className="tw-flex tw-items-center tw-gap-2">
           <Badge tone="primary" className="tw-rounded-vm-sm tw-px-3">{request.id}</Badge>
           <span className={cn("tw-rounded-vm-sm tw-px-2.5 tw-py-1 tw-text-[0.72rem] tw-font-black", statusTagClass(request.status, request.accessBlocked))}>{request.statusLabel}</span>
@@ -480,7 +490,7 @@ function ReviewDrawer({
           <DetailLine label="Quyền sử dụng" value={request.accessBlocked ? "Đang tạm khóa QR và thẻ vật lý" : "Đang được sử dụng"} />
         </section>
 
-        <section className="tw-grid tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-4">
+        <section className="tw-grid tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-4" {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.REQUEST_CARD")}>
           <h3 className="tw-m-0 tw-text-[0.9rem] tw-font-black tw-text-vm-slate-900"><i className="far fa-id-card tw-mr-2 tw-text-vm-slate-500" />Thẻ tháng</h3>
           <DetailLine label="Thẻ vật lý" value={request.physicalCardRequested ? request.cardNumber : "Không yêu cầu"} />
           <DetailLine label="Trạng thái" value={request.physicalCardStatus === "NOT_REQUESTED"
@@ -501,13 +511,14 @@ function ReviewDrawer({
           ) : null}
         </section>
 
-        {canApprove && canRejectAction ? (
-          <section className="tw-grid tw-gap-2">
+        {canApprove && (canRejectAction || guideCode === "SUBSCRIPTION_REVIEW_PENDING") ? (
+          <section className="tw-grid tw-gap-2" {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.REJECT_REASON")}>
             <label className="tw-text-[0.8rem] tw-font-black tw-text-vm-slate-700" htmlFor="subscription-reject-reason">Lý do từ chối</label>
             <textarea
               className="tw-min-h-[92px] tw-w-full tw-resize-y tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3 tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-800 tw-outline-none focus:tw-border-vm-primary focus:tw-shadow-vm-focus"
               id="subscription-reject-reason"
-              placeholder="Nhập lý do trước khi bấm Từ chối"
+              disabled={!canRejectAction}
+              placeholder={canRejectAction ? "Nhập lý do trước khi bấm Từ chối" : "Tài khoản hiện tại không có quyền từ chối"}
               value={rejectReason}
               onChange={(event) => setRejectReason(event.target.value)}
             />
@@ -610,6 +621,21 @@ export function SubscriptionApprovalPage() {
     () => filteredRequests.find((request) => request.subscriptionId === selectedId) ?? null,
     [filteredRequests, selectedId],
   );
+  const selectedGuideCode = selectedRequest?.status === "PENDING"
+    ? "SUBSCRIPTION_REVIEW_PENDING"
+    : selectedRequest?.status === "PENDING_PAYMENT" || selectedRequest?.physicalCardStatus === "PAYMENT_PENDING"
+      ? "SUBSCRIPTION_PAYMENT_COUNTER"
+      : "SUBSCRIPTION_CARD_FULFILLMENT";
+  const selectedGuideEnabled = Boolean(
+    drawerOpen
+    && selectedRequest
+    && (
+      (selectedRequest.status === "PENDING" && (canApproveAction || canRejectAction))
+      || ((selectedRequest.status === "PENDING_PAYMENT" || selectedRequest.physicalCardStatus === "PAYMENT_PENDING") && canRecordPaymentAction)
+      || (selectedRequest.status === "ACTIVE" && selectedRequest.physicalCardRequested && canAssignCardAction)
+    ),
+  );
+  useUserGuideActivation(selectedGuideCode, selectedGuideEnabled);
 
   const ticketTypeOptions = useMemo(() => [
     { label: "Tất cả loại vé", value: "all" },
@@ -757,7 +783,10 @@ export function SubscriptionApprovalPage() {
           <div className="tw-grid tw-gap-4 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
             <header className="tw-flex tw-items-start tw-justify-between tw-gap-3 max-[720px]:tw-flex-col">
               <div>
-                <h1 className="tw-m-0 tw-text-vm-page-title tw-font-black tw-text-vm-slate-900">Duyệt đăng ký vé tháng & Gán thẻ</h1>
+                <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-4">
+                  <h1 className="tw-m-0 tw-text-vm-page-title tw-font-black tw-text-vm-slate-900">Duyệt đăng ký vé tháng & Gán thẻ</h1>
+                  <UserGuideHelpButton enabled={selectedGuideEnabled} guideCode={selectedGuideCode} />
+                </div>
               </div>
               <Button variant="secondary" onClick={() => void loadData()} disabled={loading}>
                 <i className="fas fa-sync-alt tw-mr-2" />Làm mới
@@ -769,7 +798,7 @@ export function SubscriptionApprovalPage() {
               <button type="button" className="tw-border-0 tw-bg-transparent tw-font-bold tw-text-vm-primary" onClick={() => setSearchParams({})}>Xem tất cả</button>
             </div> : null}
 
-            <div className="tw-grid tw-grid-cols-5 tw-gap-4 max-[1280px]:tw-grid-cols-3 max-[900px]:tw-grid-cols-1">
+            <div className="tw-grid tw-grid-cols-5 tw-gap-4 max-[1280px]:tw-grid-cols-3 max-[900px]:tw-grid-cols-1" {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.STATUS_PIPELINE")}>
               {statusOrder.map((status) => <SummaryCard key={status} {...statusMeta[status]} count={counts.get(status) ?? 0} label={statusLabels[status]} />)}
               <SummaryCard {...statusMeta.REJECTED} count={counts.get("REJECTED") ?? 0} label="Bị từ chối" />
             </div>
@@ -867,6 +896,8 @@ export function SubscriptionApprovalPage() {
         canRecordPaymentAction={canRecordPaymentAction}
         canRejectAction={canRejectAction}
         canManageAccessAction={canManageAccessAction}
+        guideCode={selectedGuideCode}
+        guideEnabled={selectedGuideEnabled}
         onApprove={handleApprove}
         onAssignCard={handleAssignCard}
         onClose={() => setDrawerOpen(false)}
@@ -883,7 +914,7 @@ export function SubscriptionApprovalPage() {
             <Button variant="secondary" disabled={cashPaymentLoading} onClick={() => setCashPaymentOpen(false)}>
               Đóng
             </Button>
-            <Button disabled={cashPaymentLoading || !cashPaymentInvoice} onClick={() => void handleConfirmCashPayment()}>
+            <Button {...userGuideAnchorProps("SUBSCRIPTION.APPROVAL.CASH_PAYMENT")} disabled={cashPaymentLoading || !cashPaymentInvoice} onClick={() => void handleConfirmCashPayment()}>
               {cashPaymentLoading ? "Đang xử lý..." : "Xác nhận đã thu tiền"}
             </Button>
           </div>

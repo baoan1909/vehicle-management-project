@@ -33,6 +33,7 @@ import { formatApplicationDateTime, toApplicationLocalDateTimeInput } from "@/sh
 import { getParkingLots, type ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import { UserGuideHelpButton, userGuideAnchorProps, useUserGuide, useUserGuideActivation } from "@/features/user-guide";
 
 type WorkflowStep = {
   number: number;
@@ -335,7 +336,7 @@ function InvoicePaymentPanel({
   const isPaid = state === "paid" || state === "resolved";
 
   return (
-    <section className="tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+    <section className="tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-shadow-[0_18px_40px_rgba(15,23,42,0.06)]" {...userGuideAnchorProps("LOST_CARD.DETAIL.INVOICE")}>
       <div className="tw-flex tw-items-start tw-justify-between tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-4">
         <div>
           <h2 className="tw-m-0 tw-text-[1.1rem] tw-font-extrabold tw-text-slate-900">Hóa đơn & thanh toán</h2>
@@ -388,8 +389,9 @@ function InvoicePaymentPanel({
             : "Phiếu đã được tạo và hóa đơn đang chờ thanh toán. Nhân viên cần xác nhận khách đã thanh toán trước khi hoàn tất xử lý."}
         </div>
         {!isPaid ? (
-          <div className="tw-grid tw-grid-cols-2 tw-gap-2 max-sm:tw-grid-cols-1">
+          <div className="tw-grid tw-grid-cols-2 tw-gap-2 max-sm:tw-grid-cols-1" {...userGuideAnchorProps("LOST_CARD.DETAIL.PAYMENT_METHOD")}>
             <button
+              {...userGuideAnchorProps("LOST_CARD.DETAIL.PAY_CASH")}
               className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-lg tw-border tw-border-solid tw-border-green-600 tw-bg-white tw-px-3 tw-text-[0.88rem] tw-font-extrabold tw-text-green-700 hover:tw-bg-green-50 disabled:tw-border-slate-200 disabled:tw-bg-slate-100 disabled:tw-text-vm-slate-500"
               disabled={!invoice || !canConfirmPayment || isPaymentSubmitting}
               type="button"
@@ -399,6 +401,7 @@ function InvoicePaymentPanel({
               <span>Thu tiền mặt</span>
             </button>
             <button
+              {...userGuideAnchorProps("LOST_CARD.DETAIL.PAY_VNPAY")}
               className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-lg tw-bg-vm-primary tw-px-3 tw-text-[0.88rem] tw-font-extrabold tw-text-white tw-shadow-[0_12px_22px_rgba(37,99,235,0.18)] hover:tw-bg-brand-700 disabled:tw-bg-slate-200 disabled:tw-text-vm-slate-500"
               disabled={!invoice || !canConfirmPayment || isPaymentSubmitting || totalAmount < VNPAY_MINIMUM_AMOUNT}
               title={totalAmount < VNPAY_MINIMUM_AMOUNT ? "VNPay áp dụng cho hóa đơn từ 10.000 đồng" : "Thanh toán qua VNPay"}
@@ -522,7 +525,7 @@ function LostCardResolvePanel({
           </b>
         </div>
         {needsNewCard ? (
-          <label>
+          <label {...userGuideAnchorProps("LOST_CARD.DETAIL.REPLACEMENT_CARD")}>
             <span className="tw-mb-1.5 tw-block tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-600">
               Thẻ mới
             </span>
@@ -583,6 +586,7 @@ function LostCardResolvePanel({
           </button>
         ) : (
           <button
+            {...userGuideAnchorProps("LOST_CARD.DETAIL.RESOLVE")}
             className="tw-min-h-11 tw-rounded-vm-lg tw-bg-green-600 tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white disabled:tw-bg-green-100 disabled:tw-text-green-700"
             disabled={!canComplete || isCompleting}
             type="button"
@@ -605,13 +609,13 @@ function LostCardResolvePanel({
   );
 }
 
-function LostCardCancelPanel({ hidden, isCancelling, onCancel }: { hidden: boolean; isCancelling: boolean; onCancel: () => void }) {
+function LostCardCancelPanel({ disabled = false, hidden, isCancelling, onCancel }: { disabled?: boolean; hidden: boolean; isCancelling: boolean; onCancel: () => void }) {
   return (
     <section className={`${hidden ? "tw-hidden" : ""} tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200/95 tw-bg-white tw-p-4 tw-shadow-[0_18px_40px_rgba(15,23,42,0.06)]`}>
       <h2 className="tw-m-0 tw-text-[1.1rem] tw-font-extrabold tw-text-slate-900">Đã tìm thấy thẻ</h2>
       <p className="tw-mb-3 tw-mt-2 tw-text-[0.82rem] tw-font-semibold tw-leading-relaxed tw-text-vm-slate-500">Chỉ thực hiện khi phiếu đang mở và hóa đơn chưa thanh toán. Hệ thống sẽ hủy phiếu, hủy hóa đơn và khôi phục thẻ cũ về trạng thái sử dụng trước đó.</p>
-      <button className="tw-min-h-10 tw-rounded-vm-lg tw-border tw-border-solid tw-border-green-200 tw-bg-white tw-px-4 tw-text-[0.9rem] tw-font-extrabold tw-text-green-700 disabled:tw-cursor-not-allowed disabled:tw-opacity-60" disabled={isCancelling} type="button" onClick={onCancel}>
-        {isCancelling ? "Đang kích hoạt lại..." : "Kích hoạt lại thẻ"}
+      <button {...userGuideAnchorProps("LOST_CARD.DETAIL.CANCEL")} className="tw-min-h-10 tw-rounded-vm-lg tw-border tw-border-solid tw-border-green-200 tw-bg-white tw-px-4 tw-text-[0.9rem] tw-font-extrabold tw-text-green-700 disabled:tw-cursor-not-allowed disabled:tw-opacity-60" disabled={disabled || isCancelling} type="button" onClick={onCancel}>
+        {isCancelling ? "Đang kích hoạt lại..." : disabled ? "Không thể hủy sau khi thanh toán" : "Kích hoạt lại thẻ"}
       </button>
     </section>
   );
@@ -827,6 +831,8 @@ export function LostCardCreatePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<LostCardReportFieldErrors>({});
+  const canCreateLostCardReport = hasAnyPermission(user, ["LOST_CARD_REPORT_CREATE_ALL"]);
+  useUserGuideActivation("LOST_CARD_REPORT_CREATE", canCreateLostCardReport);
 
   useEffect(() => {
     if (!canReadParkingLots) return undefined;
@@ -936,7 +942,10 @@ export function LostCardCreatePage() {
       <section className="content tw-pb-8">
         <div className="container-fluid tw-max-w-[1480px]">
           <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-4 tw-pb-4">
-            <h1 className="tw-m-0 tw-text-[1.75rem] tw-font-extrabold tw-leading-tight tw-text-slate-900">Tạo phiếu báo mất thẻ</h1>
+            <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-4">
+              <h1 className="tw-m-0 tw-text-[1.75rem] tw-font-extrabold tw-leading-tight tw-text-slate-900">Tạo phiếu báo mất thẻ</h1>
+              <UserGuideHelpButton enabled={canCreateLostCardReport} guideCode="LOST_CARD_REPORT_CREATE" />
+            </div>
             <Link
               className="tw-inline-flex tw-min-h-11 tw-items-center tw-gap-2 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.9rem] tw-font-bold tw-text-vm-slate-700 tw-shadow-[0_8px_20px_rgba(15,23,42,0.04)] hover:tw-bg-vm-slate-25 hover:tw-text-vm-slate-700"
               to="/admin/lost"
@@ -978,7 +987,7 @@ export function LostCardCreatePage() {
                     {formError}
                   </div>
                 ) : null}
-                <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_150px] tw-gap-3 max-md:tw-grid-cols-1">
+                <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_150px] tw-gap-3 max-md:tw-grid-cols-1" {...userGuideAnchorProps("LOST_CARD.CREATE.PLATE_LOOKUP")}>
                   <label className="tw-flex tw-min-h-11 tw-items-center tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3">
                     <span className="tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-500">Biển số</span>
                     <input
@@ -998,7 +1007,7 @@ export function LostCardCreatePage() {
                   </button>
                 </div>
 
-                <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-md:tw-grid-cols-1">
+                <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-md:tw-grid-cols-1" {...userGuideAnchorProps("LOST_CARD.CREATE.PREVIEW")}>
                   <InfoBox label="Phiên gửi xe" value={preview?.parkingSession ? getSessionLabel({ parkingSession: preview.parkingSession } as LostCardReportDetailResponse) : "Không có phiên trong bãi"} />
                   <InfoBox label="Thẻ cũ" value={preview?.oldCardNumber || "-"} />
                   <InfoBox label="Khách hàng" value={preview?.customerName || (preview?.customerId ? "Khách hàng đã liên kết" : "Không liên kết")} />
@@ -1010,7 +1019,7 @@ export function LostCardCreatePage() {
                     : "Tra cứu biển số để xác định bãi xe"}
                 />
 
-                <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-md:tw-grid-cols-1">
+                <div className="tw-grid tw-grid-cols-3 tw-gap-3 max-md:tw-grid-cols-1" {...userGuideAnchorProps("LOST_CARD.CREATE.REVIEW")}>
                   <LostCardEvidenceImage
                     alt="Ảnh người gửi xe khi vào bãi"
                     emptyText="Phiên gửi xe chưa có ảnh người gửi xe"
@@ -1032,7 +1041,7 @@ export function LostCardCreatePage() {
                 </div>
 
                 <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-md:tw-grid-cols-1">
-                  <label>
+                  <label {...userGuideAnchorProps("LOST_CARD.CREATE.LOST_TIME")}>
                     <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Thời gian mất thẻ</span>
                     <input
                       aria-describedby={fieldErrors.timeOfLost ? "lost-card-time-error" : undefined}
@@ -1050,7 +1059,7 @@ export function LostCardCreatePage() {
                     />
                     <LostCardFieldError id="lost-card-time-error" message={fieldErrors.timeOfLost} />
                   </label>
-                  <label>
+                  <label {...userGuideAnchorProps("LOST_CARD.CREATE.REPORTER")}>
                     <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Người báo mất</span>
                     <input
                       aria-describedby={fieldErrors.reporterName ? "lost-card-reporter-name-error" : undefined}
@@ -1084,7 +1093,7 @@ export function LostCardCreatePage() {
                     />
                     <LostCardFieldError id="lost-card-reporter-phone-error" message={fieldErrors.reporterPhone} />
                   </label>
-                  <label>
+                  <label {...userGuideAnchorProps("LOST_CARD.CREATE.OWNER_EVIDENCE")}>
                     <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">CCCD/CMND</span>
                     <input
                       aria-describedby={fieldErrors.identifyCard ? "lost-card-identify-error" : undefined}
@@ -1158,6 +1167,7 @@ export function LostCardCreatePage() {
                 </ul>
               </section>
               <button
+                {...userGuideAnchorProps("LOST_CARD.CREATE.SUBMIT")}
                 className="tw-inline-flex tw-min-h-11 tw-items-center tw-justify-center tw-gap-2 tw-rounded-vm-lg tw-bg-vm-primary tw-px-4 tw-text-[0.92rem] tw-font-extrabold tw-text-white tw-shadow-[0_12px_22px_rgba(37,99,235,0.18)] hover:tw-bg-brand-700 hover:tw-text-white hover:tw-no-underline"
                 disabled={isSubmitting}
                 type="button"
@@ -1175,6 +1185,7 @@ export function LostCardCreatePage() {
 }
 
 export function LostCardDetailPage() {
+  const userGuide = useUserGuide();
   const [searchParams, setSearchParams] = useSearchParams();
   const reportId = searchParams.get("reportId");
   const paymentParam = searchParams.get("payment");
@@ -1273,6 +1284,11 @@ export function LostCardDetailPage() {
   const contextLabel = getContextLabel(report?.context);
   const totalAmount = report ? getTotalAmount(report, detail?.invoice ?? null) : 0;
   const needsNewCard = requiresReplacementCard(report?.context);
+  const detailGuideCode = isPaid && needsNewCard ? "LOST_CARD_REPLACEMENT" : "LOST_CARD_PAYMENT";
+  const detailGuideEnabled = Boolean(report && !isResolved && !isCancelled && (!isPaid || needsNewCard));
+  const keepCancelGuideTargetVisible = userGuide.activeGuide?.code === "LOST_CARD_REPLACEMENT"
+    && userGuide.currentStep?.anchorKey === "LOST_CARD.DETAIL.CANCEL";
+  useUserGuideActivation(detailGuideCode, detailGuideEnabled);
 
   useEffect(() => {
     if (!report || !isPaid || isResolved || !needsNewCard) {
@@ -1475,6 +1491,7 @@ export function LostCardDetailPage() {
               <span className={`tw-inline-flex tw-min-h-7 tw-items-center tw-rounded-full tw-px-3 tw-text-[0.76rem] tw-font-extrabold ${statusBadgeClass}`}>
                 {getReportStatusLabel(report.status)}
               </span>
+              <UserGuideHelpButton enabled={detailGuideEnabled} guideCode={detailGuideCode} />
             </div>
             <Link
               className="tw-inline-flex tw-min-h-11 tw-items-center tw-gap-2 tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-text-[0.9rem] tw-font-bold tw-text-vm-slate-700 tw-shadow-[0_8px_20px_rgba(15,23,42,0.04)] hover:tw-bg-vm-slate-25 hover:tw-text-vm-slate-700"
@@ -1621,7 +1638,12 @@ export function LostCardDetailPage() {
                 selectedNewCardId={selectedNewCardId}
                 state={paymentState}
               />
-              <LostCardCancelPanel hidden={isPaid || report.status !== "OPEN"} isCancelling={isCancelling} onCancel={() => setCancelConfirmOpen(true)} />
+              <LostCardCancelPanel
+                disabled={isPaid || report.status !== "OPEN"}
+                hidden={(isPaid || report.status !== "OPEN") && !keepCancelGuideTargetVisible}
+                isCancelling={isCancelling}
+                onCancel={() => setCancelConfirmOpen(true)}
+              />
             </aside>
           </div>
         </div>

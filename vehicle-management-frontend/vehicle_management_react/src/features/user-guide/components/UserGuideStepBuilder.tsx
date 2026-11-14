@@ -139,7 +139,7 @@ export function UserGuideStepBuilder({ fieldErrors = {}, onChange, readOnly = fa
                 className={fieldClassName}
                 disabled={readOnly}
                 onChange={(event) => updateStep(index, { anchorKey: event.target.value || null })}
-                placeholder="Anchor key (vd: parking.create-button)"
+                placeholder="Anchor key (vd: PARKING_OPERATION.MODE)"
                 value={step.anchorKey ?? ""}
               />
             </div>
