@@ -8,6 +8,8 @@ import com.ban.vehicle_management.infrastructure.persistence.database.specificat
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideDisplayType;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStatus;
 import java.util.List;
+import java.util.EnumMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -71,5 +73,20 @@ public class UserGuidePersistenceAdapter implements UserGuidePortOut {
         return repository
                 .findAll(UserGuideSpecifications.withFilters(featureId, status, displayType, keyword), pageable)
                 .map(mapper::toDomain);
+    }
+
+    @Override
+    public Map<UserGuideStatus, Long> countByStatus(
+            UUID featureId,
+            UserGuideDisplayType displayType,
+            String keyword
+    ) {
+        Map<UserGuideStatus, Long> counts = new EnumMap<>(UserGuideStatus.class);
+        for (UserGuideStatus status : UserGuideStatus.values()) {
+            long count = repository.count(
+                    UserGuideSpecifications.withFilters(featureId, status, displayType, keyword));
+            counts.put(status, count);
+        }
+        return counts;
     }
 }

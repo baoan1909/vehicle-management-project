@@ -17,8 +17,10 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 public class UserGuidePolicy {
 
@@ -27,6 +29,10 @@ public class UserGuidePolicy {
     public static final int MAX_SUMMARY_LENGTH = 5_000;
     public static final int MAX_STEP_BODY_LENGTH = 10_000;
     private static final int DEFAULT_ORDER = 100;
+    private static final Pattern ANCHOR_KEY_PATTERN = Pattern.compile(
+            "^[A-Z0-9_-]+(?:\\.[A-Z0-9_-]+)*$");
+    private static final Pattern CONTEXT_KEY_PATTERN = Pattern.compile(
+            "^(?:[A-Z0-9_-]+|/(?:[A-Z0-9_-]+(?:/[A-Z0-9_-]+)*)?)$");
 
     public void normalizeFeature(UserGuideFeature feature) {
         require(feature, "feature");
@@ -45,7 +51,7 @@ public class UserGuidePolicy {
             throw new BadRequestException("featureId must not be null");
         }
         guide.setCode(TextValidationUtils.normalizeCode(guide.getCode(), "code", 120));
-        guide.setContextKey(TextValidationUtils.normalizeCode(guide.getContextKey(), "contextKey", 120));
+        guide.setContextKey(normalizeContextKey(guide.getContextKey()));
         if (guide.getStatus() == null) {
             guide.setStatus(UserGuideStatus.DRAFT);
         }
@@ -137,7 +143,7 @@ public class UserGuidePolicy {
             step.setBody(TextValidationUtils.normalizeRequiredText(
                     step.getBody(), "step.body", MAX_STEP_BODY_LENGTH));
             step.setMediaObjectKey(normalizeMediaObjectKey(step.getMediaObjectKey()));
-            step.setAnchorKey(normalizeNullableCode(step.getAnchorKey(), "step.anchorKey", 120));
+            step.setAnchorKey(normalizeAnchorKey(step.getAnchorKey()));
             if (step.getPlacement() == null) {
                 step.setPlacement(UserGuideStepPlacement.CENTER);
             }
@@ -240,9 +246,27 @@ public class UserGuidePolicy {
         return normalized;
     }
 
-    private String normalizeNullableCode(String value, String fieldName, int maxLength) {
-        String normalized = TextValidationUtils.normalizeNullableText(value, fieldName, maxLength);
-        return normalized == null ? null : TextValidationUtils.normalizeCode(normalized, fieldName, maxLength);
+    private String normalizeAnchorKey(String value) {
+        String normalized = TextValidationUtils.normalizeNullableText(value, "step.anchorKey", 120);
+        if (normalized == null) {
+            return null;
+        }
+        String upperCase = normalized.toUpperCase(Locale.ROOT);
+        if (!ANCHOR_KEY_PATTERN.matcher(upperCase).matches()) {
+            throw new BadRequestException(
+                    "step.anchorKey must use uppercase letters, digits, underscore, or hyphen in dot-separated segments");
+        }
+        return upperCase;
+    }
+
+    private String normalizeContextKey(String value) {
+        String normalized = TextValidationUtils.normalizeRequiredText(value, "contextKey", 120)
+                .toUpperCase(Locale.ROOT);
+        if (!CONTEXT_KEY_PATTERN.matcher(normalized).matches()) {
+            throw new BadRequestException(
+                    "contextKey must be an uppercase code or an uppercase route path without query or hash");
+        }
+        return normalized;
     }
 
     private Integer normalizeNonNegative(Integer value, String fieldName, int defaultValue) {

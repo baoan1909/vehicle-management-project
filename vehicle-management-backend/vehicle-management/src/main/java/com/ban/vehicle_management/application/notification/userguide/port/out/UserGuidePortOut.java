@@ -4,6 +4,7 @@ import com.ban.vehicle_management.domain.notification.userguide.model.UserGuide;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideDisplayType;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStatus;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -29,5 +30,11 @@ public interface UserGuidePortOut {
             UserGuideDisplayType displayType,
             String keyword,
             Pageable pageable
+    );
+
+    Map<UserGuideStatus, Long> countByStatus(
+            UUID featureId,
+            UserGuideDisplayType displayType,
+            String keyword
     );
 }
