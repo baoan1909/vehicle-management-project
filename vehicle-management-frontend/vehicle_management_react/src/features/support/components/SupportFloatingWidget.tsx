@@ -27,6 +27,8 @@ import {
 } from "@/features/support/api/supportApi";
 import { CreateSupportTicketDialog } from "@/features/support/components/CreateSupportTicketDialog";
 import { SupportComposerActions } from "@/features/support/components/SupportComposerActions";
+import { SupportSparkleIcon } from "@/features/support/components/SupportSparkleIcon";
+import { OPEN_SUPPORT_WIDGET_EVENT } from "@/features/support/supportWidgetEvents";
 import { SupportTicketCard } from "@/features/support/components/SupportTicketCard";
 import { SupportTicketCustomerActions } from "@/features/support/components/SupportTicketCustomerActions";
 import { SupportTicketHistoryDialog, type TicketHistoryLoader } from "@/features/support/components/SupportTicketHistoryDialog";
@@ -82,15 +84,6 @@ function getClientPoint(event: MouseEvent<HTMLElement> | TouchEvent<HTMLElement>
   if ("touches" in event && event.touches.length > 0) return event.touches[0];
   if ("changedTouches" in event && event.changedTouches.length > 0) return event.changedTouches[0];
   return event as MouseEvent<HTMLElement> | globalThis.MouseEvent;
-}
-
-function SupportSparkleIcon() {
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path fillRule="evenodd" clipRule="evenodd" d="M8.9.5c.554 0 .781.963 1.061 2.149.299 1.265.657 2.784 1.535 3.662.878.874 2.392 1.23 3.654 1.527 1.187.28 2.15.507 2.15 1.062 0 .555-.961.782-2.146 1.061-1.262.299-2.779.657-3.658 1.535-.878.879-1.236 2.396-1.535 3.658C9.682 16.339 9.455 17.3 8.9 17.3c-.554 0-.78-.96-1.057-2.144-.297-1.263-.653-2.781-1.532-3.66-.878-.878-2.397-1.236-3.662-1.535C1.463 9.681.5 9.454.5 8.9c0-.555.965-.782 2.154-1.061 1.263-.298 2.78-.654 3.657-1.528C7.185 5.434 7.541 3.917 7.839 2.654 8.118 1.465 8.345.5 8.9.5Zm8.4 12.6c.277 0 .394.464.54 1.043.156.619.345 1.367.796 1.821.454.451 1.203.64 1.821.796.579.146 1.043.263 1.043.54 0 .277-.464.394-1.043.54-.618.156-1.367.345-1.821.796-.451.454-.64 1.203-.796 1.821-.146.579-.263 1.043-.54 1.043-.277 0-.394-.464-.54-1.043-.156-.618-.345-1.367-.796-1.821-.454-.451-1.203-.64-1.821-.796-.579-.146-1.043-.263-1.043-.54 0-.277.464-.394 1.043-.54.618-.156 1.367-.345 1.821-.796.451-.454.64-1.202.796-1.821.146-.579.263-1.043.54-1.043Z" fill="url(#support-widget-gradient)" />
-      <defs><linearGradient id="support-widget-gradient" x1=".5" y1="7" x2="22" y2="17.5" gradientUnits="userSpaceOnUse"><stop stopColor="#3EB3F4" /><stop offset=".82" stopColor="#2BE9D0" /></linearGradient></defs>
-    </svg>
-  );
 }
 
 function formatMessageTime(value: string | null) {
@@ -338,6 +331,13 @@ export function SupportFloatingWidget() {
         .catch(() => undefined);
     });
   }, [messages, ticketsById]);
+
+  useEffect(() => {
+    if (!canOpenWidget) return;
+    const handleOpen = () => { if (!isPanelOpen) void openAssistant(); };
+    window.addEventListener(OPEN_SUPPORT_WIDGET_EVENT, handleOpen);
+    return () => window.removeEventListener(OPEN_SUPPORT_WIDGET_EVENT, handleOpen);
+  }, [canOpenWidget, isPanelOpen, openAssistant]);
 
   if (!canOpenWidget) return null;
 

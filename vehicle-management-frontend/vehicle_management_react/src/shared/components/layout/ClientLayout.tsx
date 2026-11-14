@@ -5,7 +5,7 @@ import { UserGuideBackendHost } from "@/features/user-guide/components/UserGuide
 import { deriveGuideContext, shouldAutoStartGuide } from "@/features/user-guide/utils/guideContext";
 import { cn } from "@/lib/cn";
 import { ClientNavbar } from "./ClientNavbar";
-import { SupportFloatingWidget } from "@/features/support/components/SupportFloatingWidget";
+import { ClientSupportWidget } from "@/features/support/components/ClientSupportWidget";
 
 export function ClientLayout({ children }: PropsWithChildren) {
   const location = useLocation();
@@ -50,7 +50,7 @@ export function ClientLayout({ children }: PropsWithChildren) {
         {children}
         </div>
       )}
-      <SupportFloatingWidget />
+      <ClientSupportWidget />
     </div>
   );
 }

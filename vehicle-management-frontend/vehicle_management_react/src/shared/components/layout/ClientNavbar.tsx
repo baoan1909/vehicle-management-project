@@ -7,6 +7,8 @@ import { useAuth } from "@/core/auth/useAuth";
 import { preconnectKeycloakLoginOrigin } from "@/features/auth/api/authApi";
 import { NotificationBell } from "@/features/notifications/components/NotificationBell";
 import { ChatInboxButton } from "@/features/support/components/ChatInboxButton";
+import { openSupportWidget } from "@/features/support/supportWidgetEvents";
+import { hasAnyPermission } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
 import { FullPageCarLoader } from "@/shared/components/ui/PageTransitionLoader";
 import { DEFAULT_USER_AVATAR_URL, getApprovalStatusValue, getRoleLabel, getStatusMeta } from "@/shared/utils/accountStatus";
@@ -17,7 +19,7 @@ const publicNavigation = [
   { label: "Tìm bãi", href: "/parking-lots/nearby" },
   { label: "Bảng giá", href: "/pricing" },
   { label: "Hướng dẫn", href: "/guide" },
-  { label: "Trợ giúp", href: "/help" },
+  { label: "Trợ giúp", href: "#support", opensSupport: true },
   { label: "Liên hệ", href: "/contact" },
 ];
 
@@ -91,7 +93,7 @@ function UserAvatar({
 }
 
 export function ClientNavbar() {
-  const { user, setUser } = useAuth();
+  const { user, setUser, authenticationStatus } = useAuth();
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -106,6 +108,7 @@ export function ClientNavbar() {
   const approvalStatus = getApprovalStatusValue(user);
   const accountStatus = user?.accountStatus;
   const avatarUrl = resolvePublicMediaUrl(user?.avatarUrl) || DEFAULT_USER_AVATAR_URL;
+  const canOpenSupport = (authenticationStatus === "unauthenticated" && !user) || hasAnyPermission(user, ["SUPPORT_WIDGET_ACCESS_OWN"]);
 
   useEffect(() => {
     function handlePointerDown(event: MouseEvent) {
@@ -233,6 +236,13 @@ export function ClientNavbar() {
         >
           {publicNavigation.map((item, index) => {
             const active = item.href === "/" ? location.pathname === "/" : location.pathname === item.href;
+
+            if (item.opensSupport) return (
+              <button key={item.href} type="button" disabled={!canOpenSupport}
+                className="tw-inline-flex tw-min-h-[44px] tw-items-center tw-rounded-vm-md tw-border-0 tw-bg-transparent tw-px-5 tw-text-[0.92rem] tw-font-extrabold tw-text-vm-slate-700 tw-transition hover:tw-bg-brand-50 hover:tw-text-vm-primary disabled:tw-opacity-50"
+                onClick={() => { setOpen(false); openSupportWidget(); }}
+              >{item.label}</button>
+            );
 
             return (
               <Link
@@ -390,6 +400,11 @@ export function ClientNavbar() {
         <nav aria-label="Khám phá CoParking">
           {publicNavigation.map((item) => {
             const active = item.href === "/" ? location.pathname === "/" : location.pathname === item.href;
+            if (item.opensSupport) return (
+              <button key={item.href} type="button" disabled={!canOpenSupport} onClick={() => { setOpen(false); openSupportWidget(); }}>
+                <span><i className="far fa-life-ring" aria-hidden="true" /></span>{item.label}<i className="fas fa-chevron-right" aria-hidden="true" />
+              </button>
+            );
             return (
               <Link key={item.href} to={item.href} aria-current={active ? "page" : undefined} onClick={() => setOpen(false)}>
                 <span><i className={item.href === "/" ? "far fa-building" : item.href === "/parking-lots/nearby" ? "fas fa-map-marker-alt" : item.href === "/pricing" ? "fas fa-tags" : item.href === "/guide" ? "far fa-compass" : "far fa-envelope"} aria-hidden="true" /></span>

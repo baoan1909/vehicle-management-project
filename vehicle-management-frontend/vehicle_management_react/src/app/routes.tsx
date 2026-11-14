@@ -77,7 +77,6 @@ const VoucherManagementPage = lazyPage(() => import("@/features/pricing"), "Vouc
 const OperationsSupportCenterPage = lazyPage(() => import("@/features/support"), "OperationsSupportCenterPage");
 const SupportCategoryWorkflowPage = lazyPage(() => import("@/features/support"), "SupportCategoryWorkflowPage");
 const SupportTicketManagementPage = lazyPage(() => import("@/features/support"), "SupportTicketManagementPage");
-const GuestSupportPage = lazyPage(() => import("@/features/support"), "GuestSupportPage");
 const ParkingLotReviewManagementPage = lazyPage(() => import("@/features/parking-reviews"), "ParkingLotReviewManagementPage");
 
 export interface RouteDefinition {
@@ -149,7 +148,7 @@ const routeDefinitions: Omit<RouteDefinition, "permissions">[] = [
   { path: "/pricing", title: "Bang gia dich vu do xe", layout: "client", element: <PricingPage /> },
   { path: "/pricing/:parkingLotId", title: "Chi tiet bang gia bai xe", layout: "client", element: <PricingPage /> },
   { path: "/guide", title: "Huong dan", layout: "client", element: <GuidePage /> },
-  { path: "/help", title: "Trợ giúp công khai", layout: "client", element: <GuestSupportPage /> },
+  { path: "/help", title: "Trợ giúp", layout: "client", element: <Navigate to="/?support=open" replace /> },
   { path: "/guide/:code", title: "Hướng dẫn sử dụng", layout: "client", element: <UserGuidePublicPage /> },
   { path: "/contact", title: "Lien he", layout: "client", element: <ContactPage /> },
 { path: "/become-a-partner", title: "Trở thành đối tác CoParking", layout: "auth", element: <PartnerRegistrationPage /> },
