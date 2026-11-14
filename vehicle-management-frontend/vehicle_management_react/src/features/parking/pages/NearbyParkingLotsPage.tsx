@@ -21,6 +21,10 @@ import { lookupParkingByPlate, type ParkingPlateLookup } from "@/features/parkin
 import { CustomerReservationPage } from "@/features/parking/pages/CustomerReservationPage";
 import { UnderlineTabs } from "@/shared/components/ui/UnderlineTabs";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
+import { useAuth } from "@/core/auth/useAuth";
+import { UserGuideHelpButton } from "@/features/user-guide/components/UserGuideHelpButton";
+import { useUserGuide } from "@/features/user-guide/context/UserGuideContext";
+import { useUserGuideActivation } from "@/features/user-guide/hooks/useUserGuideActivation";
 
 const RADIUS_OPTIONS = [1, 3, 5] as const;
 const LOW_ACCURACY_THRESHOLD_METERS = 500;
@@ -129,6 +133,8 @@ function createLocationUrl(destination: NearbyParkingLot) {
 }
 
 export function NearbyParkingLotsPage() {
+  const { user } = useAuth();
+  const { activeGuide, currentStep } = useUserGuide();
   const [searchParams, setSearchParams] = useSearchParams();
   const modalReservationId = searchParams.get("reservationId");
   const [featureStatus, setFeatureStatus] = useState<ParkingMapFeatureStatus | null>(null);
@@ -172,6 +178,15 @@ export function NearbyParkingLotsPage() {
   }, [modalReservationId, setSearchParams]);
   const activeLookupReservations = useMemo(() => lookupResult?.reservations.filter((reservation) =>
     new Date(reservation.checkInDeadline).getTime() > lookupNow) ?? [], [lookupResult, lookupNow]);
+  const nearbyGuideEnabled = user?.roleCode === "CUSTOMER"
+    && Boolean(featureStatus?.customerParkingMapEnabled && featureStatus.publicNearbySearchEnabled);
+
+  useUserGuideActivation("CUSTOMER_NEARBY_PARKING_DISCOVERY", nearbyGuideEnabled);
+
+  useEffect(() => {
+    if (activeGuide?.code !== "CUSTOMER_NEARBY_PARKING_DISCOVERY") return;
+    setLookupOpen(currentStep?.anchorKey === "CUSTOMER.NEARBY.PLATE_LOOKUP");
+  }, [activeGuide?.code, currentStep?.anchorKey]);
 
   useEffect(() => {
     if (!lookupOpen || !lookupResult?.reservations.length) return;
@@ -477,6 +492,7 @@ export function NearbyParkingLotsPage() {
               Vị trí chỉ được dùng cho lần tìm kiếm hiện tại, không lưu vào trình duyệt và không tự động thu thập khi bạn mở trang.
             </p>
             <button
+              data-user-guide-anchor="CUSTOMER.NEARBY.LOCATION_MODE"
               className="tw-inline-flex tw-min-h-12 tw-items-center tw-justify-center tw-gap-2 tw-rounded-full tw-border-0 tw-bg-white tw-px-6 tw-font-black tw-text-blue-800 tw-shadow-lg tw-transition hover:tw-bg-blue-50 disabled:tw-cursor-wait disabled:tw-opacity-70"
               type="button"
               disabled={isLocating}
@@ -486,6 +502,7 @@ export function NearbyParkingLotsPage() {
               <i className={`fas ${isLocating ? "fa-spinner fa-spin" : "fa-crosshairs"}`} aria-hidden="true" />
               {isLocating ? "Đang lấy vị trí..." : "Tìm bãi gần tôi"}
             </button>
+            <UserGuideHelpButton className="tw-ml-4 !tw-text-white hover:!tw-text-blue-100" enabled={nearbyGuideEnabled} guideCode="CUSTOMER_NEARBY_PARKING_DISCOVERY" />
           </div>
         </section>
 
@@ -493,14 +510,14 @@ export function NearbyParkingLotsPage() {
           <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-sm">
             <div className="tw-w-full tw-min-w-0 sm:tw-w-[520px] sm:tw-max-w-full">
               <p className="tw-m-0 tw-text-xs tw-font-extrabold tw-uppercase tw-tracking-wide tw-text-slate-500">Bán kính tìm kiếm</p>
-              <form noValidate className="tw-mt-2 tw-flex tw-w-full tw-items-center tw-gap-2" aria-label="Nhập bán kính tìm kiếm"
+              <form data-user-guide-anchor="CUSTOMER.NEARBY.RADIUS" noValidate className="tw-mt-2 tw-flex tw-w-full tw-items-center tw-gap-2" aria-label="Nhập bán kính tìm kiếm"
                 onSubmit={(event) => { event.preventDefault(); handleRadiusChange(Number(radiusInput)); }}>
                 <SelectMenu ariaLabel="Bán kính tùy chỉnh (km)" value={radiusInput} portal searchable={false}
                   className="tw-min-w-0 tw-flex-1" triggerClassName="!tw-h-[50px] !tw-rounded-full"
                   editable={{ inputMode: "numeric", suffix: "km", describedBy: "parking-radius-hint", invalid: Boolean(radiusError), placeholder: "Nhập bán kính" }}
                   options={RADIUS_OPTIONS.map((option) => ({ label: `${option} km`, value: String(option) }))}
                   onChange={(value) => { if (/^\d*$/.test(value)) { setRadiusInput(value); setRadiusError(""); } }} />
-                <button type="submit" disabled={isLocating || isSearching} aria-busy={isLocating || isSearching}
+                <button data-user-guide-anchor="CUSTOMER.NEARBY.SEARCH_ACTION" type="submit" disabled={isLocating || isSearching} aria-busy={isLocating || isSearching}
                   className="tw-h-[50px] tw-shrink-0 tw-rounded-full tw-border-0 tw-bg-vm-primary tw-px-4 tw-text-sm tw-font-extrabold tw-text-white hover:tw-bg-vm-primary-hover disabled:tw-cursor-wait disabled:tw-opacity-70">
                   {isLocating ? <><i className="fas fa-spinner fa-spin tw-mr-2" aria-hidden="true" />Đang lấy vị trí...</> : isSearching ? "Đang tìm..." : "Áp dụng"}
                 </button>
@@ -540,7 +557,7 @@ export function NearbyParkingLotsPage() {
         </div>
 
         <section className="tw-mt-4 tw-grid tw-gap-4 lg:tw-grid-cols-[minmax(0,1.45fr)_minmax(340px,.75fr)]" aria-label="Kết quả tìm bãi xe">
-          <div ref={mapContainerRef} className="tw-relative tw-min-h-[360px] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-shadow-sm lg:tw-sticky lg:tw-top-[88px] lg:tw-h-[calc(100vh-112px)] lg:tw-min-h-[540px]">
+          <div data-user-guide-anchor="CUSTOMER.NEARBY.MAP" ref={mapContainerRef} className="tw-relative tw-min-h-[360px] tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-shadow-sm lg:tw-sticky lg:tw-top-[88px] lg:tw-h-[calc(100vh-112px)] lg:tw-min-h-[540px]">
             <MapErrorBoundary onError={() => setMapFailed(true)}>
               <NearbyParkingMap
                 focusedLot={focusedLot}
@@ -566,7 +583,7 @@ export function NearbyParkingLotsPage() {
               tabs={[{ label: "Kết quả gần nhất", value: "nearby" }, { label: "Tra cứu vị trí đỗ xe", value: "lookup" }]}
               ariaLabel="Kết quả và tra cứu bãi xe" idPrefix="parking" className="tw-mb-4" />
 
-              <section id="parking-lookup-panel" role="tabpanel" aria-labelledby="parking-lookup-tab" hidden={!lookupOpen} tabIndex={0} className="tw-space-y-3">
+              <section data-user-guide-anchor="CUSTOMER.NEARBY.PLATE_LOOKUP" id="parking-lookup-panel" role="tabpanel" aria-labelledby="parking-lookup-tab" hidden={!lookupOpen} tabIndex={0} className="tw-space-y-3">
                 <h2 className="tw-mb-3 tw-mt-0 tw-text-2xl tw-font-black tw-text-slate-950">Tra cứu vị trí đỗ xe</h2>
                 <form onSubmit={(event) => { event.preventDefault(); void submitPlateLookup(); }}
                   className="tw-flex tw-flex-wrap tw-gap-2 tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-3 tw-shadow-sm">
@@ -634,8 +651,8 @@ export function NearbyParkingLotsPage() {
                 })}
               </section>
 
-            <section id="parking-nearby-panel" role="tabpanel" aria-labelledby="parking-nearby-tab" hidden={lookupOpen} tabIndex={0}>
-              <div className="tw-mb-3 tw-flex tw-items-end tw-justify-between tw-gap-3">
+            <section data-user-guide-anchor="CUSTOMER.NEARBY.RESULT_LIST" id="parking-nearby-panel" role="tabpanel" aria-labelledby="parking-nearby-tab" hidden={lookupOpen} tabIndex={0}>
+              <div data-user-guide-anchor="CUSTOMER.NEARBY.LOT_ACTIONS" className="tw-mb-3 tw-flex tw-items-end tw-justify-between tw-gap-3">
                 <h2 className="tw-m-0 tw-text-2xl tw-font-black tw-text-slate-950">Bãi xe trong {radiusKm} km</h2>
                 {userLocation && !isSearching ? <span className="tw-text-sm tw-font-bold tw-text-slate-500">{lots.length} bãi</span> : null}
               </div>

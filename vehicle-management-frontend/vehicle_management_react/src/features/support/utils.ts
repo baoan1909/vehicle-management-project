@@ -1,3 +1,5 @@
+import { openAuthenticatedTab, openAuthenticatedWindow } from "@/core/auth/oidcSession";
+
 import { createCustomerSupportConversation } from "./api/chatApi";
 
 export type SupportOpenMode = "customer-direct" | "internal-direct";
@@ -15,8 +17,9 @@ interface OpenSupportCenterOptions {
 
 export function openSupportCenterConversation(options: OpenSupportCenterOptions = {}) {
   const url = buildSupportCenterUrl(options);
-  const openedWindow = window.open(url, "_blank", "noopener,noreferrer");
-  openedWindow?.focus();
+  if (!openAuthenticatedTab(url)) {
+    window.location.assign(url);
+  }
 }
 
 export async function createAndOpenCustomerSupportConversation(options: {
@@ -25,10 +28,7 @@ export async function createAndOpenCustomerSupportConversation(options: {
 }) {
   // Open synchronously to keep the browser from treating it as a popup, then send the
   // completed conversation ID to that tab once the API has returned.
-  const openedWindow = window.open("about:blank", "_blank");
-  if (openedWindow) {
-    openedWindow.opener = null;
-  }
+  const openedWindow = openAuthenticatedWindow("about:blank");
 
   try {
     const response = await createCustomerSupportConversation({

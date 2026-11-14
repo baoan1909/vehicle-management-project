@@ -40,6 +40,14 @@ const parkingLayoutPath = new URL("../src/features/parking/pages/ParkingLayoutEd
 const parkingOverviewPath = new URL("../src/features/parking/pages/ParkingLotOverviewPage.tsx", import.meta.url);
 const parkingStructurePath = new URL("../src/features/parking/pages/ParkingLotStructurePage.tsx", import.meta.url);
 const businessGuideSeedPath = new URL("../../../vehicle-management-backend/vehicle-management/src/main/resources/db/migration/V20261113120000__seed_business_workflow_user_guide_drafts.sql", import.meta.url);
+const customerGuideSeedPath = new URL("../../../vehicle-management-backend/vehicle-management/src/main/resources/db/migration/V20261114100000__seed_customer_portal_user_guide_drafts.sql", import.meta.url);
+const customerProfilePath = new URL("../src/features/customer-portal/pages/ProfilePage.tsx", import.meta.url);
+const customerVehiclePath = new URL("../src/features/customer-portal/pages/VehiclePage.tsx", import.meta.url);
+const customerSubscriptionPath = new URL("../src/features/customer-portal/pages/SubscriptionPage.tsx", import.meta.url);
+const customerNearbyPath = new URL("../src/features/parking/pages/NearbyParkingLotsPage.tsx", import.meta.url);
+const customerPricingPath = new URL("../src/features/customer-portal/pages/PricingPage.tsx", import.meta.url);
+const customerHistoryPath = new URL("../src/features/customer-portal/pages/CustomerHistoryPage.tsx", import.meta.url);
+const customerChatPath = new URL("../src/features/support/pages/OperationsSupportCenterPage.tsx", import.meta.url);
 
 const [
   api, host, card, backendHost, runtime, admin, panel, publicPage, context, endpoints, routes, router,
@@ -47,7 +55,8 @@ const [
   swipe, lostCard, subscription, pricing, catalogPage, catalogComponents, drawer, modal, bodyScrollLock,
   helpButton, parkingWorkspaceHeader, parkingWizard,
   parkingInfoForm, parkingOperationForm, parkingSessionSummary, parkingLayout, parkingOverview, parkingStructure,
-  businessGuideSeed,
+  businessGuideSeed, customerGuideSeed, customerProfile, customerVehicle, customerSubscription,
+  customerNearby, customerPricing, customerHistory, customerChat,
 ] = await Promise.all(
   [
     apiPath, hostPath, cardPath, backendHostPath, runtimePath, adminPath, panelPath, publicPath, contextPath,
@@ -56,7 +65,8 @@ const [
     pricingPath, catalogPagePath, catalogComponentsPath, drawerPath, modalPath, bodyScrollLockPath,
     helpButtonPath, parkingWorkspaceHeaderPath, parkingWizardPath,
     parkingInfoFormPath, parkingOperationFormPath, parkingSessionSummaryPath, parkingLayoutPath, parkingOverviewPath,
-    parkingStructurePath, businessGuideSeedPath,
+    parkingStructurePath, businessGuideSeedPath, customerGuideSeedPath, customerProfilePath, customerVehiclePath,
+    customerSubscriptionPath, customerNearbyPath, customerPricingPath, customerHistoryPath, customerChatPath,
   ].map((url) => readFile(url, "utf8")),
 );
 
@@ -119,6 +129,23 @@ for (const anchorKey of new Set(seededAnchorKeys)) {
   );
 }
 
+const customerGuideFrontend = [
+  customerProfile, customerVehicle, customerSubscription, customerNearby,
+  customerPricing, customerHistory, customerChat,
+].join("\n");
+const customerSeededAnchorKeys = [...customerGuideSeed.matchAll(/"anchor":"([^"]+)"/g)]
+  .map((match) => match[1]);
+assert.ok(customerSeededAnchorKeys.length > 0, "Customer guide seed must define at least one anchor.");
+for (const anchorKey of new Set(customerSeededAnchorKeys)) {
+  assert.ok(
+    customerGuideFrontend.includes(anchorKey),
+    `Seeded customer user-guide anchor is missing from the frontend: ${anchorKey}`,
+  );
+}
+assert.match(customerGuideSeed, /'DRAFT'/);
+assert.match(customerGuideSeed, /current_version[\s\S]*0/);
+assert.doesNotMatch(customerGuideSeed, /'PUBLISHED'/);
+
 // Nested drawer/modal workflows must not leave document scrolling locked.
 assert.match(drawer, /acquireBodyScrollLock/);
 assert.match(drawer, /onCloseRef/);
@@ -180,10 +207,20 @@ assert.doesNotMatch(helpButton, /useLoading/);
 assert.doesNotMatch(helpButton, /Đang mở hướng dẫn\.\.\./);
 assert.match(backendHost, /BackendStateAwareStarter/);
 assert.match(backendHost, /runtime\.state\.guides\.find\(\(candidate\) => candidate\.code === activation\.code\)/);
+assert.match(backendHost, /automaticallyStartedGuideIdRef/);
+assert.match(backendHost, /automaticallyStartedGuideIdRef\.current !== guide\.activeGuide\.guideId/);
+assert.doesNotMatch(backendHost, /hasRegistrations && !activation && guide\.activeGuide\) guide\.dismissGuide/);
 assert.match(context, /\/admin\/subscription-approvals/);
 assert.match(context, /\/admin\/ticket/);
 assert.match(context, /\/admin\/vehicle/);
 assert.match(context, /STATE_AWARE_GUIDE_ROUTES/);
+assert.match(context, /\/customer\/profile/);
+assert.match(context, /\/customer\/vehicles/);
+assert.match(context, /\/customer\/subscriptions/);
+assert.match(context, /\/customer\/parking-history/);
+assert.match(context, /\/customer\/support\/chat/);
+assert.match(context, /\/parking-lots\/nearby/);
+assert.match(context, /\/PRICING\/DETAIL/);
 
 // Business-state selection and permission gates remain explicit and do not invoke business APIs.
 assert.match(swipe, /PARKING_CHECK_IN_FIRST_RUN/);
@@ -234,6 +271,25 @@ assert.match(parkingWizard, /guideCode="PARKING_LOT_CREATE"/);
 assert.match(lostCard, /UserGuideHelpButton/);
 assert.match(subscription, /UserGuideHelpButton/);
 assert.match(pricing, /UserGuideHelpButton/);
+
+for (const [source, guideCode] of [
+  [customerProfile, "CUSTOMER_PROFILE_ONBOARDING"],
+  [customerVehicle, "CUSTOMER_VEHICLE_CREATE"],
+  [customerSubscription, "CUSTOMER_SUBSCRIPTION_REGISTER"],
+  [customerNearby, "CUSTOMER_NEARBY_PARKING_DISCOVERY"],
+  [customerPricing, "CUSTOMER_PRICING_DISCOVERY"],
+  [customerPricing, "CUSTOMER_PRICING_DETAIL"],
+  [customerHistory, "CUSTOMER_PARKING_HISTORY_REVIEW"],
+  [customerChat, "CUSTOMER_SUPPORT_CHAT"],
+]) {
+  assert.match(source, new RegExp(guideCode));
+  assert.match(source, /UserGuideHelpButton/);
+}
+assert.match(customerVehicle, /CUSTOMER_VEHICLE_CREATE_OWN/);
+assert.match(customerSubscription, /SUBSCRIPTION_CREATE_OWN/);
+assert.match(customerHistory, /PARKING_SESSION_READ_OWN/);
+assert.match(customerChat, /CHAT_CONVERSATION_READ_OWN/);
+assert.match(customerChat, /CHAT_MESSAGE_SEND_OWN/);
 
 // Context mapping must degrade to no-fetch on unknown routes.
 assert.match(context, /featureCode: string \| null/);

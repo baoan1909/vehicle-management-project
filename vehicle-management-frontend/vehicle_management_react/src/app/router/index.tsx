@@ -55,7 +55,7 @@ function RouteDocument({ layout }: { layout: AppLayout }) {
   const activeHandle = [...matches].reverse().find((match) => match.handle)?.handle;
 
   useEffect(() => {
-    document.title = activeHandle?.title ?? "Vehicle Management";
+    document.title = activeHandle?.title ?? "Quản lý bãi xe CoParking";
     document.body.className = getBodyClassName(layout);
   }, [activeHandle, layout]);
 
@@ -382,7 +382,11 @@ const fullscreenRoutes = routes
   .filter((route) => route.layout === "fullscreen")
   .map((route) => ({
     path: route.path.replace(/^\//, ""),
-    element: route.path.startsWith("/admin/") ? <AdminRouteGate path={route.path} element={route.element} /> : route.element,
+    element: route.path.startsWith("/admin/")
+      ? <AdminRouteGate path={route.path} element={route.element} />
+      : isCustomerProtectedRoute(route.path)
+        ? <CustomerRouteGate path={route.path} element={route.element} />
+        : route.element,
     handle: { title: route.title },
   }));
 

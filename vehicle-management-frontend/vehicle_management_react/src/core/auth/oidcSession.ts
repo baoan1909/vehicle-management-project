@@ -125,15 +125,16 @@ export function removeOidcUser() {
   return oidcUserManager.removeUser();
 }
 
-export function openAuthenticatedTab(path: string) {
-  const targetUrl = new URL(path, window.location.origin);
-  if (targetUrl.origin !== window.location.origin) return false;
+export function openAuthenticatedWindow(path: string) {
+  const opensBlankTab = path === "about:blank";
+  const targetUrl = opensBlankTab ? null : new URL(path, window.location.origin);
+  if (targetUrl && targetUrl.origin !== window.location.origin) return null;
 
   let nextWindow: Window | null = null;
 
   try {
     nextWindow = window.open("about:blank", "_blank");
-    if (!nextWindow) return false;
+    if (!nextWindow) return null;
 
     for (let index = 0; index < window.sessionStorage.length; index += 1) {
       const key = window.sessionStorage.key(index);
@@ -144,12 +145,16 @@ export function openAuthenticatedTab(path: string) {
     }
 
     nextWindow.opener = null;
-    nextWindow.location.replace(targetUrl.href);
-    return true;
+    if (targetUrl) nextWindow.location.replace(targetUrl.href);
+    return nextWindow;
   } catch {
     nextWindow?.close();
-    return false;
+    return null;
   }
+}
+
+export function openAuthenticatedTab(path: string) {
+  return Boolean(openAuthenticatedWindow(path));
 }
 
 export function subscribeOidcSessionEvents(listener: OidcSessionEvents) {

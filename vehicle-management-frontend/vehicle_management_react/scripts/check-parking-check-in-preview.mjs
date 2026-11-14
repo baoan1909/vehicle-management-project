@@ -108,7 +108,7 @@ assert.match(operationPage, /durationMs: 9000/);
 assert.doesNotMatch(operationPage, /VehicleMatchStatus|vehicleMatchStatus/);
 assert.match(operationPage, /setVehicleImage\(null\)/);
 assert.match(operationPage, /<header className=/);
-assert.match(operationPage, /onClick=\{\(\) => void handleOpenUserGuide\(\)\}[\s\S]*?Hướng dẫn & Trợ giúp/);
+assert.match(operationPage, /<UserGuideHelpButton[\s\S]*?enabled=\{canRunCurrentOperation\}[\s\S]*?guideCode=\{activeGuideCode\}/);
 assert.doesNotMatch(operationPage, /error=\{submitError \|\| parkingLotError/);
 const pendingStorageType = operationPage.match(/type PendingVnpayCheckOut = \{[\s\S]*?\n\};/)?.[0] ?? "";
 assert.match(pendingStorageType, /invoiceId: string/);

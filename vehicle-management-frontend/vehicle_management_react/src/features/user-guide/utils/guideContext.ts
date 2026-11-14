@@ -68,13 +68,27 @@ const STATE_AWARE_GUIDE_ROUTES = [
   "/admin/price-rules",
   "/admin/ticket",
   "/admin/vehicle",
+  "/customer/profile",
+  "/customer/vehicles",
+  "/customer/subscriptions",
+  "/customer/parking-history",
+  "/customer/support/chat",
+  "/parking-lots/nearby",
+  "/pricing",
 ] as const;
+
+function canonicalContextKey(pathname: string) {
+  if (/^\/pricing\/[^/]+\/?$/i.test(pathname)) {
+    return "/PRICING/DETAIL";
+  }
+  return pathname.toUpperCase();
+}
 
 export function deriveGuideContext(pathname: string): { featureCode: string | null; contextKey: string } {
   const normalized = pathname.split("?")[0].split("#")[0] || "/";
   const match = routeFeatureMap.find((entry) => normalized.startsWith(entry.prefix));
   return {
-    contextKey: normalized.toUpperCase(),
+    contextKey: canonicalContextKey(normalized),
     featureCode: match ? match.featureCode : null,
   };
 }

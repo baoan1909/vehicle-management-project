@@ -8,8 +8,12 @@ import {
 import type { ParkingSessionManagementFilters, ParkingSessionResponse } from "@/features/parking/api/parkingSessionApi";
 import { DateRangeInput, SelectMenu } from "@/components/ui";
 import { getApplicationTimeZone } from "@/shared/time/applicationTime";
+import { useAuth } from "@/core/auth/useAuth";
+import { hasAnyPermission } from "@/shared/auth/permissions";
+import { UserGuideHelpButton } from "@/features/user-guide/components/UserGuideHelpButton";
+import { useUserGuideActivation } from "@/features/user-guide/hooks/useUserGuideActivation";
 
-import { CustomerPageHeader, CustomerPortalLayout, PortalPagination } from "./PortalShared";
+import { CustomerPortalLayout, PortalPagination } from "./PortalShared";
 
 type HistoryFilters = {
   fromDate: string;
@@ -106,6 +110,7 @@ function toDateRangeValue(filters: Pick<HistoryFilters, "fromDate" | "toDate">) 
 }
 
 export function CustomerHistoryPage() {
+  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const requestedSessionId = searchParams.get("sessionId")?.trim() ?? "";
   const [sessions, setSessions] = useState<CustomerPortalParkingSession[]>([]);
@@ -119,6 +124,11 @@ export function CustomerHistoryPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const requestVersion = useRef(0);
+  const historyGuideEnabled = !loading
+    && user?.roleCode === "CUSTOMER"
+    && hasAnyPermission(user, ["PARKING_SESSION_READ_OWN", "PARKING_SESSION_READ_ALL"]);
+
+  useUserGuideActivation("CUSTOMER_PARKING_HISTORY_REVIEW", historyGuideEnabled);
 
   const selectedSession = useMemo(() => sessions.find((session) => session.parkingSessionId === selectedSessionId) ?? sessions[0], [selectedSessionId, sessions]);
   const closedCount = sessions.filter((session) => session.status === "CLOSED").length;
@@ -167,11 +177,18 @@ export function CustomerHistoryPage() {
 
   return (
     <CustomerPortalLayout>
-      <CustomerPageHeader eyebrow="NHẬT KÝ RA / VÀO" subtitle="Mỗi lượt xe được ghi nhận rõ ràng từ lúc vào đến khi rời bãi." title="Lịch sử gửi xe" />
+      <header className="tw-mb-5">
+        <span className="tw-block tw-text-[0.75rem] tw-font-semibold tw-leading-4 tw-tracking-[0.04em] tw-text-[#1263e9]">NHẬT KÝ RA / VÀO</span>
+        <h1 className="tw-m-0 tw-mt-1.5 tw-font-[Cambria,Georgia,serif] tw-text-[clamp(2.25rem,3.4vw,3.25rem)] tw-font-bold tw-leading-[1.1] tw-text-[#0b1c3d]">Lịch sử gửi xe</h1>
+        <div className="tw-mt-1 tw-flex tw-flex-wrap tw-items-center tw-gap-4">
+          <p className="tw-m-0 tw-text-[0.94rem] tw-font-medium tw-text-[#61738e]">Mỗi lượt xe được ghi nhận rõ ràng từ lúc vào đến khi rời bãi.</p>
+          <UserGuideHelpButton enabled={historyGuideEnabled} guideCode="CUSTOMER_PARKING_HISTORY_REVIEW" />
+        </div>
+      </header>
 
       {error ? <div className="tw-mb-4 tw-flex tw-items-start tw-gap-2 tw-rounded-xl tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-px-4 tw-py-3 tw-text-sm tw-font-semibold tw-text-red-700" role="alert"><i className="fas fa-exclamation-circle tw-mt-0.5" /> {error}</div> : null}
 
-      <section className="tw-mb-4 tw-grid tw-grid-cols-4 tw-overflow-hidden tw-rounded-2xl tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-shadow-[0_10px_28px_rgba(15,39,82,0.06)] max-[1000px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
+      <section data-user-guide-anchor="CUSTOMER.HISTORY.STATS" className="tw-mb-4 tw-grid tw-grid-cols-4 tw-overflow-hidden tw-rounded-2xl tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-shadow-[0_10px_28px_rgba(15,39,82,0.06)] max-[1000px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
         {stats.map(([icon, label, value, tone], index) => (
           <div className="tw-relative tw-grid tw-min-h-[116px] tw-min-w-0 tw-place-items-center tw-border-0 tw-border-r tw-border-solid tw-border-slate-100 tw-px-5 tw-py-4 last:tw-border-0 max-[1000px]:tw-border-b max-[1000px]:tw-border-r-0" key={label}>
             <div className="tw-flex tw-min-w-0 tw-items-center tw-justify-center tw-gap-4">
@@ -192,7 +209,7 @@ export function CustomerHistoryPage() {
         ))}
       </section>
 
-      <section className="tw-mb-4 tw-grid tw-grid-cols-[minmax(0,1.45fr)_minmax(0,1.65fr)_minmax(0,1.15fr)_auto] tw-gap-3 tw-rounded-2xl tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_10px_28px_rgba(15,39,82,0.05)] max-[1000px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
+      <section data-user-guide-anchor="CUSTOMER.HISTORY.FILTERS" className="tw-mb-4 tw-grid tw-grid-cols-[minmax(0,1.45fr)_minmax(0,1.65fr)_minmax(0,1.15fr)_auto] tw-gap-3 tw-rounded-2xl tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_10px_28px_rgba(15,39,82,0.05)] max-[1000px]:tw-grid-cols-2 max-[640px]:tw-grid-cols-1">
         <DateRangeInput ariaLabel="Khoảng ngày lọc lịch sử gửi xe" label="Khoảng ngày" value={toDateRangeValue(filters)} onChange={(value) => { const [fromDate = "", toDate = ""] = value.split("|", 2); setFilters((current) => ({ ...current, fromDate, toDate })); }} />
         <label className="tw-grid tw-min-w-0 tw-gap-1.5 tw-text-xs tw-font-bold tw-text-slate-600">Tìm kiếm<span className="tw-relative tw-min-w-0"><input className="tw-h-11 tw-min-w-0 tw-w-full tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-3 tw-pr-10 tw-text-sm tw-font-semibold tw-text-slate-800" placeholder="Biển số, mã phiên, thẻ..." value={filters.keyword} onChange={(event) => setFilters((current) => ({ ...current, keyword: event.target.value }))} /><i className="fas fa-search tw-pointer-events-none tw-absolute tw-right-3 tw-top-1/2 [transform:translateY(-50%)] tw-text-slate-400" /></span></label>
         <label className="tw-grid tw-gap-1.5 tw-text-xs tw-font-bold tw-text-slate-600">Trạng thái<SelectMenu ariaLabel="Lọc trạng thái gửi xe" options={[{ label: "Tất cả trạng thái", value: "ALL" }, { label: "Đang gửi", value: "OPEN" }, { label: "Đã hoàn tất", value: "CLOSED" }, { label: "Mất thẻ", value: "LOST_CARD" }]} portal searchable={false} triggerClassName="!tw-h-11" value={filters.status} onChange={(value) => setFilters((current) => ({ ...current, status: value as HistoryFilters["status"] }))} /></label>
@@ -200,7 +217,7 @@ export function CustomerHistoryPage() {
       </section>
 
       <div className="tw-grid tw-grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] tw-gap-3 max-[1000px]:tw-grid-cols-1">
-        <section className="tw-min-w-0 tw-rounded-xl tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-p-3 tw-shadow-[0_10px_28px_rgba(15,39,82,0.05)]">
+        <section data-user-guide-anchor="CUSTOMER.HISTORY.SESSION_LIST" className="tw-min-w-0 tw-rounded-xl tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-p-3 tw-shadow-[0_10px_28px_rgba(15,39,82,0.05)]">
           <h2 className="tw-m-2 tw-mb-3 tw-text-lg tw-font-bold tw-text-slate-900">Dòng thời gian gửi xe</h2>
           <div className="tw-overflow-x-auto tw-px-1 tw-pb-1">
             <div className="vm-history-desktop-timeline tw-grid tw-min-w-[580px] tw-gap-2">
@@ -262,17 +279,19 @@ export function CustomerHistoryPage() {
           <PortalPagination currentPage={safeCurrentPage} pageSize={pageSize} totalRecords={sessions.length} onPageChange={setCurrentPage} onPageSizeChange={(size) => { setPageSize(size); setCurrentPage(1); }} />
         </section>
 
-        <aside className="tw-min-w-0 tw-overflow-hidden tw-rounded-xl tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-shadow-[0_10px_28px_rgba(15,39,82,0.05)]">
+        <aside data-user-guide-anchor="CUSTOMER.HISTORY.SESSION_DETAIL" className="tw-min-w-0 tw-overflow-hidden tw-rounded-xl tw-border tw-border-solid tw-border-slate-100 tw-bg-white tw-shadow-[0_10px_28px_rgba(15,39,82,0.05)]">
           {selectedSession ? <>
             <h2 className="tw-m-0 tw-p-4 tw-text-base tw-font-semibold tw-text-slate-900">Chi tiết phiên {compactCode(selectedSession.parkingSessionId)}</h2>
-            <div className="tw-mx-2 tw-grid tw-grid-cols-[minmax(0,1fr)_auto] tw-items-center tw-gap-x-3 tw-gap-y-1 tw-rounded-t-xl tw-bg-[linear-gradient(115deg,#031633,#051e46)] tw-px-4 tw-py-3 tw-text-white">
+            <div data-user-guide-anchor="CUSTOMER.HISTORY.PRICE" className="tw-mx-2 tw-grid tw-grid-cols-[minmax(0,1fr)_auto] tw-items-center tw-gap-x-3 tw-gap-y-1 tw-rounded-t-xl tw-bg-[linear-gradient(115deg,#031633,#051e46)] tw-px-4 tw-py-3 tw-text-white">
               <strong className="tw-text-[1.45rem] tw-font-semibold">{selectedSession.licensePlateIn || selectedSession.licensePlateOut || "--"}</strong>
               <span className="tw-row-span-2 tw-text-right tw-text-xs tw-text-blue-100">Tổng phí<strong className="tw-mt-1 tw-block tw-text-xl tw-font-semibold tw-text-white">{selectedSession.status === "OPEN" ? "---" : formatCurrency(selectedSession.totalPrice)}</strong></span>
               <span className={`tw-w-fit tw-rounded-full tw-px-3 tw-py-1 tw-text-xs tw-font-medium ${statusConfig(selectedSession.status).badge}`}>{statusConfig(selectedSession.status).label}</span>
             </div>
             <div className="tw-p-4"><div className="tw-grid tw-grid-cols-4 max-[1200px]:tw-grid-cols-2 tw-gap-x-4 tw-gap-y-3 tw-border-0 tw-border-b tw-border-solid tw-border-slate-100 tw-pb-3">{[["Thẻ", selectedSession.cardNumber], ["Loại xe", selectedSession.vehicleTypeName ?? selectedSession.vehicleTypeCode], ["Khu vực", selectedSession.zoneName ?? selectedSession.zoneCode], ["Bãi xe", selectedSession.parkingLotName ?? selectedSession.parkingLotCode]].map(([label, value]) => <div key={label}><span className="tw-block tw-text-xs tw-font-bold tw-text-slate-500">{label}</span><strong className="tw-mt-1 tw-block tw-text-sm tw-font-semibold tw-text-slate-800">{value || "--"}</strong></div>)}</div>
-              {selectedSession.status === "CLOSED" && selectedSession.parkingLotId ? <Link className="tw-mt-3 tw-inline-flex tw-items-center tw-gap-2 tw-rounded-lg tw-bg-blue-700 tw-px-4 tw-py-2.5 tw-text-sm tw-font-bold tw-text-white hover:tw-text-white hover:tw-no-underline" to={`/pricing/${selectedSession.parkingLotId}#write-review`}><i className="fas fa-star" />Đánh giá / sửa đánh giá</Link> : null}
-              <h3 className="tw-m-0 tw-mt-3 tw-text-base tw-font-bold tw-text-slate-900">Sự kiện vào / ra</h3>
+              <div data-user-guide-anchor="CUSTOMER.HISTORY.REVIEW_ACTION">
+                {selectedSession.status === "CLOSED" && selectedSession.parkingLotId ? <Link className="tw-mt-3 tw-inline-flex tw-items-center tw-gap-2 tw-rounded-lg tw-bg-blue-700 tw-px-4 tw-py-2.5 tw-text-sm tw-font-bold tw-text-white hover:tw-text-white hover:tw-no-underline" to={`/pricing/${selectedSession.parkingLotId}#write-review`}><i className="fas fa-star" />Đánh giá / sửa đánh giá</Link> : <span className="tw-mt-3 tw-inline-flex tw-rounded-lg tw-bg-slate-100 tw-px-4 tw-py-2.5 tw-text-sm tw-font-semibold tw-text-slate-500">Đánh giá khả dụng sau khi hoàn tất phiên gửi xe</span>}
+              </div>
+              <h3 data-user-guide-anchor="CUSTOMER.HISTORY.EVENT_TIMELINE" className="tw-m-0 tw-mt-3 tw-text-base tw-font-bold tw-text-slate-900">Sự kiện vào / ra</h3>
               <div className="tw-mt-3 tw-grid tw-gap-0">{selectedEvents.map((event, index) => <div className="vm-history-event-row tw-grid tw-grid-cols-[22px_minmax(0,1fr)_minmax(76px,.55fr)] tw-gap-3" key={event.parkingEventId}><div className="tw-relative tw-flex tw-justify-center">{index < selectedEvents.length - 1 ? <i aria-hidden="true" className="tw-absolute tw-bottom-[-8px] tw-left-1/2 tw-top-2 tw-w-px [transform:translateX(-50%)] tw-bg-blue-500" /> : null}<span aria-hidden="true" className={`tw-relative tw-z-10 tw-mt-1 tw-h-3 tw-w-3 tw-shrink-0 tw-rounded-full tw-border-2 tw-border-solid tw-border-blue-600 ${event.eventType === "CHECK_IN" ? "tw-bg-blue-600" : "tw-bg-white"}`} /></div><div className="tw-pb-4"><strong className="tw-block tw-text-sm tw-font-semibold tw-text-blue-700">{eventLabel(event.eventType)}</strong><span className="tw-mt-1 tw-block tw-text-xs tw-font-semibold tw-text-slate-600">{formatDateTime(event.eventTime)}</span></div><div className="tw-pb-4 tw-text-xs tw-font-semibold tw-leading-5 tw-text-slate-600"><strong className="tw-block tw-text-slate-800">{event.laneName || "--"}</strong>Biển số: {event.licensePlateDetected || "--"}</div></div>)}{selectedEvents.length === 0 ? <p className="tw-mt-3 tw-text-sm tw-font-semibold tw-text-slate-500">Chưa có sự kiện vào/ra.</p> : null}</div>
               <div className="vm-history-evidence-grid tw-mt-2 tw-grid tw-grid-cols-2 tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-slate-100 tw-pt-4"><div><strong className="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-text-slate-700">Ảnh biển số vào</strong><EvidenceImage alt="Ảnh biển số vào" src={checkInEvent?.licensePlateImagePath} /></div><div><strong className="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-text-slate-700">Ảnh biển số ra</strong><EvidenceImage alt="Ảnh biển số ra" src={checkOutEvent?.licensePlateImagePath} /></div><div><strong className="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-text-slate-700">Ảnh xe vào</strong><EvidenceImage alt="Ảnh xe vào" src={checkInEvent?.vehicleImagePath} /></div><div><strong className="tw-mb-2 tw-block tw-text-xs tw-font-bold tw-text-slate-700">Ảnh xe ra</strong><EvidenceImage alt="Ảnh xe ra" src={checkOutEvent?.vehicleImagePath} /></div></div>
             </div>

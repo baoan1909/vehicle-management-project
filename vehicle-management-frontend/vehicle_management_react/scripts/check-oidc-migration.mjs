@@ -17,6 +17,7 @@ const [
   notificationRealtime,
   chatRealtime,
   parkingRealtime,
+  supportUtils,
 ] = await Promise.all([
   read("package.json"),
   read("src/core/auth/oidcClient.ts"),
@@ -29,6 +30,7 @@ const [
   read("src/features/notifications/api/notificationRealtime.ts"),
   read("src/features/support/api/chatRealtime.ts"),
   read("src/features/parking/api/parkingRealtime.ts"),
+  read("src/features/support/utils.ts"),
 ]);
 
 const pkg = JSON.parse(packageJson);
@@ -47,7 +49,12 @@ assert.match(oidcSession, /signinSilent/);
 assert.match(oidcSession, /if \(renewPromise\) return renewPromise/);
 assert.match(oidcSession, /addAccessTokenExpiring[\s\S]*?renewToken/);
 assert.match(oidcSession, /signoutRedirect/);
+assert.match(oidcSession, /export function openAuthenticatedWindow[\s\S]*?window\.sessionStorage[\s\S]*?nextWindow\.sessionStorage\.setItem/);
 assert.doesNotMatch(oidcSession, /grant_type|code_verifier|code_challenge|\/token/);
+assert.match(supportUtils, /openAuthenticatedTab\(url\)[\s\S]*?window\.location\.assign\(url\)/);
+assert.match(supportUtils, /openAuthenticatedWindow\("about:blank"\)/);
+assert.doesNotMatch(supportUtils, /window\.open\(/,
+  "support chat tabs must inherit the OIDC session instead of opening an unauthenticated tab");
 
 assert.doesNotMatch(identitySession, /realm_access|resource_access|authorities|roles\?/);
 assert.match(identitySession, /role:\s*"UNKNOWN"/);
