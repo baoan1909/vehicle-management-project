@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -36,6 +37,8 @@ import {
   writeFavoriteParkingLotIds,
 } from "@/features/customer-portal/storage/favoriteParkingLots";
 import { ParkingLotReviewsSection } from "@/features/parking-reviews";
+import { UserGuideHelpButton } from "@/features/user-guide/components/UserGuideHelpButton";
+import { useUserGuideActivation } from "@/features/user-guide/hooks/useUserGuideActivation";
 
 import { PublicFooter } from "./PortalShared";
 
@@ -303,6 +306,7 @@ function PriceCard({ audience, featured = false, registrationDisabled = false, r
           <span className="tw-flex tw-items-center tw-gap-2 tw-text-[0.7rem] tw-font-semibold tw-leading-4 tw-text-slate-100"><i className="fas fa-headset tw-grid tw-h-9 tw-w-9 tw-flex-none tw-place-items-center tw-rounded-full tw-border tw-border-solid tw-border-white/25 tw-bg-white/[0.035] tw-text-brand-200" /> Hỗ trợ ưu tiên</span>
         </div>
         <Link
+          data-user-guide-anchor="CUSTOMER.PRICING.REGISTER_ACTION"
           aria-disabled={registrationDisabled}
           className={`tw-relative tw-isolate tw-mt-3 tw-inline-flex tw-min-h-10 tw-w-full tw-items-center tw-justify-center tw-overflow-hidden tw-rounded-vm-md tw-px-4 tw-text-[0.86rem] tw-font-black tw-text-white tw-outline-none hover:tw-text-white hover:tw-no-underline focus-visible:tw-ring-2 focus-visible:tw-ring-white/80 ${registrationDisabled ? "tw-cursor-not-allowed tw-bg-slate-500 tw-opacity-75" : "tw-bg-[linear-gradient(90deg,#1557dd,#1875ff)] tw-shadow-[0_10px_22px_rgba(21,87,221,0.24)]"}`}
           onBlur={() => setRegisterButtonActive(false)}
@@ -373,6 +377,7 @@ function ParkingLotCard({
   return (
     <article className="tw-relative">
       <Link
+        data-user-guide-anchor="CUSTOMER.PRICING.LOT_DETAIL_ACTION"
         className="tw-group tw-relative tw-flex tw-min-h-[340px] tw-w-full tw-flex-col tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-0 tw-text-left tw-shadow-[0_14px_34px_rgba(31,66,116,0.09)] tw-transition hover:-tw-translate-y-1 hover:tw-text-inherit hover:tw-no-underline hover:tw-shadow-[0_20px_42px_rgba(31,66,116,0.15)] focus-visible:tw-outline-none focus-visible:tw-ring-2 focus-visible:tw-ring-vm-primary min-[480px]:tw-min-h-[360px]"
         to={`/pricing/${lot.parkingLotId}`}
       >
@@ -504,6 +509,17 @@ export function PricingPage() {
   const [showAllCustomerRules, setShowAllCustomerRules] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const pricingDiscoveryGuideEnabled = !detailMode
+    && user?.role === "CUSTOMER"
+    && !directoryLoading;
+  const pricingDetailGuideEnabled = detailMode
+    && user?.role === "CUSTOMER"
+    && !directoryLoading
+    && !loading
+    && Boolean(selectedParkingLotId);
+
+  useUserGuideActivation("CUSTOMER_PRICING_DISCOVERY", pricingDiscoveryGuideEnabled);
+  useUserGuideActivation("CUSTOMER_PRICING_DETAIL", pricingDetailGuideEnabled);
 
   useEffect(() => {
     let ignore = false;
@@ -842,6 +858,11 @@ export function PricingPage() {
             <div className="tw-relative tw-z-10 tw-flex tw-min-h-[330px] tw-max-w-[720px] tw-flex-col tw-justify-center tw-p-5 min-[480px]:tw-p-7 min-[768px]:tw-min-h-[382px] min-[768px]:tw-justify-start min-[768px]:tw-px-[70px] min-[768px]:tw-pt-[51px]">
               <h1 className="tw-m-0 tw-max-w-[600px] tw-font-[Cambria] !tw-text-[4.1rem] tw-font-bold tw-leading-[1.02] tw-text-white max-[1200px]:!tw-text-[3.65rem] max-[768px]:!tw-text-[3rem] max-[480px]:!tw-text-[2.1rem]">Bảng giá gửi xe <span className="tw-block tw-text-[#176fff]">minh bạch</span></h1>
               <p className="tw-m-0 tw-mt-4 tw-max-w-[480px] tw-text-[1.05rem] tw-font-semibold tw-leading-7 tw-text-brand-100">Chọn gói phù hợp. Quản lý hành trình an tâm.</p>
+              <UserGuideHelpButton
+                className="tw-mt-4 !tw-text-white hover:!tw-text-blue-100"
+                enabled={detailMode ? pricingDetailGuideEnabled : pricingDiscoveryGuideEnabled}
+                guideCode={detailMode ? "CUSTOMER_PRICING_DETAIL" : "CUSTOMER_PRICING_DISCOVERY"}
+              />
               <div className="tw-mt-6 tw-flex tw-flex-wrap tw-items-center tw-gap-4 min-[768px]:tw-mt-7 min-[768px]:tw-gap-7 max-[420px]:tw-w-full">
                 <a className="tw-inline-flex tw-min-h-[50px] tw-min-w-[198px] tw-items-center tw-justify-center tw-gap-5 tw-rounded-vm-md tw-bg-[linear-gradient(135deg,#1557dd,#1875ff)] tw-px-5 tw-text-[0.9rem] tw-font-black tw-text-white tw-shadow-[0_10px_22px_rgba(21,87,221,0.28)] tw-transition hover:tw-bg-vm-primary-hover hover:tw-text-white hover:tw-no-underline max-[420px]:tw-w-full" href="#pricing-rates">Xem bảng giá <i className="fas fa-arrow-right" /></a>
                 {selectedParkingLot ? <a className="tw-inline-flex tw-min-h-[46px] tw-items-center tw-justify-center tw-gap-4 tw-border-0 tw-border-b-2 tw-border-solid tw-border-[#c89b55] tw-px-0 tw-text-[0.9rem] tw-font-black tw-text-white hover:tw-text-brand-100 hover:tw-no-underline max-[420px]:tw-w-full" href="#parking-reviews" onClick={(event) => { event.preventDefault(); window.history.replaceState(null, "", "#parking-reviews"); const section = document.getElementById("parking-reviews"); section?.scrollIntoView({ behavior: "smooth", block: "start" }); section?.focus({ preventScroll: true }); }}>Xem đánh giá <i className="fas fa-chevron-down tw-text-[0.72rem] tw-text-[#d5ae6a]" /></a> : null}
@@ -853,15 +874,16 @@ export function PricingPage() {
             </aside>
           </section>
 
-          {!detailMode ? <section className="tw-mx-auto tw-max-w-[1480px] tw-py-7 min-[768px]:tw-py-10" id="pricing-rates">
+          {!detailMode ? <section data-user-guide-anchor="CUSTOMER.PRICING.LOT_LIST" className="tw-mx-auto tw-max-w-[1480px] tw-py-7 min-[768px]:tw-py-10" id="pricing-rates">
             <div className="tw-mb-6 tw-flex tw-flex-wrap tw-items-end tw-justify-between tw-gap-4 max-[639px]:tw-items-stretch">
               <div>
                 <p className="tw-m-0 tw-text-[0.72rem] tw-font-black tw-uppercase tw-tracking-[0.15em] tw-text-vm-primary">Chọn bãi xe</p>
                 <h2 className="tw-m-0 tw-mt-2 tw-font-[Cambria] tw-text-[clamp(1.8rem,2.8vw,2.5rem)] tw-font-bold tw-text-vm-slate-900">Bảng giá theo từng bãi</h2>
-                <p className="tw-m-0 tw-mt-2 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500"><i className="fas fa-location-arrow tw-mr-2 tw-text-vm-primary" />{locationMessage}</p>
+                <p data-user-guide-anchor="CUSTOMER.PRICING.LOCATION_SORT" className="tw-m-0 tw-mt-2 tw-text-[0.82rem] tw-font-semibold tw-text-vm-slate-500"><i className="fas fa-location-arrow tw-mr-2 tw-text-vm-primary" />{locationMessage}</p>
               </div>
               <div className="tw-flex tw-w-full tw-flex-wrap tw-items-center tw-justify-end tw-gap-3 max-[639px]:tw-flex-col max-[639px]:tw-items-stretch min-[900px]:tw-w-auto">
                 <button
+                  data-user-guide-anchor="CUSTOMER.PRICING.FAVORITE_FILTER"
                   aria-pressed={favoriteOnly}
                   className={favoriteOnly ? "tw-flex tw-h-12 tw-items-center tw-justify-center tw-gap-2 tw-rounded-[10px] tw-border tw-border-solid tw-border-rose-200 tw-bg-rose-50 tw-px-4 tw-text-[0.8rem] tw-font-black tw-text-rose-600 tw-shadow-[0_8px_22px_rgba(225,29,72,0.08)]" : "tw-flex tw-h-12 tw-items-center tw-justify-center tw-gap-2 tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-4 tw-text-[0.8rem] tw-font-black tw-text-vm-slate-600 tw-shadow-[0_8px_22px_rgba(31,66,116,0.07)] hover:tw-border-rose-200 hover:tw-text-rose-600"}
                   onClick={() => setFavoriteOnly((currentValue) => !currentValue)}
@@ -871,7 +893,7 @@ export function PricingPage() {
                   Bãi yêu thích
                   <span className="tw-rounded-full tw-bg-white tw-px-2 tw-py-0.5 tw-text-[0.68rem] tw-shadow-sm">{parkingLots.filter((lot) => favoriteParkingLotIds.has(lot.parkingLotId)).length}</span>
                 </button>
-                <label className="tw-flex tw-h-12 tw-w-full tw-max-w-[390px] tw-items-center tw-gap-3 tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-4 tw-shadow-[0_8px_22px_rgba(31,66,116,0.07)] max-[639px]:tw-max-w-none">
+                <label data-user-guide-anchor="CUSTOMER.PRICING.LOT_SEARCH" className="tw-flex tw-h-12 tw-w-full tw-max-w-[390px] tw-items-center tw-gap-3 tw-rounded-[10px] tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-4 tw-shadow-[0_8px_22px_rgba(31,66,116,0.07)] max-[639px]:tw-max-w-none">
                   <i className="fas fa-search tw-text-vm-primary" />
                   <input className="tw-min-w-0 tw-flex-1 tw-border-0 tw-bg-transparent tw-text-[0.84rem] tw-font-semibold tw-text-vm-slate-800 tw-outline-none" onChange={(event) => setParkingLotKeyword(event.target.value)} placeholder="Tìm tên, mã hoặc địa chỉ bãi..." type="search" value={parkingLotKeyword} />
                 </label>
@@ -889,7 +911,7 @@ export function PricingPage() {
                 <span className="tw-mt-2 tw-block tw-text-xs tw-font-semibold tw-text-red-500">Hãy kiểm tra backend đang chạy tại cổng cấu hình rồi tải lại trang.</span>
               </div>
             ) : sortedParkingLots.length ? (
-              <div className="tw-grid tw-gap-5 min-[640px]:tw-grid-cols-2 min-[1100px]:tw-grid-cols-4">
+              <div data-user-guide-anchor="CUSTOMER.PRICING.LOT_LIST" className="tw-grid tw-gap-5 min-[640px]:tw-grid-cols-2 min-[1100px]:tw-grid-cols-4">
                 {sortedParkingLots.map(({ distance, lot }) => (
                   <ParkingLotCard distance={distance} favorite={favoriteParkingLotIds.has(lot.parkingLotId)} favoritePending={pendingFavoriteParkingLotIds.has(lot.parkingLotId)} key={lot.parkingLotId} lot={lot} onToggleFavorite={toggleFavoriteParkingLot} voucher={vouchers[0]} />
                 ))}
@@ -902,12 +924,12 @@ export function PricingPage() {
           {detailMode ? <section className="tw-mx-auto tw-max-w-[1320px] tw-pb-6 tw-pt-7 min-[768px]:tw-pt-10" id="pricing-rates">
             {error ? <p className="tw-mb-5 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-font-bold tw-text-red-600">{error}</p> : null}
 
-            <div className="tw-mb-6 min-[768px]:tw-mb-8">
+            <div data-user-guide-anchor="CUSTOMER.PRICING.VEHICLE_TYPE" className="tw-mb-6 min-[768px]:tw-mb-8">
               {availableVehicleTypes.length ? <VehicleFilterTabs options={availableVehicleTypes} selected={selectedVehicleTypeId} onChange={handleVehicleFilterChange} /> : <p className="tw-m-0 tw-rounded-vm-md tw-bg-vm-slate-50 tw-p-4 tw-text-center tw-font-bold tw-text-vm-slate-500">Bãi chưa công bố loại phương tiện phục vụ.</p>}
             </div>
 
             <div className="tw-grid tw-items-start tw-gap-5 min-[768px]:tw-gap-7 min-[1180px]:tw-grid-cols-[300px_minmax(0,1fr)_424px]">
-              <aside className="tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-border-brand-100 tw-bg-[linear-gradient(145deg,#ffffff,#f5f9ff)] tw-p-4 tw-shadow-[0_12px_30px_rgba(31,66,116,0.08)] min-[480px]:tw-p-5">
+              <aside data-user-guide-anchor="CUSTOMER.PRICING.LOT_SUMMARY" className="tw-overflow-hidden tw-rounded-[14px] tw-border tw-border-solid tw-border-brand-100 tw-bg-[linear-gradient(145deg,#ffffff,#f5f9ff)] tw-p-4 tw-shadow-[0_12px_30px_rgba(31,66,116,0.08)] min-[480px]:tw-p-5">
                 <button className="tw-mb-5 tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.75rem] tw-font-black tw-text-vm-primary" onClick={() => navigate("/pricing")} type="button"><i className="fas fa-arrow-left tw-mr-2" />Tất cả bãi xe</button>
                 {selectedParkingLot ? (
                   <>
@@ -928,29 +950,31 @@ export function PricingPage() {
                 ) : <div className="tw-h-64 tw-animate-pulse tw-rounded-[10px] tw-bg-vm-slate-100" />}
               </aside>
 
-              <section>
+              <section data-user-guide-anchor="CUSTOMER.PRICING.VISITOR_RATES">
                 <PricingSectionHeading icon="far fa-user" subtitle="Theo lượt" title="Khách vãng lai" />
                 <div className="tw-grid tw-gap-4 min-[640px]:tw-grid-cols-2">
                   {filteredVisitorRules.length ? filteredVisitorRules.map((rule) => <PriceCard audience="VISITOR" key={rule.priceRuleId} rule={rule} />) : <EmptyPricing label={`Khách vãng lai - ${selectedVehicleLabel}`} />}
                 </div>
               </section>
 
-              <section>
-                <div className="tw-mb-4 tw-flex tw-items-end tw-justify-between tw-gap-3 max-[520px]:tw-flex-col max-[520px]:tw-items-stretch">
+              <section data-user-guide-anchor="CUSTOMER.PRICING.SUBSCRIPTION_RATES">
+                <div data-user-guide-anchor="CUSTOMER.PRICING.TICKET_TYPE" className="tw-mb-4 tw-flex tw-items-end tw-justify-between tw-gap-3 max-[520px]:tw-flex-col max-[520px]:tw-items-stretch">
                   <div>
                     <PricingSectionHeading icon="far fa-id-card" subtitle="Vé theo chu kỳ" title="Khách đăng ký" />
                     {vehicleCustomerRules.length ? <button className="tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.75rem] tw-font-black tw-text-vm-primary hover:tw-underline" onClick={() => setShowAllCustomerRules(true)} type="button">Xem tất cả <i className="fas fa-arrow-right tw-ml-1" /></button> : null}
                   </div>
                   {availableCustomerTicketTypes.length ? (
-                    <label className="tw-flex tw-min-w-[150px] tw-flex-col tw-gap-1 max-[520px]:tw-w-full">
+                    <label data-user-guide-anchor="CUSTOMER.PRICING.TICKET_TYPE" className="tw-flex tw-min-w-[150px] tw-flex-col tw-gap-1 max-[520px]:tw-w-full">
                       <span className="tw-text-[0.65rem] tw-font-black tw-uppercase tw-tracking-[0.07em] tw-text-vm-slate-500">Loại vé</span>
-                      <select className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-px-3 tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-800 tw-outline-none focus:tw-border-vm-primary" onChange={(event) => setSelectedTicketTypeId(event.target.value)} value={selectedTicketTypeId}>
-                        {availableCustomerTicketTypes.map((ticketType) => <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>{ticketType.name}</option>)}
-                      </select>
+                      <SelectMenu ariaLabel="Loại vé"
+                  triggerClassName={"tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-px-3 tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-800 tw-outline-none focus:tw-border-vm-primary"}
+                  onChange={(selectedValue) => setSelectedTicketTypeId(selectedValue)}
+                  value={selectedTicketTypeId}
+                  options={[...availableCustomerTicketTypes.map((ticketType) => ({ label: ticketType.name, value: ticketType.ticketTypeId }))]} portal clearValue="" />
                     </label>
                   ) : null}
                 </div>
-                <div className="tw-grid tw-gap-4">
+                <div data-user-guide-anchor="CUSTOMER.PRICING.VOUCHERS" className="tw-grid tw-gap-4">
                   {filteredCustomerRules.length ? <PriceCard audience="CUSTOMER" key={filteredCustomerRules[0].priceRuleId} registrationDisabled={selectedParkingLot?.status !== "ACTIVE"} registrationParkingLotId={selectedParkingLot?.parkingLotId} rule={filteredCustomerRules[0]} /> : <EmptyPricing label={`Khách đăng ký - ${selectedVehicleLabel}`} />}
                 </div>
               </section>

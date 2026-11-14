@@ -39,12 +39,16 @@ import { PortalTicketArtwork } from "../components/PortalTicketArtwork";
 import { SubscriptionTicketFrame } from "../components/SubscriptionTicketFrame";
 import { VoucherPromotionBanner } from "../components/VoucherPromotionBanner";
 import { SubscriptionSpaceSelectionModal } from "../components/SubscriptionSpaceSelectionModal";
+import { CreateVehicleDialog } from "../components/CreateVehicleDialog";
 import { parsePortalDate } from "../utils/portalDate";
 import { getSubscriptionPeriod } from "../utils/subscriptionPeriod";
 import { CustomerPortalLayout, PortalPagination } from "./PortalShared";
 import { DatePicker, Modal, SelectMenu, useToast } from "@/components/ui";
 import { useAuth } from "@/core/auth/useAuth";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import { UserGuideHelpButton } from "@/features/user-guide/components/UserGuideHelpButton";
+import { useUserGuide } from "@/features/user-guide/context/UserGuideContext";
+import { useUserGuideActivation } from "@/features/user-guide/hooks/useUserGuideActivation";
 import {
   blockMySubscriptionAccess,
   issueMySubscriptionQr,
@@ -223,7 +227,9 @@ export function SubscriptionPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { activeGuide, currentStep } = useUserGuide();
   const canRegisterSubscription = hasAnyPermission(user, ["SUBSCRIPTION_CREATE_OWN", "SUBSCRIPTION_CREATE_ALL"]);
+  const canCreateVehicle = hasAnyPermission(user, ["CUSTOMER_VEHICLE_CREATE_OWN", "CUSTOMER_VEHICLE_CREATE_ALL"]);
   const canPaySubscription = hasAnyPermission(user, ["WALLET_PAY_INVOICE_OWN", "INVOICE_PAY_OWN", "SUBSCRIPTION_PAY_OWN", "WALLET_TOP_UP_OWN"]);
   const [searchParams, setSearchParams] = useSearchParams();
   const voucherCodeFromUrl = searchParams.get("voucherCode")?.trim().toUpperCase() ?? "";
@@ -264,6 +270,7 @@ export function SubscriptionPage() {
   const [voucherQuoteError, setVoucherQuoteError] = useState("");
   const [voucherQuoteLoading, setVoucherQuoteLoading] = useState(false);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
+  const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentChoice, setPaymentChoice] = useState<CustomerPaymentChoice>("VNPAY");
   const [paymentContext, setPaymentContext] = useState<CustomerPaymentContext>("SUBSCRIPTION");
@@ -296,6 +303,7 @@ export function SubscriptionPage() {
   };
 
   const closeRegistrationModal = () => {
+    setVehicleModalOpen(false);
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.delete("register");
     setSearchParams(nextSearchParams, { replace: true });
@@ -461,6 +469,23 @@ export function SubscriptionPage() {
   const vehicleTypeById = useMemo(() => new Map(vehicleTypes.map((type) => [type.vehicleTypeId, type])), [vehicleTypes]);
 
   const activeVehicles = vehicles.filter((vehicle) => vehicle.status === "ACTIVE");
+  const subscriptionGuideEnabled = !loading
+    && user?.roleCode === "CUSTOMER"
+    && canRegisterSubscription
+    && Boolean(profile?.customer?.customerId)
+    && !profile?.onboardingRequired
+    && profile?.customer?.customerApprovalStatus === "APPROVED"
+    && (activeVehicles.length > 0 || canCreateVehicle);
+
+  useUserGuideActivation("CUSTOMER_SUBSCRIPTION_REGISTER", subscriptionGuideEnabled);
+
+  useEffect(() => {
+    if (activeGuide?.code !== "CUSTOMER_SUBSCRIPTION_REGISTER") return;
+    const anchorKey = currentStep?.anchorKey;
+    const shouldShowRegistration = Boolean(anchorKey && anchorKey !== "CUSTOMER.SUBSCRIPTION.OPEN_REGISTER");
+    setRegistrationModalOpen(shouldShowRegistration);
+    if (anchorKey !== "CUSTOMER.SUBSCRIPTION.ADD_VEHICLE") setVehicleModalOpen(false);
+  }, [activeGuide?.code, currentStep?.anchorKey]);
   const selectedVehicle = vehicleById.get(form.customerVehicleId);
   const selectedParkingLot = parkingLotById.get(form.parkingLotId);
   const selectedPriceRule = findMatchingPriceRule(selectedVehicle, form.ticketTypeId, priceRules, partnerVehicleTypes);
@@ -940,9 +965,9 @@ export function SubscriptionPage() {
         <div>
           <span className="tw-block tw-text-[0.75rem] tw-font-semibold tw-leading-4 tw-tracking-[0.04em] tw-text-[#1263e9]">DỊCH VỤ ĐỊNH KỲ</span>
           <h1 className="tw-m-0 tw-mt-1.5 tw-font-[Cambria,Georgia,serif] tw-text-[clamp(2.25rem,3.4vw,3.25rem)] tw-font-bold tw-leading-[1.1] tw-text-[#0b1c3d]">Vé tháng của tôi</h1>
-          <p className="tw-m-0 tw-mt-1 tw-text-[0.94rem] tw-font-medium tw-text-[#61738e]">Quản lý hành trình định kỳ trong một không gian rõ ràng.</p>
+          <div className="tw-mt-1 tw-flex tw-flex-wrap tw-items-center tw-gap-4"><p className="tw-m-0 tw-text-[0.94rem] tw-font-medium tw-text-[#61738e]">Quản lý hành trình định kỳ trong một không gian rõ ràng.</p><UserGuideHelpButton enabled={subscriptionGuideEnabled} guideCode="CUSTOMER_SUBSCRIPTION_REGISTER" /></div>
         </div>
-        {canRegisterSubscription ? <button className="tw-inline-flex tw-h-11 tw-shrink-0 tw-items-center tw-gap-2 tw-rounded-md tw-border-0 tw-bg-[linear-gradient(135deg,#146cf3,#0756d8)] tw-px-5 tw-text-[0.84rem] tw-font-semibold tw-text-white tw-shadow-[0_10px_20px_rgba(20,99,230,0.2)] disabled:tw-opacity-60" type="button" disabled={!profile || saving} onClick={openRegistrationModal}><i className="fas fa-plus" />Đăng ký vé mới</button> : null}
+        {canRegisterSubscription ? <button data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.OPEN_REGISTER" className="tw-inline-flex tw-h-11 tw-shrink-0 tw-items-center tw-gap-2 tw-rounded-md tw-border-0 tw-bg-[linear-gradient(135deg,#146cf3,#0756d8)] tw-px-5 tw-text-[0.84rem] tw-font-semibold tw-text-white tw-shadow-[0_10px_20px_rgba(20,99,230,0.2)] disabled:tw-opacity-60" type="button" disabled={!profile || saving} onClick={openRegistrationModal}><i className="fas fa-plus" />Đăng ký vé mới</button> : null}
       </header>
 
       {loadError ? <div role="alert" className="tw-mb-4 tw-rounded-lg tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-text-red-700">{loadError}</div> : null}
@@ -1036,23 +1061,25 @@ export function SubscriptionPage() {
           <PortalPagination currentPage={safeCurrentPage} pageSize={pageSize} totalRecords={filteredSubscriptions.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
         </section>
 
-        <Modal description="Chọn phương tiện và gói phù hợp với bạn." onClose={closeRegistrationModal} open={registrationModalOpen} title="Đăng ký vé mới" width="lg">
-        <div className="tw-min-w-0 tw-max-w-full [&_select]:tw-w-full [&_input]:tw-w-full [&_label]:tw-min-w-0">
+        <Modal description="Chọn phương tiện và gói phù hợp với bạn." onClose={closeRegistrationModal} open={registrationModalOpen && !vehicleModalOpen} title="Đăng ký vé mới" width="lg">
+        <div data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.MODAL" className="tw-min-w-0 tw-max-w-full [&_select]:tw-w-full [&_input]:tw-w-full [&_label]:tw-min-w-0">
           {subscriptionFormError ? <div className="tw-mt-3 tw-flex tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-[0.76rem] tw-font-medium tw-text-red-700" role="alert"><i className="fas fa-exclamation-circle tw-mt-0.5" /><span>{subscriptionFormError}</span></div> : null}
           <div className="tw-mt-3 tw-grid tw-gap-2.5">
-            <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Bãi xe đăng ký</span>
+            <div data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.PARKING_LOT" className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Bãi xe đăng ký</span>
               <SelectMenu ariaLabel="Chọn bãi xe" options={[{ label: "Chọn bãi xe", value: "" }, ...parkingLots.map((lot) => ({ label: `${lot.name}${lot.addressDisplay ? ` · ${lot.addressDisplay}` : ""}`, value: lot.parkingLotId }))]} portal triggerClassName="!tw-h-10 !tw-text-[0.78rem] !tw-font-normal" triggerLabel={selectedParkingLot?.name} value={form.parkingLotId} onChange={(value) => { void changeParkingLot(value); }} />
               {selectedParkingLot?.addressDisplay ? <small className="tw-break-words tw-text-[0.66rem] tw-leading-5 tw-text-[#64748b]">{selectedParkingLot.addressDisplay}</small> : null}
               {lotLookupsLoading ? <small className="tw-text-[#64748b]">Đang tải giá vé của bãi...</small> : null}
               {!loading && parkingLots.length === 0 ? <small className="tw-text-amber-700">Hiện chưa có bãi xe đang hoạt động để đăng ký.</small> : null}
             </div>
-            <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Phương tiện</span>
+            <div data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.VEHICLE" className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><div className="tw-flex tw-items-center tw-justify-between tw-gap-2"><span>Phương tiện</span>
+              {canCreateVehicle ? <button data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.ADD_VEHICLE" type="button" disabled={saving || loading} onClick={() => setVehicleModalOpen(true)} className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-md tw-border tw-border-solid tw-border-brand-200 tw-bg-brand-50 tw-px-2.5 tw-py-1.5 tw-text-xs tw-font-bold tw-text-vm-primary disabled:tw-opacity-50"><i className="fas fa-plus" aria-hidden="true" />Thêm mới</button> : null}
+              </div>
               <span className="tw-relative"><SubscriptionIcon name="vehicle" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn xe đăng ký vé" options={[{ label: "Chọn xe", value: "" }, ...activeVehicles.map((vehicle) => ({ label: vehicleLabel(vehicle, vehicleTypeById), value: vehicle.customerVehicleId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.customerVehicleId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, customerVehicleId: value })); }} /></span>
             </div>
-            <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Loại vé</span>
+            <div data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.TICKET_TYPE" className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Loại vé</span>
               <span className="tw-relative"><SubscriptionIcon name="ticket" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn loại vé" options={[{ label: "Chọn loại vé", value: "" }, ...ticketTypes.map((ticketType) => ({ label: ticketType.name, value: ticketType.ticketTypeId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.ticketTypeId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, ticketTypeId: value, periodQuantity: 1 })); }} /></span>
             </div>
-            <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">
+            <label data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.PERIOD" className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">
               <span>Số kỳ thanh toán</span>
               <span className="tw-flex tw-h-10 tw-overflow-hidden tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white">
                 <strong className="tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-px-4 tw-text-left tw-text-[0.84rem] tw-font-semibold tw-text-[#273345]" aria-live="polite">{form.periodQuantity}</strong>
@@ -1087,7 +1114,7 @@ export function SubscriptionPage() {
                 Thanh toán một lần cho tối đa 12 kỳ; mã ưu đãi được tính trên tổng đơn.
               </small>
             </label>
-            <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Ngày bắt đầu</span>
+            <div data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.EFFECTIVE_DATE" className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Ngày bắt đầu</span>
               <DatePicker
                 ariaDescribedBy={subscriptionFormError.includes("Ngày bắt đầu") ? "subscription-effective-from-error" : undefined}
                 ariaInvalid={subscriptionFormError.includes("Ngày bắt đầu")}
@@ -1103,7 +1130,7 @@ export function SubscriptionPage() {
               />
               {subscriptionFormError.includes("Ngày bắt đầu") ? <small className="tw-text-[0.7rem] tw-font-medium tw-text-red-600" id="subscription-effective-from-error">{subscriptionFormError}</small> : null}
             </div>
-            <div className="tw-grid tw-gap-1.5 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">
+            <div data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.PHYSICAL_CARD" className="tw-grid tw-gap-1.5 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">
               <span>Bạn có muốn sử dụng thẻ vật lý không?</span>
               <div className="tw-grid tw-grid-cols-2 tw-gap-2" role="group" aria-label="Lựa chọn sử dụng thẻ vật lý">
                 <button
@@ -1135,7 +1162,7 @@ export function SubscriptionPage() {
                   : "Không phát sinh tiền cọc thẻ; bạn sử dụng mã QR của vé để vào/ra bãi."}
               </small>
             </div>
-            <label className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Mã ưu đãi <span className="tw-font-normal tw-text-[#7b879b]">(nếu có)</span>
+            <label data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.VOUCHER" className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]">Mã ưu đãi <span className="tw-font-normal tw-text-[#7b879b]">(nếu có)</span>
               <span className="tw-grid tw-grid-cols-[minmax(0,1fr)_auto] tw-gap-2"><span className="tw-relative"><i className="fas fa-tag tw-pointer-events-none tw-absolute tw-left-3 tw-top-2.5 tw-text-[0.75rem] tw-text-[#677181]" /><input className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#dcdfe5] tw-bg-white tw-pl-9 tw-pr-3 tw-text-[0.78rem] tw-font-normal tw-uppercase tw-text-[#273345] placeholder:tw-normal-case placeholder:tw-text-[#93a0b3]" maxLength={50} value={form.voucherCode} onChange={(event) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, voucherCode: event.target.value.toUpperCase() })); }} placeholder="Ví dụ: WELCOME10" /></span><button className="tw-h-9 tw-rounded-md tw-border tw-border-solid tw-border-[#1263e9] tw-bg-[#1263e9] tw-px-3 tw-text-[0.74rem] tw-font-medium tw-text-white tw-transition hover:tw-bg-[#0751cf] disabled:tw-cursor-not-allowed disabled:tw-opacity-60" type="button" disabled={voucherQuoteLoading || !form.voucherCode.trim()} onClick={() => { void handleQuoteVoucher(); }}>{voucherQuoteLoading ? "Đang kiểm tra" : "Áp dụng"}</button></span>
               {voucherQuoteLoading ? <small className="tw-text-[0.66rem] tw-font-normal tw-text-[#64748b]"><i className="fas fa-spinner fa-spin tw-mr-1" />Đang kiểm tra mã ưu đãi...</small> : null}
               {!voucherQuoteLoading && voucherQuote ? <small className="tw-text-[0.66rem] tw-font-medium tw-text-[#16824a]"><i className="fas fa-check-circle tw-mr-1" />Mã {voucherQuote.voucherCode} hợp lệ, đã áp dụng ưu đãi.</small> : null}
@@ -1143,7 +1170,7 @@ export function SubscriptionPage() {
               {!voucherQuoteLoading && !voucherQuote && !voucherQuoteError ? <small className="tw-text-[0.66rem] tw-font-normal tw-text-[#64748b]">Chỉ áp dụng cho vé đăng ký; nhập mã rồi nhấn Áp dụng để kiểm tra ưu đãi.</small> : null}
             </label>
           </div>
-          <div className="tw-mt-3 tw-grid tw-gap-1.5 tw-rounded-lg tw-border tw-border-solid tw-border-[#e8e8f0] tw-bg-[#f8f8fc] tw-p-3">
+          <div data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.QUOTE" className="tw-mt-3 tw-grid tw-gap-1.5 tw-rounded-lg tw-border tw-border-solid tw-border-[#e8e8f0] tw-bg-[#f8f8fc] tw-p-3">
             <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-1"><span className="tw-text-[0.78rem] tw-font-medium tw-text-[#273345]">Tổng cần thanh toán</span><strong className="tw-text-[1.1rem] tw-font-semibold tw-text-[#101d39]">{voucherQuote ? formatCurrency(voucherQuote.finalAmount) : subscriptionChargeSubtotal != null ? formatCurrency(subscriptionChargeSubtotal) : "Chưa có mức phí"}</strong></div>
             <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>Tiền vé · {ticketTypeById.get(form.ticketTypeId)?.name ?? "Chưa chọn loại vé"} × {form.periodQuantity} kỳ</span>{subscriptionSubtotal != null ? <span className="tw-whitespace-nowrap">{formatCurrency(subscriptionSubtotal)}</span> : null}</div>
             {form.physicalCardRequested ? <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>Cọc thẻ vật lý</span><span className="tw-whitespace-nowrap">{formatCurrency(physicalCardDeposit)}</span></div> : null}
@@ -1151,7 +1178,7 @@ export function SubscriptionPage() {
             <div className="tw-flex tw-items-start tw-justify-between tw-gap-2 tw-text-[0.68rem] tw-font-normal tw-text-[#4f586a]"><span>{selectedVehicle ? `Phương tiện: ${selectedVehicle.licensePlate} · ${selectedVehicle.brand || vehicleTypeById.get(selectedVehicle.vehicleTypeId ?? "")?.name || "--"}` : "Chưa chọn phương tiện"}</span>{selectedPriceRule ? <span className="tw-shrink-0 tw-text-[#257640]">Phù hợp</span> : null}</div>
           </div>
           <small className="tw-mt-2 tw-block tw-text-[0.66rem] tw-font-normal tw-text-[#586273]">Mức phí theo gói và phương tiện đã chọn.</small>
-          <button className="tw-mt-3 tw-h-11 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-text-[0.86rem] tw-font-medium tw-text-white tw-shadow-[0_2px_4px_rgba(20,99,230,0.15)] disabled:tw-opacity-60" type="button" disabled={saving || !profile || lotLookupsLoading || !form.parkingLotId} onClick={handleCreate}>{saving ? "Đang gửi..." : "Gửi đăng ký"}</button>
+          <button data-user-guide-anchor="CUSTOMER.SUBSCRIPTION.SUBMIT" className="tw-mt-3 tw-h-11 tw-w-full tw-rounded-md tw-border tw-border-solid tw-border-[#1683ff] tw-bg-[linear-gradient(135deg,#087bff,#0059e4)] tw-text-[0.86rem] tw-font-medium tw-text-white tw-shadow-[0_2px_4px_rgba(20,99,230,0.15)] disabled:tw-opacity-60" type="button" disabled={saving || !profile || lotLookupsLoading || !form.parkingLotId} onClick={handleCreate}>{saving ? "Đang gửi..." : "Gửi đăng ký"}</button>
         </div>
         </Modal>
       </div>
@@ -1289,13 +1316,11 @@ export function SubscriptionPage() {
           </div>
           <label className="tw-grid tw-gap-1.5 tw-text-sm tw-font-semibold tw-text-[#263044]">
             <span>Loại vé</span>
-            <select
-              className="tw-h-11 tw-rounded-md tw-border tw-border-solid tw-border-[#dce5f0] tw-bg-white tw-px-3 tw-text-[#334a6e]"
-              value={renewalTicketTypeId}
-              onChange={(event) => { setRenewalTicketTypeId(event.target.value); setRenewalQuote(null); }}
-            >
-              {renewalTicketTypes.map((ticketType) => <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>{ticketType.name}</option>)}
-            </select>
+            <SelectMenu ariaLabel="Loại vé gia hạn"
+                  triggerClassName={"tw-h-11 tw-rounded-md tw-border tw-border-solid tw-border-[#dce5f0] tw-bg-white tw-px-3 tw-text-[#334a6e]"}
+                  value={renewalTicketTypeId}
+                  onChange={(selectedValue) => { setRenewalTicketTypeId(selectedValue); setRenewalQuote(null); }}
+                  options={[...renewalTicketTypes.map((ticketType) => ({ label: ticketType.name, value: ticketType.ticketTypeId }))]} portal clearValue="" />
           </label>
           <label className="tw-grid tw-gap-1.5 tw-text-sm tw-font-semibold tw-text-[#263044]">
             <span>Số kỳ gia hạn</span>
@@ -1399,6 +1424,13 @@ export function SubscriptionPage() {
           ) : null}
         </div>
       </Modal>
+      {vehicleModalOpen && canCreateVehicle && registrationModalOpen ? <CreateVehicleDialog vehicleTypes={vehicleTypes} onClose={() => setVehicleModalOpen(false)} onCreated={(vehicle) => {
+        setVehicles((current) => [...current.filter((item) => item.customerVehicleId !== vehicle.customerVehicleId).map((item) => vehicle.isDefault ? { ...item, isDefault: false } : item), vehicle]);
+        setSubscriptionFormError("");
+        clearVoucherQuote();
+        setForm((current) => ({ ...current, customerVehicleId: vehicle.customerVehicleId }));
+        setVehicleModalOpen(false);
+      }} /> : null}
       <SubscriptionSpaceSelectionModal
         open={Boolean(spaceSelectionSubscriptionId)}
         subscriptionId={spaceSelectionSubscriptionId}

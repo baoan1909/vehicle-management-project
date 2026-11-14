@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { AdminPage } from "../layout/AdminPage";
+import { SelectMenu } from "../ui/SelectMenu";
 
 export interface FormField {
   label: string;
@@ -21,6 +22,12 @@ interface FormCardProps {
   extra?: ReactNode;
 }
 
+function FormSelectField({ field }: { field: FormField }) {
+  const [value, setValue] = useState(field.value ?? field.options?.[0] ?? "");
+  return <SelectMenu ariaLabel={field.label} name={field.name} value={value} onChange={setValue}
+    options={(field.options ?? []).map((option) => ({ label: option, value: option }))} portal clearValue="" />;
+}
+
 export function FormCard({ title, breadcrumbs, cardTitle, fields, backHref, extra }: FormCardProps) {
   return (
     <AdminPage title={title} breadcrumbs={breadcrumbs}>
@@ -34,9 +41,7 @@ export function FormCard({ title, breadcrumbs, cardTitle, fields, backHref, extr
                   <div className="form-group vm-field" key={field.name}>
                     {field.type !== "checkbox" && <label className="vm-field-label">{field.label}</label>}
                     {field.type === "select" ? (
-                      <select name={field.name} className="form-control select2 vm-form-control" defaultValue={field.value ?? ""}>
-                        {field.options?.map((option) => <option value={option} key={option}>{option}</option>)}
-                      </select>
+                      <FormSelectField field={field} />
                     ) : field.type === "textarea" ? (
                       <textarea name={field.name} className="form-control vm-form-control" rows={4} defaultValue={field.value} placeholder={field.placeholder} />
                     ) : field.type === "checkbox" ? (

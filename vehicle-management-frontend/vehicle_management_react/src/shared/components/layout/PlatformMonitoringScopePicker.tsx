@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { platformAdminNavigation } from "@/config/navigation";
@@ -29,13 +30,12 @@ export function PlatformMonitoringScopePicker() {
         <p className="tw-m-0 tw-mt-2 tw-text-xs tw-text-red-600">Chưa tải được đối tác và bãi xe.</p>
       ) : (
         <div className="tw-mt-2 tw-grid tw-gap-2">
-          <select
-            aria-label="Cấp độ giám sát"
-            className={selectClassName}
-            disabled={loading}
-            value={scope.level}
-            onChange={(event) => {
-              const level = event.target.value;
+          <SelectMenu ariaLabel={"Cấp độ giám sát"}
+                  triggerClassName={selectClassName}
+                  disabled={loading}
+                  value={scope.level}
+                  onChange={(selectedValue) => {
+              const level = selectedValue;
               if (level === "ALL") updateScope({ level: "ALL" });
               else if (level === "PARTNER" && organizations[0]) updateScope({ level: "PARTNER", organizationId: organizations[0].organizationId });
               else if (level === "PARKING_LOT" && parkingLots[0]) {
@@ -43,39 +43,27 @@ export function PlatformMonitoringScopePicker() {
                 updateScope({ level: "PARKING_LOT", organizationId: firstLot.organizationId, parkingLotId: firstLot.parkingLotId });
               }
             }}
-          >
-            <option value="ALL">Toàn sàn</option>
-            <option value="PARTNER" disabled={organizations.length === 0}>Theo đối tác</option>
-            <option value="PARKING_LOT" disabled={parkingLots.length === 0}>Theo bãi xe</option>
-          </select>
+                  options={[{ label: "Toàn sàn", value: "ALL" }, { label: "Theo đối tác", value: "PARTNER", disabled: organizations.length === 0 }, { label: "Theo bãi xe", value: "PARKING_LOT", disabled: parkingLots.length === 0 }]} portal clearValue="" />
           {scope.level !== "ALL" ? (
-            <select
-              aria-label="Chọn đối tác giám sát"
-              className={selectClassName}
-              value={organizationId}
-              onChange={(event) => {
-                const nextOrganizationId = event.target.value;
+            <SelectMenu ariaLabel={"Chọn đối tác giám sát"}
+                  triggerClassName={selectClassName}
+                  value={organizationId}
+                  onChange={(selectedValue) => {
+                const nextOrganizationId = selectedValue;
                 if (scope.level === "PARTNER") updateScope({ level: "PARTNER", organizationId: nextOrganizationId });
                 else {
                   const firstLot = parkingLots.find((parkingLot) => parkingLot.organizationId === nextOrganizationId);
                   if (firstLot) updateScope({ level: "PARKING_LOT", organizationId: nextOrganizationId, parkingLotId: firstLot.parkingLotId });
                 }
               }}
-            >
-              {organizations.filter((organization) => scope.level === "PARTNER" || parkingLots.some((lot) => lot.organizationId === organization.organizationId)).map((organization) => (
-                <option key={organization.organizationId} value={organization.organizationId}>{organization.name}</option>
-              ))}
-            </select>
+                  options={[...organizations.filter((organization) => scope.level === "PARTNER" || parkingLots.some((lot) => lot.organizationId === organization.organizationId)).map((organization) => ({ label: organization.name, value: organization.organizationId }))]} portal clearValue="" />
           ) : null}
           {scope.level === "PARKING_LOT" ? (
-            <select
-              aria-label="Chọn bãi xe giám sát"
-              className={selectClassName}
-              value={scope.parkingLotId}
-              onChange={(event) => updateScope({ level: "PARKING_LOT", organizationId, parkingLotId: event.target.value })}
-            >
-              {partnerLots.map((lot) => <option key={lot.parkingLotId} value={lot.parkingLotId}>{lot.name}</option>)}
-            </select>
+            <SelectMenu ariaLabel={"Chọn bãi xe giám sát"}
+                  triggerClassName={selectClassName}
+                  value={scope.parkingLotId}
+                  onChange={(selectedValue) => updateScope({ level: "PARKING_LOT", organizationId, parkingLotId: selectedValue })}
+                  options={[...partnerLots.map((lot) => ({ label: lot.name, value: lot.parkingLotId }))]} portal clearValue="" />
           ) : null}
         </div>
       )}

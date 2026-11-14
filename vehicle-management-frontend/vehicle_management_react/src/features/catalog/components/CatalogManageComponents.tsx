@@ -6,6 +6,7 @@ import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 import { SelectMenu, type SelectMenuOption } from "@/shared/components/ui/SelectMenu";
 import { StatusTabs } from "@/shared/components/ui/StatusTabs";
 import { cn } from "@/lib/cn";
+import { UserGuideHelpButton } from "@/features/user-guide";
 import type { CatalogStatus, CatalogStatusTabValue, TicketCatalogRecord, VehicleCatalogRecord } from "./catalogManageData";
 
 type MetricTone = "blue" | "green" | "red";
@@ -20,6 +21,8 @@ export type CatalogMetric = {
 
 type CatalogHeaderProps = {
   createLabel: string;
+  guideCode?: string;
+  guideEnabled?: boolean;
   onCreateClick?: () => void;
   onExportClick?: () => void;
   title: string;
@@ -52,6 +55,7 @@ type CatalogPaginationProps = {
 };
 
 type TicketTableProps = {
+  guideAnchorKey?: string;
   rows: TicketCatalogRecord[];
   selectedId: string | null;
   onSelect: (id: string) => void;
@@ -64,6 +68,7 @@ type VehicleGridProps = {
 };
 
 type TicketDetailProps = {
+  guideAnchorKey?: string;
   onActivate?: (row: TicketCatalogRecord) => void;
   onDeactivate?: (row: TicketCatalogRecord) => void;
   onEdit?: (row: TicketCatalogRecord) => void;
@@ -183,15 +188,12 @@ export function CatalogIcon({
   );
 }
 
-export function CatalogHeader({ createLabel, onCreateClick, onExportClick, title }: CatalogHeaderProps) {
+export function CatalogHeader({ createLabel, guideCode, guideEnabled, onCreateClick, onExportClick, title }: CatalogHeaderProps) {
   return (
     <div className="tw-flex tw-items-center tw-justify-between tw-gap-4 max-[760px]:tw-flex-col max-[760px]:tw-items-stretch">
       <div className="tw-flex tw-items-center tw-gap-4 max-[760px]:tw-flex-col max-[760px]:tw-items-stretch">
         <h2 className="tw-m-0 tw-text-[25px] tw-font-extrabold tw-leading-none tw-text-[#111827]">{title}</h2>
-        <button className="tw-inline-flex tw-items-center tw-gap-[0.55rem] tw-border-0 tw-bg-transparent tw-p-0 tw-text-[0.93rem] tw-font-bold tw-text-vm-primary" type="button">
-          <i className="far fa-question-circle" />
-          <span>Hướng dẫn &amp; Trợ giúp</span>
-        </button>
+        {guideCode ? <UserGuideHelpButton enabled={guideEnabled} guideCode={guideCode} /> : null}
       </div>
 
       <div className="tw-flex tw-items-center tw-gap-3 max-[760px]:tw-flex-col max-[760px]:tw-items-stretch">
@@ -314,11 +316,13 @@ export function CatalogPagination({
   );
 }
 
-export function TicketCatalogTable({ onSelect, rows, selectedId }: TicketTableProps) {
+export function TicketCatalogTable({ guideAnchorKey, onSelect, rows, selectedId }: TicketTableProps) {
+  const guideAnchorRowId = rows.some((row) => row.id === selectedId) ? selectedId : rows[0]?.id;
+
   return (
     <div className="tw-overflow-x-auto">
       <table className="table tw-m-0 tw-min-w-[760px] [&_td]:tw-border-0 [&_td]:tw-border-t [&_td]:tw-border-solid [&_td]:tw-border-[#eef2f7] [&_td]:tw-text-[0.9rem] [&_td]:tw-text-[#111827] [&_td]:tw-align-middle [&_th]:tw-whitespace-nowrap [&_thead_th]:tw-border-0 [&_thead_th]:tw-border-b [&_thead_th]:tw-border-solid [&_thead_th]:tw-border-vm-slate-100 [&_thead_th]:tw-bg-white [&_thead_th]:tw-text-[0.82rem] [&_thead_th]:tw-font-extrabold [&_thead_th]:tw-text-vm-slate-700">
-        <thead>
+        <thead {...(guideAnchorKey && rows.length === 0 ? { "data-user-guide-anchor": guideAnchorKey } : {})}>
           <tr>
             <th className="tw-w-11 tw-text-center" />
             <th>Mã</th>
@@ -334,7 +338,12 @@ export function TicketCatalogTable({ onSelect, rows, selectedId }: TicketTablePr
             const selected = row.id === selectedId;
 
             return (
-              <tr className={cn("tw-cursor-pointer tw-transition-colors hover:tw-bg-brand-50", selected ? "tw-bg-brand-50" : "")} key={row.id} onClick={() => onSelect(row.id)}>
+              <tr
+                {...(guideAnchorKey && row.id === guideAnchorRowId ? { "data-user-guide-anchor": guideAnchorKey } : {})}
+                className={cn("tw-cursor-pointer tw-transition-colors hover:tw-bg-brand-50", selected ? "tw-bg-brand-50" : "")}
+                key={row.id}
+                onClick={() => onSelect(row.id)}
+              >
                 <td className="tw-w-11 tw-text-center">
                   <span
                     className={cn(
@@ -367,10 +376,12 @@ export function TicketCatalogTable({ onSelect, rows, selectedId }: TicketTablePr
   );
 }
 
-export function TicketDetailPanel({ onActivate, onDeactivate, onEdit, row }: TicketDetailProps) {
+export function TicketDetailPanel({ guideAnchorKey, onActivate, onDeactivate, onEdit, row }: TicketDetailProps) {
   if (!row) {
     return (
-      <DetailPanel title="Thông tin loại vé" empty={<p className="tw-m-auto tw-text-center tw-font-bold tw-text-vm-slate-500">Chưa có loại vé phù hợp.</p>} />
+      <div {...(guideAnchorKey ? { "data-user-guide-anchor": guideAnchorKey } : {})}>
+        <DetailPanel title="Thông tin loại vé" empty={<p className="tw-m-auto tw-text-center tw-font-bold tw-text-vm-slate-500">Chưa có loại vé phù hợp.</p>} />
+      </div>
     );
   }
 
@@ -421,7 +432,7 @@ export function TicketDetailPanel({ onActivate, onDeactivate, onEdit, row }: Tic
             <CatalogStatusBadge status={row.status} />
           </dd>
         </div>
-        <div>
+        <div {...(guideAnchorKey ? { "data-user-guide-anchor": guideAnchorKey } : {})}>
           <dt>Áp dụng giá</dt>
           <dd>{row.priceRuleCount} rule giá</dd>
         </div>

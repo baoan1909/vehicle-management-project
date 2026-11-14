@@ -5,6 +5,7 @@ import type {
   ParkingSessionOperationResponse,
 } from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
+import { userGuideAnchorProps } from "@/features/user-guide";
 import { formatApplicationDateTime } from "@/shared/time/applicationTime";
 import { displayLicensePlate } from "@/shared/utils/licensePlate";
 import type { ParkingOperationMode } from "./OperationModeTabs";
@@ -186,7 +187,9 @@ export function ParkingSessionSummary({
       </CardHeader>
 
       <CardContent className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-gap-3 tw-p-4">
-        <FeeHighlight amount={payableAmount} isCheckIn={isCheckIn} />
+        <div {...userGuideAnchorProps("PARKING_OPERATION.PRICE")}>
+          <FeeHighlight amount={payableAmount} isCheckIn={isCheckIn} />
+        </div>
 
         <div className="tw-grid tw-gap-2.5">
           <DetailRow icon="far fa-user" label="Loại hành khách" value={customerTypeLabel(customerType)} />
@@ -206,7 +209,7 @@ export function ParkingSessionSummary({
         <LicensePlateHighlight value={licensePlate} />
 
         {!isCheckIn ? (
-          <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3">
+          <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-3" {...userGuideAnchorProps("PARKING_OPERATION.PLATE_COMPARISON")}>
             <div className="tw-mb-3 tw-grid tw-gap-1">
               <h3 className="tw-m-0 tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900">Hình ảnh khi vào</h3>
               <span className="tw-text-[0.72rem] tw-font-semibold tw-text-vm-slate-500">
@@ -259,7 +262,7 @@ export function ParkingSessionSummary({
               </div>
             ) : null}
 
-            <div className="tw-grid tw-grid-cols-2 tw-gap-2">
+            <div className="tw-grid tw-grid-cols-2 tw-gap-2" {...userGuideAnchorProps("PARKING_OPERATION.PAYMENT_ACTION")}>
               <Button
                 className="tw-h-10 tw-w-full"
                 disabled={!onPayCash || isPaymentActionLoading}
@@ -279,6 +282,16 @@ export function ParkingSessionSummary({
                 Thanh toán VNPAY
               </Button>
             </div>
+          </div>
+        ) : !isCheckIn ? (
+          <div
+            className="tw-grid tw-gap-2 tw-rounded-vm-md tw-border tw-border-dashed tw-border-vm-slate-200 tw-bg-vm-slate-25 tw-p-3"
+            {...userGuideAnchorProps("PARKING_OPERATION.PAYMENT_ACTION")}
+          >
+            <strong className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-700">Hoàn tất thanh toán</strong>
+            <span className="tw-text-[0.74rem] tw-font-semibold tw-leading-snug tw-text-vm-slate-500">
+              Thao tác tiền mặt hoặc VNPay sẽ xuất hiện tại đây khi phiên xe ra có hóa đơn cần thanh toán.
+            </span>
           </div>
         ) : null}
       </CardContent>

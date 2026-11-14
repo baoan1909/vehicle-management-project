@@ -11,6 +11,7 @@ import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UpdateUserGuideVersionRequest;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.request.UserGuideFilterRequest;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideAdminResponse;
+import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideStatusCountsResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideVersionAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
 import jakarta.validation.Valid;
@@ -69,6 +70,17 @@ public class UserGuideAdminController {
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched user guides successfully",
                 apiMapper.toAdminPageResponse(page)));
+    }
+
+    @GetMapping("/counts")
+    @PreAuthorize("@permissionAuthorizer.hasPermission('USER_GUIDE_READ_ALL')")
+    public ResponseEntity<ApiResponse<UserGuideStatusCountsResponse>> countGuides(
+            @ModelAttribute UserGuideFilterRequest filter
+    ) {
+        return ResponseEntity.ok(ApiResponse.ok(
+                "Fetched user guide status counts successfully",
+                apiMapper.toStatusCountsResponse(adminPortIn.countGuidesByStatus(
+                        filter.featureId(), filter.displayType(), filter.keyword()))));
     }
 
     @GetMapping("/{guideId}")

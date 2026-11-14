@@ -40,6 +40,7 @@ import {
 } from "@/features/parking/utils/layoutValidation";
 import { hasAnyPermission } from "@/shared/auth/permissions";
 import { cn } from "@/lib/cn";
+import { userGuideAnchorProps, useUserGuideActivation } from "@/features/user-guide";
 
 const DEFAULT_CANVAS = { width: 1000, height: 700 };
 type LayoutHistorySnapshot = { items: LayoutSpaceItemApi[]; elements: LayoutElementApi[] };
@@ -110,6 +111,8 @@ export function ParkingLayoutEditorPage() {
   const selectedZone = useMemo(() => zones.find((zone) => zone.zoneId === zoneId) ?? null, [zones, zoneId]);
   const selectedLevel = useMemo(() => levels.find((level) => level.parkingLevelId === levelId) ?? null, [levels, levelId]);
   const selectedLot = useMemo(() => lots.find((lot) => lot.parkingLotId === lotId) ?? null, [lots, lotId]);
+  const layoutGuideEnabled = Boolean(selectedLot && !levelsLoadFailed && canPublish);
+  useUserGuideActivation("PARKING_LAYOUT_PUBLISH", layoutGuideEnabled);
   const filteredZones = useMemo(
     () => (levelId ? zones.filter((zone) => !zone.parkingLevelId || zone.parkingLevelId === levelId) : zones),
     [levelId, zones],
@@ -668,6 +671,8 @@ export function ParkingLayoutEditorPage() {
         <nav className="tw-flex tw-h-7 tw-items-center tw-gap-3 tw-text-[0.78rem] tw-font-semibold tw-text-slate-500"><i className="fas fa-chevron-left tw-text-[0.65rem]" /><span>Bãi xe</span><span>/</span><strong className="tw-text-slate-900">{selectedLot.name}</strong></nav>
         <ParkingLotWorkspaceHeader
           activeTab="layout"
+          guideCode="PARKING_LAYOUT_PUBLISH"
+          guideEnabled={layoutGuideEnabled}
           parkingLot={selectedLot}
           parkingLots={lots}
           onParkingLotChange={requestParkingLotChange}
@@ -676,7 +681,7 @@ export function ParkingLayoutEditorPage() {
           <div className="tw-flex tw-min-h-[58px] tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-slate-200 tw-px-2 tw-py-2">
             <div className="tw-flex tw-items-center tw-gap-2">
               <SelectMenu ariaLabel="Chọn tầng" className="!tw-w-[215px]" triggerClassName="!tw-h-10 !tw-rounded-[7px] !tw-border-slate-300 !tw-text-[0.84rem] !tw-font-bold !tw-shadow-none" value={levelId} onChange={setLevelId} options={[{ value: "", label: "Chọn tầng" }, ...levels.map((level) => ({ value: level.parkingLevelId, label: `${level.name} (${level.code})` }))]} clearValue="" portal />
-              <SelectMenu ariaLabel="Chọn khu" className="!tw-w-[180px]" triggerClassName="!tw-h-10 !tw-rounded-[7px] !tw-border-slate-300 !tw-text-[0.84rem] !tw-font-bold !tw-shadow-none" value={zoneId} onChange={setZoneId} options={[{ value: "", label: "Chọn khu" }, ...filteredZones.map((zone) => ({ value: zone.zoneId, label: zone.name }))]} clearValue="" portal />
+              <div {...userGuideAnchorProps("PARKING_SETUP.LAYOUT.ZONE_SELECTOR")}><SelectMenu ariaLabel="Chọn khu" className="!tw-w-[180px]" triggerClassName="!tw-h-10 !tw-rounded-[7px] !tw-border-slate-300 !tw-text-[0.84rem] !tw-font-bold !tw-shadow-none" value={zoneId} onChange={setZoneId} options={[{ value: "", label: "Chọn khu" }, ...filteredZones.map((zone) => ({ value: zone.zoneId, label: zone.name }))]} clearValue="" portal /></div>
               {canConfigure ? <div className="tw-relative">
                 <button type="button" className="tw-flex tw-h-10 tw-items-center tw-gap-2 tw-rounded-[7px] tw-border tw-border-solid tw-border-blue-400 tw-bg-blue-50 tw-px-3 tw-text-[0.82rem] tw-font-bold tw-text-blue-700" onClick={() => setLevelMenuOpen((v) => !v)}><i className="fas fa-cog" /> Quản lý tầng <i className="fas fa-chevron-down tw-text-[0.62rem]" /></button>
                 {levelMenuOpen ? <div className="tw-absolute tw-left-0 tw-top-[46px] tw-z-50 tw-w-[270px] tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-2 tw-shadow-xl">
@@ -703,6 +708,7 @@ export function ParkingLayoutEditorPage() {
           </div>
           {error ? <p className="tw-m-3 tw-rounded-md tw-bg-red-50 tw-p-3 tw-text-xs tw-font-bold tw-text-red-700">{error}</p> : null}
           {conflict ? <div className="tw-m-3 tw-flex tw-gap-2 tw-rounded-md tw-bg-amber-50 tw-p-3 tw-text-xs tw-font-bold tw-text-amber-800"><span className="tw-flex-1">{conflict}</span><Button size="sm" variant="secondary" onClick={() => void handleReload()}>Tải bản mới</Button><Button size="sm" variant="secondary" onClick={copyLocalBackup}>Sao chép local</Button></div> : null}
+          <div {...userGuideAnchorProps("PARKING_SETUP.LAYOUT.CANVAS")}>
           {levelsLoadFailed ? empty("fas fa-exclamation-triangle", "Không tải được tầng bãi xe.")
             : !levels.length ? empty("fas fa-layer-group", "Bãi chưa có tầng. Hãy tạo tầng GROUND mặc định trước khi vẽ sơ đồ.", canConfigure ? <Button onClick={() => void handleCreateLevel(true)}>Tạo GROUND mặc định</Button> : null)
             : loading ? empty("fas fa-spinner fa-spin", "Đang tải bản nháp sơ đồ…")
@@ -749,8 +755,21 @@ export function ParkingLayoutEditorPage() {
                   <LayoutPropertyPanel elements={elements} items={items} onElementsChange={(v) => { createHistoryCheckpoint(); setElements(v); setElementsTouched(true); }} onItemsChange={(v) => { createHistoryCheckpoint(); setItems(v); }} selection={selection} vehicleTypes={vehicleTypes} onClose={() => setPropertyDrawerOpen(false)} />
                 </aside>
               </div>
-              <div className="tw-flex tw-min-h-[62px] tw-items-center tw-justify-between tw-border-0 tw-border-t tw-border-solid tw-border-slate-200 tw-px-4"><span className={cn("tw-text-xs tw-font-bold", issues.length ? "tw-text-amber-700" : "tw-text-emerald-700")}><i className={cn("fas tw-mr-2", issues.length ? "fa-exclamation-circle" : "fa-check-circle")} />{issues.length ? `Còn ${issues.length} lỗi bố cục` : "Không có lỗi bố cục"}</span><div className="tw-flex tw-items-center tw-gap-3"><span className="tw-text-xs tw-font-semibold tw-text-slate-500">Draft revision {draft.draftRevision} · {dirty ? "Chưa lưu" : "Đã lưu"}</span>{canConfigure ? <Button variant="danger" onClick={() => setDiscardConfirmOpen(true)} loading={discarding} disabled={saving || publishing}>Hủy chỉnh sửa</Button> : null}{canConfigure ? <Button variant="secondary" onClick={() => void handleSave()} loading={saving} disabled={!!issues.length || discarding}>Lưu draft</Button> : null}{canPublish ? <Button onClick={() => void openPublishDialog()} disabled={!!issues.length || saving || publishing || discarding}>Xuất bản</Button> : null}</div></div>
+              <div className="tw-flex tw-min-h-[62px] tw-items-center tw-justify-between tw-border-0 tw-border-t tw-border-solid tw-border-slate-200 tw-px-4" {...userGuideAnchorProps("PARKING_SETUP.LAYOUT.PREVIEW")}><span className={cn("tw-text-xs tw-font-bold", issues.length ? "tw-text-amber-700" : "tw-text-emerald-700")}><i className={cn("fas tw-mr-2", issues.length ? "fa-exclamation-circle" : "fa-check-circle")} />{issues.length ? `Còn ${issues.length} lỗi bố cục` : "Không có lỗi bố cục"}</span><div className="tw-flex tw-items-center tw-gap-3"><span className="tw-text-xs tw-font-semibold tw-text-slate-500">Draft revision {draft.draftRevision} · {dirty ? "Chưa lưu" : "Đã lưu"}</span>{canConfigure ? <Button variant="danger" onClick={() => setDiscardConfirmOpen(true)} loading={discarding} disabled={saving || publishing}>Hủy chỉnh sửa</Button> : null}{canConfigure ? <Button {...userGuideAnchorProps("PARKING_SETUP.LAYOUT.SAVE_DRAFT")} variant="secondary" onClick={() => void handleSave()} loading={saving} disabled={!!issues.length || discarding}>Lưu draft</Button> : <Button {...userGuideAnchorProps("PARKING_SETUP.LAYOUT.SAVE_DRAFT")} variant="secondary" disabled>Lưu draft</Button>}{canPublish ? <Button {...userGuideAnchorProps("PARKING_SETUP.LAYOUT.PUBLISH")} onClick={() => void openPublishDialog()} disabled={!!issues.length || saving || publishing || discarding}>Xuất bản</Button> : <Button {...userGuideAnchorProps("PARKING_SETUP.LAYOUT.PUBLISH")} disabled>Xuất bản</Button>}</div></div>
             </>}
+          </div>
+          {!draft ? (
+            <div className="tw-flex tw-min-h-[62px] tw-items-center tw-justify-between tw-gap-3 tw-border-0 tw-border-t tw-border-solid tw-border-slate-200 tw-px-4" {...userGuideAnchorProps("PARKING_SETUP.LAYOUT.PREVIEW")}>
+              <span className="tw-text-xs tw-font-bold tw-text-slate-600">
+                <i className="fas fa-info-circle tw-mr-2" />
+                {published ? `Sơ đồ phát hành phiên bản ${published.version} đang được sử dụng` : "Chưa có bản nháp để kiểm tra bố cục"}
+              </span>
+              <div className="tw-flex tw-items-center tw-gap-3">
+                <Button {...userGuideAnchorProps("PARKING_SETUP.LAYOUT.SAVE_DRAFT")} variant="secondary" disabled>Lưu draft</Button>
+                <Button {...userGuideAnchorProps("PARKING_SETUP.LAYOUT.PUBLISH")} disabled>Xuất bản</Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
       <Modal open={levelFormOpen} onClose={() => setLevelFormOpen(false)} title={editingLevelId ? "Cập nhật tầng" : "Thêm tầng"} actions={<div className="tw-flex tw-justify-end tw-gap-2"><Button variant="secondary" onClick={() => setLevelFormOpen(false)}>Hủy</Button><Button onClick={() => void handleCreateLevel(false)} loading={creatingLevel}>Lưu tầng</Button></div>}><div className="tw-grid tw-gap-3"><label>Mã tầng<input className="tw-mt-1 tw-h-10 tw-w-full tw-rounded-md tw-border tw-px-3" value={newLevelCode} onChange={(e) => setNewLevelCode(e.target.value.toUpperCase())} /></label><label>Tên tầng<input className="tw-mt-1 tw-h-10 tw-w-full tw-rounded-md tw-border tw-px-3" value={newLevelName} onChange={(e) => setNewLevelName(e.target.value)} /></label><label>Cao độ<input type="number" className="tw-mt-1 tw-h-10 tw-w-full tw-rounded-md tw-border tw-px-3" value={newLevelElevation} onChange={(e) => setNewLevelElevation(e.target.value)} /></label></div></Modal>

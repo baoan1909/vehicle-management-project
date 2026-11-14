@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useState } from "react";
 import type { SelectOption } from "../../types/common";
 
@@ -75,19 +76,11 @@ export function FilterControls({
           {selects.map((select) => (
             <div className="col-md-2 mt-3" key={select.name}>
               <div className="form-group">
-                <select
+                <SelectMenu ariaLabel={select.placeholder ?? select.name}
                   name={select.name}
-                  className="form-control select2 vm-form-control"
                   value={selectValues[select.name] ?? ""}
-                  onChange={(event) => setSelectValues((current) => ({ ...current, [select.name]: event.target.value }))}
-                >
-                  <option value="">{select.placeholder ?? "Tất cả"}</option>
-                  {select.options.map((option) => (
-                    <option value={option.value} key={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(selectedValue) => setSelectValues((current) => ({ ...current, [select.name]: selectedValue }))}
+                  options={[{ label: select.placeholder ?? "Tất cả", value: "" }, ...select.options.map((option) => ({ label: option.label, value: option.value }))]} portal clearValue="" />
               </div>
             </div>
           ))}

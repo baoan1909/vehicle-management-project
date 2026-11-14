@@ -186,7 +186,8 @@
     margin-top: 18px;
   }
 
-  .vm-client-mobile-drawer > nav a {
+  .vm-client-mobile-drawer > nav a,
+  .vm-client-mobile-drawer > nav button {
     display: grid;
     min-height: 54px;
     grid-template-columns: 40px minmax(0, 1fr) 16px;
@@ -201,7 +202,14 @@
     transition: background-color 160ms ease, color 160ms ease;
   }
 
-  .vm-client-mobile-drawer > nav a > span {
+  .vm-client-mobile-drawer > nav button {
+    border: 0;
+    background: transparent;
+    text-align: left;
+  }
+
+  .vm-client-mobile-drawer > nav a > span,
+  .vm-client-mobile-drawer > nav button > span {
     display: grid;
     width: 40px;
     height: 40px;
@@ -212,7 +220,8 @@
     font-size: 17px;
   }
 
-  .vm-client-mobile-drawer > nav a > i {
+  .vm-client-mobile-drawer > nav a > i,
+  .vm-client-mobile-drawer > nav button > i {
     color: #94a3b8;
     font-size: 10px;
   }

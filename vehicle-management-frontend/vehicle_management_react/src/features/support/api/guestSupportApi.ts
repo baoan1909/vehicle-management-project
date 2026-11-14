@@ -62,12 +62,13 @@ export function verifyGuestCaptcha(challengeToken: string, purpose: CaptchaPurpo
   });
 }
 
-export function askGuestAssistant(message: string, sessionId: string, captchaProof?: string) {
+export function askGuestAssistant(message: string, sessionId: string, captchaProof?: string, signal?: AbortSignal) {
   return apiClient<ApiResponse<GuestAssistantAnswer>>(apiEndpoints.public.support.assistantMessages, {
     body: { message, sessionId, captchaProof },
     method: "POST",
     skipAuth: true,
     timeoutMs: 30_000,
+    signal,
   });
 }
 
@@ -82,19 +83,22 @@ export function createGuestSupportRequest(
     captchaProof?: string;
   },
   idempotencyKey: string,
+  signal?: AbortSignal,
 ) {
   return apiClient<ApiResponse<GuestSupportRequest>>(apiEndpoints.public.support.requests, {
     body: payload,
     headers: { "Idempotency-Key": idempotencyKey },
     method: "POST",
     skipAuth: true,
+    signal,
   });
 }
 
-export function accessGuestSupportRequest(referenceCode: string, capabilityToken: string) {
+export function accessGuestSupportRequest(referenceCode: string, capabilityToken: string, signal?: AbortSignal) {
   return apiClient<ApiResponse<GuestSupportRequest>>(apiEndpoints.public.support.requestAccess, {
     body: { referenceCode, capabilityToken },
     method: "POST",
     skipAuth: true,
+    signal,
   });
 }

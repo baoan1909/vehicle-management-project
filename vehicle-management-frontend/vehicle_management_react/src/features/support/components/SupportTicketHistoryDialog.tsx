@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useState } from "react";
 import { Button, Modal } from "@/components/ui";
 import { SupportTicketCard } from "@/features/support/components/SupportTicketCard";
@@ -51,9 +52,11 @@ export function SupportTicketHistoryDialog({ loadTickets, onClose, onSelect, ope
       <div className="tw-grid tw-gap-3">
         <div className="tw-grid tw-grid-cols-[1fr_180px] tw-gap-2 max-sm:tw-grid-cols-1">
           <input aria-label="Tìm phiếu" className="tw-h-10 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-px-3" placeholder="Tìm theo mã hoặc tiêu đề..." value={keyword} onChange={(event) => setKeyword(event.target.value)} />
-          <select aria-label="Lọc trạng thái" className="tw-h-10 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-3" value={status} onChange={(event) => setStatus(event.target.value as SupportTicketStatus | "")}>
-            <option value="">Tất cả trạng thái</option><option value="OPEN">Đang mở</option><option value="IN_PROGRESS">Đang xử lý</option><option value="RESOLVED">Đã giải quyết</option><option value="CLOSED">Đã đóng</option>
-          </select>
+          <SelectMenu ariaLabel={"Lọc trạng thái"}
+                  triggerClassName={"tw-h-10 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-3"}
+                  value={status}
+                  onChange={(selectedValue) => setStatus(selectedValue as SupportTicketStatus | "")}
+                  options={[{ label: "Tất cả trạng thái", value: "" }, { label: "Đang mở", value: "OPEN" }, { label: "Đang xử lý", value: "IN_PROGRESS" }, { label: "Đã giải quyết", value: "RESOLVED" }, { label: "Đã đóng", value: "CLOSED" }]} portal clearValue="" />
         </div>
         {loading ? <p className="tw-py-8 tw-text-center tw-text-sm tw-text-slate-500"><i className="fas fa-spinner fa-spin tw-mr-2" />Đang tải phiếu hỗ trợ...</p> : null}
         {error ? <div role="alert" className="tw-rounded-lg tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-700">{error}</div> : null}

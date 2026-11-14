@@ -45,8 +45,11 @@ import { SupportTicketHistoryDialog, type TicketHistoryLoader } from "@/features
 import { supportTicketCode } from "@/features/support/components/SupportTicketCard";
 import { SupportTicketCustomerActions } from "@/features/support/components/SupportTicketCustomerActions";
 import { cn } from "@/lib/cn";
-import { hasAnyPermission } from "@/shared/auth/permissions";
+import { hasAnyPermission, hasResolvedPermissions } from "@/shared/auth/permissions";
 import { AdminAccountMenu } from "@/shared/components/layout/AdminAccountMenu";
+import { UserGuideHelpButton } from "@/features/user-guide/components/UserGuideHelpButton";
+import { useUserGuide } from "@/features/user-guide/context/UserGuideContext";
+import { useUserGuideActivation } from "@/features/user-guide/hooks/useUserGuideActivation";
 
 type ConversationStatus = "processing" | "waiting" | "closed";
 type Priority = "high" | "medium" | "low";
@@ -652,7 +655,7 @@ function InfoLineView({ item }: { item: InfoLine }) {
   );
 }
 
-function TopBar() {
+function TopBar({ guideEnabled }: { guideEnabled: boolean }) {
   const location = useLocation();
   const navigate = useNavigate();
   const isCustomer = location.pathname.startsWith("/customer/");
@@ -671,6 +674,7 @@ function TopBar() {
           <i className="fas fa-chevron-down tw-text-[0.65rem]" />
         </button> : null}
         <NotificationBell variant="admin" />
+        {isCustomer ? <UserGuideHelpButton enabled={guideEnabled} guideCode="CUSTOMER_SUPPORT_CHAT" label="Hướng dẫn" /> : null}
         {!isCustomer ? <button type="button" className="vm-chat-help tw-inline-flex tw-h-10 tw-w-10 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white tw-text-vm-slate-700 hover:tw-bg-vm-slate-25" aria-label="Trợ giúp">
           <i className="far fa-question-circle tw-text-[1.1rem]" />
         </button> : null}
@@ -768,7 +772,7 @@ function ConversationList({
   const waitingCount = summaryConversations.filter((conversation) => conversation.status === "waiting").length;
 
   return (
-    <aside className="vm-chat-inbox tw-flex tw-min-h-0 tw-flex-col tw-border-0 tw-border-r tw-border-solid tw-border-vm-slate-100 tw-bg-white">
+    <aside data-user-guide-anchor="CUSTOMER.CHAT.INBOX" className="vm-chat-inbox tw-flex tw-min-h-0 tw-flex-col tw-border-0 tw-border-r tw-border-solid tw-border-vm-slate-100 tw-bg-white">
       <div className="vm-chat-inbox-header tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-p-5">
         <div className="tw-flex tw-items-center tw-justify-between">
           <h2 className="tw-m-0 tw-text-[1.05rem] tw-font-extrabold tw-text-vm-slate-900">Hộp thoại</h2>
@@ -1347,7 +1351,7 @@ function ChatMessages({
 
   if (!usingMockData) {
     return (
-      <div ref={messagesContainerRef} className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-gap-5 tw-overflow-y-auto tw-bg-[#fbfdff] tw-px-6 tw-py-4">
+      <div data-user-guide-anchor="CUSTOMER.CHAT.MESSAGE_HISTORY" ref={messagesContainerRef} className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-gap-5 tw-overflow-y-auto tw-bg-[#fbfdff] tw-px-6 tw-py-4">
         <div className="tw-text-center tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Tin nhắn gần đây</div>
         {isLoading ? (
           <div className="tw-flex tw-min-h-[180px] tw-items-center tw-justify-center tw-rounded-vm-lg tw-border tw-border-dashed tw-border-brand-100 tw-bg-brand-50 tw-text-[0.86rem] tw-font-extrabold tw-text-vm-primary">
@@ -1387,7 +1391,7 @@ function ChatMessages({
   }
 
   return (
-    <div className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-gap-5 tw-overflow-y-auto tw-bg-[#fbfdff] tw-px-6 tw-py-4">
+    <div data-user-guide-anchor="CUSTOMER.CHAT.MESSAGE_HISTORY" className="tw-flex tw-min-h-0 tw-flex-1 tw-flex-col tw-gap-5 tw-overflow-y-auto tw-bg-[#fbfdff] tw-px-6 tw-py-4">
       <div className="tw-text-center tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Hôm nay</div>
 
       <div className="tw-grid tw-grid-cols-[40px_minmax(0,1fr)] tw-gap-3">
@@ -1473,6 +1477,7 @@ function Composer({
   onSend: (content: string, files: File[]) => Promise<void>;
   onRetrySend: () => void;
 }) {
+  const { activeGuide, currentStep } = useUserGuide();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const moreMenuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -1482,6 +1487,11 @@ function Composer({
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const trimmedContent = content.trim();
   const canSubmit = canSend && !isSending && Boolean(trimmedContent || files.length);
+
+  useEffect(() => {
+    if (activeGuide?.code !== "CUSTOMER_SUPPORT_CHAT") return;
+    setShowMoreMenu(currentStep?.anchorKey === "CUSTOMER.CHAT.CREATE_TICKET");
+  }, [activeGuide?.code, currentStep?.anchorKey]);
 
   useEffect(() => {
     if (!canSend || disabledReason) return;
@@ -1528,7 +1538,7 @@ function Composer({
   }
 
   return (
-    <div className="vm-chat-composer tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-pb-4 tw-pt-3">
+    <div data-user-guide-anchor="CUSTOMER.CHAT.COMPOSER" className="vm-chat-composer tw-border-0 tw-border-t tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-pb-4 tw-pt-3">
       <input ref={fileInputRef} className="tw-hidden" type="file" accept="image/*" multiple onChange={handleFileChange} />
       {isSending ? (
         <div className="vm-chat-sending" role="status" aria-live="polite">
@@ -1544,6 +1554,7 @@ function Composer({
       ) : null}
       <div className="vm-chat-toolbar tw-relative tw-flex tw-h-11 tw-items-center tw-gap-3 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-pb-2 tw-text-vm-slate-700">
           <button
+            data-user-guide-anchor="CUSTOMER.CHAT.ATTACHMENT"
             type="button"
             className="tw-inline-flex tw-h-9 tw-w-9 tw-items-center tw-justify-center tw-rounded-full tw-border-0 tw-bg-white hover:tw-bg-vm-slate-25 disabled:tw-cursor-not-allowed disabled:tw-opacity-50"
             aria-label="Đính kèm ảnh"
@@ -1560,6 +1571,7 @@ function Composer({
             ["fas fa-ellipsis-h", canCreateTicket ? "Tác vụ hỗ trợ" : "Tác vụ mở rộng giữ lại cho phase sau"],
           ].map(([icon, title]) => (
             <button
+              data-user-guide-anchor={icon === "fas fa-ellipsis-h" ? "CUSTOMER.CHAT.MORE_ACTIONS" : undefined}
               key={icon}
               ref={icon === "fas fa-ellipsis-h" ? moreMenuButtonRef : undefined}
               type="button"
@@ -1574,7 +1586,7 @@ function Composer({
           ))}
           {showMoreMenu ? (
             <div ref={moreMenuRef} className="tw-absolute tw-bottom-[calc(100%+8px)] tw-left-0 tw-z-20 tw-w-52 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-1.5 tw-shadow-[0_14px_30px_rgba(15,23,42,0.14)]">
-              {canCreateTicket ? <button className="tw-flex tw-w-full tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-bg-white tw-px-3 tw-py-2.5 tw-text-left tw-text-sm tw-font-bold tw-text-vm-slate-700 hover:tw-bg-brand-50 hover:tw-text-vm-primary" type="button" onClick={() => { setShowMoreMenu(false); onCreateTicket(); }}><i className="far fa-life-ring" /> Tạo phiếu hỗ trợ</button> : null}
+              {canCreateTicket ? <button data-user-guide-anchor="CUSTOMER.CHAT.CREATE_TICKET" className="tw-flex tw-w-full tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-bg-white tw-px-3 tw-py-2.5 tw-text-left tw-text-sm tw-font-bold tw-text-vm-slate-700 hover:tw-bg-brand-50 hover:tw-text-vm-primary" type="button" onClick={() => { setShowMoreMenu(false); onCreateTicket(); }}><i className="far fa-life-ring" /> Tạo phiếu hỗ trợ</button> : <button data-user-guide-anchor="CUSTOMER.CHAT.CREATE_TICKET" className="tw-flex tw-w-full tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-bg-slate-50 tw-px-3 tw-py-2.5 tw-text-left tw-text-sm tw-font-bold tw-text-slate-500" disabled type="button"><i className="far fa-life-ring" /> Chưa thể tạo phiếu hỗ trợ</button>}
               <button className="tw-flex tw-w-full tw-items-center tw-gap-2 tw-rounded-vm-sm tw-border-0 tw-bg-white tw-px-3 tw-py-2.5 tw-text-left tw-text-sm tw-font-bold tw-text-vm-slate-700 hover:tw-bg-brand-50 hover:tw-text-vm-primary" type="button" onClick={() => { setShowMoreMenu(false); onOpenHistory(); }}>
                 <i className="fas fa-history" /> Lịch sử yêu cầu
               </button>
@@ -1590,7 +1602,7 @@ function Composer({
           value={content}
           onChange={(event) => setContent(event.target.value)}
         />
-        <Button className="vm-chat-send-button tw-h-11 tw-w-[140px] tw-flex-shrink-0" disabled={!canSubmit} loading={isSending} onClick={handleSubmit}>
+        <Button data-user-guide-anchor="CUSTOMER.CHAT.SEND" className="vm-chat-send-button tw-h-11 tw-w-[140px] tw-flex-shrink-0" disabled={!canSubmit} loading={isSending} onClick={handleSubmit}>
           <i className="far fa-paper-plane" />
           <span className="vm-chat-send-label">Gửi</span>
           <span className="vm-chat-send-separator tw-ml-2 tw-h-6 tw-border-0 tw-border-l tw-border-solid tw-border-white/25" />
@@ -1671,7 +1683,7 @@ function ChatWorkspace({
   usingMockData: boolean;
 }) {
   return (
-    <main className="vm-chat-workspace tw-flex tw-min-h-0 tw-flex-col tw-bg-white">
+    <main data-user-guide-anchor="CUSTOMER.CHAT.CONVERSATION" className="vm-chat-workspace tw-flex tw-min-h-0 tw-flex-col tw-bg-white">
       <div className="vm-chat-back">
         <button type="button" onClick={onBackToList} aria-label="Quay lại danh sách hội thoại">
           <i className="fas fa-chevron-left" aria-hidden="true" />
@@ -1799,19 +1811,12 @@ function RightPanel({
       {hasTicketAction ? <div className="tw-grid tw-gap-3 tw-p-2">
         {canAssignCurrentTicket ? (
           <div className="tw-grid tw-gap-2">
-            <select
-              className="tw-h-10 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-3 tw-text-sm"
-              value={assigneeId}
-              onChange={(event) => setAssigneeId(event.target.value)}
-              disabled={isUpdatingTicket}
-            >
-              <option value="">Chọn nhân viên phụ trách</option>
-              {assignees.map((employee) => employee.accountId ? (
-                <option key={employee.accountId} value={employee.accountId}>
-                  {employee.userProfile?.fullName ?? employee.accountUsername ?? employee.employeeCode ?? employee.accountId}
-                </option>
-              ) : null)}
-            </select>
+            <SelectMenu ariaLabel="Nhân viên phụ trách"
+                  triggerClassName={"tw-h-10 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-3 tw-text-sm"}
+                  value={assigneeId}
+                  onChange={(selectedValue) => setAssigneeId(selectedValue)}
+                  disabled={isUpdatingTicket}
+                  options={[{ label: "Chọn nhân viên phụ trách", value: "" }, ...assignees.flatMap((employee) => (employee.accountId ? [{ label: employee.userProfile?.fullName ?? employee.accountUsername ?? employee.employeeCode ?? employee.accountId, value: employee.accountId }] : []))]} portal clearValue="" />
             <Button className="tw-h-10 tw-w-full" variant="secondary" disabled={!assigneeId || isUpdatingTicket} onClick={() => onAssign(assigneeId)}>
               <i className="fas fa-user-check" />
               Phân công
@@ -1845,6 +1850,7 @@ function RightPanel({
 export function OperationsSupportCenterPage() {
   const toast = useToast();
   const { user } = useAuth();
+  const { activeGuide, currentStep } = useUserGuide();
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedConversationId = searchParams.get("conversationId");
   const requestedTicketId = searchParams.get("ticketId");
@@ -1884,7 +1890,9 @@ export function OperationsSupportCenterPage() {
   const attachmentReadUrlCacheRef = useRef<Map<string, string>>(new Map());
   const realtimeSyncTimerIdRef = useRef<number | undefined>(undefined);
   const realtimeSyncVersionRef = useRef(0);
-  const canReadChat = hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
+  const hasResolvedChatPermissions = hasResolvedPermissions(user);
+  const canReadChat = hasResolvedChatPermissions
+    && hasAnyPermission(user, ["CHAT_CONVERSATION_READ_OWN", "CHAT_CONVERSATION_READ_ALL"]);
   const canCreateChat = hasAnyPermission(user, ["CHAT_CONVERSATION_CREATE_OWN", "CHAT_CONVERSATION_CREATE_ALL"]);
   const canSendChat = hasAnyPermission(user, ["CHAT_MESSAGE_SEND_OWN"]);
   const canDeleteOwnMessage = hasAnyPermission(user, ["CHAT_MESSAGE_DELETE_OWN"]);
@@ -1905,6 +1913,17 @@ export function OperationsSupportCenterPage() {
     && user?.accountStatus === "ACTIVE"
     && user?.customerStatus === "ACTIVE"
     && user?.customerApprovalStatus === "APPROVED";
+  const customerChatGuideEnabled = !isInboxLoading
+    && user?.roleCode === "CUSTOMER"
+    && canReadChat
+    && canSendChat;
+
+  useUserGuideActivation("CUSTOMER_SUPPORT_CHAT", customerChatGuideEnabled);
+
+  useEffect(() => {
+    if (activeGuide?.code !== "CUSTOMER_SUPPORT_CHAT") return;
+    setMobileChatView(currentStep?.anchorKey === "CUSTOMER.CHAT.INBOX" ? "list" : "chat");
+  }, [activeGuide?.code, currentStep?.anchorKey]);
 
   useEffect(() => {
     setContextTicketId(requestedTicketId);
@@ -1957,6 +1976,11 @@ export function OperationsSupportCenterPage() {
 
   const loadInbox = useCallback(async (options: LoadInboxOptions = {}) => {
     const shouldShowLoading = options.showLoading ?? !inboxLoadedRef.current;
+    if (!hasResolvedChatPermissions) {
+      setInboxError("");
+      if (shouldShowLoading) setIsInboxLoading(true);
+      return;
+    }
     if (!canReadChat) {
       setApiConversations([]);
       setInboxError("Tài khoản hiện tại chưa có quyền CHAT_CONVERSATION_READ_OWN hoặc CHAT_CONVERSATION_READ_ALL.");
@@ -2006,7 +2030,7 @@ export function OperationsSupportCenterPage() {
       inboxLoadedRef.current = true;
       if (shouldShowLoading) setIsInboxLoading(false);
     }
-  }, [canReadChat, resolvePreferredConversationId, user?.id]);
+  }, [canReadChat, hasResolvedChatPermissions, resolvePreferredConversationId, user?.id]);
 
   useEffect(() => {
     const isInternalDirect = requestedChatMode === "internal-direct" && requestedParticipantType === "employee";
@@ -2684,7 +2708,7 @@ export function OperationsSupportCenterPage() {
   return (
     <div ref={chatShellRef} data-mobile-view={mobileChatView} className="vm-chat-shell-mobile tw-h-screen tw-overflow-hidden tw-bg-white tw-text-vm-slate-700">
       <div className="tw-grid tw-h-full tw-min-h-0 tw-min-w-0 tw-grid-rows-[64px_minmax(0,1fr)]">
-        <TopBar />
+        <TopBar guideEnabled={customerChatGuideEnabled} />
         <div className="vm-chat-cols tw-grid tw-min-h-0 tw-grid-cols-[390px_minmax(0,1fr)] max-[1280px]:tw-grid-cols-[360px_minmax(0,1fr)]">
           <ConversationList
             channelFilter={channelFilter}

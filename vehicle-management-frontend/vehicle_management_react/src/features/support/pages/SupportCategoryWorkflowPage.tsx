@@ -237,12 +237,11 @@ function CategoryDrawer({
         </label>
         <label className="tw-grid tw-gap-2">
           <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Ưu tiên</span>
-          <select className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-outline-none" value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value as SupportTicketPriority }))}>
-            <option value="URGENT">Khẩn cấp</option>
-            <option value="HIGH">Cao</option>
-            <option value="NORMAL">Bình thường</option>
-            <option value="LOW">Thấp</option>
-          </select>
+          <SelectMenu ariaLabel="Mức ưu tiên"
+                  triggerClassName={"tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.86rem] tw-font-semibold tw-outline-none"}
+                  value={form.priority}
+                  onChange={(selectedValue) => setForm((current) => ({ ...current, priority: selectedValue as SupportTicketPriority }))}
+                  options={[{ label: "Khẩn cấp", value: "URGENT" }, { label: "Cao", value: "HIGH" }, { label: "Bình thường", value: "NORMAL" }, { label: "Thấp", value: "LOW" }]} portal clearValue="" />
         </label>
         <label className="tw-grid tw-gap-2">
           <span className="tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Mô tả</span>

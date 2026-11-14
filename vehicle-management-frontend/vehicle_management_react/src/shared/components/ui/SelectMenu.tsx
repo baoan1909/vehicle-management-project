@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, type InputHTMLAttributes, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { cn } from "@/lib/cn";
@@ -6,6 +6,7 @@ import { cn } from "@/lib/cn";
 export type SelectMenuOption = {
   label: string;
   value: string;
+  disabled?: boolean;
 };
 
 export type SelectMenuOptionAction = {
@@ -22,8 +23,16 @@ type SelectMenuProps = {
   className?: string;
   clearValue?: string;
   disabled?: boolean;
+  editable?: {
+    inputMode?: InputHTMLAttributes<HTMLInputElement>["inputMode"];
+    suffix?: ReactNode;
+    describedBy?: string;
+    invalid?: boolean;
+    placeholder?: string;
+  };
   getOptionAction?: (option: SelectMenuOption) => SelectMenuOptionAction | undefined;
   menuClassName?: string;
+  name?: string;
   onChange: (value: string) => void;
   optionClassName?: string;
   options: SelectMenuOption[];
@@ -44,8 +53,10 @@ export function SelectMenu({
   className,
   clearValue = "all",
   disabled = false,
+  editable,
   getOptionAction,
   menuClassName,
+  name,
   onChange,
   optionClassName,
   options,
@@ -63,17 +74,24 @@ export function SelectMenu({
   const [open, setOpen] = useState(false);
   const [portalPosition, setPortalPosition] = useState({ left: 0, top: 0, width: 0 });
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const menuId = useId();
   const menuRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const selected = options.find((option) => option.value === value) ?? options[0];
   const canClear = !disabled && value !== clearValue && options.some((option) => option.value === clearValue);
-  const shouldShowSearch = searchable === "auto" ? options.length >= 8 : searchable;
+  const shouldShowSearch = !editable && (searchable === "auto" ? options.length >= 8 : searchable);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const visibleOptions = normalizedSearch
     ? options.filter((option) =>
         [option.label, option.value].some((text) => text.toLowerCase().includes(normalizedSearch)),
       )
     : options;
+
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -157,6 +175,9 @@ export function SelectMenu({
 
   const menu = open ? (
     <div
+      id={menuId}
+      role={editable ? "listbox" : undefined}
+      aria-label={editable ? `Gợi ý ${ariaLabel}` : undefined}
       className={cn(
         "vm-select-menu-panel tw-z-[2500] tw-max-h-60 tw-overflow-y-auto tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_10px_26px_rgba(15,23,42,0.14)] tw-[scrollbar-width:none] tw-[-ms-overflow-style:none] [&::-webkit-scrollbar]:tw-hidden",
         shouldShowSearch ? "tw-pb-[0.35rem] tw-pt-0" : "tw-py-[0.35rem]",
@@ -177,6 +198,7 @@ export function SelectMenu({
           : undefined
       }
     >
+      {editable ? <div role="presentation" className="tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-[0.85rem] tw-py-2 tw-text-xs tw-font-bold tw-text-vm-slate-500">Gợi ý</div> : null}
       {shouldShowSearch ? (
         <div className="tw-sticky tw-top-0 tw-z-[1] tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-2">
           <label className="tw-flex tw-h-9 tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-2.5">
@@ -193,7 +215,7 @@ export function SelectMenu({
         </div>
       ) : null}
 
-      {visibleOptions.map((option) => {
+      {visibleOptions.map((option, index) => {
         const selectedOption = option.value === value;
         const optionAction = getOptionAction?.(option);
 
@@ -207,18 +229,23 @@ export function SelectMenu({
               key={option.value}
             >
               <button
+                id={editable ? `${menuId}-${index}` : undefined}
+                role={editable ? "option" : undefined}
+                aria-selected={editable ? selectedOption : undefined}
+                disabled={disabled || option.disabled}
                 className={cn(
                   "tw-flex tw-min-w-0 tw-flex-1 tw-items-center tw-gap-[0.65rem] tw-border-0 tw-bg-transparent tw-px-[0.85rem] tw-py-[0.55rem] tw-text-left tw-text-[0.9rem] tw-font-semibold tw-text-inherit tw-transition group-hover:tw-text-vm-primary",
                   selectedOption ? "tw-font-extrabold" : "",
                   optionClassName,
                 )}
                 type="button"
+                onMouseDown={(event) => { if (editable) event.preventDefault(); }}
                 onClick={() => {
                   onChange(option.value);
                   setOpen(false);
                 }}
               >
-                <span
+                {!editable ? <span
                   className={cn(
                     "tw-inline-flex tw-h-4 tw-w-4 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-border-2 tw-border-solid",
                     selectedOption
@@ -227,14 +254,14 @@ export function SelectMenu({
                   )}
                 >
                   {selectedOption ? <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-white" /> : null}
-                </span>
+                </span> : null}
                 <span className="tw-min-w-0 tw-flex-1 tw-truncate">{option.label}</span>
                 {selectedOption ? selectedOptionAdornment : null}
               </button>
               <button
                 aria-label={optionAction.ariaLabel}
                 className="tw-mr-2 tw-my-1 tw-inline-flex tw-min-w-8 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-sm tw-border-0 tw-bg-transparent tw-px-1.5 tw-text-[0.72rem] tw-font-extrabold tw-text-amber-600 tw-transition hover:tw-bg-amber-50 disabled:tw-cursor-default disabled:hover:tw-bg-transparent"
-                disabled={optionAction.disabled}
+                disabled={disabled || option.disabled || optionAction.disabled}
                 title={optionAction.title}
                 type="button"
                 onClick={() => {
@@ -250,19 +277,27 @@ export function SelectMenu({
 
         return (
           <button
+            id={editable ? `${menuId}-${index}` : undefined}
+            role={editable ? "option" : undefined}
+            aria-selected={editable ? selectedOption : undefined}
+            disabled={disabled || option.disabled}
             className={cn(
               "vm-select-menu-option tw-flex tw-min-h-[38px] tw-w-full tw-items-center tw-gap-[0.65rem] tw-border-0 tw-bg-transparent tw-px-[0.85rem] tw-py-[0.55rem] tw-text-left tw-text-[0.9rem] tw-font-semibold tw-text-vm-slate-700 tw-transition hover:tw-bg-vm-slate-25 hover:tw-text-vm-primary",
-              selectedOption ? "tw-font-extrabold tw-text-[#111827]" : "",
+              !editable && selectedOption ? "tw-font-extrabold tw-text-[#111827]" : "",
+              option.disabled ? "tw-cursor-not-allowed tw-opacity-50" : "",
+              editable && activeIndex === index ? "tw-bg-brand-50 tw-text-vm-primary" : "",
               optionClassName,
             )}
             key={option.value}
             type="button"
+            onMouseDown={(event) => { if (editable) event.preventDefault(); }}
             onClick={() => {
               onChange(option.value);
               setOpen(false);
+              setActiveIndex(-1);
             }}
           >
-            <span
+            {!editable ? <span
               className={cn(
                 "tw-inline-flex tw-h-4 tw-w-4 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-full tw-border-2 tw-border-solid",
                 selectedOption
@@ -271,7 +306,7 @@ export function SelectMenu({
               )}
             >
               {selectedOption ? <span className="tw-h-1.5 tw-w-1.5 tw-rounded-full tw-bg-white" /> : null}
-            </span>
+            </span> : null}
             <span className="tw-min-w-0 tw-flex-1 tw-truncate">{option.label}</span>
             {selectedOption ? selectedOptionAdornment : null}
           </button>
@@ -288,7 +323,47 @@ export function SelectMenu({
 
   return (
     <div className={cn("tw-relative tw-min-w-0 tw-w-full", className)} ref={rootRef}>
-      <button
+      {name ? <input type="hidden" name={name} value={value} disabled={disabled} /> : null}
+      {editable ? (
+        <div className={cn(
+          "vm-select-menu-trigger tw-flex tw-h-[42px] tw-w-full tw-items-center tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-4 tw-transition focus-within:tw-border-vm-primary focus-within:tw-shadow-vm-focus",
+          disabled && "tw-cursor-not-allowed tw-bg-vm-slate-25 tw-opacity-50",
+          triggerClassName,
+        )} onClick={() => { if (!disabled) { inputRef.current?.focus(); setOpen(true); } }}>
+          <input ref={inputRef} type="text" role="combobox" autoComplete="off" disabled={disabled}
+            aria-label={ariaLabel} aria-autocomplete="list" aria-expanded={open} aria-controls={open ? menuId : undefined}
+            aria-activedescendant={open && activeIndex >= 0 ? `${menuId}-${activeIndex}` : undefined}
+            aria-invalid={editable.invalid} aria-describedby={editable.describedBy}
+            inputMode={editable.inputMode} placeholder={editable.placeholder} value={value}
+            className="tw-h-full tw-w-full tw-min-w-0 tw-flex-1 !tw-rounded-none !tw-border-0 tw-bg-transparent !tw-p-0 tw-text-sm tw-font-bold tw-text-vm-slate-900 !tw-outline-0 !tw-shadow-none !tw-ring-0"
+            onFocus={() => { setActiveIndex(-1); setOpen(true); }}
+            onBlur={(event) => {
+              const target = event.relatedTarget as Node | null;
+              if (!rootRef.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
+            }}
+            onChange={(event) => { onChange(event.target.value); setActiveIndex(-1); setOpen(true); }}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                event.preventDefault();
+                const enabledIndices = visibleOptions.flatMap((option, index) => option.disabled ? [] : [index]);
+                if (!enabledIndices.length) return;
+                const current = open ? enabledIndices.indexOf(activeIndex) : -1;
+                const next = current < 0 ? (event.key === "ArrowDown" ? 0 : enabledIndices.length - 1)
+                  : (current + (event.key === "ArrowDown" ? 1 : -1) + enabledIndices.length) % enabledIndices.length;
+                setActiveIndex(enabledIndices[next]);
+                setOpen(true);
+              } else if (event.key === "Enter") {
+                if (open && activeIndex >= 0 && visibleOptions[activeIndex] && !visibleOptions[activeIndex].disabled) {
+                  event.preventDefault();
+                  onChange(visibleOptions[activeIndex].value);
+                }
+                setOpen(false);
+                setActiveIndex(-1);
+              } else if (event.key === "Tab") setOpen(false);
+            }} />
+          {editable.suffix ? <span className="tw-shrink-0 tw-text-xs tw-font-bold tw-text-vm-slate-500">{editable.suffix}</span> : null}
+        </div>
+      ) : <button
         aria-expanded={open}
         aria-label={ariaLabel}
         className={cn(
@@ -330,7 +405,7 @@ export function SelectMenu({
           </span>
         ) : null}
         <i className={cn("fas fa-chevron-down tw-text-[0.78rem] tw-text-vm-slate-700 tw-transition", disabled ? "tw-text-vm-slate-400" : "", open ? "tw-rotate-180 tw-text-vm-primary" : "")} />
-      </button>
+      </button>}
 
       {portal && typeof document !== "undefined"
         ? createPortal(menu, document.body)

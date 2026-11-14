@@ -43,6 +43,7 @@ import { ParkingManagerAssignmentModal } from "@/features/parking/components/Par
 import { ParkingLotWorkspaceHeader } from "@/features/parking/components/ParkingLotWorkspaceHeader";
 import { getVehicleTypes } from "@/features/catalog/api/vehicleTypesApi";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import { userGuideAnchorProps, useUserGuideActivation } from "@/features/user-guide";
 
 /* ------------------------------------------------------------------ */
 /* Types (Level -> Zone -> Gate -> Lane)                               */
@@ -709,12 +710,12 @@ function LaneFormModal({ open, title, gates, initial, defaultGateId, submitting,
           <input className={fieldInputClass(Boolean(errors.name))} value={name} onChange={(event) => setName(event.target.value)} placeholder="VD: Làn vào" maxLength={150} />
         </FormField>
         <FormField label="Hướng" required>
-          <SelectMenu
+          <div><SelectMenu
             ariaLabel="Hướng làn"
             value={direction}
             onChange={(value) => setDirection(value === "OUT" ? "OUT" : "IN")}
             options={DIRECTION_OPTIONS}
-          />
+          /></div>
         </FormField>
       </div>
     </Modal>
@@ -857,6 +858,8 @@ export function ParkingLotStructurePage() {
   const canAssignManager = hasAnyPermission(user, ["ORGANIZATION_MEMBERSHIP_MANAGE_ALL"]);
   const canDeleteLevel = hasAnyPermission(user, ["PARKING_SPACE_CONFIGURE_ALL"]);
   const canConfigureTopology = hasAnyPermission(user, ["PARKING_SPACE_CONFIGURE_ALL"]);
+  const structureGuideEnabled = Boolean(activeLot && !bootLoading && !lotWizardOpen);
+  useUserGuideActivation("PARKING_STRUCTURE_SETUP", structureGuideEnabled);
 
   const toLevelNode = useCallback((level: ParkingLevelApi, levelZones: ZoneApiResponse[]): LevelNode => {
     const totalCapacity = levelZones.reduce((sum, zone) => sum + Number(zone.capacity ?? 0), 0);
@@ -1554,6 +1557,8 @@ export function ParkingLotStructurePage() {
       {activeLot ? (
         <ParkingLotWorkspaceHeader
           activeTab="structure"
+          guideCode="PARKING_STRUCTURE_SETUP"
+          guideEnabled={structureGuideEnabled}
           parkingLot={activeLot}
           parkingLots={lots}
           onParkingLotChange={(parkingLotId) => navigate(`/admin/parking-structure?lotId=${encodeURIComponent(parkingLotId)}`)}
@@ -1631,15 +1636,20 @@ export function ParkingLotStructurePage() {
             </div>
             {canConfigureTopology ? (
               <>
-                <Button size="sm" disabled={!hasActiveLot} className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "zone", mode: "create" })}>
+                <Button {...userGuideAnchorProps("PARKING_SETUP.STRUCTURE.LEVEL")} size="sm" disabled={!hasActiveLot} className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={openLevelModal}>
+                  <i className="fas fa-plus tw-text-[0.75rem]" aria-hidden="true" /> Thêm tầng
+                </Button>
+                <Button {...userGuideAnchorProps("PARKING_SETUP.STRUCTURE.ZONE")} size="sm" disabled={!hasActiveLot} className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "zone", mode: "create" })}>
                   <i className="fas fa-plus tw-text-[0.75rem]" aria-hidden="true" /> Thêm khu
                 </Button>
-                <Button size="sm" disabled={!hasActiveLot} className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "gate", mode: "create" })}>
+                <Button {...userGuideAnchorProps("PARKING_SETUP.STRUCTURE.GATE")} size="sm" disabled={!hasActiveLot} className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "gate", mode: "create" })}>
                   <i className="fas fa-plus tw-text-[0.75rem]" aria-hidden="true" /> Thêm cổng
                 </Button>
-                <Button size="sm" disabled={!hasActiveLot} className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "lane", mode: "create" })}>
-                  <i className="fas fa-plus tw-text-[0.75rem]" aria-hidden="true" /> Thêm làn
-                </Button>
+                <div {...userGuideAnchorProps("PARKING_SETUP.STRUCTURE.LANE_OUT")}>
+                  <Button {...userGuideAnchorProps("PARKING_SETUP.STRUCTURE.LANE_IN")} size="sm" disabled={!hasActiveLot} className="tw-h-10 tw-rounded-[8px] tw-px-3.5 tw-text-[0.84rem] tw-font-bold" onClick={() => openFormModal({ type: "lane", mode: "create" })}>
+                    <i className="fas fa-plus tw-text-[0.75rem]" aria-hidden="true" /> Thêm làn
+                  </Button>
+                </div>
               </>
             ) : null}
           </div>

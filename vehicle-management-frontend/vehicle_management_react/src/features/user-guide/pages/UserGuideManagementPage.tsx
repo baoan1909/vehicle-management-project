@@ -21,6 +21,7 @@ import {
   createUserGuideFeature,
   getUserGuideFeatures,
   getUserGuides,
+  getUserGuideStatusCounts,
   getUserGuideVersions,
   publishUserGuideVersion,
   updateUserGuide,
@@ -57,6 +58,14 @@ const guideTabs: Array<{ label: string; value: GuideTab }> = [
   { label: "Ngừng hiển thị", value: "INACTIVE" },
   { label: "Đã lưu trữ", value: "ARCHIVED" },
 ];
+
+const emptyGuideCounts = (): Record<GuideTab, number> => ({
+  all: 0,
+  ARCHIVED: 0,
+  DRAFT: 0,
+  INACTIVE: 0,
+  PUBLISHED: 0,
+});
 
 const displayTypeOptions = [
   { label: "Mọi loại hiển thị", value: "all" },
@@ -152,6 +161,8 @@ export function UserGuideManagementPage() {
   const [tab, setTab] = useState<"guides" | "features">("guides");
   const [guides, setGuides] = useState<UserGuideAdminResponse[]>([]);
   const [features, setFeatures] = useState<UserGuideFeatureResponse[]>([]);
+  const [featureTotalElements, setFeatureTotalElements] = useState(0);
+  const [guideCounts, setGuideCounts] = useState<Record<GuideTab, number>>(emptyGuideCounts);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -215,10 +226,30 @@ export function UserGuideManagementPage() {
     try {
       const response = await getUserGuideFeatures({ size: 200 });
       setFeatures(response.data.content);
+      setFeatureTotalElements(response.data.totalElements);
     } catch {
       // Feature selector degrades gracefully; guide list still works.
     }
   }, []);
+
+  const loadGuideCounts = useCallback(async () => {
+    try {
+      const response = await getUserGuideStatusCounts({
+        displayType: displayTypeFilter === "all" ? null : (displayTypeFilter as UserGuideDisplayType),
+        featureId: featureFilter === "all" ? null : featureFilter,
+        keyword: debouncedKeyword || null,
+      });
+      setGuideCounts({
+        all: response.data.all,
+        ARCHIVED: response.data.archived,
+        DRAFT: response.data.draft,
+        INACTIVE: response.data.inactive,
+        PUBLISHED: response.data.published,
+      });
+    } catch {
+      setGuideCounts(emptyGuideCounts());
+    }
+  }, [debouncedKeyword, displayTypeFilter, featureFilter]);
 
   const loadGuides = useCallback(async () => {
     setLoading(true);
@@ -251,13 +282,9 @@ export function UserGuideManagementPage() {
     if (tab === "guides") void loadGuides();
   }, [loadGuides, tab]);
 
-  const counts = useMemo(() => {
-    const result: Partial<Record<GuideTab, number>> = { all: totalElements };
-    guides.forEach((guide) => {
-      result[guide.status] = (result[guide.status] ?? 0) + 1;
-    });
-    return result;
-  }, [guides, totalElements]);
+  useEffect(() => {
+    if (tab === "guides") void loadGuideCounts();
+  }, [loadGuideCounts, tab]);
 
   const patchForm = (patch: Partial<GuideFormState>) => {
     setGuideForm((previous) => ({ ...previous, ...patch }));
@@ -360,7 +387,7 @@ export function UserGuideManagementPage() {
       }
       setGuideDrawerOpen(false);
       setFormDirty(false);
-      await loadGuides();
+      await Promise.all([loadGuides(), loadGuideCounts()]);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Không lưu được hướng dẫn.");
     } finally {
@@ -386,7 +413,7 @@ export function UserGuideManagementPage() {
   const refreshVersions = async (guideId: string) => {
     const response = await getUserGuideVersions(guideId);
     setVersions(response.data);
-    await loadGuides();
+    await Promise.all([loadGuides(), loadGuideCounts()]);
     const updated = guides.find((item) => item.guideId === guideId);
     if (updated) {
       const fresh = await getUserGuides({ keyword: updated.code });
@@ -419,12 +446,12 @@ export function UserGuideManagementPage() {
         if (versionsGuide && versionsGuide.guideId === pendingAction.guideId) {
           await refreshVersions(pendingAction.guideId);
         } else {
-          await loadGuides();
+          await Promise.all([loadGuides(), loadGuideCounts()]);
         }
       } else if (pendingAction.kind === "archive") {
         await archiveUserGuide(pendingAction.guide.guideId);
         toast.success(`Đã lưu trữ hướng dẫn ${pendingAction.guide.code}.`);
-        await loadGuides();
+        await Promise.all([loadGuides(), loadGuideCounts()]);
       } else {
         await createUserGuideDraftVersion(pendingAction.guide.guideId, {
           audienceMode: undefined,
@@ -516,12 +543,13 @@ export function UserGuideManagementPage() {
       <StatusTabs
         activeValue={tab}
         ariaLabel="User guide tabs"
-        counts={{ features: features.length, guides: totalElements }}
+        counts={{ features: featureTotalElements, guides: guideCounts.all }}
         onChange={(value) => setTab(value as "guides" | "features")}
         tabs={[
           { label: "Hướng dẫn", value: "guides" },
           { label: "Tính năng", value: "features" },
         ]}
+        variant="tabs"
       />
 
       {tab === "guides" ? (
@@ -529,14 +557,14 @@ export function UserGuideManagementPage() {
           <StatusTabs
             activeValue={status}
             ariaLabel="Guide status filter"
-            counts={counts}
+            counts={guideCounts}
             onChange={(value) => {
               setStatus(value as GuideTab);
               setPage(0);
             }}
             tabs={guideTabs}
           />
-          <div className="tw-flex tw-flex-wrap tw-gap-2">
+          <div className="tw-grid tw-grid-cols-[minmax(280px,1.35fr)_minmax(220px,1fr)_minmax(220px,1fr)] tw-items-center tw-gap-2 max-[900px]:tw-grid-cols-1">
             <SearchInput onChange={setKeyword} placeholder="Tìm theo mã hoặc tên..." value={keyword} />
             <SelectMenu
               ariaLabel="Lọc theo tính năng"

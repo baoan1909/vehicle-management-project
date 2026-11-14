@@ -10,7 +10,7 @@ const [page, api, map] = await Promise.all([
   readFile(mapPath, "utf8"),
 ]);
 
-assert.match(page, /function handleFindNearMe\(\)[\s\S]*navigator\.geolocation\.getCurrentPosition/);
+assert.match(page, /function handleFindNearMe\([^)]*\)[\s\S]*navigator\.geolocation\.getCurrentPosition/);
 assert.doesNotMatch(page, /localStorage|sessionStorage/);
 assert.match(page, /const RADIUS_OPTIONS = \[1, 3, 5\]/);
 assert.match(page, /api: "1"/);

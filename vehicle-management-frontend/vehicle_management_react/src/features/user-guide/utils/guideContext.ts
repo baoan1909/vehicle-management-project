@@ -12,6 +12,9 @@ const routeFeatureMap: Array<{ prefix: string; featureCode: string }> = [
   { prefix: "/admin/swipe", featureCode: "PARKING_SESSION" },
   { prefix: "/admin/card", featureCode: "CARD_MANAGEMENT" },
   { prefix: "/admin/lost", featureCode: "CARD_MANAGEMENT" },
+  { prefix: "/admin/subscription-approvals", featureCode: "SUBSCRIPTION_APPROVAL" },
+  { prefix: "/admin/ticket", featureCode: "PRICING" },
+  { prefix: "/admin/vehicle", featureCode: "PRICING" },
   { prefix: "/admin/parking-lots", featureCode: "PARKING_LOT" },
   { prefix: "/admin/parking-structure", featureCode: "PARKING_LOT" },
   { prefix: "/admin/parking-layouts", featureCode: "PARKING_LOT" },
@@ -54,11 +57,43 @@ const routeFeatureMap: Array<{ prefix: string; featureCode: string }> = [
   { prefix: "/contact", featureCode: "CUSTOMER_PORTAL" },
 ];
 
+const STATE_AWARE_GUIDE_ROUTES = [
+  "/admin/swipe",
+  "/admin/lost/detail",
+  "/admin/subscription-approvals",
+  "/admin/parking-lots",
+  "/admin/parking-structure",
+  "/admin/parking-layouts",
+  "/admin/price-plans",
+  "/admin/price-rules",
+  "/admin/ticket",
+  "/admin/vehicle",
+  "/customer/profile",
+  "/customer/vehicles",
+  "/customer/subscriptions",
+  "/customer/parking-history",
+  "/customer/support/chat",
+  "/parking-lots/nearby",
+  "/pricing",
+] as const;
+
+function canonicalContextKey(pathname: string) {
+  if (/^\/pricing\/[^/]+\/?$/i.test(pathname)) {
+    return "/PRICING/DETAIL";
+  }
+  return pathname.toUpperCase();
+}
+
 export function deriveGuideContext(pathname: string): { featureCode: string | null; contextKey: string } {
   const normalized = pathname.split("?")[0].split("#")[0] || "/";
   const match = routeFeatureMap.find((entry) => normalized.startsWith(entry.prefix));
   return {
-    contextKey: normalized.toUpperCase(),
+    contextKey: canonicalContextKey(normalized),
     featureCode: match ? match.featureCode : null,
   };
+}
+
+export function shouldAutoStartGuide(pathname: string) {
+  const normalized = pathname.split("?")[0].split("#")[0] || "/";
+  return !STATE_AWARE_GUIDE_ROUTES.some((route) => normalized.startsWith(route));
 }

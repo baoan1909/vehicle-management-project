@@ -181,6 +181,14 @@ export type UserGuideAdminResponse = {
   updatedBy: string | null;
 };
 
+export type UserGuideStatusCountsResponse = {
+  all: number;
+  archived: number;
+  draft: number;
+  inactive: number;
+  published: number;
+};
+
 export type UserGuideVersionAdminResponse = {
   guideVersionId: string;
   guideId: string;
@@ -246,6 +254,8 @@ export type UserGuideFilter = {
   size?: number;
 };
 
+export type UserGuideCountFilter = Pick<UserGuideFilter, "displayType" | "featureId" | "keyword">;
+
 export type UserGuideFeatureFilter = {
   enabled?: boolean | null;
   keyword?: string | null;
@@ -289,6 +299,12 @@ export function updateUserGuideFeature(featureId: string, payload: UpdateUserGui
 export function getUserGuides(filter: UserGuideFilter = {}) {
   return apiClient<ApiResponse<PageResponse<UserGuideAdminResponse>>>(
     `${apiEndpoints.userGuides.adminGuides}${buildQuery(filter)}`,
+  );
+}
+
+export function getUserGuideStatusCounts(filter: UserGuideCountFilter = {}) {
+  return apiClient<ApiResponse<UserGuideStatusCountsResponse>>(
+    `${apiEndpoints.userGuides.adminGuideCounts}${buildQuery(filter)}`,
   );
 }
 

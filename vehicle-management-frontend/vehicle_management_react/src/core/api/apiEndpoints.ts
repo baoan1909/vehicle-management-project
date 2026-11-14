@@ -89,6 +89,7 @@ modelConfigurations: "/ai/models/configurations",
   },
   userGuides: {
     adminGuides: "/notifications/user-guides",
+    adminGuideCounts: "/notifications/user-guides/counts",
     adminGuide: (guideId: string) => `/notifications/user-guides/${guideId}`,
     adminVersions: (guideId: string) => `/notifications/user-guides/${guideId}/versions`,
     adminVersion: (guideId: string, versionNumber: number) =>

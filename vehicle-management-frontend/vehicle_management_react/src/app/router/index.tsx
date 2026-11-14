@@ -15,6 +15,8 @@ import { isResolvedAccessStatus, type AccessError } from "@/core/auth/accessStat
 import { resolvePostLoginPath } from "@/core/auth/landing";
 import { consumeLogoutRedirectGuard, getLogoutRedirectPath, isLogoutRedirectGuardActive, logoutCurrentUser } from "@/core/auth/logout";
 import { useAuth } from "@/core/auth/useAuth";
+import { UserGuideBackendHost } from "@/features/user-guide/components/UserGuideBackendHost";
+import { deriveGuideContext, shouldAutoStartGuide } from "@/features/user-guide/utils/guideContext";
 import { AdminLayout } from "@/shared/components/layout/AdminLayout";
 import { ClientLayout } from "@/shared/components/layout/ClientLayout";
 import { FullPageCarLoader, PageTransitionLoader } from "@/shared/components/ui/PageTransitionLoader";
@@ -53,7 +55,7 @@ function RouteDocument({ layout }: { layout: AppLayout }) {
   const activeHandle = [...matches].reverse().find((match) => match.handle)?.handle;
 
   useEffect(() => {
-    document.title = activeHandle?.title ?? "Vehicle Management";
+    document.title = activeHandle?.title ?? "Quản lý bãi xe CoParking";
     document.body.className = getBodyClassName(layout);
   }, [activeHandle, layout]);
 
@@ -308,13 +310,28 @@ function AuthShell() {
 }
 
 function FullscreenShell() {
+  const location = useLocation();
+  const guideContext = deriveGuideContext(location.pathname);
+  const routeContent = (
+    <Suspense fallback={<RouteFallback />}>
+      <Outlet />
+    </Suspense>
+  );
+
   return (
     <>
       <RouteDocument layout="fullscreen" />
       <PageTransitionLoader />
-      <Suspense fallback={<RouteFallback />}>
-        <Outlet />
-      </Suspense>
+      {guideContext.featureCode ? (
+        <UserGuideBackendHost
+          key={location.pathname}
+          contextKey={guideContext.contextKey}
+          featureCode={guideContext.featureCode}
+          autoStartFirst={shouldAutoStartGuide(location.pathname)}
+        >
+          {routeContent}
+        </UserGuideBackendHost>
+      ) : routeContent}
     </>
   );
 }
@@ -365,7 +382,11 @@ const fullscreenRoutes = routes
   .filter((route) => route.layout === "fullscreen")
   .map((route) => ({
     path: route.path.replace(/^\//, ""),
-    element: route.path.startsWith("/admin/") ? <AdminRouteGate path={route.path} element={route.element} /> : route.element,
+    element: route.path.startsWith("/admin/")
+      ? <AdminRouteGate path={route.path} element={route.element} />
+      : isCustomerProtectedRoute(route.path)
+        ? <CustomerRouteGate path={route.path} element={route.element} />
+        : route.element,
     handle: { title: route.title },
   }));
 

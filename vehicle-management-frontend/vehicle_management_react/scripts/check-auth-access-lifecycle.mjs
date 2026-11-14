@@ -89,6 +89,8 @@ assert.match(files.router, /canAccessAdminRoute\(user, path\)/);
 assert.match(files.router, /canAccessCustomerRoute\(user, path\)/);
 assert.match(files.router, /getAccessStateRedirect\(user, path\)/);
 assert.match(files.router, /accessStateRedirect && !canAccessRestrictedCustomerSupportRoute\(user, path\)/);
+assert.match(files.router, /isCustomerProtectedRoute\(route\.path\)[\s\S]*?<CustomerRouteGate path=\{route\.path\} element=\{route\.element\} \/>/,
+  "fullscreen customer routes must wait for authoritative access before rendering");
 assert.match(files.routePermissions, /restrictedCustomerSupportRoutes\.has\(path\) && canAccessCustomerRoute\(user, path\)/);
 assert.match(files.accessScreens, /export function NoAccessScreen/);
 assert.match(files.accessScreens, /export function AccessErrorScreen/);
@@ -125,6 +127,8 @@ assert.match(files.accountCreate, /getManageableProvisionedAccountRoleCodes\(use
 assert.match(files.provisionedPolicy, /ACCOUNT_CREATE_ALL[\s\S]*?PARKING_SCOPE_PLATFORM[\s\S]*?PARKING_SCOPE_PARTNER[\s\S]*?PARKING_SCOPE_ASSIGNED/);
 assert.match(files.notificationBell, /canOpenNotificationTarget\(user, redirectUrl\)/);
 assert.doesNotMatch(files.supportCenter, /user\?\.role === "CUSTOMER"/);
+assert.match(files.supportCenter, /if \(!hasResolvedChatPermissions\) \{[\s\S]*?setInboxError\(""\)[\s\S]*?return;/,
+  "chat inbox must not report missing permissions while current-access is unresolved");
 
 // Route selection also stays role-agnostic. Customer profile projection and
 // effective permissions are the only accepted routing inputs.

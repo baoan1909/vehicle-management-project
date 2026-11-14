@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 type SupportComposerActionsProps = {
   canAttach: boolean;
+  showAttachments?: boolean;
+  historyLabel?: string;
   disabled?: boolean;
   onCreateTicket?: () => void;
   onFilesSelected: (files: File[]) => void;
@@ -10,6 +12,8 @@ type SupportComposerActionsProps = {
 
 export function SupportComposerActions({
   canAttach,
+  showAttachments = true,
+  historyLabel = "Phiếu của tôi",
   disabled = false,
   onCreateTicket,
   onFilesSelected,
@@ -51,6 +55,7 @@ export function SupportComposerActions({
 
   return (
     <div className="tw-relative tw-flex tw-items-center tw-gap-5 tw-border-0 tw-border-b tw-border-solid tw-border-slate-100 tw-px-4 tw-py-2">
+      {showAttachments ? <>
       <input ref={fileInputRef} className="tw-hidden" type="file" accept="image/*" multiple onChange={handleFileChange} />
       <button
         type="button"
@@ -78,6 +83,7 @@ export function SupportComposerActions({
       <button type="button" className={actionClass} aria-label="Đính kèm tài liệu" disabled title="Tài liệu sẽ được hỗ trợ ở phiên bản sau">
         <i className="far fa-file-alt" />
       </button>
+      </> : null}
       <div className="tw-relative tw-inline-flex" ref={menuRef}>
         <button
           type="button"
@@ -88,11 +94,11 @@ export function SupportComposerActions({
           title="Thêm tác vụ"
           onClick={() => setOpen((current) => !current)}
         >
-          <i className="fas fa-ellipsis-h" />
+          <i className="fas fa-ellipsis-h" aria-hidden="true" />
         </button>
 
         {open ? (
-          <div className="tw-absolute tw-bottom-[calc(100%+6px)] tw-right-0 tw-z-[1100] tw-w-52 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-1.5 tw-shadow-xl">
+          <div className={`tw-absolute tw-bottom-[calc(100%+6px)] ${showAttachments ? "tw-right-0" : "tw-left-0"} tw-z-[1100] tw-w-52 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-1.5 tw-shadow-xl`}>
           {onCreateTicket ? (
             <button
               type="button"
@@ -102,7 +108,7 @@ export function SupportComposerActions({
                 onCreateTicket();
               }}
             >
-              <i className="far fa-life-ring" />Tạo phiếu hỗ trợ
+              <i className="far fa-life-ring" aria-hidden="true" />Tạo phiếu hỗ trợ
             </button>
           ) : null}
           <button
@@ -113,7 +119,7 @@ export function SupportComposerActions({
               onOpenHistory();
             }}
           >
-            <i className="far fa-list-alt" />Phiếu của tôi
+            <i className="far fa-list-alt" aria-hidden="true" />{historyLabel}
           </button>
           </div>
         ) : null}

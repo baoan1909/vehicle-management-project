@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.ban.vehicle_management.application.parking.location.port.in.ParkingLocationFeaturePortIn;
@@ -13,7 +14,9 @@ import com.ban.vehicle_management.application.parking.parkinglot.port.out.Parkin
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.math.BigDecimal;
 import java.util.List;
-import org.junit.jupiter.api.BeforeEach;
+import org.mockito.InjectMocks;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -31,12 +34,8 @@ class NearbyParkingLotUseCaseImplTest {
     @Mock
     private ParkingLocationFeaturePortIn featurePortIn;
 
+    @InjectMocks
     private NearbyParkingLotUseCaseImpl useCase;
-
-    @BeforeEach
-    void setUp() {
-        useCase = new NearbyParkingLotUseCaseImpl(nearbyParkingLotPortOut, parkingMapMetricsPortOut, featurePortIn);
-    }
 
     @Test
     void shouldConvertKilometresToMetersAndDelegateToSpatialPort() {
@@ -82,11 +81,22 @@ class NearbyParkingLotUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectInvalidRadius() {
+    void shouldRejectMissingRadius() {
         assertBadRequest(decimal("10.8"), decimal("106.7"), null, 20);
-        assertBadRequest(decimal("10.8"), decimal("106.7"), BigDecimal.ZERO, 20);
-        assertBadRequest(decimal("10.8"), decimal("106.7"), decimal("-1"), 20);
-        assertBadRequest(decimal("10.8"), decimal("106.7"), decimal("5.000001"), 20);
+        verifyNoInteractions(nearbyParkingLotPortOut, parkingMapMetricsPortOut);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "-1", "0", "0.01", "0.5", "0.999999", "1.000001", "2.5", "12.75",
+            "49.999", "50.000001", "51", "999", "1E-10", "1E+100"
+    })
+    void shouldRejectNonIntegerOrOutOfRangeRadiusBeforeSearching(String radius) {
+        BadRequestException exception = assertThrows(BadRequestException.class,
+                () -> useCase.findNearby(decimal("10.8"), decimal("106.7"), decimal(radius), 20));
+
+        assertEquals("radiusKm must be an integer between 1 and 50", exception.getMessage());
+        verifyNoInteractions(nearbyParkingLotPortOut, parkingMapMetricsPortOut);
     }
 
     @Test
@@ -100,16 +110,28 @@ class NearbyParkingLotUseCaseImplTest {
         when(nearbyParkingLotPortOut.findNearby(
                 decimal("90"),
                 decimal("180"),
-                decimal("5000"),
+                decimal("50000"),
                 50
         )).thenReturn(List.of());
 
         assertEquals(List.of(), useCase.findNearby(
                 decimal("90"),
                 decimal("180"),
-                decimal("5"),
+                decimal("50"),
                 50
         ));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "1", "2", "3", "5", "7", "12", "49", "50", "1.00", "50.000", "1E+1" })
+    void shouldAcceptIntegerRadiusFromOneToFiftyKilometres(String radius) {
+        BigDecimal radiusKm = decimal(radius);
+        BigDecimal meters = radiusKm.multiply(decimal("1000"));
+        when(nearbyParkingLotPortOut.findNearby(decimal("10.8"), decimal("106.7"), meters, 20))
+                .thenReturn(List.of());
+
+        assertEquals(List.of(), useCase.findNearby(decimal("10.8"), decimal("106.7"), radiusKm, 20));
+        verify(nearbyParkingLotPortOut).findNearby(decimal("10.8"), decimal("106.7"), meters, 20);
     }
 
     private void assertBadRequest(

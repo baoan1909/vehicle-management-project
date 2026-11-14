@@ -19,6 +19,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -145,7 +147,7 @@ class NearbyParkingLotIntegrationTest extends com.ban.vehicle_management.testsup
         mockMvc.perform(get("/api/public/parking-lots/nearby")
                         .queryParam("latitude", ORIGIN_LATITUDE.toPlainString())
                         .queryParam("longitude", ORIGIN_LONGITUDE.toPlainString())
-                        .queryParam("radiusKm", "5.000001"))
+                        .queryParam("radiusKm", "50.000001"))
                 .andExpect(status().isBadRequest());
 
         mockMvc.perform(get("/api/public/parking-lots/nearby")
@@ -153,6 +155,30 @@ class NearbyParkingLotIntegrationTest extends com.ban.vehicle_management.testsup
                         .queryParam("longitude", ORIGIN_LONGITUDE.toPlainString())
                         .queryParam("limit", "51"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "-1", "0", "0.5", "0.999999", "1.000001", "2.5", "12.75", "49.999",
+            "50.000001", "51", "999", "abc", "20km", "1,5", "NaN", "Infinity"
+    })
+    void shouldRejectInvalidRadiusAtPublicEndpoint(String radius) throws Exception {
+        mockMvc.perform(get("/api/public/parking-lots/nearby")
+                        .queryParam("latitude", ORIGIN_LATITUDE.toPlainString())
+                        .queryParam("longitude", ORIGIN_LONGITUDE.toPlainString())
+                        .queryParam("radiusKm", radius))
+                .andExpect(status().isBadRequest());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "1", "2", "7", "49", "50", "1.00", "50.000" })
+    void shouldAcceptIntegerRadiusAtPublicEndpoint(String radius) throws Exception {
+        mockMvc.perform(get("/api/public/parking-lots/nearby")
+                        .queryParam("latitude", ORIGIN_LATITUDE.toPlainString())
+                        .queryParam("longitude", ORIGIN_LONGITUDE.toPlainString())
+                        .queryParam("radiusKm", radius))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test

@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useState, type ChangeEvent } from "react";
 import { Link } from "react-router-dom";
 import { AdminPage } from "../../../shared/components/layout/AdminPage";
@@ -61,9 +62,10 @@ export function SwipeEntryPage({ mode }: SwipeEntryPageProps) {
               <div className="card-body">
                 <div className="form-group">
                   <label>ID thẻ xe</label>
-                  <select className="form-control select2" defaultValue="">
-                    <option value="">-- Chưa có thẻ từ backend --</option>
-                  </select>
+                  <SelectMenu ariaLabel="Chọn thẻ"
+                  value={String("")}
+                  onChange={() => undefined}
+                  options={[{ label: `-- Chưa có thẻ từ backend --`, value: String("") }]} portal clearValue="" />
                 </div>
                 <div className="form-group">
                   <label>Loại thẻ</label>

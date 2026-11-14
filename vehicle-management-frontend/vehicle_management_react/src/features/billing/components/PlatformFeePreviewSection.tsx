@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useState } from "react";
 
 import { Button, Card, useToast } from "@/components/ui";
@@ -153,16 +154,11 @@ export function PlatformFeePreviewSection({ onBack }: PreviewSectionProps) {
           <div className="tw-grid tw-gap-4">
             <label className="tw-grid tw-grid-cols-[150px_minmax(0,1fr)] tw-items-center tw-gap-3 max-[480px]:tw-grid-cols-1 max-[480px]:tw-items-stretch">
               <span className="tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-700">Loại giao dịch</span>
-              <select
-                aria-label="Loại giao dịch"
-                className={platformFeeInputClassName}
-                value={transactionType}
-                onChange={(event) => setTransactionType(event.target.value as PlatformFeeTransactionType)}
-              >
-                {(Object.entries(transactionTypeLabels) as [PlatformFeeTransactionType, string][]).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
-                ))}
-              </select>
+              <SelectMenu ariaLabel={"Loại giao dịch"}
+                  triggerClassName={platformFeeInputClassName}
+                  value={transactionType}
+                  onChange={(selectedValue) => setTransactionType(selectedValue as PlatformFeeTransactionType)}
+                  options={[...(Object.entries(transactionTypeLabels) as [PlatformFeeTransactionType, string][]).map(([value, label]) => ({ label: label, value: value }))]} portal clearValue="" />
             </label>
             <div className="tw-grid tw-grid-cols-[150px_minmax(0,1fr)] tw-items-center tw-gap-3 max-[480px]:tw-grid-cols-1 max-[480px]:tw-items-stretch">
               <span className="tw-text-[0.86rem] tw-font-semibold tw-text-vm-slate-700">Giá vé gốc</span>

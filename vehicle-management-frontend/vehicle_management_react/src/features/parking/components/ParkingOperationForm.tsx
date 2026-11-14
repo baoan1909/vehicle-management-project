@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { SelectMenuOption } from "@/components/ui";
 import { Button, Card, CardContent, CardHeader, SelectMenu } from "@/components/ui";
 import { VNPAY_MINIMUM_AMOUNT } from "@/features/parking/api/parkingPaymentApi";
+import { userGuideAnchorProps } from "@/features/user-guide";
 import type { LicensePlateOcrCandidate, LicensePlateOcrResponse } from "@/features/parking/api/parkingSessionApi";
 import { cn } from "@/lib/cn";
 import type { ParkingOperationMode } from "./OperationModeTabs";
@@ -471,6 +472,7 @@ export function ParkingOperationForm({
           ))}
         </div>
 
+        <div {...userGuideAnchorProps("PARKING_OPERATION.CARD_OR_QR")}>
         {subscriptionQrLicensePlate ? (
           <div className="tw-flex tw-min-h-[58px] tw-items-center tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-emerald-200 tw-bg-emerald-50 tw-px-3.5 tw-text-emerald-800">
             <i className="fas fa-qrcode tw-text-lg" />
@@ -489,6 +491,7 @@ export function ParkingOperationForm({
             onCardUidChange={onCardUidChange}
           />
         )}
+        </div>
 
         {showVehicleTypeField ? (
           <label className="tw-m-0 tw-grid tw-gap-2">
@@ -525,7 +528,7 @@ export function ParkingOperationForm({
           </label>
         ) : null}
 
-        <FieldShell
+        <div {...userGuideAnchorProps("PARKING_OPERATION.OCR_RESULT")}><FieldShell
           actionIcon="fas fa-car"
           icon="fas fa-car-side"
           label="Biển số"
@@ -534,7 +537,7 @@ export function ParkingOperationForm({
           onChange={onLicensePlateChange}
           onCommit={onLicensePlateCommit}
           error={validationErrors.licensePlate}
-        />
+        /></div>
         <OcrStatusMessage
           confidence={ocrConfidence}
           message={ocrMessage}
@@ -568,7 +571,7 @@ export function ParkingOperationForm({
         {isCheckIn ? checkInLocationPanel : null}
 
         {!isCheckIn ? (
-          <div className="tw-grid tw-gap-2">
+          <div className="tw-grid tw-gap-2" {...userGuideAnchorProps("PARKING_OPERATION.PAYMENT_METHOD")}>
             <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
               <span className="tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-700">Hình thức thanh toán</span>
               {requiresPayment ? (
@@ -665,6 +668,7 @@ export function ParkingOperationForm({
         </label>
 
         <Button
+          {...userGuideAnchorProps(mode === "check-in" ? "PARKING_OPERATION.CONFIRM" : "PARKING_OPERATION.CHECKOUT_CONFIRM")}
           className={cn(
             "tw-h-[48px] tw-w-full tw-text-[0.96rem] tw-font-extrabold",
             !canSubmit && !isSubmitting ? "tw-border-red-500 tw-bg-red-500 hover:tw-bg-red-600" : "",

@@ -1,18 +1,20 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 
 import { cn } from "@/lib/cn";
+import { acquireBodyScrollLock } from "@/shared/utils/bodyScrollLock";
 
 type ModalProps = {
   actions?: ReactNode;
   children: ReactNode;
   description?: string;
+  headerExtra?: ReactNode;
   onClose: () => void;
   open: boolean;
   title: string;
   width?: "sm" | "md" | "lg" | "xl";
 };
 
-export function Modal({ actions, children, description, onClose, open, title, width = "md" }: ModalProps) {
+export function Modal({ actions, children, description, headerExtra, onClose, open, title, width = "md" }: ModalProps) {
   const panelRef = useRef<HTMLElement | null>(null);
   // Parents commonly provide an inline onClose callback. Keep its latest value
   // in a ref so the focus-trap effect does not restart on every form keystroke.
@@ -46,14 +48,13 @@ export function Modal({ actions, children, description, onClose, open, title, wi
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     };
 
-    const previousOverflow = document.body.style.overflow;
     const previousFocus = document.activeElement as HTMLElement | null;
-    document.body.style.overflow = "hidden";
+    const releaseBodyScrollLock = acquireBodyScrollLock();
     window.addEventListener("keydown", handleKeyDown, true);
     requestAnimationFrame(() => panelRef.current?.querySelector<HTMLElement>("button, input, select, textarea, a[href]")?.focus());
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      releaseBodyScrollLock();
       window.removeEventListener("keydown", handleKeyDown, true);
       previousFocus?.focus();
     };
@@ -79,10 +80,13 @@ export function Modal({ actions, children, description, onClose, open, title, wi
         )}
       >
         <header className="tw-flex tw-min-w-0 tw-items-start tw-justify-between tw-gap-4 tw-border-0 tw-border-b tw-border-solid tw-border-vm-slate-100 tw-px-5 tw-py-4">
-          <div className="tw-min-w-0">
-            <h3 id={titleId} className="tw-m-0 tw-text-[1.1rem] tw-font-black tw-text-vm-slate-900">
-              {title}
-            </h3>
+          <div className="tw-min-w-0 tw-flex-1">
+            <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-x-4 tw-gap-y-2">
+              <h3 id={titleId} className="tw-m-0 tw-text-[1.1rem] tw-font-black tw-text-vm-slate-900">
+                {title}
+              </h3>
+              {headerExtra}
+            </div>
             {description ? <p className="tw-mb-0 tw-mt-1.5 tw-max-w-[38rem] tw-text-[0.82rem] tw-font-semibold tw-leading-6 tw-text-vm-slate-500">{description}</p> : null}
           </div>
           <button

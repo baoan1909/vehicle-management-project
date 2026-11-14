@@ -11,6 +11,7 @@ import {
   type AdministrativeDivision
 } from "@/shared/data/vietnamAddress";
 import { SelectMenu } from "@/shared/components/ui/SelectMenu";
+import { AddressModeButtons } from "@/shared/components/ui/AddressModeButtons";
 import { cn } from "@/lib/cn";
 
 export type VietnamAddressValue = {
@@ -206,21 +207,13 @@ export function VietnamAddressPicker({
   return (
     <div className={cn("tw-grid", compact ? "tw-gap-2" : "tw-gap-3")}>
       <div className={cn("tw-grid", compact ? "tw-gap-1.5" : "tw-gap-2")}>
-        <div className={cn("tw-flex tw-items-center tw-gap-2", compact ? "tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]" : "tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700")}>
+        <div className={cn("tw-flex tw-flex-wrap tw-items-center tw-gap-2", compact ? "tw-text-[0.76rem] tw-font-semibold tw-text-[#334a6e]" : "tw-text-[0.86rem] tw-font-black tw-text-vm-slate-700")}>
           <span>{label} <span className="tw-text-xs tw-font-normal tw-text-vm-slate-400">({isCurrentMode ? "Hiện hành" : "Cũ"})</span></span>
           {mode === "auto" && (
-            <SelectMenu
-              ariaLabel="Chọn kiểu địa chỉ"
+            <AddressModeButtons
               value={currentMode}
-              onChange={(v) => handleModeChange(v as "current" | "legacy")}
-              options={[
-                { label: "Hiện hành (Tỉnh → Phường/Xã)", value: "current" },
-                { label: "Cũ (Tỉnh → Quận/Huyện → Phường/Xã)", value: "legacy" }
-              ]}
+              onChange={handleModeChange}
               disabled={disabled}
-              className="tw-w-[220px]"
-              portal
-              triggerClassName={selectTriggerClassName}
             />
           )}
         </div>

@@ -43,6 +43,8 @@ import {
 import { Modal } from "@/shared/components/ui/Modal";
 import { SelectMenu, VietnamAddressPicker, type VietnamAddressValue } from "@/components/ui";
 import { formatInApplicationTime } from "@/shared/time/applicationTime";
+import { UserGuideHelpButton } from "@/features/user-guide/components/UserGuideHelpButton";
+import { useUserGuideActivation } from "@/features/user-guide/hooks/useUserGuideActivation";
 
 import { CustomerPortalLayout } from "./PortalShared";
 
@@ -295,6 +297,23 @@ export function ProfilePage() {
   const ticketName = activeSubscription ? ticketTypes.find((item) => item.ticketTypeId === activeSubscription.ticketTypeId)?.name ?? "Vé tháng CoParking" : "Chưa có vé tháng";
   const panelClass = "tw-overflow-hidden tw-rounded-xl tw-border tw-border-solid tw-border-[#e0e8f3] tw-bg-white tw-p-3.5 tw-shadow-[0_4px_12px_rgba(15,23,42,0.04)]";
   const panelTitleClass = "tw-m-0 tw-mb-2 tw-flex tw-items-center tw-gap-3 tw-text-base tw-font-bold tw-text-[#14213d] [&>i]:tw-text-[#0d62de]";
+  const profileGuideAutoEnabled = !loading
+    && profile?.account?.roleCode === "CUSTOMER"
+    && Boolean(profile)
+    && (isOnboardingRequired || effectiveApprovalStatus === "REJECTED");
+
+  useUserGuideActivation("CUSTOMER_PROFILE_ONBOARDING", profileGuideAutoEnabled);
+
+  useEffect(() => {
+    const verification = verificationRef.current;
+    if (!verification) return;
+    verification.dataset.userGuideAnchor = "CUSTOMER.PROFILE.VERIFICATION";
+    const heading = verification.querySelector<HTMLElement>("h2");
+    if (heading) {
+      if (isRejected) delete heading.dataset.userGuideAnchor;
+      else heading.dataset.userGuideAnchor = "CUSTOMER.PROFILE.RESUBMIT";
+    }
+  }, [isRejected, profile]);
 
   const applyProfile = (nextProfile: CustomerPortalProfile) => {
     setProfile(nextProfile);
@@ -512,6 +531,7 @@ export function ProfilePage() {
             </div>
           </div>
           <button
+            data-user-guide-anchor="CUSTOMER.PROFILE.RESUBMIT"
             className="tw-inline-flex tw-min-h-10 tw-flex-shrink-0 tw-items-center tw-justify-center tw-rounded-vm-md tw-border-0 tw-bg-vm-primary tw-px-4 tw-text-[0.88rem] tw-font-semibold tw-text-white tw-shadow-[0_10px_18px_rgba(37,99,235,0.18)] disabled:tw-cursor-not-allowed disabled:tw-opacity-60"
             type="button"
             disabled={saving || resubmitting || !profile}
@@ -522,13 +542,14 @@ export function ProfilePage() {
         </div>
       ) : null}
 
-      <section aria-label="Thông tin hồ sơ" className="tw-relative tw-isolate tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-[#28416b] tw-bg-[#03143b] tw-px-7 tw-py-4 tw-text-white tw-shadow-sm max-[1100px]:tw-px-5">
+      <section data-user-guide-anchor="CUSTOMER.PROFILE.SUMMARY" aria-label="Thông tin hồ sơ" className="tw-relative tw-isolate tw-overflow-hidden tw-rounded-[10px] tw-border tw-border-solid tw-border-[#28416b] tw-bg-[#03143b] tw-px-7 tw-py-4 tw-text-white tw-shadow-sm max-[1100px]:tw-px-5">
         <div aria-hidden="true" className="tw-pointer-events-none tw-absolute tw-inset-y-0 tw-left-[37%] tw-right-[23%] tw-overflow-hidden max-[1000px]:tw-left-[32%] max-[760px]:tw-left-0 max-[760px]:tw-right-0 max-[760px]:tw-opacity-30">
           <img alt="" className="tw-h-full tw-w-full tw-object-cover tw-object-center [transform:scale(1.18)] [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]" src="/assets/customer/portal/profile-parking-banner-v1.png" />
         </div>
         <div className="vm-profile-hero-grid tw-relative tw-grid tw-grid-cols-[132px_minmax(0,1fr)_280px] tw-items-center tw-gap-7 max-[1100px]:tw-grid-cols-[112px_minmax(0,1fr)_256px] max-[1100px]:tw-gap-5 max-[760px]:tw-grid-cols-[88px_minmax(0,1fr)] max-[760px]:tw-gap-4">
           <input ref={avatarInputRef} className="tw-sr-only" accept="image/png,image/jpeg,image/webp" type="file" onChange={handleAvatarChange} />
           <button
+            data-user-guide-anchor="CUSTOMER.PROFILE.AVATAR"
             aria-label={avatarUploading ? "Đang cập nhật ảnh đại diện" : "Đổi ảnh đại diện"}
             className="vm-profile-hero-avatar tw-relative tw-grid tw-h-[132px] tw-w-[132px] tw-place-items-center tw-overflow-hidden tw-rounded-full tw-border-[3px] tw-border-solid tw-border-white/95 tw-bg-[#dceafe] tw-p-0 tw-text-3xl tw-font-bold tw-text-[#0759d8] tw-shadow-lg focus-visible:tw-outline focus-visible:tw-outline-2 focus-visible:tw-outline-offset-4 focus-visible:tw-outline-white disabled:tw-cursor-wait max-[1100px]:tw-h-[112px] max-[1100px]:tw-w-[112px] max-[760px]:tw-h-[88px] max-[760px]:tw-w-[88px]"
             disabled={avatarUploading || saving || resubmitting || loading || !profile}
@@ -538,7 +559,7 @@ export function ProfilePage() {
           >
             {avatarPreviewUrl || avatarUrl ? <img alt="Ảnh đại diện" className="tw-h-full tw-w-full tw-object-cover" src={avatarPreviewUrl || avatarUrl} /> : initials(displayName)}
           </button>
-          <div className="vm-profile-hero-identity tw-min-w-0 tw-self-center">
+          <div data-user-guide-anchor="CUSTOMER.PROFILE.IDENTITY" className="vm-profile-hero-identity tw-min-w-0 tw-self-center">
             <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-x-4 tw-gap-y-2">
               <h1 className="tw-m-0 !tw-font-[Cambria,Georgia,serif] tw-text-[1.5rem] tw-font-bold tw-leading-tight tw-text-white">{loading ? "Đang tải..." : displayName}</h1>
               <span className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-lg tw-border tw-border-solid tw-border-[#a99359]/60 tw-bg-[#243347]/80 tw-px-3 tw-py-1.5 tw-text-[0.72rem] tw-font-medium tw-leading-none tw-text-[#e4c56f]">
@@ -546,10 +567,10 @@ export function ProfilePage() {
                 {profile?.customer?.customerType === "VIP" ? "Khách hàng VIP" : "Khách hàng"}
               </span>
             </div>
-            <div className="tw-mt-3 tw-grid tw-gap-1.5 tw-text-[0.82rem] tw-font-normal tw-leading-5 tw-text-[#e1e9f8]">
+            <div data-user-guide-anchor="CUSTOMER.PROFILE.CONTACT" className="tw-mt-3 tw-grid tw-gap-1.5 tw-text-[0.82rem] tw-font-normal tw-leading-5 tw-text-[#e1e9f8]">
               <span className="tw-flex tw-min-w-0 tw-items-center tw-gap-2.5"><i aria-hidden="true" className="far fa-envelope tw-w-3.5 tw-shrink-0" /><span className="tw-truncate" title={email}>{email}</span></span>
               <span className="tw-flex tw-min-w-0 tw-items-center tw-gap-2.5"><i aria-hidden="true" className="fas fa-phone-alt tw-w-3.5 tw-shrink-0" /><span className="tw-truncate">{form.phoneNumber || "Chưa cập nhật số điện thoại"}</span></span>
-              <span className="tw-flex tw-min-w-0 tw-items-center tw-gap-2.5"><i aria-hidden="true" className="fas fa-map-marker-alt tw-w-3.5 tw-shrink-0" /><span className="tw-truncate" title={form.addressDisplay}>{form.addressDisplay || "Chưa cập nhật địa chỉ"}</span></span>
+              <span data-user-guide-anchor="CUSTOMER.PROFILE.ADDRESS" className="tw-flex tw-min-w-0 tw-items-center tw-gap-2.5"><i aria-hidden="true" className="fas fa-map-marker-alt tw-w-3.5 tw-shrink-0" /><span className="tw-truncate" title={form.addressDisplay}>{form.addressDisplay || "Chưa cập nhật địa chỉ"}</span></span>
             </div>
           </div>
           <div className="vm-profile-hero-meta tw-grid tw-min-h-[120px] tw-grid-cols-[minmax(0,.9fr)_minmax(0,1.1fr)] tw-content-between tw-gap-x-4 tw-gap-y-5 tw-border-0 tw-border-l tw-border-solid tw-border-white/10 tw-pl-5 tw-text-[0.75rem] max-[760px]:tw-col-span-2 max-[760px]:tw-min-h-0 max-[760px]:tw-border-l-0 max-[760px]:tw-border-t max-[760px]:tw-pl-0 max-[760px]:tw-pt-4">
@@ -571,6 +592,10 @@ export function ProfilePage() {
           </div>
         </div>
       </section>
+
+      <div className="tw-mt-2 tw-flex tw-items-center tw-px-1">
+        <UserGuideHelpButton enabled={!loading && profile?.account?.roleCode === "CUSTOMER"} guideCode="CUSTOMER_PROFILE_ONBOARDING" />
+      </div>
 
       <AvatarModerationStatusCard status={avatarModeration} />
 
@@ -607,7 +632,7 @@ export function ProfilePage() {
               </button>
             </div>
           </div>
-          <div className="tw-flex tw-flex-wrap tw-justify-end tw-gap-3 max-[1100px]:tw-col-span-2 max-[640px]:tw-col-span-1">{showUndoButton ? <button className="tw-min-h-8 tw-rounded-md tw-border tw-border-solid tw-border-[#b8cae4] tw-bg-white tw-px-4 tw-text-[0.78rem] tw-font-semibold tw-text-[#334a6e] disabled:tw-opacity-60" type="button" disabled={!profile || saving || resubmitting || !formChanged} onClick={() => profile && setForm(profileToForm(profile))}>Hủy thay đổi</button> : null}{showSaveProfileButton ? <button className="tw-min-h-8 tw-rounded-md tw-border-0 tw-bg-[linear-gradient(135deg,#146cf3,#0756d8)] tw-px-5 tw-text-[0.78rem] tw-font-semibold tw-text-white tw-shadow-[0_10px_18px_rgba(20,99,230,0.18)] disabled:tw-opacity-60" type="button" disabled={saveButtonDisabled} onClick={handleSave}>{saveButtonLabel}</button> : null}</div>
+          <div data-user-guide-anchor="CUSTOMER.PROFILE.SAVE" className="tw-flex tw-flex-wrap tw-justify-end tw-gap-3 max-[1100px]:tw-col-span-2 max-[640px]:tw-col-span-1">{showUndoButton ? <button className="tw-min-h-8 tw-rounded-md tw-border tw-border-solid tw-border-[#b8cae4] tw-bg-white tw-px-4 tw-text-[0.78rem] tw-font-semibold tw-text-[#334a6e] disabled:tw-opacity-60" type="button" disabled={!profile || saving || resubmitting || !formChanged} onClick={() => profile && setForm(profileToForm(profile))}>Hủy thay đổi</button> : null}{showSaveProfileButton ? <button className="tw-min-h-8 tw-rounded-md tw-border-0 tw-bg-[linear-gradient(135deg,#146cf3,#0756d8)] tw-px-5 tw-text-[0.78rem] tw-font-semibold tw-text-white tw-shadow-[0_10px_18px_rgba(20,99,230,0.18)] disabled:tw-opacity-60" type="button" disabled={saveButtonDisabled} onClick={handleSave}>{saveButtonLabel}</button> : null}</div>
         </div>
       </section>
 

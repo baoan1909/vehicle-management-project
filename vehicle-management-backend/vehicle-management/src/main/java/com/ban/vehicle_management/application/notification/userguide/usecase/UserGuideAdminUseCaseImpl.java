@@ -156,6 +156,17 @@ public class UserGuideAdminUseCaseImpl implements UserGuideAdminPortIn {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Map<UserGuideStatus, Long> countGuidesByStatus(
+            UUID featureId,
+            UserGuideDisplayType displayType,
+            String keyword
+    ) {
+        currentAccountPortIn.requirePermission("USER_GUIDE_READ_ALL");
+        return guidePortOut.countByStatus(featureId, displayType, keyword);
+    }
+
+    @Override
     @Transactional
     public UserGuideVersion createDraftVersion(UUID guideId, UserGuideVersion version, Integer cloneFromVersionNumber) {
         currentAccountPortIn.requirePermission("USER_GUIDE_UPDATE_ALL");

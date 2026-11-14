@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { SelectMenu } from "@/components/ui";
+import { AddressModeButtons } from "@/shared/components/ui/AddressModeButtons";
 import {
   emptyAddressOption,
   getDivisionName,
@@ -26,6 +27,7 @@ export type ParkingAddressValue = {
 type Props = {
   value: ParkingAddressValue;
   onChange: (value: ParkingAddressValue) => void;
+  compact?: boolean;
 };
 
 export function extractAddressDetail(addressDisplay: string, path: AdministrativeDivisionPath) {
@@ -39,7 +41,7 @@ export function extractAddressDetail(addressDisplay: string, path: Administrativ
     : addressDisplay;
 }
 
-export function ParkingAddressPicker({ value, onChange }: Props) {
+export function ParkingAddressPicker({ value, onChange, compact = false }: Props) {
   const [provinces, setProvinces] = useState<AdministrativeDivision[]>([]);
   const [districts, setDistricts] = useState<AdministrativeDivision[]>([]);
   const [wards, setWards] = useState<AdministrativeDivision[]>([]);
@@ -48,6 +50,8 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
   const selectedWardCode = value.addressInputScheme === "LEGACY" ? value.legacyWardCode : value.currentWardCode;
   const [wardCode, setWardCode] = useState(selectedWardCode ?? "");
   const [detail, setDetail] = useState(value.addressDisplay);
+  const addressDisplayRef = useRef(value.addressDisplay);
+  addressDisplayRef.current = value.addressDisplay;
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -81,7 +85,8 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
       setProvinceCode(path.province.code);
       setDistrictCode(path.district?.code ?? "");
       setWardCode(path.ward.code);
-      setDetail(extractAddressDetail(value.addressDisplay, path));
+      // The path request can finish after the user has edited the street.
+      setDetail(extractAddressDetail(addressDisplayRef.current, path));
     }).catch(() => {
       if (mounted) setLoadError("Không khôi phục được tỉnh/huyện/xã từ mã phường. Vui lòng chọn lại địa chỉ.");
     }).finally(() => mounted && setLoading(false));
@@ -148,40 +153,46 @@ export function ParkingAddressPicker({ value, onChange }: Props) {
   }
 
   return (
-    <div className="tw-grid tw-grid-cols-2 tw-gap-3 max-[900px]:tw-grid-cols-1">
-      <div className="tw-col-span-full tw-flex tw-gap-2">
-        {(["CURRENT", "LEGACY"] as const).map((scheme) => (
-          <button
-            className={`tw-rounded-vm-md tw-border tw-border-solid tw-px-3 tw-py-2 tw-text-xs tw-font-extrabold ${value.addressInputScheme === scheme ? "tw-border-blue-500 tw-bg-blue-600 tw-text-white" : "tw-border-slate-200 tw-bg-white tw-text-slate-700"}`}
-            key={scheme}
-            type="button"
-            onClick={() => {
+    <div className={`tw-grid tw-gap-3 ${compact ? "tw-grid-cols-1" : "tw-grid-cols-2 max-[900px]:tw-grid-cols-1"}`}>
+      <div className="tw-col-span-full">
+        <AddressModeButtons value={value.addressInputScheme === "CURRENT" ? "current" : "legacy"} stretch={compact}
+            onChange={(mode) => {
+              const scheme = mode === "current" ? "CURRENT" : "LEGACY";
               setProvinceCode(""); setDistrictCode(""); setWardCode(""); setDetail("");
               onChange({ addressDisplay: "", addressInputScheme: scheme, currentWardCode: null, legacyWardCode: null });
             }}
-          >
-            {scheme === "CURRENT" ? "Địa chỉ hiện hành" : "Địa chỉ cũ (có huyện)"}
-          </button>
-        ))}
+        />
       </div>
+      <div className="tw-grid tw-gap-1.5">
+        {compact ? <span className="tw-text-xs tw-font-extrabold tw-text-vm-slate-700">Tỉnh/thành phố</span> : null}
       <SelectMenu ariaLabel="Tỉnh hoặc thành phố" clearValue="" value={provinceCode}
+        disabled={compact && loading} portal={compact} searchable={compact ? true : "auto"} searchPlaceholder="Tìm tỉnh/thành phố..."
         onChange={(code) => { setProvinceCode(code); setDistrictCode(""); setWardCode(""); commit(detail, "", code, ""); }}
         options={[{ ...emptyAddressOption, label: loading ? "Đang tải..." : "Chọn tỉnh/thành" }, ...options.provinces]} />
+      </div>
       {value.addressInputScheme === "LEGACY" ? (
+        <div className="tw-grid tw-gap-1.5">
+        {compact ? <span className="tw-text-xs tw-font-extrabold tw-text-vm-slate-700">Quận/huyện</span> : null}
         <SelectMenu ariaLabel="Quận hoặc huyện" clearValue="" value={districtCode}
+          disabled={compact && (!provinceCode || loading)} portal={compact} searchable={compact ? true : "auto"} searchPlaceholder="Tìm quận/huyện..."
           onChange={(code) => { setDistrictCode(code); setWardCode(""); commit(detail, "", provinceCode, code); }}
           options={[{ ...emptyAddressOption, label: provinceCode ? "Chọn quận/huyện" : "Chọn tỉnh trước" }, ...options.districts]} />
+        </div>
       ) : null}
-      <div className={value.addressInputScheme === "CURRENT" ? "tw-col-span-full" : ""}>
+      <div className={`tw-grid tw-gap-1.5 ${value.addressInputScheme === "CURRENT" ? "tw-col-span-full" : ""}`}>
+        {compact ? <span className="tw-text-xs tw-font-extrabold tw-text-vm-slate-700">Phường/xã</span> : null}
         <SelectMenu ariaLabel="Phường hoặc xã" clearValue="" value={wardCode}
+          disabled={compact && (loading || (value.addressInputScheme === "LEGACY" ? !districtCode : !provinceCode))}
+          portal={compact} searchable={compact ? true : "auto"} searchPlaceholder="Tìm phường/xã..."
           onChange={(code) => { setWardCode(code); commit(detail, code); }}
           options={[{ ...emptyAddressOption, label: "Chọn phường/xã" }, ...options.wards]} />
       </div>
+      {compact ? <span className="tw-text-xs tw-font-extrabold tw-text-vm-slate-700">Địa chỉ chi tiết <span className="tw-font-normal tw-text-vm-slate-500">(không bắt buộc)</span></span> : null}
       <input className="tw-col-span-full tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-slate-200 tw-px-3"
         value={detail} placeholder="Số nhà, tên đường" aria-label="Số nhà, tên đường"
         onChange={(event) => { setDetail(event.target.value); commit(event.target.value, wardCode); }} />
       {loadError ? <div className="tw-col-span-full tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-xs tw-font-bold tw-text-red-800" role="alert">{loadError}</div> : null}
-      {value.addressDisplay ? <div className="tw-col-span-full tw-rounded-vm-md tw-bg-blue-50 tw-p-3 tw-text-xs tw-font-bold tw-text-blue-900">{value.addressDisplay}</div> : null}
+      {value.addressDisplay && !compact ? <div className="tw-col-span-full tw-rounded-vm-md tw-bg-blue-50 tw-p-3 tw-text-xs tw-font-bold tw-text-blue-900">{value.addressDisplay}</div> : null}
     </div>
   );
 }

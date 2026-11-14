@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useMemo, useState } from "react";
 import type { TableColumn } from "../../types/common";
 
@@ -80,16 +81,13 @@ export function DataTable<T>({ columns, rows }: DataTableProps<T>) {
       <div className="vm-table-toolbar">
         <div className="vm-table-length">
           <span>Hiển thị</span>
-          <select
-            className="form-control vm-form-control"
-            value={pageSize}
-            onChange={(event) => {
-              setPageSize(Number(event.target.value));
+          <SelectMenu ariaLabel="Số dòng mỗi trang" className="!tw-w-[86px] tw-shrink-0" searchable={false}
+                  value={String(pageSize)}
+                  onChange={(selectedValue) => {
+              setPageSize(Number(selectedValue));
               setCurrentPage(1);
             }}
-          >
-            {[5, 10, 20, 50].map((size) => <option value={size} key={size}>{size}</option>)}
-          </select>
+                  options={[...[5, 10, 20, 50].map((size) => ({ label: String(size), value: String(size) }))]} portal clearValue="" />
           <span>dòng</span>
         </div>
         <div className="vm-export-actions">
