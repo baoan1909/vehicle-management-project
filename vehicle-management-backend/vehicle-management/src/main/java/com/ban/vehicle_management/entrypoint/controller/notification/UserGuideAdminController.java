@@ -14,7 +14,6 @@ import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideStatusCountsResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideVersionAdminResponse;
 import com.ban.vehicle_management.shared.utils.ApiResponse;
-import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStatus;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -33,7 +32,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -79,22 +77,10 @@ public class UserGuideAdminController {
     public ResponseEntity<ApiResponse<UserGuideStatusCountsResponse>> countGuides(
             @ModelAttribute UserGuideFilterRequest filter
     ) {
-        Map<UserGuideStatus, Long> counts =
-                adminPortIn.countGuidesByStatus(
-                        filter.featureId(), filter.displayType(), filter.keyword());
-        long draft = counts.getOrDefault(UserGuideStatus.DRAFT, 0L);
-        long published = counts.getOrDefault(UserGuideStatus.PUBLISHED, 0L);
-        long inactive = counts.getOrDefault(UserGuideStatus.INACTIVE, 0L);
-        long archived = counts.getOrDefault(UserGuideStatus.ARCHIVED, 0L);
-        UserGuideStatusCountsResponse response = new UserGuideStatusCountsResponse(
-                draft + published + inactive + archived,
-                draft,
-                published,
-                inactive,
-                archived);
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched user guide status counts successfully",
-                response));
+                apiMapper.toStatusCountsResponse(adminPortIn.countGuidesByStatus(
+                        filter.featureId(), filter.displayType(), filter.keyword()))));
     }
 
     @GetMapping("/{guideId}")

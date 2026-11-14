@@ -21,13 +21,16 @@ import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideFeatureAdminResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideStepResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideStepUserResponse;
+import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideStatusCountsResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideUserResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideUserStateResponse;
 import com.ban.vehicle_management.entrypoint.dto.notification.userguide.response.UserGuideVersionAdminResponse;
 import com.ban.vehicle_management.application.notification.userguide.model.result.ResolvedUserGuide;
 import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStepPlacement;
+import com.ban.vehicle_management.shared.enumeration.notification.UserGuideStatus;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
 import java.util.List;
+import java.util.Map;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.BeanMapping;
@@ -143,6 +146,19 @@ public interface UserGuideApiMapper {
     UserGuideVersionAdminResponse toVersionAdminResponse(UserGuideVersion version);
 
     List<UserGuideVersionAdminResponse> toVersionAdminResponses(List<UserGuideVersion> versions);
+
+    default UserGuideStatusCountsResponse toStatusCountsResponse(Map<UserGuideStatus, Long> counts) {
+        long draft = counts.getOrDefault(UserGuideStatus.DRAFT, 0L);
+        long published = counts.getOrDefault(UserGuideStatus.PUBLISHED, 0L);
+        long inactive = counts.getOrDefault(UserGuideStatus.INACTIVE, 0L);
+        long archived = counts.getOrDefault(UserGuideStatus.ARCHIVED, 0L);
+        return new UserGuideStatusCountsResponse(
+                draft + published + inactive + archived,
+                draft,
+                published,
+                inactive,
+                archived);
+    }
 
     UserGuideStepResponse toStepResponse(UserGuideStep step);
 
