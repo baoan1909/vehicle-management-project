@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class NearbyParkingLotUseCaseImpl implements NearbyParkingLotPortIn {
 
-    static final BigDecimal MAX_RADIUS_KM = new BigDecimal("5");
+    static final BigDecimal MAX_RADIUS_KM = new BigDecimal("50");
     static final int MAX_LIMIT = 50;
     private static final BigDecimal METERS_PER_KILOMETER = new BigDecimal("1000");
     private static final BigDecimal MIN_LATITUDE = new BigDecimal("-90");
@@ -83,8 +83,10 @@ public class NearbyParkingLotUseCaseImpl implements NearbyParkingLotPortIn {
         if (radiusKm == null) {
             throw new BadRequestException("radiusKm is required");
         }
-        if (radiusKm.signum() <= 0 || radiusKm.compareTo(MAX_RADIUS_KM) > 0) {
-            throw new BadRequestException("radiusKm must be greater than 0 and at most 5");
+        if (radiusKm.compareTo(BigDecimal.ONE) < 0
+                || radiusKm.compareTo(MAX_RADIUS_KM) > 0
+                || radiusKm.stripTrailingZeros().scale() > 0) {
+            throw new BadRequestException("radiusKm must be an integer between 1 and 50");
         }
     }
 
