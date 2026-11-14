@@ -1,8 +1,7 @@
 package com.ban.vehicle_management.entrypoint.controller.billing;
 
-import com.ban.vehicle_management.application.billing.payment.model.command.SepayWebhookCommand;
-import com.ban.vehicle_management.application.billing.payment.port.in.SepayPaymentPortIn;
-import java.util.Map;
+import com.ban.vehicle_management.entrypoint.dto.billing.payment.response.SepayWebhookResponse;
+import com.ban.vehicle_management.entrypoint.policy.SepayWebhookEndpointPolicy;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,18 +12,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/public/payments/sepay")
 public class SepayWebhookController {
-    private final SepayPaymentPortIn sepay;
+    private final SepayWebhookEndpointPolicy endpointPolicy;
 
-    public SepayWebhookController(SepayPaymentPortIn sepay) {
-        this.sepay = sepay;
+    public SepayWebhookController(SepayWebhookEndpointPolicy endpointPolicy) {
+        this.endpointPolicy = endpointPolicy;
     }
 
     @PostMapping("/webhook")
-    public ResponseEntity<Map<String, Boolean>> webhook(
+    public ResponseEntity<SepayWebhookResponse> webhook(
             @RequestBody byte[] rawBody,
             @RequestHeader(value = "X-SePay-Signature", required = false) String signature,
             @RequestHeader(value = "X-SePay-Timestamp", required = false) String timestamp) {
-        sepay.processWebhook(new SepayWebhookCommand(rawBody, signature, timestamp));
-        return ResponseEntity.ok(Map.of("success", true));
+        return endpointPolicy.process(rawBody, signature, timestamp);
     }
 }

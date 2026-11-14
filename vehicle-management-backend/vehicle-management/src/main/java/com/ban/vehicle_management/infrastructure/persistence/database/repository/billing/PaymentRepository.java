@@ -4,6 +4,7 @@ import com.ban.vehicle_management.infrastructure.persistence.database.entity.bil
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentStatus;
 import com.ban.vehicle_management.shared.enumeration.billing.PaymentMethod;
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,6 +51,27 @@ public interface PaymentRepository extends JpaRepository<PaymentEntity, UUID>, J
     Optional<PaymentEntity> findByTransactionRef(String transactionRef);
 
     Optional<PaymentEntity> findByIdempotencyKey(String idempotencyKey);
+
+    @Query(value = """
+            select 1
+              from (
+                    select pg_advisory_xact_lock(hashtext(cast(:lockKey as text)))
+                   ) quota_lock
+            """, nativeQuery = true)
+    int acquireSepayQuotaLock(@Param("lockKey") String lockKey);
+
+    @Query(value = """
+            select count(*)
+              from billing.payments
+             where payment_method = 'SEPAY'
+               and ((status = 'SUCCESS' and paid_at >= :periodStart and paid_at < :periodEnd)
+                    or (status = 'PENDING'
+                        and expires_at > current_timestamp
+                        and created_at < :periodEnd))
+            """, nativeQuery = true)
+    long countActiveSepayUsage(
+            @Param("periodStart") Instant periodStart,
+            @Param("periodEnd") Instant periodEnd);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select p from PaymentEntity p where p.paymentId = :paymentId")
