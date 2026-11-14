@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { LayoutCanvas, type CanvasSelection, type LayoutSpaceVisualState } from "@/features/parking/components/LayoutCanvas";
@@ -308,21 +309,19 @@ export function CustomerReservationPage({ modalParkingLotId, modalReservationId,
         <section className="tw-space-y-5 tw-rounded-xl tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-5 tw-shadow-sm">
           <div><h2 className="tw-mt-0 tw-text-lg tw-font-bold">{lot?.name ?? "Bãi xe"}</h2><p>{lot?.addressDisplay}</p></div>
           <label className="tw-block tw-font-semibold">Loại xe
-            <select value={vehicleTypeId} onChange={(event) => setVehicleTypeId(event.target.value)}
-              className="tw-mt-1 tw-block tw-w-full tw-rounded-lg tw-border tw-border-solid tw-border-slate-300 tw-p-2">
-              <option value="">Chọn loại xe</option>
-              {(lot?.vehicleTypes ?? []).map((type) => <option key={type.vehicleTypeId} value={type.vehicleTypeId}>{type.name}</option>)}
-            </select>
+            <SelectMenu ariaLabel="Loại xe đặt chỗ"
+                  value={vehicleTypeId}
+                  onChange={(selectedValue) => setVehicleTypeId(selectedValue)}
+                  triggerClassName={"tw-mt-1 tw-block tw-w-full tw-rounded-lg tw-border tw-border-solid tw-border-slate-300 tw-p-2"}
+                  options={[{ label: "Chọn loại xe", value: "" }, ...(lot?.vehicleTypes ?? []).map((type) => ({ label: type.name, value: type.vehicleTypeId }))]} portal clearValue="" />
           </label>
           {vehicleTypeId && options.length === 0 ? <p>Hiện không có khu vực còn chỗ phù hợp với loại xe này.</p> : null}
           {options.length > 0 ? <label className="tw-block tw-font-semibold">Khu vực
-            <select value={zoneId} onChange={(event) => { setZoneId(event.target.value); setParkingSpaceId(""); }}
-              className="tw-mt-1 tw-block tw-w-full tw-rounded-lg tw-border tw-border-solid tw-border-slate-300 tw-p-2">
-              <option value="">Chọn khu vực</option>
-              {options.map((option) => <option key={option.zoneId} value={option.zoneId}>
-                {option.zoneName} · {option.trackingMode} · còn {option.available}
-              </option>)}
-            </select>
+            <SelectMenu ariaLabel="Khu vực đặt chỗ"
+                  value={zoneId}
+                  onChange={(selectedValue) => { setZoneId(selectedValue); setParkingSpaceId(""); }}
+                  triggerClassName={"tw-mt-1 tw-block tw-w-full tw-rounded-lg tw-border tw-border-solid tw-border-slate-300 tw-p-2"}
+                  options={[{ label: "Chọn khu vực", value: "" }, ...options.map((option) => ({ label: `${option.zoneName} · ${option.trackingMode} · còn ${option.available}`, value: option.zoneId }))]} portal clearValue="" />
           </label> : null}
           {selectedZone?.trackingMode === "SPACE" ? <div className="tw-space-y-2">
             <p className="tw-mb-1 tw-font-semibold">Chọn vị trí trên sơ đồ bãi xe</p>

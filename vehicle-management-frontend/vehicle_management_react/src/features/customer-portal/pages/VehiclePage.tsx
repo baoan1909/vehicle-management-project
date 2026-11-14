@@ -77,7 +77,7 @@ export function VehiclePage() {
   const vehicleFormRef = useRef<HTMLElement>(null);
   const focusVehicleForm = () => {
     vehicleFormRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    vehicleFormRef.current?.querySelector("select")?.focus({ preventScroll: true });
+    vehicleFormRef.current?.querySelector<HTMLButtonElement>('button[aria-label="Chọn loại xe"]')?.focus({ preventScroll: true });
   };
 
   const vehicleTypeById = useMemo(() => new Map(vehicleTypes.map((type) => [type.vehicleTypeId, type])), [vehicleTypes]);

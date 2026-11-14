@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useMemo, useState } from "react";
 
 import { DatePicker } from "@/components/ui";
@@ -340,17 +341,11 @@ function RevenueChart({
     <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-p-5 tw-shadow-vm-card">
       <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-gap-4">
         <h2 className="tw-m-0 tw-text-[1rem] tw-font-extrabold tw-text-slate-900">Biểu đồ doanh thu</h2>
-        <select
-          className="tw-h-9 tw-rounded-vm-sm tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-px-3 tw-text-[0.82rem] tw-font-bold tw-text-slate-700"
-          value={groupBy}
-          onChange={(event) => onGroupByChange(event.target.value as RevenueGroup)}
-        >
-          {revenueGroupOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <SelectMenu ariaLabel="Nhóm doanh thu"
+                  triggerClassName={"tw-h-9 tw-rounded-vm-sm tw-border tw-border-solid tw-border-vm-border tw-bg-white tw-px-3 tw-text-[0.82rem] tw-font-bold tw-text-slate-700"}
+                  value={groupBy}
+                  onChange={(selectedValue) => onGroupByChange(selectedValue as RevenueGroup)}
+                  options={[...revenueGroupOptions.map((option) => ({ label: option.label, value: option.value }))]} portal clearValue="" />
       </div>
       <div className="tw-overflow-x-auto">
         <svg className="tw-min-w-[680px]" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Biểu đồ đường doanh thu">

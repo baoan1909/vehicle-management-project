@@ -31,6 +31,14 @@ function starLabel(rating: number) {
   return "★".repeat(rating) + "☆".repeat(5 - rating);
 }
 
+const reviewHighlights = [
+  "Bãi xe dễ tìm, dễ ra vào",
+  "Giá vé rõ ràng",
+  "An ninh, trông giữ xe tốt",
+  "Nhân viên hỗ trợ nhiệt tình",
+  "Sẽ tiếp tục gửi xe tại đây",
+];
+
 const eligibilityMessage: Record<string, string> = {
   CUSTOMER_NOT_ACTIVE: "Hồ sơ khách hàng của bạn chưa hoạt động.",
   CUSTOMER_NOT_APPROVED: "Hồ sơ khách hàng của bạn chưa được phê duyệt.",
@@ -54,9 +62,19 @@ export function ParkingLotReviewsSection({
   const [eligibilityLoading, setEligibilityLoading] = useState(false);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
   const [rating, setRating] = useState(5);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [formMessage, setFormMessage] = useState("");
+  const selectedHighlights = new Set(comment.split(/\r?\n/).map((line) => line.trim()));
+
+  function commentWithHighlight(highlight: string) {
+    const sentence = `${highlight}.`;
+    if (selectedHighlights.has(sentence)) {
+      return comment.split(/\r?\n/).filter((line) => line.trim() !== sentence).join("\n").trim();
+    }
+    return comment.trim() ? `${comment.trimEnd()}\n${sentence}` : sentence;
+  }
 
   const loadReviews = useCallback(async () => {
     setLoading(true);
@@ -157,7 +175,7 @@ export function ParkingLotReviewsSection({
         </div>
         {user?.role === "CUSTOMER" ? (
           <button className="tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-[9px] tw-border-0 tw-bg-vm-primary tw-px-4 tw-text-[0.76rem] tw-font-black tw-text-white tw-shadow-[0_8px_18px_rgba(21,87,221,0.2)] hover:tw-bg-vm-primary-hover" onClick={openReviewModal} type="button">
-            <i className="fas fa-star" />{mine?.currentReview ? "Sửa đánh giá" : "Viết đánh giá"}
+            <i className="fas fa-star" aria-hidden="true" />{mine?.currentReview ? "Sửa đánh giá" : "Viết đánh giá"}
           </button>
         ) : (
           <Link className="tw-inline-flex tw-min-h-10 tw-items-center tw-justify-center tw-gap-2 tw-rounded-[9px] tw-bg-vm-primary tw-px-4 tw-text-[0.76rem] tw-font-black tw-text-white tw-shadow-[0_8px_18px_rgba(21,87,221,0.2)] hover:tw-bg-vm-primary-hover hover:tw-text-white hover:tw-no-underline" to="/login">
@@ -238,19 +256,40 @@ export function ParkingLotReviewsSection({
         onClose={closeReviewModal}
         open={reviewModalOpen}
         title={mine?.currentReview ? "Sửa đánh giá bãi xe" : "Viết đánh giá bãi xe"}
-        width="md"
+        width="lg"
       >
         {eligibilityLoading ? <div className="tw-grid tw-min-h-40 tw-place-items-center tw-text-sm tw-font-semibold tw-text-vm-slate-500"><span><i className="fas fa-spinner tw-mr-2 tw-animate-spin" />Đang kiểm tra điều kiện đánh giá...</span></div> : null}
         {!eligibilityLoading && mine?.eligible ? (
           <div>
-            <label className="tw-block tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700">Mức độ hài lòng</label>
-            <div aria-label="Chọn số sao" className="tw-mt-2 tw-flex tw-justify-center tw-gap-2 tw-rounded-[12px] tw-bg-amber-50 tw-p-4">
+            <p className="tw-m-0 tw-text-center tw-text-base tw-font-bold tw-text-vm-slate-500">Trải nghiệm của bạn như thế nào?</p>
+            <div role="group" aria-label="Chọn số sao" className="tw-mt-2 tw-flex tw-justify-center tw-gap-1" onMouseLeave={() => setHoverRating(null)}>
               {[1, 2, 3, 4, 5].map((value) => (
-                <button aria-label={`${value} sao`} aria-pressed={rating === value} className={`tw-border-0 tw-bg-transparent tw-p-1 tw-text-[2rem] tw-transition hover:tw-scale-110 ${value <= rating ? "tw-text-amber-400" : "tw-text-slate-300"}`} key={value} onClick={() => setRating(value)} type="button">★</button>
+                <button aria-label={`${value} sao`} aria-pressed={rating === value} disabled={saving}
+                  className="tw-flex tw-h-12 tw-w-12 tw-items-center tw-justify-center tw-rounded-lg tw-border-0 tw-bg-transparent tw-p-1 tw-transition hover:tw-scale-110 focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus disabled:tw-opacity-50"
+                  key={value} onClick={() => setRating(value)} onMouseEnter={() => setHoverRating(value)} onBlur={() => setHoverRating(null)} type="button">
+                  <svg viewBox="0 0 24 24" className={`tw-h-9 tw-w-9 ${value <= (hoverRating ?? rating) ? "tw-fill-amber-200 tw-stroke-amber-400" : "tw-fill-white tw-stroke-slate-300"}`} strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m12 2.5 2.9 5.88 6.49.94-4.7 4.58 1.11 6.47L12 17.32l-5.8 3.05 1.1-6.47-4.69-4.58 6.49-.94Z" />
+                  </svg>
+                </button>
               ))}
             </div>
-            <label className="tw-mt-4 tw-block tw-text-[0.78rem] tw-font-black tw-text-vm-slate-700" htmlFor="parking-review-comment">Nhận xét <span className="tw-font-semibold tw-text-vm-slate-400">(không bắt buộc)</span></label>
-            <textarea className="tw-mt-2 tw-min-h-32 tw-w-full tw-resize-y tw-rounded-[10px] tw-border tw-border-solid tw-border-slate-200 tw-p-3 tw-text-sm tw-outline-none focus:tw-border-vm-primary focus:tw-shadow-vm-focus" id="parking-review-comment" maxLength={2000} onChange={(event) => setComment(event.target.value)} placeholder="Điều gì khiến bạn hài lòng hoặc chưa hài lòng?" value={comment} />
+            <fieldset className="tw-m-0 tw-mt-5 tw-min-w-0 tw-border-0 tw-p-0" disabled={saving}>
+              <legend className="tw-mb-2 tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500">Chọn các đặc điểm nổi bật:</legend>
+              <div className="tw-grid tw-grid-cols-2 tw-gap-2 max-[480px]:tw-grid-cols-1">
+                {reviewHighlights.map((highlight) => {
+                  const selected = selectedHighlights.has(`${highlight}.`);
+                  const nextComment = commentWithHighlight(highlight);
+                  return <button type="button" key={highlight} aria-pressed={selected} disabled={saving || nextComment.length > 2000}
+                    onClick={() => setComment(nextComment)}
+                    className={`tw-flex tw-min-h-[40px] tw-items-center tw-gap-2 tw-rounded-full tw-border-0 tw-px-3 tw-py-2 tw-text-left tw-text-xs tw-font-bold tw-transition focus-visible:tw-outline-none focus-visible:tw-shadow-vm-focus disabled:tw-opacity-50 ${selected ? "tw-bg-blue-100 tw-text-blue-700" : "tw-bg-slate-100 tw-text-vm-slate-500 hover:tw-bg-slate-200"}`}>
+                    <i className={`fas ${selected ? "fa-check-circle" : "fa-plus"} tw-shrink-0`} aria-hidden="true" /><span>{highlight}</span>
+                  </button>;
+                })}
+              </div>
+              <p className="tw-mb-0 tw-mt-2 tw-text-xs tw-text-vm-slate-500">Chọn một đặc điểm để thêm nhanh vào nhận xét.</p>
+            </fieldset>
+            <label className="tw-mt-5 tw-block tw-text-[0.78rem] tw-font-bold tw-text-vm-slate-500" htmlFor="parking-review-comment">Nhận xét chi tiết <span className="tw-font-semibold">(không bắt buộc):</span></label>
+            <textarea className="tw-mt-2 tw-min-h-32 tw-w-full tw-resize-y tw-rounded-[12px] tw-border tw-border-solid tw-border-brand-100 tw-bg-slate-50/50 tw-p-3 tw-text-sm tw-shadow-inner tw-outline-none focus:tw-border-vm-primary focus:tw-shadow-vm-focus" disabled={saving} id="parking-review-comment" maxLength={2000} onChange={(event) => setComment(event.target.value)} placeholder="Chia sẻ trải nghiệm gửi xe của bạn tại bãi xe này" value={comment} />
             <div className="tw-mt-1 tw-text-right tw-text-[0.68rem] tw-font-semibold tw-text-vm-slate-400">{comment.length}/2000</div>
             {formMessage ? <div className="tw-mt-3 tw-rounded-[9px] tw-bg-blue-50 tw-p-3 tw-text-[0.76rem] tw-font-semibold tw-text-blue-700">{formMessage}</div> : null}
             <div className="tw-mt-5 tw-flex tw-justify-end tw-gap-3">

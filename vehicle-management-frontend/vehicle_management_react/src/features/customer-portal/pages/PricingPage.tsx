@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
@@ -944,9 +945,11 @@ export function PricingPage() {
                   {availableCustomerTicketTypes.length ? (
                     <label className="tw-flex tw-min-w-[150px] tw-flex-col tw-gap-1 max-[520px]:tw-w-full">
                       <span className="tw-text-[0.65rem] tw-font-black tw-uppercase tw-tracking-[0.07em] tw-text-vm-slate-500">Loại vé</span>
-                      <select className="tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-px-3 tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-800 tw-outline-none focus:tw-border-vm-primary" onChange={(event) => setSelectedTicketTypeId(event.target.value)} value={selectedTicketTypeId}>
-                        {availableCustomerTicketTypes.map((ticketType) => <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>{ticketType.name}</option>)}
-                      </select>
+                      <SelectMenu ariaLabel="Loại vé"
+                  triggerClassName={"tw-h-10 tw-rounded-vm-md tw-border tw-border-solid tw-border-brand-100 tw-bg-white tw-px-3 tw-text-[0.76rem] tw-font-bold tw-text-vm-slate-800 tw-outline-none focus:tw-border-vm-primary"}
+                  onChange={(selectedValue) => setSelectedTicketTypeId(selectedValue)}
+                  value={selectedTicketTypeId}
+                  options={[...availableCustomerTicketTypes.map((ticketType) => ({ label: ticketType.name, value: ticketType.ticketTypeId }))]} portal clearValue="" />
                     </label>
                   ) : null}
                 </div>

@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useState } from "react";
 
 import { Badge, Button, Card, useToast } from "@/components/ui";
@@ -133,7 +134,11 @@ export function AccountDeletionArchivePage() {
           {canLookupIdentity ? <Card className="tw-mt-4 tw-p-4">
             <h2 className="tw-m-0 tw-text-lg tw-font-black">Tra cứu định danh cũ bằng HMAC fingerprint</h2>
             <div className="tw-mt-3 tw-grid tw-grid-cols-[220px_1fr_auto] tw-gap-2 max-[800px]:tw-grid-cols-1">
-              <select className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-px-3" value={identityType} onChange={(event) => setIdentityType(event.target.value as DeletedIdentityType)}>{identityTypes.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select>
+              <SelectMenu ariaLabel="Loại định danh"
+                  triggerClassName={"tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-px-3"}
+                  value={identityType}
+                  onChange={(selectedValue) => setIdentityType(selectedValue as DeletedIdentityType)}
+                  options={[...identityTypes.map((option) => ({ label: option.label, value: option.value }))]} portal clearValue="" />
               <input className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-px-3" placeholder="Giá trị cần đối chiếu (không được lưu thô)" value={identityValue} onChange={(event) => setIdentityValue(event.target.value)} />
               <Button disabled={!identityValue.trim()} loading={loading === "identity"} type="button" onClick={() => void run("identity", async () => setIdentityMatches(await lookupDeletedIdentity(identityType, identityValue, reason)))}>Đối chiếu</Button>
             </div>

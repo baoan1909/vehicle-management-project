@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 
 import { Button, Modal } from "@/components/ui";
@@ -67,6 +68,10 @@ export function GuestSupportRequests({ mode, onClose, sessionId, supportStatus, 
       categoryId: form.categoryId, title: form.title.trim(), content: form.content.trim(),
       email: form.email.trim(), phone: form.phone.trim(), sessionId,
     };
+    if (!payload.categoryId) {
+      setError({ kind: "generic", message: "Vui lòng chọn danh mục hỗ trợ." });
+      return;
+    }
     if (!payload.email && !payload.phone) {
       setError({ kind: "generic", message: "Vui lòng cung cấp email hoặc số điện thoại hợp lệ." });
       return;
@@ -151,7 +156,12 @@ export function GuestSupportRequests({ mode, onClose, sessionId, supportStatus, 
         {categoriesLoading ? <p role="status">Đang tải danh mục hỗ trợ...</p> : null}
         {categoriesError ? <div role="alert"><p>{categoriesError.message}</p><Button variant="secondary" onClick={() => setCategoriesAttempt((value) => value + 1)}>Tải lại danh mục</Button></div> : null}
         <form id={formId} className="tw-grid tw-gap-3" onSubmit={submitRequest}>
-          <label className="tw-grid tw-gap-1 tw-font-bold">Danh mục<select className={fieldClass} required value={form.categoryId} onChange={(event) => updateField("categoryId", event.target.value)} disabled={busy}><option value="" disabled>Chọn danh mục</option>{categories.map((category) => <option key={category.categoryId} value={category.categoryId}>{category.name}</option>)}</select></label>
+          <label className="tw-grid tw-gap-1 tw-font-bold">Danh mục<SelectMenu ariaLabel="Danh mục"
+                  triggerClassName={fieldClass}
+                  value={form.categoryId}
+                  onChange={(selectedValue) => updateField("categoryId", selectedValue)}
+                  disabled={busy}
+                  options={[{ label: "Chọn danh mục", value: "", disabled: true }, ...categories.map((category) => ({ label: category.name, value: category.categoryId }))]} portal clearValue="" /></label>
           <label className="tw-grid tw-gap-1 tw-font-bold">Tiêu đề<input className={fieldClass} maxLength={150} required disabled={busy} value={form.title} onChange={(event) => updateField("title", event.target.value)} /></label>
           <label className="tw-grid tw-gap-1 tw-font-bold">Nội dung<textarea className={`${fieldClass} tw-min-h-28`} maxLength={4000} required disabled={busy} value={form.content} onChange={(event) => updateField("content", event.target.value)} /></label>
           <div className="tw-grid tw-gap-3 sm:tw-grid-cols-2">

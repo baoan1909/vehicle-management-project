@@ -39,6 +39,7 @@ import { PortalTicketArtwork } from "../components/PortalTicketArtwork";
 import { SubscriptionTicketFrame } from "../components/SubscriptionTicketFrame";
 import { VoucherPromotionBanner } from "../components/VoucherPromotionBanner";
 import { SubscriptionSpaceSelectionModal } from "../components/SubscriptionSpaceSelectionModal";
+import { CreateVehicleDialog } from "../components/CreateVehicleDialog";
 import { parsePortalDate } from "../utils/portalDate";
 import { getSubscriptionPeriod } from "../utils/subscriptionPeriod";
 import { CustomerPortalLayout, PortalPagination } from "./PortalShared";
@@ -224,6 +225,7 @@ export function SubscriptionPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const canRegisterSubscription = hasAnyPermission(user, ["SUBSCRIPTION_CREATE_OWN", "SUBSCRIPTION_CREATE_ALL"]);
+  const canCreateVehicle = hasAnyPermission(user, ["CUSTOMER_VEHICLE_CREATE_OWN", "CUSTOMER_VEHICLE_CREATE_ALL"]);
   const canPaySubscription = hasAnyPermission(user, ["WALLET_PAY_INVOICE_OWN", "INVOICE_PAY_OWN", "SUBSCRIPTION_PAY_OWN", "WALLET_TOP_UP_OWN"]);
   const [searchParams, setSearchParams] = useSearchParams();
   const voucherCodeFromUrl = searchParams.get("voucherCode")?.trim().toUpperCase() ?? "";
@@ -264,6 +266,7 @@ export function SubscriptionPage() {
   const [voucherQuoteError, setVoucherQuoteError] = useState("");
   const [voucherQuoteLoading, setVoucherQuoteLoading] = useState(false);
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false);
+  const [vehicleModalOpen, setVehicleModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentChoice, setPaymentChoice] = useState<CustomerPaymentChoice>("VNPAY");
   const [paymentContext, setPaymentContext] = useState<CustomerPaymentContext>("SUBSCRIPTION");
@@ -296,6 +299,7 @@ export function SubscriptionPage() {
   };
 
   const closeRegistrationModal = () => {
+    setVehicleModalOpen(false);
     const nextSearchParams = new URLSearchParams(searchParams);
     nextSearchParams.delete("register");
     setSearchParams(nextSearchParams, { replace: true });
@@ -1036,7 +1040,7 @@ export function SubscriptionPage() {
           <PortalPagination currentPage={safeCurrentPage} pageSize={pageSize} totalRecords={filteredSubscriptions.length} onPageChange={setCurrentPage} onPageSizeChange={setPageSize} />
         </section>
 
-        <Modal description="Chọn phương tiện và gói phù hợp với bạn." onClose={closeRegistrationModal} open={registrationModalOpen} title="Đăng ký vé mới" width="lg">
+        <Modal description="Chọn phương tiện và gói phù hợp với bạn." onClose={closeRegistrationModal} open={registrationModalOpen && !vehicleModalOpen} title="Đăng ký vé mới" width="lg">
         <div className="tw-min-w-0 tw-max-w-full [&_select]:tw-w-full [&_input]:tw-w-full [&_label]:tw-min-w-0">
           {subscriptionFormError ? <div className="tw-mt-3 tw-flex tw-gap-2 tw-rounded-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-[0.76rem] tw-font-medium tw-text-red-700" role="alert"><i className="fas fa-exclamation-circle tw-mt-0.5" /><span>{subscriptionFormError}</span></div> : null}
           <div className="tw-mt-3 tw-grid tw-gap-2.5">
@@ -1046,7 +1050,9 @@ export function SubscriptionPage() {
               {lotLookupsLoading ? <small className="tw-text-[#64748b]">Đang tải giá vé của bãi...</small> : null}
               {!loading && parkingLots.length === 0 ? <small className="tw-text-amber-700">Hiện chưa có bãi xe đang hoạt động để đăng ký.</small> : null}
             </div>
-            <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Phương tiện</span>
+            <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><div className="tw-flex tw-items-center tw-justify-between tw-gap-2"><span>Phương tiện</span>
+              {canCreateVehicle ? <button type="button" disabled={saving || loading} onClick={() => setVehicleModalOpen(true)} className="tw-inline-flex tw-items-center tw-gap-1.5 tw-rounded-md tw-border tw-border-solid tw-border-brand-200 tw-bg-brand-50 tw-px-2.5 tw-py-1.5 tw-text-xs tw-font-bold tw-text-vm-primary disabled:tw-opacity-50"><i className="fas fa-plus" aria-hidden="true" />Thêm mới</button> : null}
+              </div>
               <span className="tw-relative"><SubscriptionIcon name="vehicle" className="tw-pointer-events-none tw-absolute tw-left-3 tw-top-3 tw-z-[1] !tw-h-4 !tw-w-4 tw-text-[#677181]" /><SelectMenu ariaLabel="Chọn xe đăng ký vé" options={[{ label: "Chọn xe", value: "" }, ...activeVehicles.map((vehicle) => ({ label: vehicleLabel(vehicle, vehicleTypeById), value: vehicle.customerVehicleId }))]} portal triggerClassName="!tw-h-10 !tw-pl-10 !tw-text-[0.78rem] !tw-font-normal" value={form.customerVehicleId} onChange={(value) => { setSubscriptionFormError(""); clearVoucherQuote(); setForm((current) => ({ ...current, customerVehicleId: value })); }} /></span>
             </div>
             <div className="tw-grid tw-gap-1 tw-text-[0.72rem] tw-font-normal tw-text-[#263044]"><span>Loại vé</span>
@@ -1289,13 +1295,11 @@ export function SubscriptionPage() {
           </div>
           <label className="tw-grid tw-gap-1.5 tw-text-sm tw-font-semibold tw-text-[#263044]">
             <span>Loại vé</span>
-            <select
-              className="tw-h-11 tw-rounded-md tw-border tw-border-solid tw-border-[#dce5f0] tw-bg-white tw-px-3 tw-text-[#334a6e]"
-              value={renewalTicketTypeId}
-              onChange={(event) => { setRenewalTicketTypeId(event.target.value); setRenewalQuote(null); }}
-            >
-              {renewalTicketTypes.map((ticketType) => <option key={ticketType.ticketTypeId} value={ticketType.ticketTypeId}>{ticketType.name}</option>)}
-            </select>
+            <SelectMenu ariaLabel="Loại vé gia hạn"
+                  triggerClassName={"tw-h-11 tw-rounded-md tw-border tw-border-solid tw-border-[#dce5f0] tw-bg-white tw-px-3 tw-text-[#334a6e]"}
+                  value={renewalTicketTypeId}
+                  onChange={(selectedValue) => { setRenewalTicketTypeId(selectedValue); setRenewalQuote(null); }}
+                  options={[...renewalTicketTypes.map((ticketType) => ({ label: ticketType.name, value: ticketType.ticketTypeId }))]} portal clearValue="" />
           </label>
           <label className="tw-grid tw-gap-1.5 tw-text-sm tw-font-semibold tw-text-[#263044]">
             <span>Số kỳ gia hạn</span>
@@ -1399,6 +1403,13 @@ export function SubscriptionPage() {
           ) : null}
         </div>
       </Modal>
+      {vehicleModalOpen && canCreateVehicle && registrationModalOpen ? <CreateVehicleDialog vehicleTypes={vehicleTypes} onClose={() => setVehicleModalOpen(false)} onCreated={(vehicle) => {
+        setVehicles((current) => [...current.filter((item) => item.customerVehicleId !== vehicle.customerVehicleId).map((item) => vehicle.isDefault ? { ...item, isDefault: false } : item), vehicle]);
+        setSubscriptionFormError("");
+        clearVoucherQuote();
+        setForm((current) => ({ ...current, customerVehicleId: vehicle.customerVehicleId }));
+        setVehicleModalOpen(false);
+      }} /> : null}
       <SubscriptionSpaceSelectionModal
         open={Boolean(spaceSelectionSubscriptionId)}
         subscriptionId={spaceSelectionSubscriptionId}

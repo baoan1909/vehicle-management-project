@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useRef, useState } from "react";
 import { Button, Modal } from "@/components/ui";
 import {
@@ -84,10 +85,12 @@ export function CreateSupportTicketDialog({
       <div className="tw-grid tw-gap-4">
         {error ? <div role="alert" className="tw-rounded-lg tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-3 tw-text-sm tw-font-bold tw-text-red-700">{error}</div> : null}
         <label className="tw-grid tw-gap-1.5 tw-text-sm tw-font-bold tw-text-slate-700">Danh mục hỗ trợ
-          <select disabled={loading || saving} className="tw-h-11 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-3" value={form.categoryId} onChange={(event) => setForm((current) => ({ ...current, categoryId: event.target.value }))}>
-            <option value="">{loading ? "Đang tải danh mục..." : "Chọn danh mục"}</option>
-            {categories.map((category) => <option key={category.categoryId} value={category.categoryId}>{category.name}</option>)}
-          </select>
+          <SelectMenu ariaLabel="Danh mục hỗ trợ"
+                  disabled={loading || saving}
+                  triggerClassName={"tw-h-11 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-px-3"}
+                  value={form.categoryId}
+                  onChange={(selectedValue) => setForm((current) => ({ ...current, categoryId: selectedValue }))}
+                  options={[{ label: loading ? "Đang tải danh mục..." : "Chọn danh mục", value: "" }, ...categories.map((category) => ({ label: category.name, value: category.categoryId }))]} portal clearValue="" />
         </label>
         <label className="tw-grid tw-gap-1.5 tw-text-sm tw-font-bold tw-text-slate-700">Mức ưu tiên
           <input readOnly className="tw-h-11 tw-rounded-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-slate-50 tw-px-3" value={selectedCategory ? priorityLabels[selectedCategory.priority] : "Tự động theo danh mục"} />

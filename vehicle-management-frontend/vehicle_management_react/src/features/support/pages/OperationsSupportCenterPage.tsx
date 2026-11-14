@@ -1799,19 +1799,12 @@ function RightPanel({
       {hasTicketAction ? <div className="tw-grid tw-gap-3 tw-p-2">
         {canAssignCurrentTicket ? (
           <div className="tw-grid tw-gap-2">
-            <select
-              className="tw-h-10 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-3 tw-text-sm"
-              value={assigneeId}
-              onChange={(event) => setAssigneeId(event.target.value)}
-              disabled={isUpdatingTicket}
-            >
-              <option value="">Chọn nhân viên phụ trách</option>
-              {assignees.map((employee) => employee.accountId ? (
-                <option key={employee.accountId} value={employee.accountId}>
-                  {employee.userProfile?.fullName ?? employee.accountUsername ?? employee.employeeCode ?? employee.accountId}
-                </option>
-              ) : null)}
-            </select>
+            <SelectMenu ariaLabel="Nhân viên phụ trách"
+                  triggerClassName={"tw-h-10 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-3 tw-text-sm"}
+                  value={assigneeId}
+                  onChange={(selectedValue) => setAssigneeId(selectedValue)}
+                  disabled={isUpdatingTicket}
+                  options={[{ label: "Chọn nhân viên phụ trách", value: "" }, ...assignees.flatMap((employee) => (employee.accountId ? [{ label: employee.userProfile?.fullName ?? employee.accountUsername ?? employee.employeeCode ?? employee.accountId, value: employee.accountId }] : []))]} portal clearValue="" />
             <Button className="tw-h-10 tw-w-full" variant="secondary" disabled={!assigneeId || isUpdatingTicket} onClick={() => onAssign(assigneeId)}>
               <i className="fas fa-user-check" />
               Phân công

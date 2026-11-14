@@ -15,7 +15,7 @@ const navbar = read("src/shared/components/layout/ClientNavbar.tsx");
 
 const checks = [
   [routes.includes('<Navigate to="/?support=open" replace />') && !routes.includes("GuestSupportPage"), "Legacy help must redirect to the widget instead of rendering a page"],
-  [navbar.includes("openSupportWidget()") && !navbar.includes('href: "/help"'), "Help navigation must open the support widget"],
+  [!navbar.includes('label: "Trợ giúp"') && !navbar.includes('href: "/help"') && widget.includes("data-support-floating-button"), "Support must remain available from the floating widget without a header navigation entry"],
   [api.includes("skipAuth: true"), "Every guest API boundary must explicitly skip OIDC authentication"],
   [state.includes("sessionStorage") && !state.includes("localStorage"), "Guest capability must use sessionStorage, not durable auth storage"],
   [state.includes("rate-limited") && state.includes("offline") && state.includes("expired"), "Guest UI must expose rate-limit, offline and expired states"],

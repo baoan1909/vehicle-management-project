@@ -1,5 +1,5 @@
 import { Component, useCallback, useEffect, useMemo, useRef, useState, type ErrorInfo, type ReactNode } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import {
   getNearbyParkingLots,
@@ -15,12 +15,12 @@ import {
   type FocusedParkingLot,
   type MapPoint,
 } from "@/features/parking/components/NearbyParkingMap";
-import {
-  ParkingAddressPicker,
-  type ParkingAddressValue,
-} from "@/features/parking/components/ParkingAddressPicker";
+import type { ParkingAddressValue } from "@/features/parking/components/ParkingAddressPicker";
+import { ParkingAddressSearchDropdown } from "@/features/parking/components/ParkingAddressSearchDropdown";
 import { lookupParkingByPlate, type ParkingPlateLookup } from "@/features/parking/api/customerReservationApi";
 import { CustomerReservationPage } from "@/features/parking/pages/CustomerReservationPage";
+import { UnderlineTabs } from "@/shared/components/ui/UnderlineTabs";
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 
 const RADIUS_OPTIONS = [1, 3, 5] as const;
 const LOW_ACCURACY_THRESHOLD_METERS = 500;
@@ -132,7 +132,10 @@ export function NearbyParkingLotsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const modalReservationId = searchParams.get("reservationId");
   const [featureStatus, setFeatureStatus] = useState<ParkingMapFeatureStatus | null>(null);
-  const [featureStatusError, setFeatureStatusError] = useState(false);  const [radiusKm, setRadiusKm] = useState<(typeof RADIUS_OPTIONS)[number]>(5);
+  const [featureStatusError, setFeatureStatusError] = useState(false);
+  const [radiusKm, setRadiusKm] = useState(5);
+  const [radiusInput, setRadiusInput] = useState("5");
+  const [radiusError, setRadiusError] = useState("");
   const [userLocation, setUserLocation] = useState<MapPoint | null>(null);
   const [locationLabel, setLocationLabel] = useState("");
   const [lots, setLots] = useState<NearbyParkingLot[]>([]);
@@ -160,6 +163,7 @@ export function NearbyParkingLotsPage() {
     legacyWardCode: null,
   });
   const searchSequence = useRef(0);
+  const geolocationInFlightRef = useRef(false);
   const lookupSequence = useRef(0);
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const closeReservationModal = useCallback(() => {
@@ -248,31 +252,36 @@ export function NearbyParkingLotsPage() {
     }
   }, [radiusKm]);
 
-  function handleFindNearMe() {
+  function handleFindNearMe(nextRadiusKm = radiusKm) {
+    if (geolocationInFlightRef.current) return;
     if (!featureStatus?.customerParkingMapEnabled || !featureStatus.publicNearbySearchEnabled) {
       setError("Bản đồ tìm bãi hiện chưa được bật.");
       return;
     }
     setNotice(null);
     setError(null);
+    setShowFallback(false);
     setPickingEnabled(false);
+    setLookupOpen(false);
 
     if (import.meta.env.PROD && !window.isSecureContext) {
       void recordGeolocationOutcome("INSECURE_CONTEXT").catch(() => undefined);
-      setError("Định vị trên production chỉ hoạt động qua HTTPS. Hãy dùng phần chọn địa chỉ hoặc chọn điểm trên bản đồ.");
+      setError("Định vị trên production chỉ hoạt động qua HTTPS. Hãy dùng Tìm địa chỉ để chọn khu vực.");
       setShowFallback(true);
       return;
     }
     if (!("geolocation" in navigator)) {
       void recordGeolocationOutcome("UNSUPPORTED").catch(() => undefined);
-      setError("Trình duyệt này không hỗ trợ định vị. Hãy chọn địa chỉ hoặc một điểm trên bản đồ.");
+      setError("Trình duyệt này không hỗ trợ định vị. Hãy dùng Tìm địa chỉ để chọn khu vực.");
       setShowFallback(true);
       return;
     }
 
     setIsLocating(true);
+    geolocationInFlightRef.current = true;
     navigator.geolocation.getCurrentPosition(
       (position) => {
+        geolocationInFlightRef.current = false;
         const point: MapPoint = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -284,16 +293,17 @@ export function NearbyParkingLotsPage() {
         setLocationLabel("Vị trí hiện tại của bạn");
         if (position.coords.accuracy > LOW_ACCURACY_THRESHOLD_METERS) {
           void recordGeolocationOutcome("LOW_ACCURACY").catch(() => undefined);
-          setNotice(`Vị trí có độ chính xác thấp (khoảng ${Math.round(position.coords.accuracy)} m). Bạn có thể chọn lại điểm trên bản đồ.`);
+          setNotice(`Vị trí có độ chính xác thấp (khoảng ${Math.round(position.coords.accuracy)} m). Bạn có thể dùng Tìm địa chỉ để chọn lại khu vực.`);
         }
-        void searchNearby(point);
+        void searchNearby(point, nextRadiusKm);
       },
       (geolocationError) => {
+        geolocationInFlightRef.current = false;
         setIsLocating(false);
         setShowFallback(true);
         if (geolocationError.code === geolocationError.PERMISSION_DENIED) {
           void recordGeolocationOutcome("DENIED").catch(() => undefined);
-          setError("Bạn đã từ chối quyền vị trí. Hãy cho phép GPS trong trình duyệt hoặc dùng cách tìm thủ công bên dưới.");
+          setError("Bạn đã từ chối quyền vị trí. Hãy cho phép GPS trong trình duyệt hoặc dùng Tìm địa chỉ.");
         } else if (geolocationError.code === geolocationError.TIMEOUT) {
           void recordGeolocationOutcome("TIMEOUT").catch(() => undefined);
           setError("Yêu cầu lấy vị trí đã hết thời gian. Hãy thử lại hoặc chọn địa chỉ.");
@@ -306,32 +316,36 @@ export function NearbyParkingLotsPage() {
     );
   }
 
-  async function handleAddressSearch() {
+  async function handleAddressSearch(nextAddress: ParkingAddressValue): Promise<boolean> {
     if (!featureStatus?.geocodingProviderEnabled) {
-      setError("Tra cứu tọa độ theo địa chỉ đang tạm dừng. Bạn vẫn có thể chọn điểm trên bản đồ.");
-      return;
+      setError("Tra cứu tọa độ theo địa chỉ đang tạm dừng. Bạn có thể dùng GPS để tìm bãi gần mình.");
+      return false;
     }
-    if (address.addressDisplay.trim().length < 3) {
+    if (nextAddress.addressDisplay.trim().length < 3) {
       setError("Hãy chọn khu vực hoặc nhập địa chỉ có ít nhất 3 ký tự.");
-      return;
+      return false;
     }
     setIsGeocoding(true);
     setError(null);
     setNotice(null);
     try {
-      const response = await searchPublicParkingLocations(address.addressDisplay);
+      const response = await searchPublicParkingLocations(nextAddress.addressDisplay);
       const location = response.data[0];
       if (!location) {
-        setError("Không tìm thấy tọa độ cho địa chỉ này. Bạn có thể chọn điểm trực tiếp trên bản đồ.");
-        return;
+        setError("Không tìm thấy tọa độ cho địa chỉ này. Hãy kiểm tra lại khu vực hoặc bổ sung số nhà, tên đường.");
+        return false;
       }
       const point = { latitude: location.latitude, longitude: location.longitude };
       setUserLocation(point);
       setLocationLabel(location.displayName);
+      setAddress(nextAddress);
       setPickingEnabled(false);
+      setLookupOpen(false);
       await searchNearby(point);
+      return true;
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Không thể tìm tọa độ cho địa chỉ này.");
+      return false;
     } finally {
       setIsGeocoding(false);
     }
@@ -343,6 +357,7 @@ export function NearbyParkingLotsPage() {
     setPickingEnabled(false);
     setError(null);
     setNotice("Đã chọn điểm trên bản đồ và đang tìm bãi xe gần đó.");
+    setLookupOpen(false);
     void searchNearby(point);
     if (featureStatus?.geocodingProviderEnabled) {
       void reversePublicParkingLocation(point.latitude, point.longitude)
@@ -353,10 +368,32 @@ export function NearbyParkingLotsPage() {
     }
   }
 
-  function handleRadiusChange(nextRadius: (typeof RADIUS_OPTIONS)[number]) {
+  function handleAddressDropdownOpen(open: boolean) {
+    setShowFallback(open);
+    if (open) { setPickingEnabled(false); setNotice(null); }
+  }
+
+  function selectResultsTab(lookup: boolean) {
+    if (lookup === lookupOpen) return;
+    lookupSequence.current += 1;
+    setLookupBusy(false);
+    setLookupNow(Date.now());
+    setLookupOpen(lookup);
+    if (!lookup) setFocusedLot(null);
+  }
+
+  function handleRadiusChange(nextRadius: number) {
+    if (geolocationInFlightRef.current || isSearching) return;
+    if (!Number.isInteger(nextRadius) || nextRadius < 1 || nextRadius > 50) {
+      setRadiusError("Nhập bán kính là số nguyên từ 1 đến 50 km.");
+      return;
+    }
+    setRadiusError("");
+    setRadiusInput(String(nextRadius));
     setRadiusKm(nextRadius);
     setSelectedLotId(null);
     if (userLocation) void searchNearby(userLocation, nextRadius);
+    else handleFindNearMe(nextRadius);
   }
 
   function focusLookupLot(record: {
@@ -444,7 +481,7 @@ export function NearbyParkingLotsPage() {
               type="button"
               disabled={isLocating}
               aria-busy={isLocating}
-              onClick={handleFindNearMe}
+              onClick={() => handleFindNearMe()}
             >
               <i className={`fas ${isLocating ? "fa-spinner fa-spin" : "fa-crosshairs"}`} aria-hidden="true" />
               {isLocating ? "Đang lấy vị trí..." : "Tìm bãi gần tôi"}
@@ -454,70 +491,44 @@ export function NearbyParkingLotsPage() {
 
         <section className="tw-mt-5 tw-grid tw-gap-4" aria-label="Thiết lập tìm kiếm">
           <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-sm">
-            <div>
+            <div className="tw-w-full tw-min-w-0 sm:tw-w-[520px] sm:tw-max-w-full">
               <p className="tw-m-0 tw-text-xs tw-font-extrabold tw-uppercase tw-tracking-wide tw-text-slate-500">Bán kính tìm kiếm</p>
-              <div className="tw-mt-2 tw-flex tw-gap-2" role="group" aria-label="Chọn bán kính tìm kiếm">
-                {RADIUS_OPTIONS.map((option) => (
-                  <button
-                    className={`tw-min-h-10 tw-rounded-full tw-border tw-border-solid tw-px-4 tw-text-sm tw-font-black ${radiusKm === option ? "tw-border-blue-600 tw-bg-blue-600 tw-text-white" : "tw-border-slate-200 tw-bg-white tw-text-slate-700 hover:tw-bg-slate-50"}`}
-                    key={option}
-                    type="button"
-                    aria-pressed={radiusKm === option}
-                    onClick={() => handleRadiusChange(option)}
-                  >
-                    {option} km
-                  </button>
-                ))}
-              </div>
+              <form noValidate className="tw-mt-2 tw-flex tw-w-full tw-items-center tw-gap-2" aria-label="Nhập bán kính tìm kiếm"
+                onSubmit={(event) => { event.preventDefault(); handleRadiusChange(Number(radiusInput)); }}>
+                <SelectMenu ariaLabel="Bán kính tùy chỉnh (km)" value={radiusInput} portal searchable={false}
+                  className="tw-min-w-0 tw-flex-1" triggerClassName="!tw-h-[50px] !tw-rounded-full"
+                  editable={{ inputMode: "numeric", suffix: "km", describedBy: "parking-radius-hint", invalid: Boolean(radiusError), placeholder: "Nhập bán kính" }}
+                  options={RADIUS_OPTIONS.map((option) => ({ label: `${option} km`, value: String(option) }))}
+                  onChange={(value) => { if (/^\d*$/.test(value)) { setRadiusInput(value); setRadiusError(""); } }} />
+                <button type="submit" disabled={isLocating || isSearching} aria-busy={isLocating || isSearching}
+                  className="tw-h-[50px] tw-shrink-0 tw-rounded-full tw-border-0 tw-bg-vm-primary tw-px-4 tw-text-sm tw-font-extrabold tw-text-white hover:tw-bg-vm-primary-hover disabled:tw-cursor-wait disabled:tw-opacity-70">
+                  {isLocating ? <><i className="fas fa-spinner fa-spin tw-mr-2" aria-hidden="true" />Đang lấy vị trí...</> : isSearching ? "Đang tìm..." : "Áp dụng"}
+                </button>
+              </form>
+              <p id="parking-radius-hint" className={`tw-mb-0 tw-mt-2 tw-text-xs ${radiusError ? "tw-font-bold tw-text-red-700" : "tw-text-slate-500"}`}
+                role={radiusError ? "alert" : undefined}>{radiusError || "Nhập số nguyên từ 1 đến 50 km."}</p>
             </div>
-            <button
-              className="tw-min-h-10 tw-rounded-full tw-border tw-border-solid tw-border-slate-300 tw-bg-white tw-px-4 tw-text-sm tw-font-extrabold tw-text-slate-800 hover:tw-bg-slate-50"
-              type="button"
-              aria-expanded={showFallback}
-              onClick={() => setShowFallback((value) => !value)}
-            >
-              <i className="fas fa-map-pin tw-mr-2" aria-hidden="true" />
-              Không dùng được GPS?
-            </button>
+            <div className="tw-flex tw-w-full tw-flex-col tw-gap-3 sm:tw-w-auto sm:tw-flex-row sm:tw-items-center">
+              <button type="button" aria-pressed={pickingEnabled}
+                className={`tw-inline-flex tw-min-h-[54px] tw-shrink-0 tw-items-center tw-justify-center tw-gap-2 tw-rounded-xl tw-border tw-border-solid tw-px-4 tw-text-sm tw-font-extrabold tw-transition ${pickingEnabled ? "tw-border-vm-primary tw-bg-brand-50 tw-text-vm-primary" : "tw-border-slate-200 tw-bg-white tw-text-slate-700 hover:tw-border-brand-200 hover:tw-bg-brand-50"}`}
+                onClick={() => {
+                  setPickingEnabled((current) => !current);
+                  setShowFallback(false);
+                  setError(null);
+                  setNotice(pickingEnabled ? null : "Hãy chạm hoặc nhấp vào vị trí mong muốn trên bản đồ.");
+                  if (!pickingEnabled) mapContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}>
+                <i className="fas fa-map-pin" aria-hidden="true" />
+                {pickingEnabled ? "Đang chờ chọn điểm" : "Chọn điểm trên bản đồ"}
+              </button>
+              <ParkingAddressSearchDropdown value={address} open={showFallback} onOpenChange={handleAddressDropdownOpen}
+                onApply={handleAddressSearch} searching={isGeocoding} enabled={featureStatus.geocodingProviderEnabled} error={error} />
+            </div>
           </div>
-
-          {showFallback ? (
-            <div className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-4 tw-shadow-sm sm:tw-p-6">
-              <div className="tw-mb-4">
-                <h2 className="tw-m-0 tw-text-lg tw-font-black tw-text-slate-900">Tìm bằng địa chỉ hoặc chọn trên bản đồ</h2>
-                <p className="tw-mb-0 tw-mt-1 tw-text-sm tw-text-slate-600">Hỗ trợ cả địa chỉ hiện hành và địa chỉ cũ có cấp huyện.</p>
-              </div>
-              <ParkingAddressPicker value={address} onChange={setAddress} />
-              <div className="tw-mt-4 tw-flex tw-flex-wrap tw-gap-2">
-                <button
-                  className="tw-min-h-11 tw-rounded-full tw-border-0 tw-bg-blue-600 tw-px-5 tw-font-extrabold tw-text-white hover:tw-bg-blue-700 disabled:tw-cursor-wait disabled:tw-opacity-60"
-                  type="button"
-                  disabled={isGeocoding || !featureStatus.geocodingProviderEnabled}
-                  aria-busy={isGeocoding}
-                  onClick={() => void handleAddressSearch()}
-                >
-                  <i className={`fas ${isGeocoding ? "fa-spinner fa-spin" : "fa-search-location"} tw-mr-2`} aria-hidden="true" />
-                  {isGeocoding ? "Đang tìm tọa độ..." : featureStatus.geocodingProviderEnabled ? "Tìm tọa độ từ địa chỉ" : "Tra cứu địa chỉ đang tạm dừng"}
-                </button>
-                <button
-                  className={`tw-min-h-11 tw-rounded-full tw-border tw-border-solid tw-px-5 tw-font-extrabold ${pickingEnabled ? "tw-border-amber-500 tw-bg-amber-100 tw-text-amber-950" : "tw-border-slate-300 tw-bg-white tw-text-slate-800"}`}
-                  type="button"
-                  aria-pressed={pickingEnabled}
-                  onClick={() => {
-                    setPickingEnabled((value) => !value);
-                    setNotice(pickingEnabled ? null : "Hãy chạm hoặc nhấp vào vị trí mong muốn trên bản đồ.");
-                  }}
-                >
-                  <i className="fas fa-map-marker-alt tw-mr-2" aria-hidden="true" />
-                  {pickingEnabled ? "Đang chờ chọn điểm" : "Chọn điểm trên bản đồ"}
-                </button>
-              </div>
-            </div>
-          ) : null}
         </section>
 
         <div className="tw-mt-4" aria-live="polite" aria-atomic="true">
-          {error ? (
+          {error && !showFallback ? (
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-red-200 tw-bg-red-50 tw-p-4 tw-font-bold tw-text-red-800" role="alert">
               <i className="fas fa-exclamation-circle tw-mr-2" aria-hidden="true" />{error}
             </div>
@@ -544,33 +555,19 @@ export function NearbyParkingLotsPage() {
               />
             </MapErrorBoundary>
             {pickingEnabled ? (
-              <div className="tw-pointer-events-none tw-absolute tw-left-3 tw-right-3 tw-top-3 tw-z-[500] tw-rounded-full tw-bg-amber-100/95 tw-px-4 tw-py-2 tw-text-center tw-text-sm tw-font-black tw-text-amber-950 tw-shadow">
+              <div className="tw-pointer-events-none tw-absolute tw-left-3 tw-right-3 tw-top-3 tw-z-[500] tw-rounded-full tw-bg-brand-50/95 tw-px-4 tw-py-2 tw-text-center tw-text-sm tw-font-black tw-text-vm-primary tw-shadow">
                 Chạm vào bản đồ để đặt vị trí tìm kiếm
               </div>
             ) : null}
           </div>
 
           <div className="tw-min-w-0">
-            <div className="tw-mb-3 tw-flex tw-items-end tw-justify-between tw-gap-3">
-              <div>
-                <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-2">
-                  <p className="tw-m-0 tw-text-xs tw-font-extrabold tw-uppercase tw-tracking-wide tw-text-blue-700">Kết quả gần nhất</p>
-                  <button type="button" aria-expanded={lookupOpen} onClick={() => {
-                    lookupSequence.current += 1;
-                    setLookupBusy(false);
-                    setLookupNow(Date.now());
-                    setLookupOpen((open) => !open);
-                  }} className="tw-rounded-full tw-border tw-border-solid tw-border-blue-200 tw-bg-white tw-px-3 tw-py-1 tw-text-xs tw-font-bold tw-text-blue-700 hover:tw-bg-blue-50">
-                    Tra cứu vị trí đỗ xe
-                  </button>
-                </div>
-                <h2 className="tw-mb-0 tw-mt-1 tw-text-2xl tw-font-black tw-text-slate-950">Bãi xe trong {radiusKm} km</h2>
-              </div>
-              {userLocation && !isSearching ? <span className="tw-text-sm tw-font-bold tw-text-slate-500">{lots.length} bãi</span> : null}
-            </div>
+            <UnderlineTabs value={lookupOpen ? "lookup" : "nearby"} onChange={(tab) => selectResultsTab(tab === "lookup")}
+              tabs={[{ label: "Kết quả gần nhất", value: "nearby" }, { label: "Tra cứu vị trí đỗ xe", value: "lookup" }]}
+              ariaLabel="Kết quả và tra cứu bãi xe" idPrefix="parking" className="tw-mb-4" />
 
-            {lookupOpen ? (
-              <section className="tw-mb-4 tw-space-y-3" aria-label="Tra cứu vị trí đỗ xe theo biển số">
+              <section id="parking-lookup-panel" role="tabpanel" aria-labelledby="parking-lookup-tab" hidden={!lookupOpen} tabIndex={0} className="tw-space-y-3">
+                <h2 className="tw-mb-3 tw-mt-0 tw-text-2xl tw-font-black tw-text-slate-950">Tra cứu vị trí đỗ xe</h2>
                 <form onSubmit={(event) => { event.preventDefault(); void submitPlateLookup(); }}
                   className="tw-flex tw-flex-wrap tw-gap-2 tw-rounded-vm-lg tw-border tw-border-solid tw-border-slate-200 tw-bg-white tw-p-3 tw-shadow-sm">
                   <label htmlFor="parking-plate-lookup" className="tw-w-full tw-text-sm tw-font-bold tw-text-slate-800">Biển số xe</label>
@@ -636,8 +633,12 @@ export function NearbyParkingLotsPage() {
                   );
                 })}
               </section>
-            ) : null}
 
+            <section id="parking-nearby-panel" role="tabpanel" aria-labelledby="parking-nearby-tab" hidden={lookupOpen} tabIndex={0}>
+              <div className="tw-mb-3 tw-flex tw-items-end tw-justify-between tw-gap-3">
+                <h2 className="tw-m-0 tw-text-2xl tw-font-black tw-text-slate-950">Bãi xe trong {radiusKm} km</h2>
+                {userLocation && !isSearching ? <span className="tw-text-sm tw-font-bold tw-text-slate-500">{lots.length} bãi</span> : null}
+              </div>
             {locationLabel ? (
               <p className="tw-rounded-vm-md tw-bg-blue-50 tw-p-3 tw-text-sm tw-font-bold tw-text-blue-900">
                 <i className="fas fa-location-arrow tw-mr-2" aria-hidden="true" />{locationLabel}
@@ -718,6 +719,12 @@ export function NearbyParkingLotsPage() {
                                 </button>
                               ) : null}
                             </div>
+                            {lot.status === "ACTIVE" ? (
+                              <Link to={`/pricing/${encodeURIComponent(lot.parkingLotId)}`}
+                                className="tw-mt-2 tw-inline-flex tw-min-h-[44px] tw-w-full tw-items-center tw-justify-center tw-gap-2 tw-rounded-full tw-border tw-border-solid tw-border-brand-200 tw-bg-brand-50 tw-text-sm tw-font-extrabold tw-text-vm-primary hover:tw-bg-brand-100 hover:tw-text-vm-primary hover:tw-no-underline">
+                                <i className="fas fa-ticket-alt" aria-hidden="true" />Đăng ký vé
+                              </Link>
+                            ) : null}
                           </div>
                         ) : null}
                       </article>
@@ -734,6 +741,7 @@ export function NearbyParkingLotsPage() {
                   : "Bãi chưa hoạt động chỉ được hiển thị để tham khảo vị trí và khoảng cách."}
               </p>
             ) : null}
+            </section>
           </div>
         </section>
       </div>

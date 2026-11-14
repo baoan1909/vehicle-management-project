@@ -18,7 +18,7 @@ assert.match(picker, /loadCurrentWardPath\(selectedWardCode\)/);
 assert.match(picker, /setProvinceCode\(path\.province\.code\)/);
 assert.match(picker, /setDistrictCode\(path\.district\?\.code \?\? ""\)/);
 assert.match(picker, /setWardCode\(path\.ward\.code\)/);
-assert.match(picker, /setDetail\(extractAddressDetail\(value\.addressDisplay, path\)\)/);
+assert.match(picker, /setDetail\(extractAddressDetail\(addressDisplayRef\.current, path\)\)/);
 assert.match(picker, /commit\(detail, "", code, ""\)/);
 assert.match(picker, /commit\(detail, "", provinceCode, code\)/);
 assert.match(data, /currentWardPaths/);

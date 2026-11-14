@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { useAuth } from "@/core/auth/useAuth";
@@ -362,15 +363,11 @@ function TicketTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Tick
         ) : null}
         <label className="tw-grid tw-gap-2">
           <span className="tw-text-[0.86rem] tw-font-extrabold tw-text-vm-slate-700">Mã loại vé</span>
-          <select
-            className="tw-min-h-12 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-900 focus:tw-border-vm-primary focus:tw-outline-none focus:tw-shadow-vm-focus"
-            value={form.code}
-            onChange={(event) => updateField("code", event.target.value)}
-          >
-            {codeOptions.map((option) => (
-              <option key={option.value} value={option.value}>{option.label} ({option.value})</option>
-            ))}
-          </select>
+          <SelectMenu ariaLabel="Mã danh mục"
+                  triggerClassName={"tw-min-h-12 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-900 focus:tw-border-vm-primary focus:tw-outline-none focus:tw-shadow-vm-focus"}
+                  value={form.code}
+                  onChange={(selectedValue) => updateField("code", selectedValue)}
+                  options={[...codeOptions.map((option) => ({ label: `${option.label} (${option.value})`, value: option.value }))]} portal clearValue="" />
           <span className="tw-text-[0.78rem] tw-font-semibold tw-text-vm-slate-500">Thời hạn được backend tự xác định theo mã loại vé.</span>
         </label>
         <label className="tw-grid tw-gap-2">
@@ -517,14 +514,11 @@ function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Veh
         ) : (
           <label className="tw-grid tw-gap-2">
             <span className="tw-text-[0.86rem] tw-font-extrabold tw-text-vm-slate-700">Trạng thái</span>
-            <select
-              className="tw-min-h-12 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-900 focus:tw-border-vm-primary focus:tw-outline-none focus:tw-shadow-vm-focus"
-              value={form.isActive}
-              onChange={(event) => updateField("isActive", event.target.value)}
-            >
-              <option value="true">Đang hoạt động</option>
-              <option value="false">Ngừng dùng</option>
-            </select>
+            <SelectMenu ariaLabel="Trạng thái danh mục"
+                  triggerClassName={"tw-min-h-12 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-900 focus:tw-border-vm-primary focus:tw-outline-none focus:tw-shadow-vm-focus"}
+                  value={form.isActive}
+                  onChange={(selectedValue) => updateField("isActive", selectedValue)}
+                  options={[{ label: "Đang hoạt động", value: "true" }, { label: "Ngừng dùng", value: "false" }]} portal clearValue="" />
           </label>
         )}
         <label className="tw-grid tw-gap-2">
@@ -1107,16 +1101,12 @@ export function VehicleListPage() {
           <div className="tw-grid tw-gap-4">
             <label className="tw-grid tw-gap-1.5">
               <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-700">Phạm vi áp dụng</span>
-              <select
-                className="tw-min-h-11 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-800 focus:tw-border-vm-primary focus:tw-outline-none"
-                disabled={!canManagePartnerCatalog && lotScope.lots.length === 1}
-                onChange={(event) => setDeactivationScope(event.target.value)}
-                value={deactivationScope}
-              >
-                {!canManagePartnerCatalog && lotScope.lots.length > 1 ? <option value="">Chọn bãi áp dụng</option> : null}
-                {canManagePartnerCatalog ? <option value="all">Tất cả bãi thuộc Partner</option> : null}
-                {lotScope.lots.map((lot) => <option key={lot.parkingLotId} value={lot.parkingLotId}>{lot.name} · {lot.code}</option>)}
-              </select>
+              <SelectMenu ariaLabel="Bãi áp dụng"
+                  triggerClassName={"tw-min-h-11 tw-w-full tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-200 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-800 focus:tw-border-vm-primary focus:tw-outline-none"}
+                  disabled={!canManagePartnerCatalog && lotScope.lots.length === 1}
+                  onChange={(selectedValue) => setDeactivationScope(selectedValue)}
+                  value={deactivationScope}
+                  options={[...(!canManagePartnerCatalog && lotScope.lots.length > 1 ? [{ label: "Chọn bãi áp dụng", value: "" }] : []), ...(canManagePartnerCatalog ? [{ label: "Tất cả bãi thuộc Partner", value: "all" }] : []), ...lotScope.lots.map((lot) => ({ label: `${lot.name} · ${lot.code}`, value: lot.parkingLotId }))]} portal clearValue="" />
               <small className="tw-font-semibold tw-leading-5 tw-text-vm-slate-500">
                 {canManagePartnerCatalog
                   ? "Partner Admin có thể ngừng tại một bãi cụ thể hoặc toàn bộ bãi thuộc Partner."

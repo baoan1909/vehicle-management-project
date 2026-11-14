@@ -158,6 +158,54 @@ test("customer creates a review in a modal on the pricing page", async ({ page }
   expect(submitted).toEqual({ rating: 4, comment: "Bãi sạch và nhân viên hỗ trợ tốt." });
 });
 
+test("review highlights add and remove parking-specific comments, respect the limit and survive editing", async ({ page }, testInfo) => {
+  await mockPricing(page);
+  await seedSession(page);
+  let submitted: unknown;
+  await page.route(`${apiBase}/parking/parking-lots/lot-1/reviews/me`, async (route) => {
+    if (route.request().method() === "PUT") {
+      submitted = route.request().postDataJSON();
+      return route.fulfill({ json: envelope({
+        ...route.request().postDataJSON(), createdAt: "2026-11-04T01:00:00Z", updatedAt: null, edited: false,
+      }) });
+    }
+    return route.fulfill({ json: envelope({ eligible: true, reasonCode: "ELIGIBLE_TRANSACTION", currentReview: null }) });
+  });
+  await page.setViewportSize({ width: 1440, height: 1080 });
+  await page.goto("/pricing/lot-1#write-review");
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByText("Trải nghiệm của bạn như thế nào?", { exact: true })).toBeVisible();
+  const comment = dialog.getByLabel(/Nhận xét chi tiết/);
+  const price = dialog.getByRole("button", { name: "Giá vé rõ ràng", exact: true });
+  const staff = dialog.getByRole("button", { name: "Nhân viên hỗ trợ nhiệt tình", exact: true });
+  await comment.fill("Nhận xét ban đầu.");
+  await price.click();
+  await expect(price).toHaveAttribute("aria-pressed", "true");
+  await expect(comment).toHaveValue("Nhận xét ban đầu.\nGiá vé rõ ràng.");
+  await price.click();
+  await expect(comment).toHaveValue("Nhận xét ban đầu.");
+  await comment.fill("a".repeat(1999));
+  await expect(price).toBeDisabled();
+  await expect(staff).toBeDisabled();
+  await comment.fill("Nhận xét ban đầu.");
+  await price.click();
+  await staff.click();
+  await dialog.getByRole("button", { name: "4 sao", exact: true }).click();
+  await dialog.screenshot({ path: testInfo.outputPath("review-desktop.png"), animations: "disabled" });
+  await dialog.getByRole("button", { name: "Gửi đánh giá", exact: true }).click();
+  await expect(dialog).toBeHidden();
+  expect(submitted).toEqual({ rating: 4, comment: "Nhận xét ban đầu.\nGiá vé rõ ràng.\nNhân viên hỗ trợ nhiệt tình." });
+  await page.locator("#parking-reviews").getByRole("button", { name: "Sửa đánh giá", exact: true }).click();
+  await expect(price).toHaveAttribute("aria-pressed", "true");
+  await expect(staff).toHaveAttribute("aria-pressed", "true");
+  await expect(dialog.getByRole("button", { name: "4 sao", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(comment).toBeVisible();
+  const bounds = (await dialog.locator(".vm-shared-modal-panel").boundingBox())!;
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(390);
+  await dialog.screenshot({ path: testInfo.outputPath("review-mobile.png"), animations: "disabled" });
+});
+
 test("partner review management uses project dropdowns and renders the dashboard", async ({ page }) => {
   const requestedRatings: string[] = [];
   let contactedCustomerId = "";

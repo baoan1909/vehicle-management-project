@@ -1,3 +1,4 @@
+import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -529,25 +530,16 @@ function LostCardResolvePanel({
             <span className="tw-mb-1.5 tw-block tw-text-[0.8rem] tw-font-bold tw-text-vm-slate-600">
               Thẻ mới
             </span>
-            <select
-              className="tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900 disabled:tw-bg-slate-100 disabled:tw-text-vm-slate-500"
-              disabled={!isPaid || isResolved || isCancelled || isCardsLoading}
-              value={selectedNewCardId}
-              onChange={(event) => onNewCardChange(event.target.value)}
-            >
-              <option value="">
-                {isCardsLoading
+            <SelectMenu ariaLabel="Chọn thẻ cấp lại"
+                  triggerClassName={"tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.9rem] tw-font-extrabold tw-text-slate-900 disabled:tw-bg-slate-100 disabled:tw-text-vm-slate-500"}
+                  disabled={!isPaid || isResolved || isCancelled || isCardsLoading}
+                  value={selectedNewCardId}
+                  onChange={(selectedValue) => onNewCardChange(selectedValue)}
+                  options={[{ label: isCardsLoading
                   ? "Đang tải thẻ khả dụng..."
                   : isPaid
                     ? "Chọn thẻ mới cùng loại với thẻ đã mất"
-                    : "Thanh toán hóa đơn trước khi cấp thẻ mới"}
-              </option>
-              {availableCards.map((card) => (
-                <option key={card.cardId} value={card.cardId}>
-                  {card.cardNumber} {card.uid ? `· UID ${card.uid}` : ""}
-                </option>
-              ))}
-            </select>
+                    : "Thanh toán hóa đơn trước khi cấp thẻ mới", value: "" }, ...availableCards.map((card) => ({ label: `${card.cardNumber} ${card.uid ? `· UID ${card.uid}` : ""}`, value: card.cardId }))]} portal clearValue="" />
           </label>
         ) : null}
         {needsNewCard && isPaid && !isCardsLoading && availableCards.length === 0 && !isResolved ? (
@@ -771,17 +763,11 @@ function PaymentConfirmModal({
         </div>
         <label>
           <span className="tw-mb-1.5 tw-block tw-text-[0.82rem] tw-font-bold tw-text-vm-slate-700">Hình thức thanh toán</span>
-          <select
-            className="tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.95rem] tw-font-extrabold tw-text-slate-900 tw-outline-none"
-            value={paymentMethod}
-            onChange={(event) => onPaymentMethodChange(event.target.value as LostCardPaymentMethod)}
-          >
-            {paymentMethodOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+          <SelectMenu ariaLabel="Phương thức thanh toán"
+                  triggerClassName={"tw-h-11 tw-w-full tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-text-[0.95rem] tw-font-extrabold tw-text-slate-900 tw-outline-none"}
+                  value={paymentMethod}
+                  onChange={(selectedValue) => onPaymentMethodChange(selectedValue as LostCardPaymentMethod)}
+                  options={[...paymentMethodOptions.map((option) => ({ label: option.label, value: option.value }))]} portal clearValue="" />
         </label>
         {paymentMethod === "VNPAY" ? (
           <div className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-blue-200 tw-bg-blue-50 tw-p-3 tw-text-[0.82rem] tw-font-bold tw-leading-relaxed tw-text-blue-700">

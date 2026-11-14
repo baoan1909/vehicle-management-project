@@ -16,7 +16,7 @@ assert.match(page, /PARKING_SCOPE_PLATFORM/);
 assert.match(page, /PARKING_SCOPE_PARTNER/);
 assert.match(page, /PARKING_SCOPE_ASSIGNED/);
 assert.match(page, /!isParkingManager \? <button/);
-assert.match(page, /<option value="__ALL__">Tất cả<\/option>/);
+assert.match(page, /label: "Tất cả", value: "__ALL__"/);
 assert.match(page, /scopeType: value === "__ALL__"/);
 assert.match(customerApi, /parkingLotId=\$\{encodeURIComponent\(parkingLotId\)\}/);
 

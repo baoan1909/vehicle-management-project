@@ -57,7 +57,8 @@ async function openAction(page: Page, action: "Tạo phiếu hỗ trợ" | "Tra 
 }
 
 async function fillIntake(page: Page) {
-  await page.getByRole("combobox", { name: "Danh mục", exact: true }).selectOption(categoryId);
+  await page.getByRole("button", { name: "Danh mục", exact: true }).click();
+  await page.getByRole("button", { name: "Đăng ký và onboarding", exact: true }).click();
   await page.getByRole("textbox", { name: "Tiêu đề", exact: true }).fill("Hỗ trợ đăng ký");
   await page.getByRole("textbox", { name: "Nội dung", exact: true }).fill("Tôi cần hướng dẫn đăng ký.");
   await page.getByRole("textbox", { name: "Email", exact: true }).fill("baoan@example.com");
@@ -99,7 +100,7 @@ test("legacy help opens the guest widget without account API requests", async ({
   await page.screenshot({ path: testInfo.outputPath("guest-widget-desktop.png") });
 });
 
-test("Help opens the widget in place and PUBLIC requests contain no client scope or tools", async ({ page }) => {
+test("floating support opens in place and PUBLIC requests contain no client scope or tools", async ({ page }) => {
   await mockBootstrap(page);
   let assistantBody: Record<string, unknown> | null = null;
   await page.route(`${apiBase}/public/support/assistant/messages`, (route) => {
@@ -110,7 +111,8 @@ test("Help opens the widget in place and PUBLIC requests contain no client scope
     })) });
   });
   await page.goto("/guide");
-  await page.getByRole("button", { name: "Trợ giúp", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Trợ giúp", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Mở Trợ lý hỗ trợ CoParking", exact: true }).click();
   await ask(page);
   await expect(page.getByRole("log")).toContainText("Hướng dẫn công khai");
   await expect(page).toHaveURL(/\/guide$/);
@@ -295,12 +297,14 @@ test("CAPTCHA assistant and intake proofs remain separate and are reset after us
   await expect.poll(() => issuedPurposes.filter((purpose) => purpose === "INTAKE").length).toBeGreaterThanOrEqual(2);
 });
 
-test("mobile Help closes navigation and opens a usable widget and intake form", async ({ page }, testInfo) => {
+test("mobile header omits Help while floating support and intake stay available", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await mockBootstrap(page);
   await page.goto("/guide");
   await page.getByRole("button", { name: "Mở menu điều hướng" }).click();
-  await page.getByRole("button", { name: "Trợ giúp", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Trợ giúp", exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Đóng menu", exact: true }).click();
+  await page.getByRole("button", { name: "Mở Trợ lý hỗ trợ CoParking", exact: true }).click();
   const panel = page.getByRole("dialog", { name: "Trợ lý hỗ trợ CoParking", exact: true });
   await expect(panel).toBeVisible();
   const box = await panel.boundingBox();
