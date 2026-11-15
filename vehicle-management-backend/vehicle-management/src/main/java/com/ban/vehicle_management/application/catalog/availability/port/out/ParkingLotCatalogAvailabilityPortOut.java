@@ -6,6 +6,8 @@ import java.util.UUID;
 public interface ParkingLotCatalogAvailabilityPortOut {
     Set<UUID> findExcludedVehicleTypeIds(UUID parkingLotId);
 
+    Set<UUID> findExplicitlyDisabledVehicleTypeIds(UUID parkingLotId);
+
     Set<UUID> findExcludedTicketTypeIds(UUID parkingLotId);
 
     boolean isVehicleTypeEnabled(UUID parkingLotId, UUID vehicleTypeId);

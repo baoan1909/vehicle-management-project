@@ -2,6 +2,7 @@ package com.ban.vehicle_management.domain.catalog.vehicletype.policy;
 
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import com.ban.vehicle_management.shared.exception.BadRequestException;
+import com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus;
 import com.ban.vehicle_management.shared.utils.TextValidationUtils;
 
 public class VehicleTypePolicy {
@@ -12,18 +13,18 @@ public class VehicleTypePolicy {
         vehicleType.setName(TextValidationUtils.normalizeRequiredText(vehicleType.getName(), "name", 100));
         vehicleType.setDescription(TextValidationUtils.normalizeNullableText(vehicleType.getDescription(), "description", 0));
         if (vehicleType.getIsActive() == null) {
-            vehicleType.setIsActive(Boolean.TRUE);
+            vehicleType.setLifecycleStatus(CatalogLifecycleStatus.DRAFT);
         }
     }
 
     public void deactivate(VehicleType vehicleType) {
         requireVehicleType(vehicleType);
-        vehicleType.setIsActive(Boolean.FALSE);
+        vehicleType.setLifecycleStatus(CatalogLifecycleStatus.INACTIVE);
     }
 
     public void activate(VehicleType vehicleType) {
         requireVehicleType(vehicleType);
-        vehicleType.setIsActive(Boolean.TRUE);
+        vehicleType.setLifecycleStatus(CatalogLifecycleStatus.ACTIVE);
         initialize(vehicleType);
     }
 

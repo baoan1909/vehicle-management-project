@@ -30,6 +30,11 @@ public class ParkingLotCatalogAvailabilityPersistenceAdapter implements ParkingL
     }
 
     @Override
+    public Set<UUID> findExplicitlyDisabledVehicleTypeIds(UUID parkingLotId) {
+        return vehicleTypeRepository.findExplicitlyDisabledIdsByParkingLotId(parkingLotId);
+    }
+
+    @Override
     public boolean isVehicleTypeEnabled(UUID parkingLotId, UUID vehicleTypeId) {
         return !vehicleTypeRepository.existsParkingLotExclusion(parkingLotId, vehicleTypeId);
     }
@@ -42,8 +47,10 @@ public class ParkingLotCatalogAvailabilityPersistenceAdapter implements ParkingL
     @Override
     public void setVehicleTypeEnabled(UUID organizationId, UUID parkingLotId, UUID vehicleTypeId, boolean enabled) {
         if (enabled) {
+            vehicleTypeRepository.enrollAtParkingLot(organizationId, parkingLotId, vehicleTypeId);
             vehicleTypeRepository.deleteParkingLotExclusion(parkingLotId, vehicleTypeId);
         } else {
+            vehicleTypeRepository.unenrollAtParkingLot(parkingLotId, vehicleTypeId);
             vehicleTypeRepository.insertParkingLotExclusion(organizationId, parkingLotId, vehicleTypeId);
         }
     }
@@ -51,8 +58,10 @@ public class ParkingLotCatalogAvailabilityPersistenceAdapter implements ParkingL
     @Override
     public void setTicketTypeEnabled(UUID organizationId, UUID parkingLotId, UUID ticketTypeId, boolean enabled) {
         if (enabled) {
+            ticketTypeRepository.enrollAtParkingLot(organizationId, parkingLotId, ticketTypeId);
             ticketTypeRepository.deleteParkingLotExclusion(parkingLotId, ticketTypeId);
         } else {
+            ticketTypeRepository.unenrollAtParkingLot(parkingLotId, ticketTypeId);
             ticketTypeRepository.insertParkingLotExclusion(organizationId, parkingLotId, ticketTypeId);
         }
     }

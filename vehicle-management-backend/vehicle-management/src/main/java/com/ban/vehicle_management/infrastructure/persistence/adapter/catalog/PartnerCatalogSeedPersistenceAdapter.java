@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class PartnerCatalogSeedPersistenceAdapter implements PartnerCatalogSeedPortOut {
 
+    private final com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationRepository organizationRepository;
     private final VehicleTypeRepository vehicleTypeRepository;
     private final TicketTypeRepository ticketTypeRepository;
     private final PricePlanRepository pricePlanRepository;
@@ -22,7 +23,9 @@ public class PartnerCatalogSeedPersistenceAdapter implements PartnerCatalogSeedP
             VehicleTypeRepository vehicleTypeRepository,
             TicketTypeRepository ticketTypeRepository,
             PricePlanRepository pricePlanRepository,
-            PriceRuleRepository priceRuleRepository) {
+            PriceRuleRepository priceRuleRepository,
+            com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationRepository organizationRepository) {
+        this.organizationRepository = organizationRepository;
         this.vehicleTypeRepository = vehicleTypeRepository;
         this.ticketTypeRepository = ticketTypeRepository;
         this.pricePlanRepository = pricePlanRepository;
@@ -32,6 +35,7 @@ public class PartnerCatalogSeedPersistenceAdapter implements PartnerCatalogSeedP
     @Override
     @Transactional
     public void copyInternalCatalog(UUID organizationId) {
+        if (organizationRepository.claimCatalogSeed(organizationId) == 0) return;
         vehicleTypeRepository.copyInternalCatalog(organizationId);
         ticketTypeRepository.copyInternalCatalog(organizationId);
         pricePlanRepository.copyInternalCatalog(organizationId);

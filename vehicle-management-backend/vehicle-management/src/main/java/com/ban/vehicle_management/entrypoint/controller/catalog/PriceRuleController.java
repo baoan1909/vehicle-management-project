@@ -68,13 +68,21 @@ public class PriceRuleController {
     public ResponseEntity<ApiResponse<List<PriceRuleAdminResponse>>> getPriceRules(
             @ModelAttribute PriceRuleFilterRequest request
     ) {
-        List<PriceRule> priceRules = priceRulePortIn.getPriceRules(
+        List<PriceRule> priceRules = (request.lifecycleStatus() == null
+                ? priceRulePortIn.getPriceRules(
                 request.pricePlanId(),
                 request.vehicleTypeId(),
                 request.ticketTypeId(),
                 request.isActive(),
                 request.keyword()
-        );
+        )
+                : priceRulePortIn.getPriceRules(
+                request.pricePlanId(),
+                request.vehicleTypeId(),
+                request.ticketTypeId(),
+                request.isActive(),
+                request.keyword()
+        , request.lifecycleStatus()));
 
         return ResponseEntity.ok(ApiResponse.ok(
                 "Fetched price rules successfully",

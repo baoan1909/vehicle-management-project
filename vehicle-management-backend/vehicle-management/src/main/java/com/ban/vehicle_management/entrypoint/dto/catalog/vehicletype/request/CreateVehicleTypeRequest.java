@@ -4,7 +4,11 @@ public record CreateVehicleTypeRequest(
         String code,
         String name,
         String description,
-        Boolean isActive
+        Boolean isActive,
+        java.util.UUID canonicalVehicleTypeId
 ) {
+    public CreateVehicleTypeRequest(String code, String name, String description, Boolean isActive) {
+        this(code, name, description, isActive, null);
+    }
 }
 

@@ -10,6 +10,8 @@ import java.util.UUID;
 public interface OrganizationPortOut {
     Organization save(Organization organization);
 
+    void lockForCatalogChange(UUID organizationId);
+
     Optional<Organization> findById(UUID organizationId);
 
     Optional<Organization> findByCode(String code);

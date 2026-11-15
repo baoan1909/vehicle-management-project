@@ -17,9 +17,10 @@ public interface PricePlanRepository extends JpaRepository<PricePlanEntity, UUID
     @Query(value = """
             insert into catalog.price_plans
                 (price_plan_id, organization_id, code, name, description, applies_to,
-                 effective_from, effective_to, is_active, created_at)
+                 effective_from, effective_to, is_active, lifecycle_status, source_catalog_id, created_at, created_by)
             select gen_random_uuid(), :organizationId, source.code, source.name, source.description,
-                   source.applies_to, source.effective_from, source.effective_to, source.is_active, now()
+                   source.applies_to, source.effective_from, source.effective_to, false, 'DRAFT', source.price_plan_id, now(),
+                   (select created_by from iam.organizations where organization_id = :organizationId)
             from catalog.price_plans source
             join iam.organizations template on template.organization_id = source.organization_id
             where template.code = 'COPARKING_INTERNAL'

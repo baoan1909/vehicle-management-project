@@ -19,6 +19,7 @@ public class VehicleTypeAdminResponse {
     private String name;
     private String description;
     private Boolean isActive;
+    private com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus lifecycleStatus;
     private Instant createdAt;
     private UUID createdBy;
     private Instant updatedAt;

@@ -58,10 +58,11 @@ public class PublicParkingLotCatalogUseCaseImpl implements PublicParkingLotCatal
             LocalDate effectiveDate,
             String keyword
     ) {
+        if (parkingLotId == null) return List.of();
         return pricePlanPortOut.findAll(
                 true,
                 appliesTo,
-                effectiveDate,
+                effectiveDate == null ? com.ban.vehicle_management.shared.utils.DateTimeUtils.toVietnamLocalDate(java.time.Instant.now()) : effectiveDate,
                 keyword,
                 Set.of(resolveOrganizationId(parkingLotId))
         );
@@ -76,6 +77,7 @@ public class PublicParkingLotCatalogUseCaseImpl implements PublicParkingLotCatal
             UUID ticketTypeId,
             String keyword
     ) {
+        if (parkingLotId == null) return List.of();
         List<PriceRule> rules = priceRulePortOut.findAll(
                 pricePlanId,
                 vehicleTypeId,
@@ -84,7 +86,15 @@ public class PublicParkingLotCatalogUseCaseImpl implements PublicParkingLotCatal
                 keyword,
                 Set.of(resolveOrganizationId(parkingLotId))
         );
-        return filterAvailablePriceRules(parkingLotId, rules);
+        java.time.LocalDate today = com.ban.vehicle_management.shared.utils.DateTimeUtils.toVietnamLocalDate(java.time.Instant.now());
+        Set<UUID> effectivePlans = pricePlanPortOut.findAll(true, null, today, null,
+                Set.of(resolveOrganizationId(parkingLotId))).stream().map(PricePlan::getPricePlanId)
+                .collect(java.util.stream.Collectors.toSet());
+        return filterAvailablePriceRules(parkingLotId, rules).stream()
+                .filter(rule -> effectivePlans.contains(rule.getPricePlanId()))
+                .filter(rule -> vehicleTypePortOut.findById(rule.getVehicleTypeId()).map(type -> Boolean.TRUE.equals(type.getIsActive())).orElse(false))
+                .filter(rule -> rule.getTicketTypeId() == null || ticketTypePortOut.findById(rule.getTicketTypeId()).map(type -> type.getStatus() == TicketTypeStatus.ACTIVE).orElse(false))
+                .toList();
     }
 
     @Override
@@ -129,7 +139,7 @@ public class PublicParkingLotCatalogUseCaseImpl implements PublicParkingLotCatal
         }
         ParkingLot lot = parkingLotPortOut.findById(parkingLotId)
                 .orElseThrow(() -> new NotFoundException("Parking lot not found"));
-        if (lot.getStatus() == null || lot.getStatus() == ParkingLotStatus.CLOSED) {
+        if (lot.getStatus() != ParkingLotStatus.ACTIVE) {
             throw new NotFoundException("Public parking lot not found");
         }
         return lot.getOrganizationId();

@@ -7,6 +7,7 @@ import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.response.Pric
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
+import com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.response.PriceRuleUserResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -31,6 +32,8 @@ public interface PriceRuleApiMapper {
     PriceRule toDomain(UpdatePriceRuleRequest request);
 
     PriceRuleAdminResponse toAdminResponse(PriceRule priceRule);
+
+    List<PriceRuleUserResponse> toUserResponses(List<PriceRule> items);
 
     List<PriceRuleAdminResponse> toAdminResponses(List<PriceRule> priceRules);
 

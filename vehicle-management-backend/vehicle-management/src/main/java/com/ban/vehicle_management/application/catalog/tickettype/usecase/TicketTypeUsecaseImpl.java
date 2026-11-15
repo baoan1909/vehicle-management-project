@@ -54,6 +54,7 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     @Transactional
     public TicketType createTicketType(TicketType ticketType, UUID parkingLotId){
         currentAccountPortIn.requirePermission(TICKET_TYPE_CREATE_ALL);
+        ticketType.setStatus(TicketTypeStatus.DRAFT);
         ticketTypePolicy.initialize(ticketType);
         ticketType.setOrganizationId(catalogAccessGuard.writableOrganizationId(parkingLotId));
 
@@ -86,8 +87,8 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
         TicketType existingTicketType = findExistingTicketType(ticketTypeId);
         catalogAccessGuard.ensureWritable(existingTicketType.getOrganizationId());
 
-        if (existingTicketType.getStatus() != TicketTypeStatus.ACTIVE){
-            throw new BadRequestException("Only active ticket type can be update");
+        if (existingTicketType.getStatus() == TicketTypeStatus.INACTIVE){
+            throw new BadRequestException("Only active or draft ticket type can be updated");
         }
 
         boolean codeChanged = !existingTicketType.getCode().equalsIgnoreCase(ticketType.getCode());
@@ -169,7 +170,7 @@ public class TicketTypeUsecaseImpl implements TicketTypePortIn {
     }
 
     private void notifyTicketTypeChanged(TicketType ticketType, String title) {
-        if (notificationPortIn == null) {
+        if (ticketType.getStatus() == TicketTypeStatus.DRAFT || notificationPortIn == null) {
             return;
         }
         notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(

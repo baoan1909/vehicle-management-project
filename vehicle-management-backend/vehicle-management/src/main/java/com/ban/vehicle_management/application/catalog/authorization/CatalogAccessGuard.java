@@ -65,7 +65,9 @@ public class CatalogAccessGuard {
         if (organizationIds.size() != 1) {
             throw new AccessDeniedException("Catalog write requires exactly one active Partner membership");
         }
-        return organizationIds.iterator().next();
+        UUID organizationId = organizationIds.iterator().next();
+        organizationPortOut.lockForCatalogChange(organizationId);
+        return organizationId;
     }
 
     /** Resolve a new catalog item's owner from an explicitly selected, authorized lot. */
@@ -84,6 +86,7 @@ public class CatalogAccessGuard {
                 || !organizationPortOut.findActiveOrganizationIdsByAccountId(account.accountId()).contains(organizationId)) {
             throw new AccessDeniedException("Current account cannot change this Partner catalog item");
         }
+        organizationPortOut.lockForCatalogChange(organizationId);
     }
 
     /** Shared catalog fields may be updated from an explicitly selected lot within the actor's scope. */
@@ -101,10 +104,12 @@ public class CatalogAccessGuard {
         Set<String> permissions = account.getEffectivePermissionCodes();
         if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)
                 && organizationPortOut.findActiveOrganizationIdsByAccountId(account.accountId()).contains(organizationId)) {
+            organizationPortOut.lockForCatalogChange(organizationId);
             return;
         }
         if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)
                 && organizationPortOut.findScopedParkingLotIdsByAccountId(account.accountId()).contains(parkingLotId)) {
+            organizationPortOut.lockForCatalogChange(organizationId);
             return;
         }
         throw new AccessDeniedException("Current account cannot change this catalog item at the selected parking lot");

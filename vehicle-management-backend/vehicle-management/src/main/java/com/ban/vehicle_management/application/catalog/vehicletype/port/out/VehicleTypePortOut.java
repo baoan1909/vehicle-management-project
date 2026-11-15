@@ -13,6 +13,8 @@ public interface VehicleTypePortOut {
 
     Optional<VehicleType> findById(UUID vehicleTypeId);
 
+    Optional<VehicleType> findCanonicalByCode(String code);
+
     List<VehicleType> findAll(Boolean isActive);
 
     List<VehicleType> findAll(Boolean isActive, Set<UUID> organizationIds);

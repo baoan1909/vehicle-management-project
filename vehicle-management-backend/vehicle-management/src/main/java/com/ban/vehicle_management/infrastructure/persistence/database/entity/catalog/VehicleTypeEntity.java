@@ -47,6 +47,9 @@ public class VehicleTypeEntity extends AuditableEntity {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(name = "lifecycle_status", nullable = false)
+    private com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus lifecycleStatus;
 
     @OneToMany(mappedBy = "vehicleType")
     private Set<CustomerVehicleEntity> customerVehicles = new HashSet<>();

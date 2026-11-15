@@ -62,6 +62,11 @@ public class VehicleTypePersistenceAdapter implements VehicleTypePortOut {
     }
 
     @Override
+    public Optional<VehicleType> findCanonicalByCode(String code) {
+        return vehicleTypeRepository.findCanonicalByCode(code).map(vehicleTypePersistenceMapper::toDomain);
+    }
+
+    @Override
     public Optional<VehicleType> findById(UUID vehicleTypeId) {
         return vehicleTypeRepository.findById(vehicleTypeId)
                 .map(vehicleTypePersistenceMapper::toDomain);

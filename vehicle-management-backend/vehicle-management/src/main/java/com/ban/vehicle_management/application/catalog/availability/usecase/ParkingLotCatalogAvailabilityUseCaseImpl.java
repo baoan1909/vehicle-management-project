@@ -80,6 +80,9 @@ public class ParkingLotCatalogAvailabilityUseCaseImpl implements ParkingLotCatal
         var vehicleType = vehicleTypePortOut.findById(vehicleTypeId)
                 .orElseThrow(() -> new NotFoundException("Vehicle type not found"));
 
+        if (enabled && !Boolean.TRUE.equals(vehicleType.getIsActive())) {
+            throw new BadRequestException("Publish the vehicle type before offering it at a parking lot");
+        }
         List<ParkingLot> lots = parkingLotIds.stream().map(this::findVehicleServiceWritableLot).toList();
         for (ParkingLot lot : lots) {
             if (!lot.getOrganizationId().equals(vehicleType.getOrganizationId())) {
@@ -105,6 +108,9 @@ public class ParkingLotCatalogAvailabilityUseCaseImpl implements ParkingLotCatal
                 .orElseThrow(() -> new NotFoundException("Ticket type not found"));
         if (!lot.getOrganizationId().equals(ticketType.getOrganizationId())) {
             throw new BadRequestException("Ticket type does not belong to the selected parking lot Partner");
+        }
+        if (enabled && ticketType.getStatus() != com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus.ACTIVE) {
+            throw new BadRequestException("Publish the ticket type before offering it at a parking lot");
         }
         availabilityPortOut.setTicketTypeEnabled(lot.getOrganizationId(), parkingLotId, ticketTypeId, enabled);
         return snapshot(lot);
@@ -156,7 +162,7 @@ public class ParkingLotCatalogAvailabilityUseCaseImpl implements ParkingLotCatal
         Set<UUID> drainingVehicleTypeIds = new LinkedHashSet<>();
         LocalDate businessDate = LocalDate.now();
 
-        for (UUID vehicleTypeId : excludedVehicleTypeIds) {
+        for (UUID vehicleTypeId : availabilityPortOut.findExplicitlyDisabledVehicleTypeIds(lot.getParkingLotId())) {
             long subscriptionCount = vehicleTypePortOut.countServiceObligationSubscriptions(
                     lot.getParkingLotId(), vehicleTypeId, businessDate);
             long openSessionCount = vehicleTypePortOut.countOpenParkingSessions(

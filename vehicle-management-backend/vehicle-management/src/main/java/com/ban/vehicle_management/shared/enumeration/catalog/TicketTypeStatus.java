@@ -1,5 +1,5 @@
 package com.ban.vehicle_management.shared.enumeration.catalog;
 
 public enum TicketTypeStatus {
-    ACTIVE, INACTIVE
+    DRAFT, ACTIVE, INACTIVE
 }

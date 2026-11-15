@@ -7,6 +7,7 @@ import com.ban.vehicle_management.entrypoint.dto.catalog.priceplan.response.Pric
 import com.ban.vehicle_management.shared.utils.DateTimeUtils;
 import java.time.Instant;
 import java.util.List;
+import com.ban.vehicle_management.entrypoint.dto.catalog.priceplan.response.PricePlanUserResponse;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -31,6 +32,8 @@ public interface PricePlanApiMapper {
     PricePlan toDomain(UpdatePricePlanRequest request);
 
     PricePlanAdminResponse toAdminResponse(PricePlan pricePlan);
+
+    List<PricePlanUserResponse> toUserResponses(List<PricePlan> items);
 
     List<PricePlanAdminResponse> toAdminResponses(List<PricePlan> pricePlans);
 

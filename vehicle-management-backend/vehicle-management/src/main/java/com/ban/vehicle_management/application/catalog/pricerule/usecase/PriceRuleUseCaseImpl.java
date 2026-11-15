@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.catalog.pricerule.usecase;
 
+import com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus;
 import com.ban.vehicle_management.application.catalog.priceplan.port.out.PricePlanPortOut;
 import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
 import com.ban.vehicle_management.application.catalog.tickettype.port.out.TicketTypePortOut;
@@ -28,6 +29,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PriceRuleUseCaseImpl implements PriceRulePortIn {
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PriceRule> getPriceRules(UUID pricePlanId, UUID vehicleTypeId, UUID ticketTypeId, Boolean isActive, String keyword, CatalogLifecycleStatus lifecycleStatus) {
+        return getPriceRules(pricePlanId, vehicleTypeId, ticketTypeId, isActive, keyword).stream()
+                .filter(item -> lifecycleStatus == null || item.getLifecycleStatus() == lifecycleStatus)
+                .toList();
+    }
 
     private static final String CREATE = "PRICE_RULE_CREATE_ALL";
     private static final String READ = "PRICE_RULE_READ_ALL";
@@ -68,14 +77,15 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
     @Transactional
     public PriceRule createPriceRule(PriceRule priceRule) {
         currentAccountPortIn.requirePermission(CREATE);
+        priceRule.setLifecycleStatus(CatalogLifecycleStatus.DRAFT);
         priceRulePolicy.initialize(priceRule);
         priceRule.setOrganizationId(catalogAccessGuard.writableOrganizationId());
 
-        PricePlan pricePlan = getActivePricePlan(priceRule.getPricePlanId());
+        PricePlan pricePlan = getPricePlan(priceRule.getPricePlanId(), false);
         validateSameOrganization(priceRule.getOrganizationId(), pricePlan.getOrganizationId());
-        validateVehicleType(priceRule.getVehicleTypeId(), priceRule.getOrganizationId());
+        validateVehicleType(priceRule.getVehicleTypeId(), priceRule.getOrganizationId(), false);
 
-        TicketType ticketType = getActiveTicketType(priceRule.getTicketTypeId());
+        TicketType ticketType = getTicketType(priceRule.getTicketTypeId(), false);
         if (ticketType != null) {
             validateSameOrganization(priceRule.getOrganizationId(), ticketType.getOrganizationId());
         }
@@ -138,11 +148,11 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
 
         priceRulePolicy.initialize(existingPriceRule);
 
-        PricePlan pricePlan = getActivePricePlan(existingPriceRule.getPricePlanId());
+        PricePlan pricePlan = getPricePlan(existingPriceRule.getPricePlanId(), Boolean.TRUE.equals(existingPriceRule.getIsActive()));
         validateSameOrganization(existingPriceRule.getOrganizationId(), pricePlan.getOrganizationId());
-        validateVehicleType(existingPriceRule.getVehicleTypeId(), existingPriceRule.getOrganizationId());
+        validateVehicleType(existingPriceRule.getVehicleTypeId(), existingPriceRule.getOrganizationId(), Boolean.TRUE.equals(existingPriceRule.getIsActive()));
 
-        TicketType ticketType = getActiveTicketType(existingPriceRule.getTicketTypeId());
+        TicketType ticketType = getTicketType(existingPriceRule.getTicketTypeId(), Boolean.TRUE.equals(existingPriceRule.getIsActive()));
         if (ticketType != null) {
             validateSameOrganization(existingPriceRule.getOrganizationId(), ticketType.getOrganizationId());
         }
@@ -160,7 +170,7 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
         PriceRule existingPriceRule = getPriceRuleById(priceRuleId);
         catalogAccessGuard.ensureWritable(existingPriceRule.getOrganizationId());
 
-        if (Boolean.FALSE.equals(existingPriceRule.getIsActive())) {
+        if (existingPriceRule.getLifecycleStatus() == CatalogLifecycleStatus.INACTIVE) {
             return;
         }
 
@@ -178,11 +188,11 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
 
         priceRulePolicy.activate(existingPriceRule);
 
-        PricePlan pricePlan = getActivePricePlan(existingPriceRule.getPricePlanId());
+        PricePlan pricePlan = getPricePlan(existingPriceRule.getPricePlanId(), Boolean.TRUE.equals(existingPriceRule.getIsActive()));
         validateSameOrganization(existingPriceRule.getOrganizationId(), pricePlan.getOrganizationId());
-        validateVehicleType(existingPriceRule.getVehicleTypeId(), existingPriceRule.getOrganizationId());
+        validateVehicleType(existingPriceRule.getVehicleTypeId(), existingPriceRule.getOrganizationId(), Boolean.TRUE.equals(existingPriceRule.getIsActive()));
 
-        TicketType ticketType = getActiveTicketType(existingPriceRule.getTicketTypeId());
+        TicketType ticketType = getTicketType(existingPriceRule.getTicketTypeId(), Boolean.TRUE.equals(existingPriceRule.getIsActive()));
         if (ticketType != null) {
             validateSameOrganization(existingPriceRule.getOrganizationId(), ticketType.getOrganizationId());
         }
@@ -193,33 +203,33 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
         return savedPriceRule;
     }
 
-    private PricePlan getActivePricePlan(UUID pricePlanId) {
+    private PricePlan getPricePlan(UUID pricePlanId, boolean requireActive) {
         PricePlan pricePlan = pricePlanPortOut.findById(pricePlanId)
                 .orElseThrow(() -> new NotFoundException("Price plan not found"));
 
-        if (!Boolean.TRUE.equals(pricePlan.getIsActive())) {
+        if (requireActive && !Boolean.TRUE.equals(pricePlan.getIsActive())) {
             throw new ConflictException("Price rule cannot be used with inactive price plan");
         }
 
         return pricePlan;
     }
 
-    private void validateVehicleType(UUID vehicleTypeId, UUID organizationId) {
+    private void validateVehicleType(UUID vehicleTypeId, UUID organizationId, boolean requireActive) {
         var vehicleType = vehicleTypePortOut.findById(vehicleTypeId)
                 .orElseThrow(() -> new NotFoundException("Active vehicle type not found"));
-        if (!Boolean.TRUE.equals(vehicleType.getIsActive())) {
+        if (requireActive && !Boolean.TRUE.equals(vehicleType.getIsActive())) {
             throw new NotFoundException("Active vehicle type not found");
         }
         validateSameOrganization(organizationId, vehicleType.getOrganizationId());
     }
 
-    private TicketType getActiveTicketType(UUID ticketTypeId) {
+    private TicketType getTicketType(UUID ticketTypeId, boolean requireActive) {
         if (ticketTypeId == null) {
             return null;
         }
 
         return ticketTypePortOut.findById(ticketTypeId)
-                .filter(ticketType -> ticketType.getStatus() == com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus.ACTIVE)
+                .filter(ticketType -> !requireActive || ticketType.getStatus() == com.ban.vehicle_management.shared.enumeration.catalog.TicketTypeStatus.ACTIVE)
                 .orElseThrow(() -> new NotFoundException("Active ticket type not found"));
     }
 
@@ -335,7 +345,7 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
     }
 
     private void notifyPriceRuleChanged(PriceRule priceRule, String title) {
-        if (notificationPortIn == null) {
+        if (priceRule.getLifecycleStatus() == CatalogLifecycleStatus.DRAFT || notificationPortIn == null) {
             return;
         }
         notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(

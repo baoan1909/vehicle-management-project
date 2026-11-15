@@ -50,6 +50,13 @@ public class OrganizationPersistenceAdapter implements OrganizationPortOut {
     }
 
     @Override
+    public void lockForCatalogChange(UUID organizationId) {
+        if (organizationRepository.findAllByIdsForUpdate(Set.of(organizationId)).isEmpty()) {
+            throw new com.ban.vehicle_management.shared.exception.NotFoundException("Organization not found");
+        }
+    }
+
+    @Override
     public Organization save(Organization organization) {
         return organizationPersistenceMapper.toDomain(
                 organizationRepository.saveAndFlush(organizationPersistenceMapper.toEntity(organization))

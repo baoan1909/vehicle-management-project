@@ -13,7 +13,7 @@ public class TicketTypePolicy {
         ticketType.setName(TextValidationUtils.normalizeRequiredText(ticketType.getName(), "name", 100));
         ticketType.setDescription(TextValidationUtils.normalizeNullableText(ticketType.getDescription(), "description", 0));
         if (ticketType.getStatus() == null) {
-            ticketType.setStatus(TicketTypeStatus.ACTIVE);
+            ticketType.setStatus(TicketTypeStatus.DRAFT);
         }
         ticketType.setDurationDays(durationByCode(ticketType.getCode()));
     }

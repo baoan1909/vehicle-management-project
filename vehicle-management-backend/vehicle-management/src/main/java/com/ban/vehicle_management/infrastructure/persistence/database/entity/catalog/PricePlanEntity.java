@@ -55,6 +55,9 @@ public class PricePlanEntity extends AuditableEntity {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "lifecycle_status", nullable = false)
+    private com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus lifecycleStatus;
 
     @OneToMany(mappedBy = "pricePlan")
     private Set<PriceRuleEntity> priceRules = new HashSet<>();

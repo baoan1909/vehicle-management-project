@@ -1,5 +1,6 @@
 package com.ban.vehicle_management.application.catalog.priceplan.usecase;
 
+import com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus;
 import com.ban.vehicle_management.application.catalog.priceplan.port.in.PricePlanPortIn;
 import com.ban.vehicle_management.application.catalog.authorization.CatalogAccessGuard;
 import com.ban.vehicle_management.application.iam.account.port.in.CurrentAccountPortIn;
@@ -20,6 +21,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class PricePlanUseCaseImpl implements PricePlanPortIn {
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PricePlan> getPricePlans(Boolean isActive, PricePlanAppliesTo appliesTo, LocalDate effectiveDate, String keyword, CatalogLifecycleStatus lifecycleStatus) {
+        return getPricePlans(isActive, appliesTo, effectiveDate, keyword).stream()
+                .filter(item -> lifecycleStatus == null || item.getLifecycleStatus() == lifecycleStatus)
+                .toList();
+    }
 
     private static final String CREATE = "PRICE_PLAN_CREATE_ALL";
     private static final String READ = "PRICE_PLAN_READ_ALL";
@@ -48,6 +57,7 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
     @Transactional
     public PricePlan createPricePlan(PricePlan pricePlan) {
         currentAccountPortIn.requirePermission(CREATE);
+        pricePlan.setLifecycleStatus(CatalogLifecycleStatus.DRAFT);
         pricePlanPolicy.initialize(pricePlan);
         pricePlan.setOrganizationId(catalogAccessGuard.writableOrganizationId());
 
@@ -118,7 +128,7 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
         PricePlan existingPricePlan = getPricePlanById(pricePlanId);
         catalogAccessGuard.ensureWritable(existingPricePlan.getOrganizationId());
 
-        if (Boolean.FALSE.equals(existingPricePlan.getIsActive())) {
+        if (existingPricePlan.getLifecycleStatus() == CatalogLifecycleStatus.INACTIVE) {
             return;
         }
 
@@ -166,7 +176,7 @@ public class PricePlanUseCaseImpl implements PricePlanPortIn {
     }
 
     private void notifyPricePlanChanged(PricePlan pricePlan, String title) {
-        if (notificationPortIn == null) {
+        if (pricePlan.getLifecycleStatus() == CatalogLifecycleStatus.DRAFT || notificationPortIn == null) {
             return;
         }
         notificationPortIn.sendBroadcastWebNotification(new BroadcastNotificationCommand(

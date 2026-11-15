@@ -98,7 +98,8 @@ public class ParkingLotPersistenceAdapter implements ParkingLotPortOut {
 
     @Override
     public boolean isReadyForActivation(UUID parkingLotId) {
-        return hasActiveZones(parkingLotId)
+        return parkingLotRepository.hasPublishedCatalogForActivation(parkingLotId)
+                && hasActiveZones(parkingLotId)
                 && gateRepository.existsActiveGateByParkingLotId(parkingLotId)
                 && laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.IN)
                 && laneRepository.existsActiveByParkingLotIdAndDirection(parkingLotId, LaneDirection.OUT)

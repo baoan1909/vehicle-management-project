@@ -1,11 +1,14 @@
 package com.ban.vehicle_management.application.catalog.vehicletype.port.in;
 
+import com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus;
 import com.ban.vehicle_management.application.catalog.vehicletype.model.VehicleTypeDeactivationImpact;
 import com.ban.vehicle_management.domain.catalog.vehicletype.model.VehicleType;
 import java.util.List;
 import java.util.UUID;
 
 public interface VehicleTypePortIn {
+    List<VehicleType> getVehicleTypes(Boolean isActive, CatalogLifecycleStatus lifecycleStatus);
+
 
     VehicleType createVehicleType(VehicleType vehicleType);
 
