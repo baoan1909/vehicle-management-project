@@ -32,7 +32,8 @@ class PriceRulePolicyTest {
         assertEquals(PriceRuleUnit.TURN, priceRule.getUnit());
         assertEquals(BigDecimal.ZERO, priceRule.getLostCardFee());
         assertEquals(0, priceRule.getPriority());
-        assertEquals(Boolean.TRUE, priceRule.getIsActive());
+        assertEquals(Boolean.FALSE, priceRule.getIsActive());
+        assertEquals(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT, priceRule.getLifecycleStatus());
     }
 
     @Test

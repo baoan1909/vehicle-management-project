@@ -62,7 +62,8 @@ class PricePlanUseCaseImplTest {
 
         assertNotNull(createdPricePlan.getPricePlanId());
         assertEquals("VISITOR-2027", createdPricePlan.getCode());
-        assertEquals(Boolean.TRUE, createdPricePlan.getIsActive());
+        assertEquals(Boolean.FALSE, createdPricePlan.getIsActive());
+        assertEquals(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT, createdPricePlan.getLifecycleStatus());
         assertEquals(ORGANIZATION_ID, createdPricePlan.getOrganizationId());
     }
 
@@ -77,18 +78,22 @@ class PricePlanUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectCreateWhenActivePeriodOverlaps() {
+    void shouldRejectActivationWhenActivePeriodOverlaps() {
         PricePlan request = validVisitorPricePlan();
+        UUID id = UUID.randomUUID();
+        request.setPricePlanId(id);
+        request.setOrganizationId(ORGANIZATION_ID);
+        when(pricePlanPortOut.findById(id)).thenReturn(Optional.of(request));
 
         when(pricePlanPortOut.existsActiveOverlapInOrganization(
                 ORGANIZATION_ID,
                 PricePlanAppliesTo.VISITOR,
                 LocalDate.of(2027, 1, 1),
                 LocalDate.of(2027, 12, 31),
-                null
+                id
         )).thenReturn(true);
 
-        assertThrows(ConflictException.class, () -> pricePlanUseCase.createPricePlan(request));
+        assertThrows(ConflictException.class, () -> pricePlanUseCase.activatePricePlan(id));
         verify(pricePlanPortOut, never()).save(any(PricePlan.class));
     }
 

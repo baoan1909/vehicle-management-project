@@ -82,8 +82,10 @@ class SqlFreeAdapterDelegationTest {
         var ticketTypeRepository = mock(TicketTypeRepository.class);
         var pricePlanRepository = mock(PricePlanRepository.class);
         var priceRuleRepository = mock(PriceRuleRepository.class);
+        var organizationRepository = mock(com.ban.vehicle_management.infrastructure.persistence.database.repository.iam.OrganizationRepository.class);
+        when(organizationRepository.claimCatalogSeed(organizationId)).thenReturn(1);
         new PartnerCatalogSeedPersistenceAdapter(
-                vehicleTypeRepository, ticketTypeRepository, pricePlanRepository, priceRuleRepository)
+                vehicleTypeRepository, ticketTypeRepository, pricePlanRepository, priceRuleRepository, organizationRepository)
                 .copyInternalCatalog(organizationId);
         verify(vehicleTypeRepository).copyInternalCatalog(organizationId);
         verify(ticketTypeRepository).copyInternalCatalog(organizationId);

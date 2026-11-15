@@ -76,26 +76,42 @@ class PriceRuleUseCaseImplTest {
     private PriceRuleUseCaseImpl priceRuleUseCase;
 
     @Test
+    void shouldSaveDraftDependenciesButRejectPublishingThem() {
+        PriceRule request = validVisitorPriceRule();
+        request.setIsActive(true); // A create payload cannot publish.
+        PricePlan plan = activePricePlan(PricePlanAppliesTo.VISITOR);
+        plan.setLifecycleStatus(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT);
+        VehicleType vehicle = new VehicleType();
+        vehicle.setOrganizationId(ORGANIZATION_ID);
+        vehicle.setLifecycleStatus(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT);
+        TicketType ticket = ticketType("DAILY");
+        ticket.setStatus(TicketTypeStatus.DRAFT);
+        when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(plan));
+        when(vehicleTypePortOut.findById(request.getVehicleTypeId())).thenReturn(Optional.of(vehicle));
+        when(ticketTypePortOut.findById(request.getTicketTypeId())).thenReturn(Optional.of(ticket));
+        when(priceRulePortOut.save(any(PriceRule.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        PriceRule saved = priceRuleUseCase.createPriceRule(request);
+        assertEquals(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT, saved.getLifecycleStatus());
+        when(priceRulePortOut.findById(saved.getPriceRuleId())).thenReturn(Optional.of(saved));
+        assertThrows(ConflictException.class,
+                () -> priceRuleUseCase.activatePriceRule(saved.getPriceRuleId()));
+        verify(priceRulePortOut, org.mockito.Mockito.times(1)).save(any(PriceRule.class));
+    }
+
+    @Test
     void shouldCreateVisitorPriceRuleWhenValid() {
         PriceRule request = validVisitorPriceRule();
         PricePlan pricePlan = activePricePlan(PricePlanAppliesTo.VISITOR);
         TicketType ticketType = ticketType("DAILY");
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
-        when(priceRulePortOut.existsActiveVisitorTimeOverlap(
-                request.getPricePlanId(),
-                request.getVehicleTypeId(),
-                request.getTicketTypeId(),
-                request.getTimeFrom(),
-                request.getTimeTo(),
-                null
-        )).thenReturn(false);
         when(priceRulePortOut.save(any(PriceRule.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         PriceRule createdPriceRule = priceRuleUseCase.createPriceRule(request);
 
         assertNotNull(createdPriceRule.getPriceRuleId());
-        assertEquals(Boolean.TRUE, createdPriceRule.getIsActive());
+        assertEquals(Boolean.FALSE, createdPriceRule.getIsActive());
+        assertEquals(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT, createdPriceRule.getLifecycleStatus());
     }
 
     @Test
@@ -108,14 +124,6 @@ class PriceRuleUseCaseImplTest {
         TicketType ticketType = ticketType("DAILY");
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
-        when(priceRulePortOut.existsActiveVisitorTimeOverlap(
-                request.getPricePlanId(),
-                request.getVehicleTypeId(),
-                request.getTicketTypeId(),
-                request.getTimeFrom(),
-                request.getTimeTo(),
-                null
-        )).thenReturn(false);
         when(priceRulePortOut.save(any(PriceRule.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         PriceRule createdPriceRule = priceRuleUseCase.createPriceRule(request);
@@ -141,8 +149,12 @@ class PriceRuleUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectVisitorPriceRuleWhenTimeOverlaps() {
+    void shouldRejectVisitorPriceActivationWhenTimeOverlaps() {
         PriceRule request = validVisitorPriceRule();
+        UUID id = UUID.randomUUID();
+        request.setPriceRuleId(id);
+        request.setOrganizationId(ORGANIZATION_ID);
+        when(priceRulePortOut.findById(id)).thenReturn(Optional.of(request));
         PricePlan pricePlan = activePricePlan(PricePlanAppliesTo.VISITOR);
         TicketType ticketType = ticketType("DAILY");
 
@@ -153,10 +165,10 @@ class PriceRuleUseCaseImplTest {
                 request.getTicketTypeId(),
                 request.getTimeFrom(),
                 request.getTimeTo(),
-                null
+                id
         )).thenReturn(true);
 
-        assertThrows(ConflictException.class, () -> priceRuleUseCase.createPriceRule(request));
+        assertThrows(ConflictException.class, () -> priceRuleUseCase.activatePriceRule(id));
         verify(priceRulePortOut, never()).save(any(PriceRule.class));
     }
 
@@ -168,12 +180,6 @@ class PriceRuleUseCaseImplTest {
         when(ticketTypePortOut.findById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
-        when(priceRulePortOut.existsActiveCustomerRule(
-                request.getPricePlanId(),
-                request.getVehicleTypeId(),
-                request.getTicketTypeId(),
-                null
-        )).thenReturn(false);
         when(priceRulePortOut.save(any(PriceRule.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         PriceRule createdPriceRule = priceRuleUseCase.createPriceRule(request);
@@ -199,8 +205,12 @@ class PriceRuleUseCaseImplTest {
     }
 
     @Test
-    void shouldRejectCustomerDuplicateRule() {
+    void shouldRejectCustomerDuplicateRuleOnActivation() {
         PriceRule request = validCustomerPriceRule();
+        UUID id = UUID.randomUUID();
+        request.setPriceRuleId(id);
+        request.setOrganizationId(ORGANIZATION_ID);
+        when(priceRulePortOut.findById(id)).thenReturn(Optional.of(request));
         PricePlan pricePlan = activePricePlan(PricePlanAppliesTo.CUSTOMER);
         TicketType ticketType = ticketType("MONTHLY");
         when(ticketTypePortOut.findById(request.getTicketTypeId())).thenReturn(Optional.of(ticketType));
@@ -210,10 +220,10 @@ class PriceRuleUseCaseImplTest {
                 request.getPricePlanId(),
                 request.getVehicleTypeId(),
                 request.getTicketTypeId(),
-                null
+                id
         )).thenReturn(true);
 
-        assertThrows(ConflictException.class, () -> priceRuleUseCase.createPriceRule(request));
+        assertThrows(ConflictException.class, () -> priceRuleUseCase.activatePriceRule(id));
         verify(priceRulePortOut, never()).save(any(PriceRule.class));
     }
 

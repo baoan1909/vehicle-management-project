@@ -16,7 +16,7 @@ class PricePlanPolicyTest {
     private final PricePlanPolicy pricePlanPolicy = new PricePlanPolicy();
 
     @Test
-    void shouldNormalizeFieldsAndSetActiveDefaultWhenInitialize() {
+    void shouldNormalizeFieldsAndSetDraftDefaultWhenInitialize() {
         PricePlan pricePlan = validPricePlan();
         pricePlan.setCode(" visitor-2027 ");
         pricePlan.setName(" Bang gia vang lai 2027 ");
@@ -28,7 +28,8 @@ class PricePlanPolicyTest {
         assertEquals("VISITOR-2027", pricePlan.getCode());
         assertEquals("Bang gia vang lai 2027", pricePlan.getName());
         assertEquals("Gia ap dung cho khach vang lai", pricePlan.getDescription());
-        assertEquals(Boolean.TRUE, pricePlan.getIsActive());
+        assertEquals(Boolean.FALSE, pricePlan.getIsActive());
+        assertEquals(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT, pricePlan.getLifecycleStatus());
     }
 
     @Test
