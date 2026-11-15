@@ -77,12 +77,13 @@ public class PublicParkingLotCatalogUseCaseImpl implements PublicParkingLotCatal
             String keyword
     ) {
         List<PriceRule> rules = priceRulePortOut.findAll(
+                parkingLotId,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
                 true,
                 keyword,
-                Set.of(resolveOrganizationId(parkingLotId))
+                Set.of(parkingLotId)
         );
         return filterAvailablePriceRules(parkingLotId, rules);
     }

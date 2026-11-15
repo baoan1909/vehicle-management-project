@@ -10,6 +10,7 @@ public interface PriceRulePortIn {
     PriceRule getPriceRuleById(UUID priceRuleId);
 
     List<PriceRule> getPriceRules(
+            UUID parkingLotId,
             UUID pricePlanId,
             UUID vehicleTypeId,
             UUID ticketTypeId,

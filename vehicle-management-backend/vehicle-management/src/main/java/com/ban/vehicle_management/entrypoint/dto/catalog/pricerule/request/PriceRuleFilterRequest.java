@@ -3,6 +3,7 @@ package com.ban.vehicle_management.entrypoint.dto.catalog.pricerule.request;
 import java.util.UUID;
 
 public record PriceRuleFilterRequest(
+        UUID parkingLotId,
         UUID pricePlanId,
         UUID vehicleTypeId,
         UUID ticketTypeId,

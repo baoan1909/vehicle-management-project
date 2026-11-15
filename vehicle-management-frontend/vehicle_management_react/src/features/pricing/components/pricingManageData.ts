@@ -27,6 +27,8 @@ export type PricePlanRecord = {
 
 export type PriceRuleRecord = {
   id: string;
+  parkingLotId: string;
+  parkingLotName: string;
   pricePlanId: string;
   pricePlanCode: string;
   vehicleTypeId: string;
@@ -143,6 +145,8 @@ export const pricePlanRecords: PricePlanRecord[] = [
 export const priceRuleRecords: PriceRuleRecord[] = [
   {
     id: "rule-moto-day",
+    parkingLotId: "lot-demo",
+    parkingLotName: "Bãi xe mẫu",
     pricePlanId: "plan-2026-hk1",
     pricePlanCode: "PLAN-2026-HK1",
     vehicleTypeId: "moto",
@@ -162,6 +166,8 @@ export const priceRuleRecords: PriceRuleRecord[] = [
   },
   {
     id: "rule-moto-night",
+    parkingLotId: "lot-demo",
+    parkingLotName: "Bãi xe mẫu",
     pricePlanId: "plan-2026-hk1",
     pricePlanCode: "PLAN-2026-HK1",
     vehicleTypeId: "moto",
@@ -181,6 +187,8 @@ export const priceRuleRecords: PriceRuleRecord[] = [
   },
   {
     id: "rule-moto-monthly",
+    parkingLotId: "lot-demo",
+    parkingLotName: "Bãi xe mẫu",
     pricePlanId: "plan-2026-hk1",
     pricePlanCode: "PLAN-2026-HK1",
     vehicleTypeId: "moto",
@@ -200,6 +208,8 @@ export const priceRuleRecords: PriceRuleRecord[] = [
   },
   {
     id: "rule-free-hospital",
+    parkingLotId: "lot-demo",
+    parkingLotName: "Bãi xe mẫu",
     pricePlanId: "plan-free-hosp",
     pricePlanCode: "PLAN-FREE-HOSP",
     vehicleTypeId: "moto",
@@ -219,6 +229,8 @@ export const priceRuleRecords: PriceRuleRecord[] = [
   },
   {
     id: "rule-car-monthly",
+    parkingLotId: "lot-demo",
+    parkingLotName: "Bãi xe mẫu",
     pricePlanId: "plan-2026-hk1",
     pricePlanCode: "PLAN-2026-HK1",
     vehicleTypeId: "car",
@@ -238,6 +250,8 @@ export const priceRuleRecords: PriceRuleRecord[] = [
   },
   {
     id: "rule-moto-quarter",
+    parkingLotId: "lot-demo",
+    parkingLotName: "Bãi xe mẫu",
     pricePlanId: "plan-2026-hk1",
     pricePlanCode: "PLAN-2026-HK1",
     vehicleTypeId: "moto",

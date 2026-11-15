@@ -216,10 +216,11 @@ class SubscriptionUseCaseImplTest {
         PriceRule ruleWithCardDeposit = subscriptionPriceRule(
                 data.priceRuleId(), data.vehicleTypeId(), data.ticketTypeId());
         ruleWithCardDeposit.setLostCardFee(new BigDecimal("50000"));
-        when(priceRulePortOut.findActiveSubscriptionRuleInOrganization(
+        when(priceRulePortOut.findActiveSubscriptionRuleInParkingLot(
                 data.vehicleTypeId(),
                 data.ticketTypeId(),
                 ORGANIZATION_ID,
+                LOT_ID,
                 requestedEffectiveFrom()
         )).thenReturn(Optional.of(ruleWithCardDeposit));
         when(voucherPortIn.quoteSubscriptionVoucher(
@@ -327,10 +328,11 @@ class SubscriptionUseCaseImplTest {
 
         when(subscriptionPortOut.findById(data.subscriptionId())).thenReturn(Optional.of(pendingSubscription));
         mockValidSubscriptionPreparation(data);
-        when(priceRulePortOut.findActiveSubscriptionRuleInOrganization(
+        when(priceRulePortOut.findActiveSubscriptionRuleInParkingLot(
                 data.vehicleTypeId(),
                 data.ticketTypeId(),
                 ORGANIZATION_ID,
+                LOT_ID,
                 pendingSubscription.getRequestedEffectiveFrom()
         )).thenReturn(Optional.of(subscriptionPriceRule(
                 data.priceRuleId(), partnerVehicleTypeId, data.ticketTypeId())));
@@ -576,8 +578,8 @@ class SubscriptionUseCaseImplTest {
         when(customerVehiclePortOut.findById(data.customerVehicleId()))
                 .thenReturn(Optional.of(activeCustomerVehicle(data.customerVehicleId(), data.customerId(), data.vehicleTypeId())));
         when(ticketTypePortOut.findById(data.ticketTypeId())).thenReturn(Optional.of(activeMonthlyTicketType(data.ticketTypeId())));
-        when(priceRulePortOut.findActiveSubscriptionRuleInOrganization(
-                data.vehicleTypeId(), data.ticketTypeId(), ORGANIZATION_ID, renewalStart))
+        when(priceRulePortOut.findActiveSubscriptionRuleInParkingLot(
+                data.vehicleTypeId(), data.ticketTypeId(), ORGANIZATION_ID, LOT_ID, renewalStart))
                 .thenReturn(Optional.of(subscriptionPriceRule(data.priceRuleId(), data.vehicleTypeId(), data.ticketTypeId())));
         when(voucherPortIn.quoteSubscriptionVoucher(
                 eq(null), eq(data.customerId()), eq(data.ticketTypeId()), eq(LOT_ID),
@@ -707,7 +709,8 @@ class SubscriptionUseCaseImplTest {
         when(customerVehiclePortOut.findById(data.customerVehicleId()))
                 .thenReturn(Optional.of(activeCustomerVehicle(data.customerVehicleId(), data.customerId(), data.vehicleTypeId())));
         when(ticketTypePortOut.findById(data.ticketTypeId())).thenReturn(Optional.of(activeMonthlyTicketType(data.ticketTypeId())));
-        when(priceRulePortOut.findActiveSubscriptionRuleInOrganization(data.vehicleTypeId(), data.ticketTypeId(), ORGANIZATION_ID, requestedEffectiveFrom()))
+        when(priceRulePortOut.findActiveSubscriptionRuleInParkingLot(
+                data.vehicleTypeId(), data.ticketTypeId(), ORGANIZATION_ID, LOT_ID, requestedEffectiveFrom()))
                 .thenReturn(Optional.of(subscriptionPriceRule(data.priceRuleId(), data.vehicleTypeId(), data.ticketTypeId())));
     }
 

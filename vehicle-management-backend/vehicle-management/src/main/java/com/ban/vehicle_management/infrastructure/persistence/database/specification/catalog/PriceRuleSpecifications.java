@@ -28,8 +28,29 @@ public final class PriceRuleSpecifications {
                 .and(hasTicketTypeId(ticketTypeId))
                 .and(hasActiveStatus(isActive))
                 .and(containsKeyword(keyword))
+                .and(hasParkingLotId(null))
                 .and((root, query, criteriaBuilder) -> organizationIds == null
                         ? null : root.get("organizationId").in(organizationIds));
+    }
+
+    public static Specification<PriceRuleEntity> withParkingLotFilters(
+            UUID parkingLotId, UUID pricePlanId, UUID vehicleTypeId, UUID ticketTypeId,
+            Boolean isActive, String keyword, Set<UUID> parkingLotIds) {
+        return Specification
+                .where(hasPricePlanId(pricePlanId))
+                .and(hasVehicleTypeId(vehicleTypeId))
+                .and(hasTicketTypeId(ticketTypeId))
+                .and(hasActiveStatus(isActive))
+                .and(containsKeyword(keyword))
+                .and(hasParkingLotId(parkingLotId))
+                .and((root, query, criteriaBuilder) -> parkingLotIds == null
+                        ? null : root.get("parkingLotId").in(parkingLotIds));
+    }
+
+    private static Specification<PriceRuleEntity> hasParkingLotId(UUID parkingLotId) {
+        return (root, query, criteriaBuilder) -> parkingLotId == null
+                ? criteriaBuilder.isNotNull(root.get("parkingLotId"))
+                : criteriaBuilder.equal(root.get("parkingLotId"), parkingLotId);
     }
 
     private static Specification<PriceRuleEntity> hasPricePlanId(UUID pricePlanId) {

@@ -16,6 +16,7 @@ import lombok.Setter;
 public class PriceRuleAdminResponse {
     private UUID priceRuleId;
     private UUID organizationId;
+    private UUID parkingLotId;
     private UUID pricePlanId;
     private UUID vehicleTypeId;
     private UUID ticketTypeId;

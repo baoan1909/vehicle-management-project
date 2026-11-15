@@ -34,6 +34,8 @@ import org.springframework.data.jpa.domain.Specification;
 @ExtendWith(MockitoExtension.class)
 class PriceRulePersistenceAdapterTest {
 
+    private static final UUID PARKING_LOT_ID = UUID.fromString("00000000-0000-0000-0000-000000009012");
+
     @Mock
     private PriceRuleRepository priceRuleRepository;
 
@@ -174,6 +176,7 @@ class PriceRulePersistenceAdapterTest {
         PriceRuleEntity existingRule = priceRuleEntity(LocalTime.of(6, 0), LocalTime.of(19, 59, 59));
 
         when(priceRuleRepository.findActiveVisitorRulesForOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -181,6 +184,7 @@ class PriceRulePersistenceAdapterTest {
         )).thenReturn(List.of(existingRule));
 
         boolean exists = priceRulePersistenceAdapter.existsActiveVisitorTimeOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -191,6 +195,7 @@ class PriceRulePersistenceAdapterTest {
 
         assertTrue(exists);
         verify(priceRuleRepository).findActiveVisitorRulesForOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -206,6 +211,7 @@ class PriceRulePersistenceAdapterTest {
         PriceRuleEntity dayRule = priceRuleEntity(LocalTime.of(6, 0), LocalTime.of(19, 59, 59));
 
         when(priceRuleRepository.findActiveVisitorRulesForOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -213,6 +219,7 @@ class PriceRulePersistenceAdapterTest {
         )).thenReturn(List.of(dayRule));
 
         boolean exists = priceRulePersistenceAdapter.existsActiveVisitorTimeOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -232,6 +239,7 @@ class PriceRulePersistenceAdapterTest {
         PriceRuleEntity overnightRule = priceRuleEntity(LocalTime.of(20, 0), LocalTime.of(5, 59, 59));
 
         when(priceRuleRepository.findActiveVisitorRulesForOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -239,6 +247,7 @@ class PriceRulePersistenceAdapterTest {
         )).thenReturn(List.of(overnightRule));
 
         boolean exists = priceRulePersistenceAdapter.existsActiveVisitorTimeOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -258,6 +267,7 @@ class PriceRulePersistenceAdapterTest {
         PriceRuleEntity overnightRule = priceRuleEntity(LocalTime.of(20, 0), LocalTime.of(5, 59, 59));
 
         when(priceRuleRepository.findActiveVisitorRulesForOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -265,6 +275,7 @@ class PriceRulePersistenceAdapterTest {
         )).thenReturn(List.of(overnightRule));
 
         boolean exists = priceRulePersistenceAdapter.existsActiveVisitorTimeOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -284,6 +295,7 @@ class PriceRulePersistenceAdapterTest {
         PriceRuleEntity overnightRule = priceRuleEntity(LocalTime.of(20, 0), LocalTime.of(5, 59, 59));
 
         when(priceRuleRepository.findActiveVisitorRulesForOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -291,6 +303,7 @@ class PriceRulePersistenceAdapterTest {
         )).thenReturn(List.of(overnightRule));
 
         boolean exists = priceRulePersistenceAdapter.existsActiveVisitorTimeOverlap(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -310,6 +323,7 @@ class PriceRulePersistenceAdapterTest {
         UUID excludedPriceRuleId = UUID.randomUUID();
 
         when(priceRuleRepository.existsActiveCustomerRule(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -317,6 +331,7 @@ class PriceRulePersistenceAdapterTest {
         )).thenReturn(true);
 
         boolean exists = priceRulePersistenceAdapter.existsActiveCustomerRule(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -325,6 +340,7 @@ class PriceRulePersistenceAdapterTest {
 
         assertTrue(exists);
         verify(priceRuleRepository).existsActiveCustomerRule(
+                PARKING_LOT_ID,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,

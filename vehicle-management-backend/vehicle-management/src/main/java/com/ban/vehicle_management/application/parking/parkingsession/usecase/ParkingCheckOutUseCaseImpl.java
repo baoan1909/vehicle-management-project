@@ -769,12 +769,14 @@ public class ParkingCheckOutUseCaseImpl implements ParkingCheckoutCompletionPort
         }
         LocalDate effectiveDate = DateTimeUtils.toVietnamLocalDate(checkOutTime);
         PriceRule dayRule = priceRulePortOut.findActiveVisitorRuleByTime(
+                        parkingSession.getParkingLotId(),
                         parkingSession.getVehicleTypeId(),
                         effectiveDate,
                         DAY_REFERENCE_TIME
                 )
                 .orElseThrow(() -> new NotFoundException("Active day parking price rule not found"));
         PriceRule nightRule = priceRulePortOut.findActiveVisitorRuleByTime(
+                        parkingSession.getParkingLotId(),
                         parkingSession.getVehicleTypeId(),
                         effectiveDate,
                         NIGHT_REFERENCE_TIME

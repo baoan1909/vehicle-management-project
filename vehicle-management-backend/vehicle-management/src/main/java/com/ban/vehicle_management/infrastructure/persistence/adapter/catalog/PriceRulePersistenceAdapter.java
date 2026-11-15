@@ -86,6 +86,19 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
     }
 
     @Override
+    public List<PriceRule> findAll(UUID parkingLotId, UUID pricePlanId, UUID vehicleTypeId,
+            UUID ticketTypeId, Boolean isActive, String keyword, Set<UUID> parkingLotIds) {
+        return priceRuleRepository.findAll(
+                        PriceRuleSpecifications.withParkingLotFilters(
+                                parkingLotId, pricePlanId, vehicleTypeId, ticketTypeId,
+                                isActive, keyword, parkingLotIds)
+                )
+                .stream()
+                .map(priceRulePersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public boolean existsActiveVehicleTypeById(UUID vehicleTypeId) {
         return vehicleTypeRepository.existsByVehicleTypeIdAndIsActiveTrue(vehicleTypeId);
     }
@@ -103,6 +116,7 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
 
     @Override
     public boolean existsActiveVisitorTimeOverlap(
+            UUID parkingLotId,
             UUID pricePlanId,
             UUID vehicleTypeId,
             UUID ticketTypeId,
@@ -111,6 +125,7 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
             UUID excludedPriceRuleId
     ) {
         return priceRuleRepository.findActiveVisitorRulesForOverlap(
+                        parkingLotId,
                         pricePlanId,
                         vehicleTypeId,
                         ticketTypeId,
@@ -162,12 +177,14 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
 
     @Override
     public boolean existsActiveCustomerRule(
+            UUID parkingLotId,
             UUID pricePlanId,
             UUID vehicleTypeId,
             UUID ticketTypeId,
             UUID excludedPriceRuleId
     ) {
         return priceRuleRepository.existsActiveCustomerRule(
+                parkingLotId,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
@@ -199,12 +216,29 @@ public class PriceRulePersistenceAdapter implements PriceRulePortOut {
     }
 
     @Override
+    public Optional<PriceRule> findActiveSubscriptionRuleInParkingLot(
+            UUID canonicalVehicleTypeId, UUID ticketTypeId, UUID organizationId,
+            UUID parkingLotId, LocalDate effectiveDate) {
+        return priceRuleRepository.findActiveSubscriptionRuleInParkingLot(
+                        canonicalVehicleTypeId, ticketTypeId, organizationId, parkingLotId, effectiveDate)
+                .map(priceRulePersistenceMapper::toDomain);
+    }
+
+    @Override
     public Optional<PriceRule> findActiveVisitorRuleByTime(
             UUID vehicleTypeId,
             LocalDate effectiveDate,
             LocalTime localTime
     ) {
         return priceRuleRepository.findActiveVisitorRuleByTime(vehicleTypeId, effectiveDate, localTime)
+                .map(priceRulePersistenceMapper::toDomain);
+    }
+
+    @Override
+    public Optional<PriceRule> findActiveVisitorRuleByTime(
+            UUID parkingLotId, UUID vehicleTypeId, LocalDate effectiveDate, LocalTime localTime) {
+        return priceRuleRepository.findActiveVisitorRuleByTimeInParkingLot(
+                        parkingLotId, vehicleTypeId, effectiveDate, localTime)
                 .map(priceRulePersistenceMapper::toDomain);
     }
 }
