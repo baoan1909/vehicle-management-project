@@ -360,11 +360,12 @@ class LostCardReportUseCaseImplTest {
         PriceRule nightRule = priceRule(new BigDecimal("8000"), new BigDecimal("50000"), LocalTime.of(20, 0), LocalTime.of(5, 59, 59));
 
         when(priceRulePortOut.findActiveVisitorRuleByTime(
+                eq(PARKING_LOT_ID),
                 eq(VEHICLE_TYPE_ID),
                 any(LocalDate.class),
                 any(LocalTime.class)
         )).thenAnswer(invocation -> {
-            LocalTime localTime = invocation.getArgument(2);
+            LocalTime localTime = invocation.getArgument(3);
             return LocalTime.MIDNIGHT.equals(localTime) ? Optional.of(nightRule) : Optional.of(dayRule);
         });
     }

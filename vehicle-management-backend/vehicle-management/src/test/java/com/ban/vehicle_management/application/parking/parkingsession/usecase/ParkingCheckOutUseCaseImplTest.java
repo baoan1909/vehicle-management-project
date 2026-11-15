@@ -152,9 +152,11 @@ class ParkingCheckOutUseCaseImplTest {
         mockOperationalTopology(data);
         when(cardPortOut.findByUidForUpdate("UID-001")).thenReturn(Optional.of(card));
         when(parkingSessionPortOut.findOpenByCardId(data.cardId())).thenReturn(Optional.of(openSession));
-        when(priceRulePortOut.findActiveVisitorRuleByTime(eq(data.vehicleTypeId()), any(LocalDate.class), eq(LocalTime.NOON)))
+        when(priceRulePortOut.findActiveVisitorRuleByTime(
+                eq(data.parkingLotId()), eq(data.vehicleTypeId()), any(LocalDate.class), eq(LocalTime.NOON)))
                 .thenReturn(Optional.of(priceRule(data.vehicleTypeId(), new BigDecimal("5000"), LocalTime.of(6, 0), LocalTime.of(19, 59, 59))));
-        when(priceRulePortOut.findActiveVisitorRuleByTime(eq(data.vehicleTypeId()), any(LocalDate.class), eq(LocalTime.MIDNIGHT)))
+        when(priceRulePortOut.findActiveVisitorRuleByTime(
+                eq(data.parkingLotId()), eq(data.vehicleTypeId()), any(LocalDate.class), eq(LocalTime.MIDNIGHT)))
                 .thenReturn(Optional.of(priceRule(data.vehicleTypeId(), new BigDecimal("10000"), LocalTime.of(20, 0), LocalTime.of(5, 59, 59))));
         when(fileStoragePort.store(any(StoreFileCommand.class))).thenReturn(storedLicensePlateFile, storedVehicleFile, storedPersonFile);
         when(parkingEventPortOut.save(any(ParkingEvent.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -248,7 +250,7 @@ class ParkingCheckOutUseCaseImplTest {
         assertEquals("SUBSCRIPTION", result.customerType());
         assertEquals("OPEN", result.barrierAction());
         assertNull(result.invoice());
-        verify(priceRulePortOut, never()).findActiveVisitorRuleByTime(any(), any(), any());
+        verify(priceRulePortOut, never()).findActiveVisitorRuleByTime(any(), any(), any(), any());
         verify(invoicePortOut, never()).save(any(Invoice.class));
     }
 
@@ -477,6 +479,7 @@ class ParkingCheckOutUseCaseImplTest {
         parkingSession.setParkingSessionId(data.parkingSessionId());
         parkingSession.setCardId(data.cardId());
         parkingSession.setVehicleTypeId(data.vehicleTypeId());
+        parkingSession.setParkingLotId(data.parkingLotId());
         parkingSession.setZoneId(data.zoneId());
         parkingSession.setLicensePlateIn("51A-12345");
         parkingSession.setCheckInTime(checkInTime);

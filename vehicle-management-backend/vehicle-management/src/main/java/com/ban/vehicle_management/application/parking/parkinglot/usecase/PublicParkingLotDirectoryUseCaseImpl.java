@@ -143,7 +143,9 @@ public class PublicParkingLotDirectoryUseCaseImpl implements PublicParkingLotDir
                 ? List.of()
                 : publicParkingLotCatalogPortIn.filterAvailablePriceRules(
                         lot.getParkingLotId(),
-                        priceRulePortOut.findAll(null, null, null, true, null, Set.of(lot.getOrganizationId()))
+                        priceRulePortOut.findAll(
+                                lot.getParkingLotId(), null, null, null, true, null,
+                                Set.of(lot.getParkingLotId()))
                                 .stream()
                                 .filter(rule -> pricePlanIds.contains(rule.getPricePlanId()))
                                 .toList()

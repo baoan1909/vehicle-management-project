@@ -909,10 +909,11 @@ public class SubscriptionUseCaseImpl implements SubscriptionPortIn {
             throw new ConflictException("Vehicle type is not accepted at this parking lot");
         }
 
-        PriceRule priceRule = priceRulePortOut.findActiveSubscriptionRuleInOrganization(
+        PriceRule priceRule = priceRulePortOut.findActiveSubscriptionRuleInParkingLot(
                         customerVehicle.getVehicleTypeId(),
                         ticketType.getTicketTypeId(),
                         parkingLot.getOrganizationId(),
+                        parkingLot.getParkingLotId(),
                         subscription.getRequestedEffectiveFrom()
                 )
                 .orElseThrow(() -> new NotFoundException("Active subscription price rule not found"));

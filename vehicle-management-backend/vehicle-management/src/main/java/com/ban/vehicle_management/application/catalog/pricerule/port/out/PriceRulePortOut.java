@@ -26,11 +26,16 @@ public interface PriceRulePortOut {
     List<PriceRule> findAll(UUID pricePlanId, UUID vehicleTypeId, UUID ticketTypeId,
                             Boolean isActive, String keyword, Set<UUID> organizationIds);
 
+    List<PriceRule> findAll(UUID parkingLotId, UUID pricePlanId, UUID vehicleTypeId,
+                            UUID ticketTypeId, Boolean isActive, String keyword,
+                            Set<UUID> parkingLotIds);
+
     boolean existsActiveVehicleTypeById(UUID vehicleTypeId);
 
     Optional<TicketType> findActiveTicketTypeById(UUID ticketTypeId);
 
     boolean existsActiveVisitorTimeOverlap(
+            UUID parkingLotId,
             UUID pricePlanId,
             UUID vehicleTypeId,
             UUID ticketTypeId,
@@ -40,6 +45,7 @@ public interface PriceRulePortOut {
     );
 
     boolean existsActiveCustomerRule(
+            UUID parkingLotId,
             UUID pricePlanId,
             UUID vehicleTypeId,
             UUID ticketTypeId,
@@ -57,7 +63,18 @@ public interface PriceRulePortOut {
     Optional<PriceRule> findActiveSubscriptionRuleInOrganization(
             UUID canonicalVehicleTypeId, UUID ticketTypeId, UUID organizationId, LocalDate effectiveDate);
 
+    Optional<PriceRule> findActiveSubscriptionRuleInParkingLot(
+            UUID canonicalVehicleTypeId, UUID ticketTypeId, UUID organizationId,
+            UUID parkingLotId, LocalDate effectiveDate);
+
     Optional<PriceRule> findActiveVisitorRuleByTime(
+            UUID vehicleTypeId,
+            LocalDate effectiveDate,
+            LocalTime localTime
+    );
+
+    Optional<PriceRule> findActiveVisitorRuleByTime(
+            UUID parkingLotId,
             UUID vehicleTypeId,
             LocalDate effectiveDate,
             LocalTime localTime

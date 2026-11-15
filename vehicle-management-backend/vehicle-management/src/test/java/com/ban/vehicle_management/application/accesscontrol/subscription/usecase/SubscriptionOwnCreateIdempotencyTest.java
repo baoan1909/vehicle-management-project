@@ -181,8 +181,8 @@ class SubscriptionOwnCreateIdempotencyTest {
         priceRule.setVehicleTypeId(vehicleTypeId);
         priceRule.setTicketTypeId(ticketTypeId);
         priceRule.setBasePrice(new java.math.BigDecimal("140000"));
-        when(priceRulePortOut.findActiveSubscriptionRuleInOrganization(
-                vehicleTypeId, ticketTypeId, parkingLot.getOrganizationId(), effectiveFrom))
+        when(priceRulePortOut.findActiveSubscriptionRuleInParkingLot(
+                vehicleTypeId, ticketTypeId, parkingLot.getOrganizationId(), lotId, effectiveFrom))
                 .thenReturn(Optional.of(priceRule));
         when(subscriptionPortOut.existsOverlappingSubscriptionInParkingLot(
                 any(UUID.class), any(UUID.class), any(java.time.LocalDate.class),

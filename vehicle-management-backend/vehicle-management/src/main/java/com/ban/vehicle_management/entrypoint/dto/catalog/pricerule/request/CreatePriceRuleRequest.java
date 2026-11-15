@@ -6,6 +6,7 @@ import java.time.LocalTime;
 import java.util.UUID;
 
 public record CreatePriceRuleRequest(
+        UUID parkingLotId,
         UUID pricePlanId,
         UUID vehicleTypeId,
         UUID ticketTypeId,

@@ -72,7 +72,7 @@ class PublicParkingLotDirectoryUseCaseImplTest {
         PriceRule maximumRule = priceRule(plan.getPricePlanId(), "80000");
         when(pricePlanPortOut.findAll(any(), any(), any(), any(), any()))
                 .thenReturn(List.of(plan));
-        when(priceRulePortOut.findAll(any(), any(), any(), any(), any(), any()))
+        when(priceRulePortOut.findAll(any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(List.of(minimumRule, maximumRule));
         when(publicParkingLotCatalogPortIn.filterAvailablePriceRules(
                 ACTIVE_LOT_ID, List.of(minimumRule, maximumRule)))

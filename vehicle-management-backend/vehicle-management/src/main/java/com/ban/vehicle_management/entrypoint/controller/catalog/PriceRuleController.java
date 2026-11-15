@@ -69,6 +69,7 @@ public class PriceRuleController {
             @ModelAttribute PriceRuleFilterRequest request
     ) {
         List<PriceRule> priceRules = priceRulePortIn.getPriceRules(
+                request.parkingLotId(),
                 request.pricePlanId(),
                 request.vehicleTypeId(),
                 request.ticketTypeId(),

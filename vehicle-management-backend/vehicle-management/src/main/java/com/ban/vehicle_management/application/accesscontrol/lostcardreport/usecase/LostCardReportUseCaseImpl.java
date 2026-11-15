@@ -604,12 +604,14 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
     private BigDecimal calculateVisitorPrice(ParkingSession session, Instant referenceTime) {
         LocalDate effectiveDate = DateTimeUtils.toVietnamLocalDate(referenceTime);
         PriceRule dayRule = priceRulePortOut.findActiveVisitorRuleByTime(
+                        session.getParkingLotId(),
                         session.getVehicleTypeId(),
                         effectiveDate,
                         DAY_REFERENCE_TIME
                 )
                 .orElseThrow(() -> new NotFoundException("Active day parking price rule not found"));
         PriceRule nightRule = priceRulePortOut.findActiveVisitorRuleByTime(
+                        session.getParkingLotId(),
                         session.getVehicleTypeId(),
                         effectiveDate,
                         NIGHT_REFERENCE_TIME
@@ -642,6 +644,7 @@ public class LostCardReportUseCaseImpl implements LostCardReportPortIn {
                     .orElseThrow(() -> new NotFoundException("Subscription price rule not found"));
         } else {
             priceRule = priceRulePortOut.findActiveVisitorRuleByTime(
+                            session.getParkingLotId(),
                             session.getVehicleTypeId(),
                             businessDate,
                             LocalDateTime.ofInstant(referenceTime, DateTimeUtils.VIETNAM_ZONE).toLocalTime()
