@@ -13,6 +13,7 @@ export type VehicleTypeFilter = {
 };
 
 export type CreateVehicleTypeRequest = {
+  canonicalVehicleTypeId?: string | null;
   code: string;
   description?: string | null;
   isActive?: boolean | null;
@@ -22,6 +23,8 @@ export type CreateVehicleTypeRequest = {
 export type UpdateVehicleTypeRequest = CreateVehicleTypeRequest;
 
 export type VehicleTypeApiResponse = {
+  canonicalVehicleTypeId?: string | null;
+  lifecycleStatus?: "DRAFT" | "ACTIVE" | "INACTIVE";
   code: string;
   organizationId: string;
   createdAt: string | null;

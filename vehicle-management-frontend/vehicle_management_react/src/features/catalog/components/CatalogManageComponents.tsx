@@ -84,11 +84,13 @@ type VehicleDetailProps = {
 
 const statusLabels: Record<CatalogStatus, string> = {
   active: "Đang hoạt động",
+  draft: "Nháp",
   inactive: "Ngừng dùng"
 };
 
 const statusText: Record<CatalogStatus, string> = {
   active: "Đang hoạt động",
+  draft: "Nháp",
   inactive: "Ngừng dùng"
 };
 
@@ -116,7 +118,7 @@ export function CatalogStatusBadge({ status }: { status: CatalogStatus }) {
     <span
       className={cn(
         "tw-inline-flex tw-min-h-6 tw-items-center tw-rounded-vm-md tw-px-[0.55rem] tw-text-[0.72rem] tw-font-extrabold",
-        status === "active" ? "tw-bg-[rgba(22,163,74,0.12)] tw-text-vm-success" : "tw-bg-[rgba(239,68,68,0.12)] tw-text-[#ef4444]",
+        status === "draft" ? "tw-bg-amber-50 tw-text-amber-800" : status === "active" ? "tw-bg-[rgba(22,163,74,0.12)] tw-text-vm-success" : "tw-bg-[rgba(239,68,68,0.12)] tw-text-[#ef4444]",
       )}
     >
       {statusLabels[status]}
@@ -246,6 +248,7 @@ export function CatalogStatusTabs({ activeValue, counts, onChange }: CatalogStat
   const tabs = [
     { value: "all" as const, label: "Tất cả" },
     { value: "active" as const, label: "Đang hoạt động" },
+    { value: "draft" as const, label: "Nháp" },
     { value: "inactive" as const, label: "Ngừng dùng" }
   ];
 
@@ -403,6 +406,7 @@ export function TicketDetailPanel({ guideAnchorKey, onActivate, onDeactivate, on
             <i className="far fa-edit" />
             <span>Cập nhật</span>
           </button> : null}
+          {row.status === "draft" && onDeactivate ? <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-red-100 tw-bg-red-50 tw-font-bold tw-text-red-700" type="button" onClick={() => onDeactivate(row)}>Bỏ bản nháp</button> : null}
           {row.status === "active" && onDeactivate ? (
             <button className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-font-extrabold tw-text-red-600 tw-transition hover:tw-bg-red-100" type="button" onClick={() => onDeactivate?.(row)}>
               <i className="fas fa-ban" />
@@ -411,7 +415,7 @@ export function TicketDetailPanel({ guideAnchorKey, onActivate, onDeactivate, on
           ) : row.status !== "active" && onActivate ? (
             <button className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-green-100 tw-bg-green-50 tw-font-extrabold tw-text-green-700 tw-transition hover:tw-bg-green-100" type="button" onClick={() => onActivate?.(row)}>
               <i className="fas fa-check" />
-              <span>Kích hoạt lại</span>
+              <span>{row.status === "draft" ? "Kiểm tra & kích hoạt" : "Kích hoạt lại"}</span>
             </button>
           ) : null}
         </div>
@@ -535,6 +539,7 @@ export function VehicleDetailPanel({ onActivate, onDeactivate, onEdit, row }: Ve
             <i className="far fa-edit" />
             <span>Cập nhật</span>
           </button> : null}
+          {row.status === "draft" && onDeactivate ? <button className="tw-min-h-11 tw-rounded-vm-md tw-border tw-border-red-100 tw-bg-red-50 tw-font-bold tw-text-red-700" type="button" onClick={() => onDeactivate(row)}>Bỏ bản nháp</button> : null}
           {row.status === "active" && onDeactivate ? (
             <button className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-red-100 tw-bg-red-50 tw-font-extrabold tw-text-red-600 tw-transition hover:tw-bg-red-100" type="button" onClick={() => onDeactivate?.(row)}>
               <i className="fas fa-ban" />
@@ -543,7 +548,7 @@ export function VehicleDetailPanel({ onActivate, onDeactivate, onEdit, row }: Ve
           ) : row.status !== "active" && onActivate ? (
             <button className="tw-inline-flex tw-min-h-11 tw-w-full tw-items-center tw-justify-center tw-gap-[0.55rem] tw-rounded-vm-md tw-border tw-border-solid tw-border-green-100 tw-bg-green-50 tw-font-extrabold tw-text-green-700 tw-transition hover:tw-bg-green-100" type="button" onClick={() => onActivate?.(row)}>
               <i className="fas fa-check" />
-              <span>Kích hoạt lại</span>
+              <span>{row.status === "draft" ? "Kiểm tra & kích hoạt" : "Kích hoạt lại"}</span>
             </button>
           ) : null}
         </div>
@@ -598,6 +603,7 @@ export function getStatusCounts<T extends { status: CatalogStatus }>(rows: T[]) 
   return {
     all: rows.length,
     active: rows.filter((row) => row.status === "active").length,
+    draft: rows.filter((row) => row.status === "draft").length,
     inactive: rows.filter((row) => row.status === "inactive").length
   };
 }

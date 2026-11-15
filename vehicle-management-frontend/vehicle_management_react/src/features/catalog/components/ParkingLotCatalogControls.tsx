@@ -4,7 +4,7 @@ import { SelectMenu } from "@/shared/components/ui/SelectMenu";
 import type { ParkingLotCatalogAvailability } from "@/features/catalog/api/parkingLotCatalogAvailabilityApi";
 import type { ParkingLotApiResponse } from "@/features/parking/api/parkingLotsApi";
 
-type CatalogItem = { id: string; name: string; code: string; status: "active" | "inactive" };
+type CatalogItem = { id: string; name: string; code: string; status: "draft" | "active" | "inactive" };
 
 type Props = {
   canConfigureAllLots?: boolean;
@@ -88,7 +88,7 @@ export function ParkingLotCatalogControls({ availabilities = [], canConfigureAll
           </button>
         ) : null}
       </div>
-      <Drawer open={open && Boolean(selectedLot)} onClose={() => setOpen(false)} title={`Cấu hình ${kindLabel} tại ${selectedLot?.name ?? "bãi xe"}`} description={`Bật những ${kindLabel} được phục vụ tại bãi này. Loại mới mặc định áp dụng cho các bãi của Partner cho đến khi được tắt riêng.`}>
+      <Drawer open={open && Boolean(selectedLot)} onClose={() => setOpen(false)} title={`Cấu hình ${kindLabel} tại ${selectedLot?.name ?? "bãi xe"}`} description={`Bật những ${kindLabel} được phục vụ tại bãi này. Bãi mới cần được chọn áp dụng rõ ràng. Chỉ có thể bật danh mục đã được công bố.`}>
         {kind === "vehicle" ? (
           <div className="tw-grid tw-gap-2 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-p-3">
             <strong className="tw-text-sm tw-text-vm-slate-800">Phạm vi áp dụng</strong>
@@ -113,9 +113,9 @@ export function ParkingLotCatalogControls({ availabilities = [], canConfigureAll
             const { draining, enabled, partial } = getItemScopeState(item.id);
             return (
               <div className="tw-flex tw-items-center tw-justify-between tw-gap-3 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-p-3" key={item.id}>
-                <span className="tw-min-w-0"><strong className="tw-block tw-text-vm-slate-900">{item.name}</strong><small className="tw-text-vm-slate-500">{item.code}{item.status === "inactive" ? " · Ngừng dùng toàn Partner" : draining ? " · Đang phục vụ nốt vé/phiên hiện hữu" : ""}</small></span>
+                <span className="tw-min-w-0"><strong className="tw-block tw-text-vm-slate-900">{item.name}</strong><small className="tw-text-vm-slate-500">{item.code}{item.status === "draft" ? " · Nháp, chưa công bố" : item.status === "inactive" ? " · Ngừng dùng toàn Partner" : draining ? " · Đang phục vụ nốt vé/phiên hiện hữu" : ""}</small></span>
                 <span className="tw-flex tw-shrink-0 tw-flex-wrap tw-justify-end tw-gap-2">
-                  <button aria-pressed={enabled} className={partial || draining ? "tw-rounded-vm-md tw-border-0 tw-bg-amber-50 tw-px-3 tw-py-2 tw-font-bold tw-text-amber-700" : enabled ? "tw-rounded-vm-md tw-border-0 tw-bg-green-50 tw-px-3 tw-py-2 tw-font-bold tw-text-green-700" : "tw-rounded-vm-md tw-border-0 tw-bg-vm-slate-100 tw-px-3 tw-py-2 tw-font-bold tw-text-vm-slate-600"} disabled={Boolean(busyId) || item.status === "inactive"} onClick={() => void handleToggle(item, enabled)} type="button">
+                  <button aria-pressed={enabled} className={partial || draining ? "tw-rounded-vm-md tw-border-0 tw-bg-amber-50 tw-px-3 tw-py-2 tw-font-bold tw-text-amber-700" : enabled ? "tw-rounded-vm-md tw-border-0 tw-bg-green-50 tw-px-3 tw-py-2 tw-font-bold tw-text-green-700" : "tw-rounded-vm-md tw-border-0 tw-bg-vm-slate-100 tw-px-3 tw-py-2 tw-font-bold tw-text-vm-slate-600"} disabled={Boolean(busyId) || item.status !== "active"} onClick={() => void handleToggle(item, enabled)} type="button">
                     {busyId === item.id ? "Đang lưu..." : partial ? "Áp dụng một phần" : enabled ? "Đang áp dụng" : draining ? "Đang ngừng dần" : "Đã ngừng"}
                   </button>
                 </span>

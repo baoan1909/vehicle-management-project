@@ -8,7 +8,7 @@ type ApiResponse<T> = {
   timestamp: string;
 };
 
-export type TicketTypeStatus = "ACTIVE" | "INACTIVE";
+export type TicketTypeStatus = "DRAFT" | "ACTIVE" | "INACTIVE";
 
 export type TicketTypeFilter = {
   keyword?: string;

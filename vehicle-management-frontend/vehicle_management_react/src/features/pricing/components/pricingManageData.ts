@@ -1,6 +1,6 @@
 export type PricePlanAppliesTo = "ALL" | "VISITOR" | "CUSTOMER";
 export type PriceRuleGroup = "all" | "visitor" | "subscription" | "free";
-export type PricingStatus = "active" | "expired" | "inactive" | "upcoming";
+export type PricingStatus = "draft" | "active" | "expired" | "inactive" | "upcoming";
 
 export type PricingMetricTone = "blue" | "green" | "orange" | "red" | "purple";
 

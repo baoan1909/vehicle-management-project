@@ -41,6 +41,7 @@ import {
 } from "@/features/catalog/api/ticketTypesApi";
 import {
   activateVehicleType,
+  deactivateVehicleType,
   createVehicleType,
   getVehicleTypeDeactivationImpact,
   getVehicleTypes,
@@ -50,7 +51,7 @@ import {
   type VehicleTypeDeactivationImpact,
   type VehicleTypeApiResponse
 } from "@/features/catalog/api/vehicleTypesApi";
-import { getPriceRules } from "@/features/pricing/api/pricingApi";
+import { getPriceRules, getPublicPricingVehicleTypes } from "@/features/pricing/api/pricingApi";
 
 function matchesText(values: Array<string | number | undefined>, searchValue: string) {
   if (!searchValue.trim()) return true;
@@ -134,7 +135,7 @@ function mapTicketType(row: TicketTypeApiResponse, priceRuleCounts: Map<string, 
     durationDays: row.durationDays,
     name: row.name || getTicketTypeDisplayName(row.code),
     priceRuleCount: priceRuleCounts.get(row.ticketTypeId) ?? 0,
-    status: row.status === "INACTIVE" ? "inactive" : "active",
+    status: row.status === "DRAFT" ? "draft" : row.status === "INACTIVE" ? "inactive" : "active",
     updatedAt: updated.date,
     updatedBy: row.updatedBy,
     updatedTime: updated.time
@@ -192,6 +193,7 @@ function mapVehicleType(row: VehicleTypeApiResponse, priceRuleCounts: Map<string
 
   return {
     id: row.vehicleTypeId,
+    canonicalVehicleTypeId: row.canonicalVehicleTypeId,
     organizationId: row.organizationId,
     code: row.code,
     createdAt: row.createdAt ?? "",
@@ -202,7 +204,7 @@ function mapVehicleType(row: VehicleTypeApiResponse, priceRuleCounts: Map<string
     linkedCount: 0,
     name: row.name,
     priceRuleCount: priceRuleCounts.get(row.vehicleTypeId) ?? 0,
-    status: row.isActive === false ? "inactive" : "active",
+    status: row.lifecycleStatus === "DRAFT" ? "draft" : row.isActive === false ? "inactive" : "active",
     updatedAt: updated.date,
     updatedBy: row.updatedBy,
     updatedTime: updated.time
@@ -243,6 +245,7 @@ function exportVehicleTypes(rows: VehicleCatalogRecord[]) {
 const statusOptions = [
   { label: "Tất cả", value: "all" },
   { label: "Đang hoạt động", value: "active" },
+  { label: "Nháp", value: "draft" },
   { label: "Ngừng dùng", value: "inactive" }
 ];
 
@@ -400,18 +403,31 @@ type VehicleTypeFormDrawerProps = {
 };
 
 function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: VehicleTypeFormDrawerProps) {
-  const [form, setForm] = useState({ code: "", description: "", isActive: "true", name: "" });
+  const [form, setForm] = useState({ code: "", description: "", isActive: "false", name: "", canonicalVehicleTypeId: "" });
   const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isEditMode = Boolean(row);
+  const [canonicalTypes, setCanonicalTypes] = useState<Array<{ vehicleTypeId: string; code: string; name: string }>>([]);
+
+  useEffect(() => {
+    if (!isOpen || row) return;
+    let mounted = true;
+    void getPublicPricingVehicleTypes().then((response) => {
+      if (mounted) setCanonicalTypes(response.data);
+    }).catch((error: unknown) => {
+      if (mounted) setFormError(error instanceof Error ? error.message : "Không tải được phân loại xe chuẩn.");
+    });
+    return () => { mounted = false; };
+  }, [isOpen, row]);
 
   useEffect(() => {
     if (!isOpen) return;
 
     setForm({
+      canonicalVehicleTypeId: row?.canonicalVehicleTypeId ?? "",
       code: row?.code ?? "",
       description: row?.description ?? "",
-      isActive: row?.status === "inactive" ? "false" : "true",
+      isActive: row?.status === "active" ? "true" : "false",
       name: row?.name ?? ""
     });
     setFormError("");
@@ -424,6 +440,7 @@ function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Veh
   };
 
   const validateForm = () => {
+    if (!isEditMode && !form.canonicalVehicleTypeId) return "Vui lòng chọn phân loại xe chuẩn.";
     if (!form.code.trim()) return "Vui lòng nhập mã loại xe.";
     if (!form.name.trim()) return "Vui lòng nhập tên loại xe.";
     return "";
@@ -437,6 +454,7 @@ function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Veh
     }
 
     const payload = {
+      canonicalVehicleTypeId: form.canonicalVehicleTypeId || null,
       code: form.code.trim().toUpperCase(),
       description: form.description.trim() || null,
       isActive: form.isActive === "true",
@@ -486,6 +504,7 @@ function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Veh
             {formError}
           </div>
         ) : null}
+        {!isEditMode ? <label className="tw-grid tw-gap-2"><span className="tw-font-bold">Phân loại xe chuẩn</span><SelectMenu ariaLabel="Phân loại xe chuẩn" value={form.canonicalVehicleTypeId} options={[{ label: "Chọn phân loại", value: "" }, ...canonicalTypes.map((item) => ({ label: item.name, value: item.vehicleTypeId }))]} onChange={(value) => { const canonical = canonicalTypes.find((item) => item.vehicleTypeId === value); setForm((current) => ({ ...current, canonicalVehicleTypeId: value, code: current.code || canonical?.code || "", name: current.name || canonical?.name || "" })); }} /></label> : null}
         <label className="tw-grid tw-gap-2">
           <span className="tw-text-[0.86rem] tw-font-extrabold tw-text-vm-slate-700">Mã loại xe</span>
           <input
@@ -507,7 +526,7 @@ function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Veh
           <div className="tw-grid tw-gap-2">
             <span className="tw-text-[0.86rem] tw-font-extrabold tw-text-vm-slate-700">Trạng thái</span>
             <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-3 tw-py-3">
-              <strong className={form.isActive === "true" ? "tw-text-green-700" : "tw-text-red-600"}>{form.isActive === "true" ? "Đang hoạt động" : "Ngừng dùng"}</strong>
+              <strong className={form.isActive === "true" ? "tw-text-green-700" : "tw-text-red-600"}>{row?.status === "draft" ? "Nháp" : form.isActive === "true" ? "Đang hoạt động" : "Ngừng dùng"}</strong>
               <small className="tw-mt-1 tw-block tw-font-semibold tw-text-vm-slate-500">Dùng thao tác Kích hoạt lại hoặc Ngừng dùng bên ngoài biểu mẫu để hệ thống kiểm tra dữ liệu liên quan.</small>
             </div>
           </div>
@@ -518,7 +537,7 @@ function VehicleTypeFormDrawer({ isOpen, onClose, onCreate, onUpdate, row }: Veh
                   triggerClassName={"tw-min-h-12 tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-px-3 tw-font-bold tw-text-vm-slate-900 focus:tw-border-vm-primary focus:tw-outline-none focus:tw-shadow-vm-focus"}
                   value={form.isActive}
                   onChange={(selectedValue) => updateField("isActive", selectedValue)}
-                  options={[{ label: "Đang hoạt động", value: "true" }, { label: "Ngừng dùng", value: "false" }]} portal clearValue="" />
+                  options={[{ label: "Nháp — chưa áp dụng", value: "false" }]} portal clearValue="" />
           </label>
         )}
         <label className="tw-grid tw-gap-2">
@@ -539,9 +558,10 @@ export function TicketListPage() {
   const canManagePartnerCatalog = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]);
   const canCreate = canManagePartnerCatalog && hasAnyPermission(user, ["TICKET_TYPE_CREATE_ALL"]);
   const canUpdate = canManagePartnerCatalog && hasAnyPermission(user, ["TICKET_TYPE_UPDATE_ALL"]);
+  const canDelete = canManagePartnerCatalog && hasAnyPermission(user, ["TICKET_TYPE_DELETE_ALL"]);
   const lotScope = useParkingLotCatalogScope();
   const [records, setRecords] = useState<TicketCatalogRecord[]>([]);
-  const [activeStatus, setActiveStatus] = useState<CatalogStatusTabValue>("all");
+  const [activeStatus, setActiveStatus] = useState<CatalogStatusTabValue>("active");
   const [statusValue, setStatusValue] = useState("all");
   const [priceRuleValue, setPriceRuleValue] = useState("all");
   const [searchValue, setSearchValue] = useState("");
@@ -558,9 +578,10 @@ export function TicketListPage() {
   useUserGuideActivation("CATALOG_TICKET_TYPE_SETUP", ticketGuideEnabled);
 
   const lotRecords = lotScope.selectedLot && lotScope.availability
-    ? records.filter((row) => row.organizationId === lotScope.selectedLot?.organizationId
-      && !lotScope.availability?.excludedTicketTypeIds.includes(row.id))
-    : [];
+    ? records.filter((row) => row.organizationId === lotScope.selectedLot?.organizationId)
+      .map((row) => row.status !== "draft" && lotScope.availability?.excludedTicketTypeIds.includes(row.id)
+        ? { ...row, status: "inactive" as const } : row)
+    : canManagePartnerCatalog ? records.filter((row) => !lotScope.selectedLot || row.organizationId === lotScope.selectedLot.organizationId) : [];
   const filteredRecords = lotRecords.filter((row) => {
     const matchesTab = activeStatus === "all" ? true : row.status === activeStatus;
     const matchesStatus = statusValue === "all" ? true : row.status === (statusValue as CatalogStatus);
@@ -608,7 +629,7 @@ export function TicketListPage() {
   }, []);
 
   const resetFilters = () => {
-    setActiveStatus("all");
+    setActiveStatus("active");
     setStatusValue("all");
     setPriceRuleValue("all");
     setSearchValue("");
@@ -645,7 +666,9 @@ export function TicketListPage() {
   const handleCreateTicketType = async (payload: CreateTicketTypeRequest) => {
     const response = await createTicketType(payload, lotScope.selectedLotId);
     upsertRecord(mapSingleTicketType(response.data));
-    setSuccessMessage(response.message || "Thêm loại vé thành công.");
+    setActiveStatus("draft");
+    setStatusValue("all");
+    setSuccessMessage(response.message || "Đã lưu loại vé nháp.");
     setCurrentPage(1);
   };
 
@@ -658,9 +681,17 @@ export function TicketListPage() {
   const handleActivateTicketType = async (row: TicketCatalogRecord) => {
     try {
       setErrorMessage("");
-      const response = await activateTicketType(row.id);
-      upsertRecord(mapSingleTicketType(response.data));
-      setSuccessMessage(response.message || "Kích hoạt loại vé thành công.");
+      const master = records.find((record) => record.id === row.id);
+      if (master?.status === "active" && lotScope.selectedLotId) {
+        await lotScope.updateAvailability("ticket", row.id, true);
+        setSuccessMessage("Đã áp dụng loại vé tại bãi đang chọn.");
+      } else {
+        if (!window.confirm("Công bố loại vé này cho partner? Sau đó cần chọn bãi áp dụng.")) return;
+        const response = await activateTicketType(row.id);
+        upsertRecord(mapSingleTicketType(response.data));
+        setActiveStatus("all");
+        setSuccessMessage("Đã công bố loại vé. Chọn Cấu hình loại vé áp dụng để bật tại bãi.");
+      }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể kích hoạt loại vé.");
     }
@@ -680,7 +711,7 @@ export function TicketListPage() {
   return (
     <CatalogPageShell>
       <div {...userGuideAnchorProps("CATALOG_TICKET.HEADER")}>
-        <CatalogHeader createLabel="Thêm loại vé" guideCode="CATALOG_TICKET_TYPE_SETUP" guideEnabled={ticketGuideEnabled} title="Loại vé" onCreateClick={canCreate && lotScope.selectedLot ? handleOpenCreate : undefined} onExportClick={() => exportTicketTypes(filteredRecords)} />
+        <CatalogHeader createLabel="Thêm loại vé" guideCode="CATALOG_TICKET_TYPE_SETUP" guideEnabled={ticketGuideEnabled} title="Loại vé" onCreateClick={canCreate ? handleOpenCreate : undefined} onExportClick={() => exportTicketTypes(filteredRecords)} />
       </div>
       <div {...userGuideAnchorProps("CATALOG_TICKET.LOT_SCOPE")}>
         <ParkingLotCatalogControls
@@ -697,6 +728,7 @@ export function TicketListPage() {
       {lotScope.error ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-red-700" role="alert">{lotScope.error}</p> : null}
       {!lotScope.loading && lotScope.lots.length === 0 ? <p className="tw-m-0 tw-text-vm-slate-600">Chưa có bãi xe nào trong phạm vi được cấp.</p> : null}
       {records.some((row) => !row.organizationId) ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-800" role="alert">Backend chưa trả thông tin Partner của loại vé. Vui lòng khởi động lại backend phiên bản mới.</p> : null}
+      {lotRecords.some((row) => row.status === "draft") ? <div role="status" className="tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-900">Có {lotRecords.filter((row) => row.status === "draft").length} loại vé nháp chưa áp dụng. <button type="button" onClick={() => { setActiveStatus("draft"); setStatusValue("all"); setCurrentPage(1); }}>Xem nháp</button></div> : null}
       <CatalogMetricGrid items={buildTicketMetrics(lotRecords)} />
       <CatalogStatusTabs activeValue={activeStatus} counts={getStatusCounts(lotRecords)} onChange={(value) => {
         setActiveStatus(value);
@@ -774,7 +806,7 @@ export function TicketListPage() {
           row={selectedRecord}
           onEdit={canUpdate ? handleOpenEdit : undefined}
           onActivate={canUpdate ? handleActivateTicketType : undefined}
-          onDeactivate={canUpdate ? handleDeactivateTicketType : undefined}
+          onDeactivate={canDelete ? handleDeactivateTicketType : undefined}
         />
       </div>
       <TicketTypeFormDrawer
@@ -795,9 +827,10 @@ export function VehicleListPage() {
   const canCreate = canManagePartnerCatalog && hasAnyPermission(user, ["VEHICLE_TYPE_CREATE_ALL"]);
   const canUpdate = hasAnyPermission(user, ["VEHICLE_TYPE_UPDATE_ALL"]);
   const canStopVehicleService = hasAnyPermission(user, ["VEHICLE_TYPE_UPDATE_ALL"]);
+  const canDiscardDraft = canManagePartnerCatalog && hasAnyPermission(user, ["VEHICLE_TYPE_DELETE_ALL"]);
   const lotScope = useParkingLotCatalogScope();
   const [records, setRecords] = useState<VehicleCatalogRecord[]>([]);
-  const [statusValue, setStatusValue] = useState("all");
+  const [statusValue, setStatusValue] = useState("active");
   const [searchValue, setSearchValue] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingRecord, setEditingRecord] = useState<VehicleCatalogRecord | null>(null);
@@ -818,10 +851,10 @@ export function VehicleListPage() {
   const lotRecords = lotScope.selectedLot && lotScope.availability
     ? records
       .filter((row) => row.organizationId === lotScope.selectedLot?.organizationId)
-      .map((row) => lotScope.availability?.excludedVehicleTypeIds.includes(row.id)
+      .map((row) => row.status !== "draft" && lotScope.availability?.excludedVehicleTypeIds.includes(row.id)
         ? { ...row, status: "inactive" as const }
         : row)
-    : [];
+    : canManagePartnerCatalog ? records.filter((row) => !lotScope.selectedLot || row.organizationId === lotScope.selectedLot.organizationId) : [];
   const filteredRecords = lotRecords.filter((row) => {
     const matchesStatus = statusValue === "all" ? true : row.status === (statusValue as CatalogStatus);
 
@@ -871,7 +904,7 @@ export function VehicleListPage() {
   }, []);
 
   const resetFilters = () => {
-    setStatusValue("all");
+    setStatusValue("active");
     setSearchValue("");
     setCurrentPage(1);
   };
@@ -906,7 +939,8 @@ export function VehicleListPage() {
   const handleCreateVehicleType = async (payload: CreateVehicleTypeRequest) => {
     const response = await createVehicleType(payload, lotScope.selectedLotId);
     upsertRecord(mapSingleVehicleType(response.data));
-    toast.success(response.message || "Thêm loại phương tiện thành công.", "Tạo thành công");
+    setStatusValue("draft");
+    toast.success(response.message || "Đã lưu loại phương tiện nháp.", "Lưu nháp thành công");
     setCurrentPage(1);
   };
 
@@ -925,9 +959,11 @@ export function VehicleListPage() {
         await lotScope.updateVehicleAvailabilityAtLot(lotScope.selectedLotId, row.id, true);
         toast.success(`Đã kích hoạt lại ${row.name} tại ${lotScope.selectedLot?.name ?? "bãi đang xem"}.`, "Kích hoạt thành công");
       } else {
+        if (!window.confirm("Công bố loại phương tiện này cho partner? Sau đó cần chọn bãi áp dụng.")) return;
         const response = await activateVehicleType(row.id);
         upsertRecord(mapSingleVehicleType(response.data));
-        toast.success(response.message || "Kích hoạt loại phương tiện thành công.", "Kích hoạt thành công");
+        setStatusValue("all");
+        toast.success("Đã công bố loại phương tiện. Chọn bãi và kích hoạt lại để áp dụng dịch vụ.", "Kích hoạt thành công");
       }
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Không thể kích hoạt loại phương tiện.");
@@ -935,6 +971,16 @@ export function VehicleListPage() {
   };
 
   const handleDeactivateVehicleType = async (row: VehicleCatalogRecord) => {
+    if (row.status === "draft") {
+      try {
+        await deactivateVehicleType(row.id);
+        upsertRecord({ ...row, status: "inactive", isActive: false });
+        toast.success("Đã bỏ bản nháp loại phương tiện.");
+      } catch (error) {
+        setErrorMessage(error instanceof Error ? error.message : "Không thể bỏ bản nháp.");
+      }
+      return;
+    }
     setDeactivationTarget(row);
     setDeactivationImpact(null);
     setDeactivationScope(
@@ -995,7 +1041,7 @@ export function VehicleListPage() {
   return (
     <CatalogPageShell>
       <div {...userGuideAnchorProps("CATALOG_VEHICLE.HEADER")}>
-        <CatalogHeader createLabel="Thêm loại xe" guideCode="CATALOG_VEHICLE_TYPE_SETUP" guideEnabled={vehicleGuideEnabled} title="Loại phương tiện" onCreateClick={canCreate && lotScope.selectedLot ? handleOpenCreate : undefined} onExportClick={() => exportVehicleTypes(filteredRecords)} />
+        <CatalogHeader createLabel="Thêm loại xe" guideCode="CATALOG_VEHICLE_TYPE_SETUP" guideEnabled={vehicleGuideEnabled} title="Loại phương tiện" onCreateClick={canCreate ? handleOpenCreate : undefined} onExportClick={() => exportVehicleTypes(filteredRecords)} />
       </div>
       <div {...userGuideAnchorProps("CATALOG_VEHICLE.LOT_SCOPE")}>
         <ParkingLotCatalogControls
@@ -1013,6 +1059,7 @@ export function VehicleListPage() {
       {lotScope.error ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-red-50 tw-p-3 tw-text-red-700" role="alert">{lotScope.error}</p> : null}
       {!lotScope.loading && lotScope.lots.length === 0 ? <p className="tw-m-0 tw-text-vm-slate-600">Chưa có bãi xe nào trong phạm vi được cấp.</p> : null}
       {records.some((row) => !row.organizationId) ? <p className="tw-m-0 tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-800" role="alert">Backend chưa trả thông tin Partner của loại xe. Vui lòng khởi động lại backend phiên bản mới.</p> : null}
+      {lotRecords.some((row) => row.status === "draft") ? <div role="status" className="tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-900">Có {lotRecords.filter((row) => row.status === "draft").length} loại phương tiện nháp chưa áp dụng. <button type="button" onClick={() => { setStatusValue("draft"); setCurrentPage(1); }}>Xem nháp</button></div> : null}
       <CatalogMetricGrid items={buildVehicleMetrics(lotRecords)} />
 
       <div className="tw-grid tw-grid-cols-[minmax(0,1fr)_minmax(300px,0.32fr)] tw-items-start tw-gap-[0.9rem] max-[1360px]:tw-grid-cols-1">
@@ -1063,7 +1110,7 @@ export function VehicleListPage() {
         </main>
 
         <div {...userGuideAnchorProps("CATALOG_VEHICLE.DETAIL")}>
-          <VehicleDetailPanel row={selectedRecord} onEdit={canUpdate ? handleOpenEdit : undefined} onActivate={canActivateSelectedRecord ? handleActivateVehicleType : undefined} onDeactivate={canStopVehicleService ? handleDeactivateVehicleType : undefined} />
+          <VehicleDetailPanel row={selectedRecord} onEdit={canUpdate ? handleOpenEdit : undefined} onActivate={canActivateSelectedRecord ? handleActivateVehicleType : undefined} onDeactivate={(selectedRecord?.status === "draft" ? canDiscardDraft : canStopVehicleService) ? handleDeactivateVehicleType : undefined} />
         </div>
       </div>
       <VehicleTypeFormDrawer
