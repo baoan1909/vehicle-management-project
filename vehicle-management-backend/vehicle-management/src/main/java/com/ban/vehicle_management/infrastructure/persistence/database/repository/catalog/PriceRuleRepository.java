@@ -19,9 +19,9 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
     @Modifying
     @Query(value = """
             insert into catalog.price_rules
-                (price_rule_id, organization_id, price_plan_id, vehicle_type_id, ticket_type_id,
+                (price_rule_id, organization_id, parking_lot_id, price_plan_id, vehicle_type_id, ticket_type_id,
                  rule_name, time_from, time_to, base_price, unit, lost_card_fee, priority, is_active, lifecycle_status, source_catalog_id, created_at, created_by)
-            select gen_random_uuid(), :organizationId, target_plan.price_plan_id, target_vehicle.vehicle_type_id,
+            select gen_random_uuid(), :organizationId, null, target_plan.price_plan_id, target_vehicle.vehicle_type_id,
                    target_ticket.ticket_type_id, source.rule_name, source.time_from, source.time_to,
                    source.base_price, source.unit, source.lost_card_fee, source.priority, false, 'DRAFT', source.price_rule_id, now(),
                    (select created_by from iam.organizations where organization_id = :organizationId)
@@ -37,6 +37,7 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
             left join catalog.ticket_types target_ticket on target_ticket.organization_id = :organizationId
                 and target_ticket.source_catalog_id = source_ticket.ticket_type_id
             where template.code = 'COPARKING_INTERNAL'
+              and source.parking_lot_id is null
             """, nativeQuery = true)
     int copyInternalCatalog(@Param("organizationId") UUID organizationId);
 
@@ -56,12 +57,14 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
         select priceRule
         from PriceRuleEntity priceRule
         where priceRule.isActive = true
+          and priceRule.parkingLotId = :parkingLotId
           and priceRule.pricePlanId = :pricePlanId
           and priceRule.vehicleTypeId = :vehicleTypeId
           and priceRule.ticketTypeId = :ticketTypeId
           and (:excludedPriceRuleId is null or priceRule.priceRuleId <> :excludedPriceRuleId)
         """)
     List<PriceRuleEntity> findActiveVisitorRulesForOverlap(
+            @Param("parkingLotId") UUID parkingLotId,
             @Param("pricePlanId") UUID pricePlanId,
             @Param("vehicleTypeId") UUID vehicleTypeId,
             @Param("ticketTypeId") UUID ticketTypeId,
@@ -72,12 +75,14 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
             select count(priceRule) > 0
             from PriceRuleEntity priceRule
             where priceRule.isActive = true
+              and priceRule.parkingLotId = :parkingLotId
               and priceRule.pricePlanId = :pricePlanId
               and priceRule.vehicleTypeId = :vehicleTypeId
               and priceRule.ticketTypeId = :ticketTypeId
               and (:excludedPriceRuleId is null or priceRule.priceRuleId <> :excludedPriceRuleId)
             """)
     boolean existsActiveCustomerRule(
+            @Param("parkingLotId") UUID parkingLotId,
             @Param("pricePlanId") UUID pricePlanId,
             @Param("vehicleTypeId") UUID vehicleTypeId,
             @Param("ticketTypeId") UUID ticketTypeId,
@@ -130,6 +135,27 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
             UUID canonicalVehicleTypeId, UUID ticketTypeId, UUID organizationId, LocalDate effectiveDate);
 
     @Query("""
+        select priceRule from PriceRuleEntity priceRule
+        join priceRule.pricePlan pricePlan
+        join priceRule.vehicleType vehicleType
+        where priceRule.isActive = true
+          and priceRule.organizationId = :organizationId
+          and priceRule.parkingLotId = :parkingLotId
+          and vehicleType.canonicalVehicleTypeId = :canonicalVehicleTypeId
+          and priceRule.ticketTypeId = :ticketTypeId
+          and priceRule.timeFrom is null and priceRule.timeTo is null
+          and pricePlan.isActive = true
+          and pricePlan.appliesTo = com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo.CUSTOMER
+          and pricePlan.effectiveFrom <= :effectiveDate
+          and (pricePlan.effectiveTo is null or pricePlan.effectiveTo >= :effectiveDate)
+        order by priceRule.priority asc, priceRule.createdAt desc
+        limit 1
+        """)
+    Optional<PriceRuleEntity> findActiveSubscriptionRuleInParkingLot(
+            UUID canonicalVehicleTypeId, UUID ticketTypeId, UUID organizationId,
+            UUID parkingLotId, LocalDate effectiveDate);
+
+    @Query("""
         select priceRule
         from PriceRuleEntity priceRule
         join priceRule.pricePlan pricePlan
@@ -154,6 +180,36 @@ public interface PriceRuleRepository extends JpaRepository<PriceRuleEntity, UUID
         limit 1
         """)
     Optional<PriceRuleEntity> findActiveVisitorRuleByTime(
+            @Param("vehicleTypeId") UUID vehicleTypeId,
+            @Param("effectiveDate") LocalDate effectiveDate,
+            @Param("localTime") LocalTime localTime
+    );
+
+    @Query("""
+        select priceRule
+        from PriceRuleEntity priceRule
+        join priceRule.pricePlan pricePlan
+        join priceRule.ticketType ticketType
+        where priceRule.isActive = true
+          and priceRule.parkingLotId = :parkingLotId
+          and priceRule.vehicleTypeId = :vehicleTypeId
+          and ticketType.code = 'DAILY'
+          and priceRule.timeFrom is not null
+          and priceRule.timeTo is not null
+          and pricePlan.isActive = true
+          and pricePlan.appliesTo = com.ban.vehicle_management.shared.enumeration.catalog.PricePlanAppliesTo.VISITOR
+          and pricePlan.effectiveFrom <= :effectiveDate
+          and (pricePlan.effectiveTo is null or pricePlan.effectiveTo >= :effectiveDate)
+          and (
+              (priceRule.timeFrom < priceRule.timeTo and priceRule.timeFrom <= :localTime and priceRule.timeTo >= :localTime)
+              or
+              (priceRule.timeFrom > priceRule.timeTo and (priceRule.timeFrom <= :localTime or priceRule.timeTo >= :localTime))
+          )
+        order by priceRule.priority asc, priceRule.createdAt desc
+        limit 1
+        """)
+    Optional<PriceRuleEntity> findActiveVisitorRuleByTimeInParkingLot(
+            @Param("parkingLotId") UUID parkingLotId,
             @Param("vehicleTypeId") UUID vehicleTypeId,
             @Param("effectiveDate") LocalDate effectiveDate,
             @Param("localTime") LocalTime localTime

@@ -55,6 +55,51 @@ public class CatalogAccessGuard {
         }
     }
 
+    /** Null means platform-wide read; an empty set means no visible parking lot. */
+    public Set<UUID> visibleParkingLotIds() {
+        CurrentAccountAccess account = currentAccountPortIn.getCurrentAccountOrThrow();
+        Set<String> permissions = account.getEffectivePermissionCodes();
+        if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PLATFORM)) {
+            return null;
+        }
+        if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_PARTNER)) {
+            Set<UUID> organizationIds = organizationPortOut.findActiveOrganizationIdsByAccountId(account.accountId());
+            return parkingLotPortOut.findAll(null, null, organizationIds, null).stream()
+                    .map(ParkingLot::getParkingLotId)
+                    .collect(Collectors.toUnmodifiableSet());
+        }
+        if (permissions.contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
+            return Set.copyOf(organizationPortOut.findScopedParkingLotIdsByAccountId(account.accountId()));
+        }
+        throw new AccessDeniedException("Current account has no parking-lot catalog scope");
+    }
+
+    public void ensureReadable(UUID organizationId, UUID parkingLotId) {
+        if (parkingLotId == null) {
+            ensureReadable(organizationId);
+            CurrentAccountAccess account = currentAccountPortIn.getCurrentAccountOrThrow();
+            if (account.getEffectivePermissionCodes().contains(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)) {
+                throw new AccessDeniedException("Assigned parking managers cannot access legacy Partner price rules");
+            }
+            return;
+        }
+        ParkingLot lot = parkingLotPortOut.findById(parkingLotId)
+                .orElseThrow(() -> new AccessDeniedException("Selected parking lot is not accessible"));
+        if (organizationId == null || !organizationId.equals(lot.getOrganizationId())) {
+            throw new AccessDeniedException("Catalog item does not belong to the selected parking lot Partner");
+        }
+        Set<UUID> visible = visibleParkingLotIds();
+        if (visible != null && !visible.contains(parkingLotId)) {
+            throw new AccessDeniedException("Current account cannot access this parking-lot catalog item");
+        }
+    }
+
+    public void ensureReadableParkingLot(UUID parkingLotId) {
+        ParkingLot lot = parkingLotPortOut.findById(parkingLotId)
+                .orElseThrow(() -> new AccessDeniedException("Selected parking lot is not accessible"));
+        ensureReadable(lot.getOrganizationId(), parkingLotId);
+    }
+
     /** Shared Partner catalog writes need exactly one owning organization. */
     public UUID writableOrganizationId() {
         CurrentAccountAccess account = currentAccountPortIn.getCurrentAccountOrThrow();
@@ -75,7 +120,7 @@ public class CatalogAccessGuard {
         if (parkingLotId == null) return writableOrganizationId();
         ParkingLot lot = parkingLotPortOut.findById(parkingLotId)
                 .orElseThrow(() -> new AccessDeniedException("Selected parking lot is not accessible"));
-        ensureWritable(lot.getOrganizationId());
+        ensureWritable(lot.getOrganizationId(), parkingLotId);
         return lot.getOrganizationId();
     }
 

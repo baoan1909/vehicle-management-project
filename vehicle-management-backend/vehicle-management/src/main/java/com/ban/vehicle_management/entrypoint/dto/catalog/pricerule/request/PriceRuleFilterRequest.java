@@ -4,6 +4,7 @@ import com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleSta
 import java.util.UUID;
 
 public record PriceRuleFilterRequest(
+        UUID parkingLotId,
         UUID pricePlanId,
         UUID vehicleTypeId,
         UUID ticketTypeId,
@@ -12,6 +13,6 @@ public record PriceRuleFilterRequest(
         CatalogLifecycleStatus lifecycleStatus
 ) {
     public PriceRuleFilterRequest(UUID pricePlanId, UUID vehicleTypeId, UUID ticketTypeId, Boolean isActive, String keyword) {
-        this(pricePlanId, vehicleTypeId, ticketTypeId, isActive, keyword, null);
+        this(null, pricePlanId, vehicleTypeId, ticketTypeId, isActive, keyword, null);
     }
 }

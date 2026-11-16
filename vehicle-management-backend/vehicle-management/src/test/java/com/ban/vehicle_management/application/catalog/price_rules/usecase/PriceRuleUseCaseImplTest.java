@@ -42,6 +42,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PriceRuleUseCaseImplTest {
 
     private static final UUID ORGANIZATION_ID = UUID.fromString("00000000-0000-0000-0000-000000009011");
+    private static final UUID PARKING_LOT_ID = UUID.fromString("00000000-0000-0000-0000-000000009012");
 
     @Mock
     private CurrentAccountPortIn currentAccountPortIn;
@@ -57,7 +58,7 @@ class PriceRuleUseCaseImplTest {
 
     @BeforeEach
     void setUp() {
-        lenient().when(catalogAccessGuard.writableOrganizationId()).thenReturn(ORGANIZATION_ID);
+        lenient().when(catalogAccessGuard.writableOrganizationId(PARKING_LOT_ID)).thenReturn(ORGANIZATION_ID);
         VehicleType vehicleType = new VehicleType();
         vehicleType.setOrganizationId(ORGANIZATION_ID);
         vehicleType.setIsActive(true);
@@ -112,6 +113,7 @@ class PriceRuleUseCaseImplTest {
         assertNotNull(createdPriceRule.getPriceRuleId());
         assertEquals(Boolean.FALSE, createdPriceRule.getIsActive());
         assertEquals(com.ban.vehicle_management.shared.enumeration.catalog.CatalogLifecycleStatus.DRAFT, createdPriceRule.getLifecycleStatus());
+        verify(catalogAccessGuard).writableOrganizationId(PARKING_LOT_ID);
     }
 
     @Test
@@ -160,6 +162,7 @@ class PriceRuleUseCaseImplTest {
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
         when(priceRulePortOut.existsActiveVisitorTimeOverlap(
+                request.getParkingLotId(),
                 request.getPricePlanId(),
                 request.getVehicleTypeId(),
                 request.getTicketTypeId(),
@@ -217,6 +220,7 @@ class PriceRuleUseCaseImplTest {
 
         when(pricePlanPortOut.findById(request.getPricePlanId())).thenReturn(Optional.of(pricePlan));
         when(priceRulePortOut.existsActiveCustomerRule(
+                request.getParkingLotId(),
                 request.getPricePlanId(),
                 request.getVehicleTypeId(),
                 request.getTicketTypeId(),
@@ -259,6 +263,7 @@ class PriceRuleUseCaseImplTest {
     private PriceRule validVisitorPriceRule() {
         PriceRule priceRule = new PriceRule();
         priceRule.setOrganizationId(ORGANIZATION_ID);
+        priceRule.setParkingLotId(PARKING_LOT_ID);
         priceRule.setPricePlanId(UUID.randomUUID());
         priceRule.setVehicleTypeId(UUID.randomUUID());
         priceRule.setTicketTypeId(UUID.randomUUID());
@@ -275,6 +280,7 @@ class PriceRuleUseCaseImplTest {
     private PriceRule validCustomerPriceRule() {
         PriceRule priceRule = new PriceRule();
         priceRule.setOrganizationId(ORGANIZATION_ID);
+        priceRule.setParkingLotId(PARKING_LOT_ID);
         priceRule.setPricePlanId(UUID.randomUUID());
         priceRule.setVehicleTypeId(UUID.randomUUID());
         priceRule.setTicketTypeId(UUID.randomUUID());

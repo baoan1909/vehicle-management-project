@@ -79,12 +79,13 @@ public class PublicParkingLotCatalogUseCaseImpl implements PublicParkingLotCatal
     ) {
         if (parkingLotId == null) return List.of();
         List<PriceRule> rules = priceRulePortOut.findAll(
+                parkingLotId,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
                 true,
                 keyword,
-                Set.of(resolveOrganizationId(parkingLotId))
+                Set.of(parkingLotId)
         );
         java.time.LocalDate today = com.ban.vehicle_management.shared.utils.DateTimeUtils.toVietnamLocalDate(java.time.Instant.now());
         Set<UUID> effectivePlans = pricePlanPortOut.findAll(true, null, today, null,

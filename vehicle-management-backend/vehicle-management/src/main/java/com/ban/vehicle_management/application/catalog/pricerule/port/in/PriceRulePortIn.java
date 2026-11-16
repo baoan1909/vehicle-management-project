@@ -6,13 +6,22 @@ import java.util.List;
 import java.util.UUID;
 
 public interface PriceRulePortIn {
-    List<PriceRule> getPriceRules(UUID pricePlanId, UUID vehicleTypeId, UUID ticketTypeId, Boolean isActive, String keyword, CatalogLifecycleStatus lifecycleStatus);
+    List<PriceRule> getPriceRules(
+            UUID parkingLotId,
+            UUID pricePlanId,
+            UUID vehicleTypeId,
+            UUID ticketTypeId,
+            Boolean isActive,
+            String keyword,
+            CatalogLifecycleStatus lifecycleStatus
+    );
 
     PriceRule createPriceRule(PriceRule priceRule);
 
     PriceRule getPriceRuleById(UUID priceRuleId);
 
     List<PriceRule> getPriceRules(
+            UUID parkingLotId,
             UUID pricePlanId,
             UUID vehicleTypeId,
             UUID ticketTypeId,

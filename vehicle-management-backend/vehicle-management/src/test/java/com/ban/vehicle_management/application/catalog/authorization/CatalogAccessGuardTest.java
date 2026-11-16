@@ -117,6 +117,31 @@ class CatalogAccessGuardTest {
     }
 
     @Test
+    void managerCanReadOnlyAssignedParkingLotPriceRules() {
+        UUID accountId = UUID.randomUUID();
+        UUID assignedLotId = UUID.randomUUID();
+        UUID unassignedLotId = UUID.randomUUID();
+        UUID partnerId = UUID.randomUUID();
+        ParkingLot assignedLot = new ParkingLot();
+        assignedLot.setParkingLotId(assignedLotId);
+        assignedLot.setOrganizationId(partnerId);
+        ParkingLot unassignedLot = new ParkingLot();
+        unassignedLot.setParkingLotId(unassignedLotId);
+        unassignedLot.setOrganizationId(partnerId);
+        when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account(accountId,
+                Set.of(OrganizationAccessGuard.PARKING_SCOPE_ASSIGNED)));
+        when(organizationPortOut.findScopedParkingLotIdsByAccountId(accountId)).thenReturn(Set.of(assignedLotId));
+        when(parkingLotPortOut.findById(assignedLotId)).thenReturn(Optional.of(assignedLot));
+        when(parkingLotPortOut.findById(unassignedLotId)).thenReturn(Optional.of(unassignedLot));
+
+        assertEquals(Set.of(assignedLotId), guard.visibleParkingLotIds());
+        assertEquals(partnerId, guard.writableOrganizationId(assignedLotId));
+        assertDoesNotThrow(() -> guard.ensureReadable(partnerId, assignedLotId));
+        assertThrows(AccessDeniedException.class, () -> guard.ensureReadable(partnerId, unassignedLotId));
+        assertThrows(AccessDeniedException.class, () -> guard.ensureReadable(partnerId, null));
+    }
+
+    @Test
     void platformCanReadAllButCannotWritePartnerCatalog() {
         when(currentAccountPortIn.getCurrentAccountOrThrow()).thenReturn(account(UUID.randomUUID(),
                 Set.of(OrganizationAccessGuard.PARKING_SCOPE_PLATFORM)));

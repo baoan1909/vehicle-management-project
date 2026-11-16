@@ -112,7 +112,7 @@ public class CustomerReservationUseCaseImpl implements CustomerReservationPortIn
     public List<ReservationOption> findOptions(UUID parkingLotId, UUID vehicleTypeId) {
         requireActiveLotAndVehicle(parkingLotId, vehicleTypeId);
         Instant now = Instant.now();
-        BigDecimal prepaid = quote(now, vehicleTypeId).prepaid();
+        BigDecimal prepaid = quote(now, parkingLotId, vehicleTypeId).prepaid();
         return zones.findAll(parkingLotId, vehicleTypeId, ZoneStatus.ACTIVE, null).stream()
                 .filter(zone -> serves(zone, vehicleTypeId))
                 .map(zone -> option(zone, vehicleTypeId, prepaid, now))
@@ -170,7 +170,7 @@ public class CustomerReservationUseCaseImpl implements CustomerReservationPortIn
                 throw new ConflictException("No reservation capacity is available");
             }
         }
-        PriceQuote price = quote(now, vehicleTypeId);
+        PriceQuote price = quote(now, parkingLotId, vehicleTypeId);
         UUID invoiceId = UUID.randomUUID();
         Invoice invoice = new Invoice();
         invoice.setInvoiceId(invoiceId);
@@ -477,11 +477,13 @@ public class CustomerReservationUseCaseImpl implements CustomerReservationPortIn
                 || vehicleTypeId.equals(zone.getVehicleTypeId());
     }
 
-    private PriceQuote quote(Instant now, UUID vehicleTypeId) {
+    private PriceQuote quote(Instant now, UUID parkingLotId, UUID vehicleTypeId) {
         LocalDate date = DateTimeUtils.toVietnamLocalDate(now);
-        PriceRule day = priceRules.findActiveVisitorRuleByTime(vehicleTypeId, date, LocalTime.NOON)
+        PriceRule day = priceRules.findActiveVisitorRuleByTime(
+                        parkingLotId, vehicleTypeId, date, LocalTime.NOON)
                 .orElseThrow(() -> new NotFoundException("Day visitor price rule not found"));
-        PriceRule night = priceRules.findActiveVisitorRuleByTime(vehicleTypeId, date, LocalTime.MIDNIGHT)
+        PriceRule night = priceRules.findActiveVisitorRuleByTime(
+                        parkingLotId, vehicleTypeId, date, LocalTime.MIDNIGHT)
                 .orElseThrow(() -> new NotFoundException("Night visitor price rule not found"));
         BigDecimal prepaid = day.getBasePrice();
         if (prepaid == null || prepaid.signum() <= 0) {

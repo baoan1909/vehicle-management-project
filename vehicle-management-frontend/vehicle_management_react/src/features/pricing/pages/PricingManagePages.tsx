@@ -7,6 +7,10 @@ import { PaginationFooter } from "@/shared/components/ui/PaginationFooter";
 import { Modal } from "@/shared/components/ui/Modal";
 import { SelectMenu, type SelectMenuOption } from "@/shared/components/ui/SelectMenu";
 import { hasAnyPermission } from "@/shared/auth/permissions";
+import {
+  getParkingLots,
+  type ParkingLotApiResponse,
+} from "@/features/parking/api/parkingLotsApi";
 import { cn } from "@/lib/cn";
 import { getApplicationTimeZone, todayApplicationIsoDate } from "@/shared/time/applicationTime";
 import {
@@ -356,13 +360,17 @@ function mapPriceRule(
   planLookup: Map<string, PricePlanRecord>,
   vehicleTypeLookup: Map<string, VehicleTypeApiResponse>,
   ticketTypeLookup: Map<string, TicketTypeApiResponse>,
+  parkingLotLookup: Map<string, ParkingLotApiResponse>,
 ): PriceRuleRecord {
   const plan = row.pricePlanId ? planLookup.get(row.pricePlanId) : undefined;
   const ticketType = row.ticketTypeId ? ticketTypeLookup.get(row.ticketTypeId) : undefined;
   const vehicleType = row.vehicleTypeId ? vehicleTypeLookup.get(row.vehicleTypeId) : undefined;
+  const parkingLot = row.parkingLotId ? parkingLotLookup.get(row.parkingLotId) : undefined;
 
   return {
     id: row.priceRuleId,
+    parkingLotId: row.parkingLotId ?? "",
+    parkingLotName: parkingLot?.name ?? "Bãi xe không xác định",
     basePrice: toNumber(row.basePrice),
     group: getRuleGroup(row, ticketType),
     isActive: Boolean(row.isActive),
@@ -1653,6 +1661,8 @@ function PriceRuleCreatePanel({
   onCreate,
   onUpdate,
   onDiscard,
+  parkingLotId,
+  parkingLotName,
   plans,
   row,
   ticketTypes,
@@ -1664,6 +1674,8 @@ function PriceRuleCreatePanel({
   onCreate: (payload: CreatePriceRuleRequest) => Promise<void>;
   onUpdate?: (priceRuleId: string, payload: UpdatePriceRuleRequest) => Promise<void>;
   onDiscard?: () => Promise<void>;
+  parkingLotId: string;
+  parkingLotName: string;
   plans: PricePlanRecord[];
   row?: PriceRuleRecord | null;
   ticketTypes: TicketTypeApiResponse[];
@@ -1823,6 +1835,7 @@ function PriceRuleCreatePanel({
     const payload: CreatePriceRuleRequest = {
         basePrice: Number(form.basePrice),
         lostCardFee: Number(form.lostCardFee || 0),
+        parkingLotId: row?.parkingLotId || parkingLotId,
         pricePlanId: form.pricePlanId,
         priority: Number(form.priority || 0),
         ruleName: form.ruleName.trim(),
@@ -1832,6 +1845,12 @@ function PriceRuleCreatePanel({
         unit: isVisitorPlan ? form.unit : "MONTH",
         vehicleTypeId: form.vehicleTypeId
     };
+
+    if (!payload.parkingLotId) {
+      setFormError("Vui lòng chọn bãi xe áp dụng.");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       if (isEditMode && row && onUpdate) {
@@ -1879,6 +1898,13 @@ function PriceRuleCreatePanel({
               {formError}
             </div>
           ) : null}
+
+          <div className="tw-grid tw-gap-2">
+            <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600">Bãi xe áp dụng</span>
+            <div className="tw-rounded-vm-md tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-vm-slate-25 tw-px-3 tw-py-2 tw-text-sm tw-font-bold tw-text-vm-slate-700">
+              {row?.parkingLotName || parkingLotName || "Chưa chọn bãi xe"}
+            </div>
+          </div>
 
           <label className="tw-grid tw-gap-2" {...userGuideAnchorProps("PRICING.RULE.PLAN")}>
             <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600">Kế hoạch giá</span>
@@ -2004,6 +2030,7 @@ function PriceRuleTable({
             <tr>
               <th className="tw-w-10 !tw-pl-[0.8rem]"><CheckButton label="Chọn tất cả quy tắc" /></th>
               <th>Tên quy tắc <HeaderSort /></th>
+              <th>Bãi xe</th>
               <th>Kế hoạch</th>
               <th>Loại xe</th>
               <th>Loại vé</th>
@@ -2027,6 +2054,7 @@ function PriceRuleTable({
               >
                 <td className="tw-w-10 !tw-pl-[0.8rem]" onClick={(event) => event.stopPropagation()}><CheckButton label={`Chọn ${row.ruleName}`} /></td>
                 <td className="tw-max-w-[190px] tw-font-medium tw-text-[#111827]">{row.ruleName}</td>
+                <td className="tw-max-w-[190px] tw-font-semibold tw-text-vm-slate-700">{row.parkingLotName}</td>
                 <td className="tw-font-extrabold tw-text-vm-primary">{row.pricePlanCode}</td>
                 <td>{row.vehicleTypeName}</td>
                 <td><TicketTypeBadge value={row.ticketTypeCode} /></td>
@@ -2356,9 +2384,12 @@ export function PriceRuleListPage() {
   const userGuide = useUserGuide();
   const [records, setRecords] = useState<PriceRuleRecord[]>([]);
   const [plans, setPlans] = useState<PricePlanRecord[]>([]);
+  const [parkingLots, setParkingLots] = useState<ParkingLotApiResponse[]>([]);
+  const [selectedParkingLotId, setSelectedParkingLotId] = useState("");
   const [ticketTypes, setTicketTypes] = useState<TicketTypeApiResponse[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<VehicleTypeApiResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [referencesReady, setReferencesReady] = useState(false);
   const [isCreatePanelOpen, setIsCreatePanelOpen] = useState(false);
   const [isExportDrawerOpen, setIsExportDrawerOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -2374,9 +2405,10 @@ export function PriceRuleListPage() {
   const [statusTarget, setStatusTarget] = useState<PriceRuleRecord | null>(null);
   const [statusChangingId, setStatusChangingId] = useState<string | null>(null);
   const toast = useToast();
-  const canCreate = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]) && hasAnyPermission(user, ["PRICE_RULE_CREATE_ALL"]);
-  const canUpdate = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]) && hasAnyPermission(user, ["PRICE_RULE_UPDATE_ALL"]);
-  const canDelete = hasAnyPermission(user, ["PARKING_SCOPE_PARTNER"]) && hasAnyPermission(user, ["PRICE_RULE_DELETE_ALL"]);
+  const canCreate = hasAnyPermission(user, ["PRICE_RULE_CREATE_ALL"]);
+  const canUpdate = hasAnyPermission(user, ["PRICE_RULE_UPDATE_ALL"]);
+  const canDelete = hasAnyPermission(user, ["PRICE_RULE_DELETE_ALL"]);
+  const hasAssignedParkingScope = hasAnyPermission(user, ["PARKING_SCOPE_ASSIGNED"]);
 
   const priceRuleGuideEnabled = !isLoading && (canCreate || canUpdate || canDelete);
   useUserGuideActivation("PRICE_RULE_SETUP", priceRuleGuideEnabled);
@@ -2399,22 +2431,25 @@ export function PriceRuleListPage() {
     setIsLoading(true);
     Promise.all([
       getPricePlans(),
-      getPriceRules(),
       getPricingVehicleTypes(),
-      getPricingTicketTypes()
+      getPricingTicketTypes(),
+      getParkingLots(),
     ])
-      .then(([planResponse, ruleResponse, vehicleTypeResponse, ticketTypeResponse]) => {
+      .then(([planResponse, vehicleTypeResponse, ticketTypeResponse, parkingLotResponse]) => {
         if (!isMounted) return;
 
         const mappedPlans = planResponse.data.map(mapPricePlan);
-        const planLookup = new Map(mappedPlans.map((plan) => [plan.id, plan]));
-        const vehicleTypeLookup = new Map(vehicleTypeResponse.data.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType]));
-        const ticketTypeLookup = new Map(ticketTypeResponse.data.map((ticketType) => [ticketType.ticketTypeId, ticketType]));
+        const scopedParkingLots = parkingLotResponse.data ?? [];
 
         setPlans(mappedPlans);
+        setParkingLots(scopedParkingLots);
+        setSelectedParkingLotId((current) => {
+          if (scopedParkingLots.some((parkingLot) => parkingLot.parkingLotId === current)) return current;
+          return scopedParkingLots.length === 1 ? scopedParkingLots[0].parkingLotId : "";
+        });
         setVehicleTypes(vehicleTypeResponse.data);
         setTicketTypes(ticketTypeResponse.data);
-        setRecords(ruleResponse.data.map((rule) => mapPriceRule(rule, planLookup, vehicleTypeLookup, ticketTypeLookup)));
+        setReferencesReady(true);
       })
       .catch((error) => {
         if (!isMounted) return;
@@ -2435,13 +2470,75 @@ export function PriceRuleListPage() {
     };
   }, [toast]);
 
+  useEffect(() => {
+    if (!referencesReady) return undefined;
+    if (hasAssignedParkingScope && parkingLots.length > 1 && !selectedParkingLotId) {
+      setRecords([]);
+      setIsLoading(false);
+      return undefined;
+    }
+
+    let isMounted = true;
+    setIsLoading(true);
+    void getPriceRules({ parkingLotId: selectedParkingLotId || undefined })
+      .then((ruleResponse) => {
+        if (!isMounted) return;
+        const planLookup = new Map(plans.map((plan) => [plan.id, plan]));
+        const vehicleTypeLookup = new Map(vehicleTypes.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType]));
+        const ticketTypeLookup = new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType]));
+        const parkingLotLookup = new Map(parkingLots.map((parkingLot) => [parkingLot.parkingLotId, parkingLot]));
+        setRecords(ruleResponse.data.map((rule) => mapPriceRule(
+          rule, planLookup, vehicleTypeLookup, ticketTypeLookup, parkingLotLookup,
+        )));
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        toast.error(
+          error instanceof Error ? error.message : "Không thể tải quy tắc giá.",
+          "Tải dữ liệu thất bại",
+        );
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [
+    hasAssignedParkingScope,
+    parkingLots,
+    plans,
+    referencesReady,
+    selectedParkingLotId,
+    ticketTypes,
+    toast,
+    vehicleTypes,
+  ]);
+
   const dynamicPricePlanOptions = useMemo(() => buildPricePlanOptions(plans), [plans]);
   const dynamicVehicleTypeOptions = useMemo(() => buildVehicleTypeOptions(vehicleTypes), [vehicleTypes]);
   const dynamicTicketTypeOptions = useMemo(() => buildTicketTypeOptions(ticketTypes), [ticketTypes]);
+  const parkingLotOptions = useMemo<SelectMenuOption[]>(() => [
+    {
+      label: hasAssignedParkingScope && parkingLots.length > 1 ? "Chọn bãi xe" : "Tất cả bãi xe",
+      value: "",
+    },
+    ...parkingLots.map((parkingLot) => ({
+      label: `${parkingLot.code} - ${parkingLot.name}`,
+      value: parkingLot.parkingLotId,
+    })),
+  ], [hasAssignedParkingScope, parkingLots]);
+  const selectedParkingLot = parkingLots.find(
+    (parkingLot) => parkingLot.parkingLotId === selectedParkingLotId,
+  ) ?? null;
 
   const filteredRecords = useMemo(
     () =>
       records.filter((row) => {
+        const matchesParkingLot = selectedParkingLotId
+          ? row.parkingLotId === selectedParkingLotId
+          : !(hasAssignedParkingScope && parkingLots.length > 1);
         const matchesGroup = activeGroup === "all" ? true : row.group === activeGroup;
         const matchesPlan = planValue === "all" ? true : row.pricePlanId === planValue;
         const matchesVehicle = vehicleTypeValue === "all" ? true : row.vehicleTypeId === vehicleTypeValue;
@@ -2449,15 +2546,33 @@ export function PriceRuleListPage() {
         const matchesStatus = statusValue === "all" ? true : row.status === statusValue;
 
         return (
+          matchesParkingLot &&
           matchesGroup &&
           matchesPlan &&
           matchesVehicle &&
           matchesTicket &&
           matchesStatus &&
-          matchesText([row.ruleName, row.pricePlanCode, row.vehicleTypeName, row.ticketTypeCode], searchValue)
+          matchesText([
+            row.parkingLotName,
+            row.ruleName,
+            row.pricePlanCode,
+            row.vehicleTypeName,
+            row.ticketTypeCode,
+          ], searchValue)
         );
       }),
-    [activeGroup, planValue, records, searchValue, statusValue, ticketTypeValue, vehicleTypeValue],
+    [
+      activeGroup,
+      hasAssignedParkingScope,
+      parkingLots.length,
+      planValue,
+      records,
+      searchValue,
+      selectedParkingLotId,
+      statusValue,
+      ticketTypeValue,
+      vehicleTypeValue,
+    ],
   );
 
   const page = getPageItems(filteredRecords, currentPage, pageSize);
@@ -2485,7 +2600,10 @@ export function PriceRuleListPage() {
     const planLookup = new Map(plans.map((plan) => [plan.id, plan]));
     const vehicleTypeLookup = new Map(vehicleTypes.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType]));
     const ticketTypeLookup = new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType]));
-    const createdRecord = mapPriceRule(response.data, planLookup, vehicleTypeLookup, ticketTypeLookup);
+    const parkingLotLookup = new Map(parkingLots.map((parkingLot) => [parkingLot.parkingLotId, parkingLot]));
+    const createdRecord = mapPriceRule(
+      response.data, planLookup, vehicleTypeLookup, ticketTypeLookup, parkingLotLookup,
+    );
 
     setRecords((currentRecords) => [createdRecord, ...currentRecords]);
     setStatusValue("draft");
@@ -2498,7 +2616,10 @@ export function PriceRuleListPage() {
     const planLookup = new Map(plans.map((plan) => [plan.id, plan]));
     const vehicleTypeLookup = new Map(vehicleTypes.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType]));
     const ticketTypeLookup = new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType]));
-    const updatedRecord = mapPriceRule(response.data, planLookup, vehicleTypeLookup, ticketTypeLookup);
+    const parkingLotLookup = new Map(parkingLots.map((parkingLot) => [parkingLot.parkingLotId, parkingLot]));
+    const updatedRecord = mapPriceRule(
+      response.data, planLookup, vehicleTypeLookup, ticketTypeLookup, parkingLotLookup,
+    );
 
     setRecords((currentRecords) => currentRecords.map((record) => (record.id === updatedRecord.id ? updatedRecord : record)));
     toast.success(response.message || "Cập nhật quy tắc giá thành công.", "Cập nhật thành công");
@@ -2525,7 +2646,10 @@ export function PriceRuleListPage() {
         const planLookup = new Map(plans.map((plan) => [plan.id, plan]));
         const vehicleTypeLookup = new Map(vehicleTypes.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType]));
         const ticketTypeLookup = new Map(ticketTypes.map((ticketType) => [ticketType.ticketTypeId, ticketType]));
-        const activatedRecord = mapPriceRule(response.data, planLookup, vehicleTypeLookup, ticketTypeLookup);
+        const parkingLotLookup = new Map(parkingLots.map((parkingLot) => [parkingLot.parkingLotId, parkingLot]));
+        const activatedRecord = mapPriceRule(
+          response.data, planLookup, vehicleTypeLookup, ticketTypeLookup, parkingLotLookup,
+        );
 
         setRecords((currentRecords) =>
           currentRecords.map((record) => (record.id === activatedRecord.id ? activatedRecord : record)),
@@ -2562,9 +2686,34 @@ export function PriceRuleListPage() {
         guideCode="PRICE_RULE_SETUP"
         guideEnabled={priceRuleGuideEnabled}
         title="Quy tắc giá"
-        onCreateClick={canCreate ? () => setIsCreatePanelOpen(true) : undefined}
+        onCreateClick={canCreate && Boolean(selectedParkingLotId)
+          ? () => setIsCreatePanelOpen(true)
+          : undefined}
         onExportClick={() => setIsExportDrawerOpen(true)}
       />
+      <section className="tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-p-4 tw-shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+        <label className="tw-grid tw-max-w-xl tw-gap-2">
+          <span className="tw-text-[0.82rem] tw-font-extrabold tw-text-vm-slate-600">Bãi xe áp dụng quy tắc giá</span>
+          <SelectMenu
+            ariaLabel="Bãi xe áp dụng quy tắc giá"
+            disabled={hasAssignedParkingScope && parkingLots.length === 1}
+            options={parkingLotOptions}
+            value={selectedParkingLotId}
+            onChange={(value) => {
+              setSelectedParkingLotId(value);
+              setSelectedId(null);
+              setIsCreatePanelOpen(false);
+              setIsDetailPanelOpen(false);
+              setCurrentPage(1);
+            }}
+          />
+        </label>
+        {!selectedParkingLotId && canCreate ? (
+          <p className="tw-m-0 tw-mt-2 tw-text-sm tw-font-semibold tw-text-amber-700">
+            Vui lòng chọn một bãi xe trước khi tạo quy tắc giá.
+          </p>
+        ) : null}
+      </section>
       {records.some((row) => row.status === "draft") ? <div role="status" className="tw-rounded-vm-md tw-bg-amber-50 tw-p-3 tw-text-amber-900">Có {records.filter((row) => row.status === "draft").length} quy tắc giá nháp chưa áp dụng. <button type="button" onClick={() => { setStatusValue("draft"); setCurrentPage(1); }}>Xem nháp</button></div> : null}
       <MetricGrid items={buildPriceRuleMetrics(records)} />
       <main className="tw-min-w-0 tw-overflow-hidden tw-rounded-vm-lg tw-border tw-border-solid tw-border-vm-slate-100 tw-bg-white tw-shadow-[0_14px_36px_rgba(15,23,42,0.05)]">
@@ -2634,6 +2783,8 @@ export function PriceRuleListPage() {
       <PriceRuleCreatePanel
         canSubmit={canCreate}
         isOpen={isCreatePanelOpen}
+        parkingLotId={selectedParkingLotId}
+        parkingLotName={selectedParkingLot?.name ?? ""}
         plans={plans}
         row={null}
         ticketTypes={ticketTypes}
@@ -2653,6 +2804,8 @@ export function PriceRuleListPage() {
         } : undefined}
         canSubmit={canUpdate}
         isOpen={isDetailPanelOpen && Boolean(selectedRecord)}
+        parkingLotId={selectedRecord?.parkingLotId ?? selectedParkingLotId}
+        parkingLotName={selectedRecord?.parkingLotName ?? selectedParkingLot?.name ?? ""}
         plans={plans}
         row={selectedRecord}
         ticketTypes={ticketTypes}

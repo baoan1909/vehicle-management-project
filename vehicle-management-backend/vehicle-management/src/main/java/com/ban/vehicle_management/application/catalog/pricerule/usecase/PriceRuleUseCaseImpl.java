@@ -32,8 +32,16 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
 
     @Override
     @Transactional(readOnly = true)
-    public List<PriceRule> getPriceRules(UUID pricePlanId, UUID vehicleTypeId, UUID ticketTypeId, Boolean isActive, String keyword, CatalogLifecycleStatus lifecycleStatus) {
-        return getPriceRules(pricePlanId, vehicleTypeId, ticketTypeId, isActive, keyword).stream()
+    public List<PriceRule> getPriceRules(
+            UUID parkingLotId,
+            UUID pricePlanId,
+            UUID vehicleTypeId,
+            UUID ticketTypeId,
+            Boolean isActive,
+            String keyword,
+            CatalogLifecycleStatus lifecycleStatus
+    ) {
+        return getPriceRules(parkingLotId, pricePlanId, vehicleTypeId, ticketTypeId, isActive, keyword).stream()
                 .filter(item -> lifecycleStatus == null || item.getLifecycleStatus() == lifecycleStatus)
                 .toList();
     }
@@ -77,9 +85,12 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
     @Transactional
     public PriceRule createPriceRule(PriceRule priceRule) {
         currentAccountPortIn.requirePermission(CREATE);
+        if (priceRule.getParkingLotId() == null) {
+            throw new BadRequestException("parkingLotId is required for a price rule");
+        }
         priceRule.setLifecycleStatus(CatalogLifecycleStatus.DRAFT);
         priceRulePolicy.initialize(priceRule);
-        priceRule.setOrganizationId(catalogAccessGuard.writableOrganizationId());
+        priceRule.setOrganizationId(catalogAccessGuard.writableOrganizationId(priceRule.getParkingLotId()));
 
         PricePlan pricePlan = getPricePlan(priceRule.getPricePlanId(), false);
         validateSameOrganization(priceRule.getOrganizationId(), pricePlan.getOrganizationId());
@@ -101,13 +112,14 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
         currentAccountPortIn.requirePermission(READ);
         PriceRule rule = priceRulePortOut.findById(priceRuleId)
                 .orElseThrow(() -> new NotFoundException("Price rule not found"));
-        catalogAccessGuard.ensureReadable(rule.getOrganizationId());
+        catalogAccessGuard.ensureReadable(rule.getOrganizationId(), rule.getParkingLotId());
         return rule;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PriceRule> getPriceRules(
+            UUID parkingLotId,
             UUID pricePlanId,
             UUID vehicleTypeId,
             UUID ticketTypeId,
@@ -115,13 +127,17 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
             String keyword
     ) {
         currentAccountPortIn.requirePermission(READ);
+        if (parkingLotId != null) {
+            catalogAccessGuard.ensureReadableParkingLot(parkingLotId);
+        }
         return priceRulePortOut.findAll(
+                parkingLotId,
                 pricePlanId,
                 vehicleTypeId,
                 ticketTypeId,
                 isActive,
                 normalizeKeyword(keyword),
-                catalogAccessGuard.visibleOrganizationIds()
+                catalogAccessGuard.visibleParkingLotIds()
         );
     }
 
@@ -130,7 +146,9 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
     public PriceRule updatePriceRule(UUID priceRuleId, PriceRule priceRule) {
         currentAccountPortIn.requirePermission(UPDATE);
         PriceRule existingPriceRule = getPriceRuleById(priceRuleId);
-        catalogAccessGuard.ensureWritable(existingPriceRule.getOrganizationId());
+        ensureParkingLotScoped(existingPriceRule);
+        catalogAccessGuard.ensureWritable(
+                existingPriceRule.getOrganizationId(), existingPriceRule.getParkingLotId());
 
         if (priceRulePortOut.hasUsage(priceRuleId)) {
             throw new ConflictException("Used price rule cannot be updated; create a new price rule instead");
@@ -168,7 +186,9 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
     public void deletePriceRule(UUID priceRuleId) {
         currentAccountPortIn.requirePermission(DELETE);
         PriceRule existingPriceRule = getPriceRuleById(priceRuleId);
-        catalogAccessGuard.ensureWritable(existingPriceRule.getOrganizationId());
+        ensureParkingLotScoped(existingPriceRule);
+        catalogAccessGuard.ensureWritable(
+                existingPriceRule.getOrganizationId(), existingPriceRule.getParkingLotId());
 
         if (existingPriceRule.getLifecycleStatus() == CatalogLifecycleStatus.INACTIVE) {
             return;
@@ -184,7 +204,9 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
     public PriceRule activatePriceRule(UUID priceRuleId) {
         currentAccountPortIn.requirePermission(UPDATE);
         PriceRule existingPriceRule = getPriceRuleById(priceRuleId);
-        catalogAccessGuard.ensureWritable(existingPriceRule.getOrganizationId());
+        ensureParkingLotScoped(existingPriceRule);
+        catalogAccessGuard.ensureWritable(
+                existingPriceRule.getOrganizationId(), existingPriceRule.getParkingLotId());
 
         priceRulePolicy.activate(existingPriceRule);
 
@@ -283,6 +305,7 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
 
         if (Boolean.TRUE.equals(priceRule.getIsActive())
                 && priceRulePortOut.existsActiveVisitorTimeOverlap(
+                priceRule.getParkingLotId(),
                 priceRule.getPricePlanId(),
                 priceRule.getVehicleTypeId(),
                 priceRule.getTicketTypeId(),
@@ -317,6 +340,7 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
 
         if (Boolean.TRUE.equals(priceRule.getIsActive())
                 && priceRulePortOut.existsActiveCustomerRule(
+                priceRule.getParkingLotId(),
                 priceRule.getPricePlanId(),
                 priceRule.getVehicleTypeId(),
                 priceRule.getTicketTypeId(),
@@ -329,6 +353,12 @@ public class PriceRuleUseCaseImpl implements PriceRulePortIn {
     private void validateWholeSecondTime(PriceRule priceRule) {
         validateWholeSecond(priceRule.getTimeFrom(), "timeFrom");
         validateWholeSecond(priceRule.getTimeTo(), "timeTo");
+    }
+
+    private void ensureParkingLotScoped(PriceRule priceRule) {
+        if (priceRule.getParkingLotId() == null) {
+            throw new ConflictException("Legacy Partner price rule is read-only");
+        }
     }
 
     private void validateWholeSecond(LocalTime time, String fieldName) {

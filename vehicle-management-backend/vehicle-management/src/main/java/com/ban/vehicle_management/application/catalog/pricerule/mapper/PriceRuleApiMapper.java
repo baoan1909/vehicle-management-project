@@ -15,6 +15,7 @@ import org.mapstruct.Mapping;
 public interface PriceRuleApiMapper {
 
     @Mapping(target = "priceRuleId", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "isActive", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "createdBy", ignore = true)
@@ -23,6 +24,8 @@ public interface PriceRuleApiMapper {
     PriceRule toDomain(CreatePriceRuleRequest request);
 
     @Mapping(target = "priceRuleId", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
+    @Mapping(target = "parkingLotId", ignore = true)
     @Mapping(target = "pricePlanId", ignore = true)
     @Mapping(target = "isActive", ignore = true)
     @Mapping(target = "createdAt", ignore = true)

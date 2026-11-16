@@ -38,6 +38,7 @@ export type PriceRuleFilter = {
 export type CreatePriceRuleRequest = {
   basePrice: number;
   lostCardFee?: number | null;
+  parkingLotId: string;
   pricePlanId: string;
   priority?: number | null;
   ruleName: string;
@@ -48,7 +49,7 @@ export type CreatePriceRuleRequest = {
   vehicleTypeId: string;
 };
 
-export type UpdatePriceRuleRequest = Omit<CreatePriceRuleRequest, "pricePlanId">;
+export type UpdatePriceRuleRequest = Omit<CreatePriceRuleRequest, "parkingLotId" | "pricePlanId">;
 
 export type PricePlanApiResponse = {
   appliesTo: PricePlanAppliesTo;
@@ -73,6 +74,7 @@ export type PriceRuleApiResponse = {
   isActive: boolean | null;
   lifecycleStatus?: "DRAFT" | "ACTIVE" | "INACTIVE";
   lostCardFee: number | null;
+  parkingLotId: string | null;
   pricePlanId: string | null;
   priceRuleId: string;
   priority: number | null;
